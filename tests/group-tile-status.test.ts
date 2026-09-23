@@ -162,6 +162,19 @@ describe("groupTileStatus", () => {
     ).toBe("waiting");
   });
 
+  it("waits on the group after a reviewer asks for Initial Cut revisions", () => {
+    const sentBack = { initialCutNeedsRevisions: true };
+    expect(groupViewerAttention("ADVISER", "ADVISER_REVIEW", sentBack)).toBe("waiting");
+    expect(groupViewerAttention("EXECUTIVE_PRODUCER", "EXECUTIVE_REVIEW", sentBack)).toBe("waiting");
+    expect(
+      groupViewerAttention("EXECUTIVE_PRODUCER", "ASSOCIATE_REVIEW", {
+        ...sentBack,
+        currentUserId: "ep1",
+        assignedExecutiveProducerUserId: "ep1"
+      })
+    ).toBe("waiting");
+  });
+
   it("treats brainstorming and a-roll as the assigned EP's stage", () => {
     const assigned = {
       currentUserId: "ep1",

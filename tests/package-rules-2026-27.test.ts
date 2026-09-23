@@ -698,14 +698,18 @@ describe("approval chain", () => {
     expect(remainingExecutiveSignoffs(twoOfThree)).toBe(1);
   });
 
-  it("sends a denied package back to draft from any stage", () => {
+  it("keeps a package at the stage that asked for revisions", () => {
     expect(
       applyDecision(state({ stage: "EXECUTIVE_REVIEW" }), { userId: "ep1", role: "EXECUTIVE_PRODUCER" }, false)
-    ).toEqual({ type: "SEND_BACK", stage: "DRAFT" });
+    ).toEqual({ type: "SEND_BACK", stage: "EXECUTIVE_REVIEW" });
+
+    expect(
+      applyDecision(state({ stage: "ADVISER_REVIEW" }), { userId: "adviser", role: "ADVISER" }, false)
+    ).toEqual({ type: "SEND_BACK", stage: "ADVISER_REVIEW" });
 
     expect(
       applyDecision(state(), { userId: "ap", role: "ASSOCIATE_PRODUCER", ownsCategory: true }, false)
-    ).toEqual({ type: "SEND_BACK", stage: "DRAFT" });
+    ).toEqual({ type: "SEND_BACK", stage: "ASSOCIATE_REVIEW" });
   });
 
   it("refuses decisions from actors who cannot act on the stage", () => {

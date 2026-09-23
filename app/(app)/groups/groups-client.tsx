@@ -234,6 +234,7 @@ function attentionFor(
     | "brainstormDocUrl"
     | "aRollBRoll"
     | "aRollHasMedia"
+    | "initialCutNeedsRevisions"
   >
 ) {
   return groupViewerAttention(role, row.approvalStage, {
@@ -247,7 +248,8 @@ function attentionFor(
     proofCount: row.proofs?.length ?? 0,
     brainstormDocUrl: row.brainstormDocUrl ?? "",
     aRollBRoll: row.aRollBRoll,
-    aRollHasMedia: Boolean(row.aRollHasMedia)
+    aRollHasMedia: Boolean(row.aRollHasMedia),
+    initialCutNeedsRevisions: Boolean(row.initialCutNeedsRevisions)
   });
 }
 

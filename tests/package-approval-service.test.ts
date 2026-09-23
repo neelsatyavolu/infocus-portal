@@ -15,7 +15,7 @@ vi.mock("@/src/server/package-stage-comments", () => ({ createStageComment: vi.f
 const notify = vi.hoisted(() => ({ notifyPackageMembersOfDecision: vi.fn(), notifyPackageReview: vi.fn() }));
 vi.mock("@/src/server/package-review-notify", () => notify);
 
-import { approveAnyway, unapproveCut, submitCutReview } from "@/src/server/package-approval-service";
+import { approveAnyway, recordDecision, unapproveCut, submitCutReview } from "@/src/server/package-approval-service";
 
 const actor = { userId: "ap", email: "ap@example.com", role: "ASSOCIATE_PRODUCER" as const };
 const versions = [
@@ -89,20 +89,66 @@ describe("unapproveCut", () => {
   });
 });
 describe("submitCutReview", () => {
-  it("sends the package and current video back together", async () => {
+  it("marks the current video for revisions and keeps the package in Stage 1", async () => {
     db.packageApproval.findUnique.mockResolvedValue({
       id: "approval", stage: "ASSOCIATE_REVIEW", controversial: false, signoffs: []
     });
     db.mediaVersion.findFirst.mockResolvedValue({ id: "v2", approvalStatus: "IN_REVIEW" });
     db.mediaItem.findUnique.mockResolvedValue({ currentVersionId: "v2" });
     await submitCutReview("row", actor, "v2");
-    expect(db.packageApproval.update).toHaveBeenCalledWith({ where: { id: "approval" }, data: { stage: "DRAFT" } });
+    expect(db.packageApproval.update).not.toHaveBeenCalled();
     expect(db.mediaVersion.update).toHaveBeenCalledWith({ where: { id: "v2" }, data: { approvalStatus: "NEEDS_CHANGES" } });
+    expect(notify.notifyPackageMembersOfDecision).toHaveBeenCalledWith(expect.objectContaining({ kind: "sent-back" }));
   });
   it("rejects a review of an older version without changing anything", async () => {
     db.mediaVersion.findFirst.mockResolvedValue({ id: "v1", approvalStatus: "IN_REVIEW" });
     await expect(submitCutReview("row", actor, "v1")).rejects.toThrow("BAD_REQUEST");
     expect(db.$transaction).not.toHaveBeenCalled();
+  });
+});
+describe("recordDecision", () => {
+  it("keeps a Stage 2 send-back with the adviser", async () => {
+    db.packageApproval.findUnique.mockResolvedValue({
+      id: "approval", stage: "ADVISER_REVIEW", controversial: false, signoffs: signoffs.slice(0, 1)
+    });
+    db.mediaItem.findUnique.mockResolvedValue({ currentVersionId: "v2" });
+    db.user.findUnique.mockResolvedValue({ name: "Otto", nickname: null, email: "adviser@example.edu" });
+    const adviser = { userId: "adviser", email: "adviser@example.edu", role: "ADVISER" as const };
+    await expect(recordDecision("row", adviser, false, "Needs revisions", "v2")).resolves.toEqual({
+      type: "SEND_BACK", stage: "ADVISER_REVIEW"
+    });
+    expect(db.packageApproval.update).not.toHaveBeenCalled();
+    expect(db.packageApprovalSignoff.deleteMany).not.toHaveBeenCalled();
+    expect(db.mediaVersion.update).toHaveBeenCalledWith({ where: { id: "v2" }, data: { approvalStatus: "NEEDS_CHANGES" } });
+  });
+  it("keeps a Stage 3 send-back on record while clearing earlier exec votes", async () => {
+    db.packageApproval.findUnique.mockResolvedValue({
+      id: "approval", stage: "EXECUTIVE_REVIEW", controversial: false, signoffs: signoffs.slice(0, 3)
+    });
+    db.mediaItem.findUnique.mockResolvedValue({ currentVersionId: "v2" });
+    db.user.findUnique.mockResolvedValue({ name: "Sage", nickname: null, email: "ep2@example.com" });
+    const ep = { userId: "ep2", email: "ep2@example.com", role: "EXECUTIVE_PRODUCER" as const };
+    await expect(recordDecision("row", ep, false, "Needs revisions", "v2")).resolves.toMatchObject({ type: "SEND_BACK" });
+    expect(db.packageApprovalSignoff.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ stage: "EXECUTIVE_REVIEW", approved: false, userId: "ep2" })
+    });
+    expect(db.packageApprovalSignoff.deleteMany.mock.invocationCallOrder[0])
+      .toBeLessThan(db.packageApprovalSignoff.create.mock.invocationCallOrder[0]);
+    expect(db.packageApprovalSignoff.deleteMany).toHaveBeenCalledWith({
+      where: { approvalId: "approval", stage: "EXECUTIVE_REVIEW" }
+    });
+    expect(db.packageApproval.update).not.toHaveBeenCalled();
+  });
+  it("approving after a send-back moves the latest version to the next stage", async () => {
+    db.packageApproval.findUnique.mockResolvedValue({
+      id: "approval", stage: "ASSOCIATE_REVIEW", controversial: false,
+      signoffs: [{ userId: "ap", stage: "ASSOCIATE_REVIEW", approved: false, createdAt: new Date("2026-09-04") }]
+    });
+    db.mediaItem.findUnique.mockResolvedValue({ currentVersionId: "v2" });
+    db.user.findUnique.mockResolvedValue({ name: "Abby", nickname: null, email: "ap@example.com" });
+    await expect(recordDecision("row", actor, true, "", "v2")).resolves.toEqual({ type: "ADVANCE", stage: "ADVISER_REVIEW" });
+    expect(db.packageApproval.update).toHaveBeenCalledWith({ where: { id: "approval" }, data: { stage: "ADVISER_REVIEW" } });
+    expect(db.mediaVersion.update).toHaveBeenCalledWith({ where: { id: "v2" }, data: { approvalStatus: "APPROVED" } });
   });
 });
 describe("approveAnyway", () => {

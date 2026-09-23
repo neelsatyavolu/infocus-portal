@@ -2392,7 +2392,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                       disabled={statusUpdating || submittingPackageReview || currentVersion?.id !== versions[0]?.id}
                       onClick={() => setApproveFeedbackOpen(true)}
                     >
-                      Approve
+                      {currentVersion?.approvalStatus === "NEEDS_CHANGES" ? "Approve anyway" : "Approve"}
                     </Button>
                   ) : null}
                   {packageReview.canApproveAnyway ? (

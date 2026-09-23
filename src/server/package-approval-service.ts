@@ -288,6 +288,13 @@ export async function recordDecision(
     if (approval.stage === "ASSOCIATE_REVIEW") {
       await recordAssociateReviewHistory({ rowId: progressRowId, stage: "initial-cut", kind: "review", actorId: actor.userId, note }, tx);
     }
+    // A Stage 3 send-back clears earlier exec votes so the next version needs
+    // fresh sign-offs. Clear them before recording this one so it survives.
+    if (decision.type === "SEND_BACK" && approval.stage === "EXECUTIVE_REVIEW") {
+      await tx.packageApprovalSignoff.deleteMany({
+        where: { approvalId: approval.id, stage: "EXECUTIVE_REVIEW" }
+      });
+    }
     await tx.packageApprovalSignoff.create({
       data: {
         approvalId: approval.id,
@@ -314,16 +321,8 @@ export async function recordDecision(
       }
     }
 
+    // The package stays at this stage; the next upload comes back here.
     if (decision.type === "SEND_BACK") {
-      await tx.packageApprovalSignoff.deleteMany({
-        where: { approvalId: approval.id, stage: "EXECUTIVE_REVIEW" }
-      });
-
-      await tx.packageApproval.update({
-        where: { id: approval.id },
-        data: { stage: "DRAFT" }
-      });
-
       await tx.packageProgressRow.update({
         where: { id: progressRowId },
         data: { awaitingRevisedInitialCut: false }

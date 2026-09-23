@@ -472,7 +472,7 @@ export function StageWorkspace({
     slug === "initial-cut"
       ? view.row?.awaitingRevisedInitialCut && !view.row.initialCutNeedsRevisions
         ? "Approved in Stage 1 · Awaiting revised upload"
-        : approvalProgressLabel(view.row?.approvalStage, remainingExecs)
+        : approvalProgressLabel(view.row?.initialCutNeedsRevisions ? "DRAFT" : view.row?.approvalStage, remainingExecs)
       : null;
   const approvalPill = slug === "initial-cut" ? approvalStagePillLabel(view.row?.approvalStage) : null;
   const stageStatus: CycleStageStatus | null = view.row
@@ -852,7 +852,7 @@ export function StageWorkspace({
                 Submit review (needs revisions)
               </Button>
               <Button type="button" disabled={approving} onClick={() => setApproveKind("cut")}>
-                Approve
+                {view.row.initialCutNeedsRevisions ? "Approve anyway" : "Approve"}
               </Button>
             </>
           ) : null}

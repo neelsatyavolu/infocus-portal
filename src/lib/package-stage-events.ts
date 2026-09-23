@@ -224,7 +224,7 @@ export function approvalDecisionMail(input: {
       paragraphs: [
         `${reviewer} sent ${label} back for revisions.`,
         excerpt,
-        "Upload a new Initial Cut to start the approval chain again."
+        "Upload a new Initial Cut version. It goes back to the same stage for review."
       ].filter((paragraph): paragraph is string => Boolean(paragraph)),
       ctaLabel: "Open Initial Cut",
       pushTitle: "Package sent back",

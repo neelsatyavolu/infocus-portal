@@ -124,6 +124,8 @@ export type GroupViewerAttentionInput = {
   brainstormDocUrl?: string;
   aRollBRoll?: boolean;
   aRollHasMedia?: boolean;
+  /** The reviewing stage asked for revisions; the group owes a new upload. */
+  initialCutNeedsRevisions?: boolean;
 };
 
 export function approvalStageToReviewStage(stage?: string | null): 1 | 2 | 3 | null {
@@ -172,7 +174,7 @@ export function groupViewerAttention(
   extra: GroupViewerAttentionInput = {}
 ): "needed" | "waiting" | null {
   if (role === "ADVISER") {
-    return approvalStage === "ADVISER_REVIEW" ? "needed" : "waiting";
+    return approvalStage === "ADVISER_REVIEW" && !extra.initialCutNeedsRevisions ? "needed" : "waiting";
   }
   if (role === "EXECUTIVE_PRODUCER" || role === "SUPER_ADMIN") {
     const assignedToViewer = isAssignedPackageProducer(extra, extra.currentUserId);
@@ -184,6 +186,7 @@ export function groupViewerAttention(
     if (assignedToViewer && extra.aRollBRoll === false) {
       return extra.aRollHasMedia ? "needed" : null;
     }
+    if (extra.initialCutNeedsRevisions && approvalStage !== "APPROVED") return "waiting";
     if (approvalStage === "ASSOCIATE_REVIEW" && assignedToViewer) return "needed";
     if (approvalStage === "EXECUTIVE_REVIEW") return "needed";
     if (approvalStage === "APPROVED" && extra.finalCutHasMedia && !extra.queuedForAir) {

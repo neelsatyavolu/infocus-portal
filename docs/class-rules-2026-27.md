@@ -22,7 +22,7 @@ Stages, in order — no stage may be skipped:
 1. Package Pitching
 2. Brainstorming & Proof of Contact
 3. A-roll/B-roll
-4. Initial Cut (Stage 1 approval sends the latest cut straight to stage 2; the adviser decides whether it needs a revision. After sending it back, the Stage 1 producer can still use **Approve anyway** to send the latest version on)
+4. Initial Cut (approving a stage sends the latest cut to the next stage. Needs revisions keeps the package at that stage: the group uploads a new version and the same stage reviews it again. After sending it back, the reviewer can still use **Approve anyway** to send the latest version on)
 5. Final Cut
 
 Cycle count is configurable in `/admin` or via **Edit Cycles** on `/package-cycles` (default 3, `ProgramSetting.cyclesPerSemester`). Stage dates live on `/package-cycles`.
@@ -74,7 +74,7 @@ Sign-offs record `mediaItemId` so it is clear which cut each reviewer saw.
 - **Stage 1** — only the producer **assigned to the package group** on Package Cycle. That can be an associate (`assignedProducerUserId`) or an executive / super-admin (`assignedExecutiveProducerUserId`). An assigned EP or super-admin greenlights Stage 1 the same way an assigned AP does (typical when the usual AP is a student on that package). Other executives cannot skip this stage. If nobody is assigned, fall back to the associate who owns the package's category. A package with no category yet is open to any associate producer. Students keep revising until that assigned producer greenlights. Execs (including the adviser) assign one producer on `/package-progress` (roster: topic, members, assigned producer). Assignable EPs are `EXECUTIVE_PRODUCER` plus `SUPER_ADMIN`. Assigned EP is not a substitute for Stage 3: two distinct executive sign-offs are still required. `/groups` shows every package to EPs, the adviser, and super-admin; associates only see assigned groups (or their category when unassigned). Initial/final cut flags stay wired to media uploads; manual toggles set `initialCutManual` / `finalCutManual`.
 - **Stage 2** — only the adviser (`PACKAGE_ADVISER_EMAIL`). Executives cannot advance this stage.
 - **Stage 3** — **two** distinct executive producers; **three** when `controversial` is set. The same executive cannot sign off twice. Stage 3 reviews the latest Initial Cut. `APPROVED` unlocks Final Cut; it does not mean airable.
-- A denial at any stage sends the package back to `DRAFT` and clears executive sign-offs, so a returned package cannot inherit approvals collected before changes were requested.
+- A denial keeps the package at the stage that denied it; the next upload is reviewed by that same stage. A Stage 3 denial clears earlier executive sign-offs, so the new version needs two fresh executive approvals.
 - Nothing airs until a producer clicks **Send to queue**. `canPublish()` is no longer tied to approval.
 - Social media bypasses the chain and is approved by the Head of Creative & Content.
 

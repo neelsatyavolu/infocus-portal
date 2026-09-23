@@ -90,6 +90,12 @@ describe("initial cut upload transitions", () => {
     ).toEqual({ ok: true, nextStage: "ASSOCIATE_REVIEW", clearAwaiting: false, email: "ap" });
   });
 
+  it("keeps a stage 2 re-upload with the adviser", () => {
+    expect(
+      applyInitialCutUpload({ currentStage: "ADVISER_REVIEW", awaitingRevisedInitialCut: false, nextVersionNumber: 3 })
+    ).toEqual({ ok: true, nextStage: "ADVISER_REVIEW", clearAwaiting: false, email: "adviser" });
+  });
+
   it("emails execs on any initial cut uploaded during stage 3", () => {
     expect(
       applyInitialCutUpload({ currentStage: "EXECUTIVE_REVIEW", awaitingRevisedInitialCut: false, nextVersionNumber: 3 })

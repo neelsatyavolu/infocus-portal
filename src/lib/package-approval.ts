@@ -203,11 +203,10 @@ export type DecisionContext = {
 /**
  * Apply an approve/deny decision and report where the package lands.
  *
- * A denial always returns the package to DRAFT: the student revises and
- * resubmits from the top of the chain, which is what "you cannot skip a stage"
- * requires. Any executive producer can deny at stage 3 and send it back.
- * Stage 1 approval sends the latest cut straight to the adviser; Stage 2
- * decides whether it needs a revision.
+ * A denial keeps the package at the stage that asked for revisions: the group
+ * uploads a new version and the same stage reviews it again. Any executive
+ * producer can deny at stage 3. Approval sends the latest cut to the next
+ * stage.
  */
 export function applyDecision(
   state: ApprovalState,
@@ -220,7 +219,7 @@ export function applyDecision(
   }
 
   if (!approved) {
-    return { type: "SEND_BACK", stage: "DRAFT" };
+    return { type: "SEND_BACK", stage: state.stage };
   }
 
   if (state.stage === "ASSOCIATE_REVIEW") {

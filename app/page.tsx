@@ -72,6 +72,14 @@ export default function HomePage() {
             plan stories, review video reports, and coordinate broadcasts. Explore our published work at{" "}
             <a href="https://infocusnews.tv" className="text-foreground underline underline-offset-4 hover:text-primary">
               infocusnews.tv
+            </a>. InFocus Portal is open source on{" "}
+            <a
+              href="https://github.com/neelsatyavolu/infocus-portal"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-foreground underline underline-offset-4 hover:text-primary"
+            >
+              GitHub
             </a>.
           </p>
 

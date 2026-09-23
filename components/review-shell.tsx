@@ -1775,11 +1775,12 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
   const reviewPaneMaxHeightClass = isMacDesktopApp ? "lg:max-h-[calc(100dvh-11.5rem)]" : "lg:max-h-[calc(100dvh-7.5rem)]";
   const reviewLayoutHeightClass = isMacDesktopApp ? "xl:h-[calc(100dvh-11.5rem)]" : "xl:h-[calc(100dvh-7.5rem)]";
   const effectiveSidebarWidthPx = manualSidebarWidthPx ?? autoSidebarWidthPx ?? 420;
+  const playheadPct = Math.max(0, Math.min(100, (currentTime / Math.max(timelineDuration, 1)) * 100));
   const qualityOptions: DropdownOption<QualityValue>[] = [
-    { value: "AUTO", label: "Quality: Auto" },
-    { value: "1080", label: "Quality: 1080p" },
-    { value: "720", label: "Quality: 720p" },
-    { value: "480", label: "Quality: 480p" }
+    { value: "AUTO", label: "Auto quality" },
+    { value: "1080", label: "1080p" },
+    { value: "720", label: "720p" },
+    { value: "480", label: "480p" }
   ];
 
   const clampSidebarWidth = useCallback(
@@ -2551,42 +2552,41 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                   <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
                 </div>
 
-                <div ref={mediaControlsRef} className="mt-3 rounded-2xl border border-border bg-card/90 p-3">
-                  <div className="relative mb-3 h-6">
-                    <div className="absolute inset-x-0 top-1/2 h-2 -translate-y-1/2 rounded-full bg-[var(--ink)]" />
-
-                    <div className="pointer-events-none absolute inset-0 z-20">
-                      {commentThreads.map((thread, index) => {
-                        const left = `${Math.max(0, Math.min(100, (thread.root.timeSeconds / Math.max(timelineDuration, 1)) * 100))}%`;
-                        return (
-                          <button
-                            key={thread.root.id}
-                            onClick={() => focusCommentThread(thread, { scrollSidebar: true })}
-                            title={`Comment #${index + 1}`}
-                            className="pointer-events-auto absolute top-1/2 grid h-5 w-5 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-black/60 text-[10px] font-semibold text-white transition hover:scale-110"
+                <div ref={mediaControlsRef} className="mt-3 rounded-2xl border border-border bg-card/90 px-3 pb-2 pt-1 sm:px-4">
+                  {/* Comment markers sit in their own lane above the track so they never block scrubbing. */}
+                  <div className="relative h-4">
+                    {commentThreads.map((thread, index) => {
+                      const left = `${Math.max(0, Math.min(100, (thread.root.timeSeconds / Math.max(timelineDuration, 1)) * 100))}%`;
+                      const isSelected = selectedCommentId === thread.root.id;
+                      return (
+                        <button
+                          key={thread.root.id}
+                          type="button"
+                          onClick={() => focusCommentThread(thread, { scrollSidebar: true })}
+                          title={`#${index + 1} · ${thread.root.authorName} · ${formatTimecode(thread.root.timeSeconds)}`}
+                          aria-label={`Comment ${index + 1} by ${thread.root.authorName} at ${formatTimecode(thread.root.timeSeconds)}`}
+                          className="group/marker absolute top-1/2 grid h-4 w-4 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          style={{ left, zIndex: isSelected ? 2 : 1 }}
+                        >
+                          <span
+                            className={cn(
+                              "block rounded-full transition-transform group-hover/marker:scale-150",
+                              isSelected ? "h-2.5 w-2.5 ring-2 ring-foreground/80" : "h-2 w-2 opacity-90"
+                            )}
                             style={{
-                              left,
-                              backgroundColor:
-                                selectedCommentId === thread.root.id
-                                  ? "var(--brand-green)"
-                                  : thread.root.resolvedAt !== null
-                                    ? "var(--brand-amber)"
-                                    : "var(--brand-red)",
-                              color:
-                                selectedCommentId === thread.root.id ? "#000" : "#fff"
+                              backgroundColor: isSelected
+                                ? "var(--brand-green)"
+                                : thread.root.resolvedAt !== null
+                                  ? "var(--brand-amber)"
+                                  : "var(--brand-red)"
                             }}
-                          >
-                            {initialsFromName(thread.root.authorName).slice(0, 2)}
-                          </button>
-                        );
-                      })}
-                    </div>
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
 
-                    <div
-                      className="pointer-events-none absolute left-0 top-1/2 z-30 h-2 -translate-y-1/2 rounded-full bg-[var(--brand-green)] transition-all"
-                      style={{ width: `${Math.max(0, Math.min(100, (currentTime / Math.max(timelineDuration, 1)) * 100))}%` }}
-                    />
-
+                  <div className="group/scrub relative h-4">
                     <input
                       type="range"
                       min={0}
@@ -2594,58 +2594,68 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                       step={0.01}
                       value={Math.min(currentTime, timelineDuration)}
                       onChange={(event) => seekTo(Number(event.target.value))}
-                      className="frame-range absolute inset-0 z-10 h-full w-full appearance-none bg-transparent"
+                      aria-label="Seek"
+                      className="peer absolute inset-0 z-10 h-full w-full cursor-pointer appearance-none opacity-0"
+                    />
+                    <div className="pointer-events-none absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 overflow-hidden rounded-full bg-foreground/15 transition-[height] group-hover/scrub:h-1.5">
+                      <div className="h-full rounded-full bg-foreground" style={{ width: `${playheadPct}%` }} />
+                    </div>
+                    <div
+                      className="pointer-events-none absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground shadow-md transition-transform group-hover/scrub:scale-125 peer-focus-visible:ring-2 peer-focus-visible:ring-ring"
+                      style={{ left: `${playheadPct}%` }}
                     />
                   </div>
 
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={togglePlayback}>
-                        {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                      </Button>
+                  <div className="mt-1 flex items-center gap-1 sm:gap-2">
+                    <Button variant="ghost" size="sm" className="h-8 w-8 shrink-0 p-0" onClick={togglePlayback} aria-label={isPlaying ? "Pause" : "Play"}>
+                      {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                    </Button>
+                    <div className="hidden items-center gap-1.5 sm:flex">
+                      {volume === 0 ? <VolumeX className="h-4 w-4 text-muted-foreground" /> : <Volume2 className="h-4 w-4 text-muted-foreground" />}
+                      <input
+                        type="range"
+                        min={0}
+                        max={1}
+                        step={0.01}
+                        value={volume}
+                        onChange={(event) => setVolume(Number(event.target.value))}
+                        aria-label="Volume"
+                        className="frame-range h-4 w-16 appearance-none bg-transparent md:w-20"
+                      />
+                    </div>
+                    <span className="whitespace-nowrap font-mono text-xs tabular-nums text-muted-foreground">
+                      <span className="text-foreground">{formatTimecode(currentTime)}</span> / {formatTimecode(timelineDuration)}
+                    </span>
+
+                    <div className="ml-auto flex items-center gap-0.5 sm:gap-1">
+                      <span className="mr-1 hidden whitespace-nowrap text-xs text-muted-foreground md:inline">
+                        {commentCount} {commentCount === 1 ? "comment" : "comments"}
+                      </span>
                       <label className="relative inline-flex">
                         <select
                           value={playbackRate}
                           onChange={(event) => setPlaybackRate(Number(event.target.value))}
-                          className="h-8 appearance-none rounded-md border border-border bg-muted px-2.5 pr-7 text-xs text-foreground"
+                          aria-label="Playback speed"
+                          className="h-8 cursor-pointer appearance-none rounded-md bg-transparent pl-2 pr-6 text-xs text-foreground hover:bg-muted"
                         >
                           {[0.5, 1, 1.25, 1.5, 2].map((rate) => (
                             <option key={rate} value={rate}>
-                              {rate.toFixed(rate % 1 === 0 ? 1 : 2)}x
+                              {rate}x
                             </option>
                           ))}
                         </select>
-                        <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                        <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                       </label>
                       <Select value={quality} onValueChange={(v) => setQuality(v as typeof quality)}>
-                        <SelectTrigger className="h-8 w-[132px] rounded-md text-xs">
+                        <SelectTrigger aria-label="Quality" className="h-8 w-auto gap-1 rounded-md border-0 bg-transparent px-2 text-xs shadow-none hover:bg-muted">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent side="top">
+                        <SelectContent side="top" align="end">
                           {qualityOptions.map((opt) => (
                             <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
-                      <div className="flex items-center gap-1">
-                        {volume === 0 ? <VolumeX className="h-4 w-4 text-muted-foreground" /> : <Volume2 className="h-4 w-4 text-muted-foreground" />}
-                        <input
-                          type="range"
-                          min={0}
-                          max={1}
-                          step={0.01}
-                          value={volume}
-                          onChange={(event) => setVolume(Number(event.target.value))}
-                          className="frame-range h-4 w-20 appearance-none bg-transparent"
-                        />
-                      </div>
-                    </div>
-                    <div className="rounded-md border border-border bg-muted px-2 py-1 font-mono text-sm text-foreground">
-                      {formatTimecode(currentTime)} / {formatTimecode(timelineDuration)}
-                    </div>
-                    <div className="inline-flex items-center gap-1 rounded-md border border-border bg-muted px-2 py-1 text-xs text-muted-foreground">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-muted-foreground" />
-                      {commentCount} comments
                     </div>
                   </div>
                 </div>

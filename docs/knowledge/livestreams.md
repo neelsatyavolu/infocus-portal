@@ -4,7 +4,7 @@ Route: `/livestreams`.
 
 Semester 1 hours accumulate immediately, but livestream grades stay **—** and are excluded from totals until **November 30 at midnight Pacific**. Grade Editor and student grade views still show **x/8 hours completed** during that time.
 
-The schedule’s Crew column shows attendees by first name.
+The schedule lists today and upcoming livestreams first; livestreams from earlier days move to the bottom. The schedule’s Crew column shows attendees by first name.
 
 Full credit: **8 completed hours per semester** (5 pts/hour → 40 pts in the Packages category). Hours come from attendees on **COMPLETED** events in the semester window (S1 Aug 13–Dec 18, S2 Jan 5–Jun 3). Appointed livestream managers instead earn **10 pts per COMPLETED livestream they manage** in the semester (the event's Manager field), so **4 managed livestreams = 40 pts**; extra managed events are not extra credit, and zero-hour (credit-cancelled) events do not count.
 

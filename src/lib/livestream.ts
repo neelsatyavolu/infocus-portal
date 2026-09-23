@@ -123,6 +123,13 @@ export function livestreamPointsFromManagedCount(managedCount: number): number {
   return (counted * MAX_LIVESTREAM_POINTS) / REQUIRED_MANAGED_LIVESTREAMS;
 }
 
+/** Schedule order: today and later first, then events from earlier days (each by date). */
+export function upcomingLivestreamsFirst<T extends { startsAt: string | Date }>(events: T[], now: Date = new Date()): T[] {
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const isPast = (event: T) => new Date(event.startsAt).getTime() < today;
+  return [...events.filter((event) => !isPast(event)), ...events.filter(isPast)];
+}
+
 export type CapacityTone = "full" | "one" | "open";
 
 export function capacityTone(attendeeCount: number, capacity: number): CapacityTone {

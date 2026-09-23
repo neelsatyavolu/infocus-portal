@@ -29,7 +29,8 @@ import {
   LIVESTREAM_AVAILABILITY_LABELS,
   LIVESTREAM_STATUS_LABELS,
   REQUIRED_LIVESTREAM_HOURS,
-  REQUIRED_MANAGED_LIVESTREAMS
+  REQUIRED_MANAGED_LIVESTREAMS,
+  upcomingLivestreamsFirst
 } from "@/src/lib/livestream";
 import { cn } from "@/src/lib/utils";
 
@@ -450,6 +451,8 @@ export default function LivestreamsClient() {
     });
   };
 
+  const scheduleEvents = useMemo(() => (data ? upcomingLivestreamsFirst(data.events) : []), [data]);
+
   const signupEvents = useMemo(() => {
     if (!data) return [];
     return data.events.filter((e) => e.status === "SCHEDULED");
@@ -705,7 +708,7 @@ export default function LivestreamsClient() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.events.map((event) => (
+                    {scheduleEvents.map((event) => (
                       <tr
                         key={event.id}
                         className={cn(

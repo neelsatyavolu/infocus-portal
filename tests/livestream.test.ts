@@ -5,7 +5,8 @@ import {
   livestreamPointsFromHours,
   REQUIRED_LIVESTREAM_HOURS,
   semesterBounds,
-  semesterForDate
+  semesterForDate,
+  upcomingLivestreamsFirst
 } from "@/src/lib/livestream";
 import { MAX_LIVESTREAM_POINTS } from "@/src/lib/grading";
 
@@ -77,5 +78,23 @@ describe("capacity tone", () => {
     expect(capacityTone(4, 4)).toBe("full");
     expect(capacityTone(3, 4)).toBe("one");
     expect(capacityTone(1, 4)).toBe("open");
+  });
+});
+
+describe("upcomingLivestreamsFirst", () => {
+  it("moves events from earlier days below today and later, keeping date order", () => {
+    const now = new Date(2026, 8, 23, 17, 0);
+    const events = [
+      { id: "sep18", startsAt: new Date(2026, 8, 18, 18, 0).toISOString() },
+      { id: "sep22", startsAt: new Date(2026, 8, 22, 17, 30).toISOString() },
+      { id: "today-earlier", startsAt: new Date(2026, 8, 23, 9, 0).toISOString() },
+      { id: "sep24", startsAt: new Date(2026, 8, 24, 17, 0).toISOString() }
+    ];
+    expect(upcomingLivestreamsFirst(events, now).map((event) => event.id)).toEqual([
+      "today-earlier",
+      "sep24",
+      "sep18",
+      "sep22"
+    ]);
   });
 });

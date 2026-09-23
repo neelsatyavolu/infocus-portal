@@ -1,0 +1,75 @@
+/.claude
+*.local
+/node_modules
+/.idea
+
+# next
+/.next
+/out
+
+# production
+/build
+
+# env files
+.env*
+/.agent
+/.clawdhub
+/skills
+CONTEXT.md
+GEMINI.md
+bun.lock
+farfield
+
+# misc
+node-compile-cache
+.DS_Store
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# prisma
+/prisma/migrations/*
+!/prisma/migrations/20260917_grade_score_states/
+!/prisma/migrations/20260918_livestream_attendee_credit/
+!/prisma/migrations/20260919_youtube_publishing/
+!/prisma/migrations/20260921173000_equipment_passkeys/
+/infocus-equipment
+# local sibling repo
+/Show-Roles
+.vercel
+.env*.local
+/mac-app/node_modules
+/mac-app/src-tauri/target
+/mac-app/src-tauri/gen
+
+# Codex local context
+CODEX.MD
+AGENTS.md
+CLAUDE.md
+tsconfig.tsbuildinfo
+
+# Visual brainstorming companion (local only)
+.superpowers/
+
+# Slack CLI local app metadata
+.slack/
+
+# Private / local-only (kept out of the public repo)
+*.dump
+/.agmux/
+/.wrangler/
+/.playwright-mcp/
+/.learnings/
+/.grok/
+/config.toml
+/Claude outputs/
+/work/
+/docs/superpowers/
+/CLAUDE.md.proposed
+/CODE-REVIEW-*.md
+/SECURITY-AUDIT-*.md
+/GEMINI_RESEARCHER.md
+/*-by-opencode.txt
+/lorem-ipsum.txt
+/random-words.txt

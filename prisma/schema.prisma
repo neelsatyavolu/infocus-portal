@@ -1,0 +1,1660 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum WorkspaceRole {
+  OWNER_ADMIN
+  EDITOR
+  REVIEWER
+}
+
+enum WorkspaceVisibility {
+  ALL_MEMBERS
+  MANAGERS_AND_ADMINS
+  ADMINS_ONLY
+  SPECIFIC_MEMBERS
+}
+
+enum PlatformRole {
+  SUPER_ADMIN
+  EXECUTIVE_PRODUCER
+  ADVISER
+  ASSOCIATE_PRODUCER
+}
+
+enum PackageCategory {
+  NEWS
+  FEATURE
+  COMMENTARY
+}
+
+enum PlatformAccessRequestStatus {
+  PENDING
+  APPROVED
+  DENIED
+}
+
+enum AnnouncementSubmitterKind {
+  PALY_STUDENT
+  PAUSD_EMPLOYEE
+  PARENT_GUARDIAN
+  COMMUNITY_MEMBER
+}
+
+enum AnnouncementRunOn {
+  INFOCUS_ONLY
+  SCHOOLOGY_ONLY
+  BOTH
+}
+
+enum MediaStatus {
+  UPLOADING
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum MediaSourceType {
+  VIDEO
+  IMAGE
+}
+
+enum ApprovalStatus {
+  IN_REVIEW
+  NEEDS_CHANGES
+  APPROVED
+  AIRED
+}
+
+enum CommentTargetType {
+  TIMECODE
+  FRAME_PIN
+  GENERAL
+}
+
+enum GuestPermission {
+  VIEW
+  COMMENT
+}
+
+enum HubChatKind {
+  DIRECT
+  GROUP
+}
+
+model User {
+  id                 String           @id
+  email              String?
+  name               String?
+  nickname           String?
+  imageUrl           String?
+  onboardingCompletedAt DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  memberships        WorkspaceMember[]
+  createdWorkspaces  Workspace[]      @relation("WorkspaceCreator")
+  createdProjects    Project[]        @relation("ProjectCreator")
+  createdFolders     ProjectFolder[]  @relation("ProjectFolderCreator")
+  mediaItems         MediaItem[]      @relation("MediaItemCreator")
+  deletedMediaItems  MediaItem[]      @relation("MediaItemDeletedBy")
+  mediaItemAssignments MediaItemAssignment[]
+  mediaVersions      MediaVersion[]   @relation("MediaVersionCreator")
+  comments           ReviewComment[]  @relation("CommentAuthor")
+  commentResolutions ReviewComment[]  @relation("CommentResolver")
+  commentMentions    CommentMention[]
+  announcements      Announcement[]      @relation("AnnouncementAuthor")
+  announcementComments AnnouncementComment[] @relation("AnnouncementCommentAuthor")
+  announcementMentions AnnouncementMention[] @relation("AnnouncementMentionUser")
+  announcementLikes  AnnouncementLike[]  @relation("AnnouncementLikeUser")
+  announcementReads  AnnouncementRead[]  @relation("AnnouncementReadUser")
+  notificationPreference NotificationPreference? @relation("UserNotificationPreference")
+  pushSubscriptions  PushNotificationSubscription[] @relation("PushSubscriptionUser")
+  packageGrades      PackageGrade[]
+  packageTotalNote   PackageTotalNote?
+  packageProgressMemberships PackageProgressMember[]
+  packageProgressAssignments PackageProgressRow[] @relation("AssignedPackageProducer")
+  packageProgressExecutiveAssignments PackageProgressRow[] @relation("AssignedPackageExecutive")
+  packageApprovalSignoffs PackageApprovalSignoff[] @relation("PackageApprovalActor")
+  participationEntries ParticipationEntry[] @relation("ParticipationSubject")
+  participationGradeRequests ParticipationGradeRequest[] @relation("ParticipationGradeRequester")
+  participationGradeReviews  ParticipationGradeRequest[] @relation("ParticipationGradeReviewer")
+  participationGradeRequestItems ParticipationGradeRequestItem[] @relation("ParticipationGradeRequestStudent")
+  portfolioGrade     PortfolioGrade?      @relation("PortfolioSubject")
+  extensionRequests  PackageExtensionRequest[] @relation("ExtensionRequester")
+  extensionApprovals PackageExtensionApproval[] @relation("ExtensionApprover")
+  extensionMemberConsents PackageExtensionMemberConsent[] @relation("ExtensionMemberConsent")
+  approvalEvents     ApprovalEvent[]  @relation("ApprovalActor")
+  guestLinks         GuestLink[]      @relation("GuestLinkCreator")
+  activityEvents     ActivityEvent[]  @relation("ActivityActor")
+  auditLogs          AuditLog[]       @relation("AuditActor")
+  invites            WorkspaceInvite[] @relation("InviteCreator")
+  visibleWorkspaces  WorkspaceVisibilityMember[] @relation("WorkspaceVisibilityUser")
+  teleprompterDocs   TeleprompterDoc[] @relation("TeleprompterDocCreator")
+  livestreamEventsManaged LivestreamEvent[] @relation("LivestreamEventManager")
+  livestreamAttendances   LivestreamAttendee[]
+  livestreamManager       LivestreamManager?
+  publishingManager       PublishingManager?
+  equipmentManager        EquipmentManager?
+  equipmentPasskeys       EquipmentPasskey[]
+  livestreamSignups       LivestreamSignupRequest[]
+  livestreamSignupsReviewed LivestreamSignupRequest[] @relation("LivestreamSignupReviewer")
+  packageProofUploads     PackageProofOfContact[] @relation("PackageProofUploader")
+  packageFinalCutScores   PackageFinalCutScore[] @relation("PackageFinalCutGrader")
+  packageStageComments    PackageStageComment[] @relation("PackageStageCommentAuthor")
+  packageStageCommentReads PackageStageCommentRead[] @relation("PackageStageCommentReader")
+  memberProducerNotes     MemberProducerNote[]
+  hubChatMemberships      HubChatMember[]
+  hubChatMessages         HubChatMessage[] @relation("HubChatMessageAuthor")
+}
+
+model Workspace {
+  id             String           @id @default(cuid())
+  name           String
+  slug           String           @unique
+  visibility     WorkspaceVisibility @default(MANAGERS_AND_ADMINS)
+  createdById    String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  createdBy      User?             @relation("WorkspaceCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  members        WorkspaceMember[]
+  visibilityMembers WorkspaceVisibilityMember[]
+  projects       Project[]
+  teleprompterDocs TeleprompterDoc[]
+  invites        WorkspaceInvite[]
+  activityEvents ActivityEvent[]
+  auditLogs      AuditLog[]
+
+  @@index([createdById])
+}
+
+model WorkspaceMember {
+  id          String        @id @default(cuid())
+  workspaceId String
+  userId      String
+  role        WorkspaceRole
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@index([workspaceId, role])
+  @@index([userId])
+}
+
+model WorkspaceVisibilityMember {
+  id          String      @id @default(cuid())
+  workspaceId String
+  userId      String
+  createdAt   DateTime    @default(now())
+  workspace   Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User        @relation("WorkspaceVisibilityUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@index([workspaceId])
+  @@index([userId])
+}
+
+model WorkspaceInvite {
+  id          String        @id @default(cuid())
+  workspaceId String
+  email       String
+  role        WorkspaceRole
+  token       String        @unique
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdById String?
+  createdAt   DateTime      @default(now())
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy   User?          @relation("InviteCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, email])
+}
+
+model PlatformRoleAssignment {
+  id        String           @id @default(cuid())
+  email     String           @unique
+  role      PlatformRole
+  category  PackageCategory?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+}
+
+/// Legacy allowlist table. Access is now User(email)+name accounts.
+/// Kept so existing rows can be migrated; new writes go to User.
+model AllowedSignupEmail {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Calendar overrides for InFocus class/show days (holidays + switched days).
+/// Seeded PAUSD holidays also live in code (`school-schedule.ts`); DB wins.
+model SchoolCalendarDay {
+  id        String   @id @default(cuid())
+  /// YYYY-MM-DD (UTC)
+  date      String   @unique
+  /// PA | SHOW | NONE | HOLIDAY
+  kind      String
+  label     String   @default("")
+  source    String   @default("manual")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([kind])
+}
+
+model PlatformAccessRequest {
+  id            String                      @id @default(cuid())
+  email         String                      @unique
+  name          String?
+  status        PlatformAccessRequestStatus @default(PENDING)
+  requestedAt   DateTime                    @default(now())
+  decidedAt     DateTime?
+  decidedByEmail String?
+  createdAt     DateTime                    @default(now())
+  updatedAt     DateTime                    @updatedAt
+
+  @@index([status, requestedAt])
+}
+
+model Announcement {
+  id          String               @id @default(cuid())
+  content     String
+  createdById String?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  createdBy   User?                 @relation("AnnouncementAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+  mentions    AnnouncementMention[]
+  comments    AnnouncementComment[]
+  likes       AnnouncementLike[]
+  reads       AnnouncementRead[]
+
+  @@index([createdAt])
+  @@index([createdById, createdAt])
+}
+
+model AnnouncementMention {
+  id             String       @id @default(cuid())
+  announcementId String
+  userId         String
+  createdAt      DateTime     @default(now())
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  user           User         @relation("AnnouncementMentionUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, userId])
+  @@index([userId, createdAt])
+}
+
+model AnnouncementComment {
+  id             String       @id @default(cuid())
+  announcementId String
+  authorId       String?
+  body           String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  author         User?         @relation("AnnouncementCommentAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([announcementId, createdAt])
+  @@index([authorId, createdAt])
+}
+
+model AnnouncementLike {
+  id             String       @id @default(cuid())
+  announcementId String
+  userId         String
+  createdAt      DateTime     @default(now())
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  user           User         @relation("AnnouncementLikeUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, userId])
+  @@index([userId, createdAt])
+}
+
+model AnnouncementRead {
+  id             String       @id @default(cuid())
+  announcementId String
+  userId         String
+  readAt         DateTime     @default(now())
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  user           User         @relation("AnnouncementReadUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, userId])
+  @@index([userId, readAt])
+}
+
+model SubmittedAnnouncementDeletion {
+  id        String   @id
+  deletedAt DateTime @default(now())
+}
+
+model AnnouncementSubmission {
+  id            String                    @id @default(cuid())
+  email         String
+  name          String
+  submitterKind AnnouncementSubmitterKind
+  runOn         AnnouncementRunOn
+  announcement  String
+  startDate     String
+  endDate       String
+  policyAgreed  Boolean
+  isPermanent   Boolean                   @default(false)
+  mediaLink     String?
+  moreInfo      String?
+  createdAt     DateTime                  @default(now())
+  updatedAt     DateTime                  @updatedAt
+
+  @@index([createdAt])
+  @@index([startDate, endDate])
+  @@index([runOn, createdAt])
+}
+
+model NotificationPreference {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  emailEnabled   Boolean  @default(true)
+  notificationEmail String?
+  browserEnabled Boolean  @default(false)
+  emailAnnouncementsEnabled   Boolean @default(true)
+  emailCommentsEnabled        Boolean @default(true)
+  emailGradesEnabled          Boolean @default(false)
+  browserAnnouncementsEnabled Boolean @default(true)
+  browserCommentsEnabled      Boolean @default(true)
+  browserGradesEnabled        Boolean @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation("UserNotificationPreference", fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PushNotificationSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation("PushSubscriptionUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model Project {
+  id             String          @id @default(cuid())
+  workspaceId    String
+  name           String
+  description    String?
+  storageBytes   BigInt          @default(0)
+  storageUpdatedAt DateTime?
+  createdById    String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  workspace      Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy      User?            @relation("ProjectCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  mediaItems     MediaItem[]
+  folders        ProjectFolder[]
+  guestLinks     GuestLink[]
+  activityEvents ActivityEvent[]
+  auditLogs      AuditLog[]
+  packageProgressRows PackageProgressRow[]
+
+  @@index([workspaceId, createdAt])
+}
+
+model ProjectFolder {
+  id          String      @id @default(cuid())
+  projectId   String
+  name        String
+  createdById String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy   User?        @relation("ProjectFolderCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  mediaItems  MediaItem[]
+
+  @@unique([projectId, name])
+  @@index([projectId, createdAt])
+}
+
+model PaScript {
+  date         String   @id
+  content      String
+  anchorName   String   @default("")
+  coanchorName String   @default("")
+  version      Int      @default(1)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model TeleprompterDoc {
+  id          String               @id @default(cuid())
+  workspaceId String?
+  showDate    DateTime?
+  title       String
+  orderIndex  Int                  @default(0)
+  createdById String?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  workspace   Workspace?           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy   User?                 @relation("TeleprompterDocCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  sections    TeleprompterSection[]
+
+  @@unique([workspaceId, showDate])
+  @@index([createdById, orderIndex, createdAt])
+  @@index([workspaceId, showDate, createdAt])
+}
+
+model TeleprompterSection {
+  id         String          @id @default(cuid())
+  docId      String
+  label      String
+  content    String          @default("")
+  orderIndex Int             @default(0)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  doc        TeleprompterDoc @relation(fields: [docId], references: [id], onDelete: Cascade)
+
+  @@index([docId, orderIndex, createdAt])
+}
+
+model MediaItem {
+  id               String          @id @default(cuid())
+  projectId        String
+  folderId         String?
+  title            String
+  createdById      String?
+  deletedById      String?
+  deletedAt        DateTime?
+  currentVersionId String?         @unique
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  project          Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  folder           ProjectFolder?  @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  createdBy        User?            @relation("MediaItemCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  deletedBy        User?           @relation("MediaItemDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
+  versions         MediaVersion[]  @relation("MediaItemVersions")
+  currentVersion   MediaVersion?   @relation("CurrentMediaVersion", fields: [currentVersionId], references: [id], onDelete: SetNull)
+  memberAssignments MediaItemAssignment[]
+  activityEvents   ActivityEvent[]
+  auditLogs        AuditLog[]
+  initialCutForRows PackageProgressRow[] @relation("InitialCutMedia")
+  finalCutForRows   PackageProgressRow[] @relation("FinalCutMedia")
+  approvalSignoffs  PackageApprovalSignoff[] @relation("ApprovalSignoffMedia")
+  cycleStageLinks   PackageStageMedia[]
+
+  @@index([projectId, createdAt])
+  @@index([projectId, folderId, deletedAt, updatedAt])
+}
+
+model MediaItemAssignment {
+  id         String    @id @default(cuid())
+  mediaItemId String
+  userId     String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  mediaItem  MediaItem @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([mediaItemId, userId])
+  @@index([mediaItemId, createdAt])
+  @@index([userId])
+}
+
+model MediaVersion {
+  id               String          @id @default(cuid())
+  mediaItemId      String
+  versionNumber    Int
+  /// Bunny Stream GUID, or synthetic "nas:{id}" when storageProvider is NAS
+  bunnyVideoId     String          @unique
+  bunnyLibraryId   String
+  /// BUNNY (default) or NAS (InFocus Drive / Package Cycles via tunnel)
+  storageProvider  String          @default("BUNNY")
+  /// Relative path under Drive root, e.g. Package Cycles/Cycle 1/Final Cut/Title/v1/file.mp4
+  nasPath          String?
+  sourceType       MediaSourceType @default(VIDEO)
+  imageMimeType    String?
+  imageBase64      String?
+  uploadSignature  String?
+  status           MediaStatus     @default(UPLOADING)
+  approvalStatus   ApprovalStatus  @default(IN_REVIEW)
+  airedAt          DateTime?
+  durationSeconds  Float?
+  width            Int?
+  height           Int?
+  storageSizeBytes BigInt?
+  storageSyncedAt  DateTime?
+  createdById      String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  mediaItem        MediaItem       @relation("MediaItemVersions", fields: [mediaItemId], references: [id], onDelete: Cascade)
+  createdBy        User?            @relation("MediaVersionCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  comments         ReviewComment[]
+  approvalEvents   ApprovalEvent[]
+  guestLinks       GuestLink[]
+  activityEvents   ActivityEvent[]
+  auditLogs        AuditLog[]
+  currentForMedia  MediaItem?      @relation("CurrentMediaVersion")
+
+  @@unique([mediaItemId, versionNumber])
+  @@index([mediaItemId, createdAt])
+  @@index([storageProvider, status])
+  @@index([nasPath])
+}
+
+model ReviewComment {
+  id              String            @id @default(cuid())
+  mediaVersionId  String
+  authorId        String?
+  parentCommentId String?
+  targetType      CommentTargetType
+  timeSeconds     Float
+  frameNumber     Int?
+  xPct            Float?
+  yPct            Float?
+  body            String
+  resolvedAt      DateTime?
+  resolvedById    String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  mediaVersion    MediaVersion      @relation(fields: [mediaVersionId], references: [id], onDelete: Cascade)
+  author          User?             @relation("CommentAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  parent          ReviewComment?    @relation("CommentThread", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  replies         ReviewComment[]   @relation("CommentThread")
+  resolvedBy      User?             @relation("CommentResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+  mentions        CommentMention[]
+  activityEvents  ActivityEvent[]
+  auditLogs       AuditLog[]
+
+  @@index([mediaVersionId, timeSeconds])
+  @@index([parentCommentId])
+}
+
+model CommentMention {
+  id        String        @id @default(cuid())
+  commentId String
+  userId    String
+  createdAt DateTime      @default(now())
+  comment   ReviewComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId])
+}
+
+model ApprovalEvent {
+  id            String         @id @default(cuid())
+  mediaVersionId String
+  status        ApprovalStatus
+  note          String?
+  changedById   String?
+  createdAt     DateTime       @default(now())
+  mediaVersion  MediaVersion   @relation(fields: [mediaVersionId], references: [id], onDelete: Cascade)
+  changedBy     User?           @relation("ApprovalActor", fields: [changedById], references: [id], onDelete: SetNull)
+
+  @@index([mediaVersionId, createdAt])
+}
+
+model GuestLink {
+  id            String          @id @default(cuid())
+  token         String          @unique
+  projectId     String?
+  mediaVersionId String?
+  permission    GuestPermission @default(COMMENT)
+  passcodeHash  String?
+  expiresAt     DateTime?
+  revokedAt     DateTime?
+  createdById   String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  project       Project?        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  mediaVersion  MediaVersion?   @relation(fields: [mediaVersionId], references: [id], onDelete: Cascade)
+  createdBy     User?            @relation("GuestLinkCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  activityEvents ActivityEvent[]
+  auditLogs     AuditLog[]
+
+  @@index([projectId])
+  @@index([mediaVersionId])
+}
+
+model ActivityEvent {
+  id            String         @id @default(cuid())
+  workspaceId   String
+  projectId     String?
+  mediaItemId   String?
+  mediaVersionId String?
+  commentId     String?
+  guestLinkId   String?
+  actorId       String?
+  type          String
+  payload       Json?
+  createdAt     DateTime       @default(now())
+  workspace     Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  project       Project?       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  mediaItem     MediaItem?     @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
+  mediaVersion  MediaVersion?  @relation(fields: [mediaVersionId], references: [id], onDelete: Cascade)
+  comment       ReviewComment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  guestLink     GuestLink?     @relation(fields: [guestLinkId], references: [id], onDelete: Cascade)
+  actor         User?          @relation("ActivityActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, createdAt])
+  @@index([projectId, createdAt])
+}
+
+model AuditLog {
+  id            String         @id @default(cuid())
+  workspaceId   String
+  projectId     String?
+  mediaItemId   String?
+  mediaVersionId String?
+  commentId     String?
+  guestLinkId   String?
+  actorId       String?
+  action        String
+  targetType    String
+  targetId      String
+  metadata      Json?
+  createdAt     DateTime       @default(now())
+  workspace     Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  project       Project?       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  mediaItem     MediaItem?     @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
+  mediaVersion  MediaVersion?  @relation(fields: [mediaVersionId], references: [id], onDelete: Cascade)
+  comment       ReviewComment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  guestLink     GuestLink?     @relation(fields: [guestLinkId], references: [id], onDelete: Cascade)
+  actor         User?          @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, createdAt])
+  @@index([targetType, targetId])
+}
+
+model ShowRolesShow {
+  id          String   @id @default(cuid())
+  date        String   @unique
+  assignments Json
+  anchors     Json
+  confirmed   Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([date])
+}
+
+model ShowRolesNonAnchor {
+  name      String   @id
+  createdAt DateTime @default(now())
+}
+
+model MasterCalendarEntry {
+  id        String   @id @default(cuid())
+  date      String   @unique
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([date])
+}
+
+model MasterCalendarSyncState {
+  id               String   @id @default(cuid())
+  monthKey         String   @unique
+  lastEditedAt     DateTime
+  lastSyncedAt     DateTime?
+  lastSyncAttemptAt DateTime?
+  lastSyncError    String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([lastEditedAt])
+  @@index([lastSyncedAt])
+}
+
+model EmailSignInCode {
+  email           String   @id
+  codeHash        String
+  browserHash     String
+  expiresAt       DateTime
+  sentAt          DateTime
+  attempts        Int      @default(0)
+  windowStartedAt DateTime
+  sendCount       Int      @default(0)
+}
+
+model ProgramSetting {
+  id                     String    @id @default("singleton")
+  cyclesPerSemester      Int       @default(3)
+  /// AES-GCM payload. Super admins can read it back from Settings. Unlocks only /class-board.
+  classBoardPinCipher    String?
+  classBoardPinFailures  Int       @default(0)
+  classBoardPinFailureAt DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+}
+
+model PackageCycle {
+  id                 String   @id @default(cuid())
+  cycleNumber        Int      @unique
+  focus              String   @default("")
+  pitchingDate       DateTime?
+  proofOfContactDate DateTime?
+  aRollBRollDate     DateTime?
+  initialCutDate     DateTime?
+  finalCutDate       DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([cycleNumber])
+}
+
+model PackageProgressRow {
+  id             String   @id @default(cuid())
+  cycleNumber    Int
+  rowOrder       Int
+  groupMembers   String   @default("")
+  groupTopic     String   @default("")
+  groupType      String   @default("")
+  category       PackageCategory?
+  /// Executive-assigned associate producer for this package group.
+  assignedProducerUserId String?
+  /// Executive producer responsible for this package group.
+  assignedExecutiveProducerUserId String?
+  projectId      String?
+  /// One media item per cut, matching the Initial Cut / Final Cut folders.
+  /// The initial cut item carries v1 (initial) and v2 (revised) as versions so
+  /// associate producer feedback threads across the revision.
+  initialCutMediaItemId String?
+  finalCutMediaItemId   String?
+  pitching       Boolean  @default(false)
+  proofOfContact Boolean  @default(false)
+  aRollBRoll     Boolean  @default(false)
+  initialCut     Boolean  @default(false)
+  initialCutManual Boolean @default(false)
+  revisedInitialCut Boolean @default(false)
+  finalCut       Boolean  @default(false)
+  finalCutManual Boolean  @default(false)
+  extension      Boolean  @default(false)
+  /// True after stage 1 approve on Initial Cut v1 until a v2 is uploaded.
+  awaitingRevisedInitialCut Boolean @default(false)
+  /// Set when a producer clicks Send to queue. Null = not on the publishing queue.
+  queuedForAirAt DateTime?
+  /// YYYY-MM-DD show this queued package is assigned to. Null when not queued.
+  queuedForShowDate String?
+  youtubePublication YoutubePublication?
+  /// Brainstorm Google Doc for this package (script lives in the same doc later).
+  brainstormDocUrl String @default("")
+  /// Producer roster notes: people this package might interview.
+  possibleInterviews String @default("")
+  /// Producer roster notes: possible package ideas.
+  possibleIdeas String @default("")
+  /// @deprecated Prefer stageNotes / assigned producer. Kept for legacy rows.
+  notes          String   @default("")
+  stageNotes     Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  members        PackageProgressMember[]
+  proofOfContacts PackageProofOfContact[]
+  approval       PackageApproval?
+  extensionRequests PackageExtensionRequest[]
+  project        Project?    @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  assignedProducer User? @relation("AssignedPackageProducer", fields: [assignedProducerUserId], references: [id], onDelete: SetNull)
+  assignedExecutiveProducer User? @relation("AssignedPackageExecutive", fields: [assignedExecutiveProducerUserId], references: [id], onDelete: SetNull)
+  initialCutMediaItem MediaItem? @relation("InitialCutMedia", fields: [initialCutMediaItemId], references: [id], onDelete: SetNull)
+  finalCutMediaItem   MediaItem? @relation("FinalCutMedia", fields: [finalCutMediaItemId], references: [id], onDelete: SetNull)
+  stageMedia          PackageStageMedia[]
+  reviewNotices       PackageReviewNotice[]
+  finalCutScores      PackageFinalCutScore[]
+  stageComments       PackageStageComment[]
+  stageCommentReads   PackageStageCommentRead[]
+  hubChats            HubChat[]
+
+  @@index([cycleNumber, rowOrder])
+  @@index([queuedForAirAt])
+  @@index([queuedForShowDate])
+  @@index([assignedProducerUserId])
+  @@index([assignedExecutiveProducerUserId])
+  @@index([initialCutMediaItemId])
+  @@index([finalCutMediaItemId])
+}
+
+model PackageProgressMember {
+  id        String             @id @default(cuid())
+  rowId     String
+  userId    String
+  createdAt DateTime           @default(now())
+  row       PackageProgressRow @relation(fields: [rowId], references: [id], onDelete: Cascade)
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([rowId, userId])
+  @@index([userId])
+}
+
+model HubChat {
+  id           String        @id @default(cuid())
+  kind         HubChatKind
+  packageRowId String?
+  /// DIRECT pair, sorted `userIdA:userIdB`.
+  directKey    String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  packageRow   PackageProgressRow? @relation(fields: [packageRowId], references: [id], onDelete: Cascade)
+  members      HubChatMember[]
+  messages     HubChatMessage[]
+
+  @@unique([packageRowId])
+  @@unique([directKey])
+  @@index([kind])
+  @@index([updatedAt])
+}
+
+model HubChatMember {
+  id         String    @id @default(cuid())
+  chatId     String
+  userId     String
+  lastReadAt DateTime?
+  createdAt  DateTime  @default(now())
+  chat       HubChat   @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([chatId, userId])
+  @@index([userId])
+}
+
+model HubChatMessage {
+  id        String   @id @default(cuid())
+  chatId    String
+  authorId  String
+  body      String
+  createdAt DateTime @default(now())
+  chat      HubChat  @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  author    User     @relation("HubChatMessageAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([chatId, createdAt])
+  @@index([authorId])
+}
+
+model PackageProofOfContact {
+  id               String   @id @default(cuid())
+  rowId            String
+  slot             Int
+  fileName         String
+  mimeType         String
+  imageBase64      String
+  uploadedByUserId String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  row              PackageProgressRow @relation(fields: [rowId], references: [id], onDelete: Cascade)
+  uploadedBy       User               @relation("PackageProofUploader", fields: [uploadedByUserId], references: [id], onDelete: Cascade)
+
+  @@unique([rowId, slot])
+  @@index([rowId])
+  @@index([uploadedByUserId])
+}
+
+/// One executive producer's true quality score for a package's final cut.
+model PackageFinalCutScore {
+  id           String   @id @default(cuid())
+  rowId        String
+  graderUserId String
+  points       Float
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  row          PackageProgressRow @relation(fields: [rowId], references: [id], onDelete: Cascade)
+  grader       User               @relation("PackageFinalCutGrader", fields: [graderUserId], references: [id], onDelete: Cascade)
+
+  @@unique([rowId, graderUserId])
+  @@index([rowId])
+  @@index([graderUserId])
+}
+
+model PackageStageComment {
+  id        String   @id @default(cuid())
+  rowId     String
+  /// Group stage slug: pitching | brainstorming | a-roll | initial-cut | final-cut
+  stage     String
+  authorId  String
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  row       PackageProgressRow @relation(fields: [rowId], references: [id], onDelete: Cascade)
+  author    User               @relation("PackageStageCommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([rowId, stage, createdAt])
+  @@index([authorId])
+}
+
+model PackageStageCommentRead {
+  id         String   @id @default(cuid())
+  userId     String
+  rowId      String
+  stage      String
+  lastReadAt DateTime @default(now())
+  user       User               @relation("PackageStageCommentReader", fields: [userId], references: [id], onDelete: Cascade)
+  row        PackageProgressRow @relation(fields: [rowId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, rowId, stage])
+  @@index([userId])
+  @@index([rowId, stage])
+}
+
+enum GradeScoreState {
+  UNGRADED
+  EXEMPT
+}
+
+model PackageGrade {
+  /// Null preserves normal scoring; explicit states exclude earned and possible points.
+  finalCutState GradeScoreState?
+  pitchingState GradeScoreState?
+  proofOfContactState GradeScoreState?
+  aRollBRollState GradeScoreState?
+  initialCutState GradeScoreState?
+  id           String   @id @default(cuid())
+  cycleNumber  Int
+  userId       String
+  finalCutPoints Float  @default(0)
+  /// Averaged executive true score before late penalty. Null = not graded this way.
+  awardedFinalCutPoints Float?
+  /// Null uses automatic check-in credit; overrides apply only after the stage deadline.
+  pitchingPoints Float?
+  proofOfContactPoints Float?
+  aRollBRollPoints Float?
+  initialCutPoints Float?
+  previousFinalCutPoints Int?
+  revisionCount Int     @default(0)
+  unrevisedPenaltyApplied Boolean @default(false)
+  effortPoints Int      @default(0)
+  teamworkPoints Int    @default(0)
+  previousEffortPoints Int?
+  previousTeamworkPoints Int?
+  revisedAt    DateTime?
+  feedback     String   @default("")
+  turnedInDate DateTime?
+  extensionDaysApplied Int @default(0)
+  freeExtensionDays Int @default(0)
+  extensionExempt Boolean @default(false)
+  publishedAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  publicationHistory PackageGradeHistoryEvent[]
+
+  @@unique([cycleNumber, userId])
+  @@index([cycleNumber, publishedAt])
+  @@index([userId, publishedAt])
+}
+
+model PackageStageMedia {
+  id          String             @id @default(cuid())
+  rowId       String
+  stage       String
+  mediaItemId String
+  createdAt   DateTime           @default(now())
+  row         PackageProgressRow @relation(fields: [rowId], references: [id], onDelete: Cascade)
+  mediaItem   MediaItem          @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
+
+  @@unique([rowId, mediaItemId])
+  @@index([rowId, stage])
+}
+
+/// Idempotent review-email receipt (one send per row + stage + media version).
+model PackageReviewNotice {
+  id             String               @id @default(cuid())
+  progressRowId  String
+  stage          PackageApprovalStage
+  mediaVersionId String               @default("")
+  createdAt      DateTime             @default(now())
+  row            PackageProgressRow   @relation(fields: [progressRowId], references: [id], onDelete: Cascade)
+
+  @@unique([progressRowId, stage, mediaVersionId])
+  @@index([progressRowId])
+}
+
+enum PackageApprovalStage {
+  DRAFT
+  ASSOCIATE_REVIEW
+  ADVISER_REVIEW
+  EXECUTIVE_REVIEW
+  APPROVED
+}
+
+/// Approval is a property of the package in a cycle, not of any single file:
+/// the chain spans the initial cut (stage 1), the revised initial cut (stage 2),
+/// and the final cut (stage 3). It therefore hangs off the progress row.
+model PackageApproval {
+  id            String                   @id @default(cuid())
+  progressRowId String                   @unique
+  stage         PackageApprovalStage     @default(DRAFT)
+  controversial Boolean                  @default(false)
+  socialMedia   Boolean                  @default(false)
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+  progressRow   PackageProgressRow       @relation(fields: [progressRowId], references: [id], onDelete: Cascade)
+  signoffs      PackageApprovalSignoff[]
+
+  @@index([stage])
+}
+
+model PackageApprovalSignoff {
+  id          String               @id @default(cuid())
+  approvalId  String
+  userId      String
+  stage       PackageApprovalStage
+  approved    Boolean
+  note        String               @default("")
+  /// Which cut the reviewer was actually looking at, when known.
+  mediaItemId String?
+  createdAt   DateTime             @default(now())
+  approval    PackageApproval      @relation(fields: [approvalId], references: [id], onDelete: Cascade)
+  user        User                 @relation("PackageApprovalActor", fields: [userId], references: [id], onDelete: Cascade)
+  mediaItem   MediaItem?           @relation("ApprovalSignoffMedia", fields: [mediaItemId], references: [id], onDelete: SetNull)
+
+  @@index([approvalId, stage])
+  @@index([userId])
+}
+
+model ParticipationEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  date      DateTime
+  points    Int      @default(0)
+  notes     String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation("ParticipationSubject", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([date])
+}
+
+enum ParticipationGradeRequestStatus {
+  PENDING
+  APPROVED
+  DENIED
+}
+
+/// A producer-submitted batch of participation scores. Live ParticipationEntry
+/// rows are written only after a *different* producer approves.
+model ParticipationGradeRequest {
+  id            String                           @id @default(cuid())
+  requestedById String
+  status        ParticipationGradeRequestStatus  @default(PENDING)
+  reviewedById  String?
+  reviewedAt    DateTime?
+  createdAt     DateTime                         @default(now())
+  updatedAt     DateTime                         @updatedAt
+  requestedBy   User                             @relation("ParticipationGradeRequester", fields: [requestedById], references: [id], onDelete: Cascade)
+  reviewedBy    User?                            @relation("ParticipationGradeReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  items         ParticipationGradeRequestItem[]
+
+  @@index([status, createdAt])
+  @@index([requestedById])
+}
+
+model ParticipationGradeRequestItem {
+  id        String                    @id @default(cuid())
+  requestId String
+  userId    String
+  date      DateTime
+  points    Int
+  notes     String                    @default("")
+  request   ParticipationGradeRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  user      User                      @relation("ParticipationGradeRequestStudent", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([requestId, userId, date])
+  @@index([userId, date])
+}
+
+model PortfolioGrade {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  points    Int      @default(0)
+  feedback  String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation("PortfolioSubject", fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum ExtensionRequestStatus {
+  PENDING
+  APPROVED
+  DENIED
+}
+
+model PackageExtensionRequest {
+  id            String                     @id @default(cuid())
+  userId        String
+  /// Package group this request covers. Null only for legacy pre-group rows.
+  progressRowId String?
+  cycleNumber   Int
+  requestedDays Int
+  /// Days the first approving producer granted. Null means requestedDays (legacy rows).
+  grantedDays   Int?
+  /// Members the extension covers. Empty means the whole group.
+  grantedUserIds String[]                  @default([])
+  reason        String                     @default("")
+  status        ExtensionRequestStatus     @default(PENDING)
+  decidedAt     DateTime?
+  createdAt     DateTime                   @default(now())
+  updatedAt     DateTime                   @updatedAt
+  user          User                       @relation("ExtensionRequester", fields: [userId], references: [id], onDelete: Cascade)
+  progressRow   PackageProgressRow?        @relation(fields: [progressRowId], references: [id], onDelete: Cascade)
+  approvals     PackageExtensionApproval[]
+  memberConsents PackageExtensionMemberConsent[]
+
+  @@index([userId, cycleNumber])
+  @@index([progressRowId, cycleNumber])
+  @@index([status])
+}
+
+/// Every package group member must agree before producers can approve an extension.
+model PackageExtensionMemberConsent {
+  id        String                  @id @default(cuid())
+  requestId String
+  userId    String
+  agreed    Boolean                 @default(true)
+  createdAt DateTime                @default(now())
+  request   PackageExtensionRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  user      User                    @relation("ExtensionMemberConsent", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([requestId, userId])
+  @@index([userId])
+}
+
+model PackageExtensionApproval {
+  id        String                  @id @default(cuid())
+  requestId String
+  userId    String
+  approved  Boolean                 @default(true)
+  createdAt DateTime                @default(now())
+  request   PackageExtensionRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  user      User                    @relation("ExtensionApprover", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([requestId, userId])
+}
+
+model AnchorVolunteer {
+  id        String   @id @default(cuid())
+  monthKey  String
+  name      String
+  createdAt DateTime @default(now())
+
+  @@unique([monthKey, name])
+  @@index([monthKey])
+}
+
+model AnchorUnavailableNotice {
+  id        String   @id @default(cuid())
+  showDate  String
+  name      String
+  noticeAt  DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@unique([showDate, name])
+  @@index([showDate])
+}
+
+enum PackageGradeHistoryEventType {
+  PUBLISHED
+  REVISED
+}
+
+model PackageGradeHistoryEvent {
+  id            String                      @id @default(cuid())
+  packageGradeId String
+  eventType     PackageGradeHistoryEventType
+  occurredAt    DateTime                    @default(now())
+  packageGrade  PackageGrade                @relation(fields: [packageGradeId], references: [id], onDelete: Cascade)
+
+  @@index([packageGradeId, occurredAt])
+}
+
+model PackageTotalNote {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  notes     String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// Producer-only notes on a class member. cycleNumber 0 is general; 1+ is that package cycle.
+model MemberProducerNote {
+  id          String   @id @default(cuid())
+  userId      String
+  cycleNumber Int
+  notes       String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, cycleNumber])
+  @@index([cycleNumber])
+}
+
+enum EquipmentRequestStatus {
+  PENDING
+  APPROVED
+  DENIED
+}
+
+enum EquipmentReservationStatus {
+  PENDING
+  APPROVED
+  DENIED
+}
+
+enum EquipmentCheckoutStatus {
+  CHECKED_OUT
+  RETURNED
+}
+
+model EquipmentSetting {
+  id                 String   @id @default(cuid())
+  checkoutPasscodeHash String?
+  adminEmails        Json?
+  metadata           Json?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@map("equipment_settings")
+}
+
+model EquipmentStudent {
+  id            String               @id @default(cuid())
+  studentId     String               @unique
+  name          String?
+  email         String?
+  firstName     String?
+  lastName      String?
+  lastSyncedAt  DateTime?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  checkedOutItems EquipmentItem[]    @relation("EquipmentItemCheckedOutBy")
+  heldItems     EquipmentItem[]      @relation("EquipmentItemOnHoldFor")
+  checkouts     EquipmentCheckout[]
+  requests      EquipmentRequest[]
+  reservations  EquipmentReservation[]
+
+  @@index([email])
+  @@map("equipment_students")
+}
+
+model EquipmentItemGroup {
+  id          String                   @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+  items       EquipmentItemGroupItem[]
+
+  @@unique([name])
+  @@map("equipment_item_groups")
+}
+
+model EquipmentItem {
+  id                 String                   @id @default(cuid())
+  name               String
+  barcode            String                   @unique
+  retailValueCents   Int?
+  checkedOut         Boolean                  @default(false)
+  checkedOutById     String?
+  checkedOutAt       DateTime?
+  onHoldForStudentId String?
+  holdRequestId      String?
+  metadata           Json?
+  archivedAt         DateTime?
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  checkedOutBy       EquipmentStudent?        @relation("EquipmentItemCheckedOutBy", fields: [checkedOutById], references: [id], onDelete: SetNull)
+  onHoldForStudent   EquipmentStudent?        @relation("EquipmentItemOnHoldFor", fields: [onHoldForStudentId], references: [id], onDelete: SetNull)
+  checkouts          EquipmentCheckout[]
+  requestItems       EquipmentRequestItem[]
+  reservationItems   EquipmentReservationItem[]
+  groupMemberships   EquipmentItemGroupItem[]
+
+  @@index([checkedOut])
+  @@index([onHoldForStudentId])
+  @@index([archivedAt])
+  @@map("equipment_items")
+}
+
+model EquipmentCheckout {
+  id                String                 @id @default(cuid())
+  studentIdRef      String
+  itemId            String
+  status            EquipmentCheckoutStatus @default(CHECKED_OUT)
+  checkoutAt        DateTime               @default(now())
+  returnAt          DateTime?
+  dueAt             DateTime?
+  lateReminderSent  Boolean                @default(false)
+  lastLateReminderAt DateTime?
+  fineWarningSent   Boolean                @default(false)
+  metadata          Json?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  student           EquipmentStudent       @relation(fields: [studentIdRef], references: [id], onDelete: Restrict)
+  item              EquipmentItem          @relation(fields: [itemId], references: [id], onDelete: Restrict)
+
+  @@index([studentIdRef, checkoutAt])
+  @@index([itemId, checkoutAt])
+  @@index([status, checkoutAt])
+  @@map("equipment_checkouts")
+}
+
+model EquipmentRequest {
+  id             String                 @id @default(cuid())
+  studentIdRef   String
+  email          String
+  status         EquipmentRequestStatus @default(PENDING)
+  note           String?
+  processedBy    String?
+  processedAt    DateTime?
+  metadata       Json?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  student        EquipmentStudent       @relation(fields: [studentIdRef], references: [id], onDelete: Restrict)
+  items          EquipmentRequestItem[]
+
+  @@index([studentIdRef, createdAt])
+  @@index([status, createdAt])
+  @@map("equipment_requests")
+}
+
+model EquipmentRequestItem {
+  id          String            @id @default(cuid())
+  requestId   String
+  itemId      String
+  approved    Boolean?
+  denied      Boolean?
+  deniedReason String?
+  createdAt   DateTime          @default(now())
+  request     EquipmentRequest  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  item        EquipmentItem     @relation(fields: [itemId], references: [id], onDelete: Restrict)
+
+  @@unique([requestId, itemId])
+  @@index([itemId])
+  @@map("equipment_request_items")
+}
+
+model EquipmentReservation {
+  id             String                     @id @default(cuid())
+  studentIdRef   String
+  studentName    String
+  email          String
+  pickupAt       DateTime
+  returnAt       DateTime
+  status         EquipmentReservationStatus @default(PENDING)
+  reason         String?
+  processedBy    String?
+  processedAt    DateTime?
+  metadata       Json?
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+  student        EquipmentStudent           @relation(fields: [studentIdRef], references: [id], onDelete: Restrict)
+  items          EquipmentReservationItem[]
+
+  @@index([studentIdRef, pickupAt])
+  @@index([status, pickupAt])
+  @@map("equipment_reservations")
+}
+
+model EquipmentReservationItem {
+  id            String               @id @default(cuid())
+  reservationId String
+  itemId        String
+  createdAt     DateTime             @default(now())
+  reservation   EquipmentReservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  item          EquipmentItem        @relation(fields: [itemId], references: [id], onDelete: Restrict)
+
+  @@unique([reservationId, itemId])
+  @@index([itemId])
+  @@map("equipment_reservation_items")
+}
+
+model EquipmentAdminUser {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  isSuperAdmin Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("equipment_admin_users")
+}
+
+model EquipmentAuditLog {
+  id          String   @id @default(cuid())
+  actor       String?
+  action      String
+  targetType  String?
+  targetId    String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([targetType, targetId])
+  @@map("equipment_audit_logs")
+}
+
+model EquipmentItemGroupItem {
+  id        String             @id @default(cuid())
+  groupId   String
+  itemId    String
+  createdAt DateTime           @default(now())
+  group     EquipmentItemGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  item      EquipmentItem      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, itemId])
+  @@index([itemId])
+  @@map("equipment_item_group_items")
+}
+
+// ─── Livestream master tracker ───────────────────────────────────────────────
+
+enum LivestreamEventStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+enum LivestreamAvailability {
+  PUBLIC
+  UNLISTED
+  UNCONFIRMED
+}
+
+enum LivestreamSignupStatus {
+  PENDING
+  APPROVED
+  DENIED
+}
+
+/// One livestream / production event on the master schedule.
+model LivestreamEvent {
+  id            String                  @id @default(cuid())
+  title         String
+  startsAt      DateTime
+  location      String                  @default("")
+  status        LivestreamEventStatus   @default(SCHEDULED)
+  availability  LivestreamAvailability  @default(UNCONFIRMED)
+  /// Credit hours awarded to each confirmed attendee when status is COMPLETED.
+  hours         Float?
+  /// Open crew slots (default 4). Used for full / 1 left / 2+ capacity colours.
+  capacity      Int                     @default(4)
+  notes         String                  @default("")
+  managerUserId String?
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+  manager       User?                   @relation("LivestreamEventManager", fields: [managerUserId], references: [id], onDelete: SetNull)
+  attendees     LivestreamAttendee[]
+  signups       LivestreamSignupRequest[]
+
+  @@index([startsAt])
+  @@index([status])
+  @@index([managerUserId])
+}
+
+model LivestreamAttendee {
+  /// Null uses the event default; zero removes individual credit.
+  creditHours Float?
+  id        String          @id @default(cuid())
+  eventId   String
+  userId    String
+  createdAt DateTime        @default(now())
+  event     LivestreamEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([userId])
+}
+
+/// Website managers receive published package emails; this does not grant a producer role.
+model PublishingManager {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  createdByUserId String?
+  createdAt       DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// One upload per package. Snapshot the source so retries never switch video versions.
+model YoutubePublication {
+  id              String   @id @default(cuid())
+  rowId           String   @unique
+  status          String   @default("UPLOADING")
+  title           String
+  showDate        String
+  mediaVersionId  String
+  channelId       String
+  sourceSize      BigInt?
+  /// Secret resumable session URL. Never expose via APIs, logs, or Inngest step results.
+  uploadSessionUrl String?
+  videoId         String?  @unique
+  publishedAt     DateTime?
+  lastError       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  row             PackageProgressRow @relation(fields: [rowId], references: [id], onDelete: Cascade)
+  emails          YoutubePublicationEmail[]
+
+  @@index([status])
+}
+
+model YoutubePublicationEmail {
+  id              String   @id @default(cuid())
+  publicationId   String
+  recipient       String
+  recipientUserId String
+  /// Frozen payload ensures retries use the same Resend idempotency key and body.
+  payload         Json
+  firstAttemptAt  DateTime?
+  sentAt          DateTime?
+  cancelledAt     DateTime?
+  lastError       String?
+  publication     YoutubePublication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+
+  @@unique([publicationId, recipient])
+}
+
+/// Roster of livestream managers (producers appoint them). Not a PlatformRole.
+model LivestreamManager {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  createdByUserId String?
+  createdAt       DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+}
+
+/// Extra equipment managers (producers appoint them). Not a PlatformRole.
+model EquipmentManager {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  createdByUserId String?
+  createdAt       DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@map("equipment_managers")
+}
+
+model LivestreamSignupRequest {
+  id                 String                 @id @default(cuid())
+  eventId            String
+  userId             String
+  availableFullEvent Boolean                @default(true)
+  status             LivestreamSignupStatus @default(PENDING)
+  note               String                 @default("")
+  reviewedAt         DateTime?
+  reviewedByUserId   String?
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  event              LivestreamEvent        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user               User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy         User?                  @relation("LivestreamSignupReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([eventId, userId])
+  @@index([status])
+  @@index([userId])
+  @@index([reviewedByUserId])
+}
+
+model EquipmentPasskey {
+  id        String @id
+  userId    String
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  publicKey Bytes
+  counter   BigInt @default(0)
+  label     String
+  createdAt DateTime @default(now())
+  lastUsedAt DateTime?
+  @@index([userId])
+}
+
+model EquipmentPasskeyChallenge {
+  id        String @id
+  challenge String
+  purpose   String
+  origin    String
+  userId    String?
+  expiresAt DateTime
+  @@index([expiresAt])
+}
+
+/// Shared producer password vault. Secrets are AES-256-GCM ciphertext
+/// (src/lib/vault-crypto.ts, PASSWORD_VAULT_KEY); only name and url are plain.
+model VaultEntry {
+  id             String   @id
+  name           String
+  url            String?
+  usernameCipher String?
+  passwordCipher String?
+  totpCipher     String?
+  notesCipher    String?
+  createdById    String?
+  updatedById    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([name])
+}
+
+/// Who created, edited, deleted, or revealed a vault entry. Kept after the
+/// entry is deleted (entryName is a snapshot).
+model VaultAccessLog {
+  id        String   @id @default(cuid())
+  entryId   String
+  entryName String
+  userId    String
+  action    String
+  createdAt DateTime @default(now())
+
+  @@index([entryId, createdAt])
+}

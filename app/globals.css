@@ -1,0 +1,377 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================================
+   InFocus Design System tokens — brand-driven, dark-by-default.
+   Palette: broadcast green (#00C72C), record red (#E11D2C), ink.
+   ============================================================ */
+
+:root {
+  --radius: 0.625rem;
+
+  /* Dark on :root — app is always dark; light fallbacks showed as white borders on Chrome OS. */
+  --background: 0 0% 4%;
+  --foreground: 0 0% 98%;
+  --card: 0 0% 5%;
+  --card-foreground: 0 0% 98%;
+  --popover: 0 0% 5%;
+  --popover-foreground: 0 0% 98%;
+
+  --primary: 133 100% 39%;
+  --primary-foreground: 0 0% 4%;
+
+  --secondary: 240 4% 8%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 240 4% 7%;
+  --muted-foreground: 240 5% 65%;
+  --accent: 133 30% 10%;
+  --accent-foreground: 133 80% 80%;
+
+  --destructive: 355 76% 50%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 240 4% 16%;
+  --input: 240 4% 16%;
+  --ring: 133 100% 39%;
+
+  --chart-1: 133 100% 39%;
+  --chart-2: 355 76% 50%;
+  --chart-3: 38 92% 50%;
+  --chart-4: 220 90% 60%;
+  --chart-5: 280 70% 60%;
+
+  /* Brand accents — exposed for utilities */
+  --brand-green: #00C72C;
+  --brand-green-deep: #00A024;
+  --brand-green-soft: #E6F9EA;
+  --brand-green-ink: #024E14;
+  --brand-red: #E11D2C;
+  --brand-red-deep: #B7121F;
+  --brand-amber: #F2A516;
+  --ink: #0A0A0A;
+  --ink-2: #1F1F1F;
+  --ink-3: #2C2C2C;
+  --ink-4: #3A3A3A;
+  --ink-5: #6B6B70;
+  --ink-text: #B5B5BB;
+  --paper: #FFFFFF;
+  --paper-2: #F7F7F8;
+
+  /* Type families */
+  --font-display: "Barlow Condensed", "Oswald", Impact, sans-serif;
+  --font-mono-broadcast: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-chart-1: hsl(var(--chart-1));
+  --color-chart-2: hsl(var(--chart-2));
+  --color-chart-3: hsl(var(--chart-3));
+  --color-chart-4: hsl(var(--chart-4));
+  --color-chart-5: hsl(var(--chart-5));
+  --color-brand-green: var(--brand-green);
+  --color-brand-green-deep: var(--brand-green-deep);
+  --color-brand-red: var(--brand-red);
+  --color-brand-amber: var(--brand-amber);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: var(--font-geist-sans);
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono-broadcast);
+}
+
+html {
+  color-scheme: dark;
+  background-color: #0a0a0a;
+  background-color: hsl(var(--background));
+  -webkit-text-size-adjust: 100%;
+}
+
+*,
+::after,
+::before,
+::backdrop {
+  border-color: hsl(var(--border));
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  min-height: 100vh;
+  overflow-x: hidden;
+  overscroll-behavior: none;
+}
+
+@media (max-width: 1023px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]),
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+video {
+  width: 100%;
+}
+
+/* ============================================================
+   Brand utilities
+   ============================================================ */
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-mono-broadcast {
+  font-family: var(--font-mono-broadcast);
+}
+
+/* Italic broadcast display — uppercase, condensed, tight tracking */
+.display-xl,
+.display-lg,
+.display-md,
+.display-sm {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: hsl(var(--foreground));
+}
+.display-xl { font-size: clamp(3rem, 4vw + 2rem, 5.5rem); font-weight: 900; line-height: 0.92; }
+.display-lg { font-size: clamp(2.25rem, 2.5vw + 1.5rem, 3.75rem); font-weight: 900; line-height: 0.96; }
+.display-md { font-size: clamp(1.5rem, 1vw + 1.125rem, 2.25rem); line-height: 1.02; }
+.display-sm { font-size: clamp(1.25rem, 0.5vw + 1rem, 1.75rem); line-height: 1.05; }
+
+/* Eyebrow label */
+.eyebrow {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--brand-green);
+}
+.eyebrow-ink { color: hsl(var(--foreground)); }
+.eyebrow-red { color: var(--brand-red); }
+.eyebrow-muted { color: hsl(var(--muted-foreground)); }
+
+/* Wordmark style */
+.wordmark {
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* Status pills (Barlow Condensed micro-caps) */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.status-pill-sm {
+  font-size: 0.625rem;
+  letter-spacing: 0.12em;
+  padding: 2px 6px;
+  gap: 3px;
+}
+.status-pill-lg {
+  font-size: 0.9375rem;
+  letter-spacing: 0.16em;
+  padding: 8px 18px;
+  gap: 8px;
+}
+@media (min-width: 640px) {
+  .status-pill-lg {
+    font-size: 1rem;
+    padding: 10px 22px;
+  }
+}
+.status-live      { background: var(--brand-red); color: #fff; }
+.status-review    { background: hsl(var(--background)); color: #fff; border-color: hsl(var(--border)); }
+.status-approved  { background: rgb(0 199 44 / 0.18); color: var(--brand-green); border-color: rgb(0 199 44 / 0.30); }
+.status-warn      { background: rgb(242 165 22 / 0.18); color: var(--brand-amber); border-color: rgb(242 165 22 / 0.40); }
+.status-danger    { background: rgb(225 29 44 / 0.18); color: var(--brand-red); border-color: rgb(225 29 44 / 0.40); }
+.status-neutral   { background: hsl(var(--card)); color: var(--ink-text); border-color: hsl(var(--border)); }
+
+/* REC / live pulsing dot */
+.rec-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fff;
+  animation: rec-pulse 1.4s infinite;
+}
+.rec-dot-red { background: var(--brand-red); }
+@keyframes rec-pulse {
+  0%   { box-shadow: 0 0 0 0 rgb(225 29 44 / 0.55); }
+  70%  { box-shadow: 0 0 0 10px rgb(225 29 44 / 0); }
+  100% { box-shadow: 0 0 0 0 rgb(225 29 44 / 0); }
+}
+
+/* Meta pills (sidebar to hero) */
+.meta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  background: hsl(var(--secondary));
+  border: 1px solid hsl(var(--border));
+  color: hsl(var(--foreground));
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Brand gradient panels for project tiles & heroes */
+.brand-gradient-1 { background: linear-gradient(135deg, #6f3cff, #f0648f, #8d4bff); }
+.brand-gradient-2 { background: linear-gradient(135deg, #00b07c, #27d39e, #4f6dff); }
+.brand-gradient-3 { background: linear-gradient(135deg, #3d63ff, #6c7dff, #cf4be2); }
+.brand-gradient-4 { background: linear-gradient(135deg, #ff7b4a, #ff5ca8, #7e4dff); }
+.brand-gradient-5 { background: linear-gradient(135deg, #00a3ff, #3ec7ff, #6d6cff); }
+.brand-gradient-ink { background: linear-gradient(135deg, #1c1c1c, #2c2c2c, #0a0a0a); }
+.brand-gradient-green { background: linear-gradient(135deg, #00C72C, #00A024, #024E14); }
+.brand-gradient-red { background: linear-gradient(135deg, #E11D2C, #7a0e16, #0A0A0A); }
+
+/* Project hero gradient (broadcast green wash → ink) */
+.brand-hero-gradient {
+  background: linear-gradient(135deg, #024E14 0%, #0A0A0A 60%, #1F1F1F 100%);
+}
+
+/* Tile chrome — softens corners + ambient blur orbs */
+.brand-tile-orbs {
+  position: relative;
+  overflow: hidden;
+}
+.brand-tile-orbs::before,
+.brand-tile-orbs::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(20px);
+  pointer-events: none;
+}
+.brand-tile-orbs::before {
+  left: -30px;
+  top: -40px;
+  width: 110px;
+  height: 110px;
+  background: rgb(255 255 255 / 0.22);
+}
+.brand-tile-orbs::after {
+  right: -20px;
+  bottom: -50px;
+  width: 96px;
+  height: 96px;
+  background: rgb(0 0 0 / 0.25);
+}
+
+/* Remaining-days pill buttons (Extensions) */
+.rem-pill-ok {
+  background: rgb(0 199 44 / 0.10);
+  color: var(--brand-green);
+  border-color: rgb(0 199 44 / 0.30);
+}
+.rem-pill-ok:hover { background: rgb(0 199 44 / 0.18); }
+.rem-pill-warn {
+  background: rgb(242 165 22 / 0.12);
+  color: var(--brand-amber);
+  border-color: rgb(242 165 22 / 0.40);
+}
+.rem-pill-warn:hover { background: rgb(242 165 22 / 0.20); }
+.rem-pill-over {
+  background: rgb(225 29 44 / 0.12);
+  color: var(--brand-red);
+  border-color: rgb(225 29 44 / 0.40);
+}
+.rem-pill-over:hover { background: rgb(225 29 44 / 0.20); }
+
+/* Avatar palette — initial badges */
+.av-green  { background: linear-gradient(135deg, #00C72C, #00A024); color: #000; }
+.av-red    { background: linear-gradient(135deg, #E11D2C, #7a0e16); color: #fff; }
+.av-purple { background: linear-gradient(135deg, #6f3cff, #8d4bff); color: #fff; }
+.av-blue   { background: linear-gradient(135deg, #3d63ff, #6c7dff); color: #fff; }
+.av-gray   { background: #3A3A3A; color: #fff; }
+
+/* Frame.io-style timecode */
+.timecode {
+  font-family: var(--font-mono-broadcast);
+  letter-spacing: 0.04em;
+  color: hsl(var(--muted-foreground));
+}
+
+/* ============================================================
+   Animations
+   ============================================================ */
+
+.card-enter {
+  animation: card-enter 320ms ease both;
+}
+
+.route-enter {
+  animation: route-enter 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes route-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-enter,
+  .route-enter,
+  .rec-dot {
+    animation: none !important;
+  }
+}

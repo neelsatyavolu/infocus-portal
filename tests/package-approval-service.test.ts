@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const db = vi.hoisted(() => ({
-  packageApproval: { findUnique: vi.fn(), update: vi.fn() },
-  packageProgressRow: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
+  packageApproval: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
+  packageProgressRow: { findUnique: vi.fn(), update: vi.fn() },
   packageApprovalSignoff: { deleteMany: vi.fn(), create: vi.fn() },
   mediaVersion: { updateMany: vi.fn(), update: vi.fn(), findFirst: vi.fn() },
   mediaItem: { findUnique: vi.fn() },
@@ -106,38 +106,39 @@ describe("submitCutReview", () => {
   });
 });
 describe("approveAnyway", () => {
-  function heldRow(overrides: Record<string, unknown> = {}) {
-    return {
-      ...row(), awaitingRevisedInitialCut: true, currentVersionId: "v1",
-      initialCutMediaItem: { ...row().initialCutMediaItem, currentVersionId: "v1", currentVersion: { id: "v1", versionNumber: 1 } },
-      ...overrides
-    };
-  }
+  const reviewed = [
+    { userId: "ap", stage: "ASSOCIATE_REVIEW", approved: false, createdAt: new Date("2026-09-02") }
+  ];
   beforeEach(() => {
     db.packageApproval.findUnique.mockResolvedValue({
-      id: "approval", stage: "ASSOCIATE_REVIEW", controversial: false,
-      signoffs: [{ userId: "ap", stage: "ASSOCIATE_REVIEW", approved: true }]
+      id: "approval", stage: "DRAFT", controversial: false, signoffs: reviewed
     });
-    db.packageProgressRow.findUnique.mockResolvedValue(heldRow());
-    db.packageProgressRow.updateMany.mockResolvedValue({ count: 1 });
+    db.packageApproval.updateMany.mockResolvedValue({ count: 1 });
     db.user.findUnique.mockResolvedValue({ name: "Avery", nickname: null, email: "ap@example.com" });
   });
-  it("sends the held latest cut to Stage 2 and tells the adviser", async () => {
+  it("sends the reviewed latest cut to Stage 2 and tells the adviser", async () => {
     await approveAnyway("row", actor);
-    expect(db.packageProgressRow.updateMany).toHaveBeenCalledWith({
-      where: { id: "row", awaitingRevisedInitialCut: true },
-      data: { awaitingRevisedInitialCut: false, initialCut: true }
+    expect(db.packageApproval.updateMany).toHaveBeenCalledWith({
+      where: { id: "approval", stage: "DRAFT" }, data: { stage: "ADVISER_REVIEW" }
     });
-    expect(db.packageApproval.update).toHaveBeenCalledWith({ where: { id: "approval" }, data: { stage: "ADVISER_REVIEW" } });
+    expect(db.packageProgressRow.update).toHaveBeenCalledWith({
+      where: { id: "row" }, data: { awaitingRevisedInitialCut: false, initialCut: true }
+    });
     expect(db.packageApprovalSignoff.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ approvalId: "approval", userId: "ap", stage: "ASSOCIATE_REVIEW", approved: true, mediaItemId: "cut" })
     });
-    expect(db.mediaVersion.update).toHaveBeenCalledWith({ where: { id: "v1" }, data: { approvalStatus: "APPROVED" } });
-    expect(notify.notifyPackageReview).toHaveBeenCalledWith({ progressRowId: "row", kind: "adviser", mediaVersionId: "v1" });
+    expect(db.mediaVersion.update).toHaveBeenCalledWith({ where: { id: "v2" }, data: { approvalStatus: "APPROVED" } });
+    expect(notify.notifyPackageReview).toHaveBeenCalledWith({ progressRowId: "row", kind: "adviser", mediaVersionId: "v2" });
     expect(notify.notifyPackageMembersOfDecision).toHaveBeenCalledWith(expect.objectContaining({ kind: "stage-1" }));
   });
-  it("refuses when the package is not waiting on a revised upload", async () => {
-    db.packageProgressRow.findUnique.mockResolvedValue(heldRow({ awaitingRevisedInitialCut: false }));
+  it("refuses a package another stage sent back", async () => {
+    db.packageApproval.findUnique.mockResolvedValue({
+      id: "approval", stage: "DRAFT", controversial: false,
+      signoffs: [
+        { userId: "ap", stage: "ASSOCIATE_REVIEW", approved: true, createdAt: new Date("2026-09-02") },
+        { userId: "adviser", stage: "ADVISER_REVIEW", approved: false, createdAt: new Date("2026-09-04") }
+      ]
+    });
     await expect(approveAnyway("row", actor)).rejects.toThrow("FORBIDDEN");
     expect(db.$transaction).not.toHaveBeenCalled();
   });
@@ -145,10 +146,10 @@ describe("approveAnyway", () => {
     await expect(approveAnyway("row", { ...actor, userId: "other" })).rejects.toThrow("FORBIDDEN");
     expect(db.$transaction).not.toHaveBeenCalled();
   });
-  it("does nothing if a revised upload already moved the package on", async () => {
-    db.packageProgressRow.updateMany.mockResolvedValue({ count: 0 });
+  it("does nothing if a new upload already moved the package on", async () => {
+    db.packageApproval.updateMany.mockResolvedValue({ count: 0 });
     await expect(approveAnyway("row", actor)).rejects.toThrow("FORBIDDEN");
-    expect(db.packageApproval.update).not.toHaveBeenCalled();
+    expect(db.packageApprovalSignoff.create).not.toHaveBeenCalled();
     expect(notify.notifyPackageReview).not.toHaveBeenCalled();
   });
 });

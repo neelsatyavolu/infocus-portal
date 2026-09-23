@@ -74,6 +74,12 @@ function toApprovalState(approval: {
   };
 }
 
+/** Stage that sent the package back, when the newest sign-off is a send-back. */
+function sentBackFromStage(signoffs: Array<{ stage: PackageApprovalStage; approved: boolean; createdAt: Date }>) {
+  const latest = [...signoffs].sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())[0];
+  return latest && !latest.approved ? latest.stage : null;
+}
+
 /**
  * Who may stand in as the group's assigned producer for Stage 1.
  * Associates must be the assigned AP and must not be on the roster.
@@ -174,7 +180,10 @@ export async function loadApprovalView(progressRowId: string, actor: ApprovalAct
     canApproveAnyway: canApproveAnyway(
       state,
       { userId: actor.userId, role: actor.role, ownsCategory, isPackageMember: packageMember },
-      Boolean(row?.awaitingRevisedInitialCut)
+      {
+        sentBackFromStage: sentBackFromStage(approval.signoffs),
+        awaitingRevisedInitialCut: Boolean(row?.awaitingRevisedInitialCut)
+      }
     ),
     awaitingRevisedInitialCut: Boolean(row?.awaitingRevisedInitialCut),
     signoffs: approval.signoffs.map((entry) => ({
@@ -188,11 +197,7 @@ export async function loadApprovalView(progressRowId: string, actor: ApprovalAct
   };
 }
 
-/**
- * Stage 2 requires the revised (second) initial cut, so a package cannot enter
- * the chain until the initial cut exists, and cannot pass stage 1 review without
- * the revision the rules require.
- */
+/** A package cannot enter the chain until the Initial Cut exists. */
 export async function submitForReview(progressRowId: string) {
   const approval = await getOrCreateApproval(progressRowId);
 
@@ -252,7 +257,7 @@ export async function recordDecision(
     where: { id: progressRowId },
     select: {
       awaitingRevisedInitialCut: true,
-      initialCutMediaItem: { select: { currentVersion: { select: { id: true, versionNumber: true } } } }
+      initialCutMediaItem: { select: { currentVersion: { select: { id: true } } } }
     }
   });
 
@@ -270,10 +275,7 @@ export async function recordDecision(
     state,
     { userId: actor.userId, role: actor.role, ownsCategory, isPackageMember: packageMember },
     approved,
-    {
-      awaitingRevisedInitialCut: row?.awaitingRevisedInitialCut ?? false,
-      latestInitialCutVersion: row?.initialCutMediaItem?.currentVersion?.versionNumber ?? 1
-    }
+    { awaitingRevisedInitialCut: row?.awaitingRevisedInitialCut ?? false }
   );
 
   if (decision.type === "FORBIDDEN") {
@@ -327,14 +329,6 @@ export async function recordDecision(
         data: { awaitingRevisedInitialCut: false }
       });
 
-      return;
-    }
-
-    if (decision.type === "HOLD_FOR_REVISION") {
-      await tx.packageProgressRow.update({
-        where: { id: progressRowId },
-        data: { awaitingRevisedInitialCut: true, initialCut: true }
-      });
       return;
     }
 
@@ -392,7 +386,6 @@ export async function recordDecision(
 
   if (
     decision.type === "ADVANCE" ||
-    decision.type === "HOLD_FOR_REVISION" ||
     decision.type === "SEND_BACK"
   ) {
     const reviewer = await prisma.user.findUnique({
@@ -414,13 +407,11 @@ export async function recordDecision(
     const kind =
       decision.type === "SEND_BACK"
         ? "sent-back"
-        : decision.type === "HOLD_FOR_REVISION"
-          ? "hold"
-          : approval.stage === "ASSOCIATE_REVIEW"
-            ? "stage-1"
-            : approval.stage === "ADVISER_REVIEW"
-              ? "stage-2"
-              : "approved";
+        : approval.stage === "ASSOCIATE_REVIEW"
+          ? "stage-1"
+          : approval.stage === "ADVISER_REVIEW"
+            ? "stage-2"
+            : "approved";
     try {
       await notifyPackageMembersOfDecision({
         progressRowId,
@@ -438,8 +429,8 @@ export async function recordDecision(
 }
 
 /**
- * Approve anyway: the Stage 1 owner skips the revised-upload hold and sends
- * the latest Initial Cut to Stage 2.
+ * Approve anyway: after submitting a Stage 1 review (needs revisions), the
+ * Stage 1 owner sends the latest Initial Cut to Stage 2 without a new upload.
  */
 export async function approveAnyway(progressRowId: string, actor: ApprovalActorContext) {
   const approval = await getOrCreateApproval(progressRowId);
@@ -456,19 +447,27 @@ export async function approveAnyway(progressRowId: string, actor: ApprovalActorC
     }
   });
   const actorContext = { userId: actor.userId, role: actor.role, ownsCategory, isPackageMember: packageMember };
-  if (!row || !canApproveAnyway(toApprovalState(approval), actorContext, row.awaitingRevisedInitialCut)) {
+  const context = {
+    sentBackFromStage: sentBackFromStage(approval.signoffs),
+    awaitingRevisedInitialCut: Boolean(row?.awaitingRevisedInitialCut)
+  };
+  if (!row?.initialCutMediaItemId || !canApproveAnyway(toApprovalState(approval), actorContext, context)) {
     throw new Error("FORBIDDEN");
   }
   const versionId = row.initialCutMediaItem?.currentVersionId ?? null;
-  const note = "Approved anyway — sent to Stage 2 without a revised upload";
+  const note = "Approved anyway — sent to Stage 2 without a new upload";
 
   await prisma.$transaction(async (tx) => {
-    // Guard against a revised upload that already moved the package to Stage 2.
-    const held = await tx.packageProgressRow.updateMany({
-      where: { id: progressRowId, awaitingRevisedInitialCut: true },
+    // Guard against a new upload that already moved the package on.
+    const moved = await tx.packageApproval.updateMany({
+      where: { id: approval.id, stage: approval.stage },
+      data: { stage: "ADVISER_REVIEW" }
+    });
+    if (moved.count === 0) throw new Error("FORBIDDEN");
+    await tx.packageProgressRow.update({
+      where: { id: progressRowId },
       data: { awaitingRevisedInitialCut: false, initialCut: true }
     });
-    if (held.count === 0) throw new Error("FORBIDDEN");
     await tx.packageApprovalSignoff.create({
       data: {
         approvalId: approval.id,
@@ -482,7 +481,6 @@ export async function approveAnyway(progressRowId: string, actor: ApprovalActorC
     if (versionId) {
       await tx.mediaVersion.update({ where: { id: versionId }, data: { approvalStatus: ApprovalStatus.APPROVED } });
     }
-    await tx.packageApproval.update({ where: { id: approval.id }, data: { stage: "ADVISER_REVIEW" } });
   });
 
   const { notifyPackageReview, notifyPackageMembersOfDecision } = await import("@/src/server/package-review-notify");

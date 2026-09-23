@@ -191,13 +191,12 @@ export function approvalProgressLabel(
 
 export type ApprovalDecision =
   | { type: "ADVANCE"; stage: PackageApprovalStage }
-  | { type: "HOLD_FOR_REVISION"; stage: PackageApprovalStage }
   | { type: "AWAIT_SIGNOFFS"; stage: PackageApprovalStage; remaining: number }
   | { type: "SEND_BACK"; stage: PackageApprovalStage }
   | { type: "FORBIDDEN" };
 
 export type DecisionContext = {
-  latestInitialCutVersion?: number;
+  /** Legacy Stage 1 hold from before Stage 1 approval advanced straight to Stage 2. */
   awaitingRevisedInitialCut?: boolean;
 };
 
@@ -207,7 +206,8 @@ export type DecisionContext = {
  * A denial always returns the package to DRAFT: the student revises and
  * resubmits from the top of the chain, which is what "you cannot skip a stage"
  * requires. Any executive producer can deny at stage 3 and send it back.
- * Stage 1 on v1 only holds for a revised cut instead of advancing to the adviser.
+ * Stage 1 approval sends the latest cut straight to the adviser; Stage 2
+ * decides whether it needs a revision.
  */
 export function applyDecision(
   state: ApprovalState,
@@ -226,9 +226,6 @@ export function applyDecision(
   if (state.stage === "ASSOCIATE_REVIEW") {
     if (context.awaitingRevisedInitialCut) {
       return { type: "FORBIDDEN" };
-    }
-    if ((context.latestInitialCutVersion ?? 1) < 2) {
-      return { type: "HOLD_FOR_REVISION", stage: "ASSOCIATE_REVIEW" };
     }
     return { type: "ADVANCE", stage: "ADVISER_REVIEW" };
   }
@@ -253,15 +250,26 @@ export function applyDecision(
   return { type: "ADVANCE", stage: "APPROVED" };
 }
 
-/**
- * Approve anyway: the Stage 1 owner may send a package held for a revised
- * upload on to Stage 2 with the latest cut instead of waiting for Version 2.
- */
 export const APPROVE_ANYWAY_CONFIRM =
-  "Send this package to Stage 2 without a revised upload? The adviser will review the latest version.";
+  "Send this package to Stage 2 without a new upload? The adviser will review the latest version.";
 
-export function canApproveAnyway(state: ApprovalState, actor: Actor, awaitingRevisedInitialCut: boolean) {
-  return state.stage === "ASSOCIATE_REVIEW" && awaitingRevisedInitialCut && canActOnStage(state, actor);
+export type ApproveAnywayContext = {
+  /** Stage of the newest sign-off when it was a send-back, else null. */
+  sentBackFromStage: PackageApprovalStage | null;
+  awaitingRevisedInitialCut: boolean;
+};
+
+/**
+ * Approve anyway: after the Stage 1 producer submitted a review (needs
+ * revisions), they may still send the latest cut on to Stage 2 without waiting
+ * for a new upload. Also releases packages left in the legacy Stage 1 hold.
+ */
+export function canApproveAnyway(state: ApprovalState, actor: Actor, context: ApproveAnywayContext) {
+  const stageOne: ApprovalState = { ...state, stage: "ASSOCIATE_REVIEW" };
+  if (state.stage === "DRAFT") {
+    return context.sentBackFromStage === "ASSOCIATE_REVIEW" && canActOnStage(stageOne, actor);
+  }
+  return state.stage === "ASSOCIATE_REVIEW" && context.awaitingRevisedInitialCut && canActOnStage(state, actor);
 }
 
 export function isApprovedForFinalCut(state: ApprovalState) {

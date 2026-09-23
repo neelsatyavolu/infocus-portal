@@ -208,7 +208,7 @@ export function checkInApprovedMail(input: {
 export function approvalDecisionMail(input: {
   cycleNumber: number;
   topic: string;
-  kind: "stage-1" | "stage-2" | "approved" | "hold" | "sent-back";
+  kind: "stage-1" | "stage-2" | "approved" | "sent-back";
   reviewerName: string;
   excerpt?: string;
 }): PackageMailContent {
@@ -229,20 +229,6 @@ export function approvalDecisionMail(input: {
       ctaLabel: "Open Initial Cut",
       pushTitle: "Package sent back",
       pushBody: excerpt ? `${reviewer}: ${excerpt}` : `${reviewer} sent ${label} back for revisions.`
-    };
-  }
-
-  if (input.kind === "hold") {
-    return {
-      subject: `Cycle ${input.cycleNumber}: revised Initial Cut needed for ${topic}`,
-      heading: "Revised Initial Cut needed",
-      paragraphs: [
-        `${reviewer} greenlit Stage 1 for ${label} and asked for a revised Initial Cut before Stage 2.`,
-        excerpt
-      ].filter((paragraph): paragraph is string => Boolean(paragraph)),
-      ctaLabel: "Open Initial Cut",
-      pushTitle: "Revised Initial Cut needed",
-      pushBody: excerpt ? `${reviewer}: ${excerpt}` : `${reviewer} asked for a revised Initial Cut on ${label}.`
     };
   }
 

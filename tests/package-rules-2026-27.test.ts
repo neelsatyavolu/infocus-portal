@@ -546,8 +546,7 @@ describe("approval chain", () => {
       applyDecision(
         state(),
         { userId: "ap", role: "ASSOCIATE_PRODUCER", ownsCategory: true, isPackageMember: true },
-        true,
-        { latestInitialCutVersion: 2 }
+        true
       )
     ).toEqual({ type: "FORBIDDEN" });
   });
@@ -571,7 +570,7 @@ describe("approval chain", () => {
     expect(canActOnStage(state(), assignedEp)).toBe(true);
     expect(canActOnStage(state(), assignedAdmin)).toBe(true);
     expect(
-      applyDecision(state(), assignedEp, true, { latestInitialCutVersion: 2 })
+      applyDecision(state(), assignedEp, true)
     ).toEqual({ type: "ADVANCE", stage: "ADVISER_REVIEW" });
   });
 
@@ -618,47 +617,36 @@ describe("approval chain", () => {
     ).toEqual({ type: "FORBIDDEN" });
   });
 
-  it("holds stage 1 on v1 until a revised cut exists", () => {
-    expect(
-      applyDecision(
-        state(),
-        { userId: "ap", role: "ASSOCIATE_PRODUCER", ownsCategory: true },
-        true,
-        { latestInitialCutVersion: 1 }
-      )
-    ).toEqual({ type: "HOLD_FOR_REVISION", stage: "ASSOCIATE_REVIEW" });
-
-    expect(
-      applyDecision(
-        state(),
-        { userId: "ap", role: "ASSOCIATE_PRODUCER", ownsCategory: true },
-        true,
-        { latestInitialCutVersion: 2 }
-      )
-    ).toEqual({ type: "ADVANCE", stage: "ADVISER_REVIEW" });
-
-    expect(
-      applyDecision(
-        state(),
-        { userId: "ap", role: "ASSOCIATE_PRODUCER", ownsCategory: true },
-        true,
-        { awaitingRevisedInitialCut: true, latestInitialCutVersion: 1 }
-      )
-    ).toEqual({ type: "FORBIDDEN" });
-  });
-
-  it("lets the Stage 1 owner approve anyway only while awaiting a revised upload", () => {
+  it("sends a Stage 1 approval straight to Stage 2, even on Version 1", () => {
     const ap = { userId: "ap", role: "ASSOCIATE_PRODUCER" as const, ownsCategory: true };
 
-    expect(canApproveAnyway(state(), ap, true)).toBe(true);
-    expect(canApproveAnyway(state(), ap, false)).toBe(false);
-    expect(canApproveAnyway(state({ stage: "ADVISER_REVIEW" }), ap, true)).toBe(false);
-    expect(canApproveAnyway(state(), { ...ap, ownsCategory: false }, true)).toBe(false);
-    expect(canApproveAnyway(state(), { ...ap, isPackageMember: true }, true)).toBe(false);
+    expect(applyDecision(state(), ap, true)).toEqual({ type: "ADVANCE", stage: "ADVISER_REVIEW" });
+    // Legacy packages still parked in the old revised-upload hold cannot be approved twice.
+    expect(applyDecision(state(), ap, true, { awaitingRevisedInitialCut: true })).toEqual({ type: "FORBIDDEN" });
+  });
+
+  it("offers approve anyway only after Stage 1 sent the package back", () => {
+    const ap = { userId: "ap", role: "ASSOCIATE_PRODUCER" as const, ownsCategory: true };
+    const draft = state({ stage: "DRAFT" });
+    const fromStage1 = { sentBackFromStage: "ASSOCIATE_REVIEW" as const, awaitingRevisedInitialCut: false };
+
+    expect(canApproveAnyway(draft, ap, fromStage1)).toBe(true);
     expect(
-      canApproveAnyway(state(), { userId: "aep", role: "EXECUTIVE_PRODUCER", ownsCategory: true }, true)
+      canApproveAnyway(draft, { userId: "aep", role: "EXECUTIVE_PRODUCER", ownsCategory: true }, fromStage1)
     ).toBe(true);
-    expect(canApproveAnyway(state(), { userId: "adviser", role: "ADVISER" }, true)).toBe(false);
+    expect(canApproveAnyway(draft, ap, { ...fromStage1, sentBackFromStage: "ADVISER_REVIEW" })).toBe(false);
+    expect(canApproveAnyway(draft, ap, { ...fromStage1, sentBackFromStage: null })).toBe(false);
+    expect(canApproveAnyway(state(), ap, fromStage1)).toBe(false);
+    expect(canApproveAnyway(draft, { ...ap, ownsCategory: false }, fromStage1)).toBe(false);
+    expect(canApproveAnyway(draft, { ...ap, isPackageMember: true }, fromStage1)).toBe(false);
+    expect(canApproveAnyway(draft, { userId: "adviser", role: "ADVISER" }, fromStage1)).toBe(false);
+  });
+
+  it("releases legacy Stage 1 holds with approve anyway", () => {
+    const ap = { userId: "ap", role: "ASSOCIATE_PRODUCER" as const, ownsCategory: true };
+
+    expect(canApproveAnyway(state(), ap, { sentBackFromStage: null, awaitingRevisedInitialCut: true })).toBe(true);
+    expect(canApproveAnyway(state(), ap, { sentBackFromStage: null, awaitingRevisedInitialCut: false })).toBe(false);
   });
 
   it("requires two executive sign-offs to reach approved", () => {

@@ -101,9 +101,6 @@ describe("stage notification copy", () => {
     expect(approvalDecisionMail({ cycleNumber: 1, topic: "Lee-Patel", kind: "approved", reviewerName: "EP" }).ctaLabel).toBe(
       "Open Final Cut"
     );
-    expect(approvalDecisionMail({ cycleNumber: 1, topic: "Lee-Patel", kind: "hold", reviewerName: "AP" }).heading).toMatch(
-      /Revised Initial Cut/
-    );
     expect(approvalDecisionMail({ cycleNumber: 1, topic: "Lee-Patel", kind: "sent-back", reviewerName: "EP" }).subject).toMatch(
       /sent back/
     );

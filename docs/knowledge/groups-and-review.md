@@ -15,14 +15,14 @@ Anchored to the package row, not a single file:
 | Stage | Who | Artifact |
 |---|---|---|
 | Stage 1 | Assigned producer (AP or assigned EP/super-admin) | Initial cut |
-| Stage 2 | Adviser only | Revised initial cut |
+| Stage 2 | Adviser only | Latest initial cut (the adviser decides if it needs a revision) |
 | Stage 3 | Two distinct executive producers (three if marked controversial). Adviser does not count. | Latest initial cut |
 
 `APPROVED` unlocks Final Cut. It does not mean the package is on air.
 
 A denial returns the package to `DRAFT` and clears executive sign-offs.
 
-On both the Groups Initial Cut tab and the video review screen, use **Submit review (needs revisions)** to send the package back to the group, or **Approve** to sign off on the current stage. Review decisions apply to the latest cut. Stage 1 approval of Version 1 shows **Approved in Stage 1 · Awaiting revised upload**; the revised upload normally moves it to Stage 2. While it waits, the Stage 1 producer (assigned AP, or assigned EP standing in) can click **Approve anyway** to send the latest version to Stage 2 without a revised upload. The adviser is notified the same way as a normal Stage 1 approval.
+On both the Groups Initial Cut tab and the video review screen, use **Submit review (needs revisions)** to send the package back to the group, or **Approve** to sign off on the current stage. Review decisions apply to the latest cut. Stage 1 approval sends the latest version (including Version 1) straight to Stage 2. The adviser decides whether it needs a revision. After the Stage 1 producer (assigned AP, or assigned EP standing in) submits a review with needs revisions, they can still click **Approve anyway** to send the latest version to Stage 2 without waiting for a new upload. The adviser and the group are notified the same way as a normal Stage 1 approval.
 
 **Unapprove** withdraws your own sign-off and reopens that stage for review, provided you still have permission to review that stage. Withdrawing Stage 1 or Stage 2 also clears later sign-offs; an executive withdrawing Stage 3 preserves other executives' votes. Remove a package from the publishing queue before withdrawing an approval.
 

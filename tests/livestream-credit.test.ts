@@ -70,16 +70,23 @@ describe("adjusted livestream credit", () => {
     const { data } = await response.json();
     expect(data.rows[0]).toMatchObject({ completedHours: 4.25, points: 21, completedEvents: 4 });
   });
-  it("drops producers, the adviser, and the super admin from the completion roster", async () => {
+  it("drops execs, the adviser, and the super admin from the completion roster but keeps APs", async () => {
     db.user.findMany.mockResolvedValue([
       { id: "student", name: "Abby", email: "abby@example.edu" },
       { id: "ap", name: "Otto", email: "otto@example.edu" },
+      { id: "ep", name: "Sage", email: "sage@example.edu" },
       { id: "adviser", name: "Adviser", email: "adviser@example.edu" },
       { id: "admin", name: "Admin", email: "superadmin@example.edu" }
     ]);
-    db.platformRoleAssignment.findMany.mockResolvedValue([{ email: "Otto@example.edu" }]);
+    const assignments = [
+      { email: "Otto@example.edu", role: "ASSOCIATE_PRODUCER" },
+      { email: "Sage@example.edu", role: "EXECUTIVE_PRODUCER" }
+    ];
+    db.platformRoleAssignment.findMany.mockImplementation(async (args: { where: { role: { in: string[] } } }) =>
+      assignments.filter((entry) => args.where.role.in.includes(entry.role))
+    );
     const { data } = await (await GET()).json();
-    expect(data.rows.map((row: { userId: string }) => row.userId)).toEqual(["student"]);
+    expect(data.rows.map((row: { userId: string }) => row.userId)).toEqual(["student", "ap"]);
   });
   it("grades livestream managers at 10 points per managed livestream, capped at 4", async () => {
     const releasedAt = new Date("2026-11-30T08:00:00Z");

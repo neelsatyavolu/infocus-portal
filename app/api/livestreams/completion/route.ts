@@ -10,7 +10,7 @@ import {
   REQUIRED_MANAGED_LIVESTREAMS,
   semesterForDate
 } from "@/src/lib/livestream";
-import { emailsFromNonGradableAssignments, isExcludedFromGrading } from "@/src/lib/gradable-roster";
+import { isExcludedFromGrading, loadNonGradableEmails } from "@/src/lib/gradable-roster";
 import { MAX_LIVESTREAM_POINTS } from "@/src/lib/grading";
 import { getPlatformAccess } from "@/src/lib/platform-admin";
 import { prisma } from "@/src/lib/prisma";
@@ -20,8 +20,8 @@ import { userDisplayName } from "@/src/lib/user-display";
 
 /**
  * Completion roster for the current (or query) semester.
- * Producers + livestream managers only. Lists students only: anyone with a platform
- * role (producers, adviser, super admin) is left out.
+ * Producers + livestream managers only. Execs (EP, adviser, super admin) are left out;
+ * associate producers still need livestream credit and stay listed.
  */
 export async function GET() {
   try {
@@ -32,12 +32,12 @@ export async function GET() {
 
     const semester = semesterForDate();
 
-    const [users, roleAssignments, completedEvents] = await Promise.all([
+    const [users, staffEmails, completedEvents] = await Promise.all([
       prisma.user.findMany({
         select: { id: true, name: true, nickname: true, email: true },
         orderBy: [{ name: "asc" }, { email: "asc" }]
       }),
-      prisma.platformRoleAssignment.findMany({ select: { email: true } }),
+      loadNonGradableEmails(),
       prisma.livestreamEvent.findMany({
         where: {
           status: "COMPLETED",
@@ -53,7 +53,6 @@ export async function GET() {
       })
     ]);
 
-    const staffEmails = emailsFromNonGradableAssignments(roleAssignments);
     const students = users.filter((user) => !isExcludedFromGrading(user, staffEmails));
     const managedByUser = await managedLivestreamCountsByUserIds(
       students.map((student) => student.id),

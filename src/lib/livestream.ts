@@ -3,6 +3,7 @@
  *
  * Required: 8 hours per semester for full credit. Partial is proportional
  * (e.g. 4 hours = 50%). Points scale against MAX_LIVESTREAM_POINTS (40; 5/hour).
+ * Appointed livestream managers instead need 4 managed livestreams (10 pts each).
  *
  * Semester windows (calendar dates, fixed each year):
  *   S1: Aug 13 – Dec 18
@@ -111,6 +112,15 @@ export function livestreamCreditFraction(completedHours: number) {
  */
 export function livestreamPointsFromHours(completedHours: number): number {
   return Math.round(livestreamCreditFraction(completedHours) * MAX_LIVESTREAM_POINTS);
+}
+
+/** Appointed livestream managers earn credit per managed livestream instead of hours. */
+export const REQUIRED_MANAGED_LIVESTREAMS = 4;
+
+/** 4 managed → MAX_LIVESTREAM_POINTS (40; 10 each); extra managed events are capped. */
+export function livestreamPointsFromManagedCount(managedCount: number): number {
+  const counted = Math.min(REQUIRED_MANAGED_LIVESTREAMS, Math.max(0, Math.floor(managedCount)));
+  return (counted * MAX_LIVESTREAM_POINTS) / REQUIRED_MANAGED_LIVESTREAMS;
 }
 
 export type CapacityTone = "full" | "one" | "open";

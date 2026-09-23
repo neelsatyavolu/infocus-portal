@@ -3,6 +3,7 @@ import {
   livestreamAttendeeHours,
   livestreamGradesReleased,
   livestreamPointsFromHours,
+  livestreamPointsFromManagedCount,
   semesterForDate,
   type AcademicSemester
 } from "@/src/lib/livestream";
@@ -41,6 +42,7 @@ export async function completedLivestreamHoursForUser(
  * Livestream points for the weighted grade. Null until release and at least one COMPLETED
  * livestream exists in the semester (so an empty tracker is not a silent 0%).
  * Once tracking has started, hours scale to MAX_LIVESTREAM_POINTS (8h = 40 pts).
+ * Appointed livestream managers are graded on managed livestreams instead (4 = 40 pts).
  */
 export async function resolveLivestreamPointsForUser(
   userId: string,
@@ -59,6 +61,12 @@ export async function resolveLivestreamPointsForUser(
   });
   if (completedCount === 0) {
     return null;
+  }
+
+  const managed = await managedLivestreamCountsByUserIds([userId], semester);
+  const managedCount = managed.get(userId);
+  if (managedCount !== undefined) {
+    return livestreamPointsFromManagedCount(managedCount);
   }
 
   const hours = await completedLivestreamHoursForUser(userId, semester);
@@ -93,11 +101,53 @@ export async function resolveLivestreamPointsByUserIds(
     return result;
   }
 
-  const hoursByUser = await completedLivestreamHoursByUserIds(userIds, semester);
+  const [hoursByUser, managedByUser] = await Promise.all([
+    completedLivestreamHoursByUserIds(userIds, semester),
+    managedLivestreamCountsByUserIds(userIds, semester)
+  ]);
   for (const userId of userIds) {
-    result.set(userId, livestreamPointsFromHours(hoursByUser.get(userId) ?? 0));
+    const managedCount = managedByUser.get(userId);
+    result.set(
+      userId,
+      managedCount !== undefined
+        ? livestreamPointsFromManagedCount(managedCount)
+        : livestreamPointsFromHours(hoursByUser.get(userId) ?? 0)
+    );
   }
   return result;
+}
+
+/**
+ * Managed COMPLETED livestreams per appointed livestream manager. Only managers get an
+ * entry; zero-hour (cancelled-credit) events do not count.
+ */
+export async function managedLivestreamCountsByUserIds(
+  userIds: string[],
+  semester: AcademicSemester = semesterForDate()
+): Promise<Map<string, number>> {
+  if (userIds.length === 0) return new Map();
+  const [managers, events] = await Promise.all([
+    prisma.livestreamManager.findMany({
+      where: { userId: { in: userIds } },
+      select: { userId: true }
+    }),
+    prisma.livestreamEvent.findMany({
+      where: {
+        managerUserId: { in: userIds },
+        status: "COMPLETED",
+        startsAt: { gte: semester.start, lte: semester.end }
+      },
+      select: { managerUserId: true, hours: true, startsAt: true }
+    })
+  ]);
+
+  const counts = new Map(managers.map((row) => [row.userId, 0]));
+  for (const event of events) {
+    if (!event.managerUserId || !counts.has(event.managerUserId)) continue;
+    if (!event.hours || !isDateInSemester(event.startsAt, semester)) continue;
+    counts.set(event.managerUserId, (counts.get(event.managerUserId) ?? 0) + 1);
+  }
+  return counts;
 }
 
 /** Completed hours remain visible even while grades are unreleased. */

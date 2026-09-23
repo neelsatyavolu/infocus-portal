@@ -5,18 +5,23 @@ import {
   livestreamCreditFraction,
   livestreamAttendeeHours,
   livestreamPointsFromHours,
+  livestreamPointsFromManagedCount,
   REQUIRED_LIVESTREAM_HOURS,
+  REQUIRED_MANAGED_LIVESTREAMS,
   semesterForDate
 } from "@/src/lib/livestream";
+import { emailsFromNonGradableAssignments, isExcludedFromGrading } from "@/src/lib/gradable-roster";
 import { MAX_LIVESTREAM_POINTS } from "@/src/lib/grading";
 import { getPlatformAccess } from "@/src/lib/platform-admin";
 import { prisma } from "@/src/lib/prisma";
 import { requireLivestreamManagerAccess } from "@/src/server/livestream-access";
+import { managedLivestreamCountsByUserIds } from "@/src/server/livestream-credit";
 import { userDisplayName } from "@/src/lib/user-display";
 
 /**
  * Completion roster for the current (or query) semester.
- * Producers + livestream managers only.
+ * Producers + livestream managers only. Lists students only: anyone with a platform
+ * role (producers, adviser, super admin) is left out.
  */
 export async function GET() {
   try {
@@ -27,11 +32,12 @@ export async function GET() {
 
     const semester = semesterForDate();
 
-    const [students, completedEvents] = await Promise.all([
+    const [users, roleAssignments, completedEvents] = await Promise.all([
       prisma.user.findMany({
         select: { id: true, name: true, nickname: true, email: true },
         orderBy: [{ name: "asc" }, { email: "asc" }]
       }),
+      prisma.platformRoleAssignment.findMany({ select: { email: true } }),
       prisma.livestreamEvent.findMany({
         where: {
           status: "COMPLETED",
@@ -46,6 +52,13 @@ export async function GET() {
         }
       })
     ]);
+
+    const staffEmails = emailsFromNonGradableAssignments(roleAssignments);
+    const students = users.filter((user) => !isExcludedFromGrading(user, staffEmails));
+    const managedByUser = await managedLivestreamCountsByUserIds(
+      students.map((student) => student.id),
+      semester
+    );
 
     const hoursByUser = new Map<string, number>();
     const eventCountByUser = new Map<string, number>();
@@ -65,11 +78,17 @@ export async function GET() {
         end: semester.end.toISOString()
       },
       requiredHours: REQUIRED_LIVESTREAM_HOURS,
+      requiredManagedEvents: REQUIRED_MANAGED_LIVESTREAMS,
       maxPoints: MAX_LIVESTREAM_POINTS,
       completedEventCount: completedEvents.length,
       rows: students.map((student) => {
         const hours = hoursByUser.get(student.id) ?? 0;
-        const fraction = livestreamCreditFraction(hours);
+        const managedEvents = managedByUser.get(student.id);
+        const isManager = managedEvents !== undefined;
+        const points = isManager
+          ? livestreamPointsFromManagedCount(managedEvents)
+          : livestreamPointsFromHours(hours);
+        const fraction = isManager ? points / MAX_LIVESTREAM_POINTS : livestreamCreditFraction(hours);
         return {
           userId: student.id,
           name: userDisplayName(student) || student.name,
@@ -77,8 +96,11 @@ export async function GET() {
           completedHours: Number(hours.toFixed(2)),
           completedEvents: eventCountByUser.get(student.id) ?? 0,
           requiredHours: REQUIRED_LIVESTREAM_HOURS,
+          isManager,
+          managedEvents: managedEvents ?? 0,
+          requiredManagedEvents: REQUIRED_MANAGED_LIVESTREAMS,
           creditPercent: Math.round(fraction * 100),
-          points: livestreamPointsFromHours(hours)
+          points
         };
       })
     });

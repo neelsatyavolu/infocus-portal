@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const db = vi.hoisted(() => ({
   livestreamEvent: { count: vi.fn(), findMany: vi.fn() },
   livestreamAttendee: { findMany: vi.fn() },
+  livestreamManager: { findMany: vi.fn() },
+  platformRoleAssignment: { findMany: vi.fn() },
   user: { findMany: vi.fn() }
 }));
 vi.mock("@/src/lib/prisma", () => ({ prisma: db }));
@@ -10,11 +12,16 @@ vi.mock("@/src/lib/auth", () => ({
   requireUserId: vi.fn(async () => "manager"),
   syncUserProfile: vi.fn(async () => ({ id: "manager", email: "manager@example.com" }))
 }));
-vi.mock("@/src/lib/platform-admin", () => ({ getPlatformAccess: vi.fn(async () => ({ role: null })) }));
+vi.mock("@/src/lib/platform-admin", () => ({
+  getPlatformAccess: vi.fn(async () => ({ role: null })),
+  normalizeEmail: (email?: string | null) => email?.trim().toLowerCase() ?? "",
+  PLATFORM_SUPER_ADMIN_EMAIL: "superadmin@example.edu",
+  PACKAGE_ADVISER_EMAIL: "adviser@example.edu"
+}));
 vi.mock("@/src/server/livestream-access", () => ({ requireLivestreamManagerAccess: vi.fn() }));
 
 import { completedLivestreamHoursByUserIds, completedLivestreamHoursForUser, resolveLivestreamPointsByUserIds, resolveLivestreamPointsForUser } from "@/src/server/livestream-credit";
-import { semesterForDate } from "@/src/lib/livestream";
+import { livestreamPointsFromManagedCount, semesterForDate } from "@/src/lib/livestream";
 import { GET } from "@/app/api/livestreams/completion/route";
 
 const at = new Date("2026-09-18T12:00:00Z");
@@ -28,6 +35,9 @@ beforeEach(() => {
   vi.clearAllMocks();
   db.livestreamEvent.count.mockResolvedValue(4);
   db.livestreamAttendee.findMany.mockResolvedValue(rows);
+  db.livestreamManager.findMany.mockResolvedValue([]);
+  db.livestreamEvent.findMany.mockResolvedValue([]);
+  db.platformRoleAssignment.findMany.mockResolvedValue([]);
 });
 
 describe("adjusted livestream credit", () => {
@@ -59,6 +69,45 @@ describe("adjusted livestream credit", () => {
     const response = await GET();
     const { data } = await response.json();
     expect(data.rows[0]).toMatchObject({ completedHours: 4.25, points: 21, completedEvents: 4 });
+  });
+  it("drops producers, the adviser, and the super admin from the completion roster", async () => {
+    db.user.findMany.mockResolvedValue([
+      { id: "student", name: "Abby", email: "abby@example.edu" },
+      { id: "ap", name: "Otto", email: "otto@example.edu" },
+      { id: "adviser", name: "Adviser", email: "adviser@example.edu" },
+      { id: "admin", name: "Admin", email: "superadmin@example.edu" }
+    ]);
+    db.platformRoleAssignment.findMany.mockResolvedValue([{ email: "Otto@example.edu" }]);
+    const { data } = await (await GET()).json();
+    expect(data.rows.map((row: { userId: string }) => row.userId)).toEqual(["student"]);
+  });
+  it("grades livestream managers at 10 points per managed livestream, capped at 4", async () => {
+    const releasedAt = new Date("2026-11-30T08:00:00Z");
+    db.livestreamManager.findMany.mockResolvedValue([{ userId: "sage" }]);
+    const managed = (count: number, hours: number | null = 2) =>
+      Array.from({ length: count }, () => ({ managerUserId: "sage", hours, startsAt: at }));
+
+    db.livestreamEvent.findMany.mockResolvedValue([...managed(2), ...managed(1, 0)]);
+    expect(await resolveLivestreamPointsForUser("sage", releasedAt)).toBe(20);
+    expect((await resolveLivestreamPointsByUserIds(["sage", "student"], releasedAt)).get("sage")).toBe(20);
+    expect((await resolveLivestreamPointsByUserIds(["sage", "student"], releasedAt)).get("student")).toBe(21);
+
+    db.livestreamEvent.findMany.mockResolvedValue(managed(6));
+    expect(await resolveLivestreamPointsForUser("sage", releasedAt)).toBe(40);
+  });
+  it("shows managed livestreams in the completion roster for managers", async () => {
+    db.user.findMany.mockResolvedValue([{ id: "sage", name: "Sage", email: "sage@example.edu" }]);
+    db.livestreamManager.findMany.mockResolvedValue([{ userId: "sage" }]);
+    db.livestreamEvent.findMany.mockImplementation(async (args: { where: { managerUserId?: unknown } }) =>
+      args.where.managerUserId
+        ? [1, 2, 3].map(() => ({ managerUserId: "sage", hours: 2, startsAt: at }))
+        : []
+    );
+    const { data } = await (await GET()).json();
+    expect(data.rows[0]).toMatchObject({ isManager: true, managedEvents: 3, creditPercent: 75, points: 30 });
+  });
+  it("maps managed counts to points", () => {
+    expect([0, 1, 4, 9].map(livestreamPointsFromManagedCount)).toEqual([0, 10, 40, 40]);
   });
   it("leaves grades ungraded until a completed event exists", async () => {
     db.livestreamEvent.count.mockResolvedValue(0);

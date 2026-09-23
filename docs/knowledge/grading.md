@@ -8,7 +8,7 @@ Null = ungraded (a dash, excluded). `0` = graded and earned nothing. A day-one s
 
 Per cycle: 50 pts final cut + 20 pts check-ins + 40 pts livestream (5 × 8 hours).
 
-Semester 1 livestream grades release **November 30 at midnight Pacific**. Before then, livestream scores show **—** and contribute neither earned nor possible points to grades or the Grade Editor Total/CSV defaults. Completed hours remain visible as **x/8 hours completed** in the Grade Editor and student grade views. On release, completed hours count at 5 points/hour, capped at 40; an empty tracker remains ungraded. Semester 2 timing is unchanged.
+Semester 1 livestream grades release **November 30 at midnight Pacific**. Before then, livestream scores show **—** and contribute neither earned nor possible points to grades or the Grade Editor Total/CSV defaults. Completed hours remain visible as **x/8 hours completed** in the Grade Editor and student grade views. On release, completed hours count at 5 points/hour, capped at 40 (appointed livestream managers instead get 10 points per managed completed livestream, capped at 4 = 40); an empty tracker remains ungraded. Semester 2 timing is unchanged.
 
 **Check-ins** (4 × 5 = 20 per cycle; S1 reporters 60, S2 80): pitching, proof of contact, a-roll/b-roll, initial cut. After that stage's deadline, PoC and Initial Cut earn credit from **submission**. **A-roll/B-roll requires producer approval**; uploaded work awaiting review or needing revisions earns 0/5 until approved. Pitching has no upload — being on the package is the turn-in. Grade Editor shows the semester max and only docks missed due work, not future cycles. Final cut is not a check-in.
 

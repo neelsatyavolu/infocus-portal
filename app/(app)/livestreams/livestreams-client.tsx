@@ -28,7 +28,8 @@ import {
 import {
   LIVESTREAM_AVAILABILITY_LABELS,
   LIVESTREAM_STATUS_LABELS,
-  REQUIRED_LIVESTREAM_HOURS
+  REQUIRED_LIVESTREAM_HOURS,
+  REQUIRED_MANAGED_LIVESTREAMS
 } from "@/src/lib/livestream";
 import { cn } from "@/src/lib/utils";
 
@@ -71,6 +72,9 @@ type CompletionRow = {
   completedHours: number;
   completedEvents: number;
   requiredHours: number;
+  isManager: boolean;
+  managedEvents: number;
+  requiredManagedEvents: number;
   creditPercent: number;
   points: number;
 };
@@ -537,7 +541,7 @@ export default function LivestreamsClient() {
               {tab === "schedule"
                 ? "Every livestream this semester — arrival times, crew, managers, and hours."
                 : tab === "completion"
-                  ? `${REQUIRED_LIVESTREAM_HOURS} hours for full credit. Partial credit scales linearly (4h = 50%).`
+                  ? `${REQUIRED_LIVESTREAM_HOURS} hours for full credit. Partial credit scales linearly (4h = 50%). Livestream managers need ${REQUIRED_MANAGED_LIVESTREAMS} managed livestreams (10 points each).`
                   : data?.canManage
                     ? "Review member requests. Approving adds them to the crew and keeps completion in sync."
                     : "Request a slot on an open livestream. Managers approve and the schedule updates."}
@@ -879,13 +883,37 @@ export default function LivestreamsClient() {
                         className="border-b border-white/[0.04] transition hover:bg-white/[0.02]"
                       >
                         <td className="px-4 py-3.5">
-                          <div className="font-medium text-white">{personLabel(row)}</div>
+                          <div className="flex items-center gap-2 font-medium text-white">
+                            {personLabel(row)}
+                            {row.isManager ? (
+                              <span className="rounded-full border border-[rgb(0,199,44,0.4)] px-2 py-0.5 font-display text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--brand-green)]">
+                                Manager
+                              </span>
+                            ) : null}
+                          </div>
                           <div className="text-[11px] text-[var(--ink-text)]">{row.email}</div>
                         </td>
-                        <td className="px-4 py-3.5 tabular-nums text-white">{row.completedEvents}</td>
                         <td className="px-4 py-3.5 tabular-nums text-white">
-                          {row.completedHours}
-                          <span className="text-[var(--ink-text)]"> / {row.requiredHours}</span>
+                          {row.isManager ? (
+                            <>
+                              {row.managedEvents}
+                              <span className="text-[var(--ink-text)]">
+                                {" "}/ {row.requiredManagedEvents} managed
+                              </span>
+                            </>
+                          ) : (
+                            row.completedEvents
+                          )}
+                        </td>
+                        <td className="px-4 py-3.5 tabular-nums text-white">
+                          {row.isManager ? (
+                            <span className="text-[var(--ink-text)]">—</span>
+                          ) : (
+                            <>
+                              {row.completedHours}
+                              <span className="text-[var(--ink-text)]"> / {row.requiredHours}</span>
+                            </>
+                          )}
                         </td>
                         <td className="px-4 py-3.5">
                           <div className="flex items-center gap-2.5">

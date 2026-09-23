@@ -77,6 +77,7 @@ export async function loadClassBoard(role: PlatformRole | null, now = new Date()
     memberNames: row.members.map((member) => member.name ?? "").filter(Boolean),
     producerName: row.assignedProducer?.name ?? null,
     extension: row.extension,
+    extensionDays: row.extensionDays,
     pitching: row.pitching,
     proofOfContact: row.proofOfContact,
     aRollBRoll: row.aRollBRoll,

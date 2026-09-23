@@ -9,10 +9,11 @@ import {
   REQUIRED_EXTENSION_APPROVALS,
   resolveGrantTerms
 } from "@/src/lib/package-extensions";
-import { producerMayActOnPackage } from "@/src/lib/package-producer-assignment";
 import { getPlatformAccess, hasPlatformRole } from "@/src/lib/platform-admin";
 import { prisma } from "@/src/lib/prisma";
 import { getRequestKey, limitByKey } from "@/src/lib/rate-limit";
+import { notifyStudentsOfExtensionGrant } from "@/src/server/extension-grant-notify";
+import { mayDecideExtensionRequest, mayGrantExtensions } from "@/src/server/extension-requests";
 import { MAX_CYCLES_PER_SEMESTER } from "@/src/server/program-settings";
 import { labeledUser, userDisplayName } from "@/src/lib/user-display";
 
@@ -50,6 +51,7 @@ function serializeRequest(entry: {
   requestedDays: number;
   grantedDays: number | null;
   grantedUserIds: string[];
+  producerGranted: boolean;
   reason: string;
   status: "PENDING" | "APPROVED" | "DENIED";
   createdAt: Date;
@@ -107,6 +109,7 @@ function serializeRequest(entry: {
     requestedDays: entry.requestedDays,
     grantedDays: entry.grantedDays,
     grantedUserIds: entry.grantedUserIds,
+    producerGranted: entry.producerGranted,
     reason: entry.reason,
     status: entry.status,
     createdAt: entry.createdAt,
@@ -130,7 +133,8 @@ function serializeRequest(entry: {
     })),
     memberConsentComplete,
     canDecide: viewer
-      ? producerMayActOnPackage(viewer.role, viewer.userId, {
+      ? mayDecideExtensionRequest(viewer.role, viewer.userId, {
+          producerGranted: entry.producerGranted,
           assignedProducerUserId: entry.progressRow?.assignedProducerUserId,
           members: entry.progressRow?.members ?? []
         })
@@ -213,6 +217,7 @@ export async function GET() {
 
     return ok({
       canDecide: requests.some((entry) => entry.canDecide),
+      canGrant: mayGrantExtensions(access.role),
       currentUserId: userId,
       approvalsRequired: REQUIRED_EXTENSION_APPROVALS,
       requests
@@ -352,6 +357,9 @@ export async function PATCH(request: Request) {
       if (!memberUserIds.includes(userId)) {
         throw new Error("FORBIDDEN");
       }
+      if (existing.producerGranted) {
+        throw new Error("Producers granted this extension. Group members don't need to agree.");
+      }
 
       await prisma.packageExtensionMemberConsent.upsert({
         where: { requestId_userId: { requestId: payload.requestId, userId } },
@@ -370,9 +378,11 @@ export async function PATCH(request: Request) {
       return ok({ status: "PENDING" as const });
     }
 
-    // Producer decision — associates only on assigned packages they are not members of.
+    // Producer decision — associates only on assigned packages they are not members of;
+    // producer grants only by execs outside the group.
     if (
-      !producerMayActOnPackage(access.role, userId, {
+      !mayDecideExtensionRequest(access.role, userId, {
+        producerGranted: existing.producerGranted,
         assignedProducerUserId: existing.progressRow?.assignedProducerUserId,
         members: existing.progressRow?.members ?? []
       })
@@ -387,7 +397,7 @@ export async function PATCH(request: Request) {
 
     const consentState = { memberUserIds, consents };
 
-    if (payload.approved) {
+    if (payload.approved && !existing.producerGranted) {
       if (hasMemberDisagreed(consentState) || !isGroupConsentComplete(consentState)) {
         throw new Error(
           "All group members must agree to this extension request before producers can approve it."
@@ -451,6 +461,7 @@ export async function PATCH(request: Request) {
       });
 
     const granted = isExtensionGranted({
+      producerGranted: withApprovals.producerGranted,
       approvals: withApprovals.approvals.map((entry) => ({
         userId: entry.userId,
         approved: entry.approved
@@ -481,6 +492,10 @@ export async function PATCH(request: Request) {
         });
       }
     });
+
+    if (status === "APPROVED" && withApprovals.producerGranted) {
+      await notifyStudentsOfExtensionGrant(withApprovals.id);
+    }
 
     return ok({ status });
   } catch (error) {

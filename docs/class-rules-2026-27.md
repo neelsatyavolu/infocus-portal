@@ -129,6 +129,9 @@ Semester 1 livestream points remain ungraded and excluded from totals until **No
   approval accepts those terms as-is.
 - On approval, the group’s package progress `extension` flag is set. Deadlines and late penalties
   use each member’s own granted days (`approvedExtensionDaysFor`); uncovered members get none.
+- Execs (EP, adviser, super admin) may also grant an extension directly (`producerGranted`):
+  no member agreement, the granting exec's approval counts as the first, and a second exec
+  outside the group must approve. Other execs are emailed on creation; covered students on approval.
 - Past the extension deadline → **20%** reduction.
 - More than **14 days** past → **30%**, and a second revision cannot repair it.
 

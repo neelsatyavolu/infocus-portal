@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   approvedExtensionDaysFor,
+  extensionBadgeLabel,
   extensionRequestAwaitsUser,
+  isExtensionGranted,
   resolveGrantTerms
 } from "@/src/lib/package-extensions";
+import { mayDecideExtensionRequest } from "@/src/server/extension-requests";
 
 describe("approvedExtensionDaysFor", () => {
   const legacy = { requestedDays: 3, grantedDays: null, grantedUserIds: [] };
@@ -107,5 +110,70 @@ describe("extensionRequestAwaitsUser", () => {
 
   it("never waits on decided requests", () => {
     expect(extensionRequestAwaitsUser({ ...base, status: "APPROVED" }, "b")).toBe(false);
+  });
+
+  it("skips member agreement on producer grants", () => {
+    const grant = {
+      ...base,
+      producerGranted: true,
+      consents: [],
+      approvals: [{ userId: "e1", approved: true }]
+    };
+    expect(extensionRequestAwaitsUser(grant, "a")).toBe(false);
+    expect(extensionRequestAwaitsUser({ ...grant, viewerMayDecide: true }, "e2")).toBe(true);
+    expect(extensionRequestAwaitsUser({ ...grant, viewerMayDecide: true }, "e1")).toBe(false);
+  });
+});
+
+describe("isExtensionGranted", () => {
+  const twoApprovals = [
+    { userId: "e1", approved: true },
+    { userId: "e2", approved: true }
+  ];
+
+  it("needs full group agreement on student requests", () => {
+    expect(
+      isExtensionGranted({ approvals: twoApprovals, memberUserIds: ["a", "b"], consents: [] })
+    ).toBe(false);
+  });
+
+  it("needs no agreement on producer grants, only two approvals", () => {
+    const grant = { producerGranted: true, memberUserIds: ["a", "b"], consents: [] };
+    expect(isExtensionGranted({ ...grant, approvals: twoApprovals })).toBe(true);
+    expect(isExtensionGranted({ ...grant, approvals: [twoApprovals[0]] })).toBe(false);
+    expect(
+      isExtensionGranted({ ...grant, approvals: [twoApprovals[0], { userId: "e2", approved: false }] })
+    ).toBe(false);
+  });
+});
+
+describe("mayDecideExtensionRequest", () => {
+  const row = { assignedProducerUserId: "ap", members: [{ userId: "a" }, { userId: "ep-student" }] };
+
+  it("lets only execs outside the group decide producer grants", () => {
+    const grant = { ...row, producerGranted: true };
+    expect(mayDecideExtensionRequest("EXECUTIVE_PRODUCER", "e2", grant)).toBe(true);
+    expect(mayDecideExtensionRequest("ADVISER", "adv", grant)).toBe(true);
+    expect(mayDecideExtensionRequest("SUPER_ADMIN", "sa", grant)).toBe(true);
+    expect(mayDecideExtensionRequest("ASSOCIATE_PRODUCER", "ap", grant)).toBe(false);
+    expect(mayDecideExtensionRequest("EXECUTIVE_PRODUCER", "ep-student", grant)).toBe(false);
+  });
+
+  it("keeps the assigned-producer rule for student requests", () => {
+    const request = { ...row, producerGranted: false };
+    expect(mayDecideExtensionRequest("ASSOCIATE_PRODUCER", "ap", request)).toBe(true);
+    expect(mayDecideExtensionRequest("ASSOCIATE_PRODUCER", "other", request)).toBe(false);
+  });
+});
+
+describe("extensionBadgeLabel", () => {
+  it("shows the granted days", () => {
+    expect(extensionBadgeLabel(10)).toBe("10 Day Extension");
+    expect(extensionBadgeLabel(1)).toBe("1 Day Extension");
+  });
+
+  it("falls back to Extension when no days are on record", () => {
+    expect(extensionBadgeLabel(0)).toBe("Extension");
+    expect(extensionBadgeLabel(undefined)).toBe("Extension");
   });
 });

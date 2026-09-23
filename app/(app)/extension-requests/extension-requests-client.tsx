@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CalendarClock, Check, Loader2, X } from "lucide-react";
+import { CalendarClock, Check, ChevronRight, Loader2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { EXTENSION_REQUESTS_CHANGED_EVENT } from "@/src/lib/package-extensions";
 import { ApproveExtensionDialog, type GrantTerms } from "./approve-extension-dialog";
+import { GrantExtensionDialog } from "./grant-extension-dialog";
 
 type Approval = {
   userId: string;
@@ -34,6 +35,8 @@ type ExtensionRequest = {
   grantedDays: number | null;
   /** Empty means the whole group. */
   grantedUserIds: string[];
+  /** An exec granted it directly: no member agreement, one more exec approves. */
+  producerGranted: boolean;
   reason: string;
   status: "PENDING" | "APPROVED" | "DENIED";
   createdAt: string;
@@ -49,6 +52,7 @@ type ExtensionRequest = {
 
 type Payload = {
   canDecide: boolean;
+  canGrant: boolean;
   currentUserId: string;
   approvalsRequired: number;
   requests: ExtensionRequest[];
@@ -83,6 +87,7 @@ export default function ExtensionRequestsClient() {
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [approving, setApproving] = useState<ExtensionRequest | null>(null);
+  const [granting, setGranting] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -183,6 +188,130 @@ export default function ExtensionRequestsClient() {
     };
   }, [payload]);
 
+  const { openRequests, deniedRequests } = useMemo(() => {
+    const requests = payload?.requests ?? [];
+    return {
+      openRequests: requests.filter((request) => request.status !== "DENIED"),
+      deniedRequests: requests.filter((request) => request.status === "DENIED")
+    };
+  }, [payload]);
+
+  function renderRequest(entry: ExtensionRequest) {
+    const approvedCount = entry.approvals.filter((approval) => approval.approved).length;
+    const consentByUser = new Map(entry.memberConsents.map((consent) => [consent.userId, consent]));
+    const agreedCount = entry.groupMembers.filter(
+      (member) => consentByUser.get(member.userId)?.agreed === true
+    ).length;
+    const myConsent = payload?.currentUserId ? consentByUser.get(payload.currentUserId) : undefined;
+    const iAmMember = entry.groupMembers.some((member) => member.userId === payload?.currentUserId);
+    const needsMyConsent =
+      !entry.producerGranted && entry.status === "PENDING" && iAmMember && myConsent?.agreed !== true;
+    const termsSet = entry.approvals.some((approval) => approval.approved);
+    const terms = grantedTerms(entry);
+    const labelById = new Map(entry.groupMembers.map((member) => [member.userId, memberLabel(member)]));
+    const groupLabel =
+      entry.groupMembers.map(memberLabel).join(", ") ||
+      entry.student.name ||
+      entry.student.email ||
+      "Group";
+    const days = entry.producerGranted ? terms.grantedDays : entry.requestedDays;
+
+    return (
+      <article key={entry.id} className="rounded-2xl border border-border bg-card p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="font-medium text-foreground">
+              {groupLabel}
+              {entry.groupTopic ? ` · “${entry.groupTopic}”` : ""} · Cycle {entry.cycleNumber} · +{days}{" "}
+              {days === 1 ? "day" : "days"}
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {entry.producerGranted ? "Granted by" : "Requested by"} {entry.student.name ?? entry.student.email}
+            </p>
+            {termsSet ? (
+              <p className="mt-0.5 text-xs text-foreground">
+                Granted +{terms.grantedDays} {terms.grantedDays === 1 ? "day" : "days"} to{" "}
+                {entry.grantedUserIds.length === 0
+                  ? "the whole group"
+                  : terms.grantedUserIds.map((userId) => labelById.get(userId) ?? "Unknown").join(", ")}
+              </p>
+            ) : null}
+            {entry.reason ? (
+              <p className="mt-1 text-sm text-muted-foreground">&ldquo;{entry.reason}&rdquo;</p>
+            ) : null}
+            {entry.producerGranted ? null : (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Group agreement: {agreedCount}/{Math.max(entry.groupMembers.length, 1)}
+                {entry.groupMembers.length > 0
+                  ? ` — ${entry.groupMembers
+                      .map((member) => {
+                        const consent = consentByUser.get(member.userId);
+                        const mark = consent == null ? "…" : consent.agreed ? " ✓" : " ✗";
+                        return `${memberLabel(member)}${mark}`;
+                      })
+                      .join(", ")}`
+                  : ""}
+              </p>
+            )}
+            <p className="mt-1 text-xs text-muted-foreground">
+              {entry.producerGranted ? "Exec approvals" : "Producer approvals"}: {approvedCount}/
+              {entry.approvalsRequired}
+              {entry.approvals.length > 0
+                ? ` — ${entry.approvals
+                    .map((approval) => `${approval.name}${approval.approved ? " ✓" : " ✗"}`)
+                    .join(", ")}`
+                : entry.memberConsentComplete
+                  ? " — waiting for producers"
+                  : " — waiting for full group agreement first"}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`rounded-full border px-2 py-1 text-xs font-medium ${STATUS_STYLES[entry.status]}`}>
+              {entry.status}
+            </span>
+
+            {needsMyConsent ? (
+              <>
+                <Button size="sm" variant="secondary" onClick={() => void decideMember(entry.id, true)}>
+                  <Check className="mr-1 h-3.5 w-3.5" />
+                  I agree
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => void decideMember(entry.id, false)}>
+                  <X className="mr-1 h-3.5 w-3.5" />
+                  Decline
+                </Button>
+              </>
+            ) : null}
+
+            {entry.canDecide && entry.status === "PENDING" ? (
+              <>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={!entry.producerGranted && !entry.memberConsentComplete}
+                  title={
+                    entry.producerGranted || entry.memberConsentComplete
+                      ? undefined
+                      : "All group members must agree first"
+                  }
+                  onClick={() => setApproving(entry)}
+                >
+                  <Check className="mr-1 h-3.5 w-3.5" />
+                  Approve
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => void decideProducer(entry.id, false)}>
+                  <X className="mr-1 h-3.5 w-3.5" />
+                  Deny
+                </Button>
+              </>
+            ) : null}
+          </div>
+        </div>
+      </article>
+    );
+  }
+
   return (
     <div className="route-enter mx-auto w-full max-w-4xl space-y-5">
       <section className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 md:p-6">
@@ -197,13 +326,20 @@ export default function ExtensionRequestsClient() {
             <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
               An extension request covers your entire package group. Every member must agree before
               producers can approve. Two producer approvals are required; the first approving producer
-              sets how many days are granted and which members get them.
+              sets how many days are granted and which members get them. Executive producers can also
+              grant an extension directly; one more exec approves it and each student gets an email.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <span className="meta-pill tabular-nums">{requestCounts.pending} pending</span>
             <span className="meta-pill tabular-nums">{requestCounts.approved} approved</span>
             <span className="meta-pill tabular-nums">{requestCounts.denied} denied</span>
+            {payload?.canGrant ? (
+              <Button size="sm" onClick={() => setGranting(true)}>
+                <Plus className="mr-1 h-3.5 w-3.5" />
+                Grant an extension
+              </Button>
+            ) : null}
           </div>
         </div>
       </section>
@@ -261,123 +397,31 @@ export default function ExtensionRequestsClient() {
           </p>
         ) : null}
 
-        {(payload?.requests ?? []).map((entry) => {
-          const approvedCount = entry.approvals.filter((approval) => approval.approved).length;
-          const consentByUser = new Map(entry.memberConsents.map((consent) => [consent.userId, consent]));
-          const agreedCount = entry.groupMembers.filter(
-            (member) => consentByUser.get(member.userId)?.agreed === true
-          ).length;
-          const myConsent = payload?.currentUserId
-            ? consentByUser.get(payload.currentUserId)
-            : undefined;
-          const iAmMember = entry.groupMembers.some((member) => member.userId === payload?.currentUserId);
-          const needsMyConsent =
-            entry.status === "PENDING" && iAmMember && myConsent?.agreed !== true;
-          const termsSet = entry.approvals.some((approval) => approval.approved);
-          const terms = grantedTerms(entry);
-          const labelById = new Map(entry.groupMembers.map((member) => [member.userId, memberLabel(member)]));
-          const groupLabel =
-            entry.groupMembers.map(memberLabel).join(", ") ||
-            entry.student.name ||
-            entry.student.email ||
-            "Group";
+        {openRequests.map(renderRequest)}
 
-          return (
-            <article key={entry.id} className="rounded-2xl border border-border bg-card p-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="font-medium text-foreground">
-                    {groupLabel}
-                    {entry.groupTopic ? ` · “${entry.groupTopic}”` : ""} · Cycle {entry.cycleNumber} · +
-                    {entry.requestedDays} {entry.requestedDays === 1 ? "day" : "days"}
-                  </p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    Requested by {entry.student.name ?? entry.student.email}
-                  </p>
-                  {termsSet ? (
-                    <p className="mt-0.5 text-xs text-foreground">
-                      Granted +{terms.grantedDays} {terms.grantedDays === 1 ? "day" : "days"} to{" "}
-                      {entry.grantedUserIds.length === 0
-                        ? "the whole group"
-                        : terms.grantedUserIds.map((userId) => labelById.get(userId) ?? "Unknown").join(", ")}
-                    </p>
-                  ) : null}
-                  {entry.reason ? (
-                    <p className="mt-1 text-sm text-muted-foreground">&ldquo;{entry.reason}&rdquo;</p>
-                  ) : null}
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    Group agreement: {agreedCount}/{Math.max(entry.groupMembers.length, 1)}
-                    {entry.groupMembers.length > 0
-                      ? ` — ${entry.groupMembers
-                          .map((member) => {
-                            const consent = consentByUser.get(member.userId);
-                            const mark =
-                              consent == null ? "…" : consent.agreed ? " ✓" : " ✗";
-                            return `${memberLabel(member)}${mark}`;
-                          })
-                          .join(", ")}`
-                      : ""}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Producer approvals: {approvedCount}/{entry.approvalsRequired}
-                    {entry.approvals.length > 0
-                      ? ` — ${entry.approvals
-                          .map((approval) => `${approval.name}${approval.approved ? " ✓" : " ✗"}`)
-                          .join(", ")}`
-                      : entry.memberConsentComplete
-                        ? " — waiting for producers"
-                        : " — waiting for full group agreement first"}
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <span
-                    className={`rounded-full border px-2 py-1 text-xs font-medium ${STATUS_STYLES[entry.status]}`}
-                  >
-                    {entry.status}
-                  </span>
-
-                  {needsMyConsent ? (
-                    <>
-                      <Button size="sm" variant="secondary" onClick={() => void decideMember(entry.id, true)}>
-                        <Check className="mr-1 h-3.5 w-3.5" />
-                        I agree
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => void decideMember(entry.id, false)}>
-                        <X className="mr-1 h-3.5 w-3.5" />
-                        Decline
-                      </Button>
-                    </>
-                  ) : null}
-
-                  {(entry.canDecide ?? payload?.canDecide) && entry.status === "PENDING" ? (
-                    <>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        disabled={!entry.memberConsentComplete}
-                        title={
-                          entry.memberConsentComplete
-                            ? undefined
-                            : "All group members must agree first"
-                        }
-                        onClick={() => setApproving(entry)}
-                      >
-                        <Check className="mr-1 h-3.5 w-3.5" />
-                        Approve
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => void decideProducer(entry.id, false)}>
-                        <X className="mr-1 h-3.5 w-3.5" />
-                        Deny
-                      </Button>
-                    </>
-                  ) : null}
-                </div>
-              </div>
-            </article>
-          );
-        })}
+        {deniedRequests.length > 0 ? (
+          <details className="group">
+            <summary className="flex cursor-pointer list-none items-center gap-1.5 py-1 text-sm text-muted-foreground hover:text-foreground">
+              <ChevronRight className="h-4 w-4 transition-transform group-open:rotate-90" />
+              Denied ({deniedRequests.length})
+            </summary>
+            <div className="mt-2 space-y-3">{deniedRequests.map(renderRequest)}</div>
+          </details>
+        ) : null}
       </section>
+
+      {granting ? (
+        <GrantExtensionDialog
+          onOpenChange={(open) => {
+            if (!open) setGranting(false);
+          }}
+          onGranted={async () => {
+            setGranting(false);
+            window.dispatchEvent(new Event(EXTENSION_REQUESTS_CHANGED_EVENT));
+            await load();
+          }}
+        />
+      ) : null}
 
       {approving ? (
         <ApproveExtensionDialog

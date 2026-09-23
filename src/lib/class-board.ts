@@ -28,6 +28,7 @@ export type ClassBoardLane = {
   topic: string;
   detail: string;
   extension: boolean;
+  extensionDays: number;
   statusLabel: string;
   tone: GroupTileStatusTone;
   doneCount: number;
@@ -101,6 +102,7 @@ export type RacePackageInput = {
   memberNames: string[];
   producerName: string | null;
   extension: boolean;
+  extensionDays?: number;
   pitching: boolean;
   proofOfContact: boolean;
   aRollBRoll: boolean;
@@ -244,6 +246,7 @@ export function buildRaceLanes(rows: RacePackageInput[], now = Date.now()): Clas
       topic: row.topic.trim() || "Untitled package",
       detail,
       extension: row.extension,
+      extensionDays: row.extensionDays ?? 0,
       statusLabel: status.label,
       tone: status.tone,
       revisionVersion: status.tone === "danger" && row.status.aRollBRoll && row.status.initialCutHasMedia

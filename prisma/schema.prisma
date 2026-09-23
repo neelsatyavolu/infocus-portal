@@ -1137,6 +1137,8 @@ model PackageExtensionRequest {
   grantedDays   Int?
   /// Members the extension covers. Empty means the whole group.
   grantedUserIds String[]                  @default([])
+  /// An exec granted this directly: no member agreement, and a second exec must approve.
+  producerGranted Boolean                  @default(false)
   reason        String                     @default("")
   status        ExtensionRequestStatus     @default(PENDING)
   decidedAt     DateTime?

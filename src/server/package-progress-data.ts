@@ -2,6 +2,7 @@ import { type PackageCategory, PlatformRole } from "@prisma/client";
 import { ASSOCIATE_REVIEW_AUDIT } from "@/src/server/associate-review-history";
 import { prisma } from "@/src/lib/prisma";
 import { remainingFromApproval } from "@/src/lib/package-approval";
+import { approvedExtensionDaysFor } from "@/src/lib/package-extensions";
 import { currentCutRevisionStage } from "@/src/lib/initial-cut-review-versions";
 import { APPROVAL_COMMENT_PREFIX } from "@/src/lib/package-stage-comments";
 import { aRollFeedbackNeedsChanges } from "@/src/lib/package-stage-status";
@@ -251,7 +252,8 @@ export async function loadPackageProgressData(requestedCycleNumber?: number | nu
           orderBy: { createdAt: "desc" },
           take: 1
         },
-        finalCutScores: { select: { graderUserId: true } }
+        finalCutScores: { select: { graderUserId: true } },
+        extensionRequests: { where: { status: "APPROVED" }, select: { requestedDays: true, grantedDays: true, grantedUserIds: true } }
       }
     }),
     loadAssignableProducers(),
@@ -329,6 +331,7 @@ export async function loadPackageProgressData(requestedCycleNumber?: number | nu
       finalCut: row.finalCut,
       finalCutManual: row.finalCutManual,
       extension: row.extension,
+      extensionDays: approvedExtensionDaysFor(row),
       possibleInterviews: row.possibleInterviews,
       possibleIdeas: row.possibleIdeas,
       notes: row.notes,

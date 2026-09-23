@@ -40,7 +40,7 @@ describe("groupTileStatus", () => {
     expect(groupTileStatus(base({
       initialCutHasMedia: true, initialCutVersionNumber: 2,
       approvalStage: "ASSOCIATE_REVIEW", reviewReadyAt
-    }), now).label).toBe("Initial Cut Version 2 Pending Review for 0h");
+    }), now).label).toBe("Initial Cut V2 Pending Review for 0h");
     expect(groupTileStatus(base({
       aRollBRoll: false, aRollNeedsChanges: true, reviewReadyAt
     }), now).label).toBe("A-roll/B-roll Needs Revisions");
@@ -95,7 +95,7 @@ describe("groupTileStatus", () => {
           approvalStage: "ASSOCIATE_REVIEW"
         })
       )
-    ).toEqual({ label: "Initial Cut Version 2 Pending Review", tone: "warn" });
+    ).toEqual({ label: "Initial Cut V2 Pending Review", tone: "warn" });
     expect(
       groupTileStatus(base({ initialCutHasMedia: true, approvalStage: "ADVISER_REVIEW" }))
     ).toEqual({ label: "Waiting for the adviser (Stage 2)", tone: "review" });

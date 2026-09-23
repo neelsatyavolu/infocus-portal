@@ -26,6 +26,7 @@ import { cn } from "@/src/lib/utils";
 import type { BrainstormProofView } from "@/src/lib/package-brainstorm";
 import { filterGroupsForViewer, isPrimaryGroupForViewer } from "@/src/lib/groups-visibility";
 import { groupTileStatus, groupTileStatusClass, groupViewerAttention } from "@/src/lib/group-tile-status";
+import { extensionBadgeLabel } from "@/src/lib/package-extensions";
 
 type CycleTab = {
   cycleNumber: number;
@@ -68,6 +69,7 @@ type GroupRow = {
   finalCut: boolean;
   finalCutManual?: boolean;
   extension: boolean;
+  extensionDays?: number;
   possibleInterviews?: string;
   possibleIdeas?: string;
   notes?: string;
@@ -382,7 +384,7 @@ function GroupTile({
         </span>
         {row.extension ? (
           <span className="rounded-full bg-amber-500/20 px-1.5 py-px text-[10px] font-medium text-amber-100">
-            Extension
+            {extensionBadgeLabel(row.extensionDays)}
           </span>
         ) : null}
       </div>

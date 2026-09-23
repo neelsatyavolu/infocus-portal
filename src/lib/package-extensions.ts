@@ -110,15 +110,17 @@ export function hasMemberDisagreed(state: ExtensionMemberConsentState) {
 /**
  * A request is granted once the whole group has consented and two distinct
  * producers approve it. A single denial (member or producer) is enough to stop it.
+ * Producer grants skip member consent; the creating exec's approval counts as one.
  */
 export function isExtensionGranted(
-  state: ExtensionApprovalState & Partial<ExtensionMemberConsentState>
+  state: ExtensionApprovalState &
+    Partial<ExtensionMemberConsentState> & { producerGranted?: boolean }
 ) {
   if (state.approvals.some((entry) => !entry.approved)) {
     return false;
   }
 
-  if (state.memberUserIds) {
+  if (state.memberUserIds && !state.producerGranted) {
     if (
       !isGroupConsentComplete({
         memberUserIds: state.memberUserIds,
@@ -167,6 +169,11 @@ export function approvedExtensionDaysFor(
     .reduce((longest, grant) => Math.max(longest, grant.grantedDays ?? grant.requestedDays), 0);
 }
 
+/** Badge text for a group's extension; falls back when no approved days are on record. */
+export function extensionBadgeLabel(days: number | undefined) {
+  return days && days > 0 ? `${days} Day Extension` : "Extension";
+}
+
 /**
  * Validates the first producer approval's terms. Selecting every member is
  * stored as the whole group so later roster changes stay covered.
@@ -197,18 +204,23 @@ export function resolveGrantTerms(input: {
 /**
  * True when a pending request needs this viewer's response: a member who has
  * not agreed yet, or a producer who may decide, after full group consent, and
- * has not voted.
+ * has not voted. Producer grants never wait on members.
  */
 export function extensionRequestAwaitsUser(
   request: ExtensionMemberConsentState & {
     status: "PENDING" | "APPROVED" | "DENIED";
     approvals: Array<{ userId: string; approved: boolean }>;
     viewerMayDecide: boolean;
+    producerGranted?: boolean;
   },
   userId: string
 ) {
   if (request.status !== "PENDING") {
     return false;
+  }
+
+  if (request.producerGranted) {
+    return request.viewerMayDecide && !request.approvals.some((entry) => entry.userId === userId);
   }
 
   if (request.memberUserIds.includes(userId)) {

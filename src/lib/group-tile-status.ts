@@ -100,7 +100,7 @@ export function groupTileStatus(input: GroupTileStatusInput, now = Date.now()): 
         tone: "review"
       };
     }
-    return pendingReview("initial-cut", version);
+    return pendingReview("initial-cut", version.replace(" Version ", " V"));
   }
 
   if (input.queuedForAir) {

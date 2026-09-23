@@ -6,6 +6,7 @@ import { useEffect, useState, type CSSProperties } from "react";
 import type { CapacityTone } from "@/src/lib/livestream";
 import { classBoardLiveFocus, formatGateDate, type ClassBoardLane, type ClassBoardModel, type RaceDot } from "@/src/lib/class-board";
 import type { GroupTileStatusTone } from "@/src/lib/group-tile-status";
+import { extensionBadgeLabel } from "@/src/lib/package-extensions";
 import type { ScheduleKind } from "@/src/lib/school-schedule";
 import { cn } from "@/src/lib/utils";
 
@@ -238,7 +239,7 @@ export default function ClassBoardView({ board }: { board: ClassBoardModel }) {
                     </h2>
                     <p className="truncate text-[clamp(0.65rem,calc(80dvh/var(--lanes)*0.20),1rem)] leading-tight text-[var(--ink-text)]">
                       {lane.detail}
-                      {lane.extension ? <span className="text-[var(--brand-amber)]"> · Extension</span> : null}
+                      {lane.extension ? <span className="text-[var(--brand-amber)]"> · {extensionBadgeLabel(lane.extensionDays)}</span> : null}
                     </p>
                   </div>
                   <RaceTrack lane={lane} />

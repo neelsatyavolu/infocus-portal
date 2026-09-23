@@ -39,6 +39,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { DropdownOption } from "@/components/video-card-menu";
 import { Input } from "@/components/ui/input";
+import { MediaRange } from "@/components/media-range";
 import { Textarea } from "@/components/ui/textarea";
 import { MAX_EFFORT_POINTS, MAX_TEAMWORK_POINTS } from "@/src/lib/package-grades";
 import {
@@ -72,6 +73,10 @@ type CommentThread = {
 };
 
 type QualityValue = "AUTO" | "1080" | "720" | "480";
+
+const PLAYBACK_RATES = [0.5, 1, 1.25, 1.5, 2];
+const PLAYER_SELECT_TRIGGER_CLASS = "h-8 w-auto gap-1 border-0 bg-transparent px-2 text-xs shadow-none hover:bg-muted";
+const REVIEW_LAYOUT_MIN_HEIGHT_PX = 560;
 
 type HlsInstance = {
   destroy: () => void;
@@ -501,6 +506,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
   const [manualSidebarWidthPx, setManualSidebarWidthPx] = useState<number | null>(null);
   const [computedMediaStageMaxWidthPx, setComputedMediaStageMaxWidthPx] = useState<number | null>(null);
   const [isResizingSidebar, setIsResizingSidebar] = useState(false);
+  const [fitLayoutHeightPx, setFitLayoutHeightPx] = useState<number | null>(null);
 
   useEffect(() => {
     setIsMacDesktopApp(/InFocusMacApp/i.test(window.navigator.userAgent));
@@ -512,6 +518,27 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
     window.addEventListener("resize", syncLayoutMode);
     return () => window.removeEventListener("resize", syncLayoutMode);
   }, []);
+
+  // Fill the viewport below the app header exactly; the CSS calc fallback guesses the header height.
+  useEffect(() => {
+    if (!isDesktopSplitLayout || isMacDesktopApp) {
+      setFitLayoutHeightPx(null);
+      return;
+    }
+    const measure = () => {
+      const node = reviewLayoutRef.current;
+      if (!node) {
+        return;
+      }
+      const main = node.closest("main");
+      const bottomPadding = main ? Number.parseFloat(window.getComputedStyle(main).paddingBottom) || 0 : 0;
+      const top = node.getBoundingClientRect().top + window.scrollY;
+      setFitLayoutHeightPx(Math.max(REVIEW_LAYOUT_MIN_HEIGHT_PX, Math.floor(window.innerHeight - top - bottomPadding)));
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [isDesktopSplitLayout, isMacDesktopApp]);
 
   const currentVersion = useMemo(
     () => versions.find((version) => version.id === currentVersionId) ?? versions[0],
@@ -1775,7 +1802,6 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
   const reviewPaneMaxHeightClass = isMacDesktopApp ? "lg:max-h-[calc(100dvh-11.5rem)]" : "lg:max-h-[calc(100dvh-7.5rem)]";
   const reviewLayoutHeightClass = isMacDesktopApp ? "xl:h-[calc(100dvh-11.5rem)]" : "xl:h-[calc(100dvh-7.5rem)]";
   const effectiveSidebarWidthPx = manualSidebarWidthPx ?? autoSidebarWidthPx ?? 420;
-  const playheadPct = Math.max(0, Math.min(100, (currentTime / Math.max(timelineDuration, 1)) * 100));
   const qualityOptions: DropdownOption<QualityValue>[] = [
     { value: "AUTO", label: "Auto quality" },
     { value: "1080", label: "1080p" },
@@ -1936,7 +1962,8 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
       style={
         isDesktopSplitLayout
           ? {
-              gridTemplateColumns: `minmax(0,1fr) ${reviewSplitterWidthPx}px minmax(${minSidebarWidthPx}px, ${Math.round(effectiveSidebarWidthPx)}px)`
+              gridTemplateColumns: `minmax(0,1fr) ${reviewSplitterWidthPx}px minmax(${minSidebarWidthPx}px, ${Math.round(effectiveSidebarWidthPx)}px)`,
+              ...(fitLayoutHeightPx !== null ? { height: `${fitLayoutHeightPx}px` } : {})
             }
           : undefined
       }
@@ -2552,7 +2579,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                   <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
                 </div>
 
-                <div ref={mediaControlsRef} className="mt-3 rounded-2xl border border-border bg-card/90 px-3 pb-2 pt-1 sm:px-4">
+                <div ref={mediaControlsRef} className="mt-2 px-1 sm:px-2">
                   {/* Comment markers sit in their own lane above the track so they never block scrubbing. */}
                   <div className="relative h-4">
                     {commentThreads.map((thread, index) => {
@@ -2571,7 +2598,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                           <span
                             className={cn(
                               "block rounded-full transition-transform group-hover/marker:scale-150",
-                              isSelected ? "h-2.5 w-2.5 ring-2 ring-foreground/80" : "h-2 w-2 opacity-90"
+                              isSelected ? "h-2.5 w-2.5 ring-2 ring-foreground/80" : "h-2 w-2"
                             )}
                             style={{
                               backgroundColor: isSelected
@@ -2586,68 +2613,36 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                     })}
                   </div>
 
-                  <div className="group/scrub relative h-4">
-                    <input
-                      type="range"
-                      min={0}
-                      max={timelineDuration}
-                      step={0.01}
-                      value={Math.min(currentTime, timelineDuration)}
-                      onChange={(event) => seekTo(Number(event.target.value))}
-                      aria-label="Seek"
-                      className="peer absolute inset-0 z-10 h-full w-full cursor-pointer appearance-none opacity-0"
-                    />
-                    <div className="pointer-events-none absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 overflow-hidden rounded-full bg-foreground/15 transition-[height] group-hover/scrub:h-1.5">
-                      <div className="h-full rounded-full bg-foreground" style={{ width: `${playheadPct}%` }} />
-                    </div>
-                    <div
-                      className="pointer-events-none absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground shadow-md transition-transform group-hover/scrub:scale-125 peer-focus-visible:ring-2 peer-focus-visible:ring-ring"
-                      style={{ left: `${playheadPct}%` }}
-                    />
-                  </div>
+                  <MediaRange value={currentTime} max={timelineDuration} step={0.01} label="Seek" onChange={seekTo} />
 
                   <div className="mt-1 flex items-center gap-1 sm:gap-2">
                     <Button variant="ghost" size="sm" className="h-8 w-8 shrink-0 p-0" onClick={togglePlayback} aria-label={isPlaying ? "Pause" : "Play"}>
                       {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                     </Button>
-                    <div className="hidden items-center gap-1.5 sm:flex">
-                      {volume === 0 ? <VolumeX className="h-4 w-4 text-muted-foreground" /> : <Volume2 className="h-4 w-4 text-muted-foreground" />}
-                      <input
-                        type="range"
-                        min={0}
-                        max={1}
-                        step={0.01}
-                        value={volume}
-                        onChange={(event) => setVolume(Number(event.target.value))}
-                        aria-label="Volume"
-                        className="frame-range h-4 w-16 appearance-none bg-transparent md:w-20"
-                      />
+                    <div className="hidden items-center gap-2 sm:flex">
+                      {volume === 0 ? <VolumeX className="h-4 w-4 shrink-0 text-muted-foreground" /> : <Volume2 className="h-4 w-4 shrink-0 text-muted-foreground" />}
+                      <MediaRange value={volume} max={1} step={0.01} label="Volume" onChange={setVolume} className="w-16 md:w-20" />
                     </div>
-                    <span className="whitespace-nowrap font-mono text-xs tabular-nums text-muted-foreground">
+                    <span className="ml-1 whitespace-nowrap text-xs tabular-nums text-muted-foreground">
                       <span className="text-foreground">{formatTimecode(currentTime)}</span> / {formatTimecode(timelineDuration)}
                     </span>
 
-                    <div className="ml-auto flex items-center gap-0.5 sm:gap-1">
+                    <div className="ml-auto flex items-center gap-1">
                       <span className="mr-1 hidden whitespace-nowrap text-xs text-muted-foreground md:inline">
                         {commentCount} {commentCount === 1 ? "comment" : "comments"}
                       </span>
-                      <label className="relative inline-flex">
-                        <select
-                          value={playbackRate}
-                          onChange={(event) => setPlaybackRate(Number(event.target.value))}
-                          aria-label="Playback speed"
-                          className="h-8 cursor-pointer appearance-none rounded-md bg-transparent pl-2 pr-6 text-xs text-foreground hover:bg-muted"
-                        >
-                          {[0.5, 1, 1.25, 1.5, 2].map((rate) => (
-                            <option key={rate} value={rate}>
-                              {rate}x
-                            </option>
+                      <Select value={String(playbackRate)} onValueChange={(v) => setPlaybackRate(Number(v))}>
+                        <SelectTrigger aria-label="Playback speed" className={PLAYER_SELECT_TRIGGER_CLASS}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent side="top" align="end">
+                          {PLAYBACK_RATES.map((rate) => (
+                            <SelectItem key={rate} value={String(rate)}>{rate}x</SelectItem>
                           ))}
-                        </select>
-                        <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                      </label>
+                        </SelectContent>
+                      </Select>
                       <Select value={quality} onValueChange={(v) => setQuality(v as typeof quality)}>
-                        <SelectTrigger aria-label="Quality" className="h-8 w-auto gap-1 rounded-md border-0 bg-transparent px-2 text-xs shadow-none hover:bg-muted">
+                        <SelectTrigger aria-label="Quality" className={PLAYER_SELECT_TRIGGER_CLASS}>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent side="top" align="end">

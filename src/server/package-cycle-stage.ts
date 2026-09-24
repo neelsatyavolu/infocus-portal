@@ -683,7 +683,9 @@ export async function initCycleStageUpload(input: {
     where: { id: input.rowId },
     include: {
       members: { include: { user: { select: { name: true, nickname: true } } } },
-      initialCutMediaItem: { include: { currentVersion: true } },
+      initialCutMediaItem: {
+        include: { versions: { orderBy: { versionNumber: "desc" }, take: 1, select: { versionNumber: true } } }
+      },
       approval: { select: { stage: true } }
     }
   });
@@ -718,7 +720,7 @@ export async function initCycleStageUpload(input: {
   const rollKind = input.slug === "a-roll" && isRollKind(input.rollKind) ? input.rollKind : null;
   const nextVersion =
     input.slug === "initial-cut" && row.initialCutMediaItemId
-      ? (row.initialCutMediaItem?.currentVersion?.versionNumber ?? 1) + 1
+      ? (row.initialCutMediaItem?.versions[0]?.versionNumber ?? 1) + 1
       : 1;
   const mediaTitle =
     input.slug === "initial-cut"

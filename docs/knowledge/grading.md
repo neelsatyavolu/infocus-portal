@@ -18,7 +18,14 @@ Student view: `/grades` (also `grades.infocuspaly.com`) — Home, Packages, Part
 
 Producer view: `/grade-editor` — cycle tabs include **Pitching**, **PoC** (proof of contact + brainstorming), **A-roll/B-roll**, and **Initial Cut** columns. Each shows N/A until its deadline (or when an associate is not participating in that cycle). Executives and the adviser can select a score from 0–5, **— Ungraded**, or **Exempt**; it saves immediately and changes the actual check-in grade, student gradebook, and totals. Choose **Automatic** to clear an override and return to the stage-based score. These edits do not change stage approval or publish/grade the Final Cut.
 
-In Grade Editor cycle tabs, **— Ungraded** means no grade has been assigned; **Exempt** means the work is excused. Both remove that item's earned and possible points from totals, including after its deadline. Zero remains a graded zero. Check-in **Automatic** is separate: it restores deadline-based scoring. Final Cut fields accept `-` (or clearing the field) for ungraded and `\` for exempt; typing a number restores a scored grade. Exempt final cuts do not appear in the missing-grade report.
+In Grade Editor cycle tabs, **— Ungraded** means no grade has been assigned; **Exempt** means the work is excused. Both remove that item's earned and possible points from totals, including after its deadline. Zero remains a graded zero. Check-in **Automatic** is separate: it restores deadline-based scoring.
+
+**Final Cut** scores in Grade Editor cycle tabs are typed text fields, not a dropdown (the dropdown is only for check-in columns). To mark a final cut:
+- **Exempt:** type a backslash `\` in the Final Cut field.
+- **Ungraded:** type `-` or clear the field.
+- **Scored:** type a number.
+
+Exempt final cuts do not appear in the missing-grade report.
 
 The **Total** tab's editable score fields accept the same `-` and `\` shortcuts, including Check-Ins, Livestream, Final, and Extra. These are temporary calculation/CSV adjustments, not saved official grade edits. CSV exports distinguish ungraded and exempt values and exclude their possible points. In the **Student** tab's what-if fields, `-` and `\` simulate ungraded/exempt; clearing a field restores the official score.
 

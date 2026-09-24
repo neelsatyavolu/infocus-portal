@@ -30,6 +30,12 @@ const groupSelect = {
   members: { select: { userId: true, user: { select: personSelect } } }
 } as const;
 
+/** Same as groupSelect minus member names: enough for isHubChatGroup + canAccessGroupChat. */
+const groupAccessSelect = {
+  ...groupSelect,
+  members: { select: { userId: true } }
+} as const;
+
 type GroupRow = {
   id: string;
   cycleNumber: number;
@@ -58,8 +64,10 @@ async function viewerFor(userId: string): Promise<HubChatViewer & { name: string
   };
 }
 
-async function loadFilledGroups() {
+/** memberUserId narrows to that person's own groups (all a viewer without a platform role can see). */
+async function loadFilledGroups(memberUserId?: string) {
   const rows = await prisma.packageProgressRow.findMany({
+    where: memberUserId ? { members: { some: { userId: memberUserId } } } : undefined,
     orderBy: [{ cycleNumber: "asc" }, { rowOrder: "asc" }],
     select: groupSelect
   });
@@ -159,7 +167,7 @@ export async function unreadHubChatCount(userId: string) {
       select: {
         chatId: true,
         lastReadAt: true,
-        chat: { select: { kind: true, packageRow: { select: groupSelect } } }
+        chat: { select: { kind: true, packageRow: { select: groupAccessSelect } } }
       }
     })
   ]);
@@ -226,10 +234,28 @@ async function upsertDirectChat(userId: string, peerId: string) {
   }
 }
 
+/**
+ * Newest message per chat in one DISTINCT ON query. A nested `messages: { take: 1 }`
+ * include makes Prisma read every message of every chat and trim in memory.
+ */
+async function latestMessagesByChat(chatIds: string[]) {
+  if (chatIds.length === 0) {
+    return new Map<string, { body: string; createdAt: Date }>();
+  }
+  const rows = await prisma.$queryRaw<Array<{ chatId: string; body: string; createdAt: Date }>>`
+    SELECT DISTINCT ON ("chatId") "chatId", "body", "createdAt"
+    FROM "HubChatMessage"
+    WHERE "chatId" = ANY(${chatIds})
+    ORDER BY "chatId", "createdAt" DESC
+  `;
+  return new Map(rows.map((row) => [row.chatId, { body: row.body, createdAt: row.createdAt }] as const));
+}
+
 export async function listHubInbox(userId: string) {
-  const viewer = await viewerFor(userId);
-  const [groups, memberships, people] = await Promise.all([
-    loadFilledGroups(),
+  const viewerPromise = viewerFor(userId);
+  const [viewer, groups, memberships, people] = await Promise.all([
+    viewerPromise,
+    viewerPromise.then(({ platformRole }) => loadFilledGroups(platformRole ? undefined : userId)),
     prisma.hubChatMember.findMany({
       where: { userId },
       select: {
@@ -240,22 +266,12 @@ export async function listHubInbox(userId: string) {
             kind: true,
             packageRowId: true,
             updatedAt: true,
-            members: { select: { userId: true, user: { select: personSelect } } },
-            messages: {
-              orderBy: { createdAt: "desc" },
-              take: 1,
-              select: {
-                body: true,
-                createdAt: true,
-                authorId: true,
-                author: { select: personSelect }
-              }
-            }
+            members: { select: { userId: true, user: { select: personSelect } } }
           }
         }
       }
     }),
-    canStartDirectChat(viewer.platformRole) ? classMembers(userId) : Promise.resolve([])
+    viewerPromise.then(({ platformRole }) => (canStartDirectChat(platformRole) ? classMembers(userId) : []))
   ]);
 
   const visibleGroups = visibleChatGroups(groups, viewer);
@@ -265,14 +281,17 @@ export async function listHubInbox(userId: string) {
       .map((entry) => [entry.chat.packageRowId as string, entry] as const)
   );
 
-  const unreadByChatId = await unreadCountsByChat(
-    userId,
-    memberships.map((entry) => ({ chatId: entry.chat.id, lastReadAt: entry.lastReadAt }))
-  );
+  const [unreadByChatId, lastByChatId] = await Promise.all([
+    unreadCountsByChat(
+      userId,
+      memberships.map((entry) => ({ chatId: entry.chat.id, lastReadAt: entry.lastReadAt }))
+    ),
+    latestMessagesByChat(memberships.map((entry) => entry.chat.id))
+  ]);
 
   const groupChats = visibleGroups.map((row) => {
     const existing = groupByRowId.get(row.id);
-    const last = existing?.chat.messages[0];
+    const last = existing ? lastByChatId.get(existing.chat.id) : undefined;
     const labels = groupLabels(row);
     return {
       id: existing?.chat.id ?? null,
@@ -292,7 +311,7 @@ export async function listHubInbox(userId: string) {
     .filter((entry) => entry.chat.kind === "DIRECT")
     .map((entry) => {
       const peer = entry.chat.members.find((member) => member.userId !== userId)?.user;
-      const last = entry.chat.messages[0];
+      const last = lastByChatId.get(entry.chat.id);
       return {
         id: entry.chat.id,
         kind: "DIRECT" as const,
@@ -400,25 +419,27 @@ function serializeChat(input: {
 }
 
 async function loadThread(chatId: string, userId: string) {
-  const messages = await prisma.hubChatMessage.findMany({
-    where: { chatId },
-    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-    take: HUB_CHAT_THREAD_MAX,
-    select: {
-      id: true,
-      body: true,
-      createdAt: true,
-      authorId: true,
-      author: { select: personSelect }
-    }
-  });
-  const chat = await prisma.hubChat.findUnique({
-    where: { id: chatId },
-    include: {
-      members: { select: { userId: true, user: { select: personSelect } } },
-      packageRow: { select: groupSelect }
-    }
-  });
+  const [messages, chat] = await Promise.all([
+    prisma.hubChatMessage.findMany({
+      where: { chatId },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: HUB_CHAT_THREAD_MAX,
+      select: {
+        id: true,
+        body: true,
+        createdAt: true,
+        authorId: true,
+        author: { select: personSelect }
+      }
+    }),
+    prisma.hubChat.findUnique({
+      where: { id: chatId },
+      include: {
+        members: { select: { userId: true, user: { select: personSelect } } },
+        packageRow: { select: groupSelect }
+      }
+    })
+  ]);
   if (!chat) {
     throw new Error("NOT_FOUND");
   }
@@ -459,8 +480,7 @@ export async function openHubChat(
   }
   const chat = await upsertDirectChat(userId, peer.id);
   await ensureMembers(chat.id, [userId, peer.id]);
-  await markRead(chat.id, userId);
-  const thread = await loadThread(chat.id, userId);
+  const [, thread] = await Promise.all([markRead(chat.id, userId), loadThread(chat.id, userId)]);
   return { me: { id: userId, name: viewer.name }, ...thread };
 }
 
@@ -471,8 +491,7 @@ export async function getHubChatThread(userId: string, chatId: string) {
   } else {
     await ensureMembers(chat.id, [userId]);
   }
-  await markRead(chat.id, userId);
-  const thread = await loadThread(chat.id, userId);
+  const [, thread] = await Promise.all([markRead(chat.id, userId), loadThread(chat.id, userId)]);
   return { me: { id: userId, name: viewer.name }, ...thread };
 }
 

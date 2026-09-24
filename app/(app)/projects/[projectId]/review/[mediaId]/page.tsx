@@ -53,53 +53,71 @@ async function getReviewData(
     throw error;
   }
 
-  const media = await prisma.mediaItem.findFirst({
-    where: { id: mediaId, projectId },
-    include: {
-      project: {
-        select: {
-          name: true
-        }
-      },
-      folder: {
-        select: {
-          name: true
-        }
-      },
-      memberAssignments: {
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              nickname: true,
-              email: true
+  // The package-row lookup only needs the id from the URL, so it runs alongside the media query.
+  const [media, initialCutRow] = await Promise.all([
+    prisma.mediaItem.findFirst({
+      where: { id: mediaId, projectId },
+      include: {
+        project: {
+          select: {
+            name: true
+          }
+        },
+        folder: {
+          select: {
+            name: true
+          }
+        },
+        memberAssignments: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                nickname: true,
+                email: true
+              }
+            }
+          },
+          orderBy: { createdAt: "asc" }
+        },
+        versions: {
+          orderBy: { versionNumber: "desc" },
+          include: {
+            comments: {
+              include: {
+                author: {
+                  select: {
+                    id: true,
+                    name: true,
+                    nickname: true,
+                    email: true
+                  }
+                }
+              },
+              orderBy: { createdAt: "asc" }
             }
           }
         },
-        orderBy: { createdAt: "asc" }
-      },
-      versions: {
-        orderBy: { versionNumber: "desc" },
-        include: {
-          comments: {
-            include: {
-              author: {
-                select: {
-                  id: true,
-                  name: true,
-                  nickname: true,
-                  email: true
-                }
-              }
-            },
-            orderBy: { createdAt: "asc" }
+        currentVersion: true
+      }
+    }),
+    prisma.packageProgressRow.findFirst({
+      where: { initialCutMediaItemId: mediaId },
+      select: {
+        id: true,
+        approval: {
+          select: {
+            stage: true,
+            signoffs: { select: { stage: true, approved: true, createdAt: true } }
           }
+        },
+        initialCutMediaItem: {
+          select: { versions: { select: { id: true, versionNumber: true, createdAt: true } } }
         }
-      },
-      currentVersion: true
-    }
-  });
+      }
+    })
+  ]);
 
   if (!media) {
     return null;
@@ -109,21 +127,6 @@ async function getReviewData(
     ? media.versions.find((version) => version.id === requestedVersionId)
     : null;
   const currentVersion = requestedVersion ?? media.currentVersion ?? media.versions[0];
-  const initialCutRow = await prisma.packageProgressRow.findFirst({
-    where: { initialCutMediaItemId: media.id },
-    select: {
-      id: true,
-      approval: {
-        select: {
-          stage: true,
-          signoffs: { select: { stage: true, approved: true, createdAt: true } }
-        }
-      },
-      initialCutMediaItem: {
-        select: { versions: { select: { id: true, versionNumber: true, createdAt: true } } }
-      }
-    }
-  });
   const approvalView =
     initialCutRow && currentUserId
       ? await loadApprovalView(initialCutRow.id, {

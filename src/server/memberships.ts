@@ -14,16 +14,18 @@ export async function requireProjectRole(
   options?: AccessOptions
 ) {
   const userId = await requireUserId();
-  const user = await syncUserProfile(userId);
-
-  const project = await prisma.project.findUnique({
-    where: { id: projectId },
-    select: {
-      id: true,
-      name: true,
-      workspaceId: true
-    }
-  });
+  // findUnique resolves null (never throws) for a missing project, so auth errors keep precedence.
+  const [user, project] = await Promise.all([
+    syncUserProfile(userId),
+    prisma.project.findUnique({
+      where: { id: projectId },
+      select: {
+        id: true,
+        name: true,
+        workspaceId: true
+      }
+    })
+  ]);
 
   if (!project) {
     throw new Error("NOT_FOUND");
@@ -53,6 +55,12 @@ export async function requireMediaAccess(
   allowedRoles?: WorkspaceRole[],
   options?: AccessOptions
 ) {
+  // Load the viewer alongside the media row; errors are rethrown below in the original order
+  // (NOT_FOUND for a missing item first, then auth).
+  const viewer = requireUserId()
+    .then(async (userId) => ({ ok: true as const, userId, user: await syncUserProfile(userId) }))
+    .catch((error: unknown) => ({ ok: false as const, error }));
+
   const media = await prisma.mediaItem.findUnique({
     where: { id: mediaId },
     include: {
@@ -76,8 +84,11 @@ export async function requireMediaAccess(
     throw new Error("NOT_FOUND");
   }
 
-  const userId = await requireUserId();
-  const user = await syncUserProfile(userId);
+  const viewerResult = await viewer;
+  if (!viewerResult.ok) {
+    throw viewerResult.error;
+  }
+  const { userId, user } = viewerResult;
 
   let access: Awaited<ReturnType<typeof resolveWorkspaceAccess>>;
   try {

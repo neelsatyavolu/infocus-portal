@@ -151,6 +151,8 @@ model User {
   memberProducerNotes     MemberProducerNote[]
   hubChatMemberships      HubChatMember[]
   hubChatMessages         HubChatMessage[] @relation("HubChatMessageAuthor")
+
+  @@index([email])
 }
 
 model Workspace {
@@ -646,6 +648,10 @@ model ActivityEvent {
 
   @@index([workspaceId, createdAt])
   @@index([projectId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([mediaItemId])
+  @@index([mediaVersionId])
+  @@index([commentId])
 }
 
 model AuditLog {
@@ -672,6 +678,9 @@ model AuditLog {
 
   @@index([workspaceId, createdAt])
   @@index([targetType, targetId])
+  @@index([mediaItemId])
+  @@index([mediaVersionId])
+  @@index([commentId])
 }
 
 model ShowRolesShow {

@@ -21,8 +21,8 @@ import { loadPalyClassSessions } from "@/src/server/paly-bell-schedule";
 
 export async function loadClassBoard(role: PlatformRole | null, now = new Date()): Promise<ClassBoardModel> {
   const window = classBoardWindow(now);
-  const progress = await loadPackageProgressData();
-  const [cycles, events, calendars, classSessions] = await Promise.all([
+  const [progress, cycles, events, calendars, classSessions] = await Promise.all([
+    loadPackageProgressData(),
     prisma.packageCycle.findMany({
       orderBy: { cycleNumber: "asc" },
       select: {

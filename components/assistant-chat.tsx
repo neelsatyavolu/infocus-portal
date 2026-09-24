@@ -1,12 +1,17 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { Check, Send, Sparkles, X } from "lucide-react";
 import { parseAssistantReply, splitInlineBold } from "@/src/lib/assistant-format";
 import type { AssistantPlacePreview } from "@/src/lib/assistant-places";
-import { HubMessages } from "@/components/hub-messages";
 import { cn } from "@/src/lib/utils";
+
+// Only rendered once the panel is open, so keep it out of the shell bundle every page loads.
+const HubMessages = dynamic(() => import("@/components/hub-messages").then((m) => m.HubMessages), {
+  ssr: false
+});
 
 type ActionPreview = {
   token: string;
@@ -164,6 +169,12 @@ export function AssistantChat({
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const pinnedRef = useRef(true);
   const mobileBox = useMobilePanelBox(open);
+  // While Messages is on screen its inbox poll already reports the unread count.
+  const messagesPollingRef = useRef(false);
+
+  useEffect(() => {
+    messagesPollingRef.current = open && mode === "messages";
+  }, [open, mode]);
 
   useEffect(() => {
     if (open && mode === "assistant" && window.matchMedia("(pointer: fine)").matches) {
@@ -198,7 +209,7 @@ export function AssistantChat({
     }
     // Background tabs stop polling; the badge refreshes as soon as the tab is back.
     const tickIfVisible = () => {
-      if (document.visibilityState === "visible") {
+      if (document.visibilityState === "visible" && !messagesPollingRef.current) {
         void tick();
       }
     };

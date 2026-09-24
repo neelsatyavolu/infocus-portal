@@ -22,7 +22,6 @@ import {
   Users,
   X
 } from "lucide-react";
-import * as tus from "tus-js-client";
 import { UploadProgressToast, type UploadProgressToastItem } from "@/components/upload-progress-toast";
 import { VideoCardMenu, type DropdownOption } from "@/components/video-card-menu";
 import { Button } from "@/components/ui/button";
@@ -38,6 +37,8 @@ type MediaStatusValue = "UPLOADING" | "PROCESSING" | "READY" | "FAILED";
 type ViewMode = "grid" | "list";
 type ScopeMode = "active" | "deleted";
 type GuestPermissionValue = "VIEW" | "COMMENT";
+
+const UPLOAD_PROGRESS_REPORT_MS = 200;
 
 type FolderItem = {
   id: string;
@@ -836,24 +837,31 @@ export function ProjectMediaTiles({
     };
   }, []);
 
-  useEffect(() => {
-    const hasPendingServerVersion = items.some((item) =>
-      item.versions.some((version) => version.status === "UPLOADING" || version.status === "PROCESSING")
-    );
-    const hasPendingLocalUpload = activeUploads.some(
-      (upload) => upload.status === "PREPARING" || upload.status === "UPLOADING" || upload.status === "PROCESSING"
-    );
+  const hasPendingUpload = useMemo(
+    () =>
+      items.some((item) =>
+        item.versions.some((version) => version.status === "UPLOADING" || version.status === "PROCESSING")
+      ) ||
+      activeUploads.some(
+        (upload) => upload.status === "PREPARING" || upload.status === "UPLOADING" || upload.status === "PROCESSING"
+      ),
+    [activeUploads, items]
+  );
 
-    if (!hasPendingServerVersion && !hasPendingLocalUpload) {
+  // Keyed on the boolean so progress updates don't keep restarting the 4s timer.
+  useEffect(() => {
+    if (!hasPendingUpload) {
       return;
     }
 
     const intervalId = window.setInterval(() => {
-      router.refresh();
+      if (document.visibilityState === "visible") {
+        router.refresh();
+      }
     }, 4000);
 
     return () => window.clearInterval(intervalId);
-  }, [activeUploads, items, router]);
+  }, [hasPendingUpload, router]);
 
   useEffect(() => {
     const ghost = document.createElement("div");
@@ -1125,6 +1133,7 @@ export function ProjectMediaTiles({
       progress: 0,
       bytesUploaded: 0
     };
+    let lastReportMs = 0;
 
     const reportProgress = (bytesUploaded: number, bytesTotal: number) => {
       if (!bytesTotal) return;
@@ -1143,6 +1152,11 @@ export function ProjectMediaTiles({
       const bytesRemaining = Math.max(0, bytesTotal - monotonicBytesUploaded);
       const etaSeconds =
         speedTracker.speedBytesPerSecond > 0 ? bytesRemaining / speedTracker.speedBytesPerSecond : null;
+      // Progress events can fire many times a second; each one re-renders the whole media grid.
+      if (bytesRemaining > 0 && nowMs - lastReportMs < UPLOAD_PROGRESS_REPORT_MS) {
+        return;
+      }
+      lastReportMs = nowMs;
       onProgress({
         progress,
         bytesUploaded: monotonicBytesUploaded,
@@ -1169,6 +1183,8 @@ export function ProjectMediaTiles({
       return;
     }
 
+    // Legacy Bunny path only; NAS uploads never need the tus client.
+    const tus = await import("tus-js-client");
     await new Promise<void>((resolve, reject) => {
       const uploader = new tus.Upload(file, {
         endpoint: upload.uploadUrl,

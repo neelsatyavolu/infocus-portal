@@ -395,7 +395,13 @@ export const syncUserProfile = cache(async (userId?: string) => {
   });
 
   if (existing) {
-    await assertPlatformAccess(existing.email ?? session.email);
+    // A User row whose stored email is already normalized is itself the
+    // provisioning record, so the by-email lookup would just find this row.
+    const storedEmailIsNormalized =
+      Boolean(existing.email) && normalizeEmail(existing.email) === existing.email;
+    if (!storedEmailIsNormalized) {
+      await assertPlatformAccess(existing.email ?? session.email);
+    }
     const recentlySynced = Date.now() - existing.updatedAt.getTime() < PROFILE_SYNC_TTL_MS;
     if (recentlySynced) {
       return existing;

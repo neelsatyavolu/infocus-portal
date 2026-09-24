@@ -125,7 +125,21 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const [{ workspaceId, sort, view }, currentAppUser] = await Promise.all([searchParams, getCurrentAppUser()]);
   const { userId, user, platformRole } = currentAppUser;
   const access = buildPlatformAccess(platformRole);
-  const workspaces = await getDashboardData(userId, platformRole);
+  const isStudent = !access.canManageWorkspaces;
+  // The student snapshot doesn't depend on workspaces, so start everything at once.
+  const workspacesPromise = getDashboardData(userId, platformRole);
+  const [workspaces, dashboardPanels, snapshot] = await Promise.all([
+    workspacesPromise,
+    workspacesPromise.then((loaded) =>
+      fetchDashboardPanels({
+        userId,
+        userName: userDisplayName(user) || user.name,
+        userEmail: user.email,
+        workspaceIds: loaded.map((workspace) => workspace.id)
+      })
+    ),
+    isStudent ? loadStudentDashboardSnapshot(userId) : Promise.resolve(null)
+  ]);
   const selectedWorkspace = workspaces.find((workspace) => workspace.id === workspaceId) ?? workspaces[0] ?? null;
   const selectedWorkspaceRole = selectedWorkspace?.members[0]?.role;
   const sortValue = normalizeSort(sort);
@@ -134,16 +148,6 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
   const accountName = userDisplayName(user) || `${(user.email ?? "Your").split("@")[0]}'s Account`;
   const totalProjects = selectedWorkspace?.projects.length ?? 0;
-  const isStudent = !access.canManageWorkspaces;
-  const [dashboardPanels, snapshot] = await Promise.all([
-    fetchDashboardPanels({
-      userId,
-      userName: userDisplayName(user) || user.name,
-      userEmail: user.email,
-      workspaceIds: workspaces.map((workspace) => workspace.id)
-    }),
-    isStudent ? loadStudentDashboardSnapshot(userId) : Promise.resolve(null)
-  ]);
 
   return (
     <div className="space-y-5">

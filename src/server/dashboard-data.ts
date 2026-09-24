@@ -175,105 +175,113 @@ export async function getDashboardData({
   userEmail: string | null;
   workspaceIds: string[];
 }): Promise<DashboardData> {
-  let upNext: DashboardUpNext | null = null;
+  // Up next and recent activity are independent; load them side by side.
+  const upNextPromise = (async () => {
+    let upNext: DashboardUpNext | null = null;
 
-  try {
-    const progress = await loadPackageProgressData();
-    const candidates = buildUserNameCandidates(userName, userEmail);
-
-    const myRow =
-      progress.rows.find((row) =>
-        extractMentionUserIds(row.groupMembers).includes(userId)
-      ) ??
-      (candidates.size > 0
-        ? progress.rows.find((row) => groupMembersIncludeUserName(row.groupMembers, candidates))
-        : null);
-
-    if (myRow) {
-      const cycleMeta = await prisma.packageCycle.findUnique({
-        where: { cycleNumber: progress.activeCycleNumber },
-        select: {
-          proofOfContactDate: true,
-          aRollBRollDate: true,
-          initialCutDate: true,
-          finalCutDate: true
-        }
-      });
-
-      const checkIns = [
-        Boolean(myRow.pitching),
-        Boolean(myRow.proofOfContact),
-        Boolean(myRow.aRollBRoll),
-        Boolean(myRow.initialCut)
-      ];
-
-      upNext = {
-        cycleNumber: progress.activeCycleNumber,
-        groupTopic: myRow.groupTopic?.trim() || null,
-        finalCutDate: cycleMeta?.finalCutDate?.toISOString() ?? null,
-        producerName:
-          myRow.assignedProducer?.name?.trim() ||
-          myRow.assignedExecutiveProducer?.name?.trim() ||
-          null,
-        memberNames: myRow.members
-          .map((member) => member.name?.trim() || member.email?.split("@")[0] || "")
-          .filter(Boolean),
-        checkInsDone: checkIns.filter(Boolean).length,
-        checkInsTotal: checkIns.length,
-        stages: STAGE_DEFS.map((stage) => ({
-          key: stage.key,
-          label: stage.label,
-          done: Boolean(myRow[stage.key]),
-          dueDate: cycleMeta?.[stage.dateField]?.toISOString() ?? null
-        }))
-      };
-    }
-  } catch (err) {
-    console.error("Failed to load package progress for dashboard:", err);
-    upNext = null;
-  }
-
-  let activity: DashboardActivityEntry[] = [];
-
-  if (workspaceIds.length > 0) {
     try {
-      const events = await prisma.activityEvent.findMany({
-        where: { workspaceId: { in: workspaceIds }, actorId: userId },
-        orderBy: { createdAt: "desc" },
-        take: 6,
-        include: {
-          actor: { select: { id: true, name: true, nickname: true, email: true } },
-          mediaItem: { select: { title: true } },
-          mediaVersion: {
-            select: { versionNumber: true, mediaItem: { select: { title: true } } }
+      const progress = await loadPackageProgressData();
+      const candidates = buildUserNameCandidates(userName, userEmail);
+
+      const myRow =
+        progress.rows.find((row) =>
+          extractMentionUserIds(row.groupMembers).includes(userId)
+        ) ??
+        (candidates.size > 0
+          ? progress.rows.find((row) => groupMembersIncludeUserName(row.groupMembers, candidates))
+          : null);
+
+      if (myRow) {
+        const cycleMeta = await prisma.packageCycle.findUnique({
+          where: { cycleNumber: progress.activeCycleNumber },
+          select: {
+            proofOfContactDate: true,
+            aRollBRollDate: true,
+            initialCutDate: true,
+            finalCutDate: true
           }
-        }
-      });
+        });
 
-      activity = events.map((event) => {
-        const actorName = event.actor ? userDisplayName(event.actor) || event.actor.name : null;
-        const actorEmail = event.actor?.email ?? null;
-        const subjectTitle =
-          event.mediaVersion?.mediaItem?.title ?? event.mediaItem?.title ?? null;
-        const subjectVersion = event.mediaVersion?.versionNumber
-          ? ` v${event.mediaVersion.versionNumber}`
-          : "";
-        return {
-          id: event.id,
-          actorName,
-          actorEmail,
-          initials: buildInitials(actorName, actorEmail),
-          verb: activityVerb(event.type),
-          subject: subjectTitle ? `${subjectTitle}${subjectVersion}` : null,
-          createdAt: event.createdAt.toISOString()
+        const checkIns = [
+          Boolean(myRow.pitching),
+          Boolean(myRow.proofOfContact),
+          Boolean(myRow.aRollBRoll),
+          Boolean(myRow.initialCut)
+        ];
+
+        upNext = {
+          cycleNumber: progress.activeCycleNumber,
+          groupTopic: myRow.groupTopic?.trim() || null,
+          finalCutDate: cycleMeta?.finalCutDate?.toISOString() ?? null,
+          producerName:
+            myRow.assignedProducer?.name?.trim() ||
+            myRow.assignedExecutiveProducer?.name?.trim() ||
+            null,
+          memberNames: myRow.members
+            .map((member) => member.name?.trim() || member.email?.split("@")[0] || "")
+            .filter(Boolean),
+          checkInsDone: checkIns.filter(Boolean).length,
+          checkInsTotal: checkIns.length,
+          stages: STAGE_DEFS.map((stage) => ({
+            key: stage.key,
+            label: stage.label,
+            done: Boolean(myRow[stage.key]),
+            dueDate: cycleMeta?.[stage.dateField]?.toISOString() ?? null
+          }))
         };
-      });
+      }
     } catch (err) {
-      console.error("Failed to load activity events for dashboard:", err);
-      activity = [];
+      console.error("Failed to load package progress for dashboard:", err);
+      upNext = null;
     }
-  }
+    return upNext;
+  })();
 
+  const activityPromise = (async () => {
+    let activity: DashboardActivityEntry[] = [];
+
+    if (workspaceIds.length > 0) {
+      try {
+        const events = await prisma.activityEvent.findMany({
+          where: { workspaceId: { in: workspaceIds }, actorId: userId },
+          orderBy: { createdAt: "desc" },
+          take: 6,
+          include: {
+            actor: { select: { id: true, name: true, nickname: true, email: true } },
+            mediaItem: { select: { title: true } },
+            mediaVersion: {
+              select: { versionNumber: true, mediaItem: { select: { title: true } } }
+            }
+          }
+        });
+
+        activity = events.map((event) => {
+          const actorName = event.actor ? userDisplayName(event.actor) || event.actor.name : null;
+          const actorEmail = event.actor?.email ?? null;
+          const subjectTitle =
+            event.mediaVersion?.mediaItem?.title ?? event.mediaItem?.title ?? null;
+          const subjectVersion = event.mediaVersion?.versionNumber
+            ? ` v${event.mediaVersion.versionNumber}`
+            : "";
+          return {
+            id: event.id,
+            actorName,
+            actorEmail,
+            initials: buildInitials(actorName, actorEmail),
+            verb: activityVerb(event.type),
+            subject: subjectTitle ? `${subjectTitle}${subjectVersion}` : null,
+            createdAt: event.createdAt.toISOString()
+          };
+        });
+      } catch (err) {
+        console.error("Failed to load activity events for dashboard:", err);
+        activity = [];
+      }
+    }
+    return activity;
+  })();
+
+  const [upNext, activity] = await Promise.all([upNextPromise, activityPromise]);
   return { upNext, activity };
 }
 

@@ -5,7 +5,7 @@ import { FileUp, Loader2, Search, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { VaultEntrySummary, VaultImportResult } from "@/src/lib/password-vault";
-import { parseVaultImportFile, type ImportCandidate } from "@/src/lib/vault-import";
+import type { ImportCandidate } from "@/src/lib/vault-import";
 import { vaultRequest } from "./vault-api";
 
 /** Keeps each request well under the 4.5 MB function body limit. */
@@ -65,6 +65,8 @@ export function VaultImportDialog({
     setBusy("parse");
     setError(null);
     try {
+      // Loaded on demand: the parser pulls in fflate for zip exports.
+      const { parseVaultImportFile } = await import("@/src/lib/vault-import");
       const items = await parseVaultImportFile(file);
       if (!items.length) throw new Error("No logins with a username, password, or 2FA key were found.");
       setCandidates(items);

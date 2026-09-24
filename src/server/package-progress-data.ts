@@ -195,8 +195,11 @@ async function ensureDefaultProgressRows(cycleNumbers: number[]) {
 
 export async function ensurePackageProgressDefaults() {
   const cycleNumbers = await getCycleNumbers();
-  const cycles = await ensureDefaultCycles(cycleNumbers);
-  await ensureDefaultProgressRows(cycleNumbers);
+  // Independent tables (PackageProgressRow.cycleNumber has no FK to PackageCycle).
+  const [cycles] = await Promise.all([
+    ensureDefaultCycles(cycleNumbers),
+    ensureDefaultProgressRows(cycleNumbers)
+  ]);
   return cycles;
 }
 
@@ -210,7 +213,7 @@ export async function loadPackageProgressData(requestedCycleNumber?: number | nu
     cycles[cycles.length - 1]?.cycleNumber ??
     1;
 
-  const [rows, producers, executives] = await Promise.all([
+  const [rows, producers, executives, previousCycleRows] = await Promise.all([
     prisma.packageProgressRow.findMany({
       where: { cycleNumber: activeCycleNumber },
       orderBy: { rowOrder: "asc" },
@@ -257,7 +260,13 @@ export async function loadPackageProgressData(requestedCycleNumber?: number | nu
       }
     }),
     loadAssignableProducers(),
-    loadAssignableExecutiveProducers()
+    loadAssignableExecutiveProducers(),
+    activeCycleNumber > 1
+      ? prisma.packageProgressRow.findMany({
+          where: { cycleNumber: activeCycleNumber - 1 },
+          select: { members: { select: { userId: true } } }
+        })
+      : Promise.resolve([])
   ]);
 
   const readiness = rows.length ? await prisma.auditLog.findMany({
@@ -278,13 +287,6 @@ export async function loadPackageProgressData(requestedCycleNumber?: number | nu
     if (!readyAt.has(key)) readyAt.set(key, event.createdAt);
   }
 
-  const previousCycleRows =
-    activeCycleNumber > 1
-      ? await prisma.packageProgressRow.findMany({
-          where: { cycleNumber: activeCycleNumber - 1 },
-          select: { members: { select: { userId: true } } }
-        })
-      : [];
   const previousTeammatesByUser = previousTeammatesByUserFromGroups(
     previousCycleRows.map((row) => row.members.map((member) => member.userId))
   );

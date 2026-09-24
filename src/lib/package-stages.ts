@@ -1,5 +1,6 @@
 import type { GradeScoreState, PackageCategory } from "@prisma/client";
 import { brainstormMaterialsReady } from "@/src/lib/package-brainstorm";
+import { effectiveDeadline } from "@/src/lib/package-extensions";
 
 /**
  * The five stages a package moves through in a cycle. Only the first four are
@@ -268,17 +269,23 @@ export function releasedCheckInScores(
   ])) as CheckInScores;
 }
 
-export function cycleCheckInDates(cycle: {
-  pitchingDate?: Date | null;
-  proofOfContactDate?: Date | null;
-  aRollBRollDate?: Date | null;
-  initialCutDate?: Date | null;
-}): CheckInCycleInput["dates"] {
+/** An approved extension moves every stage deadline by the student's granted days. */
+export function cycleCheckInDates(
+  cycle: {
+    pitchingDate?: Date | null;
+    proofOfContactDate?: Date | null;
+    aRollBRollDate?: Date | null;
+    initialCutDate?: Date | null;
+  },
+  extensionDays = 0
+): CheckInCycleInput["dates"] {
+  const shift = (date: Date | null | undefined) =>
+    extensionDays > 0 && date ? effectiveDeadline(date, extensionDays) : date;
   return {
-    pitching: cycle.pitchingDate,
-    proofOfContact: cycle.proofOfContactDate,
-    aRollBRoll: cycle.aRollBRollDate,
-    initialCut: cycle.initialCutDate
+    pitching: shift(cycle.pitchingDate),
+    proofOfContact: shift(cycle.proofOfContactDate),
+    aRollBRoll: shift(cycle.aRollBRollDate),
+    initialCut: shift(cycle.initialCutDate)
   };
 }
 

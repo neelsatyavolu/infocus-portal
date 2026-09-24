@@ -1,10 +1,9 @@
 import { announcementShowDates, isSchoologyOnly, toDateKey as announcementDateKey } from "@/src/lib/announcement-submission";
+import { resolveScheduleDay } from "@/src/lib/school-schedule";
 import type { SubmittedAnnouncement } from "@/src/lib/submitted-announcements";
 
 export const TELEPROMPTER_TIME_ZONE = "America/Los_Angeles";
 
-/** Shows air Wednesday and Friday (2026–27). */
-const SHOW_WEEKDAYS = new Set(["Wed", "Fri"]);
 const A2_SLOTS = [
   { camera: "CAM 3", role: "[ANCHOR]" },
   { camera: "CAM 1", role: "[CO-ANCHOR]" },
@@ -71,20 +70,18 @@ function ordinalSuffix(day: number) {
   return "th";
 }
 
+/** Next Wednesday/Friday show after `now`, skipping no-school days (up to ~2 months out). */
 export function getNextShowDate(now = new Date(), timeZone = TELEPROMPTER_TIME_ZONE): Date {
-  for (let offset = 1; offset <= 14; offset += 1) {
+  for (let offset = 1; offset <= 60; offset += 1) {
     const candidate = new Date(now);
     candidate.setUTCDate(candidate.getUTCDate() + offset);
-    const weekday = new Intl.DateTimeFormat("en-US", {
-      timeZone,
-      weekday: "short"
-    }).format(candidate);
+    const dateKey = toDateKey(candidate, timeZone);
 
-    if (!SHOW_WEEKDAYS.has(weekday)) {
+    if (resolveScheduleDay(dateKey).kind !== "SHOW") {
       continue;
     }
 
-    return dateFromKey(toDateKey(candidate, timeZone));
+    return dateFromKey(dateKey);
   }
 
   throw new Error("Unable to compute next show date.");

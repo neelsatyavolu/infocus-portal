@@ -4,6 +4,7 @@ import {
   checkInGradeForCycle,
   checkInGradeForProgress,
   checkInOverrides,
+  cycleCheckInDates,
   effectiveGroupApprovalStage,
   releasedCheckInScores,
   groupNavTabDone,
@@ -214,6 +215,41 @@ describe("check-in grade release", () => {
         { earned: null, possible: 0, stages: { pitching: false, proofOfContact: false, aRollBRoll: false, initialCut: false } }
       ])
     ).toEqual({ earned: null, possible: 0 });
+  });
+
+  it("moves every check-in deadline by the student's extension days", () => {
+    const cycle = {
+      pitchingDate: dates.pitching,
+      proofOfContactDate: dates.proofOfContact,
+      aRollBRollDate: dates.aRollBRoll,
+      initialCutDate: new Date("2026-10-14T00:00:00.000Z")
+    };
+    expect(cycleCheckInDates(cycle, 10)).toEqual({
+      pitching: new Date("2026-09-07T00:00:00.000Z"),
+      proofOfContact: new Date("2026-09-12T00:00:00.000Z"),
+      aRollBRoll: new Date("2026-09-21T00:00:00.000Z"),
+      initialCut: new Date("2026-10-24T00:00:00.000Z")
+    });
+    expect(cycleCheckInDates(cycle)).toEqual({
+      pitching: dates.pitching,
+      proofOfContact: dates.proofOfContact,
+      aRollBRoll: dates.aRollBRoll,
+      initialCut: cycle.initialCutDate
+    });
+  });
+
+  it("does not dock unapproved A-roll/B-roll before the extended deadline", () => {
+    const cycle = { aRollBRollDate: dates.aRollBRoll };
+    const now = new Date("2026-09-15T00:00:00.000Z");
+    const grade = (extensionDays: number) =>
+      checkInGradeForCycle({
+        now,
+        dates: { aRollBRoll: cycleCheckInDates(cycle, extensionDays).aRollBRoll },
+        submitted: { aRollBRoll: true },
+        approved: {}
+      });
+    expect(grade(0)).toMatchObject({ earned: 0, possible: 5 });
+    expect(grade(10)).toMatchObject({ earned: null, possible: 0 });
   });
 
   it("pads unreleased S1 check-ins to 60 and only subtracts missed due work", () => {

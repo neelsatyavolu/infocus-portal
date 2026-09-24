@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildPaScript, nextPaDate, refreshPaNames, resolvePaPeople } from "@/src/lib/pa-script";
+import { buildPaScript, nextPaDate, paTimeLabel, refreshPaNames, resolvePaPeople } from "@/src/lib/pa-script";
 
 describe("PA schedule", () => {
   it("does not generate scripts outside the supported school year", () => {
@@ -54,5 +54,15 @@ describe("PA script", () => {
     ];
     expect(resolvePaPeople(["AK", "Jordan"], users).map((person) => person?.id)).toEqual(["a", "c"]);
     expect(resolvePaPeople(["Alex", "Jord"], users)).toEqual([null, null]);
+  });
+});
+
+describe("paTimeLabel", () => {
+  it("uses second period on a normal Monday", () => {
+    expect(paTimeLabel("2026-09-21")).toBe("Start of second period");
+  });
+
+  it("uses fifth period when Monday runs the Friday 5–7 schedule", () => {
+    expect(paTimeLabel("2026-09-28")).toBe("Start of fifth period");
   });
 });

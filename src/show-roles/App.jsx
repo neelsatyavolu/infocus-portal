@@ -445,7 +445,7 @@ export default function App() {
       return;
     }
     if (!isShowDay(newShowDate)) {
-      setFlash("error", "Invalid show day", "Shows can only be created for Wednesday or Friday.");
+      setFlash("error", "Invalid show day", "Shows can only be created for a Wednesday or Friday school day.");
       return;
     }
     if (getShowByDate(history, newShowDate)) {

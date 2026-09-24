@@ -100,7 +100,7 @@ deadline has passed; a final cut counts once it has been graded.
 `buildGradeSummary()` returns `percentage: null` and `letter: null` when nothing
 is gradeable — a day-one student has no grade, not a 0% F.
 
-**Check-ins**: the final cut is *not* a check-in. Four check-ins (pitching, proof of contact, a-roll/b-roll, initial cut) × 5 points = 20 per cycle. After a stage deadline, PoC and Initial Cut receive 5 points for submission and 0 for missing work. **A-roll/B-roll requires producer approval**: submitted work awaiting review or needing revisions receives 0/5 until approved. Pitching has no upload, so the producer mark is the credit signal. Approval still counts if the student submitted and a producer later marked the stage complete. Later stages stay ungraded until their own deadline. Students submit three proof-of-contact images and a brainstorm Google Doc on `/brainstorming`. The assigned producer still reviews that material on `/groups`; approval advances the workflow but is not required for the check-in grade after the deadline.
+**Check-ins**: the final cut is *not* a check-in. Four check-ins (pitching, proof of contact, a-roll/b-roll, initial cut) × 5 points = 20 per cycle. After a stage deadline, PoC and Initial Cut receive 5 points for submission and 0 for missing work. **A-roll/B-roll requires producer approval**: submitted work awaiting review or needing revisions receives 0/5 until approved. Pitching has no upload, so the producer mark is the credit signal. Approval still counts if the student submitted and a producer later marked the stage complete. Later stages stay ungraded until their own deadline. An approved extension moves every check-in deadline for each covered student by that student's granted days (`cycleCheckInDates(cycle, approvedExtensionDaysFor(row, userId))`). Students submit three proof-of-contact images and a brainstorm Google Doc on `/brainstorming`. The assigned producer still reviews that material on `/groups`; approval advances the workflow but is not required for the check-in grade after the deadline.
 
 Executive producers and the adviser can override each check-in with 0–5 points in the Grade Editor cycle tabs. Overrides affect official grades after the stage deadline; choosing Automatic restores automatic scoring. Grade Editor also supports explicit Ungraded and Exempt states for each check-in and Final Cut. Both exclude earned and possible points, even after deadlines; zero remains a graded zero. In typed score fields, `-` means ungraded and `\` means exempt.
 
@@ -166,10 +166,8 @@ Subdomains:
 
 `src/show-roles/lib/anchors.js`. Shows run **Wednesday and Friday**.
 
-- Weeks **1 and 4**: anchors volunteer (producers pick names on the master calendar cell). Weeks **2 and 3**: Randomize fills the two slots; producers can still pick names by hand on the calendar or The Show. Manual picks on a random week are not recorded as volunteers.
-- Anyone who volunteered that month is excluded from the random pool (`AnchorVolunteer`, keyed by `YYYY-MM`).
+- Every show has two **Anchors** slots. Producers pick names on the master calendar or The Show, or press **Randomize** to fill both. There are no volunteer or random weeks; randomizing is a choice on any show.
 - Nobody anchors twice in the same month.
-- Week of month is counted by calendar date: days 1–7 are week 1, 8–14 week 2, and so on. A trailing fifth week follows the week-4 (volunteer) rule.
 - Monday PA announcers are randomly drawn from people who are not anchoring that month.
 - Randomize pulls from registered users who are not advisers, executive producers, or super-admin. EPs can be picked by hand on the dropdowns but are never chosen by Randomize. Unique first names; full name if two people share a first name.
 - The Show / show-roles generator loads the same registered-user roster. Generate Roles and role repick skip EPs and advisers; those people stay available in the manual picker. Super-admin is not listed.

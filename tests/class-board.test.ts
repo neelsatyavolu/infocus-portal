@@ -189,6 +189,31 @@ describe("class board race", () => {
     ]);
   });
 
+  it("ranks a matching group with more extension days ahead instead of tying", () => {
+    const flags = { pitching: true, proofOfContact: true, aRollBRoll: true };
+    const cutStatus = status({ ...flags, initialCutHasMedia: false });
+    const lanes = buildRaceLanes([
+      pack({ id: "none", topic: "Alpha", ...flags, status: cutStatus }),
+      pack({ id: "short", topic: "Middle", ...flags, extension: true, extensionDays: 3, status: cutStatus }),
+      pack({ id: "long", topic: "Zulu", ...flags, extension: true, extensionDays: 10, status: cutStatus })
+    ]);
+
+    expect(lanes.map((lane) => [lane.id, lane.place])).toEqual([
+      ["long", 1],
+      ["short", 2],
+      ["none", 3]
+    ]);
+  });
+
+  it("keeps stage progress ahead of extension days", () => {
+    const lanes = buildRaceLanes([
+      pack({ id: "extended", topic: "Alpha", extension: true, extensionDays: 10, status: status() }),
+      pack({ id: "ahead", topic: "Zulu", pitching: true, status: status({ pitching: true }) })
+    ]);
+
+    expect(lanes.map((lane) => lane.id)).toEqual(["ahead", "extended"]);
+  });
+
   it("ranks cleared stages ahead and gives ties the same place", () => {
     const lanes = buildRaceLanes([
       pack({ id: "early", topic: "Zebra", pitching: false, status: status() }),

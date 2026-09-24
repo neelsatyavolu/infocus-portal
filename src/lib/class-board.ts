@@ -202,8 +202,13 @@ const STATUS_RANK: Record<GroupTileStatusTone, number> = {
   neutral: 1
 };
 
-function sameStanding(left: { doneCount: number; tone: GroupTileStatusTone; revisionVersion: number }, right: { doneCount: number; tone: GroupTileStatusTone; revisionVersion: number }) {
-  return left.doneCount === right.doneCount && STATUS_RANK[left.tone] === STATUS_RANK[right.tone] && left.revisionVersion === right.revisionVersion;
+type Standing = { doneCount: number; tone: GroupTileStatusTone; revisionVersion: number; extensionDays: number };
+
+function sameStanding(left: Standing, right: Standing) {
+  return left.doneCount === right.doneCount &&
+    STATUS_RANK[left.tone] === STATUS_RANK[right.tone] &&
+    left.revisionVersion === right.revisionVersion &&
+    left.extensionDays === right.extensionDays;
 }
 
 function packageHasContent(row: RacePackageInput) {
@@ -262,6 +267,8 @@ export function buildRaceLanes(rows: RacePackageInput[], now = Date.now()): Clas
     right.doneCount - left.doneCount ||
     STATUS_RANK[right.tone] - STATUS_RANK[left.tone] ||
     right.revisionVersion - left.revisionVersion ||
+    // Same stage and status: every stage deadline moves with the extension, so more days means more time left.
+    right.extensionDays - left.extensionDays ||
     left.topic.localeCompare(right.topic)
   );
 

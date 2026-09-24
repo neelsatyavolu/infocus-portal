@@ -6,6 +6,7 @@ import { CalendarDays, Check, Clock3, List, Mic2, RefreshCcw, Save } from "lucid
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { paTimeLabel } from "@/src/lib/pa-script";
 
 type PaResponse = {
   date: string | null;
@@ -120,7 +121,7 @@ export default function PaAnnouncementsPage() {
             <div className="eyebrow flex items-center gap-2"><Mic2 className="h-3 w-3" />InFocus announcements</div>
             <h1 className="display-md mt-2 text-foreground">PA</h1>
             <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-              Your script for the next PA. Read at the start of second period on school Mondays.
+              Your script for the next PA. Read at the start of second period on school Mondays unless the bell schedule changes.
             </p>
           </div>
           <Button variant="outline" className="rounded-xl" onClick={() => void loadData()} disabled={loading || saving || regenerating || dirty}
@@ -132,7 +133,7 @@ export default function PaAnnouncementsPage() {
         {data?.date ? (
           <div className="relative mt-5 flex flex-wrap items-center gap-2">
             <span className="meta-pill"><CalendarDays className="mr-1.5 h-3.5 w-3.5" />{data.dateLabel}</span>
-            <span className="meta-pill"><Clock3 className="mr-1.5 h-3.5 w-3.5" />Start of second period</span>
+            <span className="meta-pill"><Clock3 className="mr-1.5 h-3.5 w-3.5" />{paTimeLabel(data.date)}</span>
           </div>
         ) : null}
       </section>

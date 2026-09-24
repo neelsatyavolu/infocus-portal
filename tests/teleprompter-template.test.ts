@@ -46,28 +46,42 @@ function makeAnnouncement(overrides: Partial<SubmittedAnnouncement>): SubmittedA
 
 describe("getNextShowDate", () => {
   it("returns Wednesday for Monday", () => {
-    const next = getNextShowDate(new Date("2026-02-23T20:00:00.000Z"));
-    expect(toDateKeyInTeleprompterTimeZone(next)).toBe("2026-02-25");
+    const next = getNextShowDate(new Date("2026-09-14T20:00:00.000Z"));
+    expect(toDateKeyInTeleprompterTimeZone(next)).toBe("2026-09-16");
   });
 
   it("returns Wednesday for Tuesday", () => {
-    const next = getNextShowDate(new Date("2026-02-24T20:00:00.000Z"));
-    expect(toDateKeyInTeleprompterTimeZone(next)).toBe("2026-02-25");
+    const next = getNextShowDate(new Date("2026-09-15T20:00:00.000Z"));
+    expect(toDateKeyInTeleprompterTimeZone(next)).toBe("2026-09-16");
   });
 
   it("returns Friday for Thursday", () => {
-    const next = getNextShowDate(new Date("2026-02-26T20:00:00.000Z"));
-    expect(toDateKeyInTeleprompterTimeZone(next)).toBe("2026-02-27");
+    const next = getNextShowDate(new Date("2026-09-17T20:00:00.000Z"));
+    expect(toDateKeyInTeleprompterTimeZone(next)).toBe("2026-09-18");
   });
 
   it("returns next Wednesday for Friday, Saturday, and Sunday", () => {
-    const friday = getNextShowDate(new Date("2026-02-27T20:00:00.000Z"));
-    const saturday = getNextShowDate(new Date("2026-02-28T20:00:00.000Z"));
-    const sunday = getNextShowDate(new Date("2026-03-01T20:00:00.000Z"));
+    const friday = getNextShowDate(new Date("2026-09-18T20:00:00.000Z"));
+    const saturday = getNextShowDate(new Date("2026-09-19T20:00:00.000Z"));
+    const sunday = getNextShowDate(new Date("2026-09-20T20:00:00.000Z"));
 
-    expect(toDateKeyInTeleprompterTimeZone(friday)).toBe("2026-03-04");
-    expect(toDateKeyInTeleprompterTimeZone(saturday)).toBe("2026-03-04");
-    expect(toDateKeyInTeleprompterTimeZone(sunday)).toBe("2026-03-04");
+    expect(toDateKeyInTeleprompterTimeZone(friday)).toBe("2026-09-23");
+    expect(toDateKeyInTeleprompterTimeZone(saturday)).toBe("2026-09-23");
+    expect(toDateKeyInTeleprompterTimeZone(sunday)).toBe("2026-09-23");
+  });
+
+  it("skips a Friday that is a no-school day", () => {
+    // Fri Oct 2, 2026 is a Staff Development Day; Wed Sep 30 is the only show that week.
+    const wednesday = getNextShowDate(new Date("2026-09-30T20:00:00.000Z"));
+    const thursday = getNextShowDate(new Date("2026-10-01T20:00:00.000Z"));
+
+    expect(toDateKeyInTeleprompterTimeZone(wednesday)).toBe("2026-10-07");
+    expect(toDateKeyInTeleprompterTimeZone(thursday)).toBe("2026-10-07");
+  });
+
+  it("skips winter break", () => {
+    const next = getNextShowDate(new Date("2026-12-18T20:00:00.000Z"));
+    expect(toDateKeyInTeleprompterTimeZone(next)).toBe("2027-01-06");
   });
 });
 

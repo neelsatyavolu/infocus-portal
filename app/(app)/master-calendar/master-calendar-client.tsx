@@ -21,7 +21,6 @@ import {
 } from "@/src/lib/master-calendar-cells";
 import { resolveScheduleDay, type ScheduleKind } from "@/src/lib/school-schedule";
 import { cn } from "@/src/lib/utils";
-import { anchorModeForDate } from "@/src/show-roles/lib/anchors";
 
 type CalendarEntry = {
   date: string;
@@ -1454,7 +1453,6 @@ export default function MasterCalendarClient({ initialData }: { initialData: Cal
                         {schedule.kind === "SHOW" ? (
                           <ShowDayControls
                             dateKey={dateKey}
-                            mode={anchorModeForDate(date)}
                             anchors={extractCalendarAnchors(displayContent)}
                             members={castMembers}
                             manager={showManagers[dateKey]?.name ?? ""}

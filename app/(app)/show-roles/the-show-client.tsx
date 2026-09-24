@@ -282,20 +282,16 @@ function OverviewBody() {
       <section className="rounded-2xl border border-border bg-card p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-display text-lg font-bold uppercase tracking-tight">Anchors</h2>
-          {data.mode === "RANDOM" ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              disabled={saving}
-              onClick={() => void randomizeAnchors()}
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              Randomize
-            </Button>
-          ) : (
-            <span className="text-xs text-muted-foreground">Pick volunteers for this week</span>
-          )}
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={saving}
+            onClick={() => void randomizeAnchors()}
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Randomize
+          </Button>
         </div>
         <div className="mt-3 grid gap-3 md:grid-cols-2">
           <NameSelect

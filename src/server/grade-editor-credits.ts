@@ -5,6 +5,7 @@ import {
   isAssociateProducerRole,
   semesterCheckInMax
 } from "@/src/lib/package-cycle-requirements";
+import { approvedExtensionDaysFor, effectiveDeadline } from "@/src/lib/package-extensions";
 import { cycleSemesterTerm } from "@/src/lib/package-grades";
 import { PLATFORM_SUPER_ADMIN_EMAIL, normalizeEmail } from "@/src/lib/platform-admin";
 import {
@@ -91,6 +92,8 @@ export async function loadGradeEditorCredits(input: {
             initialCutMediaItemId: true,
             _count: { select: { proofOfContacts: true } },
             stageMedia: { where: { stage: "a-roll" }, select: { id: true } },
+            extension: true,
+            extensionRequests: { where: { status: "APPROVED" }, select: { requestedDays: true, grantedDays: true, grantedUserIds: true } },
             members: {
               where: { userId: { in: input.userIds } },
               select: { userId: true }
@@ -134,6 +137,7 @@ export async function loadGradeEditorCredits(input: {
   }
 
   const snapshotByUserCycle = new Map<string, CheckInProgressSnapshot>();
+  const extensionDaysByUserCycle = new Map<string, number>();
   for (const row of rows) {
     const snapshot: CheckInProgressSnapshot = {
       pitching: row.pitching,
@@ -147,6 +151,7 @@ export async function loadGradeEditorCredits(input: {
     };
     for (const member of row.members) {
       snapshotByUserCycle.set(`${member.userId}:${row.cycleNumber}`, snapshot);
+      extensionDaysByUserCycle.set(`${member.userId}:${row.cycleNumber}`, approvedExtensionDaysFor(row, member.userId));
     }
   }
 
@@ -158,13 +163,15 @@ export async function loadGradeEditorCredits(input: {
     const perCycle = input.cycles.map((cycle) => {
       const row = snapshotByUserCycle.get(`${userId}:${cycle.cycleNumber}`) ?? null;
       const overrides = checkInOverrides(gradeByUserCycle.get(`${userId}:${cycle.cycleNumber}`));
-      const dates = associate && !row ? {} : cycleCheckInDates(cycle);
+      const extensionDays = extensionDaysByUserCycle.get(`${userId}:${cycle.cycleNumber}`) ?? 0;
+      const dates = associate && !row ? {} : cycleCheckInDates(cycle, extensionDays);
+      const finalDeadline = effectiveDeadline(cycle.finalCutDate ?? null, extensionDays);
       const grade =
         associate && !row
           ? checkInGradeForProgress({ now, dates: {}, row: null })
           : checkInGradeForProgress({
               now,
-              dates: cycleCheckInDates(cycle),
+              dates,
               row,
               overrides
             });
@@ -175,7 +182,7 @@ export async function loadGradeEditorCredits(input: {
         finalCutPoints: null as number | null,
         checkInPoints: grade.earned,
         checkInPossible: grade.earned === null ? null : grade.possible,
-        finalDeadlinePassed: Boolean(cycle.finalCutDate && cycle.finalCutDate.getTime() <= now.getTime())
+        finalDeadlinePassed: Boolean(finalDeadline && finalDeadline.getTime() <= now.getTime())
       };
     });
     const quota = applyCycleRequirementQuota(perCycle, role);

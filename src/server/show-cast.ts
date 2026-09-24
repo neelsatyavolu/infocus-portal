@@ -22,7 +22,6 @@ import { resolveShowManagers } from "@/src/server/show-manager";
 import { loadScheduleOverrides } from "@/src/server/show-schedule";
 import { EXEMPT } from "@/src/show-roles/lib/constants";
 import {
-  ANCHOR_MODE_RANDOM,
   ANCHOR_MODE_VOLUNTEER,
   anchorModeForDate,
   monthKey,
@@ -326,7 +325,7 @@ export async function suggestAnchorsForDate(dateKey: string) {
     mode,
     monthVolunteers,
     monthAnchors,
-    suggested: mode === ANCHOR_MODE_RANDOM ? pickRandom(candidates, 2) : []
+    suggested: pickRandom(candidates, 2)
   };
 }
 

@@ -746,7 +746,7 @@ export async function POST(request: Request) {
       }
       const { byUserId } = await loadGradeEditorCredits({ userIds: [payload.userId], cycles: [cycle], now });
       if (byUserId.get(payload.userId)?.checkInScoresByCycle[payload.cycleNumber]?.[payload.stage] == null) {
-        return fail("This check-in does not apply to this student.", 400);
+        return fail("This check-in is not due yet for this student (extension) or does not apply to them.", 400);
       }
       const field = CHECK_IN_SCORE_FIELDS[payload.stage];
       const stateField = CHECK_IN_STATE_FIELDS[payload.stage];

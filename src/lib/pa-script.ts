@@ -22,6 +22,15 @@ export function nextPaDate(
   return null;
 }
 
+// PA is read at the start of second period, except on Mondays that run a different bell schedule.
+const PA_PERIOD_EXCEPTIONS: Readonly<Record<string, string>> = {
+  "2026-09-28": "fifth" // Friday (5–7) schedule on a Monday
+};
+
+export function paTimeLabel(date: string) {
+  return `Start of ${PA_PERIOD_EXCEPTIONS[date] ?? "second"} period`;
+}
+
 export function paDateLabel(date: string) {
   const value = new Date(`${date}T12:00:00Z`);
   const day = value.getUTCDate();

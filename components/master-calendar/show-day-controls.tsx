@@ -69,7 +69,6 @@ type QueuedPackage = {
 
 export function ShowDayControls({
   dateKey,
-  mode,
   anchors,
   members,
   manager,
@@ -84,7 +83,6 @@ export function ShowDayControls({
   onManagerReset
 }: {
   dateKey: string;
-  mode: "VOLUNTEER" | "RANDOM";
   anchors: string[];
   members: string[];
   manager: string;
@@ -106,10 +104,8 @@ export function ShowDayControls({
     <div className="flex min-h-[14.5rem] flex-1 flex-col gap-3 rounded-lg border border-border/70 bg-[var(--ink)]/40 p-3 text-left">
       <div className="space-y-1.5">
         <div className="flex items-center justify-between gap-2">
-          <span className={LABEL_CLASS}>
-            {mode === "VOLUNTEER" ? "Volunteer anchors" : "Random anchors"}
-          </span>
-          {canEdit && mode === "RANDOM" ? (
+          <span className={LABEL_CLASS}>Anchors</span>
+          {canEdit ? (
             <button
               type="button"
               disabled={busy}

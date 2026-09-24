@@ -1,3 +1,4 @@
+import { resolveScheduleDay } from "@/src/lib/school-schedule";
 import { FIRST_SHOW_DATE } from "@/src/lib/show-assignment";
 
 const DAYS = [
@@ -24,18 +25,6 @@ const MONTHS = [
   "November",
   "December",
 ];
-
-// Shows run Wednesday + Friday (2026–27). Offsets jump to the next show day
-// (on a show day, the *other* show of the pair / next week).
-const SHOW_DAY_OFFSETS = {
-  0: 3, // Sun → Wed
-  1: 2, // Mon → Wed
-  2: 1, // Tue → Wed
-  3: 2, // Wed → Fri
-  4: 1, // Thu → Fri
-  5: 5, // Fri → next Wed
-  6: 4 // Sat → Wed
-};
 
 export function parseDate(dateStr) {
   if (!dateStr || typeof dateStr !== "string") return new Date();
@@ -65,11 +54,10 @@ export function formatReadableDate(date) {
   )}, ${date.getFullYear()}`;
 }
 
+// Shows run Wednesday + Friday (2026–27), skipping no-school days.
 export function isShowDay(dateOrString) {
   const date = typeof dateOrString === "string" ? parseDate(dateOrString) : dateOrString;
-  const dow = date.getDay();
-  if (dow !== 3 && dow !== 5) return false;
-  return formatDate(date) >= FIRST_SHOW_DATE;
+  return resolveScheduleDay(formatDate(date)).kind === "SHOW";
 }
 
 export function getShowType(dateOrString) {
@@ -80,14 +68,9 @@ export function getShowType(dateOrString) {
   return null;
 }
 
+// The show being prepped: the next show after today (on a show day, the following one).
 export function getCurrentShowDate(from = new Date()) {
-  const source = new Date(from.getFullYear(), from.getMonth(), from.getDate());
-  const offset = SHOW_DAY_OFFSETS[source.getDay()] ?? 2;
-  source.setDate(source.getDate() + offset);
-  if (formatDate(source) < FIRST_SHOW_DATE) {
-    return parseDate(FIRST_SHOW_DATE);
-  }
-  return source;
+  return nextShowDate(from);
 }
 
 export function nextShowDate(from = new Date()) {

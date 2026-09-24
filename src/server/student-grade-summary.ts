@@ -112,7 +112,7 @@ export async function buildGradeSummary(
     }
     return checkInGradeForProgress({
       now,
-      dates: cycle ? cycleCheckInDates(cycle) : {},
+      dates: cycle ? cycleCheckInDates(cycle, approvedExtensionDaysFor(row, userId)) : {},
       overrides: checkInOverrides(gradeByCycle.get(cycleNumber)),
       row: row
         ? {

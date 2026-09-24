@@ -5,6 +5,7 @@ import { Barlow_Condensed } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Toaster } from "@/components/ui/sonner";
+import { N3elAnalytics } from "@/components/n3el-analytics";
 import "./globals.css";
 
 const barlowCondensed = Barlow_Condensed({
@@ -59,6 +60,7 @@ export default function RootLayout({
         <Toaster theme="dark" />
         <Analytics />
         <SpeedInsights />
+        <N3elAnalytics />
       </body>
     </html>
   );

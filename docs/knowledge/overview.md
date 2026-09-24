@@ -24,6 +24,10 @@ InFocus Portal is the student broadcast production site for **InFocus News** (Pa
 
 One sign-in covers Portal, grades, teleprompter, and equipment manage (shared session cookie). Sign in with Google or an emailed code. Checkout and requests stay public.
 
+## Privacy and analytics
+
+Page views are counted without cookies by Vercel Analytics and by n3el analytics (`analytics.n3el.dev`, run by the developer). n3el analytics gets only the site, page path (no query, IDs removed) and referring site. No names, emails, grades, IP addresses or content. Guest review links are not counted.
+
 ## What Portal is not
 
 - Adding a person in Admin does not put them on a package roster. Use Package Cycle for that.

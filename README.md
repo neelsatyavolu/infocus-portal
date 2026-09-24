@@ -51,6 +51,15 @@ Staff identities live in env vars, not in the code:
 
 Class rules (roles, approval chain, grading, extensions) are in [`docs/class-rules-2026-27.md`](docs/class-rules-2026-27.md). The product documentation used by the assistant is in [`docs/knowledge/`](docs/knowledge/README.md).
 
+## Privacy & analytics
+
+The site uses two cookieless page-view counters:
+
+- **Vercel Analytics and Speed Insights**: page views and performance metrics, collected by Vercel.
+- **n3el analytics**: a small script from `analytics.n3el.dev`, run by the developer. It sends only the hostname, the page path (query strings removed, IDs replaced, only the first two path segments kept), and the referring site. It sets no cookies, stores no IP addresses, and sends no names, emails, grades, or content. Guest review links (`/g/…`) are not counted.
+
+Neither sets cookies or identifies visitors, so there is nothing to opt out of per account.
+
 ## Security
 
 Please report vulnerabilities privately. See [SECURITY.md](SECURITY.md).

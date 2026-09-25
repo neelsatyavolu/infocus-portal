@@ -66,7 +66,7 @@ export function GroupStageShell({
       <div className="flex min-h-0 flex-1 flex-col">{children}</div>
 
       <section className="sticky bottom-4 z-20 mx-auto flex justify-center px-2">
-        <div className="inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-xl border border-white/[0.08] bg-black/85 p-1 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.6)] backdrop-blur">
+        <div className="inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-xl border border-foreground/[0.08] bg-black/85 light:bg-muted p-1 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.6)] backdrop-blur">
           {GROUP_NAV_SLUGS.map((slug) => {
             const active = slug === stage;
             const done = groupNavTabDone(slug, nav);
@@ -79,7 +79,7 @@ export function GroupStageShell({
                   "inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 font-display text-[11px] font-semibold uppercase tracking-[0.16em] transition-colors sm:px-4 sm:text-[12px] sm:tracking-[0.18em]",
                   active
                     ? "bg-[var(--brand-green)] text-[var(--ink)]"
-                    : "text-[var(--ink-text)] hover:bg-white/5 hover:text-white"
+                    : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
                 )}
               >
                 {GROUP_NAV_TAB_LABELS[slug]}

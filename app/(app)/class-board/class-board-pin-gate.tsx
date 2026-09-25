@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { BrandWordmark } from "@/components/brand-wordmark";
 import { useEffect, useState } from "react";
 
 const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "clear", "0", "back"] as const;
@@ -62,14 +62,7 @@ export default function ClassBoardPinGate() {
 
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center bg-background px-6 py-10 text-foreground">
-      <Image
-        src="/favicon/infocus-wordmark.png"
-        alt="InFocus Portal"
-        width={280}
-        height={120}
-        className="h-12 w-auto object-contain"
-        priority
-      />
+      <BrandWordmark className="h-12 w-auto object-contain" priority />
       <h1 className="mt-6 font-display text-5xl font-extrabold uppercase italic leading-none tracking-tight">
         Class Board
       </h1>

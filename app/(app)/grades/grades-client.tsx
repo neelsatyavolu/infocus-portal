@@ -293,7 +293,7 @@ export default function GradesClient() {
       ) : null}
 
       <section className="sticky bottom-4 z-20 mx-auto flex justify-center px-2">
-        <div className="inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-xl border border-white/[0.08] bg-black/85 p-1 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.6)] backdrop-blur">
+        <div className="inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-xl border border-foreground/[0.08] bg-black/85 light:bg-muted p-1 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.6)] backdrop-blur">
           {TABS.map((item) => {
             const active = tab === item.id;
             return (
@@ -305,7 +305,7 @@ export default function GradesClient() {
                   "inline-flex shrink-0 items-center rounded-lg px-3 py-2 font-display text-[11px] font-semibold uppercase tracking-[0.16em] transition sm:px-4 sm:text-[12px] sm:tracking-[0.18em]",
                   active
                     ? "bg-[var(--brand-green)] text-[var(--ink)]"
-                    : "text-[var(--ink-text)] hover:bg-white/5 hover:text-white"
+                    : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
                 )}
               >
                 {item.label}
@@ -529,12 +529,12 @@ function ParticipationView({
             Use the week switcher. Official total {loading ? "…" : `${total.earned} / ${total.possible || "—"}`}.
           </p>
         </div>
-        <div className="inline-flex items-center gap-1 rounded-xl border border-white/[0.08] bg-black/85 p-1">
+        <div className="inline-flex items-center gap-1 rounded-xl border border-foreground/[0.08] bg-black/85 light:bg-muted p-1">
           <button
             type="button"
             disabled={weekIndex <= 0}
             onClick={() => onWeekIndex(Math.max(0, weekIndex - 1))}
-            className="rounded-lg p-2 text-[var(--ink-text)] transition hover:bg-white/5 hover:text-white disabled:opacity-30"
+            className="rounded-lg p-2 text-[var(--ink-text)] transition hover:bg-foreground/5 hover:text-foreground disabled:opacity-30"
             aria-label="Previous week"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -547,11 +547,11 @@ function ParticipationView({
             value={weekIndex}
             disabled={weeks.length === 0}
             onChange={(event) => onWeekIndex(Number(event.target.value))}
-            className="max-w-[14rem] bg-transparent px-2 py-1 font-display text-[12px] font-semibold uppercase tracking-[0.14em] text-white outline-none"
+            className="max-w-[14rem] bg-transparent px-2 py-1 font-display text-[12px] font-semibold uppercase tracking-[0.14em] text-foreground outline-none"
           >
             {weeks.length === 0 ? <option value={0}>No weeks yet</option> : null}
             {weeks.map((entry, index) => (
-              <option key={entry.weekStart} value={index} className="bg-black text-white">
+              <option key={entry.weekStart} value={index} className="bg-[var(--ink)] text-foreground">
                 {entry.label}
               </option>
             ))}
@@ -560,7 +560,7 @@ function ParticipationView({
             type="button"
             disabled={weekIndex >= weeks.length - 1}
             onClick={() => onWeekIndex(Math.min(weeks.length - 1, weekIndex + 1))}
-            className="rounded-lg p-2 text-[var(--ink-text)] transition hover:bg-white/5 hover:text-white disabled:opacity-30"
+            className="rounded-lg p-2 text-[var(--ink-text)] transition hover:bg-foreground/5 hover:text-foreground disabled:opacity-30"
             aria-label="Next week"
           >
             <ChevronRight className="h-4 w-4" />

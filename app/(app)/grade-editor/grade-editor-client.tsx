@@ -943,11 +943,7 @@ export default function GradeEditorClient() {
     <div className="route-enter mx-auto w-full max-w-[1760px] space-y-5 pb-24">
       {/* ============= Hero (new design) ============= */}
       <section
-        className="relative overflow-hidden rounded-2xl border border-border p-6 md:p-7"
-        style={{
-          background:
-            "radial-gradient(900px 240px at 92% 10%, rgba(43,179,110,0.18), transparent 60%), linear-gradient(135deg, #08492A 0%, #0A2517 50%, #0A0A0A 100%)"
-        }}
+        className="brand-hero-panel relative overflow-hidden rounded-2xl border border-border p-6 md:p-7"
       >
         <div
           className="pointer-events-none absolute inset-0"
@@ -959,7 +955,7 @@ export default function GradeEditorClient() {
         <div className="relative flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <div
-              className="inline-flex items-center gap-1.5 rounded-full border border-[rgb(43,179,110,0.4)] bg-black/40 px-2.5 py-1 font-display text-[10px] font-bold uppercase tracking-[0.22em] text-[var(--brand-green)] backdrop-blur"
+              className="inline-flex items-center gap-1.5 rounded-full border border-[rgb(43,179,110,0.4)] bg-black/40 light:bg-muted px-2.5 py-1 font-display text-[10px] font-bold uppercase tracking-[0.22em] text-[var(--brand-green)] backdrop-blur"
             >
               <span
                 className="h-1.5 w-1.5 rounded-full bg-[var(--brand-green)]"
@@ -968,7 +964,7 @@ export default function GradeEditorClient() {
               Grade Editor · Producer view
             </div>
             <h1
-              className="mt-3 font-display italic text-[40px] font-black uppercase leading-none tracking-tight text-white md:text-[56px]"
+              className="mt-3 font-display italic text-[40px] font-black uppercase leading-none tracking-tight text-foreground md:text-[56px]"
               style={{ letterSpacing: "-0.025em" }}
             >
               {viewMode === TOTAL_VIEW
@@ -989,8 +985,8 @@ export default function GradeEditorClient() {
                 <div className="inline-flex items-center gap-1.5">
                   <Users2 className="h-3 w-3" />
                   <span>
-                    <strong className="font-semibold text-white">{totalsRows.length}</strong> reporters · max{" "}
-                    <strong className="font-semibold text-white">
+                    <strong className="font-semibold text-foreground">{totalsRows.length}</strong> reporters · max{" "}
+                    <strong className="font-semibold text-foreground">
                       {cycles.length * MAX_PACKAGE_PER_CYCLE +
                         cycles.length * MAX_CHECK_INS_PER_CYCLE +
                         MAX_LIVESTREAM +
@@ -1013,7 +1009,7 @@ export default function GradeEditorClient() {
                   <div className="inline-flex items-center gap-1.5">
                     <CalendarDays className="h-3 w-3" />
                     <span>
-                      Final Cut: <strong className="font-semibold text-white">{formatLongDate(activeCycle?.finalCutDate ?? null)}</strong>
+                      Final Cut: <strong className="font-semibold text-foreground">{formatLongDate(activeCycle?.finalCutDate ?? null)}</strong>
                     </span>
                   </div>
                   <span className="h-3 w-px bg-[var(--ink-4)]" />
@@ -1025,7 +1021,7 @@ export default function GradeEditorClient() {
                   <div className="inline-flex items-center gap-1.5">
                     <Users2 className="h-3 w-3" />
                     <span>
-                      <strong className="font-semibold text-white">{rows.length}</strong> reporters
+                      <strong className="font-semibold text-foreground">{rows.length}</strong> reporters
                     </span>
                   </div>
                 </>
@@ -1063,7 +1059,7 @@ export default function GradeEditorClient() {
 
         {/* Cycle tabs row */}
         {cycles.length > 0 ? (
-          <div className="relative mt-5 inline-flex items-center gap-1 rounded-lg border border-white/[0.08] bg-black/50 p-1 backdrop-blur">
+          <div className="relative mt-5 inline-flex items-center gap-1 rounded-lg border border-foreground/[0.08] bg-black/50 light:bg-muted p-1 backdrop-blur">
             {cycles.map((cycle) => {
               const isActive = viewMode === "cycle" && activeCycleNumber === cycle.cycleNumber;
               return (
@@ -1075,7 +1071,7 @@ export default function GradeEditorClient() {
                     "inline-flex items-center gap-2 rounded-md px-4 py-2 font-display text-[12px] font-semibold uppercase tracking-[0.18em] transition",
                     isActive
                       ? "bg-[var(--brand-green)] text-[var(--ink)]"
-                      : "text-[var(--ink-text)] hover:bg-white/5 hover:text-white"
+                      : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
                   )}
                 >
                   Cycle{" "}
@@ -1084,7 +1080,7 @@ export default function GradeEditorClient() {
                       "rounded px-1.5 py-0.5 font-mono-broadcast text-[10px] font-bold",
                       isActive
                         ? "bg-black/35 text-[var(--ink)]"
-                        : "bg-black/25 text-[var(--ink-text)]"
+                        : "bg-black/25 light:bg-foreground/10 text-[var(--ink-text)]"
                     )}
                   >
                     {String(cycle.cycleNumber).padStart(2, "0")}
@@ -1102,7 +1098,7 @@ export default function GradeEditorClient() {
                 "inline-flex items-center gap-2 rounded-md px-4 py-2 font-display text-[12px] font-semibold uppercase tracking-[0.18em] transition",
                 viewMode === TOTAL_VIEW
                   ? "bg-[var(--brand-green)] text-[var(--ink)]"
-                  : "text-[var(--ink-text)] hover:bg-white/5 hover:text-white"
+                  : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
               )}
             >
               Total Grade
@@ -1114,7 +1110,7 @@ export default function GradeEditorClient() {
                 "inline-flex items-center gap-2 rounded-md px-4 py-2 font-display text-[12px] font-semibold uppercase tracking-[0.18em] transition",
                 viewMode === STUDENT_VIEW
                   ? "bg-[var(--brand-green)] text-[var(--ink)]"
-                  : "text-[var(--ink-text)] hover:bg-white/5 hover:text-white"
+                  : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
               )}
             >
               <UserRound className="h-3.5 w-3.5" />
@@ -1127,7 +1123,7 @@ export default function GradeEditorClient() {
               }}
               className={cn(
                 "inline-flex items-center gap-2 rounded-md px-4 py-2 font-display text-[12px] font-semibold uppercase tracking-[0.18em] transition",
-                "text-[var(--ink-text)] hover:bg-white/5 hover:text-white"
+                "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
               )}
             >
               <AlertTriangle className="h-3.5 w-3.5" />
@@ -1139,11 +1135,11 @@ export default function GradeEditorClient() {
         {/* 4-up stats with mini bars */}
         {viewMode === TOTAL_VIEW || viewMode === STUDENT_VIEW ? null : (
         <div className="relative mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
-          <div className="rounded-xl border border-white/[0.08] bg-[rgb(10,10,10,0.55)] p-4 backdrop-blur">
+          <div className="rounded-xl border border-foreground/[0.08] bg-[rgb(10,10,10,0.55)] light:bg-card p-4 backdrop-blur">
             <div className="flex items-center justify-between font-display text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--ink-text)]">
               <span>Cycle Average</span>
             </div>
-            <div className="mt-1.5 inline-flex items-baseline gap-1.5 font-display text-[32px] italic font-extrabold leading-none tracking-tight text-white">
+            <div className="mt-1.5 inline-flex items-baseline gap-1.5 font-display text-[32px] italic font-extrabold leading-none tracking-tight text-foreground">
               {activeCycleAverage?.averageTotal !== null && activeCycleAverage?.averageTotal !== undefined
                 ? activeCycleAverage.averageTotal.toFixed(1)
                 : "—"}
@@ -1159,11 +1155,11 @@ export default function GradeEditorClient() {
               />
             </div>
           </div>
-          <div className="rounded-xl border border-white/[0.08] bg-[rgb(10,10,10,0.55)] p-4 backdrop-blur">
+          <div className="rounded-xl border border-foreground/[0.08] bg-[rgb(10,10,10,0.55)] light:bg-card p-4 backdrop-blur">
             <div className="font-display text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--ink-text)]">
               Cycle Percentage
             </div>
-            <div className="mt-1.5 inline-flex items-baseline gap-1.5 font-display text-[32px] italic font-extrabold leading-none tracking-tight text-white">
+            <div className="mt-1.5 inline-flex items-baseline gap-1.5 font-display text-[32px] italic font-extrabold leading-none tracking-tight text-foreground">
               {activeCycleAverage?.averagePercentage !== null && activeCycleAverage?.averagePercentage !== undefined
                 ? activeCycleAverage.averagePercentage.toFixed(1)
                 : "—"}
@@ -1179,11 +1175,11 @@ export default function GradeEditorClient() {
               />
             </div>
           </div>
-          <div className="rounded-xl border border-white/[0.08] bg-[rgb(10,10,10,0.55)] p-4 backdrop-blur">
+          <div className="rounded-xl border border-foreground/[0.08] bg-[rgb(10,10,10,0.55)] light:bg-card p-4 backdrop-blur">
             <div className="font-display text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--ink-text)]">
               Published
             </div>
-            <div className="mt-1.5 inline-flex items-baseline gap-1.5 font-display text-[32px] italic font-extrabold leading-none tracking-tight text-white">
+            <div className="mt-1.5 inline-flex items-baseline gap-1.5 font-display text-[32px] italic font-extrabold leading-none tracking-tight text-foreground">
               {activeCycleAverage?.publishedCount ?? 0}
               <span className="text-sm font-medium text-muted-foreground">/ {rows.length}</span>
             </div>
@@ -1199,7 +1195,7 @@ export default function GradeEditorClient() {
               />
             </div>
           </div>
-          <div className="rounded-xl border border-white/[0.08] bg-[rgb(10,10,10,0.55)] p-4 backdrop-blur">
+          <div className="rounded-xl border border-foreground/[0.08] bg-[rgb(10,10,10,0.55)] light:bg-card p-4 backdrop-blur">
             <div className="font-display text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--ink-text)]">
               Late Submissions
             </div>
@@ -1302,7 +1298,7 @@ export default function GradeEditorClient() {
               <Button
                 type="button"
                 size="sm"
-                className="h-9 bg-[var(--brand-amber)] font-bold text-[var(--ink)] hover:bg-[#D17F00]"
+                className="h-9 bg-[var(--brand-amber)] font-bold text-[var(--ink)] hover:bg-[#D17F00] light:hover:bg-amber-800"
                 onClick={() => void publishAllFilledRows()}
                 disabled={loading || busy}
               >
@@ -1816,7 +1812,7 @@ export default function GradeEditorClient() {
                             });
                           }}
                           className={cn(
-                            "h-8 w-full rounded-md border px-2 font-mono-broadcast text-xs text-foreground outline-none [color-scheme:dark]",
+                            "h-8 w-full rounded-md border px-2 font-mono-broadcast text-xs text-foreground outline-none [color-scheme:dark] light:[color-scheme:light]",
                             activeCycleHasFinalCut
                               ? "border-border bg-[var(--ink)] focus:border-[var(--brand-green)]"
                               : "border-[rgb(242,165,22,0.4)] bg-[rgb(242,165,22,0.08)] text-[var(--brand-amber)]"
@@ -2088,7 +2084,7 @@ export default function GradeEditorClient() {
                 <ul className="space-y-1">
                   {missingData.people.map((person) => (
                     <li key={person.userId}>
-                      <label className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 hover:bg-white/5">
+                      <label className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 hover:bg-foreground/5">
                         <input
                           type="checkbox"
                           checked={isExcluded(person.userId)}
@@ -2118,7 +2114,7 @@ export default function GradeEditorClient() {
                 {visibleMissing.map((person) => (
                   <li
                     key={person.userId}
-                    className="flex items-start justify-between gap-3 rounded-md border border-white/[0.08] bg-black/30 px-3 py-2"
+                    className="flex items-start justify-between gap-3 rounded-md border border-foreground/[0.08] bg-black/30 light:bg-muted px-3 py-2"
                   >
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-foreground">
@@ -2158,7 +2154,7 @@ export default function GradeEditorClient() {
       </Dialog>
 
       <section className="sticky bottom-4 z-20 mx-auto flex justify-center">
-        <div className="inline-flex items-center gap-1 rounded-xl border border-white/[0.08] bg-black/85 p-1 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.6)] backdrop-blur">
+        <div className="inline-flex items-center gap-1 rounded-xl border border-foreground/[0.08] bg-black/85 light:bg-muted p-1 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.6)] backdrop-blur">
           {cycles.map((cycle) => {
             const isActive = viewMode === "cycle" && cycle.cycleNumber === activeCycleNumber;
             return (
@@ -2170,14 +2166,14 @@ export default function GradeEditorClient() {
                   "inline-flex items-center gap-2 rounded-lg px-4 py-2 font-display text-[12px] font-semibold uppercase tracking-[0.18em] transition",
                   isActive
                     ? "bg-[var(--brand-green)] text-[var(--ink)]"
-                    : "text-[var(--ink-text)] hover:bg-white/5 hover:text-white"
+                    : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
                 )}
               >
                 Cycle
                 <span
                   className={cn(
                     "rounded px-1.5 py-0.5 font-mono-broadcast text-[10px] font-bold",
-                    isActive ? "bg-black/35 text-[var(--ink)]" : "bg-black/40 text-[var(--ink-text)]"
+                    isActive ? "bg-black/35 text-[var(--ink)]" : "bg-black/40 light:bg-foreground/10 text-[var(--ink-text)]"
                   )}
                 >
                   {String(cycle.cycleNumber).padStart(2, "0")}
@@ -2195,7 +2191,7 @@ export default function GradeEditorClient() {
               "inline-flex items-center gap-2 rounded-lg px-4 py-2 font-display text-[12px] font-semibold uppercase tracking-[0.18em] transition",
               viewMode === TOTAL_VIEW
                 ? "bg-[var(--brand-green)] text-[var(--ink)]"
-                : "text-[var(--ink-text)] hover:bg-white/5 hover:text-white"
+                : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
             )}
           >
             Total Grade
@@ -2207,7 +2203,7 @@ export default function GradeEditorClient() {
               "inline-flex items-center gap-2 rounded-lg px-4 py-2 font-display text-[12px] font-semibold uppercase tracking-[0.18em] transition",
               viewMode === STUDENT_VIEW
                 ? "bg-[var(--brand-green)] text-[var(--ink)]"
-                : "text-[var(--ink-text)] hover:bg-white/5 hover:text-white"
+                : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
             )}
           >
             <UserRound className="h-3.5 w-3.5" />

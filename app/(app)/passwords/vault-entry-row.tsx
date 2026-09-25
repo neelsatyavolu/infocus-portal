@@ -56,7 +56,7 @@ function SiteIcon({ name, url }: { name: string; url: string | null }) {
   }
 
   return (
-    <span className={cn(tile, "overflow-hidden bg-white/[0.06]")}>
+    <span className={cn(tile, "overflow-hidden bg-foreground/[0.06]")}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={`/api/vault/favicon?host=${encodeURIComponent(host)}`}
@@ -91,7 +91,7 @@ function IconButton({
       disabled={busy}
       title={label}
       aria-label={label}
-      className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted-foreground transition hover:bg-white/5 hover:text-foreground active:scale-[0.94] disabled:opacity-50"
+      className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground active:scale-[0.94] disabled:opacity-50"
     >
       {busy ? (
         <Loader2 className="h-3.5 w-3.5 animate-spin" />

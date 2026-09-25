@@ -67,7 +67,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
               <>
                 <a
                   href={googleSignInHref}
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-white text-[#0A0A0A] text-sm font-semibold transition hover:bg-[var(--paper-2)]"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-foreground text-background text-sm font-semibold transition hover:bg-foreground/90"
                 >
                   <Chrome className="h-4 w-4 text-[#4285F4]" aria-hidden="true" />
                   Continue with Google

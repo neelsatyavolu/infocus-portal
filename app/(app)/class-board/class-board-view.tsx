@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { BrandWordmark } from "@/components/brand-wordmark";
 import Link from "next/link";
 import { useEffect, useState, type CSSProperties } from "react";
 import type { CapacityTone } from "@/src/lib/livestream";
@@ -164,14 +164,7 @@ export default function ClassBoardView({ board }: { board: ClassBoardModel }) {
       <header className="grid h-14 shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,1.7fr)_minmax(0,1fr)] items-center gap-4 overflow-hidden">
         <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-4">
           <Link href={"/dashboard" as never} className="inline-flex shrink-0 items-center" aria-label="InFocus Portal">
-            <Image
-              src="/favicon/infocus-wordmark.png"
-              alt=""
-              width={280}
-              height={120}
-              className="h-10 w-auto object-contain"
-              priority
-            />
+            <BrandWordmark alt="" className="h-10 w-auto object-contain" priority />
           </Link>
           <div className="min-w-0">
             <h1 className="truncate font-display text-[clamp(1.35rem,1.8vw,2.15rem)] font-extrabold uppercase italic leading-none tracking-tight">

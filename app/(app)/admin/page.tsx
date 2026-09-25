@@ -695,7 +695,7 @@ export default function AdminPage() {
 
       {stats ? (
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <article className="rounded-xl border border-border bg-[rgb(10,10,10,0.55)] p-4">
+          <article className="rounded-xl border border-border bg-[rgb(10,10,10,0.55)] light:bg-card p-4">
             <p className="inline-flex items-center gap-2 font-display text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
               <Users className="h-3.5 w-3.5" />
               Users
@@ -705,7 +705,7 @@ export default function AdminPage() {
             </p>
             <p className="mt-1 text-xs text-muted-foreground">{stats.totals.roleAssignments} elevated roles</p>
           </article>
-          <article className="rounded-xl border border-border bg-[rgb(10,10,10,0.55)] p-4">
+          <article className="rounded-xl border border-border bg-[rgb(10,10,10,0.55)] light:bg-card p-4">
             <p className="inline-flex items-center gap-2 font-display text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
               <FolderKanban className="h-3.5 w-3.5" />
               Workspaces
@@ -715,7 +715,7 @@ export default function AdminPage() {
             </p>
             <p className="mt-1 text-xs text-muted-foreground">{stats.totals.projects} projects</p>
           </article>
-          <article className="rounded-xl border border-border bg-[rgb(10,10,10,0.55)] p-4">
+          <article className="rounded-xl border border-border bg-[rgb(10,10,10,0.55)] light:bg-card p-4">
             <p className="inline-flex items-center gap-2 font-display text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
               <FileVideo2 className="h-3.5 w-3.5" />
               Media
@@ -725,7 +725,7 @@ export default function AdminPage() {
             </p>
             <p className="mt-1 text-xs text-muted-foreground">{stats.totals.versions} versions tracked</p>
           </article>
-          <article className="rounded-xl border border-border bg-[rgb(10,10,10,0.55)] p-4">
+          <article className="rounded-xl border border-border bg-[rgb(10,10,10,0.55)] light:bg-card p-4">
             <p className="inline-flex items-center gap-2 font-display text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
               <HardDrive className="h-3.5 w-3.5" />
               Storage
@@ -735,7 +735,7 @@ export default function AdminPage() {
             </p>
             <p className="mt-1 text-xs text-muted-foreground">{stats.storage.isEstimated ? "Estimated usage" : "Synced usage"}</p>
           </article>
-          <article className="rounded-xl border border-border bg-[rgb(10,10,10,0.55)] p-4">
+          <article className="rounded-xl border border-border bg-[rgb(10,10,10,0.55)] light:bg-card p-4">
             <p className="inline-flex items-center gap-2 font-display text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
               <MessageCircle className="h-3.5 w-3.5" />
               Comments
@@ -745,7 +745,7 @@ export default function AdminPage() {
             </p>
             <p className="mt-1 text-xs text-muted-foreground">Review conversations</p>
           </article>
-          <article className="rounded-xl border border-border bg-[rgb(10,10,10,0.55)] p-4">
+          <article className="rounded-xl border border-border bg-[rgb(10,10,10,0.55)] light:bg-card p-4">
             <p className="inline-flex items-center gap-2 font-display text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
               <Link2 className="h-3.5 w-3.5" />
               Active Share Links
@@ -755,7 +755,7 @@ export default function AdminPage() {
             </p>
             <p className="mt-1 text-xs text-muted-foreground">Guest access links</p>
           </article>
-          <article className="rounded-xl border border-border bg-[rgb(10,10,10,0.55)] p-4">
+          <article className="rounded-xl border border-border bg-[rgb(10,10,10,0.55)] light:bg-card p-4">
             <p className="inline-flex items-center gap-2 font-display text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
               <MailQuestion className="h-3.5 w-3.5" />
               Access Requests
@@ -765,7 +765,7 @@ export default function AdminPage() {
             </p>
             <p className="mt-1 text-xs text-muted-foreground">Waiting for review</p>
           </article>
-          <article className="rounded-xl border border-border bg-[rgb(10,10,10,0.55)] p-4">
+          <article className="rounded-xl border border-border bg-[rgb(10,10,10,0.55)] light:bg-card p-4">
             <p className="inline-flex items-center gap-2 font-display text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
               <Database className="h-3.5 w-3.5" />
               Data Health

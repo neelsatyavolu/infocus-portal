@@ -150,7 +150,7 @@ function statusPill(status: EventRow["status"]) {
     return "border-[rgb(43,179,110,0.35)] bg-[rgb(43,179,110,0.12)] text-[var(--brand-green)]";
   }
   if (status === "CANCELLED") {
-    return "border-white/10 bg-white/[0.04] text-[var(--ink-text)] line-through decoration-white/30";
+    return "border-foreground/10 bg-foreground/[0.04] text-[var(--ink-text)] line-through decoration-foreground/30";
   }
   return "border-sky-400/30 bg-sky-500/10 text-sky-300";
 }
@@ -178,7 +178,7 @@ const emptyForm = (): EventFormState => ({
 });
 
 const fieldClass =
-  "mt-1.5 h-10 w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-[var(--brand-green)]/50 focus:ring-1 focus:ring-[var(--brand-green)]/30";
+  "mt-1.5 h-10 w-full rounded-lg border border-foreground/[0.08] bg-black/40 light:bg-muted px-3 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-[var(--brand-green)]/50 focus:ring-1 focus:ring-[var(--brand-green)]/30";
 
 const labelClass = "block text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-text)]";
 
@@ -508,11 +508,7 @@ export default function LivestreamsClient() {
     <div className="route-enter mx-auto w-full max-w-[1760px] space-y-5 pb-28">
       {/* Hero */}
       <section
-        className="relative overflow-hidden rounded-2xl border border-border p-6 md:p-8"
-        style={{
-          background:
-            "radial-gradient(900px 240px at 92% 10%, rgba(43,179,110,0.18), transparent 60%), linear-gradient(135deg, #08492A 0%, #0A2517 50%, #0A0A0A 100%)"
-        }}
+        className="brand-hero-panel relative overflow-hidden rounded-2xl border border-border p-6 md:p-8"
       >
         <div
           className="pointer-events-none absolute inset-0"
@@ -523,7 +519,7 @@ export default function LivestreamsClient() {
         />
         <div className="relative flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-[rgb(43,179,110,0.4)] bg-black/40 px-2.5 py-1 font-display text-[10px] font-bold uppercase tracking-[0.22em] text-[var(--brand-green)] backdrop-blur">
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-[rgb(43,179,110,0.4)] bg-black/40 light:bg-muted px-2.5 py-1 font-display text-[10px] font-bold uppercase tracking-[0.22em] text-[var(--brand-green)] backdrop-blur">
               <span
                 className="h-1.5 w-1.5 rounded-full bg-[var(--brand-green)]"
                 style={{ boxShadow: "0 0 8px var(--brand-green)" }}
@@ -531,7 +527,7 @@ export default function LivestreamsClient() {
               Livestreams · {data?.semester.label ?? "—"}
             </div>
             <h1
-              className="mt-3 font-display text-[40px] font-black uppercase italic leading-none tracking-tight text-white md:text-[56px]"
+              className="mt-3 font-display text-[40px] font-black uppercase italic leading-none tracking-tight text-foreground md:text-[56px]"
               style={{ letterSpacing: "-0.025em" }}
             >
               {tab === "schedule"
@@ -553,14 +549,14 @@ export default function LivestreamsClient() {
               <div className="inline-flex items-center gap-1.5">
                 <CalendarDays className="h-3 w-3" />
                 <span>
-                  Semester <strong className="font-semibold text-white">{data?.semester.label}</strong>
+                  Semester <strong className="font-semibold text-foreground">{data?.semester.label}</strong>
                 </span>
               </div>
               <span className="h-3 w-px bg-[var(--ink-4)]" />
               <div className="inline-flex items-center gap-1.5">
                 <Clock className="h-3 w-3" />
                 <span>
-                  <strong className="font-semibold text-white">
+                  <strong className="font-semibold text-foreground">
                     {data?.requiredHours ?? REQUIRED_LIVESTREAM_HOURS}h
                   </strong>{" "}
                   required
@@ -570,7 +566,7 @@ export default function LivestreamsClient() {
               <div className="inline-flex items-center gap-1.5">
                 <Radio className="h-3 w-3" />
                 <span>
-                  <strong className="font-semibold text-white">{stats.total}</strong> events
+                  <strong className="font-semibold text-foreground">{stats.total}</strong> events
                 </span>
               </div>
             </div>
@@ -581,7 +577,7 @@ export default function LivestreamsClient() {
               type="button"
               variant="outline"
               size="sm"
-              className="border-white/15 bg-black/30 text-white hover:bg-white/10"
+              className="border-foreground/15 bg-black/30 light:bg-muted text-foreground hover:bg-foreground/10 light:hover:bg-foreground/10"
               onClick={() => load().catch((e) => setError(e.message))}
               disabled={busy}
             >
@@ -620,7 +616,7 @@ export default function LivestreamsClient() {
           ].map((card) => (
             <div
               key={card.label}
-              className="rounded-xl border border-white/[0.08] bg-black/35 px-4 py-3 backdrop-blur"
+              className="rounded-xl border border-foreground/[0.08] bg-black/35 light:bg-muted px-4 py-3 backdrop-blur"
             >
               <p className="font-display text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--ink-text)]">
                 {card.label}
@@ -658,11 +654,11 @@ export default function LivestreamsClient() {
           </div>
 
           {!data?.events.length ? (
-            <div className="flex min-h-[280px] flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.1] bg-card/40 px-6 py-16 text-center">
-              <div className="mb-3 grid h-12 w-12 place-items-center rounded-2xl border border-white/[0.08] bg-black/40">
+            <div className="flex min-h-[280px] flex-col items-center justify-center rounded-2xl border border-dashed border-foreground/[0.1] bg-card/40 px-6 py-16 text-center">
+              <div className="mb-3 grid h-12 w-12 place-items-center rounded-2xl border border-foreground/[0.08] bg-black/40 light:bg-muted">
                 <Radio className="h-5 w-5 text-[var(--brand-green)]" />
               </div>
-              <p className="font-display text-lg font-bold uppercase tracking-wide text-white">
+              <p className="font-display text-lg font-bold uppercase tracking-wide text-foreground">
                 No livestreams yet
               </p>
               <p className="mt-1 max-w-md text-sm text-[var(--ink-text)]">
@@ -687,7 +683,7 @@ export default function LivestreamsClient() {
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[980px] border-collapse text-sm">
                   <thead>
-                    <tr className="border-b border-white/[0.06] bg-black/40 text-left">
+                    <tr className="border-b border-foreground/[0.06] bg-black/40 light:bg-muted text-left">
                       {[
                         "Event",
                         "When",
@@ -712,7 +708,7 @@ export default function LivestreamsClient() {
                       <tr
                         key={event.id}
                         className={cn(
-                          "border-b border-white/[0.04] transition hover:bg-white/[0.02]",
+                          "border-b border-foreground/[0.04] transition hover:bg-foreground/[0.02]",
                           capacityClass(event.capacityTone)
                         )}
                       >
@@ -725,7 +721,7 @@ export default function LivestreamsClient() {
                               )}
                             />
                             <div>
-                              <div className="font-medium text-white">{event.title}</div>
+                              <div className="font-medium text-foreground">{event.title}</div>
                               <div className="mt-0.5 text-[11px] text-[var(--ink-text)]">
                                 {LIVESTREAM_AVAILABILITY_LABELS[event.availability]}
                                 {event.pendingSignupCount
@@ -752,7 +748,7 @@ export default function LivestreamsClient() {
                           </span>
                         </td>
                         <td className="px-4 py-3.5">
-                          <div className="font-medium tabular-nums text-white">
+                          <div className="font-medium tabular-nums text-foreground">
                             {event.attendeeCount}
                             <span className="text-[var(--ink-text)]">/{event.capacity}</span>
                           </div>
@@ -765,7 +761,7 @@ export default function LivestreamsClient() {
                         <td className="px-4 py-3.5 text-[var(--ink-text)]">
                           {personLabel(event.manager)}
                         </td>
-                        <td className="px-4 py-3.5 font-mono-broadcast tabular-nums text-white">
+                        <td className="px-4 py-3.5 font-mono-broadcast tabular-nums text-foreground">
                           {event.hours ?? "—"}
                         </td>
                         {data.canManage ? (
@@ -774,7 +770,7 @@ export default function LivestreamsClient() {
                               type="button"
                               size="sm"
                               variant="ghost"
-                              className="text-[var(--ink-text)] hover:text-white"
+                              className="text-[var(--ink-text)] hover:text-foreground"
                               onClick={() => openEdit(event)}
                             >
                               Edit
@@ -793,7 +789,7 @@ export default function LivestreamsClient() {
             <div className="rounded-2xl border border-border bg-card/60 p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h2 className="font-display text-base font-bold uppercase tracking-wide text-white">
+                  <h2 className="font-display text-base font-bold uppercase tracking-wide text-foreground">
                     Livestream managers
                   </h2>
                   <p className="mt-1 max-w-xl text-xs text-[var(--ink-text)]">
@@ -806,7 +802,7 @@ export default function LivestreamsClient() {
                 {data.managers.map((m) => (
                   <span
                     key={m.id}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-black/35 px-3 py-1.5 text-xs text-white"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-foreground/[0.08] bg-black/35 light:bg-muted px-3 py-1.5 text-xs text-foreground"
                   >
                     <Users className="h-3 w-3 text-[var(--brand-green)]" />
                     {personLabel(m)}
@@ -826,7 +822,7 @@ export default function LivestreamsClient() {
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
                 <select
-                  className="h-10 min-w-[240px] rounded-lg border border-white/[0.08] bg-black/40 px-3 text-sm text-white outline-none focus:border-[var(--brand-green)]/50"
+                  className="h-10 min-w-[240px] rounded-lg border border-foreground/[0.08] bg-black/40 light:bg-muted px-3 text-sm text-foreground outline-none focus:border-[var(--brand-green)]/50"
                   value={managerPick}
                   onChange={(e) => setManagerPick(e.target.value)}
                 >
@@ -868,7 +864,7 @@ export default function LivestreamsClient() {
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[720px] border-collapse text-sm">
                   <thead>
-                    <tr className="border-b border-white/[0.06] bg-black/40 text-left">
+                    <tr className="border-b border-foreground/[0.06] bg-black/40 light:bg-muted text-left">
                       {["Name", "Events", "Hours", "Credit", "Points"].map((h) => (
                         <th
                           key={h}
@@ -883,10 +879,10 @@ export default function LivestreamsClient() {
                     {completion.map((row) => (
                       <tr
                         key={row.userId}
-                        className="border-b border-white/[0.04] transition hover:bg-white/[0.02]"
+                        className="border-b border-foreground/[0.04] transition hover:bg-foreground/[0.02]"
                       >
                         <td className="px-4 py-3.5">
-                          <div className="flex items-center gap-2 font-medium text-white">
+                          <div className="flex items-center gap-2 font-medium text-foreground">
                             {personLabel(row)}
                             {row.isManager ? (
                               <span className="rounded-full border border-[rgb(43,179,110,0.4)] px-2 py-0.5 font-display text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--brand-green)]">
@@ -896,7 +892,7 @@ export default function LivestreamsClient() {
                           </div>
                           <div className="text-[11px] text-[var(--ink-text)]">{row.email}</div>
                         </td>
-                        <td className="px-4 py-3.5 tabular-nums text-white">
+                        <td className="px-4 py-3.5 tabular-nums text-foreground">
                           {row.isManager ? (
                             <>
                               {row.managedEvents}
@@ -908,7 +904,7 @@ export default function LivestreamsClient() {
                             row.completedEvents
                           )}
                         </td>
-                        <td className="px-4 py-3.5 tabular-nums text-white">
+                        <td className="px-4 py-3.5 tabular-nums text-foreground">
                           {row.isManager ? (
                             <span className="text-[var(--ink-text)]">—</span>
                           ) : (
@@ -920,7 +916,7 @@ export default function LivestreamsClient() {
                         </td>
                         <td className="px-4 py-3.5">
                           <div className="flex items-center gap-2.5">
-                            <div className="h-1.5 w-28 overflow-hidden rounded-full bg-white/10">
+                            <div className="h-1.5 w-28 overflow-hidden rounded-full bg-foreground/10">
                               <div
                                 className="h-full rounded-full bg-[var(--brand-green)]"
                                 style={{ width: `${Math.min(100, row.creditPercent)}%` }}
@@ -931,7 +927,7 @@ export default function LivestreamsClient() {
                             </span>
                           </div>
                         </td>
-                        <td className="px-4 py-3.5 font-mono-broadcast tabular-nums text-white">
+                        <td className="px-4 py-3.5 font-mono-broadcast tabular-nums text-foreground">
                           {row.points}
                         </td>
                       </tr>
@@ -950,7 +946,7 @@ export default function LivestreamsClient() {
           {data?.canManage ? (
             <div className="rounded-2xl border border-border bg-card/60 p-5">
               <div className="flex items-center gap-2">
-                <h2 className="font-display text-base font-bold uppercase tracking-wide text-white">
+                <h2 className="font-display text-base font-bold uppercase tracking-wide text-foreground">
                   Pending requests
                 </h2>
                 {data.pendingSignups.length ? (
@@ -964,7 +960,7 @@ export default function LivestreamsClient() {
                 marked completed.
               </p>
               {!data.pendingSignups.length ? (
-                <div className="mt-6 flex flex-col items-center rounded-xl border border-dashed border-white/[0.08] px-4 py-10 text-center">
+                <div className="mt-6 flex flex-col items-center rounded-xl border border-dashed border-foreground/[0.08] px-4 py-10 text-center">
                   <CheckCircle2 className="mb-2 h-5 w-5 text-[var(--brand-green)]" />
                   <p className="text-sm text-[var(--ink-text)]">Inbox clear — no pending sign-ups.</p>
                 </div>
@@ -973,10 +969,10 @@ export default function LivestreamsClient() {
                   {data.pendingSignups.map((s) => (
                     <li
                       key={s.id}
-                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-black/30 px-4 py-3"
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-foreground/[0.06] bg-black/30 light:bg-muted px-4 py-3"
                     >
                       <div className="min-w-0">
-                        <div className="font-medium text-white">{personLabel(s.user)}</div>
+                        <div className="font-medium text-foreground">{personLabel(s.user)}</div>
                         <div className="mt-0.5 text-xs text-[var(--ink-text)]">
                           {s.event?.title ?? "Event"} ·{" "}
                           {s.event ? formatWhen(s.event.startsAt) : "—"}
@@ -999,7 +995,7 @@ export default function LivestreamsClient() {
                           type="button"
                           size="sm"
                           variant="outline"
-                          className="border-white/15"
+                          className="border-foreground/15"
                           onClick={() => reviewSignup(s.id, "DENIED")}
                           disabled={busy}
                         >
@@ -1014,7 +1010,7 @@ export default function LivestreamsClient() {
           ) : null}
 
           <div className="rounded-2xl border border-border bg-card/60 p-5">
-            <h2 className="font-display text-base font-bold uppercase tracking-wide text-white">
+            <h2 className="font-display text-base font-bold uppercase tracking-wide text-foreground">
               {data?.canSignup ? "Request a slot" : "Open livestreams"}
             </h2>
             <p className="mt-1 text-xs text-[var(--ink-text)]">
@@ -1036,7 +1032,7 @@ export default function LivestreamsClient() {
                     <li
                       key={event.id}
                       className={cn(
-                        "rounded-xl border border-white/[0.06] px-4 py-3.5",
+                        "rounded-xl border border-foreground/[0.06] px-4 py-3.5",
                         capacityClass(event.capacityTone)
                       )}
                     >
@@ -1046,7 +1042,7 @@ export default function LivestreamsClient() {
                             <span
                               className={cn("h-2 w-2 rounded-full", capacityDot(event.capacityTone))}
                             />
-                            <div className="font-medium text-white">{event.title}</div>
+                            <div className="font-medium text-foreground">{event.title}</div>
                           </div>
                           <div className="mt-1 text-xs text-[var(--ink-text)]">
                             {formatWhen(event.startsAt)} · {event.location || "TBD"} ·{" "}
@@ -1066,7 +1062,7 @@ export default function LivestreamsClient() {
                       {!attending && my?.status !== "PENDING" && data?.canSignup ? (
                         <div className="mt-3 flex flex-wrap items-center gap-2">
                           <input
-                            className="h-9 min-w-[160px] flex-1 rounded-lg border border-white/[0.08] bg-black/40 px-3 text-xs text-white outline-none focus:border-[var(--brand-green)]/50"
+                            className="h-9 min-w-[160px] flex-1 rounded-lg border border-foreground/[0.08] bg-black/40 light:bg-muted px-3 text-xs text-foreground outline-none focus:border-[var(--brand-green)]/50"
                             placeholder="Optional note"
                             value={signupNote[event.id] ?? ""}
                             onChange={(e) =>
@@ -1111,10 +1107,10 @@ export default function LivestreamsClient() {
           if (!open) closeForm();
         }}
       >
-        <DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto border-white/[0.08] bg-[#0c0c0e] p-0 sm:rounded-2xl">
-          <div className="border-b border-white/[0.06] px-6 py-5">
+        <DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto border-foreground/[0.08] bg-card p-0 sm:rounded-2xl">
+          <div className="border-b border-foreground/[0.06] px-6 py-5">
             <DialogHeader>
-              <DialogTitle className="font-display text-xl font-bold uppercase tracking-wide text-white">
+              <DialogTitle className="font-display text-xl font-bold uppercase tracking-wide text-foreground">
                 {editing ? "Edit livestream" : "New livestream"}
               </DialogTitle>
               <DialogDescription className="text-[var(--ink-text)]">
@@ -1248,7 +1244,7 @@ export default function LivestreamsClient() {
                 value={memberQuery}
                 onChange={(e) => setMemberQuery(e.target.value)}
               />
-              <div className="max-h-40 space-y-0.5 overflow-y-auto rounded-lg border border-white/[0.08] bg-black/30 p-2">
+              <div className="max-h-40 space-y-0.5 overflow-y-auto rounded-lg border border-foreground/[0.08] bg-black/30 light:bg-muted p-2">
                 {filteredMembers.map((m) => {
                   const checked = form.attendeeUserIds.includes(m.id);
                   return (
@@ -1256,7 +1252,7 @@ export default function LivestreamsClient() {
                       key={m.id}
                       className={cn(
                         "flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-xs transition",
-                        checked ? "bg-[rgb(43,179,110,0.12)] text-white" : "text-[var(--ink-text)] hover:bg-white/[0.04] hover:text-white"
+                        checked ? "bg-[rgb(43,179,110,0.12)] text-foreground" : "text-[var(--ink-text)] hover:bg-foreground/[0.04] hover:text-foreground"
                       )}
                     >
                       <input
@@ -1282,7 +1278,7 @@ export default function LivestreamsClient() {
                   Individual values are ignored when default credit is 0.
                 </p>
                 {form.attendeeUserIds.map((userId) => (
-                  <label key={userId} className="flex items-center justify-between gap-3 text-xs text-white">
+                  <label key={userId} className="flex items-center justify-between gap-3 text-xs text-foreground">
                     <span>{personLabel(members.find((member) => member.id === userId)
                       ?? editing?.attendees.find((attendee) => attendee.id === userId))}</span>
                     <input
@@ -1304,14 +1300,14 @@ export default function LivestreamsClient() {
             <label className={labelClass}>
               Notes
               <textarea
-                className="mt-1.5 min-h-[72px] w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-[var(--brand-green)]/50 focus:ring-1 focus:ring-[var(--brand-green)]/30"
+                className="mt-1.5 min-h-[72px] w-full rounded-lg border border-foreground/[0.08] bg-black/40 light:bg-muted px-3 py-2 text-sm text-foreground outline-none focus:border-[var(--brand-green)]/50 focus:ring-1 focus:ring-[var(--brand-green)]/30"
                 value={form.notes}
                 onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
               />
             </label>
           </div>
 
-          <DialogFooter className="gap-2 border-t border-white/[0.06] px-6 py-4 sm:justify-between">
+          <DialogFooter className="gap-2 border-t border-foreground/[0.06] px-6 py-4 sm:justify-between">
             {editing ? (
               <Button
                 type="button"
@@ -1328,7 +1324,7 @@ export default function LivestreamsClient() {
               <span />
             )}
             <div className="flex gap-2">
-              <Button type="button" variant="outline" size="sm" className="border-white/15" onClick={closeForm}>
+              <Button type="button" variant="outline" size="sm" className="border-foreground/15" onClick={closeForm}>
                 Cancel
               </Button>
               <Button
@@ -1353,7 +1349,7 @@ export default function LivestreamsClient() {
               aria-label="Livestream sections"
               className="pointer-events-none fixed bottom-4 left-0 right-0 z-[60] flex justify-center px-4 lg:left-[240px]"
             >
-              <div className="pointer-events-auto inline-flex items-center gap-1 rounded-xl border border-white/[0.08] bg-black/90 p-1 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.75)] backdrop-blur-md">
+              <div className="pointer-events-auto inline-flex items-center gap-1 rounded-xl border border-foreground/[0.08] bg-black/90 light:bg-card p-1 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.75)] backdrop-blur-md">
                 {tabs.map((item) => {
                   const isActive = tab === item.id;
                   return (
@@ -1365,7 +1361,7 @@ export default function LivestreamsClient() {
                         "inline-flex items-center gap-2 rounded-lg px-4 py-2.5 font-display text-[12px] font-semibold uppercase tracking-[0.18em] transition",
                         isActive
                           ? "bg-[var(--brand-green)] text-[var(--ink)]"
-                          : "text-[var(--ink-text)] hover:bg-white/5 hover:text-white"
+                          : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
                       )}
                     >
                       {item.label}
@@ -1375,7 +1371,7 @@ export default function LivestreamsClient() {
                             "rounded px-1.5 py-0.5 font-mono-broadcast text-[10px] font-bold",
                             isActive
                               ? "bg-black/35 text-[var(--ink)]"
-                              : "bg-black/40 text-[var(--ink-text)]"
+                              : "bg-black/40 light:bg-foreground/10 text-[var(--ink-text)]"
                           )}
                         >
                           {item.badge}

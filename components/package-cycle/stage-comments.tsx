@@ -152,7 +152,7 @@ export function StageComments({
       ) : (
         <ul className="space-y-3">
           {comments.map((comment) => (
-            <li key={comment.id} className="rounded-lg border border-border/70 bg-black/25 px-3 py-2">
+            <li key={comment.id} className="rounded-lg border border-border/70 bg-black/25 light:bg-muted px-3 py-2">
               <div className="flex flex-wrap items-baseline justify-between gap-2 text-[11px] text-muted-foreground">
                 <span className="font-medium text-foreground">{authorLabel(comment.author)}</span>
                 <span>{formatWhen(comment.createdAt)}</span>
@@ -185,7 +185,7 @@ export function StageComments({
             rows={3}
             maxLength={2000}
             placeholder={mediaItemId ? "Write feedback for this clip…" : "Write feedback for this group…"}
-            className="w-full resize-y rounded-lg border border-border bg-black/40 px-3 py-2 text-sm text-foreground outline-none focus:border-[var(--brand-green)]/50"
+            className="w-full resize-y rounded-lg border border-border bg-black/40 light:bg-muted px-3 py-2 text-sm text-foreground outline-none focus:border-[var(--brand-green)]/50"
           />
           <Button type="submit" size="sm" disabled={saving || !draft.trim()}>
             {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}

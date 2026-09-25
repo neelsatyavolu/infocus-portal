@@ -695,7 +695,7 @@ export function StageWorkspace({
                 ) : null}
                 {isNew ? (
                   <span
-                    className="absolute bottom-2 left-2 rounded-md bg-amber-300 px-2 py-0.5 text-[11px] font-bold text-black"
+                    className="absolute bottom-2 left-2 rounded-md bg-amber-300 px-2 py-0.5 text-[11px] font-bold text-black light:text-white"
                     title="Uploaded after the latest revision request"
                   >
                     NEW

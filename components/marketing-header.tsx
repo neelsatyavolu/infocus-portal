@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { BrandWordmark } from "@/components/brand-wordmark";
 import Link from "next/link";
 import type { Route } from "next";
 import { ArrowRight } from "lucide-react";
@@ -59,14 +60,7 @@ export async function MarketingHeader({ active = "home" }: MarketingHeaderProps)
   return (
     <header className="sticky top-0 z-50 flex items-center justify-between gap-2 border-b border-border bg-background/85 px-4 py-3.5 backdrop-blur-md sm:gap-6 md:px-8">
       <Link href="/" className="inline-flex items-center text-foreground">
-        <Image
-          src="/favicon/infocus-wordmark.png"
-          alt="InFocus Portal"
-          width={280}
-          height={120}
-          className="h-9 w-auto object-contain"
-          priority
-        />
+        <BrandWordmark className="h-9 w-auto object-contain" priority />
       </Link>
 
       <nav className="hidden items-center gap-0.5 rounded-full border border-border bg-card p-1 lg:inline-flex">
@@ -134,7 +128,7 @@ export async function MarketingHeader({ active = "home" }: MarketingHeaderProps)
 
             <Link
               href={"/dashboard" as Route}
-              className="inline-flex items-center gap-1.5 rounded-full border border-[var(--brand-green)] bg-[var(--brand-green)] px-3 py-2 text-[13px] font-semibold text-black transition-colors hover:bg-[var(--brand-green-deep)] hover:border-[var(--brand-green-deep)] sm:px-4"
+              className="inline-flex items-center gap-1.5 rounded-full border border-[var(--brand-green)] bg-[var(--brand-green)] px-3 py-2 text-[13px] font-semibold text-[var(--ink)] transition-colors hover:bg-[var(--brand-green-deep)] hover:border-[var(--brand-green-deep)] sm:px-4"
             >
               Dashboard
               <ArrowRight className="hidden h-3.5 w-3.5 sm:inline" strokeWidth={2.5} />
@@ -150,7 +144,7 @@ export async function MarketingHeader({ active = "home" }: MarketingHeaderProps)
             </a>
             <a
               href="/sign-in"
-              className="inline-flex items-center gap-1.5 rounded-full border border-[var(--brand-green)] bg-[var(--brand-green)] px-3 py-2 text-[13px] font-semibold text-black transition-colors hover:bg-[var(--brand-green-deep)] hover:border-[var(--brand-green-deep)] sm:px-4"
+              className="inline-flex items-center gap-1.5 rounded-full border border-[var(--brand-green)] bg-[var(--brand-green)] px-3 py-2 text-[13px] font-semibold text-[var(--ink)] transition-colors hover:bg-[var(--brand-green-deep)] hover:border-[var(--brand-green-deep)] sm:px-4"
             >
               Get Started
               <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.5} />

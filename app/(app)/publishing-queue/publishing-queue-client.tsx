@@ -199,7 +199,7 @@ function QueueThumbnail({ url }: { url: string | null }) {
   const [failed, setFailed] = useState(false);
   const showImage = Boolean(url) && !failed;
   return (
-    <div className="relative h-14 w-[5.5rem] shrink-0 overflow-hidden rounded-lg bg-black/50 outline outline-1 outline-white/10">
+    <div className="relative h-14 w-[5.5rem] shrink-0 overflow-hidden rounded-lg bg-black/50 outline outline-1 outline-foreground/10">
       {showImage ? (
         // Signed Drive / Bunny thumbs; skip next/image domain allowlists.
         // eslint-disable-next-line @next/next/no-img-element
@@ -210,7 +210,7 @@ function QueueThumbnail({ url }: { url: string | null }) {
           onError={() => setFailed(true)}
         />
       ) : (
-        <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+        <div className="flex h-full w-full items-center justify-center text-white/60">
           <Play className="h-3.5 w-3.5 translate-x-px" />
         </div>
       )}

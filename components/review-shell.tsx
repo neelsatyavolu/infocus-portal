@@ -2047,7 +2047,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                     size="sm"
                     className={cn(
                       "h-9 px-3",
-                      quickGradesOpen ? "bg-white/10 text-white" : ""
+                      quickGradesOpen ? "bg-foreground/10 text-foreground" : ""
                     )}
                     onClick={toggleQuickGradesPanel}
                     title="Quick grades"
@@ -2097,7 +2097,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                                 key={row.userId}
                                 className={cn(
                                   "grid grid-cols-[minmax(0,1fr)_6rem_6rem_8rem_8.5rem] items-center gap-2 rounded-xl border px-2 py-2",
-                                  row.disabled ? "border-white/8 bg-white/[0.03]" : "border-white/10 bg-white/[0.04]"
+                                  row.disabled ? "border-foreground/8 bg-foreground/[0.03]" : "border-foreground/10 bg-foreground/[0.04]"
                                 )}
                               >
                                 <div className="min-w-0">
@@ -2547,7 +2547,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
 
                   {allowComment && composerPin ? (
                     <div
-                      className="absolute h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-primary bg-primary/60 shadow-[0_0_0_4px_hsl(var(--primary)/0.18)]"
+                      className="absolute h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#2BB36E] bg-[#2BB36E]/60 shadow-[0_0_0_4px_rgb(43,179,110,0.18)]"
                       style={{
                         left: `${composerPin.xPct}%`,
                         top: `${composerPin.yPct}%`
@@ -2571,7 +2571,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                   {!isPlaying ? (
                     <button
                       onClick={togglePlayback}
-                      className="absolute left-1/2 top-1/2 grid h-16 w-16 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white/95 text-[var(--ink)] shadow-2xl transition hover:scale-105"
+                      className="absolute left-1/2 top-1/2 grid h-16 w-16 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white/95 text-black shadow-2xl transition hover:scale-105"
                     >
                       <Play className="ml-1 h-7 w-7 fill-current" />
                     </button>

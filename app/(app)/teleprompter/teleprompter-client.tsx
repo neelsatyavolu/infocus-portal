@@ -292,7 +292,7 @@ function SpokenLine({
           key={`${lineIndex}-${segmentIndex}-${segment.tone}`}
           className={cn(
             segment.tone === "red" ? "text-red-500" : "",
-            segment.tone === "yellow" ? "text-yellow-300" : ""
+            segment.tone === "yellow" ? "text-[oklch(90.5%_0.182_98.111)]" : ""
           )}
         >
           {segment.text}
@@ -540,7 +540,7 @@ function FullscreenRunMode({
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 z-[130] flex flex-col bg-black text-white antialiased"
+      className="fixed inset-0 z-[130] flex flex-col bg-black text-white antialiased [color-scheme:dark]"
       style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}
     >
       <header className="relative z-20 flex h-9 shrink-0 items-center gap-1.5 border-b border-[#cfcfcf] bg-[#e6e6e6] px-2 text-[#222]">

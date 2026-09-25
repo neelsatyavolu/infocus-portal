@@ -121,7 +121,7 @@ export default function HomePage() {
             ].map((stat) => (
               <div
                 key={stat.title}
-                className="rounded-xl border border-border bg-[rgb(10,10,10,0.55)] p-4 backdrop-blur"
+                className="rounded-xl border border-border bg-[rgb(10,10,10,0.55)] light:bg-muted p-4 backdrop-blur"
               >
                 <p className="font-display text-xl italic font-extrabold uppercase tracking-tight text-foreground">
                   {stat.title}

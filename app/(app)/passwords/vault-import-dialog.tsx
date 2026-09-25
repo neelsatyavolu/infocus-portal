@@ -186,7 +186,7 @@ export function VaultImportDialog({
                 const duplicate = existingKeys.has(duplicateKey(item.name, item.username));
                 return (
                   <li key={item.key} className="border-b border-border last:border-b-0">
-                    <label className="flex cursor-pointer items-center gap-3 px-3 py-2 hover:bg-white/[0.03]">
+                    <label className="flex cursor-pointer items-center gap-3 px-3 py-2 hover:bg-foreground/[0.03]">
                       <input
                         type="checkbox"
                         checked={selected.has(item.key)}

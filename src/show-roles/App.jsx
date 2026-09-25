@@ -1062,7 +1062,7 @@ export default function App() {
                         ? "bg-[rgb(43,179,110,0.06)]"
                         : section.key === "exempt"
                           ? "opacity-60"
-                          : "hover:bg-[var(--ink)]",
+                          : "hover:bg-[var(--ink)] light:hover:bg-foreground/5",
                     ].join(" ");
                     return (
                       <div key={entry.name} className={rowCls}>
@@ -1159,7 +1159,7 @@ export default function App() {
                       ? "opacity-60"
                       : row.isExempt
                         ? "opacity-50"
-                        : "hover:bg-[var(--ink)]",
+                        : "hover:bg-[var(--ink)] light:hover:bg-foreground/5",
                 ].join(" ");
                 return (
                   <tr key={row.name} className={rowCls}>

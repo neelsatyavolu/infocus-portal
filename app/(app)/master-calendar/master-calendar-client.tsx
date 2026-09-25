@@ -1435,7 +1435,7 @@ export default function MasterCalendarClient({ initialData }: { initialData: Cal
                                 className={cn(
                                   "inline-flex items-center justify-center rounded-full px-2 py-0.5 font-display text-[10px] font-bold uppercase tracking-[0.16em]",
                                   isToday
-                                    ? "bg-[var(--brand-green)] text-black"
+                                    ? "bg-[var(--brand-green)] text-[var(--ink)]"
                                     : "bg-[var(--ink-3)] text-muted-foreground"
                                 )}
                               >
@@ -1485,7 +1485,7 @@ export default function MasterCalendarClient({ initialData }: { initialData: Cal
                               <img
                                 src={scenicImageForDate(dateKey)}
                                 alt="Royalty-free scenic view"
-                                className="h-24 w-full rounded-md border border-white/15 object-cover md:h-28"
+                                className="h-24 w-full rounded-md border border-foreground/15 object-cover md:h-28"
                                 loading="lazy"
                               />
                             ) : null}

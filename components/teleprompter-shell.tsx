@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { BrandWordmark } from "@/components/brand-wordmark";
 import { ArrowLeft } from "lucide-react";
 import { mainAppOrigin } from "@/src/lib/hosts";
 
@@ -27,14 +27,7 @@ export function TeleprompterShell({ children }: TeleprompterShellProps) {
         <div className="h-5 w-px bg-border" />
 
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          <Image
-            src="/favicon/infocus-wordmark.png"
-            alt="InFocus Portal"
-            width={140}
-            height={48}
-            className="h-6 w-auto object-contain"
-            priority
-          />
+          <BrandWordmark className="h-6 w-auto object-contain" width={140} height={48} priority />
           <span className="hidden truncate text-[13px] font-semibold text-foreground sm:inline">
             Teleprompter
           </span>

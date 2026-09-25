@@ -19,7 +19,7 @@ export function PasswordStrengthMeter({ password, onSuggest }: { password: strin
             key={index}
             className={cn(
               "h-1 flex-1 rounded-full transition-colors",
-              strength && index < filled ? SCORE_COLORS[strength.score] : "bg-white/10"
+              strength && index < filled ? SCORE_COLORS[strength.score] : "bg-foreground/10"
             )}
           />
         ))}

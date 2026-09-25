@@ -466,11 +466,11 @@ function GradeGroup({
   children: ReactNode;
 }) {
   return (
-    <div className={cn(depth === 0 ? "" : "border-t border-white/10")}>
+    <div className={cn(depth === 0 ? "" : "border-t border-foreground/10")}>
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-center gap-3 border-b border-white/10 px-4 py-3 text-left hover:bg-white/[0.03]"
+        className="flex w-full items-center gap-3 border-b border-foreground/10 px-4 py-3 text-left hover:bg-foreground/[0.03]"
         style={{ paddingLeft: 16 + depth * 16 }}
       >
         <ChevronDown className={cn("h-4 w-4 shrink-0 transition", open ? "" : "-rotate-90")} />
@@ -480,9 +480,9 @@ function GradeGroup({
         <span className="font-mono-broadcast text-sm text-[var(--brand-green)]">{meta}</span>
         <span className="w-16">
           {bar === null ? (
-            <span className="block h-0.5 bg-white/10" />
+            <span className="block h-0.5 bg-foreground/10" />
           ) : (
-            <span className="block h-0.5 overflow-hidden bg-white/10">
+            <span className="block h-0.5 overflow-hidden bg-foreground/10">
               <span
                 className="block h-full bg-[var(--brand-green)]"
                 style={{ width: `${Math.min(100, bar)}%` }}
@@ -511,7 +511,7 @@ function GradeRow({
 }) {
   const dirty = value !== official;
   return (
-    <div className="flex items-center gap-3 border-t border-white/5 px-4 py-2.5" style={{ paddingLeft: 48 }}>
+    <div className="flex items-center gap-3 border-t border-foreground/5 px-4 py-2.5" style={{ paddingLeft: 48 }}>
       <div className="min-w-0 flex-1 text-sm text-foreground">{name}</div>
       <label className="flex min-w-[7.5rem] items-center justify-end gap-1 text-right">
         <input

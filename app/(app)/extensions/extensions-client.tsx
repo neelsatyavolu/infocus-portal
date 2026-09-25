@@ -591,7 +591,7 @@ function ExtensionStat({
   const valueClass =
     tone === "warn" ? "text-[var(--brand-amber)]" : tone === "danger" ? "text-[var(--brand-red)]" : "text-foreground";
   return (
-    <div className="rounded-xl border border-border bg-[rgb(10,10,10,0.55)] px-4 py-3 backdrop-blur min-w-[140px]">
+    <div className="rounded-xl border border-border bg-[rgb(10,10,10,0.55)] light:bg-muted px-4 py-3 backdrop-blur min-w-[140px]">
       <div className="font-display text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">{label}</div>
       <div className={cn("mt-1 font-display italic text-2xl font-extrabold leading-none tracking-tight", valueClass)}>
         {value}

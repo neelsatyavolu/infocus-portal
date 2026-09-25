@@ -107,7 +107,7 @@ export function FinalCutGradeCard({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-lg border border-border/70 bg-black/25 px-3 py-2">
+        <div className="rounded-lg border border-border/70 bg-black/25 light:bg-muted px-3 py-2">
           <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Deadline</div>
           <div className="mt-1 text-sm text-foreground">{formatDay(grade.deadlineAt)}</div>
           {grade.extensionDays > 0 ? (
@@ -116,14 +116,14 @@ export function FinalCutGradeCard({
             <div className="mt-0.5 text-[11px] text-muted-foreground">No extension</div>
           )}
         </div>
-        <div className="rounded-lg border border-border/70 bg-black/25 px-3 py-2">
+        <div className="rounded-lg border border-border/70 bg-black/25 light:bg-muted px-3 py-2">
           <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Submitted</div>
           <div className="mt-1 text-sm text-foreground">{formatDay(grade.turnedInAt)}</div>
           <div className="mt-0.5 text-[11px] text-muted-foreground">
             {grade.daysLate > 0 ? `${grade.daysLate} day${grade.daysLate === 1 ? "" : "s"} late` : "On or before deadline"}
           </div>
         </div>
-        <div className="rounded-lg border border-border/70 bg-black/25 px-3 py-2">
+        <div className="rounded-lg border border-border/70 bg-black/25 light:bg-muted px-3 py-2">
           <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Deduction</div>
           <div className="mt-1 text-sm text-foreground">
             {grade.penaltyMultiplier > 0 ? `−${Math.round(grade.penaltyMultiplier * 100)}% late` : "None"}
@@ -153,7 +153,7 @@ export function FinalCutGradeCard({
               {grade.scores.map((score) => {
                 const isYou = score.userId === grade.viewerUserId;
                 return (
-                  <li key={score.userId} className="flex flex-wrap items-center gap-2 bg-black/20 px-3 py-2.5">
+                  <li key={score.userId} className="flex flex-wrap items-center gap-2 bg-black/20 light:bg-muted px-3 py-2.5">
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-sm text-foreground">
                         {score.name || score.email || "Executive producer"}
@@ -216,7 +216,7 @@ export function FinalCutGradeCard({
           <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Official grade
           </div>
-          <div className="space-y-2 rounded-lg border border-border/70 bg-black/20 px-3 py-3 text-sm">
+          <div className="space-y-2 rounded-lg border border-border/70 bg-black/20 light:bg-muted px-3 py-3 text-sm">
             <div className="flex items-baseline justify-between gap-3">
               <span className="text-muted-foreground">Quality average</span>
               <span className="tabular-nums text-foreground">{formatPts(grade.qualityPoints)} / 50</span>

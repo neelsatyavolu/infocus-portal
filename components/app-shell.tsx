@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { BrandWordmark } from "@/components/brand-wordmark";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState, useSyncExternalStore, useTransition } from "react";
@@ -885,14 +886,7 @@ export function AppShell({ children, platformRole, currentUser, canViewAs = fals
             className="flex min-w-0 items-center px-2 py-1.5"
             aria-label="InFocus Portal home"
           >
-            <Image
-              src="/favicon/infocus-wordmark.png"
-              alt="InFocus Portal"
-              width={280}
-              height={120}
-              className="h-9 w-auto object-contain"
-              priority
-            />
+            <BrandWordmark className="h-9 w-auto object-contain" priority />
           </a>
           <button
             type="button"
@@ -1227,7 +1221,7 @@ export function AppShell({ children, platformRole, currentUser, canViewAs = fals
         )}
       >
         {isProjectRoute && !isReviewRoute ? (
-          <aside className="hidden border-r border-[var(--ink-2)] bg-[#0F0F0F] lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col">
+          <aside className="hidden border-r border-[var(--ink-2)] bg-[#0F0F0F] light:bg-card lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col">
             <div className="flex items-center justify-between border-b border-[var(--ink-2)] px-4 pb-3 pt-4">
               <button
                 type="button"

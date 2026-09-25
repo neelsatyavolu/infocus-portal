@@ -6,6 +6,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Toaster } from "@/components/ui/sonner";
 import { N3elAnalytics } from "@/components/n3el-analytics";
+import { THEME_INIT_SCRIPT } from "@/src/lib/theme";
 import "./globals.css";
 
 const barlowCondensed = Barlow_Condensed({
@@ -54,10 +55,14 @@ export default function RootLayout({
     <html
       lang="en"
       className={`dark bg-background ${GeistSans.variable} ${GeistMono.variable} ${barlowCondensed.variable}`}
+      suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="font-sans bg-background text-foreground antialiased">
         {children}
-        <Toaster theme="dark" />
+        <Toaster />
         <Analytics />
         <SpeedInsights />
         <N3elAnalytics />

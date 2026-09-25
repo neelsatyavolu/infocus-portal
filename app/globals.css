@@ -1,17 +1,20 @@
 @import "tailwindcss";
 
 @custom-variant dark (&:is(.dark *));
+/* Light-only tweaks for dark-first markup, e.g. `bg-black/40 light:bg-muted`. */
+@custom-variant light (&:is(.light *));
 
 /* ============================================================
    InFocus Design System tokens — brand-driven, dark-by-default.
    Palette from the logo: green (#2BB36E), red (#EE3A2A), ink (#0F110F).
+   Light mode is opt-in (Settings → Appearance): <html class="light">.
    See DESIGN.md.
    ============================================================ */
 
 :root {
   --radius: 0.625rem;
 
-  /* Dark on :root — app is always dark; light fallbacks showed as white borders on Chrome OS. */
+  /* Dark on :root — dark is the default, so pages render dark even before the class is set. */
   --background: 120 6% 4%;
   --foreground: 0 0% 98%;
   --card: 120 5% 5%;
@@ -62,6 +65,85 @@
   /* Type families */
   --font-display: "Barlow Condensed", "Oswald", Impact, sans-serif;
   --font-mono-broadcast: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+/* ============================================================
+   Light theme. The ink scale and brand accents flip with the theme:
+   --ink is the base surface (and the text color on brand fills),
+   --ink-2…4 are raised surfaces and lines, --ink-text is muted text,
+   and brand colors deepen so they read on white (logo "color" green #0B6E3E).
+   ============================================================ */
+
+:root.light {
+  color-scheme: light;
+
+  --background: 120 9% 97%;
+  --foreground: 120 8% 7%;
+  --card: 0 0% 100%;
+  --card-foreground: 120 8% 7%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 120 8% 7%;
+
+  --primary: 151 82% 24%;
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 120 6% 93%;
+  --secondary-foreground: 120 8% 7%;
+  --muted: 120 7% 95%;
+  --muted-foreground: 120 4% 36%;
+  --accent: 150 40% 92%;
+  --accent-foreground: 151 82% 18%;
+
+  --border: 120 6% 86%;
+  --input: 120 6% 84%;
+  --ring: 151 82% 24%;
+
+  --brand-green: #0B6E3E;
+  --brand-green-deep: #085A32;
+  --brand-red: #C92B1D;
+  --brand-red-deep: #A32216;
+  --brand-amber: #B45309;
+  --ink: #FFFFFF;
+  --ink-2: #F1F3F1;
+  --ink-3: #E3E7E3;
+  --ink-4: #CFD4CF;
+  --ink-text: #4B514B;
+
+  /* Dark-first markup uses the pale 50–300 tints as status text (text-amber-200 on
+     black). On white they are unreadable, so in light mode they resolve to the
+     deep end of the same hue. Solid tint fills (bg-amber-300) darken too. */
+  --color-amber-50: oklch(41.4% 0.112 45.904);
+  --color-amber-100: oklch(47.3% 0.137 46.201);
+  --color-amber-200: oklch(47.3% 0.137 46.201);
+  --color-amber-300: oklch(55.5% 0.163 48.998);
+  --color-yellow-50: oklch(42.1% 0.095 57.708);
+  --color-yellow-100: oklch(47.6% 0.114 61.907);
+  --color-yellow-200: oklch(47.6% 0.114 61.907);
+  --color-yellow-300: oklch(55.4% 0.135 66.442);
+  --color-orange-50: oklch(40.8% 0.123 38.172);
+  --color-orange-100: oklch(47% 0.157 37.304);
+  --color-orange-200: oklch(47% 0.157 37.304);
+  --color-orange-300: oklch(55.3% 0.195 38.402);
+  --color-red-50: oklch(39.6% 0.141 25.723);
+  --color-red-100: oklch(44.4% 0.177 26.899);
+  --color-red-200: oklch(44.4% 0.177 26.899);
+  --color-red-300: oklch(50.5% 0.213 27.518);
+  --color-rose-50: oklch(41% 0.159 10.272);
+  --color-rose-100: oklch(45.5% 0.188 13.697);
+  --color-rose-200: oklch(45.5% 0.188 13.697);
+  --color-rose-300: oklch(51.4% 0.222 16.935);
+  --color-emerald-50: oklch(37.8% 0.077 168.94);
+  --color-emerald-100: oklch(43.2% 0.095 166.913);
+  --color-emerald-200: oklch(43.2% 0.095 166.913);
+  --color-emerald-300: oklch(50.8% 0.118 165.612);
+  --color-sky-50: oklch(39.1% 0.09 240.876);
+  --color-sky-100: oklch(44.3% 0.11 240.79);
+  --color-sky-200: oklch(44.3% 0.11 240.79);
+  --color-sky-300: oklch(50% 0.134 242.749);
+  --color-indigo-50: oklch(35.9% 0.144 278.697);
+  --color-indigo-100: oklch(39.8% 0.195 277.366);
+  --color-indigo-200: oklch(39.8% 0.195 277.366);
+  --color-indigo-300: oklch(45.7% 0.24 277.023);
 }
 
 @theme inline {
@@ -221,7 +303,7 @@ video {
   }
 }
 .status-live      { background: var(--brand-red-deep); color: #fff; }
-.status-review    { background: hsl(var(--background)); color: #fff; border-color: hsl(var(--border)); }
+.status-review    { background: hsl(var(--background)); color: hsl(var(--foreground)); border-color: hsl(var(--border)); }
 .status-approved  { background: rgb(43 179 110 / 0.18); color: var(--brand-green); border-color: rgb(43 179 110 / 0.30); }
 .status-warn      { background: rgb(242 165 22 / 0.18); color: var(--brand-amber); border-color: rgb(242 165 22 / 0.40); }
 .status-danger    { background: rgb(238 58 42 / 0.18); color: var(--brand-red); border-color: rgb(238 58 42 / 0.40); }
@@ -271,6 +353,21 @@ video {
 /* Project hero gradient (brand green wash → ink) */
 .brand-hero-gradient {
   background: linear-gradient(135deg, #08492A 0%, #0A0A0A 60%, #1F1F1F 100%);
+}
+.light .brand-hero-gradient {
+  background: linear-gradient(135deg, #CDEFDD 0%, #FFFFFF 60%, #F1F3F1 100%);
+}
+
+/* Full-strength hero panel (Grade Editor, Livestreams) */
+.brand-hero-panel {
+  background:
+    radial-gradient(900px 240px at 92% 10%, rgba(43, 179, 110, 0.18), transparent 60%),
+    linear-gradient(135deg, #08492A 0%, #0A2517 50%, #0A0A0A 100%);
+}
+.light .brand-hero-panel {
+  background:
+    radial-gradient(900px 240px at 92% 10%, rgba(11, 110, 62, 0.12), transparent 60%),
+    linear-gradient(135deg, #CDEFDD 0%, #FFFFFF 60%, #F1F3F1 100%);
 }
 
 /* Tile chrome — softens corners + ambient blur orbs */

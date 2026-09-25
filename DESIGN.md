@@ -16,7 +16,7 @@ Updated September 25, 2026 for the new InFocus logo. Colors come from the logo f
 - Use logo red for live/recording indicators and destructive or error states; clarify the meaning with labels and icons.
 - Build around real content: projects, media, people, dates, progress, and concise actions.
 
-The website is always dark. This guide does not define a light theme; section 2 lists the logo colors to use on light backgrounds (print, decks, documents). For an unrelated product, replace the brand name and assets while retaining the visual system.
+The website is dark by default. A light theme is opt-in per browser (Settings → Appearance); section 2 lists its tokens. The logo colors for light backgrounds (print, decks, documents, the light theme) are in the logo palette. For an unrelated product, replace the brand name and assets while retaining the visual system.
 
 ## 2. Color
 
@@ -93,6 +93,42 @@ Semantic HSL values are authoritative for UI components. Neutrals carry the logo
 | `--paper` / `--paper-2` | `#FFFFFF` / `#F7F7F8` | Light contexts only. |
 
 Soft green and paper are supporting palette entries, not instructions to introduce light panels into the dark UI.
+
+### Light theme
+
+Opt-in from Settings → Appearance. `<html>` carries `dark` (default) or `light`. The choice is a cookie (`infocus-theme`) on `.infocuspaly.com`, so the Portal subdomains share it; a script in `<head>` applies it before first paint (`src/lib/theme.ts`).
+
+The semantic tokens take these values under `:root.light`:
+
+| Semantic role | Light value |
+| --- | --- |
+| Background | `hsl(120 9% 97%)` |
+| Foreground | `hsl(120 8% 7%)` |
+| Card / popover | `hsl(0 0% 100%)` |
+| Primary | `hsl(151 82% 24%)` (logo deep green `#0B6E3E`) with white foreground |
+| Secondary / muted | `hsl(120 6% 93%)` / `hsl(120 7% 95%)` |
+| Muted foreground | `hsl(120 4% 36%)` |
+| Accent / accent foreground | `hsl(150 40% 92%)` / `hsl(151 82% 18%)` |
+| Border / input | `hsl(120 6% 86%)` / `hsl(120 6% 84%)` |
+| Destructive | unchanged |
+
+The ink scale and brand accents flip with the theme, so markup written against them works in both:
+
+| Token | Light value | Meaning in both themes |
+| --- | --- | --- |
+| `--ink` | `#FFFFFF` | Base surface, and the text color on solid brand fills |
+| `--ink-2` / `-3` / `-4` | `#F1F3F1` / `#E3E7E3` / `#CFD4CF` | Raised fills, hover fills, lines |
+| `--ink-text` | `#4B514B` | Supporting text |
+| `--brand-green` / `-deep` | `#0B6E3E` / `#085A32` | Green text and fills (white text on the fill) |
+| `--brand-red` / `-deep` | `#C92B1D` / `#A32216` | Red text and fills |
+| `--brand-amber` | `#B45309` | Warnings |
+
+Rules for dark-first markup:
+
+- Prefer semantic tokens and the flipping vars above. Don't use `text-white`, `border-white/N` or `bg-white/N` on theme surfaces; use `text-foreground`, `border-foreground/N`, `bg-foreground/N`.
+- The `light:` variant adds a light-only override, e.g. `bg-black/40 light:bg-muted` for a recessed panel.
+- In light mode the pale Tailwind tints (50–300) of amber, yellow, orange, red, rose, emerald, sky and indigo resolve to the deep end of the hue, so status text like `text-amber-200` stays readable. A solid pale fill (`bg-amber-300`) darkens too; give its text `light:text-white`.
+- Video players, media overlays, modal backdrops and the teleprompter run mode stay dark in both themes. Inside them, use fixed colors (`text-white`), never flipping tokens.
 
 Translucent tints use the logo RGB values: green `rgb(43 179 110 / α)` and red `rgb(238 58 42 / α)`. Common alphas: 0.06–0.12 for fills, 0.18 for status fills, 0.25–0.40 for borders and rings.
 
@@ -273,6 +309,7 @@ The logo is a lowercase **infocus** wordmark. The "o" is a camera aperture insid
 Asset locations in this repository:
 
 - `public/favicon/infocus-wordmark.png`: header wordmark (green and white on transparent, for dark backgrounds). Rendered 36px high with automatic width and contain fit.
+- `public/favicon/infocus-wordmark-light.png`: the same wordmark with ink letters and deep green, for the light theme. `components/brand-wordmark.tsx` renders the right one for the theme.
 - `public/favicon/infocus-logo.png`: icon mark for dark backgrounds (email header).
 - `public/favicon/infocus-hub-icon.png`: icon on the ink tile (Slack bot avatar).
 - `public/favicon/`: favicon, Apple touch icon, and Android icons (icon on a rounded ink tile).

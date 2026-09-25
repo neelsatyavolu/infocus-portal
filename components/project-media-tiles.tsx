@@ -2964,12 +2964,12 @@ export function ProjectMediaTiles({
                     <button
                       onClick={() => toggleSelect(item.id)}
                       className={cn(
-                        "absolute left-2 top-2 z-20 grid h-6 w-6 place-items-center rounded border border-border bg-black/70 text-foreground backdrop-blur transition hover:bg-black",
+                        "absolute left-2 top-2 z-20 grid h-6 w-6 place-items-center rounded border border-white/15 bg-black/70 text-white backdrop-blur transition hover:bg-black",
                         selected ? "opacity-100" : "opacity-0 group-hover:opacity-100 focus:opacity-100"
                       )}
                       title="Select video"
                     >
-                      {selected ? <CheckSquare className="h-3.5 w-3.5 text-[var(--brand-green)]" /> : <Square className="h-3.5 w-3.5" />}
+                      {selected ? <CheckSquare className="h-3.5 w-3.5 text-[#2BB36E]" /> : <Square className="h-3.5 w-3.5" />}
                     </button>
 
                     <div className="absolute right-2 top-2 z-20">
@@ -3049,22 +3049,22 @@ export function ProjectMediaTiles({
                       {/* Thumbnail overlays — status pill bottom-left so it doesn't fight the checkbox */}
                       {activeVersion.approvalStatus === "IN_REVIEW" ? (
                         <span className="absolute bottom-2 left-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/75 px-2 py-0.5 font-display text-[9px] font-bold uppercase tracking-[0.18em] text-white">
-                          <span className="h-1.5 w-1.5 rounded-full bg-[var(--brand-amber)]" />
+                          <span className="h-1.5 w-1.5 rounded-full bg-[#F2A516]" />
                           In Review
                         </span>
                       ) : activeVersion.approvalStatus === "APPROVED" ? (
                         <span className="absolute bottom-2 left-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/75 px-2 py-0.5 font-display text-[9px] font-bold uppercase tracking-[0.18em] text-white">
-                          <span className="h-1.5 w-1.5 rounded-full bg-[var(--brand-green)]" />
+                          <span className="h-1.5 w-1.5 rounded-full bg-[#2BB36E]" />
                           Approved
                         </span>
                       ) : activeVersion.approvalStatus === "NEEDS_CHANGES" ? (
                         <span className="absolute bottom-2 left-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/75 px-2 py-0.5 font-display text-[9px] font-bold uppercase tracking-[0.18em] text-white">
-                          <span className="h-1.5 w-1.5 rounded-full bg-[var(--brand-red)]" />
+                          <span className="h-1.5 w-1.5 rounded-full bg-[#EE3A2A]" />
                           Needs Changes
                         </span>
                       ) : activeVersion.approvalStatus === "AIRED" ? (
                         <span className="absolute bottom-2 left-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/75 px-2 py-0.5 font-display text-[9px] font-bold uppercase tracking-[0.18em] text-white">
-                          <span className="h-1.5 w-1.5 rounded-full bg-indigo-300" />
+                          <span className="h-1.5 w-1.5 rounded-full bg-[oklch(78.5%_0.115_274.713)]" />
                           Aired
                         </span>
                       ) : null}

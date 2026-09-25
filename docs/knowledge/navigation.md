@@ -1,6 +1,6 @@
 # Navigation
 
-Always-dark Portal chrome. Sidebar depends on role. On phones and tablets under 1024px, the sidebar is hidden behind a menu button in the header.
+Portal chrome is dark by default (Light is in Settings → Appearance). Sidebar depends on role. On phones and tablets under 1024px, the sidebar is hidden behind a menu button in the header.
 
 Sidebar category headings use compact spacing, with 0.675rem above each heading.
 

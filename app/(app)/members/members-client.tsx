@@ -348,7 +348,7 @@ export default function MembersClient() {
       </section>
 
       <section className="sticky bottom-4 z-20 mx-auto flex justify-center">
-        <div className="inline-flex items-center gap-1 rounded-xl border border-white/[0.08] bg-black/85 p-1 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.6)] backdrop-blur">
+        <div className="inline-flex items-center gap-1 rounded-xl border border-foreground/[0.08] bg-black/85 light:bg-muted p-1 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.6)] backdrop-blur">
           <button
             type="button"
             onClick={() => onTabClick(MEMBER_GENERAL_CYCLE_NUMBER)}
@@ -356,7 +356,7 @@ export default function MembersClient() {
               "inline-flex items-center gap-2 rounded-lg px-4 py-2 font-display text-[12px] font-semibold uppercase tracking-[0.18em] transition",
               isGeneral
                 ? "bg-[var(--brand-green)] text-[var(--ink)]"
-                : "text-[var(--ink-text)] hover:bg-white/5 hover:text-white"
+                : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
             )}
           >
             General
@@ -372,14 +372,14 @@ export default function MembersClient() {
                   "inline-flex items-center gap-2 rounded-lg px-4 py-2 font-display text-[12px] font-semibold uppercase tracking-[0.18em] transition",
                   active
                     ? "bg-[var(--brand-green)] text-[var(--ink)]"
-                    : "text-[var(--ink-text)] hover:bg-white/5 hover:text-white"
+                    : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
                 )}
               >
                 Cycle
                 <span
                   className={cn(
                     "rounded px-1.5 py-0.5 font-mono-broadcast text-[10px] font-bold",
-                    active ? "bg-black/35 text-[var(--ink)]" : "bg-black/40 text-[var(--ink-text)]"
+                    active ? "bg-black/35 text-[var(--ink)]" : "bg-black/40 light:bg-foreground/10 text-[var(--ink-text)]"
                   )}
                 >
                   {String(cycle.cycleNumber).padStart(2, "0")}

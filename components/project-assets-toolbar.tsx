@@ -455,7 +455,7 @@ export function ProjectAssetsToolbar({
               >
                 {scriptCopied ? (
                   <>
-                    <Check className="h-3.5 w-3.5 text-green-500" />
+                    <Check className="h-3.5 w-3.5 text-green-500 light:text-green-700" />
                     Copied
                   </>
                 ) : (

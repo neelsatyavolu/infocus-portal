@@ -40,7 +40,7 @@ export function ApproveFeedbackDialog({
           maxLength={2000}
           disabled={saving}
           placeholder="Write feedback for this group…"
-          className="w-full resize-y rounded-lg border border-border bg-black/40 px-3 py-2 text-sm text-foreground outline-none focus:border-[var(--brand-green)]/50"
+          className="w-full resize-y rounded-lg border border-border bg-black/40 light:bg-muted px-3 py-2 text-sm text-foreground outline-none focus:border-[var(--brand-green)]/50"
         />
         <DialogFooter>
           <Button

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { BellRing, Mail } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import { AppearanceCard } from "./appearance-card";
 import { ClassBoardPinCard } from "./class-board-pin-card";
 
 type PreferenceState = {
@@ -656,7 +657,7 @@ export default function SettingsPage() {
           <div className="eyebrow">Account</div>
           <h1 className="display-md mt-2 text-foreground">Settings</h1>
           <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-            Nickname, playback, notifications, and quick links to the grades and teleprompter apps.
+            Nickname, appearance, playback, notifications, and quick links to the grades and teleprompter apps.
           </p>
         </div>
       </section>
@@ -694,6 +695,8 @@ export default function SettingsPage() {
         {profileSavedLabel ? <p className="text-xs text-foreground">{profileSavedLabel}</p> : null}
         {profileError ? <p className="text-xs text-amber-300">{profileError}</p> : null}
       </section>
+
+      <AppearanceCard />
 
       <ClassBoardPinCard />
 

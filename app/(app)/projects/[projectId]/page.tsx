@@ -47,13 +47,13 @@ function StatTile({
   dim?: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-white/[0.08] bg-[rgb(10,10,10,0.55)] px-4 py-3.5 backdrop-blur">
+    <div className="rounded-xl border border-foreground/[0.08] bg-[rgb(10,10,10,0.55)] light:bg-muted px-4 py-3.5 backdrop-blur">
       <div className="font-display text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--ink-text)]">
         {label}
       </div>
       <div
         className={`mt-1.5 font-display italic font-extrabold tracking-tight ${
-          dim ? "text-[var(--ink-5)]" : "text-white"
+          dim ? "text-[var(--ink-5)]" : "text-foreground"
         } ${compact ? "text-lg leading-tight" : "text-[28px] leading-none"}`}
       >
         {value || "—"}
@@ -197,10 +197,7 @@ export default async function ProjectPage({ params, searchParams }: ProjectPageP
 
       {/* Project hero — slim broadcast bar with eyebrow, title, comments + stage */}
       <section
-        className="relative overflow-hidden rounded-2xl border border-border px-5 py-4"
-        style={{
-          background: "linear-gradient(135deg, #08492A 0%, #0A0A0A 60%, #1F1F1F 100%)"
-        }}
+        className="brand-hero-gradient relative overflow-hidden rounded-2xl border border-border px-5 py-4"
       >
         {/* Ambient orb accent */}
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-[var(--brand-green)]/10 blur-3xl" />
@@ -210,7 +207,7 @@ export default async function ProjectPage({ params, searchParams }: ProjectPageP
               <span className="rec-dot rec-dot-red" />
               {shellData.workspace.name} · Cycle
             </div>
-            <h1 className="display-md mt-1 break-words text-white">
+            <h1 className="display-md mt-1 break-words text-foreground">
               {shellData.projectName}
             </h1>
           </div>

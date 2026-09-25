@@ -112,7 +112,7 @@ export function CustomDropdown({
         )}
       >
         <span className="truncate">{selected?.label ?? placeholder}</span>
-        <ChevronDown className={cn("h-4 w-4 text-slate-400 transition-transform", open ? "rotate-180" : "")} />
+        <ChevronDown className={cn("h-4 w-4 text-slate-400 light:text-muted-foreground transition-transform", open ? "rotate-180" : "")} />
       </button>
 
       {open && panelPosition
@@ -120,7 +120,7 @@ export function CustomDropdown({
             <div
               ref={panelRef}
               className={cn(
-                "slide-in fixed z-[500] overflow-y-auto overscroll-contain rounded-xl border border-cyan-300/25 bg-[#0c1224]/98 p-1.5 shadow-2xl backdrop-blur",
+                "slide-in fixed z-[500] overflow-y-auto overscroll-contain rounded-xl border border-cyan-300/25 bg-[#0c1224]/98 light:bg-popover p-1.5 shadow-2xl backdrop-blur",
                 panelClassName,
               )}
               style={panelPosition}
@@ -134,7 +134,7 @@ export function CustomDropdown({
                     type="button"
                     className={cn(
                       "interactive-surface flex w-full items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-left text-sm",
-                      active ? "border-cyan-300/30 bg-cyan-400/15 text-cyan-100" : "text-slate-200 hover:text-white",
+                      active ? "border-cyan-300/30 bg-cyan-400/15 text-cyan-100 light:text-cyan-800" : "text-slate-200 hover:text-foreground light:text-foreground/80 light:hover:text-foreground",
                     )}
                     onClick={() => {
                       onChange(option.value);
@@ -143,9 +143,9 @@ export function CustomDropdown({
                   >
                     <span className="truncate">
                       {option.label}
-                      {option.hint ? <span className="ml-2 text-xs text-slate-400">{option.hint}</span> : null}
+                      {option.hint ? <span className="ml-2 text-xs text-slate-400 light:text-muted-foreground">{option.hint}</span> : null}
                     </span>
-                    {active ? <Check className="h-3.5 w-3.5 text-cyan-200" /> : null}
+                    {active ? <Check className="h-3.5 w-3.5 text-cyan-200 light:text-cyan-700" /> : null}
                   </button>
                 );
               })}

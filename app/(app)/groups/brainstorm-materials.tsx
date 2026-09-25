@@ -32,7 +32,7 @@ export function BrainstormMaterials({
   return (
     <div
       className={cn(
-        "flex min-h-0 flex-1 flex-col rounded-2xl border border-border/60 bg-black/25",
+        "flex min-h-0 flex-1 flex-col rounded-2xl border border-border/60 bg-black/25 light:bg-muted",
         compact ? "p-2" : "p-4 sm:p-5"
       )}
     >

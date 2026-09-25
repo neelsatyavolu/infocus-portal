@@ -60,7 +60,7 @@ export function CycleGradeReleaseCard({
         maxLength={MAX_CYCLE_GRADE_FEEDBACK}
         rows={8}
         placeholder="Feedback for this group's cycle grade…"
-        className="min-h-[10rem] flex-1 resize-y bg-black/30"
+        className="min-h-[10rem] flex-1 resize-y bg-black/30 light:bg-muted"
       />
       <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
         <span>

@@ -5,42 +5,42 @@
 @layer base {
   :root {
     /* InFocus dark broadcast tokens */
-    --background: 240 10% 4%;
+    --background: 120 6% 4%;
     --foreground: 0 0% 98%;
-    --card: 240 8% 10%;
+    --card: 120 5% 10%;
     --card-foreground: 0 0% 98%;
-    --popover: 240 8% 10%;
+    --popover: 120 5% 10%;
     --popover-foreground: 0 0% 98%;
 
-    /* Broadcast green primary */
-    --primary: 133 100% 42%;
-    --primary-foreground: 240 10% 4%;
+    /* Brand green primary (logo #2BB36E) */
+    --primary: 150 61% 43.5%;
+    --primary-foreground: 120 6% 4%;
 
-    --secondary: 240 4% 16%;
+    --secondary: 120 4% 16%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 240 4% 16%;
-    --muted-foreground: 240 5% 65%;
-    --accent: 133 30% 18%;
-    --accent-foreground: 133 80% 80%;
+    --muted: 120 4% 16%;
+    --muted-foreground: 120 4% 65%;
+    --accent: 150 30% 18%;
+    --accent-foreground: 150 60% 80%;
 
-    --destructive: 355 76% 50%;
+    --destructive: 5 75% 45%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 4% 16%;
-    --input: 240 4% 16%;
-    --ring: 133 100% 42%;
+    --border: 120 4% 16%;
+    --input: 120 4% 16%;
+    --ring: 150 61% 43.5%;
     --radius: 0.625rem;
 
-    --brand-green: #00C72C;
-    --brand-green-deep: #00A024;
-    --brand-red: #E11D2C;
+    --brand-green: #2BB36E;
+    --brand-green-deep: #23955C;
+    --brand-red: #EE3A2A;
     --brand-amber: #F2A516;
     --ink: #0A0A0A;
     --ink-2: #1F1F1F;
     --ink-3: #2C2C2C;
     --ink-4: #3A3A3A;
-    --ink-5: #6B6B70;
-    --ink-text: #B5B5BB;
+    --ink-5: #6B6E6B;
+    --ink-text: #B6B9B6;
   }
 
   * {
@@ -99,7 +99,7 @@
   }
 
   .brand-hero-gradient {
-    background: linear-gradient(135deg, #024E14 0%, #0A0A0A 60%, #1F1F1F 100%);
+    background: linear-gradient(135deg, #08492A 0%, #0A0A0A 60%, #1F1F1F 100%);
   }
 
   /* Status badges (Barlow micro-caps) */
@@ -117,13 +117,13 @@
     border: 1px solid transparent;
     white-space: nowrap;
   }
-  .status-confirmed { background: rgb(0 199 44 / 0.12); color: var(--brand-green); border-color: rgb(0 199 44 / 0.30); }
+  .status-confirmed { background: rgb(43 179 110 / 0.12); color: var(--brand-green); border-color: rgb(43 179 110 / 0.30); }
   .status-pending   { background: rgb(242 165 22 / 0.10); color: var(--brand-amber); border-color: rgb(242 165 22 / 0.30); }
   .status-empty     { background: var(--ink-2); color: var(--ink-5); border-color: var(--ink-3); }
-  .status-live      { background: rgb(225 29 44 / 0.12); color: var(--brand-red); border-color: rgb(225 29 44 / 0.30); }
+  .status-live      { background: rgb(238 58 42 / 0.12); color: var(--brand-red); border-color: rgb(238 58 42 / 0.30); }
 
-  .av-green  { background: linear-gradient(135deg, #00C72C, #00A024); color: #000; }
-  .av-red    { background: linear-gradient(135deg, #E11D2C, #7a0e16); color: #fff; }
+  .av-green  { background: linear-gradient(135deg, #2BB36E, #23955C); color: #000; }
+  .av-red    { background: linear-gradient(135deg, #C92B1D, #781A11); color: #fff; }
   .av-purple { background: linear-gradient(135deg, #6f3cff, #8d4bff); color: #fff; }
   .av-blue   { background: linear-gradient(135deg, #3d63ff, #6c7dff); color: #fff; }
   .av-gray   { background: #3A3A3A; color: #fff; }

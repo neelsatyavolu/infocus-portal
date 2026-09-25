@@ -436,7 +436,7 @@ export default function PackageCyclesPage() {
                 className={cn(
                   "rounded-2xl border bg-card p-5 md:p-6",
                   cycle.section === "current"
-                    ? "border-[rgb(0,199,44,0.30)]"
+                    ? "border-[rgb(43,179,110,0.30)]"
                     : cycle.section === "upcoming"
                       ? "border-border"
                       : "border-border opacity-90"
@@ -520,7 +520,7 @@ export default function PackageCyclesPage() {
                 </div>
 
                 {!editing && nextStage && cycle.section !== "passed" ? (
-                  <div className="mt-4 flex items-center justify-between gap-3 rounded-lg border border-[rgb(0,199,44,0.30)] bg-[rgb(0,199,44,0.06)] px-4 py-3">
+                  <div className="mt-4 flex items-center justify-between gap-3 rounded-lg border border-[rgb(43,179,110,0.30)] bg-[rgb(43,179,110,0.06)] px-4 py-3">
                     <div>
                       <div className="font-display text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--brand-green)]">
                         Next Stage

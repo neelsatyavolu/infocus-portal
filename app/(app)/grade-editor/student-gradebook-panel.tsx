@@ -124,7 +124,7 @@ export function StudentGradebookPanel({
                     onClick={() => onSelectUserId(person.userId)}
                     className={cn(
                       "flex w-full flex-col items-start gap-0.5 px-4 py-2 text-left transition",
-                      active ? "bg-[rgb(0,199,44,0.12)]" : "hover:bg-[hsl(var(--background))]"
+                      active ? "bg-[rgb(43,179,110,0.12)]" : "hover:bg-[hsl(var(--background))]"
                     )}
                   >
                     <span className="text-sm font-semibold text-foreground">

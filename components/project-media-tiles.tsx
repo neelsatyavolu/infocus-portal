@@ -233,11 +233,11 @@ function approvalPillClassName(status: ApprovalStatusValue) {
   }
 
   if (status === "APPROVED") {
-    return "border-[rgb(0,199,44,0.30)] bg-[rgb(0,199,44,0.18)] text-[var(--brand-green)]";
+    return "border-[rgb(43,179,110,0.30)] bg-[rgb(43,179,110,0.18)] text-[var(--brand-green)]";
   }
 
   if (status === "NEEDS_CHANGES") {
-    return "border-[rgb(225,29,44,0.40)] bg-[rgb(225,29,44,0.18)] text-[var(--brand-red)]";
+    return "border-[rgb(238,58,42,0.40)] bg-[rgb(238,58,42,0.18)] text-[var(--brand-red)]";
   }
 
   return "border-[rgb(242,165,22,0.40)] bg-[rgb(242,165,22,0.18)] text-[var(--brand-amber)]";
@@ -2717,12 +2717,12 @@ export function ProjectMediaTiles({
                 const isFinal = lower.includes("final");
                 const isInitial = lower.includes("initial");
                 const spineCls = isFinal
-                  ? "bg-gradient-to-r from-[#00C72C] to-[#3A8E1A]"
+                  ? "bg-gradient-to-r from-[var(--brand-green)] to-[var(--brand-green-deep)]"
                   : isInitial
                     ? "bg-gradient-to-r from-[#F2A516] to-[#D17F00]"
                     : "bg-[var(--ink-4)]";
                 const iconCls = isFinal
-                  ? "border-[rgb(0,199,44,0.30)] bg-[rgb(0,199,44,0.14)] text-[var(--brand-green)]"
+                  ? "border-[rgb(43,179,110,0.30)] bg-[rgb(43,179,110,0.14)] text-[var(--brand-green)]"
                   : isInitial
                     ? "border-[rgb(242,165,22,0.30)] bg-[rgb(242,165,22,0.14)] text-[var(--brand-amber)]"
                     : "border-border bg-[var(--ink)] text-muted-foreground";
@@ -2957,7 +2957,7 @@ export function ProjectMediaTiles({
                     memberPickerOpen ? "z-[120]" : "z-0"
                   } ${
                     draggingMediaId === item.id ? "scale-[0.985] border-[var(--brand-green)]/50 opacity-65" :
-                    selected ? "border-[var(--brand-green)] shadow-[0_0_0_3px_rgb(0,199,44,0.15)]" : "border-border"
+                    selected ? "border-[var(--brand-green)] shadow-[0_0_0_3px_rgb(43,179,110,0.15)]" : "border-border"
                   }`}
                 >
                   <div className="relative rounded-t-2xl">
@@ -3180,7 +3180,7 @@ export function ProjectMediaTiles({
                                       type="button"
                                       onClick={() => toggleAssignedMember(item.id, member.userId)}
                                       disabled={assigneeBusy}
-                                      className="grid h-5 w-5 place-items-center rounded-md text-muted-foreground transition hover:bg-[rgb(225,29,44,0.15)] hover:text-[var(--brand-red)]"
+                                      className="grid h-5 w-5 place-items-center rounded-md text-muted-foreground transition hover:bg-[rgb(238,58,42,0.15)] hover:text-[var(--brand-red)]"
                                       aria-label="Remove"
                                     >
                                       <X className="h-3 w-3" />
@@ -3198,7 +3198,7 @@ export function ProjectMediaTiles({
                                   setMemberPickerForMediaId(null);
                                 }}
                                 disabled={assigneeBusy}
-                                className="inline-flex items-center gap-1 rounded-md border border-[rgb(0,199,44,0.3)] bg-[rgb(0,199,44,0.10)] px-2 py-1 text-[11px] font-semibold text-[var(--brand-green)] hover:bg-[rgb(0,199,44,0.18)]"
+                                className="inline-flex items-center gap-1 rounded-md border border-[rgb(43,179,110,0.3)] bg-[rgb(43,179,110,0.10)] px-2 py-1 text-[11px] font-semibold text-[var(--brand-green)] hover:bg-[rgb(43,179,110,0.18)]"
                               >
                                 <UserPlus className="h-3 w-3" />
                                 Add people

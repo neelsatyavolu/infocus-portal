@@ -648,7 +648,7 @@ export default function App() {
       <section className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 md:px-7 md:py-6">
         <div
           className="pointer-events-none absolute -right-12 -top-32 h-[380px] w-[380px] rounded-full opacity-90"
-          style={{ background: "radial-gradient(circle, rgba(0,199,44,0.18) 0%, transparent 60%)" }}
+          style={{ background: "radial-gradient(circle, rgba(43,179,110,0.18) 0%, transparent 60%)" }}
         />
         <div className="relative flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
@@ -725,7 +725,7 @@ export default function App() {
                       <span
                         className={
                           showStatus.kind === "live"
-                            ? "inline-flex items-center gap-1.5 rounded-full border border-[rgb(225,29,44,0.3)] bg-[rgb(225,29,44,0.12)] px-2 py-0.5 font-display text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--brand-red)]"
+                            ? "inline-flex items-center gap-1.5 rounded-full border border-[rgb(238,58,42,0.3)] bg-[rgb(238,58,42,0.12)] px-2 py-0.5 font-display text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--brand-red)]"
                             : "inline-flex items-center gap-1.5 rounded-full border border-[rgb(242,165,22,0.3)] bg-[rgb(242,165,22,0.12)] px-2 py-0.5 font-display text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--brand-amber)]"
                         }
                       >
@@ -826,7 +826,7 @@ export default function App() {
                 type="button"
                 onClick={handleConfirmAll}
                 disabled={saving || loadingHistory}
-                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-[rgb(0,199,44,0.30)] bg-[rgb(0,199,44,0.10)] px-3 text-xs font-semibold text-[var(--brand-green)] transition hover:bg-[rgb(0,199,44,0.18)] disabled:opacity-50"
+                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-[rgb(43,179,110,0.30)] bg-[rgb(43,179,110,0.10)] px-3 text-xs font-semibold text-[var(--brand-green)] transition hover:bg-[rgb(43,179,110,0.18)] disabled:opacity-50"
               >
                 <CheckCheck className="h-3.5 w-3.5" />
                 Confirm All
@@ -931,7 +931,7 @@ export default function App() {
                   const cardCls = [
                     "relative flex flex-col gap-3 rounded-xl border bg-[var(--ink)] p-4 transition",
                     status === "confirmed"
-                      ? "border-[rgb(0,199,44,0.40)] before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:rounded-t-xl before:bg-[var(--brand-green)] before:content-['']"
+                      ? "border-[rgb(43,179,110,0.40)] before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:rounded-t-xl before:bg-[var(--brand-green)] before:content-['']"
                       : status === "empty"
                         ? "border-dashed border-[var(--ink-3)]"
                         : "border-border hover:border-[var(--ink-4)]",
@@ -996,7 +996,7 @@ export default function App() {
                               className={
                                 confirmed
                                   ? "flex-1 rounded-md border border-[rgb(242,165,22,0.25)] bg-[var(--ink-2)] px-2 py-1.5 text-[11px] font-semibold text-[var(--brand-amber)] hover:border-[rgb(242,165,22,0.4)] disabled:opacity-50"
-                                  : "flex-1 rounded-md border border-[rgb(0,199,44,0.30)] bg-[rgb(0,199,44,0.10)] px-2 py-1.5 text-[11px] font-semibold text-[var(--brand-green)] hover:bg-[rgb(0,199,44,0.20)] disabled:opacity-50"
+                                  : "flex-1 rounded-md border border-[rgb(43,179,110,0.30)] bg-[rgb(43,179,110,0.10)] px-2 py-1.5 text-[11px] font-semibold text-[var(--brand-green)] hover:bg-[rgb(43,179,110,0.20)] disabled:opacity-50"
                               }
                             >
                               {confirmed ? "Unconfirm" : "✓ Confirm"}
@@ -1059,7 +1059,7 @@ export default function App() {
                     const rowCls = [
                       "flex items-center gap-2 rounded-md px-2 py-1.5 text-foreground transition",
                       section.key === "assigned"
-                        ? "bg-[rgb(0,199,44,0.06)]"
+                        ? "bg-[rgb(43,179,110,0.06)]"
                         : section.key === "exempt"
                           ? "opacity-60"
                           : "hover:bg-[var(--ink)]",
@@ -1154,7 +1154,7 @@ export default function App() {
                 const rowCls = [
                   "border-t border-border transition",
                   isSuggested
-                    ? "bg-[rgb(0,199,44,0.08)]"
+                    ? "bg-[rgb(43,179,110,0.08)]"
                     : row.isNonAnchor
                       ? "opacity-60"
                       : row.isExempt
@@ -1172,7 +1172,7 @@ export default function App() {
                         )}
                         <span className="font-medium text-foreground">{row.name}</span>
                         {isSuggested ? (
-                          <span className="rounded-md bg-[rgb(0,199,44,0.12)] px-1.5 py-0.5 font-display text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--brand-green)]">
+                          <span className="rounded-md bg-[rgb(43,179,110,0.12)] px-1.5 py-0.5 font-display text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--brand-green)]">
                             Suggested
                           </span>
                         ) : null}

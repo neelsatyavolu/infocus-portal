@@ -32,9 +32,9 @@ function FormMessage({ status }: { status: Status }) {
   }
   const color =
     status.type === "error"
-      ? "border-[rgb(225,29,44,0.4)] bg-[rgb(225,29,44,0.12)] text-[var(--brand-red)]"
+      ? "border-[rgb(238,58,42,0.4)] bg-[rgb(238,58,42,0.12)] text-[var(--brand-red)]"
       : status.type === "success"
-        ? "border-[rgb(0,199,44,0.3)] bg-[rgb(0,199,44,0.12)] text-[var(--brand-green)]"
+        ? "border-[rgb(43,179,110,0.3)] bg-[rgb(43,179,110,0.12)] text-[var(--brand-green)]"
         : "border-border bg-card text-muted-foreground";
   return <p className={cn("rounded-md border px-3 py-2 text-sm", color)}>{status.text}</p>;
 }

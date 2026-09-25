@@ -1974,7 +1974,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
           <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
             <div
               className="absolute -right-12 -top-32 h-[320px] w-[320px] rounded-full opacity-90"
-              style={{ background: "radial-gradient(circle, rgba(0,199,44,0.18) 0%, transparent 60%)" }}
+              style={{ background: "radial-gradient(circle, rgba(43,179,110,0.18) 0%, transparent 60%)" }}
             />
           </div>
           <div className="relative flex flex-wrap items-start justify-between gap-3">
@@ -1993,9 +1993,9 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                 currentVersion?.approvalStatus === "AIRED"
                   ? "border-[rgb(99,102,241,0.45)] bg-[rgb(99,102,241,0.15)] text-indigo-300"
                   : cutReviewStatus.tone === "approved"
-                    ? "border-[rgb(0,199,44,0.35)] bg-[rgb(0,199,44,0.12)] text-[var(--brand-green)]"
+                    ? "border-[rgb(43,179,110,0.35)] bg-[rgb(43,179,110,0.12)] text-[var(--brand-green)]"
                     : cutReviewStatus.tone === "warn"
-                      ? "border-[rgb(225,29,44,0.4)] bg-[rgb(225,29,44,0.12)] text-[var(--brand-red)]"
+                      ? "border-[rgb(238,58,42,0.4)] bg-[rgb(238,58,42,0.12)] text-[var(--brand-red)]"
                       : "border-[rgb(242,165,22,0.4)] bg-[rgb(242,165,22,0.12)] text-[var(--brand-amber)]"
               )}
             >
@@ -2114,7 +2114,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                                             ? "bg-[rgb(220,38,38,0.15)] text-[var(--brand-red)] ring-1 ring-inset ring-[rgb(220,38,38,0.35)]"
                                             : row.extensionsRemaining <= 2
                                               ? "bg-[rgb(242,165,22,0.12)] text-[var(--brand-amber)] ring-1 ring-inset ring-[rgb(242,165,22,0.30)]"
-                                              : "bg-[rgb(0,199,44,0.10)] text-[var(--brand-green)] ring-1 ring-inset ring-[rgb(0,199,44,0.25)]"
+                                              : "bg-[rgb(43,179,110,0.10)] text-[var(--brand-green)] ring-1 ring-inset ring-[rgb(43,179,110,0.25)]"
                                         )}
                                       >
                                         {row.extensionsRemaining}d
@@ -2431,8 +2431,8 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                     onClick={() => changeApproval("NEEDS_CHANGES")}
                     className={`inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs font-semibold transition disabled:opacity-50 ${
                       currentVersion?.approvalStatus === "NEEDS_CHANGES"
-                        ? "border-[rgb(225,29,44,0.4)] bg-[rgb(225,29,44,0.15)] text-foreground"
-                        : "border-[rgb(225,29,44,0.4)] bg-transparent text-muted-foreground hover:bg-[rgb(225,29,44,0.10)] hover:text-foreground"
+                        ? "border-[rgb(238,58,42,0.4)] bg-[rgb(238,58,42,0.15)] text-foreground"
+                        : "border-[rgb(238,58,42,0.4)] bg-transparent text-muted-foreground hover:bg-[rgb(238,58,42,0.10)] hover:text-foreground"
                     }`}
                   >
                     Needs Changes
@@ -3160,7 +3160,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                       }
                     }}
                     placeholder="Drop a comment at this timestamp…"
-                    className="min-h-[60px] border-[var(--brand-green)]/60 focus-visible:border-[var(--brand-green)] focus-visible:ring-2 focus-visible:ring-[rgb(0,199,44,0.3)]"
+                    className="min-h-[60px] border-[var(--brand-green)]/60 focus-visible:border-[var(--brand-green)] focus-visible:ring-2 focus-visible:ring-[rgb(43,179,110,0.3)]"
                   />
                   <div className="mt-2 flex items-center justify-between gap-2">
                     <p className="text-xs text-muted-foreground">

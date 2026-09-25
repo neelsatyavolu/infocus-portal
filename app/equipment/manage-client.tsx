@@ -86,9 +86,9 @@ function FormMessage({ status }: { status: Status }) {
   }
   const color =
     status.type === "error"
-      ? "border-[rgb(225,29,44,0.4)] bg-[rgb(225,29,44,0.12)] text-[var(--brand-red)]"
+      ? "border-[rgb(238,58,42,0.4)] bg-[rgb(238,58,42,0.12)] text-[var(--brand-red)]"
       : status.type === "success"
-        ? "border-[rgb(0,199,44,0.3)] bg-[rgb(0,199,44,0.12)] text-[var(--brand-green)]"
+        ? "border-[rgb(43,179,110,0.3)] bg-[rgb(43,179,110,0.12)] text-[var(--brand-green)]"
         : "border-border bg-card text-muted-foreground";
   return <p className={cn("rounded-md border px-3 py-2 text-sm", color)}>{status.text}</p>;
 }
@@ -106,10 +106,10 @@ function itemStatus(item: Pick<EquipmentItem, "checkedOut" | "onHoldForStudentId
 function StatusPill({ status }: { status: "out" | "held" | "in" }) {
   const cls =
     status === "out"
-      ? "border-[rgb(225,29,44,0.4)] bg-[rgb(225,29,44,0.18)] text-[var(--brand-red)]"
+      ? "border-[rgb(238,58,42,0.4)] bg-[rgb(238,58,42,0.18)] text-[var(--brand-red)]"
       : status === "held"
         ? "border-amber-400/40 bg-amber-400/15 text-amber-200"
-        : "border-[rgb(0,199,44,0.3)] bg-[rgb(0,199,44,0.18)] text-[var(--brand-green)]";
+        : "border-[rgb(43,179,110,0.3)] bg-[rgb(43,179,110,0.18)] text-[var(--brand-green)]";
   const label = status === "out" ? "Out" : status === "held" ? "Held" : "In";
   return (
     <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold", cls)}>{label}</span>

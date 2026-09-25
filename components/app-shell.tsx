@@ -1308,7 +1308,7 @@ export function AppShell({ children, platformRole, currentUser, canViewAs = fals
                               className={cn(
                                 "flex items-center justify-between rounded-md border px-2 py-1.5 text-[13px] text-muted-foreground transition hover:bg-[var(--ink-2)] hover:text-foreground",
                                 currentScope === "active" && currentFolderId === folder.id
-                                  ? "border-[rgb(0,199,44,0.25)] bg-[rgb(0,199,44,0.10)] text-foreground"
+                                  ? "border-[rgb(43,179,110,0.25)] bg-[rgb(43,179,110,0.10)] text-foreground"
                                   : "border-transparent"
                               )}
                               style={{ paddingLeft: 8 + depth * 12 }}

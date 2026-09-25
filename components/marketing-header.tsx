@@ -134,7 +134,7 @@ export async function MarketingHeader({ active = "home" }: MarketingHeaderProps)
 
             <Link
               href={"/dashboard" as Route}
-              className="inline-flex items-center gap-1.5 rounded-full border border-[var(--brand-green)] bg-[var(--brand-green)] px-3 py-2 text-[13px] font-semibold text-black transition-colors hover:bg-[#00A024] hover:border-[#00A024] sm:px-4"
+              className="inline-flex items-center gap-1.5 rounded-full border border-[var(--brand-green)] bg-[var(--brand-green)] px-3 py-2 text-[13px] font-semibold text-black transition-colors hover:bg-[var(--brand-green-deep)] hover:border-[var(--brand-green-deep)] sm:px-4"
             >
               Dashboard
               <ArrowRight className="hidden h-3.5 w-3.5 sm:inline" strokeWidth={2.5} />
@@ -150,7 +150,7 @@ export async function MarketingHeader({ active = "home" }: MarketingHeaderProps)
             </a>
             <a
               href="/sign-in"
-              className="inline-flex items-center gap-1.5 rounded-full border border-[var(--brand-green)] bg-[var(--brand-green)] px-3 py-2 text-[13px] font-semibold text-black transition-colors hover:bg-[#00A024] hover:border-[#00A024] sm:px-4"
+              className="inline-flex items-center gap-1.5 rounded-full border border-[var(--brand-green)] bg-[var(--brand-green)] px-3 py-2 text-[13px] font-semibold text-black transition-colors hover:bg-[var(--brand-green-deep)] hover:border-[var(--brand-green-deep)] sm:px-4"
             >
               Get Started
               <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.5} />

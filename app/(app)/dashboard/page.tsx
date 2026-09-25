@@ -610,7 +610,7 @@ function StageRow({
         : "border-border bg-[hsl(var(--background))]";
   const iconCls =
     tone === "done"
-      ? "border-[rgb(0,199,44,0.4)] bg-[rgb(0,199,44,0.18)] text-[var(--brand-green)]"
+      ? "border-[rgb(43,179,110,0.4)] bg-[rgb(43,179,110,0.18)] text-[var(--brand-green)]"
       : tone === "warn"
         ? "border-[rgb(242,165,22,0.4)] bg-[rgb(242,165,22,0.18)] text-[var(--brand-amber)]"
         : "border-border bg-card text-muted-foreground";

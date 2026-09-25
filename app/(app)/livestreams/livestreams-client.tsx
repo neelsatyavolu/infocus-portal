@@ -147,7 +147,7 @@ function capacityDot(tone: EventRow["capacityTone"]) {
 
 function statusPill(status: EventRow["status"]) {
   if (status === "COMPLETED") {
-    return "border-[rgb(0,199,44,0.35)] bg-[rgb(0,199,44,0.12)] text-[var(--brand-green)]";
+    return "border-[rgb(43,179,110,0.35)] bg-[rgb(43,179,110,0.12)] text-[var(--brand-green)]";
   }
   if (status === "CANCELLED") {
     return "border-white/10 bg-white/[0.04] text-[var(--ink-text)] line-through decoration-white/30";
@@ -511,7 +511,7 @@ export default function LivestreamsClient() {
         className="relative overflow-hidden rounded-2xl border border-border p-6 md:p-8"
         style={{
           background:
-            "radial-gradient(900px 240px at 92% 10%, rgba(0,199,44,0.18), transparent 60%), linear-gradient(135deg, #024E14 0%, #0A2510 50%, #0A0A0A 100%)"
+            "radial-gradient(900px 240px at 92% 10%, rgba(43,179,110,0.18), transparent 60%), linear-gradient(135deg, #08492A 0%, #0A2517 50%, #0A0A0A 100%)"
         }}
       >
         <div
@@ -523,7 +523,7 @@ export default function LivestreamsClient() {
         />
         <div className="relative flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-[rgb(0,199,44,0.4)] bg-black/40 px-2.5 py-1 font-display text-[10px] font-bold uppercase tracking-[0.22em] text-[var(--brand-green)] backdrop-blur">
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-[rgb(43,179,110,0.4)] bg-black/40 px-2.5 py-1 font-display text-[10px] font-bold uppercase tracking-[0.22em] text-[var(--brand-green)] backdrop-blur">
               <span
                 className="h-1.5 w-1.5 rounded-full bg-[var(--brand-green)]"
                 style={{ boxShadow: "0 0 8px var(--brand-green)" }}
@@ -889,7 +889,7 @@ export default function LivestreamsClient() {
                           <div className="flex items-center gap-2 font-medium text-white">
                             {personLabel(row)}
                             {row.isManager ? (
-                              <span className="rounded-full border border-[rgb(0,199,44,0.4)] px-2 py-0.5 font-display text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--brand-green)]">
+                              <span className="rounded-full border border-[rgb(43,179,110,0.4)] px-2 py-0.5 font-display text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--brand-green)]">
                                 Manager
                               </span>
                             ) : null}
@@ -1054,7 +1054,7 @@ export default function LivestreamsClient() {
                           </div>
                         </div>
                         {attending ? (
-                          <span className="rounded-full border border-[rgb(0,199,44,0.35)] bg-[rgb(0,199,44,0.12)] px-2 py-0.5 text-[11px] font-semibold text-[var(--brand-green)]">
+                          <span className="rounded-full border border-[rgb(43,179,110,0.35)] bg-[rgb(43,179,110,0.12)] px-2 py-0.5 text-[11px] font-semibold text-[var(--brand-green)]">
                             On crew
                           </span>
                         ) : my?.status === "PENDING" ? (
@@ -1256,7 +1256,7 @@ export default function LivestreamsClient() {
                       key={m.id}
                       className={cn(
                         "flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-xs transition",
-                        checked ? "bg-[rgb(0,199,44,0.12)] text-white" : "text-[var(--ink-text)] hover:bg-white/[0.04] hover:text-white"
+                        checked ? "bg-[rgb(43,179,110,0.12)] text-white" : "text-[var(--ink-text)] hover:bg-white/[0.04] hover:text-white"
                       )}
                     >
                       <input

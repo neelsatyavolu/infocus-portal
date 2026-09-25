@@ -946,7 +946,7 @@ export default function GradeEditorClient() {
         className="relative overflow-hidden rounded-2xl border border-border p-6 md:p-7"
         style={{
           background:
-            "radial-gradient(900px 240px at 92% 10%, rgba(0,199,44,0.18), transparent 60%), linear-gradient(135deg, #024E14 0%, #0A2510 50%, #0A0A0A 100%)"
+            "radial-gradient(900px 240px at 92% 10%, rgba(43,179,110,0.18), transparent 60%), linear-gradient(135deg, #08492A 0%, #0A2517 50%, #0A0A0A 100%)"
         }}
       >
         <div
@@ -959,7 +959,7 @@ export default function GradeEditorClient() {
         <div className="relative flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <div
-              className="inline-flex items-center gap-1.5 rounded-full border border-[rgb(0,199,44,0.4)] bg-black/40 px-2.5 py-1 font-display text-[10px] font-bold uppercase tracking-[0.22em] text-[var(--brand-green)] backdrop-blur"
+              className="inline-flex items-center gap-1.5 rounded-full border border-[rgb(43,179,110,0.4)] bg-black/40 px-2.5 py-1 font-display text-[10px] font-bold uppercase tracking-[0.22em] text-[var(--brand-green)] backdrop-blur"
             >
               <span
                 className="h-1.5 w-1.5 rounded-full bg-[var(--brand-green)]"
@@ -1038,7 +1038,7 @@ export default function GradeEditorClient() {
               "inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-xs font-semibold whitespace-nowrap border",
               hasUnsavedChanges
                 ? "border-[rgb(242,165,22,0.4)] bg-[rgb(242,165,22,0.15)] text-[var(--brand-amber)]"
-                : "border-[rgb(0,199,44,0.35)] bg-[rgb(0,199,44,0.12)] text-[var(--brand-green)]"
+                : "border-[rgb(43,179,110,0.35)] bg-[rgb(43,179,110,0.12)] text-[var(--brand-green)]"
             )}
           >
             <span
@@ -1154,7 +1154,7 @@ export default function GradeEditorClient() {
                 className="h-full rounded-full"
                 style={{
                   width: `${Math.min(100, ((activeCycleAverage?.averageTotal ?? 0) / MAX_PACKAGE_PER_CYCLE) * 100)}%`,
-                  background: "linear-gradient(90deg, var(--brand-green), #3A8E1A)"
+                  background: "linear-gradient(90deg, var(--brand-green), var(--brand-green-deep))"
                 }}
               />
             </div>
@@ -1174,7 +1174,7 @@ export default function GradeEditorClient() {
                 className="h-full rounded-full"
                 style={{
                   width: `${Math.min(100, activeCycleAverage?.averagePercentage ?? 0)}%`,
-                  background: "linear-gradient(90deg, var(--brand-green), #3A8E1A)"
+                  background: "linear-gradient(90deg, var(--brand-green), var(--brand-green-deep))"
                 }}
               />
             </div>
@@ -1194,7 +1194,7 @@ export default function GradeEditorClient() {
                   width: rows.length > 0
                     ? `${Math.min(100, ((activeCycleAverage?.publishedCount ?? 0) / rows.length) * 100)}%`
                     : "0%",
-                  background: "linear-gradient(90deg, var(--brand-green), #3A8E1A)"
+                  background: "linear-gradient(90deg, var(--brand-green), var(--brand-green-deep))"
                 }}
               />
             </div>
@@ -1785,7 +1785,7 @@ export default function GradeEditorClient() {
                           className={cn(
                             "inline-flex items-center justify-center rounded-md border px-2.5 py-1.5 text-xs font-semibold transition",
                             row.feedback.trim()
-                              ? "border-[rgb(0,199,44,0.35)] bg-[rgb(0,199,44,0.10)] text-[var(--brand-green)] hover:bg-[rgb(0,199,44,0.18)]"
+                              ? "border-[rgb(43,179,110,0.35)] bg-[rgb(43,179,110,0.10)] text-[var(--brand-green)] hover:bg-[rgb(43,179,110,0.18)]"
                               : "border-border bg-[var(--ink)] text-muted-foreground hover:border-[var(--brand-green)] hover:text-foreground"
                           )}
                         >
@@ -1855,7 +1855,7 @@ export default function GradeEditorClient() {
                                 ? "border border-[rgb(242,165,22,0.30)] bg-[rgb(242,165,22,0.10)] text-[var(--brand-amber)] hover:bg-[rgb(242,165,22,0.20)]"
                                 : "bg-[var(--brand-green)] text-[var(--ink)] hover:bg-[var(--brand-green-deep)]",
                               (!row.published && !canPublishRow) && "opacity-40",
-                              dirty && !row.published && "ring-2 ring-[rgb(0,199,44,0.30)]"
+                              dirty && !row.published && "ring-2 ring-[rgb(43,179,110,0.30)]"
                             )}
                           >
                             {publishingUserId === row.userId

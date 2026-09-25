@@ -199,7 +199,7 @@ export default async function ProjectPage({ params, searchParams }: ProjectPageP
       <section
         className="relative overflow-hidden rounded-2xl border border-border px-5 py-4"
         style={{
-          background: "linear-gradient(135deg, #024E14 0%, #0A0A0A 60%, #1F1F1F 100%)"
+          background: "linear-gradient(135deg, #08492A 0%, #0A0A0A 60%, #1F1F1F 100%)"
         }}
       >
         {/* Ambient orb accent */}

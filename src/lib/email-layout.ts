@@ -4,9 +4,9 @@ const INK = "#0A0A0A";
 const CARD = "#141414";
 const LINE = "#2C2C2C";
 const PAPER = "#F7F7F8";
-const MUTED = "#B5B5BB";
-const FOOTER = "#6B6B70";
-const GREEN = "#00C72C";
+const MUTED = "#B6B9B6";
+const FOOTER = "#6B6E6B";
+const GREEN = "#2BB36E";
 
 export const EMAIL_BRAND = {
   ink: INK,

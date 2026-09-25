@@ -24,6 +24,8 @@ type Publication = {
   description: string;
   publishAt: string;
   seasonNumber: number | null;
+  uploadedBytes: number | null;
+  totalBytes: number | null;
   watchUrl: string | null;
   lastError: string | null;
 };
@@ -81,13 +83,30 @@ function formFromDefaults(defaults: Defaults): Form {
   };
 }
 
+function formatBytes(bytes: number) {
+  return bytes >= 1e9 ? `${(bytes / 1e9).toFixed(2)} GB` : `${Math.round(bytes / 1e6)} MB`;
+}
+
 function StatusView({ publication }: { publication: Publication }) {
+  const { uploadedBytes, totalBytes } = publication;
+  const showProgress = publication.status === "UPLOADING" && uploadedBytes !== null && totalBytes;
+  const percent = showProgress ? Math.min(100, (uploadedBytes / totalBytes) * 100) : 0;
   return (
     <div className="space-y-3 text-sm">
       <div className="flex items-center gap-2 font-semibold">
         {ACTIVE.has(publication.status) ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
         {STATUS_LABELS[publication.status] ?? publication.status}
       </div>
+      {showProgress ? (
+        <div className="space-y-1">
+          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+            <div className="h-full bg-primary transition-[width]" style={{ width: `${percent}%` }} />
+          </div>
+          <p className="text-xs tabular-nums text-muted-foreground">
+            {Math.floor(percent)}% · {formatBytes(uploadedBytes)} of {formatBytes(totalBytes)}. You can close this window.
+          </p>
+        </div>
+      ) : null}
       <div className="space-y-1 rounded-lg border border-border p-3">
         <div className="font-medium">{publication.title}</div>
         <div className="text-xs text-muted-foreground">

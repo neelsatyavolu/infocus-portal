@@ -67,14 +67,17 @@ async function finalize(token: string, publication: ShowPublication & { videoId:
 async function sendNextChunk(token: string, publication: ShowPublication, sessionUrl: string, size: number) {
   const progress = await readUploadProgress(sessionUrl, token, size);
   if (progress.videoId) {
-    await prisma.showPublication.update({ where: { id: publication.id }, data: { videoId: progress.videoId, status: "PROCESSING", lastError: null } });
+    await prisma.showPublication.update({ where: { id: publication.id }, data: {
+      videoId: progress.videoId, status: "PROCESSING", uploadedBytes: BigInt(size), lastError: null
+    } });
     return { more: true };
   }
   if (progress.offset === size) return { more: false };
   const sourceUrl = await nasMintDownloadUrl(publication.nasPath, DOWNLOAD_TTL_SECONDS);
   const result = await uploadYoutubeChunk({ sourceUrl, sessionUrl, token, size, offset: progress.offset });
   await prisma.showPublication.update({ where: { id: publication.id }, data: {
-    lastError: null, ...(result.videoId ? { videoId: result.videoId, status: "PROCESSING" } : {})
+    lastError: null, uploadedBytes: BigInt(result.offset),
+    ...(result.videoId ? { videoId: result.videoId, status: "PROCESSING" } : {})
   } });
   return { more: true };
 }
@@ -90,7 +93,7 @@ async function startUpload(token: string, publication: ShowPublication, channelI
     title: publication.title, description: publication.description, publishAt: publication.publishAt
   });
   // Save the session before sending any bytes. A lost init response cannot create a duplicate video.
-  await prisma.showPublication.update({ where: { id: publication.id }, data: { sourceSize: BigInt(size), uploadSessionUrl: sessionUrl, lastError: null } });
+  await prisma.showPublication.update({ where: { id: publication.id }, data: { sourceSize: BigInt(size), uploadedBytes: BigInt(0), uploadSessionUrl: sessionUrl, lastError: null } });
   return { more: true };
 }
 

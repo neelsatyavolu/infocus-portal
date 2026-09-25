@@ -65,7 +65,7 @@ describe("advanceShowPublication", () => {
     expect(mocks.begin).toHaveBeenCalledWith("token", 100, {
       title: base.title, description: base.description, publishAt: base.publishAt
     });
-    expect(lastUpdateData()).toMatchObject({ sourceSize: 100n, uploadSessionUrl: expect.any(String) });
+    expect(lastUpdateData()).toMatchObject({ sourceSize: 100n, uploadedBytes: 0n, uploadSessionUrl: expect.any(String) });
     expect(mocks.chunk).not.toHaveBeenCalled();
   });
 
@@ -82,7 +82,16 @@ describe("advanceShowPublication", () => {
     mocks.chunk.mockResolvedValue({ offset: 100, videoId: "abcdefgh_12" });
     expect(await advanceShowPublication("pub", NOW)).toEqual({ more: true });
     expect(mocks.chunk).toHaveBeenCalledWith(expect.objectContaining({ offset: 40, size: 100 }));
-    expect(lastUpdateData()).toMatchObject({ videoId: "abcdefgh_12", status: "PROCESSING" });
+    expect(lastUpdateData()).toMatchObject({ videoId: "abcdefgh_12", status: "PROCESSING", uploadedBytes: 100n });
+  });
+
+  it("records how many bytes YouTube has confirmed after each chunk", async () => {
+    mocks.find.mockResolvedValue({ ...base, sourceSize: 100n, uploadSessionUrl: "session" });
+    mocks.progress.mockResolvedValue({ offset: 40 });
+    mocks.chunk.mockResolvedValue({ offset: 80 });
+    expect(await advanceShowPublication("pub", NOW)).toEqual({ more: true });
+    expect(lastUpdateData()).toMatchObject({ uploadedBytes: 80n });
+    expect(lastUpdateData().status).toBeUndefined();
   });
 
   it("waits for YouTube processing, then finalizes", async () => {

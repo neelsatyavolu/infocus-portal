@@ -1589,6 +1589,8 @@ model ShowPublication {
   playlistId       String?
   channelId        String?
   sourceSize       BigInt?
+  /// Bytes YouTube has confirmed so far (progress shown in the Upload show popup).
+  uploadedBytes    BigInt?
   /// Secret resumable session URL. Never expose via APIs, logs, or Inngest step results.
   uploadSessionUrl String?
   videoId          String?   @unique

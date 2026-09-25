@@ -47,7 +47,7 @@ Any producer (associate producer and up) can press **Upload show** at the top of
    - **Goes public:** the show date at 8:30 AM Pacific.
    - **Playlist:** `InFocus News | Season N`. It defaults to the highest season on the channel. The first show of a new semester defaults to the next number, and that playlist is created automatically.
    - **Description:** built from that show's anchors and the reporters and topics of the packages queued for it, for example "Anchors … share campus announcements. InFocus reporters … share news of …". Rewrite the topic part as needed.
-3. **Schedule on YouTube.** The video uploads in the background (the window can close). It goes up private, scheduled to go public at the chosen time. When YouTube finishes processing, the Portal sets the thumbnail and adds the video to the playlist. Pressing **Upload show** again shows the status and a YouTube link.
+3. **Schedule on YouTube.** The video uploads in the background (the window can close), with a progress bar showing how much has reached YouTube. It goes up private, scheduled to go public at the chosen time. When YouTube finishes processing, the Portal sets the thumbnail and adds the video to the playlist. Pressing **Upload show** again shows the status and a YouTube link.
 
 After you schedule it, the Portal locks the upload. Change the title, time, or anything else in YouTube Studio. One upload per show date. Until you press Schedule, you can choose a different file.
 

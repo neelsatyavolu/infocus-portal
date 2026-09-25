@@ -76,6 +76,8 @@ function publicationView(publication: ShowPublication) {
     description: publication.description,
     publishAt: publication.publishAt.toISOString(),
     seasonNumber: publication.seasonNumber,
+    uploadedBytes: publication.uploadedBytes === null ? null : Number(publication.uploadedBytes),
+    totalBytes: publication.sourceSize === null ? null : Number(publication.sourceSize),
     watchUrl: publication.videoId ? youtubeWatchUrl(publication.videoId) : null,
     lastError: publication.lastError
   };

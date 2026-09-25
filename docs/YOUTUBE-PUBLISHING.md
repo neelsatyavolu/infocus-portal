@@ -33,7 +33,7 @@ Production setup, migration application, and a real channel upload require opera
 
 ## Whole-show uploads (The Show → Upload show)
 
-The whole show uses the same credentials and channel as packages, with its own table (`ShowPublication`, one row per show date) and jobs (`youtube-show-publications-discover` every minute and `youtube-show-publish`, which runs one at a time globally). Code: `src/server/show-publishing.ts` (popup API), `src/server/show-publishing-worker.ts` (upload steps), `src/lib/show-publication.ts` (title, 8:30 AM Pacific time, description, and season rules).
+The whole show uses the same credentials and channel as packages, with its own table (`ShowPublication`, one row per show date) and jobs (`youtube-show-publications-discover` every minute and `youtube-show-publish`, a singleton that keeps sending chunks until the upload finishes, up to 600 per run; discovery is skipped while it runs). Code: `src/server/show-publishing.ts` (popup API), `src/server/show-publishing-worker.ts` (upload steps), `src/lib/show-publication.ts` (title, 8:30 AM Pacific time, description, and season rules).
 
 **Setup beyond package publishing**
 
@@ -45,7 +45,7 @@ The whole show uses the same credentials and channel as packages, with its own t
 **Flow.** The browser uploads the file to Drive (`Package Storage/Shows/<date>/`), and captures a 1280-wide JPEG poster in the browser, saved beside it as `<name>.poster.jpg`. The status then moves through these steps:
 - `DRAFT`: set when the upload starts.
 - Confirm checks that the Drive file serves byte ranges and that the publish time is still in the future. It pins the metadata, then sets `UPLOADING`.
-- `UPLOADING`: the video is uploaded as `private` with `status.publishAt`, in 8 MiB resumable chunks.
+- `UPLOADING`: the video is uploaded as `private` with `status.publishAt`, in 8 MiB resumable chunks. `uploadedBytes` records confirmed progress for the popup.
 - `PROCESSING`: waits until YouTube reports the video processed and scheduled.
 - `FINALIZING`: sets the thumbnail once (`thumbnailSetAt`), then resolves or creates the `InFocus News | Season N` playlist (`playlistId` is saved before the add) and adds the video unless it's already there (`playlistAddedAt`).
 - `SCHEDULED`: done.

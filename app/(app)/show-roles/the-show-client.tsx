@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { CalendarDays, Mic2, ScrollText, Sparkles, Wand2 } from "lucide-react";
+import { CalendarDays, Mic2, ScrollText, Sparkles, Upload, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -55,6 +56,12 @@ type Overview = {
 
 const EMPTY_VALUE = "__none__";
 
+// Loaded only when a producer opens it; keeps upload/thumbnail code off the page.
+const ShowUploadDialog = dynamic(
+  () => import("./show-upload-dialog").then((mod) => mod.ShowUploadDialog),
+  { ssr: false }
+);
+
 function NameSelect({
   value,
   options,
@@ -91,6 +98,7 @@ function OverviewBody() {
   const [data, setData] = useState<Overview | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
 
   const load = useCallback(async (date?: string) => {
     const query = date ? `?date=${encodeURIComponent(date)}` : "";
@@ -216,6 +224,10 @@ function OverviewBody() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" variant="outline" onClick={() => setUploadOpen(true)}>
+              <Upload className="h-4 w-4" />
+              Upload show
+            </Button>
             <Link href={data.teleprompterHref as never} className={buttonVariants({ variant: "outline" })}>
               <ScrollText className="h-4 w-4" />
               {data.teleprompterDocId ? "Open script" : "Create script"}
@@ -363,6 +375,10 @@ function OverviewBody() {
           ))}
         </div>
       </section>
+
+      {uploadOpen ? (
+        <ShowUploadDialog open={uploadOpen} onOpenChange={setUploadOpen} showDate={data.date} showLabel={data.label} />
+      ) : null}
     </div>
   );
 }

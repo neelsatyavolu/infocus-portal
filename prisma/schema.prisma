@@ -1573,6 +1573,37 @@ model YoutubePublicationEmail {
   @@unique([publicationId, recipient])
 }
 
+/// One scheduled YouTube upload of the whole show per show date (The Show → Upload show).
+/// DRAFT until a producer confirms; source and metadata are pinned at confirm.
+model ShowPublication {
+  id               String    @id @default(cuid())
+  showDate         String    @unique
+  status           String    @default("DRAFT")
+  /// InFocus Drive path of the show video (poster sits beside it as `<name>.poster.jpg`).
+  nasPath          String
+  title            String
+  description      String
+  publishAt        DateTime
+  seasonNumber     Int?
+  semesterLabel    String?
+  playlistId       String?
+  channelId        String?
+  sourceSize       BigInt?
+  /// Secret resumable session URL. Never expose via APIs, logs, or Inngest step results.
+  uploadSessionUrl String?
+  videoId          String?   @unique
+  thumbnailSetAt   DateTime?
+  playlistAddedAt  DateTime?
+  lastError        String?
+  createdById      String
+  confirmedById    String?
+  confirmedAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([status])
+}
+
 /// Roster of livestream managers (producers appoint them). Not a PlatformRole.
 model LivestreamManager {
   id              String   @id @default(cuid())

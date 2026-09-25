@@ -9,6 +9,7 @@ import { runEquipmentOverdueJob } from "@/src/server/equipment-overdue";
 import { runConfiguredHubBackup } from "@/src/server/hub-backup-run";
 import { getPendingMasterCalendarSyncMonths, syncMasterCalendarMonth } from "@/src/server/master-calendar-sync";
 import { notifyManagersOfReadyVersion } from "@/src/server/notify-media-ready";
+import { discoverShowPublications, publishYoutubeShow } from "@/src/server/show-publishing-jobs";
 import { discoverYoutubePublications, publishYoutubePackage } from "@/src/server/youtube-publishing-jobs";
 
 type BunnyWebhookEvent = {
@@ -358,6 +359,8 @@ export const hubDbBackupHourly = inngest.createFunction(
 export const inngestFunctions = [
   discoverYoutubePublications,
   publishYoutubePackage,
+  discoverShowPublications,
+  publishYoutubeShow,
   bunnyWebhookProcessed,
   purgeExpiredTrash,
   purgeStaleVideoVersions,

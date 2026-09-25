@@ -76,19 +76,33 @@ export async function sourceVideoSize(sourceUrl: string) {
   return size;
 }
 
-export async function beginYoutubeUpload(token: string, size: number, title: string, showDate: string) {
-  const response = await request(`${API}/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status&notifySubscribers=false`, {
+async function startResumableUpload(token: string, size: number, query: string, metadata: unknown) {
+  const response = await request(`${API}/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status${query}`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json",
       "X-Upload-Content-Length": String(size), "X-Upload-Content-Type": "application/octet-stream" },
-    body: JSON.stringify({ snippet: { title: title.replace(/[<>]/g, "").slice(0, 100) || "InFocus package",
-      description: `InFocus News • ${showDate}`, categoryId: "25" },
-      status: { privacyStatus: "unlisted", embeddable: true } })
+    body: JSON.stringify(metadata)
   });
   await requireOk(response, "YouTube upload initialization");
   const location = response.headers.get("location");
   if (!location) throw new PublicationError("YouTube returned no upload session.");
   return uploadUrl(location);
+}
+
+export async function beginYoutubeUpload(token: string, size: number, title: string, showDate: string) {
+  return startResumableUpload(token, size, "&notifySubscribers=false", {
+    snippet: { title: title.replace(/[<>]/g, "").slice(0, 100) || "InFocus package",
+      description: `InFocus News • ${showDate}`, categoryId: "25" },
+    status: { privacyStatus: "unlisted", embeddable: true } });
+}
+
+/** Whole-show upload: private until YouTube publishes it at `publishAt`. */
+export async function beginYoutubeShowUpload(token: string, size: number,
+  input: { title: string; description: string; publishAt: Date }) {
+  return startResumableUpload(token, size, "", {
+    snippet: { title: input.title.replace(/[<>]/g, "").slice(0, 100) || "InFocus News",
+      description: input.description.replace(/[<>]/g, "").slice(0, 5000), categoryId: "25" },
+    status: { privacyStatus: "private", publishAt: input.publishAt.toISOString(), embeddable: true } });
 }
 
 async function parseProgress(response: Response, size: number): Promise<{ offset: number; videoId?: string }> {
@@ -174,4 +188,96 @@ export async function checkYoutubeVideo(videoId: string, token: string, channelI
     throw new PublicationError("Video is not unlisted and embeddable. Check YouTube Studio and the API project audit.", true);
   }
   return true;
+}
+
+/** Shows: processed and still scheduled (or already public after its publish time). */
+export async function checkScheduledYoutubeVideo(videoId: string, token: string, channelId: string) {
+  youtubeWatchUrl(videoId);
+  const response = await request(`${API}/youtube/v3/videos?part=snippet,status&id=${videoId}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  await requireOk(response, "YouTube processing check");
+  const video = (await response.json()).items?.[0];
+  if (!video) throw new PublicationError("Uploaded video is not available on YouTube.");
+  if (video.snippet?.channelId !== channelId) throw new PublicationError("Video channel mismatch.", true);
+  if (["failed", "rejected", "deleted"].includes(video.status?.uploadStatus)) {
+    throw new PublicationError("YouTube could not process this video. Check YouTube Studio.", true);
+  }
+  if (video.status?.uploadStatus !== "processed") return false;
+  if (video.status?.privacyStatus !== "public" && !video.status?.publishAt) {
+    throw new PublicationError("Video is not scheduled to go public. Check YouTube Studio and the API project audit.", true);
+  }
+  return true;
+}
+
+// Playlists and thumbnails need the broader `youtube` scope; 403 means the refresh token predates it.
+async function requireScopedOk(response: Response, operation: string) {
+  if (response.status === 403) {
+    await response.body?.cancel();
+    throw new PublicationError(`${operation} was refused (HTTP 403). Re-authorize the channel with the youtube scope.`, true);
+  }
+  await requireOk(response, operation);
+}
+
+export async function listYoutubePlaylists(token: string) {
+  const playlists: Array<{ id: string; title: string }> = [];
+  let pageToken = "";
+  for (let page = 0; page < 20; page++) {
+    const query = pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : "";
+    const response = await request(`${API}/youtube/v3/playlists?part=snippet&mine=true&maxResults=50${query}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    await requireOk(response, "YouTube playlist lookup");
+    const data = await response.json();
+    for (const item of data.items ?? []) {
+      if (typeof item.id === "string" && typeof item.snippet?.title === "string") {
+        playlists.push({ id: item.id, title: item.snippet.title });
+      }
+    }
+    if (typeof data.nextPageToken !== "string") break;
+    pageToken = data.nextPageToken;
+  }
+  return playlists;
+}
+
+export async function createYoutubePlaylist(token: string, title: string) {
+  const response = await request(`${API}/youtube/v3/playlists?part=snippet,status`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ snippet: { title }, status: { privacyStatus: "public" } })
+  });
+  await requireScopedOk(response, "YouTube playlist creation");
+  const body = await response.json();
+  if (typeof body.id !== "string") throw new PublicationError("YouTube returned no playlist.");
+  return body.id as string;
+}
+
+export async function playlistHasVideo(token: string, playlistId: string, videoId: string) {
+  const query = `playlistId=${encodeURIComponent(playlistId)}&videoId=${encodeURIComponent(videoId)}`;
+  const response = await request(`${API}/youtube/v3/playlistItems?part=id&maxResults=1&${query}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  await requireOk(response, "YouTube playlist check");
+  return ((await response.json()).items ?? []).length > 0;
+}
+
+export async function addVideoToPlaylist(token: string, playlistId: string, videoId: string) {
+  const response = await request(`${API}/youtube/v3/playlistItems?part=snippet`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ snippet: { playlistId, resourceId: { kind: "youtube#video", videoId } } })
+  });
+  await requireScopedOk(response, "Adding the video to the playlist");
+  await response.body?.cancel();
+}
+
+export async function setYoutubeThumbnail(token: string, videoId: string, jpeg: ArrayBuffer) {
+  youtubeWatchUrl(videoId);
+  const response = await request(`${API}/upload/youtube/v3/thumbnails/set?videoId=${videoId}&uploadType=media`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "image/jpeg" },
+    body: jpeg
+  });
+  await requireScopedOk(response, "Setting the thumbnail");
+  await response.body?.cancel();
 }

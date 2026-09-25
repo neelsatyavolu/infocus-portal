@@ -30,3 +30,26 @@ YouTube restricts uploads by affected unverified API projects to private visibil
 - Resend's [idempotency keys](https://resend.com/docs/dashboard/emails/idempotency-keys) last 24 hours. After 23 hours from the first attempt, uncertain deliveries stop for manual reconciliation. Check Resend for the key `youtube-publication/<email-record-id>`; mark confirmed sends delivered. Only reset an attempt after confirming it was not sent. Delivery details live in `YoutubePublicationEmail.lastError`; the queue shows an aggregate pending-email message.
 
 Production setup, migration application, and a real channel upload require operator configuration; unit tests use mocks and do not publish videos or send email.
+
+## Whole-show uploads (The Show → Upload show)
+
+The whole show uses the same credentials and channel as packages, with its own table (`ShowPublication`, one row per show date) and jobs (`youtube-show-publications-discover` every minute and `youtube-show-publish`, which runs one at a time globally). Code: `src/server/show-publishing.ts` (popup API), `src/server/show-publishing-worker.ts` (upload steps), `src/lib/show-publication.ts` (title, 8:30 AM Pacific time, description, and season rules).
+
+**Setup beyond package publishing**
+
+1. Apply `prisma/migrations/20260924220000_show_publication/migration.sql` (`prisma db execute --file … --schema prisma/schema.prisma`), then verify with `prisma migrate diff` that nothing remains.
+2. Re-authorize the channel with scope `https://www.googleapis.com/auth/youtube`, in addition to the existing scopes, and replace `YOUTUBE_REFRESH_TOKEN`. Creating playlists, adding videos to them, and setting thumbnails need this scope. With the old token, the upload and schedule still succeed, but the publication stops as `FAILED` with a “Re-authorize the channel with the youtube scope” message.
+3. The channel must be allowed custom thumbnails, which requires a verified channel.
+4. `YOUTUBE_PUBLISHING_START_DATE` and `YOUTUBE_PUBLISH_HOUR_PACIFIC` do not affect shows. Uploads start as soon as a producer confirms.
+
+**Flow.** The browser uploads the file to Drive (`Package Storage/Shows/<date>/`), and captures a 1280-wide JPEG poster in the browser, saved beside it as `<name>.poster.jpg`. The status then moves through these steps:
+- `DRAFT`: set when the upload starts.
+- Confirm checks that the Drive file serves byte ranges and that the publish time is still in the future. It pins the metadata, then sets `UPLOADING`.
+- `UPLOADING`: the video is uploaded as `private` with `status.publishAt`, in 8 MiB resumable chunks.
+- `PROCESSING`: waits until YouTube reports the video processed and scheduled.
+- `FINALIZING`: sets the thumbnail once (`thumbnailSetAt`), then resolves or creates the `InFocus News | Season N` playlist (`playlistId` is saved before the add) and adds the video unless it's already there (`playlistAddedAt`).
+- `SCHEDULED`: done.
+
+**Seasons.** The popup defaults to the highest `InFocus News | Season N` on the channel. If the latest confirmed show is from an earlier semester (`semesterForDate`) and no higher season exists yet, it suggests N+1, which the worker creates as a public playlist.
+
+**Recovery.** Same rules as packages. `FAILED` needs operator action, and the upload session URL is secret. If the upload never started because the publish time passed, reset the row to `DRAFT`, which unlocks the popup, and upload again. After fixing a scope or thumbnail problem on a `FINALIZING` failure, set `status` back to `FINALIZING`. Steps already done are skipped.

@@ -13,6 +13,7 @@ import { sanitizeSegment } from "@/src/lib/project-folders";
 const PACKAGES_ROOT = "Package Cycles";
 const CYCLE_STORAGE_ROOT = "Package Storage";
 const CUSTOM_QUEUE_FOLDER = "Publishing Queue";
+const SHOW_UPLOAD_FOLDER = "Shows";
 
 export type NasUploadSession = {
   provider: "NAS";
@@ -113,6 +114,14 @@ export function buildPublishingQueueNasPath(input: {
   const ver = Math.max(1, input.versionNumber ?? 1);
   const file = ver > 1 ? `${base}-v${ver}.${ext}` : `${base}.${ext}`;
   return [CYCLE_STORAGE_ROOT, CUSTOM_QUEUE_FOLDER, title, file].join("/");
+}
+
+/** Whole-show uploads from The Show: `Package Storage/Shows/<YYYY-MM-DD>/<file>-<stamp>.<ext>`. */
+export function buildShowNasPath(input: { showDate: string; fileName: string; stamp: string }): string {
+  const rawName = (input.fileName || "").split(/[/\\]/).pop() || "";
+  const base = sanitizeSegment(rawName.replace(/\.[^/.]+$/, ""), "") || "show";
+  const ext = sanitizeSegment((rawName.match(/\.([^.]+)$/)?.[1] || "mp4").toLowerCase(), "mp4").replace(/^\./, "");
+  return [CYCLE_STORAGE_ROOT, SHOW_UPLOAD_FOLDER, input.showDate, `${base}-${input.stamp}.${ext}`].join("/");
 }
 
 export function isNasStorageEnabled(): boolean {

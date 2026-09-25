@@ -1,4 +1,5 @@
 import { prisma } from "@/src/lib/prisma";
+import { finalCutHeadline } from "@/src/lib/package-headline";
 import { resolveOriginalDownloadUrl } from "@/src/lib/media-playback";
 import { isPublicationDue, publicationDateKey } from "@/src/lib/youtube-publication";
 import { beginYoutubeUpload, checkYoutubeVideo, PublicationError, readUploadProgress, sourceVideoSize,
@@ -46,7 +47,7 @@ export async function advanceYoutubePublication(rowId: string, now = new Date())
     const source = row.finalCutMediaItem?.currentVersion;
     if (!source || source.status !== "READY" || source.sourceType !== "VIDEO" || row.finalCutMediaItem?.deletedAt) return { more: false };
     publication = await prisma.youtubePublication.upsert({ where: { rowId }, update: {}, create: {
-      rowId, title: row.groupTopic || "Untitled package", showDate: row.queuedForShowDate,
+      rowId, title: finalCutHeadline(row.finalCutMediaItem) || row.groupTopic || "Untitled package", showDate: row.queuedForShowDate,
       mediaVersionId: source.id, channelId: config.channelId
     } });
   }

@@ -10,7 +10,7 @@ Producers can **drag** a package onto a show. Max **2** packages per show. Auto-
 
 After a show day has passed, that date leaves the live queue. **Past shows** opens those air dates (newest first) and their packages. Producers can still move, download, or remove them.
 
-Queue cards keep the video title and thumbnail above the YouTube status, air-date selector, and action buttons. Controls wrap on narrow screens, including in **Past shows**.
+Queue cards show the package topic and the Final Cut headline (when the students gave one), with the thumbnail, above the YouTube status, air-date selector, and action buttons. Controls wrap on narrow screens, including in **Past shows**.
 
 **Add package** can queue a custom titled video (cycle 0, not a roster group).
 
@@ -18,7 +18,7 @@ Queue cards keep the video title and thumbnail above the YouTube status, air-dat
 
 **Managers** lets producers appoint registered members as website managers. Managers receive an email when a package is ready on YouTube, with its title, air date, watch link, and embed code. The email also opens a package page with video playback and **Copy embed code**. This assignment does not grant producer permissions or access to Groups.
 
-When YouTube publishing is configured, queued packages upload automatically as **unlisted** on their assigned air date (Pacific time; default start is midnight). Uploading and YouTube processing take time. Emails are sent only after the video is processed, unlisted, and embeddable. Queue cards show publication status and errors; published packages remain accessible from **Past shows**.
+When YouTube publishing is configured, queued packages upload automatically as **unlisted** on their assigned air date (Pacific time; default start is midnight). The YouTube title is the Final Cut headline, or the package topic when there is no headline. Uploading and YouTube processing take time. Emails are sent only after the video is processed, unlisted, and embeddable. Queue cards show publication status and errors; published packages remain accessible from **Past shows**.
 
 Only dates on or after the configured activation date are eligible. Failed transfers retry using the same upload session. Each package publishes once, using the Final Cut version selected when its upload begins. Replacing a Final Cut or moving an already published package does not create another YouTube video. Removing a queued package pauses an unfinished upload; it does not delete an existing YouTube video. Changing the air date during upload requires an operator to reconcile the upload before resuming.
 

@@ -38,6 +38,7 @@ import {
 import { resolvePlaybackUrl, resolveThumbnailUrl } from "@/src/lib/media-playback";
 import { buildCycleStageNasPath, isNasStorageEnabled, nasMintUploadSession } from "@/src/lib/nas-storage";
 import { parseClipComment } from "@/src/lib/package-clip-comments";
+import { finalCutHeadline } from "@/src/lib/package-headline";
 import { isRollKind, parseRollTitle, rollKindFolder, titledWithRollKind, type RollKind } from "@/src/lib/package-roll-kind";
 import { prisma } from "@/src/lib/prisma";
 import { labeledUser, userDisplayName } from "@/src/lib/user-display";
@@ -637,6 +638,7 @@ export async function loadCycleStageView(input: {
       id: row.id,
       cycleNumber: row.cycleNumber,
       groupTopic: row.groupTopic,
+      headline: finalCutHeadline(row.finalCutMediaItem),
       proofOfContact: row.proofOfContact,
       aRollBRoll: row.aRollBRoll,
       aRollNeedsChanges,

@@ -32,6 +32,7 @@ type QueueRow = {
   id: string;
   cycleNumber: number;
   groupTopic: string;
+  headline?: string | null;
   custom?: boolean;
   queuedForAirAt: string | null;
   queuedForShowDate: string | null;
@@ -83,6 +84,9 @@ function QueuePackageCard({
   const title = (
     <div className="min-w-0 break-words">
       <div className="font-medium">{row.groupTopic || (row.custom ? "Untitled" : "Untitled group")}</div>
+      {row.headline && row.headline !== row.groupTopic ? (
+        <div className="text-sm text-foreground/80">{row.headline}</div>
+      ) : null}
       <div className="text-xs text-muted-foreground">{queuePackageSubtitle(row)}</div>
     </div>
   );

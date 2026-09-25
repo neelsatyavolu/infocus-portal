@@ -5,6 +5,7 @@ import { ok } from "@/src/lib/http";
 import { getPlatformAccess, hasPlatformRole } from "@/src/lib/platform-admin";
 import { prisma } from "@/src/lib/prisma";
 import { resolveThumbnailUrl } from "@/src/lib/media-playback";
+import { finalCutHeadline } from "@/src/lib/package-headline";
 import { isCustomQueuePackage } from "@/src/lib/publishing-queue";
 import { labeledUser, userDisplayName } from "@/src/lib/user-display";
 import { DATE_KEY_PATTERN, formatShowDateLabel, todayDateKey } from "@/src/lib/show-assignment";
@@ -30,6 +31,7 @@ async function mapQueueRow(row: {
   assignedProducer: { name: string | null; nickname?: string | null; email: string | null } | null;
   members: Array<{ user: { name: string | null; nickname?: string | null; email: string | null } }>;
   finalCutMediaItem: {
+    title: string;
     currentVersion: {
       bunnyVideoId: string;
       storageProvider: string;
@@ -44,6 +46,7 @@ async function mapQueueRow(row: {
     id: row.id,
     cycleNumber: row.cycleNumber,
     groupTopic: row.groupTopic,
+    headline: finalCutHeadline(row.finalCutMediaItem),
     custom: isCustomQueuePackage(row),
     queuedForAirAt: row.queuedForAirAt?.toISOString() ?? null,
     queuedForShowDate: row.queuedForShowDate,
@@ -76,6 +79,7 @@ export async function GET(request: Request) {
           assignedProducer: { select: { name: true, nickname: true, email: true } },
           finalCutMediaItem: {
             select: {
+              title: true,
               currentVersion: {
                 select: {
                   bunnyVideoId: true,

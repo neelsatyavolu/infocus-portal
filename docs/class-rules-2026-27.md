@@ -56,7 +56,9 @@ cut's chain stuck at `DRAFT`.
 - **Initial Cut folder** — one media item per package. `v1` is the first initial cut;
   each revision after producer or adviser feedback adds a version.
   Using versions here keeps that feedback threaded across revisions.
-- **Final Cut folder** — a separate media item.
+- **Final Cut folder** — a separate media item. Its title is the package
+  headline students must enter when they upload the Final Cut
+  (`src/lib/package-headline.ts`).
 - The progress row links both via `initialCutMediaItemId` and
   `finalCutMediaItemId`, and owns the approval chain.
 

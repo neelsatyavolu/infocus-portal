@@ -36,6 +36,18 @@ describe("publication retries", () => {
     expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ videoId: "abcdefgh_12", status: "PROCESSING" }) }));
     expect(mocks.chunk).not.toHaveBeenCalled();
   });
+  it("titles a new YouTube video with the Final Cut headline, else the topic", async () => {
+    const version = { id: "v1", status: "READY", sourceType: "VIDEO", nasPath: "Package Storage/Cycle 1/Airport/Final Cut/airport final.mp4" };
+    const base = { id: "row", groupTopic: "Airport", queuedForAirAt: new Date(), queuedForShowDate: "2026-09-19", youtubePublication: null };
+    mocks.token.mockRejectedValue(new Error("stop after creating the publication"));
+    mocks.upsert.mockResolvedValue({ id: "pub", channelId: "channel" });
+    mocks.row.mockResolvedValue({ ...base, finalCutMediaItem: { title: "Palo Alto Airport Day brings the community together", currentVersion: version } });
+    await advanceYoutubePublication("row", new Date("2026-09-19T12:00:00Z")).catch(() => undefined);
+    expect(mocks.upsert).toHaveBeenLastCalledWith(expect.objectContaining({ create: expect.objectContaining({ title: "Palo Alto Airport Day brings the community together" }) }));
+    mocks.row.mockResolvedValue({ ...base, finalCutMediaItem: { title: "airport final", currentVersion: version } });
+    await advanceYoutubePublication("row", new Date("2026-09-19T12:00:00Z")).catch(() => undefined);
+    expect(mocks.upsert).toHaveBeenLastCalledWith(expect.objectContaining({ create: expect.objectContaining({ title: "Airport" }) }));
+  });
   it("does not start future or removed packages", async () => {
     mocks.row.mockResolvedValue({ queuedForAirAt: null });
     await advanceYoutubePublication("row");

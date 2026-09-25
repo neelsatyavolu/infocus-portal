@@ -9,6 +9,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CycleGradeReleaseCard } from "@/components/package-cycle/cycle-grade-release-card";
 import { FinalCutGradeCard, type FinalCutGradeCardData } from "@/components/package-cycle/final-cut-grade-card";
+import { FinalCutHeadlineDialog } from "@/components/package-cycle/final-cut-headline-dialog";
 import { ApproveFeedbackDialog } from "@/components/package-cycle/approve-feedback-dialog";
 import ProducerFeedbackDialog from "@/components/package-cycle/producer-feedback-dialog";
 import { StageComments } from "@/components/package-cycle/stage-comments";
@@ -69,6 +70,7 @@ type StageView = {
     id: string;
     cycleNumber: number;
     groupTopic: string;
+    headline?: string | null;
     proofOfContact: boolean;
     aRollBRoll: boolean;
     aRollNeedsChanges?: boolean;
@@ -123,12 +125,14 @@ export function StageWorkspace({
   const [savingFeedback, setSavingFeedback] = useState(false);
   const [publishingGrades, setPublishingGrades] = useState(false);
   const [pickRollOpen, setPickRollOpen] = useState(false);
+  const [headlineOpen, setHeadlineOpen] = useState(false);
   const [approveKind, setApproveKind] = useState<"aroll" | "cut" | null>(null);
   const [approving, setApproving] = useState(false);
   const [watching, setWatching] = useState<MediaCard | null>(null);
   const [showOlderCuts, setShowOlderCuts] = useState(false);
   const fileInput = useRef<HTMLInputElement | null>(null);
   const pendingRollKind = useRef<RollKind | null>(null);
+  const pendingHeadline = useRef("");
   const speedTrackingRef = useRef(createUploadSpeedTracker());
   const progressFloorRef = useRef(0);
 
@@ -177,7 +181,9 @@ export function StageWorkspace({
         title:
           slug === "initial-cut"
             ? initialCutVersionTitle(((view.media ?? [])[0]?.versionNumber ?? 0) + 1)
-            : file.name.replace(/\.[^/.]+$/, "") || TITLES[slug],
+            : slug === "final-cut"
+              ? pendingHeadline.current
+              : file.name.replace(/\.[^/.]+$/, "") || TITLES[slug],
         fileName: file.name,
         rollKind: pendingRollKind.current ?? undefined
       })
@@ -568,6 +574,13 @@ export function StageWorkspace({
         </div>
       )}
 
+      {slug === "final-cut" && view.row?.headline ? (
+        <div className="rounded-xl border border-border bg-card p-4">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Headline</div>
+          <p className="mt-1 text-base font-medium text-foreground">{view.row.headline}</p>
+        </div>
+      ) : null}
+
       {view.canUpload ? (
         <div className="rounded-xl border border-border bg-card p-4">
           {confirmFinal && view.allowSecondFinalCut ? (
@@ -594,7 +607,9 @@ export function StageWorkspace({
               if (
                 confirmFinal &&
                 !view.allowSecondFinalCut &&
-                !window.confirm("Upload this Final Cut? You cannot replace it later unless the first grade is below 75%.")
+                !window.confirm(
+                  `Upload this Final Cut with the headline "${pendingHeadline.current}"? You cannot replace it later unless the first grade is below 75%.`
+                )
               ) {
                 return;
               }
@@ -607,6 +622,10 @@ export function StageWorkspace({
             onClick={() => {
               if (slug === "a-roll") {
                 setPickRollOpen(true);
+                return;
+              }
+              if (slug === "final-cut") {
+                setHeadlineOpen(true);
                 return;
               }
               pendingRollKind.current = null;
@@ -787,6 +806,18 @@ export function StageWorkspace({
           </div>
         </DialogContent>
       </Dialog>
+
+      <FinalCutHeadlineDialog
+        open={headlineOpen}
+        initialHeadline={view.row?.headline ?? ""}
+        onOpenChange={setHeadlineOpen}
+        onContinue={(headline) => {
+          pendingHeadline.current = headline;
+          pendingRollKind.current = null;
+          setHeadlineOpen(false);
+          window.setTimeout(() => fileInput.current?.click(), 0);
+        }}
+      />
 
       <Dialog
         open={Boolean(watching)}

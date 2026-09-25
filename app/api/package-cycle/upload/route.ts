@@ -3,6 +3,7 @@ import { handleRouteError } from "@/src/lib/api-errors";
 import { requireUserId, syncUserProfile } from "@/src/lib/auth";
 import { ok } from "@/src/lib/http";
 import { isCycleStageSlug } from "@/src/lib/package-cycle-gates";
+import { headlineError } from "@/src/lib/package-headline";
 import { isRollKind } from "@/src/lib/package-roll-kind";
 import { getPlatformAccess } from "@/src/lib/platform-admin";
 import { completeCycleStageUpload, initCycleStageUpload } from "@/src/server/package-cycle-stage";
@@ -35,6 +36,10 @@ export async function POST(request: Request) {
     if (action === "init") {
       const payload = initSchema.parse(body);
       if (!isCycleStageSlug(payload.stage)) {
+        throw new Error("BAD_REQUEST");
+      }
+      // The Final Cut title is the package headline.
+      if (payload.stage === "final-cut" && headlineError(payload.title)) {
         throw new Error("BAD_REQUEST");
       }
       const result = await initCycleStageUpload({

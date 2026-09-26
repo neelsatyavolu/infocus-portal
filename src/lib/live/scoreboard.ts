@@ -22,8 +22,6 @@ export const MAX_TEAM_NAME = 20;
 export const SET_TAG_MS = 10_000;
 /** Long enough that OBS (polling every second) still shows about four seconds of it. */
 export const TOUCHDOWN_MS = 5_000;
-/** The last part of the touchdown plate is its wipe back. */
-export const TOUCHDOWN_EXIT_MS = 600;
 export const FOOTBALL_TIMEOUTS_PER_HALF = 3;
 const MAX_SCORE = 999;
 const MAX_TAGS = 6;
@@ -414,8 +412,11 @@ export function applyScoreboardAction(state: ScoreboardState, action: Scoreboard
 }
 
 /** Drops expired tags so stored state stays small. */
+/** Kept a few seconds past their end so an overlay that saw one late can finish its exit. */
+const TAG_KEEP_MS = 3_000;
+
 export function pruneTags(state: ScoreboardState, now: number): ScoreboardState {
-  const tags = state.tags.filter((tag) => tag.until > now);
+  const tags = state.tags.filter((tag) => tag.until + TAG_KEEP_MS > now);
   return tags.length === state.tags.length ? state : { ...state, tags };
 }
 

@@ -82,7 +82,8 @@ describe("live scoreboard", () => {
     const state = run(defaultScoreboard("basketball"), [{ type: "timeout", team: 0 }]);
     expect(activeTags(state, T0 + 7_999, "timeout")[0]?.text).toBe("Timeout · PALY");
     expect(activeTags(state, T0 + 8_000, "timeout")).toHaveLength(0);
-    expect(pruneTags(state, T0 + 8_000).tags).toHaveLength(0);
+    expect(pruneTags(state, T0 + 8_000).tags).toHaveLength(1);
+    expect(pruneTags(state, T0 + 11_000).tags).toHaveLength(0);
   });
 
   describe("football", () => {

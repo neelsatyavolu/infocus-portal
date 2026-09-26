@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element -- broadcast graphics use plain img so OBS renders them without the image optimizer. */
-import type { CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import {
-  TOUCHDOWN_EXIT_MS,
+  TOUCHDOWN_MS,
   activeTags,
   clockMs,
   downText,
@@ -95,11 +95,19 @@ function Clock({ state, now }: BugProps) {
   return <span className="lv-clk">{formatClock(clockMs(state.clock, now), state.sport)}</span>;
 }
 
+/**
+ * Stable key for a tag. The dashboard shows a tap instantly and then gets the saved copy back with
+ * a different id; keying by what the tag says keeps React from remounting (and replaying) it.
+ */
+function tagKey(tag: ScoreboardState["tags"][number]) {
+  return `${tag.kind}-${tag.team ?? ""}-${tag.text}`;
+}
+
 function Tags({ state, now }: BugProps) {
   return (
     <>
       {activeTags(state, now, "timeout").map((tag) => (
-        <span key={tag.id} className="lv-tag">
+        <span key={tagKey(tag)} className="lv-tag">
           {tag.text}
         </span>
       ))}
@@ -145,12 +153,27 @@ function BarWithTier({ state, now }: BugProps) {
 
 type Tag = ScoreboardState["tags"][number];
 
-/** Green TOUCHDOWN plate that wipes out from the tile over the whole bar, holds, then wipes back. */
+/**
+ * How late the plate may first appear and still play from the start. OBS polls once a second, so it
+ * usually sees a touchdown a little after the tap; later than this (a reload mid-celebration) it
+ * resumes partway through instead.
+ */
+const TOUCHDOWN_LATE_MS = 1500;
+
+/**
+ * Green TOUCHDOWN plate: wipes out from the tile over the bar, holds, wipes back. The whole thing is
+ * one CSS timeline fixed when the plate first appears, so later updates (the saved copy replacing the
+ * instant one, overlay polls, clock ticks) can never restart or stutter it. It ends hidden.
+ */
 function Touchdown({ tag, state, now, width }: { tag: Tag; state: ScoreboardState; now: number; width: number }) {
   const team = tag.team ?? 0;
-  const leaving = tag.until - now <= TOUCHDOWN_EXIT_MS;
+  const [delayMs] = useState(() => {
+    const elapsed = now - (tag.until - TOUCHDOWN_MS);
+    return elapsed > TOUCHDOWN_LATE_MS ? -Math.min(elapsed, TOUCHDOWN_MS) : 0;
+  });
+  const timeline = { "--td-duration": `${TOUCHDOWN_MS}ms`, "--td-delay": `${delayMs}ms` } as CSSProperties;
   return (
-    <div className={`lv-td ${leaving ? "out" : ""}`} style={{ left: 96, width }} role="status">
+    <div className="lv-td" style={{ left: 96, width, ...timeline }} role="status">
       <span className="lv-chip" style={{ background: state.teams[team].color }} />
       <span className="lv-td-text">
         <b>Touchdown</b>
@@ -167,7 +190,8 @@ function FootballCenter({ state, now }: BugProps) {
   const layout = nameLayout(state, 380, 500, 204);
   const downLeft = state.possession === 1 ? 96 + layout.cell + 170 : 96;
   const timeouts = activeTags(state, now, "timeout");
-  const touchdown = activeTags(state, now, "touchdown").at(-1);
+  // Kept mounted a little past its end so a late start can finish its wipe back; the timeline ends hidden.
+  const touchdown = state.tags.filter((tag) => tag.kind === "touchdown" && tag.until + TOUCHDOWN_LATE_MS > now).at(-1);
   return (
     <>
       <div className="lv-row">
@@ -185,7 +209,7 @@ function FootballCenter({ state, now }: BugProps) {
             {down}
           </span>
         ) : null}
-        {touchdown ? <Touchdown key={touchdown.id} tag={touchdown} state={state} now={now} width={layout.cell * 2 + 170 + 56} /> : null}
+        {touchdown ? <Touchdown key={tagKey(touchdown)} tag={touchdown} state={state} now={now} width={layout.cell * 2 + 170 + 56} /> : null}
       </div>
       {timeouts.length ? (
         <div className="lv-temp" style={{ left: 96 }}>
@@ -228,7 +252,7 @@ function VolleyballRows({ state, now }: BugProps) {
         </div>
         <div className="lv-tier a-wipe" style={{ padding: "0 30px", "--d": "0.1s" } as CSSProperties}>
           {setTag ? (
-            <span key={setTag.id} className="lv-tag">
+            <span key={tagKey(setTag)} className="lv-tag">
               {setTag.text}
             </span>
           ) : (

@@ -85,7 +85,7 @@ export default function GroupNotesButton({ rowId, topic, onSaved }: {
               className="min-h-[12rem] w-full resize-y rounded-md border border-border bg-black/40 light:bg-muted px-3 py-2 text-sm leading-6 text-foreground outline-none placeholder:text-muted-foreground focus:border-[var(--brand-green)]/50"
             />
           ) : null}
-          {error ? <p role="alert" className="text-sm text-destructive">{error}</p> : null}
+          {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
           <DialogFooter>
             <Button type="button" variant="outline" disabled={saving} onClick={() => setOpen(false)}>Cancel</Button>
             <Button type="button" disabled={!loaded || loading || saving} onClick={() => void save()}>{saving ? "Saving…" : "Save"}</Button>

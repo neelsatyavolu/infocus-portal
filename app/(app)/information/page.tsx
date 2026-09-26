@@ -56,8 +56,7 @@ function StageItem({ title, body }: { title: string; body: string }) {
 export default function CycleInformationPage() {
   return (
     <div className="route-enter mx-auto w-full max-w-3xl space-y-5 pb-24">
-      <section className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 md:p-6">
-        <div className="pointer-events-none absolute inset-0 brand-hero-gradient opacity-40" />
+      <section className="brand-hero-panel relative overflow-hidden p-5 md:p-6">
         <div className="relative min-w-0">
           <div className="eyebrow">The Cycle</div>
           <h1 className="display-md mt-2 text-pretty text-foreground">Information</h1>

@@ -65,7 +65,7 @@ export function DeleteEntityButton({
         disabled={isDeleting}
         aria-label={`Delete ${label}`}
       >
-        <Trash2 className="h-4 w-4 text-rose-300" />
+        <Trash2 className="h-4 w-4 text-danger" />
       </Button>
 
       <Dialog
@@ -81,7 +81,7 @@ export function DeleteEntityButton({
             <DialogTitle>{`Delete ${label}`}</DialogTitle>
             <DialogDescription>{description ?? "This action cannot be undone."}</DialogDescription>
           </DialogHeader>
-          {errorMessage ? <p className="text-sm text-amber-300">{errorMessage}</p> : null}
+          {errorMessage ? <p className="text-sm text-danger">{errorMessage}</p> : null}
           <DialogFooter>
             <Button
               variant="ghost"

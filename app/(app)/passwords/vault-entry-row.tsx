@@ -49,7 +49,7 @@ function SiteIcon({ name, url }: { name: string; url: string | null }) {
 
   if (!host || failed) {
     return (
-      <span className={cn(tile, "font-display text-sm font-bold text-foreground")}>
+      <span className={cn(tile, "text-sm font-semibold text-foreground")}>
         {name.trim().charAt(0).toUpperCase() || "?"}
       </span>
     );
@@ -211,13 +211,13 @@ export function VaultEntryRow({
                 href={entry.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex max-w-full items-center gap-1 truncate font-mono-broadcast text-[11px] text-muted-foreground hover:text-foreground"
+                className="inline-flex max-w-full items-center gap-1 truncate text-[11px] text-muted-foreground hover:text-foreground"
               >
                 <span className="truncate">{hostLabel(entry.url)}</span>
                 <ExternalLink className="h-3 w-3 shrink-0" />
               </a>
             ) : (
-              <p className="font-mono-broadcast text-[11px] text-muted-foreground">No website</p>
+              <p className="text-[11px] text-muted-foreground">No website</p>
             )}
           </div>
         </div>
@@ -233,7 +233,7 @@ export function VaultEntryRow({
           </FieldCell>
 
           <FieldCell label="Pass">
-            <span className={cn("min-w-0 flex-1 truncate font-mono-broadcast text-sm", password ? "text-foreground" : "text-muted-foreground")}>
+            <span className={cn("min-w-0 flex-1 truncate font-mono-broadcast text-[13px] tabular-nums", password ? "text-foreground" : "text-muted-foreground")}>
               {entry.hasPassword ? (password ?? "••••••••••") : "—"}
             </span>
             {entry.hasPassword ? (
@@ -252,10 +252,10 @@ export function VaultEntryRow({
             {entry.hasTotp ? (
               totp ? (
                 <>
-                  <span className="min-w-0 flex-1 truncate font-mono-broadcast text-sm font-semibold tracking-[0.12em] text-foreground tabular-nums">
+                  <span className="min-w-0 flex-1 truncate font-mono-broadcast text-[13px] font-medium tracking-[0.12em] text-foreground tabular-nums">
                     {totp.code.replace(/^(\d{3})(\d+)$/, "$1 $2")}
                   </span>
-                  <span className={cn("shrink-0 font-mono-broadcast text-[10px] tabular-nums", totpSeconds <= 5 ? "text-amber-300" : "text-muted-foreground")}>
+                  <span className={cn("shrink-0 font-mono-broadcast text-[10px] tabular-nums", totpSeconds <= 5 ? "text-brand-amber" : "text-muted-foreground")}>
                     {totpSeconds}s
                   </span>
                   <IconButton label="Copy 2FA code" onClick={() => void copy("copy-totp", totp.code)} done={copied === "copy-totp"}>

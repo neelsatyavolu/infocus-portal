@@ -20,7 +20,7 @@ type Props = {
 };
 
 const CHIP_CLASS =
-  "mention-chip inline-flex items-center gap-1 rounded-full bg-secondary text-foreground align-baseline text-[12px] font-medium leading-none px-2 py-[3px]";
+  "mention-chip inline-flex items-center gap-1 rounded-md bg-secondary text-foreground align-baseline text-[12px] font-medium leading-none px-2 py-[3px]";
 
 function pickFirstName(user: MembersEditorUser): string {
   const source = user.name?.trim() || user.email?.split("@")[0]?.trim() || "User";
@@ -146,7 +146,7 @@ export function MembersEditor({
                 type="button"
                 aria-label={`Remove ${pickFirstName(user)}`}
                 onClick={() => removeMember(user.id)}
-                className="rounded-full p-0.5 text-muted-foreground hover:bg-black/20 light:hover:bg-foreground/5 hover:text-foreground"
+                className="rounded-sm p-0.5 text-muted-foreground hover:bg-black/20 light:hover:bg-foreground/5 hover:text-foreground"
               >
                 <X className="h-3 w-3" />
               </button>
@@ -165,14 +165,14 @@ export function MembersEditor({
                 setOpen((prev) => !prev);
                 setTimeout(() => inputRef.current?.focus(), 0);
               }}
-              className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary/40 px-2.5 py-[3px] text-[12px] font-medium leading-none text-foreground transition hover:bg-secondary"
+              className="inline-flex items-center gap-1 rounded-md border border-border bg-secondary/40 px-2.5 py-[3px] text-[12px] font-medium leading-none text-foreground transition hover:bg-secondary"
             >
               <Plus className="h-3 w-3" />
               Add members
             </button>
 
             {open ? (
-              <div className="absolute right-0 top-full z-40 mt-1 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-lg border border-border bg-card shadow-[0_12px_30px_rgba(0,0,0,0.45)]">
+              <div className="absolute right-0 top-full z-40 mt-1 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-lg border border-border bg-card">
                 <div className="flex items-center gap-2 border-b border-border px-2.5 py-2">
                   <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                   <input

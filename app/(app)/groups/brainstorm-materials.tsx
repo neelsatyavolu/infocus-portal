@@ -37,7 +37,7 @@ export function BrainstormMaterials({
       )}
     >
       <div className={cn("flex items-center justify-between gap-2", compact ? "mb-2" : "mb-3")}>
-        <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.11em] text-muted-foreground">
           Brainstorming
         </div>
         <span className="text-[10px] text-muted-foreground">
@@ -119,7 +119,7 @@ export function BrainstormMaterials({
             {approved ? "Unapprove" : ready ? "Approve" : "Approve anyway"}
           </Button>
         ) : approved ? (
-          <span className={cn("ml-auto text-emerald-200", compact ? "text-[11px]" : "text-sm")}>
+          <span className={cn("ml-auto text-[var(--brand-green)]", compact ? "text-[11px]" : "text-sm")}>
             Approved
           </span>
         ) : null}

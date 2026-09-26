@@ -209,8 +209,7 @@ function OverviewBody() {
 
   return (
     <div className="route-enter mx-auto w-full max-w-4xl space-y-5 pb-24">
-      <section className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 md:p-6">
-        <div className="pointer-events-none absolute inset-0 brand-hero-gradient opacity-40" />
+      <section className="brand-hero-panel relative overflow-hidden rounded-2xl border border-border p-5 md:p-6">
         <div className="relative flex flex-wrap items-end justify-between gap-4">
           <div>
             <div className="eyebrow flex items-center gap-2">
@@ -262,7 +261,7 @@ function OverviewBody() {
 
       <section className="rounded-2xl border border-border bg-card p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-display text-lg font-bold uppercase tracking-tight">Show manager</h2>
+          <h2 className="text-lg font-semibold tracking-tight">Show manager</h2>
           {showManager.source === "manual" ? (
             <Button
               type="button"
@@ -293,7 +292,7 @@ function OverviewBody() {
 
       <section className="rounded-2xl border border-border bg-card p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-display text-lg font-bold uppercase tracking-tight">Anchors</h2>
+          <h2 className="text-lg font-semibold tracking-tight">Anchors</h2>
           <Button
             type="button"
             size="sm"
@@ -324,7 +323,7 @@ function OverviewBody() {
       </section>
 
       <section className="rounded-2xl border border-border bg-card p-5">
-        <h2 className="font-display text-lg font-bold uppercase tracking-tight">Packages</h2>
+        <h2 className="text-lg font-semibold tracking-tight">Packages</h2>
         {data.packages.length === 0 ? (
           <p className="mt-2 text-sm text-muted-foreground">
             Nothing from the publishing queue is assigned to this show yet.
@@ -361,7 +360,7 @@ function OverviewBody() {
 
       <section className="rounded-2xl border border-border bg-card p-5">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="font-display text-lg font-bold uppercase tracking-tight">Show roles</h2>
+          <h2 className="text-lg font-semibold tracking-tight">Show roles</h2>
           <Link href={"/show-roles?generator=1" as never} className={buttonVariants({ size: "sm", variant: "outline" })}>
             Generate
           </Link>
@@ -369,7 +368,7 @@ function OverviewBody() {
         <div className="mt-3 grid gap-2 md:grid-cols-2">
           {data.roles.map((role) => (
             <div key={role} className="rounded-lg border border-border px-3 py-2">
-              <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">{role}</div>
+              <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{role}</div>
               <div className="mt-0.5 text-sm font-medium">{data.assignments[role] || "—"}</div>
             </div>
           ))}

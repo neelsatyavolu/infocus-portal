@@ -333,7 +333,7 @@ export function ProjectAssetsToolbar({
             onClick={() => void deleteAllMedia()}
             disabled={deletingAllMedia}
             className={cn(
-              "inline-flex items-center gap-1 rounded-lg border border-destructive/40 bg-destructive/10 px-2.5 py-2 text-sm text-destructive hover:bg-destructive/20",
+              "inline-flex items-center gap-1 rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm text-danger hover:bg-danger-tint",
               deletingAllMedia ? "cursor-not-allowed opacity-70" : ""
             )}
             title={`Delete all media in ${projectName}`}
@@ -443,7 +443,7 @@ export function ProjectAssetsToolbar({
           {scriptLoading ? (
             <p className="py-8 text-center text-sm text-muted-foreground">Loading script…</p>
           ) : scriptError ? (
-            <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <p className="rounded-lg border border-danger/40 bg-danger-tint px-3 py-2 text-sm text-danger">
               {scriptError}
             </p>
           ) : scriptText ? (

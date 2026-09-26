@@ -406,13 +406,13 @@ export function AssistantChat({
           type="button"
           onClick={() => setOpen(true)}
           aria-label={unread > 0 ? `Open Portal assistant, ${unread} unread messages` : "Open Portal assistant"}
-          className="fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-[max(1.25rem,env(safe-area-inset-right))] z-50 grid h-12 w-12 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-black/30 transition hover:bg-[var(--brand-green-deep)] active:scale-95"
+          className="fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-[max(1.25rem,env(safe-area-inset-right))] z-50 grid h-12 w-12 place-items-center rounded-md bg-primary text-primary-foreground transition hover:bg-[var(--brand-fill-hover)] active:scale-95"
         >
           <span className="text-2xl leading-none" aria-hidden>
             ✱
           </span>
           {unread > 0 ? (
-            <span className="absolute -right-1 -top-1 grid min-w-5 place-items-center rounded-full bg-destructive px-1 py-0.5 text-[10px] font-bold leading-none text-destructive-foreground">
+            <span className="absolute -right-1 -top-1 grid min-w-5 place-items-center rounded-md bg-destructive px-1 py-0.5 text-[10px] font-bold leading-none text-destructive-foreground">
               {unread > 99 ? "99+" : unread}
             </span>
           ) : null}
@@ -430,7 +430,7 @@ export function AssistantChat({
         >
           <header className="flex items-center justify-between gap-2 border-b border-border bg-card px-3 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] sm:pt-2">
             <div className="flex min-w-0 items-center gap-2">
-              <Sparkles className="hidden h-4 w-4 shrink-0 text-primary sm:block" aria-hidden />
+              <Sparkles className="hidden h-4 w-4 shrink-0 text-brand-green sm:block" aria-hidden />
               <div className="flex rounded-md bg-muted p-0.5">
                 <button
                   type="button"
@@ -452,7 +452,7 @@ export function AssistantChat({
                 >
                   Messages
                   {unread > 0 ? (
-                    <span className="grid min-w-4 place-items-center rounded-full bg-destructive px-1 text-[9px] font-bold leading-4 text-destructive-foreground">
+                    <span className="grid min-w-4 place-items-center rounded-md bg-destructive px-1 text-[9px] font-bold leading-4 text-destructive-foreground">
                       {unread > 99 ? "99+" : unread}
                     </span>
                   ) : null}
@@ -591,7 +591,7 @@ export function AssistantChat({
             ) : null}
 
             {error ? (
-              <div className="mr-6 whitespace-pre-wrap break-words rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-[12.5px] text-destructive">
+              <div className="mr-6 whitespace-pre-wrap break-words rounded-md border border-danger/30 bg-danger-tint px-3 py-2 text-[12.5px] text-danger">
                 {error}
               </div>
             ) : null}
@@ -787,12 +787,12 @@ function ActionCard({
         ))}
       </dl>
       {state === "done" ? (
-        <p className="flex items-center gap-1.5 border-t border-border px-3 py-2 text-[12.5px] text-primary">
+        <p className="flex items-center gap-1.5 border-t border-border px-3 py-2 text-[12.5px] text-brand-green">
           <Check className="h-3.5 w-3.5" />
           {note || "Done."}
         </p>
       ) : state === "error" ? (
-        <p className="border-t border-border px-3 py-2 text-[12.5px] text-destructive">{note}</p>
+        <p className="border-t border-border px-3 py-2 text-[12.5px] text-danger">{note}</p>
       ) : (
         <div className="flex items-center justify-end gap-2 border-t border-border px-3 py-2">
           <button
@@ -864,7 +864,7 @@ function PlaceCard({
       </header>
       <p className="px-3 py-2.5 text-[12.5px] text-muted-foreground">{place.hint}</p>
       {state === "opened" ? (
-        <p className="flex items-center gap-1.5 border-t border-border px-3 py-2 text-[12.5px] text-primary">
+        <p className="flex items-center gap-1.5 border-t border-border px-3 py-2 text-[12.5px] text-brand-green">
           <Check className="h-3.5 w-3.5" />
           Opened.
         </p>
@@ -942,7 +942,7 @@ function RotatingTryExamples({
       onMouseEnter={pause}
       onMouseLeave={resume}
     >
-      <p className="text-[12px] font-medium uppercase tracking-wider text-foreground">Try</p>
+      <p className="text-[12px] font-medium uppercase tracking-[0.11em] text-foreground">Try</p>
       <div className={cn("space-y-1 transition-opacity duration-200", opaque ? "opacity-100" : "opacity-0")}>
         {examples.map((starter) => (
           <button
@@ -964,9 +964,9 @@ function RotatingTryExamples({
 function TypingDots() {
   return (
     <span className="inline-flex items-center gap-1 py-1" aria-label="Thinking">
-      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.3s]" />
-      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.15s]" />
-      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground" />
+      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-muted-foreground [animation-delay:-0.3s]" />
+      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-muted-foreground [animation-delay:-0.15s]" />
+      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-muted-foreground" />
     </span>
   );
 }

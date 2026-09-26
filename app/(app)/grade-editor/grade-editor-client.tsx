@@ -945,27 +945,17 @@ export default function GradeEditorClient() {
       <section
         className="brand-hero-panel relative overflow-hidden rounded-2xl border border-border p-6 md:p-7"
       >
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            backgroundImage:
-              "repeating-linear-gradient(45deg, rgba(255,255,255,0.015) 0 2px, transparent 2px 14px)"
-          }}
-        />
         <div className="relative flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <div
-              className="inline-flex items-center gap-1.5 rounded-full border border-[rgb(43,179,110,0.4)] bg-black/40 light:bg-muted px-2.5 py-1 font-display text-[10px] font-bold uppercase tracking-[0.22em] text-[var(--brand-green)] backdrop-blur"
+              className="inline-flex items-center gap-1.5 rounded-md border border-[rgb(43,179,110,0.4)] bg-background px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--brand-green)]"
             >
-              <span
-                className="h-1.5 w-1.5 rounded-full bg-[var(--brand-green)]"
-                style={{ boxShadow: "0 0 8px var(--brand-green)" }}
-              />
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--brand-green)]" />
               Grade Editor · Producer view
             </div>
             <h1
-              className="mt-3 font-display italic text-[40px] font-black uppercase leading-none tracking-tight text-foreground md:text-[56px]"
-              style={{ letterSpacing: "-0.025em" }}
+              className="mt-3 text-[32px] font-semibold leading-none tracking-tight text-foreground md:text-[44px]"
+              style={{ letterSpacing: "-0.02em" }}
             >
               {viewMode === TOTAL_VIEW
                 ? "Total Grade"
@@ -1031,7 +1021,7 @@ export default function GradeEditorClient() {
           {viewMode === "cycle" ? (
           <div
             className={cn(
-              "inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-xs font-semibold whitespace-nowrap border",
+              "inline-flex items-center gap-2 rounded-md px-3.5 py-2 text-xs font-semibold whitespace-nowrap border",
               hasUnsavedChanges
                 ? "border-[rgb(242,165,22,0.4)] bg-[rgb(242,165,22,0.15)] text-[var(--brand-amber)]"
                 : "border-[rgb(43,179,110,0.35)] bg-[rgb(43,179,110,0.12)] text-[var(--brand-green)]"
@@ -1059,7 +1049,7 @@ export default function GradeEditorClient() {
 
         {/* Cycle tabs row */}
         {cycles.length > 0 ? (
-          <div className="relative mt-5 inline-flex items-center gap-1 rounded-lg border border-foreground/[0.08] bg-black/50 light:bg-muted p-1 backdrop-blur">
+          <div className="relative mt-5 inline-flex items-center gap-1 rounded-lg border border-foreground/[0.08] bg-background p-1">
             {cycles.map((cycle) => {
               const isActive = viewMode === "cycle" && activeCycleNumber === cycle.cycleNumber;
               return (
@@ -1068,19 +1058,19 @@ export default function GradeEditorClient() {
                   type="button"
                   onClick={() => goToCycle(cycle.cycleNumber)}
                   className={cn(
-                    "inline-flex items-center gap-2 rounded-md px-4 py-2 font-display text-[12px] font-semibold uppercase tracking-[0.18em] transition",
+                    "inline-flex items-center gap-2 rounded-md px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.11em] transition",
                     isActive
-                      ? "bg-[var(--brand-green)] text-[var(--ink)]"
+                      ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
                       : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
                   )}
                 >
                   Cycle{" "}
                   <span
                     className={cn(
-                      "rounded px-1.5 py-0.5 font-mono-broadcast text-[10px] font-bold",
+                      "rounded px-1.5 py-0.5 font-mono-broadcast text-[10px] font-medium tabular-nums",
                       isActive
-                        ? "bg-black/35 text-[var(--ink)]"
-                        : "bg-black/25 light:bg-foreground/10 text-[var(--ink-text)]"
+                        ? "bg-black/25 text-[var(--on-brand)]"
+                        : "bg-foreground/10 text-[var(--ink-text)]"
                     )}
                   >
                     {String(cycle.cycleNumber).padStart(2, "0")}
@@ -1095,9 +1085,9 @@ export default function GradeEditorClient() {
                 void loadTotals({ silent: true });
               }}
               className={cn(
-                "inline-flex items-center gap-2 rounded-md px-4 py-2 font-display text-[12px] font-semibold uppercase tracking-[0.18em] transition",
+                "inline-flex items-center gap-2 rounded-md px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.11em] transition",
                 viewMode === TOTAL_VIEW
-                  ? "bg-[var(--brand-green)] text-[var(--ink)]"
+                  ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
                   : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
               )}
             >
@@ -1107,9 +1097,9 @@ export default function GradeEditorClient() {
               type="button"
               onClick={() => goToStudentView()}
               className={cn(
-                "inline-flex items-center gap-2 rounded-md px-4 py-2 font-display text-[12px] font-semibold uppercase tracking-[0.18em] transition",
+                "inline-flex items-center gap-2 rounded-md px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.11em] transition",
                 viewMode === STUDENT_VIEW
-                  ? "bg-[var(--brand-green)] text-[var(--ink)]"
+                  ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
                   : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
               )}
             >
@@ -1122,7 +1112,7 @@ export default function GradeEditorClient() {
                 void openMissing();
               }}
               className={cn(
-                "inline-flex items-center gap-2 rounded-md px-4 py-2 font-display text-[12px] font-semibold uppercase tracking-[0.18em] transition",
+                "inline-flex items-center gap-2 rounded-md px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.11em] transition",
                 "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
               )}
             >
@@ -1135,11 +1125,11 @@ export default function GradeEditorClient() {
         {/* 4-up stats with mini bars */}
         {viewMode === TOTAL_VIEW || viewMode === STUDENT_VIEW ? null : (
         <div className="relative mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
-          <div className="rounded-xl border border-foreground/[0.08] bg-[rgb(10,10,10,0.55)] light:bg-card p-4 backdrop-blur">
-            <div className="flex items-center justify-between font-display text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--ink-text)]">
+          <div className="rounded-xl border border-foreground/[0.08] bg-background p-4">
+            <div className="flex items-center justify-between text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--ink-text)]">
               <span>Cycle Average</span>
             </div>
-            <div className="mt-1.5 inline-flex items-baseline gap-1.5 font-display text-[32px] italic font-extrabold leading-none tracking-tight text-foreground">
+            <div className="mt-1.5 inline-flex items-baseline gap-1.5 text-[28px] font-semibold leading-none tracking-tight text-foreground">
               {activeCycleAverage?.averageTotal !== null && activeCycleAverage?.averageTotal !== undefined
                 ? activeCycleAverage.averageTotal.toFixed(1)
                 : "—"}
@@ -1150,16 +1140,16 @@ export default function GradeEditorClient() {
                 className="h-full rounded-full"
                 style={{
                   width: `${Math.min(100, ((activeCycleAverage?.averageTotal ?? 0) / MAX_PACKAGE_PER_CYCLE) * 100)}%`,
-                  background: "linear-gradient(90deg, var(--brand-green), var(--brand-green-deep))"
+                  background: "var(--brand-green)"
                 }}
               />
             </div>
           </div>
-          <div className="rounded-xl border border-foreground/[0.08] bg-[rgb(10,10,10,0.55)] light:bg-card p-4 backdrop-blur">
-            <div className="font-display text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--ink-text)]">
+          <div className="rounded-xl border border-foreground/[0.08] bg-background p-4">
+            <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--ink-text)]">
               Cycle Percentage
             </div>
-            <div className="mt-1.5 inline-flex items-baseline gap-1.5 font-display text-[32px] italic font-extrabold leading-none tracking-tight text-foreground">
+            <div className="mt-1.5 inline-flex items-baseline gap-1.5 text-[28px] font-semibold leading-none tracking-tight text-foreground">
               {activeCycleAverage?.averagePercentage !== null && activeCycleAverage?.averagePercentage !== undefined
                 ? activeCycleAverage.averagePercentage.toFixed(1)
                 : "—"}
@@ -1170,16 +1160,16 @@ export default function GradeEditorClient() {
                 className="h-full rounded-full"
                 style={{
                   width: `${Math.min(100, activeCycleAverage?.averagePercentage ?? 0)}%`,
-                  background: "linear-gradient(90deg, var(--brand-green), var(--brand-green-deep))"
+                  background: "var(--brand-green)"
                 }}
               />
             </div>
           </div>
-          <div className="rounded-xl border border-foreground/[0.08] bg-[rgb(10,10,10,0.55)] light:bg-card p-4 backdrop-blur">
-            <div className="font-display text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--ink-text)]">
+          <div className="rounded-xl border border-foreground/[0.08] bg-background p-4">
+            <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--ink-text)]">
               Published
             </div>
-            <div className="mt-1.5 inline-flex items-baseline gap-1.5 font-display text-[32px] italic font-extrabold leading-none tracking-tight text-foreground">
+            <div className="mt-1.5 inline-flex items-baseline gap-1.5 text-[28px] font-semibold leading-none tracking-tight text-foreground">
               {activeCycleAverage?.publishedCount ?? 0}
               <span className="text-sm font-medium text-muted-foreground">/ {rows.length}</span>
             </div>
@@ -1190,16 +1180,16 @@ export default function GradeEditorClient() {
                   width: rows.length > 0
                     ? `${Math.min(100, ((activeCycleAverage?.publishedCount ?? 0) / rows.length) * 100)}%`
                     : "0%",
-                  background: "linear-gradient(90deg, var(--brand-green), var(--brand-green-deep))"
+                  background: "var(--brand-green)"
                 }}
               />
             </div>
           </div>
-          <div className="rounded-xl border border-foreground/[0.08] bg-[rgb(10,10,10,0.55)] light:bg-card p-4 backdrop-blur">
-            <div className="font-display text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--ink-text)]">
+          <div className="rounded-xl border border-foreground/[0.08] bg-background p-4">
+            <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--ink-text)]">
               Late Submissions
             </div>
-            <div className="mt-1.5 inline-flex items-baseline gap-1.5 font-display text-[32px] italic font-extrabold leading-none tracking-tight text-[var(--brand-amber)]">
+            <div className="mt-1.5 inline-flex items-baseline gap-1.5 text-[28px] font-semibold leading-none tracking-tight text-[var(--brand-amber)]">
               {rows.filter((r) => r.extensionsRemaining < 0).length}
               <span className="text-sm font-medium text-muted-foreground">flagged</span>
             </div>
@@ -1210,7 +1200,7 @@ export default function GradeEditorClient() {
                   width: rows.length > 0
                     ? `${Math.min(100, (rows.filter((r) => r.extensionsRemaining < 0).length / rows.length) * 100)}%`
                     : "0%",
-                  background: "linear-gradient(90deg, var(--brand-amber), #D17F00)"
+                  background: "var(--brand-amber)"
                 }}
               />
             </div>
@@ -1288,7 +1278,7 @@ export default function GradeEditorClient() {
               <Button
                 type="button"
                 size="sm"
-                className="h-9 bg-[var(--brand-green)] font-bold text-[var(--ink)] hover:bg-[var(--brand-green-deep)]"
+                className="h-9 bg-[var(--brand-fill)] font-bold text-[var(--on-brand)] hover:bg-[var(--brand-fill-hover)]"
                 onClick={() => void saveAllRows()}
                 disabled={loading || busy}
               >
@@ -1298,7 +1288,7 @@ export default function GradeEditorClient() {
               <Button
                 type="button"
                 size="sm"
-                className="h-9 bg-[var(--brand-amber)] font-bold text-[var(--ink)] hover:bg-[#D17F00] light:hover:bg-amber-800"
+                className="h-9 bg-[var(--brand-amber)] font-bold text-[var(--ink)] hover:bg-[var(--brand-amber)]/85"
                 onClick={() => void publishAllFilledRows()}
                 disabled={loading || busy}
               >
@@ -1352,7 +1342,7 @@ export default function GradeEditorClient() {
                     ].map((col, i) => (
                       <th
                         key={`${col.label}-${i}`}
-                        className="bg-[hsl(var(--background))] px-3 py-3 text-left font-display text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground"
+                        className="bg-[hsl(var(--background))] px-3 py-3 text-left text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground"
                       >
                         {col.label}
                         {col.sub ? <span className="ml-1 text-[var(--ink-4)]">{col.sub}</span> : null}
@@ -1435,7 +1425,7 @@ export default function GradeEditorClient() {
                               >
                                 {row.name?.trim() || "Unnamed user"}
                               </button>
-                              <div className="font-mono-broadcast text-[10px] text-muted-foreground">
+                              <div className="font-mono-broadcast tabular-nums text-[10px] text-muted-foreground">
                                 {row.email?.split("@")[0] ?? "—"}
                               </div>
                             </div>
@@ -1474,14 +1464,14 @@ export default function GradeEditorClient() {
                                       updateAdjustment(row.userId, { cycleOverrides: nextOverrides });
                                     }}
                                     placeholder="—"
-                                    className="h-7 w-12 rounded-md border border-dashed border-[var(--ink-4)] bg-[var(--ink)] px-2 font-mono-broadcast text-xs font-semibold text-foreground outline-none focus:border-[var(--brand-green)]"
+                                    className="h-7 w-12 rounded-md border border-dashed border-[var(--ink-4)] bg-[var(--ink)] px-2 font-mono-broadcast tabular-nums text-xs font-semibold text-foreground outline-none focus:border-[var(--brand-green)]"
                                   />
-                                  <span className="font-mono-broadcast text-[11px] text-muted-foreground">
+                                  <span className="font-mono-broadcast tabular-nums text-[11px] text-muted-foreground">
                                     /{MAX_PACKAGE_PER_CYCLE}
                                   </span>
                                 </div>
                               ) : (
-                                <div className="font-mono-broadcast text-sm font-semibold text-foreground">
+                                <div className="font-mono-broadcast tabular-nums text-sm font-semibold text-foreground">
                                   {entry.totalPoints}
                                   <span className="ml-1 text-[11px] font-normal text-muted-foreground">
                                     /{MAX_PACKAGE_PER_CYCLE}
@@ -1502,9 +1492,9 @@ export default function GradeEditorClient() {
                                 if (score !== undefined) updateAdjustment(row.userId, { checkIns: score });
                               }}
                               placeholder="—"
-                              className="h-7 w-12 rounded-md border border-border bg-[var(--ink)] px-2 font-mono-broadcast text-xs font-semibold text-foreground outline-none focus:border-[var(--brand-green)]"
+                              className="h-7 w-12 rounded-md border border-border bg-[var(--ink)] px-2 font-mono-broadcast tabular-nums text-xs font-semibold text-foreground outline-none focus:border-[var(--brand-green)]"
                             />
-                            <span className="font-mono-broadcast text-[11px] text-muted-foreground">
+                            <span className="font-mono-broadcast tabular-nums text-[11px] text-muted-foreground">
                               /{checkInMax}
                             </span>
                           </div>
@@ -1520,9 +1510,9 @@ export default function GradeEditorClient() {
                                 if (score !== undefined) updateAdjustment(row.userId, { livestream: score });
                               }}
                               placeholder="—"
-                              className="h-7 w-14 rounded-md border border-border bg-[var(--ink)] px-2 font-mono-broadcast text-xs font-semibold text-foreground outline-none focus:border-[var(--brand-green)]"
+                              className="h-7 w-14 rounded-md border border-border bg-[var(--ink)] px-2 font-mono-broadcast tabular-nums text-xs font-semibold text-foreground outline-none focus:border-[var(--brand-green)]"
                             />
-                            <span className="font-mono-broadcast text-[11px] text-muted-foreground">
+                            <span className="font-mono-broadcast tabular-nums text-[11px] text-muted-foreground">
                               /{MAX_LIVESTREAM}
                             </span>
                           </div>
@@ -1532,7 +1522,7 @@ export default function GradeEditorClient() {
                         </td>
                         <td className="w-[140px] px-3 py-2.5 align-middle">
                           <span
-                            className="whitespace-nowrap font-mono-broadcast text-xs text-foreground"
+                            className="whitespace-nowrap font-mono-broadcast tabular-nums text-xs text-foreground"
                             title="Graded participation from weeks ending before this Monday, Pacific time. Ungraded days are excluded."
                           >
                             {row.participationEarned}/{row.participationPossible}
@@ -1549,9 +1539,9 @@ export default function GradeEditorClient() {
                                 if (score !== undefined) updateAdjustment(row.userId, { final: score });
                               }}
                               placeholder="—"
-                              className="h-7 w-14 rounded-md border border-border bg-[var(--ink)] px-2 font-mono-broadcast text-xs font-semibold text-foreground outline-none focus:border-[var(--brand-green)]"
+                              className="h-7 w-14 rounded-md border border-border bg-[var(--ink)] px-2 font-mono-broadcast tabular-nums text-xs font-semibold text-foreground outline-none focus:border-[var(--brand-green)]"
                             />
-                            <span className="font-mono-broadcast text-[11px] text-muted-foreground">
+                            <span className="font-mono-broadcast tabular-nums text-[11px] text-muted-foreground">
                               /{MAX_FINAL}
                             </span>
                           </div>
@@ -1566,10 +1556,10 @@ export default function GradeEditorClient() {
                                 const score = parseGradeScore(event.target.value, Number.MAX_SAFE_INTEGER);
                                 if (score !== undefined) updateAdjustment(row.userId, { extraPoints: score });
                               }}
-                              className="h-7 w-12 rounded-md border border-border bg-[var(--ink)] px-2 font-mono-broadcast text-xs font-semibold text-foreground outline-none focus:border-[var(--brand-green)]"
+                              className="h-7 w-12 rounded-md border border-border bg-[var(--ink)] px-2 font-mono-broadcast tabular-nums text-xs font-semibold text-foreground outline-none focus:border-[var(--brand-green)]"
                               placeholder="0"
                             />
-                            <span className="font-mono-broadcast text-[11px] text-muted-foreground">/</span>
+                            <span className="font-mono-broadcast tabular-nums text-[11px] text-muted-foreground">/</span>
                             <input
                               value={adjustments.extraMax}
                               onChange={(event) =>
@@ -1577,7 +1567,7 @@ export default function GradeEditorClient() {
                                   extraMax: clampNonNegative(event.target.value)
                                 })
                               }
-                              className="h-7 w-12 rounded-md border border-border bg-[var(--ink)] px-2 font-mono-broadcast text-xs font-semibold text-foreground outline-none focus:border-[var(--brand-green)]"
+                              className="h-7 w-12 rounded-md border border-border bg-[var(--ink)] px-2 font-mono-broadcast tabular-nums text-xs font-semibold text-foreground outline-none focus:border-[var(--brand-green)]"
                               placeholder="0"
                             />
                           </div>
@@ -1585,19 +1575,19 @@ export default function GradeEditorClient() {
                         <td className="w-[200px] px-3 py-2.5 align-middle">
                           <div className="flex items-center gap-3">
                             <div className="min-w-0">
-                              <div className="font-display italic text-lg font-extrabold leading-none tracking-tight text-foreground">
+                              <div className="text-lg font-semibold leading-none tracking-tight text-foreground">
                                 {totalGrade}
                                 <span className="ml-1 text-xs font-normal text-muted-foreground">
                                   /{totalMax}
                                 </span>
                               </div>
-                              <div className={cn("font-mono-broadcast text-[11px] font-semibold", pctTone)}>
+                              <div className={cn("font-mono-broadcast tabular-nums text-[11px] font-semibold", pctTone)}>
                                 {totalPct === null ? "—" : `${totalPct.toFixed(1)}%`}
                               </div>
                             </div>
                             <div
                               className={cn(
-                                "font-display italic text-3xl font-black leading-none tracking-tight",
+                                "text-3xl font-semibold leading-none tracking-tight",
                                 pctTone
                               )}
                             >
@@ -1652,7 +1642,7 @@ export default function GradeEditorClient() {
                   ].map((col, i) => (
                     <th
                       key={`${col.label}-${i}`}
-                      className="bg-[hsl(var(--background))] px-3 py-3 text-left font-display text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground"
+                      className="bg-[hsl(var(--background))] px-3 py-3 text-left text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground"
                     >
                       {col.label}
                       {col.sub ? <span className="ml-1 text-[var(--ink-4)]">{col.sub}</span> : null}
@@ -1708,7 +1698,7 @@ export default function GradeEditorClient() {
                                 {rowLabel(row)}
                               </button>
                             </div>
-                            <div className="font-mono-broadcast text-[10px] text-muted-foreground">
+                            <div className="font-mono-broadcast tabular-nums text-[10px] text-muted-foreground">
                               {row.email?.split("@")[0] ?? "—"}
                             </div>
                           </div>
@@ -1724,7 +1714,7 @@ export default function GradeEditorClient() {
                               value={row.checkInOverrides[stage] ?? "auto"}
                               disabled={savingCheckIn}
                               onChange={(event) => void saveCheckIn(row.userId, stage, event.target.value)}
-                              className="h-8 rounded-md border border-border bg-[var(--ink)] px-2 font-mono-broadcast text-xs text-foreground disabled:opacity-50"
+                              className="h-8 rounded-md border border-border bg-[var(--ink)] px-2 font-mono-broadcast tabular-nums text-xs text-foreground disabled:opacity-50"
                             >
                               <option value="UNGRADED">— Ungraded</option>
                               <option value="EXEMPT">Exempt</option>
@@ -1750,9 +1740,9 @@ export default function GradeEditorClient() {
                               });
                             }}
                             placeholder="—"
-                            className="h-7 w-12 rounded-md border border-border bg-[var(--ink)] px-2 font-mono-broadcast text-xs font-semibold text-foreground outline-none focus:border-[var(--brand-green)]"
+                            className="h-7 w-12 rounded-md border border-border bg-[var(--ink)] px-2 font-mono-broadcast tabular-nums text-xs font-semibold text-foreground outline-none focus:border-[var(--brand-green)]"
                           />
-                          <span className="font-mono-broadcast text-[11px] text-muted-foreground">
+                          <span className="font-mono-broadcast tabular-nums text-[11px] text-muted-foreground">
                             /{MAX_PACKAGE_PER_CYCLE}
                           </span>
                           <div className="h-1 w-12 overflow-hidden rounded-full bg-[var(--ink)]">
@@ -1764,13 +1754,13 @@ export default function GradeEditorClient() {
                         </div>
                       </td>
                       <td className="w-[110px] px-3 py-2.5 align-middle">
-                        <div className="font-display italic text-lg font-extrabold leading-none tracking-tight text-foreground">
+                        <div className="text-lg font-semibold leading-none tracking-tight text-foreground">
                           {row.finalCutState === "EXEMPT" ? "Exempt" : row.effortPoints === null ? "—" : total}
                           <span className="ml-1 text-xs font-normal text-muted-foreground">
                             /{MAX_PACKAGE_PER_CYCLE}
                           </span>
                         </div>
-                        <div className={cn("font-mono-broadcast text-[11px] font-semibold", pctTone)}>
+                        <div className={cn("font-mono-broadcast tabular-nums text-[11px] font-semibold", pctTone)}>
                           {row.effortPoints === null ? "—" : `${percentage.toFixed(1)}%`}
                         </div>
                       </td>
@@ -1812,7 +1802,7 @@ export default function GradeEditorClient() {
                             });
                           }}
                           className={cn(
-                            "h-8 w-full rounded-md border px-2 font-mono-broadcast text-xs text-foreground outline-none [color-scheme:dark] light:[color-scheme:light]",
+                            "h-8 w-full rounded-md border px-2 font-mono-broadcast tabular-nums text-xs text-foreground outline-none [color-scheme:dark] light:[color-scheme:light]",
                             activeCycleHasFinalCut
                               ? "border-border bg-[var(--ink)] focus:border-[var(--brand-green)]"
                               : "border-[rgb(242,165,22,0.4)] bg-[rgb(242,165,22,0.08)] text-[var(--brand-amber)]"
@@ -1849,7 +1839,7 @@ export default function GradeEditorClient() {
                               "rounded-md px-3 py-1.5 text-[11px] font-bold transition",
                               row.published
                                 ? "border border-[rgb(242,165,22,0.30)] bg-[rgb(242,165,22,0.10)] text-[var(--brand-amber)] hover:bg-[rgb(242,165,22,0.20)]"
-                                : "bg-[var(--brand-green)] text-[var(--ink)] hover:bg-[var(--brand-green-deep)]",
+                                : "bg-[var(--brand-fill)] text-[var(--on-brand)] hover:bg-[var(--brand-fill-hover)]",
                               (!row.published && !canPublishRow) && "opacity-40",
                               dirty && !row.published && "ring-2 ring-[rgb(43,179,110,0.30)]"
                             )}
@@ -1930,9 +1920,9 @@ export default function GradeEditorClient() {
                   >
                     <span
                       className={cn(
-                        "inline-flex rounded-full border px-2 py-1 text-xs font-semibold",
+                        "inline-flex rounded-md border px-2 py-1 text-xs font-semibold",
                         event.eventType === "PUBLISHED"
-                          ? "border-emerald-300/35 bg-emerald-300/10 text-emerald-100"
+                          ? "border-[var(--brand-green)]/35 bg-[var(--brand-green)]/10 text-[var(--brand-green)]"
                           : "border-amber-300/40 bg-amber-300/10 text-amber-100"
                       )}
                     >
@@ -1964,27 +1954,27 @@ export default function GradeEditorClient() {
               </div>
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="rounded-lg border border-border bg-muted px-3 py-2">
-                  <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Final Cut</p>
+                  <p className="text-xs font-medium uppercase tracking-[0.11em] text-muted-foreground">Final Cut</p>
                   <p className="mt-1 font-semibold text-foreground">{formatLongDate(activeCycle?.finalCutDate ?? null)}</p>
                 </div>
                 <div className="rounded-lg border border-border bg-muted px-3 py-2">
-                  <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Turned In</p>
+                  <p className="text-xs font-medium uppercase tracking-[0.11em] text-muted-foreground">Turned In</p>
                   <p className="mt-1 font-semibold text-foreground">{formatLongDate(extensionNoteRow.turnedInDate)}</p>
                 </div>
                 <div className="rounded-lg border border-border bg-muted px-3 py-2">
-                  <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Late Days</p>
+                  <p className="text-xs font-medium uppercase tracking-[0.11em] text-muted-foreground">Late Days</p>
                   <p className="mt-1 font-semibold text-foreground">{extensionNoteRow.extensionDetails.calculatedDays}</p>
                 </div>
                 <div className="rounded-lg border border-border bg-muted px-3 py-2">
-                  <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Free Days</p>
+                  <p className="text-xs font-medium uppercase tracking-[0.11em] text-muted-foreground">Free Days</p>
                   <p className="mt-1 font-semibold text-amber-100">{extensionNoteRow.extensionDetails.freeDays}</p>
                 </div>
                 <div className="rounded-lg border border-border bg-muted px-3 py-2">
-                  <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Charged Days</p>
-                  <p className="mt-1 font-semibold text-emerald-100">{extensionNoteRow.extensionDetails.chargedDays}</p>
+                  <p className="text-xs font-medium uppercase tracking-[0.11em] text-muted-foreground">Charged Days</p>
+                  <p className="mt-1 font-semibold text-[var(--brand-green)]">{extensionNoteRow.extensionDetails.chargedDays}</p>
                 </div>
                 <div className="rounded-lg border border-border bg-muted px-3 py-2">
-                  <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Exempt</p>
+                  <p className="text-xs font-medium uppercase tracking-[0.11em] text-muted-foreground">Exempt</p>
                   <p className="mt-1 font-semibold text-foreground">{extensionNoteRow.extensionDetails.exempt ? "Yes" : "No"}</p>
                 </div>
               </div>
@@ -2021,7 +2011,7 @@ export default function GradeEditorClient() {
           </DialogHeader>
           {extensionDepletedWarning ? (
             <div className="space-y-3 text-sm text-foreground">
-              <div className="rounded-lg border border-red-400/35 bg-red-400/10 px-3 py-2 text-red-100">
+              <div className="rounded-lg border border-danger/40 bg-danger-tint px-3 py-2 text-danger">
                 <p className="font-semibold">{extensionDepletedWarning.userName}</p>
                 <p className="mt-1">
                   This student has exhausted their extension days ({extensionDepletedWarning.remaining} remaining).
@@ -2076,7 +2066,7 @@ export default function GradeEditorClient() {
             {missingLoading ? (
               <p className="py-8 text-center text-sm text-[var(--ink-text)]">Loading…</p>
             ) : missingError ? (
-              <p className="py-8 text-center text-sm text-red-300">{missingError}</p>
+              <p className="py-8 text-center text-sm text-danger">{missingError}</p>
             ) : !missingData ? null : showExcludePanel ? (
               missingData.people.length === 0 ? (
                 <p className="py-8 text-center text-sm text-[var(--ink-text)]">No people to show.</p>
@@ -2114,7 +2104,7 @@ export default function GradeEditorClient() {
                 {visibleMissing.map((person) => (
                   <li
                     key={person.userId}
-                    className="flex items-start justify-between gap-3 rounded-md border border-foreground/[0.08] bg-black/30 light:bg-muted px-3 py-2"
+                    className="flex items-start justify-between gap-3 rounded-md border border-foreground/[0.08] bg-background px-3 py-2"
                   >
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-foreground">
@@ -2125,9 +2115,9 @@ export default function GradeEditorClient() {
                           <span
                             key={entry.cycleNumber}
                             className={cn(
-                              "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                              "inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold",
                               entry.status === "not_entered"
-                                ? "bg-red-400/15 text-red-200"
+                                ? "bg-danger-tint text-danger"
                                 : "bg-[rgb(242,165,22,0.15)] text-[var(--brand-amber)]"
                             )}
                           >
@@ -2154,7 +2144,7 @@ export default function GradeEditorClient() {
       </Dialog>
 
       <section className="sticky bottom-4 z-20 mx-auto flex justify-center">
-        <div className="inline-flex items-center gap-1 rounded-xl border border-foreground/[0.08] bg-black/85 light:bg-muted p-1 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.6)] backdrop-blur">
+        <div className="inline-flex items-center gap-1 rounded-xl border border-foreground/[0.08] bg-card p-1">
           {cycles.map((cycle) => {
             const isActive = viewMode === "cycle" && cycle.cycleNumber === activeCycleNumber;
             return (
@@ -2163,17 +2153,17 @@ export default function GradeEditorClient() {
                 type="button"
                 onClick={() => goToCycle(cycle.cycleNumber)}
                 className={cn(
-                  "inline-flex items-center gap-2 rounded-lg px-4 py-2 font-display text-[12px] font-semibold uppercase tracking-[0.18em] transition",
+                  "inline-flex items-center gap-2 rounded-md px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.11em] transition",
                   isActive
-                    ? "bg-[var(--brand-green)] text-[var(--ink)]"
+                    ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
                     : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
                 )}
               >
                 Cycle
                 <span
                   className={cn(
-                    "rounded px-1.5 py-0.5 font-mono-broadcast text-[10px] font-bold",
-                    isActive ? "bg-black/35 text-[var(--ink)]" : "bg-black/40 light:bg-foreground/10 text-[var(--ink-text)]"
+                    "rounded px-1.5 py-0.5 font-mono-broadcast tabular-nums text-[10px] font-medium",
+                    isActive ? "bg-black/25 text-[var(--on-brand)]" : "bg-foreground/10 text-[var(--ink-text)]"
                   )}
                 >
                   {String(cycle.cycleNumber).padStart(2, "0")}
@@ -2188,9 +2178,9 @@ export default function GradeEditorClient() {
               void loadTotals({ silent: true });
             }}
             className={cn(
-              "inline-flex items-center gap-2 rounded-lg px-4 py-2 font-display text-[12px] font-semibold uppercase tracking-[0.18em] transition",
+              "inline-flex items-center gap-2 rounded-md px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.11em] transition",
               viewMode === TOTAL_VIEW
-                ? "bg-[var(--brand-green)] text-[var(--ink)]"
+                ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
                 : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
             )}
           >
@@ -2200,9 +2190,9 @@ export default function GradeEditorClient() {
             type="button"
             onClick={() => goToStudentView()}
             className={cn(
-              "inline-flex items-center gap-2 rounded-lg px-4 py-2 font-display text-[12px] font-semibold uppercase tracking-[0.18em] transition",
+              "inline-flex items-center gap-2 rounded-md px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.11em] transition",
               viewMode === STUDENT_VIEW
-                ? "bg-[var(--brand-green)] text-[var(--ink)]"
+                ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
                 : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
             )}
           >

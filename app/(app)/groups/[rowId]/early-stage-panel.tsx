@@ -60,7 +60,7 @@ export function PitchingPanel({
           <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
             Current stage
           </div>
-          <h2 className="mt-1 text-lg font-semibold text-foreground">Package Pitching</h2>
+          <h2 className="mt-1 text-lg font-semibold tracking-tight text-foreground">Package Pitching</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             {done
               ? "This group’s pitch check-in is complete."
@@ -156,7 +156,7 @@ export function BrainstormingPanel({
           <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
             Current stage
           </div>
-          <h2 className="mt-1 text-xl font-semibold text-foreground sm:text-2xl">
+          <h2 className="mt-1 text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
             Brainstorming & Proof of Contact
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">

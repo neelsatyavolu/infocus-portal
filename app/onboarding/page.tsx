@@ -217,7 +217,7 @@ export default function OnboardingPage() {
           </div>
 
           <section className="space-y-4 rounded-xl border border-border bg-muted/40 p-4">
-            <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-muted-foreground">Notification channels</h2>
+            <h2 className="text-xs font-medium uppercase tracking-[0.11em] text-muted-foreground">Notification channels</h2>
 
             <div className="space-y-3 rounded-lg border border-border bg-muted p-3">
               <div className="flex items-center justify-between gap-3">
@@ -279,7 +279,7 @@ export default function OnboardingPage() {
             </div>
           </section>
 
-          {error ? <p className="text-sm text-rose-300">{error}</p> : null}
+          {error ? <p className="text-sm text-danger">{error}</p> : null}
 
           <button
             type="submit"

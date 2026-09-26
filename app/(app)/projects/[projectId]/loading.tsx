@@ -8,7 +8,7 @@ export default function ProjectLoading() {
             <div className="h-8 w-56 rounded-lg bg-muted" />
             <div className="h-4 w-80 max-w-full rounded-lg bg-muted" />
           </div>
-          <div className="h-7 w-32 rounded-full bg-muted" />
+          <div className="h-7 w-32 rounded-md bg-muted" />
         </div>
       </section>
 

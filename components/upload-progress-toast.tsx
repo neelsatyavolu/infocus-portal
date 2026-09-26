@@ -80,7 +80,7 @@ function CircleProgress({ progress }: { progress: number }) {
         background: `conic-gradient(hsl(var(--primary)) ${degrees}deg, hsl(var(--secondary)) 0deg)`
       }}
     >
-      <div className="grid h-full w-full place-items-center rounded-full bg-background text-[10px] font-semibold text-foreground">
+      <div className="grid h-full w-full place-items-center rounded-full bg-background font-mono text-[10px] font-semibold tabular-nums text-foreground">
         {percentage}
       </div>
     </div>
@@ -113,7 +113,7 @@ export function UploadProgressToast({ items }: UploadProgressToastProps) {
   }
 
   const toast = (
-    <div className="fixed bottom-4 right-4 z-50 w-[360px] rounded-2xl border border-border bg-card/95 p-4 shadow-2xl backdrop-blur">
+    <div className="fixed bottom-4 right-4 z-50 w-[360px] rounded-2xl border border-border bg-card p-4 shadow-2xl">
       <div className="mb-3 flex items-center justify-between gap-2">
         <div>
           <p className="text-sm font-semibold text-foreground">Uploads in progress</p>
@@ -125,7 +125,7 @@ export function UploadProgressToast({ items }: UploadProgressToastProps) {
             {Math.round(averageProgress)}% overall
           </p>
         </div>
-        <span className="rounded-full border border-border bg-accent px-2 py-0.5 text-xs font-semibold text-foreground">
+        <span className="rounded-md border border-border bg-accent px-2 py-0.5 text-xs font-semibold text-foreground">
           {items.length}
         </span>
       </div>

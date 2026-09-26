@@ -31,7 +31,7 @@ function FormMessage({ status }: { status: Status }) {
   }
   const color =
     status.type === "error"
-      ? "border-[rgb(238,58,42,0.4)] bg-[rgb(238,58,42,0.12)] text-[var(--brand-red)]"
+      ? "border-danger/40 bg-danger-tint text-danger"
       : status.type === "success"
         ? "border-[rgb(43,179,110,0.3)] bg-[rgb(43,179,110,0.12)] text-[var(--brand-green)]"
         : "border-border bg-card text-muted-foreground";
@@ -115,7 +115,7 @@ export default function EquipmentRequestClient() {
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 sm:px-6">
       <div>
-        <h1 className="font-display text-3xl font-black uppercase italic tracking-tight text-foreground">Request</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Request</h1>
         <p className="mt-1 text-sm text-muted-foreground">Ask for available equipment. A manager will approve or deny.</p>
       </div>
 
@@ -204,13 +204,13 @@ export default function EquipmentRequestClient() {
               <table className="w-full text-left text-sm">
                 <thead className="sticky top-0 bg-card">
                   <tr className="border-b border-border">
-                    <th className="px-3 py-2 font-display text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                    <th className="px-3 py-2 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
                       Item
                     </th>
-                    <th className="px-3 py-2 font-display text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                    <th className="px-3 py-2 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
                       Code
                     </th>
-                    <th className="px-3 py-2 text-right font-display text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                    <th className="px-3 py-2 text-right text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
                       Action
                     </th>
                   </tr>
@@ -228,7 +228,7 @@ export default function EquipmentRequestClient() {
                       return (
                         <tr key={item.id} className="border-b border-border last:border-0">
                           <td className="px-3 py-2 text-foreground">{item.name}</td>
-                          <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{item.barcode}</td>
+                          <td className="px-3 py-2 font-mono text-[11px] tabular-nums text-muted-foreground">{item.barcode}</td>
                           <td className="px-3 py-2 text-right">
                             <Button size="sm" variant={selected ? "secondary" : "outline"} type="button" onClick={() => toggleBarcode(item.barcode)}>
                               {selected ? "Selected" : "Add"}

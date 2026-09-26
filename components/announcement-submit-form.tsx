@@ -280,7 +280,7 @@ export function AnnouncementSubmitForm({ compact = false }: { compact?: boolean 
       <button
         type="submit"
         disabled={submitting || !policyAgreed}
-        className="inline-flex items-center gap-2 rounded-xl bg-[var(--brand-green)] px-5 py-2.5 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--brand-green-deep)] disabled:opacity-60"
+        className="inline-flex items-center gap-2 rounded-xl bg-[var(--brand-fill)] px-5 py-2.5 text-sm font-semibold text-[var(--on-brand)] hover:bg-[var(--brand-fill-hover)] disabled:opacity-60"
       >
         <Megaphone className="h-4 w-4" />
         {submitting ? "Submitting..." : "Submit announcement"}

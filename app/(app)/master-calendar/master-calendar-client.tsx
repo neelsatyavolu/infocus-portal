@@ -117,7 +117,7 @@ function clampToCalendarStart(value: Date) {
 }
 
 const CALENDAR_TEXT_STYLES =
-  "text-center text-sm leading-5 text-foreground [&_p]:mb-1 [&_div]:mb-1 [&_strong]:font-extrabold [&_em]:italic [&_.package-pill]:inline-flex [&_.package-pill]:cursor-pointer [&_.package-pill]:items-center [&_.package-pill]:gap-1 [&_.package-pill]:rounded-full [&_.package-pill]:border [&_.package-pill]:border-[var(--brand-green)]/50 [&_.package-pill]:bg-[var(--brand-green)]/15 [&_.package-pill]:px-2 [&_.package-pill]:py-0.5 [&_.package-pill]:text-xs [&_.package-pill]:font-semibold [&_.package-pill]:text-foreground";
+  "text-center text-sm leading-5 text-foreground [&_p]:mb-1 [&_div]:mb-1 [&_strong]:font-semibold [&_em]:italic [&_.package-pill]:inline-flex [&_.package-pill]:cursor-pointer [&_.package-pill]:items-center [&_.package-pill]:gap-1 [&_.package-pill]:rounded-md [&_.package-pill]:border [&_.package-pill]:border-[var(--brand-green)]/50 [&_.package-pill]:bg-[var(--brand-green)]/15 [&_.package-pill]:px-2 [&_.package-pill]:py-0.5 [&_.package-pill]:text-xs [&_.package-pill]:font-semibold [&_.package-pill]:text-foreground";
 const CALENDAR_EDITABLE_STYLES = `${CALENDAR_TEXT_STYLES} outline-none`;
 
 function toMonthKey(value: Date) {
@@ -539,7 +539,7 @@ function PillRenamePopover({ anchor, initialLabel, onSave, onRemove, onCancel }:
       className="fixed z-50 w-[280px] rounded-lg border border-border bg-card p-2 shadow-xl"
       style={{ left, top }}
     >
-      <p className="px-1 pb-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+      <p className="px-1 pb-1 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">
         Rename pill (file name stays the same)
       </p>
       <input
@@ -1257,8 +1257,7 @@ export default function MasterCalendarClient({ initialData }: { initialData: Cal
 
   return (
     <div className="route-enter mx-auto w-full max-w-7xl space-y-5">
-      <section className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 md:p-6">
-        <div className="pointer-events-none absolute inset-0 brand-hero-gradient opacity-40" />
+      <section className="brand-hero-panel relative overflow-hidden rounded-2xl border border-border p-5 md:p-6">
         <div className="relative flex flex-col gap-4">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
@@ -1319,7 +1318,7 @@ export default function MasterCalendarClient({ initialData }: { initialData: Cal
                   <Button
                     type="button"
                     size="sm"
-                    variant="destructive"
+                    variant="destructive-quiet"
                     onClick={() => void wipeMonthAnchors()}
                     disabled={wipingAnchors || syncing}
                   >
@@ -1357,8 +1356,8 @@ export default function MasterCalendarClient({ initialData }: { initialData: Cal
             className={cn(
               "mt-3 rounded-lg border px-3 py-2 text-sm",
               syncMessage.isError
-                ? "border-amber-300/40 bg-amber-300/10 text-amber-100"
-                : "border-emerald-300/40 bg-emerald-300/10 text-emerald-100"
+                ? "border-danger/40 bg-danger-tint text-danger"
+                : "border-[var(--brand-green)]/40 bg-[var(--brand-green)]/10 text-foreground"
             )}
           >
             {syncMessage.text}
@@ -1375,7 +1374,7 @@ export default function MasterCalendarClient({ initialData }: { initialData: Cal
                   <th
                     key={label}
                     className={cn(
-                      "border border-border px-2 py-2 text-center text-sm font-bold uppercase tracking-[0.08em] md:text-base",
+                      "border border-border px-2 py-2 text-center text-xs font-semibold uppercase tracking-[0.11em] md:text-sm",
                       HEADER_SURFACES[index]
                     )}
                   >
@@ -1433,9 +1432,9 @@ export default function MasterCalendarClient({ initialData }: { initialData: Cal
                             return (
                               <span
                                 className={cn(
-                                  "inline-flex items-center justify-center rounded-full px-2 py-0.5 font-display text-[10px] font-bold uppercase tracking-[0.16em]",
+                                  "inline-flex items-center justify-center rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em]",
                                   isToday
-                                    ? "bg-[var(--brand-green)] text-[var(--ink)]"
+                                    ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
                                     : "bg-[var(--ink-3)] text-muted-foreground"
                                 )}
                               >
@@ -1444,7 +1443,7 @@ export default function MasterCalendarClient({ initialData }: { initialData: Cal
                             );
                           })()}
                           {isHoliday && schedule.label ? (
-                            <span className="inline-flex max-w-[9rem] items-center rounded-full bg-amber-300/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-100">
+                            <span className="inline-flex max-w-[9rem] items-center rounded-md bg-amber-300/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-100">
                               Holiday
                             </span>
                           ) : null}

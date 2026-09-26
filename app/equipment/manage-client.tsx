@@ -86,7 +86,7 @@ function FormMessage({ status }: { status: Status }) {
   }
   const color =
     status.type === "error"
-      ? "border-[rgb(238,58,42,0.4)] bg-[rgb(238,58,42,0.12)] text-[var(--brand-red)]"
+      ? "border-danger/40 bg-danger-tint text-danger"
       : status.type === "success"
         ? "border-[rgb(43,179,110,0.3)] bg-[rgb(43,179,110,0.12)] text-[var(--brand-green)]"
         : "border-border bg-card text-muted-foreground";
@@ -106,13 +106,13 @@ function itemStatus(item: Pick<EquipmentItem, "checkedOut" | "onHoldForStudentId
 function StatusPill({ status }: { status: "out" | "held" | "in" }) {
   const cls =
     status === "out"
-      ? "border-[rgb(238,58,42,0.4)] bg-[rgb(238,58,42,0.18)] text-[var(--brand-red)]"
+      ? "border-danger/40 bg-danger-tint text-danger"
       : status === "held"
-        ? "border-amber-400/40 bg-amber-400/15 text-amber-200"
+        ? "border-brand-amber/40 bg-brand-amber/15 text-brand-amber"
         : "border-[rgb(43,179,110,0.3)] bg-[rgb(43,179,110,0.18)] text-[var(--brand-green)]";
   const label = status === "out" ? "Out" : status === "held" ? "Held" : "In";
   return (
-    <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold", cls)}>{label}</span>
+    <span className={cn("inline-flex rounded-md border px-2 py-0.5 text-[11px] font-semibold", cls)}>{label}</span>
   );
 }
 
@@ -441,7 +441,7 @@ export default function EquipmentManageClient() {
               {["Item", "Code", "Status", "Borrower", "SD card (batch)", "Since", "Out for", ""].map((heading) => (
                 <th
                   key={heading || "actions"}
-                  className="px-3 py-2 font-display text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground"
+                  className="px-3 py-2 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground"
                 >
                   {heading}
                 </th>
@@ -455,21 +455,21 @@ export default function EquipmentManageClient() {
               return (
                 <tr key={item.id} className="border-b border-border last:border-0">
                   <td className="px-3 py-2 text-foreground">{item.name}</td>
-                  <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{item.barcode}</td>
+                  <td className="px-3 py-2 font-mono text-[11px] tabular-nums text-muted-foreground">{item.barcode}</td>
                   <td className="px-3 py-2">
                     <StatusPill status={statusValue} />
                   </td>
                   <td className="px-3 py-2 text-foreground">
                     <div>{studentLabel(borrower)}</div>
                     {borrower?.studentId ? (
-                      <div className="text-[11px] text-muted-foreground">{borrower.studentId}</div>
+                      <div className="font-mono text-[10px] tabular-nums text-muted-foreground">{borrower.studentId}</div>
                     ) : null}
                   </td>
                   <td className="px-3 py-2 text-muted-foreground">
                     {item.tookSdCard === true ? "Yes" : item.tookSdCard === false ? "No" : "—"}
                   </td>
                   <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{formatWhen(item.checkedOutAt)}</td>
-                  <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
+                  <td className="px-3 py-2 whitespace-nowrap font-mono text-[13px] tabular-nums text-muted-foreground">
                     {statusValue === "out" ? hoursOutLabel(item.checkedOutAt) : "—"}
                   </td>
                   <td className="px-3 py-2 text-right">
@@ -477,7 +477,7 @@ export default function EquipmentManageClient() {
                       <Button
                         type="button"
                         size="sm"
-                        variant="destructive"
+                        variant="destructive-quiet"
                         disabled={busy}
                         onClick={() => void patchOut("force-return", item.id)}
                       >
@@ -508,7 +508,7 @@ export default function EquipmentManageClient() {
     <div className="mx-auto w-full max-w-6xl space-y-5 px-4 py-6 sm:px-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="font-display text-3xl font-black uppercase italic tracking-tight text-foreground">Manage</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Manage</h1>
           <p className="mt-1 text-sm text-muted-foreground">Inventory, requests, overdue items, and station settings.</p>
         </div>
         <Button type="button" variant="outline" size="sm" onClick={() => void load(tab)} disabled={loading || busy}>
@@ -517,15 +517,15 @@ export default function EquipmentManageClient() {
         </Button>
       </div>
 
-      <div className="inline-flex flex-wrap gap-1 rounded-full border border-border bg-card p-1">
+      <div className="inline-flex flex-wrap gap-1 rounded-md border border-border bg-card p-1">
         {TABS.map((entry) => (
           <button
             key={entry.id}
             type="button"
             onClick={() => setTab(entry.id)}
             className={cn(
-              "rounded-full px-3 py-1.5 text-[13px] font-medium transition",
-              tab === entry.id ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"
+              "rounded-md px-3 py-1.5 text-[13px] font-medium transition",
+              tab === entry.id ? "bg-[var(--brand-fill)] text-[var(--on-brand)]" : "text-muted-foreground hover:text-foreground"
             )}
           >
             {entry.label}
@@ -606,7 +606,7 @@ export default function EquipmentManageClient() {
                         {["Item", "Code", "Status", ""].map((heading) => (
                           <th
                             key={heading || "actions"}
-                            className="px-3 py-2 font-display text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground"
+                            className="px-3 py-2 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground"
                           >
                             {heading}
                           </th>
@@ -641,10 +641,10 @@ export default function EquipmentManageClient() {
                                   <Input
                                     value={editDraft.barcode}
                                     onChange={(event) => setEditDraft((prev) => ({ ...prev, barcode: event.target.value }))}
-                                    className="font-mono"
+                                    className="font-mono tabular-nums"
                                   />
                                 ) : (
-                                  <span className="font-mono text-xs text-muted-foreground">{item.barcode}</span>
+                                  <span className="font-mono text-[11px] tabular-nums text-muted-foreground">{item.barcode}</span>
                                 )}
                               </td>
                               <td className="px-3 py-2">
@@ -677,7 +677,7 @@ export default function EquipmentManageClient() {
                                       <Button
                                         type="button"
                                         size="sm"
-                                        variant="destructive"
+                                        variant="destructive-quiet"
                                         disabled={busy || statusValue !== "in"}
                                         onClick={() => void archiveItem(item.id)}
                                       >
@@ -719,7 +719,7 @@ export default function EquipmentManageClient() {
                               {request.student?.studentId ?? "—"} · {request.email} · {formatWhen(request.createdAt)}
                             </div>
                           </div>
-                          <span className="rounded-full border border-border px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                          <span className="rounded-md border border-border px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
                             {requestStatusLabel(request)}
                           </span>
                         </div>
@@ -727,7 +727,7 @@ export default function EquipmentManageClient() {
                           {request.items.map((entry) => (
                             <li key={entry.id} className="flex flex-wrap items-center gap-2">
                               <span className="text-foreground">{entry.item.name}</span>
-                              <span className="font-mono text-xs text-muted-foreground">{entry.item.barcode}</span>
+                              <span className="font-mono text-[11px] tabular-nums text-muted-foreground">{entry.item.barcode}</span>
                               <StatusPill status={itemStatus(entry.item)} />
                             </li>
                           ))}
@@ -742,7 +742,7 @@ export default function EquipmentManageClient() {
                             <Button
                               type="button"
                               size="sm"
-                              variant="destructive"
+                              variant="destructive-quiet"
                               disabled={busy}
                               onClick={() => void decideRequest(request.id, "deny")}
                             >
@@ -776,13 +776,13 @@ export default function EquipmentManageClient() {
                     {managers.map((row) => (
                       <span
                         key={row.id}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-xs text-foreground"
+                        className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs text-foreground"
                       >
                         {hubLabel(row.user)}
                         {canAppoint ? (
                           <button
                             type="button"
-                            className="text-muted-foreground transition hover:text-[var(--brand-red)]"
+                            className="text-muted-foreground transition hover:text-danger"
                             onClick={() => void removeManager(row.userId)}
                             aria-label={`Remove ${hubLabel(row.user)}`}
                           >

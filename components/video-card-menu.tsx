@@ -363,7 +363,7 @@ export function VideoCardMenu({
                 setOpen(false);
                 onDelete();
               }}
-              className="mt-1 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-destructive hover:bg-destructive/10"
+              className="mt-1 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-danger hover:bg-destructive/10"
             >
               <Trash2 className="h-3.5 w-3.5" />
               Delete video

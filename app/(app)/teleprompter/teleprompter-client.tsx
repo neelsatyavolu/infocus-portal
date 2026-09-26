@@ -200,7 +200,7 @@ function IconButton({
       title={label}
       className={cn(
         "inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-50",
-        destructive && "hover:bg-destructive/15 hover:text-destructive"
+        destructive && "hover:bg-danger-tint hover:text-danger"
       )}
     >
       {children}
@@ -254,7 +254,7 @@ function splitStyledSegments(text: string): StyledSegment[] {
 function CueHighlight({ text, settings }: { text: string; settings: RunModeSettings }) {
   return (
     <span
-      className="inline-block bg-[#fff200] px-[0.22em] py-[0.04em] font-extrabold uppercase leading-[1.05] text-[#ff0000]"
+      className="inline-block bg-[#fff200] px-[0.22em] py-[0.04em] font-semibold uppercase leading-[1.05] text-[#ff0000]"
       style={{
         fontSize: buildClamp(2.35, 5.1, 5.8, settings.cueScale)
       }}
@@ -540,13 +540,12 @@ function FullscreenRunMode({
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 z-[130] flex flex-col bg-black text-white antialiased [color-scheme:dark]"
-      style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}
+      className="fixed inset-0 z-[130] flex flex-col bg-[#0F110F] font-sans text-white antialiased [color-scheme:dark]"
     >
-      <header className="relative z-20 flex h-9 shrink-0 items-center gap-1.5 border-b border-[#cfcfcf] bg-[#e6e6e6] px-2 text-[#222]">
+      <header className="relative z-20 flex h-9 shrink-0 items-center gap-1.5 border-b border-[#c5ccc8] bg-[#DCE2DE] px-2 text-[#0F110F]">
         <select
           aria-label="Show"
-          className="h-[22px] max-w-[280px] rounded-[3px] border border-[#b5b5b5] bg-white px-1.5 text-[12px] font-medium text-[#222]"
+          className="h-[22px] max-w-[280px] rounded-md border border-[#b5beb8] bg-white px-1.5 text-[12px] font-medium text-[#0F110F]"
           value={doc.id}
           onChange={(event) => onSelectDoc(event.target.value)}
         >
@@ -556,10 +555,10 @@ function FullscreenRunMode({
             </option>
           ))}
         </select>
-        <ChevronRight className="h-3.5 w-3.5 shrink-0 text-[#8a8a8a]" />
+        <ChevronRight className="h-3.5 w-3.5 shrink-0 text-[#6b736e]" />
         <select
           aria-label="Section"
-          className="h-[22px] max-w-[220px] rounded-[3px] border border-[#b5b5b5] bg-white px-1.5 text-[12px] font-medium text-[#222]"
+          className="h-[22px] max-w-[220px] rounded-md border border-[#b5beb8] bg-white px-1.5 text-[12px] font-medium tracking-[0.11em] text-[#0F110F]"
           value={activeSectionId}
           disabled={sectionOptions.length === 0}
           onMouseDown={(event) => {
@@ -586,7 +585,7 @@ function FullscreenRunMode({
           <button
             type="button"
             className={cn(
-              "inline-flex h-7 w-7 items-center justify-center rounded-sm text-[#333] hover:bg-black/10",
+              "inline-flex h-7 w-7 items-center justify-center rounded-md text-[#0F110F] hover:bg-black/10",
               settingsOpen && "bg-black/10"
             )}
             onClick={() => setSettingsOpen((current) => !current)}
@@ -596,7 +595,7 @@ function FullscreenRunMode({
           </button>
           <button
             type="button"
-            className="inline-flex h-7 w-7 items-center justify-center rounded-sm text-[#333] hover:bg-black/10"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[#0F110F] hover:bg-black/10"
             onClick={() => void toggleBrowserFullscreen()}
             aria-label={isBrowserFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
           >
@@ -604,7 +603,7 @@ function FullscreenRunMode({
           </button>
           <button
             type="button"
-            className="inline-flex h-7 w-7 items-center justify-center rounded-sm text-[#333] hover:bg-black/10"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[#0F110F] hover:bg-black/10"
             onClick={onClose}
             aria-label="Exit teleprompter"
           >
@@ -614,16 +613,16 @@ function FullscreenRunMode({
       </header>
 
       {settingsOpen ? (
-        <div className="absolute right-2 top-11 z-30 w-[280px] rounded-md border border-white/15 bg-black/92 p-3 text-white shadow-[0_16px_40px_rgba(0,0,0,0.45)]">
+        <div className="absolute right-2 top-11 z-30 w-[280px] rounded-md border border-white/15 bg-[#1A1D1A] p-3 text-white">
           <div className="mb-3 flex items-center justify-between">
             <p className="text-sm font-semibold">Font Settings</p>
-            <button type="button" className="text-xs text-white/60 hover:text-white" onClick={() => setSettings(DEFAULT_RUN_MODE_SETTINGS)}>
+            <button type="button" className="text-xs text-[#DCE2DE] hover:text-white" onClick={() => setSettings(DEFAULT_RUN_MODE_SETTINGS)}>
               Reset
             </button>
           </div>
           <div className="space-y-3">
-            <label className="block text-[11px] uppercase tracking-[0.12em] text-white/55">
-              Script Size {Math.round(settings.bodyScale * 100)}%
+            <label className="block text-[11px] font-medium uppercase tracking-[0.12em] text-[#DCE2DE]">
+              Script Size <span className="font-mono text-[10px] tabular-nums">{Math.round(settings.bodyScale * 100)}%</span>
               <input
                 type="range"
                 min="0.55"
@@ -639,8 +638,8 @@ function FullscreenRunMode({
                 className="mt-2 w-full"
               />
             </label>
-            <label className="block text-[11px] uppercase tracking-[0.12em] text-white/55">
-              Cue Size {Math.round(settings.cueScale * 100)}%
+            <label className="block text-[11px] font-medium uppercase tracking-[0.12em] text-[#DCE2DE]">
+              Cue Size <span className="font-mono text-[10px] tabular-nums">{Math.round(settings.cueScale * 100)}%</span>
               <input
                 type="range"
                 min="0.7"
@@ -656,16 +655,14 @@ function FullscreenRunMode({
                 className="mt-2 w-full"
               />
             </label>
-            <p className="text-[11px] tabular-nums text-white/45">
-              Space pause · ↓ through 0 reverses · {speed} px/s
+            <p className="text-[11px] text-[#DCE2DE]/70">
+              Space pause · ↓ through 0 reverses · <span className="font-mono text-[10px] tabular-nums">{speed} px/s</span>
             </p>
           </div>
         </div>
       ) : null}
 
-      <div className="relative min-h-0 flex-1 overflow-hidden bg-black">
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-20 bg-gradient-to-b from-black via-black/70 to-transparent" />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-24 bg-gradient-to-t from-black via-black/75 to-transparent" />
+      <div className="relative min-h-0 flex-1 overflow-hidden bg-[#0F110F]">
         <div
           className="pointer-events-none absolute left-16 z-20 md:left-20"
           style={{
@@ -1336,8 +1333,7 @@ export default function TeleprompterClient() {
           standaloneApp && "flex min-h-[calc(100vh-3rem)] flex-col px-3 py-3 pb-6 sm:px-4"
         )}
       >
-        <section className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 md:p-6">
-          <div className="pointer-events-none absolute inset-0 brand-hero-gradient opacity-40" />
+        <section className="brand-hero-panel relative overflow-hidden rounded-2xl border border-border p-5 md:p-6">
           <div className="relative flex flex-wrap items-end justify-between gap-4">
             <div className="min-w-0">
               <div className="eyebrow flex items-center gap-2">
@@ -1382,12 +1378,12 @@ export default function TeleprompterClient() {
           </div>
 
           {message ? (
-            <p className="relative mt-3 rounded-lg border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">
+            <p className="relative mt-3 rounded-lg border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-sm text-foreground">
               {message}
             </p>
           ) : null}
           {autofillStatus.status !== "ok" && autofillStatus.message ? (
-            <p className="relative mt-2 rounded-lg border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-sm text-amber-100">
+            <p className="relative mt-2 rounded-lg border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-sm text-foreground">
               {autofillStatus.message}
             </p>
           ) : null}
@@ -1543,7 +1539,7 @@ export default function TeleprompterClient() {
                       <div className="border-b border-border px-4 py-3">
                         <div className="mb-2 flex items-center justify-between gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                           <span>Reformatting script</span>
-                          <span className="tabular-nums">{Math.round(reformatState.progress)}%</span>
+                          <span className="font-mono text-[10px] tabular-nums">{Math.round(reformatState.progress)}%</span>
                         </div>
                         <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
                           <div
@@ -1585,7 +1581,7 @@ export default function TeleprompterClient() {
                                   ) : (
                                     <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
                                   )}
-                                  <span className="min-w-0 truncate font-display text-xs font-bold uppercase tracking-wide text-foreground">
+                                  <span className="min-w-0 truncate text-xs font-semibold uppercase tracking-[0.11em] text-foreground">
                                     {display.badgeLabel}
                                   </span>
                                 </button>
@@ -1636,7 +1632,7 @@ export default function TeleprompterClient() {
                                 <div className="px-4 pb-3 pl-11">
                                   <div className="mb-2 flex items-center justify-between gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                                     <span>Reformatting</span>
-                                    <span className="tabular-nums">{Math.round(reformatState.progress)}%</span>
+                                    <span className="font-mono text-[10px] tabular-nums">{Math.round(reformatState.progress)}%</span>
                                   </div>
                                   <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
                                     <div

@@ -184,8 +184,7 @@ export default function SubmittedAnnouncementsPage() {
 
   return (
     <div className="route-enter space-y-5">
-      <section className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 md:p-6">
-        <div className="pointer-events-none absolute inset-0 brand-hero-gradient opacity-40" />
+      <section className="brand-hero-panel relative overflow-hidden p-5 md:p-6">
         <div className="relative flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="eyebrow flex items-center gap-2">
@@ -213,7 +212,7 @@ export default function SubmittedAnnouncementsPage() {
             ) : null}
             <Link
               href={"/submit-announcement" as never}
-              className="inline-flex items-center gap-2 rounded-xl bg-[var(--brand-green)] px-4 py-2 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--brand-green-deep)]"
+              className="inline-flex items-center gap-2 rounded-xl bg-[var(--brand-fill)] px-4 py-2 text-sm font-semibold text-[var(--on-brand)] hover:bg-[var(--brand-fill-hover)]"
             >
               <Plus className="h-4 w-4" />
               Submit
@@ -279,7 +278,7 @@ export default function SubmittedAnnouncementsPage() {
           <p className="max-h-60 overflow-y-auto whitespace-pre-wrap rounded-xl border border-border bg-muted/40 p-3 text-sm">
             {deleteEntry?.announcement}
           </p>
-          {deleteError ? <p role="alert" className="text-sm text-amber-300">{deleteError}</p> : null}
+          {deleteError ? <p role="alert" className="text-sm text-danger">{deleteError}</p> : null}
           <DialogFooter>
             <Button type="button" variant="outline" disabled={Boolean(deletingId)} onClick={() => setDeleteEntry(null)}>
               Cancel

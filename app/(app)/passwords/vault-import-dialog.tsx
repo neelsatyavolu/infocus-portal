@@ -195,7 +195,7 @@ export function VaultImportDialog({
                       />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-semibold text-foreground">{item.name}</span>
-                        <span className="block truncate font-mono-broadcast text-[11px] text-muted-foreground">
+                        <span className="block truncate text-[11px] text-muted-foreground">
                           {[item.username, item.url, item.folder].filter(Boolean).join(" · ") || "No username"}
                         </span>
                       </span>
@@ -205,7 +205,7 @@ export function VaultImportDialog({
                           2FA
                         </span>
                       ) : null}
-                      {duplicate ? <span className="meta-pill text-amber-300">Already saved</span> : null}
+                      {duplicate ? <span className="meta-pill text-brand-amber">Already saved</span> : null}
                     </label>
                   </li>
                 );
@@ -216,7 +216,7 @@ export function VaultImportDialog({
         )}
 
         {error ? (
-          <p className="rounded-lg border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">{error}</p>
+          <p className="rounded-lg border border-danger/40 bg-danger-tint px-3 py-2 text-sm text-danger">{error}</p>
         ) : null}
 
         <DialogFooter className="gap-2 sm:justify-between">

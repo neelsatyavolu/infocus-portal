@@ -5,38 +5,41 @@
 @custom-variant light (&:is(.light *));
 
 /* ============================================================
-   InFocus Design System tokens — brand-driven, dark-by-default.
-   Palette from the logo: green (#2BB36E), red (#EE3A2A), ink (#0F110F).
+   InFocus Design System 2026 tokens — dark (Ink) by default.
+   Ink #0F110F · InFocus Green #0B6E3E (fills, white text) ·
+   Green on Dark #2BB36E (text and small marks only) ·
+   Record Red #EE3A2A (the rec dot / LIVE marker only) · Mist #DCE2DE.
+   Errors and destructive actions use the separate Danger set.
    Light mode is opt-in (Settings → Appearance): <html class="light">.
    See DESIGN.md.
    ============================================================ */
 
 :root {
-  --radius: 0.625rem;
+  --radius: 6px;
 
   /* Dark on :root — dark is the default, so pages render dark even before the class is set. */
-  --background: 120 6% 4%;
-  --foreground: 0 0% 98%;
-  --card: 120 5% 5%;
-  --card-foreground: 0 0% 98%;
-  --popover: 120 5% 5%;
-  --popover-foreground: 0 0% 98%;
+  --background: 120 6% 6%;
+  --foreground: 0 0% 100%;
+  --card: 120 6% 9%;
+  --card-foreground: 0 0% 100%;
+  --popover: 120 6% 9%;
+  --popover-foreground: 0 0% 100%;
 
-  --primary: 150 61% 43.5%;
-  --primary-foreground: 0 0% 4%;
+  --primary: 151 82% 24%;
+  --primary-foreground: 0 0% 100%;
 
-  --secondary: 120 4% 8%;
-  --secondary-foreground: 0 0% 98%;
-  --muted: 120 4% 7%;
-  --muted-foreground: 120 4% 65%;
-  --accent: 150 30% 11%;
-  --accent-foreground: 150 60% 80%;
+  --secondary: 120 5% 12%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 120 5% 10%;
+  --muted-foreground: 141 6% 66%;
+  --accent: 151 40% 13%;
+  --accent-foreground: 150 45% 82%;
 
-  --destructive: 5 75% 45%;
+  --destructive: 350 72% 44%;
   --destructive-foreground: 0 0% 100%;
 
-  --border: 120 4% 16%;
-  --input: 120 4% 16%;
+  --border: 120 5% 18%;
+  --input: 120 5% 18%;
   --ring: 150 61% 43.5%;
 
   --chart-1: 150 61% 43.5%;
@@ -45,69 +48,76 @@
   --chart-4: 220 90% 60%;
   --chart-5: 280 70% 60%;
 
-  /* Brand accents — exposed for utilities */
-  --brand-green: #2BB36E;
-  --brand-green-deep: #23955C;
-  --brand-green-soft: #E8F7F0;
-  --brand-green-ink: #08492A;
-  --brand-red: #EE3A2A;
-  --brand-red-deep: #C92B1D;
+  /* Brand — exposed for utilities */
+  --brand-green: #2BB36E;       /* Green on Dark: text, links, icons, small marks. Never a large fill. */
+  --brand-green-deep: #23955C;  /* Hover for green text/marks */
+  --brand-fill: #0B6E3E;        /* InFocus Green: buttons, active states, header bands */
+  --brand-fill-hover: #0E7D47;
+  --on-brand: #FFFFFF;          /* Text on InFocus Green and Danger fills */
+  --brand-red: #EE3A2A;         /* Record Red: rec dot and LIVE markers only */
   --brand-amber: #F2A516;
-  --ink: #0A0A0A;
-  --ink-2: #1F1F1F;
-  --ink-3: #2C2C2C;
-  --ink-4: #3A3A3A;
-  --ink-5: #6B6E6B;
-  --ink-text: #B6B9B6;
-  --paper: #FFFFFF;
-  --paper-2: #F7F7F8;
+  --mist: #DCE2DE;
 
-  /* Type families */
-  --font-display: "Barlow Condensed", "Oswald", Impact, sans-serif;
-  --font-mono-broadcast: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  /* Danger — errors and destructive actions (never Record Red) */
+  --danger: #C21F3A;            /* Fills with white text */
+  --danger-text: #FF7A8A;       /* Error text, icons, borders on Ink */
+  --danger-tint: #3A1218;       /* Error banner backgrounds on Ink */
+
+  --ink: #0F110F;
+  --ink-2: #1A1D1A;
+  --ink-3: #252925;
+  --ink-4: #343934;
+  --ink-5: #6B726D;
+  --ink-text: #DCE2DE;
+  --paper: #FFFFFF;
+  --paper-2: #F4F6F5;
+
+  /* Type families: Lexend for everything people read; Geist Mono for data only. */
+  --font-display: var(--font-lexend), system-ui, sans-serif;
+  --font-mono-broadcast: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
 }
 
 /* ============================================================
-   Light theme. The ink scale and brand accents flip with the theme:
-   --ink is the base surface (and the text color on brand fills),
-   --ink-2…4 are raised surfaces and lines, --ink-text is muted text,
-   and brand colors deepen so they read on white (logo "color" green #0B6E3E).
+   Light theme. The ink scale flips with the theme: --ink is the base
+   surface, --ink-2…4 are raised surfaces and lines, --ink-text is
+   supporting text. Green text deepens to InFocus Green so it reads on white.
    ============================================================ */
 
 :root.light {
   color-scheme: light;
 
-  --background: 120 9% 97%;
-  --foreground: 120 8% 7%;
+  --background: 141 12% 96%;
+  --foreground: 120 6% 6%;
   --card: 0 0% 100%;
-  --card-foreground: 120 8% 7%;
+  --card-foreground: 120 6% 6%;
   --popover: 0 0% 100%;
-  --popover-foreground: 120 8% 7%;
+  --popover-foreground: 120 6% 6%;
 
   --primary: 151 82% 24%;
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 120 6% 93%;
-  --secondary-foreground: 120 8% 7%;
-  --muted: 120 7% 95%;
-  --muted-foreground: 120 4% 36%;
+  --secondary: 141 10% 92%;
+  --secondary-foreground: 120 6% 6%;
+  --muted: 141 10% 94%;
+  --muted-foreground: 140 5% 34%;
   --accent: 150 40% 92%;
   --accent-foreground: 151 82% 18%;
 
-  --border: 120 6% 86%;
-  --input: 120 6% 84%;
+  --border: 141 9% 85%;
+  --input: 141 9% 82%;
   --ring: 151 82% 24%;
 
   --brand-green: #0B6E3E;
   --brand-green-deep: #085A32;
-  --brand-red: #C92B1D;
-  --brand-red-deep: #A32216;
+  --brand-fill-hover: #085A32;
   --brand-amber: #B45309;
+  --danger-text: #C21F3A;
+  --danger-tint: #FDECEE;
   --ink: #FFFFFF;
-  --ink-2: #F1F3F1;
-  --ink-3: #E3E7E3;
-  --ink-4: #CFD4CF;
-  --ink-text: #4B514B;
+  --ink-2: #F1F4F2;
+  --ink-3: #E3E8E5;
+  --ink-4: #CDD4CF;
+  --ink-text: #4B524D;
 
   /* Dark-first markup uses the pale 50–300 tints as status text (text-amber-200 on
      black). On white they are unreadable, so in light mode they resolve to the
@@ -173,20 +183,54 @@
   --color-chart-5: hsl(var(--chart-5));
   --color-brand-green: var(--brand-green);
   --color-brand-green-deep: var(--brand-green-deep);
+  --color-brand-fill: var(--brand-fill);
+  --color-on-brand: var(--on-brand);
   --color-brand-red: var(--brand-red);
   --color-brand-amber: var(--brand-amber);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --color-danger: var(--danger-text);
+  --color-danger-fill: var(--danger);
+  --color-danger-tint: var(--danger-tint);
+  --color-mist: var(--mist);
+  /* One small radius for everyday UI; the arc corner (.arc-corner) is the only big curve. */
+  --radius-sm: 4px;
+  --radius-md: var(--radius);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --font-sans: var(--font-geist-sans);
+  --radius-xl: var(--radius);
+  --radius-2xl: var(--radius);
+  --radius-3xl: var(--radius);
+  --radius-4xl: var(--radius);
+  --font-sans: var(--font-lexend), system-ui, sans-serif;
   --font-display: var(--font-display);
   --font-mono: var(--font-mono-broadcast);
 }
 
+/* Flat color: no drop shadows. Brand motion curves (DESIGN.md §5, §10). */
+@theme {
+  --shadow: 0 0 #0000;
+  --shadow-2xs: 0 0 #0000;
+  --shadow-xs: 0 0 #0000;
+  --shadow-sm: 0 0 #0000;
+  --shadow-md: 0 0 #0000;
+  --shadow-lg: 0 0 #0000;
+  --shadow-xl: 0 0 #0000;
+  --shadow-2xl: 0 0 #0000;
+  --drop-shadow-xs: 0 0 #0000;
+  --drop-shadow-sm: 0 0 #0000;
+  --drop-shadow-md: 0 0 #0000;
+  --drop-shadow-lg: 0 0 #0000;
+  --drop-shadow-xl: 0 0 #0000;
+  --drop-shadow-2xl: 0 0 #0000;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-back-out: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --default-transition-duration: 200ms;
+  --default-transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 html {
   color-scheme: dark;
-  background-color: #0a0a0a;
+  background-color: #0F110F;
   background-color: hsl(var(--background));
   -webkit-text-size-adjust: 100%;
 }
@@ -230,108 +274,130 @@ video {
   font-family: var(--font-mono-broadcast);
 }
 
-/* Italic broadcast display — uppercase, condensed, tight tracking */
+/* The arc corner — the brand's one big curve (DESIGN.md §10). Use it on the
+   1–3 "plate" pieces per screen: page hero/header, section title bars, the
+   active nav tab. One curved outer top corner, the other three square. */
+.arc-corner,
+.arc-corner-left {
+  border-radius: 0 24px 0 0;
+}
+.arc-corner-left {
+  border-radius: 24px 0 0 0;
+}
+@media (min-width: 640px) {
+  .arc-corner { border-radius: 0 32px 0 0; }
+  .arc-corner-left { border-radius: 32px 0 0 0; }
+}
+
+/* Headlines — Lexend SemiBold, tight tracking, sentence or title case */
 .display-xl,
 .display-lg,
 .display-md,
 .display-sm {
   font-family: var(--font-display);
-  font-style: italic;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: -0.02em;
-  line-height: 1;
+  font-style: normal;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: -0.015em;
+  line-height: 1.1;
   color: hsl(var(--foreground));
 }
-.display-xl { font-size: clamp(3rem, 4vw + 2rem, 5.5rem); font-weight: 900; line-height: 0.92; }
-.display-lg { font-size: clamp(2.25rem, 2.5vw + 1.5rem, 3.75rem); font-weight: 900; line-height: 0.96; }
-.display-md { font-size: clamp(1.5rem, 1vw + 1.125rem, 2.25rem); line-height: 1.02; }
-.display-sm { font-size: clamp(1.25rem, 0.5vw + 1rem, 1.75rem); line-height: 1.05; }
+.display-xl { font-size: clamp(2.25rem, 2.5vw + 1.5rem, 3.5rem); letter-spacing: -0.02em; line-height: 1.05; }
+.display-lg { font-size: clamp(1.875rem, 1.5vw + 1.25rem, 2.75rem); letter-spacing: -0.02em; line-height: 1.08; }
+.display-md { font-size: clamp(1.375rem, 0.75vw + 1rem, 1.875rem); line-height: 1.15; }
+.display-sm { font-size: clamp(1.125rem, 0.4vw + 0.95rem, 1.375rem); line-height: 1.2; }
 
-/* Eyebrow label */
+/* Eyebrow / kicker — ALL CAPS Medium, wide tracking, Green on Dark */
 .eyebrow {
   font-family: var(--font-display);
-  font-weight: 700;
+  font-weight: 500;
   font-size: 0.75rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--brand-green);
 }
 .eyebrow-ink { color: hsl(var(--foreground)); }
-.eyebrow-red { color: var(--brand-red); }
+.eyebrow-red { color: var(--danger-text); }
 .eyebrow-muted { color: hsl(var(--muted-foreground)); }
 
 /* Wordmark style */
 .wordmark {
   font-weight: 600;
   font-size: 14px;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.11em;
   text-transform: uppercase;
 }
 
-/* Status pills (Barlow Condensed micro-caps) */
+/* Status tags — ALL CAPS Medium labels, small square-ish corners */
 .status-pill {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 0.75rem;
-  letter-spacing: 0.16em;
+  font-weight: 500;
+  font-size: 0.6875rem;
+  letter-spacing: 0.11em;
   text-transform: uppercase;
   padding: 3px 8px;
-  border-radius: 9999px;
+  border-radius: var(--radius-sm, 4px);
   border: 1px solid transparent;
   white-space: nowrap;
 }
 .status-pill-sm {
   font-size: 0.625rem;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.11em;
   padding: 2px 6px;
   gap: 3px;
 }
 .status-pill-lg {
-  font-size: 0.9375rem;
-  letter-spacing: 0.16em;
+  font-size: 0.875rem;
+  letter-spacing: 0.11em;
   padding: 8px 18px;
   gap: 8px;
 }
 @media (min-width: 640px) {
   .status-pill-lg {
-    font-size: 1rem;
+    font-size: 0.9375rem;
     padding: 10px 22px;
   }
 }
-.status-live      { background: var(--brand-red-deep); color: #fff; }
+/* LIVE: an Ink tag with the one red dot, not a red fill. */
+.status-live      { background: hsl(var(--card)); color: hsl(var(--foreground)); border-color: hsl(var(--border)); }
+.status-live::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--brand-red);
+}
 .status-review    { background: hsl(var(--background)); color: hsl(var(--foreground)); border-color: hsl(var(--border)); }
-.status-approved  { background: rgb(43 179 110 / 0.18); color: var(--brand-green); border-color: rgb(43 179 110 / 0.30); }
-.status-warn      { background: rgb(242 165 22 / 0.18); color: var(--brand-amber); border-color: rgb(242 165 22 / 0.40); }
-.status-danger    { background: rgb(238 58 42 / 0.18); color: var(--brand-red); border-color: rgb(238 58 42 / 0.40); }
+.status-approved  { background: rgb(43 179 110 / 0.14); color: var(--brand-green); border-color: rgb(43 179 110 / 0.30); }
+.status-warn      { background: rgb(242 165 22 / 0.16); color: var(--brand-amber); border-color: rgb(242 165 22 / 0.40); }
+.status-danger    { background: var(--danger-tint); color: var(--danger-text); border-color: color-mix(in srgb, var(--danger-text) 40%, transparent); }
 .status-neutral   { background: hsl(var(--card)); color: var(--ink-text); border-color: hsl(var(--border)); }
 
-/* REC / live pulsing dot */
+/* REC / live dot — the one touch of Record Red */
 .rec-dot {
   display: inline-block;
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: #fff;
-  animation: rec-pulse 1.4s infinite;
+  animation: rec-pulse 1.6s cubic-bezier(0.65, 0, 0.35, 1) infinite;
 }
 .rec-dot-red { background: var(--brand-red); }
 @keyframes rec-pulse {
-  0%   { box-shadow: 0 0 0 0 rgb(238 58 42 / 0.55); }
-  70%  { box-shadow: 0 0 0 10px rgb(238 58 42 / 0); }
-  100% { box-shadow: 0 0 0 0 rgb(238 58 42 / 0); }
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
 }
 
-/* Meta pills (sidebar to hero) */
+/* Meta tags (sidebar to hero) */
 .meta-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
-  border-radius: 9999px;
+  border-radius: var(--radius-sm, 4px);
   background: hsl(var(--secondary));
   border: 1px solid hsl(var(--border));
   color: hsl(var(--foreground));
@@ -340,65 +406,41 @@ video {
   white-space: nowrap;
 }
 
-/* Brand gradient panels for project tiles & heroes */
-.brand-gradient-1 { background: linear-gradient(135deg, #6f3cff, #f0648f, #8d4bff); }
-.brand-gradient-2 { background: linear-gradient(135deg, #00b07c, #27d39e, #4f6dff); }
-.brand-gradient-3 { background: linear-gradient(135deg, #3d63ff, #6c7dff, #cf4be2); }
-.brand-gradient-4 { background: linear-gradient(135deg, #ff7b4a, #ff5ca8, #7e4dff); }
-.brand-gradient-5 { background: linear-gradient(135deg, #00a3ff, #3ec7ff, #6d6cff); }
-.brand-gradient-ink { background: linear-gradient(135deg, #1c1c1c, #2c2c2c, #0a0a0a); }
-.brand-gradient-green { background: linear-gradient(135deg, #2BB36E, #23955C, #08492A); }
-.brand-gradient-red { background: linear-gradient(135deg, #EE3A2A, #781A11, #0A0A0A); }
+/* Flat brand panels for project tiles (no gradients — DESIGN.md §4) */
+.brand-gradient-1 { background: var(--brand-fill); color: #fff; }
+.brand-gradient-2 { background: #1A1D1A; color: #fff; }
+.brand-gradient-3 { background: #08492A; color: #fff; }
+.brand-gradient-4 { background: #252925; color: #fff; }
+.brand-gradient-5 { background: #0E5C36; color: #fff; }
+.brand-gradient-ink { background: var(--ink-2); }
+.brand-gradient-green { background: var(--brand-fill); color: var(--on-brand); }
+.brand-gradient-red { background: var(--danger); color: #fff; }
 
-/* Project hero gradient (brand green wash → ink) */
-.brand-hero-gradient {
-  background: linear-gradient(135deg, #08492A 0%, #0A0A0A 60%, #1F1F1F 100%);
-}
-.light .brand-hero-gradient {
-  background: linear-gradient(135deg, #CDEFDD 0%, #FFFFFF 60%, #F1F3F1 100%);
-}
-
-/* Full-strength hero panel (Grade Editor, Livestreams) */
+/* Page hero — an Ink plate with an InFocus Green strip below and the arc corner
+   (the lower-third nameplate, flattened for the web). */
+.brand-hero-gradient,
 .brand-hero-panel {
-  background:
-    radial-gradient(900px 240px at 92% 10%, rgba(43, 179, 110, 0.18), transparent 60%),
-    linear-gradient(135deg, #08492A 0%, #0A2517 50%, #0A0A0A 100%);
+  background: hsl(var(--card));
+  /* Only the green strip — never a stroke along the arc, even if markup adds `border`. */
+  border-width: 0 0 4px 0;
+  border-style: solid;
+  border-color: var(--brand-fill);
+  border-radius: 0 24px 0 0;
 }
-.light .brand-hero-panel {
-  background:
-    radial-gradient(900px 240px at 92% 10%, rgba(11, 110, 62, 0.12), transparent 60%),
-    linear-gradient(135deg, #CDEFDD 0%, #FFFFFF 60%, #F1F3F1 100%);
+@media (min-width: 640px) {
+  .brand-hero-gradient,
+  .brand-hero-panel {
+    border-radius: 0 32px 0 0;
+  }
 }
 
-/* Tile chrome — softens corners + ambient blur orbs */
+/* Tile chrome — kept as a positioning hook; no blur orbs (flat color) */
 .brand-tile-orbs {
   position: relative;
   overflow: hidden;
 }
-.brand-tile-orbs::before,
-.brand-tile-orbs::after {
-  content: "";
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(20px);
-  pointer-events: none;
-}
-.brand-tile-orbs::before {
-  left: -30px;
-  top: -40px;
-  width: 110px;
-  height: 110px;
-  background: rgb(255 255 255 / 0.22);
-}
-.brand-tile-orbs::after {
-  right: -20px;
-  bottom: -50px;
-  width: 96px;
-  height: 96px;
-  background: rgb(0 0 0 / 0.25);
-}
 
-/* Remaining-days pill buttons (Extensions) */
+/* Remaining-days buttons (Extensions) */
 .rem-pill-ok {
   background: rgb(43 179 110 / 0.10);
   color: var(--brand-green);
@@ -412,23 +454,24 @@ video {
 }
 .rem-pill-warn:hover { background: rgb(242 165 22 / 0.20); }
 .rem-pill-over {
-  background: rgb(238 58 42 / 0.12);
-  color: var(--brand-red);
-  border-color: rgb(238 58 42 / 0.40);
+  background: var(--danger-tint);
+  color: var(--danger-text);
+  border-color: color-mix(in srgb, var(--danger-text) 40%, transparent);
 }
-.rem-pill-over:hover { background: rgb(238 58 42 / 0.20); }
+.rem-pill-over:hover { background: color-mix(in srgb, var(--danger-text) 18%, var(--danger-tint)); }
 
-/* Avatar palette — initial badges */
-.av-green  { background: linear-gradient(135deg, #2BB36E, #23955C); color: #000; }
-.av-red    { background: linear-gradient(135deg, #C92B1D, #781A11); color: #fff; }
-.av-purple { background: linear-gradient(135deg, #6f3cff, #8d4bff); color: #fff; }
-.av-blue   { background: linear-gradient(135deg, #3d63ff, #6c7dff); color: #fff; }
-.av-gray   { background: #3A3A3A; color: #fff; }
+/* Avatar palette — flat brand tones for initial badges */
+.av-green  { background: var(--brand-fill); color: #fff; }
+.av-red    { background: #DCE2DE; color: #0F110F; }
+.av-purple { background: #08492A; color: #fff; }
+.av-blue   { background: #2BB36E; color: #0F110F; }
+.av-gray   { background: #343934; color: #fff; }
 
-/* Frame.io-style timecode */
+/* Timecode — Geist Mono is for data only */
 .timecode {
   font-family: var(--font-mono-broadcast);
-  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
   color: hsl(var(--muted-foreground));
 }
 
@@ -437,21 +480,21 @@ video {
    ============================================================ */
 
 .card-enter {
-  animation: card-enter 320ms ease both;
+  animation: card-enter 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .route-enter {
-  animation: route-enter 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: route-enter 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes card-enter {
   from {
     opacity: 0;
-    transform: translateY(8px) scale(0.99);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
 }
 

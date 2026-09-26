@@ -32,7 +32,7 @@ function FormMessage({ status }: { status: Status }) {
   }
   const color =
     status.type === "error"
-      ? "border-[rgb(238,58,42,0.4)] bg-[rgb(238,58,42,0.12)] text-[var(--brand-red)]"
+      ? "border-danger/40 bg-danger-tint text-danger"
       : status.type === "success"
         ? "border-[rgb(43,179,110,0.3)] bg-[rgb(43,179,110,0.12)] text-[var(--brand-green)]"
         : "border-border bg-card text-muted-foreground";
@@ -192,7 +192,7 @@ export default function EquipmentCheckoutClient() {
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6 px-4 py-6 sm:px-6">
       <div>
-        <h1 className="font-display text-3xl font-black uppercase italic tracking-tight text-foreground">Checkout</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Checkout</h1>
         <p className="mt-1 text-sm text-muted-foreground">Enter your name and email, then add item codes to check equipment in or out together.</p>
       </div>
 
@@ -291,7 +291,7 @@ export default function EquipmentCheckoutClient() {
                                 itemCodeRef.current?.focus();
                                 setSuggestionsOpen(false);
                               }}>
-                                <span className="break-all font-mono text-sm text-foreground">{item.barcode}</span>
+                                <span className="break-all font-mono text-[13px] tabular-nums text-foreground">{item.barcode}</span>
                                 <span className="break-words text-xs text-muted-foreground">{item.name}</span>
                               </button>
                             </li>
@@ -307,7 +307,7 @@ export default function EquipmentCheckoutClient() {
                   {barcodes.map((code) => (
                     <li key={code} className="flex items-center justify-between rounded-md border border-border px-3 py-2">
                       <div className="min-w-0 space-y-0.5">
-                        <p className="break-all font-mono text-sm">{code}</p>
+                        <p className="break-all font-mono text-[13px] tabular-nums">{code}</p>
                         <p className="break-words text-xs text-muted-foreground">{items.find((item) => item.barcode === code)?.name}</p>
                       </div>
                       <Button

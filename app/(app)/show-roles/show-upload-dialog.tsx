@@ -114,7 +114,7 @@ function StatusView({ publication }: { publication: Publication }) {
           {publication.seasonNumber ? ` · InFocus News | Season ${publication.seasonNumber}` : ""}
         </div>
       </div>
-      {publication.lastError ? <p className="text-xs text-destructive">{publication.lastError}</p> : null}
+      {publication.lastError ? <p className="text-xs text-danger">{publication.lastError}</p> : null}
       {publication.watchUrl ? (
         <a href={publication.watchUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs underline">
           Open on YouTube <ExternalLink className="h-3 w-3" />
@@ -280,7 +280,7 @@ export function ShowUploadDialog({
         {phase === "pick" ? (
           <div className="space-y-3">
             {state && !state.configured ? (
-              <p className="text-sm text-destructive">YouTube publishing is not configured on this server.</p>
+              <p className="text-sm text-danger">YouTube publishing is not configured on this server.</p>
             ) : null}
             <input
               ref={inputRef}

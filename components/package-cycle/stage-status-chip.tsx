@@ -27,7 +27,6 @@ export function StageStatusChip({
       {showDot ? (
         <span
           className={cn("shrink-0 rounded-full bg-current", size === "lg" ? "h-2 w-2" : "h-1.5 w-1.5")}
-          style={status === "approved" ? { boxShadow: "0 0 8px var(--brand-green)" } : undefined}
         />
       ) : null}
       {label ?? CYCLE_STAGE_STATUS_LABELS[status]}

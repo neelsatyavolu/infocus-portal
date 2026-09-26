@@ -41,8 +41,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md items-center px-6 py-10">
-      <section className="relative w-full overflow-hidden rounded-2xl border border-border bg-card p-8">
-        <div className="pointer-events-none absolute inset-0 brand-hero-gradient opacity-30" />
+      <section className="brand-hero-panel relative w-full overflow-hidden p-8">
         <div className="relative">
           <div className="mb-5 grid h-12 w-12 place-items-center rounded-xl border border-[var(--brand-green)]/40 bg-[var(--brand-green)]/15 text-[var(--brand-green)]">
             <Lock className="h-5 w-5" aria-hidden="true" />
@@ -57,7 +56,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
           </p>
 
           {errorMessage ? (
-            <p className="mt-4 rounded-lg border border-rose-300/30 bg-rose-400/10 px-3 py-2 text-sm text-rose-100">
+            <p className="mt-4 rounded-lg border border-danger/30 bg-danger-tint px-3 py-2 text-sm text-danger">
               {errorMessage}
             </p>
           ) : null}
@@ -77,7 +76,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
             ) : null}
             {safeReturnTo === "/equipment/manage" ? <EquipmentPasskeyButton purpose="login" /> : null}
             <EmailSignInForm returnTo={safeReturnTo} />
-            <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+            <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
               Workspace access granted by your producer.
             </p>
           </div>

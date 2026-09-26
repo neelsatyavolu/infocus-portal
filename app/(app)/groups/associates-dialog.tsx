@@ -70,7 +70,7 @@ export default function AssociatesDialog({ cycles, activeCycleNumber }: {
       <DialogContent className="max-w-5xl grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden p-0 sm:rounded-2xl sm:p-0">
         <div className="border-b border-border bg-muted/20 px-5 py-5 sm:px-7">
           <DialogHeader className="pr-8 text-left">
-            <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--brand-green)]">Producer team</p>
+            <p className="mb-1 text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--brand-green)]">Producer team</p>
             <DialogTitle className="text-2xl">Associates</DialogTitle>
             <DialogDescription>Review habits, workload, and feedback — one cycle at a time.</DialogDescription>
           </DialogHeader>
@@ -86,12 +86,12 @@ export default function AssociatesDialog({ cycles, activeCycleNumber }: {
           </div>
         </div>
         <div className="max-h-[65dvh] min-h-0 overflow-y-auto">
-          {error ? <div role="alert" className="space-y-3 p-8 text-center"><p className="text-sm text-destructive">{error}</p><Button variant="secondary" onClick={() => setRetry((n) => n + 1)}>Try again</Button></div>
+          {error ? <div role="alert" className="space-y-3 p-8 text-center"><p className="text-sm text-danger">{error}</p><Button variant="secondary" onClick={() => setRetry((n) => n + 1)}>Try again</Button></div>
             : !data ? <div role="status" className="space-y-4 p-7"><p className="text-sm text-muted-foreground">Loading associate performance…</p><div className="h-48 animate-pulse rounded-xl bg-muted/40 motion-reduce:animate-none" /></div>
             : !associate || !metrics ? <p className="p-10 text-center text-sm text-muted-foreground">No associate producers are registered yet.</p>
             : <div className="grid md:grid-cols-[235px_minmax(0,1fr)]">
               <nav aria-label="Associates" className="border-b border-border bg-muted/10 p-3 md:border-b-0 md:border-r">
-                <p className="px-3 pb-3 pt-1 text-[10px] uppercase tracking-widest text-muted-foreground">Team · {data.associates.length}</p>
+                <p className="px-3 pb-3 pt-1 text-[10px] font-medium uppercase tracking-[0.11em] text-muted-foreground">Team · {data.associates.length}</p>
                 <div className="flex gap-2 overflow-x-auto md:block md:space-y-1">
                   {data.associates.map((a) => <button key={a.userId} type="button" onClick={() => setSelected(a.userId)} aria-pressed={a.userId === associate.userId}
                     className={cn("flex min-w-44 items-center justify-between gap-3 rounded-xl border px-3 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:w-full", a.userId === associate.userId ? "border-[var(--brand-green)]/30 bg-[var(--brand-green)]/10" : "border-transparent hover:bg-muted/50")}>
@@ -154,7 +154,7 @@ export default function AssociatesDialog({ cycles, activeCycleNumber }: {
                 <section>
                   <h4 className="mb-3 text-sm font-medium">Group progress</h4>
                   <p className="mb-3 text-xs leading-relaxed text-muted-foreground">Current milestone completion, not proof of individual impact. Future and undated milestones are excluded. Approved extensions move the final-cut deadline. Student effort and later reviewer decisions also affect progress.</p>
-                  <div className="space-y-3">{associate.progress.groups.map((group) => <div key={group.rowId} className="rounded-xl border border-border p-3"><div className="flex justify-between gap-3 text-sm"><span>{group.topic}</span><span className="tabular-nums">{group.completed}/{group.due} due milestones</span></div><div className="mt-2 flex flex-wrap gap-2">{group.milestones.map((m) => <span key={m.label} className={cn("rounded-md px-2 py-1 text-[10px]", m.complete ? "bg-emerald-500/10 text-emerald-300" : m.dueAt && Date.parse(m.dueAt) <= Date.now() ? "bg-amber-500/10 text-amber-300" : "bg-muted text-muted-foreground")}>{m.label} · {m.complete ? "Complete" : !m.dueAt ? "Unscheduled" : Date.parse(m.dueAt) > Date.now() ? "Not due" : "Pending"}</span>)}</div></div>)}</div>
+                  <div className="space-y-3">{associate.progress.groups.map((group) => <div key={group.rowId} className="rounded-xl border border-border p-3"><div className="flex justify-between gap-3 text-sm"><span>{group.topic}</span><span className="tabular-nums">{group.completed}/{group.due} due milestones</span></div><div className="mt-2 flex flex-wrap gap-2">{group.milestones.map((m) => <span key={m.label} className={cn("rounded-md px-2 py-1 text-[10px]", m.complete ? "bg-[var(--brand-green)]/10 text-[var(--brand-green)]" : m.dueAt && Date.parse(m.dueAt) <= Date.now() ? "bg-amber-500/10 text-amber-300" : "bg-muted text-muted-foreground")}>{m.label} · {m.complete ? "Complete" : !m.dueAt ? "Unscheduled" : Date.parse(m.dueAt) > Date.now() ? "Not due" : "Pending"}</span>)}</div></div>)}</div>
                 </section>
                 </div>}
               </div>

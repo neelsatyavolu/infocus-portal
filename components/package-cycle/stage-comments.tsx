@@ -224,7 +224,7 @@ export function StageComments({
         <MessageSquare className="h-4 w-4" />
         {canWrite ? "Add Feedback" : "View Feedback"}
         {unread > 0 ? (
-          <span className="absolute -right-1.5 -top-1.5 grid min-w-4 place-items-center rounded-full bg-[var(--brand-green)] px-1 py-0.5 text-[10px] font-semibold leading-none text-[var(--ink)]">
+          <span className="absolute -right-1.5 -top-1.5 grid min-w-4 place-items-center rounded-md bg-[var(--brand-fill)] px-1 py-0.5 text-[10px] font-semibold leading-none text-[var(--on-brand)]">
             {unread > 99 ? "99+" : unread}
           </span>
         ) : null}

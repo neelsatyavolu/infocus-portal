@@ -597,7 +597,7 @@ export default function ParticipationClient() {
                         <Button
                           type="button"
                           size="sm"
-                          variant="destructive"
+                          variant="destructive-quiet"
                           disabled={decidingId === request.id}
                           onClick={() => void decide(request.id, false)}
                         >

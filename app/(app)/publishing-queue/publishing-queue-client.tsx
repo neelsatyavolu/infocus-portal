@@ -189,7 +189,7 @@ function QueuePackageCard({
         </div>
       </div>
       {row.youtubePublication?.lastError ? (
-        <p className="mt-2 text-xs text-destructive">{row.youtubePublication.lastError}</p>
+        <p className="mt-2 text-xs text-danger">{row.youtubePublication.lastError}</p>
       ) : null}
     </div>
   );
@@ -419,8 +419,7 @@ export default function PublishingQueueClient() {
 
   return (
     <div className="route-enter mx-auto w-full max-w-3xl space-y-5 pb-24">
-      <section className="relative overflow-hidden rounded-2xl border border-border bg-card p-5">
-        <div className="pointer-events-none absolute inset-0 brand-hero-gradient opacity-40" />
+      <section className="brand-hero-panel relative overflow-hidden p-5">
         <div className="relative flex flex-wrap items-end justify-between gap-3">
           <div>
             <div className="eyebrow flex items-center gap-2">
@@ -497,7 +496,7 @@ export default function PublishingQueueClient() {
                 className={cn(
                   "min-h-[4.75rem] space-y-2 rounded-2xl border border-dashed p-2 transition-[border-color,background-color] duration-150",
                   droppable ? "border-border/80" : "border-transparent p-0",
-                  over && accepting && "border-primary/60 bg-primary/5",
+                  over && accepting && "border-brand-green/60 bg-primary/5",
                   droppable && !accepting && draggingId && "opacity-60"
                 )}
               >

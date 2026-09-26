@@ -38,12 +38,12 @@ type ViewValue = "grid" | "list";
 const TILE_GRADIENTS = [
   "brand-gradient-green",
   "brand-gradient-1",
-  "brand-gradient-red",
+  "brand-gradient-5",
   "brand-gradient-4",
   "brand-gradient-2",
   "brand-gradient-3",
   "brand-gradient-5",
-  "brand-gradient-ink"
+  "brand-gradient-2"
 ] as const;
 
 function normalizeSort(value: string | undefined): SortValue {
@@ -156,8 +156,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       ) : (
         <>
       {/* HERO — broadcast-banded cycle marquee */}
-      <section className="relative overflow-hidden rounded-2xl border border-border bg-card px-6 py-5">
-        <div className="pointer-events-none absolute inset-0 brand-hero-gradient opacity-60" />
+      <section className="brand-hero-panel relative overflow-hidden px-6 py-5">
         <div className="relative flex flex-wrap items-center justify-between gap-6">
           <div className="min-w-0">
             <div className="eyebrow flex items-center gap-2">
@@ -266,7 +265,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 className="group overflow-hidden rounded-2xl border border-border bg-card transition hover:border-[var(--brand-green)]/40 hover:bg-card/90"
               >
                 <div className={`brand-tile-orbs relative h-28 p-4 ${gradient}`}>
-                  <p className="relative text-lg font-semibold text-white drop-shadow-sm">{project.name}</p>
+                  <p className="relative text-lg font-semibold tracking-tight text-white">{project.name}</p>
                   <p className="relative text-xs font-medium text-white/85">{selectedWorkspace.name}</p>
                 </div>
 
@@ -306,7 +305,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         <div className="rounded-2xl border border-border bg-card p-5">
           <div className="flex items-center justify-between">
             <h2 className="display-sm text-foreground">Up Next</h2>
-            <span className="font-mono-broadcast text-xs text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               {dashboardPanels.upNext
                 ? `Cycle ${dashboardPanels.upNext.cycleNumber} stages`
                 : "Your cycle stages"}
@@ -397,19 +396,19 @@ function StudentSnapshot({ snapshot }: { snapshot: StudentDashboardSnapshot }) {
         className="rounded-2xl border border-border bg-card p-4 transition hover:border-[var(--brand-green)]/40 hover:bg-card/90"
       >
         <div className="flex items-center justify-between gap-2">
-          <div className="font-display text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+          <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
             Your grade
           </div>
           <span className="meta-pill">{snapshot.semesterLabel}</span>
         </div>
         <div
-          className={`mt-2 font-display text-4xl font-extrabold italic leading-none tracking-tight ${
+          className={`mt-2 text-3xl font-semibold leading-none tracking-tight ${
             snapshot.letter ? "text-[var(--brand-green)]" : "text-muted-foreground"
           }`}
         >
           {snapshot.letter ?? "—"}
         </div>
-        <div className="mt-1 font-mono-broadcast text-xs text-[var(--brand-green)]">
+        <div className="mt-1 text-xs text-[var(--brand-green)]">
           {snapshot.percentage === null ? "Not gradeable yet" : `${snapshot.percentage.toFixed(1)}% estimated`}
         </div>
         <p className="mt-2 text-[11px] text-muted-foreground">Packages, participation, and portfolio.</p>
@@ -570,15 +569,15 @@ function SnapshotCard({
       className="rounded-2xl border border-border bg-card p-4 transition hover:border-[var(--brand-green)]/40 hover:bg-card/90"
     >
       <div className="flex items-center justify-between gap-2">
-        <div className="font-display text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+        <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
           {label}
         </div>
         <span className="meta-pill">{weight}</span>
       </div>
-      <div className="mt-2 font-display text-3xl font-extrabold italic leading-none tracking-tight text-foreground">
+      <div className="mt-2 text-2xl font-semibold leading-none tracking-tight text-foreground">
         {value}
       </div>
-      <div className="mt-1 font-mono-broadcast text-xs text-[var(--brand-green)]">{detail}</div>
+      <div className="mt-1 text-xs text-[var(--brand-green)]">{detail}</div>
       <p className="mt-2 text-[11px] text-muted-foreground">{hint}</p>
       {progress !== null ? (
         <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
@@ -671,7 +670,7 @@ function ActivityRow({
           <span className="text-muted-foreground">{what} </span>
           <strong className="font-semibold text-foreground">{what2}</strong>
         </div>
-        <div className="mt-0.5 font-mono-broadcast text-[10px] text-[var(--ink-5)]">{when}</div>
+        <div className="mt-0.5 font-mono-broadcast text-[10px] tabular-nums text-[var(--ink-5)]">{when}</div>
       </div>
     </div>
   );

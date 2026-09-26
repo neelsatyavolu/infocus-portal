@@ -47,12 +47,12 @@ function StatTile({
   dim?: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-foreground/[0.08] bg-[rgb(10,10,10,0.55)] light:bg-muted px-4 py-3.5 backdrop-blur">
-      <div className="font-display text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--ink-text)]">
+    <div className="rounded-xl border border-foreground/[0.08] bg-[var(--ink-2)] px-4 py-3.5">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--ink-text)]">
         {label}
       </div>
       <div
-        className={`mt-1.5 font-display italic font-extrabold tracking-tight ${
+        className={`mt-1.5 font-semibold tracking-tight ${
           dim ? "text-[var(--ink-5)]" : "text-foreground"
         } ${compact ? "text-lg leading-tight" : "text-[28px] leading-none"}`}
       >
@@ -199,8 +199,6 @@ export default async function ProjectPage({ params, searchParams }: ProjectPageP
       <section
         className="brand-hero-gradient relative overflow-hidden rounded-2xl border border-border px-5 py-4"
       >
-        {/* Ambient orb accent */}
-        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-[var(--brand-green)]/10 blur-3xl" />
         <div className="relative flex flex-wrap items-center justify-between gap-4">
           <div className="min-w-0">
             <div className="eyebrow flex items-center gap-2">
@@ -228,7 +226,7 @@ export default async function ProjectPage({ params, searchParams }: ProjectPageP
               <h2 className="mt-3 text-3xl font-semibold text-foreground">{collectionMeta.title}</h2>
               <p className="mt-1 text-sm text-muted-foreground">{collectionMeta.description}</p>
             </div>
-            <p className="rounded-full border border-border bg-muted px-3 py-1 text-xs text-muted-foreground">
+            <p className="rounded-md border border-border bg-muted px-3 py-1 text-xs text-muted-foreground">
               {mediaPage.totalCount} {mediaPage.totalCount === 1 ? "asset" : "assets"} in view
             </p>
           </div>

@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
-import { Barlow_Condensed } from "next/font/google";
+import { Lexend } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Toaster } from "@/components/ui/sonner";
@@ -9,11 +8,10 @@ import { N3elAnalytics } from "@/components/n3el-analytics";
 import { THEME_INIT_SCRIPT } from "@/src/lib/theme";
 import "./globals.css";
 
-const barlowCondensed = Barlow_Condensed({
+const lexend = Lexend({
   subsets: ["latin"],
-  weight: ["700", "800", "900"],
-  style: ["normal", "italic"],
-  variable: "--font-display",
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-lexend",
   display: "swap"
 });
 
@@ -21,7 +19,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#0a0a0a"
+  themeColor: "#0F110F"
 };
 
 export const metadata: Metadata = {
@@ -54,7 +52,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`dark bg-background ${GeistSans.variable} ${GeistMono.variable} ${barlowCondensed.variable}`}
+      className={`dark bg-background ${lexend.variable} ${GeistMono.variable}`}
       suppressHydrationWarning
     >
       <head>

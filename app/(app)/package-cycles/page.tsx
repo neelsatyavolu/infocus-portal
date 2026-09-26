@@ -301,8 +301,7 @@ export default function PackageCyclesPage() {
 
   return (
     <div className="route-enter mx-auto w-full max-w-6xl space-y-5">
-      <section className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 md:p-6">
-        <div className="pointer-events-none absolute inset-0 brand-hero-gradient opacity-40" />
+      <section className="brand-hero-panel relative overflow-hidden rounded-2xl border border-border p-5 md:p-6">
         <div className="relative flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="eyebrow flex items-center gap-2">
@@ -358,7 +357,7 @@ export default function PackageCyclesPage() {
         {editing && canEditCycleCount ? (
           <div className="relative mt-4 flex flex-wrap items-end gap-3 rounded-xl border border-border bg-secondary/40 px-4 py-3">
             <div className="min-w-0">
-              <label htmlFor="cycles-per-semester" className="font-display text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+              <label htmlFor="cycles-per-semester" className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                 Cycles this semester
               </label>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -502,7 +501,7 @@ export default function PackageCyclesPage() {
                                 className="mt-1 h-7 w-full rounded-md border border-border bg-secondary px-2 text-xs text-foreground outline-none focus:ring-ring"
                               />
                             ) : (
-                              <div className="font-mono-broadcast text-[11px] text-muted-foreground">
+                              <div className="font-mono-broadcast text-[11px] tabular-nums text-muted-foreground">
                                 {formatDate(stageDate) || "—"}
                                 {parsed
                                   ? ` · ${parsed.toLocaleDateString("en-US", { weekday: "short" })}`
@@ -522,7 +521,7 @@ export default function PackageCyclesPage() {
                 {!editing && nextStage && cycle.section !== "passed" ? (
                   <div className="mt-4 flex items-center justify-between gap-3 rounded-lg border border-[rgb(43,179,110,0.30)] bg-[rgb(43,179,110,0.06)] px-4 py-3">
                     <div>
-                      <div className="font-display text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--brand-green)]">
+                      <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--brand-green)]">
                         Next Stage
                       </div>
                       <div className="mt-1 text-sm font-semibold text-foreground">

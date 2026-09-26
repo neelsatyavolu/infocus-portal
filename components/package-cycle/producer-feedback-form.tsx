@@ -30,13 +30,13 @@ function ReviewForm({ group, saved }: { group: ProducerFeedbackGroup; saved: () 
     finally { setBusy(false); }
   }
   return <form onSubmit={(e) => void submit(e)} className="space-y-6 rounded-2xl border border-border bg-card p-5 sm:p-7">
-    <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-lg font-semibold">{group.topic}</h2><p className="mt-1 text-sm text-muted-foreground">Associate producer: {group.producerName ?? "Not assigned"}</p></div><span className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">{group.submitted ? "Review submitted" : "Not submitted"}</span></div>
+    <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-lg font-semibold">{group.topic}</h2><p className="mt-1 text-sm text-muted-foreground">Associate producer: {group.producerName ?? "Not assigned"}</p></div><span className="rounded-md bg-muted px-3 py-1 text-xs text-muted-foreground">{group.submitted ? "Review submitted" : "Not submitted"}</span></div>
     {!group.producerName ? <p className="text-sm text-muted-foreground">You can submit once an associate producer is assigned.</p> : <>
       {QUESTIONS.map((question) => <label key={question.key} className="block"><span className="text-sm font-medium">{question.label}</span><span className="mt-1 block text-xs text-muted-foreground">{question.detail}</span><select required disabled={busy} value={ratings[question.key]} onChange={(e) => setRatings((old) => ({ ...old, [question.key]: e.target.value }))} className="mt-2 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><option value="">Choose a rating</option>{RATINGS.map((label, i) => <option key={label} value={i + 1}>{label}</option>)}</select></label>)}
       <label className="block"><span className="text-sm font-medium">What has helped, and what could improve?</span><textarea required minLength={10} maxLength={2000} rows={5} disabled={busy} value={body} onChange={(e) => setBody(e.target.value)} className="mt-2 w-full rounded-lg border border-border bg-background p-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder="Use specific examples about the support and feedback your group received." /><span className="text-[11px] text-muted-foreground">10–2,000 characters · {body.length}/2,000</span></label>
       <Button type="submit" disabled={busy}>{busy ? "Saving…" : group.submitted ? "Replace group review" : "Submit group review"}</Button>
     </>}
-    {message && <p role="status" className="text-sm text-emerald-300">{message}</p>}{error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+    {message && <p role="status" className="text-sm text-[var(--brand-green)]">{message}</p>}{error && <p role="alert" className="text-sm text-danger">{error}</p>}
   </form>;
 }
 

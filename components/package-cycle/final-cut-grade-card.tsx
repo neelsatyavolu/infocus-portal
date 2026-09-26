@@ -193,7 +193,7 @@ function MemberRow({
                 label={`${name} effort score`}
               />
             </label>
-            <span className="w-14 text-right tabular-nums text-foreground">{myTotal == null ? "—" : myTotal.toFixed(1)} / 50</span>
+            <span className="w-14 text-right font-mono text-[11px] tabular-nums text-foreground">{myTotal == null ? "—" : myTotal.toFixed(1)} / 50</span>
           </div>
         ) : null}
       </div>
@@ -325,7 +325,7 @@ export function FinalCutGradeCard({
             <Button type="button" size="sm" disabled={saving} onClick={() => void save()}>
               {saving ? "Saving…" : "Save my scores"}
             </Button>
-            {error ? <span className="text-xs text-destructive">{error}</span> : null}
+            {error ? <span className="text-xs text-danger">{error}</span> : null}
           </div>
         ) : null}
         {!grade.canGrade ? (
@@ -363,7 +363,7 @@ export function FinalCutGradeCard({
       {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
 
       <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
-        <Button type="button" variant="secondary" onClick={onQueue} className={cn(queued && "border-emerald-500/40")}>
+        <Button type="button" variant="secondary" onClick={onQueue} className={cn(queued && "border-[var(--brand-green)]/40")}>
           {queued ? "Remove from queue" : "Send to queue"}
         </Button>
         {queued ? <span className="status-pill status-pill-sm status-approved">Queued</span> : null}

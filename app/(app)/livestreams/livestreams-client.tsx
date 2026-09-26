@@ -136,13 +136,13 @@ function toLocalInputValue(iso?: string) {
 function capacityClass(tone: EventRow["capacityTone"]) {
   if (tone === "full") return "bg-amber-500/[0.07]";
   if (tone === "one") return "bg-orange-500/[0.07]";
-  return "bg-red-500/[0.05]";
+  return "bg-danger/[0.05]";
 }
 
 function capacityDot(tone: EventRow["capacityTone"]) {
-  if (tone === "full") return "bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]";
-  if (tone === "one") return "bg-orange-400 shadow-[0_0_8px_rgba(251,146,60,0.55)]";
-  return "bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.5)]";
+  if (tone === "full") return "bg-amber-400";
+  if (tone === "one") return "bg-orange-400";
+  return "bg-danger";
 }
 
 function statusPill(status: EventRow["status"]) {
@@ -510,24 +510,16 @@ export default function LivestreamsClient() {
       <section
         className="brand-hero-panel relative overflow-hidden rounded-2xl border border-border p-6 md:p-8"
       >
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            backgroundImage:
-              "repeating-linear-gradient(45deg, rgba(255,255,255,0.015) 0 2px, transparent 2px 14px)"
-          }}
-        />
         <div className="relative flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-[rgb(43,179,110,0.4)] bg-black/40 light:bg-muted px-2.5 py-1 font-display text-[10px] font-bold uppercase tracking-[0.22em] text-[var(--brand-green)] backdrop-blur">
+            <div className="inline-flex items-center gap-1.5 rounded-md border border-[rgb(43,179,110,0.4)] bg-black/40 light:bg-muted px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--brand-green)]">
               <span
                 className="h-1.5 w-1.5 rounded-full bg-[var(--brand-green)]"
-                style={{ boxShadow: "0 0 8px var(--brand-green)" }}
               />
               Livestreams · {data?.semester.label ?? "—"}
             </div>
             <h1
-              className="mt-3 font-display text-[40px] font-black uppercase italic leading-none tracking-tight text-foreground md:text-[56px]"
+              className="mt-3 text-[32px] font-semibold leading-none tracking-tight text-foreground md:text-[44px]"
               style={{ letterSpacing: "-0.025em" }}
             >
               {tab === "schedule"
@@ -588,7 +580,7 @@ export default function LivestreamsClient() {
               <Button
                 type="button"
                 size="sm"
-                className="bg-[var(--brand-green)] text-[var(--ink)] hover:bg-[var(--brand-green-deep)]"
+                className="bg-[var(--brand-fill)] text-[var(--on-brand)] hover:bg-[var(--brand-fill-hover)]"
                 onClick={openCreate}
                 disabled={busy}
               >
@@ -616,12 +608,12 @@ export default function LivestreamsClient() {
           ].map((card) => (
             <div
               key={card.label}
-              className="rounded-xl border border-foreground/[0.08] bg-black/35 light:bg-muted px-4 py-3 backdrop-blur"
+              className="rounded-xl border border-foreground/[0.08] bg-black/35 light:bg-muted px-4 py-3"
             >
-              <p className="font-display text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--ink-text)]">
+              <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--ink-text)]">
                 {card.label}
               </p>
-              <p className={cn("mt-1 font-display text-3xl font-black tabular-nums", card.tone)}>
+              <p className={cn("mt-1 text-3xl font-semibold tabular-nums", card.tone)}>
                 {card.value}
               </p>
             </div>
@@ -630,7 +622,7 @@ export default function LivestreamsClient() {
       </section>
 
       {error ? (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        <div className="rounded-xl border border-danger/40 bg-danger-tint px-4 py-3 text-sm text-danger">
           {error}
         </div>
       ) : null}
@@ -639,15 +631,15 @@ export default function LivestreamsClient() {
       {tab === "schedule" ? (
         <section className="space-y-4">
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--ink-text)]">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-500/10 px-2.5 py-1">
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-400/30 bg-amber-500/10 px-2.5 py-1">
               <span className={cn("h-1.5 w-1.5 rounded-full", capacityDot("full"))} />
               Full
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-400/30 bg-orange-500/10 px-2.5 py-1">
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-orange-400/30 bg-orange-500/10 px-2.5 py-1">
               <span className={cn("h-1.5 w-1.5 rounded-full", capacityDot("one"))} />
               1 open
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-red-400/25 bg-red-500/10 px-2.5 py-1">
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-danger/30 bg-danger-tint px-2.5 py-1">
               <span className={cn("h-1.5 w-1.5 rounded-full", capacityDot("open"))} />
               2+ open
             </span>
@@ -658,7 +650,7 @@ export default function LivestreamsClient() {
               <div className="mb-3 grid h-12 w-12 place-items-center rounded-2xl border border-foreground/[0.08] bg-black/40 light:bg-muted">
                 <Radio className="h-5 w-5 text-[var(--brand-green)]" />
               </div>
-              <p className="font-display text-lg font-bold uppercase tracking-wide text-foreground">
+              <p className="text-lg font-semibold tracking-tight text-foreground">
                 No livestreams yet
               </p>
               <p className="mt-1 max-w-md text-sm text-[var(--ink-text)]">
@@ -670,7 +662,7 @@ export default function LivestreamsClient() {
                 <Button
                   type="button"
                   size="sm"
-                  className="mt-4 bg-[var(--brand-green)] text-[var(--ink)]"
+                  className="mt-4 bg-[var(--brand-fill)] text-[var(--on-brand)]"
                   onClick={openCreate}
                 >
                   <Plus className="mr-1.5 h-3.5 w-3.5" />
@@ -679,7 +671,7 @@ export default function LivestreamsClient() {
               ) : null}
             </div>
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-border bg-card/60 shadow-[0_20px_60px_-40px_rgba(0,0,0,0.8)]">
+            <div className="overflow-hidden rounded-2xl border border-border bg-card/60">
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[980px] border-collapse text-sm">
                   <thead>
@@ -696,7 +688,7 @@ export default function LivestreamsClient() {
                       ].map((h) => (
                         <th
                           key={h || "actions"}
-                          className="px-4 py-3 font-display text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--ink-text)]"
+                          className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--ink-text)]"
                         >
                           {h}
                         </th>
@@ -740,7 +732,7 @@ export default function LivestreamsClient() {
                         <td className="px-4 py-3.5">
                           <span
                             className={cn(
-                              "inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold",
+                              "inline-flex rounded-md border px-2 py-0.5 text-[11px] font-semibold",
                               statusPill(event.status)
                             )}
                           >
@@ -789,7 +781,7 @@ export default function LivestreamsClient() {
             <div className="rounded-2xl border border-border bg-card/60 p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h2 className="font-display text-base font-bold uppercase tracking-wide text-foreground">
+                  <h2 className="text-base font-semibold tracking-tight text-foreground">
                     Livestream managers
                   </h2>
                   <p className="mt-1 max-w-xl text-xs text-[var(--ink-text)]">
@@ -802,13 +794,13 @@ export default function LivestreamsClient() {
                 {data.managers.map((m) => (
                   <span
                     key={m.id}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-foreground/[0.08] bg-black/35 light:bg-muted px-3 py-1.5 text-xs text-foreground"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-foreground/[0.08] bg-black/35 light:bg-muted px-3 py-1.5 text-xs text-foreground"
                   >
                     <Users className="h-3 w-3 text-[var(--brand-green)]" />
                     {personLabel(m)}
                     <button
                       type="button"
-                      className="ml-0.5 text-[var(--ink-text)] transition hover:text-red-300"
+                      className="ml-0.5 text-[var(--ink-text)] transition hover:text-danger"
                       onClick={() => removeManager(m.id)}
                       aria-label={`Remove ${personLabel(m)}`}
                     >
@@ -838,7 +830,7 @@ export default function LivestreamsClient() {
                 <Button
                   type="button"
                   size="sm"
-                  className="h-10 bg-[var(--brand-green)] text-[var(--ink)]"
+                  className="h-10 bg-[var(--brand-fill)] text-[var(--on-brand)]"
                   onClick={addManager}
                   disabled={!managerPick || busy}
                 >
@@ -868,7 +860,7 @@ export default function LivestreamsClient() {
                       {["Name", "Events", "Hours", "Credit", "Points"].map((h) => (
                         <th
                           key={h}
-                          className="px-4 py-3 font-display text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--ink-text)]"
+                          className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--ink-text)]"
                         >
                           {h}
                         </th>
@@ -885,7 +877,7 @@ export default function LivestreamsClient() {
                           <div className="flex items-center gap-2 font-medium text-foreground">
                             {personLabel(row)}
                             {row.isManager ? (
-                              <span className="rounded-full border border-[rgb(43,179,110,0.4)] px-2 py-0.5 font-display text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--brand-green)]">
+                              <span className="rounded-md border border-[rgb(43,179,110,0.4)] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.11em] text-[var(--brand-green)]">
                                 Manager
                               </span>
                             ) : null}
@@ -946,11 +938,11 @@ export default function LivestreamsClient() {
           {data?.canManage ? (
             <div className="rounded-2xl border border-border bg-card/60 p-5">
               <div className="flex items-center gap-2">
-                <h2 className="font-display text-base font-bold uppercase tracking-wide text-foreground">
+                <h2 className="text-base font-semibold tracking-tight text-foreground">
                   Pending requests
                 </h2>
                 {data.pendingSignups.length ? (
-                  <span className="rounded-full bg-[var(--brand-green)] px-2 py-0.5 font-mono-broadcast text-[10px] font-bold text-[var(--ink)]">
+                  <span className="rounded-md bg-[var(--brand-fill)] px-2 py-0.5 font-mono-broadcast text-[10px] font-medium tabular-nums text-[var(--on-brand)]">
                     {data.pendingSignups.length}
                   </span>
                 ) : null}
@@ -984,7 +976,7 @@ export default function LivestreamsClient() {
                         <Button
                           type="button"
                           size="sm"
-                          className="bg-[var(--brand-green)] text-[var(--ink)]"
+                          className="bg-[var(--brand-fill)] text-[var(--on-brand)]"
                           onClick={() => reviewSignup(s.id, "APPROVED")}
                           disabled={busy}
                         >
@@ -1010,7 +1002,7 @@ export default function LivestreamsClient() {
           ) : null}
 
           <div className="rounded-2xl border border-border bg-card/60 p-5">
-            <h2 className="font-display text-base font-bold uppercase tracking-wide text-foreground">
+            <h2 className="text-base font-semibold tracking-tight text-foreground">
               {data?.canSignup ? "Request a slot" : "Open livestreams"}
             </h2>
             <p className="mt-1 text-xs text-[var(--ink-text)]">
@@ -1050,11 +1042,11 @@ export default function LivestreamsClient() {
                           </div>
                         </div>
                         {attending ? (
-                          <span className="rounded-full border border-[rgb(43,179,110,0.35)] bg-[rgb(43,179,110,0.12)] px-2 py-0.5 text-[11px] font-semibold text-[var(--brand-green)]">
+                          <span className="rounded-md border border-[rgb(43,179,110,0.35)] bg-[rgb(43,179,110,0.12)] px-2 py-0.5 text-[11px] font-semibold text-[var(--brand-green)]">
                             On crew
                           </span>
                         ) : my?.status === "PENDING" ? (
-                          <span className="rounded-full border border-amber-400/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-300">
+                          <span className="rounded-md border border-amber-400/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-300">
                             Pending
                           </span>
                         ) : null}
@@ -1072,7 +1064,7 @@ export default function LivestreamsClient() {
                           <Button
                             type="button"
                             size="sm"
-                            className="bg-[var(--brand-green)] text-[var(--ink)]"
+                            className="bg-[var(--brand-fill)] text-[var(--on-brand)]"
                             disabled={busy || full}
                             onClick={() => requestSignup(event.id)}
                           >
@@ -1084,7 +1076,7 @@ export default function LivestreamsClient() {
                         <Button
                           type="button"
                           size="sm"
-                          className="mt-3 bg-[var(--brand-green)] text-[var(--ink)]"
+                          className="mt-3 bg-[var(--brand-fill)] text-[var(--on-brand)]"
                           disabled={busy || full}
                           onClick={() => requestSignup(event.id)}
                         >
@@ -1110,7 +1102,7 @@ export default function LivestreamsClient() {
         <DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto border-foreground/[0.08] bg-card p-0 sm:rounded-2xl">
           <div className="border-b border-foreground/[0.06] px-6 py-5">
             <DialogHeader>
-              <DialogTitle className="font-display text-xl font-bold uppercase tracking-wide text-foreground">
+              <DialogTitle className="text-xl font-semibold tracking-tight text-foreground">
                 {editing ? "Edit livestream" : "New livestream"}
               </DialogTitle>
               <DialogDescription className="text-[var(--ink-text)]">
@@ -1211,7 +1203,7 @@ export default function LivestreamsClient() {
                 Credit applies only to completed events. Set default hours to 0 to cancel all credit,
                 including individual overrides. Attendance is retained.
               </p>
-              <Button type="button" variant="destructive" size="sm"
+              <Button type="button" variant="destructive-quiet" size="sm"
                 onClick={() => setForm((f) => ({ ...f, hours: "0" }))}>
                 Cancel credit
               </Button>
@@ -1311,9 +1303,8 @@ export default function LivestreamsClient() {
             {editing ? (
               <Button
                 type="button"
-                variant="outline"
+                variant="destructive-quiet"
                 size="sm"
-                className="border-red-500/30 text-red-300 hover:bg-red-500/10"
                 disabled={busy}
                 onClick={() => deleteEvent(editing.id)}
               >
@@ -1330,7 +1321,7 @@ export default function LivestreamsClient() {
               <Button
                 type="button"
                 size="sm"
-                className="bg-[var(--brand-green)] text-[var(--ink)]"
+                className="bg-[var(--brand-fill)] text-[var(--on-brand)]"
                 onClick={saveEvent}
                 disabled={busy}
               >
@@ -1349,7 +1340,7 @@ export default function LivestreamsClient() {
               aria-label="Livestream sections"
               className="pointer-events-none fixed bottom-4 left-0 right-0 z-[60] flex justify-center px-4 lg:left-[240px]"
             >
-              <div className="pointer-events-auto inline-flex items-center gap-1 rounded-xl border border-foreground/[0.08] bg-black/90 light:bg-card p-1 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.75)] backdrop-blur-md">
+              <div className="pointer-events-auto inline-flex items-center gap-1 rounded-xl border border-foreground/[0.08] bg-card p-1">
                 {tabs.map((item) => {
                   const isActive = tab === item.id;
                   return (
@@ -1358,9 +1349,9 @@ export default function LivestreamsClient() {
                       type="button"
                       onClick={() => setTab(item.id)}
                       className={cn(
-                        "inline-flex items-center gap-2 rounded-lg px-4 py-2.5 font-display text-[12px] font-semibold uppercase tracking-[0.18em] transition",
+                        "inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-[12px] font-medium uppercase tracking-[0.11em] transition",
                         isActive
-                          ? "bg-[var(--brand-green)] text-[var(--ink)]"
+                          ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
                           : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
                       )}
                     >
@@ -1368,9 +1359,9 @@ export default function LivestreamsClient() {
                       {item.badge ? (
                         <span
                           className={cn(
-                            "rounded px-1.5 py-0.5 font-mono-broadcast text-[10px] font-bold",
+                            "rounded px-1.5 py-0.5 font-mono-broadcast text-[10px] font-medium tabular-nums",
                             isActive
-                              ? "bg-black/35 text-[var(--ink)]"
+                              ? "bg-black/25 text-[var(--on-brand)]"
                               : "bg-black/40 light:bg-foreground/10 text-[var(--ink-text)]"
                           )}
                         >

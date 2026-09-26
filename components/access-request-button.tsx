@@ -68,7 +68,7 @@ export function AccessRequestButton({ email, name }: AccessRequestButtonProps) {
           Request sent. You will be sent an email once your request is approved.
         </p>
       ) : null}
-      {error ? <p className="mt-2 text-sm text-destructive">{error}</p> : null}
+      {error ? <p className="mt-2 text-sm text-danger">{error}</p> : null}
     </div>
   );
 }

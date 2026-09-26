@@ -39,7 +39,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 function SavedSecret({ label, mode, onMode }: { label: string; mode: SecretMode; onMode: (mode: SecretMode) => void }) {
   return (
     <div className="flex h-9 items-center justify-between gap-2 rounded-md border border-dashed border-border px-3 text-sm">
-      <span className={cn(mode === "remove" ? "text-amber-300" : "text-muted-foreground")}>
+      <span className={cn(mode === "remove" ? "text-brand-amber" : "text-muted-foreground")}>
         {mode === "remove" ? `${label} will be removed` : `${label} saved (encrypted)`}
       </span>
       <span className="flex gap-3 text-xs font-semibold">
@@ -209,7 +209,7 @@ export function VaultEntryDialog({
                     onChange={(e) => setPassword(e.target.value)}
                     maxLength={VAULT_PASSWORD_MAX}
                     placeholder={entry?.hasPassword ? "New password" : ""}
-                    className={cn(inputClass, "pr-9 font-mono-broadcast")}
+                    className={cn(inputClass, "pr-9 font-mono-broadcast tabular-nums")}
                     autoComplete="new-password"
                   />
                   <button
@@ -241,7 +241,7 @@ export function VaultEntryDialog({
                 onChange={(e) => setTotp(e.target.value)}
                 maxLength={VAULT_TOTP_MAX}
                 placeholder="JBSW Y3DP EHPK 3PXP"
-                className={cn(inputClass, "font-mono-broadcast")}
+                className={cn(inputClass, "font-mono-broadcast tabular-nums")}
                 autoComplete="off"
                 spellCheck={false}
               />
@@ -273,7 +273,7 @@ export function VaultEntryDialog({
           </Field>
 
           {error ? (
-            <p className="rounded-lg border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">{error}</p>
+            <p className="rounded-lg border border-danger/40 bg-danger-tint px-3 py-2 text-sm text-danger">{error}</p>
           ) : null}
 
           {editing && activity.length ? (
@@ -296,7 +296,7 @@ export function VaultEntryDialog({
 
           <DialogFooter className="gap-2 pt-1 sm:justify-between">
             {entry?.canDelete ? (
-              <Button type="button" variant="destructive" size="sm" onClick={() => void remove()} disabled={busy !== null}>
+              <Button type="button" variant={confirmDelete ? "destructive" : "destructive-quiet"} size="sm" onClick={() => void remove()} disabled={busy !== null}>
                 {busy === "delete" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
                 {confirmDelete ? "Delete permanently" : "Delete"}
               </Button>

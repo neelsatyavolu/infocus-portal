@@ -293,7 +293,7 @@ export default function GradesClient() {
       ) : null}
 
       <section className="sticky bottom-4 z-20 mx-auto flex justify-center px-2">
-        <div className="inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-xl border border-foreground/[0.08] bg-black/85 light:bg-muted p-1 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.6)] backdrop-blur">
+        <div className="inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-xl border border-foreground/[0.08] bg-card p-1">
           {TABS.map((item) => {
             const active = tab === item.id;
             return (
@@ -302,9 +302,9 @@ export default function GradesClient() {
                 type="button"
                 onClick={() => setTab(item.id)}
                 className={cn(
-                  "inline-flex shrink-0 items-center rounded-lg px-3 py-2 font-display text-[11px] font-semibold uppercase tracking-[0.16em] transition sm:px-4 sm:text-[12px] sm:tracking-[0.18em]",
+                  "inline-flex shrink-0 items-center rounded-md px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.11em] transition sm:px-4 sm:text-[12px]",
                   active
-                    ? "bg-[var(--brand-green)] text-[var(--ink)]"
+                    ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
                     : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
                 )}
               >
@@ -335,8 +335,7 @@ function HomeView({
 }) {
   return (
     <>
-      <section className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 md:p-6">
-        <div className="pointer-events-none absolute inset-0 brand-hero-gradient opacity-40" />
+      <section className="brand-hero-panel relative overflow-hidden rounded-2xl border border-border p-5 md:p-6">
         <div className="relative flex flex-wrap items-start justify-between gap-6">
           <div className="min-w-0">
             <div className="eyebrow">Grades · 2026–27</div>
@@ -479,7 +478,7 @@ function PackagesView({
 
                 {cycle.published && cycle.feedback?.trim() ? (
                   <div className="rounded-lg border border-border bg-[hsl(var(--background))] p-3">
-                    <div className="font-display text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                    <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
                       Producer note
                     </div>
                     <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">{cycle.feedback}</p>
@@ -529,7 +528,7 @@ function ParticipationView({
             Use the week switcher. Official total {loading ? "…" : `${total.earned} / ${total.possible || "—"}`}.
           </p>
         </div>
-        <div className="inline-flex items-center gap-1 rounded-xl border border-foreground/[0.08] bg-black/85 light:bg-muted p-1">
+        <div className="inline-flex items-center gap-1 rounded-xl border border-foreground/[0.08] bg-card p-1">
           <button
             type="button"
             disabled={weekIndex <= 0}
@@ -547,7 +546,7 @@ function ParticipationView({
             value={weekIndex}
             disabled={weeks.length === 0}
             onChange={(event) => onWeekIndex(Number(event.target.value))}
-            className="max-w-[14rem] bg-transparent px-2 py-1 font-display text-[12px] font-semibold uppercase tracking-[0.14em] text-foreground outline-none"
+            className="max-w-[14rem] bg-transparent px-2 py-1 text-[12px] font-medium uppercase tracking-[0.11em] text-foreground outline-none"
           >
             {weeks.length === 0 ? <option value={0}>No weeks yet</option> : null}
             {weeks.map((entry, index) => (
@@ -580,7 +579,7 @@ function ParticipationView({
         <div className="space-y-3">
           <div className="flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3">
             <div>
-              <div className="font-display text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+              <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
                 {week.label}
               </div>
               <div className="mt-1 text-sm text-muted-foreground">
@@ -588,7 +587,7 @@ function ParticipationView({
               </div>
             </div>
             <div className="text-right">
-              <div className="font-display text-2xl font-extrabold italic">
+              <div className="text-2xl font-semibold tracking-tight">
                 {week.graded ? `${week.earned} / ${week.possible}` : "—"}
               </div>
               <div className="text-xs text-muted-foreground">
@@ -606,7 +605,7 @@ function ParticipationView({
               {classDays.map((day) => (
                 <div key={day.date} className="rounded-2xl border border-border bg-card p-4">
                   <div className="flex items-center justify-between gap-2">
-                    <div className="font-display text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                    <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
                       {day.weekday} · {day.date.slice(5)}
                     </div>
                     <span className="meta-pill">
@@ -621,7 +620,7 @@ function ParticipationView({
                               : "Off"}
                     </span>
                   </div>
-                  <div className="mt-2 font-display text-2xl font-extrabold italic">
+                  <div className="mt-2 text-2xl font-semibold tracking-tight">
                     {day.points === null ? "—" : day.points}
                     <span className="text-sm text-muted-foreground"> / {day.maxPoints}</span>
                   </div>
@@ -667,10 +666,10 @@ function OtherView({
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
         <article className="rounded-2xl border border-border bg-card p-5">
-          <div className="font-display text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+          <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
             Livestreams
           </div>
-          <div className="mt-2 font-display text-3xl font-extrabold italic">
+          <div className="mt-2 text-3xl font-semibold tracking-tight">
             {loading ? "…" : livestreamPoints === null ? "—" : livestreamPoints}
             <span className="text-base text-muted-foreground"> / {MAX_LIVESTREAM_POINTS}</span>
           </div>
@@ -687,10 +686,10 @@ function OtherView({
         </article>
 
         <article className="rounded-2xl border border-border bg-card p-5">
-          <div className="font-display text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+          <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
             Portfolio
           </div>
-          <div className="mt-2 font-display text-3xl font-extrabold italic">
+          <div className="mt-2 text-3xl font-semibold tracking-tight">
             {loading ? "…" : portfolioPoints === null ? "—" : portfolioPoints}
             <span className="text-base text-muted-foreground"> / {MAX_PORTFOLIO_POINTS}</span>
           </div>
@@ -729,15 +728,15 @@ function CategoryCard({
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
       <div className="flex items-center justify-between gap-2">
-        <div className="font-display text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+        <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
           {label}
         </div>
         <span className="meta-pill">{weight}</span>
       </div>
-      <div className="mt-2 font-display text-3xl font-extrabold italic leading-none tracking-tight text-foreground">
+      <div className="mt-2 text-3xl font-semibold leading-none tracking-tight text-foreground">
         {loading ? "…" : possible > 0 ? `${earned} / ${possible}` : "—"}
       </div>
-      <div className="mt-1 font-mono-broadcast text-xs text-[var(--brand-green)]">
+      <div className="mt-1 text-xs text-[var(--brand-green)]">
         {pct === null ? "Not gradeable yet" : `${pct}% of category`}
       </div>
       {hint ? <p className="mt-2 text-[11px] text-muted-foreground">{hint}</p> : null}
@@ -766,12 +765,12 @@ function PointsCell({
 }) {
   return (
     <div className="rounded-lg border border-border bg-[hsl(var(--background))] p-3">
-      <div className="font-display text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+      <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
         {label}
       </div>
       <div
         className={cn(
-          "mt-1 font-display text-xl font-extrabold italic leading-none tracking-tight",
+          "mt-1 text-xl font-semibold leading-none tracking-tight",
           dim ? "text-muted-foreground" : "text-foreground"
         )}
       >

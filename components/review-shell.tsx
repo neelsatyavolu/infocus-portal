@@ -1970,32 +1970,26 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
     >
       <section className="min-w-0 space-y-4 xl:min-h-0 xl:overflow-hidden xl:pr-2">
         {/* Hero strip */}
-        <section ref={reviewHeroRef} className="relative rounded-2xl border border-border bg-card px-4 py-3">
-          <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
-            <div
-              className="absolute -right-12 -top-32 h-[320px] w-[320px] rounded-full opacity-90"
-              style={{ background: "radial-gradient(circle, rgba(43,179,110,0.18) 0%, transparent 60%)" }}
-            />
-          </div>
+        <section ref={reviewHeroRef} className="arc-corner relative border border-border bg-card px-4 py-3">
           <div className="relative flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="eyebrow flex items-center gap-1.5">
                 <span className="rec-dot" />
                 Review · {data.projectName} · v{currentVersion?.versionNumber ?? "—"}
               </div>
-              <h1 className="display-md mt-2 font-display italic font-extrabold uppercase tracking-tight text-foreground">
+              <h1 className="display-md mt-2 font-semibold tracking-tight text-foreground">
                 {data.title}
               </h1>
             </div>
             <div
               className={cn(
-                "inline-flex max-w-full items-center gap-2 rounded-full border px-3.5 py-2 font-display text-[11px] font-bold uppercase tracking-[0.16em]",
+                "inline-flex max-w-full items-center gap-2 rounded-md border px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.16em]",
                 currentVersion?.approvalStatus === "AIRED"
-                  ? "border-[rgb(99,102,241,0.45)] bg-[rgb(99,102,241,0.15)] text-indigo-300"
+                  ? "border-transparent bg-[var(--brand-fill)] text-[var(--on-brand)]"
                   : cutReviewStatus.tone === "approved"
                     ? "border-[rgb(43,179,110,0.35)] bg-[rgb(43,179,110,0.12)] text-[var(--brand-green)]"
                     : cutReviewStatus.tone === "warn"
-                      ? "border-[rgb(238,58,42,0.4)] bg-[rgb(238,58,42,0.12)] text-[var(--brand-red)]"
+                      ? "border-danger/40 bg-danger-tint text-danger"
                       : "border-[rgb(242,165,22,0.4)] bg-[rgb(242,165,22,0.12)] text-[var(--brand-amber)]"
               )}
             >
@@ -2003,11 +1997,11 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                 className={cn(
                   "h-1.5 w-1.5 shrink-0 rounded-full",
                   currentVersion?.approvalStatus === "AIRED"
-                    ? "bg-indigo-300"
+                    ? "bg-[var(--on-brand)]"
                     : cutReviewStatus.tone === "approved"
                       ? "bg-[var(--brand-green)]"
                       : cutReviewStatus.tone === "warn"
-                        ? "bg-[var(--brand-red)]"
+                        ? "bg-danger"
                         : "bg-[var(--brand-amber)]"
                 )}
               />
@@ -2057,10 +2051,10 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                   </Button>
 
                   {quickGradesOpen ? (
-                    <div className="absolute left-0 top-[calc(100%+0.55rem)] z-[140] w-[min(96vw,40rem)] rounded-2xl border border-border bg-card/95 p-3 shadow-2xl backdrop-blur-md">
+                    <div className="absolute left-0 top-[calc(100%+0.55rem)] z-[140] w-[min(96vw,40rem)] rounded-2xl border border-border bg-card p-3 shadow-2xl">
                       <div className="mb-3 flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Quick Grades</p>
+                          <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Quick Grades</p>
                           <p className="truncate text-sm font-semibold text-foreground">
                             {quickGradeCycleNumber ? `Cycle ${quickGradeCycleNumber}` : "Cycle unavailable"}
                           </p>
@@ -2083,7 +2077,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                         </div>
                       ) : (
                         <>
-                          <div className="mb-2 grid grid-cols-[minmax(0,1fr)_6rem_6rem_8rem_8.5rem] items-center gap-2 px-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                          <div className="mb-2 grid grid-cols-[minmax(0,1fr)_6rem_6rem_8rem_8.5rem] items-center gap-2 px-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
                             <span>Name</span>
                             <span className="text-center">Effort /25</span>
                             <span className="text-center">Teamwork /15</span>
@@ -2109,9 +2103,9 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                                       <span
                                         title={`Extension days remaining (out of 14)`}
                                         className={cn(
-                                          "shrink-0 rounded-md px-1.5 py-0.5 font-mono text-[10px] font-semibold leading-none",
+                                          "shrink-0 rounded-md px-1.5 py-0.5 font-mono text-[10px] font-semibold leading-none tabular-nums",
                                           row.extensionsRemaining < 0
-                                            ? "bg-[rgb(220,38,38,0.15)] text-[var(--brand-red)] ring-1 ring-inset ring-[rgb(220,38,38,0.35)]"
+                                            ? "bg-danger-tint text-danger ring-1 ring-inset ring-danger/35"
                                             : row.extensionsRemaining <= 2
                                               ? "bg-[rgb(242,165,22,0.12)] text-[var(--brand-amber)] ring-1 ring-inset ring-[rgb(242,165,22,0.30)]"
                                               : "bg-[rgb(43,179,110,0.10)] text-[var(--brand-green)] ring-1 ring-inset ring-[rgb(43,179,110,0.25)]"
@@ -2310,7 +2304,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                           <div className="mt-3 space-y-2">
                             <div className="flex flex-wrap items-center justify-between gap-2">
                               <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <span className="uppercase tracking-[0.12em] text-muted-foreground">Turned In</span>
+                                <span className="font-medium uppercase tracking-[0.12em] text-muted-foreground">Turned In</span>
                                 <input
                                   type="date"
                                   value={quickGradesSharedTurnedInDate}
@@ -2431,8 +2425,8 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                     onClick={() => changeApproval("NEEDS_CHANGES")}
                     className={`inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs font-semibold transition disabled:opacity-50 ${
                       currentVersion?.approvalStatus === "NEEDS_CHANGES"
-                        ? "border-[rgb(238,58,42,0.4)] bg-[rgb(238,58,42,0.15)] text-foreground"
-                        : "border-[rgb(238,58,42,0.4)] bg-transparent text-muted-foreground hover:bg-[rgb(238,58,42,0.10)] hover:text-foreground"
+                        ? "border-danger/40 bg-danger-tint text-danger"
+                        : "border-danger/40 bg-transparent text-muted-foreground hover:bg-danger-tint hover:text-danger"
                     }`}
                   >
                     Needs Changes
@@ -2443,8 +2437,8 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                     onClick={() => changeApproval("APPROVED")}
                     className={`inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs font-bold transition disabled:opacity-50 ${
                       currentVersion?.approvalStatus === "APPROVED"
-                        ? "border-[var(--brand-green)] bg-[var(--brand-green)] text-[var(--ink)]"
-                        : "border-[var(--brand-green)] bg-transparent text-[var(--brand-green)] hover:bg-[var(--brand-green)] hover:text-[var(--ink)]"
+                        ? "border-[var(--brand-green)] bg-[var(--brand-fill)] text-[var(--on-brand)]"
+                        : "border-[var(--brand-green)] bg-transparent text-[var(--brand-green)] hover:bg-[var(--brand-fill)] hover:text-[var(--on-brand)]"
                     }`}
                   >
                     <Check className="h-3.5 w-3.5" strokeWidth={3} />
@@ -2460,8 +2454,8 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                     onClick={openAiredDialog}
                     className={`inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs font-bold transition disabled:opacity-50 ${
                       currentVersion?.approvalStatus === "AIRED"
-                        ? "border-indigo-400 bg-indigo-500 text-white"
-                        : "border-indigo-400 bg-transparent text-indigo-300 hover:bg-indigo-500 hover:text-white"
+                        ? "border-[var(--brand-fill)] bg-[var(--brand-fill)] text-[var(--on-brand)]"
+                        : "border-[var(--ink-3)] bg-transparent text-muted-foreground hover:bg-[var(--ink-2)] hover:text-foreground"
                     }`}
                     title={
                       currentVersion?.approvalStatus === "APPROVED" ||
@@ -2537,7 +2531,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                         style={{
                           left: `${thread.root.xPct}%`,
                           top: `${thread.root.yPct}%`,
-                          backgroundColor: selectedCommentId === thread.root.id ? "#5eead4" : "#f59e0b"
+                          backgroundColor: selectedCommentId === thread.root.id ? "var(--brand-green)" : "var(--brand-amber)"
                         }}
                       >
                         {initialsFromName(thread.root.authorName).slice(0, 2)}
@@ -2547,7 +2541,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
 
                   {allowComment && composerPin ? (
                     <div
-                      className="absolute h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#2BB36E] bg-[#2BB36E]/60 shadow-[0_0_0_4px_rgb(43,179,110,0.18)]"
+                      className="absolute h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[var(--brand-green)] bg-[var(--brand-green)]/60"
                       style={{
                         left: `${composerPin.xPct}%`,
                         top: `${composerPin.yPct}%`
@@ -2576,7 +2570,6 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                       <Play className="ml-1 h-7 w-7 fill-current" />
                     </button>
                   ) : null}
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
                 </div>
 
                 <div ref={mediaControlsRef} className="mt-2 px-1 sm:px-2">
@@ -2605,7 +2598,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                                 ? "var(--brand-green)"
                                 : thread.root.resolvedAt !== null
                                   ? "var(--brand-amber)"
-                                  : "var(--brand-red)"
+                                  : "var(--ink-text)"
                             }}
                           />
                         </button>
@@ -2623,7 +2616,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                       {volume === 0 ? <VolumeX className="h-4 w-4 shrink-0 text-muted-foreground" /> : <Volume2 className="h-4 w-4 shrink-0 text-muted-foreground" />}
                       <MediaRange value={volume} max={1} step={0.01} label="Volume" onChange={setVolume} className="w-16 md:w-20" />
                     </div>
-                    <span className="ml-1 whitespace-nowrap text-xs tabular-nums text-muted-foreground">
+                    <span className="ml-1 whitespace-nowrap font-mono text-[11px] tabular-nums text-muted-foreground">
                       <span className="text-foreground">{formatTimecode(currentTime)}</span> / {formatTimecode(timelineDuration)}
                     </span>
 
@@ -2680,7 +2673,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
           <span
             className={cn(
               "pointer-events-none absolute left-1/2 top-2 bottom-2 w-px -translate-x-1/2 rounded-full bg-border transition",
-              isResizingSidebar ? "bg-primary shadow-[0_0_0_1px_hsl(var(--primary)/0.25)]" : "group-hover:bg-muted-foreground"
+              isResizingSidebar ? "bg-primary" : "group-hover:bg-muted-foreground"
             )}
           />
           <span
@@ -2904,9 +2897,9 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                       onClick={() => focusCommentThread(thread)}
                       className={`cursor-pointer rounded-2xl border p-2.5 transition ${
                         isSelected
-                          ? "border-primary/70 bg-secondary"
+                          ? "border-brand-green/70 bg-secondary"
                           : sidebarHighlightedCommentId === thread.root.id
-                            ? "border-primary bg-secondary/95 shadow-[0_0_0_1px_hsl(var(--primary)/0.45)]"
+                            ? "border-brand-green bg-secondary/95"
                             : "border-border bg-muted/85"
                       }`}
                     >
@@ -2971,7 +2964,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                               event.stopPropagation();
                               focusCommentThread(thread);
                             }}
-                            className="inline-flex rounded-md bg-amber-500/20 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-amber-300 transition hover:bg-amber-500/30"
+                            className="inline-flex rounded-md bg-[var(--brand-amber)]/15 px-1.5 py-0.5 font-mono text-[11px] font-semibold tabular-nums text-[var(--brand-amber)] transition hover:bg-[var(--brand-amber)]/25"
                           >
                             {isImageReview
                               ? formatPinLabel(thread.root.xPct, thread.root.yPct)
@@ -3016,7 +3009,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                                 void deleteComment(thread.root.id);
                               }}
                               disabled={deletingCommentId === thread.root.id}
-                              className="inline-flex h-7 w-7 items-center justify-center rounded-md text-destructive transition hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-50"
+                              className="inline-flex h-7 w-7 items-center justify-center rounded-md text-danger transition hover:bg-danger-tint disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
@@ -3140,7 +3133,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                         {composerPin ? formatPinLabel(composerPin.xPct, composerPin.yPct) : "Click image to place a pin"}
                       </span>
                     ) : (
-                      <span className="rounded-md border border-[var(--brand-green)]/30 bg-[var(--brand-green)]/15 px-2 py-1 font-mono-broadcast text-xs font-semibold text-[var(--brand-green)]">
+                      <span className="rounded-md border border-[var(--brand-green)]/30 bg-[var(--brand-green)]/15 px-2 py-1 font-mono-broadcast text-xs font-semibold tabular-nums text-[var(--brand-green)]">
                         @ {formatFrameAccurateTimecode(composerTimeSeconds, undefined, DEFAULT_REVIEW_FPS)}
                       </span>
                     )}
@@ -3196,7 +3189,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
             <DialogDescription>Pick the date this video aired.</DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
-            <label htmlFor="aired-date" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <label htmlFor="aired-date" className="text-xs font-medium uppercase tracking-[0.11em] text-muted-foreground">
               Air date
             </label>
             <Input

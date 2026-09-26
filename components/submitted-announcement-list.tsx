@@ -13,7 +13,7 @@ import {
 const COUNT_STYLES: Record<SubmittedAnnouncementBucketId, string> = {
   permanent: "border-[var(--brand-green)]/40 bg-[var(--brand-green)]/15 text-[var(--brand-green)]",
   today: "border-[var(--brand-green)]/40 bg-[var(--brand-green)]/15 text-[var(--brand-green)]",
-  tomorrow: "border-sky-300/35 bg-sky-400/10 text-sky-100",
+  tomorrow: "border-border bg-secondary text-foreground",
   upcoming: "border-border bg-accent text-foreground",
   schoology: "border-border bg-muted text-muted-foreground",
   ended: "border-amber-300/35 bg-amber-400/10 text-amber-100",
@@ -43,7 +43,7 @@ function Section({
         {defaultOpen ? (
           <h2 className="flex min-h-10 items-center gap-2 text-sm font-semibold text-foreground">
             {title}
-            <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold tabular-nums ${COUNT_STYLES[tone]}`}>
+            <span className={`rounded-md border px-2 py-0.5 text-[11px] font-semibold tabular-nums ${COUNT_STYLES[tone]}`}>
               {count}
             </span>
           </h2>
@@ -59,7 +59,7 @@ function Section({
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             )}
             <h2 className="text-sm font-semibold text-foreground">{title}</h2>
-            <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold tabular-nums ${COUNT_STYLES[tone]}`}>
+            <span className={`rounded-md border px-2 py-0.5 text-[11px] font-semibold tabular-nums ${COUNT_STYLES[tone]}`}>
               {count}
             </span>
           </button>

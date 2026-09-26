@@ -67,7 +67,7 @@ export function WorkspaceQuickCreate({
       </CardHeader>
       <CardContent className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2 rounded-xl border border-border bg-muted p-3">
-          <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">New workspace</p>
+          <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">New workspace</p>
           <Input value={workspaceName} onChange={(e) => setWorkspaceName(e.target.value)} placeholder="New workspace name" />
           <Button onClick={createWorkspace} className="w-full">
             Create Workspace
@@ -75,7 +75,7 @@ export function WorkspaceQuickCreate({
         </div>
 
         <div className="space-y-2 rounded-xl border border-border bg-muted p-3">
-          <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">New project</p>
+          <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">New project</p>
           <select
             value={workspaceId}
             onChange={(e) => setWorkspaceId(e.target.value)}

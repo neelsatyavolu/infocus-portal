@@ -34,7 +34,7 @@ export default function ProducerFeedbackDialog({ initialCycle }: { initialCycle?
     <DialogTrigger asChild><Button type="button" size="sm" variant="outline"><MessageSquareText className="mr-1.5 h-3.5 w-3.5" />Give Feedback</Button></DialogTrigger>
     <DialogContent className="max-w-2xl sm:rounded-2xl">
       <DialogHeader className="pr-6 text-left"><DialogTitle>Producer feedback</DialogTitle><DialogDescription className="pt-2 leading-relaxed">{PRODUCER_FEEDBACK_INVITATION}</DialogDescription></DialogHeader>
-      {error ? <div role="alert" className="space-y-3"><p className="text-sm text-destructive">{error}</p><Button variant="secondary" onClick={() => setRetry((n) => n + 1)}>Try again</Button></div> : groups ? <ProducerFeedbackForm groups={groups} initialCycle={initialCycle} /> : <p role="status" className="py-8 text-center text-sm text-muted-foreground">Loading your groups…</p>}
+      {error ? <div role="alert" className="space-y-3"><p className="text-sm text-danger">{error}</p><Button variant="secondary" onClick={() => setRetry((n) => n + 1)}>Try again</Button></div> : groups ? <ProducerFeedbackForm groups={groups} initialCycle={initialCycle} /> : <p role="status" className="py-8 text-center text-sm text-muted-foreground">Loading your groups…</p>}
     </DialogContent>
   </Dialog>;
 }

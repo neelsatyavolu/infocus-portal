@@ -14,21 +14,21 @@ const TONE_TEXT: Record<GroupTileStatusTone, string> = {
   neutral: "text-[var(--ink-text)]",
   warn: "text-[var(--brand-amber)]",
   review: "text-foreground",
-  danger: "text-[var(--brand-red)]",
+  danger: "text-danger",
   approved: "text-[var(--brand-green)]"
 };
 
 const KIND_TEXT: Record<ScheduleKind, string> = {
   SHOW: "text-[var(--brand-green)]",
   PA: "text-[var(--brand-amber)]",
-  HOLIDAY: "text-[var(--brand-red)]",
+  HOLIDAY: "text-danger",
   NONE: "text-[var(--ink-text)]"
 };
 
 const KIND_MARK: Record<ScheduleKind, string> = {
   SHOW: "bg-[var(--brand-green)]",
   PA: "bg-[var(--brand-amber)]",
-  HOLIDAY: "bg-[var(--brand-red)]",
+  HOLIDAY: "bg-danger-fill",
   NONE: "bg-[var(--ink-4)]"
 };
 
@@ -49,7 +49,7 @@ function segmentClass(state: RaceDot, tone: GroupTileStatusTone) {
   if (state === "done") return "bg-[var(--brand-green)]";
   if (state === "upcoming") return "bg-[var(--ink-3)]";
   if (tone === "warn") return "bg-[var(--brand-amber)]";
-  if (tone === "danger") return "bg-[var(--brand-red)]";
+  if (tone === "danger") return "bg-danger-fill";
   if (tone === "approved") return "bg-[var(--brand-green)]";
   return "bg-foreground/75";
 }
@@ -60,7 +60,7 @@ function dotClass(state: RaceDot, tone: GroupTileStatusTone) {
   if (state === "upcoming") return cn(size, "border-2 border-[var(--ink-4)] bg-card");
   const current = "h-[clamp(0.6rem,calc(72dvh/var(--lanes)*0.38),1.2rem)] w-[clamp(0.6rem,calc(72dvh/var(--lanes)*0.38),1.2rem)] ring-2";
   if (tone === "warn") return cn(current, "bg-[var(--brand-amber)] ring-[var(--brand-amber)]/35");
-  if (tone === "danger") return cn(current, "bg-[var(--brand-red)] ring-[var(--brand-red)]/40");
+  if (tone === "danger") return cn(current, "bg-danger-fill ring-danger-fill/40");
   if (tone === "approved") return cn(current, "bg-[var(--brand-green)] ring-[var(--brand-green)]/35");
   return cn(current, "bg-foreground ring-foreground/25");
 }
@@ -68,7 +68,7 @@ function dotClass(state: RaceDot, tone: GroupTileStatusTone) {
 function slotClass(tone: CapacityTone) {
   if (tone === "full") return "text-[var(--brand-amber)]";
   if (tone === "one") return "text-orange-300";
-  return "text-[var(--brand-red)]";
+  return "text-danger";
 }
 
 function BoardLiveHeader({ board }: { board: ClassBoardModel }) {
@@ -103,7 +103,7 @@ function BoardLiveHeader({ board }: { board: ClassBoardModel }) {
       {focus ? (
         <div className="col-start-2 row-start-1 flex h-full min-w-0 items-center justify-center gap-3">
           <div className="min-w-0 text-center">
-            <p className="truncate text-[0.65rem] font-semibold uppercase tracking-wider text-[var(--brand-green)]">
+            <p className="truncate text-[0.65rem] font-medium uppercase tracking-[0.18em] text-[var(--brand-green)]">
               Class focus <span className="text-muted-foreground">· {focus.detail}</span>
             </p>
             <p className="mt-0.5 truncate text-[clamp(0.8rem,1vw,1.1rem)] font-semibold leading-tight" title={focus.text}>
@@ -111,10 +111,10 @@ function BoardLiveHeader({ board }: { board: ClassBoardModel }) {
             </p>
           </div>
           <div className={cn("w-[5.5rem] shrink-0", focus.remainingSeconds <= 600 ? "text-[var(--brand-amber)]" : "text-[var(--brand-green)]")}>
-            <p className="text-center font-mono-broadcast text-xl font-semibold tabular-nums leading-none" aria-label={`${focus.countdown} remaining in class`}>
+            <p className="text-center font-mono-broadcast text-xl font-medium tabular-nums leading-none" aria-label={`${focus.countdown} remaining in class`}>
               {focus.countdown}
             </p>
-            <p className="mt-1 text-center text-[0.6rem] uppercase tracking-wider text-muted-foreground">left in class</p>
+            <p className="mt-1 text-center text-[0.6rem] font-medium uppercase tracking-[0.11em] text-muted-foreground">left in class</p>
             <div className="mt-1 h-0.5 overflow-hidden rounded-full bg-[var(--ink-3)]" aria-hidden="true">
               <div className="h-full bg-current" style={{ width: `${focus.remainingFraction * 100}%` }} />
             </div>
@@ -122,7 +122,7 @@ function BoardLiveHeader({ board }: { board: ClassBoardModel }) {
         </div>
       ) : null}
       <div className="col-start-3 row-start-1 min-w-0 justify-self-end text-right">
-        <p className="font-mono-broadcast text-[clamp(1.25rem,1.7vw,2rem)] font-semibold tabular-nums leading-none text-foreground">
+        <p className="font-mono-broadcast text-[clamp(1.25rem,1.7vw,2rem)] font-medium tabular-nums leading-none text-foreground">
           {time}
         </p>
         <p className="mt-1 text-sm text-[var(--ink-text)]">{day}</p>
@@ -167,7 +167,7 @@ export default function ClassBoardView({ board }: { board: ClassBoardModel }) {
             <BrandWordmark alt="" className="h-10 w-auto object-contain" priority />
           </Link>
           <div className="min-w-0">
-            <h1 className="truncate font-display text-[clamp(1.35rem,1.8vw,2.15rem)] font-extrabold uppercase italic leading-none tracking-tight">
+            <h1 className="truncate text-[clamp(1.35rem,1.8vw,2.15rem)] font-semibold leading-none tracking-tight">
               Class Board
             </h1>
             <p className="eyebrow mt-1 truncate">
@@ -195,7 +195,7 @@ export default function ClassBoardView({ board }: { board: ClassBoardModel }) {
             >
               {board.gates.map((gate) => (
                 <div key={gate.key} className="min-w-0 text-center">
-                  <div className="whitespace-nowrap font-display text-[clamp(0.62rem,0.68vw,0.82rem)] font-bold uppercase leading-none tracking-normal text-foreground">
+                  <div className="whitespace-nowrap text-[clamp(0.62rem,0.68vw,0.82rem)] font-semibold uppercase leading-none tracking-[0.11em] text-foreground">
                     {TV_GATE_LABELS[gate.key] ?? gate.label}
                   </div>
                   <div className="mt-1 whitespace-nowrap font-mono-broadcast text-[clamp(0.55rem,0.58vw,0.72rem)] tabular-nums leading-none text-[var(--ink-5)]">
@@ -220,7 +220,7 @@ export default function ClassBoardView({ board }: { board: ClassBoardModel }) {
                 >
                   <p
                     className={cn(
-                      "font-display text-[clamp(0.85rem,calc(80dvh/var(--lanes)*0.42),1.7rem)] font-black italic tabular-nums leading-none",
+                      "font-mono-broadcast text-[clamp(0.8rem,calc(80dvh/var(--lanes)*0.38),1.55rem)] font-medium tabular-nums leading-none",
                       lane.place === 1 ? "text-[var(--brand-green)]" : "text-[var(--ink-text)]"
                     )}
                   >
@@ -238,7 +238,7 @@ export default function ClassBoardView({ board }: { board: ClassBoardModel }) {
                   <RaceTrack lane={lane} />
                   <p
                     className={cn(
-                      "min-w-0 line-clamp-2 break-words text-right font-display text-[clamp(0.65rem,calc(80dvh/var(--lanes)*0.26),1.05rem)] font-bold uppercase leading-tight tracking-normal",
+                      "min-w-0 line-clamp-2 break-words text-right text-[clamp(0.65rem,calc(80dvh/var(--lanes)*0.26),1.05rem)] font-semibold uppercase leading-tight tracking-[0.11em]",
                       TONE_TEXT[lane.tone]
                     )}
                   >
@@ -254,7 +254,7 @@ export default function ClassBoardView({ board }: { board: ClassBoardModel }) {
         <div className="grid min-h-0 grid-rows-[minmax(0,0.55fr)_minmax(0,1.45fr)_minmax(0,1fr)] gap-3 overflow-hidden">
           <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-card">
             <div className="flex shrink-0 items-baseline justify-between gap-3 border-b border-border px-[clamp(0.85rem,1vw,1.2rem)] py-[clamp(0.6rem,0.8vw,0.9rem)]">
-              <h2 className="font-display text-[clamp(1rem,1.2vw,1.45rem)] font-extrabold uppercase italic tracking-tight">
+              <h2 className="text-[clamp(1rem,1.2vw,1.45rem)] font-semibold tracking-tight">
                 Livestreams
               </h2>
               <p className="eyebrow-muted text-[clamp(0.65rem,0.75vw,0.85rem)]">Next 14 days</p>
@@ -290,7 +290,7 @@ export default function ClassBoardView({ board }: { board: ClassBoardModel }) {
 
           <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-card">
             <div className="flex shrink-0 items-baseline justify-between gap-3 border-b border-border px-[clamp(0.85rem,1vw,1.2rem)] py-[clamp(0.6rem,0.8vw,0.9rem)]">
-              <h2 className="font-display text-[clamp(1rem,1.2vw,1.45rem)] font-extrabold uppercase italic tracking-tight">
+              <h2 className="text-[clamp(1rem,1.2vw,1.45rem)] font-semibold tracking-tight">
                 Next deadlines
               </h2>
             </div>
@@ -306,7 +306,7 @@ export default function ClassBoardView({ board }: { board: ClassBoardModel }) {
                         <p className="truncate text-[clamp(0.75rem,0.85vw,1rem)] font-semibold leading-tight text-foreground">
                           {deadline.label}
                         </p>
-                        <p className="truncate font-mono-broadcast text-[clamp(0.6rem,0.7vw,0.8rem)] leading-tight text-muted-foreground">
+                        <p className="truncate font-mono-broadcast text-[clamp(0.6rem,0.7vw,0.8rem)] tabular-nums leading-tight text-muted-foreground">
                           <time dateTime={deadline.dateKey}>{formatGateDate(deadline.dateKey)}</time>
                           {` · Cycle ${deadline.cycleNumber}`}
                         </p>
@@ -323,7 +323,7 @@ export default function ClassBoardView({ board }: { board: ClassBoardModel }) {
 
           <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card">
             <div className="flex shrink-0 items-baseline justify-between gap-3 border-b border-border px-[clamp(0.85rem,1vw,1.2rem)] py-[clamp(0.6rem,0.8vw,0.9rem)]">
-              <h2 className="font-display text-[clamp(1rem,1.2vw,1.45rem)] font-extrabold uppercase italic tracking-tight">
+              <h2 className="text-[clamp(1rem,1.2vw,1.45rem)] font-semibold tracking-tight">
                 Master Calendar
               </h2>
               <p className="eyebrow-muted text-[clamp(0.65rem,0.75vw,0.85rem)]">Next 14 days</p>
@@ -336,13 +336,13 @@ export default function ClassBoardView({ board }: { board: ClassBoardModel }) {
                 >
                   <p className="font-mono-broadcast text-[clamp(0.62rem,0.7vw,0.8rem)] leading-none text-[var(--ink-5)]">
                     {day.weekday}
-                    <span className="ml-1 font-display text-[1.15em] font-black italic tabular-nums text-foreground">
+                    <span className="ml-1 text-[1.15em] font-medium tabular-nums text-foreground">
                       {day.dayNum}
                     </span>
                   </p>
                   <p className="min-w-0 truncate text-[clamp(0.68rem,0.75vw,0.88rem)] leading-tight">
                     <span className={cn("mr-1 inline-block h-1.5 w-1.5 rounded-full align-middle", KIND_MARK[day.kind])} />
-                    <span className={cn("font-display font-bold uppercase tracking-normal", KIND_TEXT[day.kind])}>
+                    <span className={cn("font-semibold uppercase tracking-[0.11em]", KIND_TEXT[day.kind])}>
                       {day.kindLabel}
                     </span>
                     {day.lines.length > 0 ? (

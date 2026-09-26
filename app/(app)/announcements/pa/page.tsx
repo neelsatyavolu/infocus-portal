@@ -114,8 +114,7 @@ export default function PaAnnouncementsPage() {
 
   return (
     <div className="route-enter space-y-5">
-      <section className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 md:p-6">
-        <div className="pointer-events-none absolute inset-0 brand-hero-gradient opacity-40" />
+      <section className="brand-hero-panel relative overflow-hidden p-5 md:p-6">
         <div className="relative flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="eyebrow flex items-center gap-2"><Mic2 className="h-3 w-3" />InFocus announcements</div>
@@ -163,7 +162,7 @@ export default function PaAnnouncementsPage() {
               <Textarea id="pa-script" aria-describedby="pa-script-help" value={content} readOnly={!data.canEdit}
                 disabled={saving || loading || regenerating} rows={26} maxLength={100000}
                 onChange={(event) => { setContent(event.target.value); setSaved(false); }}
-                className="min-h-[560px] resize-y rounded-xl border-border bg-background/40 p-4 font-mono text-sm leading-7 md:p-5 md:text-sm" />
+                className="min-h-[560px] resize-y rounded-xl border-border bg-background/40 p-4 text-sm leading-7 md:p-5 md:text-sm" />
             </div>
             {data.canEdit ? (
               <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-4">

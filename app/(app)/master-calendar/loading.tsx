@@ -6,7 +6,7 @@ export default function MasterCalendarLoading() {
         <div className="grid grid-cols-5 gap-px overflow-hidden rounded-xl border border-border bg-border">
           {Array.from({ length: 25 }).map((_, index) => (
             <div key={index} className="min-h-[16rem] bg-card p-3">
-              <div className="h-4 w-14 animate-pulse rounded-full bg-muted" />
+              <div className="h-4 w-14 animate-pulse rounded-md bg-muted" />
               <div className="mt-4 h-24 animate-pulse rounded-md bg-muted" />
             </div>
           ))}

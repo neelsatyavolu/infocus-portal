@@ -4,8 +4,7 @@ import { AnnouncementSubmitForm } from "@/components/announcement-submit-form";
 export default function SubmitAnnouncementPage() {
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 md:py-10">
-        <section className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 md:p-8">
-          <div className="pointer-events-none absolute inset-0 brand-hero-gradient opacity-40" />
+        <section className="brand-hero-panel relative overflow-hidden p-6 md:p-8">
           <div className="relative">
             <div className="eyebrow flex items-center gap-2">
               <Megaphone className="h-3 w-3" />

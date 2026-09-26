@@ -383,7 +383,7 @@ function GroupTile({
           {tileStatus.label}
         </span>
         {row.extension ? (
-          <span className="rounded-full bg-amber-500/20 px-1.5 py-px text-[10px] font-medium text-amber-100">
+          <span className="rounded-md bg-amber-500/20 px-1.5 py-px text-[10px] font-medium text-amber-100">
             {extensionBadgeLabel(row.extensionDays)}
           </span>
         ) : null}
@@ -598,8 +598,7 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
 
   return (
     <div className="route-enter mx-auto w-full max-w-[80rem] space-y-3 pb-24">
-      <section className="relative overflow-hidden rounded-2xl border border-border bg-card px-4 py-4 md:px-5">
-        <div className="pointer-events-none absolute inset-0 brand-hero-gradient opacity-40" />
+      <section className="brand-hero-panel relative overflow-hidden rounded-2xl border border-border px-4 py-4 md:px-5">
         <div className="relative flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="eyebrow">Producer view</div>
@@ -627,7 +626,7 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
                 className={cn(
                   "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
                   viewMode === "cards"
-                    ? "bg-[var(--brand-green)] text-[var(--ink)]"
+                    ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -640,7 +639,7 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
                 className={cn(
                   "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
                   viewMode === "chart"
-                    ? "bg-[var(--brand-green)] text-[var(--ink)]"
+                    ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -678,7 +677,7 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
                     <span className="text-[10px] font-medium text-muted-foreground">
                       {STAGE_SHORT[stage]}
                     </span>
-                    <span className="font-mono-broadcast text-[11px] font-semibold tabular-nums text-foreground">
+                    <span className="font-mono-broadcast text-[11px] font-medium tabular-nums text-foreground">
                       {count}/{stats.total}
                     </span>
                   </div>
@@ -750,7 +749,7 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   )}
                   <span>Other groups</span>
-                  <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground">
+                  <span className="rounded-md border border-border bg-muted px-2 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground">
                     {otherGroups.length}
                   </span>
                 </button>
@@ -805,7 +804,7 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
                           {["Package", "Associate", "Stages", "Check-ins"].map((label) => (
                             <th
                               key={label}
-                              className="px-3 py-2 text-left font-display text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground"
+                              className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
                             >
                               {label}
                             </th>
@@ -832,7 +831,7 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
                           return (
                             <tr
                               key={row.id ?? `chart-${bucket.executive?.userId ?? "unassigned"}-${index}`}
-                              className="border-t border-[hsl(var(--border))]/40 bg-[var(--ink)] transition-colors hover:bg-[var(--ink-2)] hover:shadow-[inset_3px_0_0_0_var(--brand-green)]"
+                              className="border-t border-[hsl(var(--border))]/40 bg-[var(--ink)] transition-colors hover:bg-[var(--ink-2)]"
                             >
                               <td className="min-w-[200px] px-3 py-2.5 align-middle">
                                 <div className="text-sm font-semibold text-foreground">
@@ -860,7 +859,7 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
                                     members.map((member) => (
                                       <span
                                         key={member.userId}
-                                        className="rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-foreground"
+                                        className="rounded-md bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-foreground"
                                       >
                                         {firstName(member)}
                                       </span>
@@ -890,9 +889,9 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
                                           title={`${PACKAGE_STAGE_LABELS[stage]}${mediaHint}`}
                                           onClick={() => toggleStage(row.id, stage)}
                                           className={cn(
-                                            "flex-1 px-1 py-1.5 text-center text-[10px] font-semibold uppercase tracking-wide transition",
+                                            "flex-1 px-1 py-1.5 text-center text-[10px] font-semibold uppercase tracking-[0.11em] transition",
                                             done
-                                              ? "bg-[var(--brand-green)] text-[var(--ink)]"
+                                              ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
                                               : "bg-transparent text-muted-foreground hover:bg-foreground/5",
                                             canEdit && row.id ? "cursor-pointer" : "cursor-default"
                                           )}
@@ -927,7 +926,7 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
       </section>
 
       <section className="sticky bottom-4 z-20 mx-auto flex justify-center">
-        <div className="inline-flex items-center gap-1 rounded-xl border border-foreground/[0.08] bg-black/85 light:bg-muted p-1 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.6)] backdrop-blur">
+        <div className="inline-flex items-center gap-1 rounded-xl border border-foreground/[0.08] bg-card p-1">
           {cycles.map((cycle) => {
             const active = cycle.cycleNumber === activeCycleNumber;
             return (
@@ -936,17 +935,17 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
                 type="button"
                 onClick={() => setActiveCycleNumber(cycle.cycleNumber)}
                 className={cn(
-                  "inline-flex items-center gap-2 rounded-lg px-4 py-2 font-display text-[12px] font-semibold uppercase tracking-[0.18em] transition",
+                  "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium uppercase tracking-[0.11em] transition",
                   active
-                    ? "bg-[var(--brand-green)] text-[var(--ink)]"
+                    ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
                     : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
                 )}
               >
                 Cycle
                 <span
                   className={cn(
-                    "rounded px-1.5 py-0.5 font-mono-broadcast text-[10px] font-bold",
-                    active ? "bg-black/35 text-[var(--ink)]" : "bg-black/40 light:bg-foreground/10 text-[var(--ink-text)]"
+                    "rounded px-1.5 py-0.5 font-mono-broadcast text-[10px] font-medium tabular-nums",
+                    active ? "bg-black/25 text-[var(--on-brand)]" : "bg-black/40 light:bg-foreground/10 text-[var(--ink-text)]"
                   )}
                 >
                   {String(cycle.cycleNumber).padStart(2, "0")}

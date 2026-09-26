@@ -40,7 +40,7 @@ function AnnouncementBody({ item }: { item: SlackAnnouncementItem }) {
               <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
               <span className="min-w-0 flex-1 truncate font-medium">{file.title}</span>
               {file.prettyType ? (
-                <span className="shrink-0 text-[11px] uppercase tracking-wide text-muted-foreground">{file.prettyType}</span>
+                <span className="shrink-0 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">{file.prettyType}</span>
               ) : null}
             </a>
           ))}
@@ -68,8 +68,7 @@ export default async function AnnouncementsPage() {
 
   return (
     <div className="route-enter mx-auto w-full max-w-3xl space-y-5 pb-24">
-      <section className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 md:p-6">
-        <div className="pointer-events-none absolute inset-0 brand-hero-gradient opacity-40" />
+      <section className="brand-hero-panel relative overflow-hidden p-5 md:p-6">
         <div className="relative min-w-0">
           <div className="eyebrow flex items-center gap-2">
             <Megaphone className="h-3 w-3" />
@@ -115,7 +114,7 @@ export default async function AnnouncementsPage() {
                     <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                       <p className="text-sm font-semibold text-foreground">{item.authorName}</p>
                       <div className="flex items-center gap-2">
-                        <time dateTime={item.postedAt} className="font-mono-broadcast text-[11px] text-muted-foreground">
+                        <time dateTime={item.postedAt} className="font-mono-broadcast text-[11px] tabular-nums text-muted-foreground">
                           {item.timeLabel}
                         </time>
                         <a

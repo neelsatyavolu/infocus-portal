@@ -116,7 +116,7 @@ export function SubmittedAnnouncementCard({
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
           <CopyTextButton text={copyText} />
           {onDelete ? (
-            <Button type="button" variant="destructive" size="sm" disabled={deleting} onClick={() => onDelete(entry)}>
+            <Button type="button" variant="destructive-quiet" size="sm" disabled={deleting} onClick={() => onDelete(entry)}>
               {deleting ? "Deleting..." : "Delete"}
             </Button>
           ) : null}

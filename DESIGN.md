@@ -1,458 +1,293 @@
-# InFocus Design System
+# InFocus Design System — 2026
 
-A portable guide to the visual language of **InFocus Portal**. Use it to build related websites, dashboards, tools, and other interfaces in any framework.
+The visual language of InFocus, Palo Alto High School's student broadcast network: the 2026 logo, colors, type, shapes, motion, and every on-air graphic built from them. Use this to make anything new (a graphic, a thumbnail, a slide, a web page) look like it belongs.
 
-Updated September 25, 2026 for the new InFocus logo. Colors come from the logo files. Other tokens and component dimensions come from the website's source (`app/globals.css` is the implementation). This is a source-based specification, not a browser-verified visual audit. No framework, backend, account system, or InFocus-specific workflow is required to use it.
+All files live in `Show Resources/InFocus 2026 Package`. The single design source for the on-air graphics is `_Working Files/Graphics Source/graphics.html`; every number below comes from it.
 
-## 1. Visual direction
+---
 
-**A dark broadcast production workspace: energetic headings, quiet surfaces, precise controls.**
+## 1. Logo
 
-- Use a near-black canvas with subtly lighter panels and thin neutral borders.
-- Make logo green the recognizable accent for primary actions, progress, and positive states.
-- Pair oversized, condensed, italic uppercase display type with restrained, readable sans-serif UI text.
-- Keep operational screens compact. Use spacing, borders, and typography to establish hierarchy.
-- Reserve atmospheric green gradients for hero panels and selected tiles. Most working surfaces stay flat.
-- Use logo red for live/recording indicators and destructive or error states; clarify the meaning with labels and icons.
-- Build around real content: projects, media, people, dates, progress, and concise actions.
+### Anatomy
+The wordmark is **infocus** in heavy, rounded geometric lowercase:
 
-The website is dark by default. A light theme is opt-in per browser (Settings → Appearance); section 2 lists its tokens. The logo colors for light backgrounds (print, decks, documents, the light theme) are in the logo palette. For an unrelated product, replace the brand name and assets while retaining the visual system.
+- **"in"** in InFocus Green, with the **red record dot** as the dot of the i.
+- **"f"** and **"cus"** in Ink.
+- The **"o" is the icon**: a green three-quarter ring (the lens barrel) around a six-blade camera aperture, with two ink **broadcast arcs** radiating from the top right.
+
+The icon on its own (ring + aperture + arcs + red dot) is the mark for small and square spaces.
+
+The icon's shapes are the whole system in miniature. The **arc** becomes the curved corner of the nameplates. The **red dot** is the "live" accent. The **aperture** is the outro's closing move.
+
+### Files (`01 Logos`)
+| File | Use |
+|---|---|
+| `Wordmark/infocus-wordmark-color.png` | Default, on white or light backgrounds |
+| `Wordmark/infocus-wordmark-white.png` | On dark footage or Ink (white letters, green "in", red dot) |
+| `Wordmark/infocus-wordmark-on-black.png` | Color wordmark pre-set on a black field |
+| `Wordmark/infocus-wordmark-mono-black.png` / `-mono-white.png` | One-color uses (print, embossing, busy photos) |
+| `Icon/infocus-icon-color.png` / `-white.png` | Square spaces, watermarks, nameplate tile |
+| `Icon/infocus-channel-avatar-1800.png` | YouTube / Instagram / TikTok profile picture |
+| `Favicon/favicon-16/32/512.png` | Browser tabs and app icons |
+
+Wordmark masters are 4107 × 1100 px, and the icon is 1024 px. The email signature logo is in `Branding & Design/Email Signature`.
+
+### Rules
+- **Clear space:** keep empty space around the logo at least the diameter of the red dot on every side.
+- **Minimum size:** wordmark 120 px wide on screen (0.75 in in print). Below that, use the icon.
+- **Don't** recolor the parts, swap the red dot for another color, stretch, rotate, add shadows/outlines/glows, rebuild the lettering in another font, or put the color wordmark on mid-tone or busy backgrounds. Use the white or mono version there.
+- Old logos (`Branding & Design/Old Logos`, `Show Resources/Old Graphics`) are retired.
+
+---
 
 ## 2. Color
 
-### Logo palette
+| Token | Hex | Role |
+|---|---|---|
+| **Ink** | `#0F110F` | Primary dark. Plates, cards, TV standby, the "f"/"cus" of the logo. Use instead of pure black. |
+| **InFocus Green** | `#0B6E3E` | Primary brand color. Role strips, panels, the logo's "in" and ring. Carries white text. |
+| **Green on Dark** | `#2BB36E` | Brighter green for *text and small marks on Ink*: kickers, bullets, URLs. Never a large fill. |
+| **Record Red** | `#EE3A2A` | Accent only: the record dot and small "live" markers. Never text, never large areas. |
+| **White** | `#FFFFFF` | Names, titles, primary text on dark. |
+| **Mist** | `#DCE2DE` | Secondary text on dark: announcement points, taglines. |
+| Dot (unlit) | `#2E1412` | Only in the outro, the record dot before it lights. |
 
-These are the exact colors in the logo files. Every other brand color is derived from them.
+**Balance:** mostly Ink, a band of Green, one touch of Red. If red is in more than one spot on screen, it's too much.
+**Contrast:** white on Ink and white on InFocus Green both pass WCAG AA for text. Don't put Green-on-Dark text on InFocus Green.
+**Errors and delete buttons** don't use Record Red. Interfaces use the separate Danger colors in section 10.
 
-| Name | Hex | RGB | Where it appears in the logo |
-| --- | --- | --- | --- |
-| Logo green | `#2BB36E` | 43 179 110 | "in" and the "o" ring on dark backgrounds |
-| Logo deep green | `#0B6E3E` | 11 110 62 | "in" and the "o" ring on light backgrounds |
-| Logo red | `#EE3A2A` | 238 58 42 | The dot over the "i" (always red) |
-| Logo ink | `#0F110F` | 15 17 15 | "focus" and the signal arcs on light backgrounds; the app-icon tile |
-| White | `#FFFFFF` | 255 255 255 | "focus" and the signal arcs on dark backgrounds |
-
-Pick the logo colors by background:
-
-| Background | Green | Letters and arcs | Dot |
-| --- | --- | --- | --- |
-| Dark (the website, video) | `#2BB36E` | `#FFFFFF` | `#EE3A2A` |
-| Light (print, documents, slides) | `#0B6E3E` | `#0F110F` | `#EE3A2A` |
-
-### Contrast
-
-| Pair | Ratio | Use |
-| --- | --- | --- |
-| Ink text `#0A0A0A` on logo green `#2BB36E` | 7.3:1 | Primary buttons. Always dark text on green. |
-| White on logo green | 2.7:1 | Avoid. |
-| Logo green on ink | 7.3:1 | Green text, eyebrows, icons on dark. |
-| Logo red `#EE3A2A` on ink | 5.0:1 | Red text and icons on dark. |
-| White on logo red | 4.0:1 | Large or bold text only. Use deep red for filled controls. |
-| White on deep red `#C92B1D` | 5.5:1 | Destructive buttons, LIVE pill. |
-| Ink text on deep green hover `#23955C` | 5.2:1 | Hover state of green buttons. |
-| Logo deep green `#0B6E3E` on white | 6.3:1 | Green text on light backgrounds. |
-| Logo green on white | 2.7:1 | Avoid for text on light backgrounds. |
-
-### Semantic tokens (website)
-
-Semantic HSL values are authoritative for UI components. Neutrals carry the logo ink's slight green tint (hue 120, 4–6% saturation) rather than a blue-gray.
-
-| Semantic role | Exact CSS color | Use |
-| --- | --- | --- |
-| Background | `hsl(120 6% 4%)` | Page canvas |
-| Foreground | `hsl(0 0% 98%)` | Main text |
-| Card / popover | `hsl(120 5% 5%)` | Raised surfaces |
-| Card / popover foreground | `hsl(0 0% 98%)` | Surface text |
-| Primary | `hsl(150 61% 43.5%)` (≈ `#2BB36E`) | Main action, focus ring |
-| Primary foreground | `hsl(0 0% 4%)` | Dark text on green |
-| Secondary | `hsl(120 4% 8%)` | Secondary controls, metadata |
-| Secondary foreground | `hsl(0 0% 98%)` | Secondary text |
-| Muted | `hsl(120 4% 7%)` | Quiet fills |
-| Muted foreground | `hsl(120 4% 65%)` | Descriptions and metadata |
-| Accent | `hsl(150 30% 11%)` | Subtle green hover surface |
-| Accent foreground | `hsl(150 60% 80%)` | Text on accent surface |
-| Destructive | `hsl(5 75% 45%)` (≈ `#C92B1D`) | Destructive action |
-| Destructive foreground | `#FFFFFF` | Text on destructive fill |
-| Border / input | `hsl(120 4% 16%)` | 1px outlines and separators |
-
-### Brand and supporting tokens
-
-| Token | Value | Use |
-| --- | --- | --- |
-| `--brand-green` | `#2BB36E` | Logo green. Fills with dark text, green text on dark, tints. |
-| `--brand-green-deep` | `#23955C` | Hover and pressed state of green fills; gradient middle stop. |
-| `--brand-green-ink` | `#08492A` | Dark green for hero washes and gradient ends. |
-| `--brand-green-soft` | `#E8F7F0` | Pale green for light contexts only. |
-| `--brand-red` | `#EE3A2A` | Logo red. Rec dot, red text and icons, tints. |
-| `--brand-red-deep` | `#C92B1D` | Red fills that carry white text. |
-| `--brand-amber` | `#F2A516` | Warnings. |
-| `--ink` | `#0A0A0A` | Sidebar and deepest surfaces. |
-| `--ink-2` / `-3` / `-4` | `#1F1F1F` / `#2C2C2C` / `#3A3A3A` | Raised fills, hover fills, borders. |
-| `--ink-5` | `#6B6E6B` | Dim labels. |
-| `--ink-text` | `#B6B9B6` | Supporting text. |
-| `--paper` / `--paper-2` | `#FFFFFF` / `#F7F7F8` | Light contexts only. |
-
-Soft green and paper are supporting palette entries, not instructions to introduce light panels into the dark UI.
-
-### Light theme
-
-Opt-in from Settings → Appearance. `<html>` carries `dark` (default) or `light`. The choice is a cookie (`infocus-theme`) on `.infocuspaly.com`, so the Portal subdomains share it; a script in `<head>` applies it before first paint (`src/lib/theme.ts`).
-
-The semantic tokens take these values under `:root.light`:
-
-| Semantic role | Light value |
-| --- | --- |
-| Background | `hsl(120 9% 97%)` |
-| Foreground | `hsl(120 8% 7%)` |
-| Card / popover | `hsl(0 0% 100%)` |
-| Primary | `hsl(151 82% 24%)` (logo deep green `#0B6E3E`) with white foreground |
-| Secondary / muted | `hsl(120 6% 93%)` / `hsl(120 7% 95%)` |
-| Muted foreground | `hsl(120 4% 36%)` |
-| Accent / accent foreground | `hsl(150 40% 92%)` / `hsl(151 82% 18%)` |
-| Border / input | `hsl(120 6% 86%)` / `hsl(120 6% 84%)` |
-| Destructive | unchanged |
-
-The ink scale and brand accents flip with the theme, so markup written against them works in both:
-
-| Token | Light value | Meaning in both themes |
-| --- | --- | --- |
-| `--ink` | `#FFFFFF` | Base surface, and the text color on solid brand fills |
-| `--ink-2` / `-3` / `-4` | `#F1F3F1` / `#E3E7E3` / `#CFD4CF` | Raised fills, hover fills, lines |
-| `--ink-text` | `#4B514B` | Supporting text |
-| `--brand-green` / `-deep` | `#0B6E3E` / `#085A32` | Green text and fills (white text on the fill) |
-| `--brand-red` / `-deep` | `#C92B1D` / `#A32216` | Red text and fills |
-| `--brand-amber` | `#B45309` | Warnings |
-
-Rules for dark-first markup:
-
-- Prefer semantic tokens and the flipping vars above. Don't use `text-white`, `border-white/N` or `bg-white/N` on theme surfaces; use `text-foreground`, `border-foreground/N`, `bg-foreground/N`.
-- The `light:` variant adds a light-only override, e.g. `bg-black/40 light:bg-muted` for a recessed panel.
-- In light mode the pale Tailwind tints (50–300) of amber, yellow, orange, red, rose, emerald, sky and indigo resolve to the deep end of the hue, so status text like `text-amber-200` stays readable. A solid pale fill (`bg-amber-300`) darkens too; give its text `light:text-white`.
-- Video players, media overlays, modal backdrops and the teleprompter run mode stay dark in both themes. Inside them, use fixed colors (`text-white`), never flipping tokens.
-
-Translucent tints use the logo RGB values: green `rgb(43 179 110 / α)` and red `rgb(238 58 42 / α)`. Common alphas: 0.06–0.12 for fills, 0.18 for status fills, 0.25–0.40 for borders and rings.
-
-Chart series tokens, in order: `hsl(150 61% 43.5%)`, `hsl(5 85% 55%)`, `hsl(38 92% 50%)`, `hsl(220 90% 60%)`, `hsl(280 70% 60%)`. Label chart series and states so color is not the only identifier.
+---
 
 ## 3. Typography
 
-### Families
+**Lexend** is the brand typeface (`02 Fonts`: Regular 400, Medium 500, SemiBold 600, Bold 700): every name, title, label and sentence. It's the only typeface in the on-air graphics.
 
-| Role | Family | Treatment |
-| --- | --- | --- |
-| UI / body | Geist Sans | Normal case, regular through semibold |
-| Display | Barlow Condensed | Bold, extra-bold, black; usually italic uppercase |
-| Numeric / technical | Geist Mono | Timecodes, compact counts, technical metadata |
+**Geist Mono** is the one allowed companion, for *data only* in software (the portal, teleprompter, dashboards): timecodes, timers, counts that change live, IDs and codes. Lexend's digits are all different widths and it has no tabular-figures option, so changing numbers set in Lexend shift side to side. See section 10 for exactly where each one goes. Install it on every editing computer first; the `Install … Graphics` files in Show Resources do it for you.
 
-Load Barlow Condensed at weights **700, 800, 900**, with both normal and italic faces. Portable fallbacks: display → Oswald, Impact, sans-serif; body → system-ui, sans-serif; mono → ui-monospace, SF Mono, Menlo, monospace. Font declarations do not load the fonts: bundle them or configure your platform's font loader. Avoid synthetic italics when the real face is available.
+| Use | Weight | Style |
+|---|---|---|
+| Names, headline titles | SemiBold 600 | Tight tracking (−1 to −2%), sentence or title case |
+| Roles, labels, kickers | Medium 500 / Bold 700 | **ALL CAPS**, wide tracking (+11% roles, +18% kickers) |
+| Body, bullet points, handles | Regular 400 / Medium 500 | Normal tracking |
+| URLs | SemiBold 600 | +6% tracking, Green on Dark |
 
-### Display scale
+Keep it to two weights per graphic. Don't use italics, underlines, or all-caps for names.
 
-All display styles use `letter-spacing: -0.02em`, uppercase, italic, and foreground color.
+---
 
-| Style | Font size | Weight | Line height |
-| --- | --- | --- | --- |
-| XL | `clamp(3rem, 4vw + 2rem, 5.5rem)` | 900 | 0.92 |
-| LG | `clamp(2.25rem, 2.5vw + 1.5rem, 3.75rem)` | 900 | 0.96 |
-| MD | `clamp(1.5rem, 1vw + 1.125rem, 2.25rem)` | 800 | 1.02 |
-| SM | `clamp(1.25rem, 0.5vw + 1rem, 1.75rem)` | 800 | 1.05 |
+## 4. Shape language
 
-The public homepage overrides its large headline to 88px / 0.92 at desktop widths. Operational page headings generally use MD rather than a marketing-sized headline.
+- **The arc corner.** On the on-air nameplates, the plate has one rounded corner: the outer top corner (the top corner farthest from the logo tile) is a **quarter circle as tall as the plate**, echoing the logo's arc. All other corners are square. There's no outline or stroke on the arc. This exact rule is for the broadcast graphics. Websites, slides and other interfaces use it as an accent only (see section 10).
+- **The tile.** A square Ink tile holds the icon at the inner end of every nameplate.
+- **Stacked bars.** Ink plate on top (name), InFocus Green strip below (role), always the same width. The width is set by whichever text is longer.
+- **Flat color.** No gradients, bevels, drop shadows, or glass. Depth comes from the footage, not the graphic.
+- **Safe areas.** Lower-third graphics sit on the title-safe line (bottom edge at y = 972 in 1080p), 150 px in from the side.
 
-### Supporting type
+---
 
-- Eyebrow: Barlow Condensed, 12px, 700, uppercase, `0.18em` tracking, green by default. Neutral and red variants exist.
-- Navigation: 13px, medium; section labels: 10px condensed bold uppercase with `0.18em` tracking.
-- Body and controls: typically 14px; prominent descriptions: 16–18px.
-- Metadata: typically 12px; dense labels and counts: 10–11px. Keep tiny text to secondary information.
-- Standard card titles: sans-serif semibold with tight tracking. Not every title needs broadcast styling.
-- Timecodes: monospace, muted, `0.04em` tracking. Use tabular numerals for changing counts and scores.
-- Text wordmark utility: 14px, 600, uppercase, `0.16em` tracking. The actual site header uses an image wordmark.
+## 5. Motion
 
-## 4. Spacing, shape, and depth
+Everything builds *in pieces*, not as one block: the container opens, then the text arrives. The exit is roughly the entrance in reverse, and a little faster.
 
-Use a 4px base spacing rhythm, with small 2px adjustments for dense controls. Common gaps are 8, 12, 16, and 24px.
+| Easing | Curve | Use |
+|---|---|---|
+| Ease out | `cubic-bezier(0.16, 1, 0.3, 1)` | Entrances: fast start, soft landing |
+| Ease in | `cubic-bezier(0.7, 0, 0.84, 0)` | Exits |
+| Ease in-out | `cubic-bezier(0.65, 0, 0.35, 1)` | Full-frame moves, fades, dissolves |
+| Back out | `cubic-bezier(0.34, 1.56, 0.64, 1)` | Tiny pops only (the red dot) |
 
-| Element | Observed dimensions |
-| --- | --- |
-| Main page padding | 16px mobile; 24px from 768px |
-| Standard card sections | 24px padding; content/footer omit duplicate top padding |
-| Compact page hero | 16px padding; 20px horizontal from 768px |
-| Landing hero | 20px, then 28px from 640px, then 40px from 768px |
-| Base radius | 10px |
-| Small / medium / large / XL radius tokens | 6 / 8 / 10 / 14px |
-| Larger page panels | 16px; landing hero 24px |
-| Pills and avatars | Fully rounded |
-| Borders | Usually 1px |
+- **The icon turns.** Whenever the mark appears or leaves, it rotates ±30° and scales to 80–86%, as if a lens were focusing.
+- **Wipes, not slides.** Bars reveal with a clip/wipe from the tile outward. They don't fly in from off-screen.
+- Nothing bounces except the red dot. No spins, no blur-in, no typewriter text.
+- Entrances take about 0.8 s and exits about 0.7 s. Leave on-screen time to the editor. The templates keep their in/out timing however long the clip is stretched.
 
-Use subtle shadows on buttons and cards; stronger shadows belong to overlays. Surface contrast and outlines do most of the work. Backdrop blur appears on sticky headers and floating controls, not every card.
+---
 
-## 5. Layout recipes
+## 6. On-air graphics
 
-### Application workspace
+All are 1920 × 1080. MOGRT (Premiere) and `.drfx` (DaVinci Resolve) versions match the rendered ProRes versions.
 
-- Fixed 240px left sidebar on desktop, with a thin right border and ink background.
-- Sidebar becomes a slide-in drawer below 1024px; width is `min(240px, 85vw)` with a black 60% backdrop.
-- Sidebar contains brand at top, grouped navigation, and an account row at bottom.
-- Sticky main header: background at 95% opacity, backdrop blur, bottom border, breadcrumbs on the left and actions on the right. Allow wrapping.
-- Main area uses 16–24px padding and `min-width: 0` to contain wide content.
-- Groups uses a centered content width of 80rem (1280px), compact hero, and 12px section spacing.
-- Some media project screens add a second 240px contextual sidebar. This is a specialized layout, not a requirement for every screen.
-- Allow room below content for mobile and floating controls; the main shell uses 96px bottom padding on smaller screens.
+### Lower third (`05 Lower Thirds`)
+- Ink tile (126 px, icon inside) + Ink name plate (81 px tall) + Green role strip (45 px tall). The plate has the arc corner.
+- Name: Lexend SemiBold 45 px, white. Role: Medium 20.8 px, ALL CAPS, +11% tracking.
+- Bottom-left: 150 px from the left, bottom edge on y = 972.
+- **In:** the tile opens from its center, then the icon turns into place, the plate wipes out, the name rises in, and the strip and role follow. **Out** is the reverse, ending with the icon turning away and the tile closing.
+- A ready-made transparent clip for everyone on staff is in `Roster (ProRes)`.
 
-### Public / landing page
+### Dual third (`06 Dual Thirds`)
+- Two lower thirds, the right one mirrored (tile on the outside, arc corner on the inside), each 290 px in from its edge so it sits under its anchor.
+- Both plates share one width (the wider of the two) so the pair looks balanced.
 
-- Sticky top header with image wordmark, pill-shaped navigation on desktop, and green CTA.
-- Centered content, maximum 1280px wide, horizontal padding 16–24px.
-- Large rounded hero with a faint green-to-ink gradient, eyebrow, condensed headline, restrained supporting paragraph, and wrapping actions.
-- Small summary cards below the headline; feature cards arranged in responsive grids.
-- Use larger vertical section gaps (about 40px) than on operational screens.
+### Announcement (`07 Announcements`)
+- A full-frame Ink card, made to be seen on the set TVs (about 58% size), so the type is large.
+- Header: red dot + **ANNOUNCEMENTS** kicker (Bold 38 px, Green on Dark, +18%) on the left, white wordmark (70 px tall) on the right, with a 3 px white rule at 30% opacity under it. Margins are 120 px.
+- Title: SemiBold 116 px, white. Points: Regular 64 px, Mist, with Green-on-Dark bullet dots. **Up to 5 points, short phrases.** Text shrinks to at most 80% to fit, and past that the card should be split into two.
+- Optional image on the right (e.g. a QR code) on a white 440 px card with 14 px corners.
+- **Sequence:** the card fades up on the centered icon, the icon turns away, then the header, rule, title and points build in. At the end the content fades, the icon turns back in and holds, and the whole card dissolves to transparent.
 
-### Operational collection
+### TV standby (`09 TV Standby`)
+- Ink with the icon centered (300 px). It's exactly the first and last frame of the announcement.
+- The Left/Right set TVs show this whenever no announcement is up, so they **never show the blue key color**. On the TVs, an announcement reads as logo → announcement → logo, with no pop.
 
-- Compact hero: eyebrow → page title → one-line description, with filters/actions beside it.
-- Optional compact metrics row with monospace counts and thin progress bars.
-- Cards: one column on small screens, two from 768px in Groups, with 8px gaps.
-- Table alternative: bordered rounded container, compact section header, uppercase micro-label column headings, 14px primary row text, 12px secondary text.
-- Groups tables scroll horizontally within their container and retain a 720px minimum width. Adapt that minimum to the columns in a new product.
-- Row hover can use ink-2 fill and a 3px inset green left edge.
-- Empty states use a bordered dark panel, centered muted explanation, and a useful next action where applicable.
+### Follow InFocus (`08 Follow InFocus`)
+- A corner card at the **top left** (x 48, y 40): Ink tile + Ink "Follow InFocus" plate, with a Green panel below listing the handles in white Medium 26 px:
+  - Instagram + YouTube **@infocusnews**
+  - TikTok + X **@palyinfocus**
+  - Web **infocusnews.tv**
+- Transparent ProRes 4444, 7 s. It builds like a lower third.
 
-## 6. Component specifications
+### Intro (`03 Intro & Outro`)
+- 13.8 s, 1080p. A fast, music-cut montage of our own footage (spirit week, packages, drone, class photos) that lands on the 2026 wordmark on the music hit.
+
+### Outro (`03 Intro & Outro`)
+- On black: the white wordmark (1180 px wide) reveals left to right with the original InFocus outro music, and the red dot lights on the music's peak (1.32 s).
+- Below it: "Palo Alto High School's Student Broadcast Network" (Regular 32 px, Mist) and **infocusnews.tv** (SemiBold 38 px, Green on Dark). The legal line "© 2026 InFocus and Palo Alto High School" sits on title-safe.
+- **Ending:** the dot fades fully out, the frame closes like an aperture into the "o", then fades to black.
+
+---
+
+## 7. Virtual sets (`04 Virtual Sets`)
+
+Three still backgrounds (1920 × 1080 PNG) for the switcher, keeping the classic three-camera layout:
+
+- **Middle:** two-anchor desk, with a wide window onto **Paly's Tower Building** behind.
+- **Left / Right:** angled views (about 28°) of the same room with the curved round desk, each with a TV on a floor stand. The TV screens are pure key blue `#0047BB`, at Left x 57–1176, y 114–739 and Right x 743–1860, y 110–738, the same pixels as the old sets.
+- Materials: warm light-wood slat walls with thin InFocus Green reveals, gray desk with a curved front edge, and daylight through the windows. The brand colors only appear as accents, so the anchors stand out.
+
+---
+
+## 8. Formats & delivery
+
+| Asset | Format |
+|---|---|
+| Intro / outro | 1080p H.264 MP4, high bitrate |
+| Lower thirds, announcements, Follow InFocus | ProRes 4444 with alpha (transparent), 1080p, 29.97 fps |
+| Editable templates | `.mogrt` (Premiere), `.drfx` (DaVinci Resolve) |
+| Virtual sets, TV standby | 1920 × 1080 PNG |
+| Logos | PNG with transparency |
+
+Show frame rate is 29.97 fps (59.94 for studio recordings).
+
+---
+
+## 9. Making something new
+
+1. Start from Ink, add one Green element, and use Red only once (or not at all).
+2. Use Lexend, with SemiBold for the main line and CAPS Medium for labels.
+3. Use the arc corner on the one or two most important containers, not everywhere. Everything else stays square or gets a small, consistent radius (see section 10 for websites).
+4. Animate it in pieces with the easings above, and turn the icon when it appears.
+5. Check it on the actual footage or set, and at the size it'll really be seen (a TV on set is about half size).
+6. For show graphics, edit `graphics.html` and re-run the render scripts rather than editing renders by hand. See the package README.
+
+---
+
+## 10. Using this on the web (InFocus Portal, infocusnews.tv, dashboards)
+
+The colors, type and flat style apply as written. The shape and motion rules were made for 1080p broadcast graphics, so on a website they're used as **accents**, not copied onto every element.
+
+### The arc corner = a signature, used sparingly
+- **Use it on the few big "plate" pieces:** the hero/header banner, section title bars, featured story cards, and the active nav tab. That's usually 1–3 per screen.
+- **One curved corner, the other three square.** Put the curve on the top-right for left-aligned elements, or the top-left for right-aligned or mirrored ones.
+- **Cap the curve size.** On TV the curve is as tall as the bar because the bars are short. On the web, use a fixed radius instead: **32 px** (24 px on phones, 48 px on very large hero panels). Never let a tall card get a curve as tall as the card.
+- **Don't use it on everyday UI.** Buttons, text fields, dropdowns, checkboxes, tables, tags, tooltips, modals and small list cards stay **square or use one consistent small radius (4–6 px)**. Pick one and use it everywhere.
+- Never round all four corners into a pill or blob, and never add an outline or stroke along the arc.
+
+### Colors on the web
+- **Page backgrounds:** Ink for dark pages, or white or a very light Mist for light pages.
+- **InFocus Green** for primary buttons, active states and header bands, with white text on it.
+- **Green on Dark** (`#2BB36E`) only for text, links and icons on Ink backgrounds.
+- **Record Red** only as a tiny marker, like a "LIVE" dot or a new-item dot. Never use it for buttons, errors, or big areas.
+
+### Danger colors (errors, destructive actions, warning badges)
+Record Red is a *brand* color and stays reserved for the dot. For "something is wrong / this will delete something", the portal uses a separate **Danger** set: a cooler crimson that reads as an alert, not as InFocus branding.
+
+| Token | Hex | Use |
+|---|---|---|
+| **Danger** | `#C21F3A` | Destructive buttons (Delete, Remove, Revoke) with white text, error text and icons on light backgrounds, danger badge fill, error input borders |
+| **Danger on Dark** | `#FF7A8A` | Error text, icons and borders on Ink backgrounds |
+| **Danger tint (light)** | `#FDECEE` | Background of error banners/alerts on light pages |
+| **Danger tint (dark)** | `#3A1218` | Background of error banners/alerts on Ink pages |
+
+All pass WCAG AA contrast: white on Danger is about 5.9:1, Danger on white about 5.9:1, and Danger on Dark on Ink about 7.6:1.
+
+- **Destructive buttons:** use a Danger fill with white text only for the final "are you sure?" confirm. Elsewhere, use a quiet button (Danger text, no fill) so pages aren't full of red.
+- **Errors:** always pair the color with an icon and words ("Couldn't save: …"). Never rely on color alone.
+- **Badges** ("Overdue", "Missing", "Failed"): use the Danger fill with white text, or the tint background with Danger text. Keep them small.
+- Don't put Danger and Record Red next to each other, and don't use Danger for anything decorative.
+
+### Type on the web
+- Lexend for everything people *read*. Headings in SemiBold, body in Regular, labels and eyebrow text in ALL CAPS Medium with wide tracking (+11–18%).
+- **Geist Mono for data that must line up or updates live:**
+  - timecodes and durations (`00:12:48:15`, `4:32`)
+  - countdowns and timers, including the teleprompter's clock, elapsed time and word/line counters
+  - live counts and numbers in table columns
+  - IDs, codes and file names (`EP-0925`, checkout codes)
+- **The teleprompter script itself stays in Lexend.** Lexend was designed for reading ease, and that's exactly what a prompter needs. Only its numbers and timers are mono.
+- **Static numbers inside sentences or headings stay Lexend** ("5 announcements", "Class of 2027"). Use mono only when the number is data to scan, compare or watch tick.
+- Match Geist Mono's size so its lowercase letters line up with Lexend's (usually about 0.9× the Lexend size). Use Regular or Medium, and never Mono for headings or buttons.
+- Anything else, like a third font, a serif, or a different mono, is off-brand.
+- Scale the TV sizes down to normal web sizes. Keep the relationships (big confident headline, calm body, small tracked label), not the pixel values.
+
+### Motion on the web
+- Use the same easing curves (section 5), but shorter: 150–300 ms for UI, and up to about 600 ms for a hero entrance.
+- The icon turn (±30°) is for the logo only, like a loading state or page intro. Don't rotate other UI.
+- Respect "reduce motion" settings.
+
+### Quick check
+If a screen has more than a few arc corners, more than one spot of red, gradients or drop shadows, or any font other than Lexend (plus Geist Mono for data), it's drifting from the brand.
+
+---
+
+## 11. InFocus Portal implementation
+
+How sections 2–5 and 10 map to the Portal's code. Tokens live in `app/globals.css`; fonts load in `app/layout.tsx`; shared components are in `components/ui/`.
+
+### Color tokens
+
+Dark (Ink) is the default. Light is opt-in (Settings → Appearance, `<html class="light">`). Tokens marked "flips" change value in light mode.
+
+| Brand color | CSS token | Tailwind class | Notes |
+|---|---|---|---|
+| Ink `#0F110F` | `--background` (dark), `--ink` (flips) | `bg-background`, `bg-[var(--ink)]` | Page canvas. `--card` / `--ink-2…4` are slightly raised Ink surfaces and lines. |
+| InFocus Green `#0B6E3E` | `--primary`, `--brand-fill` | `bg-primary text-primary-foreground`, `bg-[var(--brand-fill)] text-[var(--on-brand)]` | Primary buttons, active states, header bands. Always white text. Hover `--brand-fill-hover`. |
+| Green on Dark `#2BB36E` | `--brand-green` (flips to `#0B6E3E` in light) | `text-brand-green`, `text-[var(--brand-green)]` | Text, links, icons, small marks, focus ring. Low-opacity tints (`/10`) are fine; never a solid large fill. |
+| Record Red `#EE3A2A` | `--brand-red` | `rec-dot rec-dot-red`, `bg-[var(--brand-red)]` on a dot | The rec dot and tiny LIVE markers only. `.status-live` is an Ink tag with the red dot. |
+| Mist `#DCE2DE` | `--mist`, `--ink-text` (flips) | `text-[var(--ink-text)]`, `text-muted-foreground` (dimmer) | Secondary text on dark. |
+| Danger `#C21F3A` | `--danger`, `--destructive` | `bg-destructive text-destructive-foreground`, `bg-danger-fill` | Destructive fills with white text. |
+| Danger on Dark `#FF7A8A` | `--danger-text` (flips to `#C21F3A`) | `text-danger`, `border-danger` | Error text, icons, borders. |
+| Danger tints `#3A1218` / `#FDECEE` | `--danger-tint` (flips) | `bg-danger-tint` | Error banner backgrounds. |
+
+Light theme: background is a very light Mist (`hsl(141 12% 96%)`), cards are white, text is Ink, and primary stays InFocus Green with white text.
+
+### Type
+
+- `font-sans` and `font-display` are **Lexend** (400/500/600/700, `next/font/google`). `font-mono` and `.timecode` are **Geist Mono**, for data only (section 10), with `tabular-nums`.
+- `.display-xl/lg/md/sm`: Lexend SemiBold, tight tracking, no italics, no forced caps.
+- `.eyebrow`: ALL CAPS Medium, +18% tracking, Green on Dark. Labels and badges: ALL CAPS Medium, +11% tracking.
+
+### Shape
+
+- One small radius everywhere: every Tailwind radius (`rounded-md` … `rounded-3xl`) resolves to **6px**, `rounded-sm` to 4px. `rounded-full` is only for true circles (avatars, dots, spinners, switches, progress bars).
+- The arc corner is `.arc-corner` (top-right) or `.arc-corner-left` (mirrored): 24px on phones, 32px from 640px. `.brand-hero-panel` / `.brand-hero-gradient` page heroes include it automatically, as an Ink plate with a 4px InFocus Green strip below (the lower third, flattened). The active sidebar item uses a smaller single top-right curve.
+- Flat color: every `shadow-*` / `drop-shadow-*` utility is flattened to nothing in the theme. There are no gradients and no glass (`backdrop-blur`). The legacy `.brand-gradient-*` and `.av-*` classes are now flat brand tones.
 
 ### Buttons
 
-Sans-serif, 14px medium, 8px radius, centered inline-flex content, 8px icon gap. Icons are normally 16px.
+| Variant | Use |
+|---|---|
+| `default` | Primary action: InFocus Green, white text |
+| `destructive` | Solid Danger. Only for the final "are you sure?" confirm |
+| `destructive-quiet` | Danger text, no fill. Delete/Remove/Revoke everywhere else |
+| `outline` / `secondary` / `ghost` / `link` | Everything else (`link` is Green on Dark) |
 
-| Size | Height | Horizontal padding |
-| --- | --- | --- |
-| Default | 36px | 16px |
-| Small | 32px | 12px; 12px text |
-| Large | 40px | 32px |
-| Icon | 36 × 36px | Centered |
+### Motion
 
-- Primary: logo green with dark text; hover uses primary at 90% opacity.
-- Secondary: secondary surface with light text; hover uses fill at 80% opacity.
-- Outline: canvas fill and input border; hover uses dark green accent and pale green text.
-- Ghost: transparent until hover, then accent treatment.
-- Destructive: deep red with white text; hover uses fill at 90% opacity. Name this variant `destructive`.
-- Link: green text, underline on hover, 4px underline offset.
-- Focus: visible green 1px ring. Disabled: 50% opacity, no pointer interaction.
-- Public header CTAs are fully rounded and use `--brand-green`, changing to `--brand-green-deep` on hover.
+The Tailwind defaults are the brand curves: `--default-transition-timing-function` is ease out `cubic-bezier(0.16, 1, 0.3, 1)` at 200ms, and `ease-in`, `ease-out`, `ease-in-out` are the section 5 curves. Card and route entrances run 280ms ease out. The rec dot fades in and out and never glows. Reduced motion disables the entrances and the dot animation.
 
-### Cards
+### Emails
 
-Standard card: 14px radius, 1px border, card background, foreground text, subtle shadow. Header stacks title and description with 6px spacing. Header/content/footer use 24px padding without double-padding between sections. Page-specific tiles may use 16px radii and denser spacing.
+`src/lib/email-layout.ts` uses literal hexes (email clients don't support CSS variables), with the same roles as above, a Lexend font stack, and InFocus Green buttons with white text.
 
-### Inputs
+### Not covered
 
-36px high, full width, 8px radius, transparent background, 1px input border, 12px horizontal padding. Muted placeholder, subtle shadow, visible green focus ring. Disabled: 50% opacity and not-allowed cursor. Input text stays **16px below 1024px** to avoid mobile zoom; desktop generally uses 14px. Always provide a label.
-
-### Status and metadata
-
-Broadcast status pills use condensed 12px bold uppercase text, `0.16em` tracking, 3px vertical / 8px horizontal padding, 4px internal gap, and a full radius.
-
-| State | Background | Text | Border |
-| --- | --- | --- | --- |
-| Live | Deep red `#C92B1D` | White | Transparent |
-| Review | Canvas | White | Neutral border |
-| Approved | Green at 18% | Logo green | Green at 30% |
-| Warning | Amber at 18% | Amber | Amber at 40% |
-| Danger | Red at 18% | Logo red | Red at 40% |
-| Neutral | Card | `#B6B9B6` | Neutral border |
-
-Small status pills use 10px type, 2px / 6px padding, and `0.12em` tracking. Metadata pills use ordinary 12px medium sans-serif, secondary fill, neutral border, 4px / 10px padding, and a 6px gap. Generic badges are a separate pattern: 8px radius, 12px semibold sans-serif, 2px / 10px padding.
-
-### Navigation
-
-Sidebar items: 13px medium text, 16px icons, 10px gap, 10px radius, 10px horizontal padding, 8px vertical desktop / 10px mobile padding. Active item gets card fill, border, and foreground text. Inactive items are muted and brighten on hover. Do not make every navigation item green.
-
-### Dialogs
-
-Centered dark panel over an 80% black overlay. Width `calc(100vw - 2rem)`, max 512px; maximum height `min(90dvh, calc(100dvh - 2rem))` with internal vertical scrolling. Padding 16px, rising to 24px at 640px; 10px radius from 640px. Title: 18px semibold; description: 14px muted. Close control sits 16px from top/right. Footer actions stack on mobile and align right on larger screens. Preserve keyboard focus management, Escape dismissal, accessible title, and focus return.
-
-### Icons and avatars
-
-Use Lucide-style outline icons, usually 16px; compact icons 14px and mobile menu icon 20px. Give icon-only controls accessible names. Circular account images are typically 28–32px, with subtle borders. Initials can replace missing images. Initial-avatar palettes: green (`#2BB36E → #23955C`, black text), red (`#C92B1D → #781A11`, white text), purple, blue, and gray.
-
-## 7. Gradients and brand assets
-
-Primary hero wash:
-
-```css
-background: linear-gradient(135deg, #08492A 0%, #0A0A0A 60%, #1F1F1F 100%);
-```
-
-Layer it at 40% opacity on compact operational heroes and 50% on the public homepage, keeping content in a separate foreground layer. Full-opacity heroes (Grade Editor, Livestreams) use `#08492A → #0A2517 → #0A0A0A` with a `rgb(43 179 110 / 0.18)` radial glow.
-
-Additional source gradients:
-
-| Variant | Stops at 135 degrees |
-| --- | --- |
-| Green | `#2BB36E, #23955C, #08492A` |
-| Red | `#EE3A2A, #781A11, #0A0A0A` |
-| Ink | `#1c1c1c, #2c2c2c, #0a0a0a` |
-| Tile 1 | `#6f3cff, #f0648f, #8d4bff` |
-| Tile 2 | `#00b07c, #27d39e, #4f6dff` |
-| Tile 3 | `#3d63ff, #6c7dff, #cf4be2` |
-| Tile 4 | `#ff7b4a, #ff5ca8, #7e4dff` |
-| Tile 5 | `#00a3ff, #3ec7ff, #6d6cff` |
-
-Progress bars run left to right from `--brand-green` to `--brand-green-deep`.
-
-The multicolor variants are available tile treatments; they do not replace the green-led core palette. Optional tile decoration uses clipped circular light/shadow washes with 20px blur.
-
-### Logo
-
-The logo is a lowercase **infocus** wordmark. The "o" is a camera aperture inside a green ring, with two signal arcs, and a red dot sits over the "i". The icon is the "o" mark with the red dot, on its own.
-
-Asset locations in this repository:
-
-- `public/favicon/infocus-wordmark.png`: header wordmark (green and white on transparent, for dark backgrounds). Rendered 36px high with automatic width and contain fit.
-- `public/favicon/infocus-wordmark-light.png`: the same wordmark with ink letters and deep green, for the light theme. `components/brand-wordmark.tsx` renders the right one for the theme.
-- `public/favicon/infocus-logo.png`: icon mark for dark backgrounds (email header).
-- `public/favicon/infocus-hub-icon.png`: icon on the ink tile (Slack bot avatar).
-- `public/favicon/`: favicon, Apple touch icon, and Android icons (icon on a rounded ink tile).
-
-Assets are referenced, not embedded in this document. Copy the actual assets separately when needed. Preserve their aspect ratio and colors. Do not recreate the logo with ordinary text, recolor it, or stretch it. The website name is **InFocus Portal**; **InFocus News** and **InFocus Drive** are separate names.
-
-## 8. Motion and responsive behavior
-
-- Card entrance: 320ms ease; opacity 0 → 1, translateY 8px → 0, scale 0.99 → 1.
-- Route entrance: 320ms `cubic-bezier(0.22, 1, 0.36, 1)`; opacity 0 → 1, translateY 10px → 0.
-- Sidebar slide: 200ms ease-out. Dialog styles specify 200ms transitions.
-- Live dot: 8px logo-red circle, 1.4s repeating outward red shadow pulse. Reserve for actual live/recording status.
-- Disable decorative entrances and live-dot animation when reduced motion is requested.
-- Breakpoints used throughout: 640px small, 768px medium, 1024px desktop navigation, 1280px wider grids.
-- Wrap action rows, collapse grids, scroll wide tables locally, and honor device safe-area insets.
-
-Accessibility requirements for reuse: retain visible keyboard focus, semantic controls and heading order, descriptive labels, and textual status cues. Check contrast in the target implementation, especially tiny colored text and translucent layers. Preserve the visual size of compact icons while enlarging touch hit areas when necessary. These are implementation checks, not a claim that every existing screen has passed an accessibility audit.
-
-## 9. Framework-independent CSS starter
-
-This is a portable subset, not a full copy of the original stylesheet. It stores complete CSS colors rather than bare HSL channels and uses an `if-` prefix to avoid collisions. Load the fonts separately. Extend it with the specifications above.
-
-```css
-:root {
-  color-scheme: dark;
-  --if-bg: hsl(120 6% 4%);
-  --if-fg: hsl(0 0% 98%);
-  --if-card: hsl(120 5% 5%);
-  --if-secondary: hsl(120 4% 8%);
-  --if-muted: hsl(120 4% 7%);
-  --if-muted-fg: hsl(120 4% 65%);
-  --if-border: hsl(120 4% 16%);
-  --if-primary: #2BB36E;
-  --if-primary-hover: #23955C;
-  --if-accent: hsl(150 30% 11%);
-  --if-accent-fg: hsl(150 60% 80%);
-  --if-danger: #C92B1D;
-  --if-green: #2BB36E;
-  --if-red: #EE3A2A;
-  --if-amber: #F2A516;
-  --if-sans: "Geist Sans", system-ui, sans-serif;
-  --if-display: "Barlow Condensed", "Oswald", Impact, sans-serif;
-  --if-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
-}
-* { box-sizing: border-box; }
-body {
-  margin: 0;
-  background: var(--if-bg);
-  color: var(--if-fg);
-  font-family: var(--if-sans);
-  line-height: 1.5;
-}
-.if-page { width: 100%; max-width: 1280px; margin-inline: auto; padding: 16px; }
-.if-card { background: var(--if-card); border: 1px solid var(--if-border); border-radius: 14px; padding: 24px; }
-.if-hero { position: relative; isolation: isolate; overflow: hidden; border-radius: 16px; }
-.if-hero::before {
-  content: ""; position: absolute; inset: 0; z-index: -1; opacity: .4;
-  background: linear-gradient(135deg, #08492A 0%, #0A0A0A 60%, #1F1F1F 100%);
-  pointer-events: none;
-}
-.if-title {
-  margin: 0;
-  font-family: var(--if-display);
-  font-size: clamp(1.5rem, 1vw + 1.125rem, 2.25rem);
-  font-weight: 800; font-style: italic;
-  line-height: 1.02; letter-spacing: -.02em; text-transform: uppercase;
-}
-.if-eyebrow {
-  font-family: var(--if-display); font-size: 12px; font-weight: 700;
-  letter-spacing: .18em; text-transform: uppercase; color: var(--if-green);
-}
-.if-description { color: var(--if-muted-fg); font-size: 14px; }
-.if-button {
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  min-height: 36px; padding: 8px 16px; border: 1px solid transparent;
-  border-radius: 8px; background: var(--if-primary); color: #0A0A0A;
-  font: 500 14px/1.25 var(--if-sans); cursor: pointer;
-  transition: background-color 150ms, color 150ms;
-}
-.if-button:hover { background: var(--if-primary-hover); }
-.if-button--outline { background: var(--if-bg); color: var(--if-fg); border-color: var(--if-border); }
-.if-button--outline:hover { background: var(--if-accent); color: var(--if-accent-fg); }
-.if-button--destructive { background: var(--if-danger); color: white; }
-.if-button--destructive:hover { background: color-mix(in srgb, var(--if-danger) 90%, transparent); }
-.if-button:disabled { opacity: .5; pointer-events: none; }
-.if-input {
-  width: 100%; height: 36px; padding: 4px 12px; border: 1px solid var(--if-border);
-  border-radius: 8px; background: transparent; color: var(--if-fg);
-  font: 400 16px/1.5 var(--if-sans);
-}
-.if-input::placeholder { color: var(--if-muted-fg); }
-.if-input:disabled { cursor: not-allowed; opacity: .5; }
-.if-button:focus-visible, .if-input:focus-visible {
-  outline: 1px solid var(--if-primary); outline-offset: 2px;
-}
-.if-status {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 3px 8px; border: 1px solid var(--if-border); border-radius: 9999px;
-  font: 700 12px/1.5 var(--if-display); letter-spacing: .16em;
-  text-transform: uppercase; white-space: nowrap;
-}
-.if-status--approved { background: rgb(43 179 110 / .18); color: var(--if-green); border-color: rgb(43 179 110 / .30); }
-.if-status--danger { background: rgb(238 58 42 / .18); color: var(--if-red); border-color: rgb(238 58 42 / .40); }
-.if-status--live { background: var(--if-danger); color: white; border-color: transparent; }
-.if-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
-.if-enter { animation: if-enter 320ms cubic-bezier(.22, 1, .36, 1) both; }
-@keyframes if-enter { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-@media (min-width: 768px) {
-  .if-page { padding: 24px; }
-  .if-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-@media (min-width: 1024px) { .if-input { font-size: 14px; } }
-@media (prefers-reduced-motion: reduce) { .if-enter { animation: none; } }
-```
-
-The starter's 150ms button transition and offset focus outline are explicit portable defaults, rather than exact copies of every original utility. A CSS framework is optional; the original implementation uses Tailwind, React, Radix primitives, and Lucide icons.
-
-## 10. Reuse checklist
-
-- Start with the dark semantic palette and real fonts.
-- Take brand colors from the logo palette; pick the dark-background or light-background set to match the surface.
-- Choose the workspace or public-page layout according to the content.
-- Keep display headings bold and expressive; keep controls and body text calm.
-- Make the primary action logo green with dark text. Put white text only on deep red, never on green.
-- Use consistent border, radius, spacing, and status recipes.
-- Keep gradients localized and subordinate to content.
-- Support mobile wrapping, table overflow, keyboard focus, and reduced motion.
-- Use short, specific action labels such as "Save," "Upload," or "View details."
-- Avoid bright white content panels, excessive glass effects, large shadows on every surface, and oversized display type in dense tables.
-- Do not carry InFocus-specific roles, routes, or business rules into unrelated products just to reproduce the appearance.
-
-## Source references
-
-Paths are relative to the InFocus Packages repository and are provenance only; this document works independently of them.
-
-| Source | What it establishes |
-| --- | --- |
-| `app/globals.css` | Palette, type utilities, gradients, pills, radii, motion |
-| `src/show-roles/index.css` | Show Roles app tokens (same palette) |
-| `src/lib/email-layout.ts` | Email colors |
-| `app/layout.tsx` | Font loading, dark mode, product naming, icons |
-| `components/ui/{button,card,input,badge,dialog}.tsx` | Shared component measurements and states |
-| `components/app-shell.tsx` | Sidebar, header, navigation, responsive workspace |
-| `components/marketing-header.tsx` | Public header, wordmark, CTA styles |
-| `app/page.tsx` | Landing hero and feature grid |
-| `app/(app)/groups/groups-client.tsx` | Compact operational hero, tiles, tables, controls |
+The Show Roles Vite app (`src/show-roles/`) and the Mac app wrapper still use their older styles.

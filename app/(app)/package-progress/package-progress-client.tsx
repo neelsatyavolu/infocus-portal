@@ -24,7 +24,7 @@ import {
 import { MembersEditor, type MembersEditorUser } from "./members-editor";
 
 const MEMBERS_CHIP_CLASS =
-  "mention-chip inline-flex items-center rounded-full bg-secondary text-foreground align-baseline text-[12px] font-medium leading-none px-2 py-[3px] mx-[1px]";
+  "mention-chip inline-flex items-center rounded-md bg-secondary text-foreground align-baseline text-[12px] font-medium leading-none px-2 py-[3px] mx-[1px]";
 
 function GroupMembersDisplay({
   value,
@@ -355,7 +355,7 @@ function RosterNoteCell({
         }}
         onPointerDown={(event) => event.stopPropagation()}
         className={cn(
-          "inline-flex items-center gap-1 rounded-full border px-2.5 py-[3px] text-[12px] font-medium leading-none transition",
+          "inline-flex items-center gap-1 rounded-md border px-2.5 py-[3px] text-[12px] font-medium leading-none transition",
           hasNote
             ? "border-[var(--brand-green)]/40 bg-[var(--brand-green)]/10 text-foreground hover:bg-[var(--brand-green)]/20"
             : "border-border bg-secondary/40 text-muted-foreground hover:bg-secondary hover:text-foreground"
@@ -796,8 +796,7 @@ export default function PackageProgressClient({ initialData }: { initialData?: P
 
   return (
     <div className="route-enter mx-auto w-full max-w-[80rem] space-y-5 pb-24">
-      <section className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 md:p-6">
-        <div className="pointer-events-none absolute inset-0 brand-hero-gradient opacity-40" />
+      <section className="brand-hero-panel relative overflow-hidden rounded-2xl border border-border p-5 md:p-6">
         <div className="relative flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="eyebrow">Roster · Cycle {activeCycle?.cycleNumber ?? "—"}</div>
@@ -862,9 +861,9 @@ export default function PackageProgressClient({ initialData }: { initialData?: P
           ).map(([label, count, hint]) => (
             <div
               key={label}
-              className="rounded-xl border border-border bg-[rgb(10,10,10,0.55)] light:bg-muted p-3 backdrop-blur"
+              className="rounded-xl border border-border bg-[var(--ink-2)] light:bg-muted p-3"
             >
-              <div className="font-display text-2xl font-extrabold italic leading-none tracking-tight text-foreground">
+              <div className="text-2xl font-semibold leading-none tracking-tight text-foreground">
                 {count}
               </div>
               <div className="mt-1 text-xs font-medium text-foreground">{label}</div>
@@ -899,7 +898,7 @@ export default function PackageProgressClient({ initialData }: { initialData?: P
                       <th
                         key={label}
                         className={cn(
-                          "bg-[hsl(var(--background))] px-4 py-3 font-display text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground",
+                          "bg-[hsl(var(--background))] px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground",
                           label === "Members" ? "text-right" : "text-left"
                         )}
                       >
@@ -921,7 +920,7 @@ export default function PackageProgressClient({ initialData }: { initialData?: P
                     }}
                     className={cn(
                       "group border-b border-[hsl(var(--border))]/40 bg-[var(--ink)] transition-colors duration-150",
-                      "hover:bg-[var(--ink-2)] hover:shadow-[inset_3px_0_0_0_var(--brand-green)]",
+                      "hover:bg-[var(--ink-2)]",
                       !editing && canEdit ? "cursor-pointer" : ""
                     )}
                     title={!editing && canEdit ? "Click to edit" : undefined}
@@ -1084,12 +1083,12 @@ export default function PackageProgressClient({ initialData }: { initialData?: P
       {rowContextMenu ? (
         <div
           ref={rowContextMenuRef}
-          className="fixed z-[120] min-w-[168px] rounded-lg border border-border bg-card p-1 shadow-[0_16px_40px_rgba(0,0,0,0.45)]"
+          className="fixed z-[120] min-w-[168px] rounded-lg border border-border bg-card p-1"
           style={{ left: rowContextMenu.x, top: rowContextMenu.y }}
         >
           <button
             type="button"
-            className="w-full rounded-md px-3 py-2 text-left text-sm text-rose-100 transition hover:bg-rose-500/20 hover:text-rose-50"
+            className="w-full rounded-md px-3 py-2 text-left text-sm text-danger transition hover:bg-danger-tint"
             onClick={deleteRowFromContextMenu}
           >
             Delete row
@@ -1098,7 +1097,7 @@ export default function PackageProgressClient({ initialData }: { initialData?: P
       ) : null}
 
       <section className="sticky bottom-4 z-20 mx-auto flex justify-center">
-        <div className="inline-flex items-center gap-1 rounded-xl border border-foreground/[0.08] bg-black/85 light:bg-muted p-1 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.6)] backdrop-blur">
+        <div className="inline-flex items-center gap-1 rounded-xl border border-foreground/[0.08] bg-card p-1">
           {cycles.map((cycle) => {
             const active = cycle.cycleNumber === activeCycleNumber;
             return (
@@ -1107,17 +1106,17 @@ export default function PackageProgressClient({ initialData }: { initialData?: P
                 type="button"
                 onClick={() => onCycleTabClick(cycle.cycleNumber)}
                 className={cn(
-                  "inline-flex items-center gap-2 rounded-lg px-4 py-2 font-display text-[12px] font-semibold uppercase tracking-[0.18em] transition",
+                  "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium uppercase tracking-[0.11em] transition",
                   active
-                    ? "bg-[var(--brand-green)] text-[var(--ink)]"
+                    ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
                     : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
                 )}
               >
                 Cycle
                 <span
                   className={cn(
-                    "rounded px-1.5 py-0.5 font-mono-broadcast text-[10px] font-bold",
-                    active ? "bg-black/35 text-[var(--ink)]" : "bg-black/40 light:bg-foreground/10 text-[var(--ink-text)]"
+                    "rounded px-1.5 py-0.5 font-mono-broadcast text-[10px] font-medium tabular-nums",
+                    active ? "bg-black/25 text-[var(--on-brand)]" : "bg-black/40 light:bg-foreground/10 text-[var(--ink-text)]"
                   )}
                 >
                   {String(cycle.cycleNumber).padStart(2, "0")}

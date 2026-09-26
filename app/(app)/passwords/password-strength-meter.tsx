@@ -3,8 +3,8 @@ import { scorePassword } from "@/src/lib/password-strength";
 import { cn } from "@/src/lib/utils";
 
 const SEGMENTS = 4;
-const SCORE_COLORS = ["bg-red-500", "bg-red-500", "bg-amber-400", "bg-yellow-300", "bg-[var(--brand-green)]"];
-const LABEL_COLORS = ["text-red-400", "text-red-400", "text-amber-300", "text-yellow-200", "text-[var(--brand-green)]"];
+const SCORE_COLORS = ["bg-danger-fill", "bg-danger-fill", "bg-brand-amber", "bg-yellow-300", "bg-[var(--brand-green)]"];
+const LABEL_COLORS = ["text-danger", "text-danger", "text-brand-amber", "text-brand-amber", "text-[var(--brand-green)]"];
 
 /** Four-segment strength bar with a button that fills in a generated password. */
 export function PasswordStrengthMeter({ password, onSuggest }: { password: string; onSuggest: () => void }) {

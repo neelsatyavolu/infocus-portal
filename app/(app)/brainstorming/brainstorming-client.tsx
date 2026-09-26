@@ -184,8 +184,7 @@ export default function BrainstormingClient() {
 
   return (
     <div className="route-enter mx-auto w-full max-w-[80rem] space-y-5 pb-24">
-      <section className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 md:p-6">
-        <div className="pointer-events-none absolute inset-0 brand-hero-gradient opacity-40" />
+      <section className="brand-hero-panel relative overflow-hidden p-5 md:p-6">
         <div className="relative flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="eyebrow">Production</div>
@@ -257,7 +256,7 @@ export default function BrainstormingClient() {
                 </div>
 
                 <div>
-                  <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.11em] text-muted-foreground">
                     Proofs of contact
                   </div>
                   <div className="grid gap-3 sm:grid-cols-3">
@@ -324,7 +323,7 @@ export default function BrainstormingClient() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.11em] text-muted-foreground">
                     Brainstorm Google Doc
                   </label>
                   <div className="flex flex-col gap-2 sm:flex-row">
@@ -371,7 +370,7 @@ export default function BrainstormingClient() {
       )}
 
       <section className="sticky bottom-4 z-20 mx-auto flex justify-center">
-        <div className="inline-flex items-center gap-1 rounded-xl border border-foreground/[0.08] bg-black/85 light:bg-muted p-1 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.6)] backdrop-blur">
+        <div className="inline-flex items-center gap-1 rounded-xl border border-border bg-card p-1">
           {cycles.map((cycle) => {
             const active = cycle.cycleNumber === activeCycleNumber;
             return (
@@ -380,17 +379,17 @@ export default function BrainstormingClient() {
                 type="button"
                 onClick={() => void load(cycle.cycleNumber)}
                 className={cn(
-                  "inline-flex items-center gap-2 rounded-lg px-4 py-2 font-display text-[12px] font-semibold uppercase tracking-[0.18em] transition",
+                  "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.18em] transition",
                   active
-                    ? "bg-[var(--brand-green)] text-[var(--ink)]"
+                    ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
                     : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
                 )}
               >
                 Cycle
                 <span
                   className={cn(
-                    "rounded px-1.5 py-0.5 font-mono-broadcast text-[10px] font-bold",
-                    active ? "bg-black/35 text-[var(--ink)]" : "bg-black/40 light:bg-foreground/10 text-[var(--ink-text)]"
+                    "rounded px-1.5 py-0.5 font-mono-broadcast text-[10px] font-medium tabular-nums",
+                    active ? "bg-black/25 text-[var(--on-brand)]" : "bg-foreground/10 text-[var(--ink-text)]"
                   )}
                 >
                   {String(cycle.cycleNumber).padStart(2, "0")}

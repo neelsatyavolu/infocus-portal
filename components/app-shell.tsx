@@ -147,10 +147,17 @@ function getInitials(name: string | null, email: string | null) {
 
 type SideNavIcon = (props: { className?: string }) => React.ReactNode;
 
-function NavUnread({ count }: { count?: number }) {
+function NavUnread({ count, onBrand = false }: { count?: number; onBrand?: boolean }) {
   if (!count || count < 1) return null;
   return (
-    <span className="ml-auto rounded-full bg-[var(--brand-green)] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-[var(--ink)]">
+    <span
+      className={cn(
+        "ml-auto rounded-md px-1.5 py-0.5 text-[10px] font-semibold leading-none",
+        onBrand
+          ? "bg-[var(--on-brand)] text-[var(--brand-fill)]"
+          : "bg-[var(--brand-fill)] text-[var(--on-brand)]"
+      )}
+    >
       {count > 99 ? "99+" : count}
     </span>
   );
@@ -184,13 +191,13 @@ function SideNavLink({
     "flex items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-[13px] font-medium transition lg:py-2",
     disabled && "cursor-not-allowed opacity-40 hover:bg-transparent hover:text-muted-foreground",
     !disabled && active
-      ? "border border-border bg-card text-foreground"
+      ? "rounded-none rounded-tr-[14px] bg-[var(--brand-fill)] text-[var(--on-brand)]"
       : !disabled && "text-muted-foreground hover:bg-card hover:text-foreground"
   );
   const trailing = (
     <>
       {status ? <StageStatusChip status={status} size="sm" label={statusLabel} /> : null}
-      <NavUnread count={unread} />
+      <NavUnread count={unread} onBrand={!disabled && active} />
     </>
   );
 
@@ -229,7 +236,7 @@ function SideNavLink({
 
 function SideSection({ label }: { label: string }) {
   return (
-    <div className="mt-[0.675rem] px-2.5 pb-1 font-display text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--ink-5)]">
+    <div className="mt-[0.675rem] px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--ink-5)]">
       {label}
     </div>
   );
@@ -1143,7 +1150,7 @@ export function AppShell({ children, platformRole, currentUser, canViewAs = fals
               <p className="truncate text-xs font-semibold text-foreground">
                 {currentUser.name ?? "InFocus User"}
               </p>
-              <p className="truncate font-mono-broadcast text-[10px] text-muted-foreground">
+              <p className="truncate text-[10px] text-muted-foreground">
                 {viewingAs ? "Viewing as" : currentUser.email ?? "no-email"}
               </p>
             </div>
@@ -1221,12 +1228,12 @@ export function AppShell({ children, platformRole, currentUser, canViewAs = fals
         )}
       >
         {isProjectRoute && !isReviewRoute ? (
-          <aside className="hidden border-r border-[var(--ink-2)] bg-[#0F0F0F] light:bg-card lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col">
+          <aside className="hidden border-r border-[var(--ink-2)] bg-background light:bg-card lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col">
             <div className="flex items-center justify-between border-b border-[var(--ink-2)] px-4 pb-3 pt-4">
               <button
                 type="button"
                 onClick={() => setAssetTreeOpen((current) => !current)}
-                className="font-display text-[22px] italic font-extrabold uppercase tracking-tight text-foreground"
+                className="text-[20px] font-semibold tracking-tight text-foreground"
               >
                 Assets
               </button>
@@ -1319,7 +1326,7 @@ export function AppShell({ children, platformRole, currentUser, canViewAs = fals
                                 />
                                 {folderDisplayName(folder.name)}
                               </span>
-                              <span className="font-mono-broadcast text-[10px] font-semibold text-muted-foreground">
+                              <span className="font-mono-broadcast text-[10px] font-medium tabular-nums text-muted-foreground">
                                 {folder.activeMediaCount}
                               </span>
                             </Link>
@@ -1348,7 +1355,7 @@ export function AppShell({ children, platformRole, currentUser, canViewAs = fals
             </div>
 
             <div className="border-t border-border px-3 py-3">
-              <div className="mb-2 px-1 font-display text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Videos</div>
+              <div className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Videos</div>
               <Link
                 href={buildProjectHref({ collection: "videos", scope: "active", folderId: "all" }) as never}
                 onClick={(event) =>
@@ -1440,7 +1447,7 @@ export function AppShell({ children, platformRole, currentUser, canViewAs = fals
               </button>
             </div>
           ) : (
-          <header className="sticky top-0 z-40 border-b border-border bg-background/95 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur md:px-6">
+          <header className="sticky top-0 z-40 border-b border-border bg-background px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] md:px-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
                 <button

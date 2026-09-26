@@ -1,6 +1,6 @@
 import { Resend } from "resend";
 import { mainAppOrigin } from "@/src/lib/hosts";
-import { escapeHtml, renderBrandedEmail } from "@/src/lib/email-layout";
+import { EMAIL_BRAND, escapeHtml, renderBrandedEmail } from "@/src/lib/email-layout";
 import type { PackageMailContent } from "@/src/lib/package-stage-events";
 
 type AnnouncementEmailPayload = {
@@ -280,9 +280,9 @@ export async function sendMediaProcessedEmail(payload: MediaProcessedEmailPayloa
 
   const folderLabel = payload.folderName?.trim() || "No folder";
   const extraHtml = `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 8px;border-collapse:collapse;">
-  <tr><td style="padding:4px 16px 4px 0;color:#B5B5BB;font-size:14px;font-family:Arial,Helvetica,sans-serif;">Title</td><td style="padding:4px 0;color:#F7F7F8;font-size:14px;font-family:Arial,Helvetica,sans-serif;">${escapeHtml(payload.mediaTitle)}</td></tr>
-  <tr><td style="padding:4px 16px 4px 0;color:#B5B5BB;font-size:14px;font-family:Arial,Helvetica,sans-serif;">Cycle</td><td style="padding:4px 0;color:#F7F7F8;font-size:14px;font-family:Arial,Helvetica,sans-serif;">${escapeHtml(payload.projectName)}</td></tr>
-  <tr><td style="padding:4px 16px 4px 0;color:#B5B5BB;font-size:14px;font-family:Arial,Helvetica,sans-serif;">Folder</td><td style="padding:4px 0;color:#F7F7F8;font-size:14px;font-family:Arial,Helvetica,sans-serif;">${escapeHtml(folderLabel)}</td></tr>
+  <tr><td style="padding:4px 16px 4px 0;color:${EMAIL_BRAND.muted};font-size:11px;font-weight:500;letter-spacing:0.11em;text-transform:uppercase;font-family:${EMAIL_BRAND.font};">Title</td><td style="padding:4px 0;color:${EMAIL_BRAND.paper};font-size:14px;font-family:${EMAIL_BRAND.font};">${escapeHtml(payload.mediaTitle)}</td></tr>
+  <tr><td style="padding:4px 16px 4px 0;color:${EMAIL_BRAND.muted};font-size:11px;font-weight:500;letter-spacing:0.11em;text-transform:uppercase;font-family:${EMAIL_BRAND.font};">Cycle</td><td style="padding:4px 0;color:${EMAIL_BRAND.paper};font-size:14px;font-family:${EMAIL_BRAND.font};">${escapeHtml(payload.projectName)}</td></tr>
+  <tr><td style="padding:4px 16px 4px 0;color:${EMAIL_BRAND.muted};font-size:11px;font-weight:500;letter-spacing:0.11em;text-transform:uppercase;font-family:${EMAIL_BRAND.font};">Folder</td><td style="padding:4px 0;color:${EMAIL_BRAND.paper};font-size:14px;font-family:${EMAIL_BRAND.font};">${escapeHtml(folderLabel)}</td></tr>
 </table>`;
 
   const branded = renderBrandedEmail({

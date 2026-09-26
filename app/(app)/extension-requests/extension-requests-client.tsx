@@ -59,9 +59,9 @@ type Payload = {
 };
 
 const STATUS_STYLES: Record<ExtensionRequest["status"], string> = {
-  PENDING: "bg-amber-500/15 text-amber-200 border-amber-400/30",
-  APPROVED: "bg-emerald-500/15 text-emerald-200 border-emerald-400/30",
-  DENIED: "bg-red-500/15 text-red-200 border-red-400/30"
+  PENDING: "bg-[var(--brand-amber)]/15 text-[var(--brand-amber)] border-[var(--brand-amber)]/40",
+  APPROVED: "bg-[var(--brand-green)]/15 text-[var(--brand-green)] border-[var(--brand-green)]/30",
+  DENIED: "bg-danger-tint text-danger border-danger/40"
 };
 
 function memberLabel(member: { name: string | null; email: string | null }) {
@@ -267,7 +267,7 @@ export default function ExtensionRequestsClient() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <span className={`rounded-full border px-2 py-1 text-xs font-medium ${STATUS_STYLES[entry.status]}`}>
+            <span className={`rounded-md border px-2 py-1 text-xs font-medium tracking-[0.11em] ${STATUS_STYLES[entry.status]}`}>
               {entry.status}
             </span>
 
@@ -314,8 +314,7 @@ export default function ExtensionRequestsClient() {
 
   return (
     <div className="route-enter mx-auto w-full max-w-4xl space-y-5">
-      <section className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 md:p-6">
-        <div className="pointer-events-none absolute inset-0 brand-hero-gradient opacity-40" />
+      <section className="brand-hero-panel relative overflow-hidden rounded-2xl border border-border p-5 md:p-6">
         <div className="relative flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="eyebrow flex items-center gap-2">

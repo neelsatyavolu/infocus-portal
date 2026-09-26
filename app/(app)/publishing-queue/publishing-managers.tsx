@@ -59,7 +59,7 @@ export default function PublishingManagers() {
             <DialogTitle>Publishing managers</DialogTitle>
             <DialogDescription>Managers can view published packages and copy YouTube embed codes. Producers manage the queue.</DialogDescription>
           </DialogHeader>
-          {error ? <p role="alert" className="text-sm text-destructive">{error}</p> : null}
+          {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
           {busy && !roster ? <p className="text-sm text-muted-foreground">Loading…</p> : null}
           {roster ? (
             <div className="space-y-4">
@@ -67,7 +67,7 @@ export default function PublishingManagers() {
                 {roster.managers.map((manager) => (
                   <li key={manager.userId} className="flex items-center justify-between gap-3">
                     <div className="min-w-0"><p className="truncate text-sm">{manager.name || manager.email}</p><p className="truncate text-xs text-muted-foreground">{manager.email}</p></div>
-                    <Button type="button" size="sm" variant="destructive" disabled={busy} aria-label={`Remove ${manager.name || manager.email}`} onClick={() => void changeManager(manager.userId, true)}>Remove</Button>
+                    <Button type="button" size="sm" variant="destructive-quiet" disabled={busy} aria-label={`Remove ${manager.name || manager.email}`} onClick={() => void changeManager(manager.userId, true)}>Remove</Button>
                   </li>
                 ))}
               </ul>

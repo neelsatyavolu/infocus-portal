@@ -229,7 +229,7 @@ function toAiredDateInputValue(iso: string | null): string {
 
 function approvalPillClassName(status: ApprovalStatusValue) {
   if (status === "AIRED") {
-    return "border-indigo-400/45 bg-indigo-500/15 text-indigo-300";
+    return "border-transparent bg-[var(--brand-fill)] text-[var(--on-brand)]";
   }
 
   if (status === "APPROVED") {
@@ -237,7 +237,7 @@ function approvalPillClassName(status: ApprovalStatusValue) {
   }
 
   if (status === "NEEDS_CHANGES") {
-    return "border-[rgb(238,58,42,0.40)] bg-[rgb(238,58,42,0.18)] text-[var(--brand-red)]";
+    return "border-danger/40 bg-danger-tint text-danger";
   }
 
   return "border-[rgb(242,165,22,0.40)] bg-[rgb(242,165,22,0.18)] text-[var(--brand-amber)]";
@@ -371,7 +371,7 @@ function UploadCircleThumb({
   if (status === "PROCESSING") {
     return (
       <div className="grid aspect-video w-full place-items-center bg-muted">
-        <span className="text-xl font-semibold tracking-[0.04em] text-foreground">Processing</span>
+        <span className="text-xl font-semibold tracking-tight text-foreground">Processing</span>
       </div>
     );
   }
@@ -391,8 +391,8 @@ function UploadCircleThumb({
           }}
         >
           <div className="grid h-full w-full place-items-center rounded-full bg-background text-center">
-            <span className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">{uploadStatusLabel(status)}</span>
-            <span className="text-lg font-semibold text-foreground">{boundedProgress}%</span>
+            <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">{uploadStatusLabel(status)}</span>
+            <span className="font-mono text-base font-semibold tabular-nums text-foreground">{boundedProgress}%</span>
           </div>
         </div>
 
@@ -2566,7 +2566,7 @@ export function ProjectMediaTiles({
         </div>
       ) : null}
       {inlineNotice ? (
-        <div className="flex items-center justify-between gap-2 rounded-xl border border-amber-300/30 bg-amber-400/10 px-3 py-2 text-sm text-amber-200">
+        <div className="flex items-center justify-between gap-2 rounded-xl border border-[var(--brand-amber)]/30 bg-[var(--brand-amber)]/10 px-3 py-2 text-sm text-[var(--brand-amber)]">
           <p>{inlineNotice}</p>
           <button
             type="button"
@@ -2590,7 +2590,7 @@ export function ProjectMediaTiles({
 
         {selectedCount > 0 ? (
           <div className="inline-flex items-center gap-2">
-            <span className="rounded-full border border-border bg-secondary px-2 py-1 text-xs text-foreground">
+            <span className="rounded-md border border-border bg-secondary px-2 py-1 text-xs text-foreground">
               {selectedCount} selected
             </span>
 
@@ -2628,7 +2628,7 @@ export function ProjectMediaTiles({
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-8 gap-1 text-destructive hover:bg-destructive/10"
+                  className="h-8 gap-1 text-danger hover:bg-danger-tint"
                   onClick={() => requestSoftDelete(selectedIds)}
                   disabled={isDeleting}
                 >
@@ -2651,7 +2651,7 @@ export function ProjectMediaTiles({
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-8 gap-1 text-destructive hover:bg-destructive/10"
+                  className="h-8 gap-1 text-danger hover:bg-danger-tint"
                   onClick={() => requestPermanentDelete(selectedIds)}
                   disabled={isDeleting}
                 >
@@ -2672,7 +2672,7 @@ export function ProjectMediaTiles({
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-8 gap-1 text-destructive hover:bg-destructive/10"
+                className="h-8 gap-1 text-danger hover:bg-danger-tint"
                 onClick={() => requestPermanentDelete(assetItems.map((item) => item.id))}
                 disabled={isDeleting}
               >
@@ -2717,9 +2717,9 @@ export function ProjectMediaTiles({
                 const isFinal = lower.includes("final");
                 const isInitial = lower.includes("initial");
                 const spineCls = isFinal
-                  ? "bg-gradient-to-r from-[var(--brand-green)] to-[var(--brand-green-deep)]"
+                  ? "bg-[var(--brand-fill)]"
                   : isInitial
-                    ? "bg-gradient-to-r from-[#F2A516] to-[#D17F00]"
+                    ? "bg-[var(--brand-amber)]"
                     : "bg-[var(--ink-4)]";
                 const iconCls = isFinal
                   ? "border-[rgb(43,179,110,0.30)] bg-[rgb(43,179,110,0.14)] text-[var(--brand-green)]"
@@ -2767,7 +2767,7 @@ export function ProjectMediaTiles({
                       onFolderDrop(folder.id);
                     }}
                     className={cn(
-                      "group relative flex min-h-[200px] flex-col overflow-hidden rounded-xl border bg-card text-left transition hover:-translate-y-0.5 hover:border-[var(--ink-4)] hover:shadow-[0_12px_32px_-12px_rgba(0,0,0,0.5)]",
+                      "group relative flex min-h-[200px] flex-col overflow-hidden rounded-xl border bg-card text-left transition hover:-translate-y-0.5 hover:border-[var(--ink-4)]",
                       dragOverFolderId === folder.id
                         ? "border-[var(--brand-green)] bg-[var(--brand-green)]/5 shadow-md"
                         : draggingMediaId
@@ -2790,11 +2790,11 @@ export function ProjectMediaTiles({
                       </div>
 
                       <div>
-                        <div className="font-display text-[10px] font-bold uppercase tracking-[0.22em] text-[var(--ink-5)]">
+                        <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--ink-5)]">
                           {eyebrow}
                         </div>
-                        <h2 className="mt-0.5 font-display text-2xl italic font-extrabold leading-none tracking-tight text-foreground">
-                          {displayName.toUpperCase()}
+                        <h2 className="mt-0.5 text-xl font-semibold leading-none tracking-tight text-foreground">
+                          {displayName}
                         </h2>
                       </div>
 
@@ -2806,16 +2806,12 @@ export function ProjectMediaTiles({
                             className={cn(
                               "relative flex-1 overflow-hidden rounded-sm aspect-video",
                               i < folder.itemCount
-                                ? i === 0
-                                  ? "bg-gradient-to-br from-[#1a3a2e] to-[#0a0a0a]"
-                                  : i === 1
-                                    ? "bg-gradient-to-br from-[#7a3a1a] to-[#3a1a0a]"
-                                    : "bg-gradient-to-br from-[#1a3a7a] to-[#0a1a3a]"
+                                ? "bg-[var(--ink-3)]"
                                 : "border border-dashed border-border bg-[var(--ink)]"
                             )}
                           >
                             {i < folder.itemCount ? (
-                              <span className="absolute bottom-0.5 right-0.5 rounded-sm bg-black/70 px-1 py-0 font-mono-broadcast text-[7px] font-bold text-white">
+                              <span className="absolute bottom-0.5 right-0.5 rounded-sm bg-background/80 px-1 py-0 font-mono-broadcast text-[7px] font-semibold tabular-nums text-foreground">
                                 v{folder.itemCount - i}
                               </span>
                             ) : null}
@@ -2836,7 +2832,7 @@ export function ProjectMediaTiles({
                       {draggingMediaId ? (
                         <div
                           className={cn(
-                            "absolute inset-x-3 bottom-3 inline-flex items-center justify-center gap-1 rounded-full border px-2 py-1 text-[11px] font-medium",
+                            "absolute inset-x-3 bottom-3 inline-flex items-center justify-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium",
                             dragOverFolderId === folder.id
                               ? "border-[var(--brand-green)] bg-[var(--brand-green)]/15 text-foreground"
                               : "border-border bg-secondary text-muted-foreground"
@@ -2957,14 +2953,14 @@ export function ProjectMediaTiles({
                     memberPickerOpen ? "z-[120]" : "z-0"
                   } ${
                     draggingMediaId === item.id ? "scale-[0.985] border-[var(--brand-green)]/50 opacity-65" :
-                    selected ? "border-[var(--brand-green)] shadow-[0_0_0_3px_rgb(43,179,110,0.15)]" : "border-border"
+                    selected ? "border-[var(--brand-green)]" : "border-border"
                   }`}
                 >
                   <div className="relative rounded-t-2xl">
                     <button
                       onClick={() => toggleSelect(item.id)}
                       className={cn(
-                        "absolute left-2 top-2 z-20 grid h-6 w-6 place-items-center rounded border border-white/15 bg-black/70 text-white backdrop-blur transition hover:bg-black",
+                        "absolute left-2 top-2 z-20 grid h-6 w-6 place-items-center rounded border border-white/15 bg-black/70 text-white transition hover:bg-black",
                         selected ? "opacity-100" : "opacity-0 group-hover:opacity-100 focus:opacity-100"
                       )}
                       title="Select video"
@@ -3048,31 +3044,31 @@ export function ProjectMediaTiles({
 
                       {/* Thumbnail overlays — status pill bottom-left so it doesn't fight the checkbox */}
                       {activeVersion.approvalStatus === "IN_REVIEW" ? (
-                        <span className="absolute bottom-2 left-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/75 px-2 py-0.5 font-display text-[9px] font-bold uppercase tracking-[0.18em] text-white">
-                          <span className="h-1.5 w-1.5 rounded-full bg-[#F2A516]" />
+                        <span className="absolute bottom-2 left-2 z-10 inline-flex items-center gap-1 rounded-md bg-black/75 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-white">
+                          <span className="h-1.5 w-1.5 rounded-full bg-[var(--brand-amber)]" />
                           In Review
                         </span>
                       ) : activeVersion.approvalStatus === "APPROVED" ? (
-                        <span className="absolute bottom-2 left-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/75 px-2 py-0.5 font-display text-[9px] font-bold uppercase tracking-[0.18em] text-white">
-                          <span className="h-1.5 w-1.5 rounded-full bg-[#2BB36E]" />
+                        <span className="absolute bottom-2 left-2 z-10 inline-flex items-center gap-1 rounded-md bg-black/75 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-white">
+                          <span className="h-1.5 w-1.5 rounded-full bg-[var(--brand-green)]" />
                           Approved
                         </span>
                       ) : activeVersion.approvalStatus === "NEEDS_CHANGES" ? (
-                        <span className="absolute bottom-2 left-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/75 px-2 py-0.5 font-display text-[9px] font-bold uppercase tracking-[0.18em] text-white">
-                          <span className="h-1.5 w-1.5 rounded-full bg-[#EE3A2A]" />
+                        <span className="absolute bottom-2 left-2 z-10 inline-flex items-center gap-1 rounded-md bg-black/75 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-white">
+                          <span className="h-1.5 w-1.5 rounded-full bg-danger" />
                           Needs Changes
                         </span>
                       ) : activeVersion.approvalStatus === "AIRED" ? (
-                        <span className="absolute bottom-2 left-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/75 px-2 py-0.5 font-display text-[9px] font-bold uppercase tracking-[0.18em] text-white">
-                          <span className="h-1.5 w-1.5 rounded-full bg-[oklch(78.5%_0.115_274.713)]" />
+                        <span className="absolute bottom-2 left-2 z-10 inline-flex items-center gap-1 rounded-md bg-black/75 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-white">
+                          <span className="h-1.5 w-1.5 rounded-full bg-white" />
                           Aired
                         </span>
                       ) : null}
-                      <span className="absolute right-2 top-2 z-10 rounded bg-[var(--brand-green)] px-1.5 py-0.5 font-mono-broadcast text-[10px] font-bold text-[var(--ink)]">
+                      <span className="absolute right-2 top-2 z-10 rounded bg-[var(--brand-fill)] px-1.5 py-0.5 font-mono-broadcast text-[10px] font-semibold tabular-nums text-[var(--on-brand)]">
                         v{activeVersion.versionNumber}
                       </span>
                       {activeVersion.durationSeconds !== null ? (
-                        <span className="absolute bottom-2 right-2 z-10 rounded bg-black/75 px-1.5 py-0.5 font-mono-broadcast text-[10px] font-semibold text-white">
+                        <span className="absolute bottom-2 right-2 z-10 rounded bg-black/75 px-1.5 py-0.5 font-mono-broadcast text-[10px] font-semibold tabular-nums text-white">
                           {formatDuration(activeVersion.durationSeconds)}
                         </span>
                       ) : null}
@@ -3084,7 +3080,7 @@ export function ProjectMediaTiles({
                       <p className="min-w-0 truncate text-[13px] font-semibold text-foreground">{item.title}</p>
                       {activeVersion.commentCount > 0 ? (
                         <span
-                          className="inline-flex shrink-0 items-center gap-1 font-mono-broadcast text-[10px] text-muted-foreground"
+                          className="inline-flex shrink-0 items-center gap-1 font-mono-broadcast text-[10px] tabular-nums text-muted-foreground"
                           title={`${activeVersion.commentCount} comments`}
                         >
                           <MessageSquare className="h-3 w-3" />
@@ -3092,7 +3088,7 @@ export function ProjectMediaTiles({
                         </span>
                       ) : null}
                     </div>
-                    <p className="mt-0.5 truncate font-mono-broadcast text-[11px] text-muted-foreground">
+                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
                       {scope === "deleted"
                         ? `${item.deletedByName ?? "Someone"} · Deleted ${formatDeletedAt(item.deletedAt)}`
                         : showPeopleControls && tilePeopleSummary
@@ -3109,7 +3105,7 @@ export function ProjectMediaTiles({
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-7 gap-1 text-xs text-destructive hover:bg-destructive/10"
+                          className="h-7 gap-1 text-xs text-danger hover:bg-danger-tint"
                           onClick={() => requestPermanentDelete([item.id])}
                         >
                           <Trash2 className="h-3 w-3" />
@@ -3145,7 +3141,7 @@ export function ProjectMediaTiles({
                             event.stopPropagation();
                             setMemberPickerForMediaId((current) => (current === item.id ? null : item.id));
                           }}
-                          className="inline-flex h-5 items-center gap-0.5 rounded-full border border-dashed border-border px-1.5 text-[10px] font-semibold text-muted-foreground transition hover:border-[var(--brand-green)] hover:text-[var(--brand-green)]"
+                          className="inline-flex h-5 items-center gap-0.5 rounded-md border border-dashed border-border px-1.5 text-[10px] font-semibold text-muted-foreground transition hover:border-[var(--brand-green)] hover:text-[var(--brand-green)]"
                           title="Edit people"
                         >
                           <Users className="h-2.5 w-2.5" />
@@ -3156,7 +3152,7 @@ export function ProjectMediaTiles({
                             className="absolute bottom-7 left-0 z-[140] w-64 rounded-xl border border-border bg-popover p-2 shadow-2xl"
                             data-prevent-review-open="true"
                           >
-                            <p className="mb-2 px-1 font-display text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                            <p className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                               People on this video
                             </p>
                             <div className="max-h-56 space-y-1 overflow-y-auto pr-1">
@@ -3172,7 +3168,7 @@ export function ProjectMediaTiles({
                                   >
                                     <div className="min-w-0">
                                       <p className="truncate text-[11px] text-foreground">{getMemberDisplayName(member)}</p>
-                                      <p className="truncate font-mono-broadcast text-[9px] text-muted-foreground">
+                                      <p className="truncate text-[9px] text-muted-foreground">
                                         {member.email ?? "Workspace member"}
                                       </p>
                                     </div>
@@ -3180,7 +3176,7 @@ export function ProjectMediaTiles({
                                       type="button"
                                       onClick={() => toggleAssignedMember(item.id, member.userId)}
                                       disabled={assigneeBusy}
-                                      className="grid h-5 w-5 place-items-center rounded-md text-muted-foreground transition hover:bg-[rgb(238,58,42,0.15)] hover:text-[var(--brand-red)]"
+                                      className="grid h-5 w-5 place-items-center rounded-md text-muted-foreground transition hover:bg-danger-tint hover:text-danger"
                                       aria-label="Remove"
                                     >
                                       <X className="h-3 w-3" />
@@ -3404,7 +3400,7 @@ export function ProjectMediaTiles({
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-7 text-destructive hover:bg-destructive/10"
+                      className="h-7 text-danger hover:bg-danger-tint"
                       onClick={() => void revokeShareLink(link.id)}
                     >
                       Revoke
@@ -3478,7 +3474,7 @@ export function ProjectMediaTiles({
 
           <div className="space-y-3">
             <div className="rounded-lg border border-border bg-muted p-3">
-              <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Moving</p>
+              <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">Moving</p>
               <p className="mt-1 truncate text-sm font-semibold text-foreground">
                 {moveToVersionSourceItem?.title ?? "Selected package"}
               </p>
@@ -3678,7 +3674,7 @@ export function ProjectMediaTiles({
             <div className="pointer-events-none fixed inset-0 z-[220]">
               <div
                 ref={dragOverlayRef}
-                className="w-[min(320px,calc(100vw-1.5rem))] rounded-2xl border border-border bg-card/95 p-2 shadow-2xl backdrop-blur-xl"
+                className="w-[min(320px,calc(100vw-1.5rem))] rounded-2xl border border-border bg-card p-2 shadow-2xl"
                 style={{ transform: "translate3d(-9999px, -9999px, 0)" }}
               >
                 <div className="flex items-center gap-2.5">
@@ -3699,7 +3695,7 @@ export function ProjectMediaTiles({
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs uppercase tracking-[0.12em] text-muted-foreground">Move Asset</p>
+                    <p className="truncate text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">Move Asset</p>
                     <p className="truncate text-sm font-semibold text-foreground">{dragPreview.title}</p>
                     <p className="truncate text-xs text-muted-foreground">
                       {dragPreview.itemCount > 1 ? `${dragPreview.itemCount} selected items` : "1 item"}
@@ -3722,7 +3718,7 @@ export function ProjectMediaTiles({
             <DialogDescription>Pick the date this video aired.</DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
-            <label htmlFor="tile-aired-date" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <label htmlFor="tile-aired-date" className="text-xs font-medium uppercase tracking-[0.11em] text-muted-foreground">
               Air date
             </label>
             <input

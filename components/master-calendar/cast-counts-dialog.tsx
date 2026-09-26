@@ -32,11 +32,11 @@ function splitColumns<T>(items: T[], columnCount: number): T[][] {
 
 function CountCell({ value }: { value: number }) {
   return (
-    <td className="w-10 py-1 text-right tabular-nums">
+    <td className="w-10 py-1 text-right font-mono text-[13px] tabular-nums">
       <span
         className={cn(
           "inline-block min-w-[1.25rem]",
-          value === 0 ? "text-muted-foreground/55" : "font-semibold text-foreground"
+          value === 0 ? "text-muted-foreground/55" : "font-medium text-foreground"
         )}
       >
         {value === 0 ? "—" : value}

@@ -110,7 +110,7 @@ export function ShareLinksPanel({
                       Copy
                     </Button>
                     {!link.revokedAt ? (
-                      <Button variant="destructive" size="sm" onClick={() => revoke(link.id)}>
+                      <Button variant="destructive-quiet" size="sm" onClick={() => revoke(link.id)}>
                         Revoke
                       </Button>
                     ) : null}

@@ -49,15 +49,14 @@ export default function HomePage() {
     <>
       <MarketingHeader active="home" />
       <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 md:py-10">
-      <section className="relative overflow-hidden rounded-3xl border border-border bg-card p-5 sm:p-7 md:p-10">
-        <div className="pointer-events-none absolute inset-0 brand-hero-gradient opacity-50" />
+      <section className="brand-hero-panel relative overflow-hidden p-5 sm:p-7 md:p-10">
         <div className="relative space-y-7">
           <div className="eyebrow flex items-center gap-2">
             <span className="rec-dot rec-dot-red" />
             InFocus News
           </div>
 
-          <h1 className="display-lg max-w-5xl md:text-[88px] md:leading-[0.92]">
+          <h1 className="display-xl max-w-5xl">
             Student journalism at Palo Alto High School.
           </h1>
 
@@ -70,14 +69,14 @@ export default function HomePage() {
           <p className="max-w-3xl text-base text-muted-foreground md:text-lg">
             InFocus Portal is our newsroom&apos;s production workspace, where student reporters and producers
             plan stories, review video reports, and coordinate broadcasts. Explore our published work at{" "}
-            <a href="https://infocusnews.tv" className="text-foreground underline underline-offset-4 hover:text-primary">
+            <a href="https://infocusnews.tv" className="text-foreground underline underline-offset-4 hover:text-brand-green">
               infocusnews.tv
             </a>. InFocus Portal is open source on{" "}
             <a
               href="https://github.com/neelsatyavolu/infocus-portal"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-foreground underline underline-offset-4 hover:text-primary"
+              className="text-foreground underline underline-offset-4 hover:text-brand-green"
             >
               GitHub
             </a>.
@@ -94,19 +93,19 @@ export default function HomePage() {
             </Link>
             <a
               href={process.env.NODE_ENV === "production" ? equipmentAppOrigin() : "/equipment"}
-              className="inline-flex items-center gap-2 rounded-xl border border-border bg-card/50 px-5 py-2.5 font-semibold text-foreground backdrop-blur transition hover:bg-card"
+              className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-5 py-2.5 font-semibold text-foreground transition hover:bg-secondary"
             >
               Equipment
             </a>
             <Link
               href="/master-calendar"
-              className="inline-flex items-center gap-2 rounded-xl border border-border bg-card/50 px-5 py-2.5 font-semibold text-foreground backdrop-blur transition hover:bg-card"
+              className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-5 py-2.5 font-semibold text-foreground transition hover:bg-secondary"
             >
               View Master Calendar
             </Link>
             <Link
               href={"/submit-announcement" as never}
-              className="inline-flex items-center gap-2 rounded-xl border border-border bg-card/50 px-5 py-2.5 font-semibold text-foreground backdrop-blur transition hover:bg-card"
+              className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-5 py-2.5 font-semibold text-foreground transition hover:bg-secondary"
             >
               Submit an announcement
             </Link>
@@ -121,9 +120,9 @@ export default function HomePage() {
             ].map((stat) => (
               <div
                 key={stat.title}
-                className="rounded-xl border border-border bg-[rgb(10,10,10,0.55)] light:bg-muted p-4 backdrop-blur"
+                className="rounded-xl border border-border bg-background light:bg-muted p-4"
               >
-                <p className="font-display text-xl italic font-extrabold uppercase tracking-tight text-foreground">
+                <p className="text-lg font-semibold tracking-tight text-foreground">
                   {stat.title}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">{stat.desc}</p>

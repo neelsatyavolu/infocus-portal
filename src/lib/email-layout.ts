@@ -1,12 +1,15 @@
 import { mainAppOrigin } from "@/src/lib/hosts";
 
-const INK = "#0A0A0A";
-const CARD = "#141414";
-const LINE = "#2C2C2C";
-const PAPER = "#F7F7F8";
-const MUTED = "#B6B9B6";
-const FOOTER = "#6B6E6B";
+const INK = "#0F110F";
+const CARD = "#1A1D1A";
+const LINE = "#252925";
+const PAPER = "#FFFFFF";
+const MUTED = "#DCE2DE";
+const FOOTER = "#DCE2DE";
 const GREEN = "#2BB36E";
+const FILL = "#0B6E3E";
+const ON_FILL = "#FFFFFF";
+const FONT = "Lexend, 'Helvetica Neue', Arial, sans-serif";
 
 export const EMAIL_BRAND = {
   ink: INK,
@@ -15,7 +18,10 @@ export const EMAIL_BRAND = {
   paper: PAPER,
   muted: MUTED,
   footer: FOOTER,
-  green: GREEN
+  green: GREEN,
+  fill: FILL,
+  onFill: ON_FILL,
+  font: FONT
 } as const;
 
 export function escapeHtml(value: string) {
@@ -66,13 +72,15 @@ export function renderBrandedEmail(input: {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>${heading}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600&display=swap" rel="stylesheet" />
 </head>
 <body style="margin:0;padding:0;background:${INK};">
   <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:${INK};">${preview}</div>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${INK};padding:24px 12px;">
     <tr>
       <td align="center">
-        <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="width:100%;max-width:560px;background:${CARD};border:1px solid ${LINE};border-radius:12px;overflow:hidden;">
+        <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="width:100%;max-width:560px;background:${CARD};border:1px solid ${LINE};border-radius:6px;overflow:hidden;">
           <tr>
             <td style="padding:18px 28px 14px;background:${INK};">
               <img src="${logoUrl}" width="28" height="28" alt="" style="display:inline-block;vertical-align:middle;border:0;" />
@@ -80,24 +88,24 @@ export function renderBrandedEmail(input: {
             </td>
           </tr>
           <tr>
-            <td style="height:3px;line-height:3px;font-size:0;background:${GREEN};">&nbsp;</td>
+            <td style="height:4px;line-height:4px;font-size:0;background:${FILL};">&nbsp;</td>
           </tr>
           <tr>
-            <td style="padding:28px 28px 8px;font-family:Arial,Helvetica,sans-serif;color:${PAPER};">
-              <h1 style="margin:0 0 16px;font-size:22px;line-height:1.25;font-weight:700;color:${PAPER};">${heading}</h1>
+            <td style="padding:28px 28px 8px;font-family:${FONT};color:${PAPER};">
+              <h1 style="margin:0 0 16px;font-size:22px;line-height:1.25;font-weight:600;letter-spacing:-0.01em;color:${PAPER};">${heading}</h1>
               ${paragraphHtml}
               ${extraHtml}
               <table role="presentation" cellpadding="0" cellspacing="0" style="margin:22px 0 8px;">
                 <tr>
-                  <td style="background:${GREEN};border-radius:8px;">
-                    <a href="${ctaUrl}" style="display:inline-block;padding:12px 20px;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:700;color:${INK};text-decoration:none;">${ctaLabel}</a>
+                  <td style="background:${FILL};border-radius:6px;">
+                    <a href="${ctaUrl}" style="display:inline-block;padding:12px 20px;font-family:${FONT};font-size:14px;font-weight:600;color:${ON_FILL};text-decoration:none;">${ctaLabel}</a>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
           <tr>
-            <td style="padding:8px 28px 24px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.5;color:${FOOTER};">
+            <td style="padding:8px 28px 24px;font-family:${FONT};font-size:12px;line-height:1.5;color:${FOOTER};">
               InFocus Portal · <a href="${manageUrl}" style="color:${GREEN};text-decoration:none;">Notification settings</a>
             </td>
           </tr>

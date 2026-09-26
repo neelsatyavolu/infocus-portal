@@ -62,8 +62,7 @@ export default function PasswordsClient() {
 
   return (
     <div className="route-enter mx-auto w-full max-w-[80rem] space-y-3 pb-24">
-      <section className="relative overflow-hidden rounded-2xl border border-border bg-card px-4 py-4 md:px-5">
-        <div className="pointer-events-none absolute inset-0 brand-hero-gradient opacity-40" />
+      <section className="brand-hero-panel relative overflow-hidden rounded-2xl border border-border px-4 py-4 md:px-5">
         <div className="relative flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="eyebrow">Producer view</div>
@@ -101,7 +100,7 @@ export default function PasswordsClient() {
         </div>
 
         {message ? (
-          <p className="relative mt-3 rounded-lg border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">
+          <p className="relative mt-3 rounded-lg border border-danger/40 bg-danger-tint px-3 py-2 text-sm text-danger">
             {message}
           </p>
         ) : null}

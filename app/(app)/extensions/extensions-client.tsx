@@ -251,8 +251,7 @@ export default function ExtensionsClient() {
   return (
     <div className="route-enter mx-auto w-full max-w-7xl space-y-5">
       {/* Hero */}
-      <section className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 md:p-6">
-        <div className="pointer-events-none absolute inset-0 brand-hero-gradient opacity-40" />
+      <section className="brand-hero-panel relative overflow-hidden rounded-2xl border border-border p-5 md:p-6">
         <div className="relative grid gap-6 md:grid-cols-[1fr_auto_auto_auto] md:items-center">
           <div className="min-w-0">
             <div className="eyebrow">Spring &apos;26 · Admin</div>
@@ -327,7 +326,7 @@ export default function ExtensionsClient() {
               ))}
             </div>
           </div>
-          <div className="flex items-center gap-2 font-mono-broadcast text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <span>
               {filteredUsers.length} member{filteredUsers.length === 1 ? "" : "s"}
             </span>
@@ -344,19 +343,19 @@ export default function ExtensionsClient() {
           <table className="w-full border-collapse">
             <thead>
               <tr>
-                <th className="bg-[hsl(var(--background))] px-4 py-2 text-left font-display text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                <th className="bg-[hsl(var(--background))] px-4 py-2 text-left text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
                   Member
                 </th>
-                <th className="bg-[hsl(var(--background))] px-4 py-2 text-left font-display text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                <th className="bg-[hsl(var(--background))] px-4 py-2 text-left text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
                   Role
                 </th>
-                <th className="bg-[hsl(var(--background))] px-4 py-2 text-left font-display text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                <th className="bg-[hsl(var(--background))] px-4 py-2 text-left text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
                   Used
                 </th>
-                <th className="bg-[hsl(var(--background))] px-4 py-2 text-left font-display text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                <th className="bg-[hsl(var(--background))] px-4 py-2 text-left text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
                   Usage
                 </th>
-                <th className="bg-[hsl(var(--background))] px-4 py-2 pr-6 text-right font-display text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                <th className="bg-[hsl(var(--background))] px-4 py-2 pr-6 text-right text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
                   Remaining
                 </th>
               </tr>
@@ -372,7 +371,7 @@ export default function ExtensionsClient() {
                       : "rem-pill-ok";
                 const barTone =
                   user.usedDays > allowance
-                    ? "bg-[var(--brand-red)]"
+                    ? "bg-danger"
                     : user.usedDays >= allowance - 3
                       ? "bg-[var(--brand-amber)]"
                       : "bg-[var(--brand-green)]";
@@ -397,7 +396,7 @@ export default function ExtensionsClient() {
                         </div>
                         <div className="min-w-0">
                           <div className="text-sm font-semibold text-foreground">{userLabel(user)}</div>
-                          <div className="font-mono-broadcast text-[11px] text-muted-foreground">
+                          <div className="font-mono-broadcast tabular-nums text-[11px] text-muted-foreground">
                             {user.email ?? "—"}
                           </div>
                         </div>
@@ -407,7 +406,7 @@ export default function ExtensionsClient() {
                       <span className="status-pill status-neutral">{role}</span>
                     </td>
                     <td className="px-4 py-3 align-middle">
-                      <span className="font-mono-broadcast text-sm font-semibold text-foreground">{user.usedDays}d</span>
+                      <span className="font-mono-broadcast tabular-nums text-sm font-semibold text-foreground">{user.usedDays}d</span>
                     </td>
                     <td className="px-4 py-3 align-middle">
                       <div className="h-1.5 w-32 overflow-hidden rounded-full bg-[hsl(var(--secondary))]">
@@ -422,7 +421,7 @@ export default function ExtensionsClient() {
                           openUser(user);
                         }}
                         className={cn(
-                          "rounded-md border px-3 py-1 font-mono-broadcast text-sm font-bold transition",
+                          "rounded-md border px-3 py-1 font-mono-broadcast tabular-nums text-sm font-bold transition",
                           remTone
                         )}
                       >
@@ -484,7 +483,7 @@ export default function ExtensionsClient() {
                       {["Cycle", "Final Cut", "Turned In", "Calc.", "Applied", "Exempt", "Effective", ""].map((label) => (
                         <th
                           key={label}
-                          className="bg-[hsl(var(--card))] px-3 py-2 text-left font-display text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground"
+                          className="bg-[hsl(var(--card))] px-3 py-2 text-left text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground"
                         >
                           {label}
                         </th>
@@ -506,13 +505,13 @@ export default function ExtensionsClient() {
                               {cycle.focus?.trim() ? cycle.focus : "No focus set"}
                             </div>
                           </td>
-                          <td className="px-3 py-2 align-middle font-mono-broadcast text-xs text-foreground">
+                          <td className="px-3 py-2 align-middle font-mono-broadcast tabular-nums text-xs text-foreground">
                             {formatShortDate(cycle.finalCutDate)}
                           </td>
-                          <td className="px-3 py-2 align-middle font-mono-broadcast text-xs text-foreground">
+                          <td className="px-3 py-2 align-middle font-mono-broadcast tabular-nums text-xs text-foreground">
                             {formatShortDate(cycle.turnedInDate)}
                           </td>
-                          <td className="px-3 py-2 align-middle font-mono-broadcast text-xs text-foreground">
+                          <td className="px-3 py-2 align-middle font-mono-broadcast tabular-nums text-xs text-foreground">
                             {cycle.calculatedDays}d
                           </td>
                           <td className="px-3 py-2 align-middle">
@@ -526,7 +525,7 @@ export default function ExtensionsClient() {
                                   appliedDays: Number.isFinite(next) ? Math.max(0, next) : 0
                                 });
                               }}
-                              className="h-8 w-16 rounded-md border border-border bg-secondary px-2 font-mono-broadcast text-xs font-semibold text-foreground outline-none focus:border-[var(--brand-green)]"
+                              className="h-8 w-16 rounded-md border border-border bg-secondary px-2 font-mono-broadcast tabular-nums text-xs font-semibold text-foreground outline-none focus:border-[var(--brand-green)]"
                             />
                           </td>
                           <td className="px-3 py-2 align-middle">
@@ -544,7 +543,7 @@ export default function ExtensionsClient() {
                           </td>
                           <td
                             className={cn(
-                              "px-3 py-2 align-middle font-mono-broadcast text-sm font-bold",
+                              "px-3 py-2 align-middle font-mono-broadcast tabular-nums text-sm font-bold",
                               draft.exempt ? "text-muted-foreground" : "text-[var(--brand-green)]"
                             )}
                           >
@@ -558,7 +557,7 @@ export default function ExtensionsClient() {
                               className={cn(
                                 "rounded-md px-3 py-1 text-xs font-bold transition",
                                 dirty
-                                  ? "bg-[var(--brand-green)] text-[var(--ink)] hover:bg-[var(--brand-green-deep)]"
+                                  ? "bg-[var(--brand-fill)] text-[var(--on-brand)] hover:bg-[var(--brand-fill-hover)]"
                                   : "bg-[var(--ink-4)] text-muted-foreground"
                               )}
                             >
@@ -589,11 +588,11 @@ function ExtensionStat({
   tone?: "warn" | "danger";
 }) {
   const valueClass =
-    tone === "warn" ? "text-[var(--brand-amber)]" : tone === "danger" ? "text-[var(--brand-red)]" : "text-foreground";
+    tone === "warn" ? "text-[var(--brand-amber)]" : tone === "danger" ? "text-danger" : "text-foreground";
   return (
-    <div className="rounded-xl border border-border bg-[rgb(10,10,10,0.55)] light:bg-muted px-4 py-3 backdrop-blur min-w-[140px]">
-      <div className="font-display text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">{label}</div>
-      <div className={cn("mt-1 font-display italic text-2xl font-extrabold leading-none tracking-tight", valueClass)}>
+    <div className="rounded-xl border border-border bg-background px-4 py-3 min-w-[140px]">
+      <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">{label}</div>
+      <div className={cn("mt-1 text-2xl font-semibold leading-none tracking-tight", valueClass)}>
         {value}
       </div>
     </div>
@@ -610,11 +609,11 @@ function SummaryPill({
   tone?: "ok" | "over";
 }) {
   const valueClass =
-    tone === "over" ? "text-[var(--brand-red)]" : tone === "ok" ? "text-[var(--brand-green)]" : "text-foreground";
+    tone === "over" ? "text-danger" : tone === "ok" ? "text-[var(--brand-green)]" : "text-foreground";
   return (
     <div className="rounded-xl border border-border bg-[hsl(var(--card))] px-4 py-3">
-      <div className="font-display text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">{label}</div>
-      <div className={cn("mt-1 font-mono-broadcast text-lg font-semibold", valueClass)}>{value}</div>
+      <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">{label}</div>
+      <div className={cn("mt-1 font-mono-broadcast tabular-nums text-lg font-semibold", valueClass)}>{value}</div>
     </div>
   );
 }

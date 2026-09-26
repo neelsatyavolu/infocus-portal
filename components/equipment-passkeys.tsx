@@ -50,7 +50,7 @@ export function EquipmentPasskeyButton({ purpose, onSuccess }: { purpose: "login
         <Fingerprint className="h-4 w-4" />
         {busy ? "Waiting for device…" : "Sign in with Touch ID / passkey"}
       </Button>
-      {error ? <p role="alert" className="text-sm text-destructive">{error}</p> : null}
+      {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
     </div>
   );
 }
@@ -110,7 +110,7 @@ export function EquipmentPasskeySettings() {
         {passkeys.map((passkey) => (
           <div key={passkey.id} className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
             <span className="min-w-0 break-words text-sm">{passkey.label}</span>
-            <Button type="button" variant="destructive" size="sm" disabled={busy} onClick={() => void remove(passkey.id)}>Remove</Button>
+            <Button type="button" variant="destructive-quiet" size="sm" disabled={busy} onClick={() => void remove(passkey.id)}>Remove</Button>
           </div>
         ))}
         {message ? <p role="status" className="text-sm text-muted-foreground">{message}</p> : null}

@@ -65,7 +65,7 @@ export function EmailSignInForm({ returnTo }: { returnTo: string }) {
             onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))} />
         </>
       ) : null}
-      {error ? <p role="alert" className="text-sm text-rose-200">{error}</p> : null}
+      {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
       <Button type="submit" className="h-11 w-full" disabled={Boolean(busy)}>
         {busy ? (busy === "verify" ? "Signing in…" : "Sending code…") : (codeSent ? "Sign in" : "Sign in with email")}
       </Button>

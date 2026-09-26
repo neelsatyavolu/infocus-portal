@@ -33,7 +33,7 @@ export function MarketingMobileNav({
         {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </button>
       {open ? (
-        <div className="absolute left-0 right-0 top-full z-50 border-b border-border bg-background/95 px-4 py-3 backdrop-blur-md">
+        <div className="absolute left-0 right-0 top-full z-50 border-b border-border bg-background px-4 py-3">
           <nav className="flex flex-col gap-1">
             {items.map((item) => {
               const className = `rounded-lg px-3 py-2.5 text-[13px] font-medium ${

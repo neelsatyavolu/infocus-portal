@@ -66,7 +66,7 @@ export function GroupStageShell({
       <div className="flex min-h-0 flex-1 flex-col">{children}</div>
 
       <section className="sticky bottom-4 z-20 mx-auto flex justify-center px-2">
-        <div className="inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-xl border border-foreground/[0.08] bg-black/85 light:bg-muted p-1 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.6)] backdrop-blur">
+        <div className="inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-xl border border-foreground/[0.08] bg-card p-1">
           {GROUP_NAV_SLUGS.map((slug) => {
             const active = slug === stage;
             const done = groupNavTabDone(slug, nav);
@@ -76,20 +76,20 @@ export function GroupStageShell({
                 key={slug}
                 href={`/groups/${rowId}/${slug}` as never}
                 className={cn(
-                  "inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 font-display text-[11px] font-semibold uppercase tracking-[0.16em] transition-colors sm:px-4 sm:text-[12px] sm:tracking-[0.18em]",
+                  "inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-[11px] font-medium uppercase tracking-[0.11em] transition-colors sm:px-4 sm:text-[12px]",
                   active
-                    ? "bg-[var(--brand-green)] text-[var(--ink)]"
+                    ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
                     : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
                 )}
               >
                 {GROUP_NAV_TAB_LABELS[slug]}
                 {done ? (
-                  <span className={cn("text-[10px]", active ? "text-[var(--ink)]/70" : "text-emerald-300/80")}>✓</span>
+                  <span className={cn("text-[10px]", active ? "text-[var(--on-brand)]/80" : "text-[var(--brand-green)]")}>✓</span>
                 ) : pending ? (
                   <span
                     className={cn(
                       "h-1.5 w-1.5 rounded-full",
-                      active ? "bg-[var(--ink)]" : "bg-[var(--brand-green)]"
+                      active ? "bg-[var(--on-brand)]" : "bg-[var(--brand-green)]"
                     )}
                   />
                 ) : null}

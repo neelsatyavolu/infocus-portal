@@ -56,7 +56,7 @@ export function FinalCutHeadlineDialog({
             autoFocus
           />
           <div className="flex justify-between gap-3 text-xs">
-            <span className="text-destructive">{submitted ? error : null}</span>
+            <span className="text-danger">{submitted ? error : null}</span>
             <span className="tabular-nums text-muted-foreground">
               {draft.trim().length}/{HEADLINE_MAX_LENGTH}
             </span>

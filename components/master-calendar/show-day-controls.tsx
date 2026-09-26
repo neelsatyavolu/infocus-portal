@@ -21,7 +21,7 @@ const EMPTY_VALUE = "__none__";
 const SELECT_TRIGGER_CLASS =
   "h-9 w-full rounded-md border border-border bg-background px-2 text-sm text-foreground shadow-none";
 const LABEL_CLASS =
-  "font-display text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground";
+  "text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground";
 
 function NameSelect({
   value,

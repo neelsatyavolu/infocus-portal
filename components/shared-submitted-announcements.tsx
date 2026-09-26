@@ -57,8 +57,7 @@ export function SharedSubmittedAnnouncements() {
 
   return (
     <main className="mx-auto w-full max-w-3xl space-y-5 px-6 py-8">
-      <section className="relative overflow-hidden rounded-3xl border border-border bg-card p-6">
-        <div className="pointer-events-none absolute inset-0 brand-hero-gradient opacity-40" />
+      <section className="brand-hero-panel relative overflow-hidden p-6">
         <div className="relative">
           <div className="eyebrow flex items-center gap-2">
             <Megaphone className="h-3 w-3" />

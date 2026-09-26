@@ -236,8 +236,7 @@ export default function MembersClient() {
 
   return (
     <div className="route-enter mx-auto w-full max-w-[80rem] space-y-3 pb-24">
-      <section className="relative overflow-hidden rounded-2xl border border-border bg-card px-4 py-4 md:px-5">
-        <div className="pointer-events-none absolute inset-0 brand-hero-gradient opacity-40" />
+      <section className="brand-hero-panel relative overflow-hidden rounded-2xl border border-border px-4 py-4 md:px-5">
         <div className="relative flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="eyebrow">Producer view</div>
@@ -348,14 +347,14 @@ export default function MembersClient() {
       </section>
 
       <section className="sticky bottom-4 z-20 mx-auto flex justify-center">
-        <div className="inline-flex items-center gap-1 rounded-xl border border-foreground/[0.08] bg-black/85 light:bg-muted p-1 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.6)] backdrop-blur">
+        <div className="inline-flex items-center gap-1 rounded-xl border border-foreground/[0.08] bg-card p-1">
           <button
             type="button"
             onClick={() => onTabClick(MEMBER_GENERAL_CYCLE_NUMBER)}
             className={cn(
-              "inline-flex items-center gap-2 rounded-lg px-4 py-2 font-display text-[12px] font-semibold uppercase tracking-[0.18em] transition",
+              "inline-flex items-center gap-2 rounded-md px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.11em] transition",
               isGeneral
-                ? "bg-[var(--brand-green)] text-[var(--ink)]"
+                ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
                 : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
             )}
           >
@@ -369,17 +368,17 @@ export default function MembersClient() {
                 type="button"
                 onClick={() => onTabClick(cycle.cycleNumber)}
                 className={cn(
-                  "inline-flex items-center gap-2 rounded-lg px-4 py-2 font-display text-[12px] font-semibold uppercase tracking-[0.18em] transition",
+                  "inline-flex items-center gap-2 rounded-md px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.11em] transition",
                   active
-                    ? "bg-[var(--brand-green)] text-[var(--ink)]"
+                    ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
                     : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
                 )}
               >
                 Cycle
                 <span
                   className={cn(
-                    "rounded px-1.5 py-0.5 font-mono-broadcast text-[10px] font-bold",
-                    active ? "bg-black/35 text-[var(--ink)]" : "bg-black/40 light:bg-foreground/10 text-[var(--ink-text)]"
+                    "rounded px-1.5 py-0.5 font-mono-broadcast tabular-nums text-[10px] font-medium",
+                    active ? "bg-black/25 text-[var(--on-brand)]" : "bg-foreground/10 text-[var(--ink-text)]"
                   )}
                 >
                   {String(cycle.cycleNumber).padStart(2, "0")}

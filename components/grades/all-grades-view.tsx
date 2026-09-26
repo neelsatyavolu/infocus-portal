@@ -341,14 +341,14 @@ export function GradeBadge({
     return (
       <div className="flex items-center gap-3 rounded-xl border border-border bg-[hsl(var(--background))] px-3 py-2">
         <div className="text-right">
-          <div className="font-display text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+          <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
             {label}
           </div>
-          <div className="font-mono-broadcast text-xs font-semibold text-foreground">{pct}</div>
+          <div className="font-mono-broadcast tabular-nums text-xs font-semibold text-foreground">{pct}</div>
         </div>
         <div
           className={cn(
-            "font-display text-3xl font-extrabold italic leading-none tracking-tight",
+            "text-3xl font-semibold leading-none tracking-tight",
             letter ? "text-[var(--brand-green)]" : "text-muted-foreground"
           )}
         >
@@ -360,18 +360,18 @@ export function GradeBadge({
 
   return (
     <div className="flex min-w-[10rem] flex-col items-center justify-center rounded-2xl border border-border bg-[hsl(var(--background))] px-8 py-5 text-center shadow-sm">
-      <div className="font-display text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+      <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
         {label}
       </div>
       <div
         className={cn(
-          "mt-1 font-display text-6xl font-extrabold italic leading-none tracking-tight",
+          "mt-1 text-5xl font-semibold leading-none tracking-tight",
           letter ? "text-[var(--brand-green)]" : "text-muted-foreground"
         )}
       >
         {letter ?? "—"}
       </div>
-      <div className="mt-2 font-mono-broadcast text-lg font-semibold text-foreground">{pct}</div>
+      <div className="mt-2 font-mono-broadcast tabular-nums text-lg font-semibold text-foreground">{pct}</div>
     </div>
   );
 }
@@ -474,10 +474,10 @@ function GradeGroup({
         style={{ paddingLeft: 16 + depth * 16 }}
       >
         <ChevronDown className={cn("h-4 w-4 shrink-0 transition", open ? "" : "-rotate-90")} />
-        <span className="min-w-0 flex-1 font-display text-sm font-semibold text-[var(--brand-green)]">
+        <span className="min-w-0 flex-1 text-sm font-semibold text-[var(--brand-green)]">
           {title}
         </span>
-        <span className="font-mono-broadcast text-sm text-[var(--brand-green)]">{meta}</span>
+        <span className="font-mono-broadcast tabular-nums text-sm text-[var(--brand-green)]">{meta}</span>
         <span className="w-16">
           {bar === null ? (
             <span className="block h-0.5 bg-foreground/10" />
@@ -530,7 +530,7 @@ function GradeRow({
             if (parsed !== undefined) onChange(parsed);
           }}
           className={cn(
-            "w-14 rounded-md border bg-transparent px-1.5 py-1 text-right font-mono-broadcast text-sm outline-none",
+            "w-14 rounded-md border bg-transparent px-1.5 py-1 text-right font-mono-broadcast tabular-nums text-sm outline-none",
             dirty
               ? "border-[var(--brand-green)]/50 text-[var(--brand-green)]"
               : "border-transparent text-foreground hover:border-border focus:border-border"

@@ -11,18 +11,7 @@ export default async function MaintenancePage() {
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden px-6 py-12">
-      <div className="pointer-events-none absolute inset-0 brand-hero-gradient opacity-40" />
-      <div
-        className="pointer-events-none absolute -left-24 top-1/4 h-72 w-72 rounded-full bg-[var(--brand-green)]/10 blur-3xl"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -right-20 bottom-1/4 h-64 w-64 rounded-full bg-[var(--brand-amber)]/10 blur-3xl"
-        aria-hidden
-      />
-
-      <section className="relative w-full max-w-xl overflow-hidden rounded-3xl border border-border bg-card/95 p-8 shadow-2xl shadow-black/20 backdrop-blur-sm md:p-10">
-        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[var(--brand-green)] via-[var(--brand-amber)] to-[var(--brand-green)]" />
+      <section className="brand-hero-panel relative w-full max-w-xl overflow-hidden p-8 md:p-10">
 
         <div className="mb-6 flex items-center gap-3">
           <div className="grid h-14 w-14 place-items-center rounded-2xl border border-[var(--brand-amber)]/35 bg-[var(--brand-amber)]/12 text-[var(--brand-amber)]">
@@ -34,7 +23,7 @@ export default async function MaintenancePage() {
           </div>
         </div>
 
-        <h1 className="display-md font-display text-foreground">{HUB_MAINTENANCE_TITLE}</h1>
+        <h1 className="display-md text-foreground">{HUB_MAINTENANCE_TITLE}</h1>
 
         <p className="mt-4 text-base leading-relaxed text-muted-foreground">{HUB_MAINTENANCE_BODY}</p>
 

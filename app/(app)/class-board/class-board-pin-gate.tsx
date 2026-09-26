@@ -63,7 +63,7 @@ export default function ClassBoardPinGate() {
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center bg-background px-6 py-10 text-foreground">
       <BrandWordmark className="h-12 w-auto object-contain" priority />
-      <h1 className="mt-6 font-display text-5xl font-extrabold uppercase italic leading-none tracking-tight">
+      <h1 className="mt-6 text-4xl font-semibold leading-none tracking-tight">
         Class Board
       </h1>
       <p className="mt-3 text-center text-lg text-[var(--ink-text)]">Enter the 6-digit PIN.</p>
@@ -77,13 +77,13 @@ export default function ClassBoardPinGate() {
             type="button"
             onClick={() => press(key)}
             disabled={pending}
-            className="h-16 rounded-2xl border border-border bg-card font-display text-2xl font-bold uppercase tracking-wide text-foreground transition-transform active:scale-[0.96] disabled:opacity-60"
+            className="h-16 rounded-md border border-border bg-card text-2xl font-semibold text-foreground transition-transform active:scale-[0.96] disabled:opacity-60"
           >
             {key === "clear" ? "Clear" : key === "back" ? "Delete" : key}
           </button>
         ))}
       </div>
-      {error ? <p className="mt-6 text-center text-lg text-[var(--brand-red)]">{error}</p> : null}
+      {error ? <p className="mt-6 text-center text-lg text-danger">{error}</p> : null}
     </main>
   );
 }

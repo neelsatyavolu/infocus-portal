@@ -20,6 +20,10 @@ export const TIMEOUT_TAG_MS = 8_000;
 export const FLAG_TAG_MS = 2 * 60_000;
 export const MAX_TEAM_NAME = 20;
 export const SET_TAG_MS = 10_000;
+/** Long enough that OBS (polling every second) still shows about four seconds of it. */
+export const TOUCHDOWN_MS = 5_000;
+/** The last part of the touchdown plate is its wipe back. */
+export const TOUCHDOWN_EXIT_MS = 600;
 export const FOOTBALL_TIMEOUTS_PER_HALF = 3;
 const MAX_SCORE = 999;
 const MAX_TAGS = 6;
@@ -53,9 +57,11 @@ const clockSchema = z.object({
 
 const tagSchema = z.object({
   id: z.string().max(40),
-  kind: z.enum(["timeout", "flag", "set"]),
+  kind: z.enum(["timeout", "flag", "set", "touchdown"]),
   text: z.string().max(60),
-  until: z.number()
+  until: z.number(),
+  /** Which team a touchdown belongs to (for its color chip). */
+  team: z.union([z.literal(0), z.literal(1)]).optional()
 });
 
 export const scoreboardSchema = z.object({
@@ -78,6 +84,8 @@ export const scoreboardSchema = z.object({
   periodScores: z.array(z.tuple([z.number().int().min(0), z.number().int().min(0)])).max(20),
   /** One-line note on the tier for "other" sports. */
   note: z.string().max(60),
+  /** Football touchdown animation. Defaults on, so boards saved before this field existed still parse. */
+  celebrations: z.boolean().default(true),
   tags: z.array(tagSchema).max(MAX_TAGS)
 });
 
@@ -93,7 +101,7 @@ function regulationMs(sport: Sport) {
 
 export function defaultScoreboard(
   sport: Sport = "basketball",
-  keep?: Pick<ScoreboardState, "teams" | "position">
+  keep?: Pick<ScoreboardState, "teams" | "position"> & Partial<Pick<ScoreboardState, "celebrations">>
 ): ScoreboardState {
   const team = (index: TeamIndex) => ({
     name: keep?.teams[index].name ?? (index === 0 ? "PALY" : "AWAY"),
@@ -126,6 +134,7 @@ export function defaultScoreboard(
     setHistory: [],
     periodScores: [],
     note: "",
+    celebrations: keep?.celebrations ?? true,
     tags: []
   };
 }
@@ -206,18 +215,24 @@ export const scoreboardActionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("periodLabel"), value: z.string().max(48) }),
   z.object({ type: z.literal("note"), value: z.string().max(120) }),
   z.object({ type: z.literal("position"), position: z.enum(["bottom", "top"]) }),
+  z.object({ type: z.literal("celebrations"), on: z.boolean() }),
   z.object({ type: z.literal("sport"), sport: z.enum(SPORTS) }),
   z.object({ type: z.literal("reset") })
 ]);
 
 export type ScoreboardAction = z.infer<typeof scoreboardActionSchema>;
 
-function withTag(state: ScoreboardState, kind: TagKind, text: string, durationMs: number, now: number) {
+function withTag(state: ScoreboardState, kind: TagKind, text: string, durationMs: number, now: number, team?: TeamIndex) {
+  const tag = { id: `${kind}-${now}`, kind, text, until: now + durationMs, ...(team === undefined ? {} : { team }) };
   const tags = state.tags
-    .filter((tag) => tag.until > now && tag.text !== text)
-    .concat({ id: `${kind}-${now}`, kind, text, until: now + durationMs })
+    .filter((existing) => existing.until > now && !(existing.kind === kind && existing.text === text))
+    .concat(tag)
     .slice(-MAX_TAGS);
   return { ...state, tags };
+}
+
+function withoutTags(state: ScoreboardState, kind: TagKind): ScoreboardState {
+  return state.tags.some((tag) => tag.kind === kind) ? { ...state, tags: state.tags.filter((tag) => tag.kind !== kind) } : state;
 }
 
 function withoutFlag(state: ScoreboardState): ScoreboardState {
@@ -256,7 +271,12 @@ export function applyScoreboardAction(state: ScoreboardState, action: Scoreboard
         serve: state.sport === "volleyball" && scored ? action.team : state.serve,
         down: state.sport === "football" && scored ? 0 : state.down
       };
-      return state.sport === "football" && scored ? withoutFlag(next) : next;
+      if (state.sport !== "football") return next;
+      if (!scored) return withoutTags(next, "touchdown");
+      const cleared = withoutFlag(next);
+      return action.delta === 6 && state.celebrations
+        ? withTag(cleared, "touchdown", teamName(action.team), TOUCHDOWN_MS, now, action.team)
+        : cleared;
     }
     case "scoreSet":
       return { ...state, teams: updateTeam(state, action.team, { score: action.score }) };
@@ -382,6 +402,8 @@ export function applyScoreboardAction(state: ScoreboardState, action: Scoreboard
       return { ...state, note: action.value.slice(0, 60) };
     case "position":
       return { ...state, position: action.position };
+    case "celebrations":
+      return action.on ? { ...state, celebrations: true } : withoutTags({ ...state, celebrations: false }, "touchdown");
     case "sport":
       return defaultScoreboard(action.sport, state);
     case "reset":

@@ -290,6 +290,17 @@ export function FootballCard({ scoreboard, dispatch, now }: CardProps) {
       <Toggle pressed={flag} tone="amber" onClick={() => dispatch({ type: "flag" })} className="h-12 text-base">
         {flag ? "Flag on the field · tap to pick up" : "Throw flag"}
       </Toggle>
+      <label className="flex items-center justify-between gap-3 rounded-md border border-input px-3 py-2.5 text-sm">
+        <span>
+          Touchdown animation
+          <span className="block text-xs text-muted-foreground">Plays on +6. Tap −1 right after to cancel it.</span>
+        </span>
+        <Switch
+          checked={scoreboard.celebrations}
+          onCheckedChange={(on) => dispatch({ type: "celebrations", on })}
+          aria-label="Play the touchdown animation on +6"
+        />
+      </label>
       <p className="text-xs text-muted-foreground">
         The down shows above the team with the ball. A flag turns it yellow until you pick it up, set a new down, or someone scores.
       </p>

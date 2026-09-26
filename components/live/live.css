@@ -69,6 +69,14 @@
 .lv-pts { width: 150px; align-self: stretch; background: #0b6e3e; display: flex; align-items: center; justify-content: center; padding-right: 26px; flex: none; }
 .lv-pts .lv-sc { min-width: 0; text-align: center; font-size: 60px; }
 
+/* Touchdown: wipes out from the tile over the bar (ease-out), holds, wipes back (ease-in). */
+.lv-td { position: absolute; top: 0; height: 96px; background: #0b6e3e; border-radius: 0 96px 0 0; display: flex; align-items: center; padding-left: 36px; overflow: hidden; animation: lv-wipe 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.lv-td.out { animation: lv-wipe-out 0.5s cubic-bezier(0.7, 0, 0.84, 0) both; }
+.lv-td-text { display: flex; flex-direction: column; gap: 6px; animation: lv-rise 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both; }
+.lv-td-text b { font-weight: 600; font-size: 54px; line-height: 1; letter-spacing: 0.06em; text-transform: uppercase; }
+.lv-td-text small { font-weight: 500; font-size: 22px; line-height: 1; letter-spacing: 0.18em; text-transform: uppercase; color: #dce2de; }
+.lv-td.out .lv-td-text { animation: lv-fade-out 0.25s cubic-bezier(0.7, 0, 0.84, 0) both; }
+
 /* Lower thirds */
 .lv-l3 { position: absolute; bottom: 108px; display: flex; align-items: stretch; }
 .lv-l3 .lv-tile { width: 126px; height: 126px; }
@@ -143,5 +151,5 @@
 @keyframes lv-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes lv-bump { from { transform: translateY(10px); opacity: 0; } to { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
-  .lv-play *, .lv-exit *, .lv-sc, .lv-tag { animation: none !important; }
+  .lv-play *, .lv-exit *, .lv-sc, .lv-tag, .lv-td, .lv-td-text { animation: none !important; }
 }

@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element -- broadcast graphics use plain img so OBS renders them without the image optimizer. */
 import type { CSSProperties } from "react";
 import {
+  TOUCHDOWN_EXIT_MS,
   activeTags,
   clockMs,
   downText,
@@ -142,6 +143,23 @@ function BarWithTier({ state, now }: BugProps) {
   );
 }
 
+type Tag = ScoreboardState["tags"][number];
+
+/** Green TOUCHDOWN plate that wipes out from the tile over the whole bar, holds, then wipes back. */
+function Touchdown({ tag, state, now, width }: { tag: Tag; state: ScoreboardState; now: number; width: number }) {
+  const team = tag.team ?? 0;
+  const leaving = tag.until - now <= TOUCHDOWN_EXIT_MS;
+  return (
+    <div className={`lv-td ${leaving ? "out" : ""}`} style={{ left: 96, width }} role="status">
+      <span className="lv-chip" style={{ background: state.teams[team].color }} />
+      <span className="lv-td-text">
+        <b>Touchdown</b>
+        <small>{tag.text}</small>
+      </span>
+    </div>
+  );
+}
+
 /** Football: bottom-center bar, clock in the middle, down & distance above the team with the ball (NBC/FOX pattern). */
 function FootballCenter({ state, now }: BugProps) {
   const down = downText(state, now);
@@ -149,6 +167,7 @@ function FootballCenter({ state, now }: BugProps) {
   const layout = nameLayout(state, 380, 500, 204);
   const downLeft = state.possession === 1 ? 96 + layout.cell + 170 : 96;
   const timeouts = activeTags(state, now, "timeout");
+  const touchdown = activeTags(state, now, "touchdown").at(-1);
   return (
     <>
       <div className="lv-row">
@@ -166,6 +185,7 @@ function FootballCenter({ state, now }: BugProps) {
             {down}
           </span>
         ) : null}
+        {touchdown ? <Touchdown key={touchdown.id} tag={touchdown} state={state} now={now} width={layout.cell * 2 + 170 + 56} /> : null}
       </div>
       {timeouts.length ? (
         <div className="lv-temp" style={{ left: 96 }}>

@@ -11,6 +11,7 @@ import {
   periodLabel,
   pruneTags,
   scoreboardSchema,
+  TOUCHDOWN_MS,
   type ScoreboardAction,
   type ScoreboardState
 } from "@/src/lib/live/scoreboard";
@@ -120,6 +121,37 @@ describe("live scoreboard", () => {
       expect(downText(applyScoreboardAction(thrown, { type: "down", down: 3 }, T0), T0)).toBe("3rd & 10");
       expect(downText(applyScoreboardAction(thrown, { type: "score", team: 0, delta: 3 }, T0), T0)).toBe("");
       expect(downText(thrown, T0 + 2 * 60_000)).toBe("2nd & 10");
+    });
+
+    it("plays a touchdown on +6 for that team, and −1 cancels it", () => {
+      const state = run(defaultScoreboard("football"), [
+        { type: "team", team: 1, name: "Gunn" },
+        { type: "score", team: 1, delta: 6 }
+      ]);
+      const [touchdown] = activeTags(state, T0 + 1000, "touchdown");
+      expect(touchdown).toMatchObject({ text: "GUNN", team: 1 });
+      expect(activeTags(state, T0 + TOUCHDOWN_MS, "touchdown")).toHaveLength(0);
+      const cancelled = applyScoreboardAction(state, { type: "score", team: 1, delta: -1 }, T0 + 500);
+      expect(activeTags(cancelled, T0 + 600, "touchdown")).toHaveLength(0);
+      expect(cancelled.teams[1].score).toBe(5);
+    });
+
+    it("skips the touchdown when the animation is off, and only in football", () => {
+      const off = run(defaultScoreboard("football"), [{ type: "celebrations", on: false }, { type: "score", team: 0, delta: 6 }]);
+      expect(activeTags(off, T0, "touchdown")).toHaveLength(0);
+      expect(defaultScoreboard("football", off).celebrations).toBe(false);
+      const hoops = run(defaultScoreboard("basketball"), [{ type: "score", team: 0, delta: 6 }]);
+      expect(activeTags(hoops, T0, "touchdown")).toHaveLength(0);
+      const fieldGoal = run(defaultScoreboard("football"), [{ type: "score", team: 0, delta: 3 }]);
+      expect(activeTags(fieldGoal, T0, "touchdown")).toHaveLength(0);
+    });
+
+    it("keeps boards saved before the animation setting existed", () => {
+      const saved: Record<string, unknown> = { ...run(defaultScoreboard("football"), [{ type: "score", team: 0, delta: 7 }]) };
+      delete saved.celebrations;
+      const parsed = parseScoreboard(saved);
+      expect(parsed.teams[0].score).toBe(7);
+      expect(parsed.celebrations).toBe(true);
     });
 
     it("gives a timeout back", () => {

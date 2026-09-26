@@ -115,8 +115,9 @@ Semester 1 livestream points remain ungraded and excluded from totals until **No
 `src/lib/package-revisions.ts`.
 
 - After the effective deadline (final cut date + approved extension), a package with no final cut that cleared all three stages is **0/50**.
-- Once that cut is submitted, **every executive producer** enters a true quality score out of 50. The official quality score is the average, rounded to the nearest tenth. Associate producers do not grade. Late 20%/30% is a separate turn-in penalty.
-- After the first graded final cut, a score **below 75%** can take one second revision, capped at **37/50**. The late penalty still applies and is not removed by the second revision.
+- Once that cut is submitted, **every executive producer** scores **each member** of the group: **quality out of 25** and **effort out of 25** (50 total). A member's official score is the average of the executives' totals, rounded to the nearest tenth. Associate producers do not grade. Late 20%/30% is a separate turn-in penalty, applied per member.
+- Scores entered before Sept 26, 2026 as one group score out of 50 stay as they were. EPs can re-score those groups per member.
+- Revisions are per member. After the first graded final cut, if **any member** scores **below 75%**, the group can upload one second revision. Members below 75% are re-scored, capped at **37/50**; members at 75% or above keep their grade. The late penalty still applies and is not removed by the second revision.
 
 ## Extensions
 

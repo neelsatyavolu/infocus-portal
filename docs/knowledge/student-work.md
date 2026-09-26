@@ -8,7 +8,7 @@ Sidebar **The Cycle** (students, and APs who are members of a package):
 | Brainstorming | `/brainstorming` | Three proof-of-contact images + brainstorm Google Doc |
 | A-roll/B-roll | `/a-roll` | Footage uploads to Drive |
 | Initial Cut | `/initial-cut` | Polished draft; revisions until stage 1–3 pass |
-| Final Cut | `/final-cut` | After stage 3; the video plus a one-line headline (e.g. "Palo Alto Airport Day brings the community together"); quality scored by every EP |
+| Final Cut | `/final-cut` | After stage 3; the video plus a one-line headline (e.g. "Palo Alto Airport Day brings the community together"); every EP scores each member on quality /25 and effort /25 |
 
 Tabs unlock in order. Later tabs are visible but disabled.
 

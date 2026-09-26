@@ -8,7 +8,11 @@ import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CycleGradeReleaseCard } from "@/components/package-cycle/cycle-grade-release-card";
-import { FinalCutGradeCard, type FinalCutGradeCardData } from "@/components/package-cycle/final-cut-grade-card";
+import {
+  FinalCutGradeCard,
+  type FinalCutGradeCardData,
+  type FinalCutScoreInput
+} from "@/components/package-cycle/final-cut-grade-card";
 import { FinalCutHeadlineDialog } from "@/components/package-cycle/final-cut-headline-dialog";
 import { ApproveFeedbackDialog } from "@/components/package-cycle/approve-feedback-dialog";
 import ProducerFeedbackDialog from "@/components/package-cycle/producer-feedback-dialog";
@@ -120,7 +124,6 @@ export function StageWorkspace({
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [uploadItems, setUploadItems] = useState<UploadProgressToastItem[]>([]);
-  const [awarded, setAwarded] = useState("");
   const [gradePreview, setGradePreview] = useState<string | null>(null);
   const [savingFeedback, setSavingFeedback] = useState(false);
   const [publishingGrades, setPublishingGrades] = useState(false);
@@ -145,9 +148,6 @@ export function StageWorkspace({
     try {
       const next = await fetchView(slug, rowId, reviewStage);
       setView(next);
-      if (next.finalCutGrade?.myPoints != null) {
-        setAwarded(String(next.finalCutGrade.myPoints));
-      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to load.");
     } finally {
@@ -346,49 +346,34 @@ export function StageWorkspace({
     }
   }
 
-  async function saveGrade() {
+  async function saveGrade(scores: FinalCutScoreInput[]) {
     if (!view?.row) return;
-    const awardedPoints = Number(awarded);
     const response = await fetch("/api/package-cycle/grade", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ rowId: view.row.id, awardedPoints })
+      body: JSON.stringify({ rowId: view.row.id, scores })
     });
     const body = (await response.json()) as {
-      data?: {
-        awardedPoints: number | null;
-        officialPoints: number | null;
-        daysLate: number;
-        penaltyMultiplier: number;
-        revisionCount?: number;
-        secondRevisionCapped?: boolean;
-        complete?: boolean;
-        pendingCount?: number;
-      };
+      data?: { savedCount: number; gradedCount: number; complete: boolean };
       error?: { message?: string };
     };
     if (!response.ok || !body.data) {
-      toast.error(body.error?.message ?? "Could not save grade.");
+      toast.error(body.error?.message ?? "Could not save scores.");
       return;
     }
-    if (!body.data.complete || body.data.awardedPoints == null || body.data.officialPoints == null) {
-      setGradePreview(
-        body.data.pendingCount
-          ? `Saved. Waiting on ${body.data.pendingCount} executive producer${body.data.pendingCount === 1 ? "" : "s"}.`
-          : "Saved."
-      );
-      toast.success("Score saved.");
+    if (body.data.savedCount === 0) {
+      toast.error("Nothing saved. Those members keep their earlier grade.");
       await load();
       return;
     }
-    const late =
-      body.data.penaltyMultiplier > 0
-        ? ` · ${Math.round(body.data.penaltyMultiplier * 100)}% late (${body.data.daysLate}d)`
-        : "";
-    const second =
-      body.data.secondRevisionCapped || (body.data.revisionCount ?? 0) >= 2 ? " · second revision cap 75%" : "";
-    setGradePreview(`Average ${body.data.awardedPoints} → official ${body.data.officialPoints}${late}${second}`);
-    toast.success("Grade saved.");
+    setGradePreview(
+      body.data.complete
+        ? "Saved. Every member has an official grade."
+        : body.data.gradedCount > 0
+          ? `Saved. ${body.data.gradedCount} member${body.data.gradedCount === 1 ? "" : "s"} now have an official grade.`
+          : "Saved. Waiting on other executive producers."
+    );
+    toast.success("Scores saved.");
     await load();
   }
 
@@ -862,9 +847,7 @@ export function StageWorkspace({
       {producerChrome && slug === "final-cut" && view.finalCutGrade ? (
         <FinalCutGradeCard
           grade={view.finalCutGrade}
-          awarded={awarded}
-          onAwardedChange={setAwarded}
-          onSave={() => void saveGrade()}
+          onSave={saveGrade}
           queued={Boolean(view.row?.queuedForAirAt)}
           onQueue={() => void queue(!view.row?.queuedForAirAt)}
           message={gradePreview}

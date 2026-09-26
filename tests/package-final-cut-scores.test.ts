@@ -2,11 +2,21 @@ import { describe, expect, it } from "vitest";
 import {
   averageExecutiveScores,
   canGradeFinalCut,
+  clampFinalCutPart,
   clampFinalCutScore,
   executiveGradeStatus,
-  roundToTenth
+  gradersDoneWithGroup,
+  legacyGroupGradeComplete,
+  memberGradeStatus,
+  roundToTenth,
+  type FinalCutMemberScore
 } from "@/src/lib/package-final-cut-scores";
-import { previewFinalCutOfficial } from "@/src/lib/package-revisions";
+import {
+  memberGradeLocked,
+  membersAwaitingFinalCutScores,
+  nextMemberRevisionCount,
+  previewFinalCutOfficial
+} from "@/src/lib/package-revisions";
 
 describe("executive final-cut scores", () => {
   it("rounds the average to the nearest tenth", () => {
@@ -89,5 +99,85 @@ describe("executive final-cut scores", () => {
       official: 30,
       revisionCapped: true
     });
+  });
+});
+
+function memberScore(graderUserId: string, memberUserId: string | null, quality: number, effort: number): FinalCutMemberScore {
+  return { graderUserId, memberUserId, points: quality + effort, qualityPoints: quality, effortPoints: effort };
+}
+
+describe("per-member final-cut scores", () => {
+  it("clamps quality and effort to 0–25", () => {
+    expect(clampFinalCutPart(25.4)).toBe(25);
+    expect(clampFinalCutPart(-2)).toBe(0);
+    expect(clampFinalCutPart(18.25)).toBe(18.3);
+  });
+
+  it("averages each member separately once every executive scored them", () => {
+    const scores = [
+      memberScore("ep1", "abby", 20, 25),
+      memberScore("ep2", "abby", 22, 23),
+      memberScore("ep1", "otto", 20, 10)
+    ];
+    const abby = memberGradeStatus({ requiredGraderIds: ["ep1", "ep2"], scores, memberUserId: "abby" });
+    expect(abby.complete).toBe(true);
+    expect(abby.average).toBe(45);
+    expect(abby.qualityAverage).toBe(21);
+    expect(abby.effortAverage).toBe(24);
+
+    const otto = memberGradeStatus({ requiredGraderIds: ["ep1", "ep2"], scores, memberUserId: "otto" });
+    expect(otto.complete).toBe(false);
+    expect(otto.average).toBeNull();
+    expect(otto.qualityAverage).toBeNull();
+    expect(otto.pendingIds).toEqual(["ep2"]);
+  });
+
+  it("ignores legacy whole-group scores for members", () => {
+    const scores: FinalCutMemberScore[] = [
+      { graderUserId: "ep1", memberUserId: null, points: 44, qualityPoints: null, effortPoints: null }
+    ];
+    expect(memberGradeStatus({ requiredGraderIds: ["ep1"], scores, memberUserId: "abby" }).complete).toBe(false);
+    expect(legacyGroupGradeComplete({ requiredGraderIds: ["ep1"], scores })).toBe(true);
+    expect(legacyGroupGradeComplete({ requiredGraderIds: ["ep1", "ep2"], scores })).toBe(false);
+  });
+
+  it("marks an executive done only after scoring every member", () => {
+    const scores = [
+      memberScore("ep1", "abby", 20, 20),
+      memberScore("ep1", "otto", 20, 20),
+      memberScore("ep2", "abby", 20, 20),
+      { graderUserId: "ep3", memberUserId: null, points: 40, qualityPoints: null, effortPoints: null }
+    ];
+    expect(gradersDoneWithGroup(scores, ["abby", "otto"]).sort()).toEqual(["ep1", "ep3"]);
+  });
+});
+
+describe("per-member revisions", () => {
+  it("counts a first grade, an edit, and a regrade on a new cut", () => {
+    expect(nextMemberRevisionCount({ alreadyGraded: false, revisionCount: 0, scoresWereComplete: false })).toBe(1);
+    expect(nextMemberRevisionCount({ alreadyGraded: true, revisionCount: 1, scoresWereComplete: true })).toBe(1);
+    expect(nextMemberRevisionCount({ alreadyGraded: true, revisionCount: 1, scoresWereComplete: false })).toBe(2);
+  });
+
+  it("locks members at 75% or more while the group revises for someone else", () => {
+    expect(memberGradeLocked({ awardedPoints: 45, revisionCount: 1, scoresComplete: false })).toBe(true);
+    expect(memberGradeLocked({ awardedPoints: 30, revisionCount: 1, scoresComplete: false })).toBe(false);
+    expect(memberGradeLocked({ awardedPoints: 45, revisionCount: 1, scoresComplete: true })).toBe(false);
+    expect(memberGradeLocked({ awardedPoints: null, revisionCount: 0, scoresComplete: false })).toBe(false);
+  });
+});
+
+describe("members awaiting scores", () => {
+  it("drops members locked at 75%+ while the group revises", () => {
+    const scores = [memberScore("ep1", "otto", 15, 15)];
+    const grades = [
+      { userId: "abby", awardedFinalCutPoints: 45, revisionCount: 1 },
+      { userId: "otto", awardedFinalCutPoints: 30, revisionCount: 1 },
+      { userId: "sage", awardedFinalCutPoints: 44, revisionCount: 1 }
+    ];
+    expect(membersAwaitingFinalCutScores(["abby", "otto", "sage"], scores, grades)).toEqual(["otto"]);
+    expect(
+      membersAwaitingFinalCutScores(["abby"], [memberScore("ep1", "abby", 20, 20)], grades)
+    ).toEqual(["abby"]);
   });
 });

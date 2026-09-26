@@ -3,8 +3,10 @@ import { MediaStatus, type PlatformRole } from "@prisma/client";
 import { hasPlatformRole, isExecutiveProducer } from "@/src/lib/platform-admin";
 import {
   canGradeFinalCut,
-  clampFinalCutScore,
-  executiveGradeStatus
+  clampFinalCutPart,
+  legacyGroupGradeComplete,
+  memberGradeStatus,
+  roundToTenth
 } from "@/src/lib/package-final-cut-scores";
 import {
   applyLatePenalty,
@@ -32,7 +34,10 @@ import { sendGradeEmails } from "@/src/lib/email";
 import { gradePercentage, gradeTotal } from "@/src/lib/package-grades";
 import {
   capAwardedForRevision,
+  groupAllowsSecondFinalCut,
   isEligibleForSecondRevision,
+  memberGradeLocked,
+  nextMemberRevisionCount,
   previewFinalCutOfficial
 } from "@/src/lib/package-revisions";
 import { resolvePlaybackUrl, resolveThumbnailUrl } from "@/src/lib/media-playback";
@@ -209,13 +214,32 @@ async function hydrateMediaCards(
   );
 }
 
+export type FinalCutMemberGrade = {
+  userId: string;
+  name: string | null;
+  email: string | null;
+  myQuality: number | null;
+  myEffort: number | null;
+  /** Scored 75%+ earlier; keeps that grade while the group revises for someone else. */
+  locked: boolean;
+  complete: boolean;
+  pendingCount: number;
+  qualityAverage: number | null;
+  effortAverage: number | null;
+  average: number | null;
+  afterRevisionCap: number | null;
+  revisionCapped: boolean;
+  officialPoints: number | null;
+  revisionCount: number;
+  secondRevisionEligible: boolean;
+  daysLate: number;
+  penaltyMultiplier: number;
+};
+
 export type FinalCutGradePanel = {
   canGrade: boolean;
+  /** Every member is graded (or locked). */
   complete: boolean;
-  average: number | null;
-  officialPoints: number | null;
-  pendingCount: number;
-  myPoints: number | null;
   viewerUserId: string;
   deadlineAt: string | null;
   turnedInAt: string | null;
@@ -223,20 +247,18 @@ export type FinalCutGradePanel = {
   daysLate: number;
   penaltyMultiplier: number;
   blocksSecondRevision: boolean;
-  revisionCount: number;
+  /** At least one member can take a second revision. */
   secondRevisionEligible: boolean;
-  qualityPoints: number | null;
-  afterRevisionCap: number | null;
-  revisionCapped: boolean;
   feedback: string;
   published: boolean;
   publishedAt: string | null;
-  scores: Array<{
+  members: FinalCutMemberGrade[];
+  graders: Array<{
     userId: string;
     name: string | null;
     email: string | null;
-    points: number | null;
     required: boolean;
+    scoredCount: number;
   }>;
 };
 
@@ -244,7 +266,6 @@ async function loadFinalCutGradePanel(input: {
   rowId: string;
   role: PlatformRole | null;
   userId: string;
-  officialPoints?: number | null;
 }): Promise<FinalCutGradePanel> {
   const [graders, scores, row] = await Promise.all([
     loadRequiredFinalCutGraders(),
@@ -259,10 +280,15 @@ async function loadFinalCutGradePanel(input: {
         extension: true,
         finalCutMediaItem: { select: { createdAt: true } },
         extensionRequests: { where: { status: "APPROVED" }, select: { requestedDays: true, grantedDays: true, grantedUserIds: true } },
-        members: { select: { userId: true } }
+        members: {
+          orderBy: { createdAt: "asc" },
+          select: { userId: true, user: { select: { id: true, name: true, nickname: true, email: true } } }
+        }
       }
     })
   ]);
+  const members = row?.members ?? [];
+  const memberIds = members.map((member) => member.userId);
   const [cycle, grades] = row
     ? await Promise.all([
         prisma.packageCycle.findUnique({
@@ -270,10 +296,7 @@ async function loadFinalCutGradePanel(input: {
           select: { finalCutDate: true }
         }),
         prisma.packageGrade.findMany({
-          where: {
-            cycleNumber: row.cycleNumber,
-            userId: { in: row.members.map((member) => member.userId) }
-          },
+          where: { cycleNumber: row.cycleNumber, userId: { in: memberIds } },
           select: {
             userId: true,
             revisionCount: true,
@@ -286,40 +309,79 @@ async function loadFinalCutGradePanel(input: {
         })
       ])
     : [null, []];
-  const memberIds = row?.members.map((member) => member.userId) ?? [];
-  const grade = grades[0] ?? null;
+  const gradeByMember = new Map(grades.map((grade) => [grade.userId, grade]));
   const latestPublishedAt = grades.reduce<Date | null>((latest, entry) => {
     if (!entry.publishedAt) return latest;
     if (!latest || entry.publishedAt > latest) return entry.publishedAt;
     return latest;
   }, null);
 
-  const status = executiveGradeStatus({
-    requiredGraderIds: graders.map((grader) => grader.userId),
-    scores: scores.map((score) => ({ graderUserId: score.graderUserId, points: score.points }))
-  });
-  const requiredIds = new Set(graders.map((grader) => grader.userId));
-  const extras = scores.filter((score) => !requiredIds.has(score.graderUserId));
-  const pointsByGrader = new Map(scores.map((score) => [score.graderUserId, score.points]));
-  // Group panel shows the longest grant; per-member penalties are applied when grading.
+  const requiredGraderIds = graders.map((grader) => grader.userId);
+  const legacyComplete = legacyGroupGradeComplete({ requiredGraderIds, scores });
+  // Group panel shows the longest grant; each member row uses their own grant.
   const extensionDays = approvedExtensionDaysFor(row);
   const deadline = effectiveDeadline(cycle?.finalCutDate ?? null, extensionDays);
-  const turnedIn = grade?.turnedInDate ?? row?.finalCutMediaItem?.createdAt ?? null;
+  const turnedIn = grades.find((grade) => grade.turnedInDate)?.turnedInDate ?? row?.finalCutMediaItem?.createdAt ?? null;
   const penalty = calculateLatePenalty(deadline, turnedIn);
-  const revisionCount = grade?.revisionCount ?? 0;
-  const preview = previewFinalCutOfficial({
-    average: status.average,
-    revisionCount: revisionCount > 0 ? revisionCount : 1,
-    penaltyMultiplier: penalty.penaltyMultiplier
+
+  const memberGrades: FinalCutMemberGrade[] = members.map((member) => {
+    const grade = gradeByMember.get(member.userId);
+    const status = memberGradeStatus({ requiredGraderIds, scores, memberUserId: member.userId });
+    const mine = scores.find(
+      (score) => score.graderUserId === input.userId && score.memberUserId === member.userId
+    );
+    const revisionCount = grade?.revisionCount ?? 0;
+    const awarded = grade?.awardedFinalCutPoints ?? null;
+    const memberPenalty = calculateLatePenalty(
+      effectiveDeadline(cycle?.finalCutDate ?? null, approvedExtensionDaysFor(row, member.userId)),
+      turnedIn
+    );
+    const preview = previewFinalCutOfficial({
+      average: status.average,
+      revisionCount: revisionCount > 0 ? revisionCount : 1,
+      penaltyMultiplier: memberPenalty.penaltyMultiplier
+    });
+    return {
+      userId: member.userId,
+      name: userDisplayName(member.user) || member.user.name,
+      email: member.user.email,
+      myQuality: mine?.qualityPoints ?? null,
+      myEffort: mine?.effortPoints ?? null,
+      locked: memberGradeLocked({
+        awardedPoints: awarded,
+        revisionCount,
+        scoresComplete: status.complete || legacyComplete
+      }),
+      complete: status.complete,
+      pendingCount: status.pendingIds.length,
+      qualityAverage: status.qualityAverage,
+      effortAverage: status.effortAverage,
+      average: status.average,
+      afterRevisionCap: preview.afterRevisionCap,
+      revisionCapped: preview.revisionCapped,
+      officialPoints: grade?.finalCutPoints != null && awarded != null ? grade.finalCutPoints : preview.official,
+      revisionCount,
+      secondRevisionEligible: isEligibleForSecondRevision(awarded ?? status.average, revisionCount),
+      daysLate: memberPenalty.daysLate,
+      penaltyMultiplier: memberPenalty.penaltyMultiplier
+    };
   });
+
+  const scoredCountByGrader = new Map<string, number>();
+  for (const score of scores) {
+    if (score.memberUserId === null || !memberIds.includes(score.memberUserId)) continue;
+    scoredCountByGrader.set(score.graderUserId, (scoredCountByGrader.get(score.graderUserId) ?? 0) + 1);
+  }
+  const requiredIds = new Set(requiredGraderIds);
+  const extras = new Map(
+    scores
+      .filter((score) => score.memberUserId !== null && !requiredIds.has(score.graderUserId))
+      .map((score) => [score.graderUserId, score.grader])
+  );
 
   return {
     canGrade: canGradeFinalCut(input.role),
-    complete: status.complete,
-    average: status.average,
-    officialPoints: input.officialPoints ?? grade?.finalCutPoints ?? preview.official,
-    pendingCount: status.pendingIds.length,
-    myPoints: pointsByGrader.get(input.userId) ?? null,
+    complete: memberGrades.length > 0 && memberGrades.every((member) => member.complete || member.locked),
     viewerUserId: input.userId,
     deadlineAt: deadline?.toISOString() ?? null,
     turnedInAt: turnedIn?.toISOString() ?? null,
@@ -327,31 +389,25 @@ async function loadFinalCutGradePanel(input: {
     daysLate: penalty.daysLate,
     penaltyMultiplier: penalty.penaltyMultiplier,
     blocksSecondRevision: penalty.blocksSecondRevision,
-    revisionCount,
-    secondRevisionEligible: isEligibleForSecondRevision(
-      grade?.awardedFinalCutPoints ?? status.average,
-      revisionCount
-    ),
-    qualityPoints: preview.quality,
-    afterRevisionCap: preview.afterRevisionCap,
-    revisionCapped: preview.revisionCapped,
+    secondRevisionEligible: memberGrades.some((member) => member.secondRevisionEligible),
     feedback: sharedGradeFeedback(grades),
     published: cycleGradesArePublished(grades, memberIds),
     publishedAt: latestPublishedAt?.toISOString() ?? null,
-    scores: [
+    members: memberGrades,
+    graders: [
       ...graders.map((grader) => ({
         userId: grader.userId,
         name: userDisplayName(grader) || grader.name,
         email: grader.email,
-        points: pointsByGrader.get(grader.userId) ?? null,
-        required: true
+        required: true,
+        scoredCount: scoredCountByGrader.get(grader.userId) ?? 0
       })),
-      ...extras.map((score) => ({
-        userId: score.graderUserId,
-        name: userDisplayName(score.grader) || score.grader.name,
-        email: score.grader.email,
-        points: score.points,
-        required: false
+      ...[...extras.entries()].map(([userId, grader]) => ({
+        userId,
+        name: userDisplayName(grader) || grader.name,
+        email: grader.email,
+        required: false,
+        scoredCount: scoredCountByGrader.get(userId) ?? 0
       }))
     ]
   };
@@ -499,21 +555,18 @@ export async function loadCycleStageView(input: {
   const approvalStage = row.approval?.stage ?? "DRAFT";
   const unlocked = isProducer || studentStageUnlocked(input.slug, row, { stage: approvalStage });
   const memberIds = row.members.map((member) => member.userId);
-  const existingGrade =
+  const existingGrades =
     input.slug === "final-cut"
-      ? await prisma.packageGrade.findFirst({
+      ? await prisma.packageGrade.findMany({
           where: {
             cycleNumber: row.cycleNumber,
             userId: { in: memberIds },
             awardedFinalCutPoints: { not: null }
           },
-          select: { awardedFinalCutPoints: true, revisionCount: true, finalCutPoints: true }
+          select: { awardedFinalCutPoints: true, revisionCount: true }
         })
-      : null;
-  const allowSecondFinalCut = isEligibleForSecondRevision(
-    existingGrade?.awardedFinalCutPoints ?? null,
-    existingGrade?.revisionCount ?? 0
-  );
+      : [];
+  const allowSecondFinalCut = groupAllowsSecondFinalCut(existingGrades);
   const canUpload =
     isMember &&
     studentCanUpload(input.slug, row, { stage: approvalStage }, { allowSecondFinalCut }) &&
@@ -605,12 +658,11 @@ export async function loadCycleStageView(input: {
   }
 
   const finalCutGrade =
-    input.slug === "final-cut"
+    input.slug === "final-cut" && isProducer
       ? await loadFinalCutGradePanel({
           rowId: row.id,
           role: input.role,
-          userId: input.userId,
-          officialPoints: existingGrade?.finalCutPoints ?? null
+          userId: input.userId
         })
       : null;
 
@@ -693,7 +745,7 @@ export async function initCycleStageUpload(input: {
   });
 
   if (input.slug === "final-cut" && row.finalCutMediaItemId) {
-    const existingGrade = await prisma.packageGrade.findFirst({
+    const existingGrades = await prisma.packageGrade.findMany({
       where: {
         cycleNumber: row.cycleNumber,
         userId: { in: row.members.map((member) => member.userId) },
@@ -701,12 +753,7 @@ export async function initCycleStageUpload(input: {
       },
       select: { awardedFinalCutPoints: true, revisionCount: true }
     });
-    if (
-      !isEligibleForSecondRevision(
-        existingGrade?.awardedFinalCutPoints ?? null,
-        existingGrade?.revisionCount ?? 0
-      )
-    ) {
+    if (!groupAllowsSecondFinalCut(existingGrades)) {
       throw new Error("CONFLICT");
     }
   }
@@ -960,14 +1007,13 @@ export async function saveFinalCutGrade(input: {
   rowId: string;
   graderUserId: string;
   role: PlatformRole | null;
-  awardedPoints: number;
+  scores: Array<{ memberUserId: string; qualityPoints: number; effortPoints: number }>;
   turnedInDate?: Date | null;
 }) {
   if (!isExecutiveProducer(input.role)) {
     throw new Error("FORBIDDEN");
   }
 
-  const points = clampFinalCutScore(input.awardedPoints);
   const row = await prisma.packageProgressRow.findUniqueOrThrow({
     where: { id: input.rowId },
     include: {
@@ -976,135 +1022,107 @@ export async function saveFinalCutGrade(input: {
       extensionRequests: { where: { status: "APPROVED" }, select: { requestedDays: true, grantedDays: true, grantedUserIds: true } }
     }
   });
+  const memberIds = row.members.map((member) => member.userId);
+  if (input.scores.some((score) => !memberIds.includes(score.memberUserId))) {
+    throw new Error("BAD_REQUEST");
+  }
 
-  const [requiredGraders, existingScores, cycle, existingGrade] = await Promise.all([
+  const [requiredGraders, scoresBefore, cycle, existingGrades] = await Promise.all([
     loadRequiredFinalCutGraders(),
     prisma.packageFinalCutScore.findMany({
       where: { rowId: row.id },
-      select: { graderUserId: true, points: true }
+      select: { graderUserId: true, memberUserId: true, points: true, qualityPoints: true, effortPoints: true }
     }),
     prisma.packageCycle.findUnique({
       where: { cycleNumber: row.cycleNumber },
       select: { finalCutDate: true }
     }),
-    prisma.packageGrade.findFirst({
-      where: {
-        cycleNumber: row.cycleNumber,
-        userId: { in: row.members.map((member) => member.userId) }
-      },
-      select: { awardedFinalCutPoints: true, revisionCount: true }
+    prisma.packageGrade.findMany({
+      where: { cycleNumber: row.cycleNumber, userId: { in: memberIds } },
+      select: { userId: true, awardedFinalCutPoints: true, revisionCount: true }
     })
   ]);
 
-  const requiredIds = requiredGraders.map((grader) => grader.userId);
-  const before = executiveGradeStatus({
-    requiredGraderIds: requiredIds,
-    scores: existingScores
-  });
-
-  await prisma.packageFinalCutScore.upsert({
-    where: { rowId_graderUserId: { rowId: row.id, graderUserId: input.graderUserId } },
-    create: { rowId: row.id, graderUserId: input.graderUserId, points },
-    update: { points }
-  });
-
-  const nextScores = [
-    ...existingScores.filter((score) => score.graderUserId !== input.graderUserId),
-    { graderUserId: input.graderUserId, points }
-  ];
-  const after = executiveGradeStatus({
-    requiredGraderIds: requiredIds,
-    scores: nextScores
-  });
-
-  if (!after.complete || after.average === null) {
-    const panel = await loadFinalCutGradePanel({
-      rowId: row.id,
-      role: input.role,
-      userId: input.graderUserId
-    });
-    return {
-      ...panel,
-      awardedPoints: null,
-      officialPoints: null,
-      revisionCount: existingGrade?.revisionCount ?? 0,
-      secondRevisionCapped: false,
-      penaltyMultiplier: 0,
-      daysLate: 0,
-      blocksSecondRevision: false,
-      deadline: null,
-      turnedInDate: null
-    };
-  }
-
-  const alreadyGraded =
-    existingGrade?.awardedFinalCutPoints !== null && existingGrade?.awardedFinalCutPoints !== undefined;
-  const nextRevisionCount =
-    alreadyGraded && existingGrade
-      ? before.complete
-        ? existingGrade.revisionCount
-        : Math.max(existingGrade.revisionCount, 1) + 1
-      : 1;
-  const cappedAwarded = capAwardedForRevision(after.average, nextRevisionCount);
-
-  const turnedIn = input.turnedInDate ?? row.finalCutMediaItem?.createdAt ?? new Date();
-  // Extensions can cover only some members, so the late penalty is per member.
-  const officialForMember = (userId?: string) => {
-    const memberDeadline = effectiveDeadline(
-      cycle?.finalCutDate ?? null,
-      approvedExtensionDaysFor(row, userId)
-    );
-    const memberPenalty = calculateLatePenalty(memberDeadline, turnedIn);
-    return {
-      deadline: memberDeadline,
-      penalty: memberPenalty,
-      official: officialFinalCutPoints(cappedAwarded, memberPenalty.penaltyMultiplier)
-    };
-  };
-  const { deadline, penalty, official } = officialForMember();
-
-  await prisma.$transaction(
-    row.members.map((member) => {
-      const memberOfficial = officialForMember(member.userId).official;
-      return prisma.packageGrade.upsert({
-        where: { cycleNumber_userId: { cycleNumber: row.cycleNumber, userId: member.userId } },
-        create: {
-          cycleNumber: row.cycleNumber,
-          userId: member.userId,
-          awardedFinalCutPoints: cappedAwarded,
-          finalCutPoints: memberOfficial,
-          revisionCount: nextRevisionCount,
-          turnedInDate: turnedIn
-        },
-        update: {
-          awardedFinalCutPoints: cappedAwarded,
-          finalCutPoints: memberOfficial,
-          revisionCount: nextRevisionCount,
-          turnedInDate: turnedIn
-        }
+  const requiredGraderIds = requiredGraders.map((grader) => grader.userId);
+  const legacyComplete = legacyGroupGradeComplete({ requiredGraderIds, scores: scoresBefore });
+  const gradeByMember = new Map(existingGrades.map((grade) => [grade.userId, grade]));
+  const scoresWereComplete = (memberUserId: string) =>
+    legacyComplete || memberGradeStatus({ requiredGraderIds, scores: scoresBefore, memberUserId }).complete;
+  // Members who already scored 75%+ keep that grade while the group revises for someone else.
+  const entries = input.scores
+    .filter((score) => {
+      const grade = gradeByMember.get(score.memberUserId);
+      return !memberGradeLocked({
+        awardedPoints: grade?.awardedFinalCutPoints ?? null,
+        revisionCount: grade?.revisionCount ?? 0,
+        scoresComplete: scoresWereComplete(score.memberUserId)
       });
     })
+    .map((score) => {
+      const qualityPoints = clampFinalCutPart(score.qualityPoints);
+      const effortPoints = clampFinalCutPart(score.effortPoints);
+      return { memberUserId: score.memberUserId, qualityPoints, effortPoints, points: roundToTenth(qualityPoints + effortPoints) };
+    });
+
+  await prisma.$transaction(
+    entries.map((entry) =>
+      prisma.packageFinalCutScore.upsert({
+        where: {
+          rowId_graderUserId_memberUserId: {
+            rowId: row.id,
+            graderUserId: input.graderUserId,
+            memberUserId: entry.memberUserId
+          }
+        },
+        create: { rowId: row.id, graderUserId: input.graderUserId, ...entry },
+        update: entry
+      })
+    )
   );
+
+  // Re-read so a score another executive saved meanwhile still completes the average.
+  const scoresAfter = await prisma.packageFinalCutScore.findMany({
+    where: { rowId: row.id },
+    select: { graderUserId: true, memberUserId: true, points: true, qualityPoints: true, effortPoints: true }
+  });
+  const turnedIn = input.turnedInDate ?? row.finalCutMediaItem?.createdAt ?? new Date();
+  const gradeWrites = entries.flatMap((entry) => {
+    const status = memberGradeStatus({ requiredGraderIds, scores: scoresAfter, memberUserId: entry.memberUserId });
+    if (!status.complete || status.average === null) return [];
+    const existing = gradeByMember.get(entry.memberUserId);
+    const revisionCount = nextMemberRevisionCount({
+      alreadyGraded: existing?.awardedFinalCutPoints != null,
+      revisionCount: existing?.revisionCount ?? 0,
+      scoresWereComplete: scoresWereComplete(entry.memberUserId)
+    });
+    const awarded = capAwardedForRevision(status.average, revisionCount);
+    // Extensions can cover only some members, so the late penalty is per member.
+    const deadline = effectiveDeadline(cycle?.finalCutDate ?? null, approvedExtensionDaysFor(row, entry.memberUserId));
+    const penalty = calculateLatePenalty(deadline, turnedIn);
+    const data = {
+      awardedFinalCutPoints: awarded,
+      finalCutPoints: officialFinalCutPoints(awarded, penalty.penaltyMultiplier),
+      revisionCount,
+      turnedInDate: turnedIn
+    };
+    return [
+      prisma.packageGrade.upsert({
+        where: { cycleNumber_userId: { cycleNumber: row.cycleNumber, userId: entry.memberUserId } },
+        create: { cycleNumber: row.cycleNumber, userId: entry.memberUserId, ...data },
+        update: data
+      })
+    ];
+  });
+  if (gradeWrites.length > 0) {
+    await prisma.$transaction(gradeWrites);
+  }
 
   const panel = await loadFinalCutGradePanel({
     rowId: row.id,
     role: input.role,
-    userId: input.graderUserId,
-    officialPoints: official
+    userId: input.graderUserId
   });
-
-  return {
-    ...panel,
-    awardedPoints: cappedAwarded,
-    officialPoints: official,
-    revisionCount: nextRevisionCount,
-    secondRevisionCapped: nextRevisionCount >= 2 && after.average > cappedAwarded,
-    penaltyMultiplier: penalty.penaltyMultiplier,
-    daysLate: penalty.daysLate,
-    blocksSecondRevision: penalty.blocksSecondRevision,
-    deadline: deadline?.toISOString() ?? null,
-    turnedInDate: turnedIn.toISOString()
-  };
+  return { ...panel, savedCount: entries.length, gradedCount: gradeWrites.length };
 }
 
 function requireProducer(role: PlatformRole | null) {

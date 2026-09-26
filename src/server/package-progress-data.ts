@@ -3,6 +3,8 @@ import { ASSOCIATE_REVIEW_AUDIT } from "@/src/server/associate-review-history";
 import { prisma } from "@/src/lib/prisma";
 import { remainingFromApproval } from "@/src/lib/package-approval";
 import { approvedExtensionDaysFor } from "@/src/lib/package-extensions";
+import { gradersDoneWithGroup } from "@/src/lib/package-final-cut-scores";
+import { membersAwaitingFinalCutScores } from "@/src/lib/package-revisions";
 import { currentCutRevisionStage } from "@/src/lib/initial-cut-review-versions";
 import { APPROVAL_COMMENT_PREFIX } from "@/src/lib/package-stage-comments";
 import { aRollFeedbackNeedsChanges } from "@/src/lib/package-stage-status";
@@ -213,7 +215,7 @@ export async function loadPackageProgressData(requestedCycleNumber?: number | nu
     cycles[cycles.length - 1]?.cycleNumber ??
     1;
 
-  const [rows, producers, executives, previousCycleRows] = await Promise.all([
+  const [rows, producers, executives, previousCycleRows, finalCutGrades] = await Promise.all([
     prisma.packageProgressRow.findMany({
       where: { cycleNumber: activeCycleNumber },
       orderBy: { rowOrder: "asc" },
@@ -255,7 +257,9 @@ export async function loadPackageProgressData(requestedCycleNumber?: number | nu
           orderBy: { createdAt: "desc" },
           take: 1
         },
-        finalCutScores: { select: { graderUserId: true } },
+        finalCutScores: {
+          select: { graderUserId: true, memberUserId: true, points: true, qualityPoints: true, effortPoints: true }
+        },
         extensionRequests: { where: { status: "APPROVED" }, select: { requestedDays: true, grantedDays: true, grantedUserIds: true } }
       }
     }),
@@ -266,7 +270,11 @@ export async function loadPackageProgressData(requestedCycleNumber?: number | nu
           where: { cycleNumber: activeCycleNumber - 1 },
           select: { members: { select: { userId: true } } }
         })
-      : Promise.resolve([])
+      : Promise.resolve([]),
+    prisma.packageGrade.findMany({
+      where: { cycleNumber: activeCycleNumber, awardedFinalCutPoints: { not: null } },
+      select: { userId: true, awardedFinalCutPoints: true, revisionCount: true }
+    })
   ]);
 
   const readiness = rows.length ? await prisma.auditLog.findMany({
@@ -359,7 +367,14 @@ export async function loadPackageProgressData(requestedCycleNumber?: number | nu
         row.stageMedia[0]?.createdAt
       ),
       queuedForAir: Boolean(row.queuedForAirAt),
-      finalCutScoredByUserIds: row.finalCutScores.map((score) => score.graderUserId)
+      finalCutScoredByUserIds: gradersDoneWithGroup(
+        row.finalCutScores,
+        membersAwaitingFinalCutScores(
+          row.members.map((member) => member.userId),
+          row.finalCutScores,
+          finalCutGrades
+        )
+      )
     }))
   };
 }

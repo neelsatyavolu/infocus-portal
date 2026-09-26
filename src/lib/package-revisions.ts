@@ -1,5 +1,5 @@
 import { MAX_FINAL_CUT_POINTS } from "@/src/lib/grading";
-import { clampFinalCutScore } from "@/src/lib/package-final-cut-scores";
+import { clampFinalCutScore, type FinalCutMemberScore } from "@/src/lib/package-final-cut-scores";
 import { officialFinalCutPoints } from "@/src/lib/package-review-mail";
 
 /**
@@ -7,12 +7,12 @@ import { officialFinalCutPoints } from "@/src/lib/package-review-mail";
  *
  * After the effective final-cut deadline (cycle date + approved extension), a
  * package that has not submitted a final cut through all three approval stages
- * is 0/50. Once that cut is in, every executive producer enters a quality
- * score; the app averages those scores to the nearest tenth. Associate
- * producers do not grade.
+ * is 0/50. Once that cut is in, every executive producer scores each member
+ * (quality /25 + effort /25); the app averages each member's totals to the
+ * nearest tenth. Associate producers do not grade.
  *
- * A second revision is only offered after the first graded final cut scores
- * below 75%. That revision is capped at 75%. Late 20%/30% is a separate
+ * A second revision is offered when any member's first graded final cut scores
+ * below 75%. That member's revision is capped at 75%. Late 20%/30% is a separate
  * turn-in penalty applied after the quality cap.
  */
 export const SECOND_REVISION_CAP_MULTIPLIER = 0.75;
@@ -59,6 +59,43 @@ export function isEligibleForSecondRevision(awardedPoints: number | null, revisi
   return awardedPoints < SECOND_REVISION_CAP_POINTS;
 }
 
+/** The group may re-upload when any member scored below 75% and has not revised yet. */
+export function groupAllowsSecondFinalCut(
+  grades: Array<{ awardedFinalCutPoints: number | null; revisionCount: number }>
+) {
+  return grades.some((grade) => isEligibleForSecondRevision(grade.awardedFinalCutPoints, grade.revisionCount));
+}
+
+/**
+ * Revision count once a member's executive scores are complete. Editing scores on
+ * the same cut keeps the count; completing scores on a new cut is the next revision.
+ */
+export function nextMemberRevisionCount(input: {
+  alreadyGraded: boolean;
+  revisionCount: number;
+  scoresWereComplete: boolean;
+}) {
+  if (!input.alreadyGraded) return 1;
+  if (input.scoresWereComplete) return input.revisionCount;
+  return Math.max(input.revisionCount, 1) + 1;
+}
+
+/**
+ * Revisions are per member. When the group re-uploads for a member below 75%,
+ * a member who already scored 75% or more keeps their grade and is not re-scored.
+ */
+export function memberGradeLocked(input: {
+  awardedPoints: number | null;
+  revisionCount: number;
+  scoresComplete: boolean;
+}) {
+  return (
+    input.awardedPoints !== null &&
+    !input.scoresComplete &&
+    !isEligibleForSecondRevision(input.awardedPoints, input.revisionCount)
+  );
+}
+
 export function capAwardedForRevision(awardedPoints: number, revisionCount: number) {
   const awarded = clampFinalCutScore(awardedPoints);
   if (!isSecondRevision(revisionCount)) {
@@ -89,4 +126,27 @@ export function previewFinalCutOfficial(input: {
     official: officialFinalCutPoints(afterRevisionCap, input.penaltyMultiplier),
     revisionCapped: afterRevisionCap < quality
   };
+}
+
+/**
+ * Members executives still score. Drops members locked during a revision: already
+ * graded at 75%+ with no scores on the current cut, so nobody can score them.
+ */
+export function membersAwaitingFinalCutScores(
+  memberIds: string[],
+  scores: FinalCutMemberScore[],
+  grades: Array<{ userId: string; awardedFinalCutPoints: number | null; revisionCount: number }>
+) {
+  const scoredMembers = new Set(scores.map((score) => score.memberUserId));
+  const lockedMembers = new Set(
+    grades
+      .filter(
+        (grade) =>
+          grade.awardedFinalCutPoints !== null &&
+          !scoredMembers.has(grade.userId) &&
+          !isEligibleForSecondRevision(grade.awardedFinalCutPoints, grade.revisionCount)
+      )
+      .map((grade) => grade.userId)
+  );
+  return memberIds.filter((id) => !lockedMembers.has(id));
 }

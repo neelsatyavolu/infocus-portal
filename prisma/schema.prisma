@@ -146,6 +146,7 @@ model User {
   livestreamSignupsReviewed LivestreamSignupRequest[] @relation("LivestreamSignupReviewer")
   packageProofUploads     PackageProofOfContact[] @relation("PackageProofUploader")
   packageFinalCutScores   PackageFinalCutScore[] @relation("PackageFinalCutGrader")
+  packageFinalCutScoresReceived PackageFinalCutScore[] @relation("PackageFinalCutMember")
   packageStageComments    PackageStageComment[] @relation("PackageStageCommentAuthor")
   packageStageCommentReads PackageStageCommentRead[] @relation("PackageStageCommentReader")
   memberProducerNotes     MemberProducerNote[]
@@ -910,15 +911,24 @@ model PackageFinalCutScore {
   id           String   @id @default(cuid())
   rowId        String
   graderUserId String
+  /// Group member this score is for. Null = legacy whole-group score out of 50.
+  memberUserId String?
+  /// Quality + effort (or the legacy whole-group score).
   points       Float
+  /// Out of 25. Null on legacy whole-group scores.
+  qualityPoints Float?
+  /// Out of 25. Null on legacy whole-group scores.
+  effortPoints Float?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   row          PackageProgressRow @relation(fields: [rowId], references: [id], onDelete: Cascade)
   grader       User               @relation("PackageFinalCutGrader", fields: [graderUserId], references: [id], onDelete: Cascade)
+  member       User?              @relation("PackageFinalCutMember", fields: [memberUserId], references: [id], onDelete: Cascade)
 
-  @@unique([rowId, graderUserId])
+  @@unique([rowId, graderUserId, memberUserId])
   @@index([rowId])
   @@index([graderUserId])
+  @@index([memberUserId])
 }
 
 model PackageStageComment {

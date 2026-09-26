@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 import type { LiveEventSummary } from "@/src/server/live-graphics";
 import type { GraphicId } from "@/src/lib/live/graphics";
 import type { ScoreboardState } from "@/src/lib/live/scoreboard";
+import { fitWrappedFontSize } from "@/src/lib/live/thumbnail";
 import { LIVE_ICON_SRC, LIVE_WORDMARK_SRC } from "./live-stage";
 
 type GraphicProps = {
@@ -49,13 +50,16 @@ function ScoreRow({ scoreboard }: { scoreboard: ScoreboardState }) {
   const [home, away] = scoreboard.teams;
   const homeLoses = home.score < away.score;
   const awayLoses = away.score < home.score;
+  // Each name gets about 410px beside two 220px scores; long names shrink to fit.
+  const longest = Math.max(home.name.length, away.name.length, 1);
+  const nameSize = Math.max(40, Math.min(88, Math.floor(410 / (longest * 0.72))));
   return (
     <div className="lv-score-row a-rise" style={delay(0.1)}>
-      <span className={`nm ${homeLoses ? "lose" : ""}`}>{home.name}</span>
+      <span className={`nm ${homeLoses ? "lose" : ""}`} style={{ fontSize: nameSize }}>{home.name}</span>
       <span className={`big ${homeLoses ? "lose" : ""}`}>{home.score}</span>
       <span className="dash" />
       <span className={`big ${awayLoses ? "lose" : ""}`}>{away.score}</span>
-      <span className={`nm r ${awayLoses ? "lose" : ""}`}>{away.name}</span>
+      <span className={`nm r ${awayLoses ? "lose" : ""}`} style={{ fontSize: nameSize }}>{away.name}</span>
     </div>
   );
 }
@@ -131,14 +135,26 @@ function PeriodTable({ scoreboard }: { scoreboard: ScoreboardState }) {
   );
 }
 
-function countdown(event: LiveEventSummary, now: number) {
-  const remaining = new Date(event.startsAt).getTime() - now;
-  if (remaining <= 0) return null;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Under a day: a live h:mm:ss countdown. A day or more: the start day and time. Past: "Starting now". */
+function startLabel(event: LiveEventSummary, now: number) {
+  const start = new Date(event.startsAt);
+  const remaining = start.getTime() - now;
+  if (remaining <= 0) return { kind: "now" as const, text: "Starting now" };
+  if (remaining >= DAY_MS) {
+    const day = start.toLocaleDateString("en-US", { timeZone: "America/Los_Angeles", weekday: "short", month: "short", day: "numeric" });
+    const time = start.toLocaleTimeString("en-US", { timeZone: "America/Los_Angeles", hour: "numeric", minute: "2-digit" });
+    return { kind: "date" as const, text: `${day} · ${time}` };
+  }
   const seconds = Math.ceil(remaining / 1000);
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const secs = String(seconds % 60).padStart(2, "0");
-  return hours > 0 ? `${hours}:${String(minutes).padStart(2, "0")}:${secs}` : `${minutes}:${secs}`;
+  return {
+    kind: "countdown" as const,
+    text: hours > 0 ? `${hours}:${String(minutes).padStart(2, "0")}:${secs}` : `${minutes}:${secs}`
+  };
 }
 
 /** One pushed graphic, drawn on the 1920 × 1080 stage. */
@@ -147,20 +163,30 @@ export function LiveGraphic({ graphic, fields, scoreboard, event, now }: Graphic
 
   switch (graphic) {
     case "starting-soon": {
-      const left = countdown(event, now);
+      const start = startLabel(event, now);
+      const title = field("title");
       return (
         <div className="lv-card">
           <HeaderBand kicker="Starting soon" dot />
-          <div className="lv-ss-title a-rise" style={delay(0.1)}>{field("title")}</div>
-          <div className="lv-ss-sub a-rise" style={delay(0.2)}>{field("subtitle")}</div>
+          <div className="lv-ss-head">
+            <div className="lv-ss-title a-rise" style={{ ...delay(0.1), fontSize: fitWrappedFontSize(title, 1680, 2, 140, 72) }}>
+              {title}
+            </div>
+            <div className="lv-ss-sub a-rise" style={delay(0.2)}>{field("subtitle")}</div>
+          </div>
           <div className="lv-ss-plate a-wipe" style={delay(0.2)}>
-            {left ? (
+            {start.kind === "countdown" ? (
               <>
                 <span className="lbl">Stream starts in</span>
-                <span className="cd">{left}</span>
+                <span className="cd">{start.text}</span>
+              </>
+            ) : start.kind === "date" ? (
+              <>
+                <span className="lbl">Stream starts</span>
+                <span className="when">{start.text}</span>
               </>
             ) : (
-              <span className="now">Starting now</span>
+              <span className="now">{start.text}</span>
             )}
           </div>
           <div className="lv-follow a-rise" style={delay(0.4)}>

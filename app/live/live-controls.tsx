@@ -80,3 +80,107 @@ export function CopyUrl({ label, url, hint }: { label: string; url: string; hint
     </div>
   );
 }
+
+/** On/off chip: green (or amber for a flag) when on, outlined when off. */
+export function Toggle({
+  pressed,
+  onClick,
+  children,
+  tone = "green",
+  className = ""
+}: {
+  pressed: boolean;
+  onClick: () => void;
+  children: ReactNode;
+  tone?: "green" | "amber";
+  className?: string;
+}) {
+  const on = tone === "amber" ? "bg-[#F2A516] text-[#0F110F] border-[#F2A516]" : "bg-primary text-primary-foreground border-primary";
+  return (
+    <button
+      type="button"
+      aria-pressed={pressed}
+      onClick={onClick}
+      className={`inline-flex h-11 items-center justify-center gap-2 rounded-md border px-4 text-sm font-medium transition-colors ${
+        pressed ? on : "border-input text-foreground hover:bg-accent"
+      } ${className}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+/**
+ * A value shown large that turns into a text field when tapped. Enter or leaving the field saves;
+ * Escape cancels. `parse` returns null for input it can't use, which keeps the field open.
+ */
+export function TapToEdit<T>({
+  display,
+  initial,
+  parse,
+  onCommit,
+  label,
+  className = "",
+  inputClassName = "",
+  inputMode = "numeric"
+}: {
+  display: ReactNode;
+  initial: string;
+  parse: (text: string) => T | null;
+  onCommit: (value: T) => void;
+  label: string;
+  className?: string;
+  inputClassName?: string;
+  inputMode?: "numeric" | "decimal" | "text";
+}) {
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState(initial);
+  const [invalid, setInvalid] = useState(false);
+
+  function start() {
+    setText(initial);
+    setInvalid(false);
+    setEditing(true);
+  }
+
+  function commit() {
+    const value = parse(text);
+    if (value === null) {
+      setInvalid(true);
+      return;
+    }
+    onCommit(value);
+    setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        aria-label={label}
+        aria-invalid={invalid}
+        inputMode={inputMode}
+        value={text}
+        onChange={(event) => {
+          setText(event.target.value);
+          setInvalid(false);
+        }}
+        onFocus={(event) => event.currentTarget.select()}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") commit();
+          if (event.key === "Escape") setEditing(false);
+        }}
+        onBlur={() => (parse(text) === null ? setEditing(false) : commit())}
+        className={`rounded-md border bg-background px-2 text-foreground outline-none focus:ring-2 focus:ring-[var(--brand-green)] ${
+          invalid ? "border-[var(--danger)]" : "border-input"
+        } ${inputClassName}`}
+      />
+    );
+  }
+
+  return (
+    <button type="button" onClick={start} aria-label={`${label}: edit`} title="Tap to edit" className={`rounded-md hover:bg-accent ${className}`}>
+      {display}
+    </button>
+  );
+}

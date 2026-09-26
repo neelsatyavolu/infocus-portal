@@ -13,6 +13,35 @@ import { LIVE_ICON_SRC } from "./live-stage";
 
 type BugProps = { state: ScoreboardState; now: number };
 
+/** Lexend SemiBold caps with 0.04em tracking averages about 0.72em per character. */
+const CAPS_EM = 0.72;
+const NAME_MAX_PX = 40;
+const NAME_MIN_PX = 24;
+
+type NameLayout = { size: number; cell: number; nameMax: number };
+
+/**
+ * Sizes both team cells for the longer name: cells widen up to `maxCell`, then the name shrinks
+ * (never below 24px). Both teams share one width, like the show's dual thirds.
+ */
+function nameLayout(state: ScoreboardState, minCell: number, maxCell: number, fixed: number): NameLayout {
+  const longest = Math.max(1, ...state.teams.map((team, index) => (team.name || (index === 0 ? "HOME" : "AWAY")).length));
+  const nameMax = maxCell - fixed;
+  const natural = longest * NAME_MAX_PX * CAPS_EM;
+  const size = natural <= nameMax ? NAME_MAX_PX : Math.max(NAME_MIN_PX, Math.floor(nameMax / (longest * CAPS_EM)));
+  const cell = Math.max(minCell, Math.min(maxCell, Math.ceil(Math.min(nameMax, longest * size * CAPS_EM) + fixed)));
+  return { size, cell, nameMax };
+}
+
+function TeamName({ state, team, layout }: { state: ScoreboardState; team: TeamIndex; layout: NameLayout }) {
+  const name = state.teams[team].name || (team === 0 ? "HOME" : "AWAY");
+  return (
+    <span className="lv-name-text" style={{ fontSize: layout.size, maxWidth: layout.nameMax }}>
+      {name}
+    </span>
+  );
+}
+
 function Tile({ size }: { size: number }) {
   return (
     <div className="lv-tile a-open" style={{ width: size, height: size }}>
@@ -40,16 +69,16 @@ function Pips({ left, total }: { left: number; total: number }) {
   );
 }
 
-function Team({ state, team, mirror = false, width }: { state: ScoreboardState; team: TeamIndex; mirror?: boolean; width: number }) {
+function Team({ state, team, mirror = false, layout }: { state: ScoreboardState; team: TeamIndex; mirror?: boolean; layout: NameLayout }) {
   const data = state.teams[team];
   const dotOn = state.sport === "football" ? state.possession === team : state.sport === "volleyball" ? state.serve === team : false;
   const showDot = state.sport === "football" || state.sport === "volleyball";
   return (
-    <div className={`lv-team ${mirror ? "mir" : ""}`} style={{ width }}>
+    <div className={`lv-team ${mirror ? "mir" : ""}`} style={{ width: layout.cell }}>
       <span className="lv-chip" style={{ background: data.color }} />
       <span className="lv-namecol">
         <span className="lv-name">
-          {data.name || (team === 0 ? "HOME" : "AWAY")}
+          <TeamName state={state} team={team} layout={layout} />
           {showDot ? <i className={`lv-poss ${dotOn ? "" : "off"}`} /> : null}
         </span>
         {state.sport === "football" ? <Pips left={data.timeouts} total={3} /> : null}
@@ -80,14 +109,15 @@ function Tags({ state, now }: BugProps) {
 /** Basketball and "other": bottom-center bar with a green info tier (ESPN/NBC pattern). */
 function BarWithTier({ state, now }: BugProps) {
   const other = state.sport === "other";
+  const layout = nameLayout(state, 300, 480, 178);
   return (
     <div className="lv-row">
       <Tile size={128} />
       <div className="lv-col">
         <div className="lv-main a-wipe" style={{ height: 88, paddingRight: 64, borderRadius: "0 88px 0 0" }}>
-          <Team state={state} team={0} width={300} />
+          <Team state={state} team={0} layout={layout} />
           <span className="lv-div" />
-          <Team state={state} team={1} width={300} />
+          <Team state={state} team={1} layout={layout} />
           <span className="lv-div" />
           <div className="lv-clock">
             <span className="lv-per">{periodLabel(state)}</span>
@@ -99,8 +129,8 @@ function BarWithTier({ state, now }: BugProps) {
             <span style={{ paddingLeft: 30 }}>{state.note}</span>
           ) : (
             <>
-              <span className="tc">{state.teams[0].bonus ? "Bonus" : ""}</span>
-              <span className="tc">{state.teams[1].bonus ? "Bonus" : ""}</span>
+              <span className="tc" style={{ width: layout.cell + 2 }}>{state.teams[0].bonus ? "Bonus" : ""}</span>
+              <span className="tc" style={{ width: layout.cell + 2 }}>{state.teams[1].bonus ? "Bonus" : ""}</span>
             </>
           )}
           <span className="lv-grow" />
@@ -116,19 +146,20 @@ function BarWithTier({ state, now }: BugProps) {
 function FootballCenter({ state, now }: BugProps) {
   const down = downText(state, now);
   const flag = activeTags(state, now, "flag").length > 0;
-  const downLeft = state.possession === 1 ? 96 + 380 + 170 : 96;
+  const layout = nameLayout(state, 380, 500, 204);
+  const downLeft = state.possession === 1 ? 96 + layout.cell + 170 : 96;
   const timeouts = activeTags(state, now, "timeout");
   return (
     <>
       <div className="lv-row">
         <Tile size={96} />
         <div className="lv-main a-wipe" style={{ height: 96, paddingRight: 56, borderRadius: "0 96px 0 0" }}>
-          <Team state={state} team={0} width={380} />
+          <Team state={state} team={0} layout={layout} />
           <div className="lv-center">
             <span className="lv-per w">{periodLabel(state)}</span>
             <Clock state={state} now={now} />
           </div>
-          <Team state={state} team={1} width={380} mirror />
+          <Team state={state} team={1} layout={layout} mirror />
         </div>
         {down ? (
           <span className={`lv-down ${flag ? "flag" : ""}`} style={{ left: downLeft }}>
@@ -148,18 +179,19 @@ function FootballCenter({ state, now }: BugProps) {
 /** Volleyball: two-row rectangle with sets won and highlighted live points (FIVB VNL pattern). */
 function VolleyballRows({ state, now }: BugProps) {
   const setTag = activeTags(state, now, "set")[0];
+  const layout = nameLayout(state, 620, 760, 312);
   return (
     <div className="lv-row">
       <Tile size={144} />
       <div className="lv-col">
-        <div className="lv-rows a-wipe">
+        <div className="lv-rows a-wipe" style={{ width: layout.cell }}>
           {([0, 1] as const).map((team) => {
             const data = state.teams[team];
             return (
               <div key={team} className="lv-vr">
                 <span className="lv-chip" style={{ background: data.color }} />
                 <span className="lv-name">
-                  {data.name || (team === 0 ? "HOME" : "AWAY")}
+                  <TeamName state={state} team={team} layout={layout} />
                   <i className={`lv-poss ${state.serve === team ? "" : "off"}`} />
                 </span>
                 <span className="lv-grow" />

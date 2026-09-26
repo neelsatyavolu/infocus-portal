@@ -46,6 +46,7 @@
 .lv-team.mir .lv-namecol { align-items: flex-end; }
 .lv-name { display: flex; align-items: center; gap: 12px; font-weight: 600; font-size: 40px; letter-spacing: 0.04em; text-transform: uppercase; line-height: 1; white-space: nowrap; }
 .lv-team.mir .lv-name { flex-direction: row-reverse; }
+.lv-name-text { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.1; }
 .lv-sc { font-weight: 600; font-size: 64px; line-height: 1; letter-spacing: -0.01em; min-width: 84px; text-align: right; display: inline-block; animation: lv-bump 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
 .lv-team.mir .lv-sc { text-align: left; }
 .lv-div { width: 2px; background: #2b302b; margin: 16px 0; flex: none; }
@@ -59,7 +60,7 @@
 .lv-temp { position: absolute; top: 100%; height: 44px; background: #0b6e3e; display: flex; align-items: center; gap: 12px; padding: 0 16px; white-space: nowrap; }
 .lv-down { display: flex; align-items: center; padding: 0 20px; font-weight: 500; font-size: 26px; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; position: absolute; bottom: 100%; height: 50px; background: #0f110f; border-bottom: 4px solid #0b6e3e; }
 .lv-down.flag { background: #f2a516; color: #0f110f; border-bottom-color: #f2a516; }
-.lv-rows { background: #0f110f; border-radius: 0 72px 0 0; overflow: hidden; width: 620px; }
+.lv-rows { background: #0f110f; border-radius: 0 72px 0 0; overflow: hidden; }
 .lv-vr { height: 72px; display: flex; align-items: center; gap: 16px; padding-left: 30px; position: relative; }
 .lv-vr + .lv-vr { border-top: 2px solid #2b302b; }
 .lv-sets { width: 58px; height: 56px; background: #252925; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; line-height: 1; flex: none; }
@@ -83,16 +84,18 @@
 .lv-hb { position: absolute; left: 120px; right: 120px; top: 0; height: 200px; display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid rgba(255, 255, 255, 0.3); }
 .lv-hb img { height: 70px; width: auto; }
 .lv-kicker { display: flex; align-items: center; gap: 20px; font-weight: 700; font-size: 38px; letter-spacing: 0.18em; color: #2bb36e; text-transform: uppercase; }
-.lv-ss-title { position: absolute; left: 120px; top: 280px; right: 120px; font-weight: 600; font-size: 140px; line-height: 1.02; letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; }
-.lv-ss-sub { position: absolute; left: 120px; right: 120px; top: 450px; font-size: 56px; color: #dce2de; white-space: nowrap; overflow: hidden; }
+.lv-ss-head { position: absolute; left: 120px; right: 120px; top: 250px; display: flex; flex-direction: column; gap: 24px; }
+.lv-ss-title { font-weight: 600; line-height: 1.02; letter-spacing: -0.02em; max-height: 2.04em; overflow: hidden; overflow-wrap: anywhere; text-wrap: balance; }
+.lv-ss-sub { font-size: 56px; color: #dce2de; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lv-ss-plate { position: absolute; left: 0; bottom: 120px; width: 980px; height: 300px; background: #0b6e3e; border-radius: 0 48px 0 0; padding: 48px 120px; display: flex; flex-direction: column; justify-content: center; gap: 14px; }
 .lv-ss-plate .lbl { font-weight: 500; font-size: 32px; letter-spacing: 0.11em; text-transform: uppercase; }
 .lv-ss-plate .cd { font-family: var(--font-geist-mono), ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; font-weight: 500; font-size: 150px; line-height: 1; }
 .lv-ss-plate .now { font-weight: 600; font-size: 96px; line-height: 1; }
+.lv-ss-plate .when { font-weight: 600; font-size: 60px; line-height: 1.1; white-space: nowrap; }
 .lv-follow { position: absolute; right: 120px; bottom: 150px; display: grid; gap: 14px; text-align: right; font-size: 34px; color: #dce2de; }
 .lv-follow b { color: #2bb36e; font-weight: 600; letter-spacing: 0.06em; }
 .lv-score-row { position: absolute; left: 120px; right: 120px; top: 270px; display: grid; grid-template-columns: 1fr auto auto auto 1fr; align-items: center; gap: 48px; }
-.lv-score-row .nm { font-weight: 600; font-size: 88px; letter-spacing: -0.02em; text-transform: uppercase; }
+.lv-score-row .nm { font-weight: 600; font-size: 88px; letter-spacing: -0.02em; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .lv-score-row .nm.r { text-align: right; }
 .lv-score-row .big { font-weight: 600; font-size: 220px; line-height: 1; letter-spacing: -0.03em; }
 .lv-score-row .dash { width: 60px; height: 8px; background: #dce2de; }
@@ -120,6 +123,18 @@
 .lv-play .a-wipe-r { animation: lv-wipe-r 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: calc(var(--d, 0s) + 0.4s); }
 .lv-play .a-rise { animation: lv-rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: calc(var(--d, 0s) + 0.6s); }
 .lv-play .a-fade { animation: lv-fade 0.6s cubic-bezier(0.65, 0, 0.35, 1) both; animation-delay: var(--d, 0s); }
+/* Exit (DESIGN.md §5): the entrance in reverse, ease-in, about 0.7s. Text goes first, the tile closes last. */
+.lv-exit .a-rise, .lv-exit .a-fade { animation: lv-fade-out 0.3s cubic-bezier(0.7, 0, 0.84, 0) both; }
+.lv-exit .a-wipe { animation: lv-wipe-out 0.45s cubic-bezier(0.7, 0, 0.84, 0) 0.15s both; }
+.lv-exit .a-wipe-r { animation: lv-wipe-r-out 0.45s cubic-bezier(0.7, 0, 0.84, 0) 0.15s both; }
+.lv-exit .a-turn { animation: lv-turn-out 0.35s cubic-bezier(0.7, 0, 0.84, 0) 0.3s both; }
+.lv-exit .a-open { animation: lv-close 0.35s cubic-bezier(0.7, 0, 0.84, 0) 0.45s both; }
+.lv-exit .lv-card { animation: lv-fade-out 0.7s cubic-bezier(0.65, 0, 0.35, 1) 0.1s both; }
+@keyframes lv-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes lv-wipe-out { from { clip-path: inset(0); } to { clip-path: inset(0 100% 0 0); } }
+@keyframes lv-wipe-r-out { from { clip-path: inset(0); } to { clip-path: inset(0 0 0 100%); } }
+@keyframes lv-turn-out { from { transform: none; opacity: 1; } to { transform: rotate(30deg) scale(0.82); opacity: 0; } }
+@keyframes lv-close { from { clip-path: inset(0); } to { clip-path: inset(50%); } }
 @keyframes lv-open { from { clip-path: inset(50%); } to { clip-path: inset(0); } }
 @keyframes lv-turn { from { transform: rotate(-30deg) scale(0.82); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes lv-wipe { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0); } }
@@ -128,5 +143,5 @@
 @keyframes lv-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes lv-bump { from { transform: translateY(10px); opacity: 0; } to { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
-  .lv-play *, .lv-sc, .lv-tag { animation: none !important; }
+  .lv-play *, .lv-exit *, .lv-sc, .lv-tag { animation: none !important; }
 }

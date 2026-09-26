@@ -5,6 +5,7 @@ import type { LiveImageState } from "@/src/lib/live/graphics";
 import type { ScoreboardState } from "@/src/lib/live/scoreboard";
 import type { LiveEventSummary } from "@/src/server/live-graphics";
 import { LiveGraphic } from "./live-graphic";
+import { LiveImageLayer } from "./live-image-layer";
 import { LiveStage, useLiveNow, useServerOffset } from "./live-stage";
 import { Scorebug } from "./scorebug";
 
@@ -69,17 +70,14 @@ export function LiveOverlay({ overlayKey, kind }: { overlayKey: string; kind: "s
               <div className="lv-play">
                 <Scorebug state={payload.scoreboard} now={now} />
               </div>
-            ) : payload.liveImage ? (
-              <div key={payload.liveImage.pushedAt} className="lv-play">
-                <LiveGraphic
-                  graphic={payload.liveImage.graphic}
-                  fields={payload.liveImage.fields}
-                  scoreboard={payload.scoreboard}
-                  event={payload.event}
-                  now={now}
-                />
-              </div>
-            ) : null}
+            ) : (
+              <LiveImageLayer
+                liveImage={payload.liveImage}
+                render={(image) => (
+                  <LiveGraphic graphic={image.graphic} fields={image.fields} scoreboard={payload.scoreboard} event={payload.event} now={now} />
+                )}
+              />
+            )}
           </LiveStage>
         ) : null}
       </div>

@@ -6,6 +6,7 @@ import {
   defaultScoreboard,
   downText,
   formatClock,
+  parseClockInput,
   parseScoreboard,
   periodLabel,
   pruneTags,
@@ -107,10 +108,27 @@ describe("live scoreboard", () => {
       expect(downText(state, T0)).toBe("");
     });
 
-    it("turns the down tab into FLAG for 10 seconds", () => {
-      const state = run(defaultScoreboard("football"), [{ type: "down", down: 2 }, { type: "flag" }]);
-      expect(downText(state, T0 + 9_000)).toBe("Flag");
-      expect(downText(state, T0 + 10_000)).toBe("2nd & 10");
+    it("toggles the flag on and off", () => {
+      const thrown = run(defaultScoreboard("football"), [{ type: "down", down: 2 }, { type: "flag" }]);
+      expect(downText(thrown, T0 + 60_000)).toBe("Flag");
+      const picked = applyScoreboardAction(thrown, { type: "flag" }, T0 + 60_000);
+      expect(downText(picked, T0 + 60_000)).toBe("2nd & 10");
+    });
+
+    it("clears the flag on a new down or a score, and after two minutes if forgotten", () => {
+      const thrown = run(defaultScoreboard("football"), [{ type: "down", down: 2 }, { type: "flag" }]);
+      expect(downText(applyScoreboardAction(thrown, { type: "down", down: 3 }, T0), T0)).toBe("3rd & 10");
+      expect(downText(applyScoreboardAction(thrown, { type: "score", team: 0, delta: 3 }, T0), T0)).toBe("");
+      expect(downText(thrown, T0 + 2 * 60_000)).toBe("2nd & 10");
+    });
+
+    it("gives a timeout back", () => {
+      const state = run(defaultScoreboard("football"), [
+        { type: "timeout", team: 0 },
+        { type: "timeoutAdjust", team: 0, delta: 1 },
+        { type: "timeoutAdjust", team: 0, delta: 1 }
+      ]);
+      expect(state.teams[0].timeouts).toBe(3);
     });
   });
 
@@ -142,16 +160,57 @@ describe("live scoreboard", () => {
     expect(state.teams[1]).toMatchObject({ name: "GUNN", color: "#123456", score: 0 });
   });
 
-  it("resets an other-sport countdown to the last time set, not 0:00", () => {
+  it("resets an other-sport countdown to the period length, not 0:00", () => {
     let state = run(defaultScoreboard("other"), [
       { type: "clockDirection", direction: "down" },
-      { type: "clockSetMinutes", minutes: 40 },
+      { type: "periodLength", minutes: 40 },
       { type: "clockToggle" }
     ]);
+    expect(state.clock.ms).toBe(40 * 60_000);
     state = applyScoreboardAction(state, { type: "clockToggle" }, T0 + 5 * 60_000);
     expect(state.clock.ms).toBe(35 * 60_000);
     state = applyScoreboardAction(state, { type: "clockReset" }, T0 + 5 * 60_000);
     expect(state.clock.ms).toBe(40 * 60_000);
+  });
+
+  it("lets the operator type or nudge the clock, even while it runs", () => {
+    const running = run(defaultScoreboard("basketball"), [{ type: "clockToggle" }]);
+    const set = applyScoreboardAction(running, { type: "clockSet", ms: 272_000 }, T0 + 10_000);
+    expect(clockMs(set.clock, T0 + 10_000)).toBe(272_000);
+    expect(clockMs(set.clock, T0 + 11_000)).toBe(271_000);
+    const nudged = applyScoreboardAction(set, { type: "clockAdjust", deltaMs: -10_000 }, T0 + 11_000);
+    expect(clockMs(nudged.clock, T0 + 11_000)).toBe(261_000);
+    const stopped = run(defaultScoreboard("football"), [{ type: "clockAdjust", deltaMs: -60 * 60_000 }]);
+    expect(stopped.clock.ms).toBe(0);
+  });
+
+  it("reads typed clock values", () => {
+    expect(parseClockInput("4:32")).toBe(272_000);
+    expect(parseClockInput("12:00")).toBe(720_000);
+    expect(parseClockInput("0:45.5")).toBe(45_500);
+    expect(parseClockInput("45")).toBe(45_000);
+    expect(parseClockInput("432")).toBe(272_000);
+    expect(parseClockInput("4:75")).toBeNull();
+    expect(parseClockInput("soon")).toBeNull();
+  });
+
+  it("sets a score directly and goes back a quarter", () => {
+    let state = run(defaultScoreboard("basketball"), [
+      { type: "score", team: 0, delta: 3 },
+      { type: "nextPeriod" },
+      { type: "scoreSet", team: 0, score: 41 }
+    ]);
+    expect(state.teams[0].score).toBe(41);
+    state = applyScoreboardAction(state, { type: "previousPeriod" }, T0);
+    expect(state.period).toBe(1);
+    expect(state.periodScores).toEqual([]);
+    expect(applyScoreboardAction(state, { type: "previousPeriod" }, T0).period).toBe(1);
+  });
+
+  it("allows team names up to 20 characters", () => {
+    const state = run(defaultScoreboard(), [{ type: "team", team: 1, name: "Sacred Heart Cathedral Prep" }]);
+    expect(state.teams[1].name).toBe("SACRED HEART CATHEDR");
+    expect(scoreboardSchema.safeParse(state).success).toBe(true);
   });
 
   it("does not stop the clock when the current direction is tapped again", () => {

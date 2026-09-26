@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { LiveGraphic } from "@/components/live/live-graphic";
+import { LiveImageLayer } from "@/components/live/live-image-layer";
 import { LiveStage, useLiveNow } from "@/components/live/live-stage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -96,11 +97,10 @@ export function LiveImagePanel({ event, scoreboard, liveImage, offset, overlayUr
           }
         >
           <LiveStage background="checker" className="rounded-md">
-            {liveImage ? (
-              <div key={liveImage.pushedAt} className="lv-play">
-                <LiveGraphic graphic={liveImage.graphic} fields={liveImage.fields} scoreboard={scoreboard} event={event} now={now} />
-              </div>
-            ) : null}
+            <LiveImageLayer
+              liveImage={liveImage}
+              render={(image) => <LiveGraphic graphic={image.graphic} fields={image.fields} scoreboard={scoreboard} event={event} now={now} />}
+            />
           </LiveStage>
           <p className="flex items-center gap-2 text-sm">
             {onAir ? (

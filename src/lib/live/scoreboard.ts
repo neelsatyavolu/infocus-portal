@@ -16,7 +16,9 @@ export const SPORT_LABELS: Record<Sport, string> = {
 };
 
 export const TIMEOUT_TAG_MS = 8_000;
-export const FLAG_TAG_MS = 10_000;
+/** A flag stays up until the operator picks it up; this only clears one somebody forgot. */
+export const FLAG_TAG_MS = 2 * 60_000;
+export const MAX_TEAM_NAME = 20;
 export const SET_TAG_MS = 10_000;
 export const FOOTBALL_TIMEOUTS_PER_HALF = 3;
 const MAX_SCORE = 999;
@@ -30,7 +32,7 @@ const PERIOD_MS: Record<"basketball" | "football", { regulation: number; overtim
 };
 
 const teamSchema = z.object({
-  name: z.string().max(10),
+  name: z.string().max(MAX_TEAM_NAME),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   score: z.number().int().min(0).max(MAX_SCORE),
   bonus: z.boolean(),
@@ -165,6 +167,10 @@ export function activeTags(state: ScoreboardState, now: number, kind?: TagKind) 
   return state.tags.filter((tag) => tag.until > now && (!kind || tag.kind === kind));
 }
 
+export function flagOn(state: ScoreboardState, now: number) {
+  return activeTags(state, now, "flag").length > 0;
+}
+
 /** Football shows FLAG in the down tab while a flag tag is live. */
 export function downText(state: ScoreboardState, now: number) {
   if (activeTags(state, now, "flag").length > 0) return "Flag";
@@ -177,17 +183,22 @@ const teamIndexSchema = z.union([z.literal(0), z.literal(1)]);
 /** Operator actions. The dashboard sends these; the server applies them to the latest saved board. */
 export const scoreboardActionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("score"), team: teamIndexSchema, delta: z.number().int().min(-10).max(10) }),
+  z.object({ type: z.literal("scoreSet"), team: teamIndexSchema, score: z.number().int().min(0).max(MAX_SCORE) }),
+  z.object({ type: z.literal("timeoutAdjust"), team: teamIndexSchema, delta: z.union([z.literal(-1), z.literal(1)]) }),
   z.object({ type: z.literal("timeout"), team: teamIndexSchema }),
   z.object({ type: z.literal("bonus"), team: teamIndexSchema }),
   z.object({ type: z.literal("serve"), team: teamIndexSchema }),
   z.object({ type: z.literal("possession"), team: teamIndexSchema }),
-  z.object({ type: z.literal("team"), team: teamIndexSchema, name: z.string().max(20).optional(), color: z.string().max(7).optional() }),
+  z.object({ type: z.literal("team"), team: teamIndexSchema, name: z.string().max(40).optional(), color: z.string().max(7).optional() }),
   z.object({ type: z.literal("clockToggle") }),
   z.object({ type: z.literal("clockReset") }),
   z.object({ type: z.literal("showClock"), show: z.boolean() }),
   z.object({ type: z.literal("clockDirection"), direction: z.enum(["down", "up"]) }),
-  z.object({ type: z.literal("clockSetMinutes"), minutes: z.number().min(0).max(120) }),
+  z.object({ type: z.literal("clockSet"), ms: z.number().min(0).max(MAX_CLOCK_MS) }),
+  z.object({ type: z.literal("clockAdjust"), deltaMs: z.number().int().min(-60 * 60_000).max(60 * 60_000) }),
+  z.object({ type: z.literal("periodLength"), minutes: z.number().min(0).max(120) }),
   z.object({ type: z.literal("nextPeriod") }),
+  z.object({ type: z.literal("previousPeriod") }),
   z.object({ type: z.literal("down"), down: z.number().int().min(0).max(4) }),
   z.object({ type: z.literal("distance"), value: z.string().max(12) }),
   z.object({ type: z.literal("flag") }),
@@ -207,6 +218,10 @@ function withTag(state: ScoreboardState, kind: TagKind, text: string, durationMs
     .concat({ id: `${kind}-${now}`, kind, text, until: now + durationMs })
     .slice(-MAX_TAGS);
   return { ...state, tags };
+}
+
+function withoutFlag(state: ScoreboardState): ScoreboardState {
+  return state.tags.some((tag) => tag.kind === "flag") ? { ...state, tags: state.tags.filter((tag) => tag.kind !== "flag") } : state;
 }
 
 function updateTeam(
@@ -235,12 +250,19 @@ export function applyScoreboardAction(state: ScoreboardState, action: Scoreboard
       const current = state.teams[action.team].score;
       const score = Math.min(MAX_SCORE, Math.max(0, current + action.delta));
       const scored = score > current;
-      return {
+      const next = {
         ...state,
         teams: updateTeam(state, action.team, { score }),
         serve: state.sport === "volleyball" && scored ? action.team : state.serve,
         down: state.sport === "football" && scored ? 0 : state.down
       };
+      return state.sport === "football" && scored ? withoutFlag(next) : next;
+    }
+    case "scoreSet":
+      return { ...state, teams: updateTeam(state, action.team, { score: action.score }) };
+    case "timeoutAdjust": {
+      const timeouts = Math.min(FOOTBALL_TIMEOUTS_PER_HALF, Math.max(0, state.teams[action.team].timeouts + action.delta));
+      return { ...state, teams: updateTeam(state, action.team, { timeouts }) };
     }
     case "timeout": {
       const text = `Timeout · ${teamName(action.team)}`;
@@ -264,7 +286,7 @@ export function applyScoreboardAction(state: ScoreboardState, action: Scoreboard
       return { ...state, possession: action.team, down: 1, distance: "10" };
     case "team": {
       const patch: Partial<ScoreboardState["teams"][number]> = {};
-      if (action.name !== undefined) patch.name = action.name.toUpperCase().slice(0, 10);
+      if (action.name !== undefined) patch.name = action.name.toUpperCase().slice(0, MAX_TEAM_NAME);
       if (action.color !== undefined && /^#[0-9a-fA-F]{6}$/.test(action.color)) patch.color = action.color;
       return { ...state, teams: updateTeam(state, action.team, patch) };
     }
@@ -279,9 +301,20 @@ export function applyScoreboardAction(state: ScoreboardState, action: Scoreboard
       const ms = direction === "up" ? 0 : state.sport === "other" ? resetMs : nextPeriodClockMs(state, state.period);
       return { ...state, clock: stoppedClock(ms, direction, resetMs) };
     }
-    case "clockSetMinutes": {
-      const ms = Math.min(120, Math.max(0, Math.round(action.minutes))) * 60_000;
-      return { ...state, clock: stoppedClock(ms, state.clock.direction, ms) };
+    case "clockSet": {
+      const ms = Math.min(MAX_CLOCK_MS, Math.max(0, Math.round(action.ms)));
+      if (!state.clock.running) return { ...state, clock: stoppedClock(ms, state.clock.direction, state.clock.resetMs) };
+      return { ...state, clock: { ...state.clock, ms, startedAt: now } };
+    }
+    case "clockAdjust": {
+      const ms = Math.min(MAX_CLOCK_MS, Math.max(0, clockMs(state.clock, now) + action.deltaMs));
+      if (!state.clock.running) return { ...state, clock: stoppedClock(ms, state.clock.direction, state.clock.resetMs) };
+      return { ...state, clock: { ...state.clock, ms, startedAt: now } };
+    }
+    case "periodLength": {
+      const resetMs = Math.min(120, Math.max(0, Math.round(action.minutes))) * 60_000;
+      if (state.clock.running) return { ...state, clock: { ...state.clock, resetMs } };
+      return { ...state, clock: stoppedClock(state.clock.direction === "down" ? resetMs : state.clock.ms, state.clock.direction, resetMs) };
     }
     case "clockDirection":
       if (action.direction === state.clock.direction) return state;
@@ -313,12 +346,20 @@ export function applyScoreboardAction(state: ScoreboardState, action: Scoreboard
         clock: stoppedClock(nextPeriodClockMs(state, period), state.clock.direction, state.clock.resetMs)
       };
     }
+    case "previousPeriod": {
+      if (state.period <= 1) return state;
+      return { ...state, period: state.period - 1, periodScores: state.periodScores.slice(0, -1) };
+    }
     case "down":
-      return { ...state, down: Math.min(4, Math.max(0, Math.round(action.down))), distance: action.down === 1 ? "10" : state.distance };
+      return withoutFlag({
+        ...state,
+        down: Math.min(4, Math.max(0, Math.round(action.down))),
+        distance: action.down === 1 ? "10" : state.distance
+      });
     case "distance":
       return { ...state, distance: action.value.toUpperCase().slice(0, 6) };
     case "flag":
-      return withTag(state, "flag", "Flag", FLAG_TAG_MS, now);
+      return flagOn(state, now) ? withoutFlag(state) : withTag(state, "flag", "Flag", FLAG_TAG_MS, now);
     case "endSet": {
       const [home, away] = state.teams;
       const winner: TeamIndex = home.score >= away.score ? 0 : 1;
@@ -354,4 +395,19 @@ export function applyScoreboardAction(state: ScoreboardState, action: Scoreboard
 export function pruneTags(state: ScoreboardState, now: number): ScoreboardState {
   const tags = state.tags.filter((tag) => tag.until > now);
   return tags.length === state.tags.length ? state : { ...state, tags };
+}
+
+/**
+ * Reads a typed clock value: "4:32", "12:00", "0:45.5", "45" (seconds), or "432" (4:32).
+ * Returns milliseconds, or null if it isn't a time.
+ */
+export function parseClockInput(text: string): number | null {
+  const value = text.trim();
+  const colon = value.match(/^(\d{1,3}):([0-5]\d)(?:\.(\d))?$/);
+  if (colon) return (Number(colon[1]) * 60 + Number(colon[2])) * 1000 + Number(colon[3] ?? 0) * 100;
+  const seconds = value.match(/^(\d{1,2})(?:\.(\d))?$/);
+  if (seconds) return Number(seconds[1]) * 1000 + Number(seconds[2] ?? 0) * 100;
+  const digits = value.match(/^(\d{1,3})([0-5]\d)$/);
+  if (digits) return (Number(digits[1]) * 60 + Number(digits[2])) * 1000;
+  return null;
 }

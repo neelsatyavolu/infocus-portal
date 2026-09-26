@@ -882,7 +882,7 @@ export function AppShell({ children, platformRole, currentUser, canViewAs = fals
       <aside
         id="app-sidebar"
         className={cn(
-          "fixed inset-y-0 left-0 z-[60] flex h-dvh w-[min(240px,85vw)] flex-col gap-3 border-r border-border bg-[var(--ink)] px-3 py-4 pt-[max(1rem,env(safe-area-inset-top))] transition-transform duration-200 ease-out lg:z-40",
+          "fixed inset-y-0 left-0 z-[60] flex h-dvh w-[min(240px,85vw)] flex-col gap-3 border-r border-border bg-[var(--ink)] px-3 py-4 pt-[env(safe-area-inset-top)] transition-transform duration-200 ease-out lg:z-40",
           navOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >

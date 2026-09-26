@@ -251,7 +251,7 @@ export default function ClassBoardView({ board }: { board: ClassBoardModel }) {
           </div>
         </section>
 
-        <div className="grid min-h-0 grid-rows-[minmax(0,0.55fr)_minmax(0,1.45fr)_minmax(0,1fr)] gap-3 overflow-hidden">
+        <div className="grid min-h-0 grid-rows-[fit-content(45%)_minmax(0,1.45fr)_minmax(0,1fr)] gap-3 overflow-hidden">
           <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-card">
             <div className="flex shrink-0 items-baseline justify-between gap-3 border-b border-border px-[clamp(0.85rem,1vw,1.2rem)] py-[clamp(0.6rem,0.8vw,0.9rem)]">
               <h2 className="text-[clamp(1rem,1.2vw,1.45rem)] font-semibold tracking-tight">
@@ -264,7 +264,7 @@ export default function ClassBoardView({ board }: { board: ClassBoardModel }) {
                 <p className="py-3 text-sm text-[var(--ink-text)]">No livestreams in the next two weeks.</p>
               ) : (
                 board.livestreams.map((item) => (
-                  <div key={item.id} className="flex min-h-0 flex-1 flex-col justify-center overflow-hidden border-b border-border last:border-b-0">
+                  <div key={item.id} className="flex shrink-0 flex-col gap-0.5 border-b border-border py-[clamp(0.4rem,0.55vw,0.65rem)] last:border-b-0">
                     <div className="flex items-baseline justify-between gap-2">
                       <h3 className="min-w-0 truncate text-[clamp(0.8rem,0.9vw,1.05rem)] font-semibold leading-tight">
                         {item.title}

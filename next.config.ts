@@ -10,7 +10,8 @@ const nextConfig: NextConfig = {
       "./docs/class-rules-2026-27.md",
       "./docs/NAS-STORAGE.md",
       "./docs/SUBDOMAINS.md"
-    ]
+    ],
+    "/api/live/thumbnail": ["./public/live/infocus-wordmark-white.png", "./public/live/infocus-icon.png"]
   },
   images: {
     remotePatterns: [

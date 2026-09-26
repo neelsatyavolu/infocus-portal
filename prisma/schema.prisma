@@ -743,6 +743,10 @@ model ProgramSetting {
   classBoardPinCipher    String?
   classBoardPinFailures  Int       @default(0)
   classBoardPinFailureAt DateTime?
+  /// AES-GCM payload. Producers and livestream managers read it in Settings. Unlocks only /live.
+  livestreamPinCipher    String?
+  livestreamPinFailures  Int       @default(0)
+  livestreamPinFailureAt DateTime?
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
 }
@@ -1515,10 +1519,26 @@ model LivestreamEvent {
   manager       User?                   @relation("LivestreamEventManager", fields: [managerUserId], references: [id], onDelete: SetNull)
   attendees     LivestreamAttendee[]
   signups       LivestreamSignupRequest[]
+  graphics      LivestreamGraphics?
 
   @@index([startsAt])
   @@index([status])
   @@index([managerUserId])
+}
+
+/// Live dashboard state for one livestream. OBS overlays read it by overlayKey without signing in.
+model LivestreamGraphics {
+  id         String          @id @default(cuid())
+  eventId    String          @unique
+  /// Unguessable key in the OBS Browser Source URLs (/live/[key]/scoreboard and /live/[key]/image).
+  overlayKey String          @unique
+  /// ScoreboardState JSON (src/lib/live/scoreboard.ts).
+  scoreboard Json?
+  /// LiveImageState JSON (src/lib/live/graphics.ts). Null shows nothing.
+  liveImage  Json?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  event      LivestreamEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
 }
 
 model LivestreamAttendee {

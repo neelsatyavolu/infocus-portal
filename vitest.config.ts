@@ -12,6 +12,9 @@ export default defineConfig({
       VIEW_AS_LIMITED_ACTORS: "limited@example.edu=viewer@example.com"
     }
   },
+  esbuild: {
+    jsx: "automatic"
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname)

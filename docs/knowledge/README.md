@@ -28,7 +28,7 @@ When answering:
 | Master Calendar, The Show, anchors, PA | `calendar-and-show.md` |
 | Class Board | `class-board.md` |
 | Publishing Queue | `publishing-queue.md` |
-| Livestream tracker | `livestreams.md` |
+| Livestream tracker and dashboard (`/live`, OBS overlays, thumbnails) | `livestreams.md` |
 | Announcements, PA scripts, and public submit form | `announcements.md` |
 | Teleprompter | `teleprompter.md` |
 | Equipment checkout | `equipment.md` |

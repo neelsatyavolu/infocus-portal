@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Switch } from "@/components/ui/switch";
 import { AppearanceCard } from "./appearance-card";
 import { ClassBoardPinCard } from "./class-board-pin-card";
+import { LivestreamPinCard } from "./livestream-pin-card";
 
 type PreferenceState = {
   autoPlay: boolean;
@@ -698,6 +699,7 @@ export default function SettingsPage() {
       <AppearanceCard />
 
       <ClassBoardPinCard />
+      <LivestreamPinCard />
 
       <section className="space-y-3 rounded-2xl border border-border bg-card p-4">
         <p className="text-sm font-semibold text-foreground">Apps & schedule</p>

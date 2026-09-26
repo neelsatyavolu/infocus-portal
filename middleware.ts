@@ -31,7 +31,10 @@ const publicRoutePatterns = [
   /^\/submit-announcement$/,
   /^\/api\/announcements\/submit$/,
   /^\/announcements\/shared$/,
-  /^\/api\/announcements\/submitted\/shared$/
+  /^\/api\/announcements\/submitted\/shared$/,
+  // Livestream dashboard (PIN or producer/manager session, checked in the handlers) and OBS overlays (overlay key).
+  /^\/live(?:\/.*)?$/,
+  /^\/api\/live(?:\/.*)?$/
 ];
 
 function isPublicRoute(pathname: string) {

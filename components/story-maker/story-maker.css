@@ -122,12 +122,12 @@
 
 .sm-edit-ui { position: absolute; pointer-events: none; }
 .sm-custom .sm-el.sm-selected { outline: calc(var(--sm-ui) * 2) solid #2bb36e; outline-offset: calc(var(--sm-ui) * 2); }
-.sm-handle {
+.sm-resize {
   position: absolute; right: calc(var(--sm-ui) * -9); bottom: calc(var(--sm-ui) * -9);
   width: calc(var(--sm-ui) * 16); height: calc(var(--sm-ui) * 16);
   background: #2bb36e; border: calc(var(--sm-ui) * 2) solid #0f110f; pointer-events: auto; touch-action: none; cursor: nwse-resize;
 }
-.sm-handle.sm-handle-x { cursor: ew-resize; bottom: 50%; margin-bottom: calc(var(--sm-ui) * -8); }
+.sm-resize.sm-resize-x { cursor: ew-resize; bottom: 50%; margin-bottom: calc(var(--sm-ui) * -8); }
 .sm-guide { background: #f2a516; }
 .sm-guide-x { top: 0; bottom: 0; width: calc(var(--sm-ui) * 1.5); }
 .sm-guide-y { left: 0; right: 0; height: calc(var(--sm-ui) * 1.5); }

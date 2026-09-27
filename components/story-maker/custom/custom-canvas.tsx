@@ -117,7 +117,7 @@ export function CustomCanvas({ api }: { api: CustomLayoutApi }) {
           <CustomElementArt el={el} />
           {el.id === selected?.id && el.kind !== "header" ? (
             <div
-              className={RESIZE_WIDTH_ONLY.has(el.kind) ? "sm-edit-ui sm-handle sm-handle-x" : "sm-edit-ui sm-handle"}
+              className={RESIZE_WIDTH_ONLY.has(el.kind) ? "sm-edit-ui sm-resize sm-resize-x" : "sm-edit-ui sm-resize"}
               role="presentation"
               {...handlers(el, "resize")}
             />

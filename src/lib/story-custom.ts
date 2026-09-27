@@ -70,7 +70,8 @@ export function textPx(el: TextElement) {
   return Math.max(MIN_TEXT_PX, Math.round(TEXT_STYLES[el.style].size * el.scale));
 }
 
-export function createElement(preset: ElementPreset, id: string): CustomElement {
+/** `background` picks a visible plate: raised Ink on the Ink background, brand Ink over a photo. */
+export function createElement(preset: ElementPreset, id: string, background?: CustomBackground): CustomElement {
   const full = STORY_WIDTH - MARGIN * 2;
   switch (preset) {
     case "text":
@@ -78,7 +79,7 @@ export function createElement(preset: ElementPreset, id: string): CustomElement 
     case "photo":
       return { id, kind: "photo", x: MARGIN, y: 400, w: full, h: 702, photo: null };
     case "plate":
-      return { id, kind: "plate", x: MARGIN, y: 1180, w: full, h: 280, fill: "ink" };
+      return { id, kind: "plate", x: MARGIN, y: 1180, w: full, h: 280, fill: background?.kind === "ink" ? "ink-2" : "ink" };
     case "strip":
       return { id, kind: "plate", x: MARGIN, y: 1460, w: full, h: 64, fill: "green" };
     case "icon":
@@ -92,14 +93,26 @@ export function createElement(preset: ElementPreset, id: string): CustomElement 
   }
 }
 
-/** Header, Ink plate with a green strip and a headline, and the footer: a clean, on-brand start. */
-export function starterLayout(newId: (n: number) => string): CustomLayout {
-  const plate = { ...createElement("plate", newId(1)), y: 1100, h: 300 } as CustomElement;
-  const strip = { ...createElement("strip", newId(2)), y: 1400 } as CustomElement;
-  const headline = { ...createElement("text", newId(3)), x: 120, y: 1150, w: 840, h: 200, text: "Your headline goes here in sentence case" } as CustomElement;
+/**
+ * A photo-led start: header with the date, a large photo, a green strip with the photo credit
+ * attached under it, the headline on Ink, and the footer. Only the photo is left to add.
+ */
+export function starterLayout(newId: (n: number) => string, meta = ""): CustomLayout {
+  const full = STORY_WIDTH - MARGIN * 2;
+  const photoTop = 402;
+  const photoHeight = 702;
+  const stripTop = photoTop + photoHeight;
+  const stripHeight = 56;
   return {
     background: { kind: "ink" },
-    elements: [createElement("header", newId(0)), plate, strip, headline, createElement("footer", newId(4))]
+    elements: [
+      { ...createElement("header", newId(0)), meta } as CustomElement,
+      { ...createElement("photo", newId(1)), y: photoTop, h: photoHeight },
+      { ...createElement("strip", newId(2)), y: stripTop, h: stripHeight },
+      { id: newId(3), kind: "text", x: MARGIN + 36, y: stripTop + 11, w: full - 72, h: 34, text: "Photos by First Last", style: "label", color: "white", align: "left", scale: 1 },
+      { id: newId(4), kind: "text", x: MARGIN, y: stripTop + stripHeight + 36, w: full, h: 270, text: "Your headline goes here in sentence case", style: "headline", color: "white", align: "left", scale: 1 },
+      createElement("footer", newId(5))
+    ]
   };
 }
 

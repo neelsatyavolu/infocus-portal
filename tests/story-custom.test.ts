@@ -57,6 +57,11 @@ describe("editing elements", () => {
     expect(ids(moveLayer(layout, "a", "backward"))).toEqual(["a", "b", "c"]);
   });
 
+  it("makes new Ink plates visible on an Ink background (raised Ink) and brand Ink over photos", () => {
+    expect(createElement("plate", "p", { kind: "ink" })).toMatchObject({ fill: "ink-2" });
+    expect(createElement("plate", "p", { kind: "photo", photo: null })).toMatchObject({ fill: "ink" });
+  });
+
   it("creates brand presets: a green strip is a green plate, text starts as a Soft White headline", () => {
     expect(createElement("strip", "s")).toMatchObject({ kind: "plate", fill: "green" });
     expect(createElement("text", "t")).toMatchObject({ kind: "text", style: "headline", color: "white", scale: 1 });
@@ -111,8 +116,21 @@ describe("moving and resizing", () => {
 });
 
 describe("brand checks", () => {
-  it("passes the starter layout", () => {
-    expect(issueKeys(starterLayout((n) => `el-${n}`))).toEqual([]);
+  it("starts from a clean layout that only asks for a photo", () => {
+    expect(issueKeys(starterLayout((n) => `el-${n}`, "Sept. 26, 2026"))).toEqual(["empty-photo:el-1"]);
+  });
+
+  it("starts with a photo, a credited green strip under it, and the headline below", () => {
+    const starter = starterLayout((n) => `el-${n}`, "Sept. 26, 2026");
+    const [header, photo, strip, credit, headline, footer] = starter.elements;
+    expect(header).toMatchObject({ kind: "header", meta: "Sept. 26, 2026" });
+    expect(strip).toMatchObject({ kind: "plate", fill: "green", y: photo.y + photo.h });
+    expect(credit).toMatchObject({ kind: "text", style: "label", color: "white" });
+    expect(credit.y).toBeGreaterThanOrEqual(strip.y);
+    expect(credit.y + 34).toBeLessThanOrEqual(strip.y + strip.h);
+    expect(headline).toMatchObject({ kind: "text", style: "headline" });
+    expect(headline.y).toBeGreaterThan(strip.y + strip.h);
+    expect(headline.y + headline.h).toBeLessThan(footer.y);
   });
 
   it("flags text in Instagram's UI zones", () => {

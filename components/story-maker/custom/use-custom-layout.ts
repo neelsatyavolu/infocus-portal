@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import {
   STORY_HEIGHT,
   STORY_WIDTH,
+  apDate,
   type StoryPhoto
 } from "@/src/lib/story-maker";
 import {
@@ -29,7 +30,7 @@ import {
 } from "@/src/lib/story-custom";
 import { readStoryPhoto } from "../story-photos";
 
-const STORE_KEY = "infocus-story-maker:custom:v1";
+const STORE_KEY = "infocus-story-maker:custom:v2";
 const NUDGE = 4;
 const NUDGE_BIG = 24;
 
@@ -48,7 +49,7 @@ export const PHOTO_ERROR = "Couldn’t open that photo. Use a JPG or PNG (export
  * active only while `active` is true and focus isn't in a text field.
  */
 export function useCustomLayout(active: boolean) {
-  const [history, dispatch] = useReducer(historyReducer, undefined, () => initialHistory(starterLayout((n) => `starter-${n}`)));
+  const [history, dispatch] = useReducer(historyReducer, undefined, () => initialHistory(starterLayout((n) => `starter-${n}`, apDate(new Date()))));
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [measured, setMeasured] = useState<MeasuredHeights>({});
   const loaded = useRef(false);
@@ -78,7 +79,7 @@ export function useCustomLayout(active: boolean) {
 
   const add = useCallback(
     (preset: ElementPreset, patch: Partial<CustomElement> = {}) => {
-      const el = { ...createElement(preset, newId()), ...patch } as CustomElement;
+      const el = { ...createElement(preset, newId(), layout.background), ...patch } as CustomElement;
       commit(addElement(layout, el));
       setSelectedId(el.id);
       return el.id;
@@ -99,7 +100,7 @@ export function useCustomLayout(active: boolean) {
   const layer = useCallback((id: string, to: "front" | "back" | "forward" | "backward") => commit(moveLayer(layout, id, to)), [commit, layout]);
   const setBackground = useCallback((background: CustomBackground) => commit({ ...layout, background }), [commit, layout]);
   const startOver = useCallback(() => {
-    commit(starterLayout(() => newId()));
+    commit(starterLayout(() => newId(), apDate(new Date())));
     setSelectedId(null);
     toast.success("Started over. Undo brings your layout back.");
   }, [commit]);

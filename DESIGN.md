@@ -87,7 +87,7 @@ Keep it to two weights per graphic. Don't use italics, underlines, or all-caps f
 
 ## 4. Shape language
 
-- **Square corners.** Nameplates, plates, panels and cards have **square corners** everywhere: on air, on the web, on slides and on thumbnails. (Until Sept 2026 the plates had one curved corner. It was dropped because a single rounded edge looked odd.) The only round shapes are the logo itself and small dots: the record dot, bullets and status dots.
+- **Square corners.** Nameplates, plates, panels and cards have **square corners** everywhere: on air, on the web, on slides and on thumbnails. (Until Sept 2026 the plates had one curved corner. It was dropped because a single rounded edge looked odd.) The only round shapes are the logo itself and small dots: the record dot, bullets and status dots. **One exception: the Follow InFocus card** keeps the curved corner on its Ink plate (the top-right corner is a quarter circle as tall as the plate). That curve is only on that card, and only on air.
 - **The tile.** A square Ink tile holds the icon at the inner end of every nameplate.
 - **Stacked bars.** Ink plate on top (name), InFocus Green strip below (role), always the same width. The width is set by whichever text is longer.
 - **Flat color.** No gradients, bevels, drop shadows, or glass. Depth comes from the footage, not the graphic.
@@ -140,7 +140,7 @@ All are 1920 × 1080. MOGRT (Premiere) and `.drfx` (DaVinci Resolve) versions ma
 - The Left/Right set TVs show this whenever no announcement is up, so they **never show the blue key color**. On the TVs, an announcement reads as logo → announcement → logo, with no pop.
 
 ### Follow InFocus (`08 Follow InFocus`)
-- A corner card at the **top left** (x 48, y 40): Ink tile + Ink "Follow InFocus" plate, with a Green panel below listing the handles in Soft White Medium 26 px:
+- A corner card at the **top left** (x 48, y 40): Ink tile + Ink "Follow InFocus" plate with the curved top-right corner (the one graphic that keeps it), with a Green panel below listing the handles in Soft White Medium 26 px:
   - Instagram + YouTube **@infocusnews**
   - TikTok + X **@palyinfocus**
   - Web **infocusnews.tv**

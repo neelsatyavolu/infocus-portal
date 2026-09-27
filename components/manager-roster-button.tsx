@@ -70,24 +70,25 @@ export function ManagerRosterButton({ endpoint, noun, title, description }: Mana
           {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
           {busy && !roster ? <p className="text-sm text-muted-foreground">Loading…</p> : null}
           {roster ? (
-            <div className="space-y-4">
+            // min-w-0: DialogContent is a grid, and a native <select> is as wide as its longest option.
+            <div className="min-w-0 space-y-4">
               <ul className="max-h-64 space-y-2 overflow-y-auto">
                 {roster.managers.map((manager) => (
                   <li key={manager.userId} className="flex items-center justify-between gap-3">
                     <div className="min-w-0"><p className="truncate text-sm">{manager.name || manager.email}</p><p className="truncate text-xs text-muted-foreground">{manager.email}</p></div>
-                    <Button type="button" size="sm" variant="destructive-quiet" disabled={busy} aria-label={`Remove ${manager.name || manager.email}`} onClick={() => void changeManager(manager.userId, true)}>Remove</Button>
+                    <Button type="button" size="sm" variant="destructive-quiet" className="shrink-0" disabled={busy} aria-label={`Remove ${manager.name || manager.email}`} onClick={() => void changeManager(manager.userId, true)}>Remove</Button>
                   </li>
                 ))}
               </ul>
               {!roster.managers.length ? <p className="text-sm text-muted-foreground">No managers yet.</p> : null}
               <div className="flex gap-2">
-                <select aria-label="Registered user" value={selected} disabled={busy} onChange={(event) => setSelected(event.target.value)} className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 text-sm">
+                <select aria-label="Registered user" value={selected} disabled={busy} onChange={(event) => setSelected(event.target.value)} className="h-9 w-full min-w-0 flex-1 truncate rounded-md border border-border bg-background px-2 text-sm">
                   <option value="">Choose a registered user</option>
                   {roster.candidates.filter((person) => !roster.managers.some((manager) => manager.userId === person.id)).map((person) => (
                     <option key={person.id} value={person.id}>{person.name || person.email} ({person.email})</option>
                   ))}
                 </select>
-                <Button type="button" disabled={busy || !selected} onClick={() => void changeManager(selected, false)}>Add manager</Button>
+                <Button type="button" className="shrink-0" disabled={busy || !selected} onClick={() => void changeManager(selected, false)}>Add manager</Button>
               </div>
             </div>
           ) : null}

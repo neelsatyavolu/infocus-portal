@@ -265,8 +265,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 className="group overflow-hidden rounded-2xl border border-border bg-card transition hover:border-[var(--brand-green)]/40 hover:bg-card/90"
               >
                 <div className={`brand-tile-orbs relative h-28 p-4 ${gradient}`}>
-                  <p className="relative text-lg font-semibold tracking-tight text-white">{project.name}</p>
-                  <p className="relative text-xs font-medium text-white/85">{selectedWorkspace.name}</p>
+                  <p className="relative text-lg font-semibold tracking-tight text-soft-white">{project.name}</p>
+                  <p className="relative text-xs font-medium text-soft-white/85">{selectedWorkspace.name}</p>
                 </div>
 
                 <div className="space-y-3 p-4">

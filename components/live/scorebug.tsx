@@ -11,6 +11,7 @@ import {
   type TeamIndex
 } from "@/src/lib/live/scoreboard";
 import { LIVE_ICON_SRC } from "./live-stage";
+import { RollingNumber } from "./rolling-number";
 
 type BugProps = { state: ScoreboardState; now: number };
 
@@ -52,12 +53,7 @@ function Tile({ size }: { size: number }) {
 }
 
 function Score({ state, team }: { state: ScoreboardState; team: TeamIndex }) {
-  const score = state.teams[team].score;
-  return (
-    <span key={score} className="lv-sc">
-      {score}
-    </span>
-  );
+  return <RollingNumber value={state.teams[team].score} />;
 }
 
 function Pips({ left, total }: { left: number; total: number }) {
@@ -123,7 +119,7 @@ function BarWithTier({ state, now }: BugProps) {
     <div className="lv-row">
       <Tile size={128} />
       <div className="lv-col">
-        <div className="lv-main a-wipe" style={{ height: 88, paddingRight: 64, borderRadius: "0 88px 0 0" }}>
+        <div className="lv-main a-wipe" style={{ height: 88 }}>
           <Team state={state} team={0} layout={layout} />
           <span className="lv-div" />
           <Team state={state} team={1} layout={layout} />
@@ -196,7 +192,7 @@ function FootballCenter({ state, now }: BugProps) {
     <>
       <div className="lv-row">
         <Tile size={96} />
-        <div className="lv-main a-wipe" style={{ height: 96, paddingRight: 56, borderRadius: "0 96px 0 0" }}>
+        <div className="lv-main a-wipe" style={{ height: 96 }}>
           <Team state={state} team={0} layout={layout} />
           <div className="lv-center">
             <span className="lv-per w">{periodLabel(state)}</span>

@@ -1970,7 +1970,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
     >
       <section className="min-w-0 space-y-4 xl:min-h-0 xl:overflow-hidden xl:pr-2">
         {/* Hero strip */}
-        <section ref={reviewHeroRef} className="arc-corner relative border border-border bg-card px-4 py-3">
+        <section ref={reviewHeroRef} className="relative border border-border bg-card px-4 py-3">
           <div className="relative flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="eyebrow flex items-center gap-1.5">

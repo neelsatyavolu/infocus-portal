@@ -668,19 +668,19 @@ export function StageWorkspace({
                   </div>
                 )}
                 {item.rollKind ? (
-                  <span className="absolute left-2 top-2 rounded-md bg-black/70 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.11em] text-white">
+                  <span className="absolute left-2 top-2 rounded-md bg-black/70 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.11em] text-soft-white">
                     {rollKindLabel(item.rollKind)}
                   </span>
                 ) : null}
                 {item.commentCount > 0 ? (
-                  <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-md bg-black/70 px-1.5 py-0.5 text-[10px] text-white">
+                  <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-md bg-black/70 px-1.5 py-0.5 text-[10px] text-soft-white">
                     <MessageSquare className="h-3 w-3" />
                     {item.commentCount}
                   </span>
                 ) : null}
                 {isNew ? (
                   <span
-                    className="absolute bottom-2 left-2 rounded-md bg-amber-300 px-2 py-0.5 text-[11px] font-semibold tracking-[0.11em] text-black light:text-white"
+                    className="absolute bottom-2 left-2 rounded-md bg-amber-300 px-2 py-0.5 text-[11px] font-semibold tracking-[0.11em] text-black light:text-soft-white"
                     title="Uploaded after the latest revision request"
                   >
                     NEW

@@ -3,12 +3,12 @@ import { mainAppOrigin } from "@/src/lib/hosts";
 const INK = "#0F110F";
 const CARD = "#1A1D1A";
 const LINE = "#252925";
-const PAPER = "#FFFFFF";
+const PAPER = "#ECEFEA";   // Soft White: text on the dark card (never pure #FFFFFF)
 const MUTED = "#DCE2DE";
 const FOOTER = "#DCE2DE";
 const GREEN = "#2BB36E";
 const FILL = "#0B6E3E";
-const ON_FILL = "#FFFFFF";
+const ON_FILL = "#ECEFEA"; // Soft White on InFocus Green buttons
 const FONT = "Lexend, 'Helvetica Neue', Arial, sans-serif";
 
 export const EMAIL_BRAND = {

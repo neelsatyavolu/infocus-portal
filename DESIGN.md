@@ -25,13 +25,13 @@ The wordmark is **infocus** in heavy, rounded geometric lowercase:
 
 The icon on its own (ring + aperture + arcs + red dot) is the mark for small and square spaces.
 
-The icon's shapes are the whole system in miniature. The **arc** becomes the curved corner of the nameplates. The **red dot** is the "live" accent. The **aperture** is the outro's closing move.
+The icon carries the system: it sits in the square Ink **tile** at the end of every nameplate, the **red dot** is the "live" accent, and the **aperture** is the outro's closing move.
 
 ### Files (`01 Logos`)
 | File | Use |
 |---|---|
 | `Wordmark/infocus-wordmark-color.png` | Default, on white or light backgrounds |
-| `Wordmark/infocus-wordmark-white.png` | On dark footage or Ink (white letters, green "in", red dot) |
+| `Wordmark/infocus-wordmark-white.png` | On dark footage or Ink (Soft White letters, green "in", red dot) |
 | `Wordmark/infocus-wordmark-on-black.png` | Color wordmark pre-set on a black field |
 | `Wordmark/infocus-wordmark-mono-black.png` / `-mono-white.png` | One-color uses (print, embossing, busy photos) |
 | `Icon/infocus-icon-color.png` / `-white.png` | Square spaces, watermarks, nameplate tile |
@@ -39,6 +39,8 @@ The icon's shapes are the whole system in miniature. The **arc** becomes the cur
 | `Favicon/favicon-16/32/512.png` | Browser tabs and app icons |
 
 Wordmark masters are 4107 × 1100 px, and the icon is 1024 px. The email signature logo is in `Branding & Design/Email Signature`.
+
+Every "white" version of the logo (white wordmark, on-black, mono-white, white icon, avatar, favicons) uses **Soft White `#ECEFEA`**, not pure `#FFFFFF`. Pure white letters read harsh on screen. The pure-white originals are kept in `_Working Files/Logo Backups (pure white, before 2026-09-26)`.
 
 ### Rules
 - **Clear space:** keep empty space around the logo at least the diameter of the red dot on every side.
@@ -53,15 +55,15 @@ Wordmark masters are 4107 × 1100 px, and the icon is 1024 px. The email signatu
 | Token | Hex | Role |
 |---|---|---|
 | **Ink** | `#0F110F` | Primary dark. Plates, cards, TV standby, the "f"/"cus" of the logo. Use instead of pure black. |
-| **InFocus Green** | `#0B6E3E` | Primary brand color. Role strips, panels, the logo's "in" and ring. Carries white text. |
+| **InFocus Green** | `#0B6E3E` | Primary brand color. Role strips, panels, the logo's "in" and ring. Carries Soft White text. |
 | **Green on Dark** | `#2BB36E` | Brighter green for *text and small marks on Ink*: kickers, bullets, URLs. Never a large fill. |
 | **Record Red** | `#EE3A2A` | Accent only: the record dot and small "live" markers. Never text, never large areas. |
-| **White** | `#FFFFFF` | Names, titles, primary text on dark. |
+| **Soft White** | `#ECEFEA` | Every "white" on dark: names, titles, primary text, and the white parts of the logo. Never pure `#FFFFFF` for text or the logo. Pure white is still fine as a *background* (light pages, the white card behind a QR code). |
 | **Mist** | `#DCE2DE` | Secondary text on dark: announcement points, taglines. |
 | Dot (unlit) | `#2E1412` | Only in the outro, the record dot before it lights. |
 
 **Balance:** mostly Ink, a band of Green, one touch of Red. If red is in more than one spot on screen, it's too much.
-**Contrast:** white on Ink and white on InFocus Green both pass WCAG AA for text. Don't put Green-on-Dark text on InFocus Green.
+**Contrast:** Soft White on Ink (about 16:1) and on InFocus Green (about 5.5:1) both pass WCAG AA for text. Don't put Green-on-Dark text on InFocus Green.
 **Errors and delete buttons** don't use Record Red. Interfaces use the separate Danger colors in section 10.
 
 ---
@@ -85,7 +87,7 @@ Keep it to two weights per graphic. Don't use italics, underlines, or all-caps f
 
 ## 4. Shape language
 
-- **The arc corner.** On the on-air nameplates, the plate has one rounded corner: the outer top corner (the top corner farthest from the logo tile) is a **quarter circle as tall as the plate**, echoing the logo's arc. All other corners are square. There's no outline or stroke on the arc. This exact rule is for the broadcast graphics. Websites, slides and other interfaces use it as an accent only (see section 10).
+- **Square corners.** Nameplates, plates, panels and cards have **square corners** everywhere: on air, on the web, on slides and on thumbnails. (Until Sept 2026 the plates had one curved corner. It was dropped because a single rounded edge looked odd.) The only round shapes are the logo itself and small dots: the record dot, bullets and status dots.
 - **The tile.** A square Ink tile holds the icon at the inner end of every nameplate.
 - **Stacked bars.** Ink plate on top (name), InFocus Green strip below (role), always the same width. The width is set by whichever text is longer.
 - **Flat color.** No gradients, bevels, drop shadows, or glass. Depth comes from the footage, not the graphic.
@@ -116,21 +118,21 @@ Everything builds *in pieces*, not as one block: the container opens, then the t
 All are 1920 × 1080. MOGRT (Premiere) and `.drfx` (DaVinci Resolve) versions match the rendered ProRes versions.
 
 ### Lower third (`05 Lower Thirds`)
-- Ink tile (126 px, icon inside) + Ink name plate (81 px tall) + Green role strip (45 px tall). The plate has the arc corner.
-- Name: Lexend SemiBold 45 px, white. Role: Medium 20.8 px, ALL CAPS, +11% tracking.
+- Ink tile (126 px, icon inside) + Ink name plate (81 px tall) + Green role strip (45 px tall). All corners square.
+- Name: Lexend SemiBold 45 px, Soft White. Role: Medium 20.8 px, ALL CAPS, +11% tracking.
 - Bottom-left: 150 px from the left, bottom edge on y = 972.
 - **In:** the tile opens from its center, then the icon turns into place, the plate wipes out, the name rises in, and the strip and role follow. **Out** is the reverse, ending with the icon turning away and the tile closing.
 - A ready-made transparent clip for everyone on staff is in `Roster (ProRes)`.
 
 ### Dual third (`06 Dual Thirds`)
-- Two lower thirds, the right one mirrored (tile on the outside, arc corner on the inside), each 290 px in from its edge so it sits under its anchor.
+- Two lower thirds, the right one mirrored (tile on the outside), each 290 px in from its edge so it sits under its anchor.
 - Both plates share one width (the wider of the two) so the pair looks balanced.
 
 ### Announcement (`07 Announcements`)
 - A full-frame Ink card, made to be seen on the set TVs (about 58% size), so the type is large.
-- Header: red dot + **ANNOUNCEMENTS** kicker (Bold 38 px, Green on Dark, +18%) on the left, white wordmark (70 px tall) on the right, with a 3 px white rule at 30% opacity under it. Margins are 120 px.
-- Title: SemiBold 116 px, white. Points: Regular 64 px, Mist, with Green-on-Dark bullet dots. **Up to 5 points, short phrases.** Text shrinks to at most 80% to fit, and past that the card should be split into two.
-- Optional image on the right (e.g. a QR code) on a white 440 px card with 14 px corners.
+- Header: red dot + **ANNOUNCEMENTS** kicker (Bold 38 px, Green on Dark, +18%) on the left, Soft White wordmark (70 px tall) on the right, with a 3 px Soft White rule at 30% opacity under it. Margins are 120 px.
+- Title: SemiBold 116 px, Soft White. Points: Regular 64 px, Mist, with Green-on-Dark bullet dots. **Up to 5 points, short phrases.** Text shrinks to at most 80% to fit, and past that the card should be split into two.
+- Optional image on the right (e.g. a QR code) on a pure white 440 px card with 14 px corners (QR codes need true white to scan).
 - **Sequence:** the card fades up on the centered icon, the icon turns away, then the header, rule, title and points build in. At the end the content fades, the icon turns back in and holds, and the whole card dissolves to transparent.
 
 ### TV standby (`09 TV Standby`)
@@ -138,7 +140,7 @@ All are 1920 × 1080. MOGRT (Premiere) and `.drfx` (DaVinci Resolve) versions ma
 - The Left/Right set TVs show this whenever no announcement is up, so they **never show the blue key color**. On the TVs, an announcement reads as logo → announcement → logo, with no pop.
 
 ### Follow InFocus (`08 Follow InFocus`)
-- A corner card at the **top left** (x 48, y 40): Ink tile + Ink "Follow InFocus" plate, with a Green panel below listing the handles in white Medium 26 px:
+- A corner card at the **top left** (x 48, y 40): Ink tile + Ink "Follow InFocus" plate, with a Green panel below listing the handles in Soft White Medium 26 px:
   - Instagram + YouTube **@infocusnews**
   - TikTok + X **@palyinfocus**
   - Web **infocusnews.tv**
@@ -148,7 +150,7 @@ All are 1920 × 1080. MOGRT (Premiere) and `.drfx` (DaVinci Resolve) versions ma
 - 13.8 s, 1080p. A fast, music-cut montage of our own footage (spirit week, packages, drone, class photos) that lands on the 2026 wordmark on the music hit.
 
 ### Outro (`03 Intro & Outro`)
-- On black: the white wordmark (1180 px wide) reveals left to right with the original InFocus outro music, and the red dot lights on the music's peak (1.32 s).
+- On black: the Soft White wordmark (1180 px wide) reveals left to right with the original InFocus outro music, and the red dot lights on the music's peak (1.32 s).
 - Below it: "Palo Alto High School's Student Broadcast Network" (Regular 32 px, Mist) and **infocusnews.tv** (SemiBold 38 px, Green on Dark). The legal line "© 2026 InFocus and Palo Alto High School" sits on title-safe.
 - **Ending:** the dot fades fully out, the frame closes like an aperture into the "o", then fades to black.
 
@@ -182,7 +184,7 @@ Show frame rate is 29.97 fps (59.94 for studio recordings).
 
 1. Start from Ink, add one Green element, and use Red only once (or not at all).
 2. Use Lexend, with SemiBold for the main line and CAPS Medium for labels.
-3. Use the arc corner on the one or two most important containers, not everywhere. Everything else stays square or gets a small, consistent radius (6px on screens; see section 10).
+3. Keep containers square. On screens, everyday controls can use one small, consistent radius (6px; see section 10), but never a single curved corner.
 4. Animate it in pieces with the easings above, and turn the icon when it appears.
 5. Check it on the actual footage or set, and at the size it'll really be seen (a TV on set is about half size).
 6. For show graphics, edit `graphics.html` and re-run the render scripts rather than editing renders by hand. See the package README.
@@ -203,10 +205,10 @@ Dark (Ink) is the default for InFocus interfaces. A light theme is allowed, for 
 | Card / panel | Ink 2 `#1A1D1A` | White `#FFFFFF` |
 | Hover / raised fill | Ink 3 `#252925` | `#E9EEEB` |
 | Lines and borders | `#2B302B` | `#D5DCD7` |
-| Primary text | White `#FFFFFF` | Ink `#0F110F` |
+| Primary text | Soft White `#ECEFEA` | Ink `#0F110F` |
 | Secondary text | Mist `#DCE2DE` | `#4B524D` |
 | Muted text (metadata, placeholders) | `#A3ABA6` | `#535A55` |
-| Primary fill (buttons, active state, header band) | InFocus Green `#0B6E3E` + white text | InFocus Green `#0B6E3E` + white text |
+| Primary fill (buttons, active state, header band) | InFocus Green `#0B6E3E` + Soft White text | InFocus Green `#0B6E3E` + Soft White text |
 | Green text, links, icons, small marks | Green on Dark `#2BB36E` | InFocus Green `#0B6E3E` |
 | Focus ring | Green on Dark `#2BB36E` | InFocus Green `#0B6E3E` |
 | Warning (UI only) | Amber `#F2A516` | `#B45309` |
@@ -221,16 +223,16 @@ Record Red is a *brand* color and stays reserved for the dot. For "something is 
 
 | Token | Hex | Use |
 |---|---|---|
-| **Danger** | `#C21F3A` | Destructive buttons (Delete, Remove, Revoke) with white text, error text and icons on light backgrounds, danger badge fill, error input borders |
+| **Danger** | `#C21F3A` | Destructive buttons (Delete, Remove, Revoke) with Soft White text, error text and icons on light backgrounds, danger badge fill, error input borders |
 | **Danger on Dark** | `#FF7A8A` | Error text, icons and borders on Ink backgrounds |
 | **Danger tint (light)** | `#FDECEE` | Background of error banners/alerts on light pages |
 | **Danger tint (dark)** | `#3A1218` | Background of error banners/alerts on Ink pages |
 
-All pass WCAG AA contrast: white on Danger is about 5.9:1, Danger on white about 5.9:1, and Danger on Dark on Ink about 7.6:1.
+All pass WCAG AA contrast: Soft White on Danger is about 5.1:1, Danger on white about 5.9:1, and Danger on Dark on Ink about 7.6:1.
 
-- **Destructive buttons:** use a Danger fill with white text only for the final "are you sure?" confirm. Everywhere else, use a quiet button (Danger text, no fill) so pages aren't full of red.
+- **Destructive buttons:** use a Danger fill with Soft White text only for the final "are you sure?" confirm. Everywhere else, use a quiet button (Danger text, no fill) so pages aren't full of red.
 - **Errors:** always pair the color with an icon and words ("Couldn't save: …"). Never rely on color alone.
-- **Badges** ("Overdue", "Missing", "Failed"): use the Danger fill with white text, or the tint background with Danger text. Keep them small.
+- **Badges** ("Overdue", "Missing", "Failed"): use the Danger fill with Soft White text, or the tint background with Danger text. Keep them small.
 - Don't put Danger and Record Red next to each other, and don't use Danger for anything decorative.
 
 ### Type on the web
@@ -266,27 +268,25 @@ Keep lines of body text under about 70 characters. Use sentence case for heading
 - Breakpoints: 640, 768, 1024 (sidebar appears), 1280.
 - Design at phone width first. Wide tables scroll inside their own container, never the whole page.
 
-### The arc corner = a signature, used sparingly
-- **Use it on the few big "plate" pieces:** the hero/header banner, section title bars, featured story cards, and the active nav tab. That's usually 1–3 per screen.
-- **One curved corner, the other three square.** Put the curve on the top-right for left-aligned elements, or the top-left for right-aligned or mirrored ones.
-- **Cap the curve size.** On TV the curve is as tall as the bar because the bars are short. On the web, use a fixed radius instead: **32px** (24px on phones, 48px on very large hero panels, about 14px on a nav item). Never let a tall card get a curve as tall as the card.
-- **Don't use it on everyday UI.** Buttons, text fields, dropdowns, checkboxes, tables, tags, tooltips, modals and small list cards all use **one consistent small radius: 6px** (4px for tiny tags).
-- Never round all four corners into a pill or blob. Circles are only for avatars, status dots, spinners, and toggle switches. Never add an outline or stroke along the arc.
-- **The web nameplate:** a page header is an Ink 2 plate with the arc corner and a 4px InFocus Green strip along the bottom. It's the lower third, flattened: an eyebrow, a SemiBold headline, and at most one line of Mist text.
+### Corners
+- **Plates are square.** Hero/header banners, section title bars, featured cards and panels have square corners. No single curved corner, and no big rounded plates.
+- **Everyday UI uses one small radius: 6px** (4px for tiny tags). That covers buttons, text fields, dropdowns, checkboxes, tables, tags, tooltips, modals and small list cards.
+- Never round all four corners into a pill or blob. Circles are only for avatars, status dots, spinners, and toggle switches.
+- **The web nameplate:** a page header is a square Ink 2 plate with a 4px InFocus Green strip along the bottom. It's the lower third, flattened: an eyebrow, a SemiBold headline, and at most one line of Mist text.
 
 ### Components
 
 | Component | Recipe |
 |---|---|
-| **Primary button** | 36px tall (32 small, 40 large), 16px side padding, 6px radius, Lexend Medium 14px, InFocus Green fill, white text. Hover `#0E7D47` (light `#085A32`). One per view. |
+| **Primary button** | 36px tall (32 small, 40 large), 16px side padding, 6px radius, Lexend Medium 14px, InFocus Green fill, Soft White text. Hover `#0E7D47` (light `#085A32`). One per view. |
 | **Secondary / outline / ghost** | Same size. Outline: 1px line, transparent fill, Ink 3 on hover. Ghost: no border. |
 | **Quiet destructive** | Outline style with Danger text; tint on hover. |
-| **Destructive confirm** | Danger fill, white text. Only inside the "are you sure?" step. |
+| **Destructive confirm** | Danger fill, Soft White text. Only inside the "are you sure?" step. |
 | **Text field / select** | 36px tall, 6px radius, 1px field border (`#6B726D` dark / `#7F8782` light), transparent fill, 16px text on phones (prevents iOS zoom). Focus: 2px Green on Dark ring. Error: Danger border, and a message below with an icon. |
 | **Card** | Ink 2 on Ink (White on Mist 20 in light), 1px line, 6px radius, no shadow. |
 | **Table** | Header row in label style (caps, muted). 1px row lines, no zebra stripes. Numbers right-aligned in Geist Mono. The row hover is the Ink 3 fill. |
 | **Tag / badge** | 4px radius, 2px × 8px padding, label style 11px. Success: green tint + Green on Dark text. Warning: amber tint + amber. Danger: Danger tint + Danger text. Neutral: Ink 2 + Mist. |
-| **Tabs / nav** | Active item: InFocus Green fill with white text (a sidebar item may take a small single arc) or a 2px green underline. Inactive items use muted text, with Ink 3 on hover. |
+| **Tabs / nav** | Active item: InFocus Green fill with Soft White text (6px radius, like every other item) or a 2px green underline. Inactive items use muted text, with Ink 3 on hover. |
 | **Alert / banner** | Tint background, a 1px line in the same hue, an icon, and plain words. |
 | **Dialog** | Ink 2 panel, 6px radius, black scrim at 60% (no blur), title in H3 style. The primary action goes on the right. |
 | **Tooltip / menu** | Ink 2 with a 1px line, 6px radius, 13px text. |
@@ -313,23 +313,23 @@ Keep lines of body text under about 70 characters. Use sentence case for heading
 Use this section for class decks, pitch decks, info-night slides, and anything shown on a projector or the set TVs. Build at **1920 × 1080 (16:9)**. In Google Slides, that's the default "Widescreen 16:9". Install Lexend and Geist Mono first; both are free on Google Fonts (in Google Slides, use Font → More fonts).
 
 ### Two looks
-- **Ink deck (default):** Ink background, white titles, Mist body text, and a Green band for emphasis. Use it for anything projected, on TV, or on screen.
+- **Ink deck (default):** Ink background, Soft White titles, Mist body text, and a Green band for emphasis. Use it for anything projected, on TV, or on screen.
 - **Light deck:** white background, Ink titles, `#4B524D` body text, and InFocus Green for kickers, bullets, and bands. Green on Dark is never used on white. Use it for decks that will be printed or read as a handout.
 
 ### Grid
 - Margins are **120px** on every side. Content sits on a 12-column grid with 24px gutters.
-- **Header band** (from the announcement card): at the top left, a red dot and an ALL CAPS kicker (Lexend Bold 32–38px, Green on Dark, +18% tracking). At the top right, the white wordmark about 70px tall. Below both, a 3px white rule at 30% opacity, about 200px from the top. On a light deck, the rule is Ink at 15% and the wordmark is the color one.
+- **Header band** (from the announcement card): at the top left, a red dot and an ALL CAPS kicker (Lexend Bold 32–38px, Green on Dark, +18% tracking). At the top right, the white (Soft White) wordmark about 70px tall. Below both, a 3px Soft White rule at 30% opacity, about 200px from the top. On a light deck, the rule is Ink at 15% and the wordmark is the color one.
 - Put the page number bottom-right in Geist Mono 20px, in Mist at 60%. It's optional.
 
 ### Type scale (1080p)
 
 | Element | Size | Weight / color |
 |---|---|---|
-| Title slide headline | 116–140px | SemiBold, white, −2% |
-| Slide title | 72–96px | SemiBold, white, −2% |
+| Title slide headline | 116–140px | SemiBold, Soft White, −2% |
+| Slide title | 72–96px | SemiBold, Soft White, −2% |
 | Kicker / section label | 32–38px, ALL CAPS | Bold or Medium, Green on Dark, +18% |
 | Body / bullets | 40–64px | Regular, Mist |
-| Big stat | 160–220px | SemiBold, white |
+| Big stat | 160–220px | SemiBold, Soft White |
 | Stat label | 28–32px, ALL CAPS | Medium, Mist, +11% |
 | Captions, sources | 24–28px | Regular, Mist at 70% |
 
@@ -339,13 +339,13 @@ Use this section for class decks, pitch decks, info-night slides, and anything s
 
 ### Slide types
 1. **Title:** Ink. The icon centered (300px) or the wordmark (about 1180px wide), with a headline and one Mist line below. The red dot is the only red.
-2. **Section divider:** Ink, with one InFocus Green plate across the lower third. The plate has the arc corner (top-right, about 48px) and holds the section number as a kicker and the section title in white. This is the lower third at slide scale.
+2. **Section divider:** Ink, with one square InFocus Green plate across the lower third. It holds the section number as a kicker and the section title in Soft White. This is the lower third at slide scale.
 3. **Content:** the header band, a slide title, then 3–5 bullets, or a two-column split with bullets on the left and an image on the right.
 4. **Big number:** one stat, its label, and one line of context.
-5. **Image:** a full-bleed photo or footage frame, with the title on an Ink plate (arc corner and green strip) in the lower-left. Don't put text straight on a busy photo.
-6. **Quote:** the quote in SemiBold 64–72px white (no italics, no giant quote marks), and the name and role underneath as a lower third (Ink plate, Green role strip).
-7. **QR / link:** the QR code on a white 440px card with 14px corners, and the URL in SemiBold Green on Dark with +6% tracking.
-8. **Closing:** the same as the title slide, with the white wordmark and **infocusnews.tv**.
+5. **Image:** a full-bleed photo or footage frame, with the title on a square Ink plate with a green strip in the lower-left. Don't put text straight on a busy photo.
+6. **Quote:** the quote in SemiBold 64–72px Soft White (no italics, no giant quote marks), and the name and role underneath as a lower third (Ink plate, Green role strip).
+7. **QR / link:** the QR code on a pure white 440px card with 14px corners, and the URL in SemiBold Green on Dark with +6% tracking.
+8. **Closing:** the same as the title slide, with the Soft White wordmark and **infocusnews.tv**.
 
 ### Charts on slides and dashboards
 - Series colors, in order: Green on Dark `#2BB36E` (on light, InFocus Green `#0B6E3E`), Mist `#DCE2DE` (on light, `#8F9892`), deep green `#08492A` (on light, `#7FC9A2`), then Amber `#F2A516` only to highlight one thing.
@@ -369,18 +369,18 @@ Use a dissolve (ease in-out) or a wipe between slides. Build bullets in one at a
 
 ### Email
 - Email clients can't load CSS variables, so use literal hexes. Use the font stack `Lexend, 'Helvetica Neue', Arial, sans-serif`.
-- Layout: a 600px column. Use either an Ink background with an Ink 2 card, or white with Ink text. Put a 4px InFocus Green band under the header, which holds the wordmark (white wordmark on Ink, color wordmark on white).
-- Buttons are InFocus Green with white text and a 6px radius (never pills). Labels are ALL CAPS with +11% tracking.
+- Layout: a 600px column. Use either an Ink background with an Ink 2 card, or white with Ink text. Put a 4px InFocus Green band under the header, which holds the wordmark (the white (Soft White) wordmark on Ink, the color wordmark on white).
+- Buttons are InFocus Green with Soft White text (`#ECEFEA`) and a 6px radius (never pills). Labels are ALL CAPS with +11% tracking.
 - No gradients, no shadows, no italics.
 - The email signature logo is in `Branding & Design/Email Signature`.
 
 ### Social and thumbnails
-- **YouTube thumbnail (1280 × 720):** a real frame from the package, with an Ink plate in the lower-left that has the arc corner and a green strip. The plate holds a headline of 3–5 words in Lexend SemiBold, at least 96px. Put the icon tile in one corner. Only one red dot, if any.
+- **YouTube thumbnail (1280 × 720):** a real frame from the package, with a square Ink plate in the lower-left that has a green strip. The plate holds a headline of 3–5 words in Lexend SemiBold, at least 96px. Put the icon tile in one corner. Only one red dot, if any.
 - **Instagram post (1080 × 1350) and story (1080 × 1920):** the same plate system. Keep text out of the top and bottom 250px on stories (UI overlaps there). Handles: **@infocusnews** (Instagram, YouTube), **@palyinfocus** (TikTok, X), and **infocusnews.tv**.
 - **Profile pictures:** `Icon/infocus-channel-avatar-1800.png` only.
 
 ### Signage, posters, and the set TVs
-- Use the Ink look with a 120px margin, a headline of 116px or more at 1080p (scale up for print), and a QR code on a white card.
+- Use the Ink look with a 120px margin, a headline of 116px or more at 1080p (scale up for print), and a QR code on a pure white card.
 - For the set TVs, check it at half size. When nothing else is up, the TVs show the TV standby (section 6).
 
 ---
@@ -394,12 +394,13 @@ Copy this into any new web project. The values match InFocus Portal and InFocus 
 :root {
   /* Brand */
   --ink: #0F110F;            /* Ink */
-  --green: #0B6E3E;          /* InFocus Green: fills, white text on it */
+  --green: #0B6E3E;          /* InFocus Green: fills, Soft White text on it */
   --green-hover: #0E7D47;
   --green-on-dark: #2BB36E;  /* text and small marks on Ink */
   --record-red: #EE3A2A;     /* the dot only */
   --mist: #DCE2DE;
-  --on-brand: #FFFFFF;
+  --soft-white: #ECEFEA;     /* every "white" on dark: text and logo, never #FFFFFF */
+  --on-brand: #ECEFEA;
 
   /* Danger */
   --danger: #C21F3A;
@@ -411,7 +412,7 @@ Copy this into any new web project. The values match InFocus Portal and InFocus 
   --surface: #1A1D1A;
   --surface-hover: #252925;
   --line: #2B302B;
-  --text: #FFFFFF;
+  --text: #ECEFEA;
   --text-2: #DCE2DE;
   --text-muted: #A3ABA6;
   --accent-text: #2BB36E;    /* green text */
@@ -424,8 +425,7 @@ Copy this into any new web project. The values match InFocus Portal and InFocus 
 
   /* Shape */
   --radius: 6px;
-  --radius-sm: 4px;
-  --arc: 24px;               /* 32px from 640px; 48px on very large heroes */
+  --radius-sm: 4px;          /* plates and panels are square (no radius) */
 
   /* Motion */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -434,7 +434,6 @@ Copy this into any new web project. The values match InFocus Portal and InFocus 
   --ease-back-out: cubic-bezier(0.34, 1.56, 0.64, 1); /* the red dot only */
   --duration: 200ms;
 }
-@media (min-width: 640px) { :root { --arc: 32px; } }
 
 .light {
   --bg: #F4F6F5;
@@ -453,7 +452,7 @@ Copy this into any new web project. The values match InFocus Portal and InFocus 
 }
 
 body { background: var(--bg); color: var(--text); font: 400 15px/1.5 var(--font-sans); }
-.plate { background: var(--surface); border-bottom: 4px solid var(--green); border-radius: 0 var(--arc) 0 0; }
+.plate { background: var(--surface); border-bottom: 4px solid var(--green); } /* square corners */
 .eyebrow { font: 500 12px/1.2 var(--font-sans); letter-spacing: .18em; text-transform: uppercase; color: var(--accent-text); }
 .btn-primary { background: var(--green); color: var(--on-brand); border-radius: var(--radius); height: 36px; padding: 0 16px; font-weight: 500; }
 .data { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
@@ -464,7 +463,8 @@ body { background: var(--bg); color: var(--text); font: 400 15px/1.5 var(--font-
 
 ### Quick check
 If a screen or slide has any of the following, it's drifting from the brand:
-- more than a few arc corners
+- a single rounded corner, or big rounded plates and panels
+- pure `#FFFFFF` text or logo on dark (use Soft White `#ECEFEA`)
 - more than one spot of red
 - gradients or drop shadows
 - pill-shaped buttons
@@ -484,15 +484,16 @@ Dark (Ink) is the default. Light is opt-in (Settings → Appearance, `<html clas
 | Brand color | CSS token | Tailwind class | Notes |
 |---|---|---|---|
 | Ink `#0F110F` | `--background` (dark), `--ink` (flips) | `bg-background`, `bg-[var(--ink)]` | Page canvas. `--card` / `--ink-2…4` are slightly raised Ink surfaces and lines. |
-| InFocus Green `#0B6E3E` | `--primary`, `--brand-fill` | `bg-primary text-primary-foreground`, `bg-[var(--brand-fill)] text-[var(--on-brand)]` | Primary buttons, active states, header bands. Always white text. Hover `--brand-fill-hover`. |
+| InFocus Green `#0B6E3E` | `--primary`, `--brand-fill` | `bg-primary text-primary-foreground`, `bg-[var(--brand-fill)] text-[var(--on-brand)]` | Primary buttons, active states, header bands. Always Soft White text. Hover `--brand-fill-hover`. |
 | Green on Dark `#2BB36E` | `--brand-green` (flips to `#0B6E3E` in light) | `text-brand-green`, `text-[var(--brand-green)]` | Text, links, icons, small marks, focus ring. Low-opacity tints (`/10`) are fine; never a solid large fill. |
 | Record Red `#EE3A2A` | `--brand-red` | `rec-dot rec-dot-red`, `bg-[var(--brand-red)]` on a dot | The rec dot and tiny LIVE markers only. `.status-live` is an Ink tag with the red dot. |
+| Soft White `#ECEFEA` | `--foreground` (dark), `--on-brand`, `--soft-white` | `text-foreground`, `text-soft-white`, `text-[var(--on-brand)]` | Primary text on dark and on green/Danger fills. Don't use `text-white` or `#fff`. |
 | Mist `#DCE2DE` | `--mist`, `--ink-text` (flips) | `text-[var(--ink-text)]`, `text-muted-foreground` (dimmer) | Secondary text on dark. |
-| Danger `#C21F3A` | `--danger`, `--destructive` | `bg-destructive text-destructive-foreground`, `bg-danger-fill` | Destructive fills with white text. |
+| Danger `#C21F3A` | `--danger`, `--destructive` | `bg-destructive text-destructive-foreground`, `bg-danger-fill` | Destructive fills with Soft White text. |
 | Danger on Dark `#FF7A8A` | `--danger-text` (flips to `#C21F3A`) | `text-danger`, `border-danger` | Error text, icons, borders. |
 | Danger tints `#3A1218` / `#FDECEE` | `--danger-tint` (flips) | `bg-danger-tint` | Error banner backgrounds. |
 
-Light theme: background is a very light Mist (`hsl(141 12% 96%)`), cards are white, text is Ink, and primary stays InFocus Green with white text.
+Light theme: background is a very light Mist (`hsl(141 12% 96%)`), cards are white, text is Ink, and primary stays InFocus Green with Soft White text.
 
 ### Type
 
@@ -503,14 +504,14 @@ Light theme: background is a very light Mist (`hsl(141 12% 96%)`), cards are whi
 ### Shape
 
 - One small radius everywhere: every Tailwind radius (`rounded-md` … `rounded-3xl`) resolves to **6px**, `rounded-sm` to 4px. `rounded-full` is only for true circles (avatars, dots, spinners, switches, progress bars).
-- The arc corner is `.arc-corner` (top-right) or `.arc-corner-left` (mirrored): 24px on phones, 32px from 640px. `.brand-hero-panel` / `.brand-hero-gradient` page heroes include it automatically, as an Ink plate with a 4px InFocus Green strip below (the lower third, flattened). The active sidebar item uses a smaller single top-right curve.
+- Plates are square: `.brand-hero-panel` / `.brand-hero-gradient` page heroes are square Ink plates with a 4px InFocus Green strip below (the lower third, flattened). The active sidebar item uses the normal 6px radius. (The `.arc-corner` classes were removed in Sept 2026.)
 - Flat color: every `shadow-*` / `drop-shadow-*` utility is flattened to nothing in the theme. There are no gradients and no glass (`backdrop-blur`). The legacy `.brand-gradient-*` and `.av-*` classes are now flat brand tones.
 
 ### Buttons
 
 | Variant | Use |
 |---|---|
-| `default` | Primary action: InFocus Green, white text |
+| `default` | Primary action: InFocus Green, Soft White text |
 | `destructive` | Solid Danger. Only for the final "are you sure?" confirm |
 | `destructive-quiet` | Danger text, no fill. Delete/Remove/Revoke everywhere else |
 | `outline` / `secondary` / `ghost` / `link` | Everything else (`link` is Green on Dark) |
@@ -521,7 +522,11 @@ The Tailwind defaults are the brand curves: `--default-transition-timing-functio
 
 ### Emails
 
-`src/lib/email-layout.ts` uses literal hexes (email clients don't support CSS variables), with the same roles as above, a Lexend font stack, and InFocus Green buttons with white text.
+`src/lib/email-layout.ts` uses literal hexes (email clients don't support CSS variables), with the same roles as above, a Lexend font stack, and InFocus Green buttons with Soft White text (`#ECEFEA`).
+
+### Livestream graphics
+
+`components/live/live.css` draws the OBS overlays and livestream dashboard graphics on a 1920 × 1080 stage, following sections 4–6: square Ink plates, one green strip, the icon tile, Soft White text, flat color. The livestream wordmark and icon (`public/live/`) are the Soft White versions.
 
 ### Not covered
 

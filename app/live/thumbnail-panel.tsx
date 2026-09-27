@@ -113,7 +113,7 @@ export function ThumbnailPanel({ event }: { event: LiveEventSummary }) {
                 setFailed(true);
               }}
             />
-            {loading ? <span className="absolute right-2 top-2 rounded bg-black/70 px-2 py-1 text-xs text-white">Rendering…</span> : null}
+            {loading ? <span className="absolute right-2 top-2 rounded bg-black/70 px-2 py-1 text-xs text-soft-white">Rendering…</span> : null}
           </div>
         </div>
         {failed ? <p className="text-sm text-danger">Couldn&apos;t render the preview. Check the fields and try again.</p> : null}

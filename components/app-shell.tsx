@@ -191,7 +191,7 @@ function SideNavLink({
     "flex items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-[13px] font-medium transition lg:py-2",
     disabled && "cursor-not-allowed opacity-40 hover:bg-transparent hover:text-muted-foreground",
     !disabled && active
-      ? "rounded-none rounded-tr-[14px] bg-[var(--brand-fill)] text-[var(--on-brand)]"
+      ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
       : !disabled && "text-muted-foreground hover:bg-card hover:text-foreground"
   );
   const trailing = (

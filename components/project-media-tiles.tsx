@@ -2960,7 +2960,7 @@ export function ProjectMediaTiles({
                     <button
                       onClick={() => toggleSelect(item.id)}
                       className={cn(
-                        "absolute left-2 top-2 z-20 grid h-6 w-6 place-items-center rounded border border-white/15 bg-black/70 text-white transition hover:bg-black",
+                        "absolute left-2 top-2 z-20 grid h-6 w-6 place-items-center rounded border border-white/15 bg-black/70 text-soft-white transition hover:bg-black",
                         selected ? "opacity-100" : "opacity-0 group-hover:opacity-100 focus:opacity-100"
                       )}
                       title="Select video"
@@ -3044,22 +3044,22 @@ export function ProjectMediaTiles({
 
                       {/* Thumbnail overlays — status pill bottom-left so it doesn't fight the checkbox */}
                       {activeVersion.approvalStatus === "IN_REVIEW" ? (
-                        <span className="absolute bottom-2 left-2 z-10 inline-flex items-center gap-1 rounded-md bg-black/75 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-white">
+                        <span className="absolute bottom-2 left-2 z-10 inline-flex items-center gap-1 rounded-md bg-black/75 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-soft-white">
                           <span className="h-1.5 w-1.5 rounded-full bg-[var(--brand-amber)]" />
                           In Review
                         </span>
                       ) : activeVersion.approvalStatus === "APPROVED" ? (
-                        <span className="absolute bottom-2 left-2 z-10 inline-flex items-center gap-1 rounded-md bg-black/75 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-white">
+                        <span className="absolute bottom-2 left-2 z-10 inline-flex items-center gap-1 rounded-md bg-black/75 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-soft-white">
                           <span className="h-1.5 w-1.5 rounded-full bg-[var(--brand-green)]" />
                           Approved
                         </span>
                       ) : activeVersion.approvalStatus === "NEEDS_CHANGES" ? (
-                        <span className="absolute bottom-2 left-2 z-10 inline-flex items-center gap-1 rounded-md bg-black/75 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-white">
+                        <span className="absolute bottom-2 left-2 z-10 inline-flex items-center gap-1 rounded-md bg-black/75 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-soft-white">
                           <span className="h-1.5 w-1.5 rounded-full bg-danger" />
                           Needs Changes
                         </span>
                       ) : activeVersion.approvalStatus === "AIRED" ? (
-                        <span className="absolute bottom-2 left-2 z-10 inline-flex items-center gap-1 rounded-md bg-black/75 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-white">
+                        <span className="absolute bottom-2 left-2 z-10 inline-flex items-center gap-1 rounded-md bg-black/75 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-soft-white">
                           <span className="h-1.5 w-1.5 rounded-full bg-white" />
                           Aired
                         </span>
@@ -3068,7 +3068,7 @@ export function ProjectMediaTiles({
                         v{activeVersion.versionNumber}
                       </span>
                       {activeVersion.durationSeconds !== null ? (
-                        <span className="absolute bottom-2 right-2 z-10 rounded bg-black/75 px-1.5 py-0.5 font-mono-broadcast text-[10px] font-semibold tabular-nums text-white">
+                        <span className="absolute bottom-2 right-2 z-10 rounded bg-black/75 px-1.5 py-0.5 font-mono-broadcast text-[10px] font-semibold tabular-nums text-soft-white">
                           {formatDuration(activeVersion.durationSeconds)}
                         </span>
                       ) : null}

@@ -281,7 +281,7 @@ function SpokenLine({
   return (
     <p
       key={`line-${lineIndex}`}
-      className="text-white"
+      className="text-soft-white"
       style={{
         fontSize: buildClamp(2.5, 5.4, 6.2, settings.bodyScale),
         lineHeight: 1.12
@@ -313,7 +313,7 @@ function renderScriptLine(line: string, lineIndex: number, settings: RunModeSett
     return (
       <p
         key={`line-camera-${lineIndex}`}
-        className="uppercase text-white"
+        className="uppercase text-soft-white"
         style={{
           fontSize: buildClamp(2.5, 5.4, 6.2, settings.bodyScale),
           lineHeight: 1.08
@@ -540,7 +540,7 @@ function FullscreenRunMode({
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 z-[130] flex flex-col bg-[#0F110F] font-sans text-white antialiased [color-scheme:dark]"
+      className="fixed inset-0 z-[130] flex flex-col bg-[#0F110F] font-sans text-soft-white antialiased [color-scheme:dark]"
     >
       <header className="relative z-20 flex h-9 shrink-0 items-center gap-1.5 border-b border-[#c5ccc8] bg-[#DCE2DE] px-2 text-[#0F110F]">
         <select
@@ -613,10 +613,10 @@ function FullscreenRunMode({
       </header>
 
       {settingsOpen ? (
-        <div className="absolute right-2 top-11 z-30 w-[280px] rounded-md border border-white/15 bg-[#1A1D1A] p-3 text-white">
+        <div className="absolute right-2 top-11 z-30 w-[280px] rounded-md border border-white/15 bg-[#1A1D1A] p-3 text-soft-white">
           <div className="mb-3 flex items-center justify-between">
             <p className="text-sm font-semibold">Font Settings</p>
-            <button type="button" className="text-xs text-[#DCE2DE] hover:text-white" onClick={() => setSettings(DEFAULT_RUN_MODE_SETTINGS)}>
+            <button type="button" className="text-xs text-[#DCE2DE] hover:text-soft-white" onClick={() => setSettings(DEFAULT_RUN_MODE_SETTINGS)}>
               Reset
             </button>
           </div>

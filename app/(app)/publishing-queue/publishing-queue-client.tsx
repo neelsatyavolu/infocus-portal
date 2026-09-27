@@ -210,7 +210,7 @@ function QueueThumbnail({ url }: { url: string | null }) {
           onError={() => setFailed(true)}
         />
       ) : (
-        <div className="flex h-full w-full items-center justify-center text-white/60">
+        <div className="flex h-full w-full items-center justify-center text-soft-white/60">
           <Play className="h-3.5 w-3.5 translate-x-px" />
         </div>
       )}

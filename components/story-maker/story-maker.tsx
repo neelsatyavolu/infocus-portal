@@ -19,6 +19,9 @@ import {
   type LivestreamFields
 } from "@/src/lib/story-maker";
 import { cn } from "@/src/lib/utils";
+import { CustomCanvas } from "./custom/custom-canvas";
+import { CustomPanel } from "./custom/custom-panel";
+import { useCustomLayout } from "./custom/use-custom-layout";
 import { LivestreamForm, LivestreamPreview } from "./livestream-story";
 import { StoryCanvas, StoryFrame } from "./story-canvas";
 import { PhotoInput, Segmented, StoryField } from "./story-fields";
@@ -107,6 +110,7 @@ export function StoryMaker({ canAppoint }: { canAppoint: boolean }) {
   const template: StoryTemplate = templateById(state?.current ?? STORY_TEMPLATES[0].id);
   const values = state && template.kind === "canvas" ? state.values[template.id] : null;
   const livestreamQuery = useMemo(() => (state ? livestreamThumbnailQuery(state.livestream) : ""), [state]);
+  const custom = useCustomLayout(template.kind === "custom");
   const handleOverflow = useCallback((next: boolean) => setOverflow(next), []);
 
   const setValue = (key: string, value: string | StoryPhoto | null) =>
@@ -133,7 +137,7 @@ export function StoryMaker({ canAppoint }: { canAppoint: boolean }) {
 
   async function downloadCanvas() {
     const node = storyRef.current;
-    if (!node || template.kind !== "canvas") return;
+    if (!node || template.kind === "livestream") return;
     setBusy(true);
     flushSync(() => setExporting(true));
     try {
@@ -160,6 +164,11 @@ export function StoryMaker({ canAppoint }: { canAppoint: boolean }) {
   function onDrop(event: DragEvent) {
     event.preventDefault();
     setDragging(false);
+    if (template.kind === "custom") {
+      const photo = Array.from(event.dataTransfer.files).find((f) => f.type.startsWith("image/"));
+      if (photo) void custom.dropPhoto(photo);
+      return;
+    }
     if (template.kind !== "canvas" || !values) return;
     const file = Array.from(event.dataTransfer.files).find((f) => f.type.startsWith("image/"));
     const slots = template.fields.filter((field) => field.type === "photo" && isFieldVisible(field, values));
@@ -174,7 +183,7 @@ export function StoryMaker({ canAppoint }: { canAppoint: boolean }) {
           <div className="min-w-0">
             <p className="eyebrow">Managers · Social media</p>
             <h1 className="mt-3 text-[32px] font-semibold leading-none text-foreground md:text-[44px]" style={{ letterSpacing: "-0.025em" }}>
-              Story Maker
+              Instagram Post Maker
             </h1>
             <p className="mt-2 max-w-2xl text-sm text-[var(--ink-text)]">
               On-brand Instagram stories at 1080 × 1920. Pick a template, add a photo, write the text, and download a PNG. Photos stay on this device.
@@ -186,7 +195,7 @@ export function StoryMaker({ canAppoint }: { canAppoint: boolean }) {
                 endpoint="/api/managers/social-media"
                 noun="social media managers"
                 title="Social media managers"
-                description="Social media managers can use the Story Maker. Producers can always use it and manage this list."
+                description="Social media managers can use the Instagram Post Maker. Producers can always use it and manage this list."
               />
             ) : null}
             <Link href={"/managers" as never} className={buttonVariants({ variant: "outline", size: "sm" })}>
@@ -226,7 +235,7 @@ export function StoryMaker({ canAppoint }: { canAppoint: boolean }) {
             aria-label="Preview"
             className={cn("grid content-start gap-3 rounded-md border border-border bg-card p-4", dragging && "outline-dashed outline-2 outline-[var(--brand-green)]")}
             onDragOver={(event) => {
-              if (template.kind !== "canvas") return;
+              if (template.kind === "livestream") return;
               event.preventDefault();
               setDragging(true);
             }}
@@ -261,6 +270,10 @@ export function StoryMaker({ canAppoint }: { canAppoint: boolean }) {
             <StoryFrame showSafeZones={showSafeZones}>
               {template.kind === "livestream" ? (
                 <LivestreamPreview query={livestreamQuery} />
+              ) : template.kind === "custom" ? (
+                <StoryCanvas storyRef={storyRef} exporting={exporting} fitKey={custom.layout} onOverflowChange={handleOverflow}>
+                  <CustomCanvas api={custom} />
+                </StoryCanvas>
               ) : values ? (
                 <StoryCanvas storyRef={storyRef} exporting={exporting} fitKey={values} onOverflowChange={handleOverflow}>
                   {template.render(values)}
@@ -269,6 +282,8 @@ export function StoryMaker({ canAppoint }: { canAppoint: boolean }) {
             </StoryFrame>
             {template.kind === "canvas" ? (
               <p className="text-center text-xs text-muted-foreground">Tip: drag a photo onto the preview to add it.</p>
+            ) : template.kind === "custom" ? (
+              <p className="text-center text-xs text-muted-foreground">Drag pieces to move them · green handle resizes · arrow keys nudge · ⌘Z undoes · drop a photo to add it</p>
             ) : null}
           </section>
 
@@ -282,7 +297,9 @@ export function StoryMaker({ canAppoint }: { canAppoint: boolean }) {
               ) : null}
             </div>
 
-            {!state ? null : template.kind === "livestream" ? (
+            {!state ? null : template.kind === "custom" ? (
+              <CustomPanel api={custom} />
+            ) : template.kind === "livestream" ? (
               <LivestreamForm fields={state.livestream} onChange={(livestream) => setState({ ...state, livestream })} />
             ) : values ? (
               template.fields

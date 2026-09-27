@@ -1,11 +1,11 @@
 /* eslint-disable @next/next/no-img-element -- story artwork is exported to PNG from the DOM; next/image would not embed. */
 import type { CSSProperties, ReactElement, ReactNode } from "react";
-import { apDate, splitPoints } from "@/src/lib/story-maker";
+import { apDate, splitPoints, type StoryPhoto } from "@/src/lib/story-maker";
 import { SocialIcon, type SocialIconName } from "./social-icons";
 
 export const STORY_ICON_SRC = "/live/infocus-icon.png";
 
-export type StoryPhoto = { src: string; x: number; y: number; zoom: number };
+export type { StoryPhoto };
 export type StoryValues = Record<string, string | StoryPhoto | null>;
 
 type TextField = { key: string; type: "text" | "textarea"; label: string; def: string | (() => string); hint?: string; rows?: number };
@@ -23,7 +23,9 @@ export type CanvasTemplate = {
 };
 /** Drawn by the livestream thumbnail renderer (/api/live/thumbnail) so both stay identical. */
 export type LivestreamTemplate = { kind: "livestream"; id: "livestream"; name: string; description: string };
-export type StoryTemplate = CanvasTemplate | LivestreamTemplate;
+/** Freeform: brand pieces placed anywhere (components/story-maker/custom). */
+export type CustomTemplate = { kind: "custom"; id: "custom"; name: string; description: string };
+export type StoryTemplate = CanvasTemplate | LivestreamTemplate | CustomTemplate;
 
 const text = (values: StoryValues, key: string) => (typeof values[key] === "string" ? (values[key] as string) : "");
 const photoOf = (values: StoryValues, key: string) => {
@@ -42,7 +44,7 @@ export function isFieldVisible(field: StoryField, values: StoryValues) {
 
 // ---------- Building blocks ----------
 
-function Photo({ photo, className = "", box }: { photo: StoryPhoto | null; className?: string; box?: CSSProperties }) {
+export function Photo({ photo, className = "", box }: { photo: StoryPhoto | null; className?: string; box?: CSSProperties }) {
   if (!photo) {
     return (
       <div className={`sm-photo ${className}`} style={box}>
@@ -58,7 +60,7 @@ function Photo({ photo, className = "", box }: { photo: StoryPhoto | null; class
   );
 }
 
-function Header({ kicker, meta }: { kicker: string; meta: string }) {
+export function Header({ kicker, meta }: { kicker: string; meta: string }) {
   return (
     <div className={`sm-hd${meta ? "" : " sm-no-meta"}`}>
       <div className="sm-tile"><img src={STORY_ICON_SRC} alt="" /></div>
@@ -70,7 +72,7 @@ function Header({ kicker, meta }: { kicker: string; meta: string }) {
   );
 }
 
-function Footer() {
+export function Footer() {
   return (
     <div className="sm-ft">
       <span className="sm-url">infocusnews.tv</span>
@@ -84,6 +86,23 @@ function FollowRow({ icons, handle }: { icons: SocialIconName[]; handle: string 
     <div className="sm-follow-row">
       <div className="sm-follow-icons">{icons.map((name) => <SocialIcon key={name} name={name} />)}</div>
       <span className="sm-follow-handle">{handle}</span>
+    </div>
+  );
+}
+
+const FOLLOW_ROWS: ReadonlyArray<{ icons: SocialIconName[]; handle: string }> = [
+  { icons: ["youtube", "instagram"], handle: "@infocusnews" },
+  { icons: ["tiktok", "x"], handle: "@palyinfocus" },
+  { icons: ["web"], handle: "infocusnews.tv" }
+];
+
+/** Green watch/follow panel. `all` lists every handle; otherwise YouTube/Instagram and the site. */
+export function FollowPanel({ heading, all = false, style }: { heading: string; all?: boolean; style?: CSSProperties }) {
+  const rows = all ? FOLLOW_ROWS : [FOLLOW_ROWS[0], FOLLOW_ROWS[2]];
+  return (
+    <div className="sm-follow" style={style}>
+      <div className="sm-follow-head">{heading}</div>
+      {rows.map((row) => <FollowRow key={row.handle} icons={row.icons} handle={row.handle} />)}
     </div>
   );
 }
@@ -211,11 +230,7 @@ export const STORY_TEMPLATES: StoryTemplate[] = [
           <div className="sm-headline sm-pre">{text(v, "title")}</div>
           {text(v, "byline") ? <div className="sm-body" style={{ fontSize: "calc(40px * var(--k))" }}>{text(v, "byline")}</div> : null}
         </Fit>
-        <div className="sm-follow">
-          <div className="sm-follow-head">Watch the full package</div>
-          <FollowRow icons={["youtube", "instagram"]} handle="@infocusnews" />
-          <FollowRow icons={["web"]} handle="infocusnews.tv" />
-        </div>
+        <FollowPanel heading="Watch the full package" />
       </>
     )
   },
@@ -297,5 +312,11 @@ export const STORY_TEMPLATES: StoryTemplate[] = [
         <Footer />
       </>
     )
+  },
+  {
+    kind: "custom",
+    id: "custom",
+    name: "Custom",
+    description: "Freeform: drag brand pieces anywhere. Brand checks keep it on style."
   }
 ];

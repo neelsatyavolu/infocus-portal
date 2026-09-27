@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { createContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { STORY_HEIGHT, STORY_SAFE_BAND, STORY_WIDTH, fitScale } from "@/src/lib/story-maker";
 import { cn } from "@/src/lib/utils";
 import "./story-maker.css";
 
 const SAFE_PERCENT = `${(STORY_SAFE_BAND / STORY_HEIGHT) * 100}%`;
+
+/** Screen pixels per story pixel in the preview (for dragging in the Custom template). */
+export const StoryScaleContext = createContext(1);
 
 /** A 9:16 frame that scales its 1080 × 1920 child to fit, with optional Instagram UI zones on top. */
 export function StoryFrame({ showSafeZones, children }: { showSafeZones: boolean; children: ReactNode }) {
@@ -31,7 +34,7 @@ export function StoryFrame({ showSafeZones, children }: { showSafeZones: boolean
         className="absolute left-0 top-0 origin-top-left"
         style={{ width: STORY_WIDTH, height: STORY_HEIGHT, transform: `scale(${scale})`, visibility: scale ? "visible" : "hidden" }}
       >
-        {children}
+        <StoryScaleContext.Provider value={scale || 1}>{children}</StoryScaleContext.Provider>
       </div>
       {showSafeZones
         ? (["top-0 border-b", "bottom-0 border-t"] as const).map((position) => (

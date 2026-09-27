@@ -1,4 +1,4 @@
-/** Pure helpers for the Instagram Story Maker (Managers → Social media). */
+/** Pure helpers for the Instagram Post Maker (Managers → Social media). */
 import type { ThumbnailTemplate } from "@/src/lib/live/thumbnail";
 
 export const STORY_WIDTH = 1080;
@@ -11,6 +11,9 @@ const FIT_STEP = 0.025;
 /** Uploaded photos are downscaled so exports stay fast. */
 export const MAX_PHOTO_SIDE = 2400;
 export const MAX_POINTS = 5;
+
+/** A photo placed in a story: a data URL plus crop position (0–100%) and zoom (100–250%). */
+export type StoryPhoto = { src: string; x: number; y: number; zoom: number };
 
 const AP_MONTHS = ["Jan.", "Feb.", "March", "April", "May", "June", "July", "Aug.", "Sept.", "Oct.", "Nov.", "Dec."];
 

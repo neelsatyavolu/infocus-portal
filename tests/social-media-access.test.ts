@@ -7,12 +7,12 @@ import { canUseStoryMaker, isSocialMediaManager } from "@/src/server/social-medi
 describe("social media manager access", () => {
   beforeEach(() => { vi.clearAllMocks(); findUnique.mockResolvedValue(null); });
 
-  it.each(["ASSOCIATE_PRODUCER", "EXECUTIVE_PRODUCER", "ADVISER", "SUPER_ADMIN"] as const)("lets %s use the Story Maker without an appointment", async (role) => {
+  it.each(["ASSOCIATE_PRODUCER", "EXECUTIVE_PRODUCER", "ADVISER", "SUPER_ADMIN"] as const)("lets %s use the Instagram Post Maker without an appointment", async (role) => {
     expect(await canUseStoryMaker("producer", role)).toBe(true);
     expect(findUnique).not.toHaveBeenCalled();
   });
 
-  it("lets an appointed social media manager use the Story Maker", async () => {
+  it("lets an appointed social media manager use the Instagram Post Maker", async () => {
     findUnique.mockResolvedValue({ id: "appointment" });
     expect(await canUseStoryMaker("reporter", null)).toBe(true);
     expect(findUnique).toHaveBeenCalledWith({ where: { userId: "reporter" }, select: { id: true } });

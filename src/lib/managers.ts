@@ -19,7 +19,7 @@ export type ManagerAccess = {
   isEquipmentManager: boolean;
   /** Appointed website (publishing) manager: read-only Publishing Queue. */
   isPublishingManager: boolean;
-  /** Appointed social media manager: the Story Maker. */
+  /** Appointed social media manager: the Instagram Post Maker. */
   isSocialMediaManager: boolean;
 };
 
@@ -28,7 +28,7 @@ export function managerAreas({ isProducer, isEquipmentManager, isPublishingManag
     {
       id: "equipment",
       title: "Equipment",
-      tool: "Equipment manager",
+      tool: "Equipment Dashboard",
       description: "Check gear in and out, review requests, and keep the inventory current.",
       href: "/equipment/manage",
       access: "Producers and appointed equipment managers",
@@ -55,11 +55,30 @@ export function managerAreas({ isProducer, isEquipmentManager, isPublishingManag
     {
       id: "social-media",
       title: "Social media",
-      tool: "Story Maker",
+      tool: "Instagram Post Maker",
       description: "Make on-brand Instagram stories from your photos and download them as PNGs.",
       href: "/managers/social-media",
       access: "Producers and appointed social media managers",
       canOpen: isProducer || isSocialMediaManager
     }
   ];
+}
+
+const AREA_ORDER: ManagerAreaId[] = ["equipment", "livestreams", "website", "social-media"];
+
+/** People appointed to each area, as shown on the Managers cards (display names, never emails). */
+export type ManagerRosters = Record<ManagerAreaId, { userId: string; name: string }[]>;
+
+/** The areas this person is appointed to, in card order. */
+export function appointedAreas(userId: string, rosters: ManagerRosters): ManagerAreaId[] {
+  return AREA_ORDER.filter((id) => rosters[id].some((person) => person.userId === userId));
+}
+
+export function accessFromAppointments(isProducer: boolean, appointed: ManagerAreaId[]): ManagerAccess {
+  return {
+    isProducer,
+    isEquipmentManager: appointed.includes("equipment"),
+    isPublishingManager: appointed.includes("website"),
+    isSocialMediaManager: appointed.includes("social-media")
+  };
 }

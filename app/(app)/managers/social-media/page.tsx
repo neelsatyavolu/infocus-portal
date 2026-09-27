@@ -6,7 +6,7 @@ import { getPlatformAccess, hasPlatformRole } from "@/src/lib/platform-admin";
 import { canUseStoryMaker } from "@/src/server/social-media-access";
 
 export const metadata: Metadata = {
-  title: "Story Maker · InFocus Portal"
+  title: "Instagram Post Maker · InFocus Portal"
 };
 
 /**

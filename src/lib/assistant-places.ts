@@ -152,10 +152,10 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
   },
   {
     id: "story-maker",
-    label: "Story Maker",
+    label: "Instagram Post Maker",
     href: "/managers/social-media",
     hint: "Managers → Social media (producers and appointed social media managers)",
-    aliases: ["instagram", "instagram story", "story", "social media", "stories"],
+    aliases: ["instagram", "instagram post", "instagram story", "post maker", "story maker", "story", "social media", "stories"],
     audiences: ALL
   },
   {

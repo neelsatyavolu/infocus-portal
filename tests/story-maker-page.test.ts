@@ -12,7 +12,7 @@ import SocialMediaManagerPage from "@/app/(app)/managers/social-media/page";
 
 type PageElement = { props: { canAppoint: boolean } };
 
-describe("Story Maker page access", () => {
+describe("Instagram Post Maker page access", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.requireUserId.mockResolvedValue("viewer");

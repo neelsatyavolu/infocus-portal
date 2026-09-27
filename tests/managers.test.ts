@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { managerAreas, type ManagerAccess } from "@/src/lib/managers";
+import { accessFromAppointments, appointedAreas, managerAreas, type ManagerAccess } from "@/src/lib/managers";
 
 const NOBODY: ManagerAccess = { isProducer: false, isEquipmentManager: false, isPublishingManager: false, isSocialMediaManager: false };
 const areasFor = (access: Partial<ManagerAccess>) =>
@@ -37,5 +37,26 @@ describe("managerAreas", () => {
 
   it("explains who can open each area", () => {
     for (const area of managerAreas(NOBODY)) expect(area.access.length).toBeGreaterThan(0);
+  });
+});
+
+describe("appointedAreas", () => {
+  const rosters = {
+    equipment: [{ userId: "abby", name: "Abby" }],
+    livestreams: [{ userId: "otto", name: "Otto" }, { userId: "abby", name: "Abby" }],
+    website: [],
+    "social-media": [{ userId: "sage", name: "Sage" }]
+  };
+
+  it("lists the areas a person is appointed to, in card order", () => {
+    expect(appointedAreas("abby", rosters)).toEqual(["equipment", "livestreams"]);
+    expect(appointedAreas("sage", rosters)).toEqual(["social-media"]);
+    expect(appointedAreas("nobody", rosters)).toEqual([]);
+  });
+
+  it("turns appointments into card access", () => {
+    expect(accessFromAppointments(false, ["website", "social-media"])).toEqual({
+      isProducer: false, isEquipmentManager: false, isPublishingManager: true, isSocialMediaManager: true
+    });
   });
 });

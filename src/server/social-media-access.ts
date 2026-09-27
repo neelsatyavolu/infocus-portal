@@ -9,7 +9,7 @@ export async function isSocialMediaManager(userId: string) {
   }));
 }
 
-/** The Story Maker (Managers → Social media): producers and appointed social media managers. */
+/** The Instagram Post Maker (Managers → Social media): producers and appointed social media managers. */
 export async function canUseStoryMaker(userId: string, role: PlatformRole | null) {
   if (hasPlatformRole(role, "ASSOCIATE_PRODUCER")) return true;
   return isSocialMediaManager(userId);

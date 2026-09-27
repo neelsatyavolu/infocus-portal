@@ -20,6 +20,7 @@ Templates:
 | Template | Use it for |
 |---|---|
 | Headline cover | First slide: full photo, headline on an Ink plate, credit on the green strip |
+| Show recap | One show as a set of slides: recap with the anchors, the announcements, and one slide per package (see below) |
 | Quote | Pull quote over a photo with the speaker's name and role |
 | Photo gallery | Two or three photos with a one-line caption |
 | New package | A frame from a package, its title and reporters, and where to watch |
@@ -35,6 +36,22 @@ How it works:
 - Long text shrinks to fit (down to 75%). If it still doesn't fit, a yellow warning asks for shorter text.
 - **Download PNG** saves `infocus-story-<template>-<date>.png`. The Livestream template downloads from the thumbnail renderer.
 - Text drafts are remembered in that browser (not synced between devices). **Reset text** restores a template's sample text.
+
+### Show recap template
+
+Loads a show from the Portal and turns it into story slides. Pick the show from the list: recent shows (newest first) and the next upcoming one. It opens on the latest show that has aired.
+
+1. **Recap**: a headline (default "Today on InFocus"), the anchors, and "In this show" (Announcements plus each package title). An optional photo of the anchors goes above the text.
+2. **Announcements**: a title (default "Around Paly") and up to five short lines. Press **Generate summaries** and Gemini writes one short line (12 words or fewer, AP style, no invented facts) per announcement. Check every line against the originals (listed under the button) before posting, and edit them freely.
+3. **Package** slides: one per package queued for that show in the Publishing Queue. It uses the New package layout: frame, green strip (default "Now on YouTube"), title and reporters.
+
+Where the data comes from:
+
+- **Anchors**: Master Calendar, the same names The Show uses.
+- **Announcements**: the show's teleprompter A2 script, as aired. If there's no script yet, it uses the announcements scheduled for that day, in the submitters' words.
+- **Packages**: the headline, or the group topic when there's no headline. Reporters are shown by display name.
+
+Everything can be edited, but edits and photos are not saved; **Reload** starts over from the Portal. Click a slide tab above the preview, or click into its fields, to see that slide. Dropping a photo on the preview adds it to that slide: a package frame, or otherwise the recap photo. **Download slide** saves the slide on screen. **Download all** saves every slide as `infocus-story-show-<date>-<n>-<slide>.png`; the browser may ask once to allow multiple downloads.
 
 ### Custom template
 

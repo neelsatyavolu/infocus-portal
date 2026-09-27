@@ -25,7 +25,9 @@ export type CanvasTemplate = {
 export type LivestreamTemplate = { kind: "livestream"; id: "livestream"; name: string; description: string };
 /** Freeform: brand pieces placed anywhere (components/story-maker/custom). */
 export type CustomTemplate = { kind: "custom"; id: "custom"; name: string; description: string };
-export type StoryTemplate = CanvasTemplate | LivestreamTemplate | CustomTemplate;
+/** One show as several slides, loaded from the Portal (components/story-maker/show). */
+export type ShowTemplate = { kind: "show"; id: "show"; name: string; description: string };
+export type StoryTemplate = CanvasTemplate | LivestreamTemplate | CustomTemplate | ShowTemplate;
 
 const text = (values: StoryValues, key: string) => (typeof values[key] === "string" ? (values[key] as string) : "");
 const photoOf = (values: StoryValues, key: string) => {
@@ -107,8 +109,28 @@ export function FollowPanel({ heading, all = false, style }: { heading: string; 
   );
 }
 
-function Fit({ max, style, children }: { max: number; style: CSSProperties; children: ReactNode }) {
+export function Fit({ max, style, children }: { max: number; style: CSSProperties; children: ReactNode }) {
   return <div className="sm-fit" data-fit={max} style={style}>{children}</div>;
+}
+
+/** New package layout: frame, green strip, title and reporters, and where to watch. Also a Show slide. */
+export function PackageArtwork(p: { photo: StoryPhoto | null; kicker: string; meta: string; strip: string; title: string; byline: string }) {
+  return (
+    <>
+      <Header kicker={p.kicker} meta={p.meta} />
+      <Photo photo={p.photo} box={{ left: 72, top: 400, width: 936, height: 527 }} />
+      {p.strip ? (
+        <div className="sm-strip" style={{ position: "absolute", left: 72, top: 927, width: 936 }}>
+          <div className="sm-strip-text">{p.strip}</div>
+        </div>
+      ) : null}
+      <Fit max={380} style={{ top: 1030, height: 380, gap: "calc(24px * var(--k))" }}>
+        <div className="sm-headline sm-pre">{p.title}</div>
+        {p.byline ? <div className="sm-body" style={{ fontSize: "calc(40px * var(--k))" }}>{p.byline}</div> : null}
+      </Fit>
+      <FollowPanel heading="Watch the full package" />
+    </>
+  );
 }
 
 // ---------- Shared fields ----------
@@ -143,6 +165,12 @@ export const STORY_TEMPLATES: StoryTemplate[] = [
         </div>
       </>
     )
+  },
+  {
+    kind: "show",
+    id: "show",
+    name: "Show recap",
+    description: "A show as slides: the anchors, its announcements (Gemini can summarize them) and each package."
   },
   {
     kind: "canvas",
@@ -218,20 +246,14 @@ export const STORY_TEMPLATES: StoryTemplate[] = [
       { key: "byline", type: "text", label: "Reporters", def: "By First Last and First Last" }
     ],
     render: (v) => (
-      <>
-        <Header kicker={text(v, "kicker")} meta={text(v, "meta")} />
-        <Photo photo={photoOf(v, "photo")} box={{ left: 72, top: 400, width: 936, height: 527 }} />
-        {text(v, "strip") ? (
-          <div className="sm-strip" style={{ position: "absolute", left: 72, top: 927, width: 936 }}>
-            <div className="sm-strip-text">{text(v, "strip")}</div>
-          </div>
-        ) : null}
-        <Fit max={380} style={{ top: 1030, height: 380, gap: "calc(24px * var(--k))" }}>
-          <div className="sm-headline sm-pre">{text(v, "title")}</div>
-          {text(v, "byline") ? <div className="sm-body" style={{ fontSize: "calc(40px * var(--k))" }}>{text(v, "byline")}</div> : null}
-        </Fit>
-        <FollowPanel heading="Watch the full package" />
-      </>
+      <PackageArtwork
+        photo={photoOf(v, "photo")}
+        kicker={text(v, "kicker")}
+        meta={text(v, "meta")}
+        strip={text(v, "strip")}
+        title={text(v, "title")}
+        byline={text(v, "byline")}
+      />
     )
   },
   {

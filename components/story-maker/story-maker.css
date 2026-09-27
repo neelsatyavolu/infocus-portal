@@ -77,6 +77,10 @@
   margin-top: calc(var(--pt) * 0.61 - 8px);
 }
 
+/* Show recap: a label over the anchors' names or the rundown */
+.sm-show-group { display: flex; flex-direction: column; gap: calc(18px * var(--k)); }
+.sm-anchors { font-weight: 600; font-size: calc(64px * var(--k)); line-height: 1.1; letter-spacing: -0.015em; text-wrap: balance; }
+
 /* Shrink-to-fit box */
 .sm-fit { position: absolute; left: var(--sm-m); right: var(--sm-m); display: flex; flex-direction: column; }
 

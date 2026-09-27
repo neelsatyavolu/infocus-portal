@@ -43,7 +43,7 @@ const responseJsonSchema = {
 
 let cachedClient: GoogleGenAI | null | undefined;
 
-function getGeminiClient() {
+export function getGeminiClient() {
   if (cachedClient !== undefined) {
     return cachedClient;
   }
@@ -61,7 +61,7 @@ function normalizeScriptText(value: string) {
   return value.replace(/\r\n/g, "\n").trim();
 }
 
-function isTeleprompterCueLine(value: string) {
+export function isTeleprompterCueLine(value: string) {
   return (
     /^CAM\s+\d+$/i.test(value) ||
     /^\{[^}]+\}$/.test(value) ||

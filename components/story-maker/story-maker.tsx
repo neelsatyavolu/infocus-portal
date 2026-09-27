@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { flushSync } from "react-dom";
-import { ArrowLeft, Download, TriangleAlert } from "lucide-react";
+import { ArrowLeft, Download, Images, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import { ManagerRosterButton } from "@/components/manager-roster-button";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -18,11 +18,15 @@ import {
   storyFileName,
   type LivestreamFields
 } from "@/src/lib/story-maker";
+import { showSlideFileName } from "@/src/lib/show-story";
 import { cn } from "@/src/lib/utils";
 import { CustomCanvas } from "./custom/custom-canvas";
 import { CustomPanel } from "./custom/custom-panel";
 import { useCustomLayout } from "./custom/use-custom-layout";
 import { LivestreamForm, LivestreamPreview } from "./livestream-story";
+import { ShowPanel, ShowSlideTabs } from "./show/show-panel";
+import { ShowSlideArt } from "./show/show-slides";
+import { useShowStory } from "./show/use-show-story";
 import { StoryCanvas, StoryFrame } from "./story-canvas";
 import { PhotoInput, Segmented, StoryField } from "./story-fields";
 import { readStoryPhoto } from "./story-photos";
@@ -111,6 +115,8 @@ export function StoryMaker({ canAppoint }: { canAppoint: boolean }) {
   const values = state && template.kind === "canvas" ? state.values[template.id] : null;
   const livestreamQuery = useMemo(() => (state ? livestreamThumbnailQuery(state.livestream) : ""), [state]);
   const custom = useCustomLayout(template.kind === "custom");
+  const show = useShowStory(template.kind === "show");
+  const showFitKey = useMemo(() => ({ draft: show.draft, slide: show.slideIndex }), [show.draft, show.slideIndex]);
   const handleOverflow = useCallback((next: boolean) => setOverflow(next), []);
 
   const setValue = (key: string, value: string | StoryPhoto | null) =>
@@ -135,22 +141,28 @@ export function StoryMaker({ canAppoint }: { canAppoint: boolean }) {
     });
   }
 
+  async function renderPng(node: HTMLDivElement) {
+    const { getFontEmbedCSS, toPng } = await import("html-to-image");
+    fontCssRef.current ??= await getFontEmbedCSS(node);
+    return toPng(node, {
+      width: STORY_WIDTH,
+      height: STORY_HEIGHT,
+      pixelRatio: 1,
+      backgroundColor: "#0F110F",
+      fontEmbedCSS: fontCssRef.current
+    });
+  }
+
   async function downloadCanvas() {
     const node = storyRef.current;
     if (!node || template.kind === "livestream") return;
     setBusy(true);
     flushSync(() => setExporting(true));
     try {
-      const { getFontEmbedCSS, toPng } = await import("html-to-image");
-      fontCssRef.current ??= await getFontEmbedCSS(node);
-      const png = await toPng(node, {
-        width: STORY_WIDTH,
-        height: STORY_HEIGHT,
-        pixelRatio: 1,
-        backgroundColor: "#0F110F",
-        fontEmbedCSS: fontCssRef.current
-      });
-      triggerDownload(png, storyFileName(template.id, new Date()));
+      const fileName = template.kind === "show" && show.story
+        ? showSlideFileName(show.story.date, show.slide, show.slideIndex)
+        : storyFileName(template.id, new Date());
+      triggerDownload(await renderPng(node), fileName);
       toast.success("Story downloaded.");
     } catch (error) {
       console.error("Story export failed", error);
@@ -161,12 +173,36 @@ export function StoryMaker({ canAppoint }: { canAppoint: boolean }) {
     }
   }
 
+  /** Renders each Show slide in turn and downloads it, then returns to the slide that was open. */
+  async function downloadAllSlides() {
+    const { story, slides, slideIndex } = show;
+    if (!story) return;
+    setBusy(true);
+    flushSync(() => setExporting(true));
+    try {
+      for (const [index, slide] of slides.entries()) {
+        flushSync(() => show.setSlideIndex(index));
+        const node = storyRef.current;
+        if (!node) throw new Error("Story preview is missing.");
+        triggerDownload(await renderPng(node), showSlideFileName(story.date, slide, index));
+      }
+      toast.success(`${slides.length} slides downloaded.`);
+    } catch (error) {
+      console.error("Show slides export failed", error);
+      toast.error("Couldn’t make every PNG. Try again, or download the slides one at a time.");
+    } finally {
+      show.setSlideIndex(slideIndex);
+      setExporting(false);
+      setBusy(false);
+    }
+  }
+
   function onDrop(event: DragEvent) {
     event.preventDefault();
     setDragging(false);
-    if (template.kind === "custom") {
+    if (template.kind === "custom" || template.kind === "show") {
       const photo = Array.from(event.dataTransfer.files).find((f) => f.type.startsWith("image/"));
-      if (photo) void custom.dropPhoto(photo);
+      if (photo) void (template.kind === "custom" ? custom.dropPhoto(photo) : show.addPhoto(photo));
       return;
     }
     if (template.kind !== "canvas" || !values) return;
@@ -253,14 +289,24 @@ export function StoryMaker({ canAppoint }: { canAppoint: boolean }) {
                   Download PNG
                 </a>
               ) : (
-                <Button type="button" onClick={() => void downloadCanvas()} disabled={!state || busy}>
-                  <Download />
-                  {busy ? "Making PNG…" : "Download PNG"}
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  {template.kind === "show" ? (
+                    <Button type="button" variant="outline" onClick={() => void downloadAllSlides()} disabled={!show.draft || busy}>
+                      <Images />
+                      Download all {show.slides.length}
+                    </Button>
+                  ) : null}
+                  <Button type="button" onClick={() => void downloadCanvas()} disabled={!state || busy || (template.kind === "show" && !show.draft)}>
+                    <Download />
+                    {busy ? "Making PNG…" : template.kind === "show" ? "Download slide" : "Download PNG"}
+                  </Button>
+                </div>
               )}
             </div>
 
-            {overflow && template.kind === "canvas" ? (
+            {template.kind === "show" && show.draft ? <ShowSlideTabs api={show} locked={busy} /> : null}
+
+            {overflow && (template.kind === "canvas" || template.kind === "show") ? (
               <div role="status" className="flex items-start gap-2 rounded-md border border-[#F2A516]/50 bg-[#F2A516]/10 px-3 py-2 text-sm">
                 <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-[#F2A516] light:text-[#B45309]" />
                 <span>Some text is too long to fit, even after shrinking. Shorten it before you download.</span>
@@ -274,6 +320,12 @@ export function StoryMaker({ canAppoint }: { canAppoint: boolean }) {
                 <StoryCanvas storyRef={storyRef} exporting={exporting} fitKey={custom.layout} onOverflowChange={handleOverflow}>
                   <CustomCanvas api={custom} />
                 </StoryCanvas>
+              ) : template.kind === "show" ? (
+                show.draft && show.story ? (
+                  <StoryCanvas storyRef={storyRef} exporting={exporting} fitKey={showFitKey} onOverflowChange={handleOverflow}>
+                    <ShowSlideArt slide={show.slide} draft={show.draft} date={show.story.date} hasAnnouncements={show.story.announcements.length > 0 || Boolean(show.draft.points.trim())} />
+                  </StoryCanvas>
+                ) : null
               ) : values ? (
                 <StoryCanvas storyRef={storyRef} exporting={exporting} fitKey={values} onOverflowChange={handleOverflow}>
                   {template.render(values)}
@@ -282,6 +334,8 @@ export function StoryMaker({ canAppoint }: { canAppoint: boolean }) {
             </StoryFrame>
             {template.kind === "canvas" ? (
               <p className="text-center text-xs text-muted-foreground">Tip: drag a photo onto the preview to add it.</p>
+            ) : template.kind === "show" ? (
+              <p className="text-center text-xs text-muted-foreground">Tip: drag a photo onto the preview to add it to this slide (a package frame, or the recap photo).</p>
             ) : template.kind === "custom" ? (
               <p className="text-center text-xs text-muted-foreground">Drag pieces to move them · green handle resizes · arrow keys nudge · ⌘Z undoes · drop a photo to add it</p>
             ) : null}
@@ -299,6 +353,8 @@ export function StoryMaker({ canAppoint }: { canAppoint: boolean }) {
 
             {!state ? null : template.kind === "custom" ? (
               <CustomPanel api={custom} />
+            ) : template.kind === "show" ? (
+              <ShowPanel api={show} locked={busy} />
             ) : template.kind === "livestream" ? (
               <LivestreamForm fields={state.livestream} onChange={(livestream) => setState({ ...state, livestream })} />
             ) : values ? (

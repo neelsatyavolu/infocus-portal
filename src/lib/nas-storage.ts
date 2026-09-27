@@ -241,6 +241,11 @@ export function nasPosterPath(videoNasPath: string): string {
   return dir ? `${dir}/${poster}` : poster;
 }
 
+/** Transcript beside the video: Final Cut/clip.mp4 → Final Cut/clip.transcript.json */
+export function nasTranscriptPath(videoNasPath: string): string {
+  return nasPosterPath(videoNasPath).replace(/\.poster\.jpg$/, ".transcript.json");
+}
+
 /** Server-side upload of a Blob/Buffer to Drive with the service bearer. */
 export async function nasUploadBytes(
   relPath: string,

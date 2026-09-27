@@ -40,6 +40,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { DropdownOption } from "@/components/video-card-menu";
 import { Input } from "@/components/ui/input";
 import { MediaRange } from "@/components/media-range";
+import { ReviewTranscriptButton } from "@/components/review-transcript-button";
 import { Textarea } from "@/components/ui/textarea";
 import { MAX_EFFORT_POINTS, MAX_TEAMWORK_POINTS } from "@/src/lib/package-grades";
 import {
@@ -2015,6 +2016,14 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
           <div className="relative mt-3 space-y-2">
             <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
             <div className="flex items-center gap-2">
+              {!isGuest && !isImageReview && currentVersion?.status === "READY" ? (
+                <ReviewTranscriptButton
+                  mediaId={data.mediaId}
+                  versionId={currentVersion.id}
+                  versionNumber={currentVersion.versionNumber}
+                  onSeek={seekTo}
+                />
+              ) : null}
               <label className="relative inline-flex">
                 <select
                   aria-label="Review version"

@@ -577,7 +577,7 @@ export default function LivestreamsClient() {
               <RefreshCcw className="mr-1.5 h-3.5 w-3.5" />
               Refresh
             </Button>
-            {data?.canManage ? (
+            {data ? (
               <Link
                 href="/live"
                 className="inline-flex h-8 items-center rounded-md border border-foreground/15 bg-black/30 px-3 text-xs font-medium text-foreground hover:bg-foreground/10 light:bg-muted light:hover:bg-foreground/10"

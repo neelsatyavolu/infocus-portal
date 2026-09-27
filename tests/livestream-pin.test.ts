@@ -39,6 +39,7 @@ import { POST as unlock } from "@/app/api/live/unlock/route";
 import { GET as readPin, POST as rotatePin } from "@/app/api/livestreams/pin/route";
 import { GET as listEvents } from "@/app/api/live/events/route";
 import { GET as readOverlay } from "@/app/api/live/overlay/[key]/route";
+import { POST as rotateKey } from "@/app/api/live/events/[eventId]/key/route";
 
 const SECRET = "test-secret";
 const PIN = "482193";
@@ -154,15 +155,25 @@ describe("livestream dashboard access", () => {
     expect(response.status).toBe(401);
   });
 
-  it("blocks the dashboard API without a session or PIN, and allows it with a PIN cookie", async () => {
-    expect((await listEvents()).status).toBe(401);
-    m.session.mockResolvedValue({ userId: "reporter" });
-    expect((await listEvents()).status).toBe(403);
-    m.cookie.mockReturnValue({ value: createLivestreamPinToken(hashLivestreamPin(PIN), SECRET) });
-    const livestreamEvent = { findMany: vi.fn().mockResolvedValue([]) };
+  it("lets any signed-in Portal user or a PIN holder in, and nobody else", async () => {
     const { prisma } = await import("@/src/lib/prisma");
-    Object.assign(prisma, { livestreamEvent });
+    Object.assign(prisma, { livestreamEvent: { findMany: vi.fn().mockResolvedValue([]) } });
+    expect((await listEvents()).status).toBe(401);
+    m.cookie.mockReturnValue({ value: createLivestreamPinToken(hashLivestreamPin(PIN), SECRET) });
     expect((await listEvents()).status).toBe(200);
+    m.cookie.mockReturnValue(undefined);
+    m.session.mockResolvedValue({ userId: "reporter" });
+    expect((await listEvents()).status).toBe(200);
+  });
+
+  it("keeps making new OBS links to producers and livestream managers", async () => {
+    const context = { params: Promise.resolve({ eventId: "e1" }) };
+    const request = () => new Request("http://localhost/api/live/events/e1/key", { method: "POST" });
+    m.cookie.mockReturnValue({ value: createLivestreamPinToken(hashLivestreamPin(PIN), SECRET) });
+    expect((await rotateKey(request(), context)).status).toBe(403);
+    m.cookie.mockReturnValue(undefined);
+    m.session.mockResolvedValue({ userId: "reporter" });
+    expect((await rotateKey(request(), context)).status).toBe(403);
   });
 
   it("serves overlays by key only", async () => {

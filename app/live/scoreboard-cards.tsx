@@ -87,7 +87,7 @@ export function TeamCard({ scoreboard, dispatch, now, team }: CardProps & { team
         />
       </div>
 
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(64px,1fr))] gap-2">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(56px,1fr))] gap-2">
         {SCORE_BUTTONS[sport].map(({ points, hint }) => (
           <Button
             key={points}

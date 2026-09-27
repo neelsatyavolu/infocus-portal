@@ -232,31 +232,32 @@ export function LiveDashboard({ canRotateKey, signedIn }: { canRotateKey: boolea
   const overlayBase = data ? `${origin}/live/${data.overlayKey}` : "";
 
   return (
-    <main className="min-h-dvh bg-background text-foreground">
+    <main className="min-h-dvh touch-manipulation bg-background text-foreground">
       <header className="border-b-4 border-[var(--brand-fill)] bg-card">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-4 md:px-6">
-          <BrandWordmark className="h-8 w-auto object-contain" priority />
+        <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 md:gap-6 md:px-6 md:py-4">
+          <BrandWordmark className="h-6 w-auto shrink-0 object-contain md:h-8" priority />
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-brand-green">InFocus Live</p>
-            <h1 className="text-2xl font-semibold tracking-tight">Livestream dashboard</h1>
+            <p className="hidden text-[11px] font-medium uppercase tracking-[0.18em] text-brand-green sm:block">InFocus Live</p>
+            <h1 className="truncate text-lg font-semibold tracking-tight md:text-2xl">Livestream dashboard</h1>
           </div>
           {signedIn ? (
-            <a href="/livestreams" className="text-sm text-muted-foreground hover:text-foreground">
-              Back to Livestreams
+            <a href="/livestreams" className="shrink-0 text-sm text-muted-foreground hover:text-foreground">
+              <span className="sm:hidden">Back</span>
+              <span className="hidden sm:inline">Back to Livestreams</span>
             </a>
           ) : null}
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 md:px-6">
+      <div className="mx-auto grid max-w-7xl gap-4 px-3 pb-28 pt-4 sm:px-4 md:gap-6 md:px-6 md:pb-10 md:pt-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <label className="grid min-w-0 flex-1 gap-1.5 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground sm:max-w-xl">
+          <label className="grid w-full min-w-0 gap-1.5 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground md:w-auto md:flex-1 md:max-w-xl">
             Livestream
             <select
               id="live-event"
               value={eventId ?? ""}
               onChange={(event) => setEventId(event.target.value || null)}
-              className="h-9 rounded-md border border-input bg-background px-3 text-base normal-case tracking-normal text-foreground sm:text-sm"
+              className="h-11 w-full rounded-md border border-input bg-background px-3 text-base normal-case tracking-normal text-foreground md:h-9 md:text-sm"
             >
               {events === null ? <option value="">Loading…</option> : null}
               {events?.length === 0 ? <option value="">No upcoming livestreams</option> : null}
@@ -267,7 +268,9 @@ export function LiveDashboard({ canRotateKey, signedIn }: { canRotateKey: boolea
               ))}
             </select>
           </label>
-          <Seg label="Dashboard tab" value={tab} options={TABS} onChange={setTab} />
+          <div className="hidden md:block">
+            <Seg label="Dashboard tab" value={tab} options={TABS} onChange={setTab} />
+          </div>
         </div>
 
         {error ? (
@@ -316,6 +319,28 @@ export function LiveDashboard({ canRotateKey, signedIn }: { canRotateKey: boolea
           <p className="text-muted-foreground">Loading…</p>
         ) : null}
       </div>
+
+      {/* Phones: tabs sit at the bottom, within thumb reach. */}
+      <nav
+        aria-label="Dashboard tab"
+        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-3 border-t border-border bg-card pb-[env(safe-area-inset-bottom)] md:hidden"
+      >
+        {TABS.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            aria-pressed={tab === option.value}
+            onClick={() => {
+              setTab(option.value);
+              window.scrollTo({ top: 0 });
+            }}
+            className="relative h-14 text-sm font-medium text-muted-foreground aria-pressed:text-foreground"
+          >
+            {tab === option.value ? <span className="absolute inset-x-6 top-0 h-0.5 bg-[var(--brand-green)]" aria-hidden="true" /> : null}
+            {option.label}
+          </button>
+        ))}
+      </nav>
     </main>
   );
 }

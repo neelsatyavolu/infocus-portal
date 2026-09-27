@@ -61,13 +61,23 @@ export default function LivePinGate({ signedIn }: { signedIn: boolean }) {
   });
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center bg-background px-6 py-10 text-foreground">
+    <main className="flex min-h-dvh touch-manipulation flex-col items-center justify-center bg-background px-6 py-10 text-foreground">
       <BrandWordmark className="h-12 w-auto object-contain" priority />
       <h1 className="mt-6 text-4xl font-semibold leading-none tracking-tight">Livestream dashboard</h1>
-      <p className="mt-3 text-center text-lg text-[var(--ink-text)]">
-        {signedIn ? "Your account can't run the dashboard. Enter the 6-digit PIN." : "Enter the 6-digit PIN."}
-      </p>
-      <p className="mt-6 font-mono-broadcast text-4xl tabular-nums tracking-[0.4em] text-foreground" aria-live="polite">
+      {signedIn ? (
+        <p className="mt-3 text-center text-lg text-[var(--ink-text)]">We couldn&apos;t confirm your Portal account. Enter the 6-digit PIN.</p>
+      ) : (
+        <>
+          <a
+            href="/sign-in?returnTo=%2Flive"
+            className="mt-6 inline-flex h-12 w-full max-w-sm items-center justify-center rounded-md bg-primary text-base font-semibold text-primary-foreground hover:bg-[var(--brand-fill-hover)]"
+          >
+            Sign in to the Portal
+          </a>
+          <p className="mt-5 text-center text-base text-[var(--ink-text)]">Not signed in? Enter the 6-digit PIN.</p>
+        </>
+      )}
+      <p className="mt-4 font-mono-broadcast text-4xl tabular-nums tracking-[0.4em] text-foreground" aria-live="polite">
         {pin.padEnd(6, "·")}
       </p>
       <div className="mt-8 grid w-full max-w-sm grid-cols-3 gap-3">
@@ -84,19 +94,7 @@ export default function LivePinGate({ signedIn }: { signedIn: boolean }) {
         ))}
       </div>
       {error ? <p className="mt-6 text-center text-lg text-danger">{error}</p> : null}
-      <p className="mt-8 text-center text-sm text-muted-foreground">
-        Producers and livestream managers see the PIN in Settings.
-        {signedIn ? null : (
-          <>
-            {" "}
-            Or{" "}
-            <a className="text-brand-green underline-offset-4 hover:underline" href="/sign-in?returnTo=%2Flive">
-              sign in
-            </a>
-            .
-          </>
-        )}
-      </p>
+      <p className="mt-8 text-center text-sm text-muted-foreground">Producers and livestream managers have the PIN in Settings.</p>
     </main>
   );
 }

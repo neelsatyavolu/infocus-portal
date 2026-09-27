@@ -81,12 +81,21 @@ export function LiveImagePanel({ event, scoreboard, liveImage, offset, overlayUr
             ))}
           </div>
           <p className="text-xs text-muted-foreground">Only you see the queue. Viewers see nothing until you push.</p>
+          {/* Phones: push right under the fields instead of scrolling to the on-air panel. */}
+          <div className="grid grid-cols-[1fr_auto] gap-2 lg:hidden">
+            <Button type="button" className="h-12 text-base font-semibold" onClick={() => void push()} disabled={busy}>
+              Push to OBS
+            </Button>
+            <Button type="button" variant="outline" className="h-12" onClick={() => void clear()} disabled={busy || !liveImage}>
+              Clear
+            </Button>
+          </div>
         </Panel>
 
         <Panel
           title="Live image · OBS source 2"
           action={
-            <div className="flex gap-2">
+            <div className="hidden gap-2 lg:flex">
               <Button type="button" onClick={() => void push()} disabled={busy}>
                 Push to OBS
               </Button>
@@ -119,14 +128,14 @@ export function LiveImagePanel({ event, scoreboard, liveImage, offset, overlayUr
       </div>
 
       <Panel title="Graphics">
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-2 gap-2 sm:gap-4 xl:grid-cols-3">
           {GRAPHICS.map((graphic) => (
             <button
               key={graphic.id}
               type="button"
               aria-pressed={queued === graphic.id}
               onClick={() => queue(graphic.id)}
-              className="grid gap-2 rounded-md border border-border p-3 text-left transition-colors hover:bg-accent aria-pressed:border-[var(--brand-green)]"
+              className="grid gap-2 rounded-md border border-border p-2 text-left transition-colors hover:bg-accent aria-pressed:border-[var(--brand-green)] sm:p-3"
             >
               <LiveStage background={FULL_FRAME.includes(graphic.id) ? "ink" : "checker"} className="pointer-events-none rounded">
                 <LiveGraphic
@@ -138,7 +147,7 @@ export function LiveImagePanel({ event, scoreboard, liveImage, offset, overlayUr
                 />
               </LiveStage>
               <span className="font-semibold">{graphic.name}</span>
-              <span className="text-sm text-muted-foreground">{graphic.description}</span>
+              <span className="hidden text-sm text-muted-foreground sm:block">{graphic.description}</span>
             </button>
           ))}
         </div>

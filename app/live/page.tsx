@@ -9,5 +9,5 @@ export const metadata: Metadata = { title: "Livestream dashboard · InFocus Port
 export default async function LiveDashboardPage() {
   const access = await getLiveAccess();
   if (access.kind === "none") return <LivePinGate signedIn={access.signedIn} />;
-  return <LiveDashboard canRotateKey={access.kind === "user"} signedIn={access.kind === "user"} />;
+  return <LiveDashboard canRotateKey={access.kind === "user" && access.canManage} signedIn={access.kind === "user"} />;
 }

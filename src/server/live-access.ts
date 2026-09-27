@@ -4,13 +4,14 @@ import { canManageLivestreams } from "@/src/server/livestream-access";
 import { livestreamPinAllowsAccess } from "@/src/server/livestream-pin";
 
 export type LiveAccess =
-  | { kind: "user"; userId: string }
+  | { kind: "user"; userId: string; canManage: boolean }
   | { kind: "pin" }
   | { kind: "none"; signedIn: boolean };
 
 /**
- * Who may run the livestream dashboard: producers and appointed livestream managers when
- * signed in, or anyone holding today's dashboard PIN cookie.
+ * Who may run the livestream dashboard: anyone signed in to the Portal, or anyone holding today's
+ * dashboard PIN cookie. `canManage` (producers and appointed livestream managers) gates the few
+ * actions that affect everyone, like making new OBS links.
  */
 export async function getLiveAccess(): Promise<LiveAccess> {
   const session = await getSessionUser();
@@ -18,9 +19,7 @@ export async function getLiveAccess(): Promise<LiveAccess> {
     try {
       const user = await syncUserProfile(session.userId);
       const access = await getPlatformAccess(user.email);
-      if (await canManageLivestreams(user.id, access.role)) {
-        return { kind: "user", userId: user.id };
-      }
+      return { kind: "user", userId: user.id, canManage: await canManageLivestreams(user.id, access.role) };
     } catch {
       // An account that fails the platform check can still use the PIN.
     }

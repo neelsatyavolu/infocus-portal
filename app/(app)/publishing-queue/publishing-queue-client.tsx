@@ -62,6 +62,7 @@ function QueuePackageCard({
   row,
   busy,
   canDrag,
+  readOnly = false,
   dragging,
   showOptions,
   occupiedOn,
@@ -73,6 +74,8 @@ function QueuePackageCard({
   row: QueueRow;
   busy: boolean;
   canDrag: boolean;
+  /** Website managers: no moving, downloading, or removing, and no link into Groups. */
+  readOnly?: boolean;
   dragging: boolean;
   showOptions: UpcomingShow[];
   occupiedOn: (date: string, excludeRowId?: string | null) => number;
@@ -114,7 +117,7 @@ function QueuePackageCard({
         >
           {canDrag ? <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground/70" /> : null}
           <QueueThumbnail url={row.thumbnailUrl ?? null} />
-          {row.custom ? (
+          {row.custom || readOnly ? (
             title
           ) : (
             <Link href={`/groups/${row.id}/final-cut` as never} draggable={false} className="min-w-0">
@@ -130,62 +133,66 @@ function QueuePackageCard({
               : row.youtubePublication?.status === "FAILED" ? "YouTube failed"
               : "YouTube pending"}
           </Link>
-          <select
-            value={row.queuedForShowDate ?? ""}
-            disabled={busy}
-            draggable={false}
-            onChange={(event) => {
-              const next = event.target.value || null;
-              if (!next || next === row.queuedForShowDate) return;
-              if (!canManuallyPlaceOnShow(occupiedOn(next, row.id))) {
-                toast.error(QUEUE_SHOW_FULL_MESSAGE);
-                return;
-              }
-              onMove(row.id, next);
-            }}
-            className="h-8 min-w-0 max-w-full rounded-md border border-border bg-background px-2 text-xs text-foreground"
-          >
-            <option value="">Next empty show</option>
-            {showOptions.map((show) => {
-              const full = !canManuallyPlaceOnShow(occupiedOn(show.date, row.id));
-              const current = show.date === row.queuedForShowDate;
-              return (
-                <option key={show.date} value={show.date} disabled={full && !current}>
-                  {showDateOptionLabel(show, full, current)}
-                </option>
-              );
-            })}
-            {extraCurrent ? <option value={extraCurrent.date}>{extraCurrent.label}</option> : null}
-          </select>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            title="Download final cut"
-            draggable={false}
-            onClick={() => {
-              const link = document.createElement("a");
-              link.href = `/api/package-cycle/queue/${row.id}/download`;
-              link.rel = "noopener";
-              document.body.appendChild(link);
-              link.click();
-              link.remove();
-            }}
-          >
-            <Download className="h-3.5 w-3.5" />
-            Download
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={busy}
-            draggable={false}
-            onClick={() => onRemove(row.id)}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            Remove
-          </Button>
+          {readOnly ? null : (
+            <>
+              <select
+                value={row.queuedForShowDate ?? ""}
+                disabled={busy}
+                draggable={false}
+                onChange={(event) => {
+                  const next = event.target.value || null;
+                  if (!next || next === row.queuedForShowDate) return;
+                  if (!canManuallyPlaceOnShow(occupiedOn(next, row.id))) {
+                    toast.error(QUEUE_SHOW_FULL_MESSAGE);
+                    return;
+                  }
+                  onMove(row.id, next);
+                }}
+                className="h-8 min-w-0 max-w-full rounded-md border border-border bg-background px-2 text-xs text-foreground"
+              >
+                <option value="">Next empty show</option>
+                {showOptions.map((show) => {
+                  const full = !canManuallyPlaceOnShow(occupiedOn(show.date, row.id));
+                  const current = show.date === row.queuedForShowDate;
+                  return (
+                    <option key={show.date} value={show.date} disabled={full && !current}>
+                      {showDateOptionLabel(show, full, current)}
+                    </option>
+                  );
+                })}
+                {extraCurrent ? <option value={extraCurrent.date}>{extraCurrent.label}</option> : null}
+              </select>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                title="Download final cut"
+                draggable={false}
+                onClick={() => {
+                  const link = document.createElement("a");
+                  link.href = `/api/package-cycle/queue/${row.id}/download`;
+                  link.rel = "noopener";
+                  document.body.appendChild(link);
+                  link.click();
+                  link.remove();
+                }}
+              >
+                <Download className="h-3.5 w-3.5" />
+                Download
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={busy}
+                draggable={false}
+                onClick={() => onRemove(row.id)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Remove
+              </Button>
+            </>
+          )}
         </div>
       </div>
       {row.youtubePublication?.lastError ? (
@@ -218,7 +225,7 @@ function QueueThumbnail({ url }: { url: string | null }) {
   );
 }
 
-export default function PublishingQueueClient() {
+export default function PublishingQueueClient({ canEdit }: { canEdit: boolean }) {
   const [rows, setRows] = useState<QueueRow[]>([]);
   const [upcoming, setUpcoming] = useState<UpcomingShow[]>([]);
   const [today, setToday] = useState<string | undefined>(undefined);
@@ -424,24 +431,27 @@ export default function PublishingQueueClient() {
           <div>
             <div className="eyebrow flex items-center gap-2">
               <Radio className="h-3 w-3" />
-              Producers
+              {canEdit ? "Producers" : "Website managers"}
             </div>
             <h1 className="display-md mt-2 text-foreground">Publishing Queue</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              New items land on the next empty show. Drag onto a date to stack — max {MAX_PACKAGES_PER_SHOW} per
-              show.
+              {canEdit
+                ? `New items land on the next empty show. Drag onto a date to stack — max ${MAX_PACKAGES_PER_SHOW} per show.`
+                : "Packages lined up for each show. Open a package’s YouTube status for its embed code. Producers manage the queue."}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <PublishingManagers />
+            {canEdit ? <PublishingManagers /> : null}
             <Button type="button" size="sm" variant="outline" onClick={() => setPastOpen(true)}>
               <History className="h-4 w-4" />
               Past shows
             </Button>
-            <Button type="button" size="sm" onClick={() => void openAdd()}>
-              <Plus className="h-4 w-4" />
-              Add package
-            </Button>
+            {canEdit ? (
+              <Button type="button" size="sm" onClick={() => void openAdd()}>
+                <Plus className="h-4 w-4" />
+                Add package
+              </Button>
+            ) : null}
           </div>
         </div>
       </section>
@@ -452,7 +462,9 @@ export default function PublishingQueueClient() {
         <p className="text-sm text-muted-foreground">
           {pastGrouped.length > 0
             ? "Nothing upcoming. Past shows are under Past shows."
-            : "Nothing in the queue yet. Drop targets below stay open."}
+            : canEdit
+              ? "Nothing in the queue yet. Drop targets below stay open."
+              : "Nothing in the queue yet."}
         </p>
       ) : null}
 
@@ -463,7 +475,7 @@ export default function PublishingQueueClient() {
             (group.date === UNASSIGNED_SHOW_KEY ? "No show assigned" : group.date);
           const count = group.rows.length;
           const droppable = group.date !== UNASSIGNED_SHOW_KEY;
-          const accepting = droppable && canDropOn(group.date);
+          const accepting = canEdit && droppable && canDropOn(group.date);
           const over = dragOverDate === group.date;
 
           return (
@@ -505,7 +517,8 @@ export default function PublishingQueueClient() {
                     key={row.id}
                     row={row}
                     busy={busyId === row.id}
-                    canDrag
+                    canDrag={canEdit}
+                    readOnly={!canEdit}
                     dragging={draggingId === row.id}
                     showOptions={upcoming}
                     occupiedOn={occupiedOn}
@@ -523,7 +536,9 @@ export default function PublishingQueueClient() {
                   />
                 ))}
                 {droppable && group.rows.length === 0 ? (
-                  <p className="px-2 py-3 text-center text-xs text-muted-foreground">Drop a package here</p>
+                  <p className="px-2 py-3 text-center text-xs text-muted-foreground">
+                    {canEdit ? "Drop a package here" : "No package yet"}
+                  </p>
                 ) : null}
               </div>
             </section>
@@ -536,7 +551,9 @@ export default function PublishingQueueClient() {
           <DialogHeader>
             <DialogTitle>Past shows</DialogTitle>
             <DialogDescription>
-              Shows whose air date has passed. You can still move, download, or remove packages.
+              {canEdit
+                ? "Shows whose air date has passed. You can still move, download, or remove packages."
+                : "Shows whose air date has passed."}
             </DialogDescription>
           </DialogHeader>
           {pastGrouped.length === 0 ? (
@@ -562,6 +579,7 @@ export default function PublishingQueueClient() {
                           row={row}
                           busy={busyId === row.id}
                           canDrag={false}
+                          readOnly={!canEdit}
                           dragging={false}
                           showOptions={pastDialogShows}
                           occupiedOn={occupiedOn}

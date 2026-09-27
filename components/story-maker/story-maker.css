@@ -1,0 +1,106 @@
+/* Instagram story artwork: 1080 × 1920 (DESIGN.md §4, §12). Square Ink plates with one InFocus Green
+   strip, Lexend only, Soft White text, and the only red is the dot inside the icon. Text stays between
+   y = 250 and y = 1670 (Instagram's UI covers the top and bottom 250px). Brand hexes are literal on
+   purpose: the artwork looks the same in the Portal's light and dark themes. */
+
+.sm-story {
+  --sm-ink: #0f110f;
+  --sm-ink-2: #1a1d1a;
+  --sm-green: #0b6e3e;
+  --sm-green-hi: #2bb36e;
+  --sm-white: #ecefea;
+  --sm-mist: #dce2de;
+  --sm-m: 72px;
+  --sm-safe: 250px;
+  --k: 1; /* shrink-to-fit factor set per [data-fit] box, 1 down to 0.75 */
+
+  position: relative;
+  width: 1080px;
+  height: 1920px;
+  overflow: hidden;
+  background: var(--sm-ink);
+  color: var(--sm-white);
+  font-family: var(--font-lexend), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-align: left;
+}
+.sm-story * { box-sizing: border-box; margin: 0; padding: 0; }
+.sm-pre { white-space: pre-line; }
+.sm-headline, .sm-title, .sm-quote, .sm-caption, .sm-body, .sm-points span { text-wrap: balance; }
+
+/* Photo: full bleed or framed. Empty slots show a label that is hidden in the export. */
+.sm-photo { position: absolute; overflow: hidden; background: var(--sm-ink-2); }
+.sm-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.sm-bleed { inset: 0; }
+.sm-ph-label {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 30px; font-weight: 500; letter-spacing: 0.11em; text-transform: uppercase; color: rgb(220 226 222 / 0.45);
+}
+.sm-story.sm-exporting .sm-ph-label,
+.sm-story.sm-exporting .sm-sticker { visibility: hidden; }
+
+/* Header nameplate: icon tile + Ink kicker plate + Green meta strip (the lower third at story scale). */
+.sm-hd { position: absolute; top: var(--sm-safe); left: var(--sm-m); display: flex; height: 104px; }
+.sm-tile { width: 104px; height: 104px; flex: none; background: var(--sm-ink); display: grid; place-items: center; }
+.sm-tile img { width: 82%; height: 82%; object-fit: contain; display: block; }
+.sm-hd-body { display: grid; grid-template-rows: 60px 44px; margin-left: -1px; }
+.sm-hd.sm-no-meta .sm-hd-body { grid-template-rows: 104px; }
+.sm-hd-plate, .sm-hd-strip { display: flex; align-items: center; padding: 0 30px 0 24px; white-space: nowrap; }
+.sm-hd-plate { background: var(--sm-ink); }
+.sm-hd-strip { background: var(--sm-green); }
+.sm-kicker { font-size: 28px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--sm-green-hi); line-height: 1; padding-top: 2px; }
+.sm-meta { font-size: 21px; font-weight: 500; letter-spacing: 0.11em; text-transform: uppercase; line-height: 1; padding-top: 1px; }
+
+/* Plate stack: Ink plate over a Green strip, same width, square. */
+.sm-stack { position: absolute; left: var(--sm-m); right: var(--sm-m); bottom: var(--sm-safe); display: flex; flex-direction: column; }
+.sm-plate { background: var(--sm-ink); padding: calc(40px * var(--k)) 48px calc(44px * var(--k)); }
+.sm-strip { background: var(--sm-green); padding: 20px 48px 22px; }
+.sm-strip-text { font-size: 24px; font-weight: 500; letter-spacing: 0.11em; text-transform: uppercase; line-height: 1.3; }
+
+/* Type */
+.sm-headline { font-weight: 600; font-size: calc(84px * var(--k)); line-height: 1.06; letter-spacing: -0.02em; }
+.sm-title { font-weight: 600; font-size: calc(116px * var(--k)); line-height: 1.05; letter-spacing: -0.02em; }
+.sm-quote { font-weight: 600; font-size: calc(64px * var(--k)); line-height: 1.14; letter-spacing: -0.015em; }
+.sm-body { font-weight: 400; font-size: calc(46px * var(--k)); line-height: 1.3; color: var(--sm-mist); }
+.sm-name { font-weight: 600; font-size: 38px; line-height: 1.1; letter-spacing: -0.01em; }
+.sm-role { font-weight: 500; font-size: 22px; line-height: 1.2; letter-spacing: 0.11em; text-transform: uppercase; color: var(--sm-mist); margin-top: 8px; }
+.sm-label { font-weight: 500; font-size: calc(36px * var(--k)); letter-spacing: 0.11em; text-transform: uppercase; color: var(--sm-mist); line-height: 1.25; }
+.sm-source { font-weight: 400; font-size: 26px; color: rgb(220 226 222 / 0.7); line-height: 1.35; }
+.sm-caption { font-weight: 600; font-size: calc(50px * var(--k)); line-height: 1.12; letter-spacing: -0.015em; }
+.sm-stat { font-weight: 600; font-size: calc(300px * var(--k)); line-height: 0.92; letter-spacing: -0.035em; }
+
+/* Green-on-Dark bullets, up to five short points */
+.sm-points { --pt: calc(58px * var(--k)); list-style: none; display: flex; flex-direction: column; gap: calc(30px * var(--k)); }
+.sm-points li { display: flex; gap: 30px; font-size: var(--pt); line-height: 1.22; color: var(--sm-mist); }
+.sm-points li::before {
+  content: ""; flex: none; width: 16px; height: 16px; border-radius: 50%; background: var(--sm-green-hi);
+  margin-top: calc(var(--pt) * 0.61 - 8px);
+}
+
+/* Shrink-to-fit box */
+.sm-fit { position: absolute; left: var(--sm-m); right: var(--sm-m); display: flex; flex-direction: column; }
+
+/* Footer on Ink stories: 30% Soft White rule, URL in Green on Dark */
+.sm-ft {
+  position: absolute; left: var(--sm-m); right: var(--sm-m); bottom: var(--sm-safe);
+  display: flex; justify-content: space-between; align-items: baseline;
+  border-top: 3px solid rgb(236 239 234 / 0.3); padding-top: 26px;
+}
+.sm-url { font-weight: 600; font-size: 34px; letter-spacing: 0.06em; color: var(--sm-green-hi); line-height: 1; }
+.sm-handle { font-weight: 500; font-size: 30px; color: var(--sm-mist); line-height: 1; }
+
+/* Link sticker spot: editor only, never exported */
+.sm-sticker {
+  position: absolute; left: var(--sm-m); right: var(--sm-m);
+  border: 3px dashed rgb(43 179 110 / 0.6);
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  font-size: 26px; font-weight: 500; letter-spacing: 0.11em; text-transform: uppercase; line-height: 1.4; color: var(--sm-green-hi);
+}
+
+/* Watch / follow panel (square; the curved corner is only on the on-air Follow card) */
+.sm-follow { position: absolute; left: var(--sm-m); right: var(--sm-m); bottom: var(--sm-safe); background: var(--sm-green); padding: 32px 48px 36px; }
+.sm-follow-head { font-size: 24px; font-weight: 500; letter-spacing: 0.11em; text-transform: uppercase; color: var(--sm-mist); margin-bottom: 20px; }
+.sm-follow-row { display: flex; align-items: center; gap: 22px; height: 60px; }
+.sm-follow-icons { display: flex; gap: 12px; width: 104px; align-items: center; }
+.sm-follow-icons svg { width: 40px; height: 40px; display: block; }
+.sm-follow-handle { font-size: 38px; font-weight: 500; letter-spacing: 0.01em; line-height: 1; }

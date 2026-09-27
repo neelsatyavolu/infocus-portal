@@ -13,6 +13,7 @@ Sidebar category headings use compact spacing, with 0.675rem above each heading.
 - Package Cycles (dates)
 - InFocus Drive (opens `drive.infocuspaly.com`)
 - Teleprompter (opens `teleprompter.infocuspaly.com`)
+- Managers (one card per manager area: equipment, livestream, website, social media; see `managers.md`)
 - Livestream Tracker
 - Extension Requests
 - Settings

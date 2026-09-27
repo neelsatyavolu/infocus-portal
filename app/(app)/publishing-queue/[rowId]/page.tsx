@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentAppUser } from "@/src/lib/current-app-user";
-import { hasPlatformRole } from "@/src/lib/platform-admin";
 import { prisma } from "@/src/lib/prisma";
 import { formatShowDateLabel } from "@/src/lib/show-assignment";
 import { youtubeEmbedCode, youtubeWatchUrl } from "@/src/lib/youtube-publication";
@@ -40,9 +39,8 @@ export default async function PublicationPage({ params }: { params: Promise<{ ro
 
   return (
     <div className="route-enter mx-auto w-full max-w-3xl space-y-5 pb-24">
-      {hasPlatformRole(platformRole, "ASSOCIATE_PRODUCER") ? (
-        <Link href="/publishing-queue" className="text-sm text-muted-foreground hover:text-foreground">Back to Publishing Queue</Link>
-      ) : null}
+      {/* Everyone who can see a publication (producers and website managers) can open the queue. */}
+      <Link href="/publishing-queue" className="text-sm text-muted-foreground hover:text-foreground">Back to Publishing Queue</Link>
       <header className="space-y-2">
         <h1 className="display-md">{publication?.title || row.groupTopic || "Untitled package"}</h1>
         <p className="text-sm text-muted-foreground">{showDate ? formatShowDateLabel(showDate) : "Show date not assigned"}</p>

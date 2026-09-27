@@ -9,6 +9,7 @@ import { finalCutHeadline } from "@/src/lib/package-headline";
 import { isCustomQueuePackage } from "@/src/lib/publishing-queue";
 import { labeledUser, userDisplayName } from "@/src/lib/user-display";
 import { DATE_KEY_PATTERN, formatShowDateLabel, todayDateKey } from "@/src/lib/show-assignment";
+import { requirePublishingViewer } from "@/src/server/publishing-access";
 import { setQueuedForAir } from "@/src/server/publishing-queue";
 import { listUpcomingShows } from "@/src/server/show-schedule";
 import { anchorModeForDate } from "@/src/show-roles/lib/anchors";
@@ -65,11 +66,11 @@ export async function GET(request: Request) {
     const userId = await requireUserId();
     const user = await syncUserProfile(userId);
     const access = await getPlatformAccess(user.email);
-    if (!hasPlatformRole(access.role, "ASSOCIATE_PRODUCER")) {
-      throw new Error("FORBIDDEN");
-    }
+    // Website managers read the queue; only producers edit it or see unqueued packages.
+    await requirePublishingViewer(user.id, access.role);
+    const canEdit = hasPlatformRole(access.role, "ASSOCIATE_PRODUCER");
 
-    const wantCandidates = new URL(request.url).searchParams.get("candidates") === "1";
+    const wantCandidates = canEdit && new URL(request.url).searchParams.get("candidates") === "1";
     const [rows, upcoming, candidates] = await Promise.all([
       prisma.packageProgressRow.findMany({
         where: { queuedForAirAt: { not: null } },
@@ -112,6 +113,7 @@ export async function GET(request: Request) {
     ]);
 
     return ok({
+      canEdit,
       publishingConfigured: Boolean(youtubePublishingConfig()),
       packages: await Promise.all(rows.map(mapQueueRow)),
       today: todayDateKey(),

@@ -143,6 +143,22 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     audiences: ALL
   },
   {
+    id: "managers",
+    label: "Managers",
+    href: "/managers",
+    hint: "Left sidebar, under Production",
+    aliases: ["manager", "equipment manager", "livestream manager", "website manager", "social media manager"],
+    audiences: ALL
+  },
+  {
+    id: "story-maker",
+    label: "Story Maker",
+    href: "/managers/social-media",
+    hint: "Managers → Social media (producers and appointed social media managers)",
+    aliases: ["instagram", "instagram story", "story", "social media", "stories"],
+    audiences: ALL
+  },
+  {
     id: "groups",
     label: "Groups",
     href: "/groups",

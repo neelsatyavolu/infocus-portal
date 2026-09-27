@@ -1,6 +1,6 @@
 # Publishing Queue
 
-Route: `/publishing-queue`. Producer-only.
+Route: `/publishing-queue`. Producers manage it. Appointed website managers can open it read-only (also from **Managers → Website**).
 
 A Final Cut upload does **not** auto-queue. A producer clicks **Send to queue**.
 
@@ -16,13 +16,13 @@ Queue cards show the package topic and the Final Cut headline (when the students
 
 ## YouTube and website managers
 
-**Managers** lets producers appoint registered members as website managers. Managers receive an email when a package is ready on YouTube, with its title, air date, watch link, and embed code. The email also opens a package page with video playback and **Copy embed code**. This assignment does not grant producer permissions or access to Groups.
+**Managers** lets producers appoint registered members as website managers. Managers receive an email when a package is ready on YouTube, with its title, air date, watch link, and embed code. The email also opens a package page with video playback and **Copy embed code**. Website managers can also open the queue **read-only**: they see which packages air on each show (including **Past shows**) and open each package's page from its YouTube status. They cannot add, move, download, or remove packages, see unqueued packages, or manage the manager list. This assignment does not grant producer permissions or access to Groups.
 
 When YouTube publishing is configured, queued packages upload automatically as **unlisted** on their assigned air date (Pacific time; default start is midnight). The YouTube title is the Final Cut headline, or the package topic when there is no headline. Uploading and YouTube processing take time. Emails are sent only after the video is processed, unlisted, and embeddable. Queue cards show publication status and errors; published packages remain accessible from **Past shows**.
 
 Only dates on or after the configured activation date are eligible. Failed transfers retry using the same upload session. Each package publishes once, using the Final Cut version selected when its upload begins. Replacing a Final Cut or moving an already published package does not create another YouTube video. Removing a queued package pauses an unfinished upload; it does not delete an existing YouTube video. Changing the air date during upload requires an operator to reconcile the upload before resuming.
 
-Emails go to the managers assigned when the video becomes ready. Adding a manager later does not resend old notifications. A publication with no managers still publishes, but sends no emails. Managers use the email's package link; the full queue remains producer-only.
+Emails go to the managers assigned when the video becomes ready. Adding a manager later does not resend old notifications. A publication with no managers still publishes, but sends no emails. Managers use the email's package link or the read-only queue; editing the queue remains producer-only.
 
 Removing a manager also cancels any still-pending emails to them. Already delivered emails and their unlisted YouTube links cannot be recalled.
 

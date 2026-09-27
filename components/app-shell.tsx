@@ -45,6 +45,7 @@ import {
   Settings,
   Shield,
   Trash2,
+  UserCog,
   X
 } from "lucide-react";
 import { AssistantChat } from "@/components/assistant-chat";
@@ -971,6 +972,12 @@ export function AppShell({ children, platformRole, currentUser, canViewAs = fals
             label="Teleprompter"
             active={false}
             external
+          />
+          <SideNavLink
+            href={"/managers" as never}
+            icon={UserCog}
+            label="Managers"
+            active={pathname.startsWith("/managers")}
           />
 
           {showCycleTabs ? (

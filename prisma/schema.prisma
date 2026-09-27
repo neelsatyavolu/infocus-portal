@@ -141,6 +141,7 @@ model User {
   livestreamManager       LivestreamManager?
   publishingManager       PublishingManager?
   equipmentManager        EquipmentManager?
+  socialMediaManager      SocialMediaManager?
   equipmentPasskeys       EquipmentPasskey[]
   livestreamSignups       LivestreamSignupRequest[]
   livestreamSignupsReviewed LivestreamSignupRequest[] @relation("LivestreamSignupReviewer")
@@ -1657,6 +1658,17 @@ model EquipmentManager {
 
   @@index([createdAt])
   @@map("equipment_managers")
+}
+
+/// Social media managers (producers appoint them). Unlocks the Story Maker (Managers → Social media). Not a PlatformRole.
+model SocialMediaManager {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  createdByUserId String?
+  createdAt       DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
 }
 
 model LivestreamSignupRequest {

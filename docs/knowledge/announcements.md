@@ -10,7 +10,7 @@ Public form (no Portal login). Anyone can request an InFocus announcement / Frid
 
 ## Submitted (`/announcements/submitted`)
 
-Producer inbox of those requests. The scholarship resource notice is for **both InFocus and Schoology** and appears in **Permanent** with no expiration and is eligible for PA and teleprompter scripts (dated announcements take priority when slots are limited). Producers, including associates and the adviser, can **Delete** a submission after confirming. Deleted submissions disappear from the inbox, shared view, and future script selection, including Google Sheet imports; existing saved scripts are unchanged. Producers can invite extra viewers with a time-limited link (email or copy link).
+Producer inbox of those requests. The scholarship resource notice is for **both InFocus and Schoology** and appears in **Permanent** with no expiration and is eligible for PA and teleprompter scripts (dated announcements take priority when slots are limited). Producers, including associates and the adviser, can **Delete** a submission after confirming. Deleted submissions disappear from the inbox, shared view, and future script selection, including Google Sheet imports; existing saved scripts are unchanged. Producers can invite extra viewers with a time-limited link (email or copy link). **College Visits** (left of Invite) opens the college-visit Google Sheet in a new tab.
 
 ## PA (`/announcements/pa`)
 

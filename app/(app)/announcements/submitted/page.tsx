@@ -2,11 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Megaphone, Plus, RefreshCcw, UserPlus } from "lucide-react";
+import { GraduationCap, Megaphone, Plus, RefreshCcw, UserPlus } from "lucide-react";
 import { SubmittedAnnouncementList } from "@/components/submitted-announcement-list";
 import { Button } from "@/components/ui/button";
 import { windowFor, type SubmittedAnnouncement } from "@/components/submitted-announcement-card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { COLLEGE_VISITS_SPREADSHEET_ID } from "@/src/lib/college-visits";
+
+const COLLEGE_VISITS_URL = `https://docs.google.com/spreadsheets/d/${COLLEGE_VISITS_SPREADSHEET_ID}/edit?usp=sharing`;
 
 const INVITE_DURATIONS = [
   { value: "30d", label: "30 days" },
@@ -197,6 +200,15 @@ export default function SubmittedAnnouncementsPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <a
+              href={COLLEGE_VISITS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-xl border border-border bg-secondary px-4 py-2 text-sm font-semibold text-foreground hover:bg-accent"
+            >
+              <GraduationCap className="h-4 w-4" />
+              College Visits
+            </a>
             {canInvite ? (
               <button
                 type="button"

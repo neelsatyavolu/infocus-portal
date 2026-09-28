@@ -1,4 +1,5 @@
 import { cn } from "@/src/lib/utils";
+import type { BufferedSpan } from "@/src/lib/video-buffer";
 
 type MediaRangeProps = {
   value: number;
@@ -7,10 +8,12 @@ type MediaRangeProps = {
   label: string;
   onChange: (value: number) => void;
   className?: string;
+  /** Downloaded stretches drawn behind the played fill. */
+  buffered?: BufferedSpan[];
 };
 
 /** Thin player-style slider: styled track and thumb over an invisible native range input. */
-export function MediaRange({ value, max, step, label, onChange, className }: MediaRangeProps) {
+export function MediaRange({ value, max, step, label, onChange, className, buffered }: MediaRangeProps) {
   const pct = max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0;
 
   return (
@@ -26,7 +29,14 @@ export function MediaRange({ value, max, step, label, onChange, className }: Med
         className="peer absolute inset-0 z-10 h-full w-full cursor-pointer appearance-none opacity-0"
       />
       <div className="pointer-events-none absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 overflow-hidden rounded-full bg-foreground/15 transition-[height] group-hover/range:h-1.5">
-        <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
+        {buffered?.map((span) => (
+          <div
+            key={span.startPct}
+            className="absolute inset-y-0 bg-foreground/30"
+            style={{ left: `${span.startPct}%`, width: `${span.endPct - span.startPct}%` }}
+          />
+        ))}
+        <div className="absolute inset-y-0 left-0 bg-primary" style={{ width: `${pct}%` }} />
       </div>
       <div
         className="pointer-events-none absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground shadow transition-transform group-hover/range:scale-125 peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background"

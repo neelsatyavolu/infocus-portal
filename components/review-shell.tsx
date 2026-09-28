@@ -37,7 +37,6 @@ import {
   DialogTitle
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { DropdownOption } from "@/components/video-card-menu";
 import { Input } from "@/components/ui/input";
 import { MediaRange } from "@/components/media-range";
 import { ReviewTranscriptButton } from "@/components/review-transcript-button";
@@ -60,6 +59,7 @@ import {
 import { approvalStageToReviewStage, cutTileReviewStatus } from "@/src/lib/group-tile-status";
 import { ApprovalStatusValue, MediaReviewDto } from "@/src/lib/types";
 import { cn } from "@/src/lib/utils";
+import { bufferedSpans, isHlsPlaylistUrl, sameBufferedSpans, type BufferedSpan } from "@/src/lib/video-buffer";
 
 type ReviewShellProps = {
   data: MediaReviewDto;
@@ -73,7 +73,6 @@ type CommentThread = {
   replies: MediaReviewDto["comments"];
 };
 
-type QualityValue = "AUTO" | "1080" | "720" | "480";
 
 const PLAYBACK_RATES = [0.5, 1, 1.25, 1.5, 2];
 const PLAYER_SELECT_TRIGGER_CLASS = "h-8 w-auto gap-1 border-0 bg-transparent px-2 text-xs shadow-none hover:bg-muted";
@@ -82,9 +81,6 @@ const REVIEW_LAYOUT_MIN_HEIGHT_PX = 560;
 type HlsInstance = {
   destroy: () => void;
   loadSource: (src: string) => void;
-  once: (event: string, cb: () => void) => void;
-  currentLevel: number;
-  levels: { height: number }[];
 };
 
 type QuickGradeApiRow = {
@@ -119,26 +115,13 @@ type QuickGradesApiPayload = {
   rows: QuickGradeApiRow[];
 };
 
-function withQualityParam(playbackUrl: string, quality: QualityValue) {
-  if (quality === "AUTO") {
-    return playbackUrl;
-  }
-
-  const separator = playbackUrl.includes("?") ? "&" : "?";
-  return `${playbackUrl}${separator}quality=${quality}`;
-}
-
 function useHlsPlayer(
   videoRef: React.RefObject<HTMLVideoElement | null>,
-  playbackUrl: string | null | undefined,
-  quality: QualityValue
+  playbackUrl: string | null | undefined
 ) {
   const hlsRef = useRef<HlsInstance | null>(null);
-  const nativeFallbackRef = useRef(false);
   const playbackUrlRef = useRef(playbackUrl);
   playbackUrlRef.current = playbackUrl;
-  const qualityRef = useRef(quality);
-  qualityRef.current = quality;
 
   const attachHls = useCallback(async (video: HTMLVideoElement, url: string) => {
     if (hlsRef.current) {
@@ -146,13 +129,11 @@ function useHlsPlayer(
       hlsRef.current = null;
     }
 
-    if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      nativeFallbackRef.current = true;
-      video.src = withQualityParam(url, qualityRef.current);
+    // Drive MP4s play natively (Range requests); only HLS playlists need hls.js.
+    if (!isHlsPlaylistUrl(url) || video.canPlayType("application/vnd.apple.mpegurl")) {
+      video.src = url;
       return;
     }
-
-    nativeFallbackRef.current = false;
 
     try {
       const { default: Hls } = await import("hls.js");
@@ -162,8 +143,7 @@ function useHlsPlayer(
       }
 
       if (!Hls.isSupported()) {
-        video.src = withQualityParam(url, qualityRef.current);
-        nativeFallbackRef.current = true;
+        video.src = url;
         return;
       }
 
@@ -199,23 +179,9 @@ function useHlsPlayer(
         }
       });
 
-      const hlsInstance = hls as unknown as HlsInstance;
-      hlsInstance.once("hlsManifestParsed", () => {
-        const q = qualityRef.current;
-        if (q === "AUTO") {
-          return;
-        }
-        const targetHeight = Number(q);
-        const levelIndex = hlsInstance.levels.findIndex((level) => level.height === targetHeight);
-        if (levelIndex >= 0) {
-          hlsInstance.currentLevel = levelIndex;
-        }
-      });
-
-      hlsRef.current = hlsInstance;
+      hlsRef.current = hls as unknown as HlsInstance;
     } catch {
-      video.src = withQualityParam(url, qualityRef.current);
-      nativeFallbackRef.current = true;
+      video.src = url;
     }
   }, []);
 
@@ -234,42 +200,6 @@ function useHlsPlayer(
       }
     };
   }, [videoRef, playbackUrl, attachHls]);
-
-  useEffect(() => {
-    if (nativeFallbackRef.current) {
-      const video = videoRef.current;
-      const url = playbackUrlRef.current;
-      if (video && url) {
-        const previousTime = video.currentTime;
-        const wasPlaying = !video.paused;
-        video.src = withQualityParam(url, quality);
-        const restore = () => {
-          video.currentTime = previousTime;
-          if (wasPlaying) {
-            void video.play();
-          }
-        };
-        video.addEventListener("loadedmetadata", restore, { once: true });
-      }
-      return;
-    }
-
-    const hls = hlsRef.current;
-    if (!hls) {
-      return;
-    }
-
-    if (quality === "AUTO") {
-      hls.currentLevel = -1;
-      return;
-    }
-
-    const targetHeight = Number(quality);
-    const levelIndex = hls.levels.findIndex((level) => level.height === targetHeight);
-    if (levelIndex >= 0) {
-      hls.currentLevel = levelIndex;
-    }
-  }, [quality, videoRef]);
 }
 
 function initialsFromName(name: string) {
@@ -447,6 +377,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
   const mediaStageRef = useRef<HTMLDivElement | null>(null);
   const mediaControlsRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const pendingSeekRef = useRef<number | null>(null);
   const imageCanvasRef = useRef<HTMLDivElement | null>(null);
   const commentsMenuRef = useRef<HTMLDivElement | null>(null);
   const quickGradesRef = useRef<HTMLDivElement | null>(null);
@@ -479,9 +410,10 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [bufferedTrack, setBufferedTrack] = useState<BufferedSpan[]>([]);
+  const [isBuffering, setIsBuffering] = useState(false);
   const [volume, setVolume] = useState(1);
   const [playbackRate, setPlaybackRate] = useState(1);
-  const [quality, setQuality] = useState<QualityValue>("AUTO");
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
   const [composerPin, setComposerPin] = useState<{ xPct: number; yPct: number } | null>(null);
@@ -558,7 +490,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
   const canManageQuickGrades =
     !isGuest && !isImageReview && data.canManageQuickGrades && canShowQuickGradesForFolder(data.folderName);
 
-  useHlsPlayer(videoRef, isImageReview ? null : currentVersion?.playbackUrl, quality);
+  useHlsPlayer(videoRef, isImageReview ? null : currentVersion?.playbackUrl);
 
   useEffect(() => {
     setNowMs(Date.now());
@@ -657,25 +589,73 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
       return;
     }
 
+    pendingSeekRef.current = null;
+    setBufferedTrack([]);
+    setIsBuffering(false);
+
+    const syncBuffered = () => {
+      const next = bufferedSpans(video.buffered, video.duration);
+      setBufferedTrack((current) => (sameBufferedSpans(current, next) ? current : next));
+    };
+
     const syncState = () => {
-      setCurrentTime(video.currentTime || 0);
+      // Keep the scrubber where the user dropped it while a queued seek is still waiting.
+      if (pendingSeekRef.current === null) {
+        setCurrentTime(video.currentTime || 0);
+        setComposerTimeSeconds(video.currentTime || 0);
+      }
       setDuration(video.duration || 0);
-      setComposerTimeSeconds(video.currentTime || 0);
+      syncBuffered();
+    };
+
+    // Short delay so quick in-buffer seeks don't flash the spinner.
+    let bufferingTimer: number | undefined;
+    const startBuffering = () => {
+      window.clearTimeout(bufferingTimer);
+      bufferingTimer = window.setTimeout(() => setIsBuffering(true), 200);
+    };
+    const stopBuffering = () => {
+      window.clearTimeout(bufferingTimer);
+      setIsBuffering(false);
+    };
+
+    // One seek in flight at a time: while the browser fetches, keep only the latest scrub target.
+    const onSeeked = () => {
+      const pending = pendingSeekRef.current;
+      if (pending !== null) {
+        pendingSeekRef.current = null;
+        video.currentTime = pending;
+        return;
+      }
+      if (video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA || video.paused) {
+        stopBuffering();
+      }
+      syncState();
     };
 
     const onPlay = () => setIsPlaying(true);
     const onPause = () => setIsPlaying(false);
 
-    video.addEventListener("loadedmetadata", syncState);
-    video.addEventListener("timeupdate", syncState);
-    video.addEventListener("play", onPlay);
-    video.addEventListener("pause", onPause);
+    const listeners: Array<[keyof HTMLMediaElementEventMap, () => void]> = [
+      ["loadedmetadata", syncState],
+      ["durationchange", syncState],
+      ["timeupdate", syncState],
+      ["progress", syncBuffered],
+      ["play", onPlay],
+      ["pause", onPause],
+      ["waiting", startBuffering],
+      ["seeking", startBuffering],
+      ["seeked", onSeeked],
+      ["playing", stopBuffering],
+      ["canplay", stopBuffering],
+      ["error", stopBuffering],
+      ["emptied", stopBuffering]
+    ];
+    listeners.forEach(([type, handler]) => video.addEventListener(type, handler));
 
     return () => {
-      video.removeEventListener("loadedmetadata", syncState);
-      video.removeEventListener("timeupdate", syncState);
-      video.removeEventListener("play", onPlay);
-      video.removeEventListener("pause", onPause);
+      window.clearTimeout(bufferingTimer);
+      listeners.forEach(([type, handler]) => video.removeEventListener(type, handler));
     };
   }, [currentVersionId, isImageReview]);
 
@@ -823,9 +803,13 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
     }
 
     const nextTime = clampToDuration(timeSeconds, video.duration || duration);
-    video.currentTime = nextTime;
     setCurrentTime(nextTime);
     setComposerTimeSeconds(nextTime);
+    if (video.seeking) {
+      pendingSeekRef.current = nextTime;
+      return;
+    }
+    video.currentTime = nextTime;
   }
 
   function focusCommentThread(thread: CommentThread, options?: { scrollSidebar?: boolean }) {
@@ -1803,12 +1787,6 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
   const reviewPaneMaxHeightClass = isMacDesktopApp ? "lg:max-h-[calc(100dvh-11.5rem)]" : "lg:max-h-[calc(100dvh-7.5rem)]";
   const reviewLayoutHeightClass = isMacDesktopApp ? "xl:h-[calc(100dvh-11.5rem)]" : "xl:h-[calc(100dvh-7.5rem)]";
   const effectiveSidebarWidthPx = manualSidebarWidthPx ?? autoSidebarWidthPx ?? 420;
-  const qualityOptions: DropdownOption<QualityValue>[] = [
-    { value: "AUTO", label: "Auto quality" },
-    { value: "1080", label: "1080p" },
-    { value: "720", label: "720p" },
-    { value: "480", label: "480p" }
-  ];
 
   const clampSidebarWidth = useCallback(
     (requestedWidth: number) => {
@@ -2571,7 +2549,15 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                     preload="auto"
                     poster={currentVersion?.thumbnailUrl ?? undefined}
                   />
-                  {!isPlaying ? (
+                  {isBuffering ? (
+                    <div
+                      role="status"
+                      aria-label="Loading video"
+                      className="pointer-events-none absolute left-1/2 top-1/2 grid h-16 w-16 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-black/60 text-white"
+                    >
+                      <Loader2 className="h-7 w-7 animate-spin" />
+                    </div>
+                  ) : !isPlaying ? (
                     <button
                       onClick={togglePlayback}
                       className="absolute left-1/2 top-1/2 grid h-16 w-16 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white/95 text-black shadow-2xl transition hover:scale-105"
@@ -2615,7 +2601,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                     })}
                   </div>
 
-                  <MediaRange value={currentTime} max={timelineDuration} step={0.01} label="Seek" onChange={seekTo} />
+                  <MediaRange value={currentTime} max={timelineDuration} step={0.01} label="Seek" onChange={seekTo} buffered={bufferedTrack} />
 
                   <div className="mt-1 flex items-center gap-1 sm:gap-2">
                     <Button variant="ghost" size="sm" className="h-8 w-8 shrink-0 p-0" onClick={togglePlayback} aria-label={isPlaying ? "Pause" : "Play"}>
@@ -2640,16 +2626,6 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                         <SelectContent side="top" align="end">
                           {PLAYBACK_RATES.map((rate) => (
                             <SelectItem key={rate} value={String(rate)}>{rate}x</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Select value={quality} onValueChange={(v) => setQuality(v as typeof quality)}>
-                        <SelectTrigger aria-label="Quality" className={PLAYER_SELECT_TRIGGER_CLASS}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent side="top" align="end">
-                          {qualityOptions.map((opt) => (
-                            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>

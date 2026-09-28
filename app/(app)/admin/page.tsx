@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog";
+import { ClassBoardCycleSetting } from "./class-board-cycle-setting";
 
 type PlatformRole = "SUPER_ADMIN" | "EXECUTIVE_PRODUCER" | "ADVISER" | "ASSOCIATE_PRODUCER";
 
@@ -1015,6 +1016,7 @@ export default function AdminPage() {
               </button>
             ) : null}
           </div>
+          <ClassBoardCycleSetting />
         </article>
 
         <article className="rounded-2xl border border-border bg-card p-4">

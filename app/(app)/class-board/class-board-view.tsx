@@ -1,7 +1,8 @@
 "use client";
 
-import { BrandWordmark } from "@/components/brand-wordmark";
+import Image from "next/image";
 import Link from "next/link";
+import { Award } from "lucide-react";
 import { useEffect, useState, type CSSProperties } from "react";
 import type { CapacityTone } from "@/src/lib/livestream";
 import { classBoardLiveFocus, formatGateDate, type ClassBoardLane, type ClassBoardModel, type RaceDot } from "@/src/lib/class-board";
@@ -164,7 +165,23 @@ export default function ClassBoardView({ board }: { board: ClassBoardModel }) {
       <header className="grid h-14 shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,1.7fr)_minmax(0,1fr)] items-center gap-4 overflow-hidden">
         <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-4">
           <Link href={"/dashboard" as never} className="inline-flex shrink-0 items-center" aria-label="InFocus Portal">
-            <BrandWordmark alt="" className="h-10 w-auto object-contain" priority />
+            {/* 2026 wordmark, cropped tight: Soft White on dark, color in light mode. */}
+            <Image
+              src="/brand/infocus-wordmark-white.png"
+              alt=""
+              width={1200}
+              height={321}
+              className="h-10 w-auto light:hidden"
+              priority
+            />
+            <Image
+              src="/brand/infocus-wordmark-color.png"
+              alt=""
+              width={1200}
+              height={321}
+              className="hidden h-10 w-auto light:block"
+              priority
+            />
           </Link>
           <div className="min-w-0">
             <h1 className="truncate text-[clamp(1.35rem,1.8vw,2.15rem)] font-semibold leading-none tracking-tight">
@@ -216,7 +233,11 @@ export default function ClassBoardView({ board }: { board: ClassBoardModel }) {
               board.lanes.map((lane) => (
                 <article
                   key={lane.id}
-                  className={cn(LANE_GRID, "min-h-0 flex-1 items-center overflow-hidden border-b border-border last:border-b-0")}
+                  className={cn(
+                    LANE_GRID,
+                    "min-h-0 flex-1 items-center overflow-hidden border-b border-border last:border-b-0",
+                    lane.packageOfCycle && "bg-[var(--brand-green)]/[0.08]"
+                  )}
                 >
                   <p
                     className={cn(
@@ -228,6 +249,12 @@ export default function ClassBoardView({ board }: { board: ClassBoardModel }) {
                   </p>
                   <div className="min-w-0 overflow-hidden">
                     <h2 className="line-clamp-2 break-words text-[clamp(0.78rem,calc(80dvh/var(--lanes)*0.30),1.35rem)] font-semibold leading-tight text-foreground">
+                      {lane.packageOfCycle ? (
+                        <Award
+                          className="mr-1.5 inline-block h-[1em] w-[1em] -translate-y-px text-[var(--brand-green)]"
+                          aria-label="Package of the Cycle"
+                        />
+                      ) : null}
                       {lane.topic}
                     </h2>
                     <p className="truncate text-[clamp(0.65rem,calc(80dvh/var(--lanes)*0.20),1rem)] leading-tight text-[var(--ink-text)]">

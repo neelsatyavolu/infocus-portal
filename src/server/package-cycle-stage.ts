@@ -236,6 +236,8 @@ export type FinalCutMemberGrade = {
   secondRevisionEligible: boolean;
   daysLate: number;
   penaltyMultiplier: number;
+  /** What each executive producer gave this member; null parts = not scored yet. */
+  graderScores: Array<{ userId: string; name: string; required: boolean; quality: number | null; effort: number | null }>;
 };
 
 export type FinalCutGradePanel = {
@@ -326,6 +328,21 @@ async function loadFinalCutGradePanel(input: {
   const turnedIn = grades.find((grade) => grade.turnedInDate)?.turnedInDate ?? row?.finalCutMediaItem?.createdAt ?? null;
   const penalty = calculateLatePenalty(deadline, turnedIn);
 
+  const graderNames = [
+    ...graders.map((grader) => ({
+      userId: grader.userId,
+      name: userDisplayName(grader) || grader.name || "Executive producer",
+      required: true
+    })),
+    ...[
+      ...new Map(
+        scores.filter((score) => score.memberUserId !== null).map((score) => [score.graderUserId, score.grader])
+      ).entries()
+    ]
+      .filter(([userId]) => !requiredGraderIds.includes(userId))
+      .map(([userId, grader]) => ({ userId, name: userDisplayName(grader) || grader.name || "Producer", required: false }))
+  ];
+
   const memberGrades: FinalCutMemberGrade[] = members.map((member) => {
     const grade = gradeByMember.get(member.userId);
     const status = memberGradeStatus({ requiredGraderIds, scores, memberUserId: member.userId });
@@ -365,7 +382,19 @@ async function loadFinalCutGradePanel(input: {
       revisionCount,
       secondRevisionEligible: isEligibleForSecondRevision(awarded ?? status.average, revisionCount),
       daysLate: memberPenalty.daysLate,
-      penaltyMultiplier: memberPenalty.penaltyMultiplier
+      penaltyMultiplier: memberPenalty.penaltyMultiplier,
+      graderScores: graderNames.map((grader) => {
+        const score = scores.find(
+          (entry) => entry.graderUserId === grader.userId && entry.memberUserId === member.userId
+        );
+        return {
+          userId: grader.userId,
+          name: grader.name,
+          required: grader.required,
+          quality: score?.qualityPoints ?? null,
+          effort: score?.effortPoints ?? null
+        };
+      })
     };
   });
 

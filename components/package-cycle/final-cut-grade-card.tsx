@@ -23,6 +23,7 @@ export type FinalCutMemberGradeData = {
   secondRevisionEligible: boolean;
   daysLate: number;
   penaltyMultiplier: number;
+  graderScores: Array<{ userId: string; name: string; required: boolean; quality: number | null; effort: number | null }>;
 };
 
 export type FinalCutGradeCardData = {
@@ -152,14 +153,47 @@ function PartInput({
   );
 }
 
+function firstName(name: string) {
+  return name.trim().split(/\s+/)[0] || name;
+}
+
+/** Each executive producer's score for one member, so graders can see each other's numbers. */
+function GraderScores({ member, viewerUserId }: { member: FinalCutMemberGradeData; viewerUserId: string }) {
+  if (member.graderScores.length === 0) return null;
+  return (
+    <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs" aria-label="Scores by executive producer">
+      {member.graderScores.map((grader) => {
+        const scored = grader.quality != null && grader.effort != null;
+        return (
+          <li key={grader.userId} className={scored ? "text-foreground" : "text-muted-foreground"}>
+            <span className="text-muted-foreground">
+              {firstName(grader.name)}
+              {grader.userId === viewerUserId ? " (you)" : ""}
+            </span>{" "}
+            {scored ? (
+              <span className="font-mono tabular-nums">
+                {formatPts(grader.quality)} + {formatPts(grader.effort)} = {formatPts((grader.quality ?? 0) + (grader.effort ?? 0))}
+              </span>
+            ) : (
+              "not scored"
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 function MemberRow({
   member,
   canGrade,
+  viewerUserId,
   draft,
   onDraftChange
 }: {
   member: FinalCutMemberGradeData;
   canGrade: boolean;
+  viewerUserId: string;
   draft: { quality: string; effort: string };
   onDraftChange: (next: { quality: string; effort: string }) => void;
 }) {
@@ -168,6 +202,9 @@ function MemberRow({
   const effort = parsePart(draft.effort);
   const myTotal =
     quality != null && effort != null && !Number.isNaN(quality) && !Number.isNaN(effort) ? quality + effort : null;
+  const waitingOn = member.graderScores
+    .filter((grader) => grader.required && (grader.quality == null || grader.effort == null))
+    .map((grader) => firstName(grader.name));
 
   return (
     <li className="space-y-2 bg-black/20 light:bg-muted px-3 py-2.5">
@@ -203,12 +240,15 @@ function MemberRow({
             ? `Average quality ${formatPts(member.qualityAverage)} + effort ${formatPts(member.effortAverage)} = ${formatPts(member.average)}`
             : member.locked
               ? "Scored 75% or more before this revision."
-              : `Waiting on ${member.pendingCount} executive producer${member.pendingCount === 1 ? "" : "s"}`}
+              : waitingOn.length > 0
+                ? `Waiting on ${waitingOn.join(", ")}`
+                : `Waiting on ${member.pendingCount} executive producer${member.pendingCount === 1 ? "" : "s"}`}
           {member.revisionCapped ? ` · second revision cap ${formatPts(member.afterRevisionCap)}` : ""}
           {member.penaltyMultiplier > 0 ? ` · −${Math.round(member.penaltyMultiplier * 100)}% late` : ""}
         </span>
         <span className="font-medium tabular-nums text-foreground">Official {formatPts(member.officialPoints)} / 50</span>
       </div>
+      <GraderScores member={member} viewerUserId={viewerUserId} />
     </li>
   );
 }
@@ -312,6 +352,7 @@ export function FinalCutGradeCard({
               key={member.userId}
               member={member}
               canGrade={grade.canGrade}
+              viewerUserId={grade.viewerUserId}
               draft={draft[member.userId] ?? { quality: "", effort: "" }}
               onDraftChange={(next) => setDraft((current) => ({ ...current, [member.userId]: next }))}
             />

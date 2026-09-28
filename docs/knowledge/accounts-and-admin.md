@@ -37,6 +37,7 @@ Pick a person already in People, then choose Associate Producer, Executive Produ
 
 - **Usage cards** (users, workspaces, media, storage) load in the background. People, access requests, and producer roles show first.
 - **Package cycles per semester** — how many cycles exist (also editable on `/package-cycles`).
+- **Class Board cycle** — which cycle `/class-board` shows. **Current cycle (automatic)** is the default; executive producers and above can pin any cycle.
 - **Backups** — hourly copies of Portal database data (people, packages, grades, calendar, equipment). Super admin and adviser only. Download from Admin. Kept 7 days. Not InFocus Drive videos. Restore is download + `psql` into an empty database after `prisma migrate deploy` — there is no restore button.
 - **Danger zone** — wipe package grades, history, and progress for cycles 1–4. Type `RESET CYCLES`. Super admin / adviser only. Projects are not deleted.
 

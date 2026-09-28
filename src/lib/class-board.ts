@@ -31,6 +31,8 @@ export type ClassBoardLane = {
   extensionDays: number;
   statusLabel: string;
   tone: GroupTileStatusTone;
+  /** Won Package of the Cycle: always ranked first. */
+  packageOfCycle: boolean;
   doneCount: number;
   dots: RaceDot[];
   segments: RaceDot[];
@@ -108,8 +110,13 @@ export type RacePackageInput = {
   aRollBRoll: boolean;
   initialCut: boolean;
   finalCut: boolean;
+  /** When the package won Package of the Cycle, if it did. */
+  packageOfCycleAt?: string | null;
+  finalCutSubmittedAt?: string | null;
   status: GroupTileStatusInput;
 };
+
+export const PACKAGE_OF_CYCLE_LABEL = "Package of the Cycle";
 
 const pacificDate = new Intl.DateTimeFormat("en-CA", {
   timeZone: CLASS_BOARD_TIME_ZONE,
@@ -225,6 +232,7 @@ function packageHasContent(row: RacePackageInput) {
 }
 
 export function buildRaceLanes(rows: RacePackageInput[], now = Date.now()): ClassBoardLane[] {
+  const winnerOrder = new Map<string, number>();
   const lanes = rows.filter(packageHasContent).map((row) => {
     const done = {
       pitching: row.pitching,
@@ -245,6 +253,9 @@ export function buildRaceLanes(rows: RacePackageInput[], now = Date.now()): Clas
       .filter(Boolean)
       .join(" · ");
     const status = groupTileStatus(row.status, now);
+    const packageOfCycle = Boolean(row.packageOfCycleAt);
+    // Two winners: whoever turned in the Final Cut first ranks higher.
+    if (packageOfCycle) winnerOrder.set(row.id, Date.parse(row.finalCutSubmittedAt ?? row.packageOfCycleAt ?? "") || 0);
     return {
       id: row.id,
       place: 0,
@@ -252,8 +263,9 @@ export function buildRaceLanes(rows: RacePackageInput[], now = Date.now()): Clas
       detail,
       extension: row.extension,
       extensionDays: row.extensionDays ?? 0,
-      statusLabel: status.label,
-      tone: status.tone,
+      statusLabel: packageOfCycle ? PACKAGE_OF_CYCLE_LABEL : status.label,
+      tone: packageOfCycle ? ("approved" as const) : status.tone,
+      packageOfCycle,
       revisionVersion: status.tone === "danger" && row.status.aRollBRoll && row.status.initialCutHasMedia
         ? row.status.initialCutVersionNumber ?? 0
         : 0,
@@ -264,6 +276,8 @@ export function buildRaceLanes(rows: RacePackageInput[], now = Date.now()): Clas
   });
 
   lanes.sort((left, right) =>
+    Number(right.packageOfCycle) - Number(left.packageOfCycle) ||
+    (winnerOrder.get(left.id) ?? 0) - (winnerOrder.get(right.id) ?? 0) ||
     right.doneCount - left.doneCount ||
     STATUS_RANK[right.tone] - STATUS_RANK[left.tone] ||
     right.revisionVersion - left.revisionVersion ||
@@ -274,10 +288,13 @@ export function buildRaceLanes(rows: RacePackageInput[], now = Date.now()): Clas
 
   let place = 1;
   for (let index = 0; index < lanes.length; index += 1) {
-    if (index > 0 && !sameStanding(lanes[index], lanes[index - 1])) {
+    const lane = lanes[index];
+    const previous = lanes[index - 1];
+    // Winners never share a place; everyone else ties on matching standing.
+    if (index > 0 && (lane.packageOfCycle || previous.packageOfCycle || !sameStanding(lane, previous))) {
       place = index + 1;
     }
-    lanes[index].place = place;
+    lane.place = place;
   }
 
   return lanes;

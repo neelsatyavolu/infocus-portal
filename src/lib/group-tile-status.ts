@@ -28,6 +28,8 @@ export type GroupTileStatusInput = {
   remainingExecutiveSignoffs?: number | null;
   finalCutHasMedia: boolean;
   queuedForAir: boolean;
+  /** Every member has an official Final Cut grade. */
+  finalCutGraded?: boolean;
 };
 
 const TONE_CLASS: Record<GroupTileStatusTone, string> = {
@@ -103,6 +105,9 @@ export function groupTileStatus(input: GroupTileStatusInput, now = Date.now()): 
     return pendingReview("initial-cut", version.replace(" Version ", " V"));
   }
 
+  if (input.finalCutGraded) {
+    return { label: "Final Cut Graded", tone: "approved" };
+  }
   if (input.queuedForAir) {
     return { label: "Final Cut Queued", tone: "approved" };
   }

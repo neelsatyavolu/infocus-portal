@@ -245,6 +245,7 @@ export async function loadPackageProgressData(requestedCycleNumber?: number | nu
         initialCutMediaItem: {
           select: { currentVersion: { select: { id: true, createdAt: true, versionNumber: true, approvalStatus: true } } }
         },
+        finalCutMediaItem: { select: { createdAt: true } },
         stageMedia: {
           where: { stage: "a-roll" },
           select: { id: true, createdAt: true, mediaItem: { select: { currentVersionId: true } } },
@@ -294,6 +295,8 @@ export async function loadPackageProgressData(requestedCycleNumber?: number | nu
     const key = `${event.targetId}:${meta.stage === "brainstorming" ? meta.stage : meta.mediaVersionId}`;
     if (!readyAt.has(key)) readyAt.set(key, event.createdAt);
   }
+
+  const officiallyGraded = new Set(finalCutGrades.map((grade) => grade.userId));
 
   const previousTeammatesByUser = previousTeammatesByUserFromGroups(
     previousCycleRows.map((row) => row.members.map((member) => member.userId))
@@ -367,6 +370,13 @@ export async function loadPackageProgressData(requestedCycleNumber?: number | nu
         row.stageMedia[0]?.createdAt
       ),
       queuedForAir: Boolean(row.queuedForAirAt),
+      // Every member has an official Final Cut grade.
+      finalCutGraded:
+        Boolean(row.finalCutMediaItemId) &&
+        row.members.length > 0 &&
+        row.members.every((member) => officiallyGraded.has(member.userId)),
+      finalCutSubmittedAt: row.finalCutMediaItem?.createdAt.toISOString() ?? null,
+      packageOfCycleAt: row.packageOfCycleAt?.toISOString() ?? null,
       finalCutScoredByUserIds: gradersDoneWithGroup(
         row.finalCutScores,
         membersAwaitingFinalCutScores(

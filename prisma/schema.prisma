@@ -749,6 +749,8 @@ model ProgramSetting {
   livestreamPinCipher    String?
   livestreamPinFailures  Int       @default(0)
   livestreamPinFailureAt DateTime?
+  /// Cycle the Class Board shows. Null = follow the current cycle.
+  classBoardCycleNumber  Int?
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
 }

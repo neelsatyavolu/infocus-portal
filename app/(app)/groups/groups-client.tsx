@@ -86,6 +86,7 @@ type GroupRow = {
   aRollHasMedia?: boolean;
   aRollNeedsChanges?: boolean;
   queuedForAir?: boolean;
+  finalCutGraded?: boolean;
   finalCutScoredByUserIds?: string[];
 };
 
@@ -304,7 +305,8 @@ function GroupTile({
     approvalStage: row.approvalStage ?? null,
     remainingExecutiveSignoffs: row.remainingExecutiveSignoffs,
     finalCutHasMedia: Boolean(row.finalCutMediaItemId),
-    queuedForAir: Boolean(row.queuedForAir)
+    queuedForAir: Boolean(row.queuedForAir),
+    finalCutGraded: Boolean(row.finalCutGraded)
   });
   const href = row.id ? (`/groups/${row.id}/${pendingSlug}` as const) : null;
   const attention = attentionFor(platformRole, currentUserId, row);

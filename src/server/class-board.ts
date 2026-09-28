@@ -18,11 +18,14 @@ import { userDisplayName } from "@/src/lib/user-display";
 import { loadMasterCalendarMonth } from "@/src/server/master-calendar-data";
 import { loadPackageProgressData } from "@/src/server/package-progress-data";
 import { loadPalyClassSessions } from "@/src/server/paly-bell-schedule";
+import { getClassBoardCycleNumber } from "@/src/server/program-settings";
 
 export async function loadClassBoard(role: PlatformRole | null, now = new Date()): Promise<ClassBoardModel> {
   const window = classBoardWindow(now);
+  // Admin can pin the board to one cycle; otherwise it follows the current cycle.
+  const pinnedCycle = await getClassBoardCycleNumber();
   const [progress, cycles, events, calendars, classSessions] = await Promise.all([
-    loadPackageProgressData(),
+    loadPackageProgressData(pinnedCycle),
     prisma.packageCycle.findMany({
       orderBy: { cycleNumber: "asc" },
       select: {
@@ -84,6 +87,8 @@ export async function loadClassBoard(role: PlatformRole | null, now = new Date()
     initialCut: row.initialCut,
     initialCutReviewStage: row.initialCutReviewStage,
     finalCut: row.finalCut,
+    packageOfCycleAt: row.packageOfCycleAt,
+    finalCutSubmittedAt: row.finalCutSubmittedAt,
     status: {
       reviewReadyAt: row.reviewReadyAt,
       pitching: row.pitching,
@@ -100,7 +105,8 @@ export async function loadClassBoard(role: PlatformRole | null, now = new Date()
       approvalStage: row.approvalStage,
       remainingExecutiveSignoffs: row.remainingExecutiveSignoffs,
       finalCutHasMedia: Boolean(row.finalCutMediaItemId),
-      queuedForAir: row.queuedForAir
+      queuedForAir: row.queuedForAir,
+      finalCutGraded: row.finalCutGraded
     }
   }));
 

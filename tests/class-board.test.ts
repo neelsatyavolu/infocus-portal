@@ -205,6 +205,48 @@ describe("class board race", () => {
     ]);
   });
 
+  it("puts Package of the Cycle winners first, earliest Final Cut first", () => {
+    const done = { pitching: true, proofOfContact: true, aRollBRoll: true, initialCut: true, finalCut: true };
+    const finished = status({
+      pitching: true,
+      proofOfContact: true,
+      aRollBRoll: true,
+      initialCutHasMedia: true,
+      approvalStage: "APPROVED",
+      finalCutHasMedia: true,
+      finalCutGraded: true
+    });
+    const lanes = buildRaceLanes([
+      pack({ id: "graded", topic: "Alpha", ...done, status: finished }),
+      pack({
+        id: "late-winner",
+        topic: "Bravo",
+        ...done,
+        status: finished,
+        packageOfCycleAt: "2026-10-20T10:00:00.000Z",
+        finalCutSubmittedAt: "2026-10-12T10:00:00.000Z"
+      }),
+      pack({
+        id: "early-winner",
+        topic: "Zulu",
+        ...done,
+        status: finished,
+        packageOfCycleAt: "2026-10-21T10:00:00.000Z",
+        finalCutSubmittedAt: "2026-10-10T10:00:00.000Z"
+      }),
+      pack({ id: "behind", topic: "Delta", pitching: true, status: status({ pitching: true }) })
+    ]);
+
+    expect(lanes.map((lane) => [lane.id, lane.place, lane.statusLabel])).toEqual([
+      ["early-winner", 1, "Package of the Cycle"],
+      ["late-winner", 2, "Package of the Cycle"],
+      ["graded", 3, "Final Cut Graded"],
+      ["behind", 4, expect.any(String)]
+    ]);
+    expect(lanes[0].packageOfCycle).toBe(true);
+    expect(lanes[2].packageOfCycle).toBe(false);
+  });
+
   it("keeps stage progress ahead of extension days", () => {
     const lanes = buildRaceLanes([
       pack({ id: "extended", topic: "Alpha", extension: true, extensionDays: 10, status: status() }),

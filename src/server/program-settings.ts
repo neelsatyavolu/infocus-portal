@@ -63,3 +63,24 @@ export async function assertValidCycleNumber(value: number) {
 
   return value;
 }
+
+/** The cycle the Class Board shows, or null to follow the current cycle. */
+export async function getClassBoardCycleNumber() {
+  const { classBoardCycleNumber } = await getProgramSettings();
+  if (classBoardCycleNumber === null) return null;
+  // A pinned cycle that was later removed falls back to the current cycle.
+  const exists = await prisma.packageCycle.count({ where: { cycleNumber: classBoardCycleNumber } });
+  return exists ? classBoardCycleNumber : null;
+}
+
+export async function setClassBoardCycleNumber(value: number | null) {
+  if (value !== null) {
+    const exists = await prisma.packageCycle.count({ where: { cycleNumber: value } });
+    if (!exists) throw new Error("BAD_REQUEST");
+  }
+  return prisma.programSetting.upsert({
+    where: { id: SETTING_ID },
+    update: { classBoardCycleNumber: value },
+    create: { id: SETTING_ID, cyclesPerSemester: DEFAULT_CYCLES_PER_SEMESTER, classBoardCycleNumber: value }
+  });
+}

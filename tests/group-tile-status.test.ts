@@ -111,6 +111,9 @@ describe("groupTileStatus", () => {
     expect(
       groupTileStatus(base({ approvalStage: "APPROVED", finalCutHasMedia: true }))
     ).toEqual({ label: "Final Cut Submitted", tone: "warn" });
+    expect(
+      groupTileStatus(base({ approvalStage: "APPROVED", finalCutHasMedia: true, queuedForAir: true, finalCutGraded: true }))
+    ).toEqual({ label: "Final Cut Graded", tone: "approved" });
   });
 
   it("flags Stage 2 for the adviser and Stage 3 for executives", () => {

@@ -10,6 +10,10 @@ A1 introductions and A5 sign-offs use anchors’ full names from the registered-
 
 College visits come from every weekly tab in the college-visit sheet except Sample. Only Paly campus visits from the show date up to (but not including) the following show date are included. Without a chosen date, Teleprompter opens the next Wednesday or Friday show, skipping no-school days (for example, after Wednesday, September 30, 2026 it opens Wednesday, October 7, because Friday, October 2 is a Staff Development Day). For 1–3 visits, the announcement includes names, days, and times. For 4 or more, it names every college grouped by day, then directs students to MaiaLearning through ClassLink under Events for visit times and RSVP. Reformat preserves the complete generated college passage; if AI drops a day or changes the passage, the original script is kept. Use the bulletin section’s **Refetch** action to update an existing show’s announcements.
 
+## Package tosses
+
+A3 starts with a `[INSERT PACKAGE TOSS]` placeholder. When Teleprompter opens or refreshes a show, it fills that placeholder with the toss of the first package queued for that show date (read by the coanchor). A second queued package gets its own block read by the anchor. A queued package with no toss yet gets `[INSERT PACKAGE TOSS: headline]`, which is filled in automatically once the group adds its toss. Text a producer has already written in place of a placeholder is never replaced. The fill happens once per placeholder: a package queued or removed after that, or a toss edited after that, has to be changed in the script by hand.
+
 ## Studio kiosk
 
 The studio teleprompter Mac (serial label `GH7953223T`) skips Google login via a kiosk token cookie (`infocus_teleprompter_kiosk`). First visit uses `?kiosk=TOKEN`. Kiosk access is the teleprompter host and `/teleprompter` APIs only — not the rest of Portal.

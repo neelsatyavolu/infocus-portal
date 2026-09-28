@@ -18,7 +18,11 @@ Anchored to the package row, not a single file:
 | Stage 2 | Adviser only | Latest initial cut (the adviser decides if it needs a revision) |
 | Stage 3 | Two distinct executive producers (three if marked controversial). Adviser does not count. | Latest initial cut |
 
-`APPROVED` unlocks Final Cut. It does not mean the package is on air.
+A stage left unreviewed for 12 hours emails its reviewers, and again every 12 hours after (see notifications.md).
+
+`APPROVED` unlocks Final Cut. It does not mean the package is on air. Members get an email and push reminding them to upload the Final Cut, with a direct link.
+
+**Groups Final Cut tab (producers)**: the video sits beside what airs: headline and toss (producers who can act on the package can edit the toss), **Send to queue**, and **Package of the Cycle** voting (see package-cycles.md). Member grades, with the deadline / submitted / deduction summary and each executive producer's progress, come next, then the shared cycle grade note with **Publish Grades**. When a Final Cut is uploaded, the assigned producer and every Final Cut grader (executive producers and super admin) get an email and push asking them to grade it.
 
 A denial keeps the package at the stage that asked for revisions. The group uploads a new version and that same stage reviews it again; it does not restart at Stage 1. A Stage 3 denial clears earlier executive approvals, so the new version needs two fresh executive sign-offs.
 

@@ -16,6 +16,7 @@ import {
   finalCutUploadedMail,
   producerStagePath,
   reviewNeededMail,
+  reviewReminderMail,
   revisionMail,
   studentStagePath,
   type PackageMailContent
@@ -23,7 +24,18 @@ import {
 import type { GroupStageSlug } from "@/src/lib/package-stages";
 import { PLATFORM_SUPER_ADMIN_EMAIL, normalizeEmail } from "@/src/lib/platform-admin";
 import { prisma } from "@/src/lib/prisma";
+import { loadRequiredFinalCutGraders } from "@/src/server/package-progress-data";
 import { sendPushToUserIds, type PushCategory } from "@/src/server/push-notify";
+
+function uniqueEmails(emails: string[]) {
+  const seen = new Set<string>();
+  return emails.filter((email) => {
+    const key = normalizeEmail(email);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
 
 function appUrl(path: string) {
   const origin = mainAppOrigin().replace(/\/+$/, "");
@@ -201,6 +213,55 @@ async function deliverMemberMail(input: {
   }
 }
 
+const REVIEW_STAGE_BY_KIND: Record<ReviewMailKind, { stage: PackageApprovalStage; label: string; slug: string }> = {
+  ap: { stage: "ASSOCIATE_REVIEW", label: "associate producer review", slug: "initial-stage-1" },
+  adviser: { stage: "ADVISER_REVIEW", label: "adviser review", slug: "initial-stage-2" },
+  execs: { stage: "EXECUTIVE_REVIEW", label: "executive review", slug: "initial-stage-3" }
+};
+
+/**
+ * Reminds whoever owns the stage that it is still unreviewed. `reminderKey` makes
+ * each 12-hour reminder send once; `skipUserIds` drops executives who already approved.
+ */
+export async function notifyPackageReviewReminder(input: {
+  progressRowId: string;
+  kind: ReviewMailKind;
+  reminderKey: string;
+  hoursWaiting: number;
+  skipUserIds: Set<string>;
+}) {
+  const { stage, label, slug } = REVIEW_STAGE_BY_KIND[input.kind];
+  const claimed = await claimReviewNotice({ progressRowId: input.progressRowId, stage, mediaVersionId: input.reminderKey });
+  if (!claimed) return false;
+
+  const row = await loadProgressRow(input.progressRowId);
+  if (!row) return false;
+
+  const recipients = await resolveProducerRecipients(input.kind, row);
+  const skipped =
+    input.skipUserIds.size > 0
+      ? await prisma.user.findMany({ where: { id: { in: [...input.skipUserIds] } }, select: { email: true } })
+      : [];
+  const skipEmails = new Set(skipped.map((user) => normalizeEmail(user.email)));
+  const emails = recipients.emails.filter((email) => !skipEmails.has(normalizeEmail(email)));
+  const userIds = recipients.userIds.filter((id) => !input.skipUserIds.has(id));
+  if (emails.length === 0 && userIds.length === 0) return false;
+
+  await deliverProducerMail({
+    emails,
+    userIds,
+    path: `/groups/${row.id}/${slug}`,
+    content: reviewReminderMail({
+      cycleNumber: row.cycleNumber,
+      topic: row.groupTopic,
+      members: memberNames(row.members),
+      stageLabel: label,
+      hoursWaiting: input.hoursWaiting
+    })
+  });
+  return true;
+}
+
 export async function notifyPackageReview(input: {
   progressRowId: string;
   kind: ReviewMailKind;
@@ -289,11 +350,17 @@ export async function notifyBrainstormMaterialsReady(progressRowId: string) {
   });
 }
 
+/** Tells the assigned producer and every Final Cut grader (EPs + super admin) to grade. */
 export async function notifyFinalCutUploaded(progressRowId: string) {
   const row = await loadProgressRow(progressRowId);
   if (!row) return;
 
-  const { emails, userIds } = await resolveProducerRecipients("ap", row);
+  const [assigned, graders] = await Promise.all([
+    resolveProducerRecipients("ap", row),
+    loadRequiredFinalCutGraders()
+  ]);
+  const emails = uniqueEmails([...assigned.emails, ...graders.map((grader) => grader.email ?? "")]);
+  const userIds = [...new Set([...assigned.userIds, ...graders.map((grader) => grader.userId)])];
   if (emails.length === 0 && userIds.length === 0) return;
 
   await deliverProducerMail({
@@ -417,6 +484,14 @@ export async function notifyPackageMembersOfDecision(input: {
     select: { cycleNumber: true, groupTopic: true }
   });
   if (!row) return;
+  // Groups with an approved extension have their own deadline, so leave the date out for them.
+  const [cycle, extensions] =
+    input.kind === "approved"
+      ? await Promise.all([
+          prisma.packageCycle.findUnique({ where: { cycleNumber: row.cycleNumber }, select: { finalCutDate: true } }),
+          prisma.packageExtensionRequest.count({ where: { progressRowId: input.progressRowId, status: "APPROVED" } })
+        ])
+      : [null, 0];
 
   const path = input.kind === "approved" ? studentStagePath("final-cut") : studentStagePath("initial-cut");
   await deliverMemberMail({
@@ -429,7 +504,14 @@ export async function notifyPackageMembersOfDecision(input: {
       topic: row.groupTopic,
       kind: input.kind,
       reviewerName: input.reviewerName,
-      excerpt: input.excerpt
+      excerpt: input.excerpt,
+      // Cycle dates are stored as UTC midnight date keys.
+      finalCutDueLabel: extensions > 0 ? null : cycle?.finalCutDate?.toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+        timeZone: "UTC"
+      })
     })
   });
 }

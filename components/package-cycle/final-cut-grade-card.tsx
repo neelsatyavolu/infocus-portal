@@ -213,17 +213,23 @@ function MemberRow({
   );
 }
 
+function Stat({ label, value, detail }: { label: string; value: string; detail: string }) {
+  return (
+    <div className="min-w-0 px-3 py-2">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</div>
+      <div className="mt-0.5 text-sm text-foreground">{value}</div>
+      <div className="text-[11px] text-muted-foreground">{detail}</div>
+    </div>
+  );
+}
+
 export function FinalCutGradeCard({
   grade,
   onSave,
-  queued,
-  onQueue,
   message
 }: {
   grade: FinalCutGradeCardData;
   onSave: (scores: FinalCutScoreInput[]) => Promise<void>;
-  queued: boolean;
-  onQueue: () => void;
   message?: string | null;
 }) {
   const timing = lateStatus(grade);
@@ -256,7 +262,7 @@ export function FinalCutGradeCard({
   }
 
   return (
-    <section className="space-y-5 rounded-xl border border-border bg-card p-4">
+    <section className="space-y-4 rounded-xl border border-border bg-card p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="text-sm font-semibold text-foreground">Member grades / 50</h3>
@@ -265,61 +271,55 @@ export function FinalCutGradeCard({
             official grade is the average of those totals, then any revision cap and late deduction.
           </p>
         </div>
-        <span className={cn("status-pill status-pill-sm", `status-${timing.tone}`)}>{timing.label}</span>
+        <span className={cn("status-pill status-pill-sm", `status-${timing.tone}`)} title={timing.detail}>
+          {timing.label}
+        </span>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-lg border border-border/70 bg-black/25 light:bg-muted px-3 py-2">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Deadline</div>
-          <div className="mt-1 text-sm text-foreground">{formatDay(grade.deadlineAt)}</div>
-          {grade.extensionDays > 0 ? (
-            <div className="mt-0.5 text-[11px] text-muted-foreground">Includes +{grade.extensionDays} extension days</div>
-          ) : (
-            <div className="mt-0.5 text-[11px] text-muted-foreground">No extension</div>
-          )}
-        </div>
-        <div className="rounded-lg border border-border/70 bg-black/25 light:bg-muted px-3 py-2">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Submitted</div>
-          <div className="mt-1 text-sm text-foreground">{formatDay(grade.turnedInAt)}</div>
-          <div className="mt-0.5 text-[11px] text-muted-foreground">
-            {grade.daysLate > 0 ? `${grade.daysLate} day${grade.daysLate === 1 ? "" : "s"} late` : "On or before deadline"}
-          </div>
-        </div>
-        <div className="rounded-lg border border-border/70 bg-black/25 light:bg-muted px-3 py-2">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Deduction</div>
-          <div className="mt-1 text-sm text-foreground">
-            {grade.penaltyMultiplier > 0 ? `−${Math.round(grade.penaltyMultiplier * 100)}% late` : "None"}
-          </div>
-          <div className="mt-0.5 text-[11px] text-muted-foreground">
-            {grade.blocksSecondRevision
+      <div className="grid grid-cols-1 divide-y divide-border/60 rounded-lg border border-border/70 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+        <Stat
+          label="Deadline"
+          value={formatDay(grade.deadlineAt)}
+          detail={grade.extensionDays > 0 ? `Includes +${grade.extensionDays} extension days` : "No extension"}
+        />
+        <Stat
+          label="Submitted"
+          value={formatDay(grade.turnedInAt)}
+          detail={grade.daysLate > 0 ? `${grade.daysLate} day${grade.daysLate === 1 ? "" : "s"} late` : "On or before deadline"}
+        />
+        <Stat
+          label="Deduction"
+          value={grade.penaltyMultiplier > 0 ? `−${Math.round(grade.penaltyMultiplier * 100)}% late` : "None"}
+          detail={
+            grade.blocksSecondRevision
               ? "30% cannot be repaired"
               : grade.penaltyMultiplier > 0
                 ? "Taken off the official grade"
                 : grade.secondRevisionEligible
                   ? "Second revision still allowed"
-                  : "No late deduction"}
-          </div>
-        </div>
+                  : "No late deduction"
+          }
+        />
       </div>
-      <p className="text-sm text-muted-foreground">{timing.detail}</p>
+      {grade.daysLate > 0 ? <p className="text-sm text-muted-foreground">{timing.detail}</p> : null}
 
-      <div className="space-y-2">
-        <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Members</div>
-        {grade.members.length === 0 ? (
-          <p className="text-sm text-muted-foreground">This package has no members.</p>
-        ) : (
-          <ul className="divide-y divide-border/60 overflow-hidden rounded-lg border border-border/70">
-            {grade.members.map((member) => (
-              <MemberRow
-                key={member.userId}
-                member={member}
-                canGrade={grade.canGrade}
-                draft={draft[member.userId] ?? { quality: "", effort: "" }}
-                onDraftChange={(next) => setDraft((current) => ({ ...current, [member.userId]: next }))}
-              />
-            ))}
-          </ul>
-        )}
+      {grade.members.length === 0 ? (
+        <p className="text-sm text-muted-foreground">This package has no members.</p>
+      ) : (
+        <ul className="divide-y divide-border/60 overflow-hidden rounded-lg border border-border/70">
+          {grade.members.map((member) => (
+            <MemberRow
+              key={member.userId}
+              member={member}
+              canGrade={grade.canGrade}
+              draft={draft[member.userId] ?? { quality: "", effort: "" }}
+              onDraftChange={(next) => setDraft((current) => ({ ...current, [member.userId]: next }))}
+            />
+          ))}
+        </ul>
+      )}
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
         {grade.canGrade && scoringMembers > 0 ? (
           <div className="flex flex-wrap items-center gap-2">
             <Button type="button" size="sm" disabled={saving} onClick={() => void save()}>
@@ -327,20 +327,15 @@ export function FinalCutGradeCard({
             </Button>
             {error ? <span className="text-xs text-danger">{error}</span> : null}
           </div>
-        ) : null}
-        {!grade.canGrade ? (
+        ) : !grade.canGrade ? (
           <p className="text-xs text-muted-foreground">Only executive producers enter scores.</p>
-        ) : null}
-      </div>
-
-      <div className="space-y-2">
-        <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-          Executive producers
-        </div>
-        {grade.graders.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No executive producers are assigned yet.</p>
         ) : (
-          <ul className="flex flex-wrap gap-2">
+          <span />
+        )}
+        {grade.graders.length === 0 ? (
+          <p className="text-xs text-muted-foreground">No executive producers are assigned yet.</p>
+        ) : (
+          <ul className="flex flex-wrap justify-end gap-1.5" aria-label="Executive producer progress">
             {grade.graders.map((grader) => {
               const done = scoringMembers > 0 && grader.scoredCount >= scoringMembers;
               return (
@@ -361,13 +356,6 @@ export function FinalCutGradeCard({
       </div>
 
       {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
-
-      <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
-        <Button type="button" variant="secondary" onClick={onQueue} className={cn(queued && "border-[var(--brand-green)]/40")}>
-          {queued ? "Remove from queue" : "Send to queue"}
-        </Button>
-        {queued ? <span className="status-pill status-pill-sm status-approved">Queued</span> : null}
-      </div>
     </section>
   );
 }

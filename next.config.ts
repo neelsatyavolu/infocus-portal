@@ -11,7 +11,8 @@ const nextConfig: NextConfig = {
       "./docs/NAS-STORAGE.md",
       "./docs/SUBDOMAINS.md"
     ],
-    "/api/live/thumbnail": ["./public/live/infocus-wordmark-white.png", "./public/live/infocus-icon.png"]
+    "/api/live/thumbnail": ["./public/live/infocus-wordmark-white.png", "./public/live/infocus-icon.png"],
+    "/api/package-cycle/package-of-cycle/certificate": ["./public/favicon/infocus-wordmark-light.png"]
   },
   images: {
     remotePatterns: [

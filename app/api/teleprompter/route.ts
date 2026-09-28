@@ -12,6 +12,7 @@ import {
   getNextShowDate
 } from "@/src/lib/teleprompter-template";
 import { loadA2Bulletin, type BulletinAutofill } from "@/src/server/teleprompter-bulletin";
+import { syncTeleprompterPackageTosses } from "@/src/server/teleprompter-packages";
 import {
   backfillLegacyTeleprompterDocs,
   requireTeleprompterActor,
@@ -176,6 +177,7 @@ export async function GET(request: Request) {
     });
 
     await syncTeleprompterAnchorNames({ workspaceId: selectedWorkspace.id });
+    await syncTeleprompterPackageTosses({ workspaceId: selectedWorkspace.id, showDate: nextShowDate });
 
     const docs = await prisma.teleprompterDoc.findMany({
       where: {

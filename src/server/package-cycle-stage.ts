@@ -44,6 +44,8 @@ import { resolvePlaybackUrl, resolveThumbnailUrl } from "@/src/lib/media-playbac
 import { buildCycleStageNasPath, isNasStorageEnabled, nasMintUploadSession } from "@/src/lib/nas-storage";
 import { parseClipComment } from "@/src/lib/package-clip-comments";
 import { finalCutHeadline } from "@/src/lib/package-headline";
+import { normalizeToss } from "@/src/lib/package-toss";
+import { loadPackageOfCyclePanel } from "@/src/server/package-of-cycle";
 import { isRollKind, parseRollTitle, rollKindFolder, titledWithRollKind, type RollKind } from "@/src/lib/package-roll-kind";
 import { prisma } from "@/src/lib/prisma";
 import { labeledUser, userDisplayName } from "@/src/lib/user-display";
@@ -666,6 +668,11 @@ export async function loadCycleStageView(input: {
         })
       : null;
 
+  const packageOfCycle =
+    input.slug === "final-cut" && isProducer && row.finalCutMediaItemId
+      ? await loadPackageOfCyclePanel({ rowId: row.id, userId: input.userId, role: input.role })
+      : null;
+
   const cutApproval = isProducer && input.slug === "initial-cut"
     ? await loadApprovalView(row.id, {
         userId: input.userId, role: input.role,
@@ -686,11 +693,15 @@ export async function loadCycleStageView(input: {
     canApproveAroll: isProducer && input.slug === "a-roll" && !row.aRollBRoll,
     canGradeFinalCut: canGradeFinalCut(input.role),
     finalCutGrade,
+    packageOfCycle,
+    canEditToss: input.slug === "final-cut" && Boolean(row.finalCutMediaItemId) && (isMember || isProducer),
     row: {
       id: row.id,
       cycleNumber: row.cycleNumber,
       groupTopic: row.groupTopic,
       headline: finalCutHeadline(row.finalCutMediaItem),
+      toss: row.finalCutToss,
+      packageOfCycleAt: row.packageOfCycleAt?.toISOString() ?? null,
       proofOfContact: row.proofOfContact,
       aRollBRoll: row.aRollBRoll,
       aRollNeedsChanges,
@@ -901,6 +912,8 @@ export async function completeCycleStageUpload(input: {
   slug: CycleStageSlug;
   mediaId: string;
   versionId: string;
+  /** Final Cut only: the anchor toss, saved once the upload finishes. */
+  toss?: string;
 }) {
   const version = await prisma.mediaVersion.findFirst({
     where: { id: input.versionId, mediaItemId: input.mediaId }
@@ -945,7 +958,11 @@ export async function completeCycleStageUpload(input: {
     const replacing = Boolean(row.finalCutMediaItemId);
     await prisma.packageProgressRow.update({
       where: { id: row.id },
-      data: { finalCutMediaItemId: input.mediaId, finalCut: true }
+      data: {
+        finalCutMediaItemId: input.mediaId,
+        finalCut: true,
+        ...(input.toss !== undefined ? { finalCutToss: normalizeToss(input.toss) } : {})
+      }
     });
     if (replacing) {
       await prisma.packageFinalCutScore.deleteMany({ where: { rowId: row.id } });

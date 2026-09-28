@@ -14,3 +14,5 @@ First sign-in: set a nickname (the name Portal shows) and notification channels.
 - Mac app notification permission (desktop wrapper).
 
 Package stage events also email and push the people who need to act (students vs assigned producer vs adviser vs EPs).
+
+**Review reminders**: if an Initial Cut stage sits unreviewed for 12 hours, its reviewers get an email and push: the assigned associate producer for Stage 1, the adviser for Stage 2, and every executive producer who hasn't approved yet for Stage 3. The reminder repeats every 12 hours until the stage is reviewed. The clock starts at the latest upload or the previous stage's approval. Packages sent back for revisions (waiting on the students) are skipped, and only the active and later cycles are checked. An hourly Inngest job sends them.

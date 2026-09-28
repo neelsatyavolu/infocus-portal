@@ -3,17 +3,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Loader2, MessageSquare, Play, RefreshCcw, Upload } from "lucide-react";
+import { ArrowRight, Loader2, MessageSquare, Play, RefreshCcw, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { CycleGradeReleaseCard } from "@/components/package-cycle/cycle-grade-release-card";
-import {
-  FinalCutGradeCard,
-  type FinalCutGradeCardData,
-  type FinalCutScoreInput
-} from "@/components/package-cycle/final-cut-grade-card";
+import type { FinalCutGradeCardData, FinalCutScoreInput } from "@/components/package-cycle/final-cut-grade-card";
 import { FinalCutHeadlineDialog } from "@/components/package-cycle/final-cut-headline-dialog";
+import { FinalCutProducerView } from "@/components/package-cycle/final-cut-producer-view";
+import { FinalCutShowCard } from "@/components/package-cycle/final-cut-show-card";
+import {
+  PackageOfCycleBanner,
+  type PackageOfCyclePanelData
+} from "@/components/package-cycle/package-of-cycle-card";
 import { ApproveFeedbackDialog } from "@/components/package-cycle/approve-feedback-dialog";
 import ProducerFeedbackDialog from "@/components/package-cycle/producer-feedback-dialog";
 import { StageComments } from "@/components/package-cycle/stage-comments";
@@ -70,11 +71,16 @@ type StageView = {
   cutApproval?: { canAct: boolean; canUnapprove: boolean; canApproveAnyway?: boolean; stage: string } | null;
   canGradeFinalCut?: boolean;
   finalCutGrade?: FinalCutGradePanel | null;
+  packageOfCycle?: PackageOfCyclePanelData | null;
+  canEditToss?: boolean;
   row?: {
     id: string;
     cycleNumber: number;
     groupTopic: string;
     headline?: string | null;
+    toss?: string;
+    packageOfCycleAt?: string | null;
+    finalCut?: boolean;
     proofOfContact: boolean;
     aRollBRoll: boolean;
     aRollNeedsChanges?: boolean;
@@ -129,6 +135,8 @@ export function StageWorkspace({
   const [publishingGrades, setPublishingGrades] = useState(false);
   const [pickRollOpen, setPickRollOpen] = useState(false);
   const [headlineOpen, setHeadlineOpen] = useState(false);
+  const [tossOpen, setTossOpen] = useState(false);
+  const [savingToss, setSavingToss] = useState(false);
   const [approveKind, setApproveKind] = useState<"aroll" | "cut" | null>(null);
   const [approving, setApproving] = useState(false);
   const [watching, setWatching] = useState<MediaCard | null>(null);
@@ -136,6 +144,7 @@ export function StageWorkspace({
   const fileInput = useRef<HTMLInputElement | null>(null);
   const pendingRollKind = useRef<RollKind | null>(null);
   const pendingHeadline = useRef("");
+  const pendingToss = useRef("");
   const speedTrackingRef = useRef(createUploadSpeedTracker());
   const progressFloorRef = useRef(0);
 
@@ -185,7 +194,8 @@ export function StageWorkspace({
               ? pendingHeadline.current
               : file.name.replace(/\.[^/.]+$/, "") || TITLES[slug],
         fileName: file.name,
-        rollKind: pendingRollKind.current ?? undefined
+        rollKind: pendingRollKind.current ?? undefined,
+        toss: slug === "final-cut" ? pendingToss.current : undefined
       })
     });
     const initBody = (await init.json()) as {
@@ -221,7 +231,8 @@ export function StageWorkspace({
         rowId: view.row.id,
         stage: slug,
         mediaId: initBody.data.mediaId,
-        versionId: initBody.data.versionId
+        versionId: initBody.data.versionId,
+        toss: slug === "final-cut" ? pendingToss.current : undefined
       })
     });
     if (!complete.ok) {
@@ -377,6 +388,28 @@ export function StageWorkspace({
     await load();
   }
 
+  async function saveToss(toss: string) {
+    if (!view?.row) return;
+    setSavingToss(true);
+    try {
+      const response = await fetch("/api/package-cycle/toss", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rowId: view.row.id, toss })
+      });
+      const body = (await response.json().catch(() => ({}))) as { error?: { message?: string } };
+      if (!response.ok) {
+        toast.error(body.error?.message ?? "Could not save the toss.");
+        return;
+      }
+      setTossOpen(false);
+      toast.success("Toss saved.");
+      await load({ quiet: true });
+    } finally {
+      setSavingToss(false);
+    }
+  }
+
   async function queue(queued: boolean) {
     if (!view?.row) return;
     const response = await fetch("/api/package-cycle/queue", {
@@ -390,7 +423,8 @@ export function StageWorkspace({
       return;
     }
     toast.success(queued ? "Sent to publishing queue." : "Removed from queue.");
-    await load();
+    // Quiet reload keeps any scores an executive producer has typed but not saved.
+    await load({ quiet: true });
   }
 
   async function saveCycleFeedback(feedback: string) {
@@ -456,6 +490,8 @@ export function StageWorkspace({
   }
 
   const confirmFinal = slug === "final-cut";
+  const finalCutProducer = producerChrome && slug === "final-cut";
+  const finalCutStudent = slug === "final-cut" && !producerChrome;
   const mediaCount = (view.media ?? []).length;
   const remainingExecs = view.row?.remainingExecutiveSignoffs;
   const effectiveReviewStage = reviewStage ?? approvalStageToReviewStage(view.row?.approvalStage);
@@ -528,6 +564,120 @@ export function StageWorkspace({
     </div>
   );
 
+  const mediaGrid = (
+    <div
+      className={cn(
+        "grid gap-3",
+        slug === "a-roll"
+          ? "grid-cols-2 md:grid-cols-3 xl:grid-cols-4"
+          : finalCutProducer
+            ? "grid-cols-1"
+            : "grid-cols-1 sm:grid-cols-2"
+      )}
+    >
+      {visibleMedia.map((item) => {
+        const reviewPath = item.projectId ? `/projects/${item.projectId}/review/${item.id}` : null;
+        const isNew = slug === "a-roll" && view.isProducer && item.isNew;
+        const reviewHref = reviewPath ? `${reviewPath}?bare=1` : null;
+        const cutStatus = cutTileReviewStatus({
+          approvalStatus: item.approvalStatus,
+          reviewStage: effectiveReviewStage,
+          approvedInStage: item.approvedInStage,
+          remainingExecutiveSignoffs: remainingExecs
+        });
+        const tile = (
+          <>
+            <div className="relative aspect-video w-full overflow-hidden bg-muted">
+              {item.thumbnailUrl ? (
+                <Image
+                  src={item.thumbnailUrl}
+                  alt=""
+                  fill
+                  unoptimized
+                  className="object-cover"
+                  sizes="(max-width: 768px) 50vw, 25vw"
+                />
+              ) : (
+                <div className="grid h-full w-full place-items-center text-muted-foreground">
+                  <Play className="h-8 w-8" />
+                </div>
+              )}
+              {item.rollKind ? (
+                <span className="absolute left-2 top-2 rounded-md bg-black/70 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.11em] text-soft-white">
+                  {rollKindLabel(item.rollKind)}
+                </span>
+              ) : null}
+              {item.commentCount > 0 ? (
+                <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-md bg-black/70 px-1.5 py-0.5 text-[10px] text-soft-white">
+                  <MessageSquare className="h-3 w-3" />
+                  {item.commentCount}
+                </span>
+              ) : null}
+              {isNew ? (
+                <span
+                  className="absolute bottom-2 left-2 rounded-md bg-amber-300 px-2 py-0.5 text-[11px] font-semibold tracking-[0.11em] text-black light:text-soft-white"
+                  title="Uploaded after the latest revision request"
+                >
+                  NEW
+                </span>
+              ) : null}
+            </div>
+            <div className="space-y-2 px-3 py-2">
+              <div className="space-y-1">
+                <div className="line-clamp-2 text-sm font-medium text-foreground">{item.title}</div>
+                {slug === "initial-cut" || slug === "final-cut" ? (
+                  <span className={cn("status-pill status-pill-sm", groupTileStatusClass(cutStatus.tone))}>
+                    {cutStatus.label}
+                  </span>
+                ) : slug === "a-roll" && view.row?.aRollNeedsChanges ? (
+                  <span className="status-pill status-pill-sm status-danger">Needs Changes</span>
+                ) : (
+                  <div className="text-[11px] text-muted-foreground">{item.status}</div>
+                )}
+              </div>
+              {slug === "initial-cut" && reviewHref ? (
+                <Link
+                  href={reviewHref as never}
+                  className={cn(buttonVariants({ variant: "secondary", size: "sm" }), "w-full")}
+                >
+                  Review
+                </Link>
+              ) : null}
+            </div>
+          </>
+        );
+        const className = cn(
+          "overflow-hidden rounded-xl border bg-card text-left",
+          isNew ? "border-amber-300/70 ring-1 ring-amber-300/30 hover:border-amber-300" : "border-border hover:border-foreground/20"
+        );
+        const cardKey = item.versionId ?? item.id;
+        if (slug === "a-roll") {
+          return (
+            <button key={cardKey} type="button" className={className} onClick={() => setWatching(item)}>
+              {tile}
+            </button>
+          );
+        }
+        if (slug === "initial-cut") {
+          return (
+            <div key={cardKey} className={className}>
+              {tile}
+            </div>
+          );
+        }
+        return reviewPath ? (
+          <Link key={cardKey} href={reviewPath as never} className={className}>
+            {tile}
+          </Link>
+        ) : (
+          <div key={cardKey} className={className}>
+            {tile}
+          </div>
+        );
+      })}
+    </div>
+  );
+
   return (
     <div className="space-y-5">
       {embedded ? (
@@ -559,11 +709,30 @@ export function StageWorkspace({
         </div>
       )}
 
-      {slug === "final-cut" && view.row?.headline ? (
-        <div className="rounded-xl border border-border bg-card p-4">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Headline</div>
-          <p className="mt-1 text-base font-medium text-foreground">{view.row.headline}</p>
-        </div>
+      {slug === "initial-cut" && !view.isProducer && view.row?.approvalStage === "APPROVED" && !view.row.finalCut ? (
+        <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--brand-green)]/50 bg-card p-4">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Approved for Final Cut</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Next, upload your Final Cut with a headline and a toss for the anchors.
+            </p>
+          </div>
+          <Link href="/final-cut" className={buttonVariants({ size: "sm" })}>
+            Upload Final Cut
+            <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+          </Link>
+        </section>
+      ) : null}
+
+      {finalCutStudent && view.row?.packageOfCycleAt ? <PackageOfCycleBanner rowId={view.row.id} /> : null}
+
+      {finalCutStudent && view.row ? (
+        <FinalCutShowCard
+          headline={view.row.headline ?? null}
+          toss={view.row.toss ?? ""}
+          canEdit={Boolean(view.canEditToss)}
+          onEdit={() => setTossOpen(true)}
+        />
       ) : null}
 
       {view.canUpload ? (
@@ -630,134 +799,43 @@ export function StageWorkspace({
         </div>
       ) : null}
 
-      <div
-        className={cn(
-          "grid gap-3",
-          slug === "a-roll"
-            ? "grid-cols-2 md:grid-cols-3 xl:grid-cols-4"
-            : producerChrome && slug === "final-cut"
-              ? "grid-cols-1 lg:grid-cols-[minmax(0,1.35fr)_minmax(17rem,0.85fr)]"
-              : "grid-cols-1 sm:grid-cols-2"
-        )}
-      >
-        {visibleMedia.map((item) => {
-          const reviewPath = item.projectId ? `/projects/${item.projectId}/review/${item.id}` : null;
-          const isNew = slug === "a-roll" && view.isProducer && item.isNew;
-          const reviewHref = reviewPath ? `${reviewPath}?bare=1` : null;
-          const cutStatus = cutTileReviewStatus({
-            approvalStatus: item.approvalStatus,
-            reviewStage: effectiveReviewStage,
-            approvedInStage: item.approvedInStage,
-            remainingExecutiveSignoffs: remainingExecs
-          });
-          const tile = (
-            <>
-              <div className="relative aspect-video w-full overflow-hidden bg-muted">
-                {item.thumbnailUrl ? (
-                  <Image
-                    src={item.thumbnailUrl}
-                    alt=""
-                    fill
-                    unoptimized
-                    className="object-cover"
-                    sizes="(max-width: 768px) 50vw, 25vw"
-                  />
-                ) : (
-                  <div className="grid h-full w-full place-items-center text-muted-foreground">
-                    <Play className="h-8 w-8" />
-                  </div>
-                )}
-                {item.rollKind ? (
-                  <span className="absolute left-2 top-2 rounded-md bg-black/70 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.11em] text-soft-white">
-                    {rollKindLabel(item.rollKind)}
-                  </span>
-                ) : null}
-                {item.commentCount > 0 ? (
-                  <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-md bg-black/70 px-1.5 py-0.5 text-[10px] text-soft-white">
-                    <MessageSquare className="h-3 w-3" />
-                    {item.commentCount}
-                  </span>
-                ) : null}
-                {isNew ? (
-                  <span
-                    className="absolute bottom-2 left-2 rounded-md bg-amber-300 px-2 py-0.5 text-[11px] font-semibold tracking-[0.11em] text-black light:text-soft-white"
-                    title="Uploaded after the latest revision request"
-                  >
-                    NEW
-                  </span>
-                ) : null}
-              </div>
-              <div className="space-y-2 px-3 py-2">
-                <div className="space-y-1">
-                  <div className="line-clamp-2 text-sm font-medium text-foreground">{item.title}</div>
-                  {slug === "initial-cut" || slug === "final-cut" ? (
-                    <span className={cn("status-pill status-pill-sm", groupTileStatusClass(cutStatus.tone))}>
-                      {cutStatus.label}
-                    </span>
-                  ) : slug === "a-roll" && view.row?.aRollNeedsChanges ? (
-                    <span className="status-pill status-pill-sm status-danger">Needs Changes</span>
-                  ) : (
-                    <div className="text-[11px] text-muted-foreground">{item.status}</div>
-                  )}
-                </div>
-                {slug === "initial-cut" && reviewHref ? (
-                  <Link
-                    href={reviewHref as never}
-                    className={cn(buttonVariants({ variant: "secondary", size: "sm" }), "w-full")}
-                  >
-                    Review
-                  </Link>
-                ) : null}
-              </div>
-            </>
-          );
-          const className = cn(
-            "overflow-hidden rounded-xl border bg-card text-left",
-            isNew ? "border-amber-300/70 ring-1 ring-amber-300/30 hover:border-amber-300" : "border-border hover:border-foreground/20"
-          );
-          const cardKey = item.versionId ?? item.id;
-          if (slug === "a-roll") {
-            return (
-              <button key={cardKey} type="button" className={className} onClick={() => setWatching(item)}>
-                {tile}
-              </button>
-            );
+      {finalCutProducer && view.row ? (
+        <FinalCutProducerView
+          rowId={view.row.id}
+          media={
+            mediaItems.length > 0 ? (
+              mediaGrid
+            ) : (
+              <p className="text-sm text-muted-foreground">No Final Cut uploaded yet.</p>
+            )
           }
-          if (slug === "initial-cut") {
-            return (
-              <div key={cardKey} className={className}>
-                {tile}
-              </div>
-            );
-          }
-          return reviewPath ? (
-            <Link key={cardKey} href={reviewPath as never} className={className}>
-              {tile}
-            </Link>
-          ) : (
-            <div key={cardKey} className={className}>
-              {tile}
-            </div>
-          );
-        })}
-        {producerChrome && slug === "final-cut" && view.finalCutGrade ? (
-          <CycleGradeReleaseCard
-            feedback={view.finalCutGrade.feedback}
-            published={view.finalCutGrade.published}
-            publishedAt={view.finalCutGrade.publishedAt}
-            saving={savingFeedback}
-            publishing={publishingGrades}
-            onSave={(next) => void saveCycleFeedback(next)}
-            onPublish={(next) => void publishCycleGrades(next)}
-          />
-        ) : null}
-      </div>
+          hasFinalCut={mediaItems.length > 0}
+          headline={view.row.headline ?? null}
+          toss={view.row.toss ?? ""}
+          canEditToss={Boolean(view.canEditToss)}
+          onEditToss={() => setTossOpen(true)}
+          queued={Boolean(view.row.queuedForAirAt)}
+          onQueue={() => void queue(!view.row?.queuedForAirAt)}
+          packageOfCycle={view.packageOfCycle ?? null}
+          members={view.row.members}
+          onReload={() => void load({ quiet: true })}
+          grade={view.finalCutGrade ?? null}
+          onSaveGrade={saveGrade}
+          gradeMessage={gradePreview}
+          savingFeedback={savingFeedback}
+          publishingGrades={publishingGrades}
+          onSaveFeedback={(next) => void saveCycleFeedback(next)}
+          onPublishGrades={(next) => void publishCycleGrades(next)}
+        />
+      ) : (
+        mediaGrid
+      )}
       {olderCount > 0 ? (
         <Button type="button" variant="secondary" onClick={() => setShowOlderCuts((open) => !open)}>
           {showOlderCuts ? "Hide older versions" : `See older versions (${olderCount})`}
         </Button>
       ) : null}
-      {mediaItems.length === 0 ? (
+      {mediaItems.length === 0 && !finalCutProducer ? (
         <p className="text-sm text-muted-foreground">
           {reviewStage === 2
             ? "No Stage 2 cut yet. Approve Stage 1 first."
@@ -795,13 +873,25 @@ export function StageWorkspace({
       <FinalCutHeadlineDialog
         open={headlineOpen}
         initialHeadline={view.row?.headline ?? ""}
+        initialToss={view.row?.toss ?? ""}
         onOpenChange={setHeadlineOpen}
-        onContinue={(headline) => {
+        onContinue={({ headline, toss }) => {
           pendingHeadline.current = headline;
+          pendingToss.current = toss;
           pendingRollKind.current = null;
           setHeadlineOpen(false);
           window.setTimeout(() => fileInput.current?.click(), 0);
         }}
+      />
+
+      <FinalCutHeadlineDialog
+        open={tossOpen}
+        mode="toss"
+        initialHeadline=""
+        initialToss={view.row?.toss ?? ""}
+        saving={savingToss}
+        onOpenChange={setTossOpen}
+        onContinue={({ toss }) => void saveToss(toss)}
       />
 
       <Dialog
@@ -843,18 +933,6 @@ export function StageWorkspace({
           ) : null}
         </DialogContent>
       </Dialog>
-
-      {producerChrome && slug === "final-cut" && view.finalCutGrade ? (
-        <FinalCutGradeCard
-          grade={view.finalCutGrade}
-          onSave={saveGrade}
-          queued={Boolean(view.row?.queuedForAirAt)}
-          onQueue={() => void queue(!view.row?.queuedForAirAt)}
-          message={gradePreview}
-        />
-      ) : producerChrome && slug === "final-cut" ? (
-        <p className="text-sm text-muted-foreground">Final Cut scoring is not available yet.</p>
-      ) : null}
 
       {producerChrome && slug === "initial-cut" && view.row ? (
         <div className="space-y-2">

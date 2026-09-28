@@ -9,6 +9,7 @@ import {
   checkInApprovedMail,
   commentExcerpt,
   commentMail,
+  finalCutUploadedMail,
   producerStagePath,
   studentStagePath
 } from "@/src/lib/package-stage-events";
@@ -91,6 +92,14 @@ describe("stage notification copy", () => {
     expect(aRollDailyNoticeVersionId(new Date("2026-08-25T07:00:00.000Z"))).toBe("a-roll:2026-08-25");
   });
 
+  it("asks executive producers to grade a new Final Cut", () => {
+    const mail = finalCutUploadedMail({ cycleNumber: 2, topic: "Airport Day", members: "Abby, Otto" });
+    expect(mail.heading).toBe("Final Cut ready to grade");
+    expect(mail.paragraphs.join(" ")).toMatch(/enter your quality and effort scores/i);
+    expect(mail.ctaLabel).toBe("Grade Final Cut");
+    expect(mail.pushTitle).toBe("Final Cut ready to grade");
+  });
+
   it("covers approval chain student notices", () => {
     expect(approvalDecisionMail({ cycleNumber: 1, topic: "Lee-Patel", kind: "stage-1", reviewerName: "AP" }).heading).toBe(
       "Stage 1 approved"
@@ -99,8 +108,20 @@ describe("stage notification copy", () => {
       /Stage 3/
     );
     expect(approvalDecisionMail({ cycleNumber: 1, topic: "Lee-Patel", kind: "approved", reviewerName: "EP" }).ctaLabel).toBe(
-      "Open Final Cut"
+      "Upload Final Cut"
     );
+    const approved = approvalDecisionMail({
+      cycleNumber: 1,
+      topic: "Lee-Patel",
+      kind: "approved",
+      reviewerName: "EP",
+      finalCutDueLabel: "Friday, October 9"
+    });
+    expect(approved.paragraphs.join(" ")).toMatch(/Reminder: upload your Final Cut by Friday, October 9/);
+    expect(approved.paragraphs.join(" ")).toMatch(/toss/);
+    expect(
+      approvalDecisionMail({ cycleNumber: 1, topic: "Lee-Patel", kind: "approved", reviewerName: "EP" }).paragraphs.join(" ")
+    ).toMatch(/Reminder: upload your Final Cut\./);
     expect(approvalDecisionMail({ cycleNumber: 1, topic: "Lee-Patel", kind: "sent-back", reviewerName: "EP" }).subject).toMatch(
       /sent back/
     );

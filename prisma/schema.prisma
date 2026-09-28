@@ -148,6 +148,7 @@ model User {
   packageProofUploads     PackageProofOfContact[] @relation("PackageProofUploader")
   packageFinalCutScores   PackageFinalCutScore[] @relation("PackageFinalCutGrader")
   packageFinalCutScoresReceived PackageFinalCutScore[] @relation("PackageFinalCutMember")
+  packageOfCycleVotes     PackageOfCycleVote[]
   packageStageComments    PackageStageComment[] @relation("PackageStageCommentAuthor")
   packageStageCommentReads PackageStageCommentRead[] @relation("PackageStageCommentReader")
   memberProducerNotes     MemberProducerNote[]
@@ -800,6 +801,10 @@ model PackageProgressRow {
   queuedForAirAt DateTime?
   /// YYYY-MM-DD show this queued package is assigned to. Null when not queued.
   queuedForShowDate String?
+  /// Anchor toss the group writes with its Final Cut. Feeds the show teleprompter.
+  finalCutToss   String   @default("")
+  /// Set once every Final Cut grader votes for this package. At most 2 per cycle.
+  packageOfCycleAt DateTime?
   youtubePublication YoutubePublication?
   /// Brainstorm Google Doc for this package (script lives in the same doc later).
   brainstormDocUrl String @default("")
@@ -824,6 +829,7 @@ model PackageProgressRow {
   stageMedia          PackageStageMedia[]
   reviewNotices       PackageReviewNotice[]
   finalCutScores      PackageFinalCutScore[]
+  packageOfCycleVotes PackageOfCycleVote[]
   stageComments       PackageStageComment[]
   stageCommentReads   PackageStageCommentRead[]
   hubChats            HubChat[]
@@ -934,6 +940,19 @@ model PackageFinalCutScore {
   @@index([rowId])
   @@index([graderUserId])
   @@index([memberUserId])
+}
+
+/// One Final Cut grader's vote for Package of the Cycle.
+model PackageOfCycleVote {
+  id          String             @id @default(cuid())
+  rowId       String
+  voterUserId String
+  createdAt   DateTime           @default(now())
+  row         PackageProgressRow @relation(fields: [rowId], references: [id], onDelete: Cascade)
+  voter       User               @relation(fields: [voterUserId], references: [id], onDelete: Cascade)
+
+  @@unique([rowId, voterUserId])
+  @@index([voterUserId])
 }
 
 model PackageStageComment {

@@ -11,6 +11,7 @@ import { getPendingMasterCalendarSyncMonths, syncMasterCalendarMonth } from "@/s
 import { notifyManagersOfReadyVersion } from "@/src/server/notify-media-ready";
 import { discoverShowPublications, publishYoutubeShow } from "@/src/server/show-publishing-jobs";
 import { discoverYoutubePublications, publishYoutubePackage } from "@/src/server/youtube-publishing-jobs";
+import { runPackageReviewReminders } from "@/src/server/package-review-reminders";
 
 type BunnyWebhookEvent = {
   videoGuid?: string;
@@ -356,6 +357,19 @@ export const hubDbBackupHourly = inngest.createFunction(
   }
 );
 
+export const packageReviewRemindersHourly = inngest.createFunction(
+  {
+    id: "package-review-reminders-hourly",
+    concurrency: 1
+  },
+  {
+    cron: "0 * * * *"
+  },
+  async () => {
+    return runPackageReviewReminders();
+  }
+);
+
 export const inngestFunctions = [
   discoverYoutubePublications,
   publishYoutubePackage,
@@ -367,5 +381,6 @@ export const inngestFunctions = [
   autoSyncMasterCalendar,
   equipmentOverdueDaily,
   hubDbBackupHourly,
-  refreshAssociateFeedbackDaily
+  refreshAssociateFeedbackDaily,
+  packageReviewRemindersHourly
 ];

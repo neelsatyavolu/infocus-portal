@@ -9,6 +9,12 @@ Two different pages:
 
 Cycle count is set in Admin or Edit Cycles on `/package-cycles` (default 3, max 8).
 
+## Package of the Cycle
+
+Up to **2** packages per cycle can win Package of the Cycle. Executive producers vote on the Groups Final Cut tab, next to grading; a package wins only when **every** Final Cut grader (all executive producers plus super admin) has voted for it. Withdrawing a vote removes the award. Once two packages have won a cycle, no one can vote for a third.
+
+Winners are listed at the top of `/package-cycles` for everyone, newest cycle first. Each winning member can download their own certificate there (and from their Final Cut page); producers can download any winner's certificate.
+
 ## Semester split
 
 - Cycles **1–3** = semester 1

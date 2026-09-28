@@ -36,7 +36,7 @@ export function loadThumbnailAssets() {
 const fontCache = new Map<number, Promise<ArrayBuffer | null>>();
 
 /** Lexend from Google Fonts as TrueType (what next/og needs). Returns null if it can't be fetched. */
-function loadLexend(weight: number) {
+export function loadLexend(weight: number) {
   const cached = fontCache.get(weight);
   if (cached) return cached;
   const promise = (async () => {

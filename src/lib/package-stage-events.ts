@@ -90,15 +90,42 @@ export function reviewNeededMail(input: {
   };
 }
 
+export function reviewReminderMail(input: {
+  cycleNumber: number;
+  topic: string;
+  members: string;
+  stageLabel: string;
+  hoursWaiting: number;
+}): PackageMailContent {
+  const label = cycleTopic(input.cycleNumber, input.topic);
+  const waited = `${input.hoursWaiting} hours`;
+  return {
+    subject: `Reminder: Cycle ${input.cycleNumber} ${input.stageLabel} — ${untitledTopic(input.topic)}`,
+    heading: "Still waiting for your review",
+    paragraphs: [
+      `${label} has been waiting for ${input.stageLabel} for ${waited}.`,
+      input.members ? `Members: ${input.members}` : "",
+      "You'll get this reminder every 12 hours until the stage is reviewed."
+    ].filter(Boolean),
+    ctaLabel: "Review in Groups",
+    pushTitle: "Review reminder",
+    pushBody: `${label} has waited ${waited} for ${input.stageLabel}.`
+  };
+}
+
 export function finalCutUploadedMail(input: { cycleNumber: number; topic: string; members: string }): PackageMailContent {
   const label = cycleTopic(input.cycleNumber, input.topic);
   return {
-    subject: `Cycle ${input.cycleNumber}: Final Cut uploaded — ${untitledTopic(input.topic)}`,
-    heading: "Final Cut uploaded",
-    paragraphs: [`${label} uploaded a Final Cut.`, input.members ? `Members: ${input.members}` : "Open Groups to review."],
-    ctaLabel: "Open in Groups",
-    pushTitle: "Final Cut uploaded",
-    pushBody: `${label} uploaded a Final Cut.`
+    subject: `Cycle ${input.cycleNumber}: Final Cut ready to grade — ${untitledTopic(input.topic)}`,
+    heading: "Final Cut ready to grade",
+    paragraphs: [
+      `${label} uploaded a Final Cut.`,
+      input.members ? `Members: ${input.members}` : "",
+      "Executive producers: open the Final Cut tab in Groups and enter your quality and effort scores for each member."
+    ].filter(Boolean),
+    ctaLabel: "Grade Final Cut",
+    pushTitle: "Final Cut ready to grade",
+    pushBody: `${label} uploaded a Final Cut. Enter your grade.`
   };
 }
 
@@ -211,6 +238,8 @@ export function approvalDecisionMail(input: {
   kind: "stage-1" | "stage-2" | "approved" | "sent-back";
   reviewerName: string;
   excerpt?: string;
+  /** Approved only: when the Final Cut is due, e.g. "Friday, October 9". */
+  finalCutDueLabel?: string | null;
 }): PackageMailContent {
   const reviewer = input.reviewerName.trim() || "A producer";
   const label = cycleTopic(input.cycleNumber, input.topic);
@@ -264,11 +293,17 @@ export function approvalDecisionMail(input: {
     subject: `Cycle ${input.cycleNumber}: approved for Final Cut — ${topic}`,
     heading: "Approved for Final Cut",
     paragraphs: [
-      `${reviewer} completed Stage 3 for ${label}. You can upload your Final Cut.`,
-      excerpt
+      `${reviewer} completed Stage 3 for ${label}. Your package is approved for Final Cut.`,
+      excerpt,
+      input.finalCutDueLabel
+        ? `Reminder: upload your Final Cut by ${input.finalCutDueLabel}.`
+        : "Reminder: upload your Final Cut.",
+      "You'll add a one-line headline and a toss: the lines an anchor reads right before your package airs."
     ].filter((paragraph): paragraph is string => Boolean(paragraph)),
-    ctaLabel: "Open Final Cut",
+    ctaLabel: "Upload Final Cut",
     pushTitle: "Approved for Final Cut",
-    pushBody: excerpt ? `${reviewer}: ${excerpt}` : `${label} is approved. You can upload your Final Cut.`
+    pushBody: excerpt
+      ? `${reviewer}: ${excerpt}`
+      : `${label} is approved. Reminder: upload your Final Cut${input.finalCutDueLabel ? ` by ${input.finalCutDueLabel}` : ""}.`
   };
 }

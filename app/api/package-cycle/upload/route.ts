@@ -4,6 +4,7 @@ import { requireUserId, syncUserProfile } from "@/src/lib/auth";
 import { ok } from "@/src/lib/http";
 import { isCycleStageSlug } from "@/src/lib/package-cycle-gates";
 import { headlineError } from "@/src/lib/package-headline";
+import { tossError } from "@/src/lib/package-toss";
 import { isRollKind } from "@/src/lib/package-roll-kind";
 import { getPlatformAccess } from "@/src/lib/platform-admin";
 import { completeCycleStageUpload, initCycleStageUpload } from "@/src/server/package-cycle-stage";
@@ -14,15 +15,21 @@ const initSchema = z.object({
   stage: z.string(),
   title: z.string().trim().min(1).max(150),
   fileName: z.string().trim().min(1).max(255),
-  rollKind: z.string().optional()
+  rollKind: z.string().optional(),
+  toss: z.string().optional()
 });
+
+function requireFinalCutToss(stage: string, toss: string | undefined) {
+  if (stage === "final-cut" && tossError(toss ?? "")) throw new Error("BAD_REQUEST");
+}
 
 const completeSchema = z.object({
   action: z.literal("complete"),
   rowId: z.string().min(1),
   stage: z.string(),
   mediaId: z.string().min(1),
-  versionId: z.string().min(1)
+  versionId: z.string().min(1),
+  toss: z.string().optional()
 });
 
 export async function POST(request: Request) {
@@ -42,6 +49,7 @@ export async function POST(request: Request) {
       if (payload.stage === "final-cut" && headlineError(payload.title)) {
         throw new Error("BAD_REQUEST");
       }
+      requireFinalCutToss(payload.stage, payload.toss);
       const result = await initCycleStageUpload({
         userId,
         role: access.role,
@@ -58,13 +66,15 @@ export async function POST(request: Request) {
     if (!isCycleStageSlug(payload.stage)) {
       throw new Error("BAD_REQUEST");
     }
+    requireFinalCutToss(payload.stage, payload.toss);
     await completeCycleStageUpload({
       userId,
       role: access.role,
       rowId: payload.rowId,
       slug: payload.stage,
       mediaId: payload.mediaId,
-      versionId: payload.versionId
+      versionId: payload.versionId,
+      toss: payload.stage === "final-cut" ? payload.toss : undefined
     });
     return ok({ ok: true });
   } catch (error) {

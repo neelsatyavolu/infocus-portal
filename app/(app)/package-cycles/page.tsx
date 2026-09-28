@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CalendarClock, Edit3, RefreshCcw, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/src/lib/utils";
+import { PackageOfCycleWinners } from "./package-of-cycle-winners";
 
 type PackageCycle = {
   cycleNumber: number;
@@ -400,6 +401,8 @@ export default function PackageCyclesPage() {
           <p className="relative mt-3 rounded-lg border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">{message}</p>
         ) : null}
       </section>
+
+      <PackageOfCycleWinners />
 
       {loading ? (
         <section className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">

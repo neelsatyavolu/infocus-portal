@@ -10,6 +10,7 @@ import {
   ordinalDown,
   parseClockInput,
   periodLabel,
+  timeoutShowing,
   type ScoreboardAction,
   type ScoreboardState,
   type Sport,
@@ -49,7 +50,7 @@ export function TeamCard({ scoreboard, dispatch, now, team }: CardProps & { team
   const data = scoreboard.teams[team];
   const sport = scoreboard.sport;
   const side = team === 0 ? "Home" : "Away";
-  const timeoutTagOn = scoreboard.tags.some((tag) => tag.kind === "timeout" && tag.until > now && tag.text.endsWith(data.name || side.toUpperCase()));
+  const timeoutTagOn = timeoutShowing(scoreboard, team, now);
 
   return (
     <section className={card} aria-label={`${side} team`}>
@@ -117,13 +118,13 @@ export function TeamCard({ scoreboard, dispatch, now, team }: CardProps & { team
                 +
               </Button>
             </div>
-            <Button type="button" variant="outline" className="h-11" onClick={() => dispatch({ type: "timeout", team })} disabled={data.timeouts === 0}>
-              Call timeout
+            <Button type="button" variant="outline" className="h-11" onClick={() => dispatch({ type: "timeout", team })} disabled={data.timeouts === 0 && !timeoutTagOn}>
+              {timeoutTagOn ? "End timeout" : "Call timeout"}
             </Button>
           </>
         ) : (
           <Button type="button" variant="outline" className="h-11" onClick={() => dispatch({ type: "timeout", team })}>
-            {timeoutTagOn ? "Timeout showing…" : "Call timeout"}
+            {timeoutTagOn ? "End timeout" : "Call timeout"}
           </Button>
         )}
         {sport === "basketball" ? (

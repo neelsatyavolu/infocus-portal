@@ -31,7 +31,7 @@
 .lv-pips { display: flex; gap: 6px; }
 .lv-pips i { width: 22px; height: 6px; background: #3a403a; display: block; }
 .lv-pips i.on { background: #dce2de; }
-.lv-tag { font-weight: 500; font-size: 22px; letter-spacing: 0.11em; text-transform: uppercase; background: #0f110f; color: #ecefea; padding: 6px 12px; line-height: 1; white-space: nowrap; animation: lv-bump 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+.lv-tag { font-weight: 500; font-size: 22px; letter-spacing: 0.11em; text-transform: uppercase; background: #0f110f; color: #ecefea; padding: 6px 12px; line-height: 1; white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; animation: lv-bump 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
 
 /* Scorebug */
 .lv-bug { position: absolute; display: flex; flex-direction: column; }

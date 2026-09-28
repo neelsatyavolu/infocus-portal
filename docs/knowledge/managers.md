@@ -13,7 +13,7 @@ The header says which roles you hold (or that you're a producer). Each card list
 
 ## Instagram Post Maker (Managers → Social media)
 
-Makes on-brand Instagram stories (1080 × 1920 PNG) following `DESIGN.md` §12: square Ink plates with a green strip, Lexend, Soft White text, and text kept out of the top and bottom 250px that Instagram's buttons cover. **Show Instagram's UI zones** shades those areas.
+Makes on-brand Instagram stories (1080 × 1920 PNG) following `DESIGN.md` §12: square Ink plates with a green strip, Lexend, Soft White text, and text kept out of the top and bottom 250px that Instagram's buttons cover (the header nameplate starts a little higher, at y = 200). **Show Instagram's UI zones** shades those areas.
 
 Templates:
 

@@ -216,13 +216,16 @@ function FootballCenter({ state, now }: BugProps) {
   );
 }
 
-/** Volleyball: two-row rectangle with sets won and highlighted live points (FIVB VNL pattern). */
+/**
+ * Volleyball: two-row rectangle with sets won and highlighted live points (FIVB VNL pattern).
+ * The tile spans both rows and the green tier (144 + 40), like the other bugs and the lower third.
+ */
 function VolleyballRows({ state, now }: BugProps) {
   const setTag = activeTags(state, now, "set")[0];
   const layout = nameLayout(state, 620, 760, 312);
   return (
     <div className="lv-row">
-      <Tile size={144} />
+      <Tile size={184} />
       <div className="lv-col">
         <div className="lv-rows a-wipe" style={{ width: layout.cell }}>
           {([0, 1] as const).map((team) => {
@@ -246,15 +249,15 @@ function VolleyballRows({ state, now }: BugProps) {
             );
           })}
         </div>
-        <div className="lv-tier a-wipe" style={{ padding: "0 30px", "--d": "0.1s" } as CSSProperties}>
+        {/* The current set stays put; the last set's result shows beside it for a few seconds. */}
+        <div className="lv-tier a-wipe" style={{ width: layout.cell, padding: "0 8px 0 30px", "--d": "0.1s" } as CSSProperties}>
+          <span style={{ flex: "none" }}>{periodLabel(state)}</span>
+          <span className="lv-grow" />
           {setTag ? (
             <span key={tagKey(setTag)} className="lv-tag">
               {setTag.text}
             </span>
-          ) : (
-            <span>{periodLabel(state)}</span>
-          )}
-          <span className="lv-grow" />
+          ) : null}
           <Tags state={state} now={now} />
         </div>
       </div>

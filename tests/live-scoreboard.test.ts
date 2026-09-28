@@ -86,14 +86,18 @@ describe("live scoreboard", () => {
     expect(pruneTags(state, T0 + 11_000).tags).toHaveLength(0);
   });
 
+  it("ends a showing timeout when that team's button is tapped again", () => {
+    const shown = run(defaultScoreboard("volleyball"), [{ type: "timeout", team: 0 }, { type: "timeout", team: 1 }]);
+    const ended = applyScoreboardAction(shown, { type: "timeout", team: 0 }, T0 + 2_000);
+    expect(activeTags(ended, T0 + 2_000, "timeout").map((tag) => tag.team)).toEqual([1]);
+    const again = applyScoreboardAction(ended, { type: "timeout", team: 0 }, T0 + 3_000);
+    expect(activeTags(again, T0 + 3_000, "timeout").map((tag) => tag.team)).toEqual([1, 0]);
+  });
+
   describe("football", () => {
     it("uses up timeouts and restores three at halftime", () => {
-      let state = run(defaultScoreboard("football"), [
-        { type: "timeout", team: 1 },
-        { type: "timeout", team: 1 },
-        { type: "timeout", team: 1 },
-        { type: "timeout", team: 1 }
-      ]);
+      let state = defaultScoreboard("football");
+      for (let call = 0; call < 4; call += 1) state = applyScoreboardAction(state, { type: "timeout", team: 1 }, T0 + call * 60_000);
       expect(state.teams[1].timeouts).toBe(0);
       state = run(state, [{ type: "nextPeriod" }, { type: "nextPeriod" }]);
       expect(state.period).toBe(3);
@@ -163,6 +167,13 @@ describe("live scoreboard", () => {
       ]);
       expect(state.teams[0].timeouts).toBe(3);
     });
+
+    it("ends a showing timeout on a second tap without using another one", () => {
+      const shown = run(defaultScoreboard("football"), [{ type: "timeout", team: 0 }]);
+      const ended = applyScoreboardAction(shown, { type: "timeout", team: 0 }, T0 + 1_000);
+      expect(activeTags(ended, T0 + 1_000, "timeout")).toHaveLength(0);
+      expect(ended.teams[0].timeouts).toBe(2);
+    });
   });
 
   describe("volleyball", () => {
@@ -179,6 +190,7 @@ describe("live scoreboard", () => {
       expect(state.set).toBe(2);
       expect(state.setHistory).toEqual([[25, 21]]);
       expect(state.teams.map((team) => [team.score, team.sets])).toEqual([[0, 1], [0, 0]]);
+      expect(periodLabel(state)).toBe("Set 2");
       expect(activeTags(state, T0, "set")[0]?.text).toBe("Set 1 · PALY 25–21");
     });
   });

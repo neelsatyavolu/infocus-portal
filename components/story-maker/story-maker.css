@@ -1,6 +1,6 @@
 /* Instagram story artwork: 1080 × 1920 (DESIGN.md §4, §12). Square Ink plates with one InFocus Green
    strip, Lexend only, Soft White text, and the only red is the dot inside the icon. Text stays between
-   y = 250 and y = 1670 (Instagram's UI covers the top and bottom 250px). Brand hexes are literal on
+   y = 250 and y = 1670 (Instagram's UI covers the top and bottom 250px); only the header starts higher, at y = 200. Brand hexes are literal on
    purpose: the artwork looks the same in the Portal's light and dark themes. */
 
 .sm-story {
@@ -12,6 +12,8 @@
   --sm-mist: #dce2de;
   --sm-m: 72px;
   --sm-safe: 250px;
+  /* The header nameplate sits a little above the safe band; Instagram's account row ends well above it. */
+  --sm-hd-top: 200px;
   --k: 1; /* shrink-to-fit factor set per [data-fit] box, 1 down to 0.75 */
 
   position: relative;
@@ -40,7 +42,7 @@
 .sm-story.sm-exporting .sm-sticker { visibility: hidden; }
 
 /* Header nameplate: icon tile + Ink kicker plate + Green meta strip (the lower third at story scale). */
-.sm-hd { position: absolute; top: var(--sm-safe); left: var(--sm-m); display: flex; height: 104px; }
+.sm-hd { position: absolute; top: var(--sm-hd-top); left: var(--sm-m); display: flex; height: 104px; }
 .sm-tile { width: 104px; height: 104px; flex: none; background: var(--sm-ink); display: grid; place-items: center; }
 .sm-tile img { width: 82%; height: 82%; object-fit: contain; display: block; }
 .sm-hd-body { display: grid; grid-template-rows: 60px 44px; margin-left: -1px; }

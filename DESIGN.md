@@ -376,7 +376,7 @@ Use a dissolve (ease in-out) or a wipe between slides. Build bullets in one at a
 
 ### Social and thumbnails
 - **YouTube thumbnail (1280 × 720):** a real frame from the package, with a square Ink plate in the lower-left that has a green strip. The plate holds a headline of 3–5 words in Lexend SemiBold, at least 96px. Put the icon tile in one corner. Only one red dot, if any.
-- **Instagram post (1080 × 1350) and story (1080 × 1920):** the same plate system. Keep text out of the top and bottom 250px on stories (UI overlaps there). Handles: **@infocusnews** (Instagram, YouTube), **@palyinfocus** (TikTok, X), and **infocusnews.tv**.
+- **Instagram post (1080 × 1350) and story (1080 × 1920):** the same plate system. Keep text out of the top and bottom 250px on stories (UI overlaps there); the header nameplate (icon tile and section label) may start at y = 200. Handles: **@infocusnews** (Instagram, YouTube), **@palyinfocus** (TikTok, X), and **infocusnews.tv**.
 - **Profile pictures:** `Icon/infocus-channel-avatar-1800.png` only.
 
 ### Signage, posters, and the set TVs

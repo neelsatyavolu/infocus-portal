@@ -58,7 +58,7 @@ const tagSchema = z.object({
   kind: z.enum(["timeout", "flag", "set", "touchdown"]),
   text: z.string().max(60),
   until: z.number(),
-  /** Which team a touchdown belongs to (for its color chip). */
+  /** Which team a touchdown (for its color chip) or timeout (so a second tap ends it) belongs to. */
   team: z.union([z.literal(0), z.literal(1)]).optional()
 });
 
@@ -174,6 +174,10 @@ export function activeTags(state: ScoreboardState, now: number, kind?: TagKind) 
   return state.tags.filter((tag) => tag.until > now && (!kind || tag.kind === kind));
 }
 
+export function timeoutShowing(state: ScoreboardState, team: TeamIndex, now: number) {
+  return activeTags(state, now, "timeout").some((tag) => tag.team === team);
+}
+
 export function flagOn(state: ScoreboardState, now: number) {
   return activeTags(state, now, "flag").length > 0;
 }
@@ -283,8 +287,12 @@ export function applyScoreboardAction(state: ScoreboardState, action: Scoreboard
       return { ...state, teams: updateTeam(state, action.team, { timeouts }) };
     }
     case "timeout": {
+      // A second tap while it's showing ends it early (and doesn't use another football timeout).
+      if (timeoutShowing(state, action.team, now)) {
+        return { ...state, tags: state.tags.filter((tag) => !(tag.kind === "timeout" && tag.team === action.team)) };
+      }
       const text = `Timeout · ${teamName(action.team)}`;
-      if (state.sport !== "football") return withTag(state, "timeout", text, TIMEOUT_TAG_MS, now);
+      if (state.sport !== "football") return withTag(state, "timeout", text, TIMEOUT_TAG_MS, now, action.team);
       const left = state.teams[action.team].timeouts;
       if (left === 0) return state;
       return withTag(
@@ -292,7 +300,8 @@ export function applyScoreboardAction(state: ScoreboardState, action: Scoreboard
         "timeout",
         text,
         TIMEOUT_TAG_MS,
-        now
+        now,
+        action.team
       );
     }
     case "bonus":

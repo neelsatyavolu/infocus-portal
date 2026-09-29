@@ -23,6 +23,7 @@ import { UploadProgressToast, type UploadProgressToastItem } from "@/components/
 import { uploadFileToNas } from "@/src/lib/nas-upload-client";
 import { holdUploadWakeLock } from "@/src/lib/upload-wake-lock";
 import { createUploadSpeedTracker } from "@/src/lib/upload-speed";
+import { useFileDrop } from "@/src/lib/use-file-drop";
 import {
   APPROVE_ANYWAY_CONFIRM,
   approvalProgressLabel,
@@ -141,6 +142,8 @@ export function StageWorkspace({
   const [approving, setApproving] = useState(false);
   const [watching, setWatching] = useState<MediaCard | null>(null);
   const [showOlderCuts, setShowOlderCuts] = useState(false);
+  // Files dropped on the upload card, held while the A-roll/B-roll or headline dialog is open.
+  const [droppedFiles, setDroppedFiles] = useState<File[] | null>(null);
   const fileInput = useRef<HTMLInputElement | null>(null);
   const pendingRollKind = useRef<RollKind | null>(null);
   const pendingHeadline = useRef("");
@@ -284,6 +287,58 @@ export function StageWorkspace({
       setUploading(false);
     }
   }
+
+  function startUpload(files: File[]) {
+    if (files.length === 0) return;
+    if (
+      slug === "final-cut" &&
+      !view?.allowSecondFinalCut &&
+      !window.confirm(
+        `Upload this Final Cut with the headline "${pendingHeadline.current}"? You cannot replace it later unless the first grade is below 75%.`
+      )
+    ) {
+      return;
+    }
+    void uploadFiles(slug === "a-roll" ? files : files.slice(0, 1));
+  }
+
+  /** Uploads files dropped before a dialog opened; returns false when the file picker should open instead. */
+  function uploadDroppedFiles() {
+    if (!droppedFiles) return false;
+    setDroppedFiles(null);
+    startUpload(droppedFiles);
+    return true;
+  }
+
+  const fileDrop = useFileDrop({
+    accept: "video/*",
+    disabled: uploading || !view?.canUpload,
+    onDrop: ({ accepted, rejected }) => {
+      if (accepted.length === 0) {
+        toast.error("Only video files can be uploaded here.");
+        return;
+      }
+      if (slug !== "a-roll" && accepted.length > 1) {
+        toast.error("Drop one video at a time.");
+        return;
+      }
+      if (rejected.length > 0) {
+        toast.error(`Skipped ${rejected.length} file${rejected.length === 1 ? " that isn't a video" : "s that aren't videos"}.`);
+      }
+      if (slug === "a-roll") {
+        setDroppedFiles(accepted);
+        setPickRollOpen(true);
+        return;
+      }
+      if (slug === "final-cut") {
+        setDroppedFiles(accepted);
+        setHeadlineOpen(true);
+        return;
+      }
+      pendingRollKind.current = null;
+      startUpload(accepted);
+    }
+  });
 
   async function approveAroll(approved: boolean, feedback?: string) {
     if (!view?.row) return;
@@ -736,7 +791,13 @@ export function StageWorkspace({
       ) : null}
 
       {view.canUpload ? (
-        <div className="rounded-xl border border-border bg-card p-4">
+        <div
+          {...fileDrop.bind}
+          className={cn(
+            "rounded-xl border bg-card p-4 transition-colors",
+            fileDrop.dragging ? "border-dashed border-[var(--brand-green)] bg-[var(--brand-green)]/5" : "border-border"
+          )}
+        >
           {confirmFinal && view.allowSecondFinalCut ? (
             <p className="mb-3 text-sm text-amber-200">
               Second revision: you can replace this Final Cut. The quality score is capped at 75%. Late turn-in is a
@@ -757,42 +818,39 @@ export function StageWorkspace({
             onChange={(event) => {
               const files = Array.from(event.target.files ?? []);
               event.target.value = "";
-              if (files.length === 0) return;
-              if (
-                confirmFinal &&
-                !view.allowSecondFinalCut &&
-                !window.confirm(
-                  `Upload this Final Cut with the headline "${pendingHeadline.current}"? You cannot replace it later unless the first grade is below 75%.`
-                )
-              ) {
-                return;
-              }
-              void uploadFiles(slug === "a-roll" ? files : files.slice(0, 1));
+              startUpload(files);
             }}
           />
-          <Button
-            type="button"
-            disabled={uploading}
-            onClick={() => {
-              if (slug === "a-roll") {
-                setPickRollOpen(true);
-                return;
-              }
-              if (slug === "final-cut") {
-                setHeadlineOpen(true);
-                return;
-              }
-              pendingRollKind.current = null;
-              fileInput.current?.click();
-            }}
-          >
-            {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-            {slug === "initial-cut" && (view.media ?? []).length > 0
-              ? "Upload new version"
-              : slug === "a-roll"
-                ? "Upload videos"
-                : "Upload"}
-          </Button>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              type="button"
+              disabled={uploading}
+              onClick={() => {
+                if (slug === "a-roll") {
+                  setPickRollOpen(true);
+                  return;
+                }
+                if (slug === "final-cut") {
+                  setHeadlineOpen(true);
+                  return;
+                }
+                pendingRollKind.current = null;
+                fileInput.current?.click();
+              }}
+            >
+              {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+              {slug === "initial-cut" && (view.media ?? []).length > 0
+                ? "Upload new version"
+                : slug === "a-roll"
+                  ? "Upload videos"
+                  : "Upload"}
+            </Button>
+            {!uploading ? (
+              <span className={cn("text-sm", fileDrop.dragging ? "text-foreground" : "text-muted-foreground")}>
+                {fileDrop.dragging ? "Drop to upload" : slug === "a-roll" ? "or drag clips here" : "or drag a video here"}
+              </span>
+            ) : null}
+          </div>
           {slug === "a-roll" ? (
             <p className="mt-2 text-xs text-muted-foreground">Choose A-roll or B-roll, then pick one or more clips. Maximum per file: A-roll 30 GB; B-roll 15 GB.</p>
           ) : null}
@@ -845,11 +903,21 @@ export function StageWorkspace({
         </p>
       ) : null}
 
-      <Dialog open={pickRollOpen} onOpenChange={setPickRollOpen}>
+      <Dialog
+        open={pickRollOpen}
+        onOpenChange={(open) => {
+          setPickRollOpen(open);
+          if (!open) setDroppedFiles(null);
+        }}
+      >
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>A-roll or B-roll?</DialogTitle>
-            <DialogDescription>This applies to every file you pick next.</DialogDescription>
+            <DialogDescription>
+              {droppedFiles
+                ? `This applies to the ${droppedFiles.length === 1 ? "file" : `${droppedFiles.length} files`} you dropped.`
+                : "This applies to every file you pick next."}
+            </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-2">
             {(["a-roll", "b-roll"] as const).map((kind) => (
@@ -860,6 +928,7 @@ export function StageWorkspace({
                 onClick={() => {
                   pendingRollKind.current = kind;
                   setPickRollOpen(false);
+                  if (uploadDroppedFiles()) return;
                   window.setTimeout(() => fileInput.current?.click(), 0);
                 }}
               >
@@ -874,12 +943,17 @@ export function StageWorkspace({
         open={headlineOpen}
         initialHeadline={view.row?.headline ?? ""}
         initialToss={view.row?.toss ?? ""}
-        onOpenChange={setHeadlineOpen}
+        hasVideo={Boolean(droppedFiles)}
+        onOpenChange={(open) => {
+          setHeadlineOpen(open);
+          if (!open) setDroppedFiles(null);
+        }}
         onContinue={({ headline, toss }) => {
           pendingHeadline.current = headline;
           pendingToss.current = toss;
           pendingRollKind.current = null;
           setHeadlineOpen(false);
+          if (uploadDroppedFiles()) return;
           window.setTimeout(() => fileInput.current?.click(), 0);
         }}
       />

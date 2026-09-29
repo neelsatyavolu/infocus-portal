@@ -15,6 +15,7 @@ import { compressProofImage } from "@/src/lib/proof-image-client";
 import { StageComments } from "@/components/package-cycle/stage-comments";
 import { StageStatusChip } from "@/components/package-cycle/stage-status-chip";
 import { cycleStageStatus, emptyCycleStageStatusInput, type CycleStageStatus } from "@/src/lib/package-stage-status";
+import { useFileDrop } from "@/src/lib/use-file-drop";
 import { cn } from "@/src/lib/utils";
 
 type Member = {
@@ -65,6 +66,49 @@ async function fetchPayload(cycleNumber?: number) {
     throw new Error(body.error?.message ?? "Failed to load brainstorming.");
   }
   return body.data;
+}
+
+function ProofUploadButton({
+  uploading,
+  busy,
+  onPick,
+  onFile
+}: {
+  uploading: boolean;
+  /** Another proof is uploading; one at a time so their results don't overwrite each other. */
+  busy: boolean;
+  onPick: () => void;
+  onFile: (file: File) => void;
+}) {
+  const drop = useFileDrop({
+    accept: "image/*",
+    disabled: busy,
+    onDrop: ({ accepted, rejected }) => {
+      if (accepted.length !== 1) {
+        toast.error(accepted.length === 0 ? "Proofs of contact must be images." : "Drop one image per proof.");
+        return;
+      }
+      if (rejected.length > 0) {
+        toast.error(`Skipped ${rejected.length} file${rejected.length === 1 ? " that isn't an image" : "s that aren't images"}.`);
+      }
+      onFile(accepted[0]);
+    }
+  });
+  return (
+    <button
+      type="button"
+      disabled={busy}
+      onClick={onPick}
+      {...drop.bind}
+      className={cn(
+        "flex h-36 w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed text-xs text-muted-foreground hover:border-[var(--brand-green)]/50 hover:text-foreground",
+        drop.dragging ? "border-[var(--brand-green)] bg-[var(--brand-green)]/5 text-foreground" : "border-border"
+      )}
+    >
+      {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+      {uploading ? "Uploading…" : drop.dragging ? "Drop image" : "Upload or drop image"}
+    </button>
+  );
 }
 
 export default function BrainstormingClient() {
@@ -289,15 +333,12 @@ export default function BrainstormingClient() {
                               />
                             </a>
                           ) : pkg.canEdit ? (
-                            <button
-                              type="button"
-                              disabled={uploading}
-                              onClick={() => fileInputs.current[key]?.click()}
-                              className="flex h-36 w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border text-xs text-muted-foreground hover:border-[var(--brand-green)]/50 hover:text-foreground"
-                            >
-                              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                              {uploading ? "Uploading…" : "Upload image"}
-                            </button>
+                            <ProofUploadButton
+                              uploading={uploading}
+                              busy={uploadingKey !== null}
+                              onPick={() => fileInputs.current[key]?.click()}
+                              onFile={(file) => void uploadProof(pkg, slot, file)}
+                            />
                           ) : (
                             <div className="flex h-36 w-full items-center justify-center rounded-lg border border-dashed border-border text-xs text-muted-foreground">
                               No proof yet

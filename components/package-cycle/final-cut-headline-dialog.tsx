@@ -9,7 +9,7 @@ import { HEADLINE_MAX_LENGTH, headlineError } from "@/src/lib/package-headline";
 import { TOSS_EXAMPLE, TOSS_MAX_LENGTH, tossError } from "@/src/lib/package-toss";
 
 /**
- * Upload mode asks for the headline and toss before the file picker.
+ * Upload mode asks for the headline and toss before the file picker (or before uploading a dropped video).
  * Toss mode edits only the toss on a Final Cut that is already uploaded.
  */
 export function FinalCutHeadlineDialog({
@@ -18,6 +18,7 @@ export function FinalCutHeadlineDialog({
   initialHeadline,
   initialToss,
   saving = false,
+  hasVideo = false,
   onOpenChange,
   onContinue
 }: {
@@ -26,6 +27,8 @@ export function FinalCutHeadlineDialog({
   initialHeadline: string;
   initialToss: string;
   saving?: boolean;
+  /** A video was already dropped, so continuing uploads it instead of opening the file picker. */
+  hasVideo?: boolean;
   onOpenChange: (open: boolean) => void;
   onContinue: (input: { headline: string; toss: string }) => void;
 }) {
@@ -115,7 +118,7 @@ export function FinalCutHeadlineDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={saving}>
-              {askHeadline ? "Choose video" : saving ? "Saving…" : "Save toss"}
+              {askHeadline ? (hasVideo ? "Upload" : "Choose video") : saving ? "Saving…" : "Save toss"}
             </Button>
           </DialogFooter>
         </form>

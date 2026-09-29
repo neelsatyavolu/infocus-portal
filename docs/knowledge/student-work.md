@@ -14,6 +14,8 @@ Tabs unlock in order. Later tabs are visible but disabled.
 
 Uploads go to InFocus Drive under Package Storage / Cycle N / {group name} / {stage}. Camera originals (Sony XAVC, ProRes) play in the browser via Drive's H.264 proxy, not the raw file.
 
+**Drag and drop**: instead of clicking Upload, you can drag files from your computer onto the upload box. A-roll/B-roll takes one or more video clips, then asks whether they are A-roll or B-roll. Initial Cut takes one video and uploads it right away. Final Cut takes one video, then asks for the headline and toss (below) before uploading. On Brainstorming, drop one image onto an empty proof-of-contact slot (one proof uploads at a time). Files of the wrong type are skipped with a message. Dropping a file outside the box, or while an upload is running, does nothing, so the page doesn't leave.
+
 Producer review of that work is on Groups, except the student tabs are where students upload and read feedback.
 
 Pitching has no student upload; the producer mark on Groups is the check-in signal.

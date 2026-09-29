@@ -12,7 +12,10 @@ const nextConfig: NextConfig = {
       "./docs/SUBDOMAINS.md"
     ],
     "/api/live/thumbnail": ["./public/live/infocus-wordmark-white.png", "./public/live/infocus-icon.png"],
-    "/api/package-cycle/package-of-cycle/certificate": ["./public/favicon/infocus-wordmark-light.png"]
+    "/api/package-cycle/package-of-cycle/certificate": [
+      "./public/favicon/infocus-wordmark-light.png",
+      "./public/live/infocus-icon.png"
+    ]
   },
   images: {
     remotePatterns: [

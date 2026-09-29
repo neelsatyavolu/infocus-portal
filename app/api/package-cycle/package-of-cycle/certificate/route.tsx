@@ -35,7 +35,7 @@ export async function GET(request: Request) {
     ]);
     const fileName = certificateFileName(data.cycleNumber, data.name);
 
-    return new ImageResponse(renderCertificate(data, assets.wordmark), {
+    return new ImageResponse(renderCertificate(data, assets.images), {
       ...CERTIFICATE_SIZE,
       fonts: assets.fonts.length ? assets.fonts : undefined,
       headers: {

@@ -13,24 +13,30 @@ const INK = "#0F110F";
 const INK_SOFT = "#4B524D";
 const GREEN = "#0B6E3E";
 const RULE = "#D5DCD7";
+/** Flat, muted gold: the certificate's only accent beyond the brand colors. No gradients or foil. */
+const GOLD = "#B08D3C";
 const WORDMARK_RATIO = 480 / 206;
 const TEXT_WIDTH = 1640;
 
-let wordmarkPromise: Promise<string> | null = null;
+let imagesPromise: Promise<CertificateImages> | null = null;
 
-/** Color wordmark for light pages (listed in next.config outputFileTracingIncludes). */
-function loadWordmark() {
-  wordmarkPromise ??= readFile(path.join(process.cwd(), "public/favicon/infocus-wordmark-light.png")).then(
-    (file) => `data:image/png;base64,${file.toString("base64")}`
-  );
-  return wordmarkPromise;
+export type CertificateImages = { wordmark: string; icon: string };
+
+/** Color wordmark and the icon for the Ink seal tile (listed in next.config outputFileTracingIncludes). */
+function loadImages() {
+  const dataUrl = (file: Buffer) => `data:image/png;base64,${file.toString("base64")}`;
+  imagesPromise ??= Promise.all([
+    readFile(path.join(process.cwd(), "public/favicon/infocus-wordmark-light.png")),
+    readFile(path.join(process.cwd(), "public/live/infocus-icon.png"))
+  ]).then(([wordmark, icon]) => ({ wordmark: dataUrl(wordmark), icon: dataUrl(icon) }));
+  return imagesPromise;
 }
 
 export async function loadCertificateAssets() {
   const weights = [400, 600] as const;
-  const [wordmark, ...fonts] = await Promise.all([loadWordmark(), ...weights.map((weight) => loadLexend(weight))]);
+  const [images, ...fonts] = await Promise.all([loadImages(), ...weights.map((weight) => loadLexend(weight))]);
   return {
-    wordmark,
+    images,
     fonts: fonts.flatMap((data, index) =>
       data ? [{ name: "Lexend", data, weight: weights[index], style: "normal" as const }] : []
     )
@@ -51,6 +57,47 @@ const label: CSSProperties = {
   color: GREEN
 };
 
+type Corner = "topLeft" | "topRight" | "bottomLeft" | "bottomRight";
+
+/** Square gold L at one inner corner of the frame. */
+function CornerBracket({ corner }: { corner: Corner }) {
+  const top = corner.startsWith("top");
+  const left = corner.endsWith("Left");
+  const edge = `8px solid ${GOLD}`;
+  return (
+    <div
+      style={{
+        position: "absolute",
+        display: "flex",
+        width: 96,
+        height: 96,
+        ...(top ? { top: 22, borderTop: edge } : { bottom: 22, borderBottom: edge }),
+        ...(left ? { left: 22, borderLeft: edge } : { right: 22, borderRight: edge })
+      }}
+    />
+  );
+}
+
+/** The brand tile (icon on a square Ink plate), framed in gold as the certificate's seal. */
+function Seal({ icon }: { icon: string }) {
+  return (
+    <div style={{ display: "flex", padding: 6, border: `4px solid ${GOLD}` }}>
+      <div
+        style={{
+          display: "flex",
+          width: 132,
+          height: 132,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: INK
+        }}
+      >
+        <img src={icon} alt="" width={96} height={96} />
+      </div>
+    </div>
+  );
+}
+
 function Signature({ caption }: { caption: string }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 520 }}>
@@ -60,7 +107,7 @@ function Signature({ caption }: { caption: string }) {
   );
 }
 
-export function renderCertificate(data: CertificateData, wordmark: string) {
+export function renderCertificate(data: CertificateData, images: CertificateImages) {
   const title = `“${data.title}”`;
   const nameSize = fitFontSize(data.name, TEXT_WIDTH, 132, 72, 0.58);
   const titleSize = fitWrappedFontSize(title, TEXT_WIDTH, 2, 60, 36, 0.56);
@@ -89,18 +136,27 @@ export function renderCertificate(data: CertificateData, wordmark: string) {
             flex: 1,
             flexDirection: "column",
             alignItems: "center",
-            border: `2px solid ${GREEN}`,
-            padding: "84px 120px 72px",
+            position: "relative",
+            border: `3px solid ${GOLD}`,
+            padding: "72px 120px 64px",
             color: INK
           }}
         >
-          <img src={wordmark} alt="" width={Math.round(132 * WORDMARK_RATIO)} height={132} />
+          <CornerBracket corner="topLeft" />
+          <CornerBracket corner="topRight" />
+          <CornerBracket corner="bottomLeft" />
+          <CornerBracket corner="bottomRight" />
+          <img src={images.wordmark} alt="" width={Math.round(132 * WORDMARK_RATIO)} height={132} />
           <div style={{ ...label, marginTop: 44 }}>InFocus News · Certificate of Excellence</div>
           <div style={{ display: "flex", fontSize: 150, fontWeight: 600, letterSpacing: "-0.02em", marginTop: 20 }}>
             Package of the Cycle
           </div>
-          <div style={{ display: "flex", width: 180, height: 8, backgroundColor: GREEN, marginTop: 36 }} />
-          <div style={{ display: "flex", fontSize: 38, color: INK_SOFT, marginTop: 60 }}>Presented to</div>
+          <div style={{ display: "flex", alignItems: "center", marginTop: 36 }}>
+            <div style={{ display: "flex", width: 90, height: 3, backgroundColor: GOLD }} />
+            <div style={{ display: "flex", width: 180, height: 8, backgroundColor: GREEN, margin: "0 20px" }} />
+            <div style={{ display: "flex", width: 90, height: 3, backgroundColor: GOLD }} />
+          </div>
+          <div style={{ display: "flex", fontSize: 38, color: INK_SOFT, marginTop: 52 }}>Presented to</div>
           <div
             style={{
               display: "flex",
@@ -146,7 +202,8 @@ export function renderCertificate(data: CertificateData, wordmark: string) {
           >
             <Signature caption="Executive Producer" />
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <div style={{ display: "flex", fontSize: 34, fontWeight: 600 }}>{awarded}</div>
+              <Seal icon={images.icon} />
+              <div style={{ display: "flex", fontSize: 34, fontWeight: 600, marginTop: 22 }}>{awarded}</div>
               <div style={{ ...label, color: INK_SOFT, fontSize: 22, marginTop: 18 }}>Awarded</div>
             </div>
             <Signature caption="Adviser" />

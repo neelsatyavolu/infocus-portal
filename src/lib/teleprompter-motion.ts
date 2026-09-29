@@ -19,11 +19,9 @@ export function teleprompterArrowState(
   state: TeleprompterPlaybackState,
   arrow: TeleprompterArrow
 ): TeleprompterPlaybackState {
+  // Keep speed while paused so a second Space resumes; arrows below restart from 0.
   if (arrow === "space") {
-    return {
-      paused: !state.paused,
-      speed: state.paused ? state.speed : 0
-    };
+    return { paused: !state.paused, speed: state.speed };
   }
 
   const speed = state.paused ? 0 : state.speed;

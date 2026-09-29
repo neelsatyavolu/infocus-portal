@@ -2,7 +2,7 @@
 
 Host: `teleprompter.infocuspaly.com` (also linked from the Portal sidebar).
 
-Producers build rundown docs with sections (anchors, packages, PA, etc.), reformat copy, and run scroll mode: compositor scroll, playhead, speed, top/bottom fades. In run mode, Space pauses and resets speed to zero; ArrowUp or ArrowDown resumes in that direction at the first speed step, while the horizontal arrows resume in their selected direction.
+Producers build rundown docs with sections (anchors, packages, PA, etc.), reformat copy, and run scroll mode: compositor scroll, playhead, speed, top/bottom fades. In run mode, Space pauses and Space again resumes at the same speed; after a pause, ArrowUp or ArrowDown resumes in that direction at the first speed step, while the horizontal arrows resume in their selected direction.
 
 ## Automatic show scripts
 

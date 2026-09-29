@@ -61,10 +61,17 @@ describe("teleprompterArrowState", () => {
     });
   });
 
-  it("resets speed when Space pauses playback", () => {
-    expect(teleprompterArrowState({ paused: false, speed: 144 }, "space")).toEqual({
-      paused: true,
-      speed: 0
+  it("resumes at the prior speed when Space is pressed twice", () => {
+    const paused = teleprompterArrowState({ paused: false, speed: 144 }, "space");
+    expect(paused.paused).toBe(true);
+    expect(teleprompterArrowState(paused, "space")).toEqual({ paused: false, speed: 144 });
+  });
+
+  it("restarts arrows from zero after a Space pause", () => {
+    const paused = teleprompterArrowState({ paused: false, speed: 144 }, "space");
+    expect(teleprompterArrowState(paused, "up")).toEqual({
+      paused: false,
+      speed: TELEPROMPTER_SPEED_STEP
     });
   });
 });

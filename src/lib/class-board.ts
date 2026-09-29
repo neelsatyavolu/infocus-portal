@@ -209,13 +209,28 @@ const STATUS_RANK: Record<GroupTileStatusTone, number> = {
   neutral: 1
 };
 
-type Standing = { doneCount: number; tone: GroupTileStatusTone; revisionVersion: number; extensionDays: number };
+type Standing = {
+  doneCount: number;
+  finalCutAt: number | null;
+  tone: GroupTileStatusTone;
+  revisionVersion: number;
+  extensionDays: number;
+};
 
 function sameStanding(left: Standing, right: Standing) {
   return left.doneCount === right.doneCount &&
+    left.finalCutAt === right.finalCutAt &&
     STATUS_RANK[left.tone] === STATUS_RANK[right.tone] &&
     left.revisionVersion === right.revisionVersion &&
     left.extensionDays === right.extensionDays;
+}
+
+/** Submitted Final Cuts rank by who turned theirs in first, ahead of lanes with no known submit time. */
+function finalCutOrder(left: Standing, right: Standing) {
+  if (left.finalCutAt === right.finalCutAt) return 0;
+  if (left.finalCutAt === null) return 1;
+  if (right.finalCutAt === null) return -1;
+  return left.finalCutAt - right.finalCutAt;
 }
 
 function packageHasContent(row: RacePackageInput) {
@@ -266,6 +281,7 @@ export function buildRaceLanes(rows: RacePackageInput[], now = Date.now()): Clas
       statusLabel: packageOfCycle ? PACKAGE_OF_CYCLE_LABEL : status.label,
       tone: packageOfCycle ? ("approved" as const) : status.tone,
       packageOfCycle,
+      finalCutAt: row.finalCut ? Date.parse(row.finalCutSubmittedAt ?? "") || null : null,
       revisionVersion: status.tone === "danger" && row.status.aRollBRoll && row.status.initialCutHasMedia
         ? row.status.initialCutVersionNumber ?? 0
         : 0,
@@ -279,6 +295,7 @@ export function buildRaceLanes(rows: RacePackageInput[], now = Date.now()): Clas
     Number(right.packageOfCycle) - Number(left.packageOfCycle) ||
     (winnerOrder.get(left.id) ?? 0) - (winnerOrder.get(right.id) ?? 0) ||
     right.doneCount - left.doneCount ||
+    finalCutOrder(left, right) ||
     STATUS_RANK[right.tone] - STATUS_RANK[left.tone] ||
     right.revisionVersion - left.revisionVersion ||
     // Same stage and status: every stage deadline moves with the extension, so more days means more time left.

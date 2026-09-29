@@ -908,7 +908,7 @@ export function AppShell({ children, platformRole, currentUser, canViewAs = fals
 
         {/* Nav */}
         <nav
-          className="flex flex-1 flex-col gap-0.5 overflow-y-auto"
+          className="flex flex-1 flex-col gap-0.5 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           onClick={(event) => {
             if ((event.target as HTMLElement).closest("a")) {
               setNavOpen(false);

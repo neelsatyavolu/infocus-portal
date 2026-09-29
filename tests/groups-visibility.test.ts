@@ -92,6 +92,14 @@ describe("isPrimaryGroupForViewer", () => {
     }
   });
 
+  it("moves graded and queued final cuts back to Other groups for execs", () => {
+    const done = { ...unassigned, approvalStage: "APPROVED", queuedForAir: true, finalCutGraded: true };
+    expect(isPrimaryGroupForViewer(done, exec)).toBe(false);
+    expect(isPrimaryGroupForViewer(done, adviser)).toBe(false);
+    expect(isPrimaryGroupForViewer({ ...done, finalCutGraded: false }, exec)).toBe(true);
+    expect(isPrimaryGroupForViewer({ ...done, queuedForAir: false }, exec)).toBe(true);
+  });
+
   it("leaves earlier unassigned stages in Other groups for execs", () => {
     expect(isPrimaryGroupForViewer({ ...unassigned, approvalStage: "ASSOCIATE_REVIEW" }, exec)).toBe(false);
     expect(isPrimaryGroupForViewer({ ...unassigned, approvalStage: "ADVISER_REVIEW" }, exec)).toBe(false);

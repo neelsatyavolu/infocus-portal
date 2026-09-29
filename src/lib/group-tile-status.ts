@@ -2,6 +2,7 @@ import type { PlatformRole } from "@prisma/client";
 import { brainstormMaterialsReady } from "@/src/lib/package-brainstorm";
 import { approvalProgressLabel, executiveWaitPill } from "@/src/lib/package-approval";
 import { initialCutVersionTitle } from "@/src/lib/package-cut-transitions";
+import { canGradeFinalCut } from "@/src/lib/package-final-cut-scores";
 import { isAssignedPackageProducer } from "@/src/lib/package-producer-assignment";
 
 export type GroupTileStatusTone = "neutral" | "warn" | "review" | "danger" | "approved";
@@ -120,6 +121,8 @@ export function groupTileStatus(input: GroupTileStatusInput, now = Date.now()): 
 export type GroupViewerAttentionInput = {
   finalCutHasMedia?: boolean;
   queuedForAir?: boolean;
+  /** Every member has an official Final Cut grade. */
+  finalCutGraded?: boolean;
   currentUserId?: string | null;
   scoredByUserIds?: string[] | null;
   assignedProducerUserId?: string | null;
@@ -194,13 +197,17 @@ export function groupViewerAttention(
     if (extra.initialCutNeedsRevisions && approvalStage !== "APPROVED") return "waiting";
     if (approvalStage === "ASSOCIATE_REVIEW" && assignedToViewer) return "needed";
     if (approvalStage === "EXECUTIVE_REVIEW") return "needed";
-    if (approvalStage === "APPROVED" && extra.finalCutHasMedia && !extra.queuedForAir) {
-      if (extra.currentUserId && extra.scoredByUserIds?.includes(extra.currentUserId)) {
-        return "waiting";
-      }
-      return "needed";
-    }
+    if (approvalStage === "APPROVED" && finalCutGradePendingFromViewer(role, extra)) return "needed";
     return "waiting";
   }
   return null;
+}
+
+/** An exec or super admin has not scored an uploaded Final Cut that is not graded yet, even if it is queued. */
+export function finalCutGradePendingFromViewer(
+  role: PlatformRole | null,
+  extra: Pick<GroupViewerAttentionInput, "finalCutHasMedia" | "finalCutGraded" | "currentUserId" | "scoredByUserIds">
+) {
+  if (!canGradeFinalCut(role) || !extra.finalCutHasMedia || extra.finalCutGraded) return false;
+  return !(extra.currentUserId && extra.scoredByUserIds?.includes(extra.currentUserId));
 }

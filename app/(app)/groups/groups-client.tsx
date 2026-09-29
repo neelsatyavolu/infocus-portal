@@ -25,7 +25,12 @@ import {
 import { cn } from "@/src/lib/utils";
 import type { BrainstormProofView } from "@/src/lib/package-brainstorm";
 import { filterGroupsForViewer, isPrimaryGroupForViewer } from "@/src/lib/groups-visibility";
-import { groupTileStatus, groupTileStatusClass, groupViewerAttention } from "@/src/lib/group-tile-status";
+import {
+  finalCutGradePendingFromViewer,
+  groupTileStatus,
+  groupTileStatusClass,
+  groupViewerAttention
+} from "@/src/lib/group-tile-status";
 import { extensionBadgeLabel } from "@/src/lib/package-extensions";
 
 type CycleTab = {
@@ -229,6 +234,7 @@ function attentionFor(
     | "approvalStage"
     | "finalCutMediaItemId"
     | "queuedForAir"
+    | "finalCutGraded"
     | "finalCutScoredByUserIds"
     | "assignedProducerUserId"
     | "assignedExecutiveProducerUserId"
@@ -243,6 +249,7 @@ function attentionFor(
   return groupViewerAttention(role, row.approvalStage, {
     finalCutHasMedia: Boolean(row.finalCutMediaItemId),
     queuedForAir: Boolean(row.queuedForAir),
+    finalCutGraded: Boolean(row.finalCutGraded),
     currentUserId,
     scoredByUserIds: row.finalCutScoredByUserIds,
     assignedProducerUserId: row.assignedProducerUserId,
@@ -310,6 +317,12 @@ function GroupTile({
   });
   const href = row.id ? (`/groups/${row.id}/${pendingSlug}` as const) : null;
   const attention = attentionFor(platformRole, currentUserId, row);
+  const gradePendingFromYou = finalCutGradePendingFromViewer(platformRole, {
+    finalCutHasMedia: Boolean(row.finalCutMediaItemId),
+    finalCutGraded: Boolean(row.finalCutGraded),
+    currentUserId,
+    scoredByUserIds: row.finalCutScoredByUserIds
+  });
   const cardClassName = cn(
     "relative block rounded-xl border bg-card px-3.5 py-3 transition-colors hover:bg-foreground/[0.02]",
     attention === "needed"
@@ -376,7 +389,9 @@ function GroupTile({
         })}
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        {attention === "needed" ? (
+        {gradePendingFromYou ? (
+          <span className="status-pill status-pill-sm status-warn">Pending Grade From You</span>
+        ) : attention === "needed" ? (
           <span className="status-pill status-pill-sm status-warn">Needs you</span>
         ) : attention === "waiting" ? (
           <span className="status-pill status-pill-sm status-neutral">Not your stage</span>

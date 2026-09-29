@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   cutTileReviewStatus,
+  finalCutGradePendingFromViewer,
   groupTileStatus,
   groupViewerAttention,
   type GroupTileStatusInput
@@ -162,7 +163,27 @@ describe("groupTileStatus", () => {
         finalCutHasMedia: true,
         queuedForAir: true
       })
+    ).toBe("needed");
+    expect(
+      groupViewerAttention("EXECUTIVE_PRODUCER", "APPROVED", {
+        finalCutHasMedia: true,
+        queuedForAir: true,
+        finalCutGraded: true
+      })
     ).toBe("waiting");
+  });
+
+  it("flags a Final Cut grade the viewer still owes, even when queued", () => {
+    const uploaded = { finalCutHasMedia: true, currentUserId: "ep1", scoredByUserIds: ["ep2"] };
+    expect(finalCutGradePendingFromViewer("EXECUTIVE_PRODUCER", uploaded)).toBe(true);
+    expect(finalCutGradePendingFromViewer("SUPER_ADMIN", uploaded)).toBe(true);
+    expect(finalCutGradePendingFromViewer("ADVISER", uploaded)).toBe(false);
+    expect(finalCutGradePendingFromViewer("ASSOCIATE_PRODUCER", uploaded)).toBe(false);
+    expect(
+      finalCutGradePendingFromViewer("EXECUTIVE_PRODUCER", { ...uploaded, scoredByUserIds: ["ep1", "ep2"] })
+    ).toBe(false);
+    expect(finalCutGradePendingFromViewer("EXECUTIVE_PRODUCER", { ...uploaded, finalCutGraded: true })).toBe(false);
+    expect(finalCutGradePendingFromViewer("EXECUTIVE_PRODUCER", { ...uploaded, finalCutHasMedia: false })).toBe(false);
   });
 
   it("waits on the group after a reviewer asks for Initial Cut revisions", () => {

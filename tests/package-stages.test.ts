@@ -74,9 +74,9 @@ describe("check-in grade release", () => {
     initialCut: new Date("2026-09-16T00:00:00.000Z")
   };
 
-  it("treats a deadline as passed on that UTC date", () => {
-    expect(checkInDeadlinePassed(dates.pitching, new Date("2026-08-27T23:59:59.000Z"))).toBe(false);
-    expect(checkInDeadlinePassed(dates.pitching, new Date("2026-08-28T00:00:00.000Z"))).toBe(true);
+  it("treats a deadline as passed after 11:59 PM Pacific on that date", () => {
+    expect(checkInDeadlinePassed(dates.pitching, new Date("2026-08-29T06:59:59.000Z"))).toBe(false);
+    expect(checkInDeadlinePassed(dates.pitching, new Date("2026-08-29T07:00:00.000Z"))).toBe(true);
   });
 
   it("stays ungraded until the first stage deadline", () => {
@@ -97,7 +97,7 @@ describe("check-in grade release", () => {
   it("releases pitching as zero when the deadline passed and it was not marked", () => {
     expect(
       checkInGradeForCycle({
-        now: new Date("2026-08-29T00:00:00.000Z"),
+        now: new Date("2026-08-29T12:00:00.000Z"),
         dates,
         submitted: {},
         approved: {}
@@ -107,7 +107,7 @@ describe("check-in grade release", () => {
 
   it("credits a submitted brainstorm after its deadline without approval", () => {
     const grade = checkInGradeForCycle({
-      now: new Date("2026-09-03T00:00:00.000Z"),
+      now: new Date("2026-09-03T12:00:00.000Z"),
       dates,
       submitted: { proofOfContact: true },
       approved: { pitching: true, proofOfContact: false }
@@ -121,7 +121,7 @@ describe("check-in grade release", () => {
 
   it("does not wait for later stages that are not due yet", () => {
     const grade = checkInGradeForCycle({
-      now: new Date("2026-09-03T00:00:00.000Z"),
+      now: new Date("2026-09-03T12:00:00.000Z"),
       dates,
       submitted: { proofOfContact: true, aRollBRoll: true, initialCut: true },
       approved: { pitching: true }
@@ -134,7 +134,7 @@ describe("check-in grade release", () => {
   it("requires approval for submitted A-roll/B-roll, including work needing revisions", () => {
     for (const approved of [false, true]) {
       const grade = checkInGradeForCycle({
-        now: new Date("2026-09-11T00:00:00.000Z"),
+        now: new Date("2026-09-12T12:00:00.000Z"),
         dates: { aRollBRoll: dates.aRollBRoll },
         submitted: { aRollBRoll: true },
         approved: { aRollBRoll: approved }
@@ -146,7 +146,7 @@ describe("check-in grade release", () => {
 
   it("still credits producer approval when the submit heuristic missed", () => {
     const grade = checkInGradeForCycle({
-      now: new Date("2026-09-17T00:00:00.000Z"),
+      now: new Date("2026-09-17T12:00:00.000Z"),
       dates,
       submitted: {},
       approved: { pitching: true, proofOfContact: true, aRollBRoll: true, initialCut: true }
@@ -160,7 +160,7 @@ describe("check-in grade release", () => {
 
   it("credits pitching after the deadline if the student is on the package", () => {
     const grade = checkInGradeForProgress({
-      now: new Date("2026-08-29T00:00:00.000Z"),
+      now: new Date("2026-08-29T12:00:00.000Z"),
       dates,
       row: {
         pitching: false,
@@ -179,7 +179,7 @@ describe("check-in grade release", () => {
   it("docks pitching after the deadline when the student is not on a package", () => {
     expect(
       checkInGradeForProgress({
-        now: new Date("2026-08-29T00:00:00.000Z"),
+        now: new Date("2026-08-29T12:00:00.000Z"),
         dates,
         row: null
       })
@@ -187,7 +187,7 @@ describe("check-in grade release", () => {
   });
 
   it("applies zero and partial overrides to official credit and preserves future N/A", () => {
-    const now = new Date("2026-09-11T00:00:00Z");
+    const now = new Date("2026-09-12T12:00:00Z");
     const overrides = checkInOverrides({ pitchingPoints: 0, proofOfContactPoints: 3, aRollBRollPoints: 4, initialCutPoints: 5 });
     const grade = checkInGradeForCycle({ now, dates, submitted: { pitching: true, proofOfContact: true }, approved: {}, overrides });
     expect(grade.earned).toBe(7);
@@ -197,7 +197,7 @@ describe("check-in grade release", () => {
   });
 
   it("restores automatic approval credit when an override is cleared", () => {
-    const grade = checkInGradeForCycle({ now: new Date("2026-09-11T00:00:00Z"), dates, submitted: { pitching: true }, approved: { aRollBRoll: true }, overrides: { aRollBRoll: null } });
+    const grade = checkInGradeForCycle({ now: new Date("2026-09-12T12:00:00Z"), dates, submitted: { pitching: true }, approved: { aRollBRoll: true }, overrides: { aRollBRoll: null } });
     expect(grade.earned).toBe(10);
     expect(grade.stages.aRollBRoll).toBe(true);
   });
@@ -240,7 +240,7 @@ describe("check-in grade release", () => {
 
   it("does not dock unapproved A-roll/B-roll before the extended deadline", () => {
     const cycle = { aRollBRollDate: dates.aRollBRoll };
-    const now = new Date("2026-09-15T00:00:00.000Z");
+    const now = new Date("2026-09-15T12:00:00.000Z");
     const grade = (extensionDays: number) =>
       checkInGradeForCycle({
         now,

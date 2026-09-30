@@ -3,6 +3,7 @@ import { ASSOCIATE_REVIEW_AUDIT } from "@/src/server/associate-review-history";
 import { prisma } from "@/src/lib/prisma";
 import { remainingFromApproval } from "@/src/lib/package-approval";
 import { approvedExtensionDaysFor } from "@/src/lib/package-extensions";
+import { finalCutDeadlinePassed } from "@/src/lib/deadlines";
 import { gradersDoneWithGroup } from "@/src/lib/package-final-cut-scores";
 import { membersAwaitingFinalCutScores } from "@/src/lib/package-revisions";
 import { currentCutRevisionStage } from "@/src/lib/initial-cut-review-versions";
@@ -13,19 +14,6 @@ import { previousTeammatesByUserFromGroups } from "@/src/lib/consecutive-groupma
 import { normalizeEmail, PLATFORM_SUPER_ADMIN_EMAIL } from "@/src/lib/platform-admin";
 import { getCycleNumbers } from "@/src/server/program-settings";
 import { labeledUser, userDisplayName } from "@/src/lib/user-display";
-
-function startOfTodayDateKey() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function isCyclePassed(finalCutDate: Date | null, todayDateKey: string) {
-  if (!finalCutDate) return false;
-  return finalCutDate.toISOString().slice(0, 10) < todayDateKey;
-}
 
 export function buildMissingProgressRows(cycleNumbers: number[]) {
   return cycleNumbers.flatMap((cycleNumber) =>
@@ -208,10 +196,10 @@ export async function ensurePackageProgressDefaults() {
 export async function loadPackageProgressData(requestedCycleNumber?: number | null) {
   const cycles = await ensurePackageProgressDefaults();
 
-  const todayDateKey = startOfTodayDateKey();
+  const now = new Date();
   const activeCycleNumber =
     requestedCycleNumber ??
-    cycles.find((cycle) => !isCyclePassed(cycle.finalCutDate, todayDateKey))?.cycleNumber ??
+    cycles.find((cycle) => !finalCutDeadlinePassed(cycle.finalCutDate, now))?.cycleNumber ??
     cycles[cycles.length - 1]?.cycleNumber ??
     1;
 

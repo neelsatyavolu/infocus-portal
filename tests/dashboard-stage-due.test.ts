@@ -15,6 +15,12 @@ describe("formatStageDueLabel", () => {
     expect(formatStageDueLabel("2026-08-12T00:00:00.000Z", now)).toBe("Due Aug 12 · 1 day ago");
   });
 
+  it("still says today in the Pacific evening", () => {
+    expect(formatStageDueLabel("2026-09-29T00:00:00.000Z", new Date("2026-09-30T02:00:00.000Z"))).toBe(
+      "Due Sep 29 · today"
+    );
+  });
+
   it("returns null for missing or invalid dates", () => {
     expect(formatStageDueLabel(null, now)).toBeNull();
     expect(formatStageDueLabel("not-a-date", now)).toBeNull();

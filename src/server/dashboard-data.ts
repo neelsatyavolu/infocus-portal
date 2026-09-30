@@ -4,6 +4,7 @@ import {
   extractMentionUserIds,
   groupMembersIncludeUserName
 } from "@/src/lib/group-members";
+import { pacificDateKey } from "@/src/lib/deadlines";
 import { MAX_FINAL_CUT_POINTS } from "@/src/lib/grading";
 import { MAX_CHECK_IN_POINTS_PER_CYCLE } from "@/src/lib/package-stages";
 import { prisma } from "@/src/lib/prisma";
@@ -352,7 +353,7 @@ export function formatStageDueLabel(dueDate: string | null, now: Date = new Date
   if (!dueDate) return null;
   const due = new Date(dueDate);
   if (Number.isNaN(due.getTime())) return null;
-  const todayUtc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const todayUtc = Date.parse(`${pacificDateKey(now)}T00:00:00.000Z`);
   const dueUtc = Date.UTC(due.getUTCFullYear(), due.getUTCMonth(), due.getUTCDate());
   const diffDays = Math.round((dueUtc - todayUtc) / 86_400_000);
   const dateLabel = due.toLocaleDateString("en-US", {

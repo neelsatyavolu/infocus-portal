@@ -2,6 +2,8 @@
 
 Weighted **55 / 35 / 10**: Packages / Participation / Portfolio.
 
+Every cycle deadline closes at **11:59 PM Pacific** on its date (check-ins release, Final Cut lateness, and when a cycle stops being current). Exception: the 2026-27 cycle 1 Final Cut closed at 2 AM Pacific on Sep 30.
+
 Null = ungraded (a dash, excluded). `0` = graded and earned nothing. A day-one student has no grade, not 0% F. The Portal assistant can clear a cycle grade back to ungraded; that is not the same as setting 0.
 
 ## Packages (55%)

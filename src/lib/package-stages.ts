@@ -1,5 +1,6 @@
 import type { GradeScoreState, PackageCategory } from "@prisma/client";
 import { brainstormMaterialsReady } from "@/src/lib/package-brainstorm";
+import { deadlinePassed } from "@/src/lib/deadlines";
 import { effectiveDeadline } from "@/src/lib/package-extensions";
 
 /**
@@ -171,9 +172,9 @@ export type CheckInCycleGrade = {
 
 export type StageCompletion = Partial<Record<PackageStage, boolean>>;
 
-/** A check-in grade posts once its cycle date has arrived (UTC midnight). */
+/** A check-in grade posts once its cycle date closes (11:59 PM Pacific). */
 export function checkInDeadlinePassed(deadline: Date | null | undefined, now: Date) {
-  return Boolean(deadline && deadline.getTime() <= now.getTime());
+  return deadlinePassed(deadline, now);
 }
 
 /**

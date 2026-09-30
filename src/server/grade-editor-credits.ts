@@ -5,6 +5,7 @@ import {
   isAssociateProducerRole,
   semesterCheckInMax
 } from "@/src/lib/package-cycle-requirements";
+import { finalCutDeadlinePassed } from "@/src/lib/deadlines";
 import { approvedExtensionDaysFor, effectiveDeadline } from "@/src/lib/package-extensions";
 import { cycleSemesterTerm } from "@/src/lib/package-grades";
 import { PLATFORM_SUPER_ADMIN_EMAIL, normalizeEmail } from "@/src/lib/platform-admin";
@@ -182,7 +183,7 @@ export async function loadGradeEditorCredits(input: {
         finalCutPoints: null as number | null,
         checkInPoints: grade.earned,
         checkInPossible: grade.earned === null ? null : grade.possible,
-        finalDeadlinePassed: Boolean(finalDeadline && finalDeadline.getTime() <= now.getTime())
+        finalDeadlinePassed: finalCutDeadlinePassed(finalDeadline, now)
       };
     });
     const quota = applyCycleRequirementQuota(perCycle, role);

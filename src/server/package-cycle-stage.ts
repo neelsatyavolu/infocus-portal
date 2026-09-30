@@ -44,6 +44,7 @@ import {
 import { resolvePlaybackUrl, resolveThumbnailUrl } from "@/src/lib/media-playback";
 import { buildCycleStageNasPath, isNasStorageEnabled, nasMintUploadSession } from "@/src/lib/nas-storage";
 import { parseClipComment } from "@/src/lib/package-clip-comments";
+import { finalCutTurnInDateKey, finalCutDeadlinePassed } from "@/src/lib/deadlines";
 import { finalCutHeadline } from "@/src/lib/package-headline";
 import { normalizeToss } from "@/src/lib/package-toss";
 import { loadPackageOfCyclePanel } from "@/src/server/package-of-cycle";
@@ -68,17 +69,19 @@ export function lastName(name: string | null | undefined) {
   return parts[parts.length - 1] || "";
 }
 
+/** An upload time as the Pacific day it counts toward the Final Cut deadline. */
+function uploadTurnInDate(uploadedAt: Date, finalCutDate: Date | null) {
+  return new Date(`${finalCutTurnInDateKey(uploadedAt, finalCutDate)}T00:00:00.000Z`);
+}
+
 export async function resolveActiveCycleNumber(requested?: number | null) {
   const cycles = await ensurePackageProgressDefaults();
   if (requested && cycles.some((cycle) => cycle.cycleNumber === requested)) {
     return requested;
   }
-  const today = new Date().toISOString().slice(0, 10);
+  const now = new Date();
   return (
-    cycles.find((cycle) => {
-      const finalCut = cycle.finalCutDate?.toISOString().slice(0, 10) ?? null;
-      return !finalCut || finalCut >= today;
-    })?.cycleNumber ??
+    cycles.find((cycle) => !finalCutDeadlinePassed(cycle.finalCutDate, now))?.cycleNumber ??
     cycles[cycles.length - 1]?.cycleNumber ??
     1
   );
@@ -339,7 +342,9 @@ async function loadFinalCutGradePanel(input: {
   // Group panel shows the longest grant; each member row uses their own grant.
   const extensionDays = approvedExtensionDaysFor(row);
   const deadline = effectiveDeadline(cycle?.finalCutDate ?? null, extensionDays);
-  const turnedIn = grades.find((grade) => grade.turnedInDate)?.turnedInDate ?? row?.finalCutMediaItem?.createdAt ?? null;
+  const turnedIn =
+    grades.find((grade) => grade.turnedInDate)?.turnedInDate ??
+    (row?.finalCutMediaItem ? uploadTurnInDate(row.finalCutMediaItem.createdAt, cycle?.finalCutDate ?? null) : null);
   const penalty = calculateLatePenalty(deadline, turnedIn);
 
   const graderNames = [
@@ -1145,7 +1150,8 @@ export async function saveFinalCutGrade(input: {
     where: { rowId: row.id },
     select: { graderUserId: true, memberUserId: true, points: true, qualityPoints: true, effortPoints: true }
   });
-  const turnedIn = input.turnedInDate ?? row.finalCutMediaItem?.createdAt ?? new Date();
+  const turnedIn =
+    input.turnedInDate ?? uploadTurnInDate(row.finalCutMediaItem?.createdAt ?? new Date(), cycle?.finalCutDate ?? null);
   const gradeWrites = entries.flatMap((entry) => {
     const status = memberGradeStatus({ requiredGraderIds, scores: scoresAfter, memberUserId: entry.memberUserId });
     if (!status.complete || status.average === null) return [];

@@ -14,6 +14,7 @@ import { prisma } from "@/src/lib/prisma";
 import { participationPointsForDate, type ScheduleKind } from "@/src/lib/school-schedule";
 import { resolveLivestreamPointsForUser } from "@/src/server/livestream-credit";
 import { getCycleNumbers } from "@/src/server/program-settings";
+import { finalCutDeadlinePassed } from "@/src/lib/deadlines";
 
 async function loadScheduleOverrides() {
   const rows = await prisma.schoolCalendarDay.findMany({
@@ -94,7 +95,7 @@ export async function buildGradeSummary(
     const approvedDays = approvedExtensionDaysFor(row, userId);
     const deadline = effectiveDeadline(finalCutDateByCycle.get(cycleNumber) ?? null, approvedDays);
     const hasValidFinalCut = Boolean(row?.finalCutMediaItemId && row.approval?.stage === "APPROVED");
-    const deadlinePassed = Boolean(deadline && now > deadline);
+    const deadlinePassed = finalCutDeadlinePassed(deadline, now);
 
     return unresolvedFinalCutPoints({
       awardedPoints: awarded,
@@ -143,7 +144,7 @@ export async function buildGradeSummary(
         finalCutExcluded: Boolean(gradeByCycle.get(cycleNumber)?.finalCutState),
         checkInPoints: checkIn.earned,
         checkInPossible: checkIn.earned === null ? null : checkIn.possible,
-        finalDeadlinePassed: Boolean(deadline && now > deadline)
+        finalDeadlinePassed: finalCutDeadlinePassed(deadline, now)
       };
     }),
     role

@@ -48,7 +48,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   actor.role = "EXECUTIVE_PRODUCER";
   vi.useFakeTimers();
-  vi.setSystemTime(new Date("2026-09-11T12:00:00Z"));
+  vi.setSystemTime(new Date("2026-09-12T12:00:00Z"));
   db.packageGrade.findMany.mockResolvedValue([]);
   db.packageGrade.findUnique.mockResolvedValue(null);
   db.packageProgressRow.findFirst.mockResolvedValue(null);
@@ -167,7 +167,7 @@ describe("check-in save access and isolation", () => {
     expect(db.packageGrade.upsert).not.toHaveBeenCalled();
   });
   it("rejects edits before the deadline", async () => {
-    vi.setSystemTime(new Date("2026-09-10T23:59:59Z"));
+    vi.setSystemTime(new Date("2026-09-12T06:59:59Z"));
     expect((await POST(saveRequest())).status).toBe(400);
     expect(db.packageGrade.upsert).not.toHaveBeenCalled();
   });

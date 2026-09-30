@@ -99,6 +99,11 @@ Conflating the two silently punishes students for cycles that have not happened
 and work producers have not marked yet. Each check-in counts once that stage's
 deadline has passed; a final cut counts once it has been graded.
 
+**Deadline time:** every cycle date closes at **11:59 PM Pacific** on that day, not
+midnight UTC (`src/lib/deadlines.ts`). One-off exception: the 2026-27 cycle 1 Final
+Cut (due Sep 29) closed at **2 AM Pacific on Sep 30**, because students were moved to
+cycle 2 early; uploads before then count as turned in on Sep 29.
+
 `buildGradeSummary()` returns `percentage: null` and `letter: null` when nothing
 is gradeable — a day-one student has no grade, not a 0% F.
 

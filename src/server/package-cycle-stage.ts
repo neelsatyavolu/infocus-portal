@@ -17,6 +17,7 @@ import {
 import {
   CYCLE_STAGE_FOLDERS,
   studentCanUpload,
+  studentCycleNumber,
   studentStageUnlocked,
   type CycleStageSlug
 } from "@/src/lib/package-cycle-gates";
@@ -81,6 +82,19 @@ export async function resolveActiveCycleNumber(requested?: number | null) {
     cycles[cycles.length - 1]?.cycleNumber ??
     1
   );
+}
+
+/** Active cycle for a student's own tabs; an explicit valid request wins. */
+export async function resolveStudentCycleNumber(userId: string, requested?: number | null) {
+  const active = await resolveActiveCycleNumber(requested);
+  if (requested && active === requested) return active;
+  const previousRow = active > 1
+    ? await prisma.packageProgressRow.findFirst({
+        where: { cycleNumber: active - 1, members: { some: { userId } } },
+        select: { finalCutMediaItemId: true, finalCut: true }
+      })
+    : null;
+  return studentCycleNumber(active, previousRow);
 }
 
 export async function loadStudentCycleRow(userId: string, cycleNumber: number) {
@@ -446,7 +460,7 @@ async function loadFinalCutGradePanel(input: {
 
 export async function loadStudentNavGates(userId: string) {
   const [cycleNumber, unread] = await Promise.all([
-    resolveActiveCycleNumber(null),
+    resolveStudentCycleNumber(userId),
     loadStageCommentUnread(userId)
   ]);
   const locked = { "a-roll": false, "initial-cut": false, "final-cut": false };
@@ -539,7 +553,7 @@ export async function loadCycleStageView(input: {
   reviewStage?: 1 | 2 | 3 | null;
 }) {
   const platformProducer = hasPlatformRole(input.role, "ASSOCIATE_PRODUCER");
-  const cycleNumber = input.rowId ? undefined : await resolveActiveCycleNumber(input.cycleNumber);
+  const cycleNumber = input.rowId ? undefined : await resolveStudentCycleNumber(input.userId, input.cycleNumber);
 
   const row = input.rowId
     ? await prisma.packageProgressRow.findUnique({

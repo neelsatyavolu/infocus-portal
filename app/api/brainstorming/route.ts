@@ -16,6 +16,7 @@ import {
   requireBrainstormViewer,
   serializeBrainstormPackage
 } from "@/src/server/package-brainstorm";
+import { resolveStudentCycleNumber } from "@/src/server/package-cycle-stage";
 import { ensurePackageProgressDefaults } from "@/src/server/package-progress-data";
 import { MAX_CYCLES_PER_SEMESTER } from "@/src/server/program-settings";
 
@@ -52,15 +53,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const requestedCycleNumber = parseCycleNumber(searchParams.get("cycle"));
     const cycles = await ensurePackageProgressDefaults();
-    const today = new Date().toISOString().slice(0, 10);
-    const activeCycleNumber =
-      requestedCycleNumber ??
-      cycles.find((cycle) => {
-        const finalCut = cycle.finalCutDate?.toISOString().slice(0, 10) ?? null;
-        return !finalCut || finalCut >= today;
-      })?.cycleNumber ??
-      cycles[cycles.length - 1]?.cycleNumber ??
-      1;
+    const activeCycleNumber = requestedCycleNumber ?? (await resolveStudentCycleNumber(userId));
 
     let producerCategory: PackageCategory | null = null;
     if (access.role === "ASSOCIATE_PRODUCER") {

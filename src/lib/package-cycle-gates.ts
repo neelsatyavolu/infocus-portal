@@ -55,6 +55,17 @@ export function studentCanUpload(
   return true;
 }
 
+/** Students stay on the previous cycle's tabs until that package's Final Cut is in. */
+export function studentCycleNumber(
+  activeCycleNumber: number,
+  previousRow: { finalCutMediaItemId: string | null; finalCut: boolean } | null
+) {
+  if (activeCycleNumber > 1 && previousRow && !previousRow.finalCutMediaItemId && !previousRow.finalCut) {
+    return activeCycleNumber - 1;
+  }
+  return activeCycleNumber;
+}
+
 export function parseApprovalStage(value: PackageApprovalStage | string | null | undefined): PackageApprovalStage | null {
   if (!value) return null;
   return value as PackageApprovalStage;

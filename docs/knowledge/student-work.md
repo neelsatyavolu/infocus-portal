@@ -10,6 +10,8 @@ Sidebar **The Cycle** (students, and APs who are members of a package):
 | Initial Cut | `/initial-cut` | Polished draft; revisions until stage 1–3 pass |
 | Final Cut | `/final-cut` | After stage 3; the video plus a one-line headline (e.g. "Palo Alto Airport Day brings the community together") and a toss for the anchors; every EP scores each member on quality /25 and effort /25 |
 
+These tabs show the current cycle (the first one whose Final Cut date has not passed). Exception: if the student's package in the previous cycle has no Final Cut yet (no upload and not marked done by a producer), the tabs stay on that previous cycle until the Final Cut is in. Producers still see the new cycle on Groups.
+
 Tabs unlock in order. Later tabs are visible but disabled ("This stage is locked until the previous one is approved"):
 
 - A-roll/B-roll opens when the producer approves Brainstorming (proof of contact).

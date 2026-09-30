@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   approvedExtensionDaysFor,
+  denialReasonFor,
   extensionBadgeLabel,
   extensionRequestAwaitsUser,
   isExtensionGranted,
@@ -175,5 +176,21 @@ describe("extensionBadgeLabel", () => {
   it("falls back to Extension when no days are on record", () => {
     expect(extensionBadgeLabel(0)).toBe("Extension");
     expect(extensionBadgeLabel(undefined)).toBe("Extension");
+  });
+});
+
+describe("denialReasonFor", () => {
+  it("requires a reason to deny", () => {
+    expect(() => denialReasonFor(false, undefined)).toThrow("Add a reason for denying this extension.");
+    expect(() => denialReasonFor(false, "   ")).toThrow("Add a reason for denying this extension.");
+  });
+
+  it("keeps the trimmed reason on a denial", () => {
+    expect(denialReasonFor(false, "  No footage yet  ")).toBe("No footage yet");
+  });
+
+  it("stores no reason on an approval", () => {
+    expect(denialReasonFor(true, "ignored")).toBe("");
+    expect(denialReasonFor(true, undefined)).toBe("");
   });
 });

@@ -6,11 +6,14 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { EXTENSION_REQUESTS_CHANGED_EVENT } from "@/src/lib/package-extensions";
 import { ApproveExtensionDialog, type GrantTerms } from "./approve-extension-dialog";
+import { DenyExtensionDialog } from "./deny-extension-dialog";
 import { GrantExtensionDialog } from "./grant-extension-dialog";
 
 type Approval = {
   userId: string;
   approved: boolean;
+  /** Why this producer denied; empty on approvals. */
+  reason: string;
   name: string | null;
   createdAt: string;
 };
@@ -87,6 +90,7 @@ export default function ExtensionRequestsClient() {
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [approving, setApproving] = useState<ExtensionRequest | null>(null);
+  const [denyingId, setDenyingId] = useState<string | null>(null);
   const [granting, setGranting] = useState(false);
 
   const load = useCallback(async () => {
@@ -137,12 +141,17 @@ export default function ExtensionRequestsClient() {
     }
   }
 
-  async function decideProducer(requestId: string, approved: boolean, terms?: GrantTerms | null) {
+  async function decideProducer(
+    requestId: string,
+    approved: boolean,
+    terms?: GrantTerms | null,
+    reason?: string
+  ) {
     try {
       const response = await fetch("/api/extensions/requests", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind: "producer", requestId, approved, ...(terms ?? {}) })
+        body: JSON.stringify({ kind: "producer", requestId, approved, reason, ...(terms ?? {}) })
       });
       const body = await response.json();
 
@@ -151,6 +160,7 @@ export default function ExtensionRequestsClient() {
       }
 
       setApproving(null);
+      setDenyingId(null);
       window.dispatchEvent(new Event(EXTENSION_REQUESTS_CHANGED_EVENT));
       await load();
     } catch (error) {
@@ -264,6 +274,13 @@ export default function ExtensionRequestsClient() {
                   ? " — waiting for producers"
                   : " — waiting for full group agreement first"}
             </p>
+            {entry.approvals
+              .filter((approval) => !approval.approved && approval.reason)
+              .map((approval) => (
+                <p key={approval.userId} className="mt-1 text-sm text-danger">
+                  Denied by {approval.name}: &ldquo;{approval.reason}&rdquo;
+                </p>
+              ))}
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -300,7 +317,7 @@ export default function ExtensionRequestsClient() {
                   <Check className="mr-1 h-3.5 w-3.5" />
                   Approve
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => void decideProducer(entry.id, false)}>
+                <Button size="sm" variant="ghost" onClick={() => setDenyingId(entry.id)}>
                   <X className="mr-1 h-3.5 w-3.5" />
                   Deny
                 </Button>
@@ -419,6 +436,15 @@ export default function ExtensionRequestsClient() {
             window.dispatchEvent(new Event(EXTENSION_REQUESTS_CHANGED_EVENT));
             await load();
           }}
+        />
+      ) : null}
+
+      {denyingId ? (
+        <DenyExtensionDialog
+          onOpenChange={(open) => {
+            if (!open) setDenyingId(null);
+          }}
+          onConfirm={(reason) => decideProducer(denyingId, false, null, reason)}
         />
       ) : null}
 

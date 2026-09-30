@@ -1218,6 +1218,8 @@ model PackageExtensionApproval {
   requestId String
   userId    String
   approved  Boolean                 @default(true)
+  /// Why this producer denied. Required when approved = false.
+  reason    String                  @default("")
   createdAt DateTime                @default(now())
   request   PackageExtensionRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
   user      User                    @relation("ExtensionApprover", fields: [userId], references: [id], onDelete: Cascade)

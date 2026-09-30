@@ -3,6 +3,7 @@ import { handleRouteError } from "@/src/lib/api-errors";
 import { requireUserId, syncUserProfile } from "@/src/lib/auth";
 import { ok } from "@/src/lib/http";
 import {
+  denialReasonFor,
   hasMemberDisagreed,
   isExtensionGranted,
   isGroupConsentComplete,
@@ -30,7 +31,9 @@ const decisionSchema = z.discriminatedUnion("kind", [
     approved: z.boolean(),
     /** Only the first approving producer sets these; later approvals keep them. */
     grantedDays: z.number().int().min(1).max(30).optional(),
-    grantedUserIds: z.array(z.string().min(1)).max(50).optional()
+    grantedUserIds: z.array(z.string().min(1)).max(50).optional(),
+    /** Required when denying. */
+    reason: z.string().max(1200).optional()
   }),
   z.object({
     kind: z.literal("member"),
@@ -61,6 +64,7 @@ function serializeRequest(entry: {
   approvals: Array<{
     userId: string;
     approved: boolean;
+    reason: string;
     createdAt: Date;
     user: { id: string; name: string | null; email: string | null };
   }>;
@@ -143,6 +147,7 @@ function serializeRequest(entry: {
     approvals: entry.approvals.map((approval) => ({
       userId: approval.userId,
       approved: approval.approved,
+      reason: approval.reason,
       name: userDisplayName(approval.user) || approval.user.email,
       createdAt: approval.createdAt
     }))
@@ -390,6 +395,8 @@ export async function PATCH(request: Request) {
       throw new Error("FORBIDDEN");
     }
 
+    const denialReason = denialReasonFor(payload.approved, payload.reason);
+
     const consents = await prisma.packageExtensionMemberConsent.findMany({
       where: { requestId: payload.requestId },
       select: { userId: true, agreed: true }
@@ -428,8 +435,13 @@ export async function PATCH(request: Request) {
     await prisma.$transaction(async (tx) => {
       await tx.packageExtensionApproval.upsert({
         where: { requestId_userId: { requestId: payload.requestId, userId } },
-        update: { approved: payload.approved },
-        create: { requestId: payload.requestId, userId, approved: payload.approved }
+        update: { approved: payload.approved, reason: denialReason },
+        create: {
+          requestId: payload.requestId,
+          userId,
+          approved: payload.approved,
+          reason: denialReason
+        }
       });
       if (terms) {
         await tx.packageExtensionRequest.update({

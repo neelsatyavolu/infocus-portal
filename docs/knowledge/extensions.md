@@ -26,6 +26,9 @@ an extension** at the top of the page:
    approve these, and an exec can't grant or approve one for their own group.
 4. On approval, every chosen student gets an email.
 
+A producer who denies a request or grant must write a reason. It shows on the request as
+"Denied by <name>" for the group and producers. A member's Decline needs no reason.
+
 Denied requests and grants are collapsed under **Denied** at the bottom of the list.
 
 Late penalties still apply after each student's own extended deadline (20%, then 30% after 14 more days).

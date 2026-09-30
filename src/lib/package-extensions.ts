@@ -201,6 +201,19 @@ export function resolveGrantTerms(input: {
   return { grantedDays, grantedUserIds: wholeGroup ? [] : selected };
 }
 
+/** A producer must say why they deny an extension. Approvals store no reason. */
+export function denialReasonFor(approved: boolean, reason: string | undefined) {
+  if (approved) {
+    return "";
+  }
+
+  const trimmed = reason?.trim() ?? "";
+  if (!trimmed) {
+    throw new Error("Add a reason for denying this extension.");
+  }
+  return trimmed;
+}
+
 /**
  * True when a pending request needs this viewer's response: a member who has
  * not agreed yet, or a producer who may decide, after full group consent, and

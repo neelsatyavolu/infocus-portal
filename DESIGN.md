@@ -109,7 +109,7 @@ Everything builds *in pieces*, not as one block: the container opens, then the t
 - **The icon turns.** Whenever the mark appears or leaves, it rotates ±30° and scales to 80–86%, as if a lens were focusing.
 - **Wipes, not slides.** Bars reveal with a clip/wipe from the tile outward. They don't fly in from off-screen.
 - Nothing bounces except the red dot. No spins, no blur-in, no typewriter text.
-- Entrances take about 0.8 s and exits about 0.7 s. Leave on-screen time to the editor. The templates keep their in/out timing however long the clip is stretched.
+- Entrances take about 1.0 s, with the pieces landing one after another (tile, then plate, strip, name and role) so each step reads. Exits take about 0.7 s. Leave on-screen time to the editor. The templates keep their in/out timing however long the clip is stretched.
 
 ---
 
@@ -122,11 +122,12 @@ All are 1920 × 1080. MOGRT (Premiere) and `.drfx` (DaVinci Resolve) versions ma
 - Name: Lexend SemiBold 45 px, Soft White. Role: Medium 20.8 px, ALL CAPS, +11% tracking.
 - Bottom-left: 150 px from the left, bottom edge on y = 972.
 - **In:** the tile opens from its center, then the icon turns into place, the plate wipes out, the name rises in, and the strip and role follow. **Out** is the reverse, ending with the icon turning away and the tile closing.
+- **Length:** 5.3 s from open to close by default: about 1.0 s in, 3.5 s readable, and 0.7 s out. The templates can be stretched, and the in and out keep their timing.
 - A ready-made transparent clip for everyone on staff is in `Roster (ProRes)`.
 
 ### Dual third (`06 Dual Thirds`)
 - Two lower thirds, the right one mirrored (tile on the outside), each 290 px in from its edge so it sits under its anchor.
-- Both plates share one width (the wider of the two) so the pair looks balanced.
+- Both plates share one width (the wider of the two) so the pair looks balanced. Same timing and 5.3 s default length as the lower third.
 
 ### Announcement (`07 Announcements`)
 - A full-frame Ink card, made to be seen on the set TVs (about 58% size), so the type is large.
@@ -138,6 +139,7 @@ All are 1920 × 1080. MOGRT (Premiere) and `.drfx` (DaVinci Resolve) versions ma
 ### TV standby (`09 TV Standby`)
 - Ink with the icon centered (300 px). It's exactly the first and last frame of the announcement.
 - The Left/Right set TVs show this whenever no announcement is up, so they **never show the blue key color**. On the TVs, an announcement reads as logo → announcement → logo, with no pop.
+- **Live setup:** the TriCaster holds the sets and this still; the announcements come from a Premiere laptop over NDI. In that Premiere sequence, the TV Standby sits on V1 under the announcements for the whole timeline, so the feed is always opaque and never flashes black before or after an announcement.
 
 ### Follow InFocus (`08 Follow InFocus`)
 - A corner card at the **top left** (x 48, y 40): Ink tile + Ink "Follow InFocus" plate with the curved top-right corner (the one graphic that keeps it), with a Green panel below listing the handles in Soft White Medium 26 px:
@@ -147,7 +149,7 @@ All are 1920 × 1080. MOGRT (Premiere) and `.drfx` (DaVinci Resolve) versions ma
 - Transparent ProRes 4444, 7 s. It builds like a lower third.
 
 ### Intro (`03 Intro & Outro`)
-- 13.8 s, 1080p. A fast, music-cut montage of our own footage (spirit week, packages, drone, class photos) that lands on the 2026 wordmark on the music hit.
+- 13.8 s, 1080p. A fast, music-cut montage of our own footage (spirit week, packages, drone, class photos) that lands on the 2026 wordmark on the music hit. It holds the logo, then fades to black over the last 0.5 s as the music ends, so the switcher cuts from black to the studio.
 
 ### Outro (`03 Intro & Outro`)
 - On black: the Soft White wordmark (1180 px wide) reveals left to right with the original InFocus outro music, and the red dot lights on the music's peak (1.32 s).
@@ -160,8 +162,9 @@ All are 1920 × 1080. MOGRT (Premiere) and `.drfx` (DaVinci Resolve) versions ma
 
 Three still backgrounds (1920 × 1080 PNG) for the switcher, keeping the classic three-camera layout:
 
-- **Middle:** two-anchor desk, with a wide window onto **Paly's Tower Building** behind.
+- **Middle:** two-anchor desk, with a wide window onto **Paly's Tower Building** behind. The window and slat walls run to the top of frame, with no header bar across the top. The desk follows the 2024 set's footprint (deep top, ends curving toward the camera) so the anchors' arms rest on it instead of floating.
 - **Left / Right:** angled views (about 28°) of the same room with the curved round desk, each with a TV on a floor stand. The TV screens are pure key blue `#0047BB`, at Left x 57–1176, y 114–739 and Right x 743–1860, y 110–738, the same pixels as the old sets.
+- **No header bar on any angle:** the windows and slat walls run past the top of frame in all three shots, with no ceiling soffit.
 - Materials: warm light-wood slat walls with thin InFocus Green reveals, gray desk with a curved front edge, and daylight through the windows. The brand colors only appear as accents, so the anchors stand out.
 
 ---

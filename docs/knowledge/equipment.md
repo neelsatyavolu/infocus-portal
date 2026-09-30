@@ -2,6 +2,8 @@
 
 Host: `equipment.infocuspaly.com` (also `/equipment` on the main Portal origin).
 
+Pages: **Checkout** (`/equipment`), **Request** (`/equipment/request`), and **Manage** (`/equipment/manage`, shown as **Dashboard sign-in** to people who can't open it). **Back to InFocus Portal** returns to the main dashboard. Managers also reach Manage from the Equipment card on `/managers` (`managers.md`).
+
 Checkout page and requests are public; using checkout requires a separate manager Google sign-in. Manage uses Portal sign-in (Google, email code, or a registered manager passkey). There are no reservations.
 
 ## Checkout (kiosk)
@@ -22,11 +24,13 @@ Passcodes and passkey unlock are no longer accepted for checkout. Existing main 
 
 Anyone with the URL. No Portal login.
 
-Give your name, student ID, email, and pick one or more available items. Managers get an email. Approving a request **holds** those items for that student ID — checkout using the matching student email + code completes the hold. Nobody else can take a held item.
+Open `/equipment/request`. Give your name, student ID, email, and pick one or more available items (search by name or code). Producers and appointed equipment managers get an email. Approving a request **holds** those items for that student ID — checkout using the matching student email + code completes the hold. Nobody else can take a held item.
+
+Requests show **Pending**, **Approved**, **Denied**, or **Fulfilled** (approved and every held item checked out). **Approve** only appears while every item is still in, unheld, and not archived. A manager can still **Deny** an approved request while none of its items are out; that releases its holds.
 
 ## Manage
 
-Portal sign-in (same account as the rest of Portal; Google, email code, or a registered manager passkey). Use **Dashboard sign-in** on the equipment page when signed out. Associate producers and up, plus extra managers producers appoint.
+Portal sign-in (same account as the rest of Portal; Google, email code, or a registered manager passkey). Use **Dashboard sign-in** on the equipment page when signed out. Associate producers and up, plus extra managers producers appoint. Anyone else who signs in is sent to the access-denied page.
 
 | Tab | What it does |
 |---|---|
@@ -38,13 +42,13 @@ Portal sign-in (same account as the rest of Portal; Google, email code, or a reg
 
 Item names may be duplicated; only inventory codes must be unique. Inventory codes can contain multiple words. The entire code identifies the item: `peter griffin` and `peter pan` are distinct codes. Leading and trailing spaces are ignored; an exact duplicate full code on another active item is blocked. Archiving frees the code for reuse while retaining the archived item and its checkout history. Archived records receive a unique archive suffix on their stored code; older archived codes are released automatically when reused.
 
-Appointed extra managers can run inventory and requests. Only producers (AP+) can appoint other managers.
+Appointed extra managers can use every Manage tab (Out, Inventory, Requests, Overdue, and their own passkeys). Only producers (AP+) can appoint other managers; appointed managers are listed on the Equipment card on `/managers`.
 
 The Out and Overdue tables show **SD card (batch)** as Yes/No; older checkouts without a declaration show a dash. Multiple items in the same batch share the same answer. This records that a card was taken, not a separate coded inventory item or an independently tracked SD card return. The declaration stays in checkout history when equipment is returned.
 
 ## Overdue mail
 
-Once an item has been out 72 hours, Portal emails the borrower (if we have an email) and every equipment manager. That repeats daily until the item is returned.
+Once an item has been out 72 hours, Portal emails the borrower (if we have an email) and every producer and appointed equipment manager. That repeats daily until the item is returned.
 
 ## Touch ID & passkeys
 

@@ -2,15 +2,21 @@
 
 ## Class feed (`/announcements`)
 
-Slack-backed class announcements for signed-in Portal users. Email/push follow notification settings.
+Posts from the class Slack #announcements channel, grouped by day, for signed-in Portal users. Each post links to Slack, and attached files open through the Portal. Slack posts do not send Portal email or push notifications.
 
 ## Submit (`/submit-announcement`)
 
 Public form (no Portal login). Anyone can request an InFocus announcement / Friday Schoology update. Members review before it airs.
 
+The form asks for email, full name, who you are (Paly student, PAUSD employee, parent/guardian, or community member), where it should run (**InFocus only**, **Schoology Update only**, or **Both**), the announcement text, start and end dates, an optional Google Drive media link, and notes. You must agree to the announcement policy. An announcement can run for at most **four consecutive show days**. InFocus may accept, reject, or edit it for grammar, clarity, and unprotected speech.
+
 ## Submitted (`/announcements/submitted`)
 
-Producer inbox of those requests. The scholarship resource notice is for **both InFocus and Schoology** and appears in **Permanent** with no expiration and is eligible for PA and teleprompter scripts (dated announcements take priority when slots are limited). Producers, including associates and the adviser, can **Delete** a submission after confirming. Deleted submissions disappear from the inbox, shared view, and future script selection, including Google Sheet imports; existing saved scripts are unchanged. Producers can invite extra viewers with a time-limited link (email or copy link). **College Visits** (left of Invite) opens the college-visit Google Sheet in a new tab.
+Inbox of those requests, open to everyone signed in. Sections: **Permanent**, **Air today**, **Air tomorrow**, **Upcoming**, **Schoology only**, **Ended** (collapsed), and **Other**. Copy one announcement or a whole section. **Submit** opens the public form.
+
+The scholarship resource notice is for **both InFocus and Schoology** and appears in **Permanent** with no expiration and is eligible for PA and teleprompter scripts (dated announcements take priority when slots are limited). Producers (associate producer and up, including the adviser) can **Delete** a submission after confirming. Deleted submissions disappear from the inbox, shared view, and future script selection, including Google Sheet imports; existing saved scripts are unchanged.
+
+Executive producers and super admin can **Invite** extra viewers: a link that lasts 30 days or 1 year, copied or emailed to up to 20 addresses. The link opens a read-only view (`/announcements/shared`) without signing in. **College Visits** (left of Invite) opens the college-visit Google Sheet in a new tab.
 
 ## PA (`/announcements/pa`)
 

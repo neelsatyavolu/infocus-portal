@@ -120,6 +120,7 @@ export function searchAssistantDocs(query: string, audience: AssistantAudience =
   for (const meta of listAssistantDocs(audience)) {
     const markdown = readFileSync(repoPath(meta.path), "utf8");
     const lower = markdown.toLowerCase();
+    const titleLower = meta.title.toLowerCase();
     let score = 0;
     let firstIndex = -1;
     for (const term of terms) {
@@ -127,7 +128,8 @@ export function searchAssistantDocs(query: string, audience: AssistantAudience =
       if (index === -1) {
         continue;
       }
-      score += 1;
+      // A term in the doc's title outranks a passing mention elsewhere.
+      score += titleLower.includes(term) ? 3 : 1;
       if (firstIndex === -1 || index < firstIndex) {
         firstIndex = index;
       }

@@ -2,21 +2,28 @@
 
 Route: `/publishing-queue`. Producers manage it. Appointed website managers can open it read-only (also from **Managers → Website**).
 
-A Final Cut upload does **not** auto-queue. A producer clicks **Send to queue**.
+A Final Cut upload does **not** auto-queue. A producer clicks **Send to queue** on the package's Final Cut page (`/groups/<package>/final-cut`), next to its headline and toss. The same button reads **Remove from queue** once it is queued.
 
 **Auto-assign** fills the next upcoming show that currently has no package. It skips **special shows** (a show day with a calendar name, like "Spirit Week Day 1 Recap"). Their names appear next to the date. Producers can still drag a package onto one.
 
-Producers can **drag** a package onto a show. Max **2** packages per show. Auto-assign never stacks two on the same show.
+Producers can **drag** a package onto a show. Max **2** packages per show. Auto-assign never stacks two on the same show. Each show heading shows its count (for example `1/2`).
 
 After a show day has passed, that date leaves the live queue. **Past shows** opens those air dates (newest first) and their packages. Producers can still move, download, or remove them.
 
 Queue cards show the package topic and the Final Cut headline (when the students gave one), with the thumbnail, above the YouTube status, air-date selector, and action buttons. Controls wrap on narrow screens, including in **Past shows**.
 
-**Add package** can queue a custom titled video (cycle 0, not a roster group).
+- **Air-date selector:** pick a show, or **Next empty show**. Full shows are greyed out.
+- **Download:** downloads the Final Cut file.
+- **Remove:** takes the package off the queue.
+- **YouTube status** (pending, uploading, processing, published, failed): opens the package page (`/publishing-queue/<package>`) with the status and, once published, the video, **Watch on YouTube**, and **Copy embed code**.
+
+**Add package** lists packages with a Final Cut that are not queued yet. **Custom package** queues any video with a title you type (cycle 0, not a roster group). The file uploads to InFocus Drive.
+
+The Master Calendar and The Show list each show's queued packages.
 
 ## YouTube and website managers
 
-**Managers** lets producers appoint registered members as website managers. Managers receive an email when a package is ready on YouTube, with its title, air date, watch link, and embed code. The email also opens a package page with video playback and **Copy embed code**. Website managers can also open the queue **read-only**: they see which packages air on each show (including **Past shows**) and open each package's page from its YouTube status. They cannot add, move, download, or remove packages, see unqueued packages, or manage the manager list. This assignment does not grant producer permissions or access to Groups.
+The **Managers** button (producers) lets producers appoint registered users as website managers, or remove them. Managers receive an email when a package is ready on YouTube, with its title, air date, watch link, and embed code. The email also opens a package page with video playback and **Copy embed code**. Website managers can also open the queue **read-only**: they see which packages air on each show (including **Past shows**) and open each package's page from its YouTube status. They cannot add, move, download, or remove packages, see unqueued packages, or manage the manager list. This assignment does not grant producer permissions or access to Groups.
 
 When YouTube publishing is configured, queued packages upload automatically as **unlisted** on their assigned air date (Pacific time; default start is midnight). The YouTube title is the Final Cut headline, or the package topic when there is no headline. Uploading and YouTube processing take time. Emails are sent only after the video is processed, unlisted, and embeddable. Queue cards show publication status and errors; published packages remain accessible from **Past shows**.
 

@@ -8,13 +8,15 @@ On `/sign-in`, choose **Continue with Google** to use your registered Google acc
 
 Email sign-in uses your existing Portal account and permissions. If your email does not have access, ask a producer to add you in Admin → People.
 
-**Add a person (preferred):** Admin → People → Full name + email → **Add person**. Optionally email them an invite (on by default). They sign in with that email address. No special paste syntax.
+Google and email sign-in keep you signed in on that browser for 30 days. One sign-in covers the Portal, grades, teleprompter, and equipment manage hosts. **Sign out** is at the bottom of the sidebar. The first time you sign in, Portal sends you to `/onboarding` (nickname and notification channels; see `notifications.md`).
 
-**Access request:** The Google sign-in flow directs unregistered users to Access restricted (`/access-denied`) to request access. Users signing in with email who do not have an account should ask a producer to add them. Admins review Access Requests on `/admin` (approve all, or one by one). Approve emails them a sign-in link and creates their account.
+**Add a person (preferred):** Admin → People → Full name + email → **Add person**. Optionally email them an invite (on by default). They sign in with that email address. No special paste syntax. The invite email is titled “You're invited to InFocus Portal”. Adding someone also sets up their InFocus Drive account.
+
+**Access request:** The Google sign-in flow directs unregistered users to Access restricted (`/access-denied`) to request access. Users signing in with email who do not have an account should ask a producer to add them. Admins (executive producers and up) review Access Requests on `/admin`: **Approve All Pending**, or **Approve** / **Deny** one by one. Approve creates their account and emails them a sign-in link. Deny also emails them. A request from an email that already has access is approved automatically.
 
 Nicknames are the name shown around Portal (rosters, Groups, calendar, emails). Google's full name stays on the account separately. Edit the nickname on the same People list.
 
-**Remove** deletes their Portal user. Work they created stays; the author shows as a deleted user.
+**Remove** deletes their Portal user, drops any producer role and any approved access request, and removes their InFocus Drive account, so they cannot sign back in until someone adds them again. Work they created stays; the author shows as a deleted user. You cannot remove yourself. Use **Search people** to find someone.
 
 Super admin / adviser can also ask the Portal assistant to add a person or set a nickname; those still need an **Approve** on the chat card.
 
@@ -35,12 +37,12 @@ Pick a person already in People, then choose Associate Producer, Executive Produ
 
 ## Other Admin controls
 
-- **Usage cards** (users, workspaces, media, storage) load in the background. People, access requests, and producer roles show first.
-- **Package cycles per semester** — how many cycles exist (also editable on `/package-cycles`).
+- **Usage cards** (users, workspaces, media, storage, comments, active share links, pending access requests) load in the background. People, access requests, and producer roles show first.
+- **Package cycles per semester** — how many cycles exist, 1 to 8 (also editable on `/package-cycles`). It sets the progress sheet, cycle tabs, and the most points in the packages grade category. Executive producers and up can save it.
 - **Class Board cycle** — which cycle `/class-board` shows. **Current cycle (automatic)** is the default; executive producers and above can pin any cycle.
-- **Backups** — hourly copies of Portal database data (people, packages, grades, calendar, equipment). Super admin and adviser only. Download from Admin. Kept 7 days. Not InFocus Drive videos. Restore is download + `psql` into an empty database after `prisma migrate deploy` — there is no restore button.
-- **Danger zone** — wipe package grades, history, and progress for cycles 1–4. Type `RESET CYCLES`. Super admin / adviser only. Projects are not deleted.
+- **Backups** — hourly copies of Portal database data (people, packages, grades, calendar, equipment). Super admin and adviser only. **Backup now** queues an extra copy; refresh in a minute to see it. The three newest show first (**Show more** for the rest). Download from Admin. Kept 7 days. Not InFocus Drive videos. Restore is download + `psql` into an empty database after `prisma migrate deploy` — there is no restore button.
+- **Danger zone** — **Reset all cycles** wipes every package grade, grade history, and Package Cycle roster row, and clears each cycle's focus and stage dates. Type `RESET CYCLES` to confirm. Super admin / adviser only. Projects are not deleted. It cannot be undone.
 
 ## View as
 
-Super admin can click their name in the sidebar and view Portal as any user. Limited View as grants (env `VIEW_AS_LIMITED_ACTORS`, format `actor=target|target;actor2=target`) let a named account View as only the listed accounts.
+Super admin and the adviser (the env accounts) can click their name in the sidebar, search by name or email, and view Portal as any user. Portal opens `/grades` as that person. What you do while viewing counts as that person. View as ends after 12 hours, or press **Stop** in the same dialog. Limited View as grants (env `VIEW_AS_LIMITED_ACTORS`, format `actor=target|target;actor2=target`) let a named account View as only the listed accounts.

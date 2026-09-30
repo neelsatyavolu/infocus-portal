@@ -1,8 +1,8 @@
 # Passwords
 
-Route: `/passwords`. Associate producers, executive producers, advisers, and super admins. Open it from the **key icon** at the bottom of the sidebar, next to sign out. Students never see it, and View as a student hides it.
+Route: `/passwords`. Associate producers, executive producers, advisers, and super admins. Open it from the **key icon** at the bottom of the sidebar, next to sign out. Students never see it, and View as a student hides it. Opening `/passwords` without access shows Access restricted.
 
-A shared vault for InFocus logins (YouTube, Instagram, school accounts, and so on).
+A shared vault for InFocus logins (YouTube, Instagram, school accounts, and so on). **Search passwords…** filters the list. Each row has copy buttons for the username, password, and current 2FA code, and a link to the website.
 
 ## What each entry holds
 

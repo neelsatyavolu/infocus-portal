@@ -95,6 +95,10 @@ export async function DELETE(
         await tx.platformRoleAssignment.deleteMany({
           where: { email: existing.email }
         });
+        // Approved access requests allowlist the email; leaving it would let them sign back in.
+        await tx.allowedSignupEmail.deleteMany({
+          where: { email: existing.email }
+        });
       }
 
       await tx.user.delete({

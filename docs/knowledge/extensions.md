@@ -4,14 +4,24 @@ Route: `/extension-requests`. `/extensions` redirects here.
 
 The old 14-day allowance pool is gone.
 
-1. A student requests for the **whole package group**.
-2. Every group member must agree. Any disagreement denies it.
-3. Then **two distinct producer approvals**. Any one denial blocks it.
+1. A student requests for the **whole package group**: pick the cycle, how many days (1–30), and
+   an optional reason, then **Submit**. You must be on a package group for that cycle. A group can
+   have only one pending request at a time.
+2. Every group member must agree (**I agree** / **Decline**). The student who filed it counts as
+   agreeing. Any disagreement denies it.
+3. Then **two distinct producer approvals**. Any one denial blocks it. Executives, the adviser, and
+   super admin can decide any request; an associate producer only decides requests for groups they
+   are assigned to and not a member of. **Approve** stays disabled until every member has agreed.
    - The **first** producer to approve picks how many days to grant (any number from 1–30, not
      just what was requested) and which group members get it (default: everyone).
    - The second producer sees those terms read-only and approves or denies them as-is.
 4. On approval, the group's extension flag is set. Only the chosen members get the extra days;
    everyone else keeps the original final cut deadline.
+
+Student requests send no email at any step. Watch the list and the sidebar count below.
+
+Who sees what: producers (associate and up) see every request. Students see requests for their
+own package groups. Each request shows the group agreement tally and each producer's vote.
 
 ## Producer grants
 
@@ -29,7 +39,8 @@ an extension** at the top of the page:
 A producer who denies a request or grant must write a reason. It shows on the request as
 "Denied by <name>" for the group and producers. A member's Decline needs no reason.
 
-Denied requests and grants are collapsed under **Denied** at the bottom of the list.
+The header counts pending, approved, and denied requests. Denied requests and grants are
+collapsed under **Denied** at the bottom of the list.
 
 Late penalties still apply after each student's own extended deadline (20%, then 30% after 14 more days).
 

@@ -10,9 +10,17 @@ Per cycle: 50 pts final cut + 20 pts check-ins + 40 pts livestream (5 × 8 hours
 
 Semester 1 livestream grades release **November 30 at midnight Pacific**. Before then, livestream scores show **—** and contribute neither earned nor possible points to grades or the Grade Editor Total/CSV defaults. Completed hours remain visible as **x/8 hours completed** in the Grade Editor and student grade views. On release, completed hours count at 5 points/hour, capped at 40 (appointed livestream managers instead get 10 points per managed completed livestream, capped at 4 = 40); an empty tracker remains ungraded. Semester 2 timing is unchanged.
 
-**Check-ins** (4 × 5 = 20 per cycle; S1 reporters 60, S2 80): pitching, proof of contact, a-roll/b-roll, initial cut. After that stage's deadline, PoC and Initial Cut earn credit from **submission**. **A-roll/B-roll requires producer approval**; uploaded work awaiting review or needing revisions earns 0/5 until approved. Pitching has no upload — being on the package is the turn-in. An approved extension moves every check-in deadline for the students it covers by the granted days (an October 14 Initial Cut deadline with a 10-day extension becomes October 24), so nothing is docked before that date. Grade Editor shows the semester max and only docks missed due work, not future cycles. Final cut is not a check-in.
+**Check-ins** (4 × 5 = 20 per cycle; S1 reporters 60, S2 80; associates 40 / 60): pitching, proof of contact, a-roll/b-roll, initial cut. After that stage's deadline, PoC and Initial Cut earn credit from **submission**. PoC counts as submitted once all three proof-of-contact images and a Google Doc brainstorm link are in. **A-roll/B-roll requires producer approval**; uploaded work awaiting review or needing revisions earns 0/5 until approved. Pitching has no upload — being on the package is the turn-in. An approved extension moves every check-in deadline for the students it covers by the granted days (an October 14 Initial Cut deadline with a 10-day extension becomes October 24), so nothing is docked before that date. Grade Editor shows the semester max and only docks missed due work, not future cycles. Final cut is not a check-in.
 
-**Final cut grade:** graded per member. Every executive producer scores each member on quality (out of 25) and effort (out of 25), 50 total. A member's official score is the average of the executives' totals, to a tenth. Associates do not grade. After the effective deadline, missing approved final cut is 0/50. After the first graded cut, if any member is below 75% the group may upload one second revision; those members are re-scored and capped at 37/50, and members at 75% or above keep their grade. Late: 20% after extension deadline, 30% more than 14 days late.
+**Final cut grade:** graded per member on the Groups **Final Cut** tab (`/groups`). Every executive producer and the super admin scores each member on quality (out of 25) and effort (out of 25), 50 total. The adviser and associates do not grade. A member's score counts only after every one of those graders has scored them; it is the average of their totals, to a tenth. After the effective deadline, missing approved final cut is 0/50. After the first graded cut, if any member is below 75% the group may upload one second revision (otherwise a Final Cut cannot be replaced); those members are re-scored and capped at 37/50, and members at 75% or above keep their grade. Uploading that replacement Final Cut wipes every executive's quality and effort scores on the package, so graders score the re-scored members again; their earlier grade stays until all graders finish. Late: 20% after the member's extension deadline, 30% more than 14 days late; a second revision does not remove the 30%. Lateness is measured from the Final Cut upload time, or the **Turned In** date in Grade Editor.
+
+**Associate quota:** associates need 2 packages in semester 1 and 3 in semester 2. A cycle they are not on counts for nothing, not 0. Only their best required cycles count toward the grade, so an extra package can replace a weaker one. If they can no longer reach the quota once the remaining Final Cut deadlines pass, the missing cycles count as 0. Every cycle counts for regular reporters.
+
+## Publishing cycle grades
+
+Publish on the Groups Final Cut tab (**Publish Grades**, with one shared cycle note up to 2,000 characters) or in Grade Editor (**Publish** on a row, or **Publish All** for every row with a Final Cut score). Until then, the student's cycle card on `/grades` says **In progress** and hides the producer note and the **View package feedback** link. Publishing does not change the score: a member's Final Cut points already count in their grade, and show on that card, as soon as every grader has scored them. Newly published students are notified per their Settings: **Publish Grades** on Groups sends email only; Grade Editor **Publish** sends email and browser push.
+
+Changing a published grade in Grade Editor unpublishes it and marks it **Revised**; publish it again and the student sees **Published · revised**. The warning icon beside **Unpublish** opens that row's publish history.
 
 Student view: `/grades` (also `grades.infocuspaly.com`) — Home, Packages, Participation, Other, All Grades with what-if.
 
@@ -23,11 +31,13 @@ In Grade Editor cycle tabs, **— Ungraded** means no grade has been assigned; *
 **Final Cut** scores in Grade Editor cycle tabs are typed text fields, not a dropdown (the dropdown is only for check-in columns). To mark a final cut:
 - **Exempt:** type a backslash `\` in the Final Cut field.
 - **Ungraded:** type `-` or clear the field.
-- **Scored:** type a number.
+- **Scored:** type a number from 0 to 50 (rounded to a whole number). This replaces the averaged score.
 
-Exempt final cuts do not appear in the missing-grade report.
+Each cycle tab also has **Official** (after the late penalty), **Feedback** for each member, **Turned In** (the cycle needs a Final Cut date on Package Cycles first), and a **Published** / **Unpublished** / **Revised** status. Stat cards show Cycle Average, Cycle Percentage, Published, and Late Submissions. The toolbar has **Refresh**, **Download CSV**, **Save All**, and **Publish All**.
 
-The **Total** tab's editable score fields accept the same `-` and `\` shortcuts, including Check-Ins, Livestream, Final, and Extra. These are temporary calculation/CSV adjustments, not saved official grade edits. CSV exports distinguish ungraded and exempt values and exclude their possible points. In the **Student** tab's what-if fields, `-` and `\` simulate ungraded/exempt; clearing a field restores the official score.
+**Missing Grades** lists, for every cycle that has at least one grade, people with no grade (**Not entered**) or an unpublished one (**Unpublished**). Exempt final cuts do not appear. **Exclude People** hides people from this list in your browser only.
+
+The **Total Grade** tab's editable score fields accept the same `-` and `\` shortcuts, including Check-Ins, Livestream, Final (the portfolio), and Extra. These are temporary calculation/CSV adjustments, not saved official grade edits. CSV exports distinguish ungraded and exempt values and exclude their possible points. **Notes** saves a note per reporter. In the **Student** tab's what-if fields, `-` and `\` simulate ungraded/exempt; clearing a field restores the official score.
 
 Producer view: `/grade-editor` — enter scores; Student tab is one reporter's All Grades table (what-if does not save). Super admin / adviser can also ask the Portal assistant to look up a grade or propose a quality / portfolio change; that still needs **Approve** on the chat card.
 
@@ -35,13 +45,13 @@ Producer view: `/grade-editor` — enter scores; Student tab is one reporter's A
 
 50 pts/week: Monday PA 10, Tuesday class 20, Thursday class 20. Show days (Wed/Fri) none. Holidays 0. First gradeable day: Tuesday, August 18, 2026.
 
-The Grade Editor **Total** tab shows Participation as **earned/possible (X/Y)** for the current semester. Both numbers include only graded days in weeks that have fully ended: Sunday through 11:59:59 p.m. Pacific stays excluded, then the week is included at Monday midnight. Current/future weeks, ungraded days, holidays, and nonparticipation days contribute to neither number. Before any eligible grades exist, the column shows 0/0. These points also appear in the Total tab’s points total and CSV export. Edit participation through `/participation`.
+The Grade Editor **Total Grade** tab shows Participation as **earned/possible (X/Y)** for the current semester. Both numbers include only graded days in weeks that have fully ended: Sunday through 11:59:59 p.m. Pacific stays excluded, then the week is included at Monday midnight. Current/future weeks, ungraded days, holidays, and nonparticipation days contribute to neither number. Before any eligible grades exist, the column shows 0/0. These points also appear in the Total Grade tab’s points total and CSV export. Edit participation through `/participation`.
 
-Producers enter scores on `/participation`. Full marks post immediately. A dock below that day's max needs a **second** producer (or the adviser) to approve. Pending docks stay off the student gradebook.
+Associate producers and above enter scores on `/participation`, one week at a time (**Previous week** / **Next week**). **Full** under a day gives everyone full marks that day; **Full marks** on a row fills that student's week. The comment button on a cell adds a note (it saves only with a score). Full marks post immediately. A dock below that day's max needs a **second** producer to approve: any associate, executive, adviser, or super admin other than the one who entered it, under **Pending participation** (**Approve** / **Deny**). Executives, the adviser, and super admin are emailed when a request is waiting. Pending docks stay off the student gradebook.
 
 ## Portfolio (10%)
 
-Final portfolio out of 100.
+Final portfolio out of 100. Grade Editor has no portfolio column to save it; the super admin or adviser sets it through the Portal assistant (with **Approve**). The Total Grade tab shows it as **Final**.
 
 ## Who is on the roster
 

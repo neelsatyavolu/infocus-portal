@@ -2,9 +2,13 @@
 
 Route: `/groups`. Producer work happens here, not on student cycle tabs.
 
-Tiles (home): topic, members, assigned AP/EP, current/pending stage, 7-segment bar: Pitch, Contact, A/B-roll, Initial 1, Initial 2, Initial 3, Final. Initial Cut bars follow current approval stages. When a cut needs revisions, the package stays at the stage that requested them, and reviewers stop seeing **Needs you** until the group uploads a new version. Once a Final Cut is uploaded, each executive or super admin who has not scored it sees **Pending Grade From You** next to its status (even when it says **Final Cut Queued**) until they score every member or the Final Cut is graded. Unapproving moves the bars back to the reopened stage. Upload versions and check-in credit do not complete approval bars. Pending-review badges include whole elapsed hours since the latest submission became ready (for example, **A-roll/B-roll Pending Review for 36h**). Older media uses its upload time when readiness history is unavailable; statuses with no known timestamp omit the duration. Groups with an approved extension show its length, such as **10 Day Extension** (the longest grant on the group); an extension with no approved days on record shows **Extension**. Opening a tile goes to the pending stage. Packages assigned to you stay in the main list; everything else sits under the collapsed **Other groups**. Executives, the adviser, and super admin also keep Initial Cut stage 3 and Final Cut packages in the main list (the adviser also keeps stage 2), until the Final Cut is both graded and queued, when it moves back to **Other groups**. Bottom tabs switch stages. Each tile has a **Notes** button to the left of the stage label and check-in score for producers who can act on that group. It opens the same Notes field as Package Cycle; click Save to update it in both places. Assigned associates can edit notes on packages they are not members of; executives, the adviser, and super admin can edit any group’s notes.
+Tiles (home): topic, members, assigned AP/EP, current/pending stage, 7-segment bar: Pitch, Contact, A/B-roll, Initial 1, Initial 2, Initial 3, Final. Initial Cut bars follow current approval stages. When a cut needs revisions, the package stays at the stage that requested them, and reviewers stop seeing **Needs you** until the group uploads a new version. Once a Final Cut is uploaded, each executive or super admin who has not scored it sees **Pending Grade From You** next to its status (even when it says **Final Cut Queued**) until they score every member or the Final Cut is graded. Unapproving moves the bars back to the reopened stage. Upload versions and check-in credit do not complete approval bars. Pending-review badges include whole elapsed hours since the latest submission became ready (for example, **A-roll/B-roll Pending Review for 36h**). Older media uses its upload time when readiness history is unavailable; statuses with no known timestamp omit the duration. Groups with an approved extension show its length, such as **10 Day Extension** (the longest grant on the group); an extension with no approved days on record shows **Extension**. Opening a tile goes to the pending stage. Packages assigned to you stay in the main list; everything else sits under the collapsed **Other groups**. Executives, the adviser, and super admin also keep Initial Cut stage 3 and Final Cut packages in the main list (the adviser also keeps stage 2), until the Final Cut is both graded and queued, when it moves back to **Other groups**. On `/groups`, the bottom tabs switch cycles. Inside a group (`/groups/<group>/<stage>`), the bottom tabs switch stages: ✓ marks a finished stage and a dot marks the pending one. Each tile has a **Notes** button to the left of the stage label and check-in score for producers who can act on that group. It opens the same Notes field as Package Cycle; click Save to update it in both places. Assigned associates can edit notes on packages they are not members of; executives, the adviser, and super admin can edit any group’s notes.
 
-Executives, adviser, and super admin see every package. Associates see assigned groups. The Portal assistant can look up the same Groups list (current stage and status) for whoever is chatting. Producers can also ask which packages they produce — that is assigned producer, not student membership. Asking about a package also surfaces stage comments (including approval notes and clip notes), uploads, proof of contact, and player comments on the cuts.
+Two views: **Tiles** (above) and **Progress**, a table grouped by assigned executive producer with each package's associate, stage track, contact count (proofs 0/3, doc, approved), and check-in score. In Progress, executives, the adviser, and super admin can click a stage to mark it complete or incomplete; changes save automatically. The header counts groups, how many need you, and how many are done. **Edit roster** opens `/package-progress`.
+
+Tile statuses, in workflow order: **Pitch Pending**, **Brainstorming**, **Brainstorm Pending Review**, **A-roll/B-roll Pending**, **A-roll/B-roll Pending Review**, **A-roll/B-roll Needs Revisions**, **Initial Cut Pending**, **Initial Cut V1 Pending Review** (or a later version), **Initial Cut Version 2 Needs Revisions**, the adviser / executive wait labels, then **Final Cut Pending**, **Final Cut Submitted**, **Final Cut Queued**, **Final Cut Graded**. Executives, the adviser, and super admin also see **Needs you** when the current step is theirs (the adviser at Stage 2; executives at Stage 3 and at Stage 1, Brainstorming, or A-roll/B-roll on packages they are assigned to) and **Not your stage** otherwise. Associates see neither pill.
+
+Executives, adviser, and super admin see every package. Associates see groups assigned to them, plus any group with no associate producer assigned. The Portal assistant can look up the same Groups list (current stage and status) for whoever is chatting. Producers can also ask which packages they produce — that is assigned producer, not student membership. Asking about a package also surfaces stage comments (including approval notes and clip notes), uploads, proof of contact, and player comments on the cuts.
 
 ## Approval chain
 
@@ -14,15 +18,15 @@ Anchored to the package row, not a single file:
 
 | Stage | Who | Artifact |
 |---|---|---|
-| Stage 1 | Assigned producer (AP or assigned EP/super-admin) | Initial cut |
+| Stage 1 | Assigned producer (AP or assigned EP/super-admin). If no one is assigned, no one can approve Stage 1; assign a producer on `/package-progress` first. | Initial cut |
 | Stage 2 | Adviser only | Latest initial cut (the adviser decides if it needs a revision) |
-| Stage 3 | Two distinct executive producers (three if marked controversial). Adviser does not count. | Latest initial cut |
+| Stage 3 | Two distinct executive producers (three if marked controversial). Adviser does not count. Portal has no button to mark a package controversial. | Latest initial cut |
 
 A stage left unreviewed for 12 hours emails its reviewers, and again every 12 hours after (see notifications.md).
 
 `APPROVED` unlocks Final Cut. It does not mean the package is on air. Members get an email and push reminding them to upload the Final Cut, with a direct link.
 
-**Groups Final Cut tab (producers)**: the video sits beside what airs: headline and toss (producers who can act on the package can edit the toss), **Send to queue**, and **Package of the Cycle** voting (see package-cycles.md). Member grades, with the deadline / submitted / deduction summary, come next: every member row lists what each executive producer gave (quality + effort = total, or "not scored") and names who is still pending. Once every member has an official grade, the Groups tile and Class Board say **Final Cut Graded** (it wins over Final Cut Queued). The shared cycle grade note with **Publish Grades** comes last. When a Final Cut is uploaded, the assigned producer and every Final Cut grader (executive producers and super admin) get an email and push asking them to grade it.
+**Groups Final Cut tab (producers)**: the video sits beside what airs: headline and toss (producers who can act on the package can edit the toss), **Send to queue**, and **Package of the Cycle** voting (see package-cycles.md). Member grades, with the deadline / submitted / deduction summary, come next: every member row lists what each executive producer gave (quality + effort = total, or "not scored") and names who is still pending. Once every member has an official grade, the Groups tile and Class Board say **Final Cut Graded** (it wins over Final Cut Queued). The shared cycle grade note with **Publish Grades** comes last: students cannot see the cycle grade until a producer publishes it, and publishing emails the members. Uploading a replacement Final Cut (the second revision) clears the executives' earlier scores for that package. When a Final Cut is uploaded, the assigned producer and every Final Cut grader (executive producers and super admin) get an email and push asking them to grade it.
 
 A denial keeps the package at the stage that asked for revisions. The group uploads a new version and that same stage reviews it again; it does not restart at Stage 1. A Stage 3 denial clears earlier executive approvals, so the new version needs two fresh executive sign-offs.
 
@@ -34,7 +38,9 @@ Once a package reaches Stage 2, associate producers are done reviewing its Initi
 
 ## Approve with optional feedback
 
-Approving pitching, brainstorming, A-roll/B-roll, or Initial Cut can include a note. Skip approves with no note. Notes saved as `[[approved]]` are **not** revision requests.
+Approving pitching, brainstorming, A-roll/B-roll, or Initial Cut can include a note. Skip approves with no note. The note is posted as stage feedback and included in the members' approval email. Notes saved as `[[approved]]` are **not** revision requests.
+
+On the **Pitch** tab, a producer who can act on the group (the assigned associate, or any executive) clicks **Mark pitch complete** once the group has presented (**Unmark pitch** undoes it). On **Contact**, the button reads **Approve anyway** until all three proofs and the brainstorm doc are in. Notes saved as `[[approved]]` are **not** revision requests.
 
 ## A-roll / B-roll needs changes
 
@@ -44,7 +50,20 @@ In the producer's A-roll/B-roll view, clips uploaded after the latest revision r
 
 ## Comments and mail
 
-Stage events email and push the right people (`src/server/package-review-notify.ts`). Other stages use generic comment mail; A-roll needs-changes uses the dedicated mail.
+Stage events email and push the right people (`src/server/package-review-notify.ts`):
+
+| Event | Who hears |
+|---|---|
+| All three proofs and the brainstorm doc are in | Assigned producer |
+| A-roll/B-roll footage uploaded | Assigned producer (at most once per group per day) |
+| New Initial Cut version, or a stage approval moves it on | That stage's reviewers: assigned producer (Stage 1), adviser (Stage 2), executive producers and super admin (Stage 3) |
+| Stage left unreviewed 12 hours | Same reviewers, every 12 hours (notifications.md) |
+| Final Cut uploaded | Assigned producer and every Final Cut grader |
+| Pitching, Brainstorming, or A-roll/B-roll approved | Members |
+| Stage 1 approved, Stage 2 approved, sent back, approved for Final Cut | Members |
+| Producer feedback on a stage | Members (A-roll/B-roll feedback uses the "needs changes" mail) |
+
+Producers write stage feedback; students can read it but not post it.
 
 ## Associates performance
 

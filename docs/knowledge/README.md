@@ -37,7 +37,7 @@ When answering:
 | Extension requests | `extensions.md` |
 | Members notes | `members.md` |
 | Shared password vault and 1Password import | `passwords.md` |
-| Settings, notifications, onboarding | `notifications.md` |
+| Settings, notifications, onboarding, every email/push, Slack, scheduled jobs | `notifications.md` |
 | Hosts and subdomains | `hosts.md` |
 | Portal assistant | `assistant.md` |
 | Messages (group and direct chat) | `messages.md` |

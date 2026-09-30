@@ -185,6 +185,14 @@ export async function POST(request: Request) {
   }
 }
 
+// The allowlist and role assignment each let an email sign in without a User row.
+async function revokeSignInGrants(email: string) {
+  await prisma.$transaction([
+    prisma.allowedSignupEmail.deleteMany({ where: { email } }),
+    prisma.platformRoleAssignment.deleteMany({ where: { email } })
+  ]);
+}
+
 export async function DELETE(request: Request) {
   try {
     const userId = await requireUserId();
@@ -223,6 +231,7 @@ export async function DELETE(request: Request) {
         }
       });
       if (target.email) {
+        await revokeSignInGrants(target.email);
         await revokeNasUsers([target.email]);
       }
       return ok({ deleted: true });
@@ -234,7 +243,7 @@ export async function DELETE(request: Request) {
     });
     if (!target) {
       // Also clean legacy allowlist if present
-      await prisma.allowedSignupEmail.deleteMany({ where: { email } });
+      await revokeSignInGrants(email);
       return ok({ deleted: true });
     }
 
@@ -242,7 +251,7 @@ export async function DELETE(request: Request) {
       where: { id: target.id },
       data: { email: null }
     });
-    await prisma.allowedSignupEmail.deleteMany({ where: { email } });
+    await revokeSignInGrants(email);
     await revokeNasUsers([email]);
 
     return ok({ deleted: true });

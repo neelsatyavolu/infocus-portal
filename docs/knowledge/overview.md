@@ -7,10 +7,11 @@ InFocus Portal is the student broadcast production site for **InFocus News** (Pa
 ## Who it is for
 
 - **Students / reporters** — package work, grades, livestreams, announcements, calendar.
-- **Associate producers** — assigned packages in Groups, Package Cycle (view), Members notes, publishing queue, The Show.
+- **Associate producers** — assigned packages in Groups, Package Cycle (view), Members notes, Participation, publishing queue, The Show, shared Passwords.
 - **Executive producers** — all Groups, Grade Editor, Participation, Admin people, calendar cast.
 - **Adviser** — same platform-admin powers as super admin; stage 2 of package approval only.
 - **Super admin** — technical owner; can View as any user.
+- **Appointed managers** (equipment, livestream, website, social media) — students producers pick to run one tool. See `roles.md` and `managers.md`.
 
 ## Main hosts
 
@@ -26,7 +27,7 @@ One sign-in covers Portal, grades, teleprompter, and equipment manage (shared se
 
 ## Privacy and analytics
 
-Page views are counted without cookies by Vercel Analytics and by n3el analytics (`analytics.n3el.dev`, run by the developer). n3el analytics gets only the site, page path (no query, IDs removed) and referring site. No names, emails, grades, IP addresses or content. Guest review links are not counted.
+Page views are counted without cookies by Vercel Analytics and by n3el analytics (`analytics.n3el.dev`, run by the developer). Vercel Speed Insights also measures how fast pages load. n3el analytics gets only the site, page path (no query, IDs removed) and referring site. No names, emails, grades, IP addresses or content. n3el analytics skips guest review links (`/g/...`).
 
 ## What Portal is not
 

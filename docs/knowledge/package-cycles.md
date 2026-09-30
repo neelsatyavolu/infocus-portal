@@ -43,6 +43,7 @@ Producers only. Executives, the adviser, and super admin edit the chart. Associa
 Each row: topic, interviews, notes, members, **one** assigned producer (shown as **AP** or **EP**).
 
 - Editors open the page already editing; changes save automatically. **Cancel Edit** switches to a read-only view, and **Edit Roster** (or clicking a row) switches back. **Add Group** adds a row; right-click a row and choose **Delete row** to remove it.
+- Right-click a row and choose **Move to Cycle N** to move the package to another cycle. It keeps its members, uploads, comments, approvals, chats, and extension requests. Cuts already marked done stay done; files already uploaded stay in the old cycle's Drive folder, and new uploads go to the new cycle. The move is refused if a member is already in a group in that cycle. Grades are per member per cycle and do not move.
 - Bottom tabs switch cycles. The header counts groups, groups with members, and groups with an assigned producer.
 - Consecutive groupmates are flagged with **Same group last cycle: A and B** (students may not repeat the same partners next cycle). It is a warning; Portal does not block the save.
 - Assignable producers: associates plus executives and super admin.

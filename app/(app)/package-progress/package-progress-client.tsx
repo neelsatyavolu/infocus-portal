@@ -3,6 +3,7 @@
 import { type MouseEvent as ReactMouseEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Edit3, ExternalLink, Plus, RefreshCcw, StickyNote } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -751,6 +752,39 @@ export default function PackageProgressClient({ initialData }: { initialData?: P
     }
   }
 
+  async function moveRowFromContextMenu(toCycleNumber: number) {
+    if (!rowContextMenu) return;
+    const menu = rowContextMenu;
+    setRowContextMenu(null);
+
+    // A just-added row gets its id from the autosave, so let saves land first.
+    await waitForPendingSaves();
+    const rowId = menu.rowId ?? draftRowsRef.current[menu.rowIndex]?.id ?? null;
+    if (!rowId) {
+      setMessage("This row is still saving. Try again in a moment.");
+      return;
+    }
+
+    try {
+      setMessage(null);
+      const response = await fetch(`/api/package-progress/${rowId}/move`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cycleNumber: toCycleNumber })
+      });
+      const payload = (await response.json()) as { error?: { message?: string } };
+      if (!response.ok) {
+        throw new Error(payload.error?.message ?? "Failed to move package.");
+      }
+      const remaining = (list: ProgressRow[]) => list.filter((row) => row.id !== rowId);
+      setRows(remaining);
+      setLocalDraftRows(remaining(draftRowsRef.current));
+      toast.success(`Moved to Cycle ${toCycleNumber}.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Failed to move package.");
+    }
+  }
+
   async function refresh() {
     try {
       setMessage(null);
@@ -1086,6 +1120,18 @@ export default function PackageProgressClient({ initialData }: { initialData?: P
           className="fixed z-[120] min-w-[168px] rounded-lg border border-border bg-card p-1"
           style={{ left: rowContextMenu.x, top: rowContextMenu.y }}
         >
+          {cycles
+            .filter((cycle) => cycle.cycleNumber !== activeCycleNumber)
+            .map((cycle) => (
+              <button
+                key={cycle.cycleNumber}
+                type="button"
+                className="w-full rounded-md px-3 py-2 text-left text-sm text-foreground transition hover:bg-accent"
+                onClick={() => void moveRowFromContextMenu(cycle.cycleNumber)}
+              >
+                Move to Cycle {cycle.cycleNumber}
+              </button>
+            ))}
           <button
             type="button"
             className="w-full rounded-md px-3 py-2 text-left text-sm text-danger transition hover:bg-danger-tint"

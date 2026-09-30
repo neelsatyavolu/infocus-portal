@@ -139,7 +139,10 @@ Semester 1 livestream points remain ungraded and excluded from totals until **No
   use each member’s own granted days (`approvedExtensionDaysFor`); uncovered members get none.
 - Execs (EP, adviser, super admin) may also grant an extension directly (`producerGranted`):
   no member agreement, the granting exec's approval counts as the first, and a second exec
-  outside the group must approve. Other execs are emailed on creation; covered students on approval.
+  outside the group must approve. Other execs are emailed on creation.
+- Every decided request or grant sends one email with all recipients in To. Approved goes to the
+  covered students; denied goes to the whole group with the denial reason. Execs can resend it
+  with **Email group** on `/extension-requests`.
 - Past the extension deadline → **20%** reduction.
 - More than **14 days** past → **30%**, and a second revision cannot repair it.
 

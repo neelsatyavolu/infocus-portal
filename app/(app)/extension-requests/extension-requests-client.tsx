@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CalendarClock, Check, ChevronRight, Loader2, Plus, X } from "lucide-react";
+import { CalendarClock, Check, ChevronRight, Loader2, Mail, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { EXTENSION_REQUESTS_CHANGED_EVENT } from "@/src/lib/package-extensions";
@@ -92,6 +92,7 @@ export default function ExtensionRequestsClient() {
   const [approving, setApproving] = useState<ExtensionRequest | null>(null);
   const [denyingId, setDenyingId] = useState<string | null>(null);
   const [granting, setGranting] = useState(false);
+  const [emailingId, setEmailingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -186,6 +187,29 @@ export default function ExtensionRequestsClient() {
       await load();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to record agreement.");
+    }
+  }
+
+  async function emailGroup(requestId: string) {
+    setEmailingId(requestId);
+    try {
+      const response = await fetch("/api/extensions/requests/notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requestId })
+      });
+      const body = await response.json();
+
+      if (!response.ok) {
+        throw new Error(body?.error?.message ?? "Failed to email the group.");
+      }
+
+      const sent = body.data.sent as number;
+      toast.success(`Emailed ${sent} ${sent === 1 ? "student" : "students"}.`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to email the group.");
+    } finally {
+      setEmailingId(null);
     }
   }
 
@@ -322,6 +346,27 @@ export default function ExtensionRequestsClient() {
                   Deny
                 </Button>
               </>
+            ) : null}
+
+            {payload?.canGrant && entry.status !== "PENDING" ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={emailingId === entry.id}
+                title={
+                  entry.status === "APPROVED"
+                    ? "Email the decision to the students this extension covers"
+                    : "Email the decision to the group"
+                }
+                onClick={() => void emailGroup(entry.id)}
+              >
+                {emailingId === entry.id ? (
+                  <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Mail className="mr-1 h-3.5 w-3.5" />
+                )}
+                Email group
+              </Button>
             ) : null}
           </div>
         </div>

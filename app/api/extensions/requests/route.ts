@@ -13,7 +13,7 @@ import {
 import { getPlatformAccess, hasPlatformRole } from "@/src/lib/platform-admin";
 import { prisma } from "@/src/lib/prisma";
 import { getRequestKey, limitByKey } from "@/src/lib/rate-limit";
-import { notifyStudentsOfExtensionGrant } from "@/src/server/extension-grant-notify";
+import { notifyGroupOfExtensionDecision } from "@/src/server/extension-grant-notify";
 import { mayDecideExtensionRequest, mayGrantExtensions } from "@/src/server/extension-requests";
 import { MAX_CYCLES_PER_SEMESTER } from "@/src/server/program-settings";
 import { labeledUser, userDisplayName } from "@/src/lib/user-display";
@@ -377,6 +377,7 @@ export async function PATCH(request: Request) {
           where: { id: payload.requestId },
           data: { status: "DENIED", decidedAt: new Date() }
         });
+        await notifyGroupOfExtensionDecision(payload.requestId);
         return ok({ status: "DENIED" as const });
       }
 
@@ -505,8 +506,8 @@ export async function PATCH(request: Request) {
       }
     });
 
-    if (status === "APPROVED" && withApprovals.producerGranted) {
-      await notifyStudentsOfExtensionGrant(withApprovals.id);
+    if (status !== "PENDING") {
+      await notifyGroupOfExtensionDecision(withApprovals.id);
     }
 
     return ok({ status });

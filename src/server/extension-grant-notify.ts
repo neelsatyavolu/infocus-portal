@@ -23,6 +23,14 @@ async function loadGrant(requestId: string) {
     where: { id: requestId },
     include: {
       user: { select: { id: true, name: true, nickname: true, email: true } },
+      approvals: {
+        select: {
+          approved: true,
+          reason: true,
+          user: { select: { name: true, nickname: true, email: true } }
+        }
+      },
+      memberConsents: { select: { agreed: true } },
       progressRow: {
         select: {
           groupTopic: true,
@@ -94,36 +102,76 @@ export async function notifyExecsOfExtensionGrant(requestId: string) {
   }
 }
 
-/** Emails each student the approved grant covers. */
-export async function notifyStudentsOfExtensionGrant(requestId: string) {
-  const grant = await loadGrant(requestId);
-  if (!grant) return;
+function memberEmails(
+  members: Array<{
+    user: { email: string | null; notificationPreference: { notificationEmail: string | null } | null };
+  }>
+) {
+  return members
+    .map((member) => (member.user.notificationPreference?.notificationEmail ?? member.user.email)?.trim())
+    .filter((email): email is string => Boolean(email));
+}
 
+function approvedMail(grant: LoadedGrant) {
   const covered = (grant.progressRow?.members ?? []).filter(
     (member) => grant.grantedUserIds.length === 0 || grant.grantedUserIds.includes(member.user.id)
   );
-  const recipients = [
-    ...new Set(
-      covered
-        .map((member) => (member.user.notificationPreference?.notificationEmail ?? member.user.email)?.trim())
-        .filter((email): email is string => Boolean(email))
-    )
-  ];
-
   const { days, topic } = grantSummary(grant);
+  return {
+    recipients: memberEmails(covered),
+    subject: `You have a ${dayLabel(days)} extension for Cycle ${grant.cycleNumber}`,
+    heading: "Extension granted",
+    paragraphs: [
+      grant.producerGranted
+        ? `Producers gave you a ${dayLabel(days)} extension on your Cycle ${grant.cycleNumber} package${topic}.`
+        : `Producers approved a ${dayLabel(days)} extension on your Cycle ${grant.cycleNumber} package${topic}.`,
+      "Your final cut deadline moves back by that many days. Late penalties apply after the new deadline."
+    ]
+  };
+}
+
+function deniedMail(grant: LoadedGrant) {
+  const { topic } = grantSummary(grant);
+  const producerReasons = grant.approvals
+    .filter((approval) => !approval.approved)
+    .map((approval) => {
+      const name = userDisplayName(approval.user) || "A producer";
+      return approval.reason ? `${name} denied it: ${approval.reason}` : `${name} denied it.`;
+    });
+  const memberDeclined = grant.memberConsents.some((consent) => !consent.agreed);
+  return {
+    recipients: memberEmails(grant.progressRow?.members ?? []),
+    subject: `Your Cycle ${grant.cycleNumber} extension request was denied`,
+    heading: "Extension denied",
+    paragraphs: [
+      `Your group's ${dayLabel(grant.requestedDays)} extension request for Cycle ${grant.cycleNumber}${topic} was denied.`,
+      ...(producerReasons.length > 0
+        ? producerReasons
+        : memberDeclined
+          ? ["A group member declined the request."]
+          : []),
+      "Your original deadlines still apply."
+    ]
+  };
+}
+
+/**
+ * Emails the decision on a decided request as one email: approved → the members the grant
+ * covers; denied → the whole group. Returns null while the request is still pending.
+ */
+export async function notifyGroupOfExtensionDecision(requestId: string) {
+  const grant = await loadGrant(requestId);
+  if (!grant || grant.status === "PENDING") return null;
+
+  const mail = grant.status === "APPROVED" ? approvedMail(grant) : deniedMail(grant);
   try {
-    await sendBrandedEmails({
-      recipients,
-      subject: `You have a ${dayLabel(days)} extension for Cycle ${grant.cycleNumber}`,
-      heading: "Extension granted",
-      paragraphs: [
-        `Producers gave you a ${dayLabel(days)} extension on your Cycle ${grant.cycleNumber} package${topic}.`,
-        "Your final cut deadline moves back by that many days. Late penalties apply after the new deadline."
-      ],
+    return await sendBrandedEmails({
+      ...mail,
       ctaLabel: "View extension",
       ctaUrl: extensionRequestsUrl()
     });
   } catch (error) {
-    console.error("extension grant student email failed", error);
+    console.error("extension decision email failed", error);
+    return { configured: true as const, sent: 0, failed: mail.recipients.length };
   }
 }

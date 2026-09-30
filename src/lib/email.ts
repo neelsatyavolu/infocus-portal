@@ -118,14 +118,33 @@ export async function sendPreparedEmail(payload: {
   return result.data;
 }
 
-async function sendToEach(recipients: string[], subject: string, text: string, html: string) {
+/** Resend accepts at most 50 addresses in `to` per email. */
+const MAX_RECIPIENTS_PER_EMAIL = 50;
+
+function uniqueRecipients(recipients: string[]) {
+  const byKey = new Map<string, string>();
+  for (const recipient of recipients) {
+    const trimmed = recipient.trim();
+    if (trimmed && !byKey.has(trimmed.toLowerCase())) byKey.set(trimmed.toLowerCase(), trimmed);
+  }
+  return [...byKey.values()];
+}
+
+/** Identical content goes out as one email with every recipient in `to` (split past 50). */
+async function sendToAll(recipients: string[], subject: string, text: string, html: string) {
   const mail = mailClient();
-  if (!mail || recipients.length === 0) {
+  const addresses = uniqueRecipients(recipients);
+  if (!mail || addresses.length === 0) {
     return { configured: false as const, sent: 0, failed: 0 };
   }
 
+  const batches: string[][] = [];
+  for (let index = 0; index < addresses.length; index += MAX_RECIPIENTS_PER_EMAIL) {
+    batches.push(addresses.slice(index, index + MAX_RECIPIENTS_PER_EMAIL));
+  }
+
   const results = await Promise.allSettled(
-    recipients.map(async (to) => {
+    batches.map(async (to) => {
       const result = await mail.client.emails.send({
         from: mail.from,
         to,
@@ -140,14 +159,15 @@ async function sendToEach(recipients: string[], subject: string, text: string, h
     })
   );
 
-  for (const entry of results) {
-    if (entry.status === "rejected") {
+  let sent = 0;
+  results.forEach((entry, index) => {
+    if (entry.status === "fulfilled") {
+      sent += batches[index].length;
+    } else {
       console.error("Resend email failed", entry.reason);
     }
-  }
-
-  const sent = results.filter((entry) => entry.status === "fulfilled").length;
-  return { configured: true as const, sent, failed: results.length - sent };
+  });
+  return { configured: true as const, sent, failed: addresses.length - sent };
 }
 
 export async function sendBrandedEmails(payload: {
@@ -167,7 +187,7 @@ export async function sendBrandedEmails(payload: {
     ctaUrl: payload.ctaUrl,
     preview: payload.paragraphs[0]
   });
-  return sendToEach(payload.recipients, payload.subject, branded.text, branded.html);
+  return sendToAll(payload.recipients, payload.subject, branded.text, branded.html);
 }
 
 export async function sendPackageEventEmails(payload: PackageMailContent & { recipients: string[]; ctaUrl: string }) {

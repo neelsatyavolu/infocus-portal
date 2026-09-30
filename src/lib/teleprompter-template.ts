@@ -178,8 +178,11 @@ export function buildDefaultTeleprompterSections(params: {
   a2BulletinContent: string;
   anchorName?: string | null;
   coanchorName?: string | null;
+  /** A fixed A3 toss (e.g. a Spirit Week recap) in place of the package placeholder. */
+  packageToss?: string | null;
 }): DefaultTeleprompterSection[] {
   const { showDate, a2BulletinContent, anchorName, coanchorName } = params;
+  const packageToss = params.packageToss?.trim() || "[INSERT PACKAGE TOSS]";
   const dateLine = formatShowDateForScriptLine(showDate);
   const anchorIntro = anchorName?.trim() || "{ANCHOR NAME}";
   const coanchorIntro = coanchorName?.trim() || "{COANCHOR NAME}";
@@ -219,7 +222,7 @@ BANTER ABOUT...`
 
 CAM 2
 {COANCHOR}
-[INSERT PACKAGE TOSS]
+${packageToss}
 
 {ROLL PACKAGE}
 {HOLD}`

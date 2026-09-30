@@ -283,6 +283,19 @@ describe("default section template", () => {
     expect(sections[4].content).toContain("I'm Alex Kim and this has been InFocus News.");
     expect(sections[4].content).not.toContain("Otto-Gray");
   });
+
+  it("uses a fixed A3 toss for a Spirit Week recap instead of the package placeholder", () => {
+    const sections = buildDefaultTeleprompterSections({
+      showDate: new Date("2026-10-07T12:00:00.000Z"),
+      a2BulletinContent: "",
+      packageToss:
+        "Yesterday's theme was Salad dressing - let's watch the InFocus Spirit Week Day 2 recap."
+    });
+    expect(sections[2].content).toContain(
+      "{COANCHOR}\nYesterday's theme was Salad dressing - let's watch the InFocus Spirit Week Day 2 recap."
+    );
+    expect(sections[2].content).not.toContain("[INSERT PACKAGE TOSS");
+  });
 });
 
 describe("anchor parsing", () => {

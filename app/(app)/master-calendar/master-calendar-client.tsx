@@ -4,12 +4,14 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { CalendarDays, ChevronLeft, ChevronRight, Eraser, FileUp, Search, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CastCountsDialog } from "@/components/master-calendar/cast-counts-dialog";
-import { PaDayControls, ShowDayControls } from "@/components/master-calendar/show-day-controls";
+import { PaDayControls, ShowDayControls, SpiritWeekControls } from "@/components/master-calendar/show-day-controls";
 import {
   extractCalendarAnchors,
+  extractCalendarCrew,
   extractCalendarPaAnnouncers,
   omitAssignedNamesFromCalendarHtml,
-  restoreAssignedNamesInCalendarHtml
+  restoreAssignedNamesInCalendarHtml,
+  type CalendarCrewRole
 } from "@/src/lib/calendar-show-content";
 import {
   defaultTemplateForKind,
@@ -20,6 +22,7 @@ import {
   withImageHidden
 } from "@/src/lib/master-calendar-cells";
 import { isSpecialShowDay, resolveScheduleDay, type ScheduleKind } from "@/src/lib/school-schedule";
+import { spiritWeekTheme } from "@/src/lib/spirit-week";
 import { cn } from "@/src/lib/utils";
 
 type CalendarEntry = {
@@ -1173,6 +1176,29 @@ export default function MasterCalendarClient({ initialData }: { initialData: Cal
     }
   }
 
+  async function saveCrew(dateKey: string, role: CalendarCrewRole, names: string[]) {
+    setCastBusyDate(dateKey);
+    try {
+      const response = await fetch("/api/show-roles/crew", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date: dateKey, role, names })
+      });
+      const payload = (await response.json()) as {
+        data?: { content?: string };
+        error?: { message?: string };
+      };
+      if (!response.ok) {
+        throw new Error(payload.error?.message ?? `Failed to save ${role.toLowerCase()}.`);
+      }
+      setEntries((current) => ({ ...current, [dateKey]: payload.data?.content ?? "" }));
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : `Failed to save ${role.toLowerCase()}.`);
+    } finally {
+      setCastBusyDate(null);
+    }
+  }
+
   async function wipeMonthAnchors() {
     const monthLabel = formatMonthTitle(monthCursor);
     const confirmed = window.confirm(
@@ -1401,15 +1427,14 @@ export default function MasterCalendarClient({ initialData }: { initialData: Cal
                     const templateContent = defaultTemplateForKind(schedule.kind, schedule.label);
                     const displayContent = storedContent || templateContent;
                     const editorHtml = omitAssignedNamesFromCalendarHtml(displayContent, schedule.kind);
+                    const spiritTheme = spiritWeekTheme(dateKey);
 
                     return (
                       <td
                         key={dateKey}
                         className={cn(
                           "align-top border border-border p-2 text-foreground md:p-3",
-                          schedule.kind === "SHOW" || schedule.kind === "PA"
-                            ? "flex h-full min-h-[16rem] flex-col"
-                            : "",
+                          schedule.kind === "SHOW" || schedule.kind === "PA" ? "h-64" : "",
                           isHoliday ? "bg-muted/40" : COLUMN_SURFACES[weekdayIndex]
                         )}
                         onContextMenu={(event) => {
@@ -1483,6 +1508,18 @@ export default function MasterCalendarClient({ initialData }: { initialData: Cal
                             busy={castBusyDate === dateKey}
                             onChange={(names) => void savePaAnnouncers(dateKey, names)}
                             onRandomize={() => void randomizePaAnnouncers(dateKey)}
+                          />
+                        ) : null}
+
+                        {spiritTheme && (schedule.kind === "SHOW" || schedule.kind === "PA") ? (
+                          <SpiritWeekControls
+                            theme={spiritTheme}
+                            filmers={extractCalendarCrew(displayContent, "Filmers")}
+                            editors={extractCalendarCrew(displayContent, "Editors")}
+                            members={castMembers}
+                            canEdit={canEdit}
+                            busy={castBusyDate === dateKey}
+                            onCrewChange={(role, names) => void saveCrew(dateKey, role, names)}
                           />
                         ) : null}
 

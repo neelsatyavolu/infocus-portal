@@ -62,6 +62,18 @@ describe("publication retries", () => {
     await advanceYoutubePublication("row", new Date("2026-09-21T12:00:00Z"));
     expect(mocks.progress).not.toHaveBeenCalled();
   });
+  it("does not upload a published package again after it moves to a later show", async () => {
+    mocks.emails.mockResolvedValue([]);
+    mocks.row.mockResolvedValue({ id: "row", queuedForAirAt: new Date(), queuedForShowDate: "2026-10-07",
+      finalCutMediaItem: { title: "Story", currentVersion: { id: "v2", status: "READY", sourceType: "VIDEO" } },
+      youtubePublication: { id: "pub", status: "PUBLISHED", showDate: "2026-09-19", mediaVersionId: "v1", channelId: "channel", videoId: "abcdefgh_12" }
+    });
+    await advanceYoutubePublication("row", new Date("2026-10-07T12:00:00Z"));
+    expect(mocks.upsert).not.toHaveBeenCalled();
+    expect(mocks.token).not.toHaveBeenCalled();
+    expect(mocks.chunk).not.toHaveBeenCalled();
+    expect(mocks.update).not.toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ status: expect.anything() }) }));
+  });
   it("waits for processing before creating emails", async () => {
     const row = await mocks.row();
     row.youtubePublication.videoId = "abcdefgh_12";

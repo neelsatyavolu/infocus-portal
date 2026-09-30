@@ -1,6 +1,6 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
+import { Sparkles, X } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { formatPairedNames } from "@/src/lib/calendar-show-content";
+import { formatPairedNames, type CalendarCrewRole } from "@/src/lib/calendar-show-content";
 
 function optionsForValue(members: string[], value: string) {
   if (!value || members.includes(value)) {
@@ -250,6 +250,109 @@ export function PaDayControls({
           <p className="text-sm text-foreground">{formatPairedNames([first, second]) || "Not set"}</p>
         )}
       </div>
+    </div>
+  );
+}
+
+function CrewList({
+  role,
+  names,
+  members,
+  canEdit,
+  busy,
+  onChange
+}: {
+  role: CalendarCrewRole;
+  names: string[];
+  members: string[];
+  canEdit: boolean;
+  busy: boolean;
+  onChange: (next: string[]) => void;
+}) {
+  const singular = role === "Filmers" ? "filmer" : "editor";
+  return (
+    <div className="space-y-1.5">
+      <span className={LABEL_CLASS}>{role}</span>
+      {names.length > 0 ? (
+        <div className="flex flex-wrap gap-1">
+          {names.map((name) => (
+            <span
+              key={name}
+              className="inline-flex items-center gap-1 rounded-md bg-[var(--ink-3)] px-2 py-0.5 text-xs text-foreground"
+            >
+              {name}
+              {canEdit ? (
+                <button
+                  type="button"
+                  aria-label={`Remove ${name}`}
+                  disabled={busy}
+                  onClick={() => onChange(names.filter((entry) => entry !== name))}
+                  className="text-muted-foreground hover:text-foreground disabled:opacity-50"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              ) : null}
+            </span>
+          ))}
+        </div>
+      ) : canEdit ? null : (
+        <p className="text-sm text-muted-foreground">Not set</p>
+      )}
+      {canEdit ? (
+        <NameSelect
+          value=""
+          options={members}
+          disabledOptions={names}
+          disabled={busy}
+          placeholder={`Add ${singular}`}
+          onChange={(name) => {
+            if (name) onChange([...names, name]);
+          }}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+export function SpiritWeekControls({
+  theme,
+  filmers,
+  editors,
+  members,
+  canEdit,
+  busy,
+  onCrewChange
+}: {
+  theme: string;
+  filmers: string[];
+  editors: string[];
+  members: string[];
+  canEdit: boolean;
+  busy: boolean;
+  onCrewChange: (role: CalendarCrewRole, names: string[]) => void;
+}) {
+  return (
+    <div className="mt-2 flex flex-col gap-3 rounded-lg border border-border/70 bg-[var(--ink)]/40 p-3 text-left">
+      <div className="space-y-0.5">
+        <span className={LABEL_CLASS}>Spirit Week theme</span>
+        <p className="text-sm font-medium text-[var(--brand-green)]">{theme}</p>
+      </div>
+      <CrewList
+        role="Filmers"
+        names={filmers}
+        members={members}
+        canEdit={canEdit}
+        busy={busy}
+        onChange={(names) => onCrewChange("Filmers", names)}
+      />
+      <CrewList
+        role="Editors"
+        names={editors}
+        members={members}
+        canEdit={canEdit}
+        busy={busy}
+        onChange={(names) => onCrewChange("Editors", names)}
+      />
     </div>
   );
 }

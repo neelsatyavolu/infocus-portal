@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   extractCalendarAnchors,
+  extractCalendarCrew,
   extractCalendarPaAnnouncers,
   extractCalendarShowManager,
   formatPairedNames,
   omitAssignedNamesFromCalendarHtml,
   restoreAssignedNamesInCalendarHtml,
   setCalendarAnchors,
+  setCalendarCrew,
   setCalendarPaAnnouncers,
   setCalendarShowManager,
   wipeCalendarAnchorNames
@@ -95,5 +97,43 @@ describe("calendar show content", () => {
     expect(wipeCalendarAnchorNames(show)).toContain("<strong>Package:</strong>");
     expect(wipeCalendarAnchorNames(pa)).toBe(pa);
     expect(wipeCalendarAnchorNames(SHOW_TEMPLATE)).toBe(SHOW_TEMPLATE);
+  });
+});
+
+describe("calendar crew (Spirit Week filmers and editors)", () => {
+  it("appends Filmers before Editors and reads any number of names", () => {
+    const withEditors = setCalendarCrew(PA_TEMPLATE, "Editors", ["Sage"]);
+    const html = setCalendarCrew(withEditors, "Filmers", ["Abby", "Otto", "Kira"]);
+    expect(html.indexOf("Filmers:")).toBeLessThan(html.indexOf("Editors:"));
+    expect(extractCalendarCrew(html, "Filmers")).toEqual(["Abby", "Otto", "Kira"]);
+    expect(extractCalendarCrew(html, "Editors")).toEqual(["Sage"]);
+  });
+
+  it("keeps crew when anchors, show manager, or PA announcers change", () => {
+    const crew = setCalendarCrew(setCalendarCrew(SHOW_TEMPLATE, "Filmers", ["Abby"]), "Editors", ["Otto"]);
+    const show = setCalendarShowManager(setCalendarAnchors(crew, ["Iris", "Lena"]), ["Neel"]);
+    expect(extractCalendarShowManager(show)).toBe("Neel");
+    expect(extractCalendarAnchors(show)).toEqual(["Iris", "Lena"]);
+    expect(extractCalendarCrew(show, "Filmers")).toEqual(["Abby"]);
+    expect(extractCalendarCrew(show, "Editors")).toEqual(["Otto"]);
+
+    const pa = setCalendarPaAnnouncers(setCalendarCrew(PA_TEMPLATE, "Filmers", ["Kira"]), ["Sage", "Abby"]);
+    expect(extractCalendarPaAnnouncers(pa)).toEqual(["Sage", "Abby"]);
+    expect(extractCalendarCrew(pa, "Filmers")).toEqual(["Kira"]);
+  });
+
+  it("does not read crew as the show manager when no manager is set", () => {
+    const html = setCalendarCrew(SHOW_TEMPLATE, "Filmers", ["Abby"]);
+    expect(extractCalendarShowManager(html)).toBe("");
+  });
+
+  it("removes the section when the list is cleared and survives an editor round trip", () => {
+    const html = setCalendarCrew(setCalendarCrew(SHOW_TEMPLATE, "Filmers", ["Abby"]), "Editors", ["Otto"]);
+    expect(setCalendarCrew(html, "Filmers", [])).not.toContain("Filmers:");
+    const visible = omitAssignedNamesFromCalendarHtml(html, "SHOW");
+    expect(visible).not.toContain("Filmers:");
+    const restored = restoreAssignedNamesInCalendarHtml(visible, html, "SHOW");
+    expect(extractCalendarCrew(restored, "Filmers")).toEqual(["Abby"]);
+    expect(extractCalendarCrew(restored, "Editors")).toEqual(["Otto"]);
   });
 });

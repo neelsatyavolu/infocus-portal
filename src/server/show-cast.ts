@@ -4,7 +4,9 @@ import {
   extractCalendarAnchors,
   extractCalendarPaAnnouncers,
   extractCalendarShowManager,
+  type CalendarCrewRole,
   setCalendarAnchors,
+  setCalendarCrew,
   setCalendarPaAnnouncers,
   setCalendarShowManager,
   wipeCalendarAnchorNames
@@ -269,6 +271,14 @@ export async function setPaAnnouncers(dateKey: string, names: string[]) {
   const nextHtml = setCalendarPaAnnouncers(existing?.content ?? "", announcers);
   const content = await writeCalendarContent(dateKey, nextHtml);
   return { date: dateKey, announcers, content };
+}
+
+export async function setCrewNames(dateKey: string, role: CalendarCrewRole, names: string[]) {
+  const crew = uniqueNames(names);
+  const existing = await prisma.masterCalendarEntry.findUnique({ where: { date: dateKey } });
+  const nextHtml = setCalendarCrew(existing?.content ?? "", role, crew);
+  const content = await writeCalendarContent(dateKey, nextHtml);
+  return { date: dateKey, role, names: crew, content };
 }
 
 export async function setShowManager(dateKey: string, name: string) {

@@ -22,6 +22,7 @@ Each weekday cell depends on the day type:
 
 - **Show days:** **Anchors** (two slots, with **Randomize**), **Show manager**, and **Queue** (the packages queued for that show in the Publishing Queue). A special show also shows its name.
 - **PA days (Mondays):** **PA announcers** (two slots, with **Randomize**).
+- **Spirit Week (Mon Oct 5 – Fri Oct 9):** each day also shows that day's dress-up theme (for example, Tuesday is Salad dressing) and **Filmers** and **Editors** lists. Producers can add any number of people to each list and remove them with ×. The names are saved in the calendar cell and appear in the Google Doc.
 - **Class days:** a scenic photo and a notes box. Right-click the photo to **Delete Image** or **Restore Image**.
 - **Holidays:** the holiday name.
 

@@ -13,6 +13,9 @@ import {
 } from "@/src/lib/teleprompter-template";
 import { loadA2Bulletin, type BulletinAutofill } from "@/src/server/teleprompter-bulletin";
 import { syncTeleprompterPackageTosses } from "@/src/server/teleprompter-packages";
+import { loadScheduleOverrides } from "@/src/server/show-schedule";
+import { resolveScheduleDay } from "@/src/lib/school-schedule";
+import { spiritWeekRecapToss } from "@/src/lib/spirit-week";
 import {
   backfillLegacyTeleprompterDocs,
   requireTeleprompterActor,
@@ -97,12 +100,15 @@ async function ensureShowDoc(params: {
     showDate
   });
   const bulletin = await loadA2Bulletin(showDate);
+  const showDateKey = showDate.toISOString().slice(0, 10);
+  const schedule = resolveScheduleDay(showDateKey, await loadScheduleOverrides(showDateKey, showDateKey));
 
   const sections = buildDefaultTeleprompterSections({
     showDate,
     a2BulletinContent: bulletin.content,
     anchorName: anchorAssignments.anchorName,
-    coanchorName: anchorAssignments.coanchorName
+    coanchorName: anchorAssignments.coanchorName,
+    packageToss: spiritWeekRecapToss(schedule.label)
   });
 
   const orderIndex = await prisma.teleprompterDoc.count({

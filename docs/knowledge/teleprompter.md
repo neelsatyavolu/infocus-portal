@@ -35,6 +35,8 @@ College visits come from every weekly tab in the college-visit sheet except Samp
 
 A3 starts with a `[INSERT PACKAGE TOSS]` placeholder. When Teleprompter opens or refreshes a show, it fills that placeholder with the toss of the first package queued for that show date (read by the coanchor). A second queued package gets its own block read by the anchor. A queued package with no toss yet gets `[INSERT PACKAGE TOSS: headline]` (the Final Cut headline, or the topic if there is none), which is filled in automatically once the group adds its toss. Text a producer has already written in place of a placeholder is never replaced. The fill happens once per placeholder: a package queued or removed after that, or a toss edited after that, has to be changed in the script by hand.
 
+Spirit Week recap shows have no package. For a show named "Spirit Week Day N Recap", A3 starts with "Yesterday's theme was [theme] - let's watch the InFocus Spirit Week Day N recap." instead of the placeholder. The Overall Recap gets "Let's watch the InFocus Spirit Week Overall Recap." This only applies when the show's script is first created.
+
 ## Studio kiosk
 
 The studio teleprompter Mac skips Google login with a kiosk token. The first visit uses `?kiosk=TOKEN`, which saves a cookie on that machine. Kiosk access is the teleprompter host and `/teleprompter` APIs only — not the rest of Portal.

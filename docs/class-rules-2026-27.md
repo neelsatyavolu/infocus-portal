@@ -87,7 +87,7 @@ Sign-offs record `mediaItemId` so it is clear which cut each reviewer saw.
 | Category | Weight | Composition |
 |---|---|---|
 | Packages | 55% | 50 pts per cycle final cut + 20 pts per cycle check-ins + 40 pts livestream credit (5 per hour × 8 hours) |
-| Participation | 35% | 50 pts/week — 10 on Mondays (PA), 20 on Tue/Thu class days; Wed/Fri shows none; holidays 0. First gradeable day is **Tuesday, August 18, 2026** (`FIRST_PARTICIPATION_DATE`). Earlier class days stay on the master calendar but do not count. Full marks on Classroom Participation (`/participation`) post immediately. A score below that day’s max needs another producer (not the person who entered it) to approve — the adviser can approve. Pending docked scores stay off the student gradebook. The adviser and other executive producers are emailed when a request is waiting. |
+| Participation | 35% | 50 pts/week — 10 on Mondays (PA), 20 on Tue/Thu class days; Wed/Fri shows none; holidays 0; Mondays with no class (no Monday schedule that week) 0. First gradeable day is **Tuesday, August 18, 2026** (`FIRST_PARTICIPATION_DATE`). Earlier class days stay on the master calendar but do not count. Full marks on Classroom Participation (`/participation`) post immediately. A score below that day’s max needs another producer (not the person who entered it) to approve — the adviser can approve. Pending docked scores stay off the student gradebook. The adviser and other executive producers are emailed when a request is waiting. |
 | Portfolio | 10% | Final portfolio out of 100 |
 
 **Null means ungraded and is excluded from both sides of the ratio; `0` means

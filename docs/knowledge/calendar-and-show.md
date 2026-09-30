@@ -4,7 +4,7 @@
 
 | Day | Activity |
 |---|---|
-| Monday | PA announcements |
+| Monday | PA announcements (none on Mondays with no class, e.g. Sep 28, 2026) |
 | Tuesday | Class |
 | Wednesday | Show (from Sep 4, 2026) |
 | Thursday | Class |

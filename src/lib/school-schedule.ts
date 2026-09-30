@@ -5,6 +5,7 @@
  * - Tuesday + Thursday: class meetings — 20 participation pts each
  * - Wednesday + Friday: show days (broadcast) from FIRST_SHOW_DATE. Not class meetings.
  * - Holidays / staff days: nothing (0 pts, not gradeable)
+ * - Mondays with no class (NO_MONDAY_CLASS_2026_27): no PA, 0 pts
  * - Days before FIRST_PARTICIPATION_DATE are not gradeable (0 pts)
  *
  * Show days stay on the master calendar / teleprompter. Participation is
@@ -126,6 +127,14 @@ export function resolveScheduleDay(
     };
   }
 
+  if (isNoMondayClass(dateKey)) {
+    return {
+      date: dateKey,
+      kind: "NONE",
+      label: NO_MONDAY_CLASS_2026_27.find((entry) => entry.date === dateKey)?.label ?? ""
+    };
+  }
+
   return {
     date: dateKey,
     kind: defaultKindForDateKey(dateKey),
@@ -189,10 +198,23 @@ export const PAUSD_NO_SCHOOL_2026_27: ReadonlyArray<{ date: string; label: strin
   { date: "2027-05-31", label: "Memorial Day" }
 ];
 
+/**
+ * Mondays when InFocus does not meet (no Monday schedule that week): no PA and
+ * no participation. Add dates here as they come up.
+ */
+export const NO_MONDAY_CLASS_2026_27: ReadonlyArray<{ date: string; label: string }> = [
+  { date: "2026-09-28", label: "No Monday class" }
+];
+
 const SEEDED_HOLIDAY_KEYS = new Set(PAUSD_NO_SCHOOL_2026_27.map((entry) => entry.date));
+const NO_MONDAY_CLASS_KEYS = new Set(NO_MONDAY_CLASS_2026_27.map((entry) => entry.date));
 
 export function isSeededHoliday(dateKey: string) {
   return SEEDED_HOLIDAY_KEYS.has(dateKey);
+}
+
+export function isNoMondayClass(dateKey: string) {
+  return NO_MONDAY_CLASS_KEYS.has(dateKey);
 }
 
 /**
@@ -211,6 +233,10 @@ export function scheduleKindForDate(
 
   if (isSeededHoliday(key)) {
     return "HOLIDAY";
+  }
+
+  if (isNoMondayClass(key)) {
+    return "NONE";
   }
 
   return defaultKindForDateKey(key);
@@ -263,10 +289,17 @@ export function sumParticipationMax(days: ReadonlyArray<{ maxPoints: number }>) 
 }
 
 export function seededCalendarEntries(): SchoolCalendarEntry[] {
-  return PAUSD_NO_SCHOOL_2026_27.map((entry) => ({
+  const holidays = PAUSD_NO_SCHOOL_2026_27.map((entry) => ({
     date: entry.date,
     kind: "HOLIDAY" as const,
     label: entry.label,
     source: "seed" as const
   }));
+  const noMondayClass = NO_MONDAY_CLASS_2026_27.map((entry) => ({
+    date: entry.date,
+    kind: "NONE" as const,
+    label: entry.label,
+    source: "seed" as const
+  }));
+  return [...holidays, ...noMondayClass];
 }

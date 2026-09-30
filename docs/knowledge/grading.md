@@ -43,7 +43,7 @@ Producer view: `/grade-editor` — enter scores; Student tab is one reporter's A
 
 ## Participation (35%)
 
-50 pts/week: Monday PA 10, Tuesday class 20, Thursday class 20. Show days (Wed/Fri) none. Holidays 0. First gradeable day: Tuesday, August 18, 2026.
+50 pts/week: Monday PA 10, Tuesday class 20, Thursday class 20. Show days (Wed/Fri) none. Holidays 0. Mondays with no class (no Monday schedule that week, e.g. Sep 28, 2026) are 0: the list is `NO_MONDAY_CLASS_2026_27` in `src/lib/school-schedule.ts`. First gradeable day: Tuesday, August 18, 2026.
 
 The Grade Editor **Total Grade** tab shows Participation as **earned/possible (X/Y)** for the current semester. Both numbers include only graded days in weeks that have fully ended: Sunday through 11:59:59 p.m. Pacific stays excluded, then the week is included at Monday midnight. Current/future weeks, ungraded days, holidays, and nonparticipation days contribute to neither number. Before any eligible grades exist, the column shows 0/0. These points also appear in the Total Grade tab’s points total and CSV export. Edit participation through `/participation`.
 

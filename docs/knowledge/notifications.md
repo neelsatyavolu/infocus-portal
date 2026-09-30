@@ -60,5 +60,5 @@ If an Initial Cut stage sits unreviewed for 12 hours, its reviewers get an email
 ## Scheduled jobs you might notice
 
 - **Hourly**: review reminders (above) and a database backup (Admin → Backups, kept 7 days).
-- **Every minute**: Portal checks for queued packages and shows due to upload to YouTube on their air date.
+- **Every 15 minutes**: Portal checks for queued packages and shows due to upload to YouTube on their air date. While an upload is in progress it checks every minute until it finishes. Starting a show upload begins right away.
 - **Daily**: equipment overdue emails (morning, Pacific); any Master Calendar edits not yet copied to the Google Doc are synced; media left in trash for 7 days is deleted for good; older versions of a video are removed once its current version is a week old.

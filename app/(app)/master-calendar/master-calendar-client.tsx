@@ -19,7 +19,7 @@ import {
   stripImageToken,
   withImageHidden
 } from "@/src/lib/master-calendar-cells";
-import { resolveScheduleDay, type ScheduleKind } from "@/src/lib/school-schedule";
+import { isSpecialShowDay, resolveScheduleDay, type ScheduleKind } from "@/src/lib/school-schedule";
 import { cn } from "@/src/lib/utils";
 
 type CalendarEntry = {
@@ -1445,6 +1445,14 @@ export default function MasterCalendarClient({ initialData }: { initialData: Cal
                           {isHoliday && schedule.label ? (
                             <span className="inline-flex max-w-[9rem] items-center rounded-md bg-amber-300/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-100">
                               Holiday
+                            </span>
+                          ) : null}
+                          {isSpecialShowDay(schedule) ? (
+                            <span
+                              className="inline-flex max-w-[12rem] items-center truncate rounded-md bg-[var(--ink-3)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--brand-green)]"
+                              title={schedule.label}
+                            >
+                              {schedule.label}
                             </span>
                           ) : null}
                         </div>

@@ -1,6 +1,7 @@
 import { buildShowOccupancy, resolveQueuedShowDate } from "@/src/lib/publishing-queue";
 import { prisma } from "@/src/lib/prisma";
-import { listUpcomingShows } from "@/src/server/show-schedule";
+import { isSpecialShowDay } from "@/src/lib/school-schedule";
+import { listUpcomingShowDays } from "@/src/server/show-schedule";
 
 export async function setQueuedForAir(rowId: string, queued: boolean, showDate?: string | null) {
   const row = await prisma.packageProgressRow.findUniqueOrThrow({
@@ -18,7 +19,7 @@ export async function setQueuedForAir(rowId: string, queued: boolean, showDate?:
   }
 
   const [upcoming, occupiedRows] = await Promise.all([
-    listUpcomingShows(16),
+    listUpcomingShowDays(16),
     prisma.packageProgressRow.findMany({
       where: {
         queuedForAirAt: { not: null },
@@ -32,7 +33,8 @@ export async function setQueuedForAir(rowId: string, queued: boolean, showDate?:
   const nextShow = resolveQueuedShowDate({
     requestedShowDate: showDate,
     currentShowDate: row.queuedForShowDate,
-    upcomingShows: upcoming,
+    // Special shows (e.g. Spirit Week recaps) only get packages placed by hand.
+    upcomingShows: upcoming.filter((day) => !isSpecialShowDay(day)).map((day) => day.date),
     occupancy: buildShowOccupancy(occupiedRows)
   });
 

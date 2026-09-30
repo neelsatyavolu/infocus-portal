@@ -4,9 +4,10 @@ import {
   holidayTemplate,
   isScenicImageDay,
   PA_TEMPLATE,
-  SHOW_TEMPLATE
+  SHOW_TEMPLATE,
+  specialShowTitleHtml
 } from "@/src/lib/master-calendar-cells";
-import { resolveScheduleDay, scheduleKindForDate } from "@/src/lib/school-schedule";
+import { isSpecialShowDay, resolveScheduleDay, scheduleKindForDate } from "@/src/lib/school-schedule";
 
 describe("master calendar schedule cells", () => {
   it("maps weekday defaults to Mon PA, Tue/Thu images, Wed/Fri shows", () => {
@@ -65,5 +66,20 @@ describe("master calendar schedule cells", () => {
       label: "Show moved"
     });
     expect(defaultTemplateForKind("SHOW")).toContain("Anchors:");
+  });
+
+  it("treats a labeled show override as a special show", () => {
+    const overrides = new Map([
+      ["2026-10-06", { kind: "SHOW" as const, label: "Spirit Week Day 1 Recap" }],
+      ["2026-10-07", { kind: "SHOW" as const, label: "" }]
+    ]);
+    expect(isSpecialShowDay(resolveScheduleDay("2026-10-06", overrides))).toBe(true);
+    expect(isSpecialShowDay(resolveScheduleDay("2026-10-07", overrides))).toBe(false);
+    expect(isSpecialShowDay(resolveScheduleDay("2026-10-16"))).toBe(false);
+    expect(isSpecialShowDay({ kind: "HOLIDAY", label: "Staff Development Day" })).toBe(false);
+  });
+
+  it("renders a special show title as an escaped bold line", () => {
+    expect(specialShowTitleHtml("Spirit <Week>")).toBe("<p><strong>Spirit &lt;Week&gt;</strong></p>");
   });
 });

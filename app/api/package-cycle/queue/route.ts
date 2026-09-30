@@ -11,7 +11,7 @@ import { labeledUser, userDisplayName } from "@/src/lib/user-display";
 import { DATE_KEY_PATTERN, formatShowDateLabel, todayDateKey } from "@/src/lib/show-assignment";
 import { requirePublishingViewer } from "@/src/server/publishing-access";
 import { setQueuedForAir } from "@/src/server/publishing-queue";
-import { listUpcomingShows } from "@/src/server/show-schedule";
+import { listUpcomingShowDays } from "@/src/server/show-schedule";
 import { anchorModeForDate } from "@/src/show-roles/lib/anchors";
 import { youtubePublishingConfig } from "@/src/server/youtube-client";
 
@@ -95,7 +95,7 @@ export async function GET(request: Request) {
         },
         orderBy: [{ queuedForShowDate: "asc" }, { queuedForAirAt: "desc" }]
       }),
-      listUpcomingShows(10),
+      listUpcomingShowDays(10),
       wantCandidates
         ? prisma.packageProgressRow.findMany({
             where: {
@@ -117,9 +117,9 @@ export async function GET(request: Request) {
       publishingConfigured: Boolean(youtubePublishingConfig()),
       packages: await Promise.all(rows.map(mapQueueRow)),
       today: todayDateKey(),
-      upcomingShows: upcoming.map((date) => ({
+      upcomingShows: upcoming.map(({ date, label }) => ({
         date,
-        label: formatShowDateLabel(date),
+        label: label ? `${formatShowDateLabel(date)} · ${label}` : formatShowDateLabel(date),
         mode: anchorModeForDate(new Date(`${date}T12:00:00`))
       })),
       candidates: candidates.map((row) => ({

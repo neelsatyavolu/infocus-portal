@@ -195,7 +195,7 @@ const mocks = vi.hoisted(() => ({
   findUniqueOrThrow: vi.fn(),
   findMany: vi.fn(),
   update: vi.fn(),
-  listUpcomingShows: vi.fn()
+  listUpcomingShowDays: vi.fn()
 }));
 
 vi.mock("@/src/lib/prisma", () => ({
@@ -209,13 +209,15 @@ vi.mock("@/src/lib/prisma", () => ({
 }));
 
 vi.mock("@/src/server/show-schedule", () => ({
-  listUpcomingShows: mocks.listUpcomingShows
+  listUpcomingShowDays: mocks.listUpcomingShowDays
 }));
 
 describe("setQueuedForAir", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.listUpcomingShows.mockResolvedValue(upcoming);
+    mocks.listUpcomingShowDays.mockResolvedValue(
+      upcoming.map((date) => ({ date, kind: "SHOW", label: "" }))
+    );
     mocks.update.mockImplementation(({ data }: { data: Record<string, unknown> }) =>
       Promise.resolve({ id: "row_1", ...data })
     );
@@ -239,6 +241,38 @@ describe("setQueuedForAir", () => {
         queuedForShowDate: "2026-09-09"
       }
     });
+  });
+
+  it("skips labeled special shows when auto-assigning", async () => {
+    mocks.listUpcomingShowDays.mockResolvedValue([
+      { date: "2026-10-06", kind: "SHOW", label: "Spirit Week Day 1 Recap" },
+      { date: "2026-10-07", kind: "SHOW", label: "Spirit Week Day 2 Recap" },
+      { date: "2026-10-16", kind: "SHOW", label: "" }
+    ]);
+    mocks.findUniqueOrThrow.mockResolvedValue({
+      finalCutMediaItemId: "media_1",
+      queuedForAirAt: null,
+      queuedForShowDate: null
+    });
+    mocks.findMany.mockResolvedValue([]);
+
+    const row = await setQueuedForAir("row_1", true);
+    expect(row.queuedForShowDate).toBe("2026-10-16");
+  });
+
+  it("still lets a producer place a package on a special show by hand", async () => {
+    mocks.listUpcomingShowDays.mockResolvedValue([
+      { date: "2026-10-06", kind: "SHOW", label: "Spirit Week Day 1 Recap" }
+    ]);
+    mocks.findUniqueOrThrow.mockResolvedValue({
+      finalCutMediaItemId: "media_1",
+      queuedForAirAt: null,
+      queuedForShowDate: null
+    });
+    mocks.findMany.mockResolvedValue([]);
+
+    const row = await setQueuedForAir("row_1", true, "2026-10-06");
+    expect(row.queuedForShowDate).toBe("2026-10-06");
   });
 
   it("lets a producer manually stack a second package", async () => {

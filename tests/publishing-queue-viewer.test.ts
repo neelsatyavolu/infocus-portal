@@ -14,7 +14,7 @@ vi.mock("@/src/lib/prisma", () => ({ prisma: {
   packageProgressRow: { findMany: mocks.rows }
 } }));
 vi.mock("@/src/server/publishing-queue", () => ({ setQueuedForAir: mocks.setQueuedForAir }));
-vi.mock("@/src/server/show-schedule", () => ({ listUpcomingShows: async () => [] }));
+vi.mock("@/src/server/show-schedule", () => ({ listUpcomingShowDays: async () => [] }));
 vi.mock("@/src/server/youtube-client", () => ({ youtubePublishingConfig: () => null }));
 vi.mock("@/src/lib/media-playback", () => ({ resolveThumbnailUrl: async () => null }));
 vi.mock("next/navigation", () => ({ redirect: (path: string) => { throw new Error(`REDIRECT:${path}`); } }));

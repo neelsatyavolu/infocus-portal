@@ -69,6 +69,11 @@ export function isShowDay(kind: ScheduleKind) {
   return kind === "SHOW";
 }
 
+/** A SHOW day with a calendar label (e.g. "Spirit Week Day 1 Recap"). Auto-queue skips these. */
+export function isSpecialShowDay(day: { kind: ScheduleKind; label?: string | null }) {
+  return day.kind === "SHOW" && Boolean(day.label?.trim());
+}
+
 export function isPaDay(kind: ScheduleKind) {
   return kind === "PA";
 }

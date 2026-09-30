@@ -12,6 +12,8 @@
 
 First broadcast: **Friday, September 4, 2026**. Earlier Wed/Fri are class days.
 
+**Special shows** — a calendar override can make any weekday a show day and give it a name (for example, Spirit Week: Tue–Fri Oct 6–9 are Day 1–4 recaps, and Wed Oct 14 is the Overall Recap). The name shows on the Master Calendar cell and in the Google Doc. The Publishing Queue does not auto-assign packages to named shows.
+
 ## Master Calendar (`/master-calendar`)
 
 Weekday grid. Producers edit SHOW and PA cells: anchors, PA announcers, show manager, scenic, notes. Syncs a Google Doc.

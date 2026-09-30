@@ -7,9 +7,10 @@ import {
   HIDE_IMAGE_TOKEN,
   isScenicImageDay,
   scenicImageForDate,
+  specialShowTitleHtml,
   stripImageToken
 } from "@/src/lib/master-calendar-cells";
-import { resolveScheduleDay, type ScheduleKind } from "@/src/lib/school-schedule";
+import { isSpecialShowDay, resolveScheduleDay, type ScheduleKind } from "@/src/lib/school-schedule";
 
 const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"] as const;
 
@@ -698,10 +699,13 @@ function collectCellPlans(
       const storedContent = stripImageToken(rawStoredContent);
       const managerName = showManagers?.[dateKey]?.trim() ?? "";
       const baseHtml = storedContent || defaultTemplateForKind(schedule.kind, schedule.label);
-      const html =
+      const managedHtml =
         schedule.kind === "SHOW" && managerName
           ? setCalendarShowManager(baseHtml, [managerName])
           : baseHtml;
+      const html = isSpecialShowDay(schedule)
+        ? `${specialShowTitleHtml(schedule.label)}${managedHtml}`
+        : managedHtml;
       const richText = htmlToRichText(html);
       const imageFromHtml = firstImageSourceFromHtml(storedContent);
       const imageSourceUri = imageFromHtml && isHttpUrl(imageFromHtml)

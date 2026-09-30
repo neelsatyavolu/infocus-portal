@@ -61,6 +61,10 @@ export function holidayTemplate(label?: string | null) {
   return `<p><strong>${escapeHtml(text)}</strong></p>`;
 }
 
+export function specialShowTitleHtml(label: string) {
+  return `<p><strong>${escapeHtml(label.trim())}</strong></p>`;
+}
+
 export function defaultTemplateForKind(kind: ScheduleKind, holidayLabel?: string | null) {
   if (kind === "SHOW") return SHOW_TEMPLATE;
   if (kind === "PA") return PA_TEMPLATE;

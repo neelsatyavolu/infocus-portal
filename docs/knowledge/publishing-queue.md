@@ -4,7 +4,7 @@ Route: `/publishing-queue`. Producers manage it. Appointed website managers can 
 
 A Final Cut upload does **not** auto-queue. A producer clicks **Send to queue**.
 
-**Auto-assign** fills the next upcoming show that currently has no package.
+**Auto-assign** fills the next upcoming show that currently has no package. It skips **special shows** (a show day with a calendar name, like "Spirit Week Day 1 Recap"). Their names appear next to the date. Producers can still drag a package onto one.
 
 Producers can **drag** a package onto a show. Max **2** packages per show. Auto-assign never stacks two on the same show.
 

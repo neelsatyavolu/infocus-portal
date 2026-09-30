@@ -12,7 +12,12 @@ import {
   gradeTotal,
   parseCycleNumber
 } from "@/src/lib/package-grades";
-import { approvedExtensionDaysFor, calculateLatePenalty, effectiveDeadline } from "@/src/lib/package-extensions";
+import {
+  approvedExtensionDaysFor,
+  calculateLatePenalty,
+  effectiveDeadline,
+  memberLatePenaltyMultiplier
+} from "@/src/lib/package-extensions";
 import { officialFinalCutPoints } from "@/src/lib/package-review-mail";
 import { capAwardedForRevision } from "@/src/lib/package-revisions";
 import {
@@ -822,13 +827,17 @@ export async function POST(request: Request) {
         },
         select: {
           extension: true,
-          extensionRequests: { where: { status: "APPROVED" }, select: { requestedDays: true, grantedDays: true, grantedUserIds: true } }
+          extensionRequests: { where: { status: "APPROVED" }, select: { requestedDays: true, grantedDays: true, grantedUserIds: true } },
+          members: { where: { userId: payload.userId }, select: { latePenaltyPercent: true } }
         }
       });
       const approvedDays = approvedExtensionDaysFor(progressRow, payload.userId);
       const deadline = effectiveDeadline(cycle?.finalCutDate ?? null, approvedDays);
       const late = calculateLatePenalty(deadline, turnedInDate);
-      const officialPoints = officialFinalCutPoints(cappedAwarded, late.penaltyMultiplier);
+      const officialPoints = officialFinalCutPoints(
+        cappedAwarded,
+        memberLatePenaltyMultiplier(late, progressRow?.members[0]?.latePenaltyPercent)
+      );
 
       const nextFeedback = payload.feedback?.trim() ?? existing?.feedback ?? "";
       const changed =

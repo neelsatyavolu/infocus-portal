@@ -1,5 +1,6 @@
 import { sendBrandedEmails } from "@/src/lib/email";
 import { mainAppOrigin } from "@/src/lib/hosts";
+import { extensionRequestVisibleTo } from "@/src/lib/package-extensions";
 import {
   normalizeEmail,
   PACKAGE_ADVISER_EMAIL,
@@ -112,13 +113,17 @@ function memberEmails(
     .filter((email): email is string => Boolean(email));
 }
 
-function approvedMail(grant: LoadedGrant) {
-  const covered = (grant.progressRow?.members ?? []).filter(
-    (member) => grant.grantedUserIds.length === 0 || grant.grantedUserIds.includes(member.user.id)
+/** Members the grant's terms cover; a partial grant is never emailed to the rest of the group. */
+function coveredMembers(grant: LoadedGrant) {
+  return (grant.progressRow?.members ?? []).filter((member) =>
+    extensionRequestVisibleTo(grant, member.user.id)
   );
+}
+
+function approvedMail(grant: LoadedGrant) {
   const { days, topic } = grantSummary(grant);
   return {
-    recipients: memberEmails(covered),
+    recipients: memberEmails(coveredMembers(grant)),
     subject: `You have a ${dayLabel(days)} extension for Cycle ${grant.cycleNumber}`,
     heading: "Extension granted",
     paragraphs: [
@@ -140,7 +145,7 @@ function deniedMail(grant: LoadedGrant) {
     });
   const memberDeclined = grant.memberConsents.some((consent) => !consent.agreed);
   return {
-    recipients: memberEmails(grant.progressRow?.members ?? []),
+    recipients: memberEmails(coveredMembers(grant)),
     subject: `Your Cycle ${grant.cycleNumber} extension request was denied`,
     heading: "Extension denied",
     paragraphs: [
@@ -156,8 +161,8 @@ function deniedMail(grant: LoadedGrant) {
 }
 
 /**
- * Emails the decision on a decided request as one email: approved → the members the grant
- * covers; denied → the whole group. Returns null while the request is still pending.
+ * Emails the decision on a decided request as one email to the members the terms cover (the
+ * whole group unless a producer picked some members). Returns null while still pending.
  */
 export async function notifyGroupOfExtensionDecision(requestId: string) {
   const grant = await loadGrant(requestId);

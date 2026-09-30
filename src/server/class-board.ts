@@ -79,8 +79,9 @@ export async function loadClassBoard(role: PlatformRole | null, now = new Date()
     topic: row.groupTopic,
     memberNames: row.members.map((member) => member.name ?? "").filter(Boolean),
     producerName: row.assignedProducer?.name ?? null,
-    extension: row.extension,
-    extensionDays: row.extensionDays,
+    // The board is shown to the whole class: a grant for only some members stays off it.
+    extension: row.groupWideExtension.extension,
+    extensionDays: row.groupWideExtension.days,
     pitching: row.pitching,
     proofOfContact: row.proofOfContact,
     aRollBRoll: row.aRollBRoll,

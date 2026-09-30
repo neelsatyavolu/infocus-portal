@@ -18,16 +18,20 @@ The old 14-day allowance pool is gone.
 4. On approval, the group's extension flag is set. Only the chosen members get the extra days;
    everyone else keeps the original final cut deadline.
 
+An extension granted to only some members stays private to them. Members it doesn't cover don't
+see it on this page, the Class Board, or in the assistant, and they get no email about it,
+approved or denied.
+
 Once a request is decided, the group gets one email with every member in To:
 - **Approved:** only the members the extension covers.
 - **Denied:** the whole group, including each producer's denial reason, or a note that a member
-  declined.
+  declined. If the first producer had picked only some members, only those members get it.
 
 Pending steps (member agreement, the first producer vote) send no email. Watch the list and the
 sidebar count below.
 
 Who sees what: producers (associate and up) see every request. Students see requests for their
-own package groups. Each request shows the group agreement tally and each producer's vote.
+own package groups, except an extension granted to other members only. Each request shows the group agreement tally and each producer's vote.
 
 ## Producer grants
 
@@ -40,7 +44,7 @@ an extension** at the top of the page:
    other exec gets an email asking for the second approval.
 3. A **different** exec approves (or denies) the terms as-is. Associate producers can't grant or
    approve these, and an exec can't grant or approve one for their own group.
-4. On approval, the chosen students get one shared email. On denial, the whole group gets one.
+4. On approval or denial, only the chosen students get one shared email.
 
 Execs see **Email group** on every approved or denied request. It resends that decision email.
 Use it for requests decided before decision emails existed, or when a student says they never

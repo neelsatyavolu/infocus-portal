@@ -5,6 +5,7 @@ import { ok } from "@/src/lib/http";
 import { MAX_FINAL_CUT_EFFORT_POINTS, MAX_FINAL_CUT_QUALITY_POINTS } from "@/src/lib/package-final-cut-scores";
 import { parseDateInput } from "@/src/lib/extensions";
 import { getPlatformAccess, isExecutiveProducer } from "@/src/lib/platform-admin";
+import { setFinalCutLatePenalty } from "@/src/server/final-cut-late-penalty";
 import { saveFinalCutGrade } from "@/src/server/package-cycle-stage";
 
 const schema = z.object({
@@ -41,6 +42,25 @@ export async function POST(request: Request) {
       turnedInDate: payload.turnedInDate === undefined ? undefined : parseDateInput(payload.turnedInDate)
     });
     return ok(result);
+  } catch (error) {
+    return handleRouteError(error);
+  }
+}
+
+const penaltySchema = z.object({
+  rowId: z.string().min(1),
+  memberUserId: z.string().min(1),
+  /** One of the offered percentages, or null for the automatic penalty. */
+  percent: z.number().int().nullable()
+});
+
+export async function PATCH(request: Request) {
+  try {
+    const userId = await requireUserId();
+    const user = await syncUserProfile(userId);
+    const access = await getPlatformAccess(user.email);
+    const payload = penaltySchema.parse(await request.json());
+    return ok(await setFinalCutLatePenalty({ ...payload, role: access.role }));
   } catch (error) {
     return handleRouteError(error);
   }

@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { LATE_PENALTY_OVERRIDE_PERCENTS } from "@/src/lib/package-extensions";
 import { cn } from "@/src/lib/utils";
 
 export type FinalCutMemberGradeData = {
@@ -22,7 +25,11 @@ export type FinalCutMemberGradeData = {
   revisionCount: number;
   secondRevisionEligible: boolean;
   daysLate: number;
+  /** Penalty that applies: the exec override when set, otherwise the automatic one. */
   penaltyMultiplier: number;
+  automaticPenaltyMultiplier: number;
+  /** Exec override percent; null = automatic. */
+  latePenaltyPercent: number | null;
   graderScores: Array<{ userId: string; name: string; required: boolean; quality: number | null; effort: number | null }>;
 };
 
@@ -83,13 +90,13 @@ function lateStatus(grade: FinalCutGradeCardData) {
     return {
       label: `Late · ${percent}% off`,
       tone: "danger" as const,
-      detail: `${grade.daysLate} days past the ${formatDay(grade.deadlineAt)} deadline. 30% comes off each member's score. A second revision cannot repair this deduction.`
+      detail: `${grade.daysLate} days past the ${formatDay(grade.deadlineAt)} deadline. The automatic deduction is 30%, and a second revision cannot repair it. Each member's penalty is below.`
     };
   }
   return {
     label: `Late · ${percent}% off`,
     tone: "warn" as const,
-    detail: `${grade.daysLate} day${grade.daysLate === 1 ? "" : "s"} past the ${formatDay(grade.deadlineAt)} deadline. ${percent}% will be taken off each member's average.`
+    detail: `${grade.daysLate} day${grade.daysLate === 1 ? "" : "s"} past the ${formatDay(grade.deadlineAt)} deadline. The automatic deduction is ${percent}%. Each member's penalty is below.`
   };
 }
 
@@ -184,18 +191,80 @@ function GraderScores({ member, viewerUserId }: { member: FinalCutMemberGradeDat
   );
 }
 
+function percentOf(multiplier: number) {
+  return Math.round(multiplier * 100);
+}
+
+/** The late penalty this member will get; execs can replace the automatic one. */
+function LatePenalty({
+  member,
+  name,
+  canEdit,
+  saving,
+  onChange
+}: {
+  member: FinalCutMemberGradeData;
+  name: string;
+  canEdit: boolean;
+  saving: boolean;
+  onChange: (percent: number | null) => void;
+}) {
+  const automatic = percentOf(member.automaticPenaltyMultiplier);
+  const automaticLabel =
+    automatic > 0
+      ? `−${automatic}% · ${member.daysLate} day${member.daysLate === 1 ? "" : "s"} late`
+      : "none, on time";
+  const effective = percentOf(member.penaltyMultiplier);
+
+  if (!canEdit) {
+    return (
+      <span className="text-xs text-muted-foreground">
+        Late penalty {effective > 0 ? `−${effective}%` : "none"}
+        {member.latePenaltyPercent != null ? " · set by an executive producer" : ""}
+      </span>
+    );
+  }
+
+  return (
+    <label className="flex items-center gap-2 text-xs text-muted-foreground">
+      Late penalty
+      <Select
+        value={member.latePenaltyPercent == null ? "auto" : String(member.latePenaltyPercent)}
+        onValueChange={(value) => onChange(value === "auto" ? null : Number(value))}
+        disabled={saving}
+      >
+        <SelectTrigger className="h-8 w-52 text-xs" aria-label={`${name} late penalty`}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="auto">Automatic ({automaticLabel})</SelectItem>
+          {LATE_PENALTY_OVERRIDE_PERCENTS.map((percent) => (
+            <SelectItem key={percent} value={String(percent)}>
+              −{percent}%
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </label>
+  );
+}
+
 function MemberRow({
   member,
   canGrade,
   viewerUserId,
   draft,
-  onDraftChange
+  onDraftChange,
+  savingPenalty,
+  onPenaltyChange
 }: {
   member: FinalCutMemberGradeData;
   canGrade: boolean;
   viewerUserId: string;
   draft: { quality: string; effort: string };
   onDraftChange: (next: { quality: string; effort: string }) => void;
+  savingPenalty: boolean;
+  onPenaltyChange: (percent: number | null) => void;
 }) {
   const name = member.name?.trim() || member.email || "Member";
   const quality = parsePart(draft.quality);
@@ -244,10 +313,16 @@ function MemberRow({
                 ? `Waiting on ${waitingOn.join(", ")}`
                 : `Waiting on ${member.pendingCount} executive producer${member.pendingCount === 1 ? "" : "s"}`}
           {member.revisionCapped ? ` · second revision cap ${formatPts(member.afterRevisionCap)}` : ""}
-          {member.penaltyMultiplier > 0 ? ` · −${Math.round(member.penaltyMultiplier * 100)}% late` : ""}
         </span>
         <span className="font-medium tabular-nums text-foreground">Official {formatPts(member.officialPoints)} / 50</span>
       </div>
+      <LatePenalty
+        member={member}
+        name={name}
+        canEdit={canGrade}
+        saving={savingPenalty}
+        onChange={onPenaltyChange}
+      />
       <GraderScores member={member} viewerUserId={viewerUserId} />
     </li>
   );
@@ -264,18 +339,23 @@ function Stat({ label, value, detail }: { label: string; value: string; detail: 
 }
 
 export function FinalCutGradeCard({
+  rowId,
   grade,
   onSave,
+  onPenaltyChanged,
   message
 }: {
+  rowId: string;
   grade: FinalCutGradeCardData;
   onSave: (scores: FinalCutScoreInput[]) => Promise<void>;
+  onPenaltyChanged: () => void;
   message?: string | null;
 }) {
   const timing = lateStatus(grade);
   const [draft, setDraft] = useState<Draft>(() => draftFrom(grade.members));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [savingPenaltyFor, setSavingPenaltyFor] = useState<string | null>(null);
   // Reset typed scores only when saved scores change, so unrelated reloads keep unsaved input.
   const savedKey = grade.members.map((member) => `${member.userId}:${member.myQuality}:${member.myEffort}`).join("|");
   const [draftSavedKey, setDraftSavedKey] = useState(savedKey);
@@ -298,6 +378,28 @@ export function FinalCutGradeCard({
       await onSave(result.scores);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function savePenalty(memberUserId: string, percent: number | null) {
+    setSavingPenaltyFor(memberUserId);
+    try {
+      const response = await fetch("/api/package-cycle/grade", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rowId, memberUserId, percent })
+      });
+      const body = (await response.json()) as { error?: { message?: string } };
+      if (!response.ok) {
+        toast.error(body.error?.message ?? "Could not change the late penalty.");
+        return;
+      }
+      toast.success(percent === null ? "Late penalty set back to automatic." : `Late penalty set to ${percent}%.`);
+      onPenaltyChanged();
+    } catch {
+      toast.error("Could not change the late penalty.");
+    } finally {
+      setSavingPenaltyFor(null);
     }
   }
 
@@ -355,6 +457,8 @@ export function FinalCutGradeCard({
               viewerUserId={grade.viewerUserId}
               draft={draft[member.userId] ?? { quality: "", effort: "" }}
               onDraftChange={(next) => setDraft((current) => ({ ...current, [member.userId]: next }))}
+              savingPenalty={savingPenaltyFor === member.userId}
+              onPenaltyChange={(percent) => void savePenalty(member.userId, percent)}
             />
           ))}
         </ul>

@@ -24,7 +24,12 @@ import { listUpcomingShows } from "@/src/server/show-schedule";
 import { MAX_PORTFOLIO_POINTS } from "@/src/lib/grading";
 import { isExcludedFromGrading, loadNonGradableEmails } from "@/src/lib/gradable-roster";
 import { calculateExtensionDays, parseDateInput, sanitizeFreeExtensionDays } from "@/src/lib/extensions";
-import { approvedExtensionDaysFor, calculateLatePenalty, effectiveDeadline } from "@/src/lib/package-extensions";
+import {
+  approvedExtensionDaysFor,
+  calculateLatePenalty,
+  effectiveDeadline,
+  memberLatePenaltyMultiplier
+} from "@/src/lib/package-extensions";
 import { MAX_EFFORT_POINTS } from "@/src/lib/package-grades";
 import { officialFinalCutPoints } from "@/src/lib/package-review-mail";
 import { capAwardedForRevision } from "@/src/lib/package-revisions";
@@ -1375,13 +1380,17 @@ export async function executeAssistantAction(params: {
       where: { cycleNumber: payload.cycleNumber, members: { some: { userId: payload.userId } } },
       select: {
         extension: true,
-        extensionRequests: { where: { status: "APPROVED" }, select: { requestedDays: true, grantedDays: true, grantedUserIds: true } }
+        extensionRequests: { where: { status: "APPROVED" }, select: { requestedDays: true, grantedDays: true, grantedUserIds: true } },
+        members: { where: { userId: payload.userId }, select: { latePenaltyPercent: true } }
       }
     });
     const approvedDays = approvedExtensionDaysFor(progressRow, payload.userId);
     const deadline = effectiveDeadline(cycle?.finalCutDate ?? null, approvedDays);
     const late = calculateLatePenalty(deadline, turnedInDate);
-    const officialPoints = officialFinalCutPoints(cappedAwarded, late.penaltyMultiplier);
+    const officialPoints = officialFinalCutPoints(
+      cappedAwarded,
+      memberLatePenaltyMultiplier(late, progressRow?.members[0]?.latePenaltyPercent)
+    );
     const calculatedDays = turnedInDate ? calculateExtensionDays(cycle?.finalCutDate ?? null, turnedInDate) : 0;
     const turnedInChanged = (existing?.turnedInDate?.toISOString().slice(0, 10) ?? null) !== (turnedInDate?.toISOString().slice(0, 10) ?? null);
     const nextFeedback = payload.feedback ?? existing?.feedback ?? "";

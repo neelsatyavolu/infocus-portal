@@ -120,7 +120,7 @@ Semester 1 livestream points remain ungraded and excluded from totals until **No
 `src/lib/package-revisions.ts`.
 
 - After the effective deadline (final cut date + approved extension), a package with no final cut that cleared all three stages is **0/50**.
-- Once that cut is submitted, **every executive producer** scores **each member** of the group: **quality out of 25** and **effort out of 25** (50 total). A member's official score is the average of the executives' totals, rounded to the nearest tenth. Associate producers do not grade. Late 20%/30% is a separate turn-in penalty, applied per member.
+- Once that cut is submitted, **every executive producer** scores **each member** of the group: **quality out of 25** and **effort out of 25** (50 total). A member's official score is the average of the executives' totals, rounded to the nearest tenth. Associate producers do not grade. Late 20%/30% is a separate turn-in penalty, applied per member. On the Final Cut tab an executive producer can replace a member's automatic penalty with 5/10/15/20/30% (`PackageProgressMember.latePenaltyPercent`, null = automatic). This recomputes an already graded member's official score.
 - Scores entered before Sept 26, 2026 as one group score out of 50 stay as they were. EPs can re-score those groups per member.
 - Revisions are per member. After the first graded final cut, if **any member** scores **below 75%**, the group can upload one second revision. Members below 75% are re-scored, capped at **37/50**; members at 75% or above keep their grade. The late penalty still applies and is not removed by the second revision.
 
@@ -141,8 +141,11 @@ Semester 1 livestream points remain ungraded and excluded from totals until **No
   no member agreement, the granting exec's approval counts as the first, and a second exec
   outside the group must approve. Other execs are emailed on creation.
 - Every decided request or grant sends one email with all recipients in To. Approved goes to the
-  covered students; denied goes to the whole group with the denial reason. Execs can resend it
-  with **Email group** on `/extension-requests`.
+  covered students; denied goes to the covered students (the whole group unless the terms name
+  members) with the denial reason. Execs can resend it with **Email group** on `/extension-requests`.
+- A grant that covers only some members is private to them: uncovered students don't see it on
+  `/extension-requests`, the Class Board (which shows whole-group grants only, `groupWideExtension`),
+  or assistant lookups, and get no email.
 - Past the extension deadline → **20%** reduction.
 - More than **14 days** past → **30%**, and a second revision cannot repair it.
 

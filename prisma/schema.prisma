@@ -849,6 +849,8 @@ model PackageProgressMember {
   id        String             @id @default(cuid())
   rowId     String
   userId    String
+  /// Exec override of this member's Final Cut late penalty (5/10/15/20/30). Null = automatic.
+  latePenaltyPercent Int?
   createdAt DateTime           @default(now())
   row       PackageProgressRow @relation(fields: [rowId], references: [id], onDelete: Cascade)
   user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)

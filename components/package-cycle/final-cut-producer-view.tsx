@@ -83,7 +83,13 @@ export function FinalCutProducerView({
 
       {grade ? (
         <>
-          <FinalCutGradeCard grade={grade} onSave={onSaveGrade} message={gradeMessage} />
+          <FinalCutGradeCard
+            rowId={rowId}
+            grade={grade}
+            onSave={onSaveGrade}
+            onPenaltyChanged={onReload}
+            message={gradeMessage}
+          />
           <CycleGradeReleaseCard
             feedback={grade.feedback}
             published={grade.published}

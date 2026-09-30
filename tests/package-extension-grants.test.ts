@@ -3,8 +3,13 @@ import {
   approvedExtensionDaysFor,
   denialReasonFor,
   extensionBadgeLabel,
+  extensionCoversUser,
   extensionRequestAwaitsUser,
+  extensionRequestVisibleTo,
+  groupWideExtension,
   isExtensionGranted,
+  isLatePenaltyOverridePercent,
+  memberLatePenaltyMultiplier,
   resolveGrantTerms
 } from "@/src/lib/package-extensions";
 import { mayDecideExtensionRequest } from "@/src/server/extension-requests";
@@ -192,5 +197,80 @@ describe("denialReasonFor", () => {
   it("stores no reason on an approval", () => {
     expect(denialReasonFor(true, "ignored")).toBe("");
     expect(denialReasonFor(true, undefined)).toBe("");
+  });
+});
+
+describe("extensionRequestVisibleTo", () => {
+  it("shows whole-group requests to every member", () => {
+    expect(extensionRequestVisibleTo({ grantedUserIds: [] }, "otto")).toBe(true);
+  });
+
+  it("hides a partial grant from members it does not cover", () => {
+    expect(extensionRequestVisibleTo({ grantedUserIds: ["sage"] }, "sage")).toBe(true);
+    expect(extensionRequestVisibleTo({ grantedUserIds: ["sage"] }, "otto")).toBe(false);
+  });
+});
+
+describe("extensionCoversUser", () => {
+  const partial = { requestedDays: 3, grantedDays: 5, grantedUserIds: ["sage"] };
+
+  it("is true only for covered members of a partial grant", () => {
+    expect(extensionCoversUser({ extension: true, extensionRequests: [partial] }, "sage")).toBe(true);
+    expect(extensionCoversUser({ extension: true, extensionRequests: [partial] }, "otto")).toBe(false);
+  });
+
+  it("keeps a legacy flag with no approved requests for everyone", () => {
+    expect(extensionCoversUser({ extension: true, extensionRequests: [] }, "otto")).toBe(true);
+    expect(extensionCoversUser({ extension: false, extensionRequests: [] }, "otto")).toBe(false);
+  });
+});
+
+describe("groupWideExtension", () => {
+  const partial = { requestedDays: 3, grantedDays: 10, grantedUserIds: ["sage"] };
+  const whole = { requestedDays: 3, grantedDays: 4, grantedUserIds: [] };
+
+  it("hides a group whose only extension is a partial grant", () => {
+    expect(groupWideExtension({ extension: true, extensionRequests: [partial] })).toEqual({
+      extension: false,
+      days: 0
+    });
+  });
+
+  it("counts whole-group grants only", () => {
+    expect(groupWideExtension({ extension: true, extensionRequests: [partial, whole] })).toEqual({
+      extension: true,
+      days: 4
+    });
+  });
+
+  it("keeps a legacy flag with no approved requests", () => {
+    expect(groupWideExtension({ extension: true, extensionRequests: [] })).toEqual({ extension: true, days: 0 });
+    expect(groupWideExtension({ extension: false, extensionRequests: [whole] })).toEqual({
+      extension: false,
+      days: 0
+    });
+  });
+});
+
+describe("memberLatePenaltyMultiplier", () => {
+  const late = { penaltyMultiplier: 0.2, daysLate: 3, blocksSecondRevision: false };
+  const onTime = { penaltyMultiplier: 0, daysLate: 0, blocksSecondRevision: false };
+
+  it("uses the automatic penalty without an override", () => {
+    expect(memberLatePenaltyMultiplier(late, null)).toBe(0.2);
+    expect(memberLatePenaltyMultiplier(onTime, undefined)).toBe(0);
+  });
+
+  it("replaces it with the exec's override", () => {
+    expect(memberLatePenaltyMultiplier(late, 5)).toBe(0.05);
+    expect(memberLatePenaltyMultiplier(onTime, 30)).toBe(0.3);
+  });
+});
+
+describe("isLatePenaltyOverridePercent", () => {
+  it("allows only the offered percentages", () => {
+    expect([5, 10, 15, 20, 30].every(isLatePenaltyOverridePercent)).toBe(true);
+    expect(isLatePenaltyOverridePercent(0)).toBe(false);
+    expect(isLatePenaltyOverridePercent(25)).toBe(false);
   });
 });

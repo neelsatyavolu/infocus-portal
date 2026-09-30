@@ -12,6 +12,7 @@ import {
   applyLatePenalty,
   approvedExtensionDaysFor,
   calculateLatePenalty,
+  memberLatePenaltyMultiplier,
   effectiveDeadline
 } from "@/src/lib/package-extensions";
 import {
@@ -252,7 +253,11 @@ export type FinalCutMemberGrade = {
   revisionCount: number;
   secondRevisionEligible: boolean;
   daysLate: number;
+  /** Penalty that applies: the exec override when set, otherwise the automatic one. */
   penaltyMultiplier: number;
+  automaticPenaltyMultiplier: number;
+  /** Exec override percent; null = automatic. */
+  latePenaltyPercent: number | null;
   /** What each executive producer gave this member; null parts = not scored yet. */
   graderScores: Array<{ userId: string; name: string; required: boolean; quality: number | null; effort: number | null }>;
 };
@@ -303,7 +308,11 @@ async function loadFinalCutGradePanel(input: {
         extensionRequests: { where: { status: "APPROVED" }, select: { requestedDays: true, grantedDays: true, grantedUserIds: true } },
         members: {
           orderBy: { createdAt: "asc" },
-          select: { userId: true, user: { select: { id: true, name: true, nickname: true, email: true } } }
+          select: {
+            userId: true,
+            latePenaltyPercent: true,
+            user: { select: { id: true, name: true, nickname: true, email: true } }
+          }
         }
       }
     })
@@ -374,10 +383,11 @@ async function loadFinalCutGradePanel(input: {
       effectiveDeadline(cycle?.finalCutDate ?? null, approvedExtensionDaysFor(row, member.userId)),
       turnedIn
     );
+    const penaltyMultiplier = memberLatePenaltyMultiplier(memberPenalty, member.latePenaltyPercent);
     const preview = previewFinalCutOfficial({
       average: status.average,
       revisionCount: revisionCount > 0 ? revisionCount : 1,
-      penaltyMultiplier: memberPenalty.penaltyMultiplier
+      penaltyMultiplier
     });
     return {
       userId: member.userId,
@@ -401,7 +411,9 @@ async function loadFinalCutGradePanel(input: {
       revisionCount,
       secondRevisionEligible: isEligibleForSecondRevision(awarded ?? status.average, revisionCount),
       daysLate: memberPenalty.daysLate,
-      penaltyMultiplier: memberPenalty.penaltyMultiplier,
+      penaltyMultiplier,
+      automaticPenaltyMultiplier: memberPenalty.penaltyMultiplier,
+      latePenaltyPercent: member.latePenaltyPercent,
       graderScores: graderNames.map((grader) => {
         const score = scores.find(
           (entry) => entry.graderUserId === grader.userId && entry.memberUserId === member.userId
@@ -1082,7 +1094,7 @@ export async function saveFinalCutGrade(input: {
   const row = await prisma.packageProgressRow.findUniqueOrThrow({
     where: { id: input.rowId },
     include: {
-      members: { select: { userId: true } },
+      members: { select: { userId: true, latePenaltyPercent: true } },
       finalCutMediaItem: { select: { createdAt: true } },
       extensionRequests: { where: { status: "APPROVED" }, select: { requestedDays: true, grantedDays: true, grantedUserIds: true } }
     }
@@ -1165,9 +1177,10 @@ export async function saveFinalCutGrade(input: {
     // Extensions can cover only some members, so the late penalty is per member.
     const deadline = effectiveDeadline(cycle?.finalCutDate ?? null, approvedExtensionDaysFor(row, entry.memberUserId));
     const penalty = calculateLatePenalty(deadline, turnedIn);
+    const override = row.members.find((member) => member.userId === entry.memberUserId)?.latePenaltyPercent;
     const data = {
       awardedFinalCutPoints: awarded,
-      finalCutPoints: officialFinalCutPoints(awarded, penalty.penaltyMultiplier),
+      finalCutPoints: officialFinalCutPoints(awarded, memberLatePenaltyMultiplier(penalty, override)),
       revisionCount,
       turnedInDate: turnedIn
     };

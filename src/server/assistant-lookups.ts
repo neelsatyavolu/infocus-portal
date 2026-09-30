@@ -4,6 +4,7 @@ import { groupTileStatus } from "@/src/lib/group-tile-status";
 import { aRollFeedbackNeedsChanges } from "@/src/lib/package-stage-status";
 import { remainingFromApproval } from "@/src/lib/package-approval";
 import { parseClipComment } from "@/src/lib/package-clip-comments";
+import { extensionCoversUser } from "@/src/lib/package-extensions";
 import { APPROVAL_COMMENT_PREFIX, parseApprovalComment } from "@/src/lib/package-stage-comments";
 import {
   GROUP_NAV_TAB_LABELS,
@@ -281,11 +282,12 @@ function stageLabel(slug: string) {
   return (GROUP_STAGE_TAB_LABELS as Record<string, string>)[slug] ?? slug;
 }
 
-async function loadAssistantGroupDetail(rowId: string, includeRosterNotes: boolean) {
+async function loadAssistantGroupDetail(rowId: string, includeRosterNotes: boolean, viewerUserId: string) {
   const row = await prisma.packageProgressRow.findUnique({
     where: { id: rowId },
     select: {
       extension: true,
+      extensionRequests: { where: { status: "APPROVED" }, select: { requestedDays: true, grantedDays: true, grantedUserIds: true } },
       possibleInterviews: true,
       possibleIdeas: true,
       notes: true,
@@ -462,7 +464,8 @@ async function loadAssistantGroupDetail(rowId: string, includeRosterNotes: boole
       files: row.proofOfContacts.map((proof) => proof.fileName)
     },
     hasBrainstormDoc: Boolean(row.brainstormDocUrl.trim()),
-    extension: row.extension,
+    // Producers see the group flag; a student only sees an extension that covers them.
+    extension: includeRosterNotes ? row.extension : extensionCoversUser(row, viewerUserId),
     controversial: Boolean(row.approval?.controversial),
     signoffs: (row.approval?.signoffs ?? []).map((entry) => ({
       from: userDisplayName(entry.user) || "Unknown",
@@ -481,7 +484,7 @@ export async function getAssistantGroup(params: {
 }) {
   const row = await findAssistantGroupRow(params);
   const viewer = await viewerFor(params.actorUserId);
-  const detail = await loadAssistantGroupDetail(row.id, Boolean(viewer.platformRole));
+  const detail = await loadAssistantGroupDetail(row.id, Boolean(viewer.platformRole), params.actorUserId);
   return {
     ...summarizeAssistantGroup(row, true, params.actorUserId),
     ...detail

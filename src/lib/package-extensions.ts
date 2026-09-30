@@ -56,6 +56,18 @@ export function calculateLatePenalty(deadline: Date | null, turnedInAt: Date | n
   return { penaltyMultiplier: LATE_PENALTY_MULTIPLIER, daysLate, blocksSecondRevision: false };
 }
 
+/** Percentages an exec can set in place of a member's automatic late penalty. */
+export const LATE_PENALTY_OVERRIDE_PERCENTS = [5, 10, 15, 20, 30] as const;
+
+export function isLatePenaltyOverridePercent(value: number) {
+  return (LATE_PENALTY_OVERRIDE_PERCENTS as readonly number[]).includes(value);
+}
+
+/** A member's penalty: the exec's override when set, otherwise the automatic one. */
+export function memberLatePenaltyMultiplier(automatic: LatePenalty, overridePercent: number | null | undefined) {
+  return overridePercent == null ? automatic.penaltyMultiplier : overridePercent / 100;
+}
+
 export function applyLatePenalty(points: number, penalty: LatePenalty) {
   return Math.max(0, Math.round(points * (1 - penalty.penaltyMultiplier)));
 }
@@ -167,6 +179,32 @@ export function approvedExtensionDaysFor(
   return row.extensionRequests
     .filter((grant) => userId === undefined || grantCoversUser(grant, userId))
     .reduce((longest, grant) => Math.max(longest, grant.grantedDays ?? grant.requestedDays), 0);
+}
+
+/** Students see a request only if its terms cover them; a partial grant stays hidden from everyone else. */
+export function extensionRequestVisibleTo(request: { grantedUserIds: string[] }, userId: string) {
+  return request.grantedUserIds.length === 0 || request.grantedUserIds.includes(userId);
+}
+
+/** True when the group's extension applies to this member. A legacy flag with no approved requests covers everyone. */
+export function extensionCoversUser(
+  row: { extension: boolean; extensionRequests: ExtensionGrant[] },
+  userId: string
+) {
+  return (
+    row.extension &&
+    (row.extensionRequests.length === 0 || row.extensionRequests.some((grant) => grantCoversUser(grant, userId)))
+  );
+}
+
+/** Extension for shared screens (Class Board): whole-group grants only, so a partial grant never shows. */
+export function groupWideExtension(row: { extension: boolean; extensionRequests: ExtensionGrant[] }) {
+  const wholeGroup = row.extensionRequests.filter((grant) => grant.grantedUserIds.length === 0);
+  const extension = row.extension && (row.extensionRequests.length === 0 || wholeGroup.length > 0);
+  return {
+    extension,
+    days: extension ? approvedExtensionDaysFor({ extension, extensionRequests: wholeGroup }) : 0
+  };
 }
 
 /** Badge text for a group's extension; falls back when no approved days are on record. */

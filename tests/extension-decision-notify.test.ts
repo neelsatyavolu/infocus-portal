@@ -78,7 +78,6 @@ describe("notifyGroupOfExtensionDecision", () => {
     mocks.findUnique.mockResolvedValue(
       request({
         status: "DENIED",
-        grantedUserIds: ["sage"],
         approvals: [
           { approved: false, reason: "Too late", user: { name: "Pat", nickname: null, email: "pat@example.edu" } }
         ]
@@ -91,6 +90,22 @@ describe("notifyGroupOfExtensionDecision", () => {
     expect(mail.recipients).toHaveLength(3);
     expect(mail.heading).toBe("Extension denied");
     expect(mail.paragraphs).toContain("Pat denied it: Too late");
+  });
+
+  it("emails only the covered members when a partial grant is denied", async () => {
+    mocks.findUnique.mockResolvedValue(
+      request({
+        status: "DENIED",
+        grantedUserIds: ["sage"],
+        approvals: [
+          { approved: false, reason: "Too late", user: { name: "Pat", nickname: null, email: "pat@example.edu" } }
+        ]
+      })
+    );
+
+    await notifyGroupOfExtensionDecision("req");
+
+    expect(mocks.sendBrandedEmails.mock.calls[0][0].recipients).toEqual(["sage@example.edu"]);
   });
 
   it("says a member declined when no producer denied it", async () => {

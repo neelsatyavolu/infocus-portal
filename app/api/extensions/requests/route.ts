@@ -4,6 +4,7 @@ import { requireUserId, syncUserProfile } from "@/src/lib/auth";
 import { ok } from "@/src/lib/http";
 import {
   denialReasonFor,
+  extensionRequestVisibleTo,
   hasMemberDisagreed,
   isExtensionGranted,
   isGroupConsentComplete,
@@ -208,7 +209,7 @@ export async function GET() {
     const rowIds = memberships.map((entry) => entry.rowId);
 
     const viewer = { userId, role: access.role };
-    const requests = await loadSerializedRequests(
+    const loaded = await loadSerializedRequests(
       isProducer
         ? {}
         : {
@@ -219,6 +220,8 @@ export async function GET() {
           },
       viewer
     );
+    // A grant for only some members stays hidden from the members it doesn't cover.
+    const requests = isProducer ? loaded : loaded.filter((entry) => extensionRequestVisibleTo(entry, userId));
 
     return ok({
       canDecide: requests.some((entry) => entry.canDecide),

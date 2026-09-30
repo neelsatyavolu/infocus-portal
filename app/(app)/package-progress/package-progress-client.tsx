@@ -1,6 +1,7 @@
 "use client";
 
 import { type MouseEvent as ReactMouseEvent, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Edit3, ExternalLink, Plus, RefreshCcw, StickyNote } from "lucide-react";
 import { toast } from "sonner";
@@ -1114,33 +1115,38 @@ export default function PackageProgressClient({ initialData }: { initialData?: P
         ) : null}
       </section>
 
-      {rowContextMenu ? (
-        <div
-          ref={rowContextMenuRef}
-          className="fixed z-[120] min-w-[168px] rounded-lg border border-border bg-card p-1"
-          style={{ left: rowContextMenu.x, top: rowContextMenu.y }}
-        >
-          {cycles
-            .filter((cycle) => cycle.cycleNumber !== activeCycleNumber)
-            .map((cycle) => (
+      {/* Portal to body: .route-enter keeps a transform, which would anchor
+          `fixed` to the page wrapper instead of the viewport. */}
+      {rowContextMenu
+        ? createPortal(
+            <div
+              ref={rowContextMenuRef}
+              className="fixed z-[120] min-w-[168px] rounded-lg border border-border bg-card p-1"
+              style={{ left: rowContextMenu.x, top: rowContextMenu.y }}
+            >
+              {cycles
+                .filter((cycle) => cycle.cycleNumber !== activeCycleNumber)
+                .map((cycle) => (
+                  <button
+                    key={cycle.cycleNumber}
+                    type="button"
+                    className="w-full rounded-md px-3 py-2 text-left text-sm text-foreground transition hover:bg-accent"
+                    onClick={() => void moveRowFromContextMenu(cycle.cycleNumber)}
+                  >
+                    Move to Cycle {cycle.cycleNumber}
+                  </button>
+                ))}
               <button
-                key={cycle.cycleNumber}
                 type="button"
-                className="w-full rounded-md px-3 py-2 text-left text-sm text-foreground transition hover:bg-accent"
-                onClick={() => void moveRowFromContextMenu(cycle.cycleNumber)}
+                className="w-full rounded-md px-3 py-2 text-left text-sm text-danger transition hover:bg-danger-tint"
+                onClick={deleteRowFromContextMenu}
               >
-                Move to Cycle {cycle.cycleNumber}
+                Delete row
               </button>
-            ))}
-          <button
-            type="button"
-            className="w-full rounded-md px-3 py-2 text-left text-sm text-danger transition hover:bg-danger-tint"
-            onClick={deleteRowFromContextMenu}
-          >
-            Delete row
-          </button>
-        </div>
-      ) : null}
+            </div>,
+            document.body
+          )
+        : null}
 
       <section className="sticky bottom-4 z-20 mx-auto flex justify-center">
         <div className="inline-flex items-center gap-1 rounded-xl border border-foreground/[0.08] bg-card p-1">

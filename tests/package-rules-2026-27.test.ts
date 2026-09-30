@@ -37,6 +37,7 @@ import {
 } from "@/src/lib/package-revisions";
 import {
   consecutiveGroupmateOverlaps,
+  lastCycleGroupmatesAmong,
   previousTeammatesByUserFromGroups
 } from "@/src/lib/consecutive-groupmates";
 import {
@@ -392,6 +393,19 @@ describe("consecutive groupmates", () => {
       { userId: "grace", withUserIds: ["ada"] }
     ]);
     expect(consecutiveGroupmateOverlaps(["ada", "linus"], previous)).toEqual([]);
+  });
+
+  it("names the current members a candidate grouped with last cycle", () => {
+    const previous = previousTeammatesByUserFromGroups([
+      ["ada", "grace", "linus"],
+      ["otto"]
+    ]);
+    expect(lastCycleGroupmatesAmong("ada", ["grace", "otto", "linus"], previous)).toEqual([
+      "grace",
+      "linus"
+    ]);
+    expect(lastCycleGroupmatesAmong("otto", ["ada", "grace"], previous)).toEqual([]);
+    expect(lastCycleGroupmatesAmong("sage", ["ada"], previous)).toEqual([]);
   });
 });
 

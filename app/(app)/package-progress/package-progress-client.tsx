@@ -1007,6 +1007,7 @@ export default function PackageProgressClient({ initialData }: { initialData?: P
                         <MembersEditor
                           memberUserIds={row.memberUserIds ?? []}
                           users={users}
+                          previousTeammatesByUser={previousTeammatesByUser}
                           onChangeAction={(next) => {
                             const prevIds = row.memberUserIds ?? [];
                             const sameIds =

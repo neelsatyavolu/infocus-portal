@@ -28,6 +28,16 @@ export function consecutiveGroupmateOverlaps(
   return overlaps;
 }
 
+/** Current members that `userId` shared a group with last cycle, in member order. */
+export function lastCycleGroupmatesAmong(
+  userId: string,
+  memberUserIds: string[],
+  previousTeammatesByUser: Record<string, string[]>
+): string[] {
+  const previous = new Set(previousTeammatesByUser[userId] ?? []);
+  return memberUserIds.filter((otherId) => otherId !== userId && previous.has(otherId));
+}
+
 export function previousTeammatesByUserFromGroups(groups: string[][]): Record<string, string[]> {
   const map: Record<string, string[]> = {};
 

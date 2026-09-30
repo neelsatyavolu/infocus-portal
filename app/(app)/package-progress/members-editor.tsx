@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Plus, Search, X } from "lucide-react";
+import { lastCycleGroupmatesAmong } from "@/src/lib/consecutive-groupmates";
 import { serializeGroupMembers, type GroupMemberToken } from "@/src/lib/group-members";
 import { cn } from "@/src/lib/utils";
 
@@ -15,6 +16,8 @@ type Props = {
   memberUserIds: string[];
   users: MembersEditorUser[];
   onChangeAction: (next: { memberUserIds: string[]; groupMembers: string }) => void;
+  /** Flags people in the picker who shared a group last cycle with a current member. */
+  previousTeammatesByUser?: Record<string, string[]>;
   className?: string;
   disabled?: boolean;
 };
@@ -52,6 +55,7 @@ export function MembersEditor({
   memberUserIds,
   users,
   onChangeAction,
+  previousTeammatesByUser = {},
   className,
   disabled = false
 }: Props) {
@@ -208,26 +212,37 @@ export function MembersEditor({
                       {query.trim() ? "No matching people." : "Everyone is already linked."}
                     </p>
                   ) : (
-                    matches.map((user, index) => (
-                      <button
-                        key={user.id}
-                        type="button"
-                        onClick={() => addMember(user.id)}
-                        className={cn(
-                          "flex w-full flex-col gap-0.5 px-3 py-2 text-left",
-                          index === activeIndex
-                            ? "bg-accent text-accent-foreground"
-                            : "text-foreground hover:bg-accent/60"
-                        )}
-                      >
-                        <span className="text-xs font-medium">{displayName(user)}</span>
-                        {user.email ? (
-                          <span className="truncate text-[10px] text-muted-foreground">
-                            {user.email}
-                          </span>
-                        ) : null}
-                      </button>
-                    ))
+                    matches.map((user, index) => {
+                      const repeats = lastCycleGroupmatesAmong(user.id, memberUserIds, previousTeammatesByUser)
+                        .map((id) => usersById.get(id))
+                        .filter((other): other is MembersEditorUser => Boolean(other))
+                        .map(pickFirstName);
+                      return (
+                        <button
+                          key={user.id}
+                          type="button"
+                          onClick={() => addMember(user.id)}
+                          className={cn(
+                            "flex w-full flex-col gap-0.5 px-3 py-2 text-left",
+                            index === activeIndex
+                              ? "bg-accent text-accent-foreground"
+                              : "text-foreground hover:bg-accent/60"
+                          )}
+                        >
+                          <span className="text-xs font-medium">{displayName(user)}</span>
+                          {user.email ? (
+                            <span className="truncate text-[10px] text-muted-foreground">
+                              {user.email}
+                            </span>
+                          ) : null}
+                          {repeats.length > 0 ? (
+                            <span className="text-[10px] font-medium text-amber-300">
+                              Same group last cycle as {repeats.join(", ")}
+                            </span>
+                          ) : null}
+                        </button>
+                      );
+                    })
                   )}
                 </div>
               </div>

@@ -342,7 +342,9 @@ function GroupTile({
           pitching: row.pitching,
           proofOfContact: row.proofOfContact,
           aRollBRoll: row.aRollBRoll,
-          initialCut: groupNavTabDone("initial-stage-3", { ...row, approvalStage }),
+          initialStage1: groupNavTabDone("initial-stage-1", { ...row, approvalStage }),
+          initialStage2: groupNavTabDone("initial-stage-2", { ...row, approvalStage }),
+          initialStage3: groupNavTabDone("initial-stage-3", { ...row, approvalStage }),
           finalCut: row.finalCut
         },
         extensionDays: row.extensionDays ?? 0,

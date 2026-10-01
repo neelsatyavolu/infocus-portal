@@ -12,7 +12,7 @@ function input(overrides: Partial<GroupScheduleInput> = {}): GroupScheduleInput 
       initialCut: day("2026-10-21"),
       finalCut: day("2026-10-28")
     },
-    done: { pitching: false, proofOfContact: false, aRollBRoll: false, initialCut: false, finalCut: false },
+    done: { pitching: false, proofOfContact: false, aRollBRoll: false, initialStage1: false, initialStage2: false, initialStage3: false, finalCut: false },
     extensionDays: 0,
     // Noon Pacific (PDT) on Oct 12.
     now: new Date("2026-10-12T19:00:00.000Z"),
@@ -23,7 +23,7 @@ function input(overrides: Partial<GroupScheduleInput> = {}): GroupScheduleInput 
 describe("groupScheduleStatus", () => {
   it("is on track when every passed deadline is approved", () => {
     expect(
-      groupScheduleStatus(input({ done: { pitching: true, proofOfContact: true, aRollBRoll: false, initialCut: false, finalCut: false } }))
+      groupScheduleStatus(input({ done: { pitching: true, proofOfContact: true, aRollBRoll: false, initialStage1: false, initialStage2: false, initialStage3: false, finalCut: false } }))
     ).toEqual({ label: "On track", tone: "approved", daysBehind: 0 });
   });
 
@@ -31,20 +31,30 @@ describe("groupScheduleStatus", () => {
     // Pitch closed 11:59 PM Pacific Oct 2; noon Oct 12 is 10 days late.
     expect(groupScheduleStatus(input())).toEqual({ label: "Behind by 10d", tone: "danger", daysBehind: 10 });
     expect(
-      groupScheduleStatus(input({ done: { pitching: true, proofOfContact: false, aRollBRoll: false, initialCut: false, finalCut: false } }))
+      groupScheduleStatus(input({ done: { pitching: true, proofOfContact: false, aRollBRoll: false, initialStage1: false, initialStage2: false, initialStage3: false, finalCut: false } }))
     ).toMatchObject({ label: "Behind by 5d", daysBehind: 5 });
   });
 
   it("is not behind until the deadline closes at 11:59 PM Pacific", () => {
-    const done = { pitching: true, proofOfContact: false, aRollBRoll: false, initialCut: false, finalCut: false };
+    const done = { pitching: true, proofOfContact: false, aRollBRoll: false, initialStage1: false, initialStage2: false, initialStage3: false, finalCut: false };
     expect(groupScheduleStatus(input({ done, now: new Date("2026-10-08T06:30:00.000Z") }))).toMatchObject({ label: "On track" });
     expect(groupScheduleStatus(input({ done, now: new Date("2026-10-08T07:30:00.000Z") }))).toMatchObject({ label: "Behind by 1d" });
   });
 
   it("shifts every deadline by the approved extension", () => {
-    const done = { pitching: true, proofOfContact: false, aRollBRoll: false, initialCut: false, finalCut: false };
+    const done = { pitching: true, proofOfContact: false, aRollBRoll: false, initialStage1: false, initialStage2: false, initialStage3: false, finalCut: false };
     expect(groupScheduleStatus(input({ done, extensionDays: 5 }))).toMatchObject({ label: "On track" });
     expect(groupScheduleStatus(input({ done, extensionDays: 3 }))).toMatchObject({ label: "Behind by 2d" });
+  });
+
+  it("uses the Class Board Stage 2 and Stage 3 dates for Initial Cut", () => {
+    // Final Cut Oct 28: Stage 2 by Oct 21, Stage 3 by Oct 25. Initial Cut Stage 1 was due Oct 14.
+    const dates = { ...input().dates, initialCut: day("2026-10-14") };
+    const atStage3 = { pitching: true, proofOfContact: true, aRollBRoll: true, initialStage1: true, initialStage2: true, initialStage3: false, finalCut: false };
+    // Noon Pacific Oct 27: Stage 3 closed Oct 25, Final Cut not yet due.
+    const now = new Date("2026-10-27T19:00:00.000Z");
+    expect(groupScheduleStatus(input({ dates, done: atStage3, now }))).toMatchObject({ label: "Behind by 2d" });
+    expect(groupScheduleStatus(input({ dates, done: atStage3, now, extensionDays: 2 }))).toMatchObject({ label: "On track" });
   });
 
   it("skips stages with no date and shows nothing when the cycle has no deadlines", () => {

@@ -132,11 +132,14 @@ Semester 1 livestream points remain ungraded and excluded from totals until **No
   student is on for that cycle). Every group member must agree before producers can act.
   Any member disagreement denies the request.
 - Then **two distinct producer approvals** are required. Any single producer denial blocks it.
-- The first approving producer sets the grant: days (1–30, may differ from the request) and which
+- The first approving producer sets the grant: days (0.1–30 with one decimal place, may differ from the request) and which
   group members it covers (`grantedDays`, `grantedUserIds`; empty = whole group). The second
   approval accepts those terms as-is.
 - On approval, the group’s package progress `extension` flag is set. Deadlines and late penalties
   use each member’s own granted days (`approvedExtensionDaysFor`); uncovered members get none.
+- Decimal days add exact hours to the 11:59 PM Pacific close (1.5 days = 11:59 AM two days later;
+  `effectiveDeadline` leaves the offset and `deadlineClosesAt` adds it). Turn-in dates are whole
+  days, so on the day a decimal extension closes the Final Cut upload time decides lateness.
 - Execs (EP, adviser, super admin) may also grant an extension directly (`producerGranted`):
   no member agreement, the granting exec's approval counts as the first, and a second exec
   outside the group must approve. Other execs are emailed on creation.

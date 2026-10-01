@@ -4,9 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { CalendarClock, Check, ChevronRight, Loader2, Mail, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { EXTENSION_REQUESTS_CHANGED_EVENT } from "@/src/lib/package-extensions";
+import { clampExtensionDays, EXTENSION_REQUESTS_CHANGED_EVENT } from "@/src/lib/package-extensions";
 import { ApproveExtensionDialog, type GrantTerms } from "./approve-extension-dialog";
 import { DenyExtensionDialog } from "./deny-extension-dialog";
+import { ExtensionDaysInput } from "./extension-days-input";
 import { GrantExtensionDialog } from "./grant-extension-dialog";
 
 type Approval = {
@@ -124,7 +125,7 @@ export default function ExtensionRequestsClient() {
       const response = await fetch("/api/extensions/requests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cycleNumber, requestedDays, reason })
+        body: JSON.stringify({ cycleNumber, requestedDays: clampExtensionDays(requestedDays), reason })
       });
       const body = await response.json();
 
@@ -424,12 +425,9 @@ export default function ExtensionRequestsClient() {
           </label>
           <label className="text-sm">
             <span className="mb-1 block text-xs text-muted-foreground">Days</span>
-            <input
-              type="number"
-              min={1}
-              max={30}
+            <ExtensionDaysInput
               value={requestedDays}
-              onChange={(event) => setRequestedDays(Math.max(1, Number(event.target.value) || 1))}
+              onChange={setRequestedDays}
               className="h-10 w-full rounded-lg border border-border bg-muted px-3 text-foreground outline-none"
             />
           </label>

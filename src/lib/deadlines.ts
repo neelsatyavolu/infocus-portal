@@ -32,18 +32,23 @@ function dateKeyOf(date: Date) {
   return date.toISOString().slice(0, 10);
 }
 
-/** 11:59:59.999 PM Pacific on a stored deadline day. */
+/** Time past midnight UTC: zero for stored days, the leftover hours of a fractional extension otherwise. */
+function extensionOffsetMs(date: Date) {
+  return date.getTime() - Date.parse(`${dateKeyOf(date)}T00:00:00.000Z`);
+}
+
+/** 11:59:59.999 PM Pacific on a stored deadline day, plus any fractional-extension offset. */
 export function deadlineClosesAt(date: Date) {
   const [year, month, day] = dateKeyOf(date).split("-").map(Number);
   // Midnight PST the next day; PDT midnight is one hour earlier.
   const nextMidnightPst = Date.UTC(year!, month! - 1, day! + 1, 8);
   const nextMidnight = nextMidnightPst - Number(pacificHourFormat.format(nextMidnightPst)) * HOUR_MS;
-  return new Date(nextMidnight - 1);
+  return new Date(nextMidnight - 1 + extensionOffsetMs(date));
 }
 
 export function finalCutClosesAt(date: Date) {
   const override = FINAL_CUT_CLOSE_OVERRIDES[dateKeyOf(date)];
-  return override ? new Date(override) : deadlineClosesAt(date);
+  return override ? new Date(Date.parse(override) + extensionOffsetMs(date)) : deadlineClosesAt(date);
 }
 
 export function deadlinePassed(

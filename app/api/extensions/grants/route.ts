@@ -2,7 +2,7 @@ import { z } from "zod";
 import { handleRouteError } from "@/src/lib/api-errors";
 import { requireUserId, syncUserProfile } from "@/src/lib/auth";
 import { ok } from "@/src/lib/http";
-import { resolveGrantTerms } from "@/src/lib/package-extensions";
+import { EXTENSION_DAYS_ERROR, isValidExtensionDays, resolveGrantTerms } from "@/src/lib/package-extensions";
 import { getPlatformAccess } from "@/src/lib/platform-admin";
 import { prisma } from "@/src/lib/prisma";
 import { getRequestKey, limitByKey } from "@/src/lib/rate-limit";
@@ -15,7 +15,7 @@ const cycleSchema = z.coerce.number().int().min(1).max(MAX_CYCLES_PER_SEMESTER);
 
 const grantSchema = z.object({
   progressRowId: z.string().min(1),
-  days: z.number().int().min(1).max(30),
+  days: z.number().refine(isValidExtensionDays, EXTENSION_DAYS_ERROR),
   /** Omit or send every member for the whole group. */
   grantedUserIds: z.array(z.string().min(1)).max(50).optional(),
   reason: z.string().max(1200)

@@ -1,3 +1,5 @@
+import { finalCutClosesAt, pacificDateKey } from "@/src/lib/deadlines";
+
 /**
  * Extension policy for 2026-27.
  *
@@ -14,8 +16,34 @@ export const EXTENSION_REQUESTS_CHANGED_EVENT = "infocus-extension-requests-chan
 export const LATE_PENALTY_MULTIPLIER = 0.2;
 export const SEVERELY_LATE_PENALTY_MULTIPLIER = 0.3;
 export const SEVERELY_LATE_THRESHOLD_DAYS = 14;
+/** Extension days allow one decimal place: 0.1 day (2.4 hours) up to 30 days. */
+export const MIN_EXTENSION_DAYS = 0.1;
+export const MAX_EXTENSION_DAYS = 30;
+export const EXTENSION_DAYS_ERROR = "Days must be 0.1 to 30, with at most one decimal place.";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Rounds to the one decimal place extension days allow. */
+export function roundExtensionDays(days: number) {
+  return Math.round(days * 10) / 10;
+}
+
+export function isValidExtensionDays(days: number) {
+  return (
+    Number.isFinite(days) &&
+    days >= MIN_EXTENSION_DAYS &&
+    days <= MAX_EXTENSION_DAYS &&
+    roundExtensionDays(days) === days
+  );
+}
+
+/** Clamps a typed value into the allowed range for day inputs. */
+export function clampExtensionDays(value: number) {
+  if (!Number.isFinite(value)) {
+    return MIN_EXTENSION_DAYS;
+  }
+  return Math.min(MAX_EXTENSION_DAYS, Math.max(MIN_EXTENSION_DAYS, roundExtensionDays(value)));
+}
 
 export type LatePenalty = {
   /** Fraction of the grade deducted, e.g. 0.2 for a 20% reduction. */
@@ -36,10 +64,17 @@ export function daysPastDeadline(deadline: Date | null, turnedInAt: Date | null)
 
 /**
  * `deadline` is the student's effective deadline: the final cut date plus any
- * approved extension days.
+ * approved extension days. `turnedInAt` is a whole turn-in day, so a fractional
+ * extension that closes partway through that day is judged by `uploadedAt`,
+ * the Final Cut upload time, when the upload falls on the turn-in day.
  */
-export function calculateLatePenalty(deadline: Date | null, turnedInAt: Date | null): LatePenalty {
-  const daysLate = daysPastDeadline(deadline, turnedInAt);
+export function calculateLatePenalty(
+  deadline: Date | null,
+  turnedInAt: Date | null,
+  uploadedAt?: Date | null
+): LatePenalty {
+  const daysLate =
+    daysPastDeadline(deadline, turnedInAt) || (uploadedPastClose(deadline, turnedInAt, uploadedAt) ? 1 : 0);
 
   if (daysLate <= 0) {
     return { penaltyMultiplier: 0, daysLate: 0, blocksSecondRevision: false };
@@ -54,6 +89,16 @@ export function calculateLatePenalty(deadline: Date | null, turnedInAt: Date | n
   }
 
   return { penaltyMultiplier: LATE_PENALTY_MULTIPLIER, daysLate, blocksSecondRevision: false };
+}
+
+function uploadedPastClose(deadline: Date | null, turnedInAt: Date | null, uploadedAt: Date | null | undefined) {
+  if (!deadline || !turnedInAt || !uploadedAt) {
+    return false;
+  }
+  return (
+    pacificDateKey(uploadedAt) === turnedInAt.toISOString().slice(0, 10) &&
+    uploadedAt.getTime() > finalCutClosesAt(deadline).getTime()
+  );
 }
 
 /** Percentages an exec can set in place of a member's automatic late penalty. */
@@ -72,6 +117,10 @@ export function applyLatePenalty(points: number, penalty: LatePenalty) {
   return Math.max(0, Math.round(points * (1 - penalty.penaltyMultiplier)));
 }
 
+/**
+ * A fractional extension leaves a time-of-day offset on the returned date;
+ * `deadlineClosesAt` adds that offset to the 11:59 PM Pacific close.
+ */
 export function effectiveDeadline(finalCutDate: Date | null, approvedExtensionDays: number) {
   if (!finalCutDate) {
     return null;

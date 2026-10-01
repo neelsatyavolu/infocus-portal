@@ -6,6 +6,7 @@ import {
   finalCutDeadlinePassed,
   finalCutTurnInDateKey
 } from "@/src/lib/deadlines";
+import { effectiveDeadline } from "@/src/lib/package-extensions";
 
 const day = (key: string) => new Date(`${key}T00:00:00.000Z`);
 
@@ -57,5 +58,19 @@ describe("cycle 1 Final Cut extension", () => {
 
   it("counts an 11 PM upload on its Pacific day, not the UTC day", () => {
     expect(finalCutTurnInDateKey(new Date("2026-10-23T06:00:00Z"), day("2026-11-05"))).toBe("2026-10-22");
+  });
+});
+
+describe("fractional extensions", () => {
+  it("adds the leftover hours to the 11:59 PM close", () => {
+    const extended = effectiveDeadline(day("2026-10-22"), 1.5)!;
+    expect(deadlineClosesAt(extended).toISOString()).toBe("2026-10-24T18:59:59.999Z");
+    expect(deadlinePassed(extended, new Date("2026-10-24T18:00:00Z"))).toBe(false);
+    expect(deadlinePassed(extended, new Date("2026-10-24T19:00:00Z"))).toBe(true);
+  });
+
+  it("adds the offset to a Final Cut close override", () => {
+    const extended = effectiveDeadline(day("2026-09-29"), 0.5)!;
+    expect(finalCutClosesAt(extended).toISOString()).toBe("2026-09-30T21:00:00.000Z");
   });
 });

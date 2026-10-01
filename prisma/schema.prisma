@@ -1179,9 +1179,10 @@ model PackageExtensionRequest {
   /// Package group this request covers. Null only for legacy pre-group rows.
   progressRowId String?
   cycleNumber   Int
-  requestedDays Int
+  /// Days requested, to one decimal place (1.5 = 36 hours).
+  requestedDays Float
   /// Days the first approving producer granted. Null means requestedDays (legacy rows).
-  grantedDays   Int?
+  grantedDays   Float?
   /// Members the extension covers. Empty means the whole group.
   grantedUserIds String[]                  @default([])
   /// An exec granted this directly: no member agreement, and a second exec must approve.

@@ -10,6 +10,8 @@ import {
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog";
+import { clampExtensionDays } from "@/src/lib/package-extensions";
+import { ExtensionDaysInput } from "./extension-days-input";
 
 type GroupMember = { userId: string; name: string | null; email: string | null };
 type Group = { id: string; groupTopic: string; members: GroupMember[] };
@@ -93,7 +95,7 @@ export function GrantExtensionDialog({
       const response = await fetch("/api/extensions/grants", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ progressRowId: groupId, days, grantedUserIds: selected, reason })
+        body: JSON.stringify({ progressRowId: groupId, days: clampExtensionDays(days), grantedUserIds: selected, reason })
       });
       const body = await response.json();
       if (!response.ok) {
@@ -133,16 +135,7 @@ export function GrantExtensionDialog({
             </label>
             <label className="block text-sm">
               <span className="mb-1 block text-xs text-muted-foreground">Days</span>
-              <input
-                type="number"
-                min={1}
-                max={30}
-                value={days}
-                onChange={(event) =>
-                  setDays(Math.min(30, Math.max(1, Math.round(Number(event.target.value)) || 1)))
-                }
-                className={inputClass}
-              />
+              <ExtensionDaysInput value={days} onChange={setDays} className={inputClass} />
             </label>
           </div>
 

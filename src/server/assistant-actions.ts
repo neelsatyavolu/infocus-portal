@@ -1381,12 +1381,13 @@ export async function executeAssistantAction(params: {
       select: {
         extension: true,
         extensionRequests: { where: { status: "APPROVED" }, select: { requestedDays: true, grantedDays: true, grantedUserIds: true } },
+        finalCutMediaItem: { select: { createdAt: true } },
         members: { where: { userId: payload.userId }, select: { latePenaltyPercent: true } }
       }
     });
     const approvedDays = approvedExtensionDaysFor(progressRow, payload.userId);
     const deadline = effectiveDeadline(cycle?.finalCutDate ?? null, approvedDays);
-    const late = calculateLatePenalty(deadline, turnedInDate);
+    const late = calculateLatePenalty(deadline, turnedInDate, progressRow?.finalCutMediaItem?.createdAt);
     const officialPoints = officialFinalCutPoints(
       cappedAwarded,
       memberLatePenaltyMultiplier(late, progressRow?.members[0]?.latePenaltyPercent)

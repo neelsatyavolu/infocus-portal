@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   approvedExtensionDaysFor,
+  calculateLatePenalty,
+  clampExtensionDays,
   denialReasonFor,
+  effectiveDeadline,
   extensionBadgeLabel,
   extensionCoversUser,
   extensionRequestAwaitsUser,
@@ -9,6 +12,7 @@ import {
   groupWideExtension,
   isExtensionGranted,
   isLatePenaltyOverridePercent,
+  isValidExtensionDays,
   memberLatePenaltyMultiplier,
   resolveGrantTerms
 } from "@/src/lib/package-extensions";
@@ -272,5 +276,38 @@ describe("isLatePenaltyOverridePercent", () => {
     expect([5, 10, 15, 20, 30].every(isLatePenaltyOverridePercent)).toBe(true);
     expect(isLatePenaltyOverridePercent(0)).toBe(false);
     expect(isLatePenaltyOverridePercent(25)).toBe(false);
+  });
+});
+
+describe("decimal extension days", () => {
+  const finalCut = new Date("2026-10-22T00:00:00.000Z");
+  const turnedIn = (key: string) => new Date(`${key}T00:00:00.000Z`);
+
+  it("accepts 0.1 to 30 days with one decimal place", () => {
+    expect([0.1, 0.5, 1.5, 2.3, 30].every(isValidExtensionDays)).toBe(true);
+    expect([0, 1.25, 30.1, -1, Number.NaN].some(isValidExtensionDays)).toBe(false);
+  });
+
+  it("clamps typed values into range at one decimal", () => {
+    expect(clampExtensionDays(0)).toBe(0.1);
+    expect(clampExtensionDays(45)).toBe(30);
+    expect(clampExtensionDays(1.26)).toBe(1.3);
+  });
+
+  it("judges a 1.5-day extension by the upload time on its closing day", () => {
+    // Closes 11:59 AM PDT Oct 24 (36 hours after 11:59 PM Oct 22).
+    const deadline = effectiveDeadline(finalCut, 1.5);
+    expect(calculateLatePenalty(deadline, turnedIn("2026-10-24"), new Date("2026-10-24T18:00:00Z")).penaltyMultiplier).toBe(0);
+    expect(calculateLatePenalty(deadline, turnedIn("2026-10-24"), new Date("2026-10-24T20:00:00Z"))).toEqual({
+      penaltyMultiplier: 0.2,
+      daysLate: 1,
+      blocksSecondRevision: false
+    });
+    expect(calculateLatePenalty(deadline, turnedIn("2026-10-25")).penaltyMultiplier).toBe(0.2);
+  });
+
+  it("keeps a whole-day extension open until 11:59 PM on its last day", () => {
+    const deadline = effectiveDeadline(finalCut, 2);
+    expect(calculateLatePenalty(deadline, turnedIn("2026-10-24"), new Date("2026-10-25T06:30:00Z")).penaltyMultiplier).toBe(0);
   });
 });

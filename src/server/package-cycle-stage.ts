@@ -354,7 +354,8 @@ async function loadFinalCutGradePanel(input: {
   const turnedIn =
     grades.find((grade) => grade.turnedInDate)?.turnedInDate ??
     (row?.finalCutMediaItem ? uploadTurnInDate(row.finalCutMediaItem.createdAt, cycle?.finalCutDate ?? null) : null);
-  const penalty = calculateLatePenalty(deadline, turnedIn);
+  const uploadedAt = row?.finalCutMediaItem?.createdAt ?? null;
+  const penalty = calculateLatePenalty(deadline, turnedIn, uploadedAt);
 
   const graderNames = [
     ...graders.map((grader) => ({
@@ -381,7 +382,8 @@ async function loadFinalCutGradePanel(input: {
     const awarded = grade?.awardedFinalCutPoints ?? null;
     const memberPenalty = calculateLatePenalty(
       effectiveDeadline(cycle?.finalCutDate ?? null, approvedExtensionDaysFor(row, member.userId)),
-      turnedIn
+      turnedIn,
+      uploadedAt
     );
     const penaltyMultiplier = memberLatePenaltyMultiplier(memberPenalty, member.latePenaltyPercent);
     const preview = previewFinalCutOfficial({
@@ -1176,7 +1178,7 @@ export async function saveFinalCutGrade(input: {
     const awarded = capAwardedForRevision(status.average, revisionCount);
     // Extensions can cover only some members, so the late penalty is per member.
     const deadline = effectiveDeadline(cycle?.finalCutDate ?? null, approvedExtensionDaysFor(row, entry.memberUserId));
-    const penalty = calculateLatePenalty(deadline, turnedIn);
+    const penalty = calculateLatePenalty(deadline, turnedIn, row.finalCutMediaItem?.createdAt);
     const override = row.members.find((member) => member.userId === entry.memberUserId)?.latePenaltyPercent;
     const data = {
       awardedFinalCutPoints: awarded,

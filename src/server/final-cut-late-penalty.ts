@@ -35,7 +35,8 @@ export async function setFinalCutLatePenalty(input: {
         select: {
           cycleNumber: true,
           extension: true,
-          extensionRequests: { where: { status: "APPROVED" }, select: { requestedDays: true, grantedDays: true, grantedUserIds: true } }
+          extensionRequests: { where: { status: "APPROVED" }, select: { requestedDays: true, grantedDays: true, grantedUserIds: true } },
+          finalCutMediaItem: { select: { createdAt: true } }
         }
       }
     }
@@ -65,7 +66,7 @@ export async function setFinalCutLatePenalty(input: {
     cycle?.finalCutDate ?? null,
     approvedExtensionDaysFor(member.row, input.memberUserId)
   );
-  const multiplier = memberLatePenaltyMultiplier(calculateLatePenalty(deadline, grade.turnedInDate), input.percent);
+  const multiplier = memberLatePenaltyMultiplier(calculateLatePenalty(deadline, grade.turnedInDate, member.row.finalCutMediaItem?.createdAt), input.percent);
   await prisma.packageGrade.update({
     where: { id: grade.id },
     data: { finalCutPoints: officialFinalCutPoints(grade.awardedFinalCutPoints, multiplier) }

@@ -4,19 +4,23 @@ Route: `/extension-requests`. `/extensions` redirects here.
 
 The old 14-day allowance pool is gone.
 
-1. A student requests for the **whole package group**: pick the cycle, how many days (1–30), and
-   an optional reason, then **Submit**. You must be on a package group for that cycle. A group can
+1. A student requests for the **whole package group**: pick the cycle, how many days (0.1–30, one
+   decimal place allowed, e.g. 1.5), and an optional reason, then **Submit**. You must be on a package group for that cycle. A group can
    have only one pending request at a time.
 2. Every group member must agree (**I agree** / **Decline**). The student who filed it counts as
    agreeing. Any disagreement denies it.
 3. Then **two distinct producer approvals**. Any one denial blocks it. Executives, the adviser, and
    super admin can decide any request; an associate producer only decides requests for groups they
    are assigned to and not a member of. **Approve** stays disabled until every member has agreed.
-   - The **first** producer to approve picks how many days to grant (any number from 1–30, not
-     just what was requested) and which group members get it (default: everyone).
+   - The **first** producer to approve picks how many days to grant (0.1–30 with one decimal place,
+     not just what was requested) and which group members get it (default: everyone).
    - The second producer sees those terms read-only and approves or denies them as-is.
 4. On approval, the group's extension flag is set. Only the chosen members get the extra days;
    everyone else keeps the original final cut deadline.
+
+Decimal days add exact hours to the 11:59 PM Pacific close: 1.5 days moves a Final Cut due
+Oct 22 to 11:59 AM Oct 24. Check-in deadlines move the same way. A Final Cut turned in on the
+day a decimal extension closes is late only if it was uploaded after that time.
 
 An extension granted to only some members stays private to them. Members it doesn't cover don't
 see it on this page, the Class Board, or in the assistant, and they get no email about it,
@@ -39,7 +43,7 @@ Executive producers (EP, adviser, super admin) can also grant an extension direc
 an extension** at the top of the page:
 
 1. Pick the cycle, the package group, which members get it (default: everyone), how many days
-   (1–30), and an optional reason.
+   (0.1–30, one decimal place), and an optional reason.
 2. No group agreement is needed. The granting exec's approval counts as the first one, and every
    other exec gets an email asking for the second approval.
 3. A **different** exec approves (or denies) the terms as-is. Associate producers can't grant or

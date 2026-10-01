@@ -9,6 +9,8 @@ import {
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog";
+import { clampExtensionDays } from "@/src/lib/package-extensions";
+import { ExtensionDaysInput } from "./extension-days-input";
 
 export type GrantTerms = { grantedDays: number; grantedUserIds: string[] };
 
@@ -51,7 +53,7 @@ export function ApproveExtensionDialog({
   async function confirm() {
     setSaving(true);
     try {
-      await onConfirm(lockedTerms ? null : { grantedDays: days, grantedUserIds: selected });
+      await onConfirm(lockedTerms ? null : { grantedDays: clampExtensionDays(days), grantedUserIds: selected });
     } finally {
       setSaving(false);
     }
@@ -82,14 +84,9 @@ export function ApproveExtensionDialog({
           <div className="space-y-4">
             <label className="block text-sm">
               <span className="mb-1 block text-xs text-muted-foreground">Days</span>
-              <input
-                type="number"
-                min={1}
-                max={30}
+              <ExtensionDaysInput
                 value={days}
-                onChange={(event) =>
-                  setDays(Math.min(30, Math.max(1, Math.round(Number(event.target.value)) || 1)))
-                }
+                onChange={setDays}
                 className="h-10 w-28 rounded-lg border border-border bg-muted px-3 text-foreground outline-none"
               />
             </label>

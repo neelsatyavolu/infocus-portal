@@ -4,10 +4,12 @@ import { requireUserId, syncUserProfile } from "@/src/lib/auth";
 import { ok } from "@/src/lib/http";
 import {
   denialReasonFor,
+  EXTENSION_DAYS_ERROR,
   extensionRequestVisibleTo,
   hasMemberDisagreed,
   isExtensionGranted,
   isGroupConsentComplete,
+  isValidExtensionDays,
   REQUIRED_EXTENSION_APPROVALS,
   resolveGrantTerms
 } from "@/src/lib/package-extensions";
@@ -19,9 +21,11 @@ import { mayDecideExtensionRequest, mayGrantExtensions } from "@/src/server/exte
 import { MAX_CYCLES_PER_SEMESTER } from "@/src/server/program-settings";
 import { labeledUser, userDisplayName } from "@/src/lib/user-display";
 
+const extensionDaysSchema = z.number().refine(isValidExtensionDays, EXTENSION_DAYS_ERROR);
+
 const createSchema = z.object({
   cycleNumber: z.number().int().min(1).max(MAX_CYCLES_PER_SEMESTER),
-  requestedDays: z.number().int().min(1).max(30),
+  requestedDays: extensionDaysSchema,
   reason: z.string().max(1200)
 });
 
@@ -31,7 +35,7 @@ const decisionSchema = z.discriminatedUnion("kind", [
     requestId: z.string().min(1),
     approved: z.boolean(),
     /** Only the first approving producer sets these; later approvals keep them. */
-    grantedDays: z.number().int().min(1).max(30).optional(),
+    grantedDays: extensionDaysSchema.optional(),
     grantedUserIds: z.array(z.string().min(1)).max(50).optional(),
     /** Required when denying. */
     reason: z.string().max(1200).optional()

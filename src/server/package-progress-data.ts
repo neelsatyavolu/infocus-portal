@@ -137,6 +137,10 @@ async function ensureDefaultCycles(cycleNumbers: number[]) {
     select: {
       cycleNumber: true,
       focus: true,
+      pitchingDate: true,
+      proofOfContactDate: true,
+      aRollBRollDate: true,
+      initialCutDate: true,
       finalCutDate: true
     }
   });
@@ -160,6 +164,10 @@ async function ensureDefaultCycles(cycleNumbers: number[]) {
     select: {
       cycleNumber: true,
       focus: true,
+      pitchingDate: true,
+      proofOfContactDate: true,
+      aRollBRollDate: true,
+      initialCutDate: true,
       finalCutDate: true
     }
   });
@@ -294,7 +302,14 @@ export async function loadPackageProgressData(requestedCycleNumber?: number | nu
     activeCycleNumber,
     cycles: cycles.map((cycle) => ({
       cycleNumber: cycle.cycleNumber,
-      focus: cycle.focus
+      focus: cycle.focus,
+      dates: {
+        pitching: cycle.pitchingDate?.toISOString() ?? null,
+        proofOfContact: cycle.proofOfContactDate?.toISOString() ?? null,
+        aRollBRoll: cycle.aRollBRollDate?.toISOString() ?? null,
+        initialCut: cycle.initialCutDate?.toISOString() ?? null,
+        finalCut: cycle.finalCutDate?.toISOString() ?? null
+      }
     })),
     producers,
     executives,

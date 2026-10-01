@@ -34,10 +34,14 @@ import {
   groupViewerAttention
 } from "@/src/lib/group-tile-status";
 import { extensionBadgeLabel } from "@/src/lib/package-extensions";
+import { groupScheduleStatus, type GroupScheduleInput } from "@/src/lib/group-schedule";
+
+type CycleDates = Record<keyof GroupScheduleInput["dates"], string | null>;
 
 type CycleTab = {
   cycleNumber: number;
   focus: string;
+  dates?: CycleDates;
 };
 
 type GroupMember = {
@@ -142,6 +146,10 @@ function rowHasContent(row: GroupRow) {
       Boolean(row.brainstormDocUrl?.trim()) ||
       Boolean(row.proofs && row.proofs.length > 0)
   );
+}
+
+function dateOrNull(value: string | null) {
+  return value ? new Date(value) : null;
 }
 
 function producerDisplayName(producer: AssignedProducer | null | undefined) {
@@ -269,12 +277,14 @@ function GroupTile({
   row,
   platformRole,
   currentUserId,
+  cycleDates,
   onNotesSaved,
   onPitchApproved
 }: {
   row: GroupRow;
   platformRole: PlatformRole | null;
   currentUserId: string;
+  cycleDates: CycleDates | null;
   onNotesSaved: (rowId: string, value: string) => void;
   onPitchApproved: (rowId: string) => void;
 }) {
@@ -319,6 +329,26 @@ function GroupTile({
     queuedForAir: Boolean(row.queuedForAir),
     finalCutGraded: Boolean(row.finalCutGraded)
   });
+  const schedule = cycleDates
+    ? groupScheduleStatus({
+        dates: {
+          pitching: dateOrNull(cycleDates.pitching),
+          proofOfContact: dateOrNull(cycleDates.proofOfContact),
+          aRollBRoll: dateOrNull(cycleDates.aRollBRoll),
+          initialCut: dateOrNull(cycleDates.initialCut),
+          finalCut: dateOrNull(cycleDates.finalCut)
+        },
+        done: {
+          pitching: row.pitching,
+          proofOfContact: row.proofOfContact,
+          aRollBRoll: row.aRollBRoll,
+          initialCut: groupNavTabDone("initial-stage-3", { ...row, approvalStage }),
+          finalCut: row.finalCut
+        },
+        extensionDays: row.extensionDays ?? 0,
+        now: new Date()
+      })
+    : null;
   const href = row.id ? (`/groups/${row.id}/${pendingSlug}` as const) : null;
   const attention = attentionFor(platformRole, currentUserId, row);
   const gradePendingFromYou = finalCutGradePendingFromViewer(platformRole, {
@@ -395,14 +425,15 @@ function GroupTile({
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
         {gradePendingFromYou ? (
           <span className="status-pill status-pill-sm status-warn">Pending Grade From You</span>
-        ) : attention === "needed" ? (
-          <span className="status-pill status-pill-sm status-warn">Needs you</span>
-        ) : attention === "waiting" ? (
-          <span className="status-pill status-pill-sm status-neutral">Not your stage</span>
         ) : null}
         <span className={cn("status-pill status-pill-sm", groupTileStatusClass(tileStatus.tone))}>
           {tileStatus.label}
         </span>
+        {schedule ? (
+          <span className={cn("status-pill status-pill-sm", groupTileStatusClass(schedule.tone))}>
+            {schedule.label}
+          </span>
+        ) : null}
         {row.extension ? (
           <span className="rounded-md bg-amber-500/20 px-1.5 py-px text-[10px] font-medium text-amber-100">
             {extensionBadgeLabel(row.extensionDays)}
@@ -762,6 +793,7 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
                     row={row}
                     platformRole={platformRole}
                     currentUserId={currentUserId}
+                    cycleDates={activeCycle?.dates ?? null}
                     onNotesSaved={updateNotes}
                     onPitchApproved={markPitchApproved}
                   />
@@ -793,6 +825,7 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
                         row={row}
                         platformRole={platformRole}
                         currentUserId={currentUserId}
+                        cycleDates={activeCycle?.dates ?? null}
                         onNotesSaved={updateNotes}
                         onPitchApproved={markPitchApproved}
                       />

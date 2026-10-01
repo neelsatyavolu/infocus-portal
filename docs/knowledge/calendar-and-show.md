@@ -22,7 +22,8 @@ Each weekday cell depends on the day type:
 
 - **Show days:** **Anchors** (two slots, with **Randomize**), **Show manager**, and **Queue** (the packages queued for that show in the Publishing Queue). A special show also shows its name.
 - **PA days (Mondays):** **PA announcers** (two slots, with **Randomize**).
-- **Spirit Week (Mon Oct 5 – Fri Oct 9):** each day also shows that day's dress-up theme (for example, Tuesday is Salad dressing) and **Filmers** and **Editors** lists. Producers can add any number of people to each list and remove them with ×. The names are saved in the calendar cell and appear in the Google Doc.
+- **Spirit Week (Mon Oct 5 – Fri Oct 9):** each day also shows that day's dress-up theme (for example, Tuesday is Salad dressing) and **Brunch filmers**, **Lunch filmers**, and **Editors** lists. Wednesday (Oct 7) also has **Night rally filmers** for the night rally. Producers can add any number of people to each list and remove them with ×. The names are saved in the calendar cell and appear in the Google Doc.
+- Filmers picked before the brunch/lunch split show as **Filmers (unsorted)**. Adding one of them to a brunch, lunch, or night rally list takes them off the unsorted list; × removes them outright. The unsorted list disappears once it is empty.
 - **Class days:** a scenic photo and a notes box. Right-click the photo to **Delete Image** or **Restore Image**.
 - **Holidays:** the holiday name.
 
@@ -47,7 +48,7 @@ In a notes box, type `[package]` to search package videos and insert a package p
 
 **Show manager** — one per show day. Default rotation: first-name order through executive producers (including super admin) and associate producers. Adviser is not in the pool. Override on the calendar or The Show. **Auto** (calendar) or **Use rotation** (The Show) clears it. After an override, later automatic days continue from the next person, so the next show is not a repeat.
 
-Nicknames are what the dropdowns show.
+Nicknames are what the dropdowns show. Each name dropdown (here and on The Show) has a search box: type part of a name to filter, then use the arrow keys and Enter, or click.
 
 ## The Show (`/show-roles`)
 

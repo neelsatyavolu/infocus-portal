@@ -648,4 +648,26 @@ describe("class board side panels", () => {
     expect(days[0].lines).toEqual(["Filmers  Kira"]);
     expect(days[1].lines).toEqual(["Anchors  Maya", "Filmers  Abby · Otto", "Editors  Sage"]);
   });
+
+  it("lists brunch, lunch, and night rally filmers separately", () => {
+    const content = setCalendarCrew(
+      setCalendarCrew(setCalendarCrew(PA_TEMPLATE, "Brunch Filmers", ["Abby"]), "Lunch Filmers", ["Otto"]),
+      "Night Rally Filmers",
+      ["Kira", "Sage"]
+    );
+    const days = buildBoardDays({
+      today: "2026-10-07",
+      end: "2026-10-08",
+      schedule: [{ date: "2026-10-07", kind: "PA", label: "" }],
+      entries: [{ date: "2026-10-07", content }],
+      showManagers: {},
+      queued: []
+    });
+
+    expect(days[0].lines).toEqual([
+      "Brunch Filmers  Abby",
+      "Lunch Filmers  Otto",
+      "Night Rally Filmers  Kira · Sage"
+    ]);
+  });
 });

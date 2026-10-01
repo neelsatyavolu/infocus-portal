@@ -1,7 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { spiritWeekRecapToss, spiritWeekTheme } from "@/src/lib/spirit-week";
+import { spiritWeekCrewRoles, spiritWeekRecapToss, spiritWeekTheme } from "@/src/lib/spirit-week";
 
 describe("spirit week", () => {
+  it("gives each day brunch and lunch filmers, plus night rally filmers on Wednesday", () => {
+    expect(spiritWeekCrewRoles("2026-10-05")).toEqual(["Brunch Filmers", "Lunch Filmers", "Editors"]);
+    expect(spiritWeekCrewRoles("2026-10-07")).toEqual([
+      "Brunch Filmers",
+      "Lunch Filmers",
+      "Night Rally Filmers",
+      "Editors"
+    ]);
+    expect(spiritWeekCrewRoles("2026-10-09")).toEqual(["Brunch Filmers", "Lunch Filmers", "Editors"]);
+    expect(spiritWeekCrewRoles("2026-10-12")).toEqual([]);
+  });
+
   it("returns each weekday's theme and null outside Spirit Week", () => {
     expect(spiritWeekTheme("2026-10-05")).toBe("Class themes");
     expect(spiritWeekTheme("2026-10-06")).toBe("Salad dressing");

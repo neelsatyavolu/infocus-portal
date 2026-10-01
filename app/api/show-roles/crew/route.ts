@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { handleRouteError } from "@/src/lib/api-errors";
 import { requireUserId, syncUserProfile } from "@/src/lib/auth";
+import { CALENDAR_CREW_ROLES } from "@/src/lib/calendar-show-content";
 import { ok } from "@/src/lib/http";
 import { getPlatformAccess, hasPlatformRole } from "@/src/lib/platform-admin";
 import { DATE_KEY_PATTERN } from "@/src/lib/show-assignment";
@@ -8,7 +9,7 @@ import { setCrewNames } from "@/src/server/show-cast";
 
 const schema = z.object({
   date: z.string().regex(DATE_KEY_PATTERN),
-  role: z.enum(["Filmers", "Editors"]),
+  role: z.enum(CALENDAR_CREW_ROLES),
   names: z.array(z.string().trim().max(80)).max(20)
 });
 

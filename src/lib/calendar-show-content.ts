@@ -47,8 +47,15 @@ export function omitCalendarSection(html: string, heading: string, nextHeadings:
 
 const SHOW_FOLLOWING_HEADINGS = ["Package", "Show Director", "Show Manager"];
 
-export type CalendarCrewRole = "Filmers" | "Editors";
-export const CALENDAR_CREW_ROLES: CalendarCrewRole[] = ["Filmers", "Editors"];
+/** Spirit Week crew headings in calendar order. "Filmers" is the older unsorted list. */
+export const CALENDAR_CREW_ROLES = [
+  "Filmers",
+  "Brunch Filmers",
+  "Lunch Filmers",
+  "Night Rally Filmers",
+  "Editors"
+] as const;
+export type CalendarCrewRole = (typeof CALENDAR_CREW_ROLES)[number];
 
 export function omitAssignedNamesFromCalendarHtml(html: string, kind: "SHOW" | "PA" | string) {
   if (kind === "SHOW") {
@@ -86,7 +93,7 @@ export function restoreAssignedNamesInCalendarHtml(
 export function replaceCalendarSection(
   html: string,
   heading: string,
-  nextHeadings: string[],
+  nextHeadings: readonly string[],
   innerHtml: string,
   fallback = ""
 ) {
@@ -179,7 +186,7 @@ export function extractCalendarPaAnnouncers(html: string) {
 
   for (let index = headingIndex + 1; index < lines.length; index += 1) {
     const line = lines[index];
-    if (/^(anchors|package|show director|sd|show manager|sm|filmers|editors)\s*:/i.test(line)) {
+    if (/^(anchors|package|show director|sd|show manager|sm|(?:brunch |lunch |night rally )?filmers|editors)\s*:/i.test(line)) {
       break;
     }
     chunks.push(line);
@@ -230,7 +237,7 @@ export function extractCalendarShowManager(html: string) {
 
   for (let index = headingIndex + 1; index < lines.length; index += 1) {
     const line = lines[index];
-    if (/^(anchors|package|show director|sd|pa announcers|filmers|editors)\s*:/i.test(line)) {
+    if (/^(anchors|package|show director|sd|pa announcers|(?:brunch |lunch |night rally )?filmers|editors)\s*:/i.test(line)) {
       break;
     }
     chunks.push(line);
@@ -263,7 +270,7 @@ function uniqueCrewNames(names: string[]) {
     });
 }
 
-/** Spirit Week crew: any number of names, one comma-separated line after Filmers: / Editors:. */
+/** Spirit Week crew: any number of names, one comma-separated line after each crew heading. */
 export function setCalendarCrew(html: string, role: CalendarCrewRole, names: string[]) {
   const crew = uniqueCrewNames(names);
   const nextHeadings = crewNextHeadings(role);
@@ -276,11 +283,26 @@ export function setCalendarCrew(html: string, role: CalendarCrewRole, names: str
     return replaceCalendarSection(html, role, nextHeadings, inner);
   }
   const block = `<p><strong>${role}:</strong></p>${inner}`;
-  const editors = role === "Filmers" ? headingPattern("Editors").exec(html) : null;
-  if (editors) {
-    return `${html.slice(0, editors.index)}${block}${html.slice(editors.index)}`;
+  const laterStarts = CALENDAR_CREW_ROLES.slice(CALENDAR_CREW_ROLES.indexOf(role) + 1)
+    .map((later) => headingPattern(later).exec(html)?.index)
+    .filter((index): index is number => index !== undefined);
+  if (laterStarts.length > 0) {
+    const at = Math.min(...laterStarts);
+    return `${html.slice(0, at)}${block}${html.slice(at)}`;
   }
   return `${html}${block}`;
+}
+
+/** Saves a crew list. Anyone put on a brunch, lunch, or night rally list leaves the unsorted Filmers list. */
+export function assignCalendarCrew(html: string, role: CalendarCrewRole, names: string[]) {
+  const next = setCalendarCrew(html, role, names);
+  if (role === "Filmers" || role === "Editors") {
+    return next;
+  }
+  const placed = new Set(names.map((name) => name.trim().toLowerCase()));
+  const unsorted = extractCalendarCrew(next, "Filmers");
+  const remaining = unsorted.filter((name) => !placed.has(name.toLowerCase()));
+  return remaining.length === unsorted.length ? next : setCalendarCrew(next, "Filmers", remaining);
 }
 
 export function extractCalendarCrew(html: string, role: CalendarCrewRole) {

@@ -43,7 +43,7 @@ function splitCandidateNames(value: string) {
 }
 
 function isSectionHeading(value: string) {
-  return /^(package|show director|sd|show manager|sm|pa announcers|filmers|editors)\s*:/i.test(value);
+  return /^(package|show director|sd|show manager|sm|pa announcers|(?:brunch |lunch |night rally )?filmers|editors)\s*:/i.test(value);
 }
 
 export function extractAnchorNamesFromCalendarHtml(content: string) {

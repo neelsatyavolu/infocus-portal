@@ -1,12 +1,12 @@
 import sanitizeHtml from "sanitize-html";
 import { prisma } from "@/src/lib/prisma";
 import {
+  assignCalendarCrew,
   extractCalendarAnchors,
   extractCalendarPaAnnouncers,
   extractCalendarShowManager,
   type CalendarCrewRole,
   setCalendarAnchors,
-  setCalendarCrew,
   setCalendarPaAnnouncers,
   setCalendarShowManager,
   wipeCalendarAnchorNames
@@ -276,7 +276,7 @@ export async function setPaAnnouncers(dateKey: string, names: string[]) {
 export async function setCrewNames(dateKey: string, role: CalendarCrewRole, names: string[]) {
   const crew = uniqueNames(names);
   const existing = await prisma.masterCalendarEntry.findUnique({ where: { date: dateKey } });
-  const nextHtml = setCalendarCrew(existing?.content ?? "", role, crew);
+  const nextHtml = assignCalendarCrew(existing?.content ?? "", role, crew);
   const content = await writeCalendarContent(dateKey, nextHtml);
   return { date: dateKey, role, names: crew, content };
 }

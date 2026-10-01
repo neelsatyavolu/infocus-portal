@@ -22,7 +22,7 @@ import {
   withImageHidden
 } from "@/src/lib/master-calendar-cells";
 import { isSpecialShowDay, resolveScheduleDay, type ScheduleKind } from "@/src/lib/school-schedule";
-import { spiritWeekTheme } from "@/src/lib/spirit-week";
+import { spiritWeekCrewRoles, spiritWeekTheme } from "@/src/lib/spirit-week";
 import { cn } from "@/src/lib/utils";
 
 type CalendarEntry = {
@@ -1514,8 +1514,11 @@ export default function MasterCalendarClient({ initialData }: { initialData: Cal
                         {spiritTheme && (schedule.kind === "SHOW" || schedule.kind === "PA") ? (
                           <SpiritWeekControls
                             theme={spiritTheme}
-                            filmers={extractCalendarCrew(displayContent, "Filmers")}
-                            editors={extractCalendarCrew(displayContent, "Editors")}
+                            unsortedFilmers={extractCalendarCrew(displayContent, "Filmers")}
+                            lists={spiritWeekCrewRoles(dateKey).map((role) => ({
+                              role,
+                              names: extractCalendarCrew(displayContent, role)
+                            }))}
                             members={castMembers}
                             canEdit={canEdit}
                             busy={castBusyDate === dateKey}

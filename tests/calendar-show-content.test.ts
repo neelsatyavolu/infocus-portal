@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  assignCalendarCrew,
   extractCalendarAnchors,
   extractCalendarCrew,
   extractCalendarPaAnnouncers,
@@ -135,5 +136,57 @@ describe("calendar crew (Spirit Week filmers and editors)", () => {
     const restored = restoreAssignedNamesInCalendarHtml(visible, html, "SHOW");
     expect(extractCalendarCrew(restored, "Filmers")).toEqual(["Abby"]);
     expect(extractCalendarCrew(restored, "Editors")).toEqual(["Otto"]);
+  });
+});
+
+describe("Spirit Week brunch, lunch, and night rally filmers", () => {
+  const heading = (label: string) => `<strong>${label}:</strong>`;
+
+  it("keeps unsorted, brunch, lunch, and night rally filmers in order before editors", () => {
+    let html = setCalendarCrew(PA_TEMPLATE, "Editors", ["Sage"]);
+    html = setCalendarCrew(html, "Night Rally Filmers", ["Iris"]);
+    html = setCalendarCrew(html, "Brunch Filmers", ["Abby"]);
+    html = setCalendarCrew(html, "Lunch Filmers", ["Otto"]);
+    html = setCalendarCrew(html, "Filmers", ["Kira"]);
+    const positions = ["Filmers", "Brunch Filmers", "Lunch Filmers", "Night Rally Filmers", "Editors"].map((label) =>
+      html.indexOf(heading(label))
+    );
+    expect(positions.every((position) => position >= 0)).toBe(true);
+    expect(positions).toEqual([...positions].sort((a, b) => a - b));
+    expect(extractCalendarCrew(html, "Filmers")).toEqual(["Kira"]);
+    expect(extractCalendarCrew(html, "Brunch Filmers")).toEqual(["Abby"]);
+    expect(extractCalendarCrew(html, "Lunch Filmers")).toEqual(["Otto"]);
+    expect(extractCalendarCrew(html, "Night Rally Filmers")).toEqual(["Iris"]);
+    expect(extractCalendarCrew(html, "Editors")).toEqual(["Sage"]);
+  });
+
+  it("does not read the new filmer lists as anchors, show manager, or PA announcers", () => {
+    const pa = setCalendarCrew(setCalendarPaAnnouncers(PA_TEMPLATE, ["Sage"]), "Brunch Filmers", ["Abby"]);
+    expect(extractCalendarPaAnnouncers(pa)).toEqual(["Sage"]);
+    expect(extractCalendarShowManager(setCalendarCrew(SHOW_TEMPLATE, "Lunch Filmers", ["Otto"]))).toBe("");
+    const anchors = setCalendarCrew("<p><strong>Anchors:</strong></p><p>Iris</p>", "Night Rally Filmers", ["Otto"]);
+    expect(extractCalendarAnchors(anchors)).toEqual(["Iris"]);
+  });
+
+  it("takes people off the unsorted list when they join brunch, lunch, or night rally", () => {
+    const legacy = setCalendarCrew(PA_TEMPLATE, "Filmers", ["Abby", "Otto", "Kira"]);
+    const brunch = assignCalendarCrew(legacy, "Brunch Filmers", ["Abby"]);
+    expect(extractCalendarCrew(brunch, "Brunch Filmers")).toEqual(["Abby"]);
+    expect(extractCalendarCrew(brunch, "Filmers")).toEqual(["Otto", "Kira"]);
+
+    const sorted = assignCalendarCrew(assignCalendarCrew(brunch, "Lunch Filmers", ["Otto"]), "Night Rally Filmers", ["Kira"]);
+    expect(sorted).not.toContain(heading("Filmers"));
+    expect(extractCalendarCrew(sorted, "Night Rally Filmers")).toEqual(["Kira"]);
+
+    expect(extractCalendarCrew(assignCalendarCrew(legacy, "Editors", ["Abby"]), "Filmers")).toEqual(["Abby", "Otto", "Kira"]);
+  });
+
+  it("survives an editor round trip", () => {
+    const html = setCalendarCrew(setCalendarCrew(SHOW_TEMPLATE, "Brunch Filmers", ["Abby"]), "Night Rally Filmers", ["Otto"]);
+    const visible = omitAssignedNamesFromCalendarHtml(html, "SHOW");
+    expect(visible).not.toContain("Filmers:");
+    const restored = restoreAssignedNamesInCalendarHtml(visible, html, "SHOW");
+    expect(extractCalendarCrew(restored, "Brunch Filmers")).toEqual(["Abby"]);
+    expect(extractCalendarCrew(restored, "Night Rally Filmers")).toEqual(["Otto"]);
   });
 });

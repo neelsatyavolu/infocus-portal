@@ -1,3 +1,5 @@
+import type { CalendarCrewRole } from "@/src/lib/calendar-show-content";
+
 /** Spirit Week 2026 (Mon Oct 5 – Fri Oct 9): each day's dress-up theme. */
 export const SPIRIT_WEEK_DAYS = [
   { date: "2026-10-05", theme: "Class themes" },
@@ -7,9 +9,20 @@ export const SPIRIT_WEEK_DAYS = [
   { date: "2026-10-09", theme: "Class colors" }
 ] as const;
 
-/** The day's theme, or null outside Spirit Week. Spirit Week days also get Filmers/Editors. */
+/** Wednesday of Spirit Week has a night rally with its own filmers. */
+const NIGHT_RALLY_DATE = "2026-10-07";
+
+/** The day's theme, or null outside Spirit Week. Spirit Week days also get crew lists. */
 export function spiritWeekTheme(dateKey: string): string | null {
   return SPIRIT_WEEK_DAYS.find((day) => day.date === dateKey)?.theme ?? null;
+}
+
+/** Crew lists producers fill for a Spirit Week day, in display order. Empty outside Spirit Week. */
+export function spiritWeekCrewRoles(dateKey: string): CalendarCrewRole[] {
+  if (!spiritWeekTheme(dateKey)) return [];
+  return dateKey === NIGHT_RALLY_DATE
+    ? ["Brunch Filmers", "Lunch Filmers", "Night Rally Filmers", "Editors"]
+    : ["Brunch Filmers", "Lunch Filmers", "Editors"];
 }
 
 /**

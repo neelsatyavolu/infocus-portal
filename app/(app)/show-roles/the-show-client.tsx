@@ -6,14 +6,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { CalendarDays, Mic2, ScrollText, Sparkles, Upload, Wand2 } from "lucide-react";
 import { toast } from "sonner";
+import { NamePicker } from "@/components/name-picker";
 import { Button, buttonVariants } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select";
 import App from "@/src/show-roles/App";
 import { queuePackageSubtitle } from "@/src/lib/publishing-queue";
 import { cn } from "@/src/lib/utils";
@@ -54,45 +48,11 @@ type Overview = {
   teleprompterHref: string;
 };
 
-const EMPTY_VALUE = "__none__";
-
 // Loaded only when a producer opens it; keeps upload/thumbnail code off the page.
 const ShowUploadDialog = dynamic(
   () => import("./show-upload-dialog").then((mod) => mod.ShowUploadDialog),
   { ssr: false }
 );
-
-function NameSelect({
-  value,
-  options,
-  disabledOptions,
-  onChange,
-  placeholder
-}: {
-  value: string;
-  options: string[];
-  disabledOptions?: string[];
-  onChange: (value: string) => void;
-  placeholder: string;
-}) {
-  const blocked = new Set(disabledOptions ?? []);
-  const items = value && !options.includes(value) ? [value, ...options] : options;
-  return (
-    <Select value={value || EMPTY_VALUE} onValueChange={(next) => onChange(next === EMPTY_VALUE ? "" : next)}>
-      <SelectTrigger className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm text-foreground shadow-none">
-        <SelectValue placeholder={placeholder} />
-      </SelectTrigger>
-      <SelectContent position="popper" className="max-h-72">
-        <SelectItem value={EMPTY_VALUE}>{placeholder}</SelectItem>
-        {items.map((name) => (
-          <SelectItem key={name} value={name} disabled={blocked.has(name) && name !== value}>
-            {name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-}
 
 function OverviewBody() {
   const [data, setData] = useState<Overview | null>(null);
@@ -277,7 +237,7 @@ function OverviewBody() {
           )}
         </div>
         <div className="mt-3">
-          <NameSelect
+          <NamePicker
             value={showManager.name}
             options={
               showManager.name && !showManagerPool.includes(showManager.name)
@@ -305,14 +265,14 @@ function OverviewBody() {
           </Button>
         </div>
         <div className="mt-3 grid gap-3 md:grid-cols-2">
-          <NameSelect
+          <NamePicker
             value={anchor1}
             options={data.members}
             disabledOptions={[anchor2, ...data.monthAnchors]}
             placeholder="Anchor 1"
             onChange={(value) => void saveAnchors([value, anchor2], "manual")}
           />
-          <NameSelect
+          <NamePicker
             value={anchor2}
             options={data.members}
             disabledOptions={[anchor1, ...data.monthAnchors]}

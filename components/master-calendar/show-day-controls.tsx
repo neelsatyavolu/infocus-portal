@@ -1,13 +1,7 @@
 "use client";
 
 import { Sparkles, X } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select";
+import { NamePicker } from "@/components/name-picker";
 import { formatPairedNames, type CalendarCrewRole } from "@/src/lib/calendar-show-content";
 
 function optionsForValue(members: string[], value: string) {
@@ -17,48 +11,8 @@ function optionsForValue(members: string[], value: string) {
   return [value, ...members];
 }
 
-const EMPTY_VALUE = "__none__";
-const SELECT_TRIGGER_CLASS =
-  "h-9 w-full rounded-md border border-border bg-background px-2 text-sm text-foreground shadow-none";
 const LABEL_CLASS =
   "text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground";
-
-function NameSelect({
-  value,
-  options,
-  disabledOptions,
-  disabled,
-  placeholder,
-  onChange
-}: {
-  value: string;
-  options: string[];
-  disabledOptions?: string[];
-  disabled?: boolean;
-  placeholder: string;
-  onChange: (value: string) => void;
-}) {
-  const blocked = new Set(disabledOptions ?? []);
-  return (
-    <Select
-      value={value || EMPTY_VALUE}
-      onValueChange={(next) => onChange(next === EMPTY_VALUE ? "" : next)}
-      disabled={disabled}
-    >
-      <SelectTrigger className={SELECT_TRIGGER_CLASS}>
-        <SelectValue placeholder={placeholder} />
-      </SelectTrigger>
-      <SelectContent position="popper" className="max-h-72">
-        <SelectItem value={EMPTY_VALUE}>{placeholder}</SelectItem>
-        {optionsForValue(options, value).map((name) => (
-          <SelectItem key={name} value={name} disabled={blocked.has(name) && name !== value}>
-            {name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-}
 
 type QueuedPackage = {
   id: string;
@@ -123,7 +77,7 @@ export function ShowDayControls({
               const value = slot === 0 ? first : second;
               const other = slot === 0 ? second : first;
               return (
-                <NameSelect
+                <NamePicker
                   key={`${dateKey}-anchor-${slot}`}
                   value={value}
                   options={members}
@@ -159,7 +113,7 @@ export function ShowDayControls({
           ) : null}
         </div>
         {canEdit ? (
-          <NameSelect
+          <NamePicker
             value={manager}
             options={managerOptions}
             disabled={busy}
@@ -231,7 +185,7 @@ export function PaDayControls({
               const value = slot === 0 ? first : second;
               const other = slot === 0 ? second : first;
               return (
-                <NameSelect
+                <NamePicker
                   key={`${dateKey}-pa-${slot}`}
                   value={value}
                   options={members}
@@ -254,6 +208,15 @@ export function PaDayControls({
   );
 }
 
+// "Filmers" is the older unsorted list: names can only be removed or sorted into another list.
+const CREW_LABELS: Record<CalendarCrewRole, { label: string; add: string | null }> = {
+  Filmers: { label: "Filmers (unsorted)", add: null },
+  "Brunch Filmers": { label: "Brunch filmers", add: "Add brunch filmer" },
+  "Lunch Filmers": { label: "Lunch filmers", add: "Add lunch filmer" },
+  "Night Rally Filmers": { label: "Night rally filmers", add: "Add night rally filmer" },
+  Editors: { label: "Editors", add: "Add editor" }
+};
+
 function CrewList({
   role,
   names,
@@ -269,10 +232,13 @@ function CrewList({
   busy: boolean;
   onChange: (next: string[]) => void;
 }) {
-  const singular = role === "Filmers" ? "filmer" : "editor";
+  const { label, add } = CREW_LABELS[role];
   return (
     <div className="space-y-1.5">
-      <span className={LABEL_CLASS}>{role}</span>
+      <span className={LABEL_CLASS}>{label}</span>
+      {canEdit && !add ? (
+        <p className="text-xs text-muted-foreground">Add each person to a list below to sort them.</p>
+      ) : null}
       {names.length > 0 ? (
         <div className="flex flex-wrap gap-1">
           {names.map((name) => (
@@ -298,13 +264,13 @@ function CrewList({
       ) : canEdit ? null : (
         <p className="text-sm text-muted-foreground">Not set</p>
       )}
-      {canEdit ? (
-        <NameSelect
+      {canEdit && add ? (
+        <NamePicker
           value=""
           options={members}
           disabledOptions={names}
           disabled={busy}
-          placeholder={`Add ${singular}`}
+          placeholder={add}
           onChange={(name) => {
             if (name) onChange([...names, name]);
           }}
@@ -316,16 +282,16 @@ function CrewList({
 
 export function SpiritWeekControls({
   theme,
-  filmers,
-  editors,
+  unsortedFilmers,
+  lists,
   members,
   canEdit,
   busy,
   onCrewChange
 }: {
   theme: string;
-  filmers: string[];
-  editors: string[];
+  unsortedFilmers: string[];
+  lists: Array<{ role: CalendarCrewRole; names: string[] }>;
   members: string[];
   canEdit: boolean;
   busy: boolean;
@@ -337,22 +303,27 @@ export function SpiritWeekControls({
         <span className={LABEL_CLASS}>Spirit Week theme</span>
         <p className="text-sm font-medium text-[var(--brand-green)]">{theme}</p>
       </div>
-      <CrewList
-        role="Filmers"
-        names={filmers}
-        members={members}
-        canEdit={canEdit}
-        busy={busy}
-        onChange={(names) => onCrewChange("Filmers", names)}
-      />
-      <CrewList
-        role="Editors"
-        names={editors}
-        members={members}
-        canEdit={canEdit}
-        busy={busy}
-        onChange={(names) => onCrewChange("Editors", names)}
-      />
+      {unsortedFilmers.length > 0 ? (
+        <CrewList
+          role="Filmers"
+          names={unsortedFilmers}
+          members={members}
+          canEdit={canEdit}
+          busy={busy}
+          onChange={(names) => onCrewChange("Filmers", names)}
+        />
+      ) : null}
+      {lists.map(({ role, names }) => (
+        <CrewList
+          key={role}
+          role={role}
+          names={names}
+          members={members}
+          canEdit={canEdit}
+          busy={busy}
+          onChange={(next) => onCrewChange(role, next)}
+        />
+      ))}
     </div>
   );
 }

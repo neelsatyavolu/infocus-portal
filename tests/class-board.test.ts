@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { setCalendarAnchors, setCalendarPaAnnouncers } from "@/src/lib/calendar-show-content";
+import { setCalendarAnchors, setCalendarCrew, setCalendarPaAnnouncers } from "@/src/lib/calendar-show-content";
 import {
   buildBoardDays,
   buildBoardDeadlines,
@@ -622,5 +622,30 @@ describe("class board side panels", () => {
     expect(days.map((day) => day.kindLabel)).toEqual(["Class", "Show", "PA"]);
     expect(days[1].lines).toEqual(["Anchors  Maya · Jordan", "Manager  Neel", "On air  Campus parking"]);
     expect(days[2].lines).toEqual(["Announcers  Sam"]);
+  });
+
+  it("lists Spirit Week filmers and editors for the day", () => {
+    const show = setCalendarCrew(
+      setCalendarCrew(setCalendarAnchors(SHOW_TEMPLATE, ["Maya"]), "Filmers", ["Abby", "Otto"]),
+      "Editors",
+      ["Sage"]
+    );
+    const days = buildBoardDays({
+      today: "2026-10-05",
+      end: "2026-10-07",
+      schedule: [
+        { date: "2026-10-05", kind: "PA", label: "" },
+        { date: "2026-10-06", kind: "SHOW", label: "Spirit Week Day 1 Recap" }
+      ],
+      entries: [
+        { date: "2026-10-05", content: setCalendarCrew(PA_TEMPLATE, "Filmers", ["Kira"]) },
+        { date: "2026-10-06", content: show }
+      ],
+      showManagers: {},
+      queued: []
+    });
+
+    expect(days[0].lines).toEqual(["Filmers  Kira"]);
+    expect(days[1].lines).toEqual(["Anchors  Maya", "Filmers  Abby · Otto", "Editors  Sage"]);
   });
 });

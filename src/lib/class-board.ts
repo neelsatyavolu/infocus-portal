@@ -1,5 +1,7 @@
 import {
+  CALENDAR_CREW_ROLES,
   extractCalendarAnchors,
+  extractCalendarCrew,
   extractCalendarPaAnnouncers,
   extractCalendarShowManager
 } from "@/src/lib/calendar-show-content";
@@ -512,6 +514,10 @@ export function buildBoardDays(input: BoardDayInput): ClassBoardDay[] {
       if (day.kind === "PA") {
         const announcers = extractCalendarPaAnnouncers(content);
         if (announcers.length > 0) lines.push(`Announcers  ${announcers.join(" · ")}`);
+      }
+      for (const role of CALENDAR_CREW_ROLES) {
+        const crew = extractCalendarCrew(content, role);
+        if (crew.length > 0) lines.push(`${role}  ${crew.join(" · ")}`);
       }
       const packages = queuedByDate.get(day.date) ?? [];
       if (packages.length > 0) lines.push(`On air  ${packages.join(" · ")}`);

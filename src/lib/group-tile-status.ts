@@ -4,6 +4,7 @@ import { approvalProgressLabel, executiveWaitPill } from "@/src/lib/package-appr
 import { initialCutVersionTitle } from "@/src/lib/package-cut-transitions";
 import { canGradeFinalCut } from "@/src/lib/package-final-cut-scores";
 import { isAssignedPackageProducer } from "@/src/lib/package-producer-assignment";
+import { hasPlatformRole } from "@/src/lib/platform-admin";
 
 export type GroupTileStatusTone = "neutral" | "warn" | "review" | "danger" | "approved";
 
@@ -210,4 +211,9 @@ export function finalCutGradePendingFromViewer(
 ) {
   if (!canGradeFinalCut(role) || !extra.finalCutHasMedia || extra.finalCutGraded) return false;
   return !(extra.currentUserId && extra.scoredByUserIds?.includes(extra.currentUserId));
+}
+
+/** Groups tile shortcut: executives, the adviser, and super admin can approve a pending pitch without opening the group. */
+export function canApprovePitchFromTile(role: PlatformRole | null, row: { id?: string | null; pitching: boolean }) {
+  return Boolean(row.id) && !row.pitching && hasPlatformRole(role, "EXECUTIVE_PRODUCER");
 }

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import AssociatesDialog from "./associates-dialog";
+import ApprovePitchButton from "./approve-pitch-button";
 import GroupNotesButton from "./group-notes-button";
 import { producerMayActOnPackage } from "@/src/lib/package-producer-assignment";
 import { ChevronDown, ChevronRight, ExternalLink, LayoutGrid, RefreshCcw, Table2 } from "lucide-react";
@@ -26,6 +27,7 @@ import { cn } from "@/src/lib/utils";
 import type { BrainstormProofView } from "@/src/lib/package-brainstorm";
 import { filterGroupsForViewer, isPrimaryGroupForViewer } from "@/src/lib/groups-visibility";
 import {
+  canApprovePitchFromTile,
   finalCutGradePendingFromViewer,
   groupTileStatus,
   groupTileStatusClass,
@@ -267,12 +269,14 @@ function GroupTile({
   row,
   platformRole,
   currentUserId,
-  onNotesSaved
+  onNotesSaved,
+  onPitchApproved
 }: {
   row: GroupRow;
   platformRole: PlatformRole | null;
   currentUserId: string;
   onNotesSaved: (rowId: string, value: string) => void;
+  onPitchApproved: (rowId: string) => void;
 }) {
   const completion = rowCompletion(row);
   const approvalStage = effectiveGroupApprovalStage(
@@ -403,6 +407,9 @@ function GroupTile({
           <span className="rounded-md bg-amber-500/20 px-1.5 py-px text-[10px] font-medium text-amber-100">
             {extensionBadgeLabel(row.extensionDays)}
           </span>
+        ) : null}
+        {row.id && canApprovePitchFromTile(platformRole, row) ? (
+          <ApprovePitchButton rowId={row.id} onApproved={() => onPitchApproved(row.id!)} />
         ) : null}
       </div>
     </>
@@ -599,6 +606,13 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
     if (queuedRowsRef.current) queuedRowsRef.current = update(queuedRowsRef.current);
   }
 
+  function markPitchApproved(rowId: string) {
+    const update = (items: GroupRow[]) => items.map((row) => row.id === rowId ? { ...row, pitching: true } : row);
+    rowsRef.current = update(rowsRef.current);
+    setRows((current) => update(current));
+    if (queuedRowsRef.current) queuedRowsRef.current = update(queuedRowsRef.current);
+  }
+
   async function refresh() {
     try {
       setMessage(null);
@@ -749,6 +763,7 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
                     platformRole={platformRole}
                     currentUserId={currentUserId}
                     onNotesSaved={updateNotes}
+                    onPitchApproved={markPitchApproved}
                   />
                 ))}
               </div>
@@ -779,6 +794,7 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
                         platformRole={platformRole}
                         currentUserId={currentUserId}
                         onNotesSaved={updateNotes}
+                        onPitchApproved={markPitchApproved}
                       />
                     ))}
                   </div>

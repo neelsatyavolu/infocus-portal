@@ -9,6 +9,8 @@ export const SPIRIT_WEEK_DAYS = [
   { date: "2026-10-09", theme: "Class colors" }
 ] as const;
 
+/** Monday and Friday have separate brunch filmers; Tue–Thu, lunch filmers also film brunch. */
+const BRUNCH_FILMER_DATES = ["2026-10-05", "2026-10-09"];
 /** Wednesday of Spirit Week has a night rally with its own filmers. */
 const NIGHT_RALLY_DATE = "2026-10-07";
 
@@ -20,9 +22,12 @@ export function spiritWeekTheme(dateKey: string): string | null {
 /** Crew lists producers fill for a Spirit Week day, in display order. Empty outside Spirit Week. */
 export function spiritWeekCrewRoles(dateKey: string): CalendarCrewRole[] {
   if (!spiritWeekTheme(dateKey)) return [];
-  return dateKey === NIGHT_RALLY_DATE
-    ? ["Brunch Filmers", "Lunch Filmers", "Night Rally Filmers", "Editors"]
-    : ["Brunch Filmers", "Lunch Filmers", "Editors"];
+  return [
+    ...(BRUNCH_FILMER_DATES.includes(dateKey) ? (["Brunch Filmers"] as const) : []),
+    "Lunch Filmers",
+    ...(dateKey === NIGHT_RALLY_DATE ? (["Night Rally Filmers"] as const) : []),
+    "Editors"
+  ];
 }
 
 /**

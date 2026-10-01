@@ -139,8 +139,8 @@ export async function loadMasterCalendarMonth(
   );
   const members = buildCastPool(
     users,
-    castAssignments.filter((row) => row.role !== "EXECUTIVE_PRODUCER").map((row) => row.email),
-    castAssignments.filter((row) => row.role === "EXECUTIVE_PRODUCER").map((row) => row.email)
+    castAssignments.filter((row) => row.role === "ADVISER").map((row) => row.email),
+    castAssignments.filter((row) => row.role !== "ADVISER").map((row) => row.email)
   ).members;
   const showManagerPool = buildShowManagerPool(
     users,
@@ -218,8 +218,8 @@ export async function loadAnchorPaCounts(): Promise<{ people: AnchorPaCountRow[]
 
   const members = buildCastPool(
     users,
-    assignments.filter((row) => row.role !== "EXECUTIVE_PRODUCER").map((row) => row.email),
-    assignments.filter((row) => row.role === "EXECUTIVE_PRODUCER").map((row) => row.email)
+    assignments.filter((row) => row.role === "ADVISER").map((row) => row.email),
+    assignments.filter((row) => row.role !== "ADVISER").map((row) => row.email)
   ).members;
 
   const overrideMap = new Map(

@@ -40,7 +40,7 @@ Once a package reaches Stage 2, associate producers are done reviewing its Initi
 
 Approving pitching, brainstorming, A-roll/B-roll, or Initial Cut can include a note. Skip approves with no note. The note is posted as stage feedback and included in the members' approval email. Notes saved as `[[approved]]` are **not** revision requests.
 
-On the **Pitch** tab, a producer who can act on the group (the assigned associate, or any executive) clicks **Mark pitch complete** once the group has presented (**Unmark pitch** undoes it). On **Contact**, the button reads **Approve anyway** until all three proofs and the brainstorm doc are in. Notes saved as `[[approved]]` are **not** revision requests.
+On the **Pitch** tab, a producer who can act on the group (the assigned associate, or any executive) clicks **Mark pitch complete** once the group has presented (**Unmark pitch** undoes it). Executives, the adviser, and super admin can also approve a pending pitch from its Groups tile with **Approve pitch**, which asks the same optional feedback question; unmarking still happens on the Pitch tab. On **Contact**, the button reads **Approve anyway** until all three proofs and the brainstorm doc are in. Notes saved as `[[approved]]` are **not** revision requests.
 
 ## A-roll / B-roll needs changes
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, type KeyboardEvent } from "react";
+import { useId, useState, type KeyboardEvent, type ReactElement } from "react";
 import * as Popover from "@radix-ui/react-popover";
 import { Check, ChevronDown, Search } from "lucide-react";
 import { filterNames } from "@/src/lib/name-search";
@@ -25,8 +25,8 @@ function buildChoices(
     label: name,
     disabled: blocked.has(name) && name !== value
   }));
-  // The placeholder row clears the slot; hide it while searching.
-  return query.trim() ? matches : [{ name: "", label: placeholder, disabled: false }, ...matches];
+  // The placeholder row clears a filled slot; hide it while searching or when there is nothing to clear.
+  return query.trim() || !value ? matches : [{ name: "", label: placeholder, disabled: false }, ...matches];
 }
 
 function nextEnabled(choices: Choice[], from: number, step: 1 | -1) {
@@ -48,14 +48,18 @@ function keepInListView(node: HTMLDivElement | null) {
   }
 }
 
-/** Name dropdown with a search box. Picking the placeholder row clears the value (""). */
+/**
+ * Name dropdown with a search box. Picking the placeholder row clears the value ("").
+ * `trigger` replaces the full-width button (it must be a single button element).
+ */
 export function NamePicker({
   value,
   options,
   disabledOptions = [],
   disabled,
   placeholder,
-  onChange
+  onChange,
+  trigger
 }: {
   value: string;
   options: string[];
@@ -63,6 +67,7 @@ export function NamePicker({
   disabled?: boolean;
   placeholder: string;
   onChange: (value: string) => void;
+  trigger?: ReactElement;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -105,11 +110,13 @@ export function NamePicker({
 
   return (
     <Popover.Root open={open} onOpenChange={handleOpenChange}>
-      <Popover.Trigger asChild>
-        <button type="button" disabled={disabled} className={TRIGGER_CLASS}>
-          <span className={cn("truncate", !value && "text-muted-foreground")}>{value || placeholder}</span>
-          <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
-        </button>
+      <Popover.Trigger asChild disabled={disabled}>
+        {trigger ?? (
+          <button type="button" className={TRIGGER_CLASS}>
+            <span className={cn("truncate", !value && "text-muted-foreground")}>{value || placeholder}</span>
+            <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+          </button>
+        )}
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Content

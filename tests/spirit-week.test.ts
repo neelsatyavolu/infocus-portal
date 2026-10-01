@@ -2,14 +2,11 @@ import { describe, expect, it } from "vitest";
 import { spiritWeekCrewRoles, spiritWeekRecapToss, spiritWeekTheme } from "@/src/lib/spirit-week";
 
 describe("spirit week", () => {
-  it("gives each day brunch and lunch filmers, plus night rally filmers on Wednesday", () => {
+  it("gives brunch filmers only on Monday and Friday, plus night rally filmers on Wednesday", () => {
     expect(spiritWeekCrewRoles("2026-10-05")).toEqual(["Brunch Filmers", "Lunch Filmers", "Editors"]);
-    expect(spiritWeekCrewRoles("2026-10-07")).toEqual([
-      "Brunch Filmers",
-      "Lunch Filmers",
-      "Night Rally Filmers",
-      "Editors"
-    ]);
+    expect(spiritWeekCrewRoles("2026-10-06")).toEqual(["Lunch Filmers", "Editors"]);
+    expect(spiritWeekCrewRoles("2026-10-07")).toEqual(["Lunch Filmers", "Night Rally Filmers", "Editors"]);
+    expect(spiritWeekCrewRoles("2026-10-08")).toEqual(["Lunch Filmers", "Editors"]);
     expect(spiritWeekCrewRoles("2026-10-09")).toEqual(["Brunch Filmers", "Lunch Filmers", "Editors"]);
     expect(spiritWeekCrewRoles("2026-10-12")).toEqual([]);
   });

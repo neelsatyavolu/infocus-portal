@@ -22,7 +22,7 @@ Each weekday cell depends on the day type:
 
 - **Show days:** **Anchors** (two slots, with **Randomize**), **Show manager**, and **Queue** (the packages queued for that show in the Publishing Queue). A special show also shows its name.
 - **PA days (Mondays):** **PA announcers** (two slots, with **Randomize**).
-- **Spirit Week (Mon Oct 5 – Fri Oct 9):** each day also shows that day's dress-up theme (for example, Tuesday is Salad dressing) and **Brunch filmers**, **Lunch filmers**, and **Editors** lists. Wednesday (Oct 7) also has **Night rally filmers** for the night rally. Producers can add any number of people to each list and remove them with ×. The names are saved in the calendar cell and appear in the Google Doc.
+- **Spirit Week (Mon Oct 5 – Fri Oct 9):** each day also shows that day's dress-up theme (for example, Tuesday is Salad dressing) and **Lunch filmers** and **Editors** lists. Monday and Friday also have **Brunch filmers**; Tuesday through Thursday, lunch filmers film brunch too. Wednesday (Oct 7) also has **Night rally filmers** for the night rally. Producers add people with the small **+** chip after each list (any number per list) and remove them with ×. The names are saved in the calendar cell and appear in the Google Doc.
 - Filmers picked before the brunch/lunch split show as **Filmers (unsorted)**. Adding one of them to a brunch, lunch, or night rally list takes them off the unsorted list; × removes them outright. The unsorted list disappears once it is empty.
 - **Class days:** a scenic photo and a notes box. Right-click the photo to **Delete Image** or **Restore Image**.
 - **Holidays:** the holiday name.
@@ -39,7 +39,7 @@ In a notes box, type `[package]` to search package videos and insert a package p
 
 - Every show has two Anchors slots. Pick names on the dropdowns, or press Randomize to fill both. Randomize works on any show. Picking a name by hand replaces a random assignment.
 - Nobody anchors twice in the same month. The Portal rejects a pick of someone who already anchored that month.
-- Randomize uses registered class members, never advisers, EPs, or super admin. EPs can be picked by hand on the calendar. Advisers and super admin are not in the calendar dropdowns.
+- Randomize uses registered class members, never advisers, EPs, or super admin. EPs and super admin can be picked by hand on the calendar. Advisers are not in the calendar dropdowns.
 - Randomize also skips that week's PA announcers (for both shows that week) and anyone marked **Non-anchor** in the generator's Anchor History.
 - Someone picked by hand in the first week (days 1–7) or from day 22 on stays out of Randomize for that month, even if you remove them later. **Wipe anchors** clears this.
 - Dropping an anchor slot needs 48 hours' notice. This is a class rule; the Portal does not enforce it.
@@ -54,7 +54,7 @@ Nicknames are what the dropdowns show. Each name dropdown (here and on The Show)
 
 Producer page (associate producer and up) for one show date. It opens on the next show (today, if today is a show day). Tabs switch between the next eight shows and show how many packages each has queued.
 
-- **Show manager** and **Anchors**, with the same rules as the calendar. Changes save to the calendar. The anchor dropdowns grey out anyone who already anchored that month. These dropdowns use the generator roster, which also lists advisers.
+- **Show manager** and **Anchors**, with the same rules as the calendar. Changes save to the calendar. The anchor dropdowns grey out anyone who already anchored that month. These dropdowns use the generator roster, which also lists advisers and super admin.
 - **Packages:** what the Publishing Queue has assigned to this show. Click one to open its Final Cut page.
 - **Show roles:** that date's crew assignments.
 - **Open script** / **Create script** opens Teleprompter for this show date.
@@ -78,7 +78,7 @@ After you schedule it, the Portal locks the upload. Change the title, time, or a
 
 ### Show Roles Generator (`/show-roles?generator=1`)
 
-Crew roles are Show Director, Graphics Director, Tech Director, Teleprompter, and Floor Director, plus Backup #1 and #2. **Generate Roles** auto-assigns them. It skips EPs and advisers; they stay in the manual picker. Super admin is not listed. Each role has **Re-pick**, **Manual**, and a confirm toggle; **Confirm All** confirms every role.
+Crew roles are Show Director, Graphics Director, Tech Director, Teleprompter, and Floor Director, plus Backup #1 and #2. **Generate Roles** auto-assigns them. It skips EPs, advisers, and super admin; they stay in the manual picker. Each role has **Re-pick**, **Manual**, and a confirm toggle; **Confirm All** confirms every role.
 
 Other buttons: **New Show**, **Anchor History** (times anchored, last anchored, and a **Non-anchor** checkbox that keeps someone out of Randomize), **Refresh**, **Import JSON**, **Backup**, and **Clear History** (deletes all saved shows except the current one; cannot be undone).
 

@@ -186,8 +186,8 @@ Subdomains:
 - Every show has two **Anchors** slots. Producers pick names on the master calendar or The Show, or press **Randomize** to fill both. There are no volunteer or random weeks; randomizing is a choice on any show.
 - Nobody anchors twice in the same month.
 - Monday PA announcers are randomly drawn from people who are not anchoring that month.
-- Randomize pulls from registered users who are not advisers, executive producers, or super-admin. EPs can be picked by hand on the dropdowns but are never chosen by Randomize. Unique first names; full name if two people share a first name.
-- The Show / show-roles generator loads the same registered-user roster. Generate Roles and role repick skip EPs and advisers; those people stay available in the manual picker. Super-admin is not listed.
+- Randomize pulls from registered users who are not advisers, executive producers, or super-admin. EPs and super-admin can be picked by hand on the dropdowns but are never chosen by Randomize. Unique first names; full name if two people share a first name.
+- The Show / show-roles generator loads the same registered-user roster. Generate Roles and role repick skip EPs, advisers, and super-admin; those people stay available in the manual picker.
 - Generator cooldown covers the previous two saved shows before the selected date. Crew roles, anchoring, and show-manager duty by an associate producer all count; backup roles do not. Member recency uses the same assignments and counts shows, not days.
 - Each show has one **show manager**. Default is a rotation through executive producers (including super-admin) and associate producers, first-name order from the first air date. Producers can override a date on The Show or the master calendar; later automatic days restart from the next person in the pool so the following show is not a duplicate. **Use rotation** / **Auto** clears the override. The adviser is not in the pool. The resolved name is on SHOW cells and in the Google Doc (SM).
 - People assigned to that week’s PA are excluded from random anchors for both shows that week (Wednesday and Friday). Same people do not PA and anchor in the same week.

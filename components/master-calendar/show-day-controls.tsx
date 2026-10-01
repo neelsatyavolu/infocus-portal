@@ -1,6 +1,6 @@
 "use client";
 
-import { Sparkles, X } from "lucide-react";
+import { Plus, Sparkles, X } from "lucide-react";
 import { NamePicker } from "@/components/name-picker";
 import { formatPairedNames, type CalendarCrewRole } from "@/src/lib/calendar-show-content";
 
@@ -13,6 +13,25 @@ function optionsForValue(members: string[], value: string) {
 
 const LABEL_CLASS =
   "text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground";
+// Section header with a Randomize button; a container so the button can shrink to its icon.
+const RANDOMIZE_HEADER_CLASS = "@container flex items-center justify-between gap-2";
+const RANDOMIZE_LABEL_CLASS = `${LABEL_CLASS} min-w-0 truncate`;
+
+function RandomizeButton({ busy, onClick }: { busy: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      disabled={busy}
+      onClick={onClick}
+      aria-label="Randomize"
+      title="Randomize"
+      className="inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold text-[var(--brand-green)] hover:bg-accent disabled:opacity-50"
+    >
+      <Sparkles className="h-3.5 w-3.5" />
+      <span className="hidden @min-[14rem]:inline">Randomize</span>
+    </button>
+  );
+}
 
 type QueuedPackage = {
   id: string;
@@ -57,19 +76,9 @@ export function ShowDayControls({
   return (
     <div className="flex min-h-[14.5rem] flex-1 flex-col gap-3 rounded-lg border border-border/70 bg-[var(--ink)]/40 p-3 text-left">
       <div className="space-y-1.5">
-        <div className="flex items-center justify-between gap-2">
-          <span className={LABEL_CLASS}>Anchors</span>
-          {canEdit ? (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={onRandomize}
-              className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold text-[var(--brand-green)] hover:bg-accent disabled:opacity-50"
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              Randomize
-            </button>
-          ) : null}
+        <div className={RANDOMIZE_HEADER_CLASS}>
+          <span className={RANDOMIZE_LABEL_CLASS}>Anchors</span>
+          {canEdit ? <RandomizeButton busy={busy} onClick={onRandomize} /> : null}
         </div>
         {canEdit ? (
           <div className="grid gap-1.5">
@@ -165,19 +174,9 @@ export function PaDayControls({
   return (
     <div className="flex min-h-[14.5rem] flex-1 flex-col gap-3 rounded-lg border border-border/70 bg-[var(--ink)]/40 p-3 text-left">
       <div className="flex min-h-0 flex-1 flex-col gap-1.5">
-        <div className="flex items-center justify-between gap-2">
-          <span className={LABEL_CLASS}>PA announcers</span>
-          {canEdit ? (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={onRandomize}
-              className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold text-[var(--brand-green)] hover:bg-accent disabled:opacity-50"
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              Randomize
-            </button>
-          ) : null}
+        <div className={RANDOMIZE_HEADER_CLASS}>
+          <span className={RANDOMIZE_LABEL_CLASS}>PA announcers</span>
+          {canEdit ? <RandomizeButton busy={busy} onClick={onRandomize} /> : null}
         </div>
         {canEdit ? (
           <div className="grid gap-1.5">
@@ -239,7 +238,7 @@ function CrewList({
       {canEdit && !add ? (
         <p className="text-xs text-muted-foreground">Add each person to a list below to sort them.</p>
       ) : null}
-      {names.length > 0 ? (
+      {names.length > 0 || (canEdit && add) ? (
         <div className="flex flex-wrap gap-1">
           {names.map((name) => (
             <span
@@ -260,22 +259,32 @@ function CrewList({
               ) : null}
             </span>
           ))}
+          {canEdit && add ? (
+            <NamePicker
+              value=""
+              options={members}
+              disabledOptions={names}
+              disabled={busy}
+              placeholder={add}
+              onChange={(name) => {
+                if (name) onChange([...names, name]);
+              }}
+              trigger={
+                <button
+                  type="button"
+                  aria-label={add}
+                  title={add}
+                  className="inline-flex h-5 items-center rounded-md bg-[var(--ink-3)] px-1.5 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
+                >
+                  <Plus className="h-3 w-3" />
+                </button>
+              }
+            />
+          ) : null}
         </div>
-      ) : canEdit ? null : (
+      ) : (
         <p className="text-sm text-muted-foreground">Not set</p>
       )}
-      {canEdit && add ? (
-        <NamePicker
-          value=""
-          options={members}
-          disabledOptions={names}
-          disabled={busy}
-          placeholder={add}
-          onChange={(name) => {
-            if (name) onChange([...names, name]);
-          }}
-        />
-      ) : null}
     </div>
   );
 }

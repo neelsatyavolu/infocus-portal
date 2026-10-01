@@ -10,11 +10,12 @@ export function buildCastPool(
   // excludeNames hides the adviser from the dropdown (matched by configured email).
   const hideAdviser = options?.excludeNames !== false;
   const dropdownBlocked = new Set(
-    [...dropdownBlockedEmails, PLATFORM_SUPER_ADMIN_EMAIL, hideAdviser ? PACKAGE_ADVISER_EMAIL : null]
-      .map(normalizeEmail)
-      .filter(Boolean)
+    [...dropdownBlockedEmails, hideAdviser ? PACKAGE_ADVISER_EMAIL : null].map(normalizeEmail).filter(Boolean)
   );
-  const randomBlocked = new Set([...randomBlockedEmails].map(normalizeEmail).filter(Boolean));
+  // The super admin can be picked by hand but is never chosen at random.
+  const randomBlocked = new Set(
+    [...randomBlockedEmails, PLATFORM_SUPER_ADMIN_EMAIL].map(normalizeEmail).filter(Boolean)
+  );
 
   const dropdownUsers = users.filter((user) => {
     const email = normalizeEmail(user.email);

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  canApprovePitchFromTile,
   cutTileReviewStatus,
   finalCutGradePendingFromViewer,
   groupTileStatus,
@@ -292,5 +293,20 @@ describe("groupTileStatus", () => {
         remainingExecutiveSignoffs: 2
       })
     ).toEqual({ label: "2 execs left", tone: "review" });
+  });
+});
+
+describe("canApprovePitchFromTile", () => {
+  it("lets executives, the adviser, and super admin approve a pending pitch", () => {
+    for (const role of ["EXECUTIVE_PRODUCER", "ADVISER", "SUPER_ADMIN"] as const) {
+      expect(canApprovePitchFromTile(role, { id: "row-1", pitching: false })).toBe(true);
+    }
+  });
+
+  it("hides the button for associates, students, done pitches, and unsaved rows", () => {
+    expect(canApprovePitchFromTile("ASSOCIATE_PRODUCER", { id: "row-1", pitching: false })).toBe(false);
+    expect(canApprovePitchFromTile(null, { id: "row-1", pitching: false })).toBe(false);
+    expect(canApprovePitchFromTile("EXECUTIVE_PRODUCER", { id: "row-1", pitching: true })).toBe(false);
+    expect(canApprovePitchFromTile("EXECUTIVE_PRODUCER", { pitching: false })).toBe(false);
   });
 });

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildCastPool } from "@/src/lib/cast-pool";
 
 describe("buildCastPool", () => {
-  it("lets EPs be picked by hand but keeps them out of random", () => {
+  it("lets EPs and the super admin be picked by hand but keeps them out of random", () => {
     const pool = buildCastPool(
       [
         { name: "Abby Chen", email: "abby@pausd.us" },
@@ -14,8 +14,8 @@ describe("buildCastPool", () => {
       ["lucas@pausd.us"]
     );
 
-    expect(pool.members).toEqual(["Abby", "Lucas"]);
-    expect(pool.randomExempt).toEqual(["Lucas"]);
+    expect(pool.members).toEqual(["Abby", "Lucas", "Neel"]);
+    expect(pool.randomExempt).toEqual(["Lucas", "Neel"]);
   });
 
   it("can keep advisers in the list while still marking them exempt from random", () => {

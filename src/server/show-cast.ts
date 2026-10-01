@@ -83,8 +83,8 @@ export async function listCastPool() {
   const [users, assignments] = await loadRegisteredUsersAndRoles();
   return buildCastPool(
     users,
-    assignments.filter((row) => row.role !== "EXECUTIVE_PRODUCER").map((row) => row.email),
-    assignments.filter((row) => row.role === "EXECUTIVE_PRODUCER").map((row) => row.email)
+    assignments.filter((row) => row.role === "ADVISER").map((row) => row.email),
+    assignments.filter((row) => row.role !== "ADVISER").map((row) => row.email)
   );
 }
 
@@ -92,16 +92,13 @@ export async function listShowMembers() {
   return (await listCastPool()).members;
 }
 
-/** Generator roster: registered users except super-admin. EPs and advisers stay pickable. */
+/** Generator roster: every registered user. EPs, advisers, and super-admin are pickable but never random. */
 export async function listShowRolesPool() {
   const [users, assignments] = await loadRegisteredUsersAndRoles();
-  const autoBlocked = assignments
-    .filter((row) => row.role === "EXECUTIVE_PRODUCER" || row.role === "ADVISER")
-    .map((row) => row.email);
   return buildCastPool(
     users,
-    assignments.filter((row) => row.role === "SUPER_ADMIN").map((row) => row.email),
-    [...autoBlocked, PACKAGE_ADVISER_EMAIL],
+    [],
+    [...assignments.map((row) => row.email), PACKAGE_ADVISER_EMAIL],
     { excludeNames: false }
   );
 }

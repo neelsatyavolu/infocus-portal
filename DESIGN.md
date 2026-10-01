@@ -87,7 +87,7 @@ Keep it to two weights per graphic. Don't use italics, underlines, or all-caps f
 
 ## 4. Shape language
 
-- **Square corners.** Nameplates, plates, panels and cards have **square corners** everywhere: on air, on the web, on slides and on thumbnails. (Until Sept 2026 the plates had one curved corner. It was dropped because a single rounded edge looked odd.) The only round shapes are the logo itself and small dots: the record dot, bullets and status dots. **One exception: the Follow InFocus card** keeps the curved corner on its Ink plate (the top-right corner is a quarter circle as tall as the plate). That curve is only on that card, and only on air.
+- **Square corners.** Nameplates, plates, panels and cards have **square corners** everywhere: on air, on the web, on slides and on thumbnails. (Until Sept 2026 the plates had one curved corner. It was dropped because a single rounded edge looked odd.) The only round shapes are the logo itself and small dots: the record dot, bullets and status dots.
 - **The tile.** A square Ink tile holds the icon at the inner end of every nameplate.
 - **Stacked bars.** Ink plate on top (name), InFocus Green strip below (role), always the same width. The width is set by whichever text is longer.
 - **Flat color.** No gradients, bevels, drop shadows, or glass. Depth comes from the footage, not the graphic.
@@ -142,11 +142,11 @@ All are 1920 × 1080. MOGRT (Premiere) and `.drfx` (DaVinci Resolve) versions ma
 - **Live setup:** the TriCaster holds the sets and this still; the announcements come from a Premiere laptop over NDI. In that Premiere sequence, the TV Standby sits on V1 under the announcements for the whole timeline, so the feed is always opaque and never flashes black before or after an announcement.
 
 ### Follow InFocus (`08 Follow InFocus`)
-- A corner card at the **top left** (x 48, y 40): Ink tile + Ink "Follow InFocus" plate with the curved top-right corner (the one graphic that keeps it), with a Green panel below listing the handles in Soft White Medium 26 px:
+- A corner card at the **top left** (x 48, y 40): Ink tile + Ink "Follow InFocus" plate (square, like the lower third), with a Green panel below listing the handles in Soft White Medium 26 px:
   - Instagram + YouTube **@infocusnews**
   - TikTok + X **@palyinfocus**
   - Web **infocusnews.tv**
-- Transparent ProRes 4444, 7 s. It builds like a lower third.
+- Transparent ProRes 4444, 7 s. It opens exactly like a lower third (logo square, then the plate and a green strip wipe out), then the logo column and green panel unroll down together as one block while the handles land. The exit is the reverse: the column and panel roll up together, the strip and plate wipe back, and the square closes on the logo. The column and panel always share one bottom edge, so the card never shows stepped shapes.
 
 ### Intro (`03 Intro & Outro`)
 - 13.8 s, 1080p. A fast, music-cut montage of our own footage (spirit week, packages, drone, class photos) that lands on the 2026 wordmark on the music hit. It holds the logo, then fades to black over the last 0.5 s as the music ends, so the switcher cuts from black to the studio.

@@ -35,6 +35,8 @@ Put these in `.env` (never commit it). Only the **Required** group is needed to 
 
 App notifications (Apple Push): `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_PRIVATE_KEY` (contents of the `.p8` key; `\n` escapes are fine), plus one bundle ID per app: `APNS_TOPIC` (InFocus for Mac), `APNS_IOS_TOPIC` (InFocus Portal for iPhone, `com.infocuspaly.portal`), `APNS_NEWS_TOPIC` (the public InFocus iPhone app, `com.infocuspaly.news`). An app whose topic is unset gets no pushes. `YOUTUBE_API_KEY`: a YouTube Data API key restricted to that API (Google Cloud project with the Portal's YouTube OAuth client). The public app feeds (`/api/public/shows`, `/api/public/live`) read public videos with it, so they keep working even if the channel authorization lapses; without it they fall back to the channel authorization. `CRON_SECRET`: Vercel Cron sends it as a bearer token to `/api/cron/news-alerts` (public app alerts, every 10 minutes); without it the route refuses every call.
 
+Apple App Review demo account (`src/lib/app-review.ts`): `APP_REVIEW_EMAIL` is the account; it is confined to its own sample workspace and left out of every people list. `APP_REVIEW_CODE` (12–32 digits, secret, only in App Store Connect's review notes) lets that email sign in with this fixed code instead of a mailed one; any other value turns the fixed code off. Create the account and workspace with `npx tsx scripts/seed-app-review.ts`. See `docs/knowledge/iphone-apps.md`.
+
 ## AI
 
 `GEMINI_API_KEY` (teleprompter), `GEMINI_API_KEY_CHAT` (Portal assistant), `GROQ_API_KEY`, `GROQ_MODEL` (assistant fallback).

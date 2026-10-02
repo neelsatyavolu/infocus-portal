@@ -31,7 +31,8 @@ export async function GET(request: Request) {
     const workspaces = await prisma.workspace.findMany({
       where: buildWorkspaceAccessWhere({
         userId,
-        platformRole: access.role
+        platformRole: access.role,
+        email: user.email
       }),
       select: {
         id: true

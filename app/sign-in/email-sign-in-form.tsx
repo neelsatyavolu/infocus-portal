@@ -61,7 +61,7 @@ export function EmailSignInForm({ returnTo }: { returnTo: string }) {
           </p>
           <label htmlFor="sign-in-code" className="block text-sm font-medium">Sign-in code</label>
           <Input id="sign-in-code" type="text" inputMode="numeric" autoComplete="one-time-code"
-            pattern="[0-9]{6}" maxLength={6} required autoFocus value={code} disabled={Boolean(busy)}
+            pattern="[0-9]{6,32}" maxLength={32} required autoFocus value={code} disabled={Boolean(busy)}
             onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))} />
         </>
       ) : null}

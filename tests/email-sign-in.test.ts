@@ -89,3 +89,39 @@ describe("email sign-in", () => {
     await expect(requestEmailSignInCode(email, browser)).rejects.toThrow("Could not send");
   });
 });
+
+describe("App Review account sign-in", () => {
+  const reviewEmail = "review@example.edu";
+  const reviewCode = "202610021234";
+
+  beforeEach(() => {
+    vi.stubEnv("APP_REVIEW_EMAIL", "Review@Example.edu");
+    vi.stubEnv("APP_REVIEW_CODE", reviewCode);
+  });
+
+  it("takes the fixed code without sending mail, with the usual one-time challenge", async () => {
+    await requestEmailSignInCode(reviewEmail, browser);
+    expect(mail).not.toHaveBeenCalled();
+    expect(JSON.stringify(db.row)).not.toContain(reviewCode);
+    expect(await verifyEmailSignInCode(reviewEmail, "123456", browser)).toBeNull();
+    expect(await verifyEmailSignInCode(reviewEmail, reviewCode, "other-browser")).toBeNull();
+    expect(await verifyEmailSignInCode(reviewEmail, reviewCode, browser)).toMatchObject({ provider: "email" });
+    expect(await verifyEmailSignInCode(reviewEmail, reviewCode, browser)).toBeNull();
+  });
+
+  it("keeps the five-guess lock", async () => {
+    await requestEmailSignInCode(reviewEmail, browser);
+    for (let i = 0; i < 5; i++) expect(await verifyEmailSignInCode(reviewEmail, "999999999999", browser)).toBeNull();
+    expect(await verifyEmailSignInCode(reviewEmail, reviewCode, browser)).toBeNull();
+  });
+
+  it("is off with a short code, and never lets other emails use long codes", async () => {
+    vi.stubEnv("APP_REVIEW_CODE", "123456");
+    await requestEmailSignInCode(reviewEmail, browser);
+    expect(mail).toHaveBeenCalledOnce();
+    vi.stubEnv("APP_REVIEW_CODE", reviewCode);
+    vi.advanceTimersByTime(60_000);
+    await requestEmailSignInCode(email, browser);
+    expect(await verifyEmailSignInCode(email, reviewCode, browser)).toBeNull();
+  });
+});

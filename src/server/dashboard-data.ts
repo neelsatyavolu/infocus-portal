@@ -1,3 +1,4 @@
+import { isAppReviewEmail } from "@/src/lib/app-review";
 import { calculateExtensionsRemaining, STARTING_EXTENSION_DAYS } from "@/src/lib/extensions";
 import {
   buildUserNameCandidates,
@@ -179,6 +180,8 @@ export async function getDashboardData({
   // Up next and recent activity are independent; load them side by side.
   const upNextPromise = (async () => {
     let upNext: DashboardUpNext | null = null;
+    // The App Review account is in no package; name matching must never find a real one.
+    if (isAppReviewEmail(userEmail)) return upNext;
 
     try {
       const progress = await loadPackageProgressData();

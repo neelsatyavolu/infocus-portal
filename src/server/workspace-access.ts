@@ -1,4 +1,5 @@
 import { PlatformRole, type Prisma, WorkspaceRole, WorkspaceVisibility } from "@prisma/client";
+import { isAppReviewEmail } from "@/src/lib/app-review";
 import { getPlatformRoleForEmail, hasPlatformRole, normalizeEmail, PLATFORM_SUPER_ADMIN_EMAIL } from "@/src/lib/platform-admin";
 import { prisma } from "@/src/lib/prisma";
 import { userDisplayName } from "@/src/lib/user-display";
@@ -26,8 +27,13 @@ export type WorkspaceAccessUser = {
 export function buildWorkspaceAccessWhere(params: {
   userId: string;
   platformRole: PlatformRole | null;
+  /** The App Review account sees only workspaces it is a member of. */
+  email?: string | null;
 }): Prisma.WorkspaceWhereInput {
   const { userId, platformRole } = params;
+  if (isAppReviewEmail(params.email)) {
+    return { members: { some: { userId } } };
+  }
   const visibilityScopes: Prisma.WorkspaceWhereInput[] = [
     {
       visibility: WorkspaceVisibility.ALL_MEMBERS
@@ -140,7 +146,7 @@ export async function resolveWorkspaceAccess(params: {
     };
   }
 
-  if (!allowVisibility) {
+  if (!allowVisibility || isAppReviewEmail(email)) {
     throw new Error("FORBIDDEN");
   }
 

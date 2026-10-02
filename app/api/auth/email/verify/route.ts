@@ -8,7 +8,8 @@ import { EMAIL_SIGN_IN_COOKIE, verifyEmailSignInCode } from "@/src/server/email-
 
 const schema = z.object({
   email: z.string().trim().email().max(254),
-  code: z.string().trim().regex(/^\d{6}$/),
+  // Six digits; the App Review account's fixed code is longer (src/lib/app-review.ts).
+  code: z.string().trim().regex(/^\d{6,32}$/),
   returnTo: z.string().max(2048).optional()
 });
 

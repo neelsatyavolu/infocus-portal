@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { TeleprompterShell } from "@/components/teleprompter-shell";
+import { isAppReviewEmail } from "@/src/lib/app-review";
 import { getRealSessionUser, requireUserId, syncUserProfile } from "@/src/lib/auth";
 import { resolveAppSurface } from "@/src/lib/hosts";
 import { hasTeleprompterKioskCookie } from "@/src/server/teleprompter-access";
@@ -65,7 +66,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     }
 
     return (
-      <AppShell platformRole={platformRole} currentUser={currentUser} canViewAs={canViewAs} viewingAs={viewingAs}>
+      <AppShell
+        platformRole={platformRole}
+        currentUser={currentUser}
+        canViewAs={canViewAs}
+        viewingAs={viewingAs}
+        sampleOnly={isAppReviewEmail(user.email)}
+      >
         {children}
       </AppShell>
     );

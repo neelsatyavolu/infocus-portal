@@ -90,7 +90,8 @@ export async function resolveTeleprompterWorkspace(params: {
   const workspaces = await prisma.workspace.findMany({
     where: buildWorkspaceAccessWhere({
       userId,
-      platformRole: access.role
+      platformRole: access.role,
+      email
     }),
     select: {
       id: true,

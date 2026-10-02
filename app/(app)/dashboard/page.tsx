@@ -14,6 +14,7 @@ import {
 import { type PlatformRole } from "@prisma/client";
 import { CreateProjectTile } from "@/components/create-project-tile";
 import { DeleteEntityButton } from "@/components/delete-entity-button";
+import { isAppReviewEmail } from "@/src/lib/app-review";
 import { getCurrentAppUser } from "@/src/lib/current-app-user";
 import { userDisplayName } from "@/src/lib/user-display";
 import { buildPlatformAccess } from "@/src/lib/platform-admin";
@@ -62,11 +63,12 @@ function normalizeView(value: string | undefined): ViewValue {
   return "grid";
 }
 
-async function getDashboardData(userId: string, platformRole: PlatformRole | null) {
+async function getDashboardData(userId: string, platformRole: PlatformRole | null, email: string | null) {
   return prisma.workspace.findMany({
     where: buildWorkspaceAccessWhere({
       userId,
-      platformRole
+      platformRole,
+      email
     }),
     include: {
       members: {
@@ -125,9 +127,10 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const [{ workspaceId, sort, view }, currentAppUser] = await Promise.all([searchParams, getCurrentAppUser()]);
   const { userId, user, platformRole } = currentAppUser;
   const access = buildPlatformAccess(platformRole);
-  const isStudent = !access.canManageWorkspaces;
+  // The App Review account sees its sample workspace's projects, not a (blank) student snapshot.
+  const isStudent = !access.canManageWorkspaces && !isAppReviewEmail(user.email);
   // The student snapshot doesn't depend on workspaces, so start everything at once.
-  const workspacesPromise = getDashboardData(userId, platformRole);
+  const workspacesPromise = getDashboardData(userId, platformRole, user.email);
   const [workspaces, dashboardPanels, snapshot] = await Promise.all([
     workspacesPromise,
     workspacesPromise.then((loaded) =>

@@ -100,6 +100,8 @@ type AppShellProps = {
   };
   canViewAs?: boolean;
   viewingAs?: boolean;
+  /** Apple App Review account: Dashboard and Settings only (src/lib/app-review.ts). */
+  sampleOnly?: boolean;
 };
 
 type ProjectShareLinkItem = {
@@ -257,7 +259,14 @@ function readProjectShellStateFromDom(expectedProjectId: string) {
   }
 }
 
-export function AppShell({ children, platformRole, currentUser, canViewAs = false, viewingAs = false }: AppShellProps) {
+export function AppShell({
+  children,
+  platformRole,
+  currentUser,
+  canViewAs = false,
+  viewingAs = false,
+  sampleOnly = false
+}: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -317,13 +326,14 @@ export function AppShell({ children, platformRole, currentUser, canViewAs = fals
   const [navOpen, setNavOpen] = useState(false);
 
   useEffect(() => {
+    if (sampleOnly) return;
     void fetch("/api/slack/sync", { method: "POST", cache: "no-store" }).catch(() => {
       /* Slack catch-up is best-effort */
     });
-  }, []);
+  }, [sampleOnly]);
 
   useEffect(() => {
-    if (isProducer && !isAssociate) return;
+    if (sampleOnly || (isProducer && !isAssociate)) return;
     let cancelled = false;
     const loadNav = () => {
       void fetch("/api/package-cycle/stage", { cache: "no-store" })
@@ -362,9 +372,10 @@ export function AppShell({ children, platformRole, currentUser, canViewAs = fals
       cancelled = true;
       window.removeEventListener(STAGE_FEEDBACK_READ_EVENT, loadNav);
     };
-  }, [isProducer, isAssociate, pathname]);
+  }, [isProducer, isAssociate, pathname, sampleOnly]);
 
   useEffect(() => {
+    if (sampleOnly) return;
     let cancelled = false;
     const loadAwaiting = () => {
       void fetch("/api/extensions/requests/awaiting", { cache: "no-store" })
@@ -384,7 +395,7 @@ export function AppShell({ children, platformRole, currentUser, canViewAs = fals
       cancelled = true;
       window.removeEventListener(EXTENSION_REQUESTS_CHANGED_EVENT, loadAwaiting);
     };
-  }, [pathname]);
+  }, [pathname, sampleOnly]);
 
   useEffect(() => {
     setNavOpen(false);
@@ -915,6 +926,18 @@ export function AppShell({ children, platformRole, currentUser, canViewAs = fals
             }
           }}
         >
+          {sampleOnly ? (
+            <>
+              <SideNavLink
+                href="/dashboard"
+                icon={LayoutDashboard}
+                label="Dashboard"
+                active={pathname.startsWith("/dashboard") || pathname.startsWith("/projects")}
+              />
+              <SideNavLink href="/settings" icon={Settings} label="Settings" active={pathname.startsWith("/settings")} />
+            </>
+          ) : (
+          <>
           <SideNavLink
             href={"/announcements" as never}
             icon={Megaphone}
@@ -1134,6 +1157,8 @@ export function AppShell({ children, platformRole, currentUser, canViewAs = fals
             label="Settings"
             active={pathname.startsWith("/settings")}
           />
+          </>
+          )}
         </nav>
 
         {/* Footer */}
@@ -1568,7 +1593,7 @@ export function AppShell({ children, platformRole, currentUser, canViewAs = fals
           </main>
         </div>
       </div>
-      {!hideChrome ? (
+      {!hideChrome && !sampleOnly ? (
         <AssistantChat
           canMutate={platformRole === "SUPER_ADMIN" || platformRole === "ADVISER"}
           audience={

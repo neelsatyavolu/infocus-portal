@@ -4,6 +4,7 @@ import type { SessionUser } from "@/src/lib/auth-edge";
 import { prisma } from "@/src/lib/prisma";
 import { isEmailAllowedToUsePlatform, normalizeEmail } from "@/src/lib/platform-admin";
 import { isEmailNotificationsConfigured, sendSignInCodeEmail } from "@/src/lib/email";
+import { APP_REVIEW_CODE_PATTERN, appReviewCode, isAppReviewEmail } from "@/src/lib/app-review";
 
 export const EMAIL_SIGN_IN_COOKIE = "infocus_email_sign_in";
 export const EMAIL_CODE_TTL_SECONDS = 10 * 60;
@@ -22,7 +23,9 @@ export async function requestEmailSignInCode(inputEmail: string, browserToken: s
   // Give the same success response for unknown addresses without sending mail.
   if (!(await isEmailAllowedToUsePlatform(email))) return;
 
-  const code = randomInt(0, 1_000_000).toString().padStart(6, "0");
+  // The App Review account's code is fixed (it has no inbox); it still goes through the same challenge and limits.
+  const reviewCode = isAppReviewEmail(email) ? appReviewCode() : null;
+  const code = reviewCode ?? randomInt(0, 1_000_000).toString().padStart(6, "0");
   const now = new Date();
   await prisma.$transaction(async (tx) => {
     // Updating the key locks this email's row until commit, including concurrent resends.
@@ -51,6 +54,7 @@ export async function requestEmailSignInCode(inputEmail: string, browserToken: s
     });
   });
 
+  if (reviewCode) return;
   const result = await sendSignInCodeEmail(email, code);
   if (!result.configured || result.sent !== 1) {
     throw new Error("Could not send your code. Please wait a minute and try again.");
@@ -59,7 +63,8 @@ export async function requestEmailSignInCode(inputEmail: string, browserToken: s
 
 export async function verifyEmailSignInCode(inputEmail: string, code: string, browserToken: string): Promise<SessionUser | null> {
   const email = normalizeEmail(inputEmail);
-  if (!/^\d{6}$/.test(code) || !browserToken) return null;
+  const codePattern = isAppReviewEmail(email) && appReviewCode() ? APP_REVIEW_CODE_PATTERN : /^\d{6}$/;
+  if (!codePattern.test(code) || !browserToken) return null;
   const verified = await prisma.$transaction(async (tx) => {
     const [challenge] = await tx.$queryRaw<EmailSignInCode[]>`
       SELECT * FROM "EmailSignInCode" WHERE "email" = ${email} FOR UPDATE

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { appReviewEmail, isAppReviewEmail, isAppReviewPathAllowed } from "@/src/lib/app-review";
 import { APP_SESSION_COOKIE_NAME, TELEPROMPTER_KIOSK_COOKIE_NAME } from "@/src/lib/auth-cookies";
 import { parseAppSessionToken } from "@/src/lib/auth-edge";
 import { resolveAppSurface, type AppSurface } from "@/src/lib/hosts";
@@ -133,6 +134,17 @@ export default async function middleware(req: NextRequest) {
   const surface = resolveAppSurface(host);
   const isApiRoute = pathname.startsWith("/api/");
   const sessionToken = req.cookies.get(APP_SESSION_COOKIE_NAME)?.value;
+
+  // Apple App Review demo account: its sample workspace and settings only (src/lib/app-review.ts).
+  if (appReviewEmail() && sessionToken) {
+    const session = await parseAppSessionToken(sessionToken);
+    if (session && isAppReviewEmail(session.email) && !isAppReviewPathAllowed(pathname, surface)) {
+      if (isApiRoute) {
+        return NextResponse.json({ error: { message: "Forbidden" } }, { status: 403, headers: { "Cache-Control": "no-store" } });
+      }
+      return NextResponse.redirect(new URL(surface === "main" ? "/dashboard" : "/access-denied", req.url));
+    }
+  }
 
   if (surface === "teleprompter") {
     const kioskQuery = req.nextUrl.searchParams.get("kiosk");

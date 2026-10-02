@@ -80,7 +80,8 @@ export async function GET(request: Request) {
           { id: canonical.id },
           buildWorkspaceAccessWhere({
             userId,
-            platformRole: access.role
+            platformRole: access.role,
+            email: user.email
           })
         ]
       },

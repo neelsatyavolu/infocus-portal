@@ -31,6 +31,7 @@ import {
   type TotalsAdjustments
 } from "@/src/lib/grade-editor-csv";
 import { CHECK_IN_STAGES, type CheckInScores, type CheckInStage } from "@/src/lib/package-stages";
+import { BottomTabDock, BottomTabDockButton, CycleTabLabel } from "@/components/ui/bottom-tab-dock";
 import { cn } from "@/src/lib/utils";
 import { REQUIRED_LIVESTREAM_HOURS } from "@/src/lib/livestream";
 import { StudentGradebookPanel } from "./student-gradebook-panel";
@@ -2143,64 +2144,29 @@ export default function GradeEditorClient() {
         </DialogContent>
       </Dialog>
 
-      <section className="sticky bottom-4 z-20 mx-auto flex justify-center">
-        <div className="inline-flex items-center gap-1 rounded-xl border border-foreground/[0.08] bg-card p-1">
-          {cycles.map((cycle) => {
-            const isActive = viewMode === "cycle" && cycle.cycleNumber === activeCycleNumber;
-            return (
-              <button
-                key={cycle.cycleNumber}
-                type="button"
-                onClick={() => goToCycle(cycle.cycleNumber)}
-                className={cn(
-                  "inline-flex items-center gap-2 rounded-md px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.11em] transition",
-                  isActive
-                    ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
-                    : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
-                )}
-              >
-                Cycle
-                <span
-                  className={cn(
-                    "rounded px-1.5 py-0.5 font-mono-broadcast tabular-nums text-[10px] font-medium",
-                    isActive ? "bg-black/25 text-[var(--on-brand)]" : "bg-foreground/10 text-[var(--ink-text)]"
-                  )}
-                >
-                  {String(cycle.cycleNumber).padStart(2, "0")}
-                </span>
-              </button>
-            );
-          })}
-          <button
-            type="button"
-            onClick={() => {
-              setViewMode(TOTAL_VIEW);
-              void loadTotals({ silent: true });
-            }}
-            className={cn(
-              "inline-flex items-center gap-2 rounded-md px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.11em] transition",
-              viewMode === TOTAL_VIEW
-                ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
-                : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
-            )}
-          >
-            Total Grade
-          </button>
-          <button
-            type="button"
-            onClick={() => goToStudentView()}
-            className={cn(
-              "inline-flex items-center gap-2 rounded-md px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.11em] transition",
-              viewMode === STUDENT_VIEW
-                ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
-                : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
-            )}
-          >
-            <UserRound className="h-3.5 w-3.5" />
-            Student
-          </button>
-        </div>
-      </section>
+      <BottomTabDock activeKey={`${viewMode}:${activeCycleNumber}`} label="Grade Editor views">
+        {cycles.map((cycle) => {
+          const isActive = viewMode === "cycle" && cycle.cycleNumber === activeCycleNumber;
+          return (
+            <BottomTabDockButton key={cycle.cycleNumber} active={isActive} onClick={() => goToCycle(cycle.cycleNumber)}>
+              <CycleTabLabel cycleNumber={cycle.cycleNumber} active={isActive} />
+            </BottomTabDockButton>
+          );
+        })}
+        <BottomTabDockButton
+          active={viewMode === TOTAL_VIEW}
+          onClick={() => {
+            setViewMode(TOTAL_VIEW);
+            void loadTotals({ silent: true });
+          }}
+        >
+          Total Grade
+        </BottomTabDockButton>
+        <BottomTabDockButton active={viewMode === STUDENT_VIEW} onClick={() => goToStudentView()}>
+          <UserRound className="h-3.5 w-3.5" />
+          Student
+        </BottomTabDockButton>
+      </BottomTabDock>
     </div>
   );
 }

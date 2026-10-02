@@ -36,6 +36,7 @@ import {
 } from "@/src/lib/group-tile-status";
 import { extensionBadgeLabel } from "@/src/lib/package-extensions";
 import { groupScheduleStatus, type GroupScheduleInput } from "@/src/lib/group-schedule";
+import { BottomTabDock, BottomTabDockButton, CycleTabLabel } from "@/components/ui/bottom-tab-dock";
 
 type CycleDates = Record<keyof GroupScheduleInput["dates"], string | null>;
 
@@ -1003,36 +1004,16 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
         )}
       </section>
 
-      <section className="sticky bottom-4 z-20 mx-auto flex justify-center">
-        <div className="inline-flex items-center gap-1 rounded-xl border border-foreground/[0.08] bg-card p-1">
-          {cycles.map((cycle) => {
-            const active = cycle.cycleNumber === activeCycleNumber;
-            return (
-              <button
-                key={cycle.cycleNumber}
-                type="button"
-                onClick={() => setActiveCycleNumber(cycle.cycleNumber)}
-                className={cn(
-                  "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium uppercase tracking-[0.11em] transition",
-                  active
-                    ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
-                    : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
-                )}
-              >
-                Cycle
-                <span
-                  className={cn(
-                    "rounded px-1.5 py-0.5 font-mono-broadcast text-[10px] font-medium tabular-nums",
-                    active ? "bg-black/25 text-[var(--on-brand)]" : "bg-black/40 light:bg-foreground/10 text-[var(--ink-text)]"
-                  )}
-                >
-                  {String(cycle.cycleNumber).padStart(2, "0")}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
+      <BottomTabDock activeKey={activeCycleNumber} label="Cycles">
+        {cycles.map((cycle) => {
+          const active = cycle.cycleNumber === activeCycleNumber;
+          return (
+            <BottomTabDockButton key={cycle.cycleNumber} active={active} onClick={() => setActiveCycleNumber(cycle.cycleNumber)}>
+              <CycleTabLabel cycleNumber={cycle.cycleNumber} active={active} />
+            </BottomTabDockButton>
+          );
+        })}
+      </BottomTabDock>
     </div>
   );
 }

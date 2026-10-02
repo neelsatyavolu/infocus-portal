@@ -18,6 +18,7 @@ import {
 } from "@/src/lib/package-stages";
 import { cycleSemesterTerm, parseSemesterTerm } from "@/src/lib/package-grades";
 import type { GradebookCheckIn, GradebookWeek } from "@/src/lib/student-gradebook";
+import { BottomTabDock, BottomTabDockButton } from "@/components/ui/bottom-tab-dock";
 import { cn } from "@/src/lib/utils";
 
 type GradeTab = "home" | "packages" | "participation" | "other" | "all";
@@ -292,28 +293,13 @@ export default function GradesClient() {
         />
       ) : null}
 
-      <section className="sticky bottom-4 z-20 mx-auto flex justify-center px-2">
-        <div className="inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-xl border border-foreground/[0.08] bg-card p-1">
-          {TABS.map((item) => {
-            const active = tab === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setTab(item.id)}
-                className={cn(
-                  "inline-flex shrink-0 items-center rounded-md px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.11em] transition sm:px-4 sm:text-[12px]",
-                  active
-                    ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
-                    : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
-                )}
-              >
-                {item.label}
-              </button>
-            );
-          })}
-        </div>
-      </section>
+      <BottomTabDock activeKey={tab} label="Grade views">
+        {TABS.map((item) => (
+          <BottomTabDockButton key={item.id} active={tab === item.id} onClick={() => setTab(item.id)}>
+            {item.label}
+          </BottomTabDockButton>
+        ))}
+      </BottomTabDock>
     </div>
   );
 }

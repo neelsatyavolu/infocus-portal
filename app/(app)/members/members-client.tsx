@@ -17,6 +17,7 @@ import {
 } from "@/src/lib/member-notes";
 import { type NameSortKey, sortNamedPeople } from "@/src/lib/name-sort";
 import { cn } from "@/src/lib/utils";
+import { BottomTabDock, BottomTabDockButton, CycleTabLabel } from "@/components/ui/bottom-tab-dock";
 
 type CycleTab = {
   cycleNumber: number;
@@ -346,48 +347,19 @@ export default function MembersClient() {
         )}
       </section>
 
-      <section className="sticky bottom-4 z-20 mx-auto flex justify-center">
-        <div className="inline-flex items-center gap-1 rounded-xl border border-foreground/[0.08] bg-card p-1">
-          <button
-            type="button"
-            onClick={() => onTabClick(MEMBER_GENERAL_CYCLE_NUMBER)}
-            className={cn(
-              "inline-flex items-center gap-2 rounded-md px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.11em] transition",
-              isGeneral
-                ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
-                : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
-            )}
-          >
-            General
-          </button>
-          {cycles.map((cycle) => {
-            const active = cycle.cycleNumber === activeCycleNumber;
-            return (
-              <button
-                key={cycle.cycleNumber}
-                type="button"
-                onClick={() => onTabClick(cycle.cycleNumber)}
-                className={cn(
-                  "inline-flex items-center gap-2 rounded-md px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.11em] transition",
-                  active
-                    ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
-                    : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
-                )}
-              >
-                Cycle
-                <span
-                  className={cn(
-                    "rounded px-1.5 py-0.5 font-mono-broadcast tabular-nums text-[10px] font-medium",
-                    active ? "bg-black/25 text-[var(--on-brand)]" : "bg-foreground/10 text-[var(--ink-text)]"
-                  )}
-                >
-                  {String(cycle.cycleNumber).padStart(2, "0")}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
+      <BottomTabDock activeKey={activeCycleNumber} label="Cycles">
+        <BottomTabDockButton active={isGeneral} onClick={() => onTabClick(MEMBER_GENERAL_CYCLE_NUMBER)}>
+          General
+        </BottomTabDockButton>
+        {cycles.map((cycle) => {
+          const active = cycle.cycleNumber === activeCycleNumber;
+          return (
+            <BottomTabDockButton key={cycle.cycleNumber} active={active} onClick={() => onTabClick(cycle.cycleNumber)}>
+              <CycleTabLabel cycleNumber={cycle.cycleNumber} active={active} />
+            </BottomTabDockButton>
+          );
+        })}
+      </BottomTabDock>
     </div>
   );
 }

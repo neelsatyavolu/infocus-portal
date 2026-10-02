@@ -17,6 +17,7 @@ import { StageStatusChip } from "@/components/package-cycle/stage-status-chip";
 import { cycleStageStatus, emptyCycleStageStatusInput, type CycleStageStatus } from "@/src/lib/package-stage-status";
 import { useFileDrop } from "@/src/lib/use-file-drop";
 import { cn } from "@/src/lib/utils";
+import { BottomTabDock, BottomTabDockButton, CycleTabLabel } from "@/components/ui/bottom-tab-dock";
 
 type Member = {
   userId: string;
@@ -410,36 +411,16 @@ export default function BrainstormingClient() {
         </div>
       )}
 
-      <section className="sticky bottom-4 z-20 mx-auto flex justify-center">
-        <div className="inline-flex items-center gap-1 rounded-xl border border-border bg-card p-1">
-          {cycles.map((cycle) => {
-            const active = cycle.cycleNumber === activeCycleNumber;
-            return (
-              <button
-                key={cycle.cycleNumber}
-                type="button"
-                onClick={() => void load(cycle.cycleNumber)}
-                className={cn(
-                  "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.18em] transition",
-                  active
-                    ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
-                    : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
-                )}
-              >
-                Cycle
-                <span
-                  className={cn(
-                    "rounded px-1.5 py-0.5 font-mono-broadcast text-[10px] font-medium tabular-nums",
-                    active ? "bg-black/25 text-[var(--on-brand)]" : "bg-foreground/10 text-[var(--ink-text)]"
-                  )}
-                >
-                  {String(cycle.cycleNumber).padStart(2, "0")}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
+      <BottomTabDock activeKey={activeCycleNumber} label="Cycles">
+        {cycles.map((cycle) => {
+          const active = cycle.cycleNumber === activeCycleNumber;
+          return (
+            <BottomTabDockButton key={cycle.cycleNumber} active={active} onClick={() => void load(cycle.cycleNumber)}>
+              <CycleTabLabel cycleNumber={cycle.cycleNumber} active={active} />
+            </BottomTabDockButton>
+          );
+        })}
+      </BottomTabDock>
     </div>
   );
 }

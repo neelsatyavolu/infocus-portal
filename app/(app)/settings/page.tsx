@@ -509,6 +509,8 @@ export default function SettingsPage() {
         </div>
       </section>
 
+      <MacAppCard />
+
       <section className="space-y-3 rounded-2xl border border-border bg-card p-4">
         <p className="text-sm font-semibold text-foreground">Nickname</p>
         <p className="text-xs text-muted-foreground">
@@ -547,8 +549,6 @@ export default function SettingsPage() {
 
       <ClassBoardPinCard />
       <LivestreamPinCard />
-
-      <MacAppCard />
 
       <section className="space-y-3 rounded-2xl border border-border bg-card p-4">
         <p className="text-sm font-semibold text-foreground">Apps & schedule</p>

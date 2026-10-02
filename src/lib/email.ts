@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 import { mainAppOrigin } from "@/src/lib/hosts";
 import { EMAIL_BRAND, escapeHtml, renderBrandedEmail } from "@/src/lib/email-layout";
+import { pushBodyFromParagraphs, sendNativePushToEmails } from "@/src/lib/native-push";
 import type { PackageMailContent } from "@/src/lib/package-stage-events";
 
 type AnnouncementEmailPayload = {
@@ -178,6 +179,8 @@ export async function sendBrandedEmails(payload: {
   ctaLabel: string;
   ctaUrl: string;
   extraHtml?: string;
+  /** Mac app notification to the same people. Defaults to the subject, first non-greeting paragraph and button link; false skips it. */
+  push?: false | { title?: string; body?: string; url?: string };
 }) {
   const branded = renderBrandedEmail({
     heading: payload.heading,
@@ -187,7 +190,19 @@ export async function sendBrandedEmails(payload: {
     ctaUrl: payload.ctaUrl,
     preview: payload.paragraphs[0]
   });
-  return sendToAll(payload.recipients, payload.subject, branded.text, branded.html);
+  const push = payload.push;
+  // The push never rejects, so it can't change the email result.
+  const [result] = await Promise.all([
+    sendToAll(payload.recipients, payload.subject, branded.text, branded.html),
+    push === false
+      ? null
+      : sendNativePushToEmails(payload.recipients, {
+          title: push?.title ?? payload.subject,
+          body: push?.body ?? pushBodyFromParagraphs(payload.paragraphs),
+          url: push?.url ?? payload.ctaUrl
+        })
+  ]);
+  return result;
 }
 
 export async function sendPackageEventEmails(payload: PackageMailContent & { recipients: string[]; ctaUrl: string }) {
@@ -197,7 +212,8 @@ export async function sendPackageEventEmails(payload: PackageMailContent & { rec
     heading: payload.heading,
     paragraphs: payload.paragraphs,
     ctaLabel: payload.ctaLabel,
-    ctaUrl: payload.ctaUrl
+    ctaUrl: payload.ctaUrl,
+    push: { title: payload.pushTitle, body: payload.pushBody }
   });
 }
 
@@ -212,7 +228,8 @@ export async function sendSignInCodeEmail(email: string, code: string) {
       "If you didn't request this code, you can ignore this email."
     ],
     ctaLabel: "Open InFocus Portal",
-    ctaUrl: `${mainAppOrigin()}/sign-in`
+    ctaUrl: `${mainAppOrigin()}/sign-in`,
+    push: false
   });
 }
 
@@ -288,11 +305,26 @@ export async function sendTestNotificationEmail(payload: TestNotificationEmailPa
       "This is a test email from InFocus Portal to confirm your email notifications are working."
     ],
     ctaLabel: "Manage notification settings",
-    ctaUrl: payload.settingsUrl
+    ctaUrl: payload.settingsUrl,
+    // Mac notifications have their own test in Settings.
+    push: false
   });
 }
 
 export async function sendMediaProcessedEmail(payload: MediaProcessedEmailPayload) {
+  // The push never rejects, so it can't change the email result.
+  const [result] = await Promise.all([
+    sendMediaProcessedMail(payload),
+    sendNativePushToEmails(payload.recipients, {
+      title: `New video uploaded: ${payload.mediaTitle}`,
+      body: `${payload.uploaderName} uploaded a new video to ${payload.projectName}.`,
+      url: payload.reviewUrl
+    })
+  ]);
+  return result;
+}
+
+async function sendMediaProcessedMail(payload: MediaProcessedEmailPayload) {
   const mail = mailClient();
   if (!mail || payload.recipients.length === 0) {
     return { configured: false as const, sent: 0, failed: 0 };
@@ -345,7 +377,8 @@ export async function sendAccessRequestDecisionEmail(payload: AccessRequestDecis
           "If you believe this was a mistake, contact your administrator."
         ],
     ctaLabel: isApproved ? "Sign in to InFocus Portal" : "Go to InFocus Portal",
-    ctaUrl: payload.signInUrl
+    ctaUrl: payload.signInUrl,
+    push: false
   });
 }
 
@@ -361,7 +394,8 @@ export async function sendAccountInviteEmail(payload: AccountInviteEmailPayload)
       `${inviterLabel} added you to InFocus Portal. Sign in with this email address.`
     ],
     ctaLabel: "Sign in to InFocus Portal",
-    ctaUrl: payload.signInUrl
+    ctaUrl: payload.signInUrl,
+    push: false
   });
 }
 

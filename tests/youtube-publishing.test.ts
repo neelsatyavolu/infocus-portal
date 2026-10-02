@@ -2,8 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   row: vi.fn(), update: vi.fn(), upsert: vi.fn(), token: vi.fn(), progress: vi.fn(), chunk: vi.fn(), check: vi.fn(),
-  source: vi.fn(), emails: vi.fn(), emailUpdate: vi.fn(), send: vi.fn(), manager: vi.fn(), managers: vi.fn(), rows: vi.fn()
+  source: vi.fn(), emails: vi.fn(), emailUpdate: vi.fn(), send: vi.fn(), manager: vi.fn(), managers: vi.fn(), rows: vi.fn(),
+  push: vi.fn()
 }));
+vi.mock("@/src/lib/native-push", () => ({ sendNativePushToUserIds: mocks.push }));
 vi.mock("@/src/lib/prisma", () => ({ prisma: {
   packageProgressRow: { findUnique: mocks.row, findMany: mocks.rows },
   publishingManager: { findUnique: mocks.manager, findMany: mocks.managers },
@@ -112,6 +114,22 @@ describe("manager email delivery", () => {
     await deliverPublicationEmails("pub");
     expect(mocks.send).toHaveBeenCalledWith(payload, "youtube-publication/email1");
     expect(mocks.emailUpdate).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ sentAt: expect.any(Date) }) }));
+  });
+  it("notifies the manager's Mac once, after a successful send", async () => {
+    const payload = { from: "sender@example.test", to: "manager@example.test", subject: "Published: Spirit Week", html: "html", text: "text" };
+    mocks.emails.mockResolvedValue([{ id: "email1", recipientUserId: "manager", recipient: "manager@example.test", payload,
+      firstAttemptAt: null, publication: { rowId: "row 1" } }]);
+    mocks.send.mockResolvedValue({ id: "sent" });
+    await deliverPublicationEmails("pub");
+    expect(mocks.push).toHaveBeenCalledWith(["manager"], expect.objectContaining({
+      title: "Published: Spirit Week",
+      url: expect.stringMatching(/\/publishing-queue\/row%201$/)
+    }));
+
+    mocks.push.mockClear();
+    mocks.send.mockRejectedValue(new Error("network failure"));
+    await deliverPublicationEmails("pub");
+    expect(mocks.push).not.toHaveBeenCalled();
   });
   it("stops uncertain delivery after the provider deduplication window", async () => {
     mocks.emails.mockResolvedValue([{ id: "email1", recipientUserId: "manager", recipient: "manager@example.test", firstAttemptAt: new Date("2026-09-19T00:00:00Z") }]);

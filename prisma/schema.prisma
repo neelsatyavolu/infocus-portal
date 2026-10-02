@@ -115,6 +115,7 @@ model User {
   announcementReads  AnnouncementRead[]  @relation("AnnouncementReadUser")
   notificationPreference NotificationPreference? @relation("UserNotificationPreference")
   pushSubscriptions  PushNotificationSubscription[] @relation("PushSubscriptionUser")
+  nativePushDevices  NativePushDevice[] @relation("NativePushDeviceUser")
   packageGrades      PackageGrade[]
   packageTotalNote   PackageTotalNote?
   packageProgressMemberships PackageProgressMember[]
@@ -391,6 +392,22 @@ model PushNotificationSubscription {
   user      User     @relation("PushSubscriptionUser", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+}
+
+/// A Mac running the InFocus app, reachable through Apple Push (APNs).
+model NativePushDevice {
+  id          String   @id @default(cuid())
+  userId      String
+  /// APNs device token, lowercase hex.
+  token       String   @unique
+  /// "production" or "development" (which APNs host accepts the token).
+  environment String
+  appVersion  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation("NativePushDeviceUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Project {

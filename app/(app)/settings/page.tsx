@@ -8,6 +8,8 @@ import { Switch } from "@/components/ui/switch";
 import { AppearanceCard } from "./appearance-card";
 import { ClassBoardPinCard } from "./class-board-pin-card";
 import { LivestreamPinCard } from "./livestream-pin-card";
+import { MacNotificationsCard } from "./mac-notifications-card";
+import { isMacAppUserAgent } from "@/src/lib/mac-app-bridge";
 
 type PreferenceState = {
   autoPlay: boolean;
@@ -29,12 +31,6 @@ type NotificationChannelState = {
 
 type ChannelKey = "email" | "browser";
 type CategoryKey = "announcements" | "comments" | "grades";
-type TauriInvoke = (command: string, args?: Record<string, unknown>) => Promise<unknown>;
-type MacNotificationRuntimeInfo = {
-  isDev: boolean;
-  permissionPromptOwner: string;
-  resetCommand: string;
-};
 
 const STORAGE_KEY = "infocus-settings";
 
@@ -97,19 +93,6 @@ function canUseWebPush() {
   );
 }
 
-function getTauriInvoke() {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  const tauri = (window as unknown as { __TAURI__?: { core?: { invoke?: TauriInvoke } } }).__TAURI__;
-  return tauri?.core?.invoke ?? null;
-}
-
-function isMacDesktopShell() {
-  return typeof window !== "undefined" && /InFocusMacApp/i.test(window.navigator.userAgent);
-}
-
 async function readPushPublicKey() {
   const response = await fetch("/api/push/public-key", { cache: "no-store" });
   const payload = await response.json();
@@ -162,12 +145,6 @@ export default function SettingsPage() {
   const [notificationEmailInput, setNotificationEmailInput] = useState("");
   const [emailTestSending, setEmailTestSending] = useState(false);
   const [isMacDesktopApp, setIsMacDesktopApp] = useState(false);
-  const [macPushEnabled, setMacPushEnabled] = useState(false);
-  const [macPushLoading, setMacPushLoading] = useState(false);
-  const [macPushSaving, setMacPushSaving] = useState(false);
-  const [macPushSavedLabel, setMacPushSavedLabel] = useState("");
-  const [macPushError, setMacPushError] = useState<string | null>(null);
-  const [macRuntimeInfo, setMacRuntimeInfo] = useState<MacNotificationRuntimeInfo | null>(null);
   const [profileEmail, setProfileEmail] = useState<string | null>(null);
   const [profileGoogleName, setProfileGoogleName] = useState<string | null>(null);
   const [nicknameInput, setNicknameInput] = useState("");
@@ -280,56 +257,7 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => {
-    const macDesktop = isMacDesktopShell();
-    setIsMacDesktopApp(macDesktop);
-
-    if (!macDesktop) {
-      return;
-    }
-
-    let active = true;
-
-    async function loadMacPushState() {
-      setMacPushLoading(true);
-      setMacPushError(null);
-
-      const invoke = getTauriInvoke();
-      if (!invoke) {
-        setMacPushError("Mac app bridge is unavailable. Restart the app and try again.");
-        setMacPushLoading(false);
-        return;
-      }
-
-      try {
-        const runtimeInfoRaw = await invoke("get_mac_notification_runtime_info");
-        if (active) {
-          setMacRuntimeInfo((runtimeInfoRaw ?? null) as MacNotificationRuntimeInfo | null);
-        }
-
-        const enabled = await invoke("get_mac_push_enabled");
-        if (!active) {
-          return;
-        }
-
-        setMacPushEnabled(Boolean(enabled));
-      } catch (error) {
-        if (!active) {
-          return;
-        }
-
-        setMacPushError(error instanceof Error ? error.message : "Could not read Mac app notification settings.");
-      } finally {
-        if (active) {
-          setMacPushLoading(false);
-        }
-      }
-    }
-
-    void loadMacPushState();
-
-    return () => {
-      active = false;
-    };
+    setIsMacDesktopApp(isMacAppUserAgent(window.navigator.userAgent));
   }, []);
 
   async function saveNickname() {
@@ -428,88 +356,6 @@ export default function SettingsPage() {
       });
     } catch (error) {
       setChannelsError(error instanceof Error ? error.message : "Failed to send test notification.");
-    }
-  }
-
-  async function onMacPushToggle(nextValue: boolean) {
-    if (!isMacDesktopApp) {
-      return;
-    }
-
-    setMacPushSaving(true);
-    setMacPushError(null);
-
-    const invoke = getTauriInvoke();
-    if (!invoke) {
-      setMacPushError("Mac app bridge is unavailable. Restart the app and try again.");
-      setMacPushSaving(false);
-      return;
-    }
-
-    try {
-      const result = await invoke("set_mac_push_enabled", { enabled: nextValue });
-      const enabled = Boolean(result);
-
-      if (nextValue && !enabled) {
-        setMacPushEnabled(false);
-        setMacPushError(
-          "Notifications were not enabled. Allow notifications for InFocus Portal in macOS System Settings and try again."
-        );
-        return;
-      }
-
-      setMacPushEnabled(nextValue);
-      setMacPushSavedLabel(nextValue ? "Mac notifications enabled" : "Mac notifications disabled");
-      window.setTimeout(() => setMacPushSavedLabel(""), 1400);
-    } catch (error) {
-      setMacPushError(error instanceof Error ? error.message : "Could not update Mac app notifications.");
-    } finally {
-      setMacPushSaving(false);
-    }
-  }
-
-  async function sendMacTestNotification() {
-    if (!isMacDesktopApp) {
-      return;
-    }
-
-    setMacPushError(null);
-
-    const invoke = getTauriInvoke();
-    if (!invoke) {
-      setMacPushError("Mac app bridge is unavailable. Restart the app and try again.");
-      return;
-    }
-
-    try {
-      await invoke("send_local_notification", {
-        title: "InFocus Portal Test Notification",
-        body: "Mac app notifications are working."
-      });
-      setMacPushSavedLabel("Test notification sent");
-      window.setTimeout(() => setMacPushSavedLabel(""), 1400);
-    } catch (error) {
-      setMacPushError(error instanceof Error ? error.message : "Could not send Mac app test notification.");
-    }
-  }
-
-  async function openMacNotificationSettings() {
-    if (!isMacDesktopApp) {
-      return;
-    }
-
-    setMacPushError(null);
-
-    const invoke = getTauriInvoke();
-    if (!invoke) {
-      setMacPushError("Mac app bridge is unavailable. Restart the app and try again.");
-      return;
-    }
-
-    try {
-      await invoke("open_mac_notification_settings");
-    } catch (error) {
-      setMacPushError(error instanceof Error ? error.message : "Could not open macOS Notification settings.");
     }
   }
 
@@ -848,6 +694,8 @@ export default function SettingsPage() {
           </div>
         </article>
 
+        {/* Web push doesn't exist inside the Mac app's web view; Mac notifications replace it there. */}
+        {isMacDesktopApp ? null : (
         <article className="rounded-xl border border-border bg-muted p-3">
           <div className="flex items-center justify-between gap-2">
             <p className="inline-flex items-center gap-2 text-sm text-foreground">
@@ -888,57 +736,13 @@ export default function SettingsPage() {
             })}
           </div>
         </article>
+        )}
 
-        {isMacDesktopApp ? (
-          <article className="rounded-xl border border-border bg-muted p-3">
-            <div className="flex items-center justify-between gap-2">
-              <p className="inline-flex items-center gap-2 text-sm text-foreground">
-                <BellRing className="h-4 w-4" /> Mac app notifications
-              </p>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => void sendMacTestNotification()}
-                  disabled={macPushLoading || macPushSaving || !macPushEnabled}
-                  className="rounded-lg border border-border bg-secondary px-3 py-1.5 text-xs font-semibold text-foreground disabled:opacity-50"
-                >
-                  Test Notification
-                </button>
-                <Switch
-                  checked={macPushEnabled}
-                  onCheckedChange={(next) => void onMacPushToggle(next)}
-                  aria-label="Mac app notifications"
-                  disabled={macPushLoading || macPushSaving}
-                />
-              </div>
-            </div>
-            {macRuntimeInfo?.isDev ? (
-              <p className="mt-3 text-xs text-amber-200">
-                Running in `tauri dev`: macOS treats notification permission under {macRuntimeInfo.permissionPromptOwner},
-                so Apple may not show a new prompt for InFocus Portal in dev mode.
-              </p>
-            ) : null}
-            <p className="mt-3 text-xs text-muted-foreground">
-              When enabled, closing the app lets you keep it in the background so notifications can continue.
-            </p>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => void openMacNotificationSettings()}
-                className="rounded-lg border border-border bg-secondary px-3 py-1.5 text-xs font-semibold text-foreground"
-              >
-                Open Mac Notification Settings
-              </button>
-            </div>
-          </article>
-        ) : null}
+        {isMacDesktopApp ? <MacNotificationsCard /> : null}
 
         {channelsLoading ? <p className="text-xs text-muted-foreground">Loading notification preferences...</p> : null}
         {channelsSavedLabel ? <p className="text-xs text-foreground">{channelsSavedLabel}</p> : null}
         {channelsError ? <p className="text-xs text-amber-300">{channelsError}</p> : null}
-        {macPushLoading ? <p className="text-xs text-muted-foreground">Loading Mac app notification preference...</p> : null}
-        {macPushSavedLabel ? <p className="text-xs text-foreground">{macPushSavedLabel}</p> : null}
-        {macPushError ? <p className="text-xs text-amber-300">{macPushError}</p> : null}
       </section>
 
       <Dialog open={browserEnableModalOpen} onOpenChange={setBrowserEnableModalOpen}>

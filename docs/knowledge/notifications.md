@@ -15,11 +15,15 @@ First sign-in sends you here before any other page. Set a nickname (required, up
 - **Notification Channels**:
   - **Email notifications** on/off, **Test Email**, an optional destination address (blank uses your account email), and Announcements / Comments / Grades switches. New accounts start with email on and Grades off.
   - **Browser notifications** on/off, **Test Notification**, and the same three switches. Turning it on asks the browser for permission and registers that device; do it on each device you want notified. The test only shows a notification on this device.
-  - **Mac app notifications** (only inside the Mac app): on/off, test, and a shortcut to macOS notification settings.
+  - **Mac app notifications** (only inside the InFocus Mac app, which hides the Browser block): status, **Turn on** (asks macOS), **Test Notification** (sent through Apple to every Mac you're signed in on), and **Open Mac Notification Settings**. There are no per-category switches here; see below.
+
+## Mac notifications
+
+The InFocus Mac app gets a Mac notification for **every email Portal sends you**, at the same moment, with the same rules: if your email settings would skip an email (for example Grades off), there's no Mac notification either. The title is the email's subject (or a shorter one for package events), and clicking it opens the email's link in the app. Exceptions, email only: sign-in codes, account invites, access-request decisions, and the Settings test email. Turn the whole app on or off in macOS System Settings → Notifications → InFocus. A Mac stops getting notifications when you sign out of the app.
 
 ## What Portal emails and pushes
 
-Push goes only to devices with **Browser notifications** on. Only announcements, grades, and the legacy video-uploaded email follow your email switches; the other emails below are sent to whoever needs to act, whatever those switches say.
+Browser push goes only to devices with **Browser notifications** on. Every email here except sign-in codes, invites, and access decisions also reaches the InFocus Mac app (see **Mac notifications** above). Only announcements, grades, and the legacy video-uploaded email follow your email switches; the other emails below are sent to whoever needs to act, whatever those switches say.
 
 | Event | Who gets it | How |
 |---|---|---|

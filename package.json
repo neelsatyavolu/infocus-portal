@@ -4,9 +4,6 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "mac:dev": "npm --prefix mac-app run dev",
-    "mac:build": "npm --prefix mac-app run build --",
-    "mac:dmg": "npm --prefix mac-app run build:dmg",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

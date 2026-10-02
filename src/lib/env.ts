@@ -78,6 +78,26 @@ const envSchema = z.object({
   R2_BUCKET: z.preprocess(
     (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
     z.string().min(1).optional()
+  ),
+  /** Apple Push (InFocus Mac app): key ID of the APNs auth key (.p8). */
+  APNS_KEY_ID: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().min(1).optional()
+  ),
+  /** Apple Developer team ID that owns the APNs key. */
+  APNS_TEAM_ID: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().min(1).optional()
+  ),
+  /** Contents of the APNs .p8 key (PEM; literal \n allowed). */
+  APNS_PRIVATE_KEY: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().min(1).optional()
+  ),
+  /** The Mac app's bundle ID (APNs topic). */
+  APNS_TOPIC: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().min(1).optional()
   )
 });
 

@@ -33,6 +33,8 @@ Put these in `.env` (never commit it). Only the **Required** group is needed to 
 
 `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `WEB_PUSH_PUBLIC_KEY`, `WEB_PUSH_PRIVATE_KEY`, `WEB_PUSH_SUBJECT`.
 
+Mac app notifications (Apple Push): `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_PRIVATE_KEY` (contents of the `.p8` key; `\n` escapes are fine), `APNS_TOPIC` (the Mac app's bundle ID). Leave them unset and Mac notifications are skipped.
+
 ## AI
 
 `GEMINI_API_KEY` (teleprompter), `GEMINI_API_KEY_CHAT` (Portal assistant), `GROQ_API_KEY`, `GROQ_MODEL` (assistant fallback).

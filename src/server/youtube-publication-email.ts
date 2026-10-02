@@ -3,6 +3,7 @@ import { prisma } from "@/src/lib/prisma";
 import { sendPreparedEmail } from "@/src/lib/email";
 import { escapeHtml, renderBrandedEmail } from "@/src/lib/email-layout";
 import { mainAppOrigin } from "@/src/lib/hosts";
+import { sendNativePushToUserIds } from "@/src/lib/native-push";
 import { youtubeEmbedCode, youtubeWatchUrl } from "@/src/lib/youtube-publication";
 
 const emailPayload = z.object({ from: z.string(), to: z.string().email(), subject: z.string(), text: z.string(), html: z.string() });
@@ -24,7 +25,10 @@ export function publicationEmailPayload(publication: { rowId: string; title: str
 }
 
 export async function deliverPublicationEmails(publicationId: string, now = new Date()) {
-  const emails = await prisma.youtubePublicationEmail.findMany({ where: { publicationId, sentAt: null, cancelledAt: null } });
+  const emails = await prisma.youtubePublicationEmail.findMany({
+    where: { publicationId, sentAt: null, cancelledAt: null },
+    include: { publication: { select: { rowId: true } } }
+  });
   let pending = 0;
   for (const email of emails) {
     const manager = await prisma.publishingManager.findUnique({
@@ -51,7 +55,15 @@ export async function deliverPublicationEmails(publicationId: string, now = new 
     } catch {
       await prisma.youtubePublicationEmail.update({ where: { id: email.id }, data: { lastError: "Manager email delivery failed; retry pending." } });
       pending++;
+      continue;
     }
+    // Only after a successful send, so retries never push twice. Never throws.
+    const rowId = email.publication?.rowId;
+    await sendNativePushToUserIds([email.recipientUserId], {
+      title: emailPayload.parse(email.payload).subject,
+      body: "Ready for the website. Open it to copy the embed code.",
+      url: `${mainAppOrigin()}/publishing-queue${rowId ? `/${encodeURIComponent(rowId)}` : ""}`
+    });
   }
   await prisma.youtubePublication.update({ where: { id: publicationId },
     data: { lastError: pending ? "Some manager emails are pending. Check publication email delivery records." : null } });

@@ -1,13 +1,18 @@
 import Link from "next/link";
 import { MarketingHeader } from "@/components/marketing-header";
+import { IPHONE_APPS_RELEASED, NEWS_IPHONE_APP_URL, PORTAL_IPHONE_APP_URL } from "@/src/lib/app-links";
 import { equipmentAppOrigin } from "@/src/lib/hosts";
+import { MAC_APP_DOWNLOAD_URL } from "@/src/lib/mac-app-bridge";
 import {
   ArrowRight,
   CheckCircle2,
   Clock3,
+  Laptop,
   Layers,
   MessageSquareText,
+  Smartphone,
   Sparkles,
+  Tv,
   UsersRound
 } from "lucide-react";
 
@@ -41,6 +46,33 @@ const featureCards = [
     icon: Clock3,
     title: "Production planning",
     description: "Access schedules, story assignments, and production resources from a shared newsroom portal."
+  }
+];
+
+const appCards = [
+  {
+    icon: Smartphone,
+    title: "InFocus Portal for iPhone",
+    description: "Your packages, groups, calendar, grades and messages, with a notification for everything Portal emails you.",
+    href: PORTAL_IPHONE_APP_URL,
+    action: "Download on the App Store",
+    released: IPHONE_APPS_RELEASED
+  },
+  {
+    icon: Laptop,
+    title: "InFocus for Mac",
+    description: "Portal in its own window, InFocus Drive in Finder, and Mac notifications.",
+    href: MAC_APP_DOWNLOAD_URL,
+    action: "Download for Mac",
+    released: true
+  },
+  {
+    icon: Tv,
+    title: "InFocus for everyone",
+    description: "Every show and story, live games, and alerts when something new drops. Share it with friends and family.",
+    href: NEWS_IPHONE_APP_URL,
+    action: "Download on the App Store",
+    released: IPHONE_APPS_RELEASED
   }
 ];
 
@@ -129,6 +161,45 @@ export default function HomePage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section id="apps" className="mt-10 space-y-5">
+        <div>
+          <div className="eyebrow eyebrow-ink">Apps</div>
+          <h2 className="display-md mt-2 text-foreground">Get the apps</h2>
+          <p className="mt-1 text-sm text-muted-foreground">InFocus on your iPhone and Mac.</p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          {appCards.map((app) => {
+            const Icon = app.icon;
+
+            return (
+              <article key={app.title} className="flex flex-col rounded-2xl border border-border bg-card p-5">
+                <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--brand-green)]/30 bg-[var(--brand-green)]/10 text-[var(--brand-green)]">
+                  <Icon className="h-4 w-4" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">{app.title}</h3>
+                <p className="mt-1 flex-1 text-sm text-muted-foreground">{app.description}</p>
+                {app.released ? (
+                  <a
+                    href={app.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-4 inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
+                  >
+                    {app.action}
+                    <ArrowRight className="h-4 w-4" />
+                  </a>
+                ) : (
+                  <p className="mt-4 inline-flex min-h-10 items-center justify-center rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground">
+                    Coming soon to the App Store
+                  </p>
+                )}
+              </article>
+            );
+          })}
         </div>
       </section>
 

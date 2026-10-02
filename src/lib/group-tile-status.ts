@@ -213,6 +213,18 @@ export function finalCutGradePendingFromViewer(
   return !(extra.currentUserId && extra.scoredByUserIds?.includes(extra.currentUserId));
 }
 
+/** Groups tile grade pill once a Final Cut is turned in: the viewer's own score first, then publish state. */
+export function finalCutGradesPill(
+  pendingFromViewer: boolean,
+  input: { finalCutHasMedia: boolean; gradesPublished: boolean }
+): GroupTileStatus | null {
+  if (pendingFromViewer) return { label: "Pending Grade From You", tone: "warn" };
+  if (!input.finalCutHasMedia) return null;
+  return input.gradesPublished
+    ? { label: "Grades Published", tone: "approved" }
+    : { label: "Grades Pending", tone: "neutral" };
+}
+
 /** Groups tile shortcut: executives, the adviser, and super admin can approve a pending pitch without opening the group. */
 export function canApprovePitchFromTile(role: PlatformRole | null, row: { id?: string | null; pitching: boolean }) {
   return Boolean(row.id) && !row.pitching && hasPlatformRole(role, "EXECUTIVE_PRODUCER");

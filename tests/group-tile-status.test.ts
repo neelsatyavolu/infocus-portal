@@ -3,6 +3,7 @@ import {
   canApprovePitchFromTile,
   cutTileReviewStatus,
   finalCutGradePendingFromViewer,
+  finalCutGradesPill,
   groupTileStatus,
   groupViewerAttention,
   type GroupTileStatusInput
@@ -308,5 +309,32 @@ describe("canApprovePitchFromTile", () => {
     expect(canApprovePitchFromTile(null, { id: "row-1", pitching: false })).toBe(false);
     expect(canApprovePitchFromTile("EXECUTIVE_PRODUCER", { id: "row-1", pitching: true })).toBe(false);
     expect(canApprovePitchFromTile("EXECUTIVE_PRODUCER", { pitching: false })).toBe(false);
+  });
+});
+
+describe("finalCutGradesPill", () => {
+  it("asks the viewer to grade first", () => {
+    expect(finalCutGradesPill(true, { finalCutHasMedia: true, gradesPublished: false })).toEqual({
+      label: "Pending Grade From You",
+      tone: "warn"
+    });
+  });
+
+  it("shows Grades Pending until every member's grade is published", () => {
+    expect(finalCutGradesPill(false, { finalCutHasMedia: true, gradesPublished: false })).toEqual({
+      label: "Grades Pending",
+      tone: "neutral"
+    });
+  });
+
+  it("shows Grades Published once they are", () => {
+    expect(finalCutGradesPill(false, { finalCutHasMedia: true, gradesPublished: true })).toEqual({
+      label: "Grades Published",
+      tone: "approved"
+    });
+  });
+
+  it("shows nothing before a Final Cut is turned in", () => {
+    expect(finalCutGradesPill(false, { finalCutHasMedia: false, gradesPublished: false })).toBeNull();
   });
 });

@@ -29,6 +29,7 @@ import { filterGroupsForViewer, isPrimaryGroupForViewer } from "@/src/lib/groups
 import {
   canApprovePitchFromTile,
   finalCutGradePendingFromViewer,
+  finalCutGradesPill,
   groupTileStatus,
   groupTileStatusClass,
   groupViewerAttention
@@ -98,6 +99,7 @@ type GroupRow = {
   aRollNeedsChanges?: boolean;
   queuedForAir?: boolean;
   finalCutGraded?: boolean;
+  finalCutGradesPublished?: boolean;
   finalCutScoredByUserIds?: string[];
 };
 
@@ -353,12 +355,18 @@ function GroupTile({
     : null;
   const href = row.id ? (`/groups/${row.id}/${pendingSlug}` as const) : null;
   const attention = attentionFor(platformRole, currentUserId, row);
-  const gradePendingFromYou = finalCutGradePendingFromViewer(platformRole, {
-    finalCutHasMedia: Boolean(row.finalCutMediaItemId),
-    finalCutGraded: Boolean(row.finalCutGraded),
-    currentUserId,
-    scoredByUserIds: row.finalCutScoredByUserIds
-  });
+  const gradesPill = finalCutGradesPill(
+    finalCutGradePendingFromViewer(platformRole, {
+      finalCutHasMedia: Boolean(row.finalCutMediaItemId),
+      finalCutGraded: Boolean(row.finalCutGraded),
+      currentUserId,
+      scoredByUserIds: row.finalCutScoredByUserIds
+    }),
+    {
+      finalCutHasMedia: Boolean(row.finalCutMediaItemId),
+      gradesPublished: Boolean(row.finalCutGradesPublished)
+    }
+  );
   const cardClassName = cn(
     "relative block rounded-xl border bg-card px-3.5 py-3 transition-colors hover:bg-foreground/[0.02]",
     attention === "needed"
@@ -425,8 +433,10 @@ function GroupTile({
         })}
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        {gradePendingFromYou ? (
-          <span className="status-pill status-pill-sm status-warn">Pending Grade From You</span>
+        {gradesPill ? (
+          <span className={cn("status-pill status-pill-sm", groupTileStatusClass(gradesPill.tone))}>
+            {gradesPill.label}
+          </span>
         ) : null}
         <span className={cn("status-pill status-pill-sm", groupTileStatusClass(tileStatus.tone))}>
           {tileStatus.label}

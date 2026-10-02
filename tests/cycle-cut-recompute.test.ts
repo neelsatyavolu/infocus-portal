@@ -23,6 +23,7 @@ function row(overrides: Record<string, unknown> = {}) {
     finalCut: false,
     initialCutManual: false,
     finalCutManual: false,
+    initialCutMediaItemId: null,
     finalCutMediaItemId: null,
     ...overrides
   };
@@ -56,5 +57,13 @@ describe("recomputeCycleCutStatus", () => {
     await recomputeCycleCutStatus(1);
 
     expect(m.update).toHaveBeenCalledWith({ where: { id: "row-1" }, data: { finalCut: false } });
+  });
+
+  it("marks Initial Cut done when the row has a turned-in Initial Cut", async () => {
+    m.rows.mockResolvedValue([row({ initialCutMediaItemId: "media-1" })]);
+
+    await recomputeCycleCutStatus(1);
+
+    expect(m.update).toHaveBeenCalledWith({ where: { id: "row-1" }, data: { initialCut: true } });
   });
 });

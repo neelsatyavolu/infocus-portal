@@ -270,7 +270,7 @@ export async function loadPackageProgressData(requestedCycleNumber?: number | nu
       : Promise.resolve([]),
     prisma.packageGrade.findMany({
       where: { cycleNumber: activeCycleNumber, awardedFinalCutPoints: { not: null } },
-      select: { userId: true, awardedFinalCutPoints: true, revisionCount: true }
+      select: { userId: true, awardedFinalCutPoints: true, revisionCount: true, publishedAt: true }
     })
   ]);
 
@@ -293,6 +293,9 @@ export async function loadPackageProgressData(requestedCycleNumber?: number | nu
   }
 
   const officiallyGraded = new Set(finalCutGrades.map((grade) => grade.userId));
+  const gradedAndPublished = new Set(
+    finalCutGrades.filter((grade) => grade.publishedAt).map((grade) => grade.userId)
+  );
 
   const previousTeammatesByUser = previousTeammatesByUserFromGroups(
     previousCycleRows.map((row) => row.members.map((member) => member.userId))
@@ -379,6 +382,11 @@ export async function loadPackageProgressData(requestedCycleNumber?: number | nu
         Boolean(row.finalCutMediaItemId) &&
         row.members.length > 0 &&
         row.members.every((member) => officiallyGraded.has(member.userId)),
+      // Every member's graded cycle grade is published.
+      finalCutGradesPublished:
+        Boolean(row.finalCutMediaItemId) &&
+        row.members.length > 0 &&
+        row.members.every((member) => gradedAndPublished.has(member.userId)),
       finalCutSubmittedAt: row.finalCutMediaItem?.createdAt.toISOString() ?? null,
       packageOfCycleAt: row.packageOfCycleAt?.toISOString() ?? null,
       finalCutScoredByUserIds: gradersDoneWithGroup(

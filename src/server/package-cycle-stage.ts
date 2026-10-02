@@ -1054,6 +1054,7 @@ export async function completeCycleStageUpload(input: {
     where: { id: row.id },
     data: {
       initialCutMediaItemId: input.mediaId,
+      initialCut: true,
       awaitingRevisedInitialCut: transition.clearAwaiting ? false : row.awaitingRevisedInitialCut,
       revisedInitialCut: version.versionNumber >= 2 ? true : row.revisedInitialCut
     }

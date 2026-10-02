@@ -11,6 +11,7 @@ import { prisma } from "@/src/lib/prisma";
 import { isCustomQueuePackage } from "@/src/lib/publishing-queue";
 import { resolveScheduleDay, type ScheduleKind } from "@/src/lib/school-schedule";
 import { addDaysToDateKey, FIRST_SHOW_DATE } from "@/src/lib/show-assignment";
+import { spiritWeekDaysIn } from "@/src/lib/spirit-week";
 import {
   SHOW_MANAGER_ROLES,
   buildShowManagerPool,
@@ -47,6 +48,8 @@ export type MasterCalendarMonthData = {
   members: string[];
   showManagerPool: string[];
   showManagers: Record<string, ShowManagerAssignment>;
+  /** Spirit Week days this month: theme and crew lists (src/lib/spirit-week.ts). */
+  spiritWeek: ReturnType<typeof spiritWeekDaysIn>;
 };
 
 const MONTH_KEY_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -194,7 +197,8 @@ export async function loadMasterCalendarMonth(
     })),
     members,
     showManagerPool,
-    showManagers
+    showManagers,
+    spiritWeek: spiritWeekDaysIn(monthDateKeys)
   };
 }
 

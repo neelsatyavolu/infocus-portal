@@ -30,6 +30,16 @@ export function spiritWeekCrewRoles(dateKey: string): CalendarCrewRole[] {
   ];
 }
 
+/** Spirit Week days among `dateKeys`: each day's theme and crew lists (the iPhone app's calendar reads these). */
+export function spiritWeekDaysIn(dateKeys: readonly string[]) {
+  const days: Record<string, { theme: string; crewRoles: CalendarCrewRole[] }> = {};
+  for (const dateKey of dateKeys) {
+    const theme = spiritWeekTheme(dateKey);
+    if (theme) days[dateKey] = { theme, crewRoles: spiritWeekCrewRoles(dateKey) };
+  }
+  return days;
+}
+
 /**
  * The A3 toss for a Spirit Week recap show, from its calendar label
  * ("Spirit Week Day 2 Recap"). Null for any other show.

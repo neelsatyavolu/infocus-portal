@@ -187,7 +187,19 @@ export function mergeUpcoming(
   return [...fromCalendar, ...fromYoutube].sort((left, right) => left.startsAt.localeCompare(right.startsAt));
 }
 
-/** Announcement paragraphs fit for the public: unfilled `[INSERT …]` placeholders dropped. */
+/**
+ * Announcement paragraphs fit for the public. Unfilled placeholders (`[INSERT …]`, `{…}`) drop
+ * the paragraph; bracketed speaker cues (`[Sage]`) are removed, and bracketed links kept as text.
+ */
 export function publicAnnouncements(paragraphs: string[]) {
-  return paragraphs.filter((paragraph) => !/\[[^\]]*\]|\{[^}]*\}/.test(paragraph));
+  return paragraphs.flatMap((paragraph) => {
+    if (/\[\s*INSERT\b[^\]]*\]|\{[^}]*\}/i.test(paragraph)) return [];
+    const text = paragraph
+      .replace(/\[\s*(https?:\/\/[^\]\s]+)\s*\]/gi, "$1")
+      .replace(/\[[^\]]*\]/g, "")
+      .replace(/\s+([,.!?;:])/g, "$1")
+      .replace(/\s+/g, " ")
+      .trim();
+    return text ? [text] : [];
+  });
 }

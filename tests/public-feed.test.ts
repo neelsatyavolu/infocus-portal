@@ -92,9 +92,15 @@ describe("shows", () => {
     expect(uploadsPlaylistId("bad")).toBeNull();
   });
 
-  it("drops announcement lines that still hold placeholders", () => {
-    expect(publicAnnouncements(["Club Fair is Thursday.", "[INSERT PACKAGE TOSS]", "Fill {name} here", "Blood drive Friday."]))
-      .toEqual(["Club Fair is Thursday.", "Blood drive Friday."]);
+  it("drops placeholders, removes speaker cues and keeps links", () => {
+    expect(publicAnnouncements([
+      "Club Fair is Thursday.",
+      "[INSERT PACKAGE TOSS: Gas prices]",
+      "Fill {name} here",
+      "[Sage] Blood drive Friday .",
+      "Apply at [https://example.org/apply] by Monday.",
+      "[Otto]"
+    ])).toEqual(["Club Fair is Thursday.", "Blood drive Friday.", "Apply at https://example.org/apply by Monday."]);
   });
 });
 

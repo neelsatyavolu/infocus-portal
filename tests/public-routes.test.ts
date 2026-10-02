@@ -106,3 +106,15 @@ describe("news alert devices", () => {
     expect((await DELETE(request())).status).toBe(429);
   });
 });
+
+describe("news alerts cron", () => {
+  it("runs only with the cron secret", async () => {
+    const { isCronRequest } = await import("@/src/lib/cron-auth");
+    const withAuth = (value?: string) =>
+      new Request("https://portal.example.edu/api/cron/news-alerts", { headers: value ? { authorization: value } : {} });
+    expect(isCronRequest(withAuth("Bearer s3cret"), "s3cret")).toBe(true);
+    expect(isCronRequest(withAuth("Bearer wrong!"), "s3cret")).toBe(false);
+    expect(isCronRequest(withAuth(), "s3cret")).toBe(false);
+    expect(isCronRequest(withAuth("Bearer "), "")).toBe(false);
+  });
+});

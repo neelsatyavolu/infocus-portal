@@ -30,6 +30,8 @@ const publicRoutePatterns = [
   /^\/api\/auth\/app\/token$/,
   // Public InFocus iPhone app: shows, livestreams, show announcements, alert sign-up (src/server/public-feed.ts).
   /^\/api\/public\/(?:shows|live|news-devices)(?:\/.*)?$/,
+  // Vercel Cron (CRON_SECRET bearer, checked in the handler).
+  /^\/api\/cron\/news-alerts$/,
   /^\/api\/platform\/access-requests$/,
   /^\/api\/service\/drive-roster$/,
   /^\/submit-announcement$/,

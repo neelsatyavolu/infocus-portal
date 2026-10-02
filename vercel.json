@@ -6,5 +6,6 @@
       "master": true,
       "*": false
     }
-  }
+  },
+  "crons": [{ "path": "/api/cron/news-alerts", "schedule": "*/10 * * * *" }]
 }

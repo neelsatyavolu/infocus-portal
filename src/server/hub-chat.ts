@@ -355,7 +355,8 @@ async function loadGroupOrThrow(packageRowId: string) {
   return row;
 }
 
-async function requireChatAccess(userId: string, chatId: string) {
+/** The viewer may read this chat (group visibility rules, or a direct-chat member). */
+export async function requireChatAccess(userId: string, chatId: string) {
   const [viewer, chat] = await Promise.all([
     viewerFor(userId),
     prisma.hubChat.findUnique({

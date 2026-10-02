@@ -19,3 +19,7 @@ Producers (associate and up) can start a direct chat: type a name in **Search ch
 ## Who it is for
 
 Everyone signed in can open **Messages** and check chats they are allowed to see. Messages never send email or push — the badge on the ✱ (checked every 15 seconds) is how you notice new messages.
+
+## Reporting and blocking
+
+In the InFocus Portal iPhone app, long-press a message from someone else (or a comment in stage feedback) and choose **Report** to flag it, with an optional reason. The InFocus adviser and the executive producers get an email and an app notification saying who reported it, who wrote it, an excerpt and a link (`POST /api/hub-chat/report`, at most 10 reports an hour per person). **Block** hides a person's messages on that iPhone only (a "Hidden: blocked" line you can tap to show them); Settings → Blocked people undoes it. Messages are visible to InFocus producers and the adviser, who moderate the class.

@@ -157,7 +157,8 @@ export async function recomputeCycleCutStatus(cycleNumber: number): Promise<void
         initialCut: true,
         finalCut: true,
         initialCutManual: true,
-        finalCutManual: true
+        finalCutManual: true,
+        finalCutMediaItemId: true
       }
     }),
     loadQualifyingMediaForCycle(cycleNumber)
@@ -170,7 +171,10 @@ export async function recomputeCycleCutStatus(cycleNumber: number): Promise<void
 
   for (const row of rows) {
     const initialDone = initialMedia.some((media) => rowMatchesAnyAssignee(row.groupMembers, media.assignees));
-    const finalDone = finalMedia.some((media) => rowMatchesAnyAssignee(row.groupMembers, media.assignees));
+    // A Final Cut turned in on the stage page counts, not only legacy "Final Cut" folder media.
+    const finalDone =
+      Boolean(row.finalCutMediaItemId) ||
+      finalMedia.some((media) => rowMatchesAnyAssignee(row.groupMembers, media.assignees));
 
     const updates: { initialCut?: boolean; finalCut?: boolean } = {};
     if (!row.initialCutManual && initialDone !== row.initialCut) {

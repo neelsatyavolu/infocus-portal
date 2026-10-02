@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { handleRouteError } from "@/src/lib/api-errors";
-import { requireUserId, syncUserProfile } from "@/src/lib/auth";
+import { getRealSessionUser, requireUserId, syncUserProfile } from "@/src/lib/auth";
+import { isAppReviewEmail } from "@/src/lib/app-review";
 import { okUnmapped } from "@/src/lib/http";
 import { prisma } from "@/src/lib/prisma";
 import { NICKNAME_MAX_LENGTH, normalizeNickname } from "@/src/lib/user-display";
@@ -9,11 +10,17 @@ const updateProfileSchema = z.object({
   nickname: z.string().max(NICKNAME_MAX_LENGTH).nullable()
 });
 
-function serializeProfile(user: { email: string | null; name: string | null; nickname: string | null }) {
+/**
+ * `sampleOnly`: the Apple App Review account (src/lib/app-review.ts), judged by who really
+ * signed in. The iPhone app then shows only its sample workspace and Settings.
+ */
+async function serializeProfile(user: { email: string | null; name: string | null; nickname: string | null }) {
+  const real = await getRealSessionUser();
   return {
     email: user.email,
     name: user.name,
-    nickname: user.nickname
+    nickname: user.nickname,
+    sampleOnly: isAppReviewEmail(real?.email ?? user.email)
   };
 }
 
@@ -22,7 +29,7 @@ export async function GET() {
     const userId = await requireUserId();
     const user = await syncUserProfile(userId);
 
-    return okUnmapped(serializeProfile(user));
+    return okUnmapped(await serializeProfile(user));
   } catch (error) {
     return handleRouteError(error);
   }
@@ -46,7 +53,7 @@ export async function PATCH(request: Request) {
       }
     });
 
-    return okUnmapped(serializeProfile(updated));
+    return okUnmapped(await serializeProfile(updated));
   } catch (error) {
     return handleRouteError(error);
   }

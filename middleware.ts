@@ -12,6 +12,7 @@ import {
 const publicRoutePatterns = [
   /^\/$/,
   /^\/privacy$/,
+  /^\/support$/,
   /^\/sign-in$/,
   /^\/access-denied$/,
   /^\/maintenance$/,

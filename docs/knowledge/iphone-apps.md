@@ -12,7 +12,7 @@ The whole Portal in an iPhone app (bundle `com.infocuspaly.portal`). It shows th
 - **Notifications.** After the first sign-in the app asks to send notifications. You then get an iPhone notification for every email Portal sends you, under the same rules as the Mac app (see `notifications.md`). Tapping one opens its page in the app. Settings → **iPhone app notifications** shows the status and has **Test Notification**.
 - **Sign out** stops notifications on that iPhone.
 
-Uploads, downloads and video playback work as they do in Safari. Links outside Portal open in a browser sheet. The source is in the `infocus-drive` repo, `ios/`.
+Pages the app hasn't rebuilt natively open inside it without the website's sidebar and header (the app sets the `infocus_embedded` cookie). Uploads, downloads and video playback work as they do in Safari. Links outside Portal open in a browser sheet. The source is in the `infocus-drive` repo, `ios/`.
 
 ### App Review account
 

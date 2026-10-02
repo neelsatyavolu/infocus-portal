@@ -1,9 +1,10 @@
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { TeleprompterShell } from "@/components/teleprompter-shell";
 import { isAppReviewEmail } from "@/src/lib/app-review";
 import { getRealSessionUser, requireUserId, syncUserProfile } from "@/src/lib/auth";
+import { EMBEDDED_APP_COOKIE } from "@/src/lib/embedded-app";
 import { resolveAppSurface } from "@/src/lib/hosts";
 import { hasTeleprompterKioskCookie } from "@/src/server/teleprompter-access";
 import {
@@ -72,6 +73,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         canViewAs={canViewAs}
         viewingAs={viewingAs}
         sampleOnly={isAppReviewEmail(user.email)}
+        embedded={(await cookies()).get(EMBEDDED_APP_COOKIE)?.value === "1"}
       >
         {children}
       </AppShell>

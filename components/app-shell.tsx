@@ -102,6 +102,8 @@ type AppShellProps = {
   viewingAs?: boolean;
   /** Apple App Review account: Dashboard and Settings only (src/lib/app-review.ts). */
   sampleOnly?: boolean;
+  /** Inside the native InFocus Portal iPhone app, which brings its own navigation (src/lib/embedded-app.ts). */
+  embedded?: boolean;
 };
 
 type ProjectShareLinkItem = {
@@ -265,7 +267,8 @@ export function AppShell({
   currentUser,
   canViewAs = false,
   viewingAs = false,
-  sampleOnly = false
+  sampleOnly = false,
+  embedded = false
 }: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -878,10 +881,10 @@ export function AppShell({
     <div
       className={cn(
         hideChrome ? "h-dvh overflow-hidden" : "min-h-screen lg:h-screen lg:overflow-hidden",
-        hideChrome ? "" : "lg:pl-[240px]"
+        hideChrome || embedded ? "" : "lg:pl-[240px]"
       )}
     >
-      {hideChrome ? null : (
+      {hideChrome || embedded ? null : (
       <>
       {navOpen ? (
         <button
@@ -1467,7 +1470,7 @@ export function AppShell({
         ) : null}
 
         <div className={cn("flex min-w-0 flex-col", hideChrome ? "h-full min-h-0" : "min-h-screen")}>
-          {isClassBoard ? null : isBareReview ? (
+          {isClassBoard || embedded ? null : isBareReview ? (
             <div className="flex items-center gap-2 px-4 pt-3 md:px-6">
               <button
                 type="button"
@@ -1593,7 +1596,7 @@ export function AppShell({
           </main>
         </div>
       </div>
-      {!hideChrome && !sampleOnly ? (
+      {!hideChrome && !sampleOnly && !embedded ? (
         <AssistantChat
           canMutate={platformRole === "SUPER_ADMIN" || platformRole === "ADVISER"}
           audience={

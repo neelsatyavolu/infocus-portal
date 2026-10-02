@@ -2,6 +2,8 @@
 
 InFocus has two iPhone apps. Both are in TestFlight while they're tested.
 
+The privacy policy for both apps and the Portal is the public page `/privacy` (https://infocuspaly.com/privacy), linked from the App Store listings.
+
 ## InFocus Portal (for class members)
 
 The whole Portal in an iPhone app (bundle `com.infocuspaly.portal`). It shows the same pages as the website, with the same access rules, plus:

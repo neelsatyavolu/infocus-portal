@@ -15,9 +15,13 @@ export function withoutAppReviewUser<T extends { where?: Prisma.UserWhereInput }
 // A query-only extension leaves every method's shape unchanged, so the client keeps its plain
 // PrismaClient type (code across the app passes it and its transactions as PrismaClient).
 function createPrismaClient(): PrismaClient {
-  const client = new PrismaClient({
+  const base = new PrismaClient({
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"]
-  }).$extends({
+  });
+  // Client bundles reach this file through shared libs (platform-admin). The browser PrismaClient
+  // stub throws on any property access, so `$extends` there would crash every page on load.
+  if (typeof window !== "undefined") return base;
+  const client = base.$extends({
     name: "hide-app-review-user",
     query: {
       user: {

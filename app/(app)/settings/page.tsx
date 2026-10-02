@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { AppearanceCard } from "./appearance-card";
 import { ClassBoardPinCard } from "./class-board-pin-card";
 import { LivestreamPinCard } from "./livestream-pin-card";
+import { MacAppCard } from "./mac-app-card";
 import { MacNotificationsCard } from "./mac-notifications-card";
 import { isMacAppUserAgent } from "@/src/lib/mac-app-bridge";
 
@@ -546,6 +547,8 @@ export default function SettingsPage() {
 
       <ClassBoardPinCard />
       <LivestreamPinCard />
+
+      <MacAppCard />
 
       <section className="space-y-3 rounded-2xl border border-border bg-card p-4">
         <p className="text-sm font-semibold text-foreground">Apps & schedule</p>

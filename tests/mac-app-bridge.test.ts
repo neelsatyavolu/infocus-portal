@@ -1,5 +1,30 @@
 import { describe, expect, it } from "vitest";
-import { isMacAppUserAgent, macNotificationStatusText, parseMacNotificationStatus } from "@/src/lib/mac-app-bridge";
+import {
+  MAC_APP_DOWNLOAD_URL,
+  isMacAppUserAgent,
+  macAppAudience,
+  macNotificationStatusText,
+  parseMacNotificationStatus
+} from "@/src/lib/mac-app-bridge";
+
+const SAFARI_MAC = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/19.0 Safari/605.1.15";
+
+describe("install card audience", () => {
+  it("offers the download on a Mac, not on an iPad that claims to be one", () => {
+    expect(macAppAudience(SAFARI_MAC, 0)).toBe("mac");
+    expect(macAppAudience(SAFARI_MAC, 5)).toBe("other");
+  });
+
+  it("recognizes the app itself, and everything else", () => {
+    expect(macAppAudience(`${SAFARI_MAC} InFocusMacApp/0.8.0`, 0)).toBe("app");
+    expect(macAppAudience("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/140.0", 0)).toBe("other");
+    expect(macAppAudience("Mozilla/5.0 (iPhone; CPU iPhone OS 19_0 like Mac OS X) Mobile/15E148", 5)).toBe("other");
+  });
+
+  it("downloads the latest release", () => {
+    expect(MAC_APP_DOWNLOAD_URL).toMatch(/\/releases\/latest\/download\/InFocus-Drive-mac\.zip$/);
+  });
+});
 
 describe("Mac app bridge helpers", () => {
   it("detects the InFocus Mac app user agent", () => {

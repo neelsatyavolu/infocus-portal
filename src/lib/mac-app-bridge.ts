@@ -12,6 +12,19 @@ export function isMacAppUserAgent(userAgent: string) {
   return /InFocusMacApp/i.test(userAgent);
 }
 
+/** The latest notarized InFocus for Mac (the zip keeps its old name so older copies can update). */
+export const MAC_APP_DOWNLOAD_URL =
+  "https://github.com/neelsatyavolu/infocus-drive/releases/latest/download/InFocus-Drive-mac.zip";
+
+export type MacAppAudience = "app" | "mac" | "other";
+
+/** Who is looking at the install card. iPadOS Safari also says "Macintosh"; only a Mac has no touch screen. */
+export function macAppAudience(userAgent: string, maxTouchPoints: number): MacAppAudience {
+  if (isMacAppUserAgent(userAgent)) return "app";
+  if (/Macintosh/i.test(userAgent) && maxTouchPoints <= 1) return "mac";
+  return "other";
+}
+
 function macAppHandler(): MacAppHandler | null {
   if (typeof window === "undefined") return null;
   const webkit = (window as unknown as { webkit?: { messageHandlers?: { infocus?: MacAppHandler } } }).webkit;

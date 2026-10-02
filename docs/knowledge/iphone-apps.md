@@ -6,13 +6,22 @@ The privacy policy for both apps and the Portal is the public page `/privacy` (h
 
 ## InFocus Portal (for class members)
 
-The whole Portal in an iPhone app (bundle `com.infocuspaly.portal`). It shows the same pages as the website, with the same access rules, plus:
+A native iPhone app for the Portal (bundle `com.infocuspaly.portal`), with the same access rules as the website. The tabs depend on your role: **Home** · **Packages** (students) or **Groups** (producers) · **Calendar** · **Messages** · **More**.
+
+- **Home:** what's due next with a countdown, your package this cycle, your grade snapshot and recent activity (`GET /api/app/home`).
+- **Packages:** your cycle's stages. Upload A-roll/B-roll, Initial Cut and Final Cut from Photos or Files straight to InFocus Drive, watch cuts, and read and post feedback. Brainstorming takes the doc link and proof-of-contact images.
+- **Groups:** the same tiles, pills and visibility as the website. Review a stage, then Approve (with optional feedback) or Send back with a note.
+- **Calendar:** agenda and month views of the Master Calendar with your own jobs marked, day details, The Show's upcoming cast, and the announcements feed (like, comment, mark read).
+- **Messages:** package group chats and direct messages, with unread counts on the tab.
+- **More:** Grades (overall, packages, participation by week, livestream hours, portfolio), Extensions (request, agree as a teammate, and approve or deny as a producer), Equipment (your gear, requests, and manager approvals and returns), Livestreams (schedule, sign-up requests, manager review), Settings, and every other Portal page.
+
+Producer tools that aren't native yet open the matching Portal page inside the app. These include Grade Editor, Master Calendar editing, cast tools, Final Cut grading and timecoded review.
 
 - **Sign in with your school account.** The app opens a browser sheet to approve Portal (`/app-sign-in`), the same hand-off as InFocus for Mac. Google doesn't allow its sign-in inside apps, which is why it uses a sheet.
 - **Notifications.** After the first sign-in the app asks to send notifications. You then get an iPhone notification for every email Portal sends you, under the same rules as the Mac app (see `notifications.md`). Tapping one opens its page in the app. Settings → **iPhone app notifications** shows the status and has **Test Notification**.
 - **Sign out** stops notifications on that iPhone.
 
-Pages the app hasn't rebuilt natively open inside it without the website's sidebar and header (the app sets the `infocus_embedded` cookie). Uploads, downloads and video playback work as they do in Safari. Links outside Portal open in a browser sheet. The source is in the `infocus-drive` repo, `ios/`.
+Portal pages opened inside the app show without the website's sidebar and header (the app sets the `infocus_embedded` cookie). Links outside Portal open in a browser sheet. The source is in the `infocus-drive` repo, `ios/`.
 
 ### App Review account
 

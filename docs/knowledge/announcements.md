@@ -6,7 +6,7 @@ Posts from the class Slack #announcements channel, grouped by day, for signed-in
 
 ## Submit (`/submit-announcement`)
 
-Public form (no Portal login). Anyone can request an InFocus announcement / Friday Schoology update. Members review before it airs. The public InFocus iPhone app has the same form (Settings → Submit an announcement); its requests land in the same inbox.
+Public form (no Portal login). Anyone can request an InFocus announcement / Friday Schoology update. Members review before it airs. The public InFocus iPhone app has the same form (More → Submit an announcement, or the card on Home); its requests land in the same inbox.
 
 The form asks for email, full name, who you are (Paly student, PAUSD employee, parent/guardian, or community member), where it should run (**InFocus only**, **Schoology Update only**, or **Both**), the announcement text, start and end dates, an optional Google Drive media link, and notes. You must agree to the announcement policy. An announcement can run for at most **four consecutive show days**. InFocus may accept, reject, or edit it for grammar, clarity, and unprotected speech.
 

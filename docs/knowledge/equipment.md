@@ -4,7 +4,7 @@ Host: `equipment.infocuspaly.com` (also `/equipment` on the main Portal origin).
 
 Pages: **Checkout** (`/equipment`), **Request** (`/equipment/request`), and **Manage** (`/equipment/manage`, shown as **Dashboard sign-in** to people who can't open it). **Back to InFocus Portal** returns to the main dashboard. Managers also reach Manage from the Equipment card on `/managers` (`managers.md`).
 
-Checkout page and requests are public; using checkout requires a separate manager Google sign-in. Manage uses Portal sign-in (Google, email code, or a registered manager passkey). There are no reservations.
+Checkout page and requests are public; using checkout requires a separate manager Google sign-in. In the InFocus Portal iPhone app (More → Equipment), signed-in members see the gear they have out (and when it becomes overdue), items held for them, and their requests, matched by their Portal email (`GET /api/equipment/mine`); they can request available gear there too. Managers also get Requests (approve or deny) and Out (force-return, release a hold) there; Inventory and the checkout kiosk stay on the web. Manage uses Portal sign-in (Google, email code, or a registered manager passkey). There are no reservations.
 
 ## Checkout (kiosk)
 

@@ -1,5 +1,7 @@
 const HOUR = 60 * 60 * 1000;
-const OVERDUE_AFTER = 72 * HOUR;
+/** Gear is overdue once it has been out this long (overdue emails start then). */
+export const EQUIPMENT_OVERDUE_HOURS = 72;
+const OVERDUE_AFTER = EQUIPMENT_OVERDUE_HOURS * HOUR;
 const REMIND_EVERY = 24 * HOUR;
 
 export type OverdueReminderInput = {

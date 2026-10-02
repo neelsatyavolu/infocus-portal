@@ -8,7 +8,11 @@ const mocks = vi.hoisted(() => ({
   findUsers: vi.fn()
 }));
 
-vi.mock("@/src/lib/apns", () => ({ isApnsConfigured: mocks.configured, sendApns: mocks.send }));
+vi.mock("@/src/lib/apns", () => ({
+  isApnsConfigured: mocks.configured,
+  sendApns: mocks.send,
+  apnsTopic: (app: string) => ({ macos: "com.example.mac", ios: "com.example.phone" })[app] ?? null
+}));
 vi.mock("@/src/lib/prisma", () => ({
   prisma: {
     nativePushDevice: { findMany: mocks.findDevices, deleteMany: mocks.deleteDevices },
@@ -29,7 +33,7 @@ const tokenB = "b".repeat(64);
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.configured.mockReturnValue(true);
-  mocks.findDevices.mockResolvedValue([{ token: tokenA, environment: "production" }]);
+  mocks.findDevices.mockResolvedValue([{ token: tokenA, environment: "production", platform: "macos" }]);
   mocks.send.mockImplementation(async (devices: { token: string }[]) =>
     devices.map((device) => ({ token: device.token, ok: true, dead: false, status: 200 }))
   );
@@ -62,15 +66,24 @@ describe("sendNativePushToUserIds", () => {
     });
     expect(mocks.findDevices).toHaveBeenCalledWith({
       where: { userId: { in: ["user-1"] } },
-      select: { token: true, environment: true }
+      select: { token: true, environment: true, platform: true }
     });
-    expect(mocks.send).toHaveBeenCalledWith([{ token: tokenA, environment: "production" }], {
+    expect(mocks.send).toHaveBeenCalledWith([{ token: tokenA, environment: "production", topic: "com.example.mac" }], {
       title: "Grade published",
       body: "Cycle 2",
       url: "https://portal.example.edu/grades",
       threadId: "/grades"
     });
     expect(result).toEqual({ sent: 1, failed: 0 });
+  });
+
+  it("sends each device to its own app and skips unknown platforms", async () => {
+    mocks.findDevices.mockResolvedValue([
+      { token: tokenA, environment: "production", platform: "ios" },
+      { token: tokenB, environment: "development", platform: "watchos" }
+    ]);
+    await sendNativePushToUserIds(["user-1"], { title: "T", body: "B" });
+    expect(mocks.send.mock.calls[0]![0]).toEqual([{ token: tokenA, environment: "production", topic: "com.example.phone" }]);
   });
 
   it("does nothing when Apple Push isn't configured or nobody is given", async () => {
@@ -83,8 +96,8 @@ describe("sendNativePushToUserIds", () => {
 
   it("forgets dead tokens and keeps tokens out of failure logs", async () => {
     mocks.findDevices.mockResolvedValue([
-      { token: tokenA, environment: "production" },
-      { token: tokenB, environment: "production" }
+      { token: tokenA, environment: "production", platform: "macos" },
+      { token: tokenB, environment: "production", platform: "ios" }
     ]);
     mocks.send.mockResolvedValue([
       { token: tokenA, ok: false, dead: true, status: 410, reason: "Unregistered" },

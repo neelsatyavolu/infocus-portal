@@ -1,7 +1,7 @@
-import { isApnsConfigured, sendApns, type ApnsEnvironment } from "@/src/lib/apns";
+import { apnsTopic, isApnsConfigured, sendApns, type ApnsDevice, type ApnsEnvironment } from "@/src/lib/apns";
 import { prisma } from "@/src/lib/prisma";
 
-/** Mac app notifications: fan an alert out to every registered Mac of the given people. */
+/** Portal app notifications: fan an alert out to every registered Mac and iPhone of the given people. */
 
 export type NativePushPayload = { title: string; body: string; url?: string; threadId?: string };
 
@@ -19,7 +19,7 @@ export function pushBodyFromParagraphs(paragraphs: string[]) {
   return trimTo(first ?? "", NATIVE_PUSH_BODY_MAX);
 }
 
-/** Groups a Mac's notifications by the page they open (e.g. one package's group page). */
+/** Groups a device's notifications by the page they open (e.g. one package's group page). */
 export function threadIdForUrl(url?: string) {
   if (!url) return undefined;
   try {
@@ -33,6 +33,22 @@ function isEnvironment(value: string): value is ApnsEnvironment {
   return value === "production" || value === "development";
 }
 
+/** The InFocus Mac app or the InFocus Portal iPhone app. */
+export const NATIVE_PUSH_PLATFORMS = ["macos", "ios"] as const;
+export type NativePushPlatform = (typeof NATIVE_PUSH_PLATFORMS)[number];
+
+function isPlatform(value: string): value is NativePushPlatform {
+  return (NATIVE_PUSH_PLATFORMS as readonly string[]).includes(value);
+}
+
+/** Rows the APNs host and app topic can reach; a platform without a configured topic is skipped. */
+export function nativePushTargets(rows: { token: string; environment: string; platform: string }[]): ApnsDevice[] {
+  return rows.flatMap((row) => {
+    const topic = isPlatform(row.platform) ? apnsTopic(row.platform) : null;
+    return topic && isEnvironment(row.environment) ? [{ token: row.token, environment: row.environment, topic }] : [];
+  });
+}
+
 /** Never throws: a failed push must not affect the email or action that triggered it. */
 export async function sendNativePushToUserIds(userIds: string[], payload: NativePushPayload) {
   const ids = [...new Set(userIds.filter(Boolean))];
@@ -41,9 +57,9 @@ export async function sendNativePushToUserIds(userIds: string[], payload: Native
   try {
     const rows = await prisma.nativePushDevice.findMany({
       where: { userId: { in: ids } },
-      select: { token: true, environment: true }
+      select: { token: true, environment: true, platform: true }
     });
-    const devices = rows.flatMap((row) => (isEnvironment(row.environment) ? [{ token: row.token, environment: row.environment }] : []));
+    const devices = nativePushTargets(rows);
     if (devices.length === 0) return { sent: 0, failed: 0 };
 
     const results = await sendApns(devices, {
@@ -60,12 +76,12 @@ export async function sendNativePushToUserIds(userIds: string[], payload: Native
     const failures = results.filter((result) => !result.ok && !result.dead);
     if (failures.length > 0) {
       // Reasons only: device tokens stay out of logs.
-      console.error("Mac push failed", failures.map((failure) => ({ status: failure.status, reason: failure.reason })));
+      console.error("App push failed", failures.map((failure) => ({ status: failure.status, reason: failure.reason })));
     }
     const sent = results.filter((result) => result.ok).length;
     return { sent, failed: results.length - sent };
   } catch (error) {
-    console.error("Mac push failed", error instanceof Error ? error.message : error);
+    console.error("App push failed", error instanceof Error ? error.message : error);
     return { sent: 0, failed: 0 };
   }
 }
@@ -88,7 +104,7 @@ export async function sendNativePushToEmails(emails: string[], payload: NativePu
     });
     return await sendNativePushToUserIds(users.map((user) => user.id), payload);
   } catch (error) {
-    console.error("Mac push failed", error instanceof Error ? error.message : error);
+    console.error("App push failed", error instanceof Error ? error.message : error);
     return { sent: 0, failed: 0 };
   }
 }

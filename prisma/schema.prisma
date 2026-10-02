@@ -394,7 +394,7 @@ model PushNotificationSubscription {
   @@index([userId, createdAt])
 }
 
-/// A Mac running the InFocus app, reachable through Apple Push (APNs).
+/// A Mac or iPhone running an InFocus Portal app, reachable through Apple Push (APNs).
 model NativePushDevice {
   id          String   @id @default(cuid())
   userId      String
@@ -402,12 +402,37 @@ model NativePushDevice {
   token       String   @unique
   /// "production" or "development" (which APNs host accepts the token).
   environment String
+  /// "macos" (InFocus for Mac) or "ios" (InFocus Portal for iPhone): picks the APNs topic.
+  platform    String   @default("macos")
   appVersion  String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   user        User     @relation("NativePushDeviceUser", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+/// An iPhone with the public InFocus news app that wants alerts. Anonymous: no account.
+model NewsPushDevice {
+  id          String   @id @default(cuid())
+  /// APNs device token, lowercase hex.
+  token       String   @unique
+  /// "production" or "development" (which APNs host accepts the token).
+  environment String
+  shows       Boolean  @default(true)
+  stories     Boolean  @default(true)
+  live        Boolean  @default(true)
+  appVersion  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+/// What the news alerts job has already announced, per feed ("show", "story", "live").
+model NewsFeedState {
+  feed      String   @id
+  /// Newest item already seen (video ID or post ID); "live" keeps a comma list of live video IDs.
+  lastId    String
+  updatedAt DateTime @updatedAt
 }
 
 model Project {

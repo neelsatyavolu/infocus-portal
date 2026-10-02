@@ -1,4 +1,4 @@
-/** Talks to the InFocus Mac app from Portal pages (WKWebView message handler named "infocus"). */
+/** Talks to the InFocus Mac and iPhone apps from Portal pages (WKWebView message handler named "infocus"). */
 
 export type MacNotificationPermission = "authorized" | "denied" | "notDetermined" | "provisional";
 export type MacNotificationStatus = { permission: MacNotificationPermission; registered: boolean; appVersion: string };
@@ -8,8 +8,13 @@ type MacAppHandler = { postMessage(body: { action: MacAppAction }): Promise<unkn
 
 const PERMISSIONS: readonly MacNotificationPermission[] = ["authorized", "denied", "notDetermined", "provisional"];
 
-export function isMacAppUserAgent(userAgent: string) {
-  return /InFocusMacApp/i.test(userAgent);
+/** Which InFocus app a Portal page runs in. */
+export type PortalAppDevice = "mac" | "iphone";
+
+export function portalAppDevice(userAgent: string): PortalAppDevice | null {
+  if (/InFocusMacApp/i.test(userAgent)) return "mac";
+  if (/InFocusiOSApp/i.test(userAgent)) return "iphone";
+  return null;
 }
 
 /** The latest notarized InFocus for Mac (the zip keeps its old name so older copies can update). */
@@ -20,7 +25,7 @@ export type MacAppAudience = "app" | "mac" | "other";
 
 /** Who is looking at the install card. iPadOS Safari also says "Macintosh"; only a Mac has no touch screen. */
 export function macAppAudience(userAgent: string, maxTouchPoints: number): MacAppAudience {
-  if (isMacAppUserAgent(userAgent)) return "app";
+  if (portalAppDevice(userAgent) === "mac") return "app";
   if (/Macintosh/i.test(userAgent) && maxTouchPoints <= 1) return "mac";
   return "other";
 }
@@ -45,8 +50,14 @@ export function parseMacNotificationStatus(value: unknown): MacNotificationStatu
   return { permission, registered: record.registered, appVersion: typeof record.appVersion === "string" ? record.appVersion : "" };
 }
 
-/** One line under the Mac app notifications heading. */
-export function macNotificationStatusText(status: MacNotificationStatus) {
+/** One line under the app notifications heading. */
+export function macNotificationStatusText(status: MacNotificationStatus, device: PortalAppDevice = "mac") {
+  if (device === "iphone") {
+    if (status.permission === "denied") return "Off in iPhone Settings. Turn on notifications for InFocus Portal there.";
+    if (status.permission === "notDetermined") return "Not set up yet. Turn them on to get an iPhone notification whenever Portal emails you.";
+    if (!status.registered) return "Allowed, but this iPhone isn't registered with Portal yet. If this doesn't change, reopen the app.";
+    return "On. You get an iPhone notification whenever Portal emails you.";
+  }
   if (status.permission === "denied") return "Off in macOS settings. Turn on notifications for InFocus there.";
   if (status.permission === "notDetermined") return "Not set up yet. Turn them on to get a Mac notification whenever Portal emails you.";
   if (!status.registered) return "Allowed, but this Mac isn't registered with Portal yet. If this doesn't change, restart the app.";

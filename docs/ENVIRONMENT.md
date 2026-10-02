@@ -33,7 +33,7 @@ Put these in `.env` (never commit it). Only the **Required** group is needed to 
 
 `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `WEB_PUSH_PUBLIC_KEY`, `WEB_PUSH_PRIVATE_KEY`, `WEB_PUSH_SUBJECT`.
 
-Mac app notifications (Apple Push): `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_PRIVATE_KEY` (contents of the `.p8` key; `\n` escapes are fine), `APNS_TOPIC` (the Mac app's bundle ID). Leave them unset and Mac notifications are skipped.
+App notifications (Apple Push): `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_PRIVATE_KEY` (contents of the `.p8` key; `\n` escapes are fine), plus one bundle ID per app: `APNS_TOPIC` (InFocus for Mac), `APNS_IOS_TOPIC` (InFocus Portal for iPhone, `com.infocuspaly.portal`), `APNS_NEWS_TOPIC` (the public InFocus iPhone app, `com.infocuspaly.news`). An app whose topic is unset gets no pushes.
 
 ## AI
 

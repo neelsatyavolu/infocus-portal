@@ -13,7 +13,7 @@ vi.mock("@/src/lib/auth", () => ({ getRealSessionUser: mocks.real }));
 vi.mock("@/src/lib/platform-admin", () => ({ isEmailAllowedToUsePlatform: mocks.allowed }));
 vi.mock("@/src/lib/prisma", () => ({ prisma: { nativePushDevice: { upsert: mocks.upsert, deleteMany: mocks.deleteMany } } }));
 vi.mock("@/src/lib/apns", () => ({ isApnsConfigured: mocks.apnsConfigured }));
-vi.mock("@/src/lib/native-push", () => ({ sendNativePushToUserIds: mocks.push }));
+vi.mock("@/src/lib/native-push", () => ({ sendNativePushToUserIds: mocks.push, NATIVE_PUSH_PLATFORMS: ["macos", "ios"] }));
 vi.mock("@/src/lib/hosts", () => ({ mainAppOrigin: () => "https://portal.example.edu" }));
 
 import { DELETE, POST } from "@/app/api/push/native-device/route";
@@ -46,8 +46,8 @@ describe("POST /api/push/native-device", () => {
     expect(response.status).toBe(201);
     expect(mocks.upsert).toHaveBeenCalledWith({
       where: { token: token.toLowerCase() },
-      update: { userId: "real-user", environment: "production", appVersion: "2.0.0" },
-      create: { userId: "real-user", token: token.toLowerCase(), environment: "production", appVersion: "2.0.0" }
+      update: { userId: "real-user", environment: "production", platform: "macos", appVersion: "2.0.0" },
+      create: { userId: "real-user", token: token.toLowerCase(), environment: "production", platform: "macos", appVersion: "2.0.0" }
     });
   });
 
@@ -57,6 +57,12 @@ describe("POST /api/push/native-device", () => {
     mocks.allowed.mockResolvedValueOnce(false);
     expect((await POST(request("POST", { token, environment: "production" }))).status).toBe(403);
     expect(mocks.upsert).not.toHaveBeenCalled();
+  });
+
+  it("records the iPhone app's platform", async () => {
+    await POST(request("POST", { token, environment: "production", platform: "ios" }));
+    expect(mocks.upsert).toHaveBeenCalledWith(expect.objectContaining({ update: expect.objectContaining({ platform: "ios" }) }));
+    expect((await POST(request("POST", { token, environment: "production", platform: "android" }))).status).toBe(400);
   });
 
   it("rejects malformed tokens and environments", async () => {

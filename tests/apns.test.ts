@@ -14,6 +14,7 @@ vi.mock("node:http2", () => ({
 }));
 
 import {
+  apnsTopic,
   buildApnsPayload,
   buildProviderToken,
   isApnsConfigured,
@@ -92,11 +93,24 @@ describe("APNs payload and config", () => {
     });
   });
 
-  it("is off unless all four settings are present", async () => {
+  it("adds the app's custom keys", () => {
+    expect(JSON.parse(buildApnsPayload({ title: "T", body: "B", data: { kind: "show", videoId: "abc" } }))).toMatchObject({
+      kind: "show",
+      videoId: "abc"
+    });
+  });
+
+  it("is off without the signing key or any app topic", async () => {
     expect(isApnsConfigured()).toBe(true);
+    expect(apnsTopic("macos")).toBe("com.example.infocus");
+    expect(apnsTopic("ios")).toBeNull();
     vi.stubEnv("APNS_TOPIC", "");
     expect(isApnsConfigured()).toBe(false);
-    expect(await sendApns([{ token: tokenA, environment: "production" }], { title: "T", body: "B" })).toEqual([]);
+    vi.stubEnv("APNS_NEWS_TOPIC", "com.example.news");
+    expect(isApnsConfigured()).toBe(true);
+    vi.stubEnv("APNS_KEY_ID", "");
+    expect(isApnsConfigured()).toBe(false);
+    expect(await sendApns([{ token: tokenA, environment: "production", topic: "com.example.infocus" }], { title: "T", body: "B" })).toEqual([]);
     expect(http.connect).not.toHaveBeenCalled();
   });
 });
@@ -104,7 +118,7 @@ describe("APNs payload and config", () => {
 describe("sendApns", () => {
   it("posts to the right host with token auth headers", async () => {
     const results = await sendApns(
-      [{ token: tokenA, environment: "production" }, { token: tokenB, environment: "development" }],
+      [{ token: tokenA, environment: "production", topic: "com.example.infocus" }, { token: tokenB, environment: "development", topic: "com.example.infocus" }],
       { title: "T", body: "B" }
     );
     expect(results).toEqual([
@@ -124,13 +138,21 @@ describe("sendApns", () => {
     expect(JSON.parse(prod!.body).aps.alert).toEqual({ title: "T", body: "B" });
   });
 
+  it("addresses each device to its own app", async () => {
+    await sendApns(
+      [{ token: tokenA, environment: "production", topic: "com.example.mac" }, { token: tokenB, environment: "production", topic: "com.example.phone" }],
+      { title: "T", body: "B" }
+    );
+    expect(http.requests.map((request) => request.headers["apns-topic"])).toEqual(["com.example.mac", "com.example.phone"]);
+  });
+
   it("marks tokens Apple says are gone as dead, but not other failures", async () => {
     http.replies.set(tokenA, { status: 410, body: JSON.stringify({ reason: "Unregistered" }) });
     http.replies.set(tokenB, { status: 400, body: JSON.stringify({ reason: "BadDeviceToken" }) });
     const tokenC = "c".repeat(64);
     http.replies.set(tokenC, { status: 500, body: JSON.stringify({ reason: "InternalServerError" }) });
     const results = await sendApns(
-      [tokenA, tokenB, tokenC].map((token) => ({ token, environment: "production" as const })),
+      [tokenA, tokenB, tokenC].map((token) => ({ token, environment: "production" as const, topic: "com.example.infocus" })),
       { title: "T", body: "B" }
     );
     expect(results.map((result) => [result.dead, result.reason])).toEqual([
@@ -141,17 +163,17 @@ describe("sendApns", () => {
   });
 
   it("reuses the provider token, and drops it when Apple rejects it as expired", async () => {
-    await sendApns([{ token: tokenA, environment: "production" }], { title: "T", body: "B" });
-    await sendApns([{ token: tokenA, environment: "production" }], { title: "T", body: "B" });
+    await sendApns([{ token: tokenA, environment: "production", topic: "com.example.infocus" }], { title: "T", body: "B" });
+    await sendApns([{ token: tokenA, environment: "production", topic: "com.example.infocus" }], { title: "T", body: "B" });
     const [first, second] = http.requests.map((request) => request.headers.authorization);
     expect(second).toBe(first);
 
     http.replies.set(tokenA, { status: 403, body: JSON.stringify({ reason: "ExpiredProviderToken" }) });
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(Date.now() + 1000);
-    await sendApns([{ token: tokenA, environment: "production" }], { title: "T", body: "B" });
+    await sendApns([{ token: tokenA, environment: "production", topic: "com.example.infocus" }], { title: "T", body: "B" });
     http.replies.delete(tokenA);
-    await sendApns([{ token: tokenA, environment: "production" }], { title: "T", body: "B" });
+    await sendApns([{ token: tokenA, environment: "production", topic: "com.example.infocus" }], { title: "T", body: "B" });
     vi.useRealTimers();
     expect(http.requests[3]!.headers.authorization).not.toBe(first);
   });
@@ -160,7 +182,7 @@ describe("sendApns", () => {
     http.connect.mockImplementation(() => {
       throw new Error("connect failed");
     });
-    expect(await sendApns([{ token: tokenA, environment: "production" }], { title: "T", body: "B" })).toEqual([
+    expect(await sendApns([{ token: tokenA, environment: "production", topic: "com.example.infocus" }], { title: "T", body: "B" })).toEqual([
       { token: tokenA, ok: false, dead: false, reason: "connect failed" }
     ]);
   });

@@ -219,6 +219,13 @@ async function requireScopedOk(response: Response, operation: string) {
   await requireOk(response, operation);
 }
 
+/** Read-only Data API GET (`path` after `/youtube/v3/`), for the public app feeds. */
+export async function youtubeGet(path: string, token: string): Promise<Record<string, unknown>> {
+  const response = await request(`${API}/youtube/v3/${path}`, { headers: { Authorization: `Bearer ${token}` } });
+  await requireOk(response, "YouTube lookup");
+  return response.json();
+}
+
 export async function listYoutubePlaylists(token: string) {
   const playlists: Array<{ id: string; title: string }> = [];
   let pageToken = "";

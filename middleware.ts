@@ -28,6 +28,8 @@ const publicRoutePatterns = [
   /^\/api\/auth\/sign-out$/,
   // InFocus Mac app: code + PKCE verifier for a session (no session yet; see src/server/app-sign-in.ts).
   /^\/api\/auth\/app\/token$/,
+  // Public InFocus iPhone app: shows, livestreams, show announcements, alert sign-up (src/server/public-feed.ts).
+  /^\/api\/public\/(?:shows|live|news-devices)(?:\/.*)?$/,
   /^\/api\/platform\/access-requests$/,
   /^\/api\/service\/drive-roster$/,
   /^\/submit-announcement$/,

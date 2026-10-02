@@ -8,7 +8,7 @@ import {
   requireRealUserId
 } from "@/src/server/native-push-devices";
 
-/** The InFocus Mac app registers its Apple Push token here after sign-in. */
+/** The InFocus Mac and iPhone apps register their Apple Push token here after sign-in. */
 export async function POST(request: Request) {
   try {
     const userId = await requireRealUserId();
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
   }
 }
 
-/** Sign-out in the Mac app: stop notifying this Mac. */
+/** Sign-out in an app: stop notifying that device. */
 export async function DELETE(request: Request) {
   try {
     const userId = await requireRealUserId();

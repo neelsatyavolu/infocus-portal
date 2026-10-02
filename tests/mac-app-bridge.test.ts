@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   MAC_APP_DOWNLOAD_URL,
-  isMacAppUserAgent,
   macAppAudience,
   macNotificationStatusText,
-  parseMacNotificationStatus
+  parseMacNotificationStatus,
+  portalAppDevice
 } from "@/src/lib/mac-app-bridge";
 
 const SAFARI_MAC = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/19.0 Safari/605.1.15";
@@ -27,9 +27,10 @@ describe("install card audience", () => {
 });
 
 describe("Mac app bridge helpers", () => {
-  it("detects the InFocus Mac app user agent", () => {
-    expect(isMacAppUserAgent("Mozilla/5.0 (Macintosh) Version/19.0 Safari/605.1.15 InFocusMacApp/2.0.0")).toBe(true);
-    expect(isMacAppUserAgent("Mozilla/5.0 (Macintosh) Version/19.0 Safari/605.1.15")).toBe(false);
+  it("detects the InFocus Mac and iPhone app user agents", () => {
+    expect(portalAppDevice("Mozilla/5.0 (Macintosh) Version/19.0 Safari/605.1.15 InFocusMacApp/2.0.0")).toBe("mac");
+    expect(portalAppDevice("Mozilla/5.0 (iPhone) Version/18.0 Mobile/15E148 Safari/604.1 InFocusiOSApp/1.0")).toBe("iphone");
+    expect(portalAppDevice("Mozilla/5.0 (Macintosh) Version/19.0 Safari/605.1.15")).toBeNull();
   });
 
   it("accepts only well-formed status replies", () => {
@@ -48,5 +49,12 @@ describe("Mac app bridge helpers", () => {
     expect(macNotificationStatusText({ permission: "notDetermined", registered: false, appVersion: "" })).toContain("Not set up");
     expect(macNotificationStatusText({ permission: "authorized", registered: false, appVersion: "" })).toContain("isn't registered");
     expect(macNotificationStatusText({ permission: "authorized", registered: true, appVersion: "" })).toMatch(/^On\./);
+  });
+
+  it("speaks of the iPhone inside the iPhone app", () => {
+    expect(macNotificationStatusText({ permission: "denied", registered: false, appVersion: "" }, "iphone")).toContain("iPhone Settings");
+    expect(macNotificationStatusText({ permission: "authorized", registered: true, appVersion: "" }, "iphone")).toBe(
+      "On. You get an iPhone notification whenever Portal emails you."
+    );
   });
 });

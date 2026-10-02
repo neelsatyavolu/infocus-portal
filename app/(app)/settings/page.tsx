@@ -10,7 +10,7 @@ import { ClassBoardPinCard } from "./class-board-pin-card";
 import { LivestreamPinCard } from "./livestream-pin-card";
 import { MacAppCard } from "./mac-app-card";
 import { MacNotificationsCard } from "./mac-notifications-card";
-import { isMacAppUserAgent } from "@/src/lib/mac-app-bridge";
+import { portalAppDevice, type PortalAppDevice } from "@/src/lib/mac-app-bridge";
 
 type PreferenceState = {
   autoPlay: boolean;
@@ -145,7 +145,7 @@ export default function SettingsPage() {
   const [browserEnableModalOpen, setBrowserEnableModalOpen] = useState(false);
   const [notificationEmailInput, setNotificationEmailInput] = useState("");
   const [emailTestSending, setEmailTestSending] = useState(false);
-  const [isMacDesktopApp, setIsMacDesktopApp] = useState(false);
+  const [appDevice, setAppDevice] = useState<PortalAppDevice | null>(null);
   const [profileEmail, setProfileEmail] = useState<string | null>(null);
   const [profileGoogleName, setProfileGoogleName] = useState<string | null>(null);
   const [nicknameInput, setNicknameInput] = useState("");
@@ -258,7 +258,7 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => {
-    setIsMacDesktopApp(isMacAppUserAgent(window.navigator.userAgent));
+    setAppDevice(portalAppDevice(window.navigator.userAgent));
   }, []);
 
   async function saveNickname() {
@@ -697,8 +697,8 @@ export default function SettingsPage() {
           </div>
         </article>
 
-        {/* Web push doesn't exist inside the Mac app's web view; Mac notifications replace it there. */}
-        {isMacDesktopApp ? null : (
+        {/* Web push doesn't exist inside the apps' web views; app notifications replace it there. */}
+        {appDevice ? null : (
         <article className="rounded-xl border border-border bg-muted p-3">
           <div className="flex items-center justify-between gap-2">
             <p className="inline-flex items-center gap-2 text-sm text-foreground">
@@ -741,7 +741,7 @@ export default function SettingsPage() {
         </article>
         )}
 
-        {isMacDesktopApp ? <MacNotificationsCard /> : null}
+        {appDevice ? <MacNotificationsCard device={appDevice} /> : null}
 
         {channelsLoading ? <p className="text-xs text-muted-foreground">Loading notification preferences...</p> : null}
         {channelsSavedLabel ? <p className="text-xs text-foreground">{channelsSavedLabel}</p> : null}

@@ -16,11 +16,11 @@ First sign-in sends you here before any other page. Set a nickname (required, up
 - **Notification Channels**:
   - **Email notifications** on/off, **Test Email**, an optional destination address (blank uses your account email), and Announcements / Comments / Grades switches. New accounts start with email on and Grades off.
   - **Browser notifications** on/off, **Test Notification**, and the same three switches. Turning it on asks the browser for permission and registers that device; do it on each device you want notified. The test only shows a notification on this device.
-  - **Mac app notifications** (only inside the InFocus Mac app, which hides the Browser block): status, **Turn on** (asks macOS), **Test Notification** (sent through Apple to every Mac you're signed in on), and **Open Mac Notification Settings**. There are no per-category switches here; see below.
+  - **Mac app notifications** / **iPhone app notifications** (only inside the InFocus Mac app or the InFocus Portal iPhone app, which hide the Browser block): status, **Turn on** (asks macOS or iOS), **Test Notification** (sent through Apple to every Mac and iPhone you're signed in on), and **Open Mac/iPhone Notification Settings**. There are no per-category switches here; see below.
 
-## Mac notifications
+## Mac and iPhone notifications
 
-The InFocus Mac app gets a Mac notification for **every email Portal sends you**, at the same moment, with the same rules: if your email settings would skip an email (for example Grades off), there's no Mac notification either. The title is the email's subject (or a shorter one for package events), and clicking it opens the email's link in the app. Exceptions, email only: sign-in codes, account invites, access-request decisions, and the Settings test email. Turn the whole app on or off in macOS System Settings → Notifications → InFocus. A Mac stops getting notifications when you sign out of the app.
+The InFocus Mac app and the InFocus Portal iPhone app get a notification for **every email Portal sends you**, at the same moment, with the same rules: if your email settings would skip an email (for example Grades off), there's no Mac notification either. The title is the email's subject (or a shorter one for package events), and clicking it opens the email's link in the app. Exceptions, email only: sign-in codes, account invites, access-request decisions, and the Settings test email. Turn the whole app on or off in macOS System Settings → Notifications → InFocus, or on iPhone in Settings → Notifications → InFocus Portal. A Mac or iPhone stops getting notifications when you sign out of the app.
 
 ## What Portal emails and pushes
 

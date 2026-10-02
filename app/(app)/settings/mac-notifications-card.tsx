@@ -6,7 +6,8 @@ import {
   callMacApp,
   macNotificationStatusText,
   parseMacNotificationStatus,
-  type MacNotificationStatus
+  type MacNotificationStatus,
+  type PortalAppDevice
 } from "@/src/lib/mac-app-bridge";
 
 const buttonClass =
@@ -16,8 +17,14 @@ function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
 
-/** Settings block shown only inside the InFocus Mac app (Apple Push, registered by the app). */
-export function MacNotificationsCard() {
+const WORDS: Record<PortalAppDevice, { device: string; system: string; settings: string }> = {
+  mac: { device: "Mac", system: "macOS", settings: "System Settings" },
+  iphone: { device: "iPhone", system: "iOS", settings: "Settings" }
+};
+
+/** Settings block shown only inside the InFocus Mac or iPhone app (Apple Push, registered by the app). */
+export function MacNotificationsCard({ device }: { device: PortalAppDevice }) {
+  const words = WORDS[device];
   const [status, setStatus] = useState<MacNotificationStatus | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -37,21 +44,21 @@ export function MacNotificationsCard() {
         if (active) setStatus(parseMacNotificationStatus(value));
       })
       .catch((caught: unknown) => {
-        if (active) setError(errorMessage(caught, "Could not read Mac notification settings."));
+        if (active) setError(errorMessage(caught, `Could not read ${words.device} notification settings.`));
       });
     return () => {
       active = false;
     };
-  }, []);
+  }, [words.device]);
 
   async function turnOn() {
     setBusy(true);
     setError(null);
     try {
       const next = await run("requestNotifications");
-      if (next.permission === "denied") setError("macOS blocked notifications for InFocus. Turn them on in System Settings.");
+      if (next.permission === "denied") setError(`${words.system} blocked notifications for InFocus. Turn them on in ${words.settings}.`);
     } catch (caught) {
-      setError(errorMessage(caught, "Could not turn on Mac notifications."));
+      setError(errorMessage(caught, `Could not turn on ${words.device} notifications.`));
     } finally {
       setBusy(false);
     }
@@ -78,7 +85,7 @@ export function MacNotificationsCard() {
     try {
       await callMacApp("openNotificationSettings");
     } catch (caught) {
-      setError(errorMessage(caught, "Could not open macOS notification settings."));
+      setError(errorMessage(caught, `Could not open ${words.system} notification settings.`));
     }
   }
 
@@ -88,7 +95,7 @@ export function MacNotificationsCard() {
     <article className="rounded-xl border border-border bg-muted p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="inline-flex items-center gap-2 text-sm text-foreground">
-          <BellRing className="h-4 w-4" /> Mac app notifications
+          <BellRing className="h-4 w-4" /> {words.device} app notifications
         </p>
         <div className="flex items-center gap-2">
           {status?.permission === "notDetermined" ? (
@@ -102,11 +109,11 @@ export function MacNotificationsCard() {
         </div>
       </div>
       <p className="mt-3 text-xs text-muted-foreground">
-        {status ? macNotificationStatusText(status) : "Checking this Mac…"} They follow your email settings above.
+        {status ? macNotificationStatusText(status, device) : `Checking this ${words.device}…`} They follow your email settings above.
       </p>
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <button type="button" onClick={() => void openSettings()} className={buttonClass}>
-          Open Mac Notification Settings
+          Open {words.device} Notification Settings
         </button>
       </div>
       {message ? <p className="mt-2 text-xs text-foreground">{message}</p> : null}

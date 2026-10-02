@@ -14,7 +14,7 @@ const BENEFITS = [
 const STEPS = [
   "Open the download. If your Mac asks, click Open.",
   "Click Move to Applications.",
-  "Sign in with Google, then Allow notifications. It keeps itself updated after that."
+  "Click Allow when it asks about notifications, then sign in with Google. It keeps itself updated after that."
 ];
 
 /** Settings → InFocus for Mac: what the app does and a one-click download. */

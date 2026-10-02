@@ -34,7 +34,7 @@ import {
   groupTileStatusClass,
   groupViewerAttention
 } from "@/src/lib/group-tile-status";
-import { extensionBadgeLabel } from "@/src/lib/package-extensions";
+import { extensionBadgeLabel, extensionDueIn } from "@/src/lib/package-extensions";
 import { groupScheduleStatus, type GroupScheduleInput } from "@/src/lib/group-schedule";
 import { BottomTabDock, BottomTabDockButton, CycleTabLabel } from "@/components/ui/bottom-tab-dock";
 
@@ -449,7 +449,12 @@ function GroupTile({
         ) : null}
         {row.extension ? (
           <span className="rounded-md bg-amber-500/20 px-1.5 py-px text-[10px] font-medium text-amber-100">
-            {extensionBadgeLabel(row.extensionDays)}
+            {extensionBadgeLabel(
+              row.extensionDays,
+              cycleDates && !row.finalCut
+                ? extensionDueIn(dateOrNull(cycleDates.finalCut), row.extensionDays ?? 0, new Date())
+                : null
+            )}
           </span>
         ) : null}
         {row.id && canApprovePitchFromTile(platformRole, row) ? (

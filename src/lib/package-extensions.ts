@@ -21,7 +21,8 @@ export const MIN_EXTENSION_DAYS = 0.1;
 export const MAX_EXTENSION_DAYS = 30;
 export const EXTENSION_DAYS_ERROR = "Days must be 0.1 to 30, with at most one decimal place.";
 
-const DAY_MS = 24 * 60 * 60 * 1000;
+const HOUR_MS = 60 * 60 * 1000;
+const DAY_MS = 24 * HOUR_MS;
 
 /** Rounds to the one decimal place extension days allow. */
 export function roundExtensionDays(days: number) {
@@ -257,8 +258,18 @@ export function groupWideExtension(row: { extension: boolean; extensionRequests:
 }
 
 /** Badge text for a group's extension; falls back when no approved days are on record. */
-export function extensionBadgeLabel(days: number | undefined) {
-  return days && days > 0 ? `${days} Day Extension` : "Extension";
+export function extensionBadgeLabel(days: number | undefined, dueIn?: string | null) {
+  const label = days && days > 0 ? `${days} Day Extension` : "Extension";
+  return dueIn ? `${label} - Due in ${dueIn}` : label;
+}
+
+/** Time left before the extended Final Cut closes: whole days ("3D"), or hours under a day ("5H"). Null once closed. */
+export function extensionDueIn(finalCutDate: Date | null, extensionDays: number, now: Date) {
+  const deadline = effectiveDeadline(finalCutDate, extensionDays);
+  if (!deadline) return null;
+  const leftMs = finalCutClosesAt(deadline).getTime() - now.getTime();
+  if (leftMs <= 0) return null;
+  return leftMs >= DAY_MS ? `${Math.floor(leftMs / DAY_MS)}D` : `${Math.ceil(leftMs / HOUR_MS)}H`;
 }
 
 /**

@@ -6,6 +6,7 @@ import {
   denialReasonFor,
   effectiveDeadline,
   extensionBadgeLabel,
+  extensionDueIn,
   extensionCoversUser,
   extensionRequestAwaitsUser,
   extensionRequestVisibleTo,
@@ -185,6 +186,30 @@ describe("extensionBadgeLabel", () => {
   it("falls back to Extension when no days are on record", () => {
     expect(extensionBadgeLabel(0)).toBe("Extension");
     expect(extensionBadgeLabel(undefined)).toBe("Extension");
+  });
+
+  it("appends the time left when given", () => {
+    expect(extensionBadgeLabel(4, "3D")).toBe("4 Day Extension - Due in 3D");
+    expect(extensionBadgeLabel(4, null)).toBe("4 Day Extension");
+  });
+});
+
+describe("extensionDueIn", () => {
+  // Final Cut Oct 6 + 4 days closes 11:59 PM PDT Oct 10 (06:59:59.999Z Oct 11).
+  const finalCut = new Date("2026-10-06T00:00:00.000Z");
+
+  it("counts whole days left before the extended close", () => {
+    expect(extensionDueIn(finalCut, 4, new Date("2026-10-07T07:00:00.000Z"))).toBe("3D");
+  });
+
+  it("switches to hours under a day", () => {
+    expect(extensionDueIn(finalCut, 4, new Date("2026-10-10T19:30:00.000Z"))).toBe("12H");
+    expect(extensionDueIn(finalCut, 4, new Date("2026-10-11T06:30:00.000Z"))).toBe("1H");
+  });
+
+  it("is null once closed or with no Final Cut date", () => {
+    expect(extensionDueIn(finalCut, 4, new Date("2026-10-11T07:00:00.000Z"))).toBeNull();
+    expect(extensionDueIn(null, 4, new Date("2026-10-07T07:00:00.000Z"))).toBeNull();
   });
 });
 

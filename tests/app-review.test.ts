@@ -55,7 +55,7 @@ describe("App Review allowlist", () => {
   it("allows only its dashboard, workspace projects and media, settings, and sign-in", () => {
     const allowedApis = [...new Set(paths.filter((p) => p.startsWith("/api/") && isAppReviewPathAllowed(p)).map((p) => p.split("/")[2]))];
     expect(allowedApis.sort()).toEqual(
-      ["auth", "comments", "guest-links", "media", "notification-preferences", "onboarding", "profile", "projects", "push", "workspaces"].sort()
+      ["app", "auth", "comments", "guest-links", "media", "notification-preferences", "onboarding", "profile", "projects", "push", "workspaces"].sort()
     );
     const allowedPages = paths.filter((p) => !p.startsWith("/api/") && isAppReviewPathAllowed(p));
     for (const page of allowedPages) {

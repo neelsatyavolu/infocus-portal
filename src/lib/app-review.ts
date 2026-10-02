@@ -34,6 +34,8 @@ const MAIN_HOST_PATHS = [
   "/onboarding",
   "/maintenance",
   "/api/workspaces",
+  // The iPhone app's Home (its own workspaces and projects; no snapshot or package data for this account).
+  "/api/app/home",
   "/api/projects",
   "/api/media",
   "/api/comments",

@@ -49,7 +49,7 @@ App notifications (Apple Push): `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_PRIVATE_KEY
 
 ## YouTube publishing
 
-`YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`, `YOUTUBE_REFRESH_TOKEN`, `YOUTUBE_CHANNEL_ID`, `YOUTUBE_PUBLISHING_START_DATE`, `YOUTUBE_PUBLISH_HOUR_PACIFIC`. See [YOUTUBE-PUBLISHING.md](YOUTUBE-PUBLISHING.md).
+`YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`, `YOUTUBE_CHANNEL_ID`, `YOUTUBE_PUBLISHING_START_DATE`, `YOUTUBE_PUBLISH_HOUR_PACIFIC`. The channel authorization comes from **Admin → Reconnect YouTube** (stored encrypted in the database with a key derived from `APP_AUTH_SECRET`); `YOUTUBE_REFRESH_TOKEN` is only a fallback when nothing is stored. See [YOUTUBE-PUBLISHING.md](YOUTUBE-PUBLISHING.md).
 
 ## Teleprompter kiosk
 

@@ -5,16 +5,17 @@ Publishing Queue sends each queued Final Cut to the configured InFocus channel a
 ## Activation
 
 1. Review and apply `prisma/migrations/20260919_youtube_publishing/migration.sql` through the normal production migration process. This adds only the manager, publication, and email-outbox tables. Regenerate Prisma on deployment.
-2. Enable YouTube Data API v3 in the Google Cloud project. Authorize the **actual InFocus channel** (select the Brand Account if applicable) using an OAuth client with offline access and scopes `https://www.googleapis.com/auth/youtube.upload` and `https://www.googleapis.com/auth/youtube.readonly`. Store the refresh token in server environment configuration, never source control. Google OAuth Playground with **Use your own OAuth credentials** can perform this one-time authorization; use its exact redirect URI on the client and request offline access. Refresh tokens issued while an external consent app is in Testing may expire; complete the applicable consent setup before unattended use.
-3. Set these server-only environment variables in the deployment:
+2. Enable YouTube Data API v3 in the Google Cloud project. On the OAuth client, add the redirect URI `https://infocuspaly.com/api/admin/youtube/callback` (`APP_BASE_URL` + `/api/admin/youtube/callback`). Set the OAuth consent screen's publishing status to **In production**: while it is in **Testing**, Google expires refresh tokens after 7 days and uploads stop.
+3. Connect the channel: **Admin → YouTube channel → Reconnect YouTube** (super admin or adviser, signed in as themselves). Google asks for the account; choose the **InFocus channel** (its Brand Account) and allow every permission (`youtube.upload`, `youtube.readonly`, `youtube`). The Portal checks the channel matches `YOUTUBE_CHANNEL_ID`, then stores the refresh token encrypted in `YoutubeCredential` (migration `20261002210000_youtube_credential`; key derived from `APP_AUTH_SECRET`). Do this again whenever the card says the authorization expired. The old `YOUTUBE_REFRESH_TOKEN` env var is only a fallback when nothing is stored.
+4. Set these server-only environment variables in the deployment:
 
-   - `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`, `YOUTUBE_REFRESH_TOKEN`
+   - `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET` (`YOUTUBE_REFRESH_TOKEN` is optional; see step 3)
    - `YOUTUBE_CHANNEL_ID`: the channel's `UC…` ID; the worker verifies the authorized channel before uploading.
    - `YOUTUBE_PUBLISHING_START_DATE`: activation date, `YYYY-MM-DD`. Set to the desired first automated air date, normally today or a future date. Earlier shows will **not** be backfilled.
    - `YOUTUBE_PUBLISH_HOUR_PACIFIC`: optional integer 0–23; default `0` (midnight).
    - Existing `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY`, and Drive/Bunny download configuration must be available.
-4. Deploy and sync the existing `/api/inngest` endpoint. Confirm registration of `youtube-publications-discover` (every minute) and `youtube-package-publish`. The endpoint allows 300 seconds per request; each upload step transfers at most 8 MiB. Discovery is inert until all required YouTube settings are present. Use production-only credentials/configuration to prevent previews publishing against production data.
-5. In Publishing Queue → **Managers**, assign recipients before the first scheduled upload. Initially use a deliberately queued test package, then verify the channel, visibility, email, and embed. This is a live upload and should be done deliberately by the operator.
+5. Deploy and sync the existing `/api/inngest` endpoint. Confirm registration of `youtube-publications-discover` (every minute) and `youtube-package-publish`. The endpoint allows 300 seconds per request; each upload step transfers at most 8 MiB. Discovery is inert until all required YouTube settings are present. Use production-only credentials/configuration to prevent previews publishing against production data.
+6. In Publishing Queue → **Managers**, assign recipients before the first scheduled upload. Initially use a deliberately queued test package, then verify the channel, visibility, email, and embed. This is a live upload and should be done deliberately by the operator.
 
 YouTube restricts uploads by affected unverified API projects to private visibility. An API compliance audit may be required before unlisted automation works. The worker does not email a private or non-embeddable video as ready. See [videos.insert](https://developers.google.com/youtube/v3/docs/videos/insert), [OAuth web-server flow](https://developers.google.com/identity/protocols/oauth2/web-server), and [resumable upload protocol](https://developers.google.com/youtube/v3/guides/using_resumable_upload_protocol).
 
@@ -38,7 +39,7 @@ The whole show uses the same credentials and channel as packages, with its own t
 **Setup beyond package publishing**
 
 1. Apply `prisma/migrations/20260924220000_show_publication/migration.sql` (`prisma db execute --file … --schema prisma/schema.prisma`), then verify with `prisma migrate diff` that nothing remains.
-2. Re-authorize the channel with scope `https://www.googleapis.com/auth/youtube`, in addition to the existing scopes, and replace `YOUTUBE_REFRESH_TOKEN`. Creating playlists, adding videos to them, and setting thumbnails need this scope. With the old token, the upload and schedule still succeed, but the publication stops as `FAILED` with a “Re-authorize the channel with the youtube scope” message.
+2. Authorize the channel with scope `https://www.googleapis.com/auth/youtube`, in addition to the existing scopes: **Admin → Reconnect YouTube** asks for all three. Creating playlists, adding videos to them, and setting thumbnails need this scope. With the old token, the upload and schedule still succeed, but the publication stops as `FAILED` with a “Re-authorize the channel with the youtube scope” message.
 3. The channel must be allowed custom thumbnails, which requires a verified channel.
 4. `YOUTUBE_PUBLISHING_START_DATE` and `YOUTUBE_PUBLISH_HOUR_PACIFIC` do not affect shows. Uploads start as soon as a producer confirms.
 

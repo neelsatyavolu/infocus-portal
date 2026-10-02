@@ -1633,6 +1633,20 @@ model PublishingManager {
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+/// The InFocus channel's YouTube authorization from Admin → Reconnect YouTube (one row, id "channel").
+/// Used before the YOUTUBE_REFRESH_TOKEN env var.
+model YoutubeCredential {
+  id                String   @id @default("channel")
+  /// Google refresh token, AES-256-GCM encrypted (src/lib/youtube-credential-crypto.ts). Never plaintext.
+  refreshToken      String
+  channelId         String
+  channelTitle      String
+  scopes            String
+  connectedByUserId String?
+  connectedAt       DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
 /// One upload per package. Snapshot the source so retries never switch video versions.
 model YoutubePublication {
   id              String   @id @default(cuid())

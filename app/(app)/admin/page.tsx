@@ -13,6 +13,7 @@ import {
   DialogTitle
 } from "@/components/ui/dialog";
 import { ClassBoardCycleSetting } from "./class-board-cycle-setting";
+import { YoutubeChannelCard } from "./youtube-channel-card";
 
 type PlatformRole = "SUPER_ADMIN" | "EXECUTIVE_PRODUCER" | "ADVISER" | "ASSOCIATE_PRODUCER";
 
@@ -1097,6 +1098,8 @@ export default function AdminPage() {
           </div>
         </article>
       </section>
+
+      {canManagePlatformRoles ? <YoutubeChannelCard /> : null}
 
       {canManagePlatformRoles ? (
         <section className="rounded-2xl border border-border bg-card p-4">

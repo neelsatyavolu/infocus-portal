@@ -1,4 +1,5 @@
 import { youtubeWatchUrl } from "@/src/lib/youtube-publication";
+import { loadYoutubeCredential } from "@/src/server/youtube-credential";
 
 const API = "https://www.googleapis.com";
 const CHUNK_BYTES = 8 * 1024 * 1024;
@@ -7,14 +8,15 @@ export class PublicationError extends Error {
   constructor(message: string, public permanent = false) { super(message); }
 }
 
+/** The channel authorization itself comes from Admin → Reconnect YouTube, or else YOUTUBE_REFRESH_TOKEN. */
 export function youtubePublishingConfig() {
   const { YOUTUBE_CLIENT_ID: clientId, YOUTUBE_CLIENT_SECRET: clientSecret,
     YOUTUBE_REFRESH_TOKEN: refreshToken, YOUTUBE_CHANNEL_ID: channelId,
     YOUTUBE_PUBLISHING_START_DATE: startDate } = process.env;
   const hour = Number(process.env.YOUTUBE_PUBLISH_HOUR_PACIFIC ?? "0");
-  if (!clientId || !clientSecret || !refreshToken || !channelId || !startDate ||
+  if (!clientId || !clientSecret || !channelId || !startDate ||
       !/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !Number.isInteger(hour) || hour < 0 || hour > 23) return null;
-  return { clientId, clientSecret, refreshToken, channelId, startDate, hour };
+  return { clientId, clientSecret, refreshToken: refreshToken || null, channelId, startDate, hour };
 }
 
 // Do not propagate fetch errors: they may contain signed source/session URLs.
@@ -40,18 +42,80 @@ async function requireOk(response: Response, operation: string) {
   throw new PublicationError(`${operation} failed (HTTP ${response.status}).`);
 }
 
+export const YOUTUBE_RECONNECT_MESSAGE = "YouTube authorization expired. Reconnect YouTube in Admin.";
+
+/** Which authorization uploads use: Admin's stored one first, then the env refresh token. */
+async function channelRefreshToken() {
+  const stored = await loadYoutubeCredential();
+  if (stored) return stored.refreshToken;
+  return youtubePublishingConfig()?.refreshToken ?? null;
+}
+
 export async function youtubeAccessToken() {
   const config = youtubePublishingConfig();
   if (!config) throw new PublicationError("YouTube publishing is not configured.");
+  const refreshToken = await channelRefreshToken();
+  if (!refreshToken) throw new PublicationError("YouTube isn't connected. Reconnect YouTube in Admin.");
   const response = await request("https://oauth2.googleapis.com/token", {
     method: "POST",
     body: new URLSearchParams({ client_id: config.clientId, client_secret: config.clientSecret,
-      refresh_token: config.refreshToken, grant_type: "refresh_token" })
+      refresh_token: refreshToken, grant_type: "refresh_token" })
   });
-  await requireOk(response, "YouTube authorization");
+  if (!response.ok) {
+    const reason = await response.json().then((body: { error?: unknown }) => body.error, () => undefined);
+    // invalid_grant: the refresh token expired or was revoked; only a reconnect fixes it.
+    if (reason === "invalid_grant") throw new PublicationError(YOUTUBE_RECONNECT_MESSAGE);
+    throw new PublicationError(`YouTube authorization failed (HTTP ${response.status}).`);
+  }
   const body = await response.json();
   if (typeof body.access_token !== "string") throw new PublicationError("YouTube authorization returned no token.");
   return body.access_token as string;
+}
+
+const STATUS_CACHE_MS = 60_000;
+let cachedStatus: { at: number; value: YoutubeAuthorizationStatus } | null = null;
+
+export type YoutubeAuthorizationStatus = {
+  connected: boolean;
+  source: "admin" | "env" | "none";
+  channelTitle: string | null;
+  connectedAt: string | null;
+  /** Did Google accept the authorization just now? Null when there is nothing to check. */
+  lastCheckOk: boolean | null;
+  message: string | null;
+};
+
+/** For Admin: where the authorization comes from and whether Google still accepts it (cached a minute). */
+export async function youtubeAuthorizationStatus(now = Date.now()): Promise<YoutubeAuthorizationStatus> {
+  if (cachedStatus && now - cachedStatus.at < STATUS_CACHE_MS) return cachedStatus.value;
+  const stored = await loadYoutubeCredential();
+  const source = stored ? "admin" : youtubePublishingConfig()?.refreshToken ? "env" : "none";
+  let lastCheckOk: boolean | null = null;
+  let message: string | null = null;
+  if (source !== "none") {
+    try {
+      await youtubeAccessToken();
+      lastCheckOk = true;
+    } catch (error) {
+      lastCheckOk = false;
+      message = error instanceof PublicationError ? error.message : "YouTube authorization check failed.";
+    }
+  }
+  const value: YoutubeAuthorizationStatus = {
+    connected: lastCheckOk === true,
+    source,
+    channelTitle: stored?.channelTitle ?? null,
+    connectedAt: stored?.connectedAt.toISOString() ?? null,
+    lastCheckOk,
+    message
+  };
+  cachedStatus = { at: now, value };
+  return value;
+}
+
+/** After a reconnect, Admin should see the new state right away. */
+export function forgetYoutubeAuthorizationStatus() {
+  cachedStatus = null;
 }
 
 export async function verifyYoutubeChannel(token: string, channelId: string) {

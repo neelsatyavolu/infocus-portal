@@ -46,7 +46,14 @@ it("returns useful conflict guidance without claiming the draft was saved", asyn
 it("returns full script names intact", async () => {
   const data = { date: "2026-09-14", dateLabel: "Monday", announcers: ["Alex Kim"], canEdit: true, script: { content: "I'm Alex Kim.", version: 1 } };
   mocks.loadPaPage.mockResolvedValue(data);
-  expect(await (await GET()).json()).toEqual({ data });
+  expect(await (await GET()).json()).toEqual({ data: { ...data, timeLabel: "Start of second period" } });
+});
+
+it("says when the PA is read, including bell-schedule exceptions", async () => {
+  mocks.loadPaPage.mockResolvedValue({ date: "2026-09-28", dateLabel: "Monday", announcers: [], canEdit: false, script: null });
+  expect((await (await GET()).json()).data.timeLabel).toBe("Start of fifth period");
+  mocks.loadPaPage.mockResolvedValue({ date: null, dateLabel: "", announcers: [], canEdit: false, script: null });
+  expect((await (await GET()).json()).data.timeLabel).toBeNull();
 });
 
 

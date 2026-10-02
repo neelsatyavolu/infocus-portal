@@ -31,3 +31,7 @@ The script follows the PA opening, alternating announcement slots, and closing. 
 Everyone signed in can read the script. Assigned announcers and producers (including the adviser) can edit and **Save**. Refresh picks up calendar assignment changes and others' saved edits. Generated name lines update without replacing announcement copy or custom introductions. If an assigned calendar name is ambiguous, a producer should select the person's unique name on Master Calendar before that person can edit.
 
 Save before leaving the page. Refresh is disabled while you have unsaved changes; **Discard changes** lets you reload. If another person saved first, your save is rejected and your draft stays in the editor. Copy your draft before discarding and refreshing, then merge your changes into the latest script.
+
+## In the iPhone app
+
+The InFocus Portal iPhone app shows the same #announcements feed (`GET /api/announcements/slack`), Submitted grouped exactly like the web page (`GET /api/announcements/submitted/grouped`: same sections, copy text, delete for producers, invite links for executives), and the PA script editor (same `/api/announcements/pa`, which also returns the reading time).

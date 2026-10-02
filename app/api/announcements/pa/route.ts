@@ -2,6 +2,7 @@ import { z } from "zod";
 import { requireUserId, syncUserProfile } from "@/src/lib/auth";
 import { handleRouteError } from "@/src/lib/api-errors";
 import { fail, okUnmapped } from "@/src/lib/http";
+import { paTimeLabel } from "@/src/lib/pa-script";
 import { loadPaPage, savePaScript } from "@/src/server/pa-scripts";
 
 export const maxDuration = 60;
@@ -14,6 +15,11 @@ const saveSchema = z.object({
   content: z.string().max(100000),
   version: z.number().int().positive()
 });
+
+/** Adds the bell-schedule time ("Start of second period") the page shows, for the iPhone app. */
+function withTimeLabel<T extends { date: string | null }>(page: T) {
+  return { ...page, timeLabel: page.date ? paTimeLabel(page.date) : null };
+}
 
 async function actor() {
   const userId = await requireUserId();
@@ -33,7 +39,7 @@ function routeError(error: unknown) {
 
 export async function GET() {
   try {
-    return okUnmapped(await loadPaPage(await actor()));
+    return okUnmapped(withTimeLabel(await loadPaPage(await actor())));
   } catch (error) {
     return routeError(error);
   }
@@ -43,7 +49,7 @@ export async function PATCH(request: Request) {
   try {
     const user = await actor();
     const input = saveSchema.parse(await request.json());
-    return okUnmapped(await savePaScript(user, input));
+    return okUnmapped(withTimeLabel(await savePaScript(user, input)));
   } catch (error) {
     return routeError(error);
   }
@@ -54,7 +60,7 @@ export async function POST(request: Request) {
   try {
     const user = await actor();
     const input = saveSchema.omit({ content: true }).parse(await request.json());
-    return okUnmapped(await savePaScript(user, { ...input, regenerate: true }));
+    return okUnmapped(withTimeLabel(await savePaScript(user, { ...input, regenerate: true })));
   } catch (error) {
     return routeError(error);
   }

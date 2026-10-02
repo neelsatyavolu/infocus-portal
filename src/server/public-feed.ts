@@ -17,12 +17,13 @@ import {
 import { addDaysToDateKey, listUpcomingShowDates } from "@/src/lib/show-assignment";
 import { bulletinParagraphs } from "@/src/server/show-story";
 import { loadScheduleOverrides } from "@/src/server/show-schedule";
-import { listYoutubePlaylists, youtubeAccessToken, youtubeGet } from "@/src/server/youtube-client";
+import { youtubeAccessToken, youtubeGet, youtubeKeyGet } from "@/src/server/youtube-client";
 
 /**
- * Shows, livestreams and show announcements for the public InFocus iPhone app, read
- * with the Portal's channel authorization. Cached in tiers to spare the YouTube quota:
- * past seasons rarely change, the current season and live streams do.
+ * Shows, livestreams and show announcements for the public InFocus iPhone app, read with
+ * YOUTUBE_API_KEY (public data only), or the Portal's channel authorization without one.
+ * Cached in tiers to spare the YouTube quota: past seasons rarely change, the current
+ * season and live streams do.
  */
 
 const PLAYLISTS_TTL_S = 60 * 60;
@@ -45,6 +46,37 @@ async function accessToken() {
   return value;
 }
 
+type YoutubeRead = (path: string) => Promise<Record<string, unknown>>;
+
+async function youtubeRead(): Promise<YoutubeRead> {
+  const apiKey = process.env.YOUTUBE_API_KEY?.trim();
+  if (apiKey) return (path) => youtubeKeyGet(path, apiKey);
+  const token = await accessToken();
+  return (path) => youtubeGet(path, token);
+}
+
+function channelId() {
+  const id = process.env.YOUTUBE_CHANNEL_ID?.trim();
+  if (!id) throw new PublicFeedError("YouTube channel is not configured.");
+  return id;
+}
+
+async function channelPlaylists() {
+  const read = await youtubeRead();
+  const playlists: { id: string; title: string }[] = [];
+  let pageToken = "";
+  for (let page = 0; page < MAX_PLAYLIST_PAGES; page++) {
+    const data = await read(`playlists?part=snippet&maxResults=50&channelId=${encodeURIComponent(channelId())}` +
+      (pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ""));
+    for (const item of Array.isArray(data.items) ? (data.items as { id?: unknown; snippet?: { title?: unknown } }[]) : []) {
+      if (typeof item.id === "string" && typeof item.snippet?.title === "string") playlists.push({ id: item.id, title: item.snippet.title });
+    }
+    if (typeof data.nextPageToken !== "string") break;
+    pageToken = data.nextPageToken;
+  }
+  return playlists;
+}
+
 function stringsAt(items: unknown, read: (item: Record<string, unknown>) => unknown) {
   return Array.isArray(items) ? items.flatMap((item) => {
     const value = read(item as Record<string, unknown>);
@@ -53,13 +85,13 @@ function stringsAt(items: unknown, read: (item: Record<string, unknown>) => unkn
 }
 
 async function playlistVideoIds(playlistId: string, maxPages: number) {
-  const token = await accessToken();
+  const read = await youtubeRead();
   const ids: string[] = [];
   let pageToken = "";
   for (let page = 0; page < maxPages; page++) {
     const query = `playlistItems?part=contentDetails&maxResults=50&playlistId=${encodeURIComponent(playlistId)}` +
       (pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : "");
-    const data = await youtubeGet(query, token);
+    const data = await read(query);
     ids.push(...stringsAt(data.items, (item) => (item.contentDetails as { videoId?: unknown } | undefined)?.videoId));
     if (typeof data.nextPageToken !== "string") break;
     pageToken = data.nextPageToken;
@@ -68,11 +100,11 @@ async function playlistVideoIds(playlistId: string, maxPages: number) {
 }
 
 async function videoDetails(ids: string[]): Promise<YoutubeVideo[]> {
-  const token = await accessToken();
+  const read = await youtubeRead();
   const videos: YoutubeVideo[] = [];
   for (let start = 0; start < ids.length; start += 50) {
     const chunk = ids.slice(start, start + 50).join(",");
-    const data = await youtubeGet(`videos?part=snippet,contentDetails,status,liveStreamingDetails&id=${chunk}`, token);
+    const data = await read(`videos?part=snippet,contentDetails,status,liveStreamingDetails&id=${chunk}`);
     if (Array.isArray(data.items)) videos.push(...(data.items as YoutubeVideo[]));
   }
   return videos;
@@ -84,7 +116,7 @@ async function fetchSeasonShows(playlistId: string): Promise<PublicShow[]> {
 }
 
 const cachedSeasonPlaylists = unstable_cache(
-  async () => seasonPlaylists(await listYoutubePlaylists(await accessToken())),
+  async () => seasonPlaylists(await channelPlaylists()),
   ["public-feed-season-playlists"],
   { revalidate: PLAYLISTS_TTL_S }
 );
@@ -96,7 +128,7 @@ const cachedArchivedSeason = unstable_cache(fetchSeasonShows, ["public-feed-arch
 });
 const cachedRecentUploads = unstable_cache(
   async () => {
-    const uploads = uploadsPlaylistId(process.env.YOUTUBE_CHANNEL_ID?.trim() ?? "");
+    const uploads = uploadsPlaylistId(channelId());
     if (!uploads) throw new PublicFeedError("YouTube channel is not configured.");
     return videoDetails(await playlistVideoIds(uploads, 1));
   },

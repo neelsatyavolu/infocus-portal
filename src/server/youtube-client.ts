@@ -226,6 +226,13 @@ export async function youtubeGet(path: string, token: string): Promise<Record<st
   return response.json();
 }
 
+/** Same, with an API key instead of the channel's sign-in: public data only, and it never expires. */
+export async function youtubeKeyGet(path: string, apiKey: string): Promise<Record<string, unknown>> {
+  const response = await request(`${API}/youtube/v3/${path}&key=${encodeURIComponent(apiKey)}`);
+  await requireOk(response, "YouTube lookup");
+  return response.json();
+}
+
 export async function listYoutubePlaylists(token: string) {
   const playlists: Array<{ id: string; title: string }> = [];
   let pageToken = "";

@@ -17,7 +17,7 @@ import {
   memberLatePenaltyMultiplier,
   resolveGrantTerms
 } from "@/src/lib/package-extensions";
-import { mayDecideExtensionRequest } from "@/src/server/extension-requests";
+import { mayDecideExtensionRequest, mayGrantPendingRequest } from "@/src/server/extension-requests";
 
 describe("approvedExtensionDaysFor", () => {
   const legacy = { requestedDays: 3, grantedDays: null, grantedUserIds: [] };
@@ -174,6 +174,30 @@ describe("mayDecideExtensionRequest", () => {
     const request = { ...row, producerGranted: false };
     expect(mayDecideExtensionRequest("ASSOCIATE_PRODUCER", "ap", request)).toBe(true);
     expect(mayDecideExtensionRequest("ASSOCIATE_PRODUCER", "other", request)).toBe(false);
+  });
+});
+
+describe("mayGrantPendingRequest", () => {
+  const request = {
+    status: "PENDING" as const,
+    producerGranted: false,
+    approvals: [],
+    members: [{ userId: "a" }, { userId: "ep-student" }]
+  };
+
+  it("lets execs outside the group grant a pending student request", () => {
+    expect(mayGrantPendingRequest("EXECUTIVE_PRODUCER", "e2", request)).toBe(true);
+    expect(mayGrantPendingRequest("ADVISER", "adv", request)).toBe(true);
+    expect(mayGrantPendingRequest("ASSOCIATE_PRODUCER", "ap", request)).toBe(false);
+    expect(mayGrantPendingRequest("EXECUTIVE_PRODUCER", "ep-student", request)).toBe(false);
+  });
+
+  it("only applies to undecided student requests with no producer votes", () => {
+    expect(mayGrantPendingRequest("EXECUTIVE_PRODUCER", "e2", { ...request, status: "APPROVED" })).toBe(false);
+    expect(mayGrantPendingRequest("EXECUTIVE_PRODUCER", "e2", { ...request, producerGranted: true })).toBe(false);
+    expect(
+      mayGrantPendingRequest("EXECUTIVE_PRODUCER", "e2", { ...request, approvals: [{ userId: "e3" }] })
+    ).toBe(false);
   });
 });
 

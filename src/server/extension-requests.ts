@@ -30,6 +30,29 @@ export function mayDecideExtensionRequest(
   return producerMayActOnPackage(role, userId, request);
 }
 
+/**
+ * An exec outside the group may grant a pending student request before every member
+ * agrees. It becomes a producer grant in place, so no second entry is created.
+ */
+export function mayGrantPendingRequest(
+  role: PlatformRole | null,
+  userId: string,
+  request: {
+    status: "PENDING" | "APPROVED" | "DENIED";
+    producerGranted: boolean;
+    approvals: Array<{ userId: string }>;
+    members: Array<{ userId: string }>;
+  }
+) {
+  return (
+    mayGrantExtensions(role) &&
+    request.status === "PENDING" &&
+    !request.producerGranted &&
+    request.approvals.length === 0 &&
+    !request.members.some((member) => member.userId === userId)
+  );
+}
+
 /** Pending extension requests that need this user's agreement or producer vote (sidebar badge). */
 export async function countExtensionRequestsAwaitingUser(userId: string, role: PlatformRole | null) {
   const isProducer = hasPlatformRole(role, "ASSOCIATE_PRODUCER");

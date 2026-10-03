@@ -20,6 +20,7 @@ type Member = { userId: string; label: string };
  * Approve step for a producer. The first approver picks days and members;
  * once another producer has approved, those terms are shown read-only.
  * Mount it only while approving so its state starts from `initialTerms`.
+ * With `grantWithoutAgreement`, an exec grants a request the group hasn't fully agreed to.
  */
 export function ApproveExtensionDialog({
   open,
@@ -28,6 +29,7 @@ export function ApproveExtensionDialog({
   members,
   lockedTerms,
   initialTerms,
+  grantWithoutAgreement = false,
   onConfirm
 }: {
   open: boolean;
@@ -38,6 +40,7 @@ export function ApproveExtensionDialog({
   lockedTerms: GrantTerms | null;
   /** Starting values when this producer sets the terms. */
   initialTerms: GrantTerms;
+  grantWithoutAgreement?: boolean;
   onConfirm: (terms: GrantTerms | null) => Promise<void>;
 }) {
   const [days, setDays] = useState(initialTerms.grantedDays);
@@ -65,11 +68,14 @@ export function ApproveExtensionDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Approve extension</DialogTitle>
+          <DialogTitle>{grantWithoutAgreement ? "Grant extension" : "Approve extension"}</DialogTitle>
           <DialogDescription>
             {lockedTerms
               ? "Another producer already set these terms. Approving agrees to them as-is."
               : `The group asked for ${requestedDays} ${requestedDays === 1 ? "day" : "days"}. Choose how many days to grant and who gets them.`}
+            {grantWithoutAgreement
+              ? " Not every member has agreed yet; granting skips their agreement. One more exec must approve."
+              : null}
           </DialogDescription>
         </DialogHeader>
 
@@ -112,7 +118,7 @@ export function ApproveExtensionDialog({
           </Button>
           <Button onClick={() => void confirm()} disabled={saving || (!lockedTerms && selected.length === 0)}>
             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Approve
+            {grantWithoutAgreement ? "Grant" : "Approve"}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -50,6 +50,8 @@ type ExtensionRequest = {
   memberConsents: MemberConsent[];
   memberConsentComplete: boolean;
   canDecide?: boolean;
+  /** Exec outside the group may grant it before every member agrees. */
+  canGrantPending?: boolean;
   approvalsRequired: number;
   approvals: Approval[];
 };
@@ -90,7 +92,7 @@ export default function ExtensionRequestsClient() {
   const [requestedDays, setRequestedDays] = useState(2);
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [approving, setApproving] = useState<ExtensionRequest | null>(null);
+  const [approving, setApproving] = useState<{ entry: ExtensionRequest; grant: boolean } | null>(null);
   const [denyingId, setDenyingId] = useState<string | null>(null);
   const [granting, setGranting] = useState(false);
   const [emailingId, setEmailingId] = useState<string | null>(null);
@@ -147,13 +149,21 @@ export default function ExtensionRequestsClient() {
     requestId: string,
     approved: boolean,
     terms?: GrantTerms | null,
-    reason?: string
+    reason?: string,
+    grantWithoutAgreement?: true
   ) {
     try {
       const response = await fetch("/api/extensions/requests", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind: "producer", requestId, approved, reason, ...(terms ?? {}) })
+        body: JSON.stringify({
+          kind: "producer",
+          requestId,
+          approved,
+          reason,
+          grantWithoutAgreement,
+          ...(terms ?? {})
+        })
       });
       const body = await response.json();
 
@@ -250,6 +260,8 @@ export default function ExtensionRequestsClient() {
       entry.student.email ||
       "Group";
     const days = entry.producerGranted ? terms.grantedDays : entry.requestedDays;
+    // A granted student request keeps its student requester; direct grants were filed by an exec.
+    const filedByMember = entry.groupMembers.some((member) => member.userId === entry.student.id);
 
     return (
       <article key={entry.id} className="rounded-2xl border border-border bg-card p-4">
@@ -261,7 +273,8 @@ export default function ExtensionRequestsClient() {
               {days === 1 ? "day" : "days"}
             </p>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              {entry.producerGranted ? "Granted by" : "Requested by"} {entry.student.name ?? entry.student.email}
+              {entry.producerGranted && !filedByMember ? "Granted by" : "Requested by"}{" "}
+              {entry.student.name ?? entry.student.email}
             </p>
             {termsSet ? (
               <p className="mt-0.5 text-xs text-foreground">
@@ -337,7 +350,7 @@ export default function ExtensionRequestsClient() {
                       ? undefined
                       : "All group members must agree first"
                   }
-                  onClick={() => setApproving(entry)}
+                  onClick={() => setApproving({ entry, grant: false })}
                 >
                   <Check className="mr-1 h-3.5 w-3.5" />
                   Approve
@@ -347,6 +360,18 @@ export default function ExtensionRequestsClient() {
                   Deny
                 </Button>
               </>
+            ) : null}
+
+            {entry.canGrantPending && !entry.memberConsentComplete ? (
+              <Button
+                size="sm"
+                variant="secondary"
+                title="Grant it now without waiting for every member to agree"
+                onClick={() => setApproving({ entry, grant: true })}
+              >
+                <Plus className="mr-1 h-3.5 w-3.5" />
+                Grant
+              </Button>
             ) : null}
 
             {payload?.canGrant && entry.status !== "PENDING" ? (
@@ -497,27 +522,30 @@ export default function ExtensionRequestsClient() {
           onOpenChange={(open) => {
             if (!open) setApproving(null);
           }}
-          requestedDays={approving.requestedDays}
-          members={approving.groupMembers.map((member) => ({
+          requestedDays={approving.entry.requestedDays}
+          members={approving.entry.groupMembers.map((member) => ({
             userId: member.userId,
             label: memberLabel(member)
           }))}
           lockedTerms={
-            approving.approvals.some(
+            approving.entry.approvals.some(
               (approval) => approval.approved && approval.userId !== payload?.currentUserId
             )
-              ? grantedTerms(approving)
+              ? grantedTerms(approving.entry)
               : null
           }
           initialTerms={
-            approving.approvals.some((approval) => approval.approved)
-              ? grantedTerms(approving)
+            approving.entry.approvals.some((approval) => approval.approved)
+              ? grantedTerms(approving.entry)
               : {
-                  grantedDays: approving.requestedDays,
-                  grantedUserIds: approving.groupMembers.map((member) => member.userId)
+                  grantedDays: approving.entry.requestedDays,
+                  grantedUserIds: approving.entry.groupMembers.map((member) => member.userId)
                 }
           }
-          onConfirm={(terms) => decideProducer(approving.id, true, terms)}
+          grantWithoutAgreement={approving.grant}
+          onConfirm={(terms) =>
+            decideProducer(approving.entry.id, true, terms, undefined, approving.grant || undefined)
+          }
         />
       ) : null}
     </div>

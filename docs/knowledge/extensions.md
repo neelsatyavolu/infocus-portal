@@ -50,6 +50,12 @@ an extension** at the top of the page:
    approve these, and an exec can't grant or approve one for their own group.
 4. On approval or denial, only the chosen students get one shared email.
 
+An exec outside the group can also **Grant** a pending student request before every member has
+agreed. It opens the same days-and-members picker as Approve. The request becomes a producer grant
+in place, so no second entry appears. It still shows who requested it, member agreement is no
+longer needed, and steps 2–4 above apply. **Grant** is hidden once every member agrees (use
+**Approve**) or after a producer has voted.
+
 Execs see **Email group** on every approved or denied request. It resends that decision email.
 Use it for requests decided before decision emails existed, or when a student says they never
 got one.

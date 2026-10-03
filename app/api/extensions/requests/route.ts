@@ -16,8 +16,15 @@ import {
 import { getPlatformAccess, hasPlatformRole } from "@/src/lib/platform-admin";
 import { prisma } from "@/src/lib/prisma";
 import { getRequestKey, limitByKey } from "@/src/lib/rate-limit";
-import { notifyGroupOfExtensionDecision } from "@/src/server/extension-grant-notify";
-import { mayDecideExtensionRequest, mayGrantExtensions } from "@/src/server/extension-requests";
+import {
+  notifyExecsOfExtensionGrant,
+  notifyGroupOfExtensionDecision
+} from "@/src/server/extension-grant-notify";
+import {
+  mayDecideExtensionRequest,
+  mayGrantExtensions,
+  mayGrantPendingRequest
+} from "@/src/server/extension-requests";
 import { MAX_CYCLES_PER_SEMESTER } from "@/src/server/program-settings";
 import { labeledUser, userDisplayName } from "@/src/lib/user-display";
 
@@ -37,6 +44,8 @@ const decisionSchema = z.discriminatedUnion("kind", [
     /** Only the first approving producer sets these; later approvals keep them. */
     grantedDays: extensionDaysSchema.optional(),
     grantedUserIds: z.array(z.string().min(1)).max(50).optional(),
+    /** An exec grants a pending student request before every member agrees. */
+    grantWithoutAgreement: z.literal(true).optional(),
     /** Required when denying. */
     reason: z.string().max(1200).optional()
   }),
@@ -145,6 +154,14 @@ function serializeRequest(entry: {
       ? mayDecideExtensionRequest(viewer.role, viewer.userId, {
           producerGranted: entry.producerGranted,
           assignedProducerUserId: entry.progressRow?.assignedProducerUserId,
+          members: entry.progressRow?.members ?? []
+        })
+      : false,
+    canGrantPending: viewer
+      ? mayGrantPendingRequest(viewer.role, viewer.userId, {
+          status: entry.status,
+          producerGranted: entry.producerGranted,
+          approvals: entry.approvals,
           members: entry.progressRow?.members ?? []
         })
       : false,
@@ -391,11 +408,26 @@ export async function PATCH(request: Request) {
       return ok({ status: "PENDING" as const });
     }
 
+    // Granting a pending student request turns it into a producer grant in place.
+    const convertsToGrant = payload.approved && payload.grantWithoutAgreement === true;
+    if (
+      convertsToGrant &&
+      !mayGrantPendingRequest(access.role, userId, {
+        status: existing.status,
+        producerGranted: existing.producerGranted,
+        approvals: existing.approvals,
+        members: existing.progressRow?.members ?? []
+      })
+    ) {
+      throw new Error("FORBIDDEN");
+    }
+    const producerGranted = existing.producerGranted || convertsToGrant;
+
     // Producer decision — associates only on assigned packages they are not members of;
     // producer grants only by execs outside the group.
     if (
       !mayDecideExtensionRequest(access.role, userId, {
-        producerGranted: existing.producerGranted,
+        producerGranted,
         assignedProducerUserId: existing.progressRow?.assignedProducerUserId,
         members: existing.progressRow?.members ?? []
       })
@@ -412,7 +444,7 @@ export async function PATCH(request: Request) {
 
     const consentState = { memberUserIds, consents };
 
-    if (payload.approved && !existing.producerGranted) {
+    if (payload.approved && !producerGranted) {
       if (hasMemberDisagreed(consentState) || !isGroupConsentComplete(consentState)) {
         throw new Error(
           "All group members must agree to this extension request before producers can approve it."
@@ -451,10 +483,10 @@ export async function PATCH(request: Request) {
           reason: denialReason
         }
       });
-      if (terms) {
+      if (terms || convertsToGrant) {
         await tx.packageExtensionRequest.update({
           where: { id: payload.requestId },
-          data: terms
+          data: { ...terms, ...(convertsToGrant ? { producerGranted: true } : {}) }
         });
       }
     });
@@ -515,6 +547,8 @@ export async function PATCH(request: Request) {
 
     if (status !== "PENDING") {
       await notifyGroupOfExtensionDecision(withApprovals.id);
+    } else if (convertsToGrant) {
+      await notifyExecsOfExtensionGrant(withApprovals.id);
     }
 
     return ok({ status });

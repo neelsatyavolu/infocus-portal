@@ -71,7 +71,10 @@ export async function notifyExecsOfExtensionGrant(requestId: string) {
     where: { role: { in: ["EXECUTIVE_PRODUCER", "SUPER_ADMIN", "ADVISER"] } },
     select: { email: true }
   });
-  const creatorEmail = normalizeEmail(grant.user.email);
+  // The granting exec's approval is the only one so far; on a granted student request,
+  // grant.user is the student who filed it.
+  const granter = grant.approvals.find((approval) => approval.approved)?.user ?? grant.user;
+  const creatorEmail = normalizeEmail(granter.email);
   const memberEmails = new Set(
     (grant.progressRow?.members ?? []).map((member) => normalizeEmail(member.user.email))
   );
@@ -84,7 +87,7 @@ export async function notifyExecsOfExtensionGrant(requestId: string) {
   ];
 
   const { days, topic } = grantSummary(grant);
-  const creator = userDisplayName(grant.user) || grant.user.email || "An executive producer";
+  const creator = userDisplayName(granter) || granter.email || "An executive producer";
   try {
     await sendBrandedEmails({
       recipients,

@@ -5,6 +5,7 @@ import { getCamera, getMic, getScreenshare, type MediaDevice, type Screenshare }
 import { useObservableAsValue } from "partytracks/react";
 import { NEVER } from "rxjs";
 import { toast } from "sonner";
+import { keepBroadcasting } from "@/src/lib/meetings/client/keep-broadcasting";
 
 export type LocalMedia = {
   mic: MediaDevice;
@@ -38,6 +39,8 @@ export function useLocalMedia(): LocalMedia {
 
   const audioOn = useObservableAsValue(mic.isBroadcasting$, true);
   const videoOn = useObservableAsValue(camera.isBroadcasting$, true);
+
+  useEffect(() => keepBroadcasting([mic, camera]), [mic, camera]);
 
   useEffect(() => {
     const subs = [

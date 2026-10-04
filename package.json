@@ -13,7 +13,8 @@
     "test": "vitest run",
     "postinstall": "prisma generate",
     "test:watch": "vitest",
-    "vendor:noise-suppressor": "node scripts/vendor-noise-suppressor.mjs"
+    "vendor:noise-suppressor": "node scripts/vendor-noise-suppressor.mjs",
+    "smoke:meetings": "tsx scripts/meetings-smoke.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1125.0",
@@ -69,13 +70,17 @@
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
     "@types/sanitize-html": "^2.16.0",
+    "@types/ws": "^8.18.2",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.19.0",
     "eslint-config-next": "^15.2.3",
     "postcss": "^8.5.1",
     "prisma": "^6.3.1",
     "tailwindcss": "^4.0.6",
+    "tsx": "^4.21.0",
     "typescript": "^5.7.3",
-    "vitest": "^3.0.5"
+    "vitest": "^3.0.5",
+    "werift": "^0.24.4",
+    "ws": "^8.19.0"
   }
 }

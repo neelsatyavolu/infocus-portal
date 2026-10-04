@@ -49,7 +49,7 @@ export function MoveDialog({
 
   return (
     <Dialog open={meeting !== null} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-sm [&>*]:min-w-0">
         <DialogHeader>
           <DialogTitle>Move meeting</DialogTitle>
           <DialogDescription>{meeting?.title}. Times are Pacific.</DialogDescription>

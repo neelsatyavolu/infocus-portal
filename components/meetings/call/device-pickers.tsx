@@ -5,10 +5,11 @@ import { useObservableAsValue } from "partytracks/react";
 import type { MediaDevice } from "partytracks/client";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { saveDevicePref } from "@/src/lib/meetings/client/device-prefs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { LocalMedia } from "./use-local-media";
 
-function DevicePicker({ label, device }: { label: string; device: MediaDevice }) {
+function DevicePicker({ label, kind, device }: { label: string; kind: "mic" | "camera"; device: MediaDevice }) {
   const devices = useObservableAsValue(device.devices$, [] as MediaDeviceInfo[]);
   const active = useObservableAsValue(device.activeDevice$);
   const options = devices.filter((d) => d.deviceId);
@@ -20,7 +21,9 @@ function DevicePicker({ label, device }: { label: string; device: MediaDevice })
         value={active?.deviceId ?? ""}
         onValueChange={(id) => {
           const chosen = options.find((d) => d.deviceId === id);
-          if (chosen) device.setPreferredDevice(chosen);
+          if (!chosen) return;
+          device.setPreferredDevice(chosen);
+          saveDevicePref(kind, chosen);
         }}
       >
         <SelectTrigger aria-label={label}>
@@ -52,10 +55,15 @@ function SpeakerPicker({ value, onChange }: { value: string; onChange: (id: stri
     return () => navigator.mediaDevices.removeEventListener("devicechange", load);
   }, []);
   if (outputs.length === 0) return null;
+  const choose = (id: string) => {
+    onChange(id);
+    const chosen = outputs.find((d) => d.deviceId === id);
+    if (chosen) saveDevicePref("speaker", chosen);
+  };
   return (
     <div className="space-y-1.5">
       <Label className="text-xs text-muted-foreground">Speaker</Label>
-      <Select value={value || outputs[0].deviceId} onValueChange={onChange}>
+      <Select value={value || outputs[0].deviceId} onValueChange={choose}>
         <SelectTrigger aria-label="Speaker">
           <SelectValue />
         </SelectTrigger>
@@ -89,8 +97,8 @@ export function DevicePickers({ media }: { media: LocalMedia }) {
   return (
     <div className="grid gap-3">
       <VoiceIsolationToggle media={media} />
-      <DevicePicker label="Microphone" device={media.mic} />
-      <DevicePicker label="Camera" device={media.camera} />
+      <DevicePicker label="Microphone" kind="mic" device={media.mic} />
+      <DevicePicker label="Camera" kind="camera" device={media.camera} />
       <SpeakerPicker value={media.speakerId} onChange={media.setSpeakerId} />
     </div>
   );

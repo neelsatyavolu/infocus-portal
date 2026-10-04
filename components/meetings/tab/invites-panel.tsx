@@ -148,8 +148,8 @@ export function InvitesPanel({ embedded = false }: { embedded?: boolean }) {
 
       {canManage && invites ? (
         <>
-          <form onSubmit={add} className="grid gap-2 sm:grid-cols-[1fr_10rem_12rem_auto] sm:items-end">
-            <div className="space-y-1">
+          <form onSubmit={add} className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1 sm:col-span-2">
               <Label htmlFor="invite-email">Email</Label>
               <Input id="invite-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.edu" required />
             </div>
@@ -161,7 +161,7 @@ export function InvitesPanel({ embedded = false }: { embedded?: boolean }) {
               <Label>Producer (optional)</Label>
               <LinkedPersonSelect people={people} value={linkUserId} onChange={setLinkUserId} label="Link to a producer" />
             </div>
-            <Button type="submit" disabled={busy !== null}>
+            <Button type="submit" disabled={busy !== null} className="sm:col-span-2 sm:justify-self-end">
               {busy === "add" ? <Loader2 className="animate-spin" aria-hidden /> : null}
               Add and invite
             </Button>

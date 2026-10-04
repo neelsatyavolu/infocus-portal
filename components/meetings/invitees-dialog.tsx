@@ -76,7 +76,7 @@ export function InviteesDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md [&>*]:min-w-0">
         <DialogHeader>
           <DialogTitle>Invited people</DialogTitle>
           <DialogDescription>

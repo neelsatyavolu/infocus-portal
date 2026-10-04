@@ -14,7 +14,7 @@ export function CalendarSettingsDialog() {
           <Settings aria-hidden />
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-xl">
+      <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-xl [&>*]:min-w-0">
         <DialogHeader>
           <DialogTitle>Calendar invites</DialogTitle>
           <DialogDescription>Who gets Google Calendar invites for scheduled meetings.</DialogDescription>

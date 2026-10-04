@@ -112,7 +112,7 @@ export function ScheduleDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg [&>*]:min-w-0">
         <form onSubmit={submit} className="space-y-4">
           <DialogHeader>
             <DialogTitle>{mode === "private-now" ? "Start a private meeting" : "Schedule a meeting"}</DialogTitle>

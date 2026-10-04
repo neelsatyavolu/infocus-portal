@@ -7,6 +7,7 @@ import { NEVER } from "rxjs";
 import { toast } from "sonner";
 import { keepBroadcasting } from "@/src/lib/meetings/client/keep-broadcasting";
 import { resumeVoiceIsolation } from "@/src/lib/meetings/client/voice-isolation";
+import { useDevicePrefs } from "./use-device-prefs";
 import { useVoiceIsolation } from "./use-voice-isolation";
 
 export type LocalMedia = {
@@ -46,6 +47,7 @@ export function useLocalMedia(): LocalMedia {
   const [screen, setScreen] = useState<Screenshare | null>(null);
   const [speakerId, setSpeakerId] = useState("");
   const { voiceIsolation, setVoiceIsolation } = useVoiceIsolation(mic);
+  useDevicePrefs(mic, camera, setSpeakerId);
 
   const audioOn = useObservableAsValue(mic.isBroadcasting$, false);
   const videoOn = useObservableAsValue(camera.isBroadcasting$, false);

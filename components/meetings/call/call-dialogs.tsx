@@ -28,7 +28,8 @@ export function MeetingInfoDialog({ open, onOpenChange, meeting, isHost }: OpenP
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-md">
+        {/* Grid items default to min-width:auto; without min-w-0 the long link widens the dialog past its edge. */}
+        <DialogContent className="max-w-md [&>*]:min-w-0">
           <DialogHeader>
             <DialogTitle>{meeting.title}</DialogTitle>
             <DialogDescription>Share this link with producers. People who aren&rsquo;t hosts may need to be let in.</DialogDescription>
@@ -69,7 +70,7 @@ function MicTest({ media }: { media: LocalMedia }) {
 export function DevicesDialog({ open, onOpenChange, media }: OpenProps & { media: LocalMedia }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md [&>*]:min-w-0">
         <DialogHeader>
           <DialogTitle>Audio and video</DialogTitle>
         </DialogHeader>
@@ -121,7 +122,7 @@ export function HostControlsDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md [&>*]:min-w-0">
           <DialogHeader>
             <DialogTitle>Host controls</DialogTitle>
           </DialogHeader>

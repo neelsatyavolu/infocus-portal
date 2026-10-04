@@ -32,13 +32,14 @@ function deviceErrorMessage(kind: "microphone" | "camera", error: Error) {
 
 /** Mic, camera and screen share sources (partytracks), shared by pre-join and the call. */
 export function useLocalMedia(): LocalMedia {
-  const [mic] = useState(() => getMic({ broadcasting: true }));
-  const [camera] = useState(() => getCamera({ broadcasting: true }));
+  // Both start off; people can turn them on in pre-join to test before joining.
+  const [mic] = useState(() => getMic({ broadcasting: false }));
+  const [camera] = useState(() => getCamera({ broadcasting: false }));
   const [screen, setScreen] = useState<Screenshare | null>(null);
   const [speakerId, setSpeakerId] = useState("");
 
-  const audioOn = useObservableAsValue(mic.isBroadcasting$, true);
-  const videoOn = useObservableAsValue(camera.isBroadcasting$, true);
+  const audioOn = useObservableAsValue(mic.isBroadcasting$, false);
+  const videoOn = useObservableAsValue(camera.isBroadcasting$, false);
 
   useEffect(() => keepBroadcasting([mic, camera]), [mic, camera]);
 

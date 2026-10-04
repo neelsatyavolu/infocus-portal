@@ -51,13 +51,22 @@ export function LeaveDialog({
             <DialogTitle>{choices.title}</DialogTitle>
             {choices.description ? <DialogDescription>{choices.description}</DialogDescription> : null}
           </DialogHeader>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            {choices.actions.includes("end") ? (
+          {choices.actions.includes("end") ? (
+            // Three choices don't fit on one row in a small dialog: stack them, full width.
+            <div className="flex flex-col gap-2">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  onOpenChange(false);
+                  onLeave();
+                }}
+              >
+                Just leave
+              </Button>
               <Button
                 variant="destructive-quiet"
+                className="w-full"
                 onClick={() => {
                   onOpenChange(false);
                   setConfirmEnd(true);
@@ -65,17 +74,26 @@ export function LeaveDialog({
               >
                 End meeting for everyone
               </Button>
-            ) : null}
-            <Button
-              variant="destructive-quiet"
-              onClick={() => {
-                onOpenChange(false);
-                onLeave();
-              }}
-            >
-              {isHost ? "Just leave" : "Leave"}
-            </Button>
-          </DialogFooter>
+              <Button variant="ghost" className="w-full" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+            </div>
+          ) : (
+            <DialogFooter className="gap-2 sm:space-x-0">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive-quiet"
+                onClick={() => {
+                  onOpenChange(false);
+                  onLeave();
+                }}
+              >
+                {isHost ? "Just leave" : "Leave"}
+              </Button>
+            </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
       <ConfirmDialog

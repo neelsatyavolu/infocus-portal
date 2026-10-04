@@ -74,6 +74,13 @@ describe("roomReducer", () => {
     });
   });
 
+  it("applies host hand-off", () => {
+    const guest = roomReducer(welcome, { t: "role", isHost: false });
+    expect(guest.isHost).toBe(false);
+    expect(roomReducer(guest, { t: "role", isHost: true }).isHost).toBe(true);
+    expect(roomReducer(welcome, { t: "role", isHost: true })).toBe(welcome);
+  });
+
   it("stays ended or removed", () => {
     const ended = roomReducer(welcome, { t: "ended" });
     expect(ended.phase).toBe("ended");

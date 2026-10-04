@@ -73,6 +73,16 @@ export class RoomSocket {
     return true;
   }
 
+  /** Sends, then waits (up to `timeoutMs`) for the socket buffer to drain; for `leave` before closing. */
+  async sendAndFlush(message: MeetingClientMessage, timeoutMs = 300) {
+    if (!this.send(message)) return false;
+    const deadline = Date.now() + timeoutMs;
+    while (this.socket && this.socket.bufferedAmount > 0 && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+    return true;
+  }
+
   close() {
     this.stopped = true;
     this.clearTimers();

@@ -3,11 +3,16 @@
 import { Hand, MicOff, MonitorUp, Pin, PinOff, ShieldAlert } from "lucide-react";
 import type { PartyTracks } from "partytracks/client";
 import type { MeetingParticipantView } from "@/src/lib/meetings/protocol";
-import type { SimulcastRid } from "@/src/lib/meetings/client/layout";
+import type { ReceiveQuality } from "@/src/lib/meetings/client/meet-settings";
+import { ridForTileHeight } from "@/src/lib/meetings/client/quality";
 import type { MeetingE2ee } from "@/src/lib/meetings/client/e2ee";
 import { cn } from "@/src/lib/utils";
 import { Avatar } from "./avatar";
+import { HandBadge } from "./hand-badge";
 import { VideoView, useDecryptFailing, usePulledTrack } from "./media-elements";
+import { useDebouncedValue } from "./use-debounced-value";
+
+const RID_DEBOUNCE_MS = 500;
 
 export type TileModel = {
   id: string;
@@ -40,27 +45,39 @@ export function ParticipantTile({
   tile,
   partyTracks,
   e2ee,
-  rid,
+  placement,
+  tileHeight,
+  receive,
+  mirrorSelf = true,
   speaking,
   pinned,
   onTogglePin,
   selfTrack,
-  small
+  small,
+  handPosition
 }: {
   tile: TileModel;
   partyTracks: PartyTracks | null;
   e2ee: MeetingE2ee | null;
-  rid: SimulcastRid;
+  placement: "main" | "grid" | "strip";
+  /** On-screen height (CSS px); picks the simulcast layer to pull. */
+  tileHeight: number;
+  receive: ReceiveQuality;
+  mirrorSelf?: boolean;
   speaking: boolean;
   pinned: boolean;
   onTogglePin: () => void;
   /** Local camera preview for the self tile. */
   selfTrack?: MediaStreamTrack;
   small?: boolean;
+  /** Raised-hand queue position (1 = first). */
+  handPosition?: number;
 }) {
   const { participant, isSelf, isScreen } = tile;
   const wantsVideo = isScreen ? participant.screenOn : participant.videoOn;
   const meta = isSelf || !wantsVideo ? undefined : isScreen ? participant.tracks.screen : participant.tracks.video;
+  // Debounced so resizing the window doesn't thrash layer switches.
+  const rid = useDebouncedValue(ridForTileHeight(tileHeight, receive, placement), RID_DEBOUNCE_MS);
   const remoteTrack = usePulledTrack(partyTracks, meta, isScreen ? undefined : rid);
   const failing = useDecryptFailing(e2ee, remoteTrack);
   const track = isSelf ? (isScreen ? undefined : selfTrack) : remoteTrack;
@@ -72,7 +89,12 @@ export function ParticipantTile({
       className={cn(
         "group relative h-full w-full overflow-hidden rounded-md bg-[var(--ink-2)]",
         // Outline, not border: the speaker ring never shifts the layout.
-        speaking && !isScreen ? "outline outline-2 outline-[var(--brand-green)]" : "outline outline-1 outline-[var(--ink-4)]"
+        // Speaking (green) wins over a raised hand (amber); the amber hand badge stays visible either way.
+        speaking && !isScreen
+          ? "outline outline-2 outline-[var(--brand-green)]"
+          : handPosition
+            ? "outline outline-2 outline-[#F2A516]"
+            : "outline outline-1 outline-[var(--ink-4)]"
       )}
     >
       {failing ? (
@@ -82,12 +104,14 @@ export function ParticipantTile({
       ) : isSelf && isScreen ? (
         <CenterNote icon={<MonitorUp className="h-6 w-6" aria-hidden />}>You&rsquo;re presenting to everyone</CenterNote>
       ) : wantsVideo && track ? (
-        <VideoView track={track} mirror={isSelf} contain={isScreen} />
+        <VideoView track={track} mirror={isSelf && mirrorSelf} contain={isScreen} />
       ) : (
         <div className="flex h-full items-center justify-center">
           <Avatar name={participant.name} size={small ? "md" : "lg"} />
         </div>
       )}
+
+      {handPosition ? <HandBadge position={handPosition} compact={small} className="absolute left-2 top-2" /> : null}
 
       <NamePill
         label={label}

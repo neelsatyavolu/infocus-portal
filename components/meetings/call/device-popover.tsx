@@ -1,13 +1,17 @@
 "use client";
 
+import { pointerSafeAutoFocus } from "@/components/meetings/focus-modality";
 import * as Popover from "@radix-ui/react-popover";
 import { Settings } from "lucide-react";
 import { CallButton } from "./call-button";
-import { DevicePickers } from "./device-pickers";
 import { LevelMeter } from "./level-meter";
+import { AudioSettings, VideoSettings } from "./settings-sections";
 import type { LocalMedia } from "./use-local-media";
 
-/** Gear button with a compact popover: microphone, camera, speaker and the mic level. */
+/**
+ * Pre-join gear: compact Audio (mic level from the preview's processed track) and Video
+ * (camera, background, mirror). The pre-join preview already shows the camera and blur.
+ */
 export function DevicePopover({ media, micTrack }: { media: LocalMedia; micTrack: MediaStreamTrack | undefined }) {
   return (
     <Popover.Root>
@@ -17,19 +21,20 @@ export function DevicePopover({ media, micTrack }: { media: LocalMedia; micTrack
         </CallButton>
       </Popover.Trigger>
       <Popover.Portal>
-        <Popover.Content
+        <Popover.Content onOpenAutoFocus={pointerSafeAutoFocus}
           side="top"
           align="center"
           sideOffset={12}
           collisionPadding={16}
-          className="z-50 w-[min(20rem,calc(100vw-2rem))] space-y-4 rounded-md border border-[var(--ink-4)] bg-[var(--ink-2)] p-4"
+          className="z-50 max-h-[min(36rem,calc(100dvh-6rem))] w-[min(22rem,calc(100vw-2rem))] space-y-4 overflow-y-auto overscroll-contain rounded-md outline-none border border-[var(--ink-4)] bg-[var(--ink-2)] p-4"
         >
-          <p className="text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">Audio and video</p>
-          <DevicePickers media={media} />
+          <AudioSettings media={media} showMeter={false} />
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <LevelMeter track={micTrack} />
             <span>{media.audioOn ? "Speak to test your microphone" : "Turn on your mic to test it"}</span>
           </div>
+          <div className="h-px bg-[var(--ink-4)]" aria-hidden />
+          <VideoSettings media={media} showPreview={false} showQuality={false} peopleCount={0} />
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>

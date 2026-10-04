@@ -25,7 +25,7 @@ export function LinkedPersonSelect({
       onValueChange={(next) => onChange(next === NONE ? null : next)}
       disabled={disabled || !people}
     >
-      <SelectTrigger aria-label={label} className="h-9 w-full sm:w-48">
+      <SelectTrigger aria-label={label} className="h-9 w-full focus:ring-0 focus-visible:ring-2 focus-visible:ring-[var(--brand-green)] sm:w-48">
         <SelectValue placeholder={people ? "Not linked" : "Loading…"} />
       </SelectTrigger>
       <SelectContent>

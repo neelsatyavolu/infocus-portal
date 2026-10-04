@@ -12,19 +12,12 @@ export type StageTile = {
   joinedAt: number;
 };
 
-export type SimulcastRid = "f" | "h" | "q";
+export type { SimulcastRid } from "./quality";
 
 export const DESKTOP_MAX_TILES = 16;
 export const MOBILE_MAX_TILES = 4;
 export const SPEAKER_HOLD_MS = 1500;
 export const SPEAKING_LEVEL = 0.06;
-
-/** Camera simulcast layers pushed by every client (rid → encoding). */
-export const CAMERA_SIMULCAST: RTCRtpEncodingParameters[] = [
-  { rid: "q", scaleResolutionDownBy: 4, maxBitrate: 150_000, maxFramerate: 15 },
-  { rid: "h", scaleResolutionDownBy: 2, maxBitrate: 500_000, maxFramerate: 30 },
-  { rid: "f", maxBitrate: 1_500_000, maxFramerate: 30 }
-];
 
 export function screenTileId(uid: string) {
   return `${uid}:screen`;
@@ -103,13 +96,6 @@ export function fitGrid(input: {
     if (tileW > best.width) best = { cols, rows, width: Math.floor(tileW), height: Math.floor(tileW / aspect) };
   }
   return best;
-}
-
-/** Simulcast layer to pull for a tile: full for the stage, half for small grids, quarter elsewhere. */
-export function ridForTile(placement: "main" | "grid" | "strip", gridCount: number): SimulcastRid {
-  if (placement === "main") return "f";
-  if (placement === "grid" && gridCount <= 4) return "h";
-  return "q";
 }
 
 export type SpeakerState = { uid: string | null; since: number; speaking: readonly string[] };

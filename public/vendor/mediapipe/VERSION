@@ -1,0 +1,3 @@
+@mediapipe/tasks-vision 1.0.1 (Apache-2.0)
+selfie_segmenter.tflite from https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/latest/selfie_segmenter.tflite
+vendored 2026-10-04

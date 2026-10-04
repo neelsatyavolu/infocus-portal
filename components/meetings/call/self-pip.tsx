@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { MicOff } from "lucide-react";
 import { cn } from "@/src/lib/utils";
+import { HandBadge } from "./hand-badge";
 import { VideoView } from "./media-elements";
 
 type Corner = "br" | "bl" | "tl" | "tr";
@@ -22,13 +23,17 @@ export function SelfPip({
   videoOn,
   audioOn,
   name,
-  landscape
+  landscape,
+  handPosition,
+  mirror = true
 }: {
   track: MediaStreamTrack | undefined;
   videoOn: boolean;
   audioOn: boolean;
   name: string;
   landscape: boolean;
+  handPosition?: number;
+  mirror?: boolean;
 }) {
   const [corner, setCorner] = useState<Corner>("br");
   return (
@@ -39,14 +44,16 @@ export function SelfPip({
       className={cn(
         "absolute z-10 overflow-hidden rounded-md border border-[var(--ink-4)] bg-[var(--ink-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]",
         landscape ? "h-20 w-32" : "h-32 w-24",
+        handPosition ? "outline outline-2 outline-[#F2A516]" : undefined,
         CORNER_CLASS[corner]
       )}
     >
       {videoOn && track ? (
-        <VideoView track={track} mirror />
+        <VideoView track={track} mirror={mirror} />
       ) : (
         <span className="flex h-full items-center justify-center px-1 text-center text-[11px] text-muted-foreground">{name}</span>
       )}
+      {handPosition ? <HandBadge position={handPosition} compact className="absolute left-1 top-1" /> : null}
       {!audioOn ? (
         <span className="absolute bottom-1 left-1 rounded-sm bg-black/55 p-0.5 text-soft-white">
           <MicOff className="h-3.5 w-3.5" aria-label="Microphone off" />

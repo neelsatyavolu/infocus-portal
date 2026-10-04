@@ -27,7 +27,7 @@ function Preview({ media, userName }: { media: LocalMedia; userName: string }) {
   return (
     <div className="relative aspect-video w-full overflow-hidden rounded-md bg-[var(--ink-2)] outline outline-1 outline-[var(--ink-4)]">
       {showVideo ? (
-        <VideoView track={cameraTrack} mirror />
+        <VideoView track={cameraTrack} mirror={media.settings.mirror} />
       ) : (
         <div className="flex h-full flex-col items-center justify-center gap-3">
           <Avatar name={userName} size="lg" />

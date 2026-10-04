@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { NEVER } from "rxjs";
+import { pointerSafeAutoFocus } from "@/components/meetings/focus-modality";
+import { useState } from "react";
 import { Lock } from "lucide-react";
 import { toast } from "sonner";
 import { CopyTextButton } from "@/components/copy-text-button";
@@ -14,9 +14,7 @@ import type { MeetingSummary } from "@/src/lib/meetings/types";
 import { errorMessage, meetingsApi } from "@/src/lib/meetings/client/api";
 import { ConfirmDialog } from "../confirm-dialog";
 import { InviteesDialog } from "../invitees-dialog";
-import { DevicePickers } from "./device-pickers";
-import { LevelMeter } from "./level-meter";
-import { useObservableTrack } from "./media-elements";
+import { AudioSettings, VideoSettings } from "./settings-sections";
 import { accessTagLabel } from "../tab/meeting-rows";
 import type { LocalMedia } from "./use-local-media";
 
@@ -29,7 +27,7 @@ export function MeetingInfoDialog({ open, onOpenChange, meeting, isHost }: OpenP
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         {/* Grid items default to min-width:auto; without min-w-0 the long link widens the dialog past its edge. */}
-        <DialogContent className="max-w-md [&>*]:min-w-0">
+        <DialogContent onOpenAutoFocus={pointerSafeAutoFocus} className="outline-none max-w-md [&>*]:min-w-0">
           <DialogHeader>
             <DialogTitle>{meeting.title}</DialogTitle>
             <DialogDescription>Share this link with producers. People who aren&rsquo;t hosts may need to be let in.</DialogDescription>
@@ -55,27 +53,21 @@ export function MeetingInfoDialog({ open, onOpenChange, meeting, isHost }: OpenP
   );
 }
 
-/** Mic meter on the processed (voice-isolated) track, so the effect is visible. */
-function MicTest({ media }: { media: LocalMedia }) {
-  const mic$ = useMemo(() => (media.audioOn ? media.mic.localMonitorTrack$ : NEVER), [media.audioOn, media.mic]);
-  const micTrack = useObservableTrack(mic$);
-  return (
-    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-      <LevelMeter track={micTrack} />
-      <span>{media.audioOn ? "Speak to test your microphone" : "Your microphone is off"}</span>
-    </div>
-  );
-}
-
-export function DevicesDialog({ open, onOpenChange, media }: OpenProps & { media: LocalMedia }) {
+export function DevicesDialog({
+  open,
+  onOpenChange,
+  media,
+  peopleCount
+}: OpenProps & { media: LocalMedia; peopleCount: number }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md [&>*]:min-w-0">
+      <DialogContent onOpenAutoFocus={pointerSafeAutoFocus} className="outline-none max-h-[85dvh] max-w-md overflow-y-auto [&>*]:min-w-0">
         <DialogHeader>
           <DialogTitle>Audio and video</DialogTitle>
         </DialogHeader>
-        <DevicePickers media={media} />
-        <MicTest media={media} />
+        <AudioSettings media={media} />
+        <div className="h-px bg-[var(--ink-4)]" aria-hidden />
+        <VideoSettings media={media} peopleCount={peopleCount} />
       </DialogContent>
     </Dialog>
   );
@@ -122,7 +114,7 @@ export function HostControlsDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-md [&>*]:min-w-0">
+        <DialogContent onOpenAutoFocus={pointerSafeAutoFocus} className="outline-none max-w-md [&>*]:min-w-0">
           <DialogHeader>
             <DialogTitle>Host controls</DialogTitle>
           </DialogHeader>

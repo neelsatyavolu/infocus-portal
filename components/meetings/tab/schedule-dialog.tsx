@@ -1,5 +1,6 @@
 "use client";
 
+import { pointerSafeAutoFocus } from "@/components/meetings/focus-modality";
 import { useEffect, useState, type FormEvent } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -112,7 +113,7 @@ export function ScheduleDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg [&>*]:min-w-0">
+      <DialogContent onOpenAutoFocus={pointerSafeAutoFocus} className="outline-none max-w-lg [&>*]:min-w-0">
         <form onSubmit={submit} className="space-y-4">
           <DialogHeader>
             <DialogTitle>{mode === "private-now" ? "Start a private meeting" : "Schedule a meeting"}</DialogTitle>
@@ -135,7 +136,7 @@ export function ScheduleDialog({
               <div className="space-y-1.5">
                 <Label htmlFor="meeting-duration">Duration</Label>
                 <Select value={duration} onValueChange={setDuration}>
-                  <SelectTrigger id="meeting-duration">
+                  <SelectTrigger id="meeting-duration" className="focus:ring-0 focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

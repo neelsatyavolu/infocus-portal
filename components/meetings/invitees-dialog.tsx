@@ -1,5 +1,6 @@
 "use client";
 
+import { pointerSafeAutoFocus } from "@/components/meetings/focus-modality";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -76,7 +77,7 @@ export function InviteesDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md [&>*]:min-w-0">
+      <DialogContent onOpenAutoFocus={pointerSafeAutoFocus} className="outline-none max-w-md [&>*]:min-w-0">
         <DialogHeader>
           <DialogTitle>Invited people</DialogTitle>
           <DialogDescription>

@@ -1,5 +1,6 @@
 "use client";
 
+import { pointerSafeAutoFocus } from "@/components/meetings/focus-modality";
 import { useEffect, useState } from "react";
 import * as Popover from "@radix-ui/react-popover";
 import {
@@ -18,6 +19,7 @@ import {
 } from "lucide-react";
 import { MEETING_REACTIONS, type MeetingReaction } from "@/src/lib/meetings/protocol";
 import type { LayoutMode } from "@/src/lib/meetings/client/layout";
+import { ordinal } from "@/src/lib/meetings/client/hands";
 import { pacificTimeLabel } from "@/src/lib/meetings/client/time";
 import { CallButton, IconButton, LeaveButton } from "./call-button";
 import { MoreMenu, type MoreAction } from "./more-menu";
@@ -31,12 +33,15 @@ export type ControlsProps = {
   /** False where getDisplayMedia is missing (iOS): the share control is hidden. */
   canShare: boolean;
   handRaised: boolean;
+  /** Our own raised-hand queue position, once the room has it. */
+  handPosition?: number;
   chatOpen: boolean;
   peopleOpen: boolean;
   unread: number;
   peopleCount: number;
   waitingCount: number;
   layout: LayoutMode;
+  layoutAlone: boolean;
   moreActions: MoreAction[];
   onLayout: (mode: LayoutMode) => void;
   onMic: () => void;
@@ -59,7 +64,7 @@ function ReactionPicker({ onReact }: { onReact: (emoji: MeetingReaction) => void
         </CallButton>
       </Popover.Trigger>
       <Popover.Portal>
-        <Popover.Content side="top" sideOffset={12} className="z-50 flex gap-1 rounded-md border border-[var(--ink-4)] bg-[var(--ink-2)] p-1">
+        <Popover.Content onOpenAutoFocus={pointerSafeAutoFocus} side="top" sideOffset={12} className="z-50 outline-none flex gap-1 rounded-md border border-[var(--ink-4)] bg-[var(--ink-2)] p-1">
           {MEETING_REACTIONS.map((emoji) => (
             <button
               key={emoji}
@@ -75,6 +80,11 @@ function ReactionPicker({ onReact }: { onReact: (emoji: MeetingReaction) => void
       </Popover.Portal>
     </Popover.Root>
   );
+}
+
+function handLabel(raised: boolean, position: number | undefined) {
+  if (!raised) return "Raise hand";
+  return position ? `Hand raised · ${ordinal(position)}. Lower hand` : "Lower hand";
 }
 
 /** Desktop left group: wall-clock time | meeting title. */
@@ -135,7 +145,7 @@ export function ControlsBar(props: ControlsProps) {
               <MonitorUp />
             </CallButton>
           ) : null}
-          <CallButton label={props.handRaised ? "Lower hand" : "Raise hand"} shortcut="⌘⌥H" state={props.handRaised ? "active" : "on"} onClick={props.onHand}>
+          <CallButton label={handLabel(props.handRaised, props.handPosition)} shortcut="⌘⌥H" state={props.handRaised ? "active" : "on"} onClick={props.onHand}>
             <Hand />
           </CallButton>
           {!mobile ? <ReactionPicker onReact={props.onReact} /> : null}
@@ -146,6 +156,7 @@ export function ControlsBar(props: ControlsProps) {
             actions={[...mobileExtras, ...props.moreActions]}
             layout={props.layout}
             onLayout={props.onLayout}
+            layoutAlone={props.layoutAlone}
             onReact={mobile ? props.onReact : undefined}
             trigger={
               <CallButton label="More options" badge={mobile ? props.unread || hostBadge : undefined}>

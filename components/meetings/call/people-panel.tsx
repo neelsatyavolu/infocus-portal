@@ -1,34 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { Hand, Mic, MicOff, UserMinus } from "lucide-react";
+import { Hand, MicOff } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import type { MeetingClientMessage, MeetingParticipantView, MeetingWaitingView } from "@/src/lib/meetings/protocol";
 import { errorMessage, meetingsApi } from "@/src/lib/meetings/client/api";
 import { ConfirmDialog } from "../confirm-dialog";
 import { Avatar } from "./avatar";
+import { PeopleRow } from "./people-row";
 import { SidePanel } from "./side-panel";
-
-function IconAction({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      title={label}
-      className="flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground hover:bg-[var(--ink-3)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]"
-    >
-      {children}
-    </button>
-  );
-}
 
 export function PeoplePanel({
   meetingId,
   selfUid,
   isHost,
   participants,
+  hands,
   waiting,
   send,
   onClose,
@@ -38,6 +26,8 @@ export function PeoplePanel({
   selfUid: string | null;
   isHost: boolean;
   participants: MeetingParticipantView[];
+  /** uid → raised-hand queue position. */
+  hands: Readonly<Record<string, number>>;
   waiting: readonly MeetingWaitingView[];
   send: (message: MeetingClientMessage) => boolean;
   onClose: () => void;
@@ -45,7 +35,8 @@ export function PeoplePanel({
 }) {
   const [removing, setRemoving] = useState<MeetingParticipantView | null>(null);
   const people = participants.filter((p) => !p.isScribe);
-  const anyHands = people.some((p) => p.handRaisedAt !== null);
+  const raised = people.filter((p) => hands[p.uid]).sort((a, b) => hands[a.uid] - hands[b.uid]);
+  const others = people.filter((p) => !hands[p.uid]);
 
   async function act(promise: Promise<unknown>, done: string) {
     try {
@@ -61,6 +52,18 @@ export function PeoplePanel({
     if (send(message)) toast.success(done);
     else toast.error("You're offline. Try again in a moment.");
   };
+
+  const row = (p: MeetingParticipantView) => (
+    <PeopleRow
+      key={p.uid}
+      person={p}
+      isSelf={p.uid === selfUid}
+      isHost={isHost}
+      handPosition={hands[p.uid]}
+      hostSend={hostSend}
+      onRemove={() => setRemoving(p)}
+    />
+  );
 
   return (
     <SidePanel title={`People (${people.length})`} onClose={onClose} mobile={mobile}>
@@ -100,58 +103,25 @@ export function PeoplePanel({
           <Button size="sm" variant="outline" className="h-11 md:h-8" onClick={() => hostSend({ t: "muteAll" }, "Muted everyone.")}>
             <MicOff aria-hidden /> Mute all
           </Button>
-          {anyHands ? (
-            <Button size="sm" variant="outline" className="h-11 md:h-8" onClick={() => hostSend({ t: "lowerAllHands" }, "Lowered all hands.")}>
-              <Hand aria-hidden /> Lower all hands
-            </Button>
-          ) : null}
         </div>
       ) : null}
 
-      <ul className="py-2">
-        {people.map((p) => {
-          const self = p.uid === selfUid;
-          return (
-            <li key={p.uid} className="flex items-center gap-3 py-1.5 pl-4 pr-2">
-              <Avatar name={p.name} size="sm" />
-              <div className="flex min-w-0 flex-1 items-center gap-2">
-                <span className="truncate text-sm text-foreground">
-                  {p.name}
-                  {self ? " (You)" : ""}
-                </span>
-                {p.isHost ? (
-                  <span className="shrink-0 rounded-sm border border-[var(--ink-4)] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.11em] text-muted-foreground">
-                    Host
-                  </span>
-                ) : null}
-              </div>
-              {p.handRaisedAt !== null && !isHost ? (
-                <span className="flex h-11 w-11 items-center justify-center text-[var(--brand-green)]" aria-label="Hand raised">
-                  <Hand className="h-4 w-4" />
-                </span>
-              ) : null}
-              {p.handRaisedAt !== null && isHost ? (
-                <IconAction label={`Lower ${p.name}'s hand`} onClick={() => hostSend({ t: "lowerHand", uid: p.uid }, `Lowered ${p.name}'s hand.`)}>
-                  <Hand className="h-4 w-4 text-[var(--brand-green)]" />
-                </IconAction>
-              ) : null}
-              {isHost && !self && p.audioOn ? (
-                <IconAction label={`Mute ${p.name}`} onClick={() => hostSend({ t: "mute", uid: p.uid, kind: "audio" }, `Muted ${p.name}.`)}>
-                  <Mic className="h-4 w-4" />
-                </IconAction>
-              ) : (
-                <span className="flex h-11 w-11 items-center justify-center text-muted-foreground" aria-label={p.audioOn ? "Microphone on" : "Microphone off"}>
-                  {p.audioOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
-                </span>
-              )}
-              {isHost && !self ? (
-                <IconAction label={`Remove ${p.name}`} onClick={() => setRemoving(p)}>
-                  <UserMinus className="h-4 w-4 text-danger" />
-                </IconAction>
-              ) : null}
-            </li>
-          );
-        })}
+      {raised.length > 0 ? (
+        <section aria-label="Raised hands" className="border-b border-[var(--ink-4)] py-2">
+          <div className="flex h-11 items-center justify-between pl-4 pr-2">
+            <h3 className="text-xs font-medium uppercase tracking-[0.11em] text-muted-foreground">Raised hands</h3>
+            {isHost ? (
+              <Button size="sm" variant="outline" className="h-11 md:h-8" onClick={() => hostSend({ t: "lowerAllHands" }, "Lowered all hands.")}>
+                <Hand aria-hidden /> Lower all
+              </Button>
+            ) : null}
+          </div>
+          <ul>{raised.map(row)}</ul>
+        </section>
+      ) : null}
+
+      <ul className="py-2" aria-label="In the meeting">
+        {others.map(row)}
       </ul>
 
       <ConfirmDialog

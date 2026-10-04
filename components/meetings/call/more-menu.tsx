@@ -1,21 +1,14 @@
 "use client";
 
+import { pointerSafeAutoFocus } from "@/components/meetings/focus-modality";
 import type { ReactNode } from "react";
 import * as Popover from "@radix-ui/react-popover";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { Check } from "lucide-react";
 import { MEETING_REACTIONS, type MeetingReaction } from "@/src/lib/meetings/protocol";
 import type { LayoutMode } from "@/src/lib/meetings/client/layout";
-import { cn } from "@/src/lib/utils";
+import { LayoutPicker } from "./layout-picker";
 
 export type MoreAction = { id: string; label: string; icon: ReactNode; onSelect: () => void; badge?: number };
-
-const LAYOUTS: Array<{ mode: LayoutMode; label: string }> = [
-  { mode: "auto", label: "Auto" },
-  { mode: "tiled", label: "Tiled" },
-  { mode: "spotlight", label: "Spotlight" },
-  { mode: "sidebar", label: "Sidebar" }
-];
 
 const itemClass =
   "flex min-h-11 w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm text-foreground hover:bg-[var(--ink-3)] focus-visible:bg-[var(--ink-3)] focus-visible:outline-none [&_svg]:size-4 [&_svg]:shrink-0";
@@ -24,12 +17,14 @@ function MenuBody({
   actions,
   layout,
   onLayout,
+  layoutAlone,
   onReact,
   close
 }: {
   actions: MoreAction[];
   layout: LayoutMode;
   onLayout: (mode: LayoutMode) => void;
+  layoutAlone: boolean;
   onReact?: (emoji: MeetingReaction) => void;
   close: () => void;
 }) {
@@ -53,27 +48,7 @@ function MenuBody({
           ))}
         </div>
       ) : null}
-      <div role="radiogroup" aria-label="Layout">
-        <p className="px-3 pb-1 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">Layout</p>
-        <div className="grid grid-cols-4 gap-1 px-1">
-          {LAYOUTS.map(({ mode, label }) => (
-            <button
-              key={mode}
-              type="button"
-              role="radio"
-              aria-checked={layout === mode}
-              onClick={() => onLayout(mode)}
-              className={cn(
-                "flex min-h-11 items-center justify-center gap-1 rounded-md px-2 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]",
-                layout === mode ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-[var(--ink-3)]"
-              )}
-            >
-              {layout === mode ? <Check className="h-3 w-3" aria-hidden /> : null}
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <LayoutPicker layout={layout} onLayout={onLayout} alone={layoutAlone} />
       <div className="border-t border-[var(--ink-4)] pt-1">
         {actions.map((action) => (
           <button
@@ -111,6 +86,8 @@ export function MoreMenu({
   actions: MoreAction[];
   layout: LayoutMode;
   onLayout: (mode: LayoutMode) => void;
+  /** 0–1 tiles on stage: every layout looks the same. */
+  layoutAlone: boolean;
   onReact?: (emoji: MeetingReaction) => void;
 }) {
   const close = () => onOpenChange(false);
@@ -120,7 +97,7 @@ export function MoreMenu({
         <DialogPrimitive.Trigger asChild>{trigger}</DialogPrimitive.Trigger>
         <DialogPrimitive.Portal>
           <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/60" />
-          <DialogPrimitive.Content className="fixed inset-x-0 bottom-0 z-50 max-h-[80dvh] overflow-y-auto overscroll-contain border-t border-[var(--ink-4)] bg-[var(--ink-2)] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))]">
+          <DialogPrimitive.Content onOpenAutoFocus={pointerSafeAutoFocus} className="outline-none fixed inset-x-0 bottom-0 z-50 max-h-[80dvh] overflow-y-auto overscroll-contain border-t border-[var(--ink-4)] bg-[var(--ink-2)] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))]">
             <DialogPrimitive.Title className="sr-only">More options</DialogPrimitive.Title>
             <MenuBody {...body} close={close} />
           </DialogPrimitive.Content>
@@ -132,11 +109,11 @@ export function MoreMenu({
     <Popover.Root open={open} onOpenChange={onOpenChange}>
       <Popover.Trigger asChild>{trigger}</Popover.Trigger>
       <Popover.Portal>
-        <Popover.Content
+        <Popover.Content onOpenAutoFocus={pointerSafeAutoFocus}
           side="top"
           align="end"
           sideOffset={8}
-          className="z-50 w-72 rounded-md border border-[var(--ink-4)] bg-[var(--ink-2)] p-2 text-sm"
+          className="z-50 outline-none w-72 rounded-md border border-[var(--ink-4)] bg-[var(--ink-2)] p-2 text-sm"
         >
           <MenuBody {...body} close={close} />
         </Popover.Content>

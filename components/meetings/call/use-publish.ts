@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { of } from "rxjs";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { combineLatest, distinctUntilChanged, map, of } from "rxjs";
+import { useValueAsObservable } from "partytracks/react";
 import { toast } from "sonner";
 import type { TrackMetadata } from "partytracks/client";
 import type { MeetingClientMessage, MeetingTrackKind, MeetingTracks } from "@/src/lib/meetings/protocol";
-import { CAMERA_SIMULCAST } from "@/src/lib/meetings/client/layout";
+import { MIC_ENCODINGS, SCREEN_ENCODINGS, cameraEncodings } from "@/src/lib/meetings/client/quality";
 import { withBackoff, type MeetingMediaSession } from "@/src/lib/meetings/client/media-session";
 import type { LocalMedia } from "./use-local-media";
 
@@ -51,26 +52,37 @@ export function usePublish(input: {
     []
   );
 
+  // Simulcast layers follow the send-quality setting and the captured height (setParameters, no renegotiation).
+  const quality$ = useValueAsObservable(media.settings.sendQuality);
+  const cameraEncodings$ = useMemo(
+    () =>
+      combineLatest([media.camera.broadcastTrack$.pipe(map((track) => track.getSettings().height ?? 0)), quality$]).pipe(
+        map(([height, quality]) => cameraEncodings(quality, height)),
+        distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b))
+      ),
+    [media.camera, quality$]
+  );
+
   useEffect(() => {
     if (!session) return;
     const { partyTracks } = session;
     const subs = [
       partyTracks
-        .push(media.mic.broadcastTrack$)
+        .push(media.mic.broadcastTrack$, { sendEncodings$: of(MIC_ENCODINGS) })
         .pipe(withBackoff())
         .subscribe({ next: (meta) => setTrack(session, "audio", meta), error: () => toast.error("Couldn't send your microphone.") }),
       partyTracks
-        .push(media.camera.broadcastTrack$, { sendEncodings$: of(CAMERA_SIMULCAST) })
+        .push(media.camera.broadcastTrack$, { sendEncodings$: cameraEncodings$ })
         .pipe(withBackoff())
         .subscribe({ next: (meta) => setTrack(session, "video", meta), error: () => toast.error("Couldn't send your camera.") })
     ];
     return () => subs.forEach((sub) => sub.unsubscribe());
-  }, [session, media.mic, media.camera, setTrack]);
+  }, [session, media.mic, media.camera, cameraEncodings$, setTrack]);
 
   useEffect(() => {
     if (!session || !media.screen) return;
     const sub = session.partyTracks
-      .push(media.screen.video.broadcastTrack$)
+      .push(media.screen.video.broadcastTrack$, { sendEncodings$: of(SCREEN_ENCODINGS) })
       .pipe(withBackoff())
       .subscribe({ next: (meta) => setTrack(session, "screen", meta), error: () => toast.error("Couldn't share your screen.") });
     return () => {

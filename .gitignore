@@ -73,3 +73,7 @@ tsconfig.tsbuildinfo
 /*-by-opencode.txt
 /lorem-ipsum.txt
 /random-words.txt
+
+# MediaPipe runtime is copied from node_modules at build time (npm run vendor:mediapipe / prebuild).
+/public/vendor/mediapipe/vision_bundle.mjs
+/public/vendor/mediapipe/wasm/

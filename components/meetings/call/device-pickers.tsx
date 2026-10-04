@@ -7,9 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { saveDevicePref } from "@/src/lib/meetings/client/device-prefs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { LocalMedia } from "./use-local-media";
 
-function DevicePicker({ label, kind, device }: { label: string; kind: "mic" | "camera"; device: MediaDevice }) {
+/** Select triggers ring on any focus by default; Meetings shows rings for keyboard focus only. */
+export const TRIGGER_FOCUS = "focus:ring-0 focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]";
+
+export function DevicePicker({ label, kind, device }: { label: string; kind: "mic" | "camera"; device: MediaDevice }) {
   const devices = useObservableAsValue(device.devices$, [] as MediaDeviceInfo[]);
   const active = useObservableAsValue(device.activeDevice$);
   const options = devices.filter((d) => d.deviceId);
@@ -26,7 +28,7 @@ function DevicePicker({ label, kind, device }: { label: string; kind: "mic" | "c
           saveDevicePref(kind, chosen);
         }}
       >
-        <SelectTrigger aria-label={label}>
+        <SelectTrigger aria-label={label} className={TRIGGER_FOCUS}>
           <SelectValue placeholder="Default" />
         </SelectTrigger>
         <SelectContent>
@@ -41,7 +43,7 @@ function DevicePicker({ label, kind, device }: { label: string; kind: "mic" | "c
   );
 }
 
-function SpeakerPicker({ value, onChange }: { value: string; onChange: (id: string) => void }) {
+export function SpeakerPicker({ value, onChange }: { value: string; onChange: (id: string) => void }) {
   const [outputs, setOutputs] = useState<MediaDeviceInfo[]>([]);
   useEffect(() => {
     if (!("setSinkId" in HTMLMediaElement.prototype) || !navigator.mediaDevices?.enumerateDevices) return;
@@ -64,7 +66,7 @@ function SpeakerPicker({ value, onChange }: { value: string; onChange: (id: stri
     <div className="space-y-1.5">
       <Label className="text-xs text-muted-foreground">Speaker</Label>
       <Select value={value || outputs[0].deviceId} onValueChange={choose}>
-        <SelectTrigger aria-label="Speaker">
+        <SelectTrigger aria-label="Speaker" className={TRIGGER_FOCUS}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -79,27 +81,29 @@ function SpeakerPicker({ value, onChange }: { value: string; onChange: (id: stri
   );
 }
 
-function VoiceIsolationToggle({ media }: { media: LocalMedia }) {
+/** A labelled on/off row: the label and hint on the left, the switch on the right. */
+export function SettingSwitch({
+  id,
+  label,
+  hint,
+  checked,
+  onChange
+}: {
+  id: string;
+  label: string;
+  hint?: string;
+  checked: boolean;
+  onChange: (on: boolean) => void;
+}) {
   return (
     <div className="flex items-start justify-between gap-4">
       <div className="min-w-0">
-        <Label htmlFor="voice-isolation" className="text-sm text-foreground">
-          Voice isolation
+        <Label htmlFor={id} className="text-sm text-foreground">
+          {label}
         </Label>
-        <p className="mt-0.5 text-xs text-muted-foreground">Filters background noise on your device before it&rsquo;s sent.</p>
+        {hint ? <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p> : null}
       </div>
-      <Switch id="voice-isolation" checked={media.voiceIsolation} onCheckedChange={media.setVoiceIsolation} />
-    </div>
-  );
-}
-
-export function DevicePickers({ media }: { media: LocalMedia }) {
-  return (
-    <div className="grid gap-3">
-      <VoiceIsolationToggle media={media} />
-      <DevicePicker label="Microphone" kind="mic" device={media.mic} />
-      <DevicePicker label="Camera" kind="camera" device={media.camera} />
-      <SpeakerPicker value={media.speakerId} onChange={media.setSpeakerId} />
+      <Switch id={id} checked={checked} onCheckedChange={onChange} />
     </div>
   );
 }

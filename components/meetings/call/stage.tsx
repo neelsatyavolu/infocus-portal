@@ -8,11 +8,11 @@ import {
   MOBILE_MAX_TILES,
   fitGrid,
   resolveStage,
-  ridForTile,
   selectVisibleTiles,
   type LayoutMode,
   type StageTile
 } from "@/src/lib/meetings/client/layout";
+import type { ReceiveQuality } from "@/src/lib/meetings/client/meet-settings";
 import { cn } from "@/src/lib/utils";
 import { OverflowTile, ParticipantTile, type TileModel } from "./participant-tile";
 import { useElementSize } from "./use-element-size";
@@ -50,6 +50,9 @@ export function Stage({
   partyTracks,
   e2ee,
   selfTrack,
+  hands,
+  receive,
+  mirrorSelf,
   onOpenPeople
 }: {
   tiles: TileModel[];
@@ -63,6 +66,10 @@ export function Stage({
   partyTracks: PartyTracks | null;
   e2ee: MeetingE2ee | null;
   selfTrack: MediaStreamTrack | undefined;
+  /** uid → raised-hand queue position. */
+  hands: Readonly<Record<string, number>>;
+  receive: ReceiveQuality;
+  mirrorSelf: boolean;
   onOpenPeople: () => void;
 }) {
   const stageTiles: StageTile[] = tiles.map((t) => ({
@@ -76,7 +83,9 @@ export function Stage({
   const stage = resolveStage({ mode, tiles: stageTiles, pinnedId, activeSpeakerUid });
   const portraitPhone = mobile && !landscape;
 
-  const renderTile = (id: string, placement: "main" | "grid" | "strip", gridCount: number, style?: React.CSSProperties) => {
+  // Strip tiles are fixed sizes (CSS below); their heights pick the simulcast layer.
+  const stripHeight = portraitPhone ? 112 : mobile ? 90 : 135;
+  const renderTile = (id: string, placement: "main" | "grid" | "strip", style?: { width: number; height: number }) => {
     const tile = byId.get(id);
     if (!tile) return null;
     return (
@@ -85,8 +94,12 @@ export function Stage({
           tile={tile}
           partyTracks={partyTracks}
           e2ee={e2ee}
-          rid={ridForTile(placement, gridCount)}
+          placement={placement}
+          tileHeight={style?.height ?? stripHeight}
+          receive={receive}
+          mirrorSelf={mirrorSelf}
           speaking={speaking.includes(tile.participant.uid)}
+          handPosition={tile.isScreen ? undefined : hands[tile.participant.uid]}
           pinned={pinnedId === id}
           onTogglePin={() => onPin(pinnedId === id ? null : id)}
           selfTrack={selfTrack}
@@ -104,7 +117,7 @@ export function Stage({
       <FittedGrid count={count} aspect={portraitPhone ? 3 / 4 : 16 / 9} maxCols={portraitPhone ? 2 : undefined}>
         {(size) => (
           <>
-            {visible.map((t) => renderTile(t.id, "grid", count, size))}
+            {visible.map((t) => renderTile(t.id, "grid", size))}
             {overflow > 0 ? (
               <div style={size}>
                 <OverflowTile count={overflow} onClick={onOpenPeople} />
@@ -126,7 +139,7 @@ export function Stage({
     <div className={cn("flex h-full w-full", portraitPhone ? "flex-col" : "flex-row")}>
       <div className="min-h-0 min-w-0 flex-1">
         <FittedGrid count={1} aspect={16 / 9}>
-          {(size) => renderTile(mainId, "main", 1, size)}
+          {(size) => renderTile(mainId, "main", size)}
         </FittedGrid>
       </div>
       {showStrip ? (
@@ -141,7 +154,7 @@ export function Stage({
         >
           {visible.map((t) => (
             <div key={t.id} className={cn("aspect-video shrink-0", portraitPhone ? "h-full" : "w-full")}>
-              {renderTile(t.id, "strip", visible.length)}
+              {renderTile(t.id, "strip")}
             </div>
           ))}
           {overflow > 0 ? (

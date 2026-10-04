@@ -65,6 +65,8 @@ export function roomReducer(state: RoomState, message: MeetingServerMessage): Ro
       return { ...state, phase: "ended" };
     case "rekey":
       return { ...state, epoch: Math.max(state.epoch, message.epoch) };
+    case "role":
+      return state.isHost === message.isHost ? state : { ...state, isHost: message.isHost };
     case "settings":
       return { ...state, settings: message.settings };
     default:

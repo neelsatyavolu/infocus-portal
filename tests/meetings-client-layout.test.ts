@@ -5,7 +5,6 @@ import {
   nextSpeakerState,
   qualityFromStats,
   resolveStage,
-  ridForTile,
   selectVisibleTiles,
   type StageTile
 } from "@/src/lib/meetings/client/layout";
@@ -78,6 +77,21 @@ describe("resolveStage", () => {
     expect(resolveStage({ mode: "auto", tiles, pinnedId: "gone", activeSpeakerUid: null }).kind).toBe("grid");
   });
 
+  it("gives each mode its own arrangement with 3 tiles", () => {
+    const three = [tile("me", 0, { isSelf: true }), tile("a", 1), tile("b", 2)];
+    const plain = (mode: "auto" | "tiled" | "spotlight" | "sidebar") =>
+      resolveStage({ mode, tiles: three, pinnedId: null, activeSpeakerUid: "b" });
+    expect(plain("tiled")).toEqual({ kind: "grid", mainId: null });
+    expect(plain("spotlight")).toEqual({ kind: "spotlight", mainId: "b" });
+    expect(plain("sidebar")).toEqual({ kind: "sidebar", mainId: "b" });
+    // Auto is the grid until someone pins or shares; then it differs from Tiled.
+    expect(plain("auto")).toEqual({ kind: "grid", mainId: null });
+    const sharing = [...three.slice(0, 2), tile("a", 1, { isScreen: true })];
+    const share = (mode: "auto" | "tiled") => resolveStage({ mode, tiles: sharing, pinnedId: null, activeSpeakerUid: null });
+    expect(share("auto")).toEqual({ kind: "sidebar", mainId: "a:screen" });
+    expect(share("tiled")).toEqual({ kind: "grid", mainId: null });
+  });
+
   it("is a plain grid for one tile", () => {
     expect(resolveStage({ mode: "spotlight", tiles: [tiles[0]], pinnedId: null, activeSpeakerUid: null }).kind).toBe("grid");
   });
@@ -102,15 +116,6 @@ describe("fitGrid", () => {
   it("respects maxCols for phones and handles empty boxes", () => {
     expect(fitGrid({ width: 390, height: 700, gap: 8, aspect: 3 / 4, count: 4, maxCols: 2 }).cols).toBeLessThanOrEqual(2);
     expect(fitGrid({ ...box, count: 3, width: 0 })).toEqual({ cols: 1, rows: 1, width: 0, height: 0 });
-  });
-});
-
-describe("grid helpers", () => {
-  it("picks simulcast layers", () => {
-    expect(ridForTile("main", 9)).toBe("f");
-    expect(ridForTile("grid", 3)).toBe("h");
-    expect(ridForTile("grid", 9)).toBe("q");
-    expect(ridForTile("strip", 2)).toBe("q");
   });
 });
 

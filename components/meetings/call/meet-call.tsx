@@ -57,8 +57,8 @@ function SupportedCall({
     void call.join();
   };
 
-  const leave = () => {
-    call.leave();
+  const leave = async () => {
+    await call.leave();
     exitCall();
   };
 
@@ -68,11 +68,11 @@ function SupportedCall({
     case "joining":
       return <JoiningScreen />;
     case "waiting":
-      return <WaitingScreen onLeave={leave} />;
+      return <WaitingScreen onLeave={() => void leave()} />;
     case "denied":
       return <DeniedScreen onAskAgain={call.askAgain} />;
     case "incall":
-      return <CallRoom meetingId={meeting.id} call={call} media={media} onLeave={leave} />;
+      return <CallRoom meetingId={meeting.id} call={call} media={media} onLeave={() => void leave()} />;
     case "error":
       return <EndScreen kind="error" message={call.error} onRejoin={join} />;
     default:

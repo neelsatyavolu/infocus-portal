@@ -3,11 +3,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { getCamera, getMic, getScreenshare, type MediaDevice, type Screenshare } from "partytracks/client";
 import { useObservableAsValue } from "partytracks/react";
-import { NEVER } from "rxjs";
+import { NEVER, of } from "rxjs";
 import { toast } from "sonner";
 import { keepBroadcasting } from "@/src/lib/meetings/client/keep-broadcasting";
 import { resumeVoiceIsolation } from "@/src/lib/meetings/client/voice-isolation";
+import { CAMERA_CAPTURE, SCREEN_CAPTURE } from "@/src/lib/meetings/client/quality";
+import type { MeetSettings } from "@/src/lib/meetings/client/meet-settings";
+import { useBackgroundBlur } from "./use-background-blur";
 import { useDevicePrefs } from "./use-device-prefs";
+import { useMeetSettings } from "./use-meet-settings";
 import { useVoiceIsolation } from "./use-voice-isolation";
 
 export type LocalMedia = {
@@ -27,10 +31,18 @@ export type LocalMedia = {
   /** RNNoise noise suppression on the device (mic transform). */
   voiceIsolation: boolean;
   setVoiceIsolation: (on: boolean) => void;
+  /** Background, mirror, send/receive quality and chimes (saved on this device). */
+  settings: MeetSettings;
+  updateSettings: (patch: Partial<MeetSettings>) => void;
 };
 
 /** Browser processing stays on underneath voice isolation (echo cancellation matters most). */
 const MIC_CONSTRAINTS = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
+
+function markDetail(track: MediaStreamTrack) {
+  if ("contentHint" in track) track.contentHint = "detail";
+  return of(track);
+}
 
 function deviceErrorMessage(kind: "microphone" | "camera", error: Error) {
   if (error.name === "NotAllowedError") {
@@ -43,11 +55,13 @@ function deviceErrorMessage(kind: "microphone" | "camera", error: Error) {
 export function useLocalMedia(): LocalMedia {
   // Both start off; people can turn them on in pre-join to test before joining.
   const [mic] = useState(() => getMic({ broadcasting: false, constraints: MIC_CONSTRAINTS }));
-  const [camera] = useState(() => getCamera({ broadcasting: false }));
+  const [camera] = useState(() => getCamera({ broadcasting: false, constraints: CAMERA_CAPTURE }));
   const [screen, setScreen] = useState<Screenshare | null>(null);
   const [speakerId, setSpeakerId] = useState("");
   const { voiceIsolation, setVoiceIsolation } = useVoiceIsolation(mic);
   useDevicePrefs(mic, camera, setSpeakerId);
+  const { settings, updateSettings } = useMeetSettings();
+  useBackgroundBlur(camera, settings.background);
 
   const audioOn = useObservableAsValue(mic.isBroadcasting$, false);
   const videoOn = useObservableAsValue(camera.isBroadcasting$, false);
@@ -89,7 +103,12 @@ export function useLocalMedia(): LocalMedia {
           toast.error("This device can't share its screen.");
           return;
         }
-        const share = getScreenshare({ video: { options: { broadcasting: true } }, audio: false });
+        const share = getScreenshare({
+          video: { constraints: SCREEN_CAPTURE, options: { broadcasting: true } },
+          audio: false
+        });
+        // Keep text sharp: prefer resolution over frame rate.
+        share.video.addTransform(markDetail);
         share.enableSource();
         setScreen(share);
       },
@@ -102,8 +121,10 @@ export function useLocalMedia(): LocalMedia {
       speakerId,
       setSpeakerId,
       voiceIsolation,
-      setVoiceIsolation
+      setVoiceIsolation,
+      settings,
+      updateSettings
     }),
-    [mic, camera, audioOn, videoOn, screen, speakerId, voiceIsolation, setVoiceIsolation]
+    [mic, camera, audioOn, videoOn, screen, speakerId, voiceIsolation, setVoiceIsolation, settings, updateSettings]
   );
 }

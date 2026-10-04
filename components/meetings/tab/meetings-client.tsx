@@ -1,5 +1,6 @@
 "use client";
 
+import { pointerSafeAutoFocus } from "@/components/meetings/focus-modality";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import * as Popover from "@radix-ui/react-popover";
@@ -120,7 +121,7 @@ export default function MeetingsClient() {
                     </Button>
                   </Popover.Trigger>
                   <Popover.Portal>
-                    <Popover.Content align="end" sideOffset={6} className="z-50 w-56 rounded-md border border-[var(--ink-4)] bg-[var(--ink-2)] p-1">
+                    <Popover.Content onOpenAutoFocus={pointerSafeAutoFocus} align="end" sideOffset={6} className="z-50 outline-none w-56 rounded-md border border-[var(--ink-4)] bg-[var(--ink-2)] p-1">
                       <button
                         type="button"
                         className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-foreground hover:bg-[var(--ink-3)] focus-visible:bg-[var(--ink-3)] focus-visible:outline-none"

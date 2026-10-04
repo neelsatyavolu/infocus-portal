@@ -1,5 +1,6 @@
 "use client";
 
+import { pointerSafeAutoFocus } from "@/components/meetings/focus-modality";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -49,7 +50,7 @@ export function MoveDialog({
 
   return (
     <Dialog open={meeting !== null} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm [&>*]:min-w-0">
+      <DialogContent onOpenAutoFocus={pointerSafeAutoFocus} className="outline-none max-w-sm [&>*]:min-w-0">
         <DialogHeader>
           <DialogTitle>Move meeting</DialogTitle>
           <DialogDescription>{meeting?.title}. Times are Pacific.</DialogDescription>

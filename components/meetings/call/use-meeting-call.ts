@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import type { MeetingClientMessage, MeetingReaction, MeetingServerMessage } from "@/src/lib/meetings/protocol";
 import type { JoinResponse } from "@/src/lib/meetings/types";
+import { toast } from "sonner";
 import { MeetingApiError, errorMessage, meetingsApi } from "@/src/lib/meetings/client/api";
 import { decryptChat, encryptChat } from "@/src/lib/meetings/client/chat-crypto";
 import { MeetingE2ee } from "@/src/lib/meetings/client/e2ee";
@@ -195,6 +196,9 @@ export function useMeetingCall(meetingId: string, onMuted: (kind: "audio" | "vid
         case "muted":
           onMuted(message.kind, message.by);
           break;
+        case "role":
+          if (message.isHost && !room.isHost) toast("You're now the host.");
+          break;
         case "reaction":
           addReaction({
             id: `${message.uid}-${message.at}-${Math.random()}`,
@@ -213,7 +217,7 @@ export function useMeetingCall(meetingId: string, onMuted: (kind: "audio" | "vid
           break;
       }
     };
-  }, [addReaction, connect, meetingId, onMuted, receiveChat, room.participants, startMedia, teardown]);
+  }, [addReaction, connect, meetingId, onMuted, receiveChat, room.participants, room.isHost, startMedia, teardown]);
 
   useEffect(() => teardown, [teardown]);
 
@@ -247,7 +251,9 @@ export function useMeetingCall(meetingId: string, onMuted: (kind: "audio" | "vid
     void connect();
   }, [connect]);
 
-  const leave = useCallback(() => {
+  /** Deliberate leave: tell the room first (hands host off at once), then close. */
+  const leave = useCallback(async () => {
+    await socketRef.current?.sendAndFlush({ t: "leave" }).catch(() => false);
     teardown();
     setLocal("left");
   }, [teardown]);

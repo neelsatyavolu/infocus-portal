@@ -19,7 +19,7 @@ Opening a project goes to `/projects/[id]`: folders, uploads, versions, comments
 
 ## Review page
 
-`/projects/[id]/review/[mediaId]` plays one video or image. Comments pin to a timestamp (or a point on an image), take replies, and can be edited, deleted, resolved, filtered, and searched. **Import comments (CSV)** adds comments from a file. Playback speed runs 0.5× to 2×, and Space plays or pauses. Package approval (**Approve**, **Approve anyway**, Submit review) also happens here; see `groups-and-review.md`, which also covers the downloaded-range seek bar and **Transcribe**.
+`/projects/[id]/review/[mediaId]` plays one video or image. Comments pin to a timestamp (or a point on an image), take replies, and can be edited, deleted, resolved, filtered, and searched. **Import comments (CSV)** adds comments from a file, and **Export comments (CSV)** in the same ⋯ menu downloads every comment and reply on the current version (a file that Import reads back). Playback speed runs 0.5× to 2×, and Space plays or pauses. Package approval (**Approve**, **Approve anyway**, Submit review) also happens here; see `groups-and-review.md`, which also covers the downloaded-range seek bar and **Transcribe**.
 
 ## Guest links
 

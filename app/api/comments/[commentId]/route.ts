@@ -156,40 +156,42 @@ export async function DELETE(
       throw new Error("FORBIDDEN");
     }
 
-    await prisma.reviewComment.delete({
-      where: { id: commentId }
-    });
+    // The log rows can't reference the deleted comment (foreign key), so keep its id in the payload.
+    await prisma.$transaction(async (tx) => {
+      await tx.reviewComment.delete({
+        where: { id: commentId }
+      });
 
-    await prisma.activityEvent.create({
-      data: {
-        workspaceId: comment.mediaVersion.mediaItem.project.workspaceId,
-        projectId: comment.mediaVersion.mediaItem.project.id,
-        mediaItemId: comment.mediaVersion.mediaItemId,
-        mediaVersionId: comment.mediaVersion.id,
-        commentId: comment.id,
-        actorId: userId,
-        type: "comment.deleted",
-        payload: {
-          parentCommentId: comment.parentCommentId
+      await tx.activityEvent.create({
+        data: {
+          workspaceId: comment.mediaVersion.mediaItem.project.workspaceId,
+          projectId: comment.mediaVersion.mediaItem.project.id,
+          mediaItemId: comment.mediaVersion.mediaItemId,
+          mediaVersionId: comment.mediaVersion.id,
+          actorId: userId,
+          type: "comment.deleted",
+          payload: {
+            commentId: comment.id,
+            parentCommentId: comment.parentCommentId
+          }
         }
-      }
-    });
+      });
 
-    await prisma.auditLog.create({
-      data: {
-        workspaceId: comment.mediaVersion.mediaItem.project.workspaceId,
-        projectId: comment.mediaVersion.mediaItem.project.id,
-        mediaItemId: comment.mediaVersion.mediaItemId,
-        mediaVersionId: comment.mediaVersion.id,
-        commentId: comment.id,
-        actorId: userId,
-        action: "comment.delete",
-        targetType: "ReviewComment",
-        targetId: comment.id,
-        metadata: {
-          parentCommentId: comment.parentCommentId
+      await tx.auditLog.create({
+        data: {
+          workspaceId: comment.mediaVersion.mediaItem.project.workspaceId,
+          projectId: comment.mediaVersion.mediaItem.project.id,
+          mediaItemId: comment.mediaVersion.mediaItemId,
+          mediaVersionId: comment.mediaVersion.id,
+          actorId: userId,
+          action: "comment.delete",
+          targetType: "ReviewComment",
+          targetId: comment.id,
+          metadata: {
+            parentCommentId: comment.parentCommentId
+          }
         }
-      }
+      });
     });
 
     return ok({ id: commentId });

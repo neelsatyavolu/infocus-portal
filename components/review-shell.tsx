@@ -43,6 +43,7 @@ import { MediaRange } from "@/components/media-range";
 import { ReviewTranscriptButton } from "@/components/review-transcript-button";
 import { Textarea } from "@/components/ui/textarea";
 import { MAX_EFFORT_POINTS, MAX_TEAMWORK_POINTS } from "@/src/lib/package-grades";
+import { buildCommentsCsv } from "@/src/lib/comment-export-csv";
 import {
   DEFAULT_REVIEW_FPS,
   formatFrameAccurateTimecode,
@@ -1544,6 +1545,19 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
     }
   }
 
+  function exportCommentsToCsv() {
+    const csv = buildCommentsCsv(versionComments);
+    const url = URL.createObjectURL(new Blob(["﻿", csv], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a");
+    const baseName = `${data.title} v${currentVersion?.versionNumber ?? ""} comments`.replace(/[\\/:*?"<>|]+/g, "-").trim();
+    link.href = url;
+    link.download = `${baseName}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
   async function importCommentsFromFile(file: File) {
     if (!currentVersion || currentVersion.sourceType !== "VIDEO") {
       window.alert("CSV import is only available for video reviews.");
@@ -2763,6 +2777,18 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                       className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm text-foreground transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <span>{importingComments ? "Importing comments..." : "Import comments (CSV)"}</span>
+                      <span className="font-mono text-[11px] text-muted-foreground">.csv</span>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={versionComments.length === 0}
+                      onClick={() => {
+                        setCommentsMenuOpen(false);
+                        exportCommentsToCsv();
+                      }}
+                      className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm text-foreground transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <span>Export comments (CSV)</span>
                       <span className="font-mono text-[11px] text-muted-foreground">.csv</span>
                     </button>
                   </div>

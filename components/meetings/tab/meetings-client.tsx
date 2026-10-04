@@ -16,6 +16,7 @@ import { MoveDialog } from "./move-dialog";
 import { ScheduleDialog } from "./schedule-dialog";
 
 const REFRESH_MS = 60_000;
+const TICK_MS = 10_000;
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -50,11 +51,13 @@ export default function MeetingsClient() {
   useEffect(() => {
     setOrigin(window.location.origin);
     void load();
-    const timer = setInterval(() => {
-      setNow(Date.now());
-      void load();
-    }, REFRESH_MS);
-    return () => clearInterval(timer);
+    const refresh = setInterval(() => void load(), REFRESH_MS);
+    // Join buttons enable on time without waiting for the next refresh.
+    const tick = setInterval(() => setNow(Date.now()), TICK_MS);
+    return () => {
+      clearInterval(refresh);
+      clearInterval(tick);
+    };
   }, [load]);
 
   async function startNow() {
@@ -140,7 +143,7 @@ export default function MeetingsClient() {
 
       <section aria-label="Permanent link" className="flex flex-wrap items-center gap-3 rounded-md border border-[var(--ink-4)] bg-card px-4 py-3">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-foreground">Permanent link for the producer meeting</p>
+          <p className="text-sm font-medium text-foreground">Permanent link for the InFocus Producer Meeting</p>
           <p className="truncate font-mono text-xs text-[var(--ink-text)]">{permanentLink || "/meet/producers"}</p>
         </div>
         <CopyTextButton text={permanentLink} label="Copy link" />
@@ -163,7 +166,7 @@ export default function MeetingsClient() {
 
       {data ? (
         <>
-          <LiveBanner meetings={data.live} />
+          <LiveBanner meetings={data.live} now={now} />
           <Section title="Upcoming">
             <UpcomingList meetings={data.upcoming} now={now} onMove={setMoving} onCancel={setCancelling} />
           </Section>

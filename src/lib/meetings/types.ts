@@ -15,6 +15,8 @@ export type MeetingSummary = {
   id: string;
   title: string;
   startsAt: string;
+  /** /join opens 5 minutes before startsAt while SCHEDULED (LIVE meetings are always joinable). */
+  joinOpensAt: string;
   durationMinutes: number;
   status: MeetingStatusValue;
   access: MeetingAccessValue;
@@ -82,6 +84,9 @@ export type MeetingInviteEmailView = {
   id: string;
   email: string;
   name: string | null;
+  /** The producer this address belongs to (invite-only meetings email only their people). */
+  userId: string | null;
+  userName: string | null;
   createdAt: string;
   lastInvitedAt: string | null;
 };

@@ -1879,7 +1879,13 @@ model Meeting {
   keyCiphertext    String?
   startedAt        DateTime?
   endedAt          DateTime?
+  /// Unused since 2026-10-04 (replaced by the 15- and 5-minute reminders).
   startNotifiedAt  DateTime?
+  /// Push reminders claimed (15 and 5 minutes before startsAt). Cleared when the meeting moves.
+  reminder15SentAt DateTime?
+  reminder5SentAt  DateTime?
+  /// iCalendar SEQUENCE for a one-off meeting's own invite; 0 = no calendar invites were sent.
+  calendarSequence Int      @default(0)
   notesStatus      MeetingNotesStatus @default(NONE)
   notesSummary     String?  @db.Text
   /// Drive folder holding transcript.md / transcript.json / summary.md.
@@ -1918,10 +1924,13 @@ model MeetingInviteEmail {
   email          String
   name           String?
   addedById      String?
+  /// The producer this address belongs to (invite-only meetings email only their people).
+  userId         String?
   createdAt      DateTime  @default(now())
   lastInvitedAt  DateTime?
 
   @@unique([seriesKey, email])
+  @@unique([seriesKey, userId])
 }
 
 /// iCalendar SEQUENCE counter per series; bumped on every invite, update or cancel sent.

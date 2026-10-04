@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import * as Popover from "@radix-ui/react-popover";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Check } from "lucide-react";
+import { MEETING_REACTIONS, type MeetingReaction } from "@/src/lib/meetings/protocol";
 import type { LayoutMode } from "@/src/lib/meetings/client/layout";
 import { cn } from "@/src/lib/utils";
 
@@ -17,21 +18,41 @@ const LAYOUTS: Array<{ mode: LayoutMode; label: string }> = [
 ];
 
 const itemClass =
-  "flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm text-foreground hover:bg-[var(--ink-3)] focus-visible:bg-[var(--ink-3)] focus-visible:outline-none [&_svg]:size-4 [&_svg]:shrink-0";
+  "flex min-h-11 w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm text-foreground hover:bg-[var(--ink-3)] focus-visible:bg-[var(--ink-3)] focus-visible:outline-none [&_svg]:size-4 [&_svg]:shrink-0";
 
 function MenuBody({
   actions,
   layout,
   onLayout,
+  onReact,
   close
 }: {
   actions: MoreAction[];
   layout: LayoutMode;
   onLayout: (mode: LayoutMode) => void;
+  onReact?: (emoji: MeetingReaction) => void;
   close: () => void;
 }) {
   return (
     <div className="space-y-2">
+      {onReact ? (
+        <div className="flex flex-wrap justify-between gap-1 border-b border-[var(--ink-4)] pb-2" aria-label="Reactions">
+          {MEETING_REACTIONS.map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              aria-label={`React ${emoji}`}
+              onClick={() => {
+                close();
+                onReact(emoji);
+              }}
+              className="flex h-11 w-11 items-center justify-center rounded-md text-2xl hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]"
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+      ) : null}
       <div role="radiogroup" aria-label="Layout">
         <p className="px-3 pb-1 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">Layout</p>
         <div className="grid grid-cols-4 gap-1 px-1">
@@ -43,7 +64,7 @@ function MenuBody({
               aria-checked={layout === mode}
               onClick={() => onLayout(mode)}
               className={cn(
-                "flex items-center justify-center gap-1 rounded-md px-2 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]",
+                "flex min-h-11 items-center justify-center gap-1 rounded-md px-2 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]",
                 layout === mode ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-[var(--ink-3)]"
               )}
             >
@@ -90,6 +111,7 @@ export function MoreMenu({
   actions: MoreAction[];
   layout: LayoutMode;
   onLayout: (mode: LayoutMode) => void;
+  onReact?: (emoji: MeetingReaction) => void;
 }) {
   const close = () => onOpenChange(false);
   if (mobile) {
@@ -98,7 +120,7 @@ export function MoreMenu({
         <DialogPrimitive.Trigger asChild>{trigger}</DialogPrimitive.Trigger>
         <DialogPrimitive.Portal>
           <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/60" />
-          <DialogPrimitive.Content className="fixed inset-x-0 bottom-0 z-50 max-h-[80dvh] overflow-y-auto border-t border-[var(--ink-4)] bg-[var(--ink-2)] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <DialogPrimitive.Content className="fixed inset-x-0 bottom-0 z-50 max-h-[80dvh] overflow-y-auto overscroll-contain border-t border-[var(--ink-4)] bg-[var(--ink-2)] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))]">
             <DialogPrimitive.Title className="sr-only">More options</DialogPrimitive.Title>
             <MenuBody {...body} close={close} />
           </DialogPrimitive.Content>

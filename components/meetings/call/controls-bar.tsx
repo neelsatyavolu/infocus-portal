@@ -25,6 +25,8 @@ export type ControlsProps = {
   audioOn: boolean;
   videoOn: boolean;
   sharing: boolean;
+  /** False where getDisplayMedia is missing (iOS): the share control is hidden. */
+  canShare: boolean;
   handRaised: boolean;
   chatOpen: boolean;
   peopleOpen: boolean;
@@ -60,7 +62,7 @@ function ReactionPicker({ onReact }: { onReact: (emoji: MeetingReaction) => void
               type="button"
               onClick={() => onReact(emoji)}
               aria-label={`React ${emoji}`}
-              className="rounded-md p-1.5 text-2xl leading-none hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]"
+              className="flex h-11 w-11 items-center justify-center rounded-md text-2xl leading-none hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]"
             >
               {emoji}
             </button>
@@ -76,12 +78,15 @@ export function ControlsBar(props: ControlsProps) {
   const { mobile } = props;
   const hostBadge = props.waitingCount > 0 ? props.waitingCount : undefined;
 
+  const shareAction: MoreAction[] = props.canShare
+    ? [{ id: "share", label: props.sharing ? "Stop presenting" : "Share screen", icon: <MonitorUp />, onSelect: props.onShare }]
+    : [];
+  // Phones keep mic, camera, hand, more and leave in the bar; everything else lives in the sheet.
   const mobileExtras: MoreAction[] = mobile
     ? [
-        { id: "hand", label: props.handRaised ? "Lower hand" : "Raise hand", icon: <Hand />, onSelect: props.onHand },
         { id: "chat", label: "Chat", icon: <MessageSquare />, onSelect: props.onChat, badge: props.unread },
         { id: "people", label: `People (${props.peopleCount})`, icon: <Users />, onSelect: props.onPeople, badge: hostBadge },
-        { id: "share", label: props.sharing ? "Stop presenting" : "Share screen", icon: <MonitorUp />, onSelect: props.onShare }
+        ...shareAction
       ]
     : [];
 
@@ -94,7 +99,7 @@ export function ControlsBar(props: ControlsProps) {
   return (
     <nav
       aria-label="Call controls"
-      className="flex items-center justify-center gap-2 border-t border-[var(--ink-4)] bg-[var(--ink)] px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+      className="flex items-center justify-center gap-2 border-t border-[var(--ink-4)] bg-[var(--ink)] pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
     >
       <CallButton label={props.audioOn ? "Turn off microphone (⌘D)" : "Turn on microphone (⌘D)"} off={!props.audioOn} onClick={props.onMic}>
         {props.audioOn ? <Mic /> : <MicOff />}
@@ -102,17 +107,15 @@ export function ControlsBar(props: ControlsProps) {
       <CallButton label={props.videoOn ? "Turn off camera (⌘E)" : "Turn on camera (⌘E)"} off={!props.videoOn} onClick={props.onCamera}>
         {props.videoOn ? <Video /> : <VideoOff />}
       </CallButton>
-      {!mobile ? (
-        <>
-          <CallButton label={props.sharing ? "Stop presenting" : "Share screen"} active={props.sharing} onClick={props.onShare}>
-            <MonitorUp />
-          </CallButton>
-          <CallButton label={props.handRaised ? "Lower hand (⌘⌥H)" : "Raise hand (⌘⌥H)"} active={props.handRaised} onClick={props.onHand}>
-            <Hand />
-          </CallButton>
-        </>
+      {!mobile && props.canShare ? (
+        <CallButton label={props.sharing ? "Stop presenting" : "Share screen"} active={props.sharing} onClick={props.onShare}>
+          <MonitorUp />
+        </CallButton>
       ) : null}
-      <ReactionPicker onReact={props.onReact} />
+      <CallButton label={props.handRaised ? "Lower hand (⌘⌥H)" : "Raise hand (⌘⌥H)"} active={props.handRaised} onClick={props.onHand}>
+        <Hand />
+      </CallButton>
+      {!mobile ? <ReactionPicker onReact={props.onReact} /> : null}
       <MoreMenu
         open={moreOpen}
         onOpenChange={setMoreOpen}
@@ -121,6 +124,7 @@ export function ControlsBar(props: ControlsProps) {
         actions={[...mobileExtras, ...props.moreActions]}
         layout={props.layout}
         onLayout={props.onLayout}
+        onReact={mobile ? props.onReact : undefined}
       />
       {!mobile ? (
         <span className="mx-1 flex gap-2 border-l border-[var(--ink-4)] pl-3">

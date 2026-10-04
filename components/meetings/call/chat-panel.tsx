@@ -65,13 +65,13 @@ export function ChatPanel({
             }}
             rows={1}
             placeholder="Message everyone"
-            className="min-h-10 flex-1 resize-none rounded-md border border-input bg-transparent px-3 py-2 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)] md:text-sm"
+            className="min-h-11 flex-1 resize-none rounded-md border border-input bg-transparent px-3 py-2 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]"
           />
           <button
             type="submit"
             disabled={!draft.trim() || sending}
             aria-label="Send message"
-            className="flex h-10 w-10 items-center justify-center rounded-md bg-primary text-primary-foreground disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]"
           >
             <Send className="h-4 w-4" />
           </button>

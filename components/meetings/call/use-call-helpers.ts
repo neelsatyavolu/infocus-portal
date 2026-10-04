@@ -79,16 +79,68 @@ export function useConnectionQuality(partyTracks: PartyTracks | null) {
   return quality;
 }
 
-export function useIsMobile() {
-  const [mobile, setMobile] = useState(false);
+/** Phone-sized layout: narrow portrait, or a short landscape touch screen (phone on its side). */
+const MOBILE_QUERY = "(max-width: 767px), (max-height: 500px) and (pointer: coarse)";
+const LANDSCAPE_QUERY = "(orientation: landscape)";
+
+function useMediaQuery(query: string) {
+  const [matches, setMatches] = useState(false);
   useEffect(() => {
-    const query = window.matchMedia("(max-width: 767px)");
-    const update = () => setMobile(query.matches);
+    const list = window.matchMedia(query);
+    const update = () => setMatches(list.matches);
     update();
-    query.addEventListener("change", update);
-    return () => query.removeEventListener("change", update);
+    list.addEventListener("change", update);
+    return () => list.removeEventListener("change", update);
+  }, [query]);
+  return matches;
+}
+
+export function useIsMobile() {
+  return useMediaQuery(MOBILE_QUERY);
+}
+
+export function useIsLandscape() {
+  return useMediaQuery(LANDSCAPE_QUERY);
+}
+
+/** Stops page scroll and iOS rubber-banding while the call is on screen. */
+export function useLockPageScroll() {
+  useEffect(() => {
+    const targets = [document.documentElement, document.body];
+    const previous = targets.map((el) => ({ overflow: el.style.overflow, overscroll: el.style.overscrollBehavior }));
+    targets.forEach((el) => {
+      el.style.overflow = "hidden";
+      el.style.overscrollBehavior = "none";
+    });
+    return () =>
+      targets.forEach((el, i) => {
+        el.style.overflow = previous[i].overflow;
+        el.style.overscrollBehavior = previous[i].overscroll;
+      });
   }, []);
-  return mobile;
+}
+
+/** The visible area above the on-screen keyboard (iOS shrinks visualViewport, not the layout). */
+export function useVisualViewport() {
+  const [box, setBox] = useState<{ height: number; top: number } | null>(null);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => setBox({ height: vv.height, top: vv.offsetTop });
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, []);
+  return box;
+}
+
+/** getDisplayMedia is missing on iOS (Safari and WKWebView): hide screen sharing there. */
+export function canShareScreen() {
+  return typeof navigator !== "undefined" && typeof navigator.mediaDevices?.getDisplayMedia === "function";
 }
 
 /** ⌘/Ctrl+D mic, ⌘/Ctrl+E camera, ⌘/Ctrl+Alt+H hand, ⌘/Ctrl+Alt+C chat. */

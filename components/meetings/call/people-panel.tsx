@@ -16,7 +16,7 @@ function IconAction({ label, onClick, children }: { label: string; onClick: () =
       onClick={onClick}
       aria-label={label}
       title={label}
-      className="rounded-md p-1.5 text-muted-foreground hover:bg-[var(--ink-3)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]"
+      className="flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground hover:bg-[var(--ink-3)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]"
     >
       {children}
     </button>
@@ -68,7 +68,7 @@ export function PeoplePanel({
           <div className="mb-2 flex items-center justify-between">
             <h3 className="text-xs font-medium uppercase tracking-[0.11em] text-muted-foreground">Waiting to join</h3>
             {waiting.length > 1 ? (
-              <Button size="sm" onClick={() => void act(meetingsApi.admitAll(meetingId), "Let everyone in.").catch(() => undefined)}>
+              <Button size="sm" className="h-11 md:h-8" onClick={() => void act(meetingsApi.admitAll(meetingId), "Let everyone in.").catch(() => undefined)}>
                 Admit all
               </Button>
             ) : null}
@@ -78,10 +78,10 @@ export function PeoplePanel({
               <li key={w.uid} className="flex items-center justify-between gap-2">
                 <span className="truncate text-sm text-foreground">{w.name}</span>
                 <span className="flex shrink-0 gap-1.5">
-                  <Button size="sm" variant="outline" onClick={() => void act(meetingsApi.participant(meetingId, w.uid, "deny"), `Didn't let ${w.name} in.`).catch(() => undefined)}>
+                  <Button size="sm" variant="outline" className="h-11 md:h-8" onClick={() => void act(meetingsApi.participant(meetingId, w.uid, "deny"), `Didn't let ${w.name} in.`).catch(() => undefined)}>
                     Deny
                   </Button>
-                  <Button size="sm" onClick={() => void act(meetingsApi.participant(meetingId, w.uid, "admit"), `Let ${w.name} in.`).catch(() => undefined)}>
+                  <Button size="sm" className="h-11 md:h-8" onClick={() => void act(meetingsApi.participant(meetingId, w.uid, "admit"), `Let ${w.name} in.`).catch(() => undefined)}>
                     Admit
                   </Button>
                 </span>
@@ -93,11 +93,11 @@ export function PeoplePanel({
 
       {isHost ? (
         <div className="flex flex-wrap gap-2 border-b border-[var(--ink-4)] p-4">
-          <Button size="sm" variant="outline" onClick={() => hostSend({ t: "muteAll" }, "Muted everyone.")}>
+          <Button size="sm" variant="outline" className="h-11 md:h-8" onClick={() => hostSend({ t: "muteAll" }, "Muted everyone.")}>
             <MicOff aria-hidden /> Mute all
           </Button>
           {anyHands ? (
-            <Button size="sm" variant="outline" onClick={() => hostSend({ t: "lowerAllHands" }, "Lowered all hands.")}>
+            <Button size="sm" variant="outline" className="h-11 md:h-8" onClick={() => hostSend({ t: "lowerAllHands" }, "Lowered all hands.")}>
               <Hand aria-hidden /> Lower all hands
             </Button>
           ) : null}
@@ -129,7 +129,7 @@ export function PeoplePanel({
                   <Mic className="h-4 w-4" />
                 </IconAction>
               ) : (
-                <span className="p-1.5 text-muted-foreground" aria-label={p.audioOn ? "Microphone on" : "Microphone off"}>
+                <span className="flex h-11 w-11 items-center justify-center text-muted-foreground" aria-label={p.audioOn ? "Microphone on" : "Microphone off"}>
                   {p.audioOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
                 </span>
               )}

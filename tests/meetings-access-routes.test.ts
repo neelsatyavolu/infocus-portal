@@ -15,7 +15,16 @@ const mocks = vi.hoisted(() => ({
   participant: { findUnique: vi.fn(), findMany: vi.fn(), updateMany: vi.fn(), upsert: vi.fn() },
   userFindMany: vi.fn(),
   roleFindMany: vi.fn(),
-  invite: { findMany: vi.fn(), findFirst: vi.fn(), findUnique: vi.fn(), count: vi.fn(), upsert: vi.fn(), delete: vi.fn(), updateMany: vi.fn() },
+  invite: {
+    findMany: vi.fn(),
+    findFirst: vi.fn(),
+    findUnique: vi.fn(),
+    count: vi.fn(),
+    upsert: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+    updateMany: vi.fn()
+  },
   inngestSend: vi.fn(),
   seriesUpsert: vi.fn(),
   roomEvent: vi.fn(),
@@ -70,10 +79,10 @@ import { GET as transcriptGet } from "@/app/api/meetings/[id]/transcript/route";
 import { GET as peopleGet } from "@/app/api/meetings/people/route";
 import { GET as seriesGet } from "@/app/api/meetings/series/producers/current/route";
 import { GET as invitesGet, POST as invitesPost } from "@/app/api/meetings/invites/route";
-import { DELETE as inviteDelete } from "@/app/api/meetings/invites/[id]/route";
+import { DELETE as inviteDelete, PATCH as invitePatch } from "@/app/api/meetings/invites/[id]/route";
 import { POST as sendAllPost } from "@/app/api/meetings/invites/send-all/route";
 import { resolveProducerSeriesMeetingId } from "@/src/server/meetings-schedule";
-import { MEETING_INVITES_EVENT, runMeetingInvitesJob } from "@/src/server/meetings-invites";
+import { MEETING_INVITES_EVENT, runMeetingInvitesJob } from "@/src/server/meetings-invite-mail";
 
 const producers = [
   { id: "u-abby", name: "Abby", nickname: null, email: "abby@example.edu" },
@@ -184,6 +193,21 @@ describe("POST /api/meetings access", () => {
       expect.objectContaining({ data: expect.objectContaining({ access: "INVITE_ONLY", inviteeUserIds: ["u-otto"], createdById: "u-sage" }) })
     );
     expect((await ok.json()).data.meeting).toMatchObject({ access: "INVITE_ONLY", inviteeCount: 1 });
+  });
+
+  it("emails a calendar invite (via the queue) for a meeting scheduled ahead, not for Start now", async () => {
+    const ahead = new Date(Date.now() + 2 * 3600_000).toISOString();
+    expect((await createPost(json("POST", { title: "Planning", startsAt: ahead }))).status).toBe(201);
+    expect(mocks.meeting.create.mock.calls[0][0].data.calendarSequence).toBe(1);
+    expect(mocks.inngestSend).toHaveBeenCalledWith({
+      name: MEETING_INVITES_EVENT,
+      data: { kind: "event", meetingId: "m1", method: "REQUEST", sequence: 1 }
+    });
+
+    mocks.inngestSend.mockClear();
+    expect((await createPost(json("POST", { title: "Quick sync" }))).status).toBe(201);
+    expect(mocks.meeting.create.mock.calls[1][0].data.calendarSequence).toBe(0);
+    expect(mocks.inngestSend).not.toHaveBeenCalled();
   });
 
   it("lets any producer create an OPEN meeting", async () => {
@@ -382,6 +406,24 @@ describe("calendar invite routes", () => {
     mocks.invite.findUnique.mockResolvedValue({ lastInvitedAt: new Date(Date.now() - 11 * 60_000) });
     await invitesPost(json("POST", { email: "guest@example.edu" }));
     expect(mocks.calendarEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it("links an address to a producer (exec only, producers only)", async () => {
+    const linkParams = { params: Promise.resolve({ id: "i1" }) };
+    expect((await invitePatch(json("PATCH", { userId: "u-otto" }), linkParams)).status).toBe(403);
+
+    as("u-sage", "EXECUTIVE_PRODUCER");
+    mocks.invite.findFirst.mockResolvedValue({ id: "i1" });
+    expect((await invitePatch(json("PATCH", { userId: "u-stranger" }), linkParams)).status).toBe(400);
+    mocks.invite.update.mockResolvedValue({ ...inviteRow, userId: "u-otto" });
+    const response = await invitePatch(json("PATCH", { userId: "u-otto" }), linkParams);
+    expect((await response.json()).data.invite).toMatchObject({ userId: "u-otto", userName: "O." });
+    expect(mocks.invite.update).toHaveBeenCalledWith(expect.objectContaining({ where: { id: "i1" }, data: { userId: "u-otto" } }));
+
+    mocks.invite.update.mockRejectedValueOnce(Object.assign(new Error("dup"), { code: "P2002" }));
+    const taken = await invitePatch(json("PATCH", { userId: "u-otto" }), linkParams);
+    expect(taken.status).toBe(400);
+    expect((await taken.json()).error.message).toMatch(/already has an address/);
   });
 
   it("rejects a bad address", async () => {

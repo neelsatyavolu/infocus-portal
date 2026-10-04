@@ -70,6 +70,6 @@ describe("producerOccurrences", () => {
   });
 
   it("describes the default series", () => {
-    expect(PRODUCER_SERIES).toMatchObject({ seriesKey: "producers", title: "Producer meeting", durationMinutes: 60 });
+    expect(PRODUCER_SERIES).toMatchObject({ seriesKey: "producers", title: "InFocus Producer Meeting", durationMinutes: 60 });
   });
 });

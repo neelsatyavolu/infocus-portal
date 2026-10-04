@@ -87,7 +87,7 @@ export function PeoplePicker({
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search producers"
           aria-label="Search producers"
-          className="pl-8"
+          className="pl-8 md:text-base"
         />
       </div>
       <ul className="max-h-48 overflow-y-auto rounded-md border border-[var(--ink-4)]" role="listbox" aria-multiselectable>

@@ -25,6 +25,7 @@ export function Stage({
   activeSpeakerUid,
   speaking,
   mobile,
+  landscape,
   partyTracks,
   e2ee,
   selfTrack,
@@ -37,6 +38,7 @@ export function Stage({
   activeSpeakerUid: string | null;
   speaking: readonly string[];
   mobile: boolean;
+  landscape: boolean;
   partyTracks: PartyTracks | null;
   e2ee: MeetingE2ee | null;
   selfTrack: MediaStreamTrack | undefined;
@@ -75,7 +77,7 @@ export function Stage({
     const max = mobile ? MOBILE_MAX_TILES : DESKTOP_MAX_TILES;
     const { visible, overflow } = selectVisibleTiles(stageTiles, max, activeSpeakerUid);
     const count = visible.length + (overflow > 0 ? 1 : 0);
-    const cols = gridColumns(count, mobile);
+    const cols = gridColumns(count, mobile, landscape);
     return (
       <div
         className="grid h-full w-full gap-2 p-2"
@@ -94,15 +96,20 @@ export function Stage({
   const stripMax = mobile ? MOBILE_MAX_TILES - 1 : STRIP_MAX;
   const { visible, overflow } = selectVisibleTiles(others, stripMax, activeSpeakerUid);
   const showStrip = stage.kind === "sidebar" && others.length > 0;
+  const stacked = mobile && !landscape;
 
   return (
-    <div className={cn("flex h-full w-full gap-2 p-2", mobile ? "flex-col" : "flex-row")}>
+    <div className={cn("flex h-full w-full gap-2 p-2", stacked ? "flex-col" : "flex-row")}>
       <div className="min-h-0 min-w-0 flex-1">{renderTile(stage.mainId, "main", 1)}</div>
       {showStrip ? (
         <div
           className={cn(
             "grid shrink-0 gap-2",
-            mobile ? "h-24 auto-cols-[8.5rem] grid-flow-col overflow-x-auto" : "w-56 auto-rows-[8.5rem] overflow-y-auto"
+            stacked
+              ? "h-24 auto-cols-[8.5rem] grid-flow-col overflow-x-auto overscroll-contain"
+              : mobile
+                ? "w-36 auto-rows-[5.5rem] overflow-y-auto overscroll-contain"
+                : "w-56 auto-rows-[8.5rem] overflow-y-auto"
           )}
           aria-label="Other participants"
         >

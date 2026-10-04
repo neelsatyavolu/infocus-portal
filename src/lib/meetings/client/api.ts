@@ -68,8 +68,10 @@ export const meetingsApi = {
   end: (id: string) => request<unknown>(`${base(id)}/end`, { method: "POST", json: {} }),
   people: () => request<MeetingPeopleResponse>("/api/meetings/people"),
   invites: () => request<MeetingInviteListResponse>("/api/meetings/invites"),
-  addInvite: (body: { email: string; name?: string }) =>
+  addInvite: (body: { email: string; name?: string; userId?: string }) =>
     request<unknown>("/api/meetings/invites", { method: "POST", json: body }),
+  linkInvite: (inviteId: string, userId: string | null) =>
+    request<unknown>(`/api/meetings/invites/${encodeURIComponent(inviteId)}`, { method: "PATCH", json: { userId } }),
   removeInvite: (inviteId: string) =>
     request<unknown>(`/api/meetings/invites/${encodeURIComponent(inviteId)}`, { method: "DELETE" }),
   resendInvites: () => request<unknown>("/api/meetings/invites/send-all", { method: "POST", json: {} })

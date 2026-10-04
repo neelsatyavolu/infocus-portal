@@ -18,7 +18,18 @@ import { PeoplePanel } from "./people-panel";
 import { ReactionsOverlay } from "./reactions-overlay";
 import { Stage } from "./stage";
 import { TopBar } from "./top-bar";
-import { useCallShortcuts, useConnectionQuality, useElapsed, useIsMobile, useSpeakers, useTrackLevel } from "./use-call-helpers";
+import { SelfPip } from "./self-pip";
+import {
+  canShareScreen,
+  useCallShortcuts,
+  useConnectionQuality,
+  useElapsed,
+  useIsLandscape,
+  useIsMobile,
+  useLockPageScroll,
+  useSpeakers,
+  useTrackLevel
+} from "./use-call-helpers";
 import type { LocalMedia } from "./use-local-media";
 import type { useMeetingCall } from "./use-meeting-call";
 import { usePublish } from "./use-publish";
@@ -46,8 +57,21 @@ function buildTiles(people: MeetingParticipantView[], selfUid: string | null, hi
   return tiles;
 }
 
-export function CallRoom({ meetingId, call, media }: { meetingId: string; call: Call; media: LocalMedia }) {
+export function CallRoom({
+  meetingId,
+  call,
+  media,
+  onLeave
+}: {
+  meetingId: string;
+  call: Call;
+  media: LocalMedia;
+  onLeave: () => void;
+}) {
   const mobile = useIsMobile();
+  const landscape = useIsLandscape();
+  const [shareSupported] = useState(canShareScreen);
+  useLockPageScroll();
   const [layout, setLayout] = useState<LayoutMode>("auto");
   const [pinnedId, setPinnedId] = useState<string | null>(null);
   const [hideSelf, setHideSelf] = useState(false);
@@ -89,6 +113,10 @@ export function CallRoom({ meetingId, call, media }: { meetingId: string; call: 
     return buildTiles(merged, selfUid, hideSelf);
   }, [people, self, selfUid, media.audioOn, media.videoOn, screenOn, hand, serverHandAt, joinedAt, hideSelf]);
 
+  // Phones show self view as a small corner tile once anyone else is on stage.
+  const selfInPip = mobile && !hideSelf && tiles.some((t) => !t.isSelf);
+  const stageTiles = selfInPip ? tiles.filter((t) => !(t.isSelf && !t.isScreen)) : tiles;
+
   // A new screen share takes the stage unless someone is pinned.
   const sharerId = tiles.find((t) => t.isScreen && !t.isSelf)?.id ?? null;
   useEffect(() => {
@@ -125,7 +153,7 @@ export function CallRoom({ meetingId, call, media }: { meetingId: string; call: 
   const meeting = call.joinInfo?.meeting;
 
   return (
-    <div className="flex h-dvh flex-col bg-[var(--ink)]">
+    <div className="fixed inset-0 flex touch-manipulation flex-col overflow-hidden overscroll-none bg-[var(--ink)]">
       <TopBar
         title={meeting?.title ?? "Meeting"}
         elapsedMs={elapsed}
@@ -141,26 +169,36 @@ export function CallRoom({ meetingId, call, media }: { meetingId: string; call: 
             unblockAllAudio();
             setAudioBlocked(false);
           }}
-          className="flex items-center justify-center gap-2 bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
+          className="flex min-h-11 items-center justify-center gap-2 bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
         >
-          <Volume2 className="h-4 w-4" aria-hidden /> Tap to turn on sound
+          <Volume2 className="h-4 w-4" aria-hidden /> Tap to start audio
         </button>
       ) : null}
       <div className="relative flex min-h-0 flex-1">
         <div className="relative min-w-0 flex-1">
           <Stage
-            tiles={tiles}
+            tiles={stageTiles}
             mode={layout}
             pinnedId={pinnedId}
             onPin={setPinnedId}
             activeSpeakerUid={activeSpeakerUid}
             speaking={speaking}
             mobile={mobile}
+            landscape={landscape}
             partyTracks={partyTracks}
             e2ee={call.e2ee.current}
             selfTrack={selfCamera}
             onOpenPeople={() => setPanel("people")}
           />
+          {selfInPip ? (
+            <SelfPip
+              track={selfCamera}
+              videoOn={media.videoOn}
+              audioOn={media.audioOn}
+              name={self?.name ?? "You"}
+              landscape={landscape}
+            />
+          ) : null}
           <ReactionsOverlay reactions={call.reactions} />
         </div>
         {panel === "chat" ? (
@@ -184,6 +222,7 @@ export function CallRoom({ meetingId, call, media }: { meetingId: string; call: 
         audioOn={media.audioOn}
         videoOn={media.videoOn}
         sharing={Boolean(media.screen)}
+        canShare={shareSupported}
         handRaised={hand}
         chatOpen={panel === "chat"}
         peopleOpen={panel === "people"}
@@ -202,7 +241,7 @@ export function CallRoom({ meetingId, call, media }: { meetingId: string; call: 
         }}
         onChat={() => togglePanel("chat")}
         onPeople={() => togglePanel("people")}
-        onLeave={call.leave}
+        onLeave={onLeave}
       />
 
       {remotes.map((p) => (

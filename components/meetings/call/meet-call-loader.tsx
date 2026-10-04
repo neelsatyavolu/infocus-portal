@@ -6,6 +6,6 @@ import { JoiningScreen } from "./status-screens";
 /** partytracks touches navigator/mediaDevices at import time, so the call never renders on the server. */
 const MeetCall = dynamic(() => import("./meet-call"), { ssr: false, loading: () => <JoiningScreen /> });
 
-export function MeetCallLoader(props: { meetingId: string; userName: string }) {
+export function MeetCallLoader(props: { meetingId: string; userName: string; embedded: boolean }) {
   return <MeetCall {...props} />;
 }

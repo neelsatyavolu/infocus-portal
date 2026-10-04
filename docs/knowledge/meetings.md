@@ -14,27 +14,29 @@ Private video meetings for producers, with notes written on the InFocus Drive.
 - Only the creator and the invited producers can see it, join it, or read its notes. Everyone else, including uninvited executives, can't see that it exists.
 - **Hosts:** the creator and any invited executives.
 - The creator or an invited executive can change who's invited while the meeting is scheduled or live. If someone is taken off the list during the call, they're removed and the encryption key changes.
-- Start and "waiting to join" pushes go only to people on the meeting.
-- The Producer meeting is always open to every producer.
+- Reminders and "waiting to join" pushes go only to people on the meeting.
+- The InFocus Producer Meeting is always open to every producer.
 
 ## Schedule
 
-- The **Producer meeting** repeats every Sunday, Monday and Wednesday at 9:15 PM Pacific for 60 minutes. The next 21 days are always listed.
+- The **InFocus Producer Meeting** repeats every Sunday, Monday and Wednesday at 9:15 PM Pacific for 60 minutes. The next 21 days are always listed.
 - A host can **move** or **cancel** one occurrence. A moved occurrence stays moved; a cancelled one stays cancelled.
 - A live meeting can't be moved or cancelled. Use **End for everyone**.
-- **Stable link:** `/meet/producers` always opens the current Producer meeting (the live one, otherwise the next one).
-- When a meeting starts, producers get a push ("Producer meeting is starting"). A one-off meeting with invitees only pushes those people, but any producer may still join.
+- **Stable link:** `/meet/producers` always opens the current InFocus Producer Meeting (the live one, otherwise the next one). Before it opens, the page says when it opens.
+- **Reminders:** a push 15 minutes before and again 5 minutes before a meeting starts ("… starts in 15 minutes", "… starts in 5 minutes. Join now."). Tapping it opens the call, in the iPhone and Mac apps too. Everyone gets them for open meetings (or only the picked people, when some were picked); invite-only meetings remind only the people on them. A meeting scheduled less than 15 minutes ahead skips the 15-minute reminder. Moving a meeting sends the reminders again at the new time.
 
 ## Calendar invites
 
-- Executive producers, the adviser, and super admin keep a list of email addresses that get the Producer meeting in their calendar (Meetings → calendar invites). Every producer can see the list.
-- Adding an address emails it a calendar invite (`invite.ics`) for the whole series, linking to `/meet/producers`. **Resend to everyone** sends it again.
+- Executive producers, the adviser, and super admin keep a list of email addresses that get the InFocus Producer Meeting in their calendar (Meetings → calendar invites). Every producer can see the list.
+- An address can be **linked to a producer**. Invite-only meetings only email addresses linked to the people on them.
+- Adding an address emails it a calendar invite (`invite.ics`) for the whole series, linking to `/meet/producers`. Adding the same address again within 10 minutes doesn't email it twice. **Resend to everyone** sends it again (in the background).
 - Removing an address emails it a cancellation, so the series leaves that calendar.
 - When a host moves or cancels one occurrence, every address gets an update for just that occurrence.
-- One-off meetings don't send calendar invites.
+- **Other scheduled meetings** (set more than 10 minutes ahead) send their own calendar invite, linking to `/meet/<id>`. Open meetings go to every address; invite-only meetings go only to the linked addresses of the people on them. Moving or renaming the meeting sends an update, and cancelling it sends a cancellation. When someone is added to an invite-only meeting they get the invite; when someone is taken off it they get a cancellation. "Start now" meetings send no calendar email.
 
 ## Joining
 
+- A scheduled meeting **opens 5 minutes before it starts**, for everyone (hosts too). Earlier, joining says when it opens ("This meeting opens at 9:10 PM."). A meeting that's already live can always be joined.
 - Hosts go straight in. Everyone else **asks to join** and waits until a host lets them in.
 - **Quick access** (host setting): producers join without asking. Someone a host removed still has to ask.
 - Hosts get a push when someone is waiting (at most every 2 minutes per person).

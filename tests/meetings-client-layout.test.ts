@@ -11,9 +11,11 @@ import {
 } from "@/src/lib/meetings/client/layout";
 import {
   canJoinNow,
+  formatCountdown,
   formatElapsed,
   groupByPacificDay,
   isoToPacificWallTime,
+  joinOpensAtMs,
   pacificWallTimeToIso
 } from "@/src/lib/meetings/client/time";
 
@@ -85,6 +87,7 @@ describe("grid helpers", () => {
   it("picks columns", () => {
     expect([1, 2, 4, 5, 9, 12].map((n) => gridColumns(n, false))).toEqual([1, 2, 2, 3, 3, 4]);
     expect([1, 2, 3, 4].map((n) => gridColumns(n, true))).toEqual([1, 1, 2, 2]);
+    expect([1, 2, 3, 4].map((n) => gridColumns(n, true, true))).toEqual([1, 2, 3, 2]);
   });
 
   it("picks simulcast layers", () => {
@@ -140,11 +143,21 @@ describe("pacific time", () => {
     expect(groups[0].items.map((i) => i.id)).toEqual(["a", "b"]);
   });
 
-  it("opens join 10 minutes early", () => {
+  it("opens join at joinOpensAt, falling back to 5 minutes early", () => {
     const startsAt = "2026-10-05T04:15:00.000Z";
     const t = new Date(startsAt).getTime();
-    expect(canJoinNow(startsAt, t - 11 * 60_000)).toBe(false);
-    expect(canJoinNow(startsAt, t - 10 * 60_000)).toBe(true);
+    expect(canJoinNow({ startsAt }, t - 6 * 60_000)).toBe(false);
+    expect(canJoinNow({ startsAt }, t - 5 * 60_000)).toBe(true);
+    const joinOpensAt = new Date(t - 2 * 60_000).toISOString();
+    expect(joinOpensAtMs({ startsAt, joinOpensAt })).toBe(t - 2 * 60_000);
+    expect(canJoinNow({ startsAt, joinOpensAt }, t - 3 * 60_000)).toBe(false);
+    expect(canJoinNow({ startsAt, joinOpensAt, status: "LIVE" }, t - 60 * 60_000)).toBe(true);
+    expect(joinOpensAtMs({ startsAt, joinOpensAt: "garbage" })).toBe(t - 5 * 60_000);
+  });
+
+  it("formats the countdown", () => {
+    expect(formatCountdown(64_200)).toBe("1:05");
+    expect(formatCountdown(-5)).toBe("0:00");
   });
 
   it("formats elapsed time", () => {

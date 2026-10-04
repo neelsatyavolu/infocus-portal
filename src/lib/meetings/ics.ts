@@ -200,3 +200,15 @@ export function buildOccurrenceCancel(base: IcsBase & { originalStart: Date; dur
     })
   ]);
 }
+
+/** A one-off meeting (UID meeting-<id>@<host>): METHOD:REQUEST, created or moved (bump SEQUENCE). */
+export function buildEventInvite(base: IcsBase & { start: Date; durationMinutes: number }) {
+  return calendar("REQUEST", [eventLines(base, { start: base.start, durationMinutes: base.durationMinutes })]);
+}
+
+/** A one-off meeting cancelled, or this attendee taken off it: METHOD:CANCEL, STATUS:CANCELLED. */
+export function buildEventCancel(base: IcsBase & { start: Date; durationMinutes: number }) {
+  return calendar("CANCEL", [
+    eventLines(base, { start: base.start, durationMinutes: base.durationMinutes, cancelled: true })
+  ]);
+}

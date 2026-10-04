@@ -7,6 +7,7 @@ import type { MeetingNotesStatusValue, MeetingSummary } from "@/src/lib/meetings
 import {
   canJoinNow,
   formatDuration,
+  joinOpensAtMs,
   groupByPacificDay,
   pacificDayLabel,
   pacificTimeLabel
@@ -38,7 +39,7 @@ export function NotesTag({ status }: { status: MeetingNotesStatusValue }) {
 
 const meetHref = (id: string) => `/meet/${encodeURIComponent(id)}` as never;
 
-export function LiveBanner({ meetings }: { meetings: MeetingSummary[] }) {
+export function LiveBanner({ meetings, now }: { meetings: MeetingSummary[]; now: number }) {
   if (meetings.length === 0) return null;
   return (
     <section aria-label="Live now" className="space-y-2">
@@ -50,9 +51,15 @@ export function LiveBanner({ meetings }: { meetings: MeetingSummary[] }) {
             <p className="text-xs text-muted-foreground">Started at {pacificTimeLabel(m.startsAt)}</p>
           </div>
           <AccessTag meeting={m} />
-          <Link href={meetHref(m.id)} className={buttonVariants()}>
-            Join
-          </Link>
+          {canJoinNow(m, now) ? (
+            <Link href={meetHref(m.id)} className={buttonVariants()}>
+              Join
+            </Link>
+          ) : (
+            <span className={cn(buttonVariants({ variant: "outline" }), "pointer-events-none opacity-60")} aria-disabled>
+              Opens {pacificTimeLabel(new Date(joinOpensAtMs(m)))}
+            </span>
+          )}
         </div>
       ))}
     </section>
@@ -81,7 +88,7 @@ export function UpcomingList({
           <h3 className="mb-2 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">{group.label}</h3>
           <ul className="divide-y divide-[var(--ink-4)] rounded-md border border-[var(--ink-4)] bg-card">
             {group.items.map((m) => {
-              const joinable = canJoinNow(m.startsAt, now);
+              const joinable = canJoinNow(m, now);
               return (
                 <li key={m.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
                   <span className="w-20 shrink-0 font-mono text-sm tabular-nums text-[var(--ink-text)]">{pacificTimeLabel(m.startsAt)}</span>
@@ -109,8 +116,11 @@ export function UpcomingList({
                         Join
                       </Link>
                     ) : (
-                      <span className={cn(buttonVariants({ size: "sm", variant: "outline" }), "pointer-events-none opacity-50")} title="Opens 10 minutes before the start" aria-disabled>
-                        Join
+                      <span
+                        className={cn(buttonVariants({ size: "sm", variant: "outline" }), "pointer-events-none opacity-60")}
+                        aria-disabled
+                      >
+                        Opens {pacificTimeLabel(new Date(joinOpensAtMs(m)))}
                       </span>
                     )}
                   </div>

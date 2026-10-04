@@ -12,8 +12,8 @@ import { notifyManagersOfReadyVersion } from "@/src/server/notify-media-ready";
 import { discoverShowPublications, publishYoutubeShow } from "@/src/server/show-publishing-jobs";
 import { discoverYoutubePublications, publishYoutubePackage } from "@/src/server/youtube-publishing-jobs";
 import { runPackageReviewReminders } from "@/src/server/package-review-reminders";
-import { MEETING_INVITES_EVENT, runMeetingInvitesJob } from "@/src/server/meetings-invites";
-import { runMeetingStartPushes } from "@/src/server/meetings-notify";
+import { MEETING_INVITES_EVENT, runMeetingInvitesJob } from "@/src/server/meetings-invite-mail";
+import { runMeetingReminders } from "@/src/server/meetings-notify";
 import { ensureUpcomingProducerMeetings } from "@/src/server/meetings-schedule";
 
 type BunnyWebhookEvent = {
@@ -373,16 +373,17 @@ export const packageReviewRemindersHourly = inngest.createFunction(
   }
 );
 
-export const meetingStartPushes = inngest.createFunction(
+/** Meeting push reminders, 15 and 5 minutes before the start (replaced the single start push). */
+export const meetingRemindersEveryMinute = inngest.createFunction(
   {
-    id: "meeting-start-pushes",
+    id: "meeting-reminders-every-minute",
     concurrency: 1
   },
   {
-    cron: "*/5 * * * *"
+    cron: "* * * * *"
   },
   async () => {
-    return runMeetingStartPushes();
+    return runMeetingReminders();
   }
 );
 
@@ -398,7 +399,7 @@ export const producerMeetingScheduleDaily = inngest.createFunction(
   }
 );
 
-/** Producer meeting calendar emails (resend to all, occurrence moved or cancelled). One job at a time. */
+/** Meeting calendar emails (series resend, series occurrence move/cancel, one-off meeting invites). One job at a time. */
 export const meetingInvitesSend = inngest.createFunction(
   {
     id: "meeting-invites-send",
@@ -423,7 +424,7 @@ export const inngestFunctions = [
   hubDbBackupHourly,
   refreshAssociateFeedbackDaily,
   packageReviewRemindersHourly,
-  meetingStartPushes,
+  meetingRemindersEveryMinute,
   producerMeetingScheduleDaily,
   meetingInvitesSend
 ];

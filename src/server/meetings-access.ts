@@ -1,5 +1,6 @@
 import type { PlatformRole, Prisma } from "@prisma/client";
 import { requireUserId, syncUserProfile } from "@/src/lib/auth";
+import { meetingJoinOpensAt } from "@/src/lib/meetings/schedule";
 import type { MeetingDetail, MeetingPerson, MeetingSummary } from "@/src/lib/meetings/types";
 import { getPlatformAccess } from "@/src/lib/platform-admin";
 import { userDisplayName } from "@/src/lib/user-display";
@@ -70,6 +71,7 @@ export function toMeetingSummary(row: MeetingSummaryRow, viewer: MeetingViewer):
     id: row.id,
     title: row.title,
     startsAt: row.startsAt.toISOString(),
+    joinOpensAt: meetingJoinOpensAt(row.startsAt).toISOString(),
     durationMinutes: row.durationMinutes,
     status: row.status,
     access: row.access,

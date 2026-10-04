@@ -75,9 +75,10 @@ export function selectVisibleTiles(
   return { visible, overflow: ordered.length - visible.length };
 }
 
-/** Columns for an n-tile grid (mobile stacks at most 2 wide). */
-export function gridColumns(count: number, mobile: boolean) {
+/** Columns for an n-tile grid. Phones: 1–2 wide in portrait, side by side in landscape. */
+export function gridColumns(count: number, mobile: boolean, landscape = false) {
   if (count <= 1) return 1;
+  if (mobile && landscape) return count <= 3 ? count : 2;
   if (mobile) return count <= 2 ? 1 : 2;
   if (count <= 4) return 2;
   if (count <= 9) return 3;

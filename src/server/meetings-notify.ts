@@ -1,3 +1,4 @@
+import { mainAppOrigin } from "@/src/lib/hosts";
 import { sendNativePushToUserIds } from "@/src/lib/native-push";
 import { prisma } from "@/src/lib/prisma";
 import { execUserIds, producerUserIds } from "@/src/server/meetings-people";
@@ -5,12 +6,10 @@ import type { MeetingAccessFields } from "@/src/server/meetings-rules";
 import { sendPushToUserIds } from "@/src/server/push-notify";
 
 /**
- * Meeting pushes: "starting" to the people who may join (invitees, else all producers) and
+ * Meeting pushes: 15- and 5-minute reminders to the people who may join (invitees, else all producers) and
  * "waiting to join" to the meeting's hosts. INVITE_ONLY meetings never push anyone outside their list.
  */
 
-const START_LOOKBACK_MS = 5 * 60 * 1000;
-const START_LOOKAHEAD_MS = 60 * 1000;
 export const KNOCK_PUSH_THROTTLE_MS = 2 * 60 * 1000;
 
 /** Never throws: pushes are best effort. */
@@ -40,35 +39,50 @@ export async function meetingHostIds(meeting: MeetingAccessFields) {
   return [...new Set([...hosts, ...(meeting.createdById ? [meeting.createdById] : [])])];
 }
 
-/**
- * Cron (every 5 minutes): push meetings that start now. Each meeting is claimed by setting
- * `startNotifiedAt` first, so overlapping runs never push twice.
- */
-export async function runMeetingStartPushes(now = new Date()) {
-  const due = await prisma.meeting.findMany({
-    where: {
-      status: "SCHEDULED",
-      startNotifiedAt: null,
-      startsAt: { gte: new Date(now.getTime() - START_LOOKBACK_MS), lte: new Date(now.getTime() + START_LOOKAHEAD_MS) }
-    },
-    select: { id: true, title: true, access: true, createdById: true, inviteeUserIds: true }
-  });
+export const MEETING_REMINDERS = [
+  { minutes: 15, field: "reminder15SentAt", suffix: "starts in 15 minutes", body: "Tap to open the meeting." },
+  { minutes: 5, field: "reminder5SentAt", suffix: "starts in 5 minutes", body: "Join now." }
+] as const;
+/** A reminder fires while startsAt is between (lead − 2 min, lead] away, so a late-created or moved meeting skips it. */
+const REMINDER_TOLERANCE_MS = 2 * 60 * 1000;
 
+/** Absolute link: the iPhone and Mac apps only open notification URLs on the Portal's own origin. */
+export function meetingPushUrl(meetingId: string) {
+  return `${mainAppOrigin().replace(/\/+$/, "")}/meet/${meetingId}`;
+}
+
+/**
+ * Cron (every minute): 15- and 5-minute reminders. Each is claimed with its own stamp before
+ * pushing, so overlapping runs never send twice. Meetings created after a reminder's time are skipped.
+ */
+export async function runMeetingReminders(now = new Date()) {
   let pushed = 0;
-  for (const meeting of due) {
-    const claim = await prisma.meeting.updateMany({
-      where: { id: meeting.id, startNotifiedAt: null },
-      data: { startNotifiedAt: now }
+  for (const reminder of MEETING_REMINDERS) {
+    const leadMs = reminder.minutes * 60 * 1000;
+    const due = await prisma.meeting.findMany({
+      where: {
+        status: { in: ["SCHEDULED", "LIVE"] },
+        [reminder.field]: null,
+        startsAt: { gt: new Date(now.getTime() + leadMs - REMINDER_TOLERANCE_MS), lte: new Date(now.getTime() + leadMs) }
+      },
+      select: { id: true, title: true, startsAt: true, createdAt: true, access: true, createdById: true, inviteeUserIds: true }
     });
-    if (claim.count === 0) continue;
-    await pushToUsers(await meetingStartRecipients(meeting), {
-      title: `${meeting.title} is starting`,
-      body: "Tap to join the call.",
-      url: `/meet/${meeting.id}`
-    });
-    pushed += 1;
+    for (const meeting of due) {
+      if (meeting.createdAt.getTime() > meeting.startsAt.getTime() - leadMs) continue;
+      const claim = await prisma.meeting.updateMany({
+        where: { id: meeting.id, [reminder.field]: null },
+        data: { [reminder.field]: now }
+      });
+      if (claim.count === 0) continue;
+      await pushToUsers(await meetingStartRecipients(meeting), {
+        title: `${meeting.title} ${reminder.suffix}`,
+        body: reminder.body,
+        url: meetingPushUrl(meeting.id)
+      });
+      pushed += 1;
+    }
   }
-  return { due: due.length, pushed };
+  return { pushed };
 }
 
 const lastKnockPush = new Map<string, number>();
@@ -90,7 +104,7 @@ export async function notifyMeetingKnock(
   const hosts = await meetingHostIds(meeting);
   await pushToUsers(
     hosts.filter((id) => id !== knocker.uid),
-    { title: meeting.title, body: `${knocker.name || "Someone"} is waiting to join ${meeting.title}`, url: `/meet/${meeting.id}` }
+    { title: meeting.title, body: `${knocker.name || "Someone"} is waiting to join ${meeting.title}`, url: meetingPushUrl(meeting.id) }
   );
   return true;
 }

@@ -7,25 +7,33 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { MeetingInviteEmailView } from "@/src/lib/meetings/types";
+import { useMeetingPeople } from "../people-picker";
+import { LinkedPersonSelect } from "./linked-person-select";
 import { errorMessage, meetingsApi } from "@/src/lib/meetings/client/api";
 import { pacificDayLabel } from "@/src/lib/meetings/client/time";
 import { ConfirmDialog } from "../confirm-dialog";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/** `userId` links the address to a producer (backend adds it to the invite view). */
+type InviteRow = MeetingInviteEmailView & { userId?: string | null };
+
 export function isValidInviteEmail(value: string) {
   return value.length <= 254 && EMAIL_PATTERN.test(value);
 }
 
-/** Calendar invites for the recurring Producer meeting. Execs manage; other producers see the count. */
+/** Calendar invites for the InFocus Producer Meeting. Execs manage; other producers see the count. */
 export function InvitesPanel() {
-  const [invites, setInvites] = useState<MeetingInviteEmailView[] | null>(null);
+  const [invites, setInvites] = useState<InviteRow[] | null>(null);
   const [canManage, setCanManage] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState<"add" | "resend" | null>(null);
-  const [removing, setRemoving] = useState<MeetingInviteEmailView | null>(null);
+  const [linkUserId, setLinkUserId] = useState<string | null>(null);
+  const [linking, setLinking] = useState<string | null>(null);
+  const [removing, setRemoving] = useState<InviteRow | null>(null);
+  const { people } = useMeetingPeople(canManage);
 
   const load = useCallback(async () => {
     try {
@@ -51,10 +59,11 @@ export function InvitesPanel() {
     }
     setBusy("add");
     try {
-      await meetingsApi.addInvite({ email: clean, name: name.trim() || undefined });
-      toast.success(`Invite sent to ${clean}.`);
+      await meetingsApi.addInvite({ email: clean, name: name.trim() || undefined, userId: linkUserId ?? undefined });
+      toast.success(`Added ${clean}.`);
       setEmail("");
       setName("");
+      setLinkUserId(null);
       await load();
     } catch (err) {
       toast.error(errorMessage(err, "Couldn't add that address."));
@@ -76,7 +85,20 @@ export function InvitesPanel() {
     }
   }
 
-  async function remove(invite: MeetingInviteEmailView) {
+  async function link(invite: InviteRow, userId: string | null) {
+    setLinking(invite.id);
+    try {
+      await meetingsApi.linkInvite(invite.id, userId);
+      setInvites((prev) => prev?.map((row) => (row.id === invite.id ? { ...row, userId } : row)) ?? prev);
+      toast.success(userId ? "Linked to a producer." : "Unlinked.");
+    } catch (err) {
+      toast.error(errorMessage(err, "Couldn't update that address."));
+    } finally {
+      setLinking(null);
+    }
+  }
+
+  async function remove(invite: InviteRow) {
     try {
       await meetingsApi.removeInvite(invite.id);
       toast.success(`Removed ${invite.email}. They get a cancellation.`);
@@ -97,20 +119,20 @@ export function InvitesPanel() {
         {canManage && invites && invites.length > 0 ? (
           <Button size="sm" variant="outline" onClick={() => void resendAll()} disabled={busy !== null}>
             {busy === "resend" ? <Loader2 className="animate-spin" aria-hidden /> : <Mail aria-hidden />}
-            Resend to everyone
+            Resend all
           </Button>
         ) : null}
       </div>
       <p className="text-sm text-muted-foreground">
-        Each address gets a repeating calendar invite (Sun, Mon, Wed 9:15 PM) with the permanent link. Moving or cancelling a
-        meeting sends an update.
+        Invites go out automatically for every scheduled meeting. Private meetings only go to linked people. Moves and
+        cancellations update calendars automatically.
       </p>
       {loadError ? <p className="text-sm text-danger">{loadError}</p> : null}
       {!invites && !loadError ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" aria-label="Loading" /> : null}
 
       {canManage && invites ? (
         <>
-          <form onSubmit={add} className="grid gap-2 sm:grid-cols-[1fr_12rem_auto] sm:items-end">
+          <form onSubmit={add} className="grid gap-2 sm:grid-cols-[1fr_10rem_12rem_auto] sm:items-end">
             <div className="space-y-1">
               <Label htmlFor="invite-email">Email</Label>
               <Input id="invite-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.edu" required />
@@ -119,6 +141,10 @@ export function InvitesPanel() {
               <Label htmlFor="invite-name">Name (optional)</Label>
               <Input id="invite-name" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} />
             </div>
+            <div className="space-y-1">
+              <Label>Producer (optional)</Label>
+              <LinkedPersonSelect people={people} value={linkUserId} onChange={setLinkUserId} label="Link to a producer" />
+            </div>
             <Button type="submit" disabled={busy !== null}>
               {busy === "add" ? <Loader2 className="animate-spin" aria-hidden /> : null}
               Add and invite
@@ -126,7 +152,7 @@ export function InvitesPanel() {
           </form>
           <ul className="divide-y divide-[var(--ink-4)] rounded-md border border-[var(--ink-4)]">
             {invites.map((invite) => (
-              <li key={invite.id} className="flex items-center gap-3 px-3 py-2">
+              <li key={invite.id} className="flex flex-wrap items-center gap-3 px-3 py-2">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm text-foreground">{invite.name ?? invite.email}</p>
                   <p className="truncate text-xs text-muted-foreground">
@@ -134,6 +160,13 @@ export function InvitesPanel() {
                     {invite.lastInvitedAt ? `Invited ${pacificDayLabel(invite.lastInvitedAt)}` : "Not sent yet"}
                   </p>
                 </div>
+                <LinkedPersonSelect
+                  people={people}
+                  value={invite.userId ?? null}
+                  onChange={(userId) => void link(invite, userId)}
+                  disabled={linking === invite.id}
+                  label={`Producer linked to ${invite.email}`}
+                />
                 <Button size="sm" variant="destructive-quiet" onClick={() => setRemoving(invite)} aria-label={`Remove ${invite.email}`}>
                   <Trash2 aria-hidden />
                 </Button>
@@ -148,7 +181,7 @@ export function InvitesPanel() {
         open={removing !== null}
         onOpenChange={(open) => !open && setRemoving(null)}
         title={`Remove ${removing?.email ?? ""}?`}
-        description="They get a cancellation for the repeating producer meeting."
+        description="They get a cancellation for the InFocus Producer Meeting."
         confirmLabel="Remove"
         onConfirm={() => (removing ? remove(removing) : undefined)}
       />

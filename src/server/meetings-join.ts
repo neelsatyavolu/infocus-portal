@@ -1,3 +1,4 @@
+import { meetingJoinOpensAt, pacificOpensLabel } from "@/src/lib/meetings/schedule";
 import type { JoinResponse, KeyResponse } from "@/src/lib/meetings/types";
 import { prisma } from "@/src/lib/prisma";
 import {
@@ -13,6 +14,15 @@ import { startMeetingScribe } from "@/src/server/meetings-scribe";
 import { MEETING_USAGE_LIMIT_MESSAGE, checkMeetingUsage } from "@/src/server/meetings-usage";
 
 /** Join (admission + room ticket + key), key fetch, and going LIVE. */
+
+/** Scheduled meetings open 5 minutes early, for everyone (hosts too). LIVE meetings are always open. */
+export function refuseBeforeJoinWindow(meeting: { status: string; startsAt: Date }, now: Date) {
+  if (meeting.status !== "SCHEDULED") return;
+  const opensAt = meetingJoinOpensAt(meeting.startsAt);
+  if (now.getTime() < opensAt.getTime()) {
+    throw new Error(`This meeting opens at ${pacificOpensLabel(opensAt, now)}.`);
+  }
+}
 
 function refuseClosed(status: string) {
   if (status === "ENDED") throw new Error("This meeting has ended.");
@@ -106,10 +116,19 @@ export async function joinMeeting(viewer: MeetingViewer, meetingId: string, now 
 
   const meeting = await prisma.meeting.findUnique({
     where: { id: meetingId },
-    select: { id: true, status: true, access: true, createdById: true, inviteeUserIds: true, quickAccess: true }
+    select: {
+      id: true,
+      status: true,
+      startsAt: true,
+      access: true,
+      createdById: true,
+      inviteeUserIds: true,
+      quickAccess: true
+    }
   });
   assertCanSeeMeeting(viewer, meeting);
   refuseClosed(meeting.status);
+  refuseBeforeJoinWindow(meeting, now);
 
   const isHost = isMeetingHost(viewer, meeting);
   const state = await admitOrQueue({

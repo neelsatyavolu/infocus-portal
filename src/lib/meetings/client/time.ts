@@ -1,7 +1,8 @@
 /** Pacific-time helpers for the Meetings tab (all producers meet on Pacific time). */
 
 export const MEETING_TIME_ZONE = "America/Los_Angeles";
-export const JOIN_OPENS_BEFORE_MS = 10 * 60 * 1000;
+/** Fallback only: the Portal sends `joinOpensAt` on every meeting (5 minutes before the start). */
+export const JOIN_OPENS_BEFORE_MS = 5 * 60 * 1000;
 
 const dayKeyFormat = new Intl.DateTimeFormat("en-CA", {
   timeZone: MEETING_TIME_ZONE,
@@ -91,8 +92,22 @@ export function isoToPacificWallTime(iso: string) {
   return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
 }
 
-export function canJoinNow(startsAt: string, now = Date.now()) {
-  return now >= new Date(startsAt).getTime() - JOIN_OPENS_BEFORE_MS;
+type JoinWindow = { startsAt: string; status?: string; joinOpensAt?: string | null };
+
+/** When Join opens (epoch ms): the server's `joinOpensAt`, else 5 minutes before the start. */
+export function joinOpensAtMs(meeting: JoinWindow) {
+  const server = meeting.joinOpensAt ? new Date(meeting.joinOpensAt).getTime() : Number.NaN;
+  return Number.isFinite(server) ? server : new Date(meeting.startsAt).getTime() - JOIN_OPENS_BEFORE_MS;
+}
+
+/** A live meeting is always open; otherwise Join opens at `joinOpensAt`. */
+export function canJoinNow(meeting: JoinWindow, now = Date.now()) {
+  return meeting.status === "LIVE" || now >= joinOpensAtMs(meeting);
+}
+
+/** "4:05" until the join window opens, for the countdown. */
+export function formatCountdown(ms: number) {
+  return formatElapsed(Math.ceil(Math.max(0, ms) / 1000) * 1000);
 }
 
 /** "1:02:09" / "4:05" for the call timer. */

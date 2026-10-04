@@ -49,7 +49,8 @@ Browser push goes only to devices with **Browser notifications** on. Every email
 | Email sign-in | You | Six-digit code, expires in 10 minutes |
 | Submitted announcements shared | The invited address | Email with an expiring link |
 | Legacy video finished processing | Producers and workspace admins | Email if Email is on |
-| Meeting starting | Invited producers (all producers when none are picked) | Browser and app push, links to the call |
+| Meeting in 15 minutes, and in 5 minutes | Producers (only the picked people when some were picked; invite-only meetings: only the people on them) | Browser and app push, opens the call |
+| Meeting calendar invite, update or cancellation | Addresses on the Meetings calendar invite list (invite-only meetings: only addresses linked to the people on them) | Email with `invite.ics` |
 | Someone waiting to join a meeting | That meeting's hosts | Browser and app push, at most every 2 minutes per person |
 
 “Assigned producer” means the package's associate producer, else its executive producer, else the associate producer for its category. Student emails go to your notification address when you set one. Messages (group and direct chat) never email or push.
@@ -67,7 +68,7 @@ If an Initial Cut stage sits unreviewed for 12 hours, its reviewers get an email
 ## Scheduled jobs you might notice
 
 - **Hourly**: review reminders (above) and a database backup (Admin → Backups, kept 7 days).
-- **Every 5 minutes**: "meeting is starting" pushes (see `meetings.md`).
+- **Every minute**: meeting reminders, 15 and 5 minutes before the start (see `meetings.md`). Meeting calendar emails go out in the background, one address about every half second.
 - **Every 10 minutes**: alerts for the public InFocus iPhone app (new show, new story, a stream going live; see `iphone-apps.md`).
 - **Every 15 minutes**: Portal checks for queued packages and shows due to upload to YouTube on their air date. While an upload is in progress it checks every minute until it finishes. Starting a show upload begins right away.
-- **Daily**: the next 21 days of Producer meetings are added to Meetings; equipment overdue emails (morning, Pacific); any Master Calendar edits not yet copied to the Google Doc are synced; media left in trash for 7 days is deleted for good; older versions of a video are removed once its current version is a week old.
+- **Daily**: the next 21 days of InFocus Producer Meetings are added to Meetings; equipment overdue emails (morning, Pacific); any Master Calendar edits not yet copied to the Google Doc are synced; media left in trash for 7 days is deleted for good; older versions of a video are removed once its current version is a week old.

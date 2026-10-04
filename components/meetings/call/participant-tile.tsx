@@ -117,11 +117,14 @@ export function ParticipantTile({
         onClick={onTogglePin}
         aria-label={pinned ? `Unpin ${label}` : `Pin ${label}`}
         className={cn(
-          "absolute right-2 top-2 rounded-md bg-[var(--ink-2)]/90 p-1.5 text-foreground transition-opacity focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]",
-          pinned ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+          "absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-md text-foreground transition-opacity focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)] [@media(hover:hover)]:right-2 [@media(hover:hover)]:top-2 [@media(hover:hover)]:h-8 [@media(hover:hover)]:w-8 [@media(hover:hover)]:bg-[var(--ink-2)]/90",
+          // Touch screens have no hover: keep the pin reachable (a faint chip), full on hover devices.
+          pinned ? "opacity-100" : "opacity-70 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100"
         )}
       >
-        {pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
+        <span className="rounded-md bg-[var(--ink-2)]/90 p-1.5">
+          {pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
+        </span>
       </button>
     </figure>
   );

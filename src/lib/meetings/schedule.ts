@@ -8,13 +8,33 @@ export const UPCOMING_WINDOW_DAYS = 21;
 
 export const PRODUCER_SERIES = {
   seriesKey: "producers",
-  title: "Producer meeting",
+  title: "InFocus Producer Meeting",
   /** 0 = Sunday … 6 = Saturday */
   weekdays: [0, 1, 3] as readonly number[],
   hour: 21,
   minute: 15,
   durationMinutes: 60
 } as const;
+
+/** Scheduled meetings open this long before they start (everyone, hosts included). */
+export const JOIN_OPENS_BEFORE_MS = 5 * 60 * 1000;
+
+export function meetingJoinOpensAt(startsAt: Date) {
+  return new Date(startsAt.getTime() - JOIN_OPENS_BEFORE_MS);
+}
+
+/** "9:10 PM" when it's today (Pacific), else "Sunday, October 4 at 9:10 PM". */
+export function pacificOpensLabel(instant: Date, now: Date) {
+  const time = new Intl.DateTimeFormat("en-US", { timeZone: MEETINGS_TIME_ZONE, hour: "numeric", minute: "2-digit" }).format(instant);
+  if (pacificDateKey(instant) === pacificDateKey(now)) return time;
+  const day = new Intl.DateTimeFormat("en-US", {
+    timeZone: MEETINGS_TIME_ZONE,
+    weekday: "long",
+    month: "long",
+    day: "numeric"
+  }).format(instant);
+  return `${day} at ${time}`;
+}
 
 export type SeriesOccurrence = { occurrenceKey: string; startsAt: Date };
 

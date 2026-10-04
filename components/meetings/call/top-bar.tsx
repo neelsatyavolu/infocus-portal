@@ -27,7 +27,7 @@ export function TopBar({
 }) {
   const q = QUALITY[quality];
   return (
-    <header className="flex items-center gap-3 border-b border-[var(--ink-4)] bg-[var(--ink)] px-3 py-2 md:px-4">
+    <header className="flex min-h-11 items-center gap-3 border-b border-[var(--ink-4)] bg-[var(--ink)] pb-2 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] pt-[max(0.5rem,env(safe-area-inset-top))] md:pl-4 md:pr-4">
       <h1 className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">{title}</h1>
       {notesOn ? (
         <span className="status-pill status-live" title="The Drive Scribe is taking notes">

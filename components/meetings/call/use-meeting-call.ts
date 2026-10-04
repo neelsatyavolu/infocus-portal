@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import type { MeetingClientMessage, MeetingReaction, MeetingServerMessage } from "@/src/lib/meetings/protocol";
 import type { JoinResponse } from "@/src/lib/meetings/types";
-import { errorMessage, meetingsApi } from "@/src/lib/meetings/client/api";
+import { MeetingApiError, errorMessage, meetingsApi } from "@/src/lib/meetings/client/api";
 import { decryptChat, encryptChat } from "@/src/lib/meetings/client/chat-crypto";
 import { MeetingE2ee } from "@/src/lib/meetings/client/e2ee";
 import { createMediaSession, type MeetingMediaSession } from "@/src/lib/meetings/client/media-session";
@@ -59,6 +59,8 @@ export function useMeetingCall(meetingId: string, onMuted: (kind: "audio" | "vid
   const joinInfoRef = useRef<JoinResponse | null>(null);
   const mediaGenerationRef = useRef(0);
   const [finalReason, setFinalReason] = useState<"full" | null>(null);
+  /** The Portal refused /join because the join window isn't open yet. */
+  const [notOpen, setNotOpen] = useState(false);
 
   const e2ee = useCallback(() => {
     if (!e2eeRef.current) e2eeRef.current = new MeetingE2ee();
@@ -108,6 +110,7 @@ export function useMeetingCall(meetingId: string, onMuted: (kind: "audio" | "vid
 
   const connect = useCallback(async () => {
     setFinalReason(null);
+    setNotOpen(false);
     setLocal("joining");
     setError(null);
     try {
@@ -134,6 +137,11 @@ export function useMeetingCall(meetingId: string, onMuted: (kind: "audio" | "vid
       socket.connect();
       setLocal("active");
     } catch (err) {
+      if (isNotOpenError(err)) {
+        setNotOpen(true);
+        setLocal("prejoin");
+        return;
+      }
       setError(errorMessage(err, "Couldn't join the meeting."));
       setLocal("error");
     }
@@ -247,6 +255,7 @@ export function useMeetingCall(meetingId: string, onMuted: (kind: "audio" | "vid
   return {
     stage: finalReason === "full" ? ("full" as const) : deriveStage(local, room.phase, Boolean(session)),
     error,
+    notOpen,
     room,
     joinInfo,
     session,
@@ -262,6 +271,10 @@ export function useMeetingCall(meetingId: string, onMuted: (kind: "audio" | "vid
     sendChat,
     sendReaction
   };
+}
+
+export function isNotOpenError(err: unknown) {
+  return err instanceof MeetingApiError && err.status === 400 && /opens at/i.test(err.message);
 }
 
 function deriveStage(local: LocalStage, phase: RoomState["phase"], hasMedia: boolean): CallStage {

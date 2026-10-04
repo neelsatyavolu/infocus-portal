@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import { Loader2, Lock, Mic, MicOff, Video, VideoOff } from "lucide-react";
 import { NEVER } from "rxjs";
 import { Button, buttonVariants } from "@/components/ui/button";
 import type { MeetingDetail } from "@/src/lib/meetings/types";
-import { errorMessage, meetingsApi } from "@/src/lib/meetings/client/api";
 import { pacificDayLabel, pacificTimeLabel } from "@/src/lib/meetings/client/time";
 import { CallButton } from "./call-button";
 import { DevicePickers } from "./device-pickers";
+import { useMeetEmbedded } from "./embed-context";
 import { VideoView, useObservableTrack } from "./media-elements";
 import { useTrackLevel } from "./use-call-helpers";
 import type { LocalMedia } from "./use-local-media";
@@ -32,42 +32,30 @@ function MicMeter({ track }: { track: MediaStreamTrack | undefined }) {
 }
 
 export function PreJoin({
-  meetingId,
+  meeting,
   userName,
   media,
   joining,
   onJoin
 }: {
-  meetingId: string;
+  meeting: MeetingDetail;
   userName: string;
   media: LocalMedia;
   joining: boolean;
   onJoin: () => void;
 }) {
-  const [meeting, setMeeting] = useState<MeetingDetail | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    meetingsApi
-      .get(meetingId)
-      .then(({ meeting: m }) => !cancelled && setMeeting(m))
-      .catch((err) => !cancelled && setLoadError(errorMessage(err, "Couldn't load this meeting.")));
-    return () => {
-      cancelled = true;
-    };
-  }, [meetingId]);
+  const embedded = useMeetEmbedded();
 
   const camera$ = useMemo(() => (media.videoOn ? media.camera.localMonitorTrack$ : NEVER), [media.videoOn, media.camera]);
   const mic$ = useMemo(() => (media.audioOn ? media.mic.localMonitorTrack$ : NEVER), [media.audioOn, media.mic]);
   const cameraTrack = useObservableTrack(media.videoOn ? camera$ : null);
   const micTrack = useObservableTrack(media.audioOn ? mic$ : null);
 
-  const over = meeting && (meeting.status === "ENDED" || meeting.status === "CANCELED");
-  const directJoin = meeting ? meeting.isHost || meeting.quickAccess : true;
+  const over = meeting.status === "ENDED" || meeting.status === "CANCELED";
+  const directJoin = meeting.isHost || meeting.quickAccess;
 
   return (
-    <main className="mx-auto grid min-h-dvh w-full max-w-5xl items-center gap-6 px-4 py-8 md:grid-cols-[1.4fr_1fr] md:px-6">
+    <main className="mx-auto grid min-h-dvh w-full max-w-5xl items-center gap-6 px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))] md:grid-cols-[1.4fr_1fr] md:px-6">
       <section aria-label="Preview" className="space-y-3">
         <div className="relative aspect-video overflow-hidden border border-[var(--ink-4)] bg-[var(--ink-2)]">
           {media.videoOn && cameraTrack ? (
@@ -95,13 +83,10 @@ export function PreJoin({
 
       <section aria-label="Join" className="space-y-4">
         <div className="eyebrow">Meeting</div>
-        <h1 className="display-sm text-foreground">{meeting?.title ?? (loadError ? "Meeting" : "Loading…")}</h1>
-        {meeting ? (
-          <p className="text-sm text-muted-foreground">
-            {pacificDayLabel(meeting.startsAt)} · {pacificTimeLabel(meeting.startsAt)} Pacific
-          </p>
-        ) : null}
-        {loadError ? <p className="text-sm text-danger">{loadError}</p> : null}
+        <h1 className="display-sm text-foreground">{meeting.title}</h1>
+        <p className="text-sm text-muted-foreground">
+          {pacificDayLabel(meeting.startsAt)} · {pacificTimeLabel(meeting.startsAt)} Pacific
+        </p>
         <p className="text-sm text-[var(--ink-text)]">
           Joining as <span className="font-medium text-foreground">{userName}</span>
         </p>
@@ -110,12 +95,14 @@ export function PreJoin({
             <p className="text-sm text-muted-foreground">
               This meeting {meeting.status === "ENDED" ? "has ended" : "was cancelled"}.
             </p>
-            <Link href={"/meetings" as never} className={buttonVariants({ variant: "outline" })}>
-              Back to Meetings
-            </Link>
+            {!embedded ? (
+              <Link href={"/meetings" as never} className={buttonVariants({ variant: "outline" })}>
+                Back to Meetings
+              </Link>
+            ) : null}
           </div>
         ) : (
-          <Button size="lg" className="w-full md:w-auto" onClick={onJoin} disabled={joining || Boolean(loadError)}>
+          <Button size="lg" className="h-11 w-full md:w-auto" onClick={onJoin} disabled={joining}>
             {joining ? <Loader2 className="animate-spin" aria-hidden /> : null}
             {directJoin ? "Join now" : "Ask to join"}
           </Button>

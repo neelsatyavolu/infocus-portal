@@ -66,6 +66,7 @@ function meetingRow(overrides: Record<string, unknown> = {}) {
   return {
     id: "m1",
     status: "SCHEDULED",
+    startsAt: NOW,
     access: "OPEN",
     createdById: "u-otto",
     inviteeUserIds: [] as string[],
@@ -162,6 +163,31 @@ describe("joinMeeting", () => {
     mocks.usage.mockResolvedValueOnce("over");
     await expect(joinMeeting(exec, "m1", NOW)).rejects.toThrow("over limit");
     expect(mocks.participantCreate).not.toHaveBeenCalled();
+  });
+
+  it("opens scheduled meetings 5 minutes early, for hosts too, with a clear message", async () => {
+    const startsAt = new Date("2026-10-05T04:15:00.000Z"); // 9:15 PM Pacific
+    mocks.meetingFindUnique.mockResolvedValue(meetingRow({ startsAt }));
+    const early = new Date(startsAt.getTime() - 6 * 60_000);
+    await expect(joinMeeting(exec, "m1", early)).rejects.toThrow("This meeting opens at 9:10 PM.");
+    await expect(joinMeeting(producer, "m1", early)).rejects.toThrow("This meeting opens at 9:10 PM.");
+    expect(mocks.participantCreate).not.toHaveBeenCalled();
+
+    const dayBefore = new Date(startsAt.getTime() - 24 * 3600_000);
+    await expect(joinMeeting(exec, "m1", dayBefore)).rejects.toThrow("This meeting opens at Sunday, October 4 at 9:10 PM.");
+
+    mocks.meetingFindUnique.mockReset();
+    mocks.meetingFindUnique
+      .mockResolvedValueOnce(meetingRow({ startsAt }))
+      .mockResolvedValueOnce({ id: "m1", title: "t", startsAt, notesEnabled: false });
+    const onTime = new Date(startsAt.getTime() - 5 * 60_000);
+    expect((await joinMeeting(exec, "m1", onTime)).state).toBe("ADMITTED");
+  });
+
+  it("LIVE meetings stay joinable before their planned start", async () => {
+    const startsAt = new Date(NOW.getTime() + 60 * 60_000);
+    mocks.meetingFindUnique.mockResolvedValue(meetingRow({ status: "LIVE", startsAt }));
+    expect((await joinMeeting(exec, "m1", NOW)).state).toBe("ADMITTED");
   });
 
   it("refuses when the room is not configured", async () => {

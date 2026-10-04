@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { useMeetEmbedded } from "./embed-context";
 
 function Screen({ eyebrow, title, body, children }: { eyebrow: string; title: string; body?: string; children?: React.ReactNode }) {
   return (
-    <main className="flex min-h-dvh items-center justify-center px-4">
+    <main className="flex min-h-dvh items-center justify-center px-4 pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)]">
       <section className="w-full max-w-md space-y-3 border border-[var(--ink-4)] bg-[var(--ink-2)] p-6" aria-live="polite">
         <div className="eyebrow">{eyebrow}</div>
         <h1 className="display-sm text-foreground">{title}</h1>
@@ -17,11 +18,15 @@ function Screen({ eyebrow, title, body, children }: { eyebrow: string; title: st
   );
 }
 
-const backLink = (
-  <Link href={"/meetings" as never} className={buttonVariants({ variant: "outline" })}>
-    Back to Meetings
-  </Link>
-);
+/** Hidden in the iPhone app, which shows its own close button. */
+function BackLink() {
+  if (useMeetEmbedded()) return null;
+  return (
+    <Link href={"/meetings" as never} className={buttonVariants({ variant: "outline" })}>
+      Back to Meetings
+    </Link>
+  );
+}
 
 export function WaitingScreen({ onLeave }: { onLeave: () => void }) {
   return (
@@ -29,7 +34,7 @@ export function WaitingScreen({ onLeave }: { onLeave: () => void }) {
       <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Waiting
       </span>
-      <Button variant="destructive-quiet" onClick={onLeave}>
+      <Button variant="destructive-quiet" className="h-11" onClick={onLeave}>
         Leave
       </Button>
     </Screen>
@@ -39,8 +44,10 @@ export function WaitingScreen({ onLeave }: { onLeave: () => void }) {
 export function DeniedScreen({ onAskAgain }: { onAskAgain: () => void }) {
   return (
     <Screen eyebrow="Lobby" title="A host didn't let you in" body="You can ask again if this was a mistake.">
-      <Button onClick={onAskAgain}>Ask again</Button>
-      {backLink}
+      <Button className="h-11" onClick={onAskAgain}>
+        Ask again
+      </Button>
+      <BackLink />
     </Screen>
   );
 }
@@ -72,8 +79,8 @@ export function EndScreen({
   }[kind];
   return (
     <Screen eyebrow="Meeting" title={copy.title} body={copy.body}>
-      {onRejoin && (kind === "left" || kind === "error" || kind === "full") ? <Button onClick={onRejoin}>Rejoin</Button> : null}
-      {backLink}
+      {onRejoin && (kind === "left" || kind === "error" || kind === "full") ? <Button className="h-11" onClick={onRejoin}>Rejoin</Button> : null}
+      <BackLink />
     </Screen>
   );
 }

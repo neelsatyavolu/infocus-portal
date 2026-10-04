@@ -8,7 +8,8 @@ export const dynamic = "force-dynamic";
 
 const addInviteSchema = z.object({
   email: z.string().trim().email().max(254),
-  name: z.string().trim().max(120).optional()
+  name: z.string().trim().max(120).optional(),
+  userId: z.string().min(1).max(64).nullable().optional()
 });
 
 export async function GET() {

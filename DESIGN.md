@@ -72,7 +72,7 @@ Every "white" version of the logo (white wordmark, on-black, mono-white, white i
 
 **Lexend** is the brand typeface (`02 Fonts`: Regular 400, Medium 500, SemiBold 600, Bold 700): every name, title, label and sentence. It's the only typeface in the on-air graphics.
 
-**Geist Mono** is the one allowed companion, for *data only* in software (the portal, teleprompter, dashboards): timecodes, timers, counts that change live, IDs and codes. Lexend's digits are all different widths and it has no tabular-figures option, so changing numbers set in Lexend shift side to side. See section 10 for exactly where each one goes. Install it on every editing computer first; the `Install … Graphics` files in Show Resources do it for you.
+**Geist Mono** is the one allowed companion, for *data only* in software (the portal, teleprompter, dashboards): timecodes, timers, counts that change live, IDs and codes. Lexend's digits are all different widths and it has no tabular-figures option, so changing numbers set in Lexend shift side to side. See section 10 for exactly where each one goes. Install it on every editing computer first; the `Install … Graphics` files inside the InFocus 2026 Package folder do it for you.
 
 | Use | Weight | Style |
 |---|---|---|
@@ -134,12 +134,12 @@ All are 1920 × 1080. MOGRT (Premiere) and `.drfx` (DaVinci Resolve) versions ma
 - Header: red dot + **ANNOUNCEMENTS** kicker (Bold 38 px, Green on Dark, +18%) on the left, Soft White wordmark (70 px tall) on the right, with a 3 px Soft White rule at 30% opacity under it. Margins are 120 px.
 - Title: SemiBold 116 px, Soft White. Points: Regular 64 px, Mist, with Green-on-Dark bullet dots. **Up to 5 points, short phrases.** Text shrinks to at most 80% to fit, and past that the card should be split into two.
 - Optional image on the right (e.g. a QR code) on a pure white 440 px card with 14 px corners (QR codes need true white to scan).
-- **Sequence:** the card fades up on the centered icon, the icon turns away, then the header, rule, title and points build in. At the end the content fades, the icon turns back in and holds, and the whole card dissolves to transparent.
+- **Sequence:** the card is solid from the first frame to the last. It opens on the centered icon (the TV Standby frame), the icon turns away, then the header, rule, title and points build in. At the end the content fades and the icon turns back in and holds, ending on the TV Standby frame again. Full screen over footage, the editor adds a short dissolve at each end.
 
 ### TV standby (`09 TV Standby`)
 - Ink with the icon centered (300 px). It's exactly the first and last frame of the announcement.
 - The Left/Right set TVs show this whenever no announcement is up, so they **never show the blue key color**. On the TVs, an announcement reads as logo → announcement → logo, with no pop.
-- **Live setup:** the TriCaster holds the sets and this still; the announcements come from a Premiere laptop over NDI. In that Premiere sequence, the TV Standby sits on V1 under the announcements for the whole timeline, so the feed is always opaque and never flashes black before or after an announcement.
+- **Live setup:** the TriCaster holds the sets and this still; the announcements come from a Premiere laptop over NDI. Because each announcement starts and ends on this exact frame, the TriCaster cuts its TVs from the still to the NDI feed (parked on the announcement's first frame) and back with no flash. In the Premiere sequence the TV Standby sits on V1 so the gaps between announcements show the logo, not black.
 
 ### Follow InFocus (`08 Follow InFocus`)
 - A corner card at the **top left** (x 48, y 40): Ink tile + Ink "Follow InFocus" plate (square, like the lower third), with a Green panel below listing the handles in Soft White Medium 26 px:
@@ -174,7 +174,8 @@ Three still backgrounds (1920 × 1080 PNG) for the switcher, keeping the classic
 | Asset | Format |
 |---|---|
 | Intro / outro | 1080p H.264 MP4, high bitrate |
-| Lower thirds, announcements, Follow InFocus | ProRes 4444 with alpha (transparent), 1080p, 29.97 fps |
+| Lower thirds, Follow InFocus | ProRes 4444 with alpha (transparent), 1080p, 29.97 fps |
+| Announcements | ProRes 4444, 1080p, 29.97 fps, fully opaque (starts and ends on the TV Standby frame) |
 | Editable templates | `.mogrt` (Premiere), `.drfx` (DaVinci Resolve) |
 | Virtual sets, TV standby | 1920 × 1080 PNG |
 | Logos | PNG with transparency |

@@ -3,12 +3,18 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   createOriginalVideoDownloadToken: vi.fn(),
+  nasMintDownloadUrl: vi.fn(),
   findUnique: vi.fn(),
   requireMediaAccess: vi.fn()
 }));
 
 vi.mock("@/src/lib/bunny", () => ({
   createOriginalVideoDownloadToken: mocks.createOriginalVideoDownloadToken
+}));
+
+vi.mock("@/src/lib/nas-storage", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/src/lib/nas-storage")>()),
+  nasMintDownloadUrl: mocks.nasMintDownloadUrl
 }));
 
 vi.mock("@/src/lib/prisma", () => ({
@@ -72,5 +78,34 @@ describe("media download route", () => {
       "https://pull-zone.b-cdn.net/bunny_video_1/original?token=stub-token&expires=123"
     );
     expect(response.headers.get("cache-control")).toBe("private, no-store");
+  });
+
+  it("redirects NAS versions to a signed Drive URL that downloads as an attachment", async () => {
+    mocks.findUnique.mockResolvedValue({
+      id: "version_2",
+      mediaItemId: "media_1",
+      sourceType: "VIDEO",
+      bunnyVideoId: "nas:abc",
+      storageProvider: "NAS",
+      nasPath: "Package Storage/Cycle 1/Abby/Initial Cut/cut.mp4"
+    });
+    mocks.nasMintDownloadUrl.mockResolvedValue(
+      "https://drive.example.edu/api/service/file?path=cut.mp4&token=stub"
+    );
+
+    const response = await GET(
+      new Request("https://infocus.test/api/media/media_1/download?mediaVersionId=version_2"),
+      { params: Promise.resolve({ mediaId: "media_1" }) }
+    );
+
+    expect(mocks.nasMintDownloadUrl).toHaveBeenCalledWith(
+      "Package Storage/Cycle 1/Abby/Initial Cut/cut.mp4",
+      60 * 30
+    );
+    expect(mocks.createOriginalVideoDownloadToken).not.toHaveBeenCalled();
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBe(
+      "https://drive.example.edu/api/service/file?path=cut.mp4&token=stub&inline=0"
+    );
   });
 });

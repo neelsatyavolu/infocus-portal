@@ -2,6 +2,7 @@ import { WorkspaceRole } from "@prisma/client";
 import { handleRouteError } from "@/src/lib/api-errors";
 import { createOriginalVideoDownloadToken } from "@/src/lib/bunny";
 import { fail } from "@/src/lib/http";
+import { isNasVideoId, nasMintDownloadUrl } from "@/src/lib/nas-storage";
 import { prisma } from "@/src/lib/prisma";
 import { requireMediaAccess } from "@/src/server/memberships";
 
@@ -36,9 +37,21 @@ export async function GET(
       return fail("Only video versions can be downloaded from this endpoint.", 400);
     }
 
-    // Long TTL so the signed Bunny URL remains valid for the full direct
+    // Long TTL so the signed URL remains valid for the full direct
     // browser download after this lightweight auth gate redirects.
-    const { downloadUrl } = createOriginalVideoDownloadToken(version.bunnyVideoId, 60 * 30);
+    const isNas = version.storageProvider?.toUpperCase() === "NAS" || isNasVideoId(version.bunnyVideoId);
+    let downloadUrl: string;
+    if (isNas) {
+      if (!version.nasPath) {
+        throw new Error("NOT_FOUND");
+      }
+      // inline=0 makes Drive send Content-Disposition: attachment, so the browser saves the file.
+      const driveUrl = new URL(await nasMintDownloadUrl(version.nasPath, 60 * 30));
+      driveUrl.searchParams.set("inline", "0");
+      downloadUrl = driveUrl.toString();
+    } else {
+      downloadUrl = createOriginalVideoDownloadToken(version.bunnyVideoId, 60 * 30).downloadUrl;
+    }
 
     return new Response(null, {
       status: 302,

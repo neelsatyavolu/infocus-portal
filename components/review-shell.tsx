@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   ChevronDown,
   Clock3,
+  Download,
   GraduationCap,
   ListFilter,
   Loader2,
@@ -27,7 +28,7 @@ import {
 } from "lucide-react";
 import { ApproveFeedbackDialog } from "@/components/package-cycle/approve-feedback-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -2001,6 +2002,17 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                   versionNumber={currentVersion.versionNumber}
                   onSeek={seekTo}
                 />
+              ) : null}
+              {!isGuest && !isImageReview && currentVersion?.status === "READY" ? (
+                <a
+                  href={`/api/media/${data.mediaId}/download?mediaVersionId=${currentVersion.id}`}
+                  download
+                  className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-9 gap-1.5 px-3")}
+                  title="Download the original file of this version"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Download
+                </a>
               ) : null}
               <label className="relative inline-flex">
                 <select

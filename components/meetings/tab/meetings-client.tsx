@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import type { MeetingListResponse, MeetingSummary } from "@/src/lib/meetings/types";
 import { errorMessage, meetingsApi } from "@/src/lib/meetings/client/api";
 import { ConfirmDialog } from "../confirm-dialog";
-import { InvitesPanel } from "./invites-panel";
+import { CalendarSettingsDialog } from "./calendar-settings-dialog";
 import { LiveBanner, PastList, UpcomingList } from "./meeting-rows";
 import { MoveDialog } from "./move-dialog";
 import { ScheduleDialog } from "./schedule-dialog";
@@ -105,6 +105,7 @@ export default function MeetingsClient() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <CalendarSettingsDialog />
             <Button variant="outline" onClick={() => setDialog("schedule")}>
               <CalendarPlus aria-hidden /> Schedule
             </Button>
@@ -175,8 +176,6 @@ export default function MeetingsClient() {
           </Section>
         </>
       ) : null}
-
-      <InvitesPanel />
 
       <ScheduleDialog
         open={dialog !== null}

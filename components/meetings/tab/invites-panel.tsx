@@ -23,7 +23,8 @@ export function isValidInviteEmail(value: string) {
 }
 
 /** Calendar invites for the InFocus Producer Meeting. Execs manage; other producers see the count. */
-export function InvitesPanel() {
+/** `embedded`: shown inside the Meetings calendar settings dialog, which supplies the frame and title. */
+export function InvitesPanel({ embedded = false }: { embedded?: boolean }) {
   const [invites, setInvites] = useState<InviteRow[] | null>(null);
   const [canManage, setCanManage] = useState(false);
   const [calendar, setCalendar] = useState<MeetingInviteListResponse["calendar"] | null>(null);
@@ -112,10 +113,13 @@ export function InvitesPanel() {
   }
 
   return (
-    <section aria-labelledby="invites-heading" className="space-y-3 rounded-md border border-[var(--ink-4)] bg-card p-4">
+    <section
+      aria-label="Calendar invites"
+      className={embedded ? "space-y-3" : "space-y-3 rounded-md border border-[var(--ink-4)] bg-card p-4"}
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 id="invites-heading" className="text-base font-semibold text-foreground">
-          Calendar invites
+        <h2 className={embedded ? "text-sm font-medium text-muted-foreground" : "text-base font-semibold text-foreground"}>
+          {embedded ? "Invited addresses" : "Calendar invites"}
           {invites ? <span className="ml-2 font-mono text-sm tabular-nums text-muted-foreground">{invites.length}</span> : null}
         </h2>
         {canManage && invites && invites.length > 0 ? (

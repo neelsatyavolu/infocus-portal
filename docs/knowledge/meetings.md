@@ -67,6 +67,18 @@ This is separate from Admin → Reconnect YouTube and doesn't change it.
 - **Remove** takes the person out and changes the meeting's encryption key, so they can't read or hear anything after that. They can ask to join again.
 - When the last person leaves, the meeting ends by itself after a minute (the minute covers a refresh or a dropped connection). Notes start processing then.
 
+## When the host leaves
+
+- If the last host leaves the call, someone still in it becomes host so people can still be let in: another executive producer first, otherwise whoever has been in the call longest. The Notes participant never becomes host.
+- Pressing **Leave** hands host over at once. If a host's connection just drops, the call waits 20 seconds in case they're coming back (a refresh); if they return in time, nothing changes.
+- The new host keeps host for the rest of the meeting (admit, deny, remove, mute, end for everyone, settings). If the original host comes back, both are hosts.
+
+## Link previews
+
+- Sharing a meeting link in iMessage, Slack, Discord, WhatsApp, LinkedIn or Telegram shows a preview card with the meeting's title and its date and time (Pacific), or "Happening now" while it's live. `/meet/producers` shows the next InFocus Producer Meeting.
+- The card shows the title and time only, never who is invited or attending. A cancelled meeting shows "Cancelled · <title>"; a link to a meeting that doesn't exist shows "InFocus meeting".
+- Opening the link still needs an InFocus sign-in.
+
 ## Privacy
 
 - Audio, video, screen share and chat are encrypted on each device. The video service only relays scrambled data.

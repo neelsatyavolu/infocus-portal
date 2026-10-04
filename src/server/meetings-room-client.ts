@@ -26,6 +26,8 @@ export function issueMeetingRoomTicket(input: {
   name: string;
   role: MeetingRoomRole;
   admitted: boolean;
+  /** Exec: first in line when the room hands host over. */
+  exec?: boolean;
   now?: number;
 }) {
   const now = input.now ?? Date.now();
@@ -38,6 +40,7 @@ export function issueMeetingRoomTicket(input: {
       name: input.name,
       role: input.role,
       adm: input.admitted,
+      ...(input.exec ? { exec: true } : {}),
       iat: now,
       exp: now + MEETING_ROOM_TOKEN_TTL_MS
     },

@@ -8,20 +8,25 @@ import type { MeetingRoomEvent, MeetingRoomReport, MeetingServerMessage } from "
 import { verifyMeetingRoomToken } from "../../../src/lib/meetings/room-token";
 import type { Env } from "./env";
 import { authorizeMedia, canRegisterSession, type MediaDecision, type MediaOp } from "./media-auth";
-import { reportToPortal } from "./portal";
+import { reportToPortal, type ReportResult } from "./portal";
 import { forgetKey, forgetUid, RATE_RULES, rateKey, socketRateKey, takeToken, type RateBuckets, type RateKind } from "./rate-limit";
 import { handleClientMessage, rateKindOf } from "./room-messages";
+import { afterHostLeft, isHandoffDue, promoteNextHost } from "./host-handoff";
 import {
+  afterEmptyReportFailed,
   applyRoomEvent,
+  endedState,
   checkTicket,
-  emptyDeadline,
   initialState,
+  isEffectiveHost,
   isEmptyDue,
   isRoomFull,
   joinParticipant,
   joinWaiting,
   leaveParticipant,
   leaveWaiting,
+  nextAlarm,
+  normalizeState,
   participantList,
   registerSession,
   ticketFromPayload,
@@ -30,13 +35,12 @@ import {
   type RoomState,
   type RoomTicket
 } from "./room-state";
-import { admitted, attachmentOf, closeSocket, hosts, select, send, sendAll, type SocketAttachment } from "./sockets";
+import { admitted, attachmentOf, closeSocket, select, send, sendAll, type SocketAttachment } from "./sockets";
 import { parseClientMessage } from "./validation";
 
 const STATE_KEY = "room";
 const PING = JSON.stringify({ t: "ping" });
 const PONG = JSON.stringify({ t: "pong" });
-const REPORT_RETRY_MS = 60_000;
 const CLOSE_REMOVED = 4003;
 const CLOSE_DENIED = 4004;
 const CLOSE_ENDED = 4010;
@@ -51,7 +55,7 @@ export class MeetingRoom extends DurableObject<Env> {
     super(ctx, env);
     ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair(PING, PONG));
     void ctx.blockConcurrencyWhile(async () => {
-      this.room = (await ctx.storage.get<RoomState>(STATE_KEY)) ?? initialState();
+      this.room = normalizeState(await ctx.storage.get<RoomState>(STATE_KEY));
     });
   }
 
@@ -61,8 +65,9 @@ export class MeetingRoom extends DurableObject<Env> {
     await this.syncAlarm();
   }
 
+  /** One alarm at the earliest deadline: the empty-room end or the host handoff. */
   private async syncAlarm(): Promise<void> {
-    const deadline = emptyDeadline(this.room);
+    const deadline = nextAlarm(this.room);
     const current = await this.ctx.storage.getAlarm();
     if (deadline === null) {
       if (current !== null) await this.ctx.storage.deleteAlarm();
@@ -71,9 +76,9 @@ export class MeetingRoom extends DurableObject<Env> {
     }
   }
 
-  private report(report: MeetingRoomReport): Promise<boolean> {
+  private report(report: MeetingRoomReport): Promise<ReportResult> {
     const meetingId = this.room.meetingId;
-    return meetingId ? reportToPortal(this.env, meetingId, report) : Promise.resolve(false);
+    return meetingId ? reportToPortal(this.env, meetingId, report) : Promise.resolve({ ok: false, status: null });
   }
 
   /** Takes one token from a bucket; false when the caller is over the limit. */
@@ -88,7 +93,17 @@ export class MeetingRoom extends DurableObject<Env> {
   }
 
   private broadcastWaiting(): void {
-    sendAll(select(this.sockets(), hosts), { t: "waiting", waiting: waitingList(this.room) });
+    const hostSockets = select(this.sockets(), (ticket) => ticket.adm && isEffectiveHost(this.room, ticket));
+    sendAll(hostSockets, { t: "waiting", waiting: waitingList(this.room) });
+  }
+
+  /** Host was handed to `uid`: everyone sees it, they get the role and the lobby, the Portal records it. */
+  private async announcePromotion(uid: string): Promise<void> {
+    this.broadcastParticipants([uid]);
+    const theirs = select(this.ctx.getWebSockets(uid), admitted);
+    sendAll(theirs, { t: "role", isHost: true });
+    sendAll(theirs, { t: "waiting", waiting: waitingList(this.room) });
+    await this.report({ t: "hostPromoted", uid });
   }
 
   private broadcastParticipants(uids: readonly string[], except?: WebSocket): void {
@@ -100,7 +115,7 @@ export class MeetingRoom extends DurableObject<Env> {
   }
 
   private welcome(ws: WebSocket, ticket: RoomTicket, isAdmitted: boolean): void {
-    const isHost = isAdmitted && ticket.role === "host";
+    const isHost = isAdmitted && isEffectiveHost(this.room, ticket);
     const participants = participantList(this.room).map((view) => (isAdmitted ? view : { ...view, tracks: {} }));
     send(ws, {
       t: "welcome",
@@ -190,6 +205,9 @@ export class MeetingRoom extends DurableObject<Env> {
     switch (outcome.kind) {
       case "pong":
         return send(ws, { t: "pong" });
+      case "leave":
+        ws.serializeAttachment({ ...attachment, leaving: true });
+        return;
       case "error":
         return send(ws, { t: "error", message: outcome.message });
       case "broadcast":
@@ -222,11 +240,16 @@ export class MeetingRoom extends DurableObject<Env> {
     if (select(this.ctx.getWebSockets(ticket.uid), sameKind, ws).length > 0) return;
 
     if (ticket.adm) {
-      const { state, left } = leaveParticipant(this.room, ticket.uid, Date.now());
+      const now = Date.now();
+      const wasHost = Boolean(this.room.participants[ticket.uid]?.isHost);
+      const { state, left } = leaveParticipant(this.room, ticket.uid, now);
       if (!left) return;
       this.buckets = forgetUid(this.buckets, ticket.uid);
-      await this.commit(state);
+      // The last host left: hand over now after `leave`, else arm the grace (folded into the alarm).
+      const handoff = wasHost ? afterHostLeft(state, Boolean(ticket.leaving), now) : { state, promoted: null };
+      await this.commit(handoff.state);
       sendAll(select(this.sockets(), admitted, ws), { t: "left", uid: ticket.uid });
+      if (handoff.promoted) await this.announcePromotion(handoff.promoted);
       return;
     }
     const { state, changed } = leaveWaiting(this.room, ticket.uid);
@@ -236,18 +259,39 @@ export class MeetingRoom extends DurableObject<Env> {
   }
 
   // ---------------------------------------------------------------------------
-  // Alarm: report `empty` after MEETING_EMPTY_END_MS without humans
+  // Alarm: hand host over after the grace, and report `empty` after MEETING_EMPTY_END_MS without humans
   // ---------------------------------------------------------------------------
 
   async alarm(): Promise<void> {
-    if (!isEmptyDue(this.room, Date.now())) return this.syncAlarm();
-    const ok = await this.report({ t: "empty" });
-    if (!ok) {
-      await this.ctx.storage.setAlarm(Date.now() + REPORT_RETRY_MS);
-      return;
+    const now = Date.now();
+    if (isHandoffDue(this.room, now)) {
+      const { state, promoted } = promoteNextHost(this.room);
+      await this.commit(state);
+      if (promoted) await this.announcePromotion(promoted);
+    }
+    if (!isEmptyDue(this.room, now)) return this.syncAlarm();
+    const result = await this.report({ t: "empty" });
+    if (!result.ok) {
+      // Backoff via the stored retry time (the one alarm picks it up); give up on 404/410 or after ~1 hour.
+      const failed = afterEmptyReportFailed(this.room, result.status, Date.now());
+      if (!failed.giveUp) return this.commit(failed.state);
+      console.error("meeting-room: giving up on the empty report; clearing the room", result.status);
+      return this.clearRoom();
     }
     // The Portal answers with an `ended` event, which may already have arrived.
-    if (this.room.endedAt === null) await this.commit({ ...this.room, emptySince: null });
+    if (this.room.endedAt === null) {
+      await this.commit({ ...this.room, emptySince: null, emptyReportFailures: 0, emptyRetryAt: null });
+    }
+  }
+
+  /** Treat the room as ended: wipe storage, keep only the ended marker, close anything still open. */
+  private async clearRoom(): Promise<void> {
+    await this.ctx.storage.deleteAll();
+    await this.commit(endedState(this.room, Date.now()));
+    for (const ws of select(this.sockets(), () => true)) {
+      send(ws, { t: "ended" });
+      closeSocket(ws, CLOSE_ENDED, "ended");
+    }
   }
 
   // ---------------------------------------------------------------------------

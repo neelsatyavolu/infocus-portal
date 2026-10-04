@@ -3,12 +3,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   findUnique: vi.fn(),
   update: vi.fn(),
+  participantUpdateMany: vi.fn(),
   markLive: vi.fn(),
   endMeeting: vi.fn(),
   knock: vi.fn()
 }));
 
-vi.mock("@/src/lib/prisma", () => ({ prisma: { meeting: { findUnique: mocks.findUnique, update: mocks.update } } }));
+vi.mock("@/src/lib/prisma", () => ({
+  prisma: {
+    meeting: { findUnique: mocks.findUnique, update: mocks.update },
+    meetingParticipant: { updateMany: mocks.participantUpdateMany }
+  }
+}));
 vi.mock("@/src/server/meetings-join", () => ({ markMeetingLive: mocks.markLive }));
 vi.mock("@/src/server/meetings-moderation", () => ({ endMeeting: mocks.endMeeting }));
 vi.mock("@/src/server/meetings-notify", () => ({ notifyMeetingKnock: mocks.knock }));
@@ -82,6 +88,32 @@ describe("POST /api/service/meetings/[id]/room", () => {
     expect((await roomPost(post("/api/service/meetings/m1/room", { t: "nope" }, token), params)).status).toBe(400);
     mocks.findUnique.mockResolvedValueOnce(null);
     expect((await roomPost(post("/api/service/meetings/m1/room", { t: "started" }, token), params)).status).toBe(404);
+  });
+});
+
+describe("hostPromoted report", () => {
+  it("marks that admitted participant as a promoted host", async () => {
+    mocks.participantUpdateMany.mockResolvedValue({ count: 1 });
+    const token = await signMeetingInternalToken("room", "m1", ROOM_SECRET);
+    const response = await roomPost(post("/api/service/meetings/m1/room", { t: "hostPromoted", uid: "u-abby" }, token), params);
+    expect(response.status).toBe(200);
+    expect((await response.json()).data).toEqual({ promoted: true });
+    expect(mocks.participantUpdateMany).toHaveBeenCalledWith({
+      where: { meetingId: "m1", userId: "u-abby", state: "ADMITTED" },
+      data: { promotedHost: true }
+    });
+  });
+
+  it("does nothing for someone who isn't admitted (removed, never joined)", async () => {
+    mocks.participantUpdateMany.mockResolvedValue({ count: 0 });
+    const token = await signMeetingInternalToken("room", "m1", ROOM_SECRET);
+    const response = await roomPost(post("/api/service/meetings/m1/room", { t: "hostPromoted", uid: "u-gone" }, token), params);
+    expect((await response.json()).data).toEqual({ promoted: false });
+  });
+
+  it("needs the room's token like every report", async () => {
+    expect((await roomPost(post("/api/service/meetings/m1/room", { t: "hostPromoted", uid: "u-abby" }), params)).status).toBe(401);
+    expect(mocks.participantUpdateMany).not.toHaveBeenCalled();
   });
 });
 

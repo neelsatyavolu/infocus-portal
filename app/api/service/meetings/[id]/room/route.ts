@@ -9,7 +9,8 @@ export const dynamic = "force-dynamic";
 const reportSchema = z.discriminatedUnion("t", [
   z.object({ t: z.literal("started") }),
   z.object({ t: z.literal("knock"), uid: z.string().min(1).max(64), name: z.string().max(120) }),
-  z.object({ t: z.literal("empty") })
+  z.object({ t: z.literal("empty") }),
+  z.object({ t: z.literal("hostPromoted"), uid: z.string().min(1).max(64) })
 ]);
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {

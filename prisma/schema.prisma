@@ -1909,6 +1909,8 @@ model MeetingParticipant {
   meetingId     String
   userId        String
   state         MeetingParticipantState @default(WAITING)
+  /// The room handed host to them after the last host left (they host the rest of the meeting).
+  promotedHost  Boolean  @default(false)
   firstJoinedAt DateTime @default(now())
   lastJoinedAt  DateTime @default(now())
   removedAt     DateTime?

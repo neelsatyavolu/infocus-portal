@@ -3,6 +3,7 @@ import { appReviewEmail, isAppReviewEmail, isAppReviewPathAllowed } from "@/src/
 import { APP_SESSION_COOKIE_NAME, TELEPROMPTER_KIOSK_COOKIE_NAME } from "@/src/lib/auth-cookies";
 import { parseAppSessionToken } from "@/src/lib/auth-edge";
 import { resolveAppSurface, type AppSurface } from "@/src/lib/hosts";
+import { MEETING_PREVIEW_PUBLIC_PATH, meetingPreviewRewritePath } from "@/src/lib/meetings/link-preview";
 import {
   getTeleprompterKioskCookieMeta,
   isTeleprompterKioskPath,
@@ -41,6 +42,8 @@ const publicRoutePatterns = [
   // (DRIVE_SERVICE_TOKEN), both checked in the handlers; the Scribe page reads its ticket from the URL fragment.
   /^\/api\/service\/meetings\/[^/]+\/(?:room|notes)$/,
   /^\/meet-scribe$/,
+  // Meeting link previews (metadata + generated image only; src/lib/meetings/link-preview.ts).
+  MEETING_PREVIEW_PUBLIC_PATH,
   /^\/submit-announcement$/,
   /^\/api\/announcements\/submit$/,
   /^\/announcements\/shared$/,
@@ -175,6 +178,13 @@ export default async function middleware(req: NextRequest) {
 
   if (pathname === "/api/class-board/unlock") {
     return withSurfaceHeaders(NextResponse.next(), surface, host);
+  }
+
+  // iMessage / Slack / … crawlers fetch meeting links signed out: serve them the metadata-only
+  // preview page instead of a sign-in redirect. Rewrite, not redirect, so the shared URL stays as is.
+  const previewPath = meetingPreviewRewritePath(pathname, req.method, req.headers.get("user-agent"));
+  if (previewPath) {
+    return withSurfaceHeaders(NextResponse.rewrite(new URL(previewPath, req.url)), surface, host);
   }
 
   if (isPublicRoute(pathname)) {

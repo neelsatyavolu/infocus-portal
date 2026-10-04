@@ -2,8 +2,11 @@
 import type { MeetingServerMessage } from "../../../src/lib/meetings/protocol";
 import type { RoomTicket } from "./room-state";
 
-/** Per-socket attachment: the ticket plus a random socket id (for the per-socket rate limit). */
-export type SocketAttachment = RoomTicket & { sock: string };
+/**
+ * Per-socket attachment: the ticket plus a random socket id (for the per-socket rate limit), and
+ * `leaving` once the client said `leave` (its close is deliberate).
+ */
+export type SocketAttachment = RoomTicket & { sock: string; leaving?: boolean };
 
 export function attachmentOf(ws: WebSocket): SocketAttachment | null {
   try {
@@ -36,7 +39,6 @@ export function closeSocket(ws: WebSocket, code: number, reason: string): void {
 export type SocketFilter = (ticket: RoomTicket) => boolean;
 
 export const admitted: SocketFilter = (ticket) => ticket.adm;
-export const hosts: SocketFilter = (ticket) => ticket.adm && ticket.role === "host";
 
 /** Open sockets (optionally of one uid) whose ticket passes `filter`, excluding `except`. */
 export function select(

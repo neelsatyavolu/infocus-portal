@@ -17,6 +17,8 @@ export type RoomTicket = {
   name: string;
   role: MeetingRoomRole;
   adm: boolean;
+  /** Exec (EP, adviser, super admin): first in line when host is handed over. */
+  exec?: boolean;
   iat: number;
 };
 
@@ -36,6 +38,15 @@ export type RoomState = {
   emptySince: number | null;
   /** Set when the Portal ended the meeting. Every later ticket is rejected. */
   endedAt: number | null;
+  /** uids made host by a handoff (they keep it for the rest of the meeting, even after a refresh). */
+  promotedHosts: Readonly<Record<string, true>>;
+  /** uids whose ticket said `exec` (preferred when host is handed over). */
+  execUids: Readonly<Record<string, true>>;
+  /** When to hand host over after the last host dropped without `leave`; null when not pending. */
+  handoffAt: number | null;
+  /** Failed `empty` reports so far, and when to try again (backoff); reset once humans return. */
+  emptyReportFailures: number;
+  emptyRetryAt: number | null;
 };
 
 export const DEFAULT_SETTINGS: MeetingRoomSettings = { quickAccess: false, notesEnabled: true };
@@ -51,8 +62,23 @@ export function initialState(meetingId: string | null = null): RoomState {
     started: false,
     epoch: 0,
     emptySince: null,
-    endedAt: null
+    endedAt: null,
+    promotedHosts: {},
+    execUids: {},
+    handoffAt: null,
+    emptyReportFailures: 0,
+    emptyRetryAt: null
   };
+}
+
+/** A stored state from before a field existed gets that field's default. */
+export function normalizeState(stored: Partial<RoomState> | undefined | null): RoomState {
+  return { ...initialState(), ...(stored ?? {}) };
+}
+
+/** The ticket's role says host, or the room handed host to this uid. */
+export function isEffectiveHost(state: RoomState, ticket: Pick<RoomTicket, "uid" | "role">): boolean {
+  return ticket.role === "host" || Boolean(state.promotedHosts[ticket.uid]);
 }
 
 export function withMeetingId(state: RoomState, meetingId: string): RoomState {
@@ -80,15 +106,17 @@ export function humanCount(state: RoomState): number {
 /** Recomputes `emptySince` after people come or go. */
 function syncEmpty(state: RoomState, now: number): RoomState {
   const empty = state.started && humanCount(state) === 0;
-  if (!empty) return state.emptySince === null ? state : { ...state, emptySince: null };
+  if (!empty) {
+    return state.emptySince === null ? state : { ...state, emptySince: null, emptyReportFailures: 0, emptyRetryAt: null };
+  }
   return state.emptySince === null ? { ...state, emptySince: now } : state;
 }
 
-function newParticipantView(ticket: RoomTicket, now: number): MeetingParticipantView {
+function newParticipantView(state: RoomState, ticket: RoomTicket, now: number): MeetingParticipantView {
   return {
     uid: ticket.uid,
     name: ticket.name,
-    isHost: ticket.role === "host",
+    isHost: isEffectiveHost(state, ticket),
     isScribe: ticket.role === "scribe",
     audioOn: false,
     videoOn: false,
@@ -99,19 +127,26 @@ function newParticipantView(ticket: RoomTicket, now: number): MeetingParticipant
   };
 }
 
-/** An admitted ticket connected. A second tab of the same uid keeps the existing view. */
+/**
+ * An admitted ticket connected. A second tab of the same uid keeps the existing view (upgraded to
+ * host if this ticket is one). A host arriving cancels a pending handoff.
+ */
 export function joinParticipant(
   state: RoomState,
   ticket: RoomTicket,
   now: number
 ): { state: RoomState; reportStarted: boolean } {
   const human = ticket.role !== "scribe";
-  const view = state.participants[ticket.uid] ?? newParticipantView(ticket, now);
+  const existing = state.participants[ticket.uid];
+  const host = isEffectiveHost(state, ticket);
+  const view = existing ? (host && !existing.isHost ? { ...existing, isHost: true } : existing) : newParticipantView(state, ticket, now);
   const next: RoomState = {
     ...state,
     participants: { ...state.participants, [ticket.uid]: view },
     waiting: omit(state.waiting, ticket.uid),
-    started: state.started || human
+    started: state.started || human,
+    execUids: ticket.exec ? { ...state.execUids, [ticket.uid]: true } : state.execUids,
+    handoffAt: view.isHost ? null : state.handoffAt
   };
   return { state: syncEmpty(next, now), reportStarted: human && !state.started };
 }
@@ -165,7 +200,8 @@ function removeUser(state: RoomState, uid: string, at: number, now: number): Roo
     participants: omit(state.participants, uid),
     waiting: omit(state.waiting, uid),
     sessions: withoutSessionsOf(state.sessions, uid),
-    removedAt: { ...state.removedAt, [uid]: Math.max(state.removedAt[uid] ?? 0, at) }
+    removedAt: { ...state.removedAt, [uid]: Math.max(state.removedAt[uid] ?? 0, at) },
+    promotedHosts: omit(state.promotedHosts, uid)
   };
   return syncEmpty(next, now);
 }
@@ -183,7 +219,7 @@ export function applyRoomEvent(state: RoomState, event: MeetingRoomEvent, now: n
     case "settings":
       return { ...state, settings: event.settings };
     case "ended":
-      return { ...initialState(state.meetingId), endedAt: now };
+      return endedState(state, now);
   }
 }
 
@@ -191,7 +227,40 @@ export function applyRoomEvent(state: RoomState, event: MeetingRoomEvent, now: n
 export function emptyDeadline(state: RoomState): number | null {
   if (state.endedAt !== null || !state.started || state.emptySince === null) return null;
   if (humanCount(state) > 0) return null;
-  return state.emptySince + MEETING_EMPTY_END_MS;
+  return state.emptyRetryAt ?? state.emptySince + MEETING_EMPTY_END_MS;
+}
+
+/** `empty` report retries: 1, 2, 4, 8, 16, 32 minutes (about an hour in all), then give up. */
+export const EMPTY_REPORT_FIRST_RETRY_MS = 60_000;
+export const EMPTY_REPORT_MAX_RETRIES = 6;
+
+/**
+ * The Portal didn't take the `empty` report. 404/410 (meeting unknown or deleted) or too many
+ * failures: give up, and the caller clears the room. Otherwise retry later with backoff.
+ */
+export function afterEmptyReportFailed(
+  state: RoomState,
+  status: number | null,
+  now: number
+): { state: RoomState; giveUp: boolean } {
+  if (status === 404 || status === 410) return { state, giveUp: true };
+  const failures = state.emptyReportFailures + 1;
+  if (failures > EMPTY_REPORT_MAX_RETRIES) return { state, giveUp: true };
+  const delay = EMPTY_REPORT_FIRST_RETRY_MS * 2 ** (failures - 1);
+  return { state: { ...state, emptyReportFailures: failures, emptyRetryAt: now + delay }, giveUp: false };
+}
+
+/** What the room becomes once ended (by the Portal, or given up on): later tickets are rejected. */
+export function endedState(state: RoomState, now: number): RoomState {
+  return { ...initialState(state.meetingId), endedAt: now };
+}
+
+/** One alarm serves both deadlines: the earliest of the empty-room end and the host handoff. */
+export function nextAlarm(state: RoomState): number | null {
+  const deadlines = [emptyDeadline(state), state.endedAt === null ? state.handoffAt : null].filter(
+    (value): value is number => value !== null
+  );
+  return deadlines.length > 0 ? Math.min(...deadlines) : null;
 }
 
 export function isEmptyDue(state: RoomState, now: number): boolean {
@@ -212,7 +281,15 @@ export function ticketFromPayload(payload: {
   name: string;
   role: MeetingRoomRole;
   adm: boolean;
+  exec?: boolean;
   iat: number;
 }): RoomTicket {
-  return { uid: payload.uid, name: payload.name, role: payload.role, adm: payload.adm, iat: payload.iat };
+  return {
+    uid: payload.uid,
+    name: payload.name,
+    role: payload.role,
+    adm: payload.adm,
+    ...(payload.exec ? { exec: true } : {}),
+    iat: payload.iat
+  };
 }

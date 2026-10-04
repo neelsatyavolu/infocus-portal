@@ -2,6 +2,7 @@ import { PRODUCER_SERIES } from "@/src/lib/meetings/schedule";
 import { prisma } from "@/src/lib/prisma";
 import {
   assertCanSeeMeeting,
+  isMeetingHostOrPromoted,
   meetingSummarySelect,
   toMeetingSummary,
   type MeetingViewer
@@ -11,7 +12,7 @@ import { ensureMeetingKey } from "@/src/server/meetings-keys";
 import { removeMeetingParticipants } from "@/src/server/meetings-moderation";
 import { validateInvitees } from "@/src/server/meetings-people";
 import { sendMeetingRoomEvent } from "@/src/server/meetings-room-client";
-import { isMeetingExec, isMeetingHost, isMeetingOpen } from "@/src/server/meetings-rules";
+import { isMeetingExec, isMeetingOpen } from "@/src/server/meetings-rules";
 import { startMeetingScribe, stopMeetingScribe } from "@/src/server/meetings-scribe";
 
 /** Create a meeting; move, cancel, retitle, re-invite or change settings of one. */
@@ -83,7 +84,7 @@ const editSelect = {
 export async function updateMeeting(viewer: MeetingViewer, meetingId: string, input: MeetingUpdateInput, now = new Date()) {
   const meeting = await prisma.meeting.findUnique({ where: { id: meetingId }, select: editSelect });
   assertCanSeeMeeting(viewer, meeting);
-  if (!isMeetingHost(viewer, meeting)) throw new Error("FORBIDDEN");
+  if (!(await isMeetingHostOrPromoted(viewer, meeting))) throw new Error("FORBIDDEN");
   if (!isMeetingOpen(meeting.status)) throw new Error("This meeting is over and can't be changed.");
   const isLive = meeting.status === "LIVE";
   if (input.status === "CANCELED" && isLive) throw new Error("End a live meeting instead of cancelling it.");

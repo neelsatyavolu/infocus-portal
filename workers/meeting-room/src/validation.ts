@@ -71,6 +71,7 @@ function parseChat(msg: Obj): MeetingClientMessage | null {
 function parseClientShape(msg: Obj): MeetingClientMessage | null {
   switch (msg.t) {
     case "ping":
+    case "leave":
     case "muteAll":
     case "lowerAllHands":
       return { t: msg.t };

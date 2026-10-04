@@ -1,13 +1,15 @@
 /**
  * Pure handling of a parsed client message. Returns what the Durable Object should do;
- * host-only commands are enforced here against the sender's ticket role.
+ * host-only commands are enforced here against the effective hosts (ticket role or handed over).
  */
 import type { MeetingClientMessage, MeetingServerMessage, MeetingTracks } from "../../../src/lib/meetings/protocol";
-import type { RoomState, RoomTicket } from "./room-state";
+import { isEffectiveHost, type RoomState, type RoomTicket } from "./room-state";
 import type { RateKind } from "./rate-limit";
 
 export type MessageOutcome =
   | { kind: "pong" }
+  /** Deliberate leave: mark this socket so its close hands host over at once. */
+  | { kind: "leave" }
   | { kind: "error"; message: string }
   /** State changed; broadcast a `participant` message for each uid in `changed`. */
   | { kind: "update"; state: RoomState; changed: readonly string[] }
@@ -106,11 +108,12 @@ export function handleClientMessage(
   now: number
 ): MessageOutcome {
   if (message.t === "ping") return { kind: "pong" };
+  if (message.t === "leave") return { kind: "leave" };
   if (!sender.adm || !state.participants[sender.uid]) {
     return { kind: "error", message: "Wait until a host lets you in." };
   }
   if (sender.role === "scribe") return { kind: "error", message: "The Scribe cannot send messages." };
-  if (HOST_ONLY.has(message.t) && sender.role !== "host") {
+  if (HOST_ONLY.has(message.t) && !isEffectiveHost(state, sender)) {
     return { kind: "error", message: "Only a host can do that." };
   }
   return handleParticipantMessage(state, sender, message, now);

@@ -3,6 +3,7 @@ import { requireUserId, syncUserProfile } from "@/src/lib/auth";
 import { meetingJoinOpensAt } from "@/src/lib/meetings/schedule";
 import type { MeetingDetail, MeetingPerson, MeetingSummary } from "@/src/lib/meetings/types";
 import { getPlatformAccess } from "@/src/lib/platform-admin";
+import { prisma } from "@/src/lib/prisma";
 import { userDisplayName } from "@/src/lib/user-display";
 import {
   canSeeMeeting,
@@ -23,6 +24,23 @@ export async function requireMeetingViewer(): Promise<MeetingViewer> {
   const access = await getPlatformAccess(user.email);
   if (!isMeetingProducer(access.role)) throw new Error("FORBIDDEN");
   return { userId: user.id, name: userDisplayName(user, "Producer"), role: access.role };
+}
+
+/**
+ * Host for Portal actions (admit, deny, remove, end, settings, join as host): the static hosts
+ * (isMeetingHost), plus anyone the room handed host to after the last host left (`promotedHost`,
+ * while they are still admitted). The original host stays a host too.
+ */
+export async function isMeetingHostOrPromoted(
+  viewer: MeetingViewer,
+  meeting: MeetingAccessFields & { id: string }
+): Promise<boolean> {
+  if (isMeetingHost(viewer, meeting)) return true;
+  const row = await prisma.meetingParticipant.findUnique({
+    where: { meetingId_userId: { meetingId: meeting.id, userId: viewer.userId } },
+    select: { promotedHost: true, state: true }
+  });
+  return Boolean(row?.promotedHost && row.state === "ADMITTED");
 }
 
 /** INVITE_ONLY / EXECS_ONLY meetings the viewer isn't allowed in look exactly like missing ones. */

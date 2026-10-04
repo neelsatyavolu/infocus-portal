@@ -1,15 +1,16 @@
 import { meetingJoinOpensAt, pacificOpensLabel } from "@/src/lib/meetings/schedule";
-import type { JoinResponse, KeyResponse } from "@/src/lib/meetings/types";
+import type { JoinResponse, KeyResponse, MeetingSummary } from "@/src/lib/meetings/types";
 import { prisma } from "@/src/lib/prisma";
 import {
   assertCanSeeMeeting,
+  isMeetingHostOrPromoted,
   meetingSummarySelect,
   toMeetingSummary,
   type MeetingViewer
 } from "@/src/server/meetings-access";
 import { ensureMeetingKey, readMeetingKey } from "@/src/server/meetings-keys";
 import { issueMeetingRoomTicket, meetingRoomSecret, meetingRoomUrl } from "@/src/server/meetings-room-client";
-import { decideAdmission, isMeetingHost } from "@/src/server/meetings-rules";
+import { decideAdmission, isMeetingExec, isMeetingHost, isMeetingOpen } from "@/src/server/meetings-rules";
 import { startMeetingScribe } from "@/src/server/meetings-scribe";
 import { MEETING_USAGE_LIMIT_MESSAGE, checkMeetingUsage } from "@/src/server/meetings-usage";
 
@@ -109,6 +110,11 @@ export async function admitOrQueue(input: {
   throw new Error("CONFLICT");
 }
 
+/** A promoted host sees host controls in the call (the summary's static check doesn't know about promotion). */
+function withHost(summary: MeetingSummary, isHost: boolean): MeetingSummary {
+  return isHost && !summary.isHost ? { ...summary, isHost: true, canEdit: isMeetingOpen(summary.status) } : summary;
+}
+
 export async function joinMeeting(viewer: MeetingViewer, meetingId: string, now = new Date()): Promise<JoinResponse> {
   // Fail before touching anything when the room is not configured.
   meetingRoomSecret();
@@ -130,7 +136,9 @@ export async function joinMeeting(viewer: MeetingViewer, meetingId: string, now 
   refuseClosed(meeting.status);
   refuseBeforeJoinWindow(meeting, now);
 
-  const isHost = isMeetingHost(viewer, meeting);
+  // Static hosts are always let in; a promoted host (handed host in the room) also joins as host.
+  const isStaticHost = isMeetingHost(viewer, meeting);
+  const isHost = isStaticHost || (await isMeetingHostOrPromoted(viewer, meeting));
   const state = await admitOrQueue({
     meetingId,
     userId: viewer.userId,
@@ -150,7 +158,7 @@ export async function joinMeeting(viewer: MeetingViewer, meetingId: string, now 
     key = await ensureMeetingKey(meetingId);
     // A removal that lands after our write rotates the key after marking REMOVED. Reading the key
     // first and the state second means: if we hold the new key, we also see REMOVED.
-    if (!isHost && (await participantState(meetingId, viewer.userId)) !== "ADMITTED") {
+    if (!isStaticHost && (await participantState(meetingId, viewer.userId)) !== "ADMITTED") {
       throw new Error(REMOVED_WHILE_JOINING);
     }
     await markMeetingLive(meetingId, now);
@@ -163,6 +171,7 @@ export async function joinMeeting(viewer: MeetingViewer, meetingId: string, now 
       name: viewer.name,
       role: isHost ? "host" : "member",
       admitted: state === "ADMITTED",
+      exec: isMeetingExec(viewer.role),
       now: now.getTime()
     }),
     prisma.meeting.findUniqueOrThrow({ where: { id: meetingId }, select: meetingSummarySelect })
@@ -173,7 +182,7 @@ export async function joinMeeting(viewer: MeetingViewer, meetingId: string, now 
     roomToken,
     state,
     isHost,
-    meeting: toMeetingSummary(row, viewer),
+    meeting: withHost(toMeetingSummary(row, viewer), isHost),
     ...(key ? { key } : {}),
     self: { uid: viewer.userId, name: viewer.name }
   };

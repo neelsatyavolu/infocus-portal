@@ -147,7 +147,8 @@ describe("joinMeeting", () => {
   });
 
   it("does not start the Scribe when notes are off", async () => {
-    mocks.participantFindUnique.mockResolvedValueOnce(null).mockResolvedValueOnce({ state: "ADMITTED" });
+    // Promoted-host check (none), admission read (new), re-check after the key.
+    mocks.participantFindUnique.mockResolvedValueOnce(null).mockResolvedValueOnce(null).mockResolvedValueOnce({ state: "ADMITTED" });
     mocks.meetingFindUnique
       .mockResolvedValueOnce(meetingRow({ quickAccess: true }))
       .mockResolvedValueOnce({ id: "m1", title: "Producer meeting", startsAt: NOW, notesEnabled: false });
@@ -199,6 +200,7 @@ describe("joinMeeting", () => {
 describe("joinMeeting races (compare-and-set)", () => {
   it("a removal landing between the read and the write wins: not admitted, no key", async () => {
     mocks.participantFindUnique
+      .mockResolvedValueOnce({ promotedHost: false, state: "ADMITTED" }) // promoted-host check
       .mockResolvedValueOnce({ state: "ADMITTED" }) // rejoin read
       .mockResolvedValueOnce({ state: "REMOVED" }); // re-read after losing the race
     mocks.participantUpdateMany
@@ -217,6 +219,7 @@ describe("joinMeeting races (compare-and-set)", () => {
 
   it("a removal landing after the write but before the key read refuses the join", async () => {
     mocks.participantFindUnique
+      .mockResolvedValueOnce({ promotedHost: false, state: "ADMITTED" }) // promoted-host check
       .mockResolvedValueOnce({ state: "ADMITTED" })
       .mockResolvedValueOnce({ state: "REMOVED" }); // re-check after reading the key
     await expect(joinMeeting(producer, "m1", NOW)).rejects.toThrow(REMOVED_WHILE_JOINING);
@@ -226,7 +229,7 @@ describe("joinMeeting races (compare-and-set)", () => {
   it("never lets quick access lift a denial or a removal", async () => {
     mocks.meetingFindUnique.mockResolvedValue(meetingRow({ quickAccess: true }));
     for (const previous of ["DENIED", "REMOVED"]) {
-      mocks.participantFindUnique.mockResolvedValueOnce({ state: previous });
+      mocks.participantFindUnique.mockResolvedValueOnce({ promotedHost: false, state: previous }).mockResolvedValueOnce({ state: previous });
       expect((await joinMeeting(producer, "m1", NOW)).state).toBe("WAITING");
     }
     expect(mocks.ensureKey).not.toHaveBeenCalled();
@@ -259,6 +262,49 @@ describe("getMeetingKeyForViewer", () => {
   });
 });
 
+describe("promoted hosts (room handed host over)", () => {
+  it("join as host with a host ticket; execs' tickets carry exec", async () => {
+    mocks.participantFindUnique
+      .mockResolvedValueOnce({ promotedHost: true, state: "ADMITTED" }) // host check
+      .mockResolvedValueOnce({ state: "ADMITTED" }) // admission read
+      .mockResolvedValueOnce({ state: "ADMITTED" }); // re-check after the key
+    mocks.meetingFindUnique.mockResolvedValue(meetingRow({ status: "LIVE" }));
+    const result = await joinMeeting(producer, "m1", NOW);
+    expect(result).toMatchObject({ state: "ADMITTED", isHost: true, meeting: { isHost: true, canEdit: true } });
+    const ticket = await verifyMeetingRoomToken(result.roomToken, SECRET, NOW.getTime());
+    expect(ticket).toMatchObject({ role: "host", adm: true });
+    expect(ticket).not.toHaveProperty("exec");
+
+    mocks.meetingFindUnique.mockResolvedValue(meetingRow({ status: "LIVE" }));
+    const execJoin = await joinMeeting(exec, "m1", NOW);
+    expect(await verifyMeetingRoomToken(execJoin.roomToken, SECRET, NOW.getTime())).toMatchObject({ exec: true, role: "host" });
+  });
+
+  it("can admit, but only while still admitted and promoted", async () => {
+    mocks.participantFindUnique
+      .mockResolvedValueOnce({ promotedHost: true, state: "ADMITTED" }) // host check
+      .mockResolvedValueOnce({ state: "WAITING" }); // target
+    mocks.participantUpdateMany.mockResolvedValueOnce({ count: 1 });
+    await expect(actOnParticipant(producer, "m1", "u-sage", "admit")).resolves.toEqual({ state: "ADMITTED" });
+
+    mocks.participantFindUnique.mockResolvedValueOnce({ promotedHost: true, state: "REMOVED" });
+    await expect(actOnParticipant(producer, "m1", "u-sage", "admit")).rejects.toThrow("FORBIDDEN");
+    mocks.participantFindUnique.mockResolvedValueOnce({ promotedHost: false, state: "ADMITTED" });
+    await expect(actOnParticipant(producer, "m1", "u-sage", "admit")).rejects.toThrow("FORBIDDEN");
+  });
+
+  it("removing someone clears their promoted host", async () => {
+    mocks.meetingFindUnique.mockResolvedValue(meetingRow({ status: "LIVE" }));
+    mocks.participantFindUnique.mockResolvedValue({ state: "ADMITTED" });
+    mocks.participantFindMany.mockResolvedValue([{ userId: "u-abby", state: "ADMITTED", removedAt: null }]);
+    await actOnParticipant(exec, "m1", "u-abby", "remove", NOW);
+    expect(mocks.participantUpdateMany).toHaveBeenCalledWith({
+      where: { meetingId: "m1", userId: "u-abby", state: "ADMITTED" },
+      data: { state: "REMOVED", removedAt: NOW, promotedHost: false }
+    });
+  });
+});
+
 describe("actOnParticipant", () => {
   it("only lets hosts act", async () => {
     await expect(actOnParticipant(producer, "m1", "u-otto", "admit")).rejects.toThrow("FORBIDDEN");
@@ -281,7 +327,7 @@ describe("actOnParticipant", () => {
     expect(result).toEqual({ state: "REMOVED", epoch: 1 });
     expect(mocks.participantUpdateMany).toHaveBeenCalledWith({
       where: { meetingId: "m1", userId: "u-abby", state: "ADMITTED" },
-      data: { state: "REMOVED", removedAt: NOW }
+      data: { state: "REMOVED", removedAt: NOW, promotedHost: false }
     });
     expect(mocks.roomEvent.mock.calls.map((call) => call[1])).toEqual([
       { t: "removed", uid: "u-abby", at: NOW.getTime() },

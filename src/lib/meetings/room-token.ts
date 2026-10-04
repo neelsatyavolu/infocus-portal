@@ -19,6 +19,8 @@ export type MeetingRoomTokenPayload = {
   role: MeetingRoomRole;
   /** Admitted when issued (host, quick access, rejoin, scribe). Waiting tickets are false. */
   adm: boolean;
+  /** Executive producer, adviser or super admin: first in line when host is handed over. */
+  exec?: boolean;
   /** Issued at, epoch ms. The room rejects tickets issued before a removal. */
   iat: number;
   /** Expires at, epoch ms. */

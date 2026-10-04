@@ -3,11 +3,14 @@ import type { MeetingRoomReport } from "../../../src/lib/meetings/protocol";
 import { signMeetingInternalToken } from "../../../src/lib/meetings/room-token";
 import type { Env } from "./env";
 
-export async function reportToPortal(env: Env, meetingId: string, report: MeetingRoomReport): Promise<boolean> {
+/** `status` is the Portal's HTTP status, or null when it couldn't be reached. */
+export type ReportResult = { ok: boolean; status: number | null };
+
+export async function reportToPortal(env: Env, meetingId: string, report: MeetingRoomReport): Promise<ReportResult> {
   const base = (env.PORTAL_BASE_URL ?? "").replace(/\/+$/, "");
   if (!base) {
     console.error("meeting-room: PORTAL_BASE_URL is not set; report dropped", report.t);
-    return false;
+    return { ok: false, status: null };
   }
   try {
     const token = await signMeetingInternalToken("room", meetingId, env.MEETING_ROOM_SECRET);
@@ -17,9 +20,9 @@ export async function reportToPortal(env: Env, meetingId: string, report: Meetin
       body: JSON.stringify(report)
     });
     if (!response.ok) console.error("meeting-room: Portal report failed", report.t, response.status);
-    return response.ok;
+    return { ok: response.ok, status: response.status };
   } catch (error) {
     console.error("meeting-room: Portal report error", report.t, error instanceof Error ? error.message : error);
-    return false;
+    return { ok: false, status: null };
   }
 }

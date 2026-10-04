@@ -40,6 +40,14 @@ export async function handleMeetingRoomReport(meetingId: string, report: Meeting
 
   if (report.t === "started") return { live: await markMeetingLive(meetingId) };
   if (report.t === "knock") return { pushed: await notifyMeetingKnock(meeting, { uid: report.uid, name: report.name }) };
+  if (report.t === "hostPromoted") {
+    // Only someone still admitted can be handed host (never the Scribe, never a removed person).
+    const promoted = await prisma.meetingParticipant.updateMany({
+      where: { meetingId, userId: report.uid, state: "ADMITTED" },
+      data: { promotedHost: true }
+    });
+    return { promoted: promoted.count === 1 };
+  }
   return endMeeting(meetingId);
 }
 

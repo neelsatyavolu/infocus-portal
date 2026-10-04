@@ -1,8 +1,8 @@
 import { prisma } from "@/src/lib/prisma";
-import { assertCanSeeMeeting, type MeetingViewer } from "@/src/server/meetings-access";
+import { assertCanSeeMeeting, isMeetingHostOrPromoted, type MeetingViewer } from "@/src/server/meetings-access";
 import { readMeetingKey, rotateMeetingKey } from "@/src/server/meetings-keys";
 import { sendMeetingRoomEvent } from "@/src/server/meetings-room-client";
-import { isMeetingHost, isMeetingOpen } from "@/src/server/meetings-rules";
+import { isMeetingOpen } from "@/src/server/meetings-rules";
 import { rekeyMeetingScribe, stopMeetingScribe } from "@/src/server/meetings-scribe";
 
 /** Host actions: admit, deny, remove, admit all, end for everyone. */
@@ -15,7 +15,7 @@ async function requireHostOfOpenMeeting(viewer: MeetingViewer, meetingId: string
     select: { id: true, status: true, access: true, createdById: true, inviteeUserIds: true, notesEnabled: true }
   });
   assertCanSeeMeeting(viewer, meeting);
-  if (!isMeetingHost(viewer, meeting)) throw new Error("FORBIDDEN");
+  if (!(await isMeetingHostOrPromoted(viewer, meeting))) throw new Error("FORBIDDEN");
   if (!isMeetingOpen(meeting.status)) throw new Error("This meeting is over.");
   return meeting;
 }
@@ -51,14 +51,14 @@ export async function removeMeetingParticipants(
   for (const row of fresh) {
     const updated = await prisma.meetingParticipant.updateMany({
       where: { meetingId: meeting.id, userId: row.userId, state: row.state },
-      data: { state: "REMOVED", removedAt: now }
+      data: { state: "REMOVED", removedAt: now, promotedHost: false }
     });
     // Lost a race: they changed state meanwhile. If they could have the key, rotate anyway.
     if (row.state === "ADMITTED" || updated.count === 0) revokedKeyHolder = true;
     if (updated.count === 0) {
       await prisma.meetingParticipant.updateMany({
         where: { meetingId: meeting.id, userId: row.userId },
-        data: { state: "REMOVED", removedAt: now }
+        data: { state: "REMOVED", removedAt: now, promotedHost: false }
       });
     }
   }

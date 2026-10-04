@@ -59,6 +59,8 @@ export type MeetingClientMessage =
   | { t: "reaction"; emoji: MeetingReaction }
   | ({ t: "chat"; id: string } & MeetingChatCiphertext)
   | { t: "ping" }
+  /** Deliberate leave (sent just before closing): if the last host leaves, host passes on at once. */
+  | { t: "leave" }
   // Host only:
   | { t: "mute"; uid: string; kind: "audio" | "video" }
   | { t: "muteAll" }
@@ -90,6 +92,8 @@ export type MeetingServerMessage =
   | { t: "rekey"; epoch: number }
   | { t: "settings"; settings: MeetingRoomSettings }
   | { t: "muted"; kind: "audio" | "video"; by: string }
+  /** Your host status changed (host handed to you). Other people see it on your `participant` view. */
+  | { t: "role"; isHost: boolean }
   | { t: "reaction"; uid: string; emoji: MeetingReaction; at: number }
   | ({ t: "chat"; id: string; uid: string; name: string; at: number } & MeetingChatCiphertext)
   | { t: "ended" }
@@ -119,7 +123,12 @@ export type MeetingRoomReport =
   /** Someone knocked (so the Portal can push hosts who are not in the call). */
   | { t: "knock"; uid: string; name: string }
   /** No humans for MEETING_EMPTY_END_MS. */
-  | { t: "empty" };
+  | { t: "empty" }
+  /** The last host left; the room made `uid` a host (next exec, else the longest-present producer). */
+  | { t: "hostPromoted"; uid: string };
+
+/** A host whose connection drops (no `leave`) keeps host for this long before it is handed over. */
+export const MEETING_HOST_HANDOFF_GRACE_MS = 20 * 1000;
 
 /** The meeting ends once the last person leaves; the grace covers a refresh or a dropped connection. */
 export const MEETING_EMPTY_END_MS = 60 * 1000;

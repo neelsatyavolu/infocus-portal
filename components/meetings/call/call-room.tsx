@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Eye, EyeOff, Settings, ShieldCheck, Volume2 } from "lucide-react";
 import { NEVER } from "rxjs";
 import { toast } from "sonner";
@@ -151,7 +152,9 @@ export function CallRoom({
   const remotes = people.filter((p) => p.uid !== selfUid && !p.isScribe);
   const meeting = call.joinInfo?.meeting;
 
-  return (
+  // Portaled to <body>: the page-entrance wrapper (app/template.tsx) keeps a transform animation in
+  // effect, which makes it the containing block for `fixed` children and collapsed the call to 0px.
+  return createPortal(
     <div className="fixed inset-0 flex touch-manipulation flex-col overflow-hidden overscroll-none bg-[var(--ink)]">
       <TopBar
         title={meeting?.title ?? "Meeting"}
@@ -270,6 +273,7 @@ export function CallRoom({
           settings={room.settings}
         />
       ) : null}
-    </div>
+    </div>,
+    document.body
   );
 }

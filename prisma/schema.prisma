@@ -1884,8 +1884,10 @@ model Meeting {
   /// Push reminders claimed (15 and 5 minutes before startsAt). Cleared when the meeting moves.
   reminder15SentAt DateTime?
   reminder5SentAt  DateTime?
-  /// iCalendar SEQUENCE for a one-off meeting's own invite; 0 = no calendar invites were sent.
+  /// > 0: this one-off meeting gets a Google Calendar event (it was scheduled ahead). Name kept from the .ics era.
   calendarSequence Int      @default(0)
+  /// Its Google Calendar event (one-off meetings only).
+  googleEventId    String?
   notesStatus      MeetingNotesStatus @default(NONE)
   notesSummary     String?  @db.Text
   /// Drive folder holding transcript.md / transcript.json / summary.md.
@@ -1935,7 +1937,25 @@ model MeetingInviteEmail {
 
 /// iCalendar SEQUENCE counter per series; bumped on every invite, update or cancel sent.
 model MeetingSeriesCalendar {
-  seriesKey String   @id
-  sequence  Int      @default(0)
-  updatedAt DateTime @updatedAt
+  seriesKey     String    @id
+  /// Unused since Google Calendar replaced .ics emails.
+  sequence      Int       @default(0)
+  /// The series' recurring Google Calendar event.
+  googleEventId String?
+  lastSyncedAt  DateTime?
+  /// Short reason the last Google Calendar sync failed; null after a success.
+  lastSyncError String?
+  updatedAt     DateTime  @updatedAt
+}
+
+/// Admin → Connect Google Calendar: the InFocus Google account meetings invites are sent from.
+model GoogleCalendarCredential {
+  id                String   @id @default("calendar")
+  /// Google refresh token, AES-256-GCM encrypted (src/lib/google-calendar-crypto.ts). Never plaintext.
+  refreshToken      String
+  accountEmail      String
+  scopes            String
+  connectedByUserId String?
+  connectedAt       DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }

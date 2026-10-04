@@ -88,8 +88,20 @@ export type MeetingInviteEmailView = {
   userId: string | null;
   userName: string | null;
   createdAt: string;
+  /** When the address became a guest of the series' Google Calendar event (null: not synced yet). */
   lastInvitedAt: string | null;
 };
 
-/** GET /api/meetings/invites. `canManage`: the viewer is an exec (add, remove, resend). */
-export type MeetingInviteListResponse = { invites: MeetingInviteEmailView[]; canManage: boolean };
+/** GET /api/meetings/invites. `canManage`: the viewer is an exec (add, remove, link, sync). */
+export type MeetingInviteListResponse = {
+  invites: MeetingInviteEmailView[];
+  canManage: boolean;
+  /** Invites are Google Calendar events from this account. Not connected: none are sent. */
+  calendar: {
+    connected: boolean;
+    accountEmail: string | null;
+    lastSyncedAt: string | null;
+    /** Short reason the last sync failed; null when it worked. */
+    lastSyncError: string | null;
+  };
+};

@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { handleRouteError } from "@/src/lib/api-errors";
 import { verifyConnectState } from "@/src/lib/youtube-credential-crypto";
+import { finishGoogleCalendarConnect, GOOGLE_CALENDAR_CONNECT_COOKIE } from "@/src/server/google-calendar-credential";
 import { forgetYoutubeAuthorizationStatus } from "@/src/server/youtube-client";
 import { requireRealPlatformAdmin } from "@/src/server/youtube-connect-access";
 import {
@@ -19,14 +20,27 @@ function finish(message?: string) {
   return response;
 }
 
-/** Google's redirect after Reconnect YouTube: check it's ours, then save the InFocus channel's authorization. */
+/**
+ * Google's redirect after Reconnect YouTube: check it's ours, then save the InFocus channel's authorization.
+ * This is the OAuth client's only registered redirect, so Connect Google Calendar comes back here too:
+ * a state signed with purpose "calendar" (and its own nonce cookie) is handed to the Calendar flow.
+ */
 export async function GET(request: Request) {
   try {
     const userId = await requireRealPlatformAdmin();
     const params = new URL(request.url).searchParams;
+    const cookieStore = await cookies();
+    const calendarNonce = cookieStore.get(GOOGLE_CALENDAR_CONNECT_COOKIE)?.value;
+    if (
+      calendarNonce &&
+      verifyConnectState(params.get("state"), { userId, cookieNonce: calendarNonce, secret: credentialSecret(), purpose: "calendar" })
+    ) {
+      return finishGoogleCalendarConnect(params, userId);
+    }
+
     if (params.get("error")) return finish("Google sign-in was cancelled. Nothing changed.");
 
-    const cookieNonce = (await cookies()).get(YOUTUBE_CONNECT_COOKIE)?.value;
+    const cookieNonce = cookieStore.get(YOUTUBE_CONNECT_COOKIE)?.value;
     if (!verifyConnectState(params.get("state"), { userId, cookieNonce, secret: credentialSecret() })) {
       return finish("That sign-in link expired or didn't start here. Press Reconnect YouTube again.");
     }

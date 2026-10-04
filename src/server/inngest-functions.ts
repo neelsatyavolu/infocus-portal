@@ -12,7 +12,7 @@ import { notifyManagersOfReadyVersion } from "@/src/server/notify-media-ready";
 import { discoverShowPublications, publishYoutubeShow } from "@/src/server/show-publishing-jobs";
 import { discoverYoutubePublications, publishYoutubePackage } from "@/src/server/youtube-publishing-jobs";
 import { runPackageReviewReminders } from "@/src/server/package-review-reminders";
-import { MEETING_INVITES_EVENT, runMeetingInvitesJob } from "@/src/server/meetings-invite-mail";
+import { MEETING_CALENDAR_EVENT, runMeetingCalendarJob } from "@/src/server/meetings-google-calendar";
 import { runMeetingReminders } from "@/src/server/meetings-notify";
 import { ensureUpcomingProducerMeetings } from "@/src/server/meetings-schedule";
 
@@ -399,15 +399,16 @@ export const producerMeetingScheduleDaily = inngest.createFunction(
   }
 );
 
-/** Meeting calendar emails (series resend, series occurrence move/cancel, one-off meeting invites). One job at a time. */
+/** Meeting invites as Google Calendar events (series, moved/cancelled slots, one-off meetings). One job at a time, retried. */
 export const meetingInvitesSend = inngest.createFunction(
   {
     id: "meeting-invites-send",
-    concurrency: 1
+    concurrency: 1,
+    retries: 3
   },
-  { event: MEETING_INVITES_EVENT },
+  { event: MEETING_CALENDAR_EVENT },
   async ({ event }) => {
-    return runMeetingInvitesJob(event.data);
+    return runMeetingCalendarJob(event.data);
   }
 );
 

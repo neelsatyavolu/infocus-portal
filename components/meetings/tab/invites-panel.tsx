@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { MeetingInviteEmailView } from "@/src/lib/meetings/types";
+import type { MeetingInviteEmailView, MeetingInviteListResponse } from "@/src/lib/meetings/types";
 import { useMeetingPeople } from "../people-picker";
 import { LinkedPersonSelect } from "./linked-person-select";
 import { errorMessage, meetingsApi } from "@/src/lib/meetings/client/api";
@@ -26,6 +26,7 @@ export function isValidInviteEmail(value: string) {
 export function InvitesPanel() {
   const [invites, setInvites] = useState<InviteRow[] | null>(null);
   const [canManage, setCanManage] = useState(false);
+  const [calendar, setCalendar] = useState<MeetingInviteListResponse["calendar"] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
@@ -40,6 +41,7 @@ export function InvitesPanel() {
       const data = await meetingsApi.invites();
       setInvites(data.invites);
       setCanManage(data.canManage);
+      setCalendar(data.calendar);
       setLoadError(null);
     } catch (err) {
       setLoadError(errorMessage(err, "Couldn't load calendar invites."));
@@ -76,10 +78,10 @@ export function InvitesPanel() {
     setBusy("resend");
     try {
       await meetingsApi.resendInvites();
-      toast.success("Invites are being sent. This can take a minute.");
+      toast.success("Syncing with Google Calendar. This can take a minute.");
       await load();
     } catch (err) {
-      toast.error(errorMessage(err, "Couldn't resend invites."));
+      toast.error(errorMessage(err, "Couldn't start a sync."));
     } finally {
       setBusy(null);
     }
@@ -119,7 +121,7 @@ export function InvitesPanel() {
         {canManage && invites && invites.length > 0 ? (
           <Button size="sm" variant="outline" onClick={() => void resendAll()} disabled={busy !== null}>
             {busy === "resend" ? <Loader2 className="animate-spin" aria-hidden /> : <Mail aria-hidden />}
-            Resend all
+            Sync now
           </Button>
         ) : null}
       </div>
@@ -127,6 +129,16 @@ export function InvitesPanel() {
         Invites go out automatically for every scheduled meeting. Private meetings only go to linked people. Moves and
         cancellations update calendars automatically.
       </p>
+      {calendar ? (
+        <p className={calendar.connected && !calendar.lastSyncError ? "text-sm text-muted-foreground" : "text-sm text-danger"}>
+          {calendar.connected
+            ? `Invites are sent from ${calendar.accountEmail} via Google Calendar.`
+            : canManage
+              ? "Connect Google Calendar in Admin to send invites."
+              : "Calendar invites are off for now."}
+          {calendar.connected && calendar.lastSyncError ? ` Last sync failed: ${calendar.lastSyncError}` : null}
+        </p>
+      ) : null}
       {loadError ? <p className="text-sm text-danger">{loadError}</p> : null}
       {!invites && !loadError ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" aria-label="Loading" /> : null}
 

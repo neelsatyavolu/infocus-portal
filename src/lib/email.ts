@@ -205,53 +205,6 @@ export async function sendBrandedEmails(payload: {
   return result;
 }
 
-/**
- * One branded email to one address with an `invite.ics` calendar attachment (Meetings invites).
- * Resend has no custom MIME alternatives, so the calendar travels as an attachment only.
- * Never throws; false when not configured or the send failed.
- */
-export async function sendCalendarEmail(payload: {
-  to: string;
-  subject: string;
-  heading: string;
-  paragraphs: string[];
-  ctaLabel: string;
-  ctaUrl: string;
-  ics: string;
-  method: "REQUEST" | "CANCEL";
-}) {
-  const mail = mailClient();
-  if (!mail) return false;
-  const branded = renderBrandedEmail({
-    heading: payload.heading,
-    paragraphs: payload.paragraphs,
-    ctaLabel: payload.ctaLabel,
-    ctaUrl: payload.ctaUrl,
-    preview: payload.paragraphs[0]
-  });
-  try {
-    const result = await mail.client.emails.send({
-      from: mail.from,
-      to: payload.to,
-      subject: payload.subject,
-      text: branded.text,
-      html: branded.html,
-      attachments: [
-        {
-          filename: "invite.ics",
-          content: Buffer.from(payload.ics, "utf8"),
-          contentType: `text/calendar; charset=UTF-8; method=${payload.method}`
-        }
-      ]
-    });
-    if (result.error) throw new Error(result.error.message);
-    return true;
-  } catch (error) {
-    console.error("Calendar email failed", error instanceof Error ? error.message : error);
-    return false;
-  }
-}
-
 export async function sendPackageEventEmails(payload: PackageMailContent & { recipients: string[]; ctaUrl: string }) {
   return sendBrandedEmails({
     recipients: payload.recipients,

@@ -6,7 +6,7 @@ import {
   toMeetingSummary,
   type MeetingViewer
 } from "@/src/server/meetings-access";
-import { queueMeetingInvites } from "@/src/server/meetings-invite-mail";
+import { queueMeetingCalendar } from "@/src/server/meetings-google-calendar";
 import { ensureMeetingKey } from "@/src/server/meetings-keys";
 import { removeMeetingParticipants } from "@/src/server/meetings-moderation";
 import { validateInvitees } from "@/src/server/meetings-people";
@@ -16,7 +16,7 @@ import { startMeetingScribe, stopMeetingScribe } from "@/src/server/meetings-scr
 
 /** Create a meeting; move, cancel, retitle, re-invite or change settings of one. */
 
-/** A one-off meeting this far ahead gets calendar invites; anything sooner is "Start now". */
+/** A one-off meeting this far ahead gets a Google Calendar event; anything sooner is "Start now". */
 export const CALENDAR_INVITE_LEAD_MS = 10 * 60 * 1000;
 
 export async function createMeeting(
@@ -49,7 +49,7 @@ export async function createMeeting(
     },
     select: meetingSummarySelect
   });
-  if (sendsInvites) await queueMeetingInvites({ kind: "event", meetingId: row.id, method: "REQUEST", sequence: 1 });
+  if (sendsInvites) await queueMeetingCalendar({ kind: "event", meetingId: row.id });
   return toMeetingSummary(row, viewer);
 }
 
@@ -96,9 +96,7 @@ export async function updateMeeting(viewer: MeetingViewer, meetingId: string, in
   }
 
   const moved = Boolean(input.startsAt || input.durationMinutes);
-  const added = invitees ? invitees.filter((id) => !meeting.inviteeUserIds.includes(id)) : [];
   const dropped = invitees ? meeting.inviteeUserIds.filter((id) => !invitees.includes(id)) : [];
-  const calendar = calendarChanges(meeting, input, moved, added, dropped);
 
   const row = await prisma.meeting.update({
     where: { id: meetingId },
@@ -111,55 +109,35 @@ export async function updateMeeting(viewer: MeetingViewer, meetingId: string, in
       inviteeUserIds: invitees,
       ...(input.startsAt ? { startsAt: input.startsAt } : {}),
       // A moved meeting reminds again at its new time.
-      ...(moved ? { reminder15SentAt: null, reminder5SentAt: null } : {}),
-      ...(calendar.length > 0 ? { calendarSequence: { increment: 1 } } : {})
+      ...(moved ? { reminder15SentAt: null, reminder5SentAt: null } : {})
     },
-    select: { ...meetingSummarySelect, calendarSequence: true }
+    select: meetingSummarySelect
   });
 
   if (isLive) await applyLiveSettingsChange(meeting, row);
   if (meeting.access === "INVITE_ONLY" && isLive && dropped.length > 0) {
     await removeMeetingParticipants(meeting, dropped, now);
   }
-  for (const job of calendar) {
-    await queueMeetingInvites({ kind: "event", meetingId, sequence: row.calendarSequence, ...job });
-  }
-  if (meeting.seriesKey === PRODUCER_SERIES.seriesKey && meeting.occurrenceKey) {
-    if (input.status === "CANCELED") {
-      await queueMeetingInvites({ kind: "cancel", occurrenceKey: meeting.occurrenceKey, durationMinutes: row.durationMinutes });
-    } else if (moved) {
-      await queueMeetingInvites({
-        kind: "move",
-        occurrenceKey: meeting.occurrenceKey,
-        startsAt: row.startsAt.toISOString(),
-        durationMinutes: row.durationMinutes
-      });
-    }
-  }
+  const calendarJob = calendarJobFor(meeting, input, moved);
+  if (calendarJob) await queueMeetingCalendar(calendarJob);
   return toMeetingSummary(row, viewer);
 }
 
 /**
- * Calendar emails a one-off meeting's change needs (only meetings that sent invites at creation):
- * cancel or move/retitle → everyone; INVITE_ONLY list changes → REQUEST to added, CANCEL to dropped.
+ * The Google Calendar sync a change needs. Series slot moved or cancelled → patch that instance.
+ * One-off meeting with an event (scheduled ahead) → reconcile it (time, title, guests, or delete).
  */
-export function calendarChanges(
-  meeting: { seriesKey: string | null; calendarSequence: number; access: "OPEN" | "INVITE_ONLY" },
+export function calendarJobFor(
+  meeting: { id: string; seriesKey: string | null; occurrenceKey: string | null; calendarSequence: number },
   input: MeetingUpdateInput,
-  moved: boolean,
-  added: string[],
-  dropped: string[]
-): { method: "REQUEST" | "CANCEL"; onlyUserIds?: string[]; uninvited?: boolean }[] {
-  if (meeting.seriesKey || meeting.calendarSequence === 0) return [];
-  if (input.status === "CANCELED") return [{ method: "CANCEL" }];
-  const jobs: { method: "REQUEST" | "CANCEL"; onlyUserIds?: string[]; uninvited?: boolean }[] = [];
-  if (moved || input.title !== undefined) jobs.push({ method: "REQUEST" });
-  if (meeting.access === "INVITE_ONLY") {
-    // A full REQUEST already reaches anyone added.
-    if (added.length > 0 && jobs.length === 0) jobs.push({ method: "REQUEST", onlyUserIds: added });
-    if (dropped.length > 0) jobs.push({ method: "CANCEL", onlyUserIds: dropped, uninvited: true });
+  moved: boolean
+) {
+  if (meeting.seriesKey === PRODUCER_SERIES.seriesKey && meeting.occurrenceKey) {
+    return input.status === "CANCELED" || moved ? { kind: "occurrence" as const, occurrenceKey: meeting.occurrenceKey } : null;
   }
-  return jobs;
+  if (meeting.seriesKey || meeting.calendarSequence === 0) return null;
+  const changed = input.status === "CANCELED" || moved || input.title !== undefined || input.inviteeUserIds !== undefined;
+  return changed ? { kind: "event" as const, meetingId: meeting.id } : null;
 }
 
 async function applyLiveSettingsChange(

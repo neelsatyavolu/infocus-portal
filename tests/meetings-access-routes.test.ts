@@ -27,11 +27,12 @@ const mocks = vi.hoisted(() => ({
   },
   inngestSend: vi.fn(),
   seriesUpsert: vi.fn(),
+  seriesFindUnique: vi.fn(),
   roomEvent: vi.fn(),
   rotateKey: vi.fn(),
   scribeRekey: vi.fn(),
   fetchTranscript: vi.fn(),
-  calendarEmail: vi.fn()
+  calendarStatus: vi.fn()
 }));
 
 vi.mock("@/src/lib/auth", () => ({
@@ -49,7 +50,7 @@ vi.mock("@/src/lib/prisma", () => ({
     user: { findMany: mocks.userFindMany },
     platformRoleAssignment: { findMany: mocks.roleFindMany },
     meetingInviteEmail: mocks.invite,
-    meetingSeriesCalendar: { upsert: mocks.seriesUpsert }
+    meetingSeriesCalendar: { upsert: mocks.seriesUpsert, findUnique: mocks.seriesFindUnique }
   }
 }));
 vi.mock("@/src/server/meetings-room-client", async (importOriginal) => ({
@@ -68,7 +69,11 @@ vi.mock("@/src/server/meetings-scribe", () => ({
   fetchMeetingTranscript: mocks.fetchTranscript
 }));
 vi.mock("@/src/server/meetings-usage", () => ({ checkMeetingUsage: vi.fn(async () => "allowed"), MEETING_USAGE_LIMIT_MESSAGE: "over" }));
-vi.mock("@/src/lib/email", () => ({ sendCalendarEmail: mocks.calendarEmail }));
+vi.mock("@/src/server/google-calendar-credential", () => ({
+  googleCalendarConnection: mocks.calendarStatus,
+  googleCalendarAccessToken: vi.fn(),
+  GoogleCalendarError: class extends Error {}
+}));
 vi.mock("@/src/lib/inngest", () => ({ inngest: { send: mocks.inngestSend } }));
 
 import { POST as createPost } from "@/app/api/meetings/route";
@@ -82,7 +87,7 @@ import { GET as invitesGet, POST as invitesPost } from "@/app/api/meetings/invit
 import { DELETE as inviteDelete, PATCH as invitePatch } from "@/app/api/meetings/invites/[id]/route";
 import { POST as sendAllPost } from "@/app/api/meetings/invites/send-all/route";
 import { resolveProducerSeriesMeetingId } from "@/src/server/meetings-schedule";
-import { MEETING_INVITES_EVENT, runMeetingInvitesJob } from "@/src/server/meetings-invite-mail";
+import { MEETING_CALENDAR_EVENT } from "@/src/server/meetings-google-calendar";
 
 const producers = [
   { id: "u-abby", name: "Abby", nickname: null, email: "abby@example.edu" },
@@ -164,7 +169,8 @@ beforeEach(() => {
   mocks.rotateKey.mockResolvedValue({ key: "new", epoch: 1 });
   mocks.roomEvent.mockResolvedValue(true);
   mocks.fetchTranscript.mockResolvedValue("# transcript");
-  mocks.calendarEmail.mockResolvedValue(true);
+  mocks.calendarStatus.mockResolvedValue({ accountEmail: "infocus@example.edu", connectedAt: new Date() });
+  mocks.seriesFindUnique.mockResolvedValue({ lastSyncedAt: null, lastSyncError: "Google Calendar refused (HTTP 403)" });
   mocks.seriesUpsert.mockResolvedValue({ sequence: 3 });
   mocks.invite.findMany.mockResolvedValue([]);
   mocks.invite.updateMany.mockResolvedValue({ count: 1 });
@@ -195,13 +201,13 @@ describe("POST /api/meetings access", () => {
     expect((await ok.json()).data.meeting).toMatchObject({ access: "INVITE_ONLY", inviteeCount: 1 });
   });
 
-  it("emails a calendar invite (via the queue) for a meeting scheduled ahead, not for Start now", async () => {
+  it("queues a Google Calendar event for a meeting scheduled ahead, not for Start now", async () => {
     const ahead = new Date(Date.now() + 2 * 3600_000).toISOString();
     expect((await createPost(json("POST", { title: "Planning", startsAt: ahead }))).status).toBe(201);
     expect(mocks.meeting.create.mock.calls[0][0].data.calendarSequence).toBe(1);
     expect(mocks.inngestSend).toHaveBeenCalledWith({
-      name: MEETING_INVITES_EVENT,
-      data: { kind: "event", meetingId: "m1", method: "REQUEST", sequence: 1 }
+      name: MEETING_CALENDAR_EVENT,
+      data: { kind: "event", meetingId: "m1" }
     });
 
     mocks.inngestSend.mockClear();
@@ -296,19 +302,24 @@ describe("producer series stable link", () => {
 });
 
 describe("calendar invite routes", () => {
-  const inviteRow = { id: "i1", email: "guest@example.edu", name: "Guest", createdAt: new Date(), lastInvitedAt: null };
+  const inviteRow = { id: "i1", email: "guest@example.edu", name: "Guest", userId: null, createdAt: new Date(), lastInvitedAt: null };
+  const sync = { name: MEETING_CALENDAR_EVENT, data: { kind: "sync" } };
 
-  it("lets producers read but only execs change or send", async () => {
+  it("lets producers read (with the Calendar status) but only execs change or sync", async () => {
     mocks.invite.findMany.mockResolvedValue([inviteRow]);
     const list = await invitesGet();
-    expect((await list.json()).data).toMatchObject({ canManage: false, invites: [{ email: "guest@example.edu" }] });
+    expect((await list.json()).data).toMatchObject({
+      canManage: false,
+      invites: [{ email: "guest@example.edu" }],
+      calendar: { connected: true, accountEmail: "infocus@example.edu", lastSyncError: "Google Calendar refused (HTTP 403)" }
+    });
     expect((await invitesPost(json("POST", { email: "guest@example.edu" }))).status).toBe(403);
     expect((await inviteDelete(json("DELETE"), { params: Promise.resolve({ id: "i1" }) })).status).toBe(403);
     expect((await sendAllPost()).status).toBe(403);
-    expect(mocks.calendarEmail).not.toHaveBeenCalled();
+    expect(mocks.inngestSend).not.toHaveBeenCalled();
   });
 
-  it("an exec adds an address (lowercased) and it gets the series invite", async () => {
+  it("adding an address (lowercased) queues a Calendar sync; nothing is emailed by the Portal", async () => {
     as("u-sage", "EXECUTIVE_PRODUCER");
     mocks.invite.upsert.mockResolvedValue(inviteRow);
     const response = await invitesPost(json("POST", { email: "Guest@Example.edu", name: "Guest" }));
@@ -316,27 +327,23 @@ describe("calendar invite routes", () => {
     expect(mocks.invite.upsert).toHaveBeenCalledWith(
       expect.objectContaining({ where: { seriesKey_email: { seriesKey: "producers", email: "guest@example.edu" } } })
     );
-    const sent = mocks.calendarEmail.mock.calls[0][0];
-    expect(sent).toMatchObject({ to: "guest@example.edu", method: "REQUEST" });
-    expect(sent.ics).toContain("UID:producers-series@portal.example.edu");
-    expect(sent.ics).toContain("SEQUENCE:3");
-    expect((await response.json()).data).toMatchObject({ emailed: true });
+    expect(mocks.inngestSend).toHaveBeenCalledWith(sync);
+    expect((await response.json()).data).toMatchObject({ queued: true });
   });
 
-  it("an exec removes an address and it gets a series CANCEL", async () => {
+  it("removing an address deletes it and queues a sync (Google sends the cancellation)", async () => {
     as("u-sage", "EXECUTIVE_PRODUCER");
     mocks.invite.findFirst.mockResolvedValue(inviteRow);
     expect((await inviteDelete(json("DELETE"), { params: Promise.resolve({ id: "i1" }) })).status).toBe(200);
     expect(mocks.invite.delete).toHaveBeenCalledWith({ where: { id: "i1" } });
-    expect(mocks.calendarEmail.mock.calls[0][0]).toMatchObject({ method: "CANCEL" });
-    expect(mocks.calendarEmail.mock.calls[0][0].ics).toContain("METHOD:CANCEL");
+    expect(mocks.inngestSend).toHaveBeenCalledWith(sync);
   });
 
-  it("moving or cancelling a series occurrence emails every address with RECURRENCE-ID", async () => {
+  it("moving or cancelling a series slot queues that occurrence's Calendar update", async () => {
     as("u-sage", "EXECUTIVE_PRODUCER");
     const slot = {
       ...inviteOnly,
-      title: "Producer meeting",
+      title: "InFocus Producer Meeting",
       status: "SCHEDULED",
       access: "OPEN",
       createdById: null,
@@ -349,63 +356,29 @@ describe("calendar invite routes", () => {
       ...slot,
       ...Object.fromEntries(Object.entries(data).filter(([, value]) => value !== undefined))
     }));
-    mocks.invite.findMany.mockResolvedValue([inviteRow]);
-
+    const occurrence = { name: MEETING_CALENDAR_EVENT, data: { kind: "occurrence", occurrenceKey: "2026-11-01" } };
     await detailPatch(json("PATCH", { startsAt: "2026-11-02T06:00:00.000Z" }), params);
-    expect(mocks.inngestSend).toHaveBeenLastCalledWith({
-      name: MEETING_INVITES_EVENT,
-      data: { kind: "move", occurrenceKey: "2026-11-01", startsAt: "2026-11-02T06:00:00.000Z", durationMinutes: 60 }
-    });
+    expect(mocks.inngestSend).toHaveBeenLastCalledWith(occurrence);
+    mocks.inngestSend.mockClear();
     await detailPatch(json("PATCH", { status: "CANCELED" }), params);
-    expect(mocks.inngestSend).toHaveBeenLastCalledWith({
-      name: MEETING_INVITES_EVENT,
-      data: { kind: "cancel", occurrenceKey: "2026-11-01", durationMinutes: 60 }
-    });
-    // The request itself sends nothing; the job does.
-    expect(mocks.calendarEmail).not.toHaveBeenCalled();
-
-    await runMeetingInvitesJob({ kind: "move", occurrenceKey: "2026-11-01", startsAt: "2026-11-02T06:00:00.000Z", durationMinutes: 60 });
-    const moved = mocks.calendarEmail.mock.calls[0][0];
-    expect(moved.method).toBe("REQUEST");
-    expect(moved.ics).toContain("RECURRENCE-ID;TZID=America/Los_Angeles:20261101T211500");
-    expect(moved.ics).toContain("DTSTART;TZID=America/Los_Angeles:20261101T220000");
-
-    await runMeetingInvitesJob({ kind: "cancel", occurrenceKey: "2026-11-01", durationMinutes: 60 });
-    const cancelled = mocks.calendarEmail.mock.calls[1][0];
-    expect(cancelled.method).toBe("CANCEL");
-    expect(cancelled.ics).toContain("STATUS:CANCELLED");
+    expect(mocks.inngestSend).toHaveBeenLastCalledWith(occurrence);
+    mocks.inngestSend.mockClear();
+    await detailPatch(json("PATCH", { quickAccess: true }), params);
+    expect(mocks.inngestSend).not.toHaveBeenCalled();
   });
 
-  it("send-all queues a job and returns at once; the job stamps lastInvitedAt per address", async () => {
+  it("changing a one-off meeting with an event queues its reconcile (invitees, time, cancel)", async () => {
     as("u-sage", "EXECUTIVE_PRODUCER");
-    mocks.invite.count.mockResolvedValue(2);
+    mocks.meeting.findUnique.mockResolvedValue({ ...inviteOnly, status: "SCHEDULED", calendarSequence: 1 });
+    await detailPatch(json("PATCH", { inviteeUserIds: ["u-abby"] }), params);
+    expect(mocks.inngestSend).toHaveBeenLastCalledWith({ name: MEETING_CALENDAR_EVENT, data: { kind: "event", meetingId: "m1" } });
+  });
+
+  it("Sync now queues a full reconcile", async () => {
+    as("u-sage", "EXECUTIVE_PRODUCER");
     const response = await sendAllPost();
-    expect((await response.json()).data).toEqual({ queued: true, recipients: 2 });
-    expect(mocks.inngestSend).toHaveBeenCalledWith({ name: MEETING_INVITES_EVENT, data: { kind: "series" } });
-    expect(mocks.calendarEmail).not.toHaveBeenCalled();
-
-    mocks.invite.findMany.mockResolvedValue([inviteRow, { ...inviteRow, id: "i2", email: "other@example.edu" }]);
-    mocks.calendarEmail.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
-    await expect(runMeetingInvitesJob({ kind: "series" })).resolves.toEqual({ sent: 1, failed: 1 });
-    const stamped = mocks.invite.updateMany.mock.calls.map((call) => call[0].where);
-    expect(stamped).toEqual([{ id: "i1" }]);
-  });
-
-  it("the job rejects malformed event data", async () => {
-    await expect(runMeetingInvitesJob({ kind: "move", occurrenceKey: "bad" })).rejects.toThrow();
-  });
-
-  it("re-adding an address invited in the last 10 minutes doesn't email it again", async () => {
-    as("u-sage", "EXECUTIVE_PRODUCER");
-    mocks.invite.findUnique.mockResolvedValue({ lastInvitedAt: new Date(Date.now() - 2 * 60_000) });
-    mocks.invite.upsert.mockResolvedValue(inviteRow);
-    const response = await invitesPost(json("POST", { email: "guest@example.edu" }));
-    expect((await response.json()).data).toMatchObject({ emailed: false });
-    expect(mocks.calendarEmail).not.toHaveBeenCalled();
-
-    mocks.invite.findUnique.mockResolvedValue({ lastInvitedAt: new Date(Date.now() - 11 * 60_000) });
-    await invitesPost(json("POST", { email: "guest@example.edu" }));
-    expect(mocks.calendarEmail).toHaveBeenCalledTimes(1);
+    expect((await response.json()).data).toEqual({ queued: true });
+    expect(mocks.inngestSend).toHaveBeenCalledWith(sync);
   });
 
   it("links an address to a producer (exec only, producers only)", async () => {

@@ -53,6 +53,8 @@ Apple App Review demo account (`src/lib/app-review.ts`): `APP_REVIEW_EMAIL` is t
 
 `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`, `YOUTUBE_CHANNEL_ID`, `YOUTUBE_PUBLISHING_START_DATE`, `YOUTUBE_PUBLISH_HOUR_PACIFIC`. The channel authorization comes from **Admin → Reconnect YouTube** (stored encrypted in the database with a key derived from `APP_AUTH_SECRET`); `YOUTUBE_REFRESH_TOKEN` is only a fallback when nothing is stored. See [YOUTUBE-PUBLISHING.md](YOUTUBE-PUBLISHING.md).
 
+Meetings calendar invites reuse `YOUTUBE_CLIENT_ID` and `YOUTUBE_CLIENT_SECRET` (and the same registered redirect, `/api/admin/youtube/callback`). The Google account comes from **Admin → Connect Google Calendar**, stored encrypted like the YouTube one; enable the Google Calendar API in that Cloud project. No new variables.
+
 ## Teleprompter kiosk
 
 `TELEPROMPTER_KIOSK_TOKEN` (at least 16 characters), `TELEPROMPTER_KIOSK_SERIAL` (label only).

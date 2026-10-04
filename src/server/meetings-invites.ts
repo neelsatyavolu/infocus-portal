@@ -1,24 +1,29 @@
 import type { MeetingInviteEmailView, MeetingInviteListResponse } from "@/src/lib/meetings/types";
 import { prisma } from "@/src/lib/prisma";
 import type { MeetingViewer } from "@/src/server/meetings-access";
-import {
-  SERIES_KEY,
-  inviteSelect,
-  queueMeetingInvites,
-  sendSeriesInvite,
-  sendSeriesRemoval,
-  type InviteRow
-} from "@/src/server/meetings-invite-mail";
+import { PRODUCER_SERIES } from "@/src/lib/meetings/schedule";
+import { meetingsCalendarStatus, queueMeetingCalendar } from "@/src/server/meetings-google-calendar";
 import { meetingPeopleByIds, producerUserIds } from "@/src/server/meetings-people";
 import { isMeetingExec } from "@/src/server/meetings-rules";
 
 /**
  * The calendar invite list (email addresses, optionally linked to a producer). Execs manage it;
- * every producer can read it. Sends never block the action that triggered them.
+ * every producer can read it. Each change queues a Google Calendar sync: Google itself emails the
+ * invite (added) or the cancellation (removed). The request never waits on Google.
  */
 
-/** Adding an address that was just invited doesn't email it again. */
-export const REINVITE_COOLDOWN_MS = 10 * 60 * 1000;
+const SERIES_KEY = PRODUCER_SERIES.seriesKey;
+
+type InviteRow = {
+  id: string;
+  email: string;
+  name: string | null;
+  userId: string | null;
+  createdAt: Date;
+  lastInvitedAt: Date | null;
+};
+
+const inviteSelect = { id: true, email: true, name: true, userId: true, createdAt: true, lastInvitedAt: true } as const;
 
 function toView(row: InviteRow, names: Map<string, string>): MeetingInviteEmailView {
   return {
@@ -59,23 +64,27 @@ export async function listMeetingInvites(viewer: MeetingViewer): Promise<Meeting
     orderBy: { email: "asc" },
     select: inviteSelect
   });
-  const names = await namesFor(rows);
-  return { invites: rows.map((row) => toView(row, names)), canManage: isMeetingExec(viewer.role) };
+  const [names, status] = await Promise.all([namesFor(rows), meetingsCalendarStatus()]);
+  return {
+    invites: rows.map((row) => toView(row, names)),
+    canManage: isMeetingExec(viewer.role),
+    calendar: {
+      connected: status.connected,
+      accountEmail: status.accountEmail,
+      lastSyncedAt: status.lastSyncedAt,
+      lastSyncError: status.lastSyncError
+    }
+  };
 }
 
 export async function addMeetingInvite(
   viewer: MeetingViewer,
-  input: { email: string; name?: string; userId?: string | null },
-  now = new Date()
+  input: { email: string; name?: string; userId?: string | null }
 ) {
   requireExec(viewer);
   const email = input.email.trim().toLowerCase();
   const name = input.name?.trim() || null;
   const userId = await validateLinkedUser(input.userId);
-  const existing = await prisma.meetingInviteEmail.findUnique({
-    where: { seriesKey_email: { seriesKey: SERIES_KEY, email } },
-    select: { lastInvitedAt: true }
-  });
   let row: InviteRow;
   try {
     row = await prisma.meetingInviteEmail.upsert({
@@ -88,16 +97,9 @@ export async function addMeetingInvite(
     if (isUniqueConflict(error)) throw new Error(LINK_TAKEN);
     throw error;
   }
-  const names = await namesFor([row]);
-  const recentlyInvited =
-    existing?.lastInvitedAt && now.getTime() - existing.lastInvitedAt.getTime() < REINVITE_COOLDOWN_MS;
-  if (recentlyInvited) return { invite: toView(row, names), emailed: false };
-  const result = await sendSeriesInvite([row], now).catch((error) => {
-    console.error("Meeting invite send failed", error instanceof Error ? error.message : error);
-    return { sent: 0, failed: 1 };
-  });
-  const updated = result.sent ? { ...row, lastInvitedAt: now } : row;
-  return { invite: toView(updated, names), emailed: result.sent === 1 };
+  // Adds them to the series and to every upcoming event they qualify for (an unchanged address is a no-op).
+  const queued = await queueMeetingCalendar({ kind: "sync" });
+  return { invite: toView(row, await namesFor([row])), queued };
 }
 
 /** Exec only: link an address to a producer, or unlink it (null). */
@@ -115,6 +117,8 @@ export async function linkMeetingInvite(viewer: MeetingViewer, inviteId: string,
       data: { userId: linked },
       select: inviteSelect
     });
+    // Linking can change who an invite-only meeting's event includes.
+    await queueMeetingCalendar({ kind: "sync" });
     return { invite: toView(row, await namesFor([row])) };
   } catch (error) {
     if (isUniqueConflict(error)) throw new Error(LINK_TAKEN);
@@ -122,22 +126,17 @@ export async function linkMeetingInvite(viewer: MeetingViewer, inviteId: string,
   }
 }
 
-export async function removeMeetingInvite(viewer: MeetingViewer, inviteId: string, now = new Date()) {
+export async function removeMeetingInvite(viewer: MeetingViewer, inviteId: string) {
   requireExec(viewer);
   const row = await prisma.meetingInviteEmail.findFirst({ where: { id: inviteId, seriesKey: SERIES_KEY }, select: inviteSelect });
   if (!row) throw new Error("NOT_FOUND");
   await prisma.meetingInviteEmail.delete({ where: { id: row.id } });
-  const result = await sendSeriesRemoval(row, now).catch((error) => {
-    console.error("Meeting invite cancel failed", error instanceof Error ? error.message : error);
-    return { sent: 0, failed: 1 };
-  });
-  return { removed: true, emailed: result.sent === 1 };
+  // The sync drops them from every event; Google sends them the cancellation.
+  return { removed: true, queued: await queueMeetingCalendar({ kind: "sync" }) };
 }
 
-/** Queues the resend to every address (Inngest), so the request returns right away. */
-export async function sendAllMeetingInvites(viewer: MeetingViewer) {
+/** "Sync now": queue a full Google Calendar reconcile (series guests, moved/cancelled slots, one-off events). */
+export async function syncMeetingInvites(viewer: MeetingViewer) {
   requireExec(viewer);
-  const recipients = await prisma.meetingInviteEmail.count({ where: { seriesKey: SERIES_KEY } });
-  if (recipients === 0) return { queued: false, recipients };
-  return { queued: await queueMeetingInvites({ kind: "series" }), recipients };
+  return { queued: await queueMeetingCalendar({ kind: "sync" }) };
 }

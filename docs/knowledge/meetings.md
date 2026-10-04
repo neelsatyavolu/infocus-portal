@@ -27,12 +27,23 @@ Private video meetings for producers, with notes written on the InFocus Drive.
 
 ## Calendar invites
 
-- Executive producers, the adviser, and super admin keep a list of email addresses that get the InFocus Producer Meeting in their calendar (Meetings → calendar invites). Every producer can see the list.
-- An address can be **linked to a producer**. Invite-only meetings only email addresses linked to the people on them.
-- Adding an address emails it a calendar invite (`invite.ics`) for the whole series, linking to `/meet/producers`. Adding the same address again within 10 minutes doesn't email it twice. **Resend to everyone** sends it again (in the background).
-- Removing an address emails it a cancellation, so the series leaves that calendar.
-- When a host moves or cancels one occurrence, every address gets an update for just that occurrence.
-- **Other scheduled meetings** (set more than 10 minutes ahead) send their own calendar invite, linking to `/meet/<id>`. Open meetings go to every address; invite-only meetings go only to the linked addresses of the people on them. Moving or renaming the meeting sends an update, and cancelling it sends a cancellation. When someone is added to an invite-only meeting they get the invite; when someone is taken off it they get a cancellation. "Start now" meetings send no calendar email.
+- Invites are **Google Calendar events** sent from the InFocus Google account. Guests get Google's own invite email, and Google keeps their calendars up to date when something changes. The Portal sends no `.ics` files.
+- Executive producers, the adviser, and super admin keep the list of email addresses (Meetings → calendar invites). Every producer can see the list and whether invites are working ("Invites are sent from … via Google Calendar", or "Last sync failed: …").
+- An address can be **linked to a producer**. Invite-only meetings only invite addresses linked to the people on them.
+- **InFocus Producer Meeting:** one repeating event (Sunday, Monday and Wednesday, 9:15 PM Pacific), linking to `/meet/producers`. Every address on the list is a guest.
+- Adding an address makes it a guest of the repeating event and of every upcoming meeting it qualifies for. Removing it takes it off them, and Google sends that person a cancellation.
+- When a host moves or cancels one occurrence, only that day changes in everyone's calendar.
+- **Other scheduled meetings** (set more than 10 minutes ahead) get their own event, linking to `/meet/<id>`. Open meetings invite every address; invite-only meetings invite only the linked addresses of the people on them. Moving or renaming updates it; cancelling deletes it (guests get a cancellation); adding or removing someone from an invite-only meeting updates its guests. "Start now" meetings get no event.
+- Changes reach Google in the background (retried if Google is briefly unavailable). **Sync now** re-checks everything.
+- If Google Calendar isn't connected, no invites go out at all.
+
+### One-time setup (super admin or adviser)
+
+1. In the Google Cloud project that has the Portal's Google sign-in (the one used for YouTube), enable the **Google Calendar API**.
+2. Admin → **Google Calendar** → **Connect Google Calendar**, and sign in as the InFocus Google account. Allow calendar access.
+3. In Meetings → calendar invites, press **Sync now** once to create the repeating event for everyone already on the list.
+
+This is separate from Admin → Reconnect YouTube and doesn't change it.
 
 ## Joining
 

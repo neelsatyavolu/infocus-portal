@@ -35,23 +35,30 @@ export function decryptRefreshToken(payload: string, secret: string) {
   }
 }
 
-type ConnectState = { userId: string; nonce: string; expiresAt: number };
+/**
+ * `purpose` tells flows sharing the one registered Google redirect (/api/admin/youtube/callback)
+ * apart. YouTube states carry none (unchanged format); Google Calendar states carry "calendar".
+ */
+export type ConnectPurpose = "calendar";
+
+type ConnectState = { userId: string; nonce: string; expiresAt: number; purpose?: ConnectPurpose };
 
 function sign(payload: string, secret: string) {
   return createHmac("sha256", secret).update(`youtube-connect.${VERSION}.${payload}`).digest("base64url");
 }
 
 /** A fresh `state` for Google's sign-in, plus the nonce the browser keeps in a cookie. */
-export function createConnectState(userId: string, secret: string, now = Date.now()) {
+export function createConnectState(userId: string, secret: string, now = Date.now(), purpose?: ConnectPurpose) {
   const nonce = randomBytes(16).toString("base64url");
-  const payload = Buffer.from(JSON.stringify({ userId, nonce, expiresAt: now + YOUTUBE_CONNECT_STATE_TTL_MS })).toString("base64url");
+  const state: ConnectState = { userId, nonce, expiresAt: now + YOUTUBE_CONNECT_STATE_TTL_MS, ...(purpose ? { purpose } : {}) };
+  const payload = Buffer.from(JSON.stringify(state)).toString("base64url");
   return { state: `${payload}.${sign(payload, secret)}`, nonce };
 }
 
 /** The state Google sent back is ours, unexpired, for this person and this browser. */
 export function verifyConnectState(
   state: string | null | undefined,
-  input: { userId: string; cookieNonce: string | null | undefined; secret: string; now?: number }
+  input: { userId: string; cookieNonce: string | null | undefined; secret: string; now?: number; purpose?: ConnectPurpose }
 ) {
   const [payload, signature] = (state ?? "").split(".");
   if (!payload || !signature || !input.cookieNonce) return false;
@@ -67,6 +74,8 @@ export function verifyConnectState(
   return (
     parsed.userId === input.userId &&
     parsed.nonce === input.cookieNonce &&
+    // A YouTube state never finishes a Calendar connect, and the other way round.
+    (parsed.purpose ?? null) === (input.purpose ?? null) &&
     typeof parsed.expiresAt === "number" &&
     parsed.expiresAt > (input.now ?? Date.now())
   );

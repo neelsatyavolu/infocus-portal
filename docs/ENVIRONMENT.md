@@ -60,3 +60,7 @@ Apple App Review demo account (`src/lib/app-review.ts`): `APP_REVIEW_EMAIL` is t
 ## Password vault and backups
 
 `PASSWORD_VAULT_KEY`. Cloudflare R2 backups: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`.
+
+## Meetings
+
+`MEETING_ROOM_SECRET`: random value (32+ characters) shared with the meeting-room Worker; signs room tickets and Portal ↔ Worker calls. `MEETING_ROOM_URL`: the Worker's `https://` origin. Without both, joining a meeting fails with a "not set up" message. Meeting keys are sealed with `APP_AUTH_SECRET`. The Drive Scribe and its notes callback use `DRIVE_BASE_URL` and `DRIVE_SERVICE_TOKEN`. Optional usage meter: `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_ANALYTICS_TOKEN` (Account Analytics read); when set, new meetings can't start once the month's video traffic passes 900 GB.

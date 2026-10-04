@@ -1,6 +1,10 @@
 export const N3EL_ANALYTICS_SRC = "https://analytics.n3el.dev/p.js";
 
-// Guest review links (/g/<token>) carry a secret token in the path; never report them.
+// Pages where no analytics (n3el, Vercel Analytics, Speed Insights) may load:
+// guest review links (/g/<token>) carry a secret token in the path, and meeting pages
+// (/meet/*, /meet-scribe) hold room tickets and the meeting key.
+const NO_ANALYTICS_PATTERNS = [/^\/g\//, /^\/meet\//, /^\/meet-scribe(?:\/|$)/];
+
 export function shouldLoadN3elAnalytics(pathname: string | null) {
-  return !pathname?.startsWith("/g/");
+  return !NO_ANALYTICS_PATTERNS.some((pattern) => pattern.test(pathname ?? ""));
 }

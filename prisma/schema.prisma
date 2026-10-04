@@ -155,6 +155,8 @@ model User {
   memberProducerNotes     MemberProducerNote[]
   hubChatMemberships      HubChatMember[]
   hubChatMessages         HubChatMessage[] @relation("HubChatMessageAuthor")
+  meetingsCreated         Meeting[] @relation("MeetingCreator")
+  meetingParticipations   MeetingParticipant[] @relation("MeetingParticipants")
 
   @@index([email])
 }
@@ -1825,4 +1827,106 @@ model VaultAccessLog {
   createdAt DateTime @default(now())
 
   @@index([entryId, createdAt])
+}
+
+enum MeetingStatus {
+  SCHEDULED
+  LIVE
+  ENDED
+  CANCELED
+}
+
+enum MeetingParticipantState {
+  WAITING
+  ADMITTED
+  DENIED
+  REMOVED
+}
+
+enum MeetingNotesStatus {
+  NONE
+  RECORDING
+  PROCESSING
+  READY
+  FAILED
+}
+
+/// OPEN: any producer. INVITE_ONLY (execs create): only the creator and inviteeUserIds see or join it.
+enum MeetingAccess {
+  OPEN
+  INVITE_ONLY
+}
+
+/// Producer video meeting (E2EE room on the meeting-room Worker; notes by the Drive Scribe).
+model Meeting {
+  id               String   @id @default(cuid())
+  title            String
+  startsAt         DateTime
+  durationMinutes  Int      @default(60)
+  /// "producers" for the default recurring series; null for one-off meetings.
+  seriesKey        String?
+  /// Pacific date key of the slot the series generated (never changes when moved).
+  occurrenceKey    String?
+  status           MeetingStatus @default(SCHEDULED)
+  access           MeetingAccess @default(OPEN)
+  createdById      String?
+  /// OPEN: who gets the start push (empty = all producers). INVITE_ONLY: the only producers (besides the creator) allowed in.
+  inviteeUserIds   String[] @default([])
+  quickAccess      Boolean  @default(false)
+  notesEnabled     Boolean  @default(true)
+  keyEpoch         Int      @default(0)
+  /// AES-256-GCM (key derived from APP_AUTH_SECRET) of the current 32-byte meeting key. Cleared when the meeting ends.
+  keyCiphertext    String?
+  startedAt        DateTime?
+  endedAt          DateTime?
+  startNotifiedAt  DateTime?
+  notesStatus      MeetingNotesStatus @default(NONE)
+  notesSummary     String?  @db.Text
+  /// Drive folder holding transcript.md / transcript.json / summary.md.
+  notesDrivePath   String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  createdBy        User?    @relation("MeetingCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  participants     MeetingParticipant[]
+
+  @@unique([seriesKey, occurrenceKey])
+  @@index([startsAt])
+  @@index([status])
+}
+
+model MeetingParticipant {
+  id            String   @id @default(cuid())
+  meetingId     String
+  userId        String
+  state         MeetingParticipantState @default(WAITING)
+  firstJoinedAt DateTime @default(now())
+  lastJoinedAt  DateTime @default(now())
+  removedAt     DateTime?
+  updatedAt     DateTime @updatedAt
+  meeting       Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user          User     @relation("MeetingParticipants", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([meetingId, userId])
+  @@index([userId])
+}
+
+/// Email addresses that get calendar invites (.ics) for a meeting series.
+model MeetingInviteEmail {
+  id             String    @id @default(cuid())
+  seriesKey      String    @default("producers")
+  /// Lowercased.
+  email          String
+  name           String?
+  addedById      String?
+  createdAt      DateTime  @default(now())
+  lastInvitedAt  DateTime?
+
+  @@unique([seriesKey, email])
+}
+
+/// iCalendar SEQUENCE counter per series; bumped on every invite, update or cancel sent.
+model MeetingSeriesCalendar {
+  seriesKey String   @id
+  sequence  Int      @default(0)
+  updatedAt DateTime @updatedAt
 }

@@ -1,8 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { GeistMono } from "geist/font/mono";
 import { Lexend } from "next/font/google";
-import { Analytics } from "@vercel/analytics/next";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Toaster } from "@/components/ui/sonner";
 import { N3elAnalytics } from "@/components/n3el-analytics";
 import { THEME_INIT_SCRIPT } from "@/src/lib/theme";
@@ -61,8 +59,6 @@ export default function RootLayout({
       <body className="font-sans bg-background text-foreground antialiased">
         {children}
         <Toaster />
-        <Analytics />
-        <SpeedInsights />
         <N3elAnalytics />
       </body>
     </html>

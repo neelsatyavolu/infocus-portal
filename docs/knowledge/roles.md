@@ -20,6 +20,7 @@ Super admin and the adviser give out Associate Producer, Executive Producer, and
 - `isExecutiveProducer()` excludes the adviser. Use that for stage 3, The Show EP checks, and similar.
 - Student Grades tab is hidden for EP, adviser, and super admin. APs still see it for their own student work.
 - EP, super admin, and adviser stay off Participation and Grade Editor rosters.
+- Meetings: every producer can start and join. Executive producers, the adviser, super admin, and whoever started the meeting are its hosts (see `meetings.md`).
 
 ## Appointed managers
 

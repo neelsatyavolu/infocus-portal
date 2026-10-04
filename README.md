@@ -58,6 +58,8 @@ The site uses two cookieless page-view counters:
 - **Vercel Analytics and Speed Insights**: page views and performance metrics, collected by Vercel.
 - **n3el analytics**: a small script from `analytics.n3el.dev`, run by the developer. It sends only the hostname, the page path (query strings removed, IDs replaced, only the first two path segments kept), and the referring site. It sets no cookies, stores no IP addresses, and sends no names, emails, grades, or content. Guest review links (`/g/…`) are not counted.
 
+Neither loads on guest review links (`/g/…`) or meeting pages (`/meet/…`, `/meet-scribe`).
+
 Neither sets cookies or identifies visitors, so there is nothing to opt out of per account.
 
 ## Security

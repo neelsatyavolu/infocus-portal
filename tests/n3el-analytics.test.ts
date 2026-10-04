@@ -16,4 +16,12 @@ describe("n3el analytics", () => {
   it("skips guest review links, whose path holds a secret token", () => {
     expect(shouldLoadN3elAnalytics("/g/abc123_token-value")).toBe(false);
   });
+
+  it("skips meeting pages, which hold room tickets and the meeting key", () => {
+    expect(shouldLoadN3elAnalytics("/meet/abc")).toBe(false);
+    expect(shouldLoadN3elAnalytics("/meet/producers")).toBe(false);
+    expect(shouldLoadN3elAnalytics("/meet-scribe")).toBe(false);
+    expect(shouldLoadN3elAnalytics("/meetings")).toBe(true);
+    expect(shouldLoadN3elAnalytics("/meetings/abc")).toBe(true);
+  });
 });

@@ -46,6 +46,7 @@ import {
   Shield,
   Trash2,
   UserCog,
+  Video,
   X
 } from "lucide-react";
 import { AssistantChat } from "@/components/assistant-chat";
@@ -1081,6 +1082,14 @@ export function AppShell({
               icon={Users}
               label="Members"
               active={pathname.startsWith("/members")}
+            />
+          ) : null}
+          {canManageWorkspaces ? (
+            <SideNavLink
+              href={"/meetings" as never}
+              icon={Video}
+              label="Meetings"
+              active={pathname.startsWith("/meetings")}
             />
           ) : null}
           {canManageWorkspaces ? (

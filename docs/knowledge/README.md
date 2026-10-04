@@ -42,6 +42,7 @@ When answering:
 | Portal assistant | `assistant.md` |
 | iPhone apps (InFocus Portal and the public InFocus app) | `iphone-apps.md` |
 | Messages (group and direct chat) | `messages.md` |
+| Meetings (producer video calls, notes) | `meetings.md` |
 
 ## Agents must update this
 

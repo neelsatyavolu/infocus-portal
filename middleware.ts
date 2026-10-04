@@ -37,6 +37,10 @@ const publicRoutePatterns = [
   /^\/api\/cron\/news-alerts$/,
   /^\/api\/platform\/access-requests$/,
   /^\/api\/service\/drive-roster$/,
+  // Meetings: room reports from the meeting-room Worker (signed internal token) and Drive Scribe notes
+  // (DRIVE_SERVICE_TOKEN), both checked in the handlers; the Scribe page reads its ticket from the URL fragment.
+  /^\/api\/service\/meetings\/[^/]+\/(?:room|notes)$/,
+  /^\/meet-scribe$/,
   /^\/submit-announcement$/,
   /^\/api\/announcements\/submit$/,
   /^\/announcements\/shared$/,

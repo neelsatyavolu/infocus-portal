@@ -98,6 +98,25 @@ const envSchema = z.object({
   APNS_TOPIC: z.preprocess(
     (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
     z.string().min(1).optional()
+  ),
+  /** Meetings: HMAC secret shared with the meeting-room Worker (room tickets, internal tokens). */
+  MEETING_ROOM_SECRET: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().min(32).optional()
+  ),
+  /** Meetings: meeting-room Worker origin (https://…). */
+  MEETING_ROOM_URL: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().url().optional()
+  ),
+  /** Meetings usage meter (optional): Cloudflare account and an Account Analytics read token. */
+  CLOUDFLARE_ACCOUNT_ID: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().min(1).optional()
+  ),
+  CLOUDFLARE_ANALYTICS_TOKEN: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().min(1).optional()
   )
 });
 

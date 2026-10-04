@@ -133,7 +133,7 @@ export function makeNasVideoId(): string {
   return `nas_${randomBytes(16).toString("hex")}`;
 }
 
-async function driveFetch(path: string, init: RequestInit = {}): Promise<Response> {
+export async function driveFetch(path: string, init: RequestInit = {}): Promise<Response> {
   const headers = new Headers(init.headers);
   headers.set("Authorization", `Bearer ${serviceToken()}`);
   if (init.body && !(init.body instanceof FormData) && !headers.has("Content-Type")) {

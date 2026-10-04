@@ -1,0 +1,20 @@
+{
+  // infocus-meeting-room: Meetings presence/lobby/chat room + Cloudflare Realtime SFU proxy.
+  // Real PORTAL_BASE_URL / ALLOWED_ORIGINS are set at deploy time (dashboard or `--var`), never committed.
+  // Secrets (wrangler secret put, see README): MEETING_ROOM_SECRET, REALTIME_APP_ID, REALTIME_APP_TOKEN,
+  // TURN_KEY_ID, TURN_KEY_TOKEN.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "infocus-meeting-room",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  // Tickets travel in the query string: keep observability but drop invocation logs and query strings.
+  "observability": { "enabled": true, "redact_query_string": true, "logs": { "invocation_logs": false } },
+  "durable_objects": {
+    "bindings": [{ "name": "MEETING_ROOM", "class_name": "MeetingRoom" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["MeetingRoom"] }],
+  "vars": {
+    "PORTAL_BASE_URL": "https://portal.example.edu",
+    "ALLOWED_ORIGINS": "https://portal.example.edu"
+  }
+}

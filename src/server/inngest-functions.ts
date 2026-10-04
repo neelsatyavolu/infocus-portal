@@ -12,6 +12,9 @@ import { notifyManagersOfReadyVersion } from "@/src/server/notify-media-ready";
 import { discoverShowPublications, publishYoutubeShow } from "@/src/server/show-publishing-jobs";
 import { discoverYoutubePublications, publishYoutubePackage } from "@/src/server/youtube-publishing-jobs";
 import { runPackageReviewReminders } from "@/src/server/package-review-reminders";
+import { MEETING_INVITES_EVENT, runMeetingInvitesJob } from "@/src/server/meetings-invites";
+import { runMeetingStartPushes } from "@/src/server/meetings-notify";
+import { ensureUpcomingProducerMeetings } from "@/src/server/meetings-schedule";
 
 type BunnyWebhookEvent = {
   videoGuid?: string;
@@ -370,6 +373,43 @@ export const packageReviewRemindersHourly = inngest.createFunction(
   }
 );
 
+export const meetingStartPushes = inngest.createFunction(
+  {
+    id: "meeting-start-pushes",
+    concurrency: 1
+  },
+  {
+    cron: "*/5 * * * *"
+  },
+  async () => {
+    return runMeetingStartPushes();
+  }
+);
+
+export const producerMeetingScheduleDaily = inngest.createFunction(
+  {
+    id: "producer-meeting-schedule-daily"
+  },
+  {
+    cron: "0 11 * * *"
+  },
+  async () => {
+    return { created: await ensureUpcomingProducerMeetings() };
+  }
+);
+
+/** Producer meeting calendar emails (resend to all, occurrence moved or cancelled). One job at a time. */
+export const meetingInvitesSend = inngest.createFunction(
+  {
+    id: "meeting-invites-send",
+    concurrency: 1
+  },
+  { event: MEETING_INVITES_EVENT },
+  async ({ event }) => {
+    return runMeetingInvitesJob(event.data);
+  }
+);
+
 export const inngestFunctions = [
   discoverYoutubePublications,
   publishYoutubePackage,
@@ -382,5 +422,8 @@ export const inngestFunctions = [
   equipmentOverdueDaily,
   hubDbBackupHourly,
   refreshAssociateFeedbackDaily,
-  packageReviewRemindersHourly
+  packageReviewRemindersHourly,
+  meetingStartPushes,
+  producerMeetingScheduleDaily,
+  meetingInvitesSend
 ];

@@ -121,4 +121,5 @@ export type MeetingRoomReport =
   /** No humans for MEETING_EMPTY_END_MS. */
   | { t: "empty" };
 
-export const MEETING_EMPTY_END_MS = 15 * 60 * 1000;
+/** The meeting ends once the last person leaves; the grace covers a refresh or a dropped connection. */
+export const MEETING_EMPTY_END_MS = 60 * 1000;

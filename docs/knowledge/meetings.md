@@ -57,7 +57,7 @@ This is separate from Admin → Reconnect YouTube and doesn't change it.
 
 - Admit, deny, admit all, mute, remove, lower hands, quick access, notes on/off, End for everyone.
 - **Remove** takes the person out and changes the meeting's encryption key, so they can't read or hear anything after that. They can ask to join again.
-- A meeting with nobody in it for 15 minutes ends by itself.
+- When the last person leaves, the meeting ends by itself after a minute (the minute covers a refresh or a dropped connection). Notes start processing then.
 
 ## Privacy
 

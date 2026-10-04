@@ -42,26 +42,31 @@ const meetHref = (id: string) => `/meet/${encodeURIComponent(id)}` as never;
 export function LiveBanner({ meetings, now }: { meetings: MeetingSummary[]; now: number }) {
   if (meetings.length === 0) return null;
   return (
-    <section aria-label="Live now" className="space-y-2">
-      {meetings.map((m) => (
-        <div key={m.id} className="flex flex-wrap items-center gap-3 border border-[var(--brand-green)]/40 bg-[var(--brand-green)]/10 px-4 py-3">
-          <span className="status-pill status-live">Live</span>
-          <div className="min-w-0 flex-1">
-            <p className="truncate font-medium text-foreground">{m.title}</p>
-            <p className="text-xs text-muted-foreground">Started at {pacificTimeLabel(m.startsAt)}</p>
-          </div>
-          <AccessTag meeting={m} />
-          {canJoinNow(m, now) ? (
-            <Link href={meetHref(m.id)} className={buttonVariants()}>
-              Join
-            </Link>
-          ) : (
-            <span className={cn(buttonVariants({ variant: "outline" }), "pointer-events-none opacity-60")} aria-disabled>
-              Opens {pacificTimeLabel(new Date(joinOpensAtMs(m)))}
+    <section aria-label="Live now">
+      {/* Same columns as the Upcoming rows: 80px lead column, title block, tags, actions. */}
+      <ul className="divide-y divide-[var(--brand-green)]/25 rounded-md border border-[var(--brand-green)]/40 bg-[var(--brand-green)]/10">
+        {meetings.map((m) => (
+          <li key={m.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
+            <span className="flex w-20 shrink-0">
+              <span className="status-pill status-pill-sm status-live">Live</span>
             </span>
-          )}
-        </div>
-      ))}
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-foreground">{m.title}</p>
+              <p className="text-xs text-muted-foreground">Started at {pacificTimeLabel(m.startsAt)}</p>
+            </div>
+            <AccessTag meeting={m} />
+            {canJoinNow(m, now) ? (
+              <Link href={meetHref(m.id)} className={buttonVariants({ size: "sm" })}>
+                Join
+              </Link>
+            ) : (
+              <span className={cn(buttonVariants({ size: "sm", variant: "outline" }), "pointer-events-none opacity-60")} aria-disabled>
+                Opens {pacificTimeLabel(new Date(joinOpensAtMs(m)))}
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

@@ -6,6 +6,7 @@ import { getPlatformAccess } from "@/src/lib/platform-admin";
 import { userDisplayName } from "@/src/lib/user-display";
 import {
   canSeeMeeting,
+  isMeetingExec,
   isMeetingHost,
   isMeetingOpen,
   isMeetingProducer,
@@ -24,7 +25,7 @@ export async function requireMeetingViewer(): Promise<MeetingViewer> {
   return { userId: user.id, name: userDisplayName(user, "Producer"), role: access.role };
 }
 
-/** INVITE_ONLY meetings the viewer isn't on look exactly like missing ones. */
+/** INVITE_ONLY / EXECS_ONLY meetings the viewer isn't allowed in look exactly like missing ones. */
 export function assertCanSeeMeeting(viewer: MeetingViewer, meeting: MeetingAccessFields | null): asserts meeting {
   if (!meeting || !canSeeMeeting(viewer, meeting)) throw new Error("NOT_FOUND");
 }
@@ -32,7 +33,11 @@ export function assertCanSeeMeeting(viewer: MeetingViewer, meeting: MeetingAcces
 /** Prisma filter matching canSeeMeeting(), for lists. */
 export function visibleMeetingWhere(viewer: MeetingViewer): Prisma.MeetingWhereInput {
   return {
-    OR: [{ access: "OPEN" }, { createdById: viewer.userId }, { inviteeUserIds: { has: viewer.userId } }]
+    OR: [
+      { access: "OPEN" },
+      { access: "INVITE_ONLY", OR: [{ createdById: viewer.userId }, { inviteeUserIds: { has: viewer.userId } }] },
+      ...(isMeetingExec(viewer.role) ? [{ access: "EXECS_ONLY" as const }] : [])
+    ]
   };
 }
 

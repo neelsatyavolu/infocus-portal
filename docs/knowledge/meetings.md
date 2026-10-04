@@ -8,9 +8,17 @@ Private video meetings for producers, with notes written on the InFocus Drive.
 - **Any producer** can start a meeting ("Start now") or schedule one.
 - **Hosts:** executive producers, the adviser, super admin, and whoever started the meeting.
 
+## Execs-only meetings
+
+- Executive producers, the adviser, and super admin can schedule a meeting for **Execs only** (Schedule → Who can join → Execs only).
+- Only executive producers, the adviser, and super admin can see it, join it, or read its notes and transcript. Other producers can't see that it exists.
+- Every exec is a host. Reminders and "waiting to join" pushes go to execs only.
+- Calendar invites go only to invite-list addresses linked to an exec.
+- Who can join is set when the meeting is created and can't be changed later.
+
 ## Invite-only meetings
 
-- Only executive producers, the adviser, and super admin can create an **invite-only** meeting. They pick at least one producer to invite.
+- Only executive producers, the adviser, and super admin can create an **invite-only** meeting ("Only people I choose"). They pick at least one producer to invite.
 - Only the creator and the invited producers can see it, join it, or read its notes. Everyone else, including uninvited executives, can't see that it exists.
 - **Hosts:** the creator and any invited executives.
 - The creator or an invited executive can change who's invited while the meeting is scheduled or live. If someone is taken off the list during the call, they're removed and the encryption key changes.

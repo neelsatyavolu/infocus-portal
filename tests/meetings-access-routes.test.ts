@@ -88,6 +88,7 @@ import { DELETE as inviteDelete, PATCH as invitePatch } from "@/app/api/meetings
 import { POST as sendAllPost } from "@/app/api/meetings/invites/send-all/route";
 import { resolveProducerSeriesMeetingId } from "@/src/server/meetings-schedule";
 import { MEETING_CALENDAR_EVENT } from "@/src/server/meetings-google-calendar";
+import { visibleMeetingWhere } from "@/src/server/meetings-access";
 
 const producers = [
   { id: "u-abby", name: "Abby", nickname: null, email: "abby@example.edu" },
@@ -216,6 +217,14 @@ describe("POST /api/meetings access", () => {
     expect(mocks.inngestSend).not.toHaveBeenCalled();
   });
 
+  it("EXECS_ONLY: only execs create it, and it keeps no invitee list", async () => {
+    expect((await createPost(json("POST", { title: "Exec sync", access: "EXECS_ONLY" }))).status).toBe(403);
+    as("u-sage", "ADVISER");
+    const response = await createPost(json("POST", { title: "Exec sync", access: "EXECS_ONLY", inviteeUserIds: ["u-abby"] }));
+    expect(response.status).toBe(201);
+    expect(mocks.meeting.create.mock.calls[0][0].data).toMatchObject({ access: "EXECS_ONLY", inviteeUserIds: [] });
+  });
+
   it("lets any producer create an OPEN meeting", async () => {
     expect((await createPost(json("POST", { title: "Quick sync" }))).status).toBe(201);
   });
@@ -232,6 +241,22 @@ describe("INVITE_ONLY visibility", () => {
     }
     expect(mocks.participant.upsert).not.toHaveBeenCalled();
     expect(mocks.fetchTranscript).not.toHaveBeenCalled();
+  });
+
+  it("EXECS_ONLY: 404 for a producer everywhere, visible to every exec", async () => {
+    mocks.meeting.findUnique.mockResolvedValue({ ...inviteOnly, access: "EXECS_ONLY", inviteeUserIds: [] });
+    expect((await detailGet(json("GET"), params)).status).toBe(404);
+    expect((await joinPost(json("POST"), params)).status).toBe(404);
+    expect((await keyGet(json("GET"), params)).status).toBe(404);
+    expect((await transcriptGet(json("GET"), params)).status).toBe(404);
+    expect((await detailPatch(json("PATCH", { title: "x" }), params)).status).toBe(404);
+
+    as("u-exec", "EXECUTIVE_PRODUCER");
+    const detail = await detailGet(json("GET"), params);
+    expect(detail.status).toBe(200);
+    expect((await detail.json()).data.meeting).toMatchObject({ access: "EXECS_ONLY", isHost: true });
+    // Access is fixed at creation and the list is "every exec".
+    expect((await detailPatch(json("PATCH", { inviteeUserIds: ["u-abby"] }), params)).status).toBe(400);
   });
 
   it("serves invitees the detail (with invitees) and the transcript", async () => {
@@ -258,6 +283,20 @@ describe("INVITE_ONLY visibility", () => {
 
   it("only hosts edit the list (an invited associate producer can't)", async () => {
     expect((await detailPatch(json("PATCH", { inviteeUserIds: ["u-abby"] }), params)).status).toBe(403);
+  });
+});
+
+describe("visibleMeetingWhere (lists)", () => {
+  it("includes EXECS_ONLY only for execs, and INVITE_ONLY only when on it", () => {
+    const producer = visibleMeetingWhere({ userId: "u-abby", name: "Abby", role: "ASSOCIATE_PRODUCER" });
+    expect(producer).toEqual({
+      OR: [
+        { access: "OPEN" },
+        { access: "INVITE_ONLY", OR: [{ createdById: "u-abby" }, { inviteeUserIds: { has: "u-abby" } }] }
+      ]
+    });
+    const exec = visibleMeetingWhere({ userId: "u-sage", name: "Sage", role: "EXECUTIVE_PRODUCER" });
+    expect(exec.OR).toContainEqual({ access: "EXECS_ONLY" });
   });
 });
 

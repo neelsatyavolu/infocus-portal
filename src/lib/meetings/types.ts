@@ -6,8 +6,11 @@
 export type MeetingStatusValue = "SCHEDULED" | "LIVE" | "ENDED" | "CANCELED";
 export type MeetingNotesStatusValue = "NONE" | "RECORDING" | "PROCESSING" | "READY" | "FAILED";
 export type MeetingParticipantStateValue = "WAITING" | "ADMITTED" | "DENIED" | "REMOVED";
-/** OPEN: any producer. INVITE_ONLY (execs create): only the creator and the invitees. */
-export type MeetingAccessValue = "OPEN" | "INVITE_ONLY";
+/**
+ * OPEN: any producer. INVITE_ONLY (execs create): only the creator and the invitees.
+ * EXECS_ONLY (execs create): only execs (EP, adviser, super admin). Fixed at creation.
+ */
+export type MeetingAccessValue = "OPEN" | "INVITE_ONLY" | "EXECS_ONLY";
 
 export type MeetingPerson = { id: string; name: string };
 
@@ -49,7 +52,7 @@ export type MeetingListResponse = {
   live: MeetingSummary[];
   upcoming: MeetingSummary[];
   past: MeetingSummary[];
-  /** The viewer is an exec and may create INVITE_ONLY meetings. */
+  /** The viewer is an exec and may create INVITE_ONLY and EXECS_ONLY meetings. */
   canCreateInviteOnly: boolean;
 };
 

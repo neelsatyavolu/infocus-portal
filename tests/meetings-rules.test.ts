@@ -44,6 +44,21 @@ describe("isMeetingHost", () => {
   });
 });
 
+describe("EXECS_ONLY", () => {
+  const execsOnly = { access: "EXECS_ONLY" as const, createdById: "u-sage", inviteeUserIds: [] };
+
+  it("only execs (EP, adviser, super admin) can see it or host it", () => {
+    for (const role of ["EXECUTIVE_PRODUCER", "ADVISER", "SUPER_ADMIN"] as const) {
+      expect(canSeeMeeting({ userId: "any-exec", role }, execsOnly)).toBe(true);
+      expect(isMeetingHost({ userId: "any-exec", role }, execsOnly)).toBe(true);
+    }
+    expect(canSeeMeeting({ userId: "u-abby", role: "ASSOCIATE_PRODUCER" }, execsOnly)).toBe(false);
+    expect(isMeetingHost({ userId: "u-abby", role: "ASSOCIATE_PRODUCER" }, execsOnly)).toBe(false);
+    // A creator who is no longer an exec loses access too.
+    expect(canSeeMeeting({ userId: "u-sage", role: "ASSOCIATE_PRODUCER" }, execsOnly)).toBe(false);
+  });
+});
+
 describe("canSeeMeeting", () => {
   it("shows OPEN meetings to every producer", () => {
     expect(canSeeMeeting({ userId: "x", role: "ASSOCIATE_PRODUCER" }, { access: "OPEN", createdById: null, inviteeUserIds: [] })).toBe(true);

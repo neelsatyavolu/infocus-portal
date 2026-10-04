@@ -14,7 +14,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       where: { id },
       select: { notesStatus: true, access: true, createdById: true, inviteeUserIds: true }
     });
-    // INVITE_ONLY notes are only for the people on that meeting.
+    // INVITE_ONLY notes are only for the people on that meeting; EXECS_ONLY notes only for execs.
     assertCanSeeMeeting(viewer, meeting);
     if (meeting.notesStatus !== "READY") throw new Error("NOT_FOUND");
     const markdown = await fetchMeetingTranscript(id);

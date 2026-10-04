@@ -1852,9 +1852,11 @@ enum MeetingNotesStatus {
 }
 
 /// OPEN: any producer. INVITE_ONLY (execs create): only the creator and inviteeUserIds see or join it.
+/// EXECS_ONLY (execs create): only execs (EP, adviser, super admin) see or join it.
 enum MeetingAccess {
   OPEN
   INVITE_ONLY
+  EXECS_ONLY
 }
 
 /// Producer video meeting (E2EE room on the meeting-room Worker; notes by the Drive Scribe).

@@ -17,6 +17,7 @@ import { InviteesDialog } from "../invitees-dialog";
 import { DevicePickers } from "./device-pickers";
 import { LevelMeter } from "./level-meter";
 import { useObservableTrack } from "./media-elements";
+import { accessTagLabel } from "../tab/meeting-rows";
 import type { LocalMedia } from "./use-local-media";
 
 type OpenProps = { open: boolean; onOpenChange: (open: boolean) => void };
@@ -36,10 +37,8 @@ export function MeetingInfoDialog({ open, onOpenChange, meeting, isHost }: OpenP
             <span className="min-w-0 flex-1 truncate font-mono text-xs text-[var(--ink-text)]">{link}</span>
             <CopyTextButton text={link} label="Copy link" />
           </div>
-          {meeting.access === "INVITE_ONLY" ? (
-            <p className="text-sm text-muted-foreground">Invite only · {meeting.inviteeCount} people</p>
-          ) : null}
-          {isHost && meeting.canEdit ? (
+          {accessTagLabel(meeting) ? <p className="text-sm text-muted-foreground">{accessTagLabel(meeting)}</p> : null}
+          {isHost && meeting.canEdit && meeting.access !== "EXECS_ONLY" ? (
             <Button variant="outline" onClick={() => setEditInvitees(true)}>
               Edit invited people
             </Button>

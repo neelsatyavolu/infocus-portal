@@ -41,11 +41,25 @@ beforeEach(() => {
   vi.stubEnv("APP_BASE_URL", "https://portal.example.edu");
   mocks.meeting.findMany.mockResolvedValue([]);
   mocks.meeting.updateMany.mockResolvedValue({ count: 1 });
-  mocks.roleFindMany.mockResolvedValue([{ email: "abby@example.edu" }, { email: "otto@example.edu" }]);
-  mocks.userFindMany.mockResolvedValue([
+  // abby and otto are associate producers; sage is an executive producer.
+  const roles: Record<string, string> = {
+    "abby@example.edu": "ASSOCIATE_PRODUCER",
+    "otto@example.edu": "ASSOCIATE_PRODUCER",
+    "sage@example.edu": "EXECUTIVE_PRODUCER"
+  };
+  mocks.roleFindMany.mockImplementation(async ({ where }: { where: { role?: { in: string[] } } }) =>
+    Object.entries(roles)
+      .filter(([, role]) => !where.role || where.role.in.includes(role))
+      .map(([email]) => ({ email }))
+  );
+  const users = [
     { id: "u-abby", name: "Abby", nickname: null, email: "abby@example.edu" },
-    { id: "u-otto", name: "Otto", nickname: null, email: "otto@example.edu" }
-  ]);
+    { id: "u-otto", name: "Otto", nickname: null, email: "otto@example.edu" },
+    { id: "u-sage", name: "Sage", nickname: null, email: "sage@example.edu" }
+  ];
+  mocks.userFindMany.mockImplementation(async ({ where }: { where: { email: { in: string[] } } }) =>
+    users.filter((user) => where.email.in.includes(user.email))
+  );
   mocks.webPush.mockResolvedValue({ sent: 1, failed: 0 });
   mocks.nativePush.mockResolvedValue({ sent: 1, failed: 0 });
 });
@@ -64,8 +78,8 @@ describe("runMeetingReminders", () => {
     expect(query15.where.startsAt).toEqual({ gt: new Date(NOW.getTime() + 13 * MIN), lte: new Date(NOW.getTime() + 15 * MIN) });
     expect(mocks.meeting.updateMany).toHaveBeenCalledWith({ where: { id: "m1", reminder15SentAt: null }, data: { reminder15SentAt: NOW } });
     const payload = { title: "InFocus Producer Meeting starts in 15 minutes", body: "Tap to open the meeting.", url: "https://portal.example.edu/meet/m1" };
-    expect(mocks.webPush).toHaveBeenCalledWith(["u-abby", "u-otto"], payload, "browser");
-    expect(mocks.nativePush).toHaveBeenCalledWith(["u-abby", "u-otto"], payload);
+    expect(mocks.webPush).toHaveBeenCalledWith(["u-abby", "u-otto", "u-sage"], payload, "browser");
+    expect(mocks.nativePush).toHaveBeenCalledWith(["u-abby", "u-otto", "u-sage"], payload);
   });
 
   it("sends the 5-minute reminder with 'Join now.'", async () => {
@@ -89,6 +103,12 @@ describe("runMeetingReminders", () => {
     mocks.meeting.findMany.mockResolvedValueOnce([late]).mockResolvedValueOnce([]);
     await runMeetingReminders(NOW);
     expect(mocks.meeting.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("EXECS_ONLY reminds every exec and nobody else", async () => {
+    mocks.meeting.findMany.mockResolvedValueOnce([meeting({ access: "EXECS_ONLY" })]).mockResolvedValueOnce([]);
+    await runMeetingReminders(NOW);
+    expect(mocks.nativePush.mock.calls[0][0]).toEqual(["u-sage"]);
   });
 
   it("INVITE_ONLY reminds only the creator and invitees; OPEN with invitees reminds them only", async () => {

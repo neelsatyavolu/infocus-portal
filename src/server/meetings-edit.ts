@@ -25,14 +25,15 @@ export async function createMeeting(
     title: string;
     startsAt?: Date;
     durationMinutes?: number;
-    access?: "OPEN" | "INVITE_ONLY";
+    access?: "OPEN" | "INVITE_ONLY" | "EXECS_ONLY";
     inviteeUserIds?: string[];
   },
   now = new Date()
 ) {
   const access = input.access ?? "OPEN";
-  if (access === "INVITE_ONLY" && !isMeetingExec(viewer.role)) throw new Error("FORBIDDEN");
-  const invitees = await validateInvitees(input.inviteeUserIds ?? [], viewer.userId);
+  if (access !== "OPEN" && !isMeetingExec(viewer.role)) throw new Error("FORBIDDEN");
+  // EXECS_ONLY always includes every exec, so it keeps no list.
+  const invitees = access === "EXECS_ONLY" ? [] : await validateInvitees(input.inviteeUserIds ?? [], viewer.userId);
   if (access === "INVITE_ONLY" && invitees.length === 0) throw new Error("Invite at least one producer.");
 
   const startsAt = input.startsAt ?? now;
@@ -91,6 +92,7 @@ export async function updateMeeting(viewer: MeetingViewer, meetingId: string, in
   let invitees: string[] | undefined;
   if (input.inviteeUserIds) {
     if (meeting.seriesKey) throw new Error("The InFocus Producer Meeting is open to every producer.");
+    if (meeting.access === "EXECS_ONLY") throw new Error("Execs-only meetings include every exec.");
     invitees = await validateInvitees(input.inviteeUserIds, meeting.createdById ?? viewer.userId);
     if (meeting.access === "INVITE_ONLY" && invitees.length === 0) throw new Error("Invite at least one producer.");
   }

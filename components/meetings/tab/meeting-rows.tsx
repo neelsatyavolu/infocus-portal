@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Lock } from "lucide-react";
+import { Lock, ShieldCheck } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import type { MeetingNotesStatusValue, MeetingSummary } from "@/src/lib/meetings/types";
 import {
@@ -13,13 +13,25 @@ import {
   pacificTimeLabel
 } from "@/src/lib/meetings/client/time";
 import { cn } from "@/src/lib/utils";
+import { CopyLinkButton } from "./copy-link-button";
+
+/** Tag text for restricted meetings; null for meetings every producer can join. */
+export function accessTagLabel(meeting: Pick<MeetingSummary, "access" | "inviteeCount">) {
+  if (meeting.access === "EXECS_ONLY") return "Execs only";
+  if (meeting.access === "INVITE_ONLY") {
+    return `Invite only · ${meeting.inviteeCount} ${meeting.inviteeCount === 1 ? "person" : "people"}`;
+  }
+  return null;
+}
 
 export function AccessTag({ meeting }: { meeting: MeetingSummary }) {
-  if (meeting.access !== "INVITE_ONLY") return null;
+  const label = accessTagLabel(meeting);
+  if (!label) return null;
+  const Icon = meeting.access === "EXECS_ONLY" ? ShieldCheck : Lock;
   return (
     <span className="status-pill status-neutral">
-      <Lock className="h-3 w-3" aria-hidden />
-      Invite only · {meeting.inviteeCount} {meeting.inviteeCount === 1 ? "person" : "people"}
+      <Icon className="h-3 w-3" aria-hidden />
+      {label}
     </span>
   );
 }
@@ -37,7 +49,8 @@ export function NotesTag({ status }: { status: MeetingNotesStatusValue }) {
   return tag ? <span className={cn("status-pill", tag.className)}>{tag.label}</span> : null;
 }
 
-const meetHref = (id: string) => `/meet/${encodeURIComponent(id)}` as never;
+const meetPath = (id: string) => `/meet/${encodeURIComponent(id)}`;
+const meetHref = (id: string) => meetPath(id) as never;
 
 export function LiveBanner({ meetings, now }: { meetings: MeetingSummary[]; now: number }) {
   if (meetings.length === 0) return null;
@@ -55,6 +68,7 @@ export function LiveBanner({ meetings, now }: { meetings: MeetingSummary[]; now:
               <p className="text-xs text-muted-foreground">Started at {pacificTimeLabel(m.startsAt)}</p>
             </div>
             <AccessTag meeting={m} />
+            {m.seriesKey ? null : <CopyLinkButton path={meetPath(m.id)} iconOnly />}
             {canJoinNow(m, now) ? (
               <Link href={meetHref(m.id)} className={buttonVariants({ size: "sm" })}>
                 Join
@@ -106,6 +120,7 @@ export function UpcomingList({
                   </div>
                   <AccessTag meeting={m} />
                   <div className="flex gap-2">
+                    {m.seriesKey ? null : <CopyLinkButton path={meetPath(m.id)} iconOnly />}
                     {m.canEdit ? (
                       <>
                         <Button size="sm" variant="outline" onClick={() => onMove(m)}>

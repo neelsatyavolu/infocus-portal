@@ -7,7 +7,8 @@ import { sendPushToUserIds } from "@/src/server/push-notify";
 
 /**
  * Meeting pushes: 15- and 5-minute reminders to the people who may join (invitees, else all producers) and
- * "waiting to join" to the meeting's hosts. INVITE_ONLY meetings never push anyone outside their list.
+ * "waiting to join" to the meeting's hosts. INVITE_ONLY meetings never push anyone outside their list;
+ * EXECS_ONLY meetings push execs only.
  */
 
 export const KNOCK_PUSH_THROTTLE_MS = 2 * 60 * 1000;
@@ -25,6 +26,7 @@ async function pushToUsers(userIds: string[], payload: { title: string; body: st
 
 /** Start-push recipients. */
 export async function meetingStartRecipients(meeting: MeetingAccessFields) {
+  if (meeting.access === "EXECS_ONLY") return execUserIds();
   if (meeting.access === "INVITE_ONLY") {
     return [...(meeting.createdById ? [meeting.createdById] : []), ...meeting.inviteeUserIds];
   }
@@ -34,6 +36,7 @@ export async function meetingStartRecipients(meeting: MeetingAccessFields) {
 /** Host ids, matching isMeetingHost(). */
 export async function meetingHostIds(meeting: MeetingAccessFields) {
   const execs = await execUserIds();
+  if (meeting.access === "EXECS_ONLY") return execs;
   const hosts =
     meeting.access === "INVITE_ONLY" ? execs.filter((id) => meeting.inviteeUserIds.includes(id)) : execs;
   return [...new Set([...hosts, ...(meeting.createdById ? [meeting.createdById] : [])])];

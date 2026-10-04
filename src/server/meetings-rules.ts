@@ -16,7 +16,7 @@ export function isMeetingProducer(role: PlatformRole | null) {
   return hasPlatformRole(role, "ASSOCIATE_PRODUCER");
 }
 
-/** EP, adviser and super admin host every OPEN meeting and may create INVITE_ONLY ones. */
+/** EP, adviser and super admin host every OPEN meeting and may create INVITE_ONLY and EXECS_ONLY ones. */
 export function isMeetingExec(role: PlatformRole | null) {
   return hasPlatformRole(role, "EXECUTIVE_PRODUCER");
 }
@@ -27,15 +27,17 @@ function isCreator(viewer: Viewer, meeting: { createdById: string | null }) {
 
 /**
  * OPEN: every producer. INVITE_ONLY: only the creator and the invitees; execs who are not
- * invited get nothing (callers answer 404 so the meeting's existence doesn't leak).
+ * invited get nothing. EXECS_ONLY: only execs. Callers answer 404 so the meeting's existence doesn't leak.
  */
 export function canSeeMeeting(viewer: Viewer, meeting: MeetingAccessFields) {
   if (meeting.access === "OPEN") return true;
+  if (meeting.access === "EXECS_ONLY") return isMeetingExec(viewer.role);
   return isCreator(viewer, meeting) || meeting.inviteeUserIds.includes(viewer.userId);
 }
 
-/** OPEN: execs and the creator. INVITE_ONLY: the creator and invited execs. */
+/** OPEN: execs and the creator. INVITE_ONLY: the creator and invited execs. EXECS_ONLY: every exec. */
 export function isMeetingHost(viewer: Viewer, meeting: MeetingAccessFields) {
+  if (meeting.access === "EXECS_ONLY") return isMeetingExec(viewer.role);
   if (isCreator(viewer, meeting)) return true;
   if (!isMeetingExec(viewer.role)) return false;
   return meeting.access === "OPEN" || meeting.inviteeUserIds.includes(viewer.userId);

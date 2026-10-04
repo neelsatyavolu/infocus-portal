@@ -288,6 +288,13 @@ describe("one-off meetings", () => {
 });
 
 describe("calendarAttendees", () => {
+  it("EXECS_ONLY: only addresses linked to an exec; unlinked addresses never", () => {
+    expect(calendarAttendees(rows, { access: "EXECS_ONLY", createdById: "u-otto", inviteeUserIds: [] }, ["u-otto"])).toEqual([
+      "otto@example.edu"
+    ]);
+    expect(calendarAttendees(rows, { access: "EXECS_ONLY", createdById: "u-otto", inviteeUserIds: [] }, [])).toEqual([]);
+  });
+
   it("OPEN and the series: every address; INVITE_ONLY: linked creator and invitees only", () => {
     expect(calendarAttendees(rows, null)).toEqual(["abby@example.edu", "guest@example.edu", "otto@example.edu"]);
     expect(calendarAttendees(rows, { access: "INVITE_ONLY", createdById: "u-abby", inviteeUserIds: ["u-otto"] })).toEqual([

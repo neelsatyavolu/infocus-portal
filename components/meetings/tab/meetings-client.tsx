@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import * as Popover from "@radix-ui/react-popover";
 import { CalendarPlus, ChevronDown, Loader2, Lock, Video } from "lucide-react";
 import { toast } from "sonner";
-import { CopyTextButton } from "@/components/copy-text-button";
+import { CopyLinkButton } from "./copy-link-button";
 import { Button } from "@/components/ui/button";
 import type { MeetingListResponse, MeetingSummary } from "@/src/lib/meetings/types";
 import { errorMessage, meetingsApi } from "@/src/lib/meetings/client/api";
@@ -37,7 +37,6 @@ export default function MeetingsClient() {
   const [moving, setMoving] = useState<MeetingSummary | null>(null);
   const [cancelling, setCancelling] = useState<MeetingSummary | null>(null);
   const [startMenu, setStartMenu] = useState(false);
-  const [origin, setOrigin] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -49,7 +48,6 @@ export default function MeetingsClient() {
   }, []);
 
   useEffect(() => {
-    setOrigin(window.location.origin);
     void load();
     const refresh = setInterval(() => void load(), REFRESH_MS);
     // Join buttons enable on time without waiting for the next refresh.
@@ -91,7 +89,6 @@ export default function MeetingsClient() {
     void load();
   };
 
-  const permanentLink = origin ? `${origin}/meet/producers` : "";
 
   return (
     <div className="route-enter mx-auto w-full max-w-[80rem] space-y-8 pb-24">
@@ -106,6 +103,7 @@ export default function MeetingsClient() {
           </div>
           <div className="flex flex-wrap gap-2">
             <CalendarSettingsDialog />
+            <CopyLinkButton path="/meet/producers" label="Copy link" />
             <Button variant="outline" onClick={() => setDialog("schedule")}>
               <CalendarPlus aria-hidden /> Schedule
             </Button>
@@ -140,14 +138,6 @@ export default function MeetingsClient() {
             </div>
           </div>
         </div>
-      </section>
-
-      <section aria-label="Permanent link" className="flex flex-wrap items-center gap-3 rounded-md border border-[var(--ink-4)] bg-card px-4 py-3">
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-foreground">Permanent link for the InFocus Producer Meeting</p>
-          <p className="truncate font-mono text-xs text-[var(--ink-text)]">{permanentLink || "/meet/producers"}</p>
-        </div>
-        <CopyTextButton text={permanentLink} label="Copy link" />
       </section>
 
       {loadError ? (

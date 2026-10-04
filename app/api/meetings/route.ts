@@ -11,7 +11,7 @@ const createMeetingSchema = z.object({
   title: z.string().trim().min(1).max(120),
   startsAt: z.string().datetime({ offset: true }).optional(),
   durationMinutes: z.number().int().min(5).max(480).optional(),
-  access: z.enum(["OPEN", "INVITE_ONLY"]).optional(),
+  access: z.enum(["OPEN", "INVITE_ONLY", "EXECS_ONLY"]).optional(),
   inviteeUserIds: z.array(z.string().min(1).max(64)).max(200).optional()
 });
 

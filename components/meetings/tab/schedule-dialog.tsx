@@ -34,6 +34,17 @@ function defaultStart() {
  * "schedule": title, Pacific date and time, duration, who can join.
  * "private-now": an invite-only meeting that starts now (execs).
  */
+/** "Who can join" choices; the restricted ones are for execs only. */
+export function accessOptions(canCreateRestricted: boolean): Array<[MeetingAccessValue, string]> {
+  return canCreateRestricted
+    ? [
+        ["OPEN", "All producers"],
+        ["EXECS_ONLY", "Execs only"],
+        ["INVITE_ONLY", "Only people I choose"]
+      ]
+    : [["OPEN", "All producers"]];
+}
+
 export function ScheduleDialog({
   open,
   onOpenChange,
@@ -87,7 +98,7 @@ export function ScheduleDialog({
         title: cleanTitle,
         startsAt: startsAt ?? undefined,
         durationMinutes: Number(duration),
-        access: inviteOnly ? "INVITE_ONLY" : "OPEN",
+        access: inviteOnly ? "INVITE_ONLY" : access,
         inviteeUserIds: inviteOnly ? invitees : undefined
       });
       onOpenChange(false);
@@ -142,13 +153,9 @@ export function ScheduleDialog({
           {mode === "schedule" ? (
             <fieldset className="space-y-2">
               <legend className="text-sm font-medium text-foreground">Who can join</legend>
-              <div className="grid gap-2 sm:grid-cols-2" role="radiogroup">
-                {(
-                  [
-                    ["OPEN", "All producers"],
-                    ...(canCreateInviteOnly ? [["INVITE_ONLY", "Only people I choose"]] : [])
-                  ] as Array<[MeetingAccessValue, string]>
-                ).map(([value, label]) => (
+              {/* Equal-width segments in one row; a single column on narrow screens. */}
+              <div className="grid grid-cols-1 gap-2 sm:auto-cols-fr sm:grid-flow-col" role="radiogroup" aria-label="Who can join">
+                {accessOptions(canCreateInviteOnly).map(([value, label]) => (
                   <button
                     key={value}
                     type="button"
@@ -156,7 +163,7 @@ export function ScheduleDialog({
                     aria-checked={access === value}
                     onClick={() => setAccess(value)}
                     className={cn(
-                      "rounded-md border px-3 py-2 text-left text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]",
+                      "flex min-h-10 items-center justify-center rounded-md border px-3 py-2 text-center text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]",
                       access === value ? "border-[var(--brand-green)] bg-[var(--brand-green)]/10 text-foreground" : "border-input text-muted-foreground hover:bg-[var(--ink-3)]"
                     )}
                   >
@@ -164,6 +171,12 @@ export function ScheduleDialog({
                   </button>
                 ))}
               </div>
+              {access === "EXECS_ONLY" ? (
+                <p className="text-xs text-muted-foreground">
+                  Executive producers, the adviser and super admin. Nobody else can see this meeting or its notes.
+                </p>
+              ) : null}
+              {canCreateInviteOnly ? <p className="text-xs text-muted-foreground">Who can join can&rsquo;t be changed later.</p> : null}
             </fieldset>
           ) : null}
 

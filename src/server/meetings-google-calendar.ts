@@ -4,6 +4,7 @@ import { inngest } from "@/src/lib/inngest";
 import { MEETINGS_TIME_ZONE, PRODUCER_SERIES, pacificLocalStamp, producerOccurrences, producerSlotStart } from "@/src/lib/meetings/schedule";
 import { prisma } from "@/src/lib/prisma";
 import { GoogleCalendarError, googleCalendarAccessToken, googleCalendarConnection } from "@/src/server/google-calendar-credential";
+import { execUserIds } from "@/src/server/meetings-people";
 import type { MeetingAccessFields } from "@/src/server/meetings-rules";
 
 /**
@@ -113,13 +114,20 @@ function details(url: string) {
 
 /**
  * Guests for an event. The series and OPEN meetings: every address on the invite list.
- * INVITE_ONLY: only addresses linked to the creator or an invitee.
+ * INVITE_ONLY: only addresses linked to the creator or an invitee. EXECS_ONLY: only addresses linked
+ * to an exec (`execIds`). Unlinked addresses never join a restricted meeting.
  */
-export function calendarAttendees(rows: { email: string; userId: string | null }[], meeting: MeetingAccessFields | null) {
+export function calendarAttendees(
+  rows: { email: string; userId: string | null }[],
+  meeting: MeetingAccessFields | null,
+  execIds: string[] = []
+) {
   const allowed =
     !meeting || meeting.access === "OPEN"
       ? null
-      : new Set([...(meeting.createdById ? [meeting.createdById] : []), ...meeting.inviteeUserIds]);
+      : meeting.access === "EXECS_ONLY"
+        ? new Set(execIds)
+        : new Set([...(meeting.createdById ? [meeting.createdById] : []), ...meeting.inviteeUserIds]);
   const emails = rows
     .filter((row) => allowed === null || Boolean(row.userId && allowed.has(row.userId)))
     .map((row) => row.email.toLowerCase());
@@ -274,7 +282,7 @@ async function syncOneOff(token: string, meetingId: string, rows: { email: strin
   }
   if (meeting.status === "ENDED") return;
 
-  const attendees = calendarAttendees(rows, meeting);
+  const attendees = calendarAttendees(rows, meeting, meeting.access === "EXECS_ONLY" ? await execUserIds() : []);
   const want = oneOffEventBody(meeting, attendees);
   const existing = meeting.googleEventId ? await readEvent(token, meeting.googleEventId) : null;
   if (!existing || existing.status === "cancelled") {

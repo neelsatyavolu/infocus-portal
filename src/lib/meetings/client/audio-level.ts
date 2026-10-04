@@ -1,3 +1,5 @@
+import { resumeVoiceIsolation } from "./voice-isolation";
+
 /** Shared WebAudio level meters (one AudioContext per page). Levels are RMS in 0..1. */
 
 let sharedContext: AudioContext | null = null;
@@ -10,6 +12,7 @@ function audioContext() {
 /** Resume after a user gesture (iOS and Chrome autoplay rules). */
 export function resumeAudio() {
   if (typeof window === "undefined") return;
+  resumeVoiceIsolation();
   void audioContext()
     .resume()
     .catch(() => undefined);

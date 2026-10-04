@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useObservableAsValue } from "partytracks/react";
 import type { MediaDevice } from "partytracks/client";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { LocalMedia } from "./use-local-media";
 
@@ -70,9 +71,24 @@ function SpeakerPicker({ value, onChange }: { value: string; onChange: (id: stri
   );
 }
 
+function VoiceIsolationToggle({ media }: { media: LocalMedia }) {
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <div className="min-w-0">
+        <Label htmlFor="voice-isolation" className="text-sm text-foreground">
+          Voice isolation
+        </Label>
+        <p className="mt-0.5 text-xs text-muted-foreground">Filters background noise on your device before it&rsquo;s sent.</p>
+      </div>
+      <Switch id="voice-isolation" checked={media.voiceIsolation} onCheckedChange={media.setVoiceIsolation} />
+    </div>
+  );
+}
+
 export function DevicePickers({ media }: { media: LocalMedia }) {
   return (
     <div className="grid gap-3">
+      <VoiceIsolationToggle media={media} />
       <DevicePicker label="Microphone" device={media.mic} />
       <DevicePicker label="Camera" device={media.camera} />
       <SpeakerPicker value={media.speakerId} onChange={media.setSpeakerId} />

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { NEVER } from "rxjs";
 import { Lock } from "lucide-react";
 import { toast } from "sonner";
 import { CopyTextButton } from "@/components/copy-text-button";
@@ -14,6 +15,8 @@ import { errorMessage, meetingsApi } from "@/src/lib/meetings/client/api";
 import { ConfirmDialog } from "../confirm-dialog";
 import { InviteesDialog } from "../invitees-dialog";
 import { DevicePickers } from "./device-pickers";
+import { LevelMeter } from "./level-meter";
+import { useObservableTrack } from "./media-elements";
 import type { LocalMedia } from "./use-local-media";
 
 type OpenProps = { open: boolean; onOpenChange: (open: boolean) => void };
@@ -52,6 +55,18 @@ export function MeetingInfoDialog({ open, onOpenChange, meeting, isHost }: OpenP
   );
 }
 
+/** Mic meter on the processed (voice-isolated) track, so the effect is visible. */
+function MicTest({ media }: { media: LocalMedia }) {
+  const mic$ = useMemo(() => (media.audioOn ? media.mic.localMonitorTrack$ : NEVER), [media.audioOn, media.mic]);
+  const micTrack = useObservableTrack(mic$);
+  return (
+    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+      <LevelMeter track={micTrack} />
+      <span>{media.audioOn ? "Speak to test your microphone" : "Your microphone is off"}</span>
+    </div>
+  );
+}
+
 export function DevicesDialog({ open, onOpenChange, media }: OpenProps & { media: LocalMedia }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -60,6 +75,7 @@ export function DevicesDialog({ open, onOpenChange, media }: OpenProps & { media
           <DialogTitle>Audio and video</DialogTitle>
         </DialogHeader>
         <DevicePickers media={media} />
+        <MicTest media={media} />
       </DialogContent>
     </Dialog>
   );

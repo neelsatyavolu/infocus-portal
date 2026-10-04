@@ -6,6 +6,8 @@ import { useObservableAsValue } from "partytracks/react";
 import { NEVER } from "rxjs";
 import { toast } from "sonner";
 import { keepBroadcasting } from "@/src/lib/meetings/client/keep-broadcasting";
+import { resumeVoiceIsolation } from "@/src/lib/meetings/client/voice-isolation";
+import { useVoiceIsolation } from "./use-voice-isolation";
 
 export type LocalMedia = {
   mic: MediaDevice;
@@ -21,7 +23,13 @@ export type LocalMedia = {
   stopScreenShare: () => void;
   speakerId: string;
   setSpeakerId: (id: string) => void;
+  /** RNNoise noise suppression on the device (mic transform). */
+  voiceIsolation: boolean;
+  setVoiceIsolation: (on: boolean) => void;
 };
+
+/** Browser processing stays on underneath voice isolation (echo cancellation matters most). */
+const MIC_CONSTRAINTS = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
 
 function deviceErrorMessage(kind: "microphone" | "camera", error: Error) {
   if (error.name === "NotAllowedError") {
@@ -33,10 +41,11 @@ function deviceErrorMessage(kind: "microphone" | "camera", error: Error) {
 /** Mic, camera and screen share sources (partytracks), shared by pre-join and the call. */
 export function useLocalMedia(): LocalMedia {
   // Both start off; people can turn them on in pre-join to test before joining.
-  const [mic] = useState(() => getMic({ broadcasting: false }));
+  const [mic] = useState(() => getMic({ broadcasting: false, constraints: MIC_CONSTRAINTS }));
   const [camera] = useState(() => getCamera({ broadcasting: false }));
   const [screen, setScreen] = useState<Screenshare | null>(null);
   const [speakerId, setSpeakerId] = useState("");
+  const { voiceIsolation, setVoiceIsolation } = useVoiceIsolation(mic);
 
   const audioOn = useObservableAsValue(mic.isBroadcasting$, false);
   const videoOn = useObservableAsValue(camera.isBroadcasting$, false);
@@ -65,7 +74,11 @@ export function useLocalMedia(): LocalMedia {
       audioOn,
       videoOn,
       screen,
-      toggleAudio: () => mic.toggleBroadcasting(),
+      toggleAudio: () => {
+        // The unmute tap is a user gesture: start any suspended voice-isolation audio.
+        resumeVoiceIsolation();
+        mic.toggleBroadcasting();
+      },
       toggleVideo: () => camera.toggleBroadcasting(),
       setAudio: (on) => (on ? mic.startBroadcasting() : mic.stopBroadcasting()),
       setVideo: (on) => (on ? camera.startBroadcasting() : camera.stopBroadcasting()),
@@ -85,8 +98,10 @@ export function useLocalMedia(): LocalMedia {
         });
       },
       speakerId,
-      setSpeakerId
+      setSpeakerId,
+      voiceIsolation,
+      setVoiceIsolation
     }),
-    [mic, camera, audioOn, videoOn, screen, speakerId]
+    [mic, camera, audioOn, videoOn, screen, speakerId, voiceIsolation, setVoiceIsolation]
   );
 }

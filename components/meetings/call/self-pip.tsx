@@ -8,10 +8,10 @@ import { VideoView } from "./media-elements";
 type Corner = "br" | "bl" | "tl" | "tr";
 
 const CORNER_CLASS: Record<Corner, string> = {
-  br: "bottom-2 right-2",
-  bl: "bottom-2 left-2",
-  tl: "top-2 left-2",
-  tr: "top-2 right-2"
+  br: "bottom-4 right-4",
+  bl: "bottom-4 left-4",
+  tl: "top-4 left-4",
+  tr: "top-4 right-4"
 };
 
 const NEXT: Record<Corner, Corner> = { br: "bl", bl: "tl", tl: "tr", tr: "br" };

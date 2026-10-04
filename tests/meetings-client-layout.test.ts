@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   SPEAKER_HOLD_MS,
-  gridColumns,
+  fitGrid,
   nextSpeakerState,
   qualityFromStats,
   resolveStage,
@@ -83,13 +83,29 @@ describe("resolveStage", () => {
   });
 });
 
-describe("grid helpers", () => {
-  it("picks columns", () => {
-    expect([1, 2, 4, 5, 9, 12].map((n) => gridColumns(n, false))).toEqual([1, 2, 2, 3, 3, 4]);
-    expect([1, 2, 3, 4].map((n) => gridColumns(n, true))).toEqual([1, 1, 2, 2]);
-    expect([1, 2, 3, 4].map((n) => gridColumns(n, true, true))).toEqual([1, 2, 3, 2]);
+describe("fitGrid", () => {
+  const box = { width: 1600, height: 900, gap: 8, aspect: 16 / 9 };
+
+  it("fills the box with one tile", () => {
+    expect(fitGrid({ ...box, count: 1 })).toEqual({ cols: 1, rows: 1, width: 1600, height: 900 });
   });
 
+  it("keeps 16:9 and picks the column count with the biggest tile", () => {
+    const four = fitGrid({ ...box, count: 4 });
+    expect([four.cols, four.rows]).toEqual([2, 2]);
+    expect(Math.abs(four.width / four.height - 16 / 9)).toBeLessThan(0.01);
+    expect(four.width * 2 + 8).toBeLessThanOrEqual(1600);
+    expect(four.height * 2 + 8).toBeLessThanOrEqual(900);
+    expect(fitGrid({ ...box, count: 5 }).cols).toBe(3);
+  });
+
+  it("respects maxCols for phones and handles empty boxes", () => {
+    expect(fitGrid({ width: 390, height: 700, gap: 8, aspect: 3 / 4, count: 4, maxCols: 2 }).cols).toBeLessThanOrEqual(2);
+    expect(fitGrid({ ...box, count: 3, width: 0 })).toEqual({ cols: 1, rows: 1, width: 0, height: 0 });
+  });
+});
+
+describe("grid helpers", () => {
   it("picks simulcast layers", () => {
     expect(ridForTile("main", 9)).toBe("f");
     expect(ridForTile("grid", 3)).toBe("h");

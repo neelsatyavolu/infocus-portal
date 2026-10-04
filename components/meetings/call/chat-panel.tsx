@@ -78,18 +78,23 @@ export function ChatPanel({
         </form>
       }
     >
-      <p className="mx-4 mt-3 flex items-center gap-1.5 bg-[var(--ink-3)] px-3 py-2 text-xs text-muted-foreground">
+      <p className="mx-4 mt-4 flex items-center gap-1.5 rounded-md bg-[var(--ink-3)] px-3 py-2 text-xs text-muted-foreground">
         <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden />
         Messages are encrypted and disappear when the call ends.
       </p>
-      <ol className="space-y-3 p-4" aria-live="polite">
+      <ol className="space-y-4 p-4" aria-live="polite">
         {messages.map((m) => (
-          <li key={m.id} className="space-y-0.5">
-            <div className="flex items-baseline gap-2 text-xs">
-              <span className="font-medium text-foreground">{m.own ? "You" : m.name}</span>
-              <span className="font-mono tabular-nums text-muted-foreground">{pacificTimeLabel(new Date(m.at))}</span>
+          <li key={m.id} className="flex flex-col items-start gap-1">
+            <div className="flex items-baseline gap-2 text-xs text-muted-foreground">
+              <span className="font-medium">{m.own ? "You" : m.name}</span>
+              <span className="font-mono tabular-nums">{pacificTimeLabel(new Date(m.at))}</span>
             </div>
-            <p className={cn("whitespace-pre-wrap break-words text-sm", m.text === null ? "italic text-muted-foreground" : "text-[var(--ink-text)]")}>
+            <p
+              className={cn(
+                "max-w-full whitespace-pre-wrap break-words rounded-md px-3 py-2 text-sm",
+                m.text === null ? "italic text-muted-foreground outline outline-1 outline-[var(--ink-4)]" : "bg-[var(--ink-3)] text-foreground"
+              )}
+            >
               {m.text ?? (m.problem === "unverified" ? "Couldn't verify this message" : "Message from before you joined")}
             </p>
           </li>

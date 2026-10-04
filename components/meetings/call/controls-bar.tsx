@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import * as Popover from "@radix-ui/react-popover";
 import {
   Hand,
+  Info,
   MessageSquare,
   Mic,
   MicOff,
@@ -17,11 +18,13 @@ import {
 } from "lucide-react";
 import { MEETING_REACTIONS, type MeetingReaction } from "@/src/lib/meetings/protocol";
 import type { LayoutMode } from "@/src/lib/meetings/client/layout";
-import { CallButton } from "./call-button";
+import { pacificTimeLabel } from "@/src/lib/meetings/client/time";
+import { CallButton, IconButton, LeaveButton } from "./call-button";
 import { MoreMenu, type MoreAction } from "./more-menu";
 
 export type ControlsProps = {
   mobile: boolean;
+  title: string;
   audioOn: boolean;
   videoOn: boolean;
   sharing: boolean;
@@ -43,6 +46,7 @@ export type ControlsProps = {
   onReact: (emoji: MeetingReaction) => void;
   onChat: () => void;
   onPeople: () => void;
+  onInfo: () => void;
   onLeave: () => void;
 };
 
@@ -55,7 +59,7 @@ function ReactionPicker({ onReact }: { onReact: (emoji: MeetingReaction) => void
         </CallButton>
       </Popover.Trigger>
       <Popover.Portal>
-        <Popover.Content side="top" sideOffset={8} className="z-50 flex gap-1 rounded-md border border-[var(--ink-4)] bg-[var(--ink-2)] p-1.5">
+        <Popover.Content side="top" sideOffset={12} className="z-50 flex gap-1 rounded-md border border-[var(--ink-4)] bg-[var(--ink-2)] p-1">
           {MEETING_REACTIONS.map((emoji) => (
             <button
               key={emoji}
@@ -73,6 +77,27 @@ function ReactionPicker({ onReact }: { onReact: (emoji: MeetingReaction) => void
   );
 }
 
+/** Desktop left group: wall-clock time | meeting title. */
+function ClockAndTitle({ title }: { title: string }) {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 15_000);
+    return () => clearInterval(timer);
+  }, []);
+  return (
+    <div className="flex min-w-0 items-center gap-3 text-sm">
+      <span className="font-mono text-[13px] tabular-nums text-foreground">{pacificTimeLabel(now)}</span>
+      <span className="h-4 w-px bg-[var(--ink-4)]" aria-hidden />
+      <span className="truncate text-[var(--ink-text)]">{title}</span>
+    </div>
+  );
+}
+
+/**
+ * 72px bar. Desktop: three groups on one line (grid 1fr | auto | 1fr) so the center group is
+ * truly centered: clock + title | mic cam share hand react more leave | chat people info.
+ * Phones: only mic, camera, hand, more and leave; the rest is in the more sheet.
+ */
 export function ControlsBar(props: ControlsProps) {
   const [moreOpen, setMoreOpen] = useState(false);
   const { mobile } = props;
@@ -81,66 +106,75 @@ export function ControlsBar(props: ControlsProps) {
   const shareAction: MoreAction[] = props.canShare
     ? [{ id: "share", label: props.sharing ? "Stop presenting" : "Share screen", icon: <MonitorUp />, onSelect: props.onShare }]
     : [];
-  // Phones keep mic, camera, hand, more and leave in the bar; everything else lives in the sheet.
   const mobileExtras: MoreAction[] = mobile
     ? [
         { id: "chat", label: "Chat", icon: <MessageSquare />, onSelect: props.onChat, badge: props.unread },
         { id: "people", label: `People (${props.peopleCount})`, icon: <Users />, onSelect: props.onPeople, badge: hostBadge },
-        ...shareAction
+        ...shareAction,
+        { id: "info", label: "Meeting info", icon: <Info />, onSelect: props.onInfo }
       ]
     : [];
-
-  const more = (
-    <CallButton label="More options" badge={mobile ? (props.unread || hostBadge) : undefined}>
-      <MoreVertical />
-    </CallButton>
-  );
 
   return (
     <nav
       aria-label="Call controls"
-      className="flex items-center justify-center gap-2 border-t border-[var(--ink-4)] bg-[var(--ink)] pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+      className="shrink-0 border-t border-[var(--ink-4)] bg-[var(--ink)] pb-[env(safe-area-inset-bottom)] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] md:pl-6 md:pr-6"
     >
-      <CallButton label={props.audioOn ? "Turn off microphone (⌘D)" : "Turn on microphone (⌘D)"} off={!props.audioOn} onClick={props.onMic}>
-        {props.audioOn ? <Mic /> : <MicOff />}
-      </CallButton>
-      <CallButton label={props.videoOn ? "Turn off camera (⌘E)" : "Turn on camera (⌘E)"} off={!props.videoOn} onClick={props.onCamera}>
-        {props.videoOn ? <Video /> : <VideoOff />}
-      </CallButton>
-      {!mobile && props.canShare ? (
-        <CallButton label={props.sharing ? "Stop presenting" : "Share screen"} active={props.sharing} onClick={props.onShare}>
-          <MonitorUp />
-        </CallButton>
-      ) : null}
-      <CallButton label={props.handRaised ? "Lower hand (⌘⌥H)" : "Raise hand (⌘⌥H)"} active={props.handRaised} onClick={props.onHand}>
-        <Hand />
-      </CallButton>
-      {!mobile ? <ReactionPicker onReact={props.onReact} /> : null}
-      <MoreMenu
-        open={moreOpen}
-        onOpenChange={setMoreOpen}
-        trigger={more}
-        mobile={mobile}
-        actions={[...mobileExtras, ...props.moreActions]}
-        layout={props.layout}
-        onLayout={props.onLayout}
-        onReact={mobile ? props.onReact : undefined}
-      />
-      {!mobile ? (
-        <span className="mx-1 flex gap-2 border-l border-[var(--ink-4)] pl-3">
-          <CallButton label="Chat (⌘⌥C)" active={props.chatOpen} badge={props.unread || undefined} onClick={props.onChat}>
-            <MessageSquare />
+      <div className="grid h-[72px] grid-cols-[1fr_auto_1fr] items-center gap-2 md:gap-4">
+        <div className="min-w-0">{!mobile ? <ClockAndTitle title={props.title} /> : null}</div>
+
+        <div className="flex items-center gap-2 sm:gap-3">
+          <CallButton label={props.audioOn ? "Turn off microphone" : "Turn on microphone"} shortcut="⌘D" state={props.audioOn ? "on" : "off"} onClick={props.onMic}>
+            {props.audioOn ? <Mic /> : <MicOff />}
           </CallButton>
-          <CallButton label="People" active={props.peopleOpen} badge={hostBadge} onClick={props.onPeople}>
-            <Users />
-            <span className="font-mono text-xs tabular-nums">{props.peopleCount}</span>
+          <CallButton label={props.videoOn ? "Turn off camera" : "Turn on camera"} shortcut="⌘E" state={props.videoOn ? "on" : "off"} onClick={props.onCamera}>
+            {props.videoOn ? <Video /> : <VideoOff />}
           </CallButton>
-        </span>
-      ) : null}
-      <CallButton label="Leave call" tone="danger" onClick={props.onLeave}>
-        <PhoneOff />
-        {!mobile ? <span>Leave</span> : null}
-      </CallButton>
+          {!mobile && props.canShare ? (
+            <CallButton label={props.sharing ? "Stop presenting" : "Share screen"} state={props.sharing ? "active" : "on"} onClick={props.onShare}>
+              <MonitorUp />
+            </CallButton>
+          ) : null}
+          <CallButton label={props.handRaised ? "Lower hand" : "Raise hand"} shortcut="⌘⌥H" state={props.handRaised ? "active" : "on"} onClick={props.onHand}>
+            <Hand />
+          </CallButton>
+          {!mobile ? <ReactionPicker onReact={props.onReact} /> : null}
+          <MoreMenu
+            open={moreOpen}
+            onOpenChange={setMoreOpen}
+            mobile={mobile}
+            actions={[...mobileExtras, ...props.moreActions]}
+            layout={props.layout}
+            onLayout={props.onLayout}
+            onReact={mobile ? props.onReact : undefined}
+            trigger={
+              <CallButton label="More options" badge={mobile ? props.unread || hostBadge : undefined}>
+                <MoreVertical />
+              </CallButton>
+            }
+          />
+          <LeaveButton label="Leave call" compact={mobile} onClick={props.onLeave}>
+            <PhoneOff />
+            {!mobile ? <span>Leave</span> : null}
+          </LeaveButton>
+        </div>
+
+        <div className="flex items-center justify-end gap-1">
+          {!mobile ? (
+            <>
+              <IconButton label="Chat" shortcut="⌘⌥C" badge={props.unread || undefined} onClick={props.onChat} className={props.chatOpen ? "bg-[var(--ink-3)] text-foreground" : undefined}>
+                <MessageSquare />
+              </IconButton>
+              <IconButton label={`People (${props.peopleCount})`} badge={hostBadge ?? props.peopleCount} onClick={props.onPeople} className={props.peopleOpen ? "bg-[var(--ink-3)] text-foreground" : undefined}>
+                <Users />
+              </IconButton>
+              <IconButton label="Meeting info" onClick={props.onInfo}>
+                <Info />
+              </IconButton>
+            </>
+          ) : null}
+        </div>
+      </div>
     </nav>
   );
 }

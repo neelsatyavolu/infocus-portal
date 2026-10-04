@@ -75,14 +75,34 @@ export function selectVisibleTiles(
   return { visible, overflow: ordered.length - visible.length };
 }
 
-/** Columns for an n-tile grid. Phones: 1–2 wide in portrait, side by side in landscape. */
-export function gridColumns(count: number, mobile: boolean, landscape = false) {
-  if (count <= 1) return 1;
-  if (mobile && landscape) return count <= 3 ? count : 2;
-  if (mobile) return count <= 2 ? 1 : 2;
-  if (count <= 4) return 2;
-  if (count <= 9) return 3;
-  return 4;
+export type GridFit = { cols: number; rows: number; width: number; height: number };
+
+/**
+ * Equal tiles at a fixed aspect ratio, as large as fit in a `width` × `height` box with `gap`
+ * between them. Tries every column count up to `maxCols` and keeps the one with the biggest
+ * tile. Callers center the tiles (and so the last, shorter row) with flex-wrap + justify-center.
+ */
+export function fitGrid(input: {
+  count: number;
+  width: number;
+  height: number;
+  gap: number;
+  aspect: number;
+  maxCols?: number;
+}): GridFit {
+  const { count, width, height, gap, aspect } = input;
+  if (count <= 0 || width <= 0 || height <= 0) return { cols: 1, rows: 1, width: 0, height: 0 };
+  const maxCols = Math.max(1, Math.min(count, input.maxCols ?? count));
+  let best: GridFit = { cols: 1, rows: count, width: 0, height: 0 };
+  for (let cols = 1; cols <= maxCols; cols += 1) {
+    const rows = Math.ceil(count / cols);
+    const cellW = (width - gap * (cols - 1)) / cols;
+    const cellH = (height - gap * (rows - 1)) / rows;
+    if (cellW <= 0 || cellH <= 0) continue;
+    const tileW = Math.min(cellW, cellH * aspect);
+    if (tileW > best.width) best = { cols, rows, width: Math.floor(tileW), height: Math.floor(tileW / aspect) };
+  }
+  return best;
 }
 
 /** Simulcast layer to pull for a tile: full for the stage, half for small grids, quarter elsewhere. */

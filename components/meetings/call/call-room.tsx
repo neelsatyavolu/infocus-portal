@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Eye, EyeOff, Info, Settings, ShieldCheck, Volume2 } from "lucide-react";
+import { Eye, EyeOff, Settings, ShieldCheck, Volume2 } from "lucide-react";
 import { NEVER } from "rxjs";
 import { toast } from "sonner";
 import type { MeetingParticipantView } from "@/src/lib/meetings/protocol";
@@ -143,7 +143,6 @@ export function CallRoom({
   const moreActions: MoreAction[] = [
     { id: "self", label: hideSelf ? "Show self view" : "Hide self view", icon: hideSelf ? <Eye /> : <EyeOff />, onSelect: () => setHideSelf((v) => !v) },
     { id: "devices", label: "Audio and video settings", icon: <Settings />, onSelect: () => setDialog("devices") },
-    { id: "info", label: "Meeting info", icon: <Info />, onSelect: () => setDialog("info") },
     ...(room.isHost
       ? [{ id: "host", label: "Host controls", icon: <ShieldCheck />, onSelect: () => setDialog("host") }]
       : [])
@@ -219,6 +218,7 @@ export function CallRoom({
       </div>
       <ControlsBar
         mobile={mobile}
+        title={meeting?.title ?? "Meeting"}
         audioOn={media.audioOn}
         videoOn={media.videoOn}
         sharing={Boolean(media.screen)}
@@ -241,6 +241,7 @@ export function CallRoom({
         }}
         onChat={() => togglePanel("chat")}
         onPeople={() => togglePanel("people")}
+        onInfo={() => setDialog("info")}
         onLeave={onLeave}
       />
 

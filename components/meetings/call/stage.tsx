@@ -1,11 +1,12 @@
 "use client";
 
+import type { ReactNode } from "react";
 import type { PartyTracks } from "partytracks/client";
 import type { MeetingE2ee } from "@/src/lib/meetings/client/e2ee";
 import {
   DESKTOP_MAX_TILES,
   MOBILE_MAX_TILES,
-  gridColumns,
+  fitGrid,
   resolveStage,
   ridForTile,
   selectVisibleTiles,
@@ -14,8 +15,28 @@ import {
 } from "@/src/lib/meetings/client/layout";
 import { cn } from "@/src/lib/utils";
 import { OverflowTile, ParticipantTile, type TileModel } from "./participant-tile";
+import { useElementSize } from "./use-element-size";
 
 const STRIP_MAX = 6;
+/** 8px gutters everywhere (Tailwind gap-2 / inset-2). */
+const GAP = 8;
+
+/**
+ * Equal tiles at one aspect ratio, as large as fit, centered as a block; flex-wrap +
+ * justify-center centers the last (shorter) row.
+ */
+function FittedGrid({ count, aspect, maxCols, children }: { count: number; aspect: number; maxCols?: number; children: (size: { width: number; height: number }) => ReactNode }) {
+  const [ref, box] = useElementSize<HTMLDivElement>();
+  const fit = fitGrid({ count, width: box.width, height: box.height, gap: GAP, aspect, maxCols });
+  return (
+    <div className="relative h-full w-full">
+      <div ref={ref} className="absolute inset-2" aria-hidden />
+      <div className="absolute inset-2 flex flex-wrap content-center items-center justify-center gap-2">
+        {fit.width > 0 ? children({ width: fit.width, height: fit.height }) : null}
+      </div>
+    </div>
+  );
+}
 
 export function Stage({
   tiles,
@@ -53,23 +74,25 @@ export function Stage({
   }));
   const byId = new Map(tiles.map((t) => [t.id, t]));
   const stage = resolveStage({ mode, tiles: stageTiles, pinnedId, activeSpeakerUid });
+  const portraitPhone = mobile && !landscape;
 
-  const renderTile = (id: string, placement: "main" | "grid" | "strip", gridCount: number) => {
+  const renderTile = (id: string, placement: "main" | "grid" | "strip", gridCount: number, style?: React.CSSProperties) => {
     const tile = byId.get(id);
     if (!tile) return null;
     return (
-      <ParticipantTile
-        key={id}
-        tile={tile}
-        partyTracks={partyTracks}
-        e2ee={e2ee}
-        rid={ridForTile(placement, gridCount)}
-        speaking={speaking.includes(tile.participant.uid)}
-        pinned={pinnedId === id}
-        onTogglePin={() => onPin(pinnedId === id ? null : id)}
-        selfTrack={selfTrack}
-        small={placement === "strip"}
-      />
+      <div key={id} style={style} className={cn(!style && "h-full w-full")}>
+        <ParticipantTile
+          tile={tile}
+          partyTracks={partyTracks}
+          e2ee={e2ee}
+          rid={ridForTile(placement, gridCount)}
+          speaking={speaking.includes(tile.participant.uid)}
+          pinned={pinnedId === id}
+          onTogglePin={() => onPin(pinnedId === id ? null : id)}
+          selfTrack={selfTrack}
+          small={placement === "strip"}
+        />
+      </div>
     );
   };
 
@@ -77,44 +100,55 @@ export function Stage({
     const max = mobile ? MOBILE_MAX_TILES : DESKTOP_MAX_TILES;
     const { visible, overflow } = selectVisibleTiles(stageTiles, max, activeSpeakerUid);
     const count = visible.length + (overflow > 0 ? 1 : 0);
-    const cols = gridColumns(count, mobile, landscape);
     return (
-      <div
-        className="grid h-full w-full gap-2 p-2"
-        style={{
-          gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-          gridAutoRows: `minmax(0, 1fr)`
-        }}
-      >
-        {visible.map((t) => renderTile(t.id, "grid", count))}
-        {overflow > 0 ? <OverflowTile count={overflow} onClick={onOpenPeople} /> : null}
-      </div>
+      <FittedGrid count={count} aspect={portraitPhone ? 3 / 4 : 16 / 9} maxCols={portraitPhone ? 2 : undefined}>
+        {(size) => (
+          <>
+            {visible.map((t) => renderTile(t.id, "grid", count, size))}
+            {overflow > 0 ? (
+              <div style={size}>
+                <OverflowTile count={overflow} onClick={onOpenPeople} />
+              </div>
+            ) : null}
+          </>
+        )}
+      </FittedGrid>
     );
   }
 
-  const others = stageTiles.filter((t) => t.id !== stage.mainId);
+  const mainId = stage.mainId;
+  const others = stageTiles.filter((t) => t.id !== mainId);
   const stripMax = mobile ? MOBILE_MAX_TILES - 1 : STRIP_MAX;
   const { visible, overflow } = selectVisibleTiles(others, stripMax, activeSpeakerUid);
   const showStrip = stage.kind === "sidebar" && others.length > 0;
-  const stacked = mobile && !landscape;
 
   return (
-    <div className={cn("flex h-full w-full gap-2 p-2", stacked ? "flex-col" : "flex-row")}>
-      <div className="min-h-0 min-w-0 flex-1">{renderTile(stage.mainId, "main", 1)}</div>
+    <div className={cn("flex h-full w-full", portraitPhone ? "flex-col" : "flex-row")}>
+      <div className="min-h-0 min-w-0 flex-1">
+        <FittedGrid count={1} aspect={16 / 9}>
+          {(size) => renderTile(mainId, "main", 1, size)}
+        </FittedGrid>
+      </div>
       {showStrip ? (
         <div
-          className={cn(
-            "grid shrink-0 gap-2",
-            stacked
-              ? "h-24 auto-cols-[8.5rem] grid-flow-col overflow-x-auto overscroll-contain"
-              : mobile
-                ? "w-36 auto-rows-[5.5rem] overflow-y-auto overscroll-contain"
-                : "w-56 auto-rows-[8.5rem] overflow-y-auto"
-          )}
           aria-label="Other participants"
+          className={cn(
+            "flex shrink-0 gap-2 overscroll-contain p-2",
+            portraitPhone
+              ? "h-28 flex-row overflow-x-auto pt-0"
+              : cn("flex-col justify-center overflow-y-auto pl-0", mobile ? "w-40" : "w-60")
+          )}
         >
-          {visible.map((t) => renderTile(t.id, "strip", visible.length))}
-          {overflow > 0 ? <OverflowTile count={overflow} onClick={onOpenPeople} /> : null}
+          {visible.map((t) => (
+            <div key={t.id} className={cn("aspect-video shrink-0", portraitPhone ? "h-full" : "w-full")}>
+              {renderTile(t.id, "strip", visible.length)}
+            </div>
+          ))}
+          {overflow > 0 ? (
+            <div className={cn("aspect-video shrink-0", portraitPhone ? "h-full" : "w-full")}>
+              <OverflowTile count={overflow} onClick={onOpenPeople} />
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>

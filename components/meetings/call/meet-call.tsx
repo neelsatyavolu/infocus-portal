@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import type { MeetingDetail } from "@/src/lib/meetings/types";
 import { errorMessage, meetingsApi } from "@/src/lib/meetings/client/api";
 import { meetingBrowserSupport } from "@/src/lib/meetings/client/e2ee";
@@ -130,11 +131,13 @@ export default function MeetCall({
   const [support] = useState(meetingBrowserSupport);
   return (
     <MeetEmbedProvider value={embedded}>
-      {support.ok ? (
-        <MeetingGate meetingId={meetingId} userName={userName} />
-      ) : (
-        <EndScreen kind="unsupported" message={support.reason} />
-      )}
+      <TooltipProvider delayDuration={400}>
+        {support.ok ? (
+          <MeetingGate meetingId={meetingId} userName={userName} />
+        ) : (
+          <EndScreen kind="unsupported" message={support.reason} />
+        )}
+      </TooltipProvider>
     </MeetEmbedProvider>
   );
 }

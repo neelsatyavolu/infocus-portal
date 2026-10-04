@@ -6,6 +6,7 @@ import type { MeetingParticipantView } from "@/src/lib/meetings/protocol";
 import type { SimulcastRid } from "@/src/lib/meetings/client/layout";
 import type { MeetingE2ee } from "@/src/lib/meetings/client/e2ee";
 import { cn } from "@/src/lib/utils";
+import { Avatar } from "./avatar";
 import { VideoView, useDecryptFailing, usePulledTrack } from "./media-elements";
 
 export type TileModel = {
@@ -15,30 +16,23 @@ export type TileModel = {
   isScreen: boolean;
 };
 
-function initials(name: string) {
+function CenterNote({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    name
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase())
-      .join("") || "?"
+    <div className="flex h-full flex-col items-center justify-center gap-2 p-3 text-center text-sm text-muted-foreground">
+      {icon}
+      {children}
+    </div>
   );
 }
 
-function Avatar({ name, small }: { name: string; small?: boolean }) {
+/** Name pill, bottom-left: translucent dark with Soft White text, mic-off and hand icons beside it. */
+function NamePill({ label, micOff, hand }: { label: string; micOff: boolean; hand: boolean }) {
   return (
-    <div className="flex h-full w-full items-center justify-center">
-      <span
-        className={cn(
-          "flex items-center justify-center rounded-full bg-[var(--ink-4)] font-semibold text-foreground",
-          small ? "h-10 w-10 text-sm" : "h-16 w-16 text-xl md:h-20 md:w-20 md:text-2xl"
-        )}
-        aria-hidden
-      >
-        {initials(name)}
-      </span>
-    </div>
+    <figcaption className="absolute bottom-2 left-2 flex max-w-[calc(100%-1rem)] items-center gap-1.5 rounded-[4px] bg-[#0F110F]/60 px-2.5 py-1 text-xs text-[var(--soft-white)]">
+      {micOff ? <MicOff className="h-3.5 w-3.5 shrink-0" aria-label="Microphone off" /> : null}
+      {hand ? <Hand className="h-3.5 w-3.5 shrink-0 text-[var(--brand-green)]" aria-label="Hand raised" /> : null}
+      <span className="truncate">{label}</span>
+    </figcaption>
   );
 }
 
@@ -51,8 +45,7 @@ export function ParticipantTile({
   pinned,
   onTogglePin,
   selfTrack,
-  small,
-  className
+  small
 }: {
   tile: TileModel;
   partyTracks: PartyTracks | null;
@@ -64,7 +57,6 @@ export function ParticipantTile({
   /** Local camera preview for the self tile. */
   selfTrack?: MediaStreamTrack;
   small?: boolean;
-  className?: string;
 }) {
   const { participant, isSelf, isScreen } = tile;
   const wantsVideo = isScreen ? participant.screenOn : participant.videoOn;
@@ -76,53 +68,44 @@ export function ParticipantTile({
 
   return (
     <figure
-      className={cn(
-        "group relative h-full w-full overflow-hidden rounded-md border bg-[var(--ink-2)]",
-        speaking && !isScreen ? "border-[var(--brand-green)] ring-2 ring-[var(--brand-green)]" : "border-[var(--ink-4)]",
-        className
-      )}
       aria-label={label}
+      className={cn(
+        "group relative h-full w-full overflow-hidden rounded-md bg-[var(--ink-2)]",
+        // Outline, not border: the speaker ring never shifts the layout.
+        speaking && !isScreen ? "outline outline-2 outline-[var(--brand-green)]" : "outline outline-1 outline-[var(--ink-4)]"
+      )}
     >
       {failing ? (
-        <div className="flex h-full flex-col items-center justify-center gap-2 p-3 text-center text-xs text-muted-foreground">
-          <ShieldAlert className="h-5 w-5 text-[var(--brand-amber)]" aria-hidden />
+        <CenterNote icon={<ShieldAlert className="h-5 w-5 text-[var(--brand-amber)]" aria-hidden />}>
           Can&rsquo;t decrypt this video yet
-        </div>
+        </CenterNote>
       ) : isSelf && isScreen ? (
-        <div className="flex h-full flex-col items-center justify-center gap-2 p-3 text-center text-sm text-muted-foreground">
-          <MonitorUp className="h-6 w-6" aria-hidden />
-          You&rsquo;re presenting to everyone
-        </div>
+        <CenterNote icon={<MonitorUp className="h-6 w-6" aria-hidden />}>You&rsquo;re presenting to everyone</CenterNote>
       ) : wantsVideo && track ? (
         <VideoView track={track} mirror={isSelf} contain={isScreen} />
       ) : (
-        <Avatar name={participant.name} small={small} />
+        <div className="flex h-full items-center justify-center">
+          <Avatar name={participant.name} size={small ? "md" : "lg"} />
+        </div>
       )}
 
-      <figcaption className="absolute inset-x-0 bottom-0 flex items-center gap-1.5 bg-black/55 px-2 py-1 text-xs text-soft-white">
-        {!participant.audioOn && !isScreen ? (
-          <MicOff className="h-3.5 w-3.5 shrink-0" aria-label="Microphone off" />
-        ) : null}
-        <span className="truncate">{label}</span>
-      </figcaption>
-
-      {participant.handRaisedAt !== null && !isScreen ? (
-        <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-sm bg-primary px-1.5 py-0.5 text-[11px] font-medium text-primary-foreground">
-          <Hand className="h-3.5 w-3.5" aria-hidden /> Hand raised
-        </span>
-      ) : null}
+      <NamePill
+        label={label}
+        micOff={!participant.audioOn && !isScreen}
+        hand={participant.handRaisedAt !== null && !isScreen}
+      />
 
       <button
         type="button"
         onClick={onTogglePin}
         aria-label={pinned ? `Unpin ${label}` : `Pin ${label}`}
         className={cn(
-          "absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-md text-foreground transition-opacity focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)] [@media(hover:hover)]:right-2 [@media(hover:hover)]:top-2 [@media(hover:hover)]:h-8 [@media(hover:hover)]:w-8 [@media(hover:hover)]:bg-[var(--ink-2)]/90",
-          // Touch screens have no hover: keep the pin reachable (a faint chip), full on hover devices.
+          "absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-[6px] transition-opacity focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]",
+          // Touch screens have no hover: keep the pin reachable; hover devices reveal it on hover.
           pinned ? "opacity-100" : "opacity-70 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100"
         )}
       >
-        <span className="rounded-md bg-[var(--ink-2)]/90 p-1.5">
+        <span className="flex h-8 w-8 items-center justify-center rounded-[6px] bg-[#0F110F]/60 text-[var(--soft-white)]">
           {pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
         </span>
       </button>
@@ -136,7 +119,7 @@ export function OverflowTile({ count, onClick }: { count: number; onClick: () =>
       type="button"
       onClick={onClick}
       aria-label={`${count} more people. Open the people list.`}
-      className="flex h-full w-full items-center justify-center rounded-md border border-[var(--ink-4)] bg-[var(--ink-2)] font-mono text-2xl tabular-nums text-foreground hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]"
+      className="flex h-full w-full items-center justify-center rounded-md bg-[var(--ink-2)] font-mono text-2xl tabular-nums text-foreground outline outline-1 outline-[var(--ink-4)] hover:bg-[var(--ink-3)] focus-visible:outline-2 focus-visible:outline-[var(--brand-green)]"
     >
       +{count}
     </button>

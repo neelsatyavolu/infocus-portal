@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import type { MeetingClientMessage, MeetingParticipantView, MeetingWaitingView } from "@/src/lib/meetings/protocol";
 import { errorMessage, meetingsApi } from "@/src/lib/meetings/client/api";
 import { ConfirmDialog } from "../confirm-dialog";
+import { Avatar } from "./avatar";
 import { SidePanel } from "./side-panel";
 
 function IconAction({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
@@ -76,7 +77,10 @@ export function PeoplePanel({
           <ul className="space-y-2">
             {waiting.map((w) => (
               <li key={w.uid} className="flex items-center justify-between gap-2">
-                <span className="truncate text-sm text-foreground">{w.name}</span>
+                <span className="flex min-w-0 items-center gap-3">
+                  <Avatar name={w.name} size="sm" />
+                  <span className="truncate text-sm text-foreground">{w.name}</span>
+                </span>
                 <span className="flex shrink-0 gap-1.5">
                   <Button size="sm" variant="outline" className="h-11 md:h-8" onClick={() => void act(meetingsApi.participant(meetingId, w.uid, "deny"), `Didn't let ${w.name} in.`).catch(() => undefined)}>
                     Deny
@@ -104,24 +108,31 @@ export function PeoplePanel({
         </div>
       ) : null}
 
-      <ul className="divide-y divide-[var(--ink-4)]">
+      <ul className="py-2">
         {people.map((p) => {
           const self = p.uid === selfUid;
           return (
-            <li key={p.uid} className="flex items-center gap-2 px-4 py-2.5">
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm text-foreground">
+            <li key={p.uid} className="flex items-center gap-3 py-1.5 pl-4 pr-2">
+              <Avatar name={p.name} size="sm" />
+              <div className="flex min-w-0 flex-1 items-center gap-2">
+                <span className="truncate text-sm text-foreground">
                   {p.name}
                   {self ? " (You)" : ""}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {p.isHost ? "Host" : "Producer"}
-                  {p.handRaisedAt !== null ? " · Hand raised" : ""}
-                </p>
+                </span>
+                {p.isHost ? (
+                  <span className="shrink-0 rounded-sm border border-[var(--ink-4)] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.11em] text-muted-foreground">
+                    Host
+                  </span>
+                ) : null}
               </div>
+              {p.handRaisedAt !== null && !isHost ? (
+                <span className="flex h-11 w-11 items-center justify-center text-[var(--brand-green)]" aria-label="Hand raised">
+                  <Hand className="h-4 w-4" />
+                </span>
+              ) : null}
               {p.handRaisedAt !== null && isHost ? (
                 <IconAction label={`Lower ${p.name}'s hand`} onClick={() => hostSend({ t: "lowerHand", uid: p.uid }, `Lowered ${p.name}'s hand.`)}>
-                  <Hand className="h-4 w-4" />
+                  <Hand className="h-4 w-4 text-[var(--brand-green)]" />
                 </IconAction>
               ) : null}
               {isHost && !self && p.audioOn ? (

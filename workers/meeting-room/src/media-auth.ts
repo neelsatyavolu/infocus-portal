@@ -52,7 +52,9 @@ export function authorizeMedia(state: RoomState, ticket: RoomTicket, op: MediaOp
     return { ok: false, status: 403, message: "Join the room socket before starting media." };
   }
   if (op.kind === "newSession") {
-    if (sessionCount(state, ticket.uid) >= MAX_SESSIONS_PER_UID || sessionCount(state) >= MAX_ROOM_SESSIONS) {
+    // Per-uid overflow evicts that uid's oldest sessions on register (room-state registerSession),
+    // so only the room-wide cap refuses a new session.
+    if (sessionCount(state) >= MAX_ROOM_SESSIONS) {
       return { ok: false, status: 429, message: "Too many media sessions. Close another tab and try again." };
     }
     return { ok: true };

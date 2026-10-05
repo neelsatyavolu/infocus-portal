@@ -189,9 +189,18 @@ export function leaveWaiting(state: RoomState, uid: string): { state: RoomState;
   return { state: { ...state, waiting: omit(state.waiting, uid) }, changed: true };
 }
 
-export function registerSession(state: RoomState, sessionId: string, uid: string): RoomState {
+/**
+ * Records a new media session for `uid`. Sessions from dead tabs/reconnects are not always pruned
+ * (a reconnect's new socket can open before the old one's close lands), so instead of refusing the
+ * newest session past `maxPerUid`, the uid's OLDEST sessions are evicted (object keys keep
+ * insertion order). A newer session always works; a stale tab loses its media.
+ */
+export function registerSession(state: RoomState, sessionId: string, uid: string, maxPerUid = Infinity): RoomState {
   if (state.sessions[sessionId] === uid) return state;
-  return { ...state, sessions: { ...state.sessions, [sessionId]: uid } };
+  const sessions: Record<string, string> = { ...state.sessions, [sessionId]: uid };
+  const mine = Object.keys(sessions).filter((sid) => sessions[sid] === uid);
+  for (const stale of mine.slice(0, Math.max(0, mine.length - maxPerUid))) delete sessions[stale];
+  return { ...state, sessions };
 }
 
 function removeUser(state: RoomState, uid: string, at: number, now: number): RoomState {

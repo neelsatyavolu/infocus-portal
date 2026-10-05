@@ -64,13 +64,23 @@ describe("authorizeMedia", () => {
     expect(authorizeMedia(ended, host, { kind: "newSession" }).ok).toBe(false);
   });
 
-  it("caps live sessions per uid", () => {
+  it("never locks a rejoining uid out: past the per-uid cap the oldest sessions are evicted", () => {
+    // Regression (prod call, Oct 5): stale sessions from reconnects/rejoins reached the cap, every
+    // new session got 429, and that person could neither send nor hear audio.
     const atCap = withSessions(inRoom, member.uid, MAX_SESSIONS_PER_UID);
-    expect(authorizeMedia(atCap, member, { kind: "newSession" })).toMatchObject({ ok: false, status: 429 });
-    expect(canRegisterSession(atCap, member)).toBe(false);
-    expect(authorizeMedia(atCap, host, { kind: "newSession" })).toEqual({ ok: true });
-    const belowCap = withSessions(inRoom, member.uid, MAX_SESSIONS_PER_UID - 1);
-    expect(canRegisterSession(belowCap, member)).toBe(true);
+    expect(authorizeMedia(atCap, member, { kind: "newSession" })).toEqual({ ok: true });
+    expect(canRegisterSession(atCap, member)).toBe(true);
+
+    const rejoined = registerSession(atCap, "fresh", member.uid, MAX_SESSIONS_PER_UID);
+    const mine = Object.keys(rejoined.sessions).filter((sid) => rejoined.sessions[sid] === member.uid);
+    expect(mine).toHaveLength(MAX_SESSIONS_PER_UID);
+    expect(mine).toContain("fresh");
+    expect(mine).not.toContain(`${member.uid}-0`); // the oldest went
+    expect(authorizeMedia(rejoined, member, session("fresh", 2))).toEqual({ ok: true });
+    expect(authorizeMedia(rejoined, member, session(`${member.uid}-0`)).ok).toBe(false);
+    // Other people's sessions are untouched.
+    const withHost = registerSession(rejoined, "host-s", host.uid, MAX_SESSIONS_PER_UID);
+    expect(registerSession(withHost, "fresh-2", member.uid, MAX_SESSIONS_PER_UID).sessions["host-s"]).toBe(host.uid);
   });
 
   it("caps the whole room's session map", () => {

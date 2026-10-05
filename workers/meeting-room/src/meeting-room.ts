@@ -7,7 +7,7 @@ import { DurableObject } from "cloudflare:workers";
 import type { MeetingRoomEvent, MeetingRoomReport, MeetingServerMessage } from "../../../src/lib/meetings/protocol";
 import { verifyMeetingRoomToken } from "../../../src/lib/meetings/room-token";
 import type { Env } from "./env";
-import { authorizeMedia, canRegisterSession, type MediaDecision, type MediaOp } from "./media-auth";
+import { MAX_SESSIONS_PER_UID, authorizeMedia, canRegisterSession, type MediaDecision, type MediaOp } from "./media-auth";
 import { reportToPortal, type ReportResult } from "./portal";
 import { forgetKey, forgetUid, RATE_RULES, rateKey, socketRateKey, takeToken, type RateBuckets, type RateKind } from "./rate-limit";
 import { handleClientMessage, rateKindOf } from "./room-messages";
@@ -387,7 +387,7 @@ export class MeetingRoom extends DurableObject<Env> {
       });
       return false;
     }
-    await this.commit(registerSession(base, sessionId, ticket.uid));
+    await this.commit(registerSession(base, sessionId, ticket.uid, MAX_SESSIONS_PER_UID));
     return true;
   }
 

@@ -21,6 +21,8 @@ Up to **2** packages per cycle can win Package of the Cycle. Executive producers
 
 Winners are listed at the top of `/package-cycles` for everyone, newest cycle first. Each winning member can download their own certificate there (and from their Final Cut page); producers can download any winner's certificate.
 
+The certificate is a landscape US Letter PNG (11 × 8.5 in at 200 dpi). It has three signature lines, one for each executive producer, in name order (people with the executive producer role first; the super admin only fills a line no executive producer takes). Signers are whoever holds the role when the certificate is downloaded. Each line shows that person's full name and **Executive Producer**, with the signature they drew in **Settings → Signature** above it. Until someone draws one, their line is blank so it can be signed by hand. There is no adviser line.
+
 ## Semester split
 
 - Cycles **1–3** = semester 1

@@ -157,6 +157,7 @@ model User {
   hubChatMessages         HubChatMessage[] @relation("HubChatMessageAuthor")
   meetingsCreated         Meeting[] @relation("MeetingCreator")
   meetingParticipations   MeetingParticipant[] @relation("MeetingParticipants")
+  signature               UserSignature?       @relation("UserSignatureOwner")
 
   @@index([email])
 }
@@ -381,6 +382,16 @@ model NotificationPreference {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   user           User     @relation("UserNotificationPreference", fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// An executive producer's drawn signature (Settings → Signature). Prints on Package of the Cycle certificates.
+model UserSignature {
+  userId    String   @id
+  /// PNG data URL: dark ink on a transparent background, trimmed to the strokes.
+  imageData String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation("UserSignatureOwner", fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model PushNotificationSubscription {

@@ -4,6 +4,7 @@ import path from "node:path";
 import type { CSSProperties } from "react";
 import { fitFontSize, fitWrappedFontSize } from "@/src/lib/live/thumbnail";
 import { loadLexend } from "@/src/server/live-thumbnail";
+import { CERTIFICATE_SIGNER_COUNT, fitSignature, type CertificateSigner } from "@/src/lib/signature-image";
 import type { CertificateData } from "@/src/server/package-of-cycle";
 
 /** Landscape US Letter at 200 dpi. */
@@ -17,6 +18,9 @@ const RULE = "#D5DCD7";
 const GOLD = "#B08D3C";
 const WORDMARK_RATIO = 480 / 206;
 const TEXT_WIDTH = 1640;
+/** Where a drawn signature sits above its line. */
+const SIGNATURE_BOX = { width: 440, height: 100 } as const;
+const SIGNATURE_WIDTH = 480;
 
 let imagesPromise: Promise<CertificateImages> | null = null;
 
@@ -85,24 +89,50 @@ function Seal({ icon }: { icon: string }) {
       <div
         style={{
           display: "flex",
-          width: 132,
-          height: 132,
+          width: 120,
+          height: 120,
           alignItems: "center",
           justifyContent: "center",
           backgroundColor: INK
         }}
       >
-        <img src={icon} alt="" width={96} height={96} />
+        <img src={icon} alt="" width={88} height={88} />
       </div>
     </div>
   );
 }
 
-function Signature({ caption }: { caption: string }) {
+/** One executive producer's line: their drawn signature above it (or room to sign by hand), name and title below. */
+function Signature({ signer }: { signer: CertificateSigner | undefined }) {
+  const signature = signer?.signature;
+  const size = signature ? fitSignature(signature, SIGNATURE_BOX) : null;
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 520 }}>
-      <div style={{ display: "flex", width: "100%", height: 2, backgroundColor: INK }} />
-      <div style={{ ...label, color: INK_SOFT, fontSize: 22, marginTop: 18 }}>{caption}</div>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: SIGNATURE_WIDTH }}>
+      <div
+        style={{
+          display: "flex",
+          height: SIGNATURE_BOX.height,
+          width: "100%",
+          alignItems: "flex-end",
+          justifyContent: "center"
+        }}
+      >
+        {signature && size ? <img src={signature.src} alt="" width={size.width} height={size.height} /> : null}
+      </div>
+      <div style={{ display: "flex", width: "100%", height: 2, backgroundColor: INK, marginTop: 6 }} />
+      <div
+        style={{
+          display: "flex",
+          height: 36,
+          alignItems: "center",
+          fontSize: fitFontSize(signer?.name ?? "", SIGNATURE_WIDTH, 28, 18, 0.58),
+          fontWeight: 600,
+          marginTop: 14
+        }}
+      >
+        {signer?.name ?? ""}
+      </div>
+      <div style={{ ...label, color: INK_SOFT, fontSize: 20, marginTop: 6 }}>Executive Producer</div>
     </div>
   );
 }
@@ -138,7 +168,7 @@ export function renderCertificate(data: CertificateData, images: CertificateImag
             alignItems: "center",
             position: "relative",
             border: `3px solid ${GOLD}`,
-            padding: "72px 120px 64px",
+            padding: "72px 120px 52px",
             color: INK
           }}
         >
@@ -188,7 +218,7 @@ export function renderCertificate(data: CertificateData, images: CertificateImag
           >
             {title}
           </div>
-          <div style={{ display: "flex", fontSize: 32, color: INK_SOFT, marginTop: 40 }}>
+          <div style={{ display: "flex", fontSize: 32, color: INK_SOFT, marginTop: 32 }}>
             {`Chosen by the executive producers · Cycle ${data.cycleNumber} · ${schoolYearLabel(data.awardedAt)}`}
           </div>
           <div
@@ -196,17 +226,23 @@ export function renderCertificate(data: CertificateData, images: CertificateImag
               display: "flex",
               flex: 1,
               width: "100%",
-              alignItems: "flex-end",
-              justifyContent: "space-between"
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "flex-end"
             }}
           >
-            <Signature caption="Executive Producer" />
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <div style={{ display: "flex", alignItems: "center" }}>
               <Seal icon={images.icon} />
-              <div style={{ display: "flex", fontSize: 34, fontWeight: 600, marginTop: 22 }}>{awarded}</div>
-              <div style={{ ...label, color: INK_SOFT, fontSize: 22, marginTop: 18 }}>Awarded</div>
+              <div style={{ display: "flex", flexDirection: "column", marginLeft: 28 }}>
+                <div style={{ ...label, color: INK_SOFT, fontSize: 22 }}>Awarded</div>
+                <div style={{ display: "flex", fontSize: 34, fontWeight: 600, marginTop: 8 }}>{awarded}</div>
+              </div>
             </div>
-            <Signature caption="Adviser" />
+            <div style={{ display: "flex", width: "100%", justifyContent: "space-between", marginTop: 20 }}>
+              {Array.from({ length: CERTIFICATE_SIGNER_COUNT }, (_, index) => (
+                <Signature key={index} signer={data.signers[index]} />
+              ))}
+            </div>
           </div>
         </div>
       </div>

@@ -4,7 +4,9 @@ import { canGradeFinalCut } from "@/src/lib/package-final-cut-scores";
 import { packageOfCycleUnanimous, packageOfCycleVoteBlocked } from "@/src/lib/package-of-cycle";
 import { hasPlatformRole } from "@/src/lib/platform-admin";
 import { prisma } from "@/src/lib/prisma";
+import type { CertificateSigner } from "@/src/lib/signature-image";
 import { loadRequiredFinalCutGraders } from "@/src/server/package-progress-data";
+import { loadCertificateSigners } from "@/src/server/user-signature";
 
 /** Winners are shown to the whole class, so never fall back to an email address. */
 function memberName(user: { name: string | null; nickname: string | null }) {
@@ -155,6 +157,7 @@ export type CertificateData = {
   cycleNumber: number;
   title: string;
   awardedAt: Date;
+  signers: CertificateSigner[];
 };
 
 /** Certificate details for one winning member. Members get their own; producers get any. */
@@ -167,19 +170,22 @@ export async function loadCertificateData(input: {
   const isProducer = hasPlatformRole(input.role, "ASSOCIATE_PRODUCER");
   if (!isProducer && input.viewerUserId !== input.memberUserId) throw new Error("FORBIDDEN");
 
-  const row = await prisma.packageProgressRow.findUnique({
-    where: { id: input.rowId },
-    select: {
-      cycleNumber: true,
-      groupTopic: true,
-      packageOfCycleAt: true,
-      finalCutMediaItem: { select: { title: true, currentVersion: { select: { nasPath: true } } } },
-      members: {
-        where: { userId: input.memberUserId },
-        select: { user: { select: { name: true, nickname: true, email: true } } }
+  const [row, signers] = await Promise.all([
+    prisma.packageProgressRow.findUnique({
+      where: { id: input.rowId },
+      select: {
+        cycleNumber: true,
+        groupTopic: true,
+        packageOfCycleAt: true,
+        finalCutMediaItem: { select: { title: true, currentVersion: { select: { nasPath: true } } } },
+        members: {
+          where: { userId: input.memberUserId },
+          select: { user: { select: { name: true, nickname: true, email: true } } }
+        }
       }
-    }
-  });
+    }),
+    loadCertificateSigners()
+  ]);
   const member = row?.members[0];
   if (!row?.packageOfCycleAt || !member) throw new Error("NOT_FOUND");
 
@@ -188,6 +194,7 @@ export async function loadCertificateData(input: {
     name: member.user.name?.trim() || memberName(member.user),
     cycleNumber: row.cycleNumber,
     title: finalCutHeadline(row.finalCutMediaItem) ?? (row.groupTopic.trim() || "Untitled package"),
-    awardedAt: row.packageOfCycleAt
+    awardedAt: row.packageOfCycleAt,
+    signers
   };
 }

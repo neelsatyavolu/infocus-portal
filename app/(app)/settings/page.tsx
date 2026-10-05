@@ -21,6 +21,7 @@ import { PinRow, useAccessPin } from "./access-pins";
 import { ThemeRow } from "./appearance-card";
 import { MacAppPanel } from "./mac-app-card";
 import { NotificationsSection } from "./notifications-section";
+import { SignatureSection, useSignature } from "./signature-section";
 
 type PreferenceState = {
   autoPlay: boolean;
@@ -74,6 +75,7 @@ export default function SettingsPage() {
     "/api/livestreams/pin",
     "Replace the livestream dashboard PIN? Anyone using the old one will need the new PIN."
   );
+  const signature = useSignature();
 
   useEffect(() => {
     let active = true;
@@ -178,6 +180,7 @@ export default function SettingsPage() {
 
   const nav: SettingsNavItem[] = [
     { id: "profile", label: "Profile" },
+    ...(signature.visible ? [{ id: "signature", label: "Signature" }] : []),
     { id: "appearance", label: "Appearance" },
     { id: "playback", label: "Playback" },
     { id: "notifications", label: "Notifications" },
@@ -238,6 +241,8 @@ export default function SettingsPage() {
           ) : null}
         </SettingsPanel>
       </SettingsSection>
+
+      {signature.visible ? <SignatureSection state={signature} /> : null}
 
       <SettingsSection id="appearance" title="Appearance">
         <SettingsPanel>

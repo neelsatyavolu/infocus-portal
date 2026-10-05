@@ -107,6 +107,11 @@ export async function loadAssignableProducers() {
   return loadAssignableByRole(PlatformRole.ASSOCIATE_PRODUCER);
 }
 
+/** Users with the executive producer role, without the super-admin fallback. */
+export async function loadExecutiveProducerRoleUsers() {
+  return loadAssignableByRole(PlatformRole.EXECUTIVE_PRODUCER);
+}
+
 async function loadSuperAdminAssignable(): Promise<AssignableUser[]> {
   if (!PLATFORM_SUPER_ADMIN_EMAIL) return [];
   const user = await prisma.user.findFirst({

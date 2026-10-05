@@ -9,6 +9,7 @@ First sign-in sends you here before any other page. Set a nickname (required, up
 Sections are listed down the left on wide screens (a strip across the top on phones); each one is a panel of rows with the setting on the left and its control on the right.
 
 - **Profile**: **Nickname**, how you appear in Portal. Signing in with Google does not overwrite it. Below it, the Google account you sign in with.
+- **Signature** (executive producers and the super admin only, signed in as themselves; hidden while using View as): draw your signature with a mouse, trackpad, pen, or finger, then **Save signature**. It prints above your name on Package of the Cycle certificates. **Redraw** replaces it; **Remove** takes it off, leaving a blank line for you. See `package-cycles.md`.
 - **Appearance**: **Theme**, Dark (default) or Light. Saved in that browser and shared across the Portal subdomains (grades, teleprompter, equipment). The teleprompter run mode and video players stay dark. Also **Default view** (Grid or List).
 - **Playback**: autoplay videos on open, start with sound on.
 - **Notifications**:

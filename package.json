@@ -11,7 +11,7 @@
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
     "test": "vitest run",
-    "postinstall": "patch-package && prisma generate",
+    "postinstall": "node scripts/apply-patches.mjs && prisma generate",
     "test:watch": "vitest",
     "vendor:noise-suppressor": "node scripts/vendor-noise-suppressor.mjs",
     "smoke:meetings": "tsx scripts/meetings-smoke.ts",

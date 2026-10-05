@@ -1,0 +1,22 @@
+# Typecheck + lint on every push. Vercel builds skip these to deploy faster (next.config.ts).
+name: Checks
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # typedRoutes: generate .next/types/routes.d.ts, which next-env.d.ts references.
+      - run: npx next typegen
+      - run: npm run typecheck
+      - run: npm run lint

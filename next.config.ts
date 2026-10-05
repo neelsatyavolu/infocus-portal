@@ -28,6 +28,10 @@ const nextConfig: NextConfig = {
       { protocol: "http", hostname: "drive.infocuspaly.com" }
     ]
   },
+  // Vercel deploys skip lint + type checking (~40s); .github/workflows/checks.yml runs both
+  // on every push. Local `npm run build` still checks.
+  eslint: { ignoreDuringBuilds: process.env.VERCEL === "1" },
+  typescript: { ignoreBuildErrors: process.env.VERCEL === "1" },
   experimental: {
     optimizePackageImports: ["lucide-react"]
   }

@@ -195,7 +195,7 @@ export function useMeetingCall(meetingId: string, onMuted: (kind: "audio" | "vid
         case "rekey":
           meetingsApi
             .key(meetingId)
-            .then((key) => e2eeRef.current?.setKey(key.key, key.epoch))
+            .then((key) => e2eeRef.current?.setKey(key.key, key.epoch, { rekey: true }))
             .catch(() => undefined);
           break;
         case "muted":

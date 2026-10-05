@@ -34,7 +34,20 @@ function delta(counters: Record<string, number>, previous: StatsCounters, key: s
   return before === undefined || value < before ? value : value - before;
 }
 
-type Inbound = { pkts: number; lost: number; bytes: number; frames: number; freezes: number; jitterMs: number; level: number | null };
+type Inbound = {
+  pkts: number;
+  lost: number;
+  bytes: number;
+  frames: number;
+  freezes: number;
+  jitterMs: number;
+  level: number | null;
+  /** Audio: samples played out vs. concealed (loss/decrypt drops → robotic audio), jitter buffer. */
+  samples: number;
+  concealed: number;
+  jbDelay: number;
+  jbEmitted: number;
+};
 
 /** Summary of one RTCPeerConnection getStats report as flat primitives (pure; see `capDiagData`). */
 export function summarizeStats(stats: Iterable<StatLike>, previous: StatsCounters, owner: InboundOwner) {
@@ -73,6 +86,15 @@ export function summarizeStats(stats: Iterable<StatLike>, previous: StatsCounter
     }
   }
 
+  // Outbound audio level: the media-source (what the mic feeds the encoder).
+  const audioSource = all.find((s) => s.type === "media-source" && s.kind === "audio");
+  if (audioSource) {
+    const level = num(audioSource.audioLevel);
+    data["out.audio.level"] = level === null ? null : round(level);
+    const energy = delta(counters, previous, `${audioSource.id ?? "src"}.energy`, num(audioSource.totalAudioEnergy));
+    data["out.audio.energy"] = energy === null ? null : round(energy, 4);
+  }
+
   // Inbound: deltas since the last sample, grouped by remote uid (short) and kind.
   const inbound = new Map<string, Inbound>();
   for (const s of all) {
@@ -80,7 +102,9 @@ export function summarizeStats(stats: Iterable<StatLike>, previous: StatsCounter
     const kind = str(s.kind) ?? "unknown";
     const who = owner(str(s.trackIdentifier) ?? "");
     const key = `${who ? short(who.uid) : "unknown"}.${who?.kind ?? kind}`;
-    const entry = inbound.get(key) ?? { pkts: 0, lost: 0, bytes: 0, frames: 0, freezes: 0, jitterMs: 0, level: null };
+    const entry =
+      inbound.get(key) ??
+      { pkts: 0, lost: 0, bytes: 0, frames: 0, freezes: 0, jitterMs: 0, level: null, samples: 0, concealed: 0, jbDelay: 0, jbEmitted: 0 };
     entry.pkts += delta(counters, previous, `${s.id}.pkts`, num(s.packetsReceived)) ?? 0;
     entry.lost += delta(counters, previous, `${s.id}.lost`, num(s.packetsLost)) ?? 0;
     entry.bytes += delta(counters, previous, `${s.id}.bytes`, num(s.bytesReceived)) ?? 0;
@@ -89,7 +113,13 @@ export function summarizeStats(stats: Iterable<StatLike>, previous: StatsCounter
     entry.jitterMs = Math.max(entry.jitterMs, Math.round((num(s.jitter) ?? 0) * 1000));
     const level = num(s.audioLevel);
     const energy = delta(counters, previous, `${s.id}.energy`, num(s.totalAudioEnergy));
-    if (kind === "audio") entry.level = level !== null ? round(level) : energy !== null ? round(energy, 4) : entry.level;
+    if (kind === "audio") {
+      entry.level = level !== null ? round(level) : energy !== null ? round(energy, 4) : entry.level;
+      entry.samples += delta(counters, previous, `${s.id}.samples`, num(s.totalSamplesReceived)) ?? 0;
+      entry.concealed += delta(counters, previous, `${s.id}.concealed`, num(s.concealedSamples)) ?? 0;
+      entry.jbDelay += delta(counters, previous, `${s.id}.jbDelay`, num(s.jitterBufferDelay)) ?? 0;
+      entry.jbEmitted += delta(counters, previous, `${s.id}.jbEmitted`, num(s.jitterBufferEmittedCount)) ?? 0;
+    }
     inbound.set(key, entry);
   }
   for (const [key, entry] of inbound) {
@@ -97,8 +127,11 @@ export function summarizeStats(stats: Iterable<StatLike>, previous: StatsCounter
     data[`in.${key}.lost`] = entry.lost;
     data[`in.${key}.bytes`] = entry.bytes;
     data[`in.${key}.jitterMs`] = entry.jitterMs;
-    if (key.endsWith(".audio")) data[`in.${key}.level`] = entry.level;
-    else {
+    if (key.endsWith(".audio")) {
+      data[`in.${key}.level`] = entry.level;
+      data[`in.${key}.concealPct`] = entry.samples > 0 ? round((entry.concealed / entry.samples) * 100, 1) : null;
+      data[`in.${key}.jbMs`] = entry.jbEmitted > 0 ? Math.round((entry.jbDelay / entry.jbEmitted) * 1000) : null;
+    } else {
       data[`in.${key}.frames`] = entry.frames;
       data[`in.${key}.freezes`] = entry.freezes;
     }
@@ -120,7 +153,7 @@ export function capDiagData(kind: MeetingDiagKind, data: MeetingDiagData, maxByt
   const rest: MeetingDiagData = {};
   const remotes = new Map<string, { uid: string; kind: string; pkts: number; lost: number; bytes: number }>();
   for (const [key, value] of Object.entries(data)) {
-    const match = /^in\.([^.]+)\.([^.]+)\.(pkts|lost|bytes|jitterMs|level|frames|freezes)$/.exec(key);
+    const match = /^in\.([^.]+)\.([^.]+)\.(pkts|lost|bytes|jitterMs|level|frames|freezes|concealPct|jbMs)$/.exec(key);
     if (!match) {
       rest[key] = value;
       continue;
@@ -149,6 +182,31 @@ export function capDiagData(kind: MeetingDiagKind, data: MeetingDiagData, maxByt
   while (entries.length > 1 && diagMessageBytes(kind, Object.fromEntries(entries)) > maxBytes - 20) entries.pop();
   const capped: MeetingDiagData = Object.fromEntries(entries);
   return entries.length < Object.keys(summarized).length ? { ...capped, truncated: true } : capped;
+}
+
+/** Short, stable, non-reversible id for a device id (diagnostics never carry the raw id). */
+export function shortHash(value: string) {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < value.length; i += 1) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(36).slice(0, 6);
+}
+
+type MicSettings = Pick<MediaTrackSettings, "sampleRate" | "channelCount" | "echoCancellation" | "noiseSuppression" | "autoGainControl" | "deviceId">;
+
+/** The mic's actual capture settings (what the browser granted, not what was asked). */
+export function micSettingsDiag(settings: MicSettings | null): MeetingDiagData {
+  if (!settings) return { "mic.rate": null };
+  return {
+    "mic.rate": settings.sampleRate ?? null,
+    "mic.ch": settings.channelCount ?? null,
+    "mic.ec": settings.echoCancellation ?? null,
+    "mic.ns": settings.noiseSuppression ?? null,
+    "mic.agc": settings.autoGainControl ?? null,
+    "mic.dev": settings.deviceId ? shortHash(settings.deviceId) : null
+  };
 }
 
 /** Long strings (error messages) are cut so one entry never crowds out the rest. */

@@ -1,3 +1,4 @@
+import { sharedAudioContext } from "./audio-context";
 import type { ChimeKind } from "./chimes";
 
 /**
@@ -31,9 +32,11 @@ let context: AudioContext | null = null;
 let destination: MediaStreamAudioDestinationNode | null = null;
 let element: (HTMLAudioElement & { setSinkId?: (id: string) => Promise<void> }) | null = null;
 
+/** Chimes play on the page's shared AudioContext (no context of their own). */
 function output() {
-  if (!context || context.state === "closed") {
-    context = new AudioContext();
+  const shared = sharedAudioContext();
+  if (context !== shared || !destination) {
+    context = shared;
     destination = context.createMediaStreamDestination();
     element = new Audio();
     element.srcObject = destination.stream;

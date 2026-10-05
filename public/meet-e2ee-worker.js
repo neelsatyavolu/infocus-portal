@@ -7,7 +7,9 @@
  * Clear header: VP8 key frame 10 bytes, VP8 delta 3, audio 1.
  * Frames are dropped (never sent or rendered in the clear) when no key is available or decryption fails.
  *
- * Messages in:  { type: "setKey", key: Uint8Array(32), epoch: number } | { type: "clearKeys" }
+ * Messages in:  { type: "setKey", key: Uint8Array(32), epoch: number, sendDelayMs?: number } | { type: "clearKeys" }
+ * On a rekey (sendDelayMs > 0) the new key decrypts at once but encryption keeps the previous
+ * epoch until the delay passes, so slower peers can fetch the new key (mirrors key-ring.ts).
  * Messages out: { type: "decrypt", id: string, ok: boolean }  (only on state change, per receiver)
  */
 (function (scope) {
@@ -21,6 +23,7 @@
   var FAIL_THRESHOLD = 10;
 
   var ring = { current: null, previous: null };
+  var schedule = { send: null, pending: null, switchAt: null };
   var failures = {};
 
   function epochByte(epoch) {
@@ -48,6 +51,22 @@
     if (!current) ring = { current: entry, previous: null };
     else if (entry.epoch === current.epoch) ring = { current: entry, previous: ring.previous };
     else if (entry.epoch > current.epoch) ring = { current: entry, previous: current };
+  }
+
+  function settleSendKey(now) {
+    if (schedule.pending && schedule.switchAt !== null && now >= schedule.switchAt) {
+      schedule = { send: schedule.pending, pending: null, switchAt: null };
+    }
+    return schedule.send;
+  }
+
+  function scheduleSendKey(entry, now, delayMs) {
+    var send = settleSendKey(now);
+    if (!send || !(delayMs > 0) || entry.epoch === send.epoch) {
+      schedule = { send: entry, pending: null, switchAt: null };
+    } else if (entry.epoch > send.epoch) {
+      schedule = { send: schedule.pending || send, pending: entry, switchAt: now + delayMs };
+    }
   }
 
   function keyForEpochByte(byte) {
@@ -115,7 +134,7 @@
     if (options.operation === "encrypt") {
       return new TransformStream({
         transform: async function (frame, controller) {
-          var current = ring.current;
+          var current = settleSendKey(Date.now());
           if (!current || frame.data.byteLength === 0) return;
           frame.data = await encryptFrame(current.key, current.epoch, frame.data, headerLength(kind, isKeyFrame(frame)));
           controller.enqueue(frame);
@@ -139,11 +158,15 @@
     if (message.type === "setKey" && message.key && typeof message.epoch === "number") {
       var raw = new Uint8Array(message.key);
       if (raw.byteLength !== 32) return;
+      var delayMs = typeof message.sendDelayMs === "number" ? message.sendDelayMs : 0;
       deriveFrameKey(raw).then(function (key) {
-        addKey({ epoch: message.epoch, key: key });
+        var entry = { epoch: message.epoch, key: key };
+        addKey(entry);
+        scheduleSendKey(entry, Date.now(), delayMs);
       });
     } else if (message.type === "clearKeys") {
       ring = { current: null, previous: null };
+      schedule = { send: null, pending: null, switchAt: null };
     }
   };
 
@@ -157,6 +180,15 @@
     deriveFrameKey: deriveFrameKey,
     encryptFrame: encryptFrame,
     decryptFrame: decryptFrame,
-    headerLength: headerLength
+    headerLength: headerLength,
+    sendEpoch: function (now) {
+      var send = settleSendKey(now);
+      return send ? send.epoch : null;
+    },
+    setKeyForTest: function (epoch, key, now, delayMs) {
+      var entry = { epoch: epoch, key: key };
+      addKey(entry);
+      scheduleSendKey(entry, now, delayMs);
+    }
   };
 })(self);

@@ -7,6 +7,8 @@ import {
   debugInfo,
   diagEvent,
   diagMessageBytes,
+  micSettingsDiag,
+  shortHash,
   registerPulledTrack,
   setDiagSink,
   summarizeStats,
@@ -78,6 +80,52 @@ describe("summarizeStats", () => {
   it("puts streams it can't attribute under 'unknown'", () => {
     const { data } = summarizeStats(report(1), {}, () => null);
     expect(data["in.unknown.audio.pkts"]).toBe(500);
+  });
+});
+
+describe("audio diagnostics", () => {
+  const audioReport = (sample: number): StatLike[] => [
+    { type: "media-source", id: "S1", kind: "audio", audioLevel: 0.123456, totalAudioEnergy: 0.5 * sample },
+    {
+      type: "inbound-rtp",
+      id: "IA1",
+      kind: "audio",
+      trackIdentifier: "track-abby-audio",
+      packetsReceived: 500 * sample,
+      packetsLost: 0,
+      bytesReceived: 9000 * sample,
+      totalSamplesReceived: 480_000 * sample,
+      concealedSamples: 24_000 * sample,
+      jitterBufferDelay: 40_000 * sample,
+      jitterBufferEmittedCount: 480_000 * sample
+    }
+  ];
+
+  it("reports the mic's outbound level/energy and inbound concealment and jitter buffer as deltas", () => {
+    const first = summarizeStats(audioReport(1), {}, owner);
+    expect(first.data["out.audio.level"]).toBe(0.123);
+    expect(first.data["out.audio.energy"]).toBe(0.5);
+    expect(first.data["in.u-abby-0.audio.concealPct"]).toBe(5);
+    expect(first.data["in.u-abby-0.audio.jbMs"]).toBe(83);
+    const second = summarizeStats(audioReport(3), first.counters, owner);
+    expect(second.data["out.audio.energy"]).toBe(1);
+    expect(second.data["in.u-abby-0.audio.concealPct"]).toBe(5);
+  });
+
+  it("summarises the mic's real capture settings, hashing the device id", () => {
+    const data = micSettingsDiag({
+      sampleRate: 44_100,
+      channelCount: 1,
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+      deviceId: "a3f0c1d2e4b5968778695a4b3c2d1e0f"
+    });
+    expect(data).toMatchObject({ "mic.rate": 44_100, "mic.ch": 1, "mic.ec": true, "mic.ns": true, "mic.agc": true });
+    expect(String(data["mic.dev"])).toMatch(/^[0-9a-z]{1,6}$/);
+    expect(JSON.stringify(data)).not.toContain("a3f0c1d2");
+    expect(shortHash("same")).toBe(shortHash("same"));
+    expect(micSettingsDiag(null)).toEqual({ "mic.rate": null });
   });
 });
 

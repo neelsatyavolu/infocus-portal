@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { MEETING_CHAT_MAX_CHARS, decryptChat, encryptChat } from "@/src/lib/meetings/client/chat-crypto";
 import { deriveMeetingKey } from "@/src/lib/meetings/client/frame-crypto";
-import { addKeyToRing, emptyKeyRing, keyForEpochByte } from "@/src/lib/meetings/client/key-ring";
+import {
+  REKEY_SEND_DELAY_MS,
+  addKeyToRing,
+  emptyKeyRing,
+  emptySendSchedule,
+  keyForEpochByte,
+  scheduleSendKey,
+  settleSendKey
+} from "@/src/lib/meetings/client/key-ring";
 
 const roomKey = (seed: number) => new Uint8Array(32).map((_, i) => (i + seed) % 256);
 
@@ -76,5 +84,37 @@ describe("key ring", () => {
   it("matches epochs modulo 256", () => {
     const ring = addKeyToRing(emptyKeyRing<string>(), { epoch: 257, key: "k" });
     expect(keyForEpochByte(ring, 1)).toBe("k");
+  });
+});
+
+describe("rekey send schedule", () => {
+  it("keeps sending on the previous epoch for the grace period, then switches", () => {
+    let s = scheduleSendKey(emptySendSchedule<string>(), { epoch: 0, key: "k0" }, 1000, 0);
+    expect(s.send?.epoch).toBe(0);
+    s = scheduleSendKey(s, { epoch: 1, key: "k1" }, 2000, REKEY_SEND_DELAY_MS);
+    expect(settleSendKey(s, 2000 + REKEY_SEND_DELAY_MS - 1).send?.epoch).toBe(0);
+    expect(settleSendKey(s, 2000 + REKEY_SEND_DELAY_MS).send?.epoch).toBe(1);
+  });
+
+  it("switches at once on join and for the same epoch", () => {
+    const s = scheduleSendKey(emptySendSchedule<string>(), { epoch: 3, key: "k3" }, 0, REKEY_SEND_DELAY_MS);
+    expect(s.send?.epoch).toBe(3);
+    expect(scheduleSendKey(s, { epoch: 3, key: "k3b" }, 10, REKEY_SEND_DELAY_MS).send?.key).toBe("k3b");
+  });
+
+  it("two quick rekeys promote the first so the send key stays decryptable (in the ring)", () => {
+    let ring = addKeyToRing(emptyKeyRing<string>(), { epoch: 0, key: "k0" });
+    let s = scheduleSendKey(emptySendSchedule<string>(), { epoch: 0, key: "k0" }, 0, 0);
+    ring = addKeyToRing(ring, { epoch: 1, key: "k1" });
+    s = scheduleSendKey(s, { epoch: 1, key: "k1" }, 100, REKEY_SEND_DELAY_MS);
+    ring = addKeyToRing(ring, { epoch: 2, key: "k2" });
+    s = scheduleSendKey(s, { epoch: 2, key: "k2" }, 200, REKEY_SEND_DELAY_MS);
+    expect(s.send?.epoch).toBe(1);
+    expect(keyForEpochByte(ring, s.send!.epoch)).toBe("k1");
+  });
+
+  it("ignores an older epoch", () => {
+    const s = scheduleSendKey(emptySendSchedule<string>(), { epoch: 5, key: "k5" }, 0, 0);
+    expect(scheduleSendKey(s, { epoch: 4, key: "k4" }, 10, REKEY_SEND_DELAY_MS)).toEqual(s);
   });
 });

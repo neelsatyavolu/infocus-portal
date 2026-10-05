@@ -12,12 +12,16 @@ import {
   diagEvent,
   diagPeriodic,
   pulledTrackSource,
+  micSettingsDiag,
   setDiagSink,
   summarizeStats,
   type InboundOwner,
   type StatLike,
   type StatsCounters
 } from "@/src/lib/meetings/client/diagnostics";
+import { sharedAudioSnapshot } from "@/src/lib/meetings/client/audio-context";
+import { voiceInputTrack } from "@/src/lib/meetings/client/voice-graph";
+import { getVoiceIsolationEngine } from "@/src/lib/meetings/client/voice-isolation";
 
 type Context = {
   send: (message: MeetingClientMessage) => boolean;
@@ -91,6 +95,10 @@ export function useCallDiagnostics(ctx: Context) {
           report.forEach((stat: StatLike) => stats.push(stat));
           const summary = summarizeStats(stats, counters, ownerFromRoom(now.room));
           counters = summary.counters;
+          // The mic actually captured: the voice-isolation input, else whatever the audio sender sends.
+          const micTrack =
+            voiceInputTrack() ?? current.getSenders().find((sender) => sender.track?.kind === "audio")?.track ?? null;
+          const audio = sharedAudioSnapshot();
           diagPeriodic({
             pc: current.connectionState,
             ice: current.iceConnectionState,
@@ -100,6 +108,11 @@ export function useCallDiagnostics(ctx: Context) {
             audioOn: now.audioOn,
             videoOn: now.videoOn,
             voiceIsolation: now.voiceIsolation,
+            "vi.engine": now.voiceIsolation ? getVoiceIsolationEngine() : "off",
+            "ctx.state": audio.state,
+            "ctx.rate": audio.rate,
+            "ctx.latMs": audio.baseLatencyMs,
+            ...micSettingsDiag(micTrack?.getSettings?.() ?? null),
             blur: now.background,
             visibility: typeof document === "undefined" ? null : document.visibilityState,
             audioBlocked: now.audioBlocked,

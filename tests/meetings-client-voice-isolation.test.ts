@@ -1,14 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createVoiceIsolationTransform, type NoiseEngine } from "@/src/lib/meetings/client/voice-graph";
 import {
   VOICE_ISOLATION_STORAGE_KEY,
-  createVoiceIsolationTransform,
-  readVoiceIsolation,
-  resumeVoiceIsolation,
-  writeVoiceIsolation,
   getVoiceIsolationEngine,
   isChromiumBrowser,
+  readVoiceIsolation,
   rnnoiseSupported,
-  type NoiseEngine
+  writeVoiceIsolation
 } from "@/src/lib/meetings/client/voice-isolation";
 
 function memoryStorage(initial: Record<string, string> = {}) {
@@ -45,126 +43,144 @@ describe("voice isolation setting", () => {
   });
 });
 
-type Fake = { connect: ReturnType<typeof vi.fn>; disconnect: ReturnType<typeof vi.fn> };
-const node = (): Fake => ({ connect: vi.fn(), disconnect: vi.fn() });
+const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-function fakeEngine(options: { failWasm?: boolean; state?: AudioContextState; ctxRate?: number; chromium?: boolean } = {}) {
+type FakeNode = {
+  connect: ReturnType<typeof vi.fn>;
+  disconnect: ReturnType<typeof vi.fn>;
+  channelCount?: number;
+  channelCountMode?: string;
+  channelInterpretation?: string;
+};
+const audioNode = (): FakeNode => ({ connect: vi.fn(), disconnect: vi.fn() });
+
+function fakeEngine(options: { failWasm?: boolean; ctxRate?: number; chromium?: boolean; holdNode?: boolean } = {}) {
   const output = { stop: vi.fn(), kind: "audio" };
-  const source = node();
-  const destination = { ...node(), stream: { getAudioTracks: () => [output] } };
-  const rnnoise = { ...node(), destroy: vi.fn() };
+  const sources: FakeNode[] = [];
+  const gains: Array<FakeNode & { gain: { value: number; setTargetAtTime: ReturnType<typeof vi.fn>; cancelScheduledValues: ReturnType<typeof vi.fn> } }> = [];
+  const nodes: Array<FakeNode & { destroy: ReturnType<typeof vi.fn>; onprocessorerror?: () => void }> = [];
+  let releaseNode: () => void = () => undefined;
+  const nodeGate = options.holdNode ? new Promise<void>((resolve) => (releaseNode = resolve)) : Promise.resolve();
   const context = {
-    state: options.state ?? "running",
+    state: "running",
     sampleRate: options.ctxRate ?? 48_000,
-    close: vi.fn(() => Promise.resolve()),
+    currentTime: 1,
     resume: vi.fn(() => Promise.resolve()),
-    createMediaStreamSource: vi.fn(() => source),
-    createMediaStreamDestination: vi.fn(() => destination)
+    createMediaStreamSource: vi.fn(() => {
+      const source = audioNode();
+      sources.push(source);
+      return source;
+    }),
+    createGain: vi.fn(() => {
+      const gain = {
+        ...audioNode(),
+        gain: {
+          value: 1,
+          setTargetAtTime: vi.fn(function (this: { value: number }, value: number) {
+            gain.gain.value = value;
+          }),
+          cancelScheduledValues: vi.fn()
+        }
+      };
+      gains.push(gain);
+      return gain;
+    }),
+    createMediaStreamDestination: vi.fn(() => ({ ...audioNode(), stream: { getAudioTracks: () => [output] } }))
   };
   const engine: NoiseEngine = {
     loadWasm: vi.fn(() => (options.failWasm ? Promise.reject(new Error("404")) : Promise.resolve(new ArrayBuffer(8)))),
-    createContext: vi.fn(() => context as unknown as AudioContext),
-    createNode: vi.fn(() => Promise.resolve(rnnoise as unknown as AudioNode & { destroy: () => void })),
+    getContext: vi.fn(() => context as unknown as AudioContext),
+    createNode: vi.fn(async () => {
+      await nodeGate;
+      const node = { ...audioNode(), destroy: vi.fn() };
+      nodes.push(node);
+      return node as unknown as AudioNode;
+    }),
     isChromium: () => options.chromium ?? true
   };
-  return { engine, context, source, destination, rnnoise, output };
+  const [raw, proc] = [() => gains[0], () => gains[1]];
+  return { engine, context, output, sources, gains, nodes, raw, proc, releaseNode: () => releaseNode() };
 }
 
-const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+const mic = (rate: number | undefined = 48_000) =>
+  ({ stop: vi.fn(), applyConstraints: vi.fn(), getSettings: () => ({ sampleRate: rate }) }) as unknown as MediaStreamTrack;
 
-describe("createVoiceIsolationTransform", () => {
+describe("voice isolation graph", () => {
   beforeEach(() => {
-    vi.stubGlobal("MediaStream", class {
-      constructor(readonly tracks: unknown[]) {}
-    });
+    vi.stubGlobal(
+      "MediaStream",
+      class {
+        constructor(readonly tracks: unknown[]) {}
+      }
+    );
   });
-
   afterEach(() => vi.unstubAllGlobals());
 
-  it("emits the processed track and tears the graph down without stopping the input", async () => {
-    const fake = fakeEngine();
-    const transform = createVoiceIsolationTransform(fake.engine, vi.fn());
-    const input = { stop: vi.fn() } as unknown as MediaStreamTrack;
+  it("emits the graph output at once: raw until RNNoise is ready, then a crossfade (no track swap)", async () => {
+    const fake = fakeEngine({ holdNode: true });
+    const input = mic();
     const seen: unknown[] = [];
-    const sub = transform(input).subscribe((track) => seen.push(track));
+    createVoiceIsolationTransform(fake.engine, vi.fn())(input).subscribe((t) => seen.push(t));
+    expect(seen).toEqual([fake.output]);
+    expect(fake.raw().gain.value).toBe(1);
+    expect(fake.proc().gain.value).toBe(0);
+    fake.releaseNode();
     await flush();
-
-    // Raw mic first (no silence while loading), then the processed track.
-    expect(seen).toEqual([input, fake.output]);
-    expect(fake.source.connect).toHaveBeenCalledWith(fake.rnnoise);
-    expect(fake.rnnoise.connect).toHaveBeenCalledWith(fake.destination);
-
-    sub.unsubscribe();
-    expect(fake.source.disconnect).toHaveBeenCalled();
-    expect(fake.rnnoise.disconnect).toHaveBeenCalled();
-    expect(fake.rnnoise.destroy).toHaveBeenCalled();
-    expect(fake.output.stop).toHaveBeenCalled();
-    expect(fake.context.close).toHaveBeenCalled();
-    expect((input as unknown as { stop: ReturnType<typeof vi.fn> }).stop).not.toHaveBeenCalled();
+    expect(fake.sources[0].connect).toHaveBeenCalledWith(fake.nodes[0]);
+    expect(fake.raw().gain.setTargetAtTime).toHaveBeenCalledWith(0, 1, expect.any(Number));
+    expect(fake.proc().gain.setTargetAtTime).toHaveBeenCalledWith(1, 1, expect.any(Number));
+    expect(seen).toEqual([fake.output]);
+    expect(getVoiceIsolationEngine()).toBe("rnnoise");
   });
 
-  it("shares one graph per input track and tears down after the last subscriber", async () => {
+  it("down-mixes to mono before RNNoise", async () => {
+    const fake = fakeEngine();
+    createVoiceIsolationTransform(fake.engine, vi.fn())(mic()).subscribe();
+    await flush();
+    expect(fake.nodes[0]).toMatchObject({ channelCount: 1, channelCountMode: "explicit", channelInterpretation: "speakers" });
+  });
+
+  it("reuses one context, one RNNoise node and one output track across unmutes and device switches", async () => {
     const fake = fakeEngine();
     const transform = createVoiceIsolationTransform(fake.engine, vi.fn());
-    const input = {} as MediaStreamTrack;
-    const a = transform(input).subscribe();
-    const b = transform(input).subscribe();
-    await flush();
-    expect(fake.engine.createContext).toHaveBeenCalledTimes(1);
-    a.unsubscribe();
-    expect(fake.context.close).not.toHaveBeenCalled();
-    b.unsubscribe();
-    expect(fake.context.close).toHaveBeenCalledTimes(1);
+    const outputs = new Set<unknown>();
+    for (let i = 0; i < 5; i += 1) {
+      const input = mic();
+      // partytracks subscribes twice per mic track (broadcast + local monitor).
+      const a = transform(input).subscribe((t) => outputs.add(t));
+      const b = transform(input).subscribe((t) => outputs.add(t));
+      await flush();
+      a.unsubscribe();
+      b.unsubscribe();
+    }
+    expect(fake.engine.createNode).toHaveBeenCalledTimes(1);
+    expect(fake.context.createMediaStreamDestination).toHaveBeenCalledTimes(1);
+    expect(fake.sources).toHaveLength(5);
+    expect(fake.sources.every((source) => source.disconnect.mock.calls.length === 1)).toBe(true);
+    expect(outputs.size).toBe(1);
+    expect(fake.output.stop).not.toHaveBeenCalled();
   });
 
-  it("falls back to the original track and reports once per failure", async () => {
-    const fake = fakeEngine({ failWasm: true });
-    const onUnavailable = vi.fn();
-    const transform = createVoiceIsolationTransform(fake.engine, onUnavailable);
-    const input = {} as MediaStreamTrack;
-    const seen: unknown[] = [];
-    transform(input).subscribe((track) => seen.push(track));
-    await flush();
-    expect(seen).toEqual([input]);
-    expect(onUnavailable).toHaveBeenCalledTimes(1);
-    // The context (created first, to check its rate) is released at once.
-    expect(fake.context.close).toHaveBeenCalledTimes(1);
-  });
-
-  it("does nothing if unsubscribed before loading finishes", async () => {
+  it("a re-acquired mic starts processed straight away (no raw moment)", async () => {
     const fake = fakeEngine();
     const transform = createVoiceIsolationTransform(fake.engine, vi.fn());
-    const seen: unknown[] = [];
-    const input = {} as MediaStreamTrack;
-    transform(input).subscribe((track) => seen.push(track)).unsubscribe();
+    transform(mic()).subscribe().unsubscribe();
     await flush();
-    expect(seen).toEqual([input]);
-    expect(fake.engine.createNode).not.toHaveBeenCalled();
-    expect(fake.context.close).toHaveBeenCalledTimes(1);
+    transform(mic()).subscribe();
+    expect(fake.raw().gain.value).toBe(0);
+    expect(fake.proc().gain.value).toBe(1);
   });
 
-  it("resumes a suspended context on a user gesture", async () => {
-    const fake = fakeEngine({ state: "suspended" });
-    const transform = createVoiceIsolationTransform(fake.engine, vi.fn());
-    const sub = transform({} as MediaStreamTrack).subscribe();
-    await flush();
-    fake.context.resume.mockClear();
-    resumeVoiceIsolation();
-    expect(fake.context.resume).toHaveBeenCalled();
-    sub.unsubscribe();
-  });
-
-  it("never changes the browser's audio processing on the live mic (no applyConstraints)", async () => {
+  it("never stops the mic and never changes its processing (no applyConstraints)", async () => {
     const fake = fakeEngine();
-    const input = { readyState: "live", getSettings: () => ({ sampleRate: 48_000 }), applyConstraints: vi.fn(), stop: vi.fn() } as unknown as MediaStreamTrack;
-    const sub = createVoiceIsolationTransform(fake.engine, vi.fn())(input).subscribe();
+    const input = mic();
+    createVoiceIsolationTransform(fake.engine, vi.fn())(input).subscribe().unsubscribe();
     await flush();
-    sub.unsubscribe();
-    await flush();
+    expect(input.stop).not.toHaveBeenCalled();
     expect(input.applyConstraints).not.toHaveBeenCalled();
   });
 
-  it("bypasses RNNoise when the rates don't match: raw mic only, no graph, no error toast", async () => {
+  it("bypasses RNNoise when the rates don't match: the mic itself, no graph, no error", async () => {
     const onUnavailable = vi.fn();
     const onBypass = vi.fn();
     for (const [ctxRate, trackRate, chromium] of [
@@ -174,14 +190,13 @@ describe("createVoiceIsolationTransform", () => {
       [48_000, undefined, false]
     ] as const) {
       const fake = fakeEngine({ ctxRate, chromium });
-      const input = { getSettings: () => ({ sampleRate: trackRate }), stop: vi.fn() } as unknown as MediaStreamTrack;
+      const input = { stop: vi.fn(), getSettings: () => ({ sampleRate: trackRate }) } as unknown as MediaStreamTrack;
       const seen: unknown[] = [];
       createVoiceIsolationTransform(fake.engine, onUnavailable, onBypass)(input).subscribe((t) => seen.push(t));
       await flush();
       expect(seen).toEqual([input]);
       expect(fake.engine.loadWasm).not.toHaveBeenCalled();
-      expect(fake.engine.createNode).not.toHaveBeenCalled();
-      expect(fake.context.close).toHaveBeenCalledTimes(1);
+      expect(fake.context.createMediaStreamSource).not.toHaveBeenCalled();
       expect(getVoiceIsolationEngine()).toBe("browser");
     }
     expect(onBypass).toHaveBeenCalledTimes(4);
@@ -189,43 +204,26 @@ describe("createVoiceIsolationTransform", () => {
     expect(onUnavailable).not.toHaveBeenCalled();
   });
 
-  it("reports the RNNoise engine when it runs", async () => {
-    const fake = fakeEngine();
-    const input = { getSettings: () => ({ sampleRate: 48_000 }), stop: vi.fn() } as unknown as MediaStreamTrack;
-    createVoiceIsolationTransform(fake.engine, vi.fn())(input).subscribe();
+  it("wasm failure: keeps the raw path through the graph and reports once", async () => {
+    const fake = fakeEngine({ failWasm: true });
+    const onUnavailable = vi.fn();
+    const seen: unknown[] = [];
+    createVoiceIsolationTransform(fake.engine, onUnavailable)(mic()).subscribe((t) => seen.push(t));
     await flush();
-    expect(getVoiceIsolationEngine()).toBe("rnnoise");
+    expect(seen).toEqual([fake.output]);
+    expect(fake.raw().gain.value).toBe(1);
+    expect(onUnavailable).toHaveBeenCalledTimes(1);
   });
 
-  it("a device switch builds exactly one new graph and closes the old one", async () => {
-    const contexts: Array<{ close: ReturnType<typeof vi.fn> }> = [];
+  it("a worklet processor error falls back to raw at once", async () => {
     const fake = fakeEngine();
-    const engine = {
-      ...fake.engine,
-      createContext: vi.fn(() => {
-        const ctx = { ...fake.context, close: vi.fn(() => Promise.resolve()) };
-        contexts.push(ctx);
-        return ctx as unknown as AudioContext;
-      })
-    };
-    const transform = createVoiceIsolationTransform(engine, vi.fn());
-    const micA = { stop: vi.fn() } as unknown as MediaStreamTrack;
-    const micB = { stop: vi.fn() } as unknown as MediaStreamTrack;
-    // partytracks subscribes twice per track (broadcast + local monitor), then switches device.
-    const a1 = transform(micA).subscribe();
-    const a2 = transform(micA).subscribe();
+    createVoiceIsolationTransform(fake.engine, vi.fn())(mic()).subscribe();
     await flush();
-    a1.unsubscribe();
-    a2.unsubscribe();
-    const b1 = transform(micB).subscribe();
-    const b2 = transform(micB).subscribe();
-    await flush();
-    expect(contexts).toHaveLength(2);
-    expect(contexts[0].close).toHaveBeenCalledTimes(1);
-    expect(contexts[1].close).not.toHaveBeenCalled();
-    b1.unsubscribe();
-    b2.unsubscribe();
-    expect(contexts[1].close).toHaveBeenCalledTimes(1);
+    fake.nodes[0].onprocessorerror?.();
+    expect(fake.nodes[0].disconnect).toHaveBeenCalled();
+    expect(fake.raw().gain.value).toBe(1);
+    expect(fake.proc().gain.value).toBe(0);
+    expect(getVoiceIsolationEngine()).toBe("browser");
   });
 });
 

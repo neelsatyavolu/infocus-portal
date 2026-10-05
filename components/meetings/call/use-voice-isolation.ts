@@ -4,9 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import type { MediaDevice } from "partytracks/client";
 import { toast } from "sonner";
 import { rnnoiseEngine } from "@/src/lib/meetings/client/rnnoise-engine";
+import { createVoiceIsolationTransform } from "@/src/lib/meetings/client/voice-graph";
 import { diagEvent } from "@/src/lib/meetings/client/diagnostics";
 import {
-  createVoiceIsolationTransform,
   readVoiceIsolation,
   writeVoiceIsolation
 } from "@/src/lib/meetings/client/voice-isolation";

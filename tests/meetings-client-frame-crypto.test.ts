@@ -17,6 +17,8 @@ type WorkerApi = {
   encryptFrame: (key: CryptoKey, epoch: number, frame: ArrayBuffer, hdr: number, iv?: Uint8Array) => Promise<ArrayBuffer>;
   decryptFrame: (lookup: (byte: number) => CryptoKey | undefined, frame: ArrayBuffer, hdr: number) => Promise<ArrayBuffer | null>;
   headerLength: (kind: string, isKeyFrame: boolean) => number;
+  sendEpoch: (now: number) => number | null;
+  setKeyForTest: (epoch: number, key: CryptoKey, now: number, delayMs: number) => void;
 };
 
 function loadWorker(): WorkerApi {
@@ -151,5 +153,16 @@ describe("e2ee worker interop", () => {
     const openedInWorker = await worker.decryptFrame((b) => (b === 2 ? workerKey : undefined), sealedByTs, 3);
     expect(Array.from(new Uint8Array(openedInWorker!))).toEqual(Array.from(plain));
     expect(await worker.decryptFrame(() => undefined, sealedByTs, 3)).toBeNull();
+  });
+
+  it("mirrors the rekey send grace: old epoch for 2 s, then the new one", async () => {
+    const fresh = loadWorker();
+    const k0 = await fresh.deriveFrameKey(roomKey(1));
+    const k1 = await fresh.deriveFrameKey(roomKey(2));
+    fresh.setKeyForTest(0, k0, 1000, 0);
+    expect(fresh.sendEpoch(1000)).toBe(0);
+    fresh.setKeyForTest(1, k1, 5000, 2000);
+    expect(fresh.sendEpoch(6999)).toBe(0);
+    expect(fresh.sendEpoch(7000)).toBe(1);
   });
 });

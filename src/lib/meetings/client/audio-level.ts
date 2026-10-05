@@ -1,22 +1,13 @@
 import { onTick } from "./ticker";
-import { resumeVoiceIsolation } from "./voice-isolation";
+import { resumeSharedAudio, sharedAudioContext } from "./audio-context";
 
-/** Shared WebAudio level meters (one AudioContext per page). Levels are RMS in 0..1. */
-
-let sharedContext: AudioContext | null = null;
-
-function audioContext() {
-  if (!sharedContext || sharedContext.state === "closed") sharedContext = new AudioContext();
-  return sharedContext;
-}
+/** WebAudio level meters on the page's shared AudioContext. Levels are RMS × 4 in 0..1. */
 
 /** Resume after a user gesture (iOS and Chrome autoplay rules). */
 export function resumeAudio() {
   if (typeof window === "undefined") return;
-  resumeVoiceIsolation();
-  void audioContext()
-    .resume()
-    .catch(() => undefined);
+  sharedAudioContext();
+  resumeSharedAudio();
 }
 
 /**
@@ -24,7 +15,7 @@ export function resumeAudio() {
  * shared worker ticker, so meters keep running in background tabs.
  */
 export function watchTrackLevel(track: MediaStreamTrack, onLevel: (level: number) => void) {
-  const context = audioContext();
+  const context = sharedAudioContext();
   const source = context.createMediaStreamSource(new MediaStream([track]));
   const analyser = context.createAnalyser();
   analyser.fftSize = 512;

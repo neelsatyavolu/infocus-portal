@@ -1,5 +1,11 @@
 import { deriveMeetingKey, fromBase64Url } from "./frame-crypto";
-import { addKeyToRing, emptyKeyRing, type KeyRing } from "./key-ring";
+import {
+  REKEY_SEND_DELAY_MS,
+  emptySendSchedule,
+  scheduleSendKey,
+  settleSendKey,
+  type SendSchedule
+} from "./key-ring";
 
 export const E2EE_WORKER_URL = "/meet-e2ee-worker.js";
 
@@ -52,7 +58,7 @@ export function preferVp8(transceiver: RTCRtpTransceiver) {
  */
 export class MeetingE2ee {
   private readonly worker: Worker;
-  private chatRing: KeyRing<CryptoKey> = emptyKeyRing();
+  private chatSend: SendSchedule<CryptoKey> = emptySendSchedule();
   private chatKeys = new Map<number, CryptoKey>();
   private readonly failing = new Set<string>();
   private readonly listeners = new Set<() => void>();
@@ -68,17 +74,24 @@ export class MeetingE2ee {
     };
   }
 
-  /** `key` is the base64url 32-byte meeting key from the Portal. */
-  async setKey(key: string, epoch: number) {
+  /**
+   * `key` is the base64url 32-byte meeting key from the Portal. `rekey: true` (a mid-call key
+   * change) keeps sending on the previous epoch for REKEY_SEND_DELAY_MS so peers that haven't
+   * fetched the new key yet don't drop our audio/video/chat; decryption uses both at once.
+   */
+  async setKey(key: string, epoch: number, options: { rekey?: boolean } = {}) {
     const raw = fromBase64Url(key);
     const chatKey = await deriveMeetingKey(raw, "chat");
-    this.chatRing = addKeyToRing(this.chatRing, { epoch, key: chatKey });
+    const delayMs = options.rekey ? REKEY_SEND_DELAY_MS : 0;
+    this.chatSend = scheduleSendKey(this.chatSend, { epoch, key: chatKey }, Date.now(), delayMs);
     this.chatKeys = new Map(this.chatKeys).set(epoch, chatKey);
-    this.worker.postMessage({ type: "setKey", key: raw, epoch });
+    this.worker.postMessage({ type: "setKey", key: raw, epoch, sendDelayMs: delayMs });
   }
 
+  /** The chat key to SEND with (follows the same rekey grace as media). */
   get currentChat() {
-    return this.chatRing.current;
+    this.chatSend = settleSendKey(this.chatSend, Date.now());
+    return this.chatSend.send;
   }
 
   /** Every chat key seen this session (older messages stay readable after a rekey). */

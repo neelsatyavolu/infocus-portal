@@ -8,6 +8,7 @@ import type { TrackMetadata } from "partytracks/client";
 import type { MeetingClientMessage, MeetingTrackKind, MeetingTracks } from "@/src/lib/meetings/protocol";
 import { MIC_ENCODINGS, SCREEN_ENCODINGS, cameraEncodings } from "@/src/lib/meetings/client/quality";
 import { withBackoff, type MeetingMediaSession } from "@/src/lib/meetings/client/media-session";
+import { diagEvent, errorText } from "@/src/lib/meetings/client/diagnostics";
 import type { LocalMedia } from "./use-local-media";
 
 const SEND_DEBOUNCE_MS = 250;
@@ -28,6 +29,11 @@ function withTrack(prev: MeetingTracks, kind: MeetingTrackKind, meta: TrackMetad
  * tells the room which tracks are ours. Re-announces everything after every admitted welcome
  * (socket reconnects start from a clean slate on the room side).
  */
+function pushFailed(kind: string, error: unknown, message: string) {
+  diagEvent("push_failed", { kind, message: errorText(error) });
+  toast.error(message);
+}
+
 export function usePublish(input: {
   session: MeetingMediaSession | null;
   media: LocalMedia;
@@ -69,12 +75,12 @@ export function usePublish(input: {
     const subs = [
       partyTracks
         .push(media.mic.broadcastTrack$, { sendEncodings$: of(MIC_ENCODINGS) })
-        .pipe(withBackoff())
-        .subscribe({ next: (meta) => setTrack(session, "audio", meta), error: () => toast.error("Couldn't send your microphone.") }),
+        .pipe(withBackoff("push.audio"))
+        .subscribe({ next: (meta) => setTrack(session, "audio", meta), error: (e) => pushFailed("audio", e, "Couldn't send your microphone.") }),
       partyTracks
         .push(media.camera.broadcastTrack$, { sendEncodings$: cameraEncodings$ })
-        .pipe(withBackoff())
-        .subscribe({ next: (meta) => setTrack(session, "video", meta), error: () => toast.error("Couldn't send your camera.") })
+        .pipe(withBackoff("push.video"))
+        .subscribe({ next: (meta) => setTrack(session, "video", meta), error: (e) => pushFailed("video", e, "Couldn't send your camera.") })
     ];
     return () => subs.forEach((sub) => sub.unsubscribe());
   }, [session, media.mic, media.camera, cameraEncodings$, setTrack]);
@@ -83,8 +89,8 @@ export function usePublish(input: {
     if (!session || !media.screen) return;
     const sub = session.partyTracks
       .push(media.screen.video.broadcastTrack$, { sendEncodings$: of(SCREEN_ENCODINGS) })
-      .pipe(withBackoff())
-      .subscribe({ next: (meta) => setTrack(session, "screen", meta), error: () => toast.error("Couldn't share your screen.") });
+      .pipe(withBackoff("push.screen"))
+      .subscribe({ next: (meta) => setTrack(session, "screen", meta), error: (e) => pushFailed("screen", e, "Couldn't share your screen.") });
     return () => {
       sub.unsubscribe();
       setTrack(session, "screen", null);

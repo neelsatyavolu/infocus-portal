@@ -10,6 +10,8 @@ export type MessageOutcome =
   | { kind: "pong" }
   /** Deliberate leave: mark this socket so its close hands host over at once. */
   | { kind: "leave" }
+  /** Client diagnostics: rate limit per socket and log; never sent to anyone. */
+  | { kind: "diag"; message: Extract<MeetingClientMessage, { t: "diag" }> }
   | { kind: "error"; message: string }
   /** State changed; broadcast a `participant` message for each uid in `changed`. */
   | { kind: "update"; state: RoomState; changed: readonly string[] }
@@ -109,6 +111,8 @@ export function handleClientMessage(
 ): MessageOutcome {
   if (message.t === "ping") return { kind: "pong" };
   if (message.t === "leave") return { kind: "leave" };
+  // Waiting-room and Scribe sockets may report too (a stuck lobby is worth seeing).
+  if (message.t === "diag") return { kind: "diag", message };
   if (!sender.adm || !state.participants[sender.uid]) {
     return { kind: "error", message: "Wait until a host lets you in." };
   }

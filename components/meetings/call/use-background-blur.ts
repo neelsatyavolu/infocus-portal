@@ -5,6 +5,7 @@ import type { MediaDevice } from "partytracks/client";
 import { toast } from "sonner";
 import { BLUR_PX, createBlurTransform } from "@/src/lib/meetings/client/background-blur";
 import { mediapipeBlurEngine } from "@/src/lib/meetings/client/blur-engine";
+import { diagEvent } from "@/src/lib/meetings/client/diagnostics";
 import type { BackgroundMode } from "@/src/lib/meetings/client/meet-settings";
 
 const UNAVAILABLE = "Background blur isn't available on this device. Your camera was turned off. Turn blur off to use your camera.";
@@ -37,11 +38,18 @@ export function useBackgroundBlur(camera: MediaDevice, mode: BackgroundMode) {
     const warnUnavailable = once(() => toast.error(UNAVAILABLE));
     return createBlurTransform(mediapipeBlurEngine, () => radius.current, {
       onUnavailable: () => {
+        diagEvent("blur_failed", { what: "unavailable" });
         camera.stopBroadcasting();
         warnUnavailable();
       },
-      onPartial: once(() => toast(PARTIAL)),
-      onReduced: once(() => toast(REDUCED))
+      onPartial: once(() => {
+        diagEvent("blur_failed", { what: "partial" });
+        toast(PARTIAL);
+      }),
+      onReduced: once(() => {
+        diagEvent("blur_failed", { what: "reduced" });
+        toast(REDUCED);
+      })
     });
   });
 

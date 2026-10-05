@@ -9,6 +9,8 @@ import {
   type MeetingTracks
 } from "../../../src/lib/meetings/protocol";
 
+import { isDiagWithinSize, parseDiag } from "./diagnostics";
+
 export const MAX_MESSAGE_BYTES = 64 * 1024;
 export const MAX_CHAT_CT_CHARS = 8 * 1024;
 const MAX_ID_CHARS = 128;
@@ -95,6 +97,8 @@ function parseClientShape(msg: Obj): MeetingClientMessage | null {
         : null;
     case "lowerHand":
       return isId(msg.uid) ? { t: "lowerHand", uid: msg.uid } : null;
+    case "diag":
+      return parseDiag(msg);
     default:
       return null;
   }
@@ -112,6 +116,7 @@ export function parseClientMessage(raw: string | ArrayBuffer): Parsed<MeetingCli
     return { ok: false, error: "Message is not valid JSON." };
   }
   const message = isObj(json) ? parseClientShape(json) : null;
+  if (message?.t === "diag" && !isDiagWithinSize(raw)) return { ok: false, error: "Diagnostics are too large." };
   return message ? { ok: true, value: message } : { ok: false, error: "Unknown or malformed message." };
 }
 

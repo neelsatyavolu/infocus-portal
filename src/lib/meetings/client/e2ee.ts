@@ -101,6 +101,11 @@ export class MeetingE2ee {
     }
   }
 
+  /** How many pulled tracks are failing to decrypt right now (diagnostics). */
+  failingCount() {
+    return this.failing.size;
+  }
+
   /** True when frames for this pulled track id keep failing to decrypt. */
   isFailing(trackId: string) {
     return this.failing.has(trackId);

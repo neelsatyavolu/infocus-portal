@@ -39,6 +39,7 @@ import type { useMeetingCall } from "./use-meeting-call";
 import { useChimes } from "./use-chimes";
 import { useHand } from "./use-hand";
 import { useMicPrewarm } from "./use-mic-prewarm";
+import { useCallDiagnostics } from "./use-call-diagnostics";
 import { usePublish } from "./use-publish";
 
 type Call = ReturnType<typeof useMeetingCall>;
@@ -74,6 +75,18 @@ export function CallRoom({
   const selfUid = room.selfUid;
   const { activeSpeakerUid, speaking, onLevel } = useSpeakers();
   const quality = useConnectionQuality(partyTracks);
+  useCallDiagnostics({
+    send,
+    partyTracks,
+    room,
+    socketStatus: call.socketStatus,
+    e2ee: call.e2ee.current,
+    audioOn: media.audioOn,
+    videoOn: media.videoOn,
+    voiceIsolation: media.voiceIsolation,
+    background: media.settings.background,
+    audioBlocked
+  });
   const elapsed = useElapsed(joinedAt);
 
   const self = selfUid ? room.participants[selfUid] : undefined;
@@ -265,7 +278,13 @@ export function CallRoom({
       {selfUid && media.audioOn ? <SelfLevel track={selfMic} uid={selfUid} onLevel={onLevel} onSelfLevel={onSelfLevel} /> : null}
 
       {meeting ? (
-        <MeetingInfoDialog open={dialog === "info"} onOpenChange={(o) => setDialog(o ? "info" : null)} meeting={meeting} isHost={room.isHost} />
+        <MeetingInfoDialog
+          open={dialog === "info"}
+          onOpenChange={(o) => setDialog(o ? "info" : null)}
+          meeting={meeting}
+          isHost={room.isHost}
+          selfUid={selfUid}
+        />
       ) : null}
       <DevicesDialog
         open={dialog === "devices"}

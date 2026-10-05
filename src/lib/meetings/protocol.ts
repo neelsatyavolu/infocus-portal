@@ -52,6 +52,12 @@ export type MeetingChatCiphertext = { ct: string; iv: string; epoch: number };
 // Client -> room
 // ---------------------------------------------------------------------------
 
+/** `periodic`: the 10 s stats summary. `event`: something just happened (an error, a state change, a click). */
+export type MeetingDiagKind = "periodic" | "event";
+export type MeetingDiagData = Record<string, string | number | boolean | null>;
+/** Largest `diag` message the room accepts (the whole JSON message, in bytes). */
+export const MEETING_DIAG_MAX_BYTES = 2048;
+
 export type MeetingClientMessage =
   | { t: "tracks"; tracks: MeetingTracks }
   | { t: "media"; audioOn: boolean; videoOn: boolean; screenOn: boolean }
@@ -61,6 +67,11 @@ export type MeetingClientMessage =
   | { t: "ping" }
   /** Deliberate leave (sent just before closing): if the last host leaves, host passes on at once. */
   | { t: "leave" }
+  /**
+   * Call diagnostics for debugging (connection state, getStats summary, errors). The room logs it
+   * to Workers Logs and never fans it out. Flat primitives only, at most MEETING_DIAG_MAX_BYTES.
+   */
+  | { t: "diag"; kind: MeetingDiagKind; data: MeetingDiagData }
   // Host only:
   | { t: "mute"; uid: string; kind: "audio" | "video" }
   | { t: "muteAll" }

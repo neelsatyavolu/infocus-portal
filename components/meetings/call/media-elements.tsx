@@ -9,6 +9,7 @@ import type { MeetingTrackMetadata } from "@/src/lib/meetings/protocol";
 import type { SimulcastRid } from "@/src/lib/meetings/client/layout";
 import type { MeetingE2ee } from "@/src/lib/meetings/client/e2ee";
 import { watchTrackLevel } from "@/src/lib/meetings/client/audio-level";
+import { diagEvent, errorText, registerPulledTrack, unregisterPulledTrack } from "@/src/lib/meetings/client/diagnostics";
 import { cn } from "@/src/lib/utils";
 
 const EMPTY: Observable<MediaStreamTrack> = of();
@@ -27,9 +28,23 @@ export function usePulledTrack(
     const [sessionId, ...rest] = metaKey.split("/");
     const trackData = of({ location: "remote" as const, sessionId, trackName: rest.join("/") });
     const pulled = simulcast ? partyTracks.pull(trackData, { simulcast: { preferredRid$: rid$ } }) : partyTracks.pull(trackData);
-    return pulled.pipe(withBackoff(), catchError(() => EMPTY));
+    return pulled.pipe(
+      withBackoff("pull"),
+      catchError((error) => {
+        diagEvent("pull_failed", { sid: sessionId.slice(0, 8), message: errorText(error) });
+        return EMPTY;
+      })
+    );
   }, [partyTracks, metaKey, simulcast, rid$]);
-  return useObservableAsValue(track$);
+  const track = useObservableAsValue(track$);
+  // Lets diagnostics tell whose stream an inbound-rtp stat is.
+  useEffect(() => {
+    if (!track || !metaKey) return;
+    const [sessionId, ...rest] = metaKey.split("/");
+    registerPulledTrack(track.id, sessionId, rest.join("/"));
+    return () => unregisterPulledTrack(track.id);
+  }, [track, metaKey]);
+  return track;
 }
 
 export function useObservableTrack(track$: Observable<MediaStreamTrack> | null) {
@@ -101,7 +116,10 @@ export function RemoteAudio({
     const el = ref.current;
     if (!el || !track) return;
     el.srcObject = new MediaStream([track]);
-    el.play().catch(onBlocked);
+    el.play().catch((error: unknown) => {
+      diagEvent("audio_play_rejected", { message: errorText(error) });
+      onBlocked();
+    });
     const stop = watchTrackLevel(track, (level) => onLevel(uid, level));
     return () => {
       stop();

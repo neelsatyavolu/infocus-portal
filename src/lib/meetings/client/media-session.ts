@@ -1,6 +1,7 @@
 import { PartyTracks } from "partytracks/client";
 import { retry, timer, type MonoTypeOperatorFunction, type Subscription } from "rxjs";
 import { backoffDelay } from "./room-socket";
+import { diagEvent, errorText } from "./diagnostics";
 import type { MeetingE2ee } from "./e2ee";
 
 export function partyTracksPrefix(roomUrl: string, meetingId: string) {
@@ -14,17 +15,28 @@ export function partyTracksPrefix(roomUrl: string, meetingId: string) {
 async function fetchIceServers(prefix: string, token: string): Promise<RTCIceServer[] | undefined> {
   try {
     const response = await fetch(`${prefix}/generate-ice-servers?token=${encodeURIComponent(token)}`);
-    if (!response.ok) return undefined;
+    if (!response.ok) {
+      diagEvent("proxy_error", { route: "generate-ice-servers", status: response.status });
+      return undefined;
+    }
     const body = (await response.json()) as { iceServers?: RTCIceServer[] };
     return Array.isArray(body.iceServers) ? body.iceServers : undefined;
-  } catch {
+  } catch (error) {
+    diagEvent("proxy_error", { route: "generate-ice-servers", message: errorText(error) });
     return undefined;
   }
 }
 
 /** Retries a push/pull with jittered backoff (the room proxy answers 429 above 60 calls per 10 s). */
-export function withBackoff<T>(): MonoTypeOperatorFunction<T> {
-  return retry({ count: 6, delay: (_error, attempt) => timer(backoffDelay(attempt)) });
+export function withBackoff<T>(label = "media"): MonoTypeOperatorFunction<T> {
+  return retry({
+    count: 6,
+    delay: (error, attempt) => {
+      // Push/pull errors (a 429/403 from the room proxy shows up in the message).
+      diagEvent("media_retry", { op: label, attempt, message: errorText(error) });
+      return timer(backoffDelay(attempt));
+    }
+  });
 }
 
 const STUN_FALLBACK: RTCIceServer[] = [{ urls: "stun:stun.cloudflare.com:3478" }];

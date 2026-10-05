@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { MediaDevice } from "partytracks/client";
 import { toast } from "sonner";
 import { rnnoiseEngine } from "@/src/lib/meetings/client/rnnoise-engine";
+import { diagEvent } from "@/src/lib/meetings/client/diagnostics";
 import {
   createVoiceIsolationTransform,
   readVoiceIsolation,
@@ -24,6 +25,7 @@ export function useVoiceIsolation(mic: MediaDevice) {
     return createVoiceIsolationTransform(rnnoiseEngine, () => {
       if (warned) return;
       warned = true;
+      diagEvent("voice_isolation_failed");
       toast.error(UNAVAILABLE);
     });
   });

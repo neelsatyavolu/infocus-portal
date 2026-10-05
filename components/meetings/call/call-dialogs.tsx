@@ -17,11 +17,36 @@ import { InviteesDialog } from "../invitees-dialog";
 import { AudioSettings, VideoSettings } from "./settings-sections";
 import { accessTagLabel } from "../tab/meeting-rows";
 import { meetingUrl } from "@/src/lib/meetings/links";
+import { debugInfo } from "@/src/lib/meetings/client/diagnostics";
 import type { LocalMedia } from "./use-local-media";
 
 type OpenProps = { open: boolean; onOpenChange: (open: boolean) => void };
 
-export function MeetingInfoDialog({ open, onOpenChange, meeting, isHost }: OpenProps & { meeting: MeetingSummary; isHost: boolean }) {
+/** Copies the call's recent diagnostics (ids, states, counters; no names or content) for a bug report. */
+function CopyDebugInfoButton({ meetingId, uid }: { meetingId: string; uid: string | null }) {
+  async function copy() {
+    try {
+      const build = process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? null;
+      await navigator.clipboard.writeText(debugInfo({ meetingId, uid, userAgent: navigator.userAgent, build }));
+      toast.success("Debug info copied. Paste it in your message to us.");
+    } catch {
+      toast.error("Couldn't copy the debug info.");
+    }
+  }
+  return (
+    <Button variant="ghost" size="sm" className="self-start text-muted-foreground" onClick={() => void copy()}>
+      Copy debug info
+    </Button>
+  );
+}
+
+export function MeetingInfoDialog({
+  open,
+  onOpenChange,
+  meeting,
+  isHost,
+  selfUid = null
+}: OpenProps & { meeting: MeetingSummary; isHost: boolean; selfUid?: string | null }) {
   const [editInvitees, setEditInvitees] = useState(false);
   const link = meetingUrl(meeting.id);
   return (
@@ -47,6 +72,7 @@ export function MeetingInfoDialog({ open, onOpenChange, meeting, isHost }: OpenP
             <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
             Encrypted. Audio, video, screen and chat are encrypted on each device. Cloudflare only relays scrambled data.
           </p>
+          <CopyDebugInfoButton meetingId={meeting.id} uid={selfUid} />
         </DialogContent>
       </Dialog>
       <InviteesDialog open={editInvitees} onOpenChange={setEditInvitees} meetingId={meeting.id} access={meeting.access} />

@@ -123,3 +123,13 @@ This is separate from Admin → Reconnect YouTube and doesn't change it.
 - Chat messages are tied to the sender, the meeting and the message. A message that doesn't match the person the room says sent it shows as "Couldn't verify this message".
 - Audio and video frames are encrypted with the shared meeting key but are not tied to a sender. Anyone already in the meeting has that key, so in theory they could send media that appears under someone else's tile. People outside the meeting can't.
 - Meeting pages (`/meet/…`, `/meet-scribe`) load no analytics.
+
+## Debugging a call
+
+When a call goes wrong ("we couldn't hear each other"), there is a record to look at afterwards.
+
+- **What's logged:** the meeting room writes one line per event to Cloudflare Workers Logs: people connecting and leaving (with the close reason), who is host, tracks being shared, every audio/video connection request to Cloudflare (status and timing), limits being hit, rekeys and the meeting ending. Each browser in the call also reports a short connection summary every 10 seconds (connection state, network path, packets sent and received per person, audio level, decryption problems) and reports problems the moment they happen (connection failed, audio blocked, a retry, Leave pressed).
+- **What's never logged:** names, emails, chat, the meeting key, room tickets, audio or video. People appear only by their internal id.
+- **Reading the logs:** `npm run meetings:logs -- <meeting id or latest> [--since 2h] [--uid <id>] [--json]` prints a timeline and marks problems with `!!`. It needs `CLOUDFLARE_ACCOUNT_ID` and a Cloudflare API token with **Workers Observability: Edit** (see the top of `scripts/meetings-logs.ts`). For a live view: `npx wrangler tail infocus-meeting-room --format json`.
+- **Copy debug info:** in a call, open the meeting info (the **i** in the menu) and press **Copy debug info**. It copies the meeting id, your internal id, your browser, the app version and the last ~200 diagnostic entries, with no names or content, for pasting into a bug report.
+

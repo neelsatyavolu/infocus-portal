@@ -37,6 +37,8 @@ import {
 } from "./room-state";
 import { admitted, attachmentOf, closeSocket, select, send, sendAll, type SocketAttachment } from "./sockets";
 import { parseClientMessage } from "./validation";
+import { DIAG_RATE_RULES, diagLogLine, diagRateKey } from "./diagnostics";
+import { logEvent, shortId, type LogDetails } from "./log";
 
 const STATE_KEY = "room";
 const PING = JSON.stringify({ t: "ping" });
@@ -76,9 +78,16 @@ export class MeetingRoom extends DurableObject<Env> {
     }
   }
 
-  private report(report: MeetingRoomReport): Promise<ReportResult> {
+  private log(evt: string, uid: string | null, details: LogDetails = {}): void {
+    logEvent(evt, this.room.meetingId, uid, details);
+  }
+
+  private async report(report: MeetingRoomReport): Promise<ReportResult> {
     const meetingId = this.room.meetingId;
-    return meetingId ? reportToPortal(this.env, meetingId, report) : Promise.resolve({ ok: false, status: null });
+    const result = meetingId ? await reportToPortal(this.env, meetingId, report) : { ok: false, status: null };
+    const uid = "uid" in report ? report.uid : null;
+    this.log("report", uid, { t: report.t, ok: result.ok, status: result.status });
+    return result;
   }
 
   /** Takes one token from a bucket; false when the caller is over the limit. */
@@ -99,6 +108,7 @@ export class MeetingRoom extends DurableObject<Env> {
 
   /** Host was handed to `uid`: everyone sees it, they get the role and the lobby, the Portal records it. */
   private async announcePromotion(uid: string): Promise<void> {
+    this.log("host_promoted", uid, { exec: Boolean(this.room.execUids[uid]) });
     this.broadcastParticipants([uid]);
     const theirs = select(this.ctx.getWebSockets(uid), admitted);
     sendAll(theirs, { t: "role", isHost: true });
@@ -117,6 +127,7 @@ export class MeetingRoom extends DurableObject<Env> {
   private welcome(ws: WebSocket, ticket: RoomTicket, isAdmitted: boolean): void {
     const isHost = isAdmitted && isEffectiveHost(this.room, ticket);
     const participants = participantList(this.room).map((view) => (isAdmitted ? view : { ...view, tracks: {} }));
+    this.log("welcome", ticket.uid, { admitted: isAdmitted, isHost, participants: participants.length, epoch: this.room.epoch });
     send(ws, {
       t: "welcome",
       self: { uid: ticket.uid, admitted: isAdmitted, isHost },
@@ -148,6 +159,7 @@ export class MeetingRoom extends DurableObject<Env> {
       if (!check.ok) send(server, { t: check.reason === "ended" ? "ended" : "removed" });
       else send(server, { t: "error", message: "This meeting is full." });
       const code = check.ok ? CLOSE_FULL : check.reason === "ended" ? CLOSE_ENDED : CLOSE_REMOVED;
+      logEvent("socket_rejected", meetingId, ticket.uid, { reason: check.ok ? "full" : check.reason, code });
       closeSocket(server, code, check.ok ? "full" : check.reason);
       return new Response(null, { status: 101, webSocket: client });
     }
@@ -155,6 +167,13 @@ export class MeetingRoom extends DurableObject<Env> {
     this.ctx.acceptWebSocket(server, [ticket.uid]);
     const attachment: SocketAttachment = { ...ticket, sock: crypto.randomUUID() };
     server.serializeAttachment(attachment);
+    logEvent("socket_open", meetingId, ticket.uid, {
+      adm: ticket.adm,
+      role: ticket.role,
+      exec: Boolean(ticket.exec),
+      sock: shortId(attachment.sock),
+      uidSockets: this.ctx.getWebSockets(ticket.uid).length
+    });
     const base = withMeetingId(this.room, meetingId);
     if (ticket.adm) await this.connectAdmitted(server, ticket, base);
     else await this.connectWaiting(server, ticket, base);
@@ -190,6 +209,7 @@ export class MeetingRoom extends DurableObject<Env> {
     if (!attachment) return closeSocket(ws, 1008, "No ticket");
     const ticket: RoomTicket = attachment;
     if (raw !== PING && !this.take(socketRateKey(attachment.sock), "message")) {
+      this.log("rate_limited", ticket.uid, { kind: "message", sock: shortId(attachment.sock) });
       return send(ws, { t: "error", message: "Too many messages. Slow down a little." });
     }
     const parsed = parseClientMessage(raw);
@@ -198,6 +218,7 @@ export class MeetingRoom extends DurableObject<Env> {
     const now = Date.now();
     const kind = rateKindOf(parsed.value);
     if (kind && !this.take(rateKey(ticket.uid, kind), kind)) {
+      this.log("rate_limited", ticket.uid, { kind });
       return send(ws, { t: "error", message: "Slow down a little." });
     }
 
@@ -207,7 +228,16 @@ export class MeetingRoom extends DurableObject<Env> {
         return send(ws, { t: "pong" });
       case "leave":
         ws.serializeAttachment({ ...attachment, leaving: true });
+        this.log("leave_clicked", ticket.uid, { sock: shortId(attachment.sock) });
         return;
+      case "diag": {
+        // Dropped quietly when over the per-socket limit (diagnostics must never cost the call anything).
+        const key = diagRateKey(attachment.sock, outcome.message.kind);
+        const taken = takeToken(this.buckets, key, DIAG_RATE_RULES[outcome.message.kind], now);
+        this.buckets = taken.buckets;
+        if (taken.allowed) console.log(diagLogLine(this.room.meetingId, ticket.uid, outcome.message));
+        return;
+      }
       case "error":
         return send(ws, { t: "error", message: outcome.message });
       case "broadcast":
@@ -219,16 +249,36 @@ export class MeetingRoom extends DurableObject<Env> {
       }
       case "update":
         await this.commit(outcome.state);
+        if (parsed.value.t === "tracks") {
+          const tracks = parsed.value.tracks;
+          this.log("tracks", ticket.uid, {
+            kinds: Object.keys(tracks).sort().join(","),
+            sessions: [...new Set(Object.values(tracks).map((track) => shortId(track?.sessionId)).filter(Boolean))].join(",")
+          });
+        }
         return this.broadcastParticipants(outcome.changed);
     }
   }
 
   async webSocketClose(ws: WebSocket, code: number, reason: string): Promise<void> {
+    const ticket = attachmentOf(ws);
+    if (ticket) {
+      this.log("socket_close", ticket.uid, {
+        code,
+        adm: ticket.adm,
+        leaving: Boolean(ticket.leaving),
+        sock: shortId(ticket.sock),
+        // Sockets this uid still has open (this one excluded).
+        uidSockets: this.ctx.getWebSockets(ticket.uid).filter((other) => other !== ws && other.readyState === WebSocket.READY_STATE_OPEN).length
+      });
+    }
     closeSocket(ws, code === 1005 || code === 1006 ? 1000 : code, reason);
     await this.handleDisconnect(ws);
   }
 
-  async webSocketError(ws: WebSocket): Promise<void> {
+  async webSocketError(ws: WebSocket, error: unknown): Promise<void> {
+    const ticket = attachmentOf(ws);
+    this.log("socket_error", ticket?.uid ?? null, { message: error instanceof Error ? error.message.slice(0, 200) : null });
     await this.handleDisconnect(ws);
   }
 
@@ -236,14 +286,22 @@ export class MeetingRoom extends DurableObject<Env> {
     const ticket = attachmentOf(ws);
     if (!ticket) return;
     this.buckets = forgetKey(this.buckets, socketRateKey(ticket.sock));
+    this.buckets = forgetKey(forgetKey(this.buckets, diagRateKey(ticket.sock, "periodic")), diagRateKey(ticket.sock, "event"));
     const sameKind = (other: RoomTicket) => other.adm === ticket.adm;
     if (select(this.ctx.getWebSockets(ticket.uid), sameKind, ws).length > 0) return;
 
     if (ticket.adm) {
       const now = Date.now();
       const wasHost = Boolean(this.room.participants[ticket.uid]?.isHost);
+      const sessionsBefore = Object.values(this.room.sessions).filter((owner) => owner === ticket.uid).length;
       const { state, left } = leaveParticipant(this.room, ticket.uid, now);
       if (!left) return;
+      this.log("left", ticket.uid, {
+        wasHost,
+        leaving: Boolean(ticket.leaving),
+        sessionsDropped: sessionsBefore,
+        participants: Object.keys(state.participants).length
+      });
       this.buckets = forgetUid(this.buckets, ticket.uid);
       // The last host left: hand over now after `leave`, else arm the grace (folded into the alarm).
       const handoff = wasHost ? afterHostLeft(state, Boolean(ticket.leaving), now) : { state, promoted: null };
@@ -286,6 +344,7 @@ export class MeetingRoom extends DurableObject<Env> {
 
   /** Treat the room as ended: wipe storage, keep only the ended marker, close anything still open. */
   private async clearRoom(): Promise<void> {
+    this.log("room_cleared", null, { sockets: this.sockets().length });
     await this.ctx.storage.deleteAll();
     await this.commit(endedState(this.room, Date.now()));
     for (const ws of select(this.sockets(), () => true)) {
@@ -301,15 +360,33 @@ export class MeetingRoom extends DurableObject<Env> {
   async authorizeMedia(meetingId: string, ticket: RoomTicket, op: MediaOp): Promise<MediaDecision> {
     if (this.room.meetingId !== meetingId) await this.commit(withMeetingId(this.room, meetingId));
     if (!this.take(rateKey(ticket.uid, "proxy"), "proxy")) {
+      this.log("rate_limited", ticket.uid, { kind: "proxy" });
       return { ok: false, status: 429, message: "Too many media requests. Slow down a little." };
     }
-    return authorizeMedia(this.room, ticket, op);
+    const decision = authorizeMedia(this.room, ticket, op);
+    if (!decision.ok) {
+      this.log("media_denied", ticket.uid, {
+        op: op.kind,
+        status: decision.status,
+        message: decision.message,
+        uidSessions: Object.values(this.room.sessions).filter((owner) => owner === ticket.uid).length,
+        roomSessions: Object.keys(this.room.sessions).length
+      });
+    }
+    return decision;
   }
 
   /** Re-checks the caps (concurrent sessions/new calls); false means the session is not usable. */
   async registerSession(meetingId: string, sessionId: string, ticket: RoomTicket): Promise<boolean> {
     const base = withMeetingId(this.room, meetingId);
-    if (!canRegisterSession(base, ticket)) return false;
+    if (!canRegisterSession(base, ticket)) {
+      this.log("session_cap", ticket.uid, {
+        sid: shortId(sessionId),
+        uidSessions: Object.values(base.sessions).filter((owner) => owner === ticket.uid).length,
+        roomSessions: Object.keys(base.sessions).length
+      });
+      return false;
+    }
     await this.commit(registerSession(base, sessionId, ticket.uid));
     return true;
   }
@@ -317,6 +394,13 @@ export class MeetingRoom extends DurableObject<Env> {
   async applyEvent(meetingId: string, event: MeetingRoomEvent): Promise<void> {
     const before = withMeetingId(this.room, meetingId);
     const next = applyRoomEvent(before, event, Date.now());
+    logEvent("room_event", meetingId, "uid" in event ? event.uid : null, {
+      t: event.t,
+      epoch: event.t === "rekey" ? event.epoch : undefined,
+      version: event.t === "agenda" ? event.version : undefined,
+      quickAccess: event.t === "settings" ? event.settings.quickAccess : undefined,
+      notesEnabled: event.t === "settings" ? event.settings.notesEnabled : undefined
+    });
     if (event.t === "ended") {
       await this.ctx.storage.deleteAll();
       await this.commit(next);

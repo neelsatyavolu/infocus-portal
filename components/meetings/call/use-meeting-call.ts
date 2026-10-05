@@ -6,6 +6,7 @@ import type { JoinResponse } from "@/src/lib/meetings/types";
 import { toast } from "sonner";
 import { MeetingApiError, errorMessage, meetingsApi } from "@/src/lib/meetings/client/api";
 import { decryptChat, encryptChat } from "@/src/lib/meetings/client/chat-crypto";
+import { diagEvent, errorText } from "@/src/lib/meetings/client/diagnostics";
 import { MeetingE2ee } from "@/src/lib/meetings/client/e2ee";
 import { createMediaSession, type MeetingMediaSession } from "@/src/lib/meetings/client/media-session";
 import { RoomSocket, type RoomSocketStatus } from "@/src/lib/meetings/client/room-socket";
@@ -95,7 +96,10 @@ export function useMeetingCall(meetingId: string, onMuted: (kind: "audio" | "vid
         meetingId,
         token: info.roomToken,
         e2ee: e2ee(),
-        onError: (err) => setError(errorMessage(err))
+        onError: (err) => {
+          diagEvent("media_error", { message: errorText(err) });
+          setError(errorMessage(err));
+        }
       });
       if (generation !== mediaGenerationRef.current || !socketRef.current) {
         media.close();
@@ -105,6 +109,7 @@ export function useMeetingCall(meetingId: string, onMuted: (kind: "audio" | "vid
       sessionRef.current = media;
       setSession(media);
     } catch (err) {
+      diagEvent("media_error", { message: errorText(err) });
       setError(errorMessage(err, "Couldn't connect audio and video."));
     }
   }, [e2ee, meetingId]);
@@ -253,6 +258,7 @@ export function useMeetingCall(meetingId: string, onMuted: (kind: "audio" | "vid
 
   /** Deliberate leave: tell the room first (hands host off at once), then close. */
   const leave = useCallback(async () => {
+    diagEvent("leave_click");
     await socketRef.current?.sendAndFlush({ t: "leave" }).catch(() => false);
     teardown();
     setLocal("left");

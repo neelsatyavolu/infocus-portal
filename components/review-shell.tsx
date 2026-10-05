@@ -2975,7 +2975,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                               </div>
                             </div>
                           ) : (
-                            <p className="mt-1 text-sm leading-relaxed text-foreground">{thread.root.body}</p>
+                            <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-foreground">{thread.root.body}</p>
                           )}
                         </div>
                       </div>
@@ -3081,7 +3081,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                                 </div>
                               ) : (
                                 <div className="flex items-start justify-between gap-2">
-                                  <div>
+                                  <div className="whitespace-pre-wrap">
                                     <span className="font-semibold text-foreground">{reply.authorName}:</span> {reply.body}
                                   </div>
                                   {data.currentUserId && reply.authorId === data.currentUserId && !isGuest ? (

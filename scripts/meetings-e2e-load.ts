@@ -17,7 +17,7 @@
  *
  * Env: MEETING_ROOM_SECRET (required), MEETING_ROOM_URL, SMOKE_ORIGIN (default https://meet.infocuspaly.com),
  *      E2E_PARTICIPANTS (default 4), E2E_SECONDS (default 60), E2E_RELAY=1 (TURN only),
- *      E2E_VIDEO_KBPS (default 1500), E2E_DEBUG=1 (per-second latency timeline, freezes, where audio was lost).
+ *      E2E_VIDEO_KBPS (default 1500), E2E_SCENARIO=staggered (one joiner every E2E_STAGGER_MS, default 3000) | rejoin (leave + rejoin repro, scripts/meetings-e2e/rejoin.ts), E2E_DEBUG=1 (per-second latency timeline, freezes, where audio was lost; 2 adds every room message and pull).
  * Exit code: 0 when every threshold passes, 1 otherwise.
  */
 import { randomBytes } from "node:crypto";
@@ -41,12 +41,16 @@ import {
   STEP_TIMEOUT_MS,
   timeout
 } from "./meetings-e2e/common";
-import { firstFrames, joinMetrics, senderDrift, trackMetrics, type MeasureWindow, type TrackMetrics } from "./meetings-e2e/metrics";
+import { firstFrames, joinMetrics, senderDrift, signalingStats, trackMetrics, type MeasureWindow, type TrackMetrics } from "./meetings-e2e/metrics";
 import { Participant } from "./meetings-e2e/participant";
+import { reportStaggered } from "./meetings-e2e/staggered";
+import { runRejoinScenario } from "./meetings-e2e/rejoin";
 
 const PARTICIPANTS = Math.max(2, Number(process.env.E2E_PARTICIPANTS ?? 4));
 const SECONDS = Math.max(5, Number(process.env.E2E_SECONDS ?? 60));
 const RELAY = process.env.E2E_RELAY === "1";
+const SCENARIO = process.env.E2E_SCENARIO ?? "simultaneous";
+const STAGGER_MS = SCENARIO === "staggered" ? Number(process.env.E2E_STAGGER_MS ?? 3000) : 0;
 const VIDEO_KBPS = Number(process.env.E2E_VIDEO_KBPS ?? 1500);
 const KEY_FRAME_SECONDS = 2;
 const DRAIN_MS = 2000;
@@ -94,10 +98,11 @@ function reportJoin(participants: Participant[]) {
   for (const kind of ["audio", "video"] as const) {
     const values = firsts.filter((f) => f.kind === kind);
     const fromPublish = worst(values.map((f) => f.fromPublishMs), "max");
-    check(
+    // Staggered joins: "publish -> first frame" mixes in the join gap; reportStaggered covers it.
+    (STAGGER_MS ? (name: string, _ok: boolean, detail: string) => info(`${name}: ${detail}`) : check)(
       `join: publish -> first decrypted ${kind} frame < ${LIMITS.firstFrameMs} ms (worst of ${values.length})`,
       values.length === PARTICIPANTS * (PARTICIPANTS - 1) && fromPublish < LIMITS.firstFrameMs,
-      `p50 ${fmt(percentile(values.map((f) => f.fromPublishMs), 50), 0)} ms, worst ${fmt(fromPublish, 0)} ms; pull request -> first frame worst ${fmt(worst(values.map((f) => f.fromPullMs), "max"), 0)} ms`
+      `p50 ${fmt(percentile(values.map((f) => f.fromPublishMs), 50), 0)} ms, p95 ${fmt(percentile(values.map((f) => f.fromPublishMs), 95), 0)} ms, worst ${fmt(fromPublish, 0)} ms; pull request -> first frame worst ${fmt(worst(values.map((f) => f.fromPullMs), "max"), 0)} ms`
     );
   }
 }
@@ -156,7 +161,9 @@ function reportVideo(rows: TrackMetrics[]) {
 function reportIntegrity(rows: TrackMetrics[], participants: Participant[]) {
   const expectedTracks = PARTICIPANTS * (PARTICIPANTS - 1) * 2;
   const live = rows.filter((r) => r.received > 0).length;
-  check(`tracks: ${expectedTracks} inbound tracks carried media`, live === expectedTracks, `${live}/${expectedTracks}`);
+  const neverPulled = participants.flatMap((r) => participants.filter((p) => p !== r && !r.inbound.has(p.uid)).map((p) => `${p.uid}->${r.uid} (never pulled)`));
+  const dead = [...neverPulled, ...rows.filter((r) => r.received === 0).map((r) => `${r.publisher}->${r.receiver} ${r.kind[0]}`)];
+  check(`tracks: ${expectedTracks} inbound tracks carried media`, live === expectedTracks, `${live}/${expectedTracks}${dead.length ? `; silent: ${dead.slice(0, 12).join(", ")}` : ""}`);
   // Decrypt failures are counted per inbound pair (audio + video share the counter).
   const failures = participants.reduce((sum, p) => sum + [...p.inbound.values()].reduce((s, i) => s + i.decryptFailures, 0), 0);
   const integrity = participants.flatMap((p) => [...p.inbound.values()].flatMap((i) => i.integrityFailures));
@@ -164,6 +171,17 @@ function reportIntegrity(rows: TrackMetrics[], participants: Participant[]) {
   check("e2ee: payload integrity (counter, kind, padding)", integrity.length === 0, integrity.length ? integrity.slice(0, 5).join(", ") : "all frames intact");
   const errors = participants.flatMap((p) => p.errors);
   check("harness: no signaling or send errors", errors.length === 0, errors.length ? errors.slice(0, 3).join(" | ") : "none");
+}
+
+/** Worker limits: 60 proxy calls / 10 s per uid (rate-limit.ts), 30 socket messages / 5 s, 4 sessions per uid. */
+function reportSignaling(participants: Participant[]) {
+  const stats = signalingStats(participants);
+  check("limits: no proxy call rejected (429/403/…)", stats.rejected.length === 0, stats.rejected.slice(0, 4).join(", ") || "none");
+  check("limits: no room error messages (socket rate limit etc.)", stats.roomErrors.length === 0, stats.roomErrors.slice(0, 3).join(" | ") || "none");
+  info(
+    `signaling: proxy calls per uid max ${stats.maxTotal} total, busiest 10 s window ${stats.maxBusiest10s} (limit 60); ` +
+      `${stats.pullRequests} pull requests, tracks per pull mean ${fmt(stats.tracksPerPull.mean, 2)} / max ${stats.tracksPerPull.max}`
+  );
 }
 
 function reportContext(participants: Participant[], window: MeasureWindow, loopLagP95: number, loopLagMax: number) {
@@ -191,6 +209,8 @@ function debugTimeline(participants: Participant[], window: MeasureWindow) {
   }
   const line = [...buckets.entries()].sort((a, b) => a[0] - b[0]).map(([s, b]) => `${s}:${fmt(b.worst, 0)}/${b.count}`);
   info(`debug: per-second worst latency ms / frames received: ${line.join(" ")}`);
+  for (const p of participants) if (p.step.what !== "idle") info(`debug: ${p.uid} negotiation stuck at "${p.step.what}" for ${fmt((now() - p.step.since) / 1000)} s`);
+  info(`debug: candidate pairs ${participants.map((p) => `${p.uid}=${p.pair?.local ?? "?"}`).join(" ")}`);
   // Audio loss: lost at every receiver (upstream: publisher -> SFU) vs at some receivers (downstream).
   for (const publisher of participants) {
     const sent = publisher.sent.audio.filter((f) => f.sentAt >= window.start && f.sentAt < window.end).map((f) => f.counter);
@@ -216,6 +236,11 @@ function debugTimeline(participants: Participant[], window: MeasureWindow) {
 
 async function main() {
   requireSecret();
+  if (process.env.E2E_SCENARIO === "rejoin") {
+    const key = await deriveMeetingKey(new Uint8Array(randomBytes(32)), "frame");
+    await runRejoinScenario({ key, relay: RELAY, videoKbps: VIDEO_KBPS });
+    finish();
+  }
   const room = roomClient(newMeetingId("e2e"));
   console.log(
     `Meetings e2e load: ${ROOM_URL}, meeting ${room.meetingId}, Origin ${ORIGIN}\n` +
@@ -230,7 +255,8 @@ async function main() {
   );
   const loop = monitorEventLoopDelay({ resolution: 10 });
   try {
-    await Promise.all(participants.map(async (p) => {
+    await Promise.all(participants.map(async (p, i) => {
+      await sleep(i * STAGGER_MS);
       await p.join();
       await p.publish();
     }));
@@ -245,11 +271,13 @@ async function main() {
     await sleep(DRAIN_MS);
 
     reportJoin(participants);
+    if (STAGGER_MS) reportStaggered(participants);
     reportJoinBreakdown(participants);
     const rows = trackMetrics(participants, window);
     reportAudio(rows);
     reportVideo(rows);
     reportIntegrity(rows, participants);
+    reportSignaling(participants);
     reportContext(participants, window, loop.percentile(95) / 1e6, loop.max / 1e6);
     if (process.env.E2E_DEBUG === "1") debugTimeline(participants, window);
   } catch (error) {

@@ -133,3 +133,24 @@ export function senderDrift(participants: readonly Participant[], window: Measur
   );
   return { p50: percentile(drifts, 50), p95: percentile(drifts, 95), max: drifts.length ? Math.max(...drifts) : NaN };
 }
+
+/** Proxy calls per uid (total and the busiest 10 s window, vs the Worker's 60 / 10 s), non-2xx replies and pull batching. */
+export function signalingStats(participants: readonly Participant[]) {
+  const busiest = (times: number[]) =>
+    times.reduce((best, at, i) => Math.max(best, times.slice(i).filter((t) => t - at < 10_000).length), 0);
+  const perUid = participants.map((p) => ({
+    uid: p.uid,
+    total: p.callLog.length,
+    busiest10s: busiest(p.callLog.map((c) => c.at).sort((a, b) => a - b)),
+    rejected: p.callLog.filter((c) => c.status < 200 || c.status >= 300).map((c) => `${c.route} ${c.status}`)
+  }));
+  const batches = participants.flatMap((p) => p.pullBatches);
+  return {
+    maxTotal: Math.max(...perUid.map((u) => u.total)),
+    maxBusiest10s: Math.max(...perUid.map((u) => u.busiest10s)),
+    rejected: perUid.flatMap((u) => u.rejected.map((r) => `${u.uid} ${r}`)),
+    roomErrors: participants.flatMap((p) => p.roomErrors.map((e) => `${p.uid}: ${e}`)),
+    pullRequests: batches.length,
+    tracksPerPull: { mean: batches.length ? batches.reduce((a, b) => a + b, 0) / batches.length : 0, max: batches.length ? Math.max(...batches) : 0 }
+  };
+}

@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { fail, ok } from "@/src/lib/http";
 import { handleRouteError } from "@/src/lib/api-errors";
-import { createAppSessionToken, getAppSessionCookieMeta, sanitizeReturnTo } from "@/src/lib/auth";
+import { createAppSessionToken, getAppSessionCookieMeta, isTrustedReturnUrl, sanitizeReturnTo } from "@/src/lib/auth";
 import { APP_SESSION_COOKIE_NAME } from "@/src/lib/auth-cookies";
 import { EMAIL_SIGN_IN_COOKIE, verifyEmailSignInCode } from "@/src/server/email-sign-in";
 
@@ -23,8 +23,15 @@ export async function POST(request: NextRequest) {
     const user = await verifyEmailSignInCode(parsed.data.email, parsed.data.code, browserToken);
     if (!user) return fail("This code is invalid or expired. Try again or request a new code.", 400);
     // Resolve as a URL too: URL parsing can normalize backslashes into an external host.
-    const target = new URL(sanitizeReturnTo(parsed.data.returnTo), request.nextUrl.origin);
-    const returnTo = target.origin === request.nextUrl.origin ? `${target.pathname}${target.search}${target.hash}` : "/dashboard";
+    const safe = sanitizeReturnTo(parsed.data.returnTo);
+    const target = new URL(safe, request.nextUrl.origin);
+    // Same origin → path only; another infocuspaly.com host (e.g. the Meetings host) → as is.
+    const returnTo =
+      target.origin === request.nextUrl.origin
+        ? `${target.pathname}${target.search}${target.hash}`
+        : isTrustedReturnUrl(safe)
+          ? safe
+          : "/dashboard";
     const response = ok({ returnTo });
     response.headers.set("Cache-Control", "no-store");
     response.cookies.set(APP_SESSION_COOKIE_NAME, createAppSessionToken(user, true), getAppSessionCookieMeta(true, request.headers.get("host")));

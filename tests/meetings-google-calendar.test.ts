@@ -60,7 +60,8 @@ function google(routes: Record<string, (call: Call) => Response>) {
     const call: Call = { method: init.method ?? "GET", url, body: init.body ? JSON.parse(String(init.body)) : null };
     calls.push(call);
     const key = `${call.method} ${url.pathname.replace("/calendar/v3/calendars/primary/events", "") || "/"}`;
-    const handler = routes[key];
+    // A full sync also lists the series' upcoming instances; none differ unless a test says so.
+    const handler = routes[key] ?? (key === "GET /series-1/instances" ? () => json({ items: [] }) : undefined);
     if (!handler) throw new Error(`unexpected ${key}`);
     return handler(call);
   });
@@ -79,6 +80,7 @@ beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
   vi.stubEnv("APP_AUTH_SECRET", SECRET);
   vi.stubEnv("APP_BASE_URL", "https://portal.example.edu");
+  vi.stubEnv("MEET_APP_URL", "https://meet.example.edu");
   vi.stubEnv("YOUTUBE_CLIENT_ID", "client-id");
   vi.stubEnv("YOUTUBE_CLIENT_SECRET", "client-secret");
   vi.stubEnv("YOUTUBE_CHANNEL_ID", "UCinfocus");
@@ -114,8 +116,8 @@ describe("series event", () => {
     expect(create.url.searchParams.get("conferenceDataVersion")).toBe("0");
     expect(create.body).toEqual({
       summary: "InFocus Producer Meeting",
-      location: "https://portal.example.edu/meet/producers",
-      description: "https://portal.example.edu/meet/producers\n\nEncrypted InFocus meeting. Sign in with your InFocus account.",
+      location: "https://meet.example.edu/producers",
+      description: "https://meet.example.edu/producers\n\nEncrypted InFocus meeting. Sign in with your InFocus account.",
       start: { dateTime: "2026-10-04T21:15:00", timeZone: "America/Los_Angeles" },
       end: { dateTime: "2026-10-04T22:15:00", timeZone: "America/Los_Angeles" },
       recurrence: ["RRULE:FREQ=WEEKLY;BYDAY=SU,MO,WE"],
@@ -135,8 +137,8 @@ describe("series event", () => {
     const current = {
       id: "series-1",
       summary: "InFocus Producer Meeting",
-      location: "https://portal.example.edu/meet/producers",
-      description: "https://portal.example.edu/meet/producers\n\nEncrypted InFocus meeting. Sign in with your InFocus account.",
+      location: "https://meet.example.edu/producers",
+      description: "https://meet.example.edu/producers\n\nEncrypted InFocus meeting. Sign in with your InFocus account.",
       attendees: [{ email: "abby@example.edu" }, { email: "removed@example.edu" }]
     };
     google({ "GET /series-1": () => json(current), "PATCH /series-1": () => json({ id: "series-1" }) });
@@ -159,13 +161,85 @@ describe("series event", () => {
         json({
           id: "series-1",
           summary: "InFocus Producer Meeting",
-          location: "https://portal.example.edu/meet/producers",
-          description: "https://portal.example.edu/meet/producers\n\nEncrypted InFocus meeting. Sign in with your InFocus account.",
+          location: "https://meet.example.edu/producers",
+          description: "https://meet.example.edu/producers\n\nEncrypted InFocus meeting. Sign in with your InFocus account.",
           attendees: rows.map((row) => ({ email: row.email }))
         })
     });
     await runMeetingCalendarJob({ kind: "sync" }, NOW);
-    expect(calls.map((call) => call.method)).toEqual(["GET"]);
+    // Reads the series and its instances; writes nothing.
+    expect(calls.map((call) => call.method)).toEqual(["GET", "GET"]);
+  });
+});
+
+describe("Sync now after the move to the Meetings host", () => {
+  const OLD_SERIES = "https://portal.example.edu/meet/producers";
+  const NEW_SERIES = "https://meet.example.edu/producers";
+  const describe_ = (url: string) => `${url}\n\nEncrypted InFocus meeting. Sign in with your InFocus account.`;
+
+  it("PATCHes the series, a moved instance and a one-off that still carry the old /meet/... link", async () => {
+    mocks.series.findUnique.mockResolvedValue({ googleEventId: "series-1" });
+    mocks.meeting.findMany.mockResolvedValue([
+      { id: "m1", seriesKey: null, occurrenceKey: null, startsAt: new Date("2026-10-10T01:30:00.000Z"), durationMinutes: 45, status: "SCHEDULED", calendarSequence: 1 }
+    ]);
+    mocks.meeting.findUnique.mockResolvedValue({
+      id: "m1",
+      title: "Budget review",
+      startsAt: new Date("2026-10-10T01:30:00.000Z"),
+      durationMinutes: 45,
+      status: "SCHEDULED",
+      access: "OPEN",
+      createdById: "u-sage",
+      inviteeUserIds: [],
+      seriesKey: null,
+      calendarSequence: 1,
+      googleEventId: "evt-1"
+    });
+    google({
+      "GET /series-1": () =>
+        json({
+          id: "series-1",
+          summary: "InFocus Producer Meeting",
+          location: OLD_SERIES,
+          description: describe_(OLD_SERIES),
+          attendees: rows.map((row) => ({ email: row.email }))
+        }),
+      "PATCH /series-1": () => json({}),
+      "GET /series-1/instances": () =>
+        json({
+          items: [
+            // Follows the series (already updated): left alone.
+            { id: "series-1_20261005T041500Z", summary: "InFocus Producer Meeting", location: NEW_SERIES, description: describe_(NEW_SERIES) },
+            // A moved occurrence keeps its own copy of the old link.
+            { id: "series-1_20261102T051500Z", summary: "InFocus Producer Meeting", location: OLD_SERIES, description: describe_(OLD_SERIES) },
+            { id: "series-1_20261104T051500Z", status: "cancelled", location: OLD_SERIES }
+          ]
+        }),
+      "PATCH /series-1_20261102T051500Z": () => json({}),
+      "GET /evt-1": () =>
+        json({
+          id: "evt-1",
+          summary: "Budget review",
+          location: "https://portal.example.edu/meet/m1",
+          description: describe_("https://portal.example.edu/meet/m1"),
+          start: { dateTime: "2026-10-09T18:30:00-07:00" },
+          end: { dateTime: "2026-10-09T19:15:00-07:00" },
+          attendees: rows.map((row) => ({ email: row.email }))
+        }),
+      "PATCH /evt-1": () => json({})
+    });
+
+    await runMeetingCalendarJob({ kind: "sync" }, NOW);
+
+    const patches = calls.filter((call) => call.method === "PATCH");
+    expect(patches.map((call) => call.url.pathname.split("/").pop())).toEqual(["series-1", "series-1_20261102T051500Z", "evt-1"]);
+    for (const patch of patches) expect(patch.url.searchParams.get("sendUpdates")).toBe("all");
+    expect(patches[0].body).toMatchObject({ location: NEW_SERIES, description: describe_(NEW_SERIES) });
+    expect(patches[1].body).toEqual({ summary: "InFocus Producer Meeting", location: NEW_SERIES, description: describe_(NEW_SERIES) });
+    expect(patches[2].body).toMatchObject({
+      location: "https://meet.example.edu/m1",
+      description: describe_("https://meet.example.edu/m1")
+    });
   });
 });
 
@@ -178,8 +252,8 @@ describe("series occurrence", () => {
     return json({
       id: "series-1",
       summary: "InFocus Producer Meeting",
-      location: "https://portal.example.edu/meet/producers",
-      description: "https://portal.example.edu/meet/producers\n\nEncrypted InFocus meeting. Sign in with your InFocus account.",
+      location: "https://meet.example.edu/producers",
+      description: "https://meet.example.edu/producers\n\nEncrypted InFocus meeting. Sign in with your InFocus account.",
       attendees: rows.map((row) => ({ email: row.email }))
     });
   }
@@ -236,7 +310,7 @@ describe("one-off meetings", () => {
     await runMeetingCalendarJob({ kind: "event", meetingId: "m1" }, NOW);
     expect(calls[0].body).toMatchObject({
       summary: "Budget review",
-      location: "https://portal.example.edu/meet/m1",
+      location: "https://meet.example.edu/m1",
       start: { dateTime: "2026-10-09T18:30:00", timeZone: "America/Los_Angeles" },
       end: { dateTime: "2026-10-09T19:15:00", timeZone: "America/Los_Angeles" },
       attendees: [{ email: "abby@example.edu" }, { email: "guest@example.edu" }, { email: "otto@example.edu" }]

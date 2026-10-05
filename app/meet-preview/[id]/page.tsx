@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { mainAppOrigin } from "@/src/lib/hosts";
+import { meetingUrl, producersMeetingUrl } from "@/src/lib/meetings/links";
 import { loadMeetingPreview } from "@/src/server/meetings-preview";
 
 /**
@@ -15,7 +16,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const preview = await loadMeetingPreview(id);
   const origin = mainAppOrigin().replace(/\/+$/, "");
-  const url = `${origin}/meet/${encodeURIComponent(id)}`;
+  const url = id === "producers" ? producersMeetingUrl() : meetingUrl(id);
   return {
     metadataBase: new URL(origin),
     title: preview.title,
@@ -33,7 +34,7 @@ export default async function MeetingPreviewPage({ params }: Props) {
     <main style={{ padding: 24, fontFamily: "system-ui, sans-serif" }}>
       <h1>{preview.title}</h1>
       <p>
-        <a href={`/meet/${encodeURIComponent(id)}`}>Open in InFocus Portal</a>
+        <a href={id === "producers" ? producersMeetingUrl() : meetingUrl(id)}>Open in InFocus Portal</a>
       </p>
     </main>
   );

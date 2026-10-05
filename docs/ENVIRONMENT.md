@@ -25,6 +25,8 @@ Put these in `.env` (never commit it). Only the **Required** group is needed to 
 
 `SESSION_COOKIE_DOMAIN`, `GRADES_APP_URL`, `TELEPROMPTER_APP_URL`, `EQUIPMENT_APP_URL`. See [SUBDOMAINS.md](SUBDOMAINS.md).
 
+`MEET_APP_URL` (server) and `NEXT_PUBLIC_MEET_APP_URL` (browser copy, for Copy link and the sidebar): the Meetings host, default `https://meet.infocuspaly.com`; set both to the same value if you change it. Old meeting links on the main host only move there on `infocuspaly.com` / `www.infocuspaly.com`, or wherever `MEET_APP_URL` is set; local dev and Vercel previews keep meetings on their own host.
+
 ## Media storage
 
 `MEDIA_STORAGE_PROVIDER` (`NAS` for new uploads), `NEXT_PUBLIC_MEDIA_STORAGE_HINT`, `DRIVE_BASE_URL`, `DRIVE_SERVICE_TOKEN`. See [NAS-STORAGE.md](NAS-STORAGE.md). Legacy Bunny: `BUNNY_STREAM_LIBRARY_ID`, `BUNNY_STREAM_API_KEY`, `BUNNY_STREAM_PULL_ZONE`, `BUNNY_STREAM_SIGNING_KEY`, `BUNNY_WEBHOOK_SECRET`.

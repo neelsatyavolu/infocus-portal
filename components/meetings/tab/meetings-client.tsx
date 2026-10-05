@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import * as Popover from "@radix-ui/react-popover";
 import { CalendarPlus, ChevronDown, Loader2, Lock, Video } from "lucide-react";
 import { toast } from "sonner";
+import { producersMeetingUrl } from "@/src/lib/meetings/links";
 import { CopyLinkButton } from "./copy-link-button";
 import { Button } from "@/components/ui/button";
 import type { MeetingListResponse, MeetingSummary } from "@/src/lib/meetings/types";
@@ -104,7 +105,7 @@ export default function MeetingsClient() {
           </div>
           <div className="flex flex-wrap gap-2">
             <CalendarSettingsDialog />
-            <CopyLinkButton path="/meet/producers" label="Copy link" />
+            <CopyLinkButton url={producersMeetingUrl()} label="Copy link" />
             <Button variant="outline" onClick={() => setDialog("schedule")}>
               <CalendarPlus aria-hidden /> Schedule
             </Button>

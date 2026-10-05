@@ -16,13 +16,14 @@ import { ConfirmDialog } from "../confirm-dialog";
 import { InviteesDialog } from "../invitees-dialog";
 import { AudioSettings, VideoSettings } from "./settings-sections";
 import { accessTagLabel } from "../tab/meeting-rows";
+import { meetingUrl } from "@/src/lib/meetings/links";
 import type { LocalMedia } from "./use-local-media";
 
 type OpenProps = { open: boolean; onOpenChange: (open: boolean) => void };
 
 export function MeetingInfoDialog({ open, onOpenChange, meeting, isHost }: OpenProps & { meeting: MeetingSummary; isHost: boolean }) {
   const [editInvitees, setEditInvitees] = useState(false);
-  const link = typeof window === "undefined" ? "" : `${window.location.origin}/meet/${meeting.id}`;
+  const link = meetingUrl(meeting.id);
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>

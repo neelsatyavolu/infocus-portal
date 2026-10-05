@@ -74,6 +74,7 @@ import { EXTENSION_REQUESTS_CHANGED_EVENT } from "@/src/lib/package-extensions";
 import { executiveWaitPill } from "@/src/lib/package-approval";
 import type { CycleStageStatus } from "@/src/lib/package-stage-status";
 import { folderDisplayName, folderPathSegments } from "@/src/lib/project-folders";
+import { meetingsHomeUrl } from "@/src/lib/meetings/links";
 import { cn } from "@/src/lib/utils";
 
 function hasRole(role: PlatformRole | null, minimum: PlatformRole) {
@@ -272,6 +273,9 @@ export function AppShell({
   embedded = false
 }: AppShellProps) {
   const pathname = usePathname();
+  // Meetings live on their own host (meet.infocuspaly.com), where "/" is the Meetings tab.
+  const [onMeetHost, setOnMeetHost] = useState(false);
+  useEffect(() => setOnMeetHost(window.location.hostname.startsWith("meet.")), []);
   const router = useRouter();
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
@@ -1086,10 +1090,11 @@ export function AppShell({
           ) : null}
           {canManageWorkspaces ? (
             <SideNavLink
-              href={"/meetings" as never}
+              href={meetingsHomeUrl()}
               icon={Video}
               label="Meetings"
-              active={pathname.startsWith("/meetings")}
+              external
+              active={pathname.startsWith("/meetings") || (onMeetHost && pathname === "/")}
             />
           ) : null}
           {canManageWorkspaces ? (

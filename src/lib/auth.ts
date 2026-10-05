@@ -252,8 +252,35 @@ export function hasGoogleOAuthConfig() {
   return Boolean(clientId && clientSecret && getAuthSecret());
 }
 
+const TRUSTED_RETURN_HOST = /^(?:[a-z0-9-]+\.)*infocuspaly\.com$/;
+
+/**
+ * An absolute return URL we may send people to after sign-in: https only, infocuspaly.com or a
+ * subdomain (e.g. the Meetings host), no credentials or port, never an API path. Parsed as a URL,
+ * so tricks like backslashes or "@" can't smuggle in another host.
+ */
+export function isTrustedReturnUrl(value: string) {
+  if (!/^https:\/\//i.test(value)) return false;
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === "https:" &&
+      !url.username &&
+      !url.password &&
+      !url.port &&
+      TRUSTED_RETURN_HOST.test(url.hostname) &&
+      !url.pathname.startsWith("/api/")
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function sanitizeReturnTo(returnTo?: string | null, fallback = "/dashboard") {
   const value = (returnTo ?? "").trim();
+  if (isTrustedReturnUrl(value)) {
+    return new URL(value).toString();
+  }
   if (!value || !value.startsWith("/") || value.startsWith("//")) {
     return fallback;
   }

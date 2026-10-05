@@ -2,6 +2,13 @@
 
 Private video meetings for producers, with notes written on the InFocus Drive.
 
+
+## Where meetings live
+
+- Meetings have their own address: **meet.infocuspaly.com**. The Meetings tab is at the top (`meet.infocuspaly.com`), the InFocus Producer Meeting at **meet.infocuspaly.com/producers**, and each meeting at `meet.infocuspaly.com/<meeting id>`.
+- Copy link, calendar invites and link previews all use these addresses. Old `infocuspaly.com/meet/…` and `/meetings` links still work: they move to the meet address.
+- The InFocus Portal iPhone app keeps opening meetings inside the app, as before.
+- Signing in from a meet link brings you back to that meeting.
 ## Who
 
 - **Producers only** (associate producers and up). Reporters without a producer role don't see Meetings.
@@ -30,7 +37,7 @@ Private video meetings for producers, with notes written on the InFocus Drive.
 - The **InFocus Producer Meeting** repeats every Sunday, Monday and Wednesday at 9:15 PM Pacific for 60 minutes. The next 21 days are always listed.
 - A host can **move** or **cancel** one occurrence. A moved occurrence stays moved; a cancelled one stays cancelled.
 - A live meeting can't be moved or cancelled. Use **End for everyone**.
-- **Stable link:** `/meet/producers` always opens the current InFocus Producer Meeting (the live one, otherwise the next one). Before it opens, the page says when it opens.
+- **Stable link:** `meet.infocuspaly.com/producers` always opens the current InFocus Producer Meeting (the live one, otherwise the next one). Before it opens, the page says when it opens.
 - **Reminders:** a push 15 minutes before and again 5 minutes before a meeting starts ("… starts in 15 minutes", "… starts in 5 minutes. Join now."). Tapping it opens the call, in the iPhone and Mac apps too. Everyone gets them for open meetings (or only the picked people, when some were picked); invite-only meetings remind only the people on them. A meeting scheduled less than 15 minutes ahead skips the 15-minute reminder. Moving a meeting sends the reminders again at the new time.
 
 ## Calendar invites
@@ -38,10 +45,10 @@ Private video meetings for producers, with notes written on the InFocus Drive.
 - Invites are **Google Calendar events** sent from the InFocus Google account. Guests get Google's own invite email, and Google keeps their calendars up to date when something changes. The Portal sends no `.ics` files.
 - Executive producers, the adviser, and super admin keep the list of email addresses (Meetings → calendar invites). Every producer can see the list and whether invites are working ("Invites are sent from … via Google Calendar", or "Last sync failed: …").
 - An address can be **linked to a producer**. Invite-only meetings only invite addresses linked to the people on them.
-- **InFocus Producer Meeting:** one repeating event (Sunday, Monday and Wednesday, 9:15 PM Pacific), linking to `/meet/producers`. Every address on the list is a guest.
+- **InFocus Producer Meeting:** one repeating event (Sunday, Monday and Wednesday, 9:15 PM Pacific), linking to `meet.infocuspaly.com/producers`. Every address on the list is a guest.
 - Adding an address makes it a guest of the repeating event and of every upcoming meeting it qualifies for. Removing it takes it off them, and Google sends that person a cancellation.
 - When a host moves or cancels one occurrence, only that day changes in everyone's calendar.
-- **Other scheduled meetings** (set more than 10 minutes ahead) get their own event, linking to `/meet/<id>`. Open meetings invite every address; invite-only meetings invite only the linked addresses of the people on them. Moving or renaming updates it; cancelling deletes it (guests get a cancellation); adding or removing someone from an invite-only meeting updates its guests. "Start now" meetings get no event.
+- **Other scheduled meetings** (set more than 10 minutes ahead) get their own event, linking to `meet.infocuspaly.com/<id>`. Open meetings invite every address; invite-only meetings invite only the linked addresses of the people on them. Moving or renaming updates it; cancelling deletes it (guests get a cancellation); adding or removing someone from an invite-only meeting updates its guests. "Start now" meetings get no event.
 - Changes reach Google in the background (retried if Google is briefly unavailable). **Sync now** re-checks everything.
 - If Google Calendar isn't connected, no invites go out at all.
 
@@ -49,7 +56,7 @@ Private video meetings for producers, with notes written on the InFocus Drive.
 
 1. In the Google Cloud project that has the Portal's Google sign-in (the one used for YouTube), enable the **Google Calendar API**.
 2. Admin → **Google Calendar** → **Connect Google Calendar**, and sign in as the InFocus Google account. Allow calendar access.
-3. In Meetings → calendar invites, press **Sync now** once to create the repeating event for everyone already on the list.
+3. In Meetings → calendar invites, press **Sync now** once to create the repeating event for everyone already on the list. **Sync now** also updates existing events whose title or link changed (for example after the move to meet.infocuspaly.com).
 
 This is separate from Admin → Reconnect YouTube and doesn't change it.
 
@@ -75,7 +82,7 @@ This is separate from Admin → Reconnect YouTube and doesn't change it.
 
 ## Link previews
 
-- Sharing a meeting link in iMessage, Slack, Discord, WhatsApp, LinkedIn or Telegram shows a preview card with the meeting's title and its date and time (Pacific), or "Happening now" while it's live. `/meet/producers` shows the next InFocus Producer Meeting.
+- Sharing a meeting link in iMessage, Slack, Discord, WhatsApp, LinkedIn or Telegram shows a preview card with the meeting's title and its date and time (Pacific), or "Happening now" while it's live. `meet.infocuspaly.com/producers` (and the old `/meet/producers` link) shows the next InFocus Producer Meeting.
 - The card shows the title and time only, never who is invited or attending. A cancelled meeting shows "Cancelled · <title>"; a link to a meeting that doesn't exist shows "InFocus meeting".
 - Opening the link still needs an InFocus sign-in.
 

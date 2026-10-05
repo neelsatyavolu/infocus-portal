@@ -4,10 +4,11 @@
  * - grades.infocuspaly.com → grades dashboard
  * - teleprompter.infocuspaly.com → teleprompter app
  * - equipment.infocuspaly.com → equipment app
+ * - meet.infocuspaly.com → Meetings (/ = the Meetings tab, /producers = the series, /<id> = a call)
  * - infocuspaly.com (and www / vercel preview) → main packages app
  */
 
-export type AppSurface = "main" | "grades" | "teleprompter" | "equipment";
+export type AppSurface = "main" | "grades" | "teleprompter" | "equipment" | "meet";
 
 export const COOKIE_PARENT_DOMAIN = ".infocuspaly.com";
 
@@ -28,6 +29,10 @@ export function resolveAppSurface(hostHeader?: string | null): AppSurface {
 
   if (host.startsWith("equipment.")) {
     return "equipment";
+  }
+
+  if (host.startsWith("meet.")) {
+    return "meet";
   }
 
   return "main";
@@ -69,4 +74,16 @@ export function equipmentAppOrigin() {
 
 export function mainAppOrigin() {
   return process.env.APP_BASE_URL?.trim() || "https://infocuspaly.com";
+}
+
+/**
+ * The Meetings host. Server env MEET_APP_URL; NEXT_PUBLIC_MEET_APP_URL is the browser's copy
+ * (only NEXT_PUBLIC_ values reach client code). Unset: the production host.
+ */
+export function meetAppOrigin() {
+  return (
+    process.env.MEET_APP_URL?.trim() ||
+    process.env.NEXT_PUBLIC_MEET_APP_URL?.trim() ||
+    "https://meet.infocuspaly.com"
+  ).replace(/\/+$/, "");
 }

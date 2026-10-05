@@ -5,8 +5,8 @@ import { Check, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
-/** Copies `${origin}${path}`. `iconOnly` is for meeting rows; the hero shows the label. */
-export function CopyLinkButton({ path, label = "Copy link", iconOnly = false }: { path: string; label?: string; iconOnly?: boolean }) {
+/** Copies a shareable link (`url`, on the Meetings host). `iconOnly` is for meeting rows; the hero shows the label. */
+export function CopyLinkButton({ url, label = "Copy link", iconOnly = false }: { url: string; label?: string; iconOnly?: boolean }) {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -17,7 +17,7 @@ export function CopyLinkButton({ path, label = "Copy link", iconOnly = false }: 
 
   async function copy() {
     try {
-      await navigator.clipboard.writeText(`${window.location.origin}${path}`);
+      await navigator.clipboard.writeText(url);
       setCopied(true);
     } catch {
       toast.error("Couldn't copy the link.");

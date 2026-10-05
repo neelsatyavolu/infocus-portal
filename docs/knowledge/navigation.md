@@ -31,7 +31,7 @@ Tabs with no note are shown to everyone signed in.
 **Producers**
 
 - Groups, Members, Package Cycle (roster), Publishing Queue, The Show, Participation — associate producers and up
-- Meetings (`/meetings`) — associate producers and up. Calls open full screen at `/meet/<id>` (see `meetings.md`)
+- Meetings (opens `meet.infocuspaly.com`) — associate producers and up. Calls open full screen at `meet.infocuspaly.com/<id>` (see `meetings.md`)
 - Grade Editor — executive producers, the adviser, and super admin
 - Extension Requests — everyone. A number shows how many requests are waiting on you.
 

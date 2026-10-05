@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { mainAppOrigin } from "@/src/lib/hosts";
+import { meetingUrl, producersMeetingUrl } from "@/src/lib/meetings/links";
 import { inngest } from "@/src/lib/inngest";
 import { MEETINGS_TIME_ZONE, PRODUCER_SERIES, pacificLocalStamp, producerOccurrences, producerSlotStart } from "@/src/lib/meetings/schedule";
 import { prisma } from "@/src/lib/prisma";
@@ -90,9 +90,6 @@ function isGone(error: unknown) {
   return error instanceof CalendarApiError && (error.status === 404 || error.status === 410);
 }
 
-function origin() {
-  return mainAppOrigin().replace(/\/+$/, "");
-}
 
 /** "2026-10-04T21:15:00" in Pacific wall time, sent with timeZone America/Los_Angeles. */
 function pacificDateTime(instant: Date) {
@@ -142,7 +139,7 @@ function attendeeList(emails: string[]) {
 export function seriesEventBody(firstStart: Date, attendees: string[]) {
   return {
     summary: PRODUCER_SERIES.title,
-    ...details(`${origin()}/meet/producers`),
+    ...details(producersMeetingUrl()),
     ...times(firstStart, PRODUCER_SERIES.durationMinutes),
     recurrence: [SERIES_RRULE],
     attendees: attendeeList(attendees),
@@ -157,7 +154,7 @@ export function oneOffEventBody(
 ) {
   return {
     summary: meeting.title,
-    ...details(`${origin()}/meet/${meeting.id}`),
+    ...details(meetingUrl(meeting.id)),
     ...times(meeting.startsAt, meeting.durationMinutes),
     attendees: attendeeList(attendees),
     guestsCanSeeOtherGuests: false,
@@ -168,6 +165,33 @@ export function oneOffEventBody(
 function sameAttendees(event: GoogleEvent, emails: string[]) {
   const current = [...new Set((event.attendees ?? []).map((a) => (a.email ?? "").toLowerCase()).filter(Boolean))].sort();
   return current.length === emails.length && current.every((email, index) => email === emails[index]);
+}
+
+/** Title, link (location) and description match, e.g. after the meeting link moved to the Meetings host. */
+function sameDetails(event: GoogleEvent, want: { summary: string; location: string; description: string }) {
+  return event.summary === want.summary && event.location === want.location && event.description === want.description;
+}
+
+/** How far ahead "Sync now" checks the series' individual occurrences. */
+const INSTANCE_WINDOW_MS = 60 * 24 * 60 * 60 * 1000;
+
+/**
+ * Upcoming occurrences of the series that carry their own copy of the title, link or description
+ * (Google keeps those on moved/edited instances): PATCH any that differ from the series. Unchanged
+ * instances follow the series event and already match, so they're left alone.
+ */
+async function syncSeriesInstances(token: string, seriesEventId: string, now: Date) {
+  const want = details(producersMeetingUrl());
+  const found = await calendarApi<{ items?: GoogleEvent[] }>(token, "GET", `/${encodeURIComponent(seriesEventId)}/instances`, {
+    timeMin: now.toISOString(),
+    timeMax: new Date(now.getTime() + INSTANCE_WINDOW_MS).toISOString(),
+    maxResults: "250"
+  });
+  for (const instance of found?.items ?? []) {
+    if (instance.status === "cancelled") continue;
+    if (sameDetails(instance, { summary: PRODUCER_SERIES.title, ...want })) continue;
+    await calendarApi(token, "PATCH", `/${encodeURIComponent(instance.id)}`, WRITE, { summary: PRODUCER_SERIES.title, ...want });
+  }
 }
 
 function sameStart(event: GoogleEvent, start: Date, durationMinutes: number) {
@@ -208,12 +232,7 @@ async function syncSeries(token: string, rows: { email: string; userId: string |
   }
 
   const want = seriesEventBody(now, attendees);
-  if (
-    !sameAttendees(existing, attendees) ||
-    existing.summary !== want.summary ||
-    existing.location !== want.location ||
-    existing.description !== want.description
-  ) {
+  if (!sameAttendees(existing, attendees) || !sameDetails(existing, want)) {
     await calendarApi(token, "PATCH", `/${encodeURIComponent(existing.id)}`, WRITE, {
       summary: want.summary,
       location: want.location,
@@ -293,7 +312,7 @@ async function syncOneOff(token: string, meetingId: string, rows: { email: strin
   }
   if (
     !sameAttendees(existing, attendees) ||
-    existing.summary !== want.summary ||
+    !sameDetails(existing, want) ||
     !sameStart(existing, meeting.startsAt, meeting.durationMinutes)
   ) {
     await calendarApi(token, "PATCH", `/${encodeURIComponent(existing.id)}`, WRITE, {
@@ -311,6 +330,7 @@ async function syncOneOff(token: string, meetingId: string, rows: { email: strin
 async function fullSync(token: string, now: Date) {
   const rows = await inviteRows();
   const seriesEventId = await syncSeries(token, rows, now);
+  await syncSeriesInstances(token, seriesEventId, now);
   const upcoming = await prisma.meeting.findMany({
     where: { startsAt: { gt: now }, status: { in: ["SCHEDULED", "CANCELED"] } },
     select: { id: true, seriesKey: true, occurrenceKey: true, startsAt: true, durationMinutes: true, status: true, calendarSequence: true }

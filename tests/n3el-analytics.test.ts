@@ -24,4 +24,11 @@ describe("n3el analytics", () => {
     expect(shouldLoadN3elAnalytics("/meetings")).toBe(true);
     expect(shouldLoadN3elAnalytics("/meetings/abc")).toBe(true);
   });
+
+  it("skips everything on the Meetings host (calls are /<id> and /producers there)", () => {
+    expect(shouldLoadN3elAnalytics("/clabc123def456ghi789jkl", "meet.infocuspaly.com")).toBe(false);
+    expect(shouldLoadN3elAnalytics("/producers", "meet.infocuspaly.com")).toBe(false);
+    expect(shouldLoadN3elAnalytics("/", "meet.infocuspaly.com")).toBe(false);
+    expect(shouldLoadN3elAnalytics("/groups", "infocuspaly.com")).toBe(true);
+  });
 });

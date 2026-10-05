@@ -2,8 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { appReviewEmail, isAppReviewEmail, isAppReviewPathAllowed } from "@/src/lib/app-review";
 import { APP_SESSION_COOKIE_NAME, TELEPROMPTER_KIOSK_COOKIE_NAME } from "@/src/lib/auth-cookies";
 import { parseAppSessionToken } from "@/src/lib/auth-edge";
-import { resolveAppSurface, type AppSurface } from "@/src/lib/hosts";
+import { EMBEDDED_APP_COOKIE } from "@/src/lib/embedded-app";
+import { mainAppOrigin, meetAppOrigin, normalizeHost, resolveAppSurface, type AppSurface } from "@/src/lib/hosts";
 import { MEETING_PREVIEW_PUBLIC_PATH, meetingPreviewRewritePath } from "@/src/lib/meetings/link-preview";
+import {
+  isEmbeddedAppRequest,
+  meetHostRedirectFromMain,
+  routeMeetHost,
+  shouldUseMeetHost
+} from "@/src/lib/meetings/meet-host-routing";
 import {
   getTeleprompterKioskCookieMeta,
   isTeleprompterKioskPath,
@@ -57,7 +64,14 @@ function isPublicRoute(pathname: string) {
   return publicRoutePatterns.some((pattern) => pattern.test(pathname));
 }
 
-function buildSignInUrl(req: NextRequest) {
+function buildSignInUrl(req: NextRequest, surface: AppSurface) {
+  // Meetings host: sign in on the main host (Google's redirect lives there) and come back to this
+  // exact meet URL (sanitizeReturnTo allows https *.infocuspaly.com).
+  if (surface === "meet") {
+    const signInUrl = new URL("/sign-in", mainAppOrigin());
+    signInUrl.searchParams.set("returnTo", `${meetAppOrigin()}${req.nextUrl.pathname}${req.nextUrl.search}`);
+    return signInUrl;
+  }
   const signInUrl = new URL("/sign-in", req.url);
   const returnTo = `${req.nextUrl.pathname}${req.nextUrl.search}`;
   if (returnTo !== "/") {
@@ -165,6 +179,42 @@ export default async function middleware(req: NextRequest) {
     }
   }
 
+  // iMessage / Slack / … crawlers fetch meeting links signed out: serve them the metadata-only
+  // preview page instead of a sign-in redirect. Rewrite, not redirect, so the shared URL stays as is.
+  // Runs before the host routing so old /meet/<id> links and Meetings host links both preview.
+  const previewPath = meetingPreviewRewritePath(pathname, req.method, req.headers.get("user-agent"), surface === "meet");
+  if (previewPath) {
+    return withSurfaceHeaders(NextResponse.rewrite(new URL(previewPath, req.url)), surface, host);
+  }
+
+  if (surface === "meet") {
+    const route = routeMeetHost(pathname, req.nextUrl.search, mainAppOrigin());
+    if (route.kind === "redirect") {
+      return withSurfaceHeaders(NextResponse.redirect(new URL(route.location, req.url), route.status), surface, host);
+    }
+    if (route.kind === "rewrite") {
+      // Rewritten pages skip the checks below, so sign in here (back to this exact meet URL after).
+      if (!(await parseAppSessionToken(sessionToken))) {
+        return withSurfaceHeaders(NextResponse.redirect(buildSignInUrl(req, surface)), surface, host);
+      }
+      return withSurfaceHeaders(NextResponse.rewrite(new URL(route.path, req.url)), surface, host);
+    }
+  }
+
+  // Old meeting links on the main host → the Meetings host (308, query kept). Not in the iPhone
+  // app (it loads the main host and watches for /meetings), and not where no Meetings host exists.
+  if (surface === "main" && shouldUseMeetHost(normalizeHost(host), Boolean(process.env.MEET_APP_URL?.trim()))) {
+    const target = meetHostRedirectFromMain(pathname, req.nextUrl.search, meetAppOrigin());
+    const embedded = isEmbeddedAppRequest({
+      appParam: req.nextUrl.searchParams.get("app"),
+      embeddedCookie: req.cookies.get(EMBEDDED_APP_COOKIE)?.value,
+      userAgent: req.headers.get("user-agent")
+    });
+    if (target && !embedded) {
+      return withSurfaceHeaders(NextResponse.redirect(target, 308), surface, host);
+    }
+  }
+
   const surfaceRewrite = rewriteForSurface(req, surface, pathname);
   if (surfaceRewrite) {
     return withSurfaceHeaders(surfaceRewrite, surface, host);
@@ -178,13 +228,6 @@ export default async function middleware(req: NextRequest) {
 
   if (pathname === "/api/class-board/unlock") {
     return withSurfaceHeaders(NextResponse.next(), surface, host);
-  }
-
-  // iMessage / Slack / … crawlers fetch meeting links signed out: serve them the metadata-only
-  // preview page instead of a sign-in redirect. Rewrite, not redirect, so the shared URL stays as is.
-  const previewPath = meetingPreviewRewritePath(pathname, req.method, req.headers.get("user-agent"));
-  if (previewPath) {
-    return withSurfaceHeaders(NextResponse.rewrite(new URL(previewPath, req.url)), surface, host);
   }
 
   if (isPublicRoute(pathname)) {
@@ -210,7 +253,7 @@ export default async function middleware(req: NextRequest) {
       );
     }
 
-    return withSurfaceHeaders(NextResponse.redirect(buildSignInUrl(req)), surface, host);
+    return withSurfaceHeaders(NextResponse.redirect(buildSignInUrl(req, surface)), surface, host);
   }
 
   return withSurfaceHeaders(NextResponse.next(), surface, host);

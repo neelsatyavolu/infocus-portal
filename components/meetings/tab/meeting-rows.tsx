@@ -13,6 +13,7 @@ import {
   pacificTimeLabel
 } from "@/src/lib/meetings/client/time";
 import { cn } from "@/src/lib/utils";
+import { meetingUrl } from "@/src/lib/meetings/links";
 import { CopyLinkButton } from "./copy-link-button";
 
 /** Tag text for restricted meetings; null for meetings every producer can join. */
@@ -68,7 +69,7 @@ export function LiveBanner({ meetings, now }: { meetings: MeetingSummary[]; now:
               <p className="text-xs text-muted-foreground">Started at {pacificTimeLabel(m.startsAt)}</p>
             </div>
             <AccessTag meeting={m} />
-            {m.seriesKey ? null : <CopyLinkButton path={meetPath(m.id)} iconOnly />}
+            {m.seriesKey ? null : <CopyLinkButton url={meetingUrl(m.id)} iconOnly />}
             {canJoinNow(m, now) ? (
               <Link href={meetHref(m.id)} className={buttonVariants({ size: "sm" })}>
                 Join
@@ -120,7 +121,7 @@ export function UpcomingList({
                   </div>
                   <AccessTag meeting={m} />
                   <div className="flex gap-2">
-                    {m.seriesKey ? null : <CopyLinkButton path={meetPath(m.id)} iconOnly />}
+                    {m.seriesKey ? null : <CopyLinkButton url={meetingUrl(m.id)} iconOnly />}
                     {m.canEdit ? (
                       <>
                         <Button size="sm" variant="outline" onClick={() => onMove(m)}>

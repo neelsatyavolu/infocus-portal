@@ -17,7 +17,14 @@
  *
  * Env: MEETING_ROOM_SECRET (required), MEETING_ROOM_URL, SMOKE_ORIGIN (default https://meet.infocuspaly.com),
  *      E2E_PARTICIPANTS (default 4), E2E_SECONDS (default 60), E2E_RELAY=1 (TURN only),
- *      E2E_VIDEO_KBPS (default 1500), E2E_SCENARIO=staggered (one joiner every E2E_STAGGER_MS, default 3000) | rejoin (leave + rejoin repro, scripts/meetings-e2e/rejoin.ts), E2E_DEBUG=1 (per-second latency timeline, freezes, where audio was lost; 2 adds every room message and pull).
+ *      E2E_VIDEO_KBPS (default 1500), E2E_PULL_BATCH=tick (stock partytracks batching),
+ *      E2E_DEBUG=1 (per-second latency timeline, freezes, where audio was lost; 2 adds every room message and pull),
+ *      E2E_SCENARIO:
+ *        staggered  one joiner every E2E_STAGGER_MS (default 3000)
+ *        rejoin     leave + rejoin repro (scripts/meetings-e2e/rejoin.ts; E2E_REJOIN_VARIANTS)
+ *        soak       long meeting with blips, rejoins, a rekey and idle media (scripts/meetings-e2e/soak.ts; E2E_SECONDS default 1800)
+ *        expiry     tickets expiring mid-call, refreshed vs not (scripts/meetings-e2e/expiry.ts; E2E_TICKET_TTL_S, E2E_SECONDS default 360)
+ *        reopen     room side of reopening an ended meeting (scripts/meetings-e2e/reopen.ts)
  * Exit code: 0 when every threshold passes, 1 otherwise.
  */
 import { randomBytes } from "node:crypto";
@@ -44,7 +51,10 @@ import {
 import { firstFrames, joinMetrics, senderDrift, signalingStats, trackMetrics, type MeasureWindow, type TrackMetrics } from "./meetings-e2e/metrics";
 import { Participant } from "./meetings-e2e/participant";
 import { reportStaggered } from "./meetings-e2e/staggered";
+import { runExpiryScenario } from "./meetings-e2e/expiry";
 import { runRejoinScenario } from "./meetings-e2e/rejoin";
+import { runReopenScenario } from "./meetings-e2e/reopen";
+import { runSoakScenario } from "./meetings-e2e/soak";
 
 const PARTICIPANTS = Math.max(2, Number(process.env.E2E_PARTICIPANTS ?? 4));
 const SECONDS = Math.max(5, Number(process.env.E2E_SECONDS ?? 60));
@@ -236,9 +246,15 @@ function debugTimeline(participants: Participant[], window: MeasureWindow) {
 
 async function main() {
   requireSecret();
-  if (process.env.E2E_SCENARIO === "rejoin") {
+  const scenarios = { rejoin: runRejoinScenario, expiry: runExpiryScenario, reopen: runReopenScenario } as const;
+  if (SCENARIO in scenarios) {
     const key = await deriveMeetingKey(new Uint8Array(randomBytes(32)), "frame");
-    await runRejoinScenario({ key, relay: RELAY, videoKbps: VIDEO_KBPS });
+    await scenarios[SCENARIO as keyof typeof scenarios]({ key, relay: RELAY, videoKbps: VIDEO_KBPS });
+    finish();
+  }
+  if (SCENARIO === "soak") {
+    const meetingId = await runSoakScenario({ relay: RELAY, videoKbps: VIDEO_KBPS });
+    console.log(`\nsoak meeting id: ${meetingId}`);
     finish();
   }
   const room = roomClient(newMeetingId("e2e"));

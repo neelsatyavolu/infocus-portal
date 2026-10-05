@@ -17,8 +17,13 @@ import {
   useVP8 as vp8Codec,
   type RTCRtpTransceiver
 } from "werift";
-import { signMeetingInternalToken, signMeetingToken, type MeetingRoomRole } from "../../src/lib/meetings/room-token";
-import type { MeetingServerMessage } from "../../src/lib/meetings/protocol";
+import {
+  MEETING_ROOM_TOKEN_TTL_MS,
+  signMeetingInternalToken,
+  signMeetingToken,
+  type MeetingRoomRole
+} from "../../src/lib/meetings/room-token";
+import type { MeetingRoomEvent, MeetingServerMessage } from "../../src/lib/meetings/protocol";
 
 export const SECRET = process.env.MEETING_ROOM_SECRET ?? "";
 export const ROOM_URL = (process.env.MEETING_ROOM_URL ?? "https://meet-api.infocuspaly.com").replace(/\/+$/, "");
@@ -96,23 +101,36 @@ export function describe(reply: Reply) {
 }
 
 export type RoomClient = ReturnType<typeof roomClient>;
+export type TicketOptions = { mid?: string; ttlMs?: number; gen?: number };
+/** A ticket string, or the browser's split: `query` from the media session's start, `bearer` current. */
+export type ProxyAuth = string | { query: string; bearer: string };
 
 export function roomClient(meetingId: string) {
   const prefix = `${ROOM_URL}/rooms/${meetingId}/partytracks`;
 
-  function ticket(uid: string, role: MeetingRoomRole, adm: boolean, mid = meetingId) {
+  /**
+   * A room ticket like the Portal's /join or /ticket issues: 4 h TTL unless `ttlMs` says otherwise,
+   * room generation `gen` (absent = 0, as before reopening existed).
+   */
+  function ticket(uid: string, role: MeetingRoomRole, adm: boolean, options: TicketOptions = {}) {
     const issued = Date.now();
+    const { mid = meetingId, ttlMs = MEETING_ROOM_TOKEN_TTL_MS, gen } = options;
     return signMeetingToken(
-      { v: 1, kind: "room", mid, uid, name: `Smoke ${uid}`, role, adm, iat: issued, exp: issued + 15 * 60_000 },
+      { v: 1, kind: "room", mid, uid, name: `Smoke ${uid}`, role, adm, ...(gen ? { gen } : {}), iat: issued, exp: issued + ttlMs },
       SECRET
     );
   }
 
-  /** One proxy call, shaped like partytracks' fetch (JSON string body, ticket in the query). */
-  async function proxy(path: string, token: string, method: string, body?: unknown, origin: string | null = ORIGIN): Promise<Reply> {
-    const headers: Record<string, string> = {};
+  /**
+   * One proxy call, shaped like the call UI's partytracks fetch: JSON string body, the ticket from
+   * the media session's start in `?token=` and the CURRENT (refreshed) ticket as
+   * `Authorization: Bearer` (src/lib/meetings/client/media-session.ts). A plain string is both.
+   */
+  async function proxy(path: string, auth: ProxyAuth, method: string, body?: unknown, origin: string | null = ORIGIN): Promise<Reply> {
+    const { query, bearer } = typeof auth === "string" ? { query: auth, bearer: auth } : auth;
+    const headers: Record<string, string> = { Authorization: `Bearer ${bearer}` };
     if (origin) headers.Origin = origin;
-    const response = await fetch(`${prefix}${path}?${new URLSearchParams({ token })}`, {
+    const response = await fetch(`${prefix}${path}?${new URLSearchParams({ token: query })}`, {
       method,
       headers,
       body: body === undefined ? undefined : JSON.stringify(body)
@@ -129,27 +147,46 @@ export function roomClient(meetingId: string) {
     return RoomSocket.open(`${ROOM_URL.replace(/^http/, "ws")}/rooms/${meetingId}/ws?${new URLSearchParams({ token })}`, origin);
   }
 
-  /** Portal -> room `ended`: closes sockets, clears the room's storage and stops the `empty` alarm. */
-  async function end() {
+  /** A Portal -> room event (POST /internal/rooms/<id>/events, Bearer internal token from "portal"). */
+  async function event(body: MeetingRoomEvent) {
     const token = await signMeetingInternalToken("portal", meetingId, SECRET);
     const response = await fetch(`${ROOM_URL}/internal/rooms/${meetingId}/events`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ t: "ended" })
+      body: JSON.stringify(body)
     });
     return response.status;
   }
 
-  return { meetingId, prefix, ticket, proxy, openSocket, end };
+  /** Portal -> room `ended`: closes sockets, clears the room's storage and stops the `empty` alarm. */
+  const end = () => event({ t: "ended" });
+
+  return { meetingId, prefix, ticket, proxy, openSocket, event, end };
 }
+
+/** Like the browser's RoomSocket (src/lib/meetings/client/room-socket.ts): `{"t":"ping"}` every 20 s. */
+const PING_INTERVAL_MS = 20_000;
 
 export class RoomSocket {
   readonly messages: MeetingServerMessage[] = [];
+  /** Closes of this socket: `ours` is true when this side closed or terminated it. */
+  readonly closes: { at: number; code: number; reason: string; ours: boolean }[] = [];
+  lastMessageAt = now();
+  private closing = false;
   private waiters: { match: (m: MeetingServerMessage) => boolean; resolve: (m: MeetingServerMessage) => void }[] = [];
   private listeners: ((m: MeetingServerMessage) => void)[] = [];
+  private pinger: ReturnType<typeof setInterval>;
 
   private constructor(readonly ws: WebSocket) {
+    this.pinger = setInterval(() => {
+      if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ t: "ping" }));
+    }, PING_INTERVAL_MS);
+    ws.on("close", (code, reason) => {
+      clearInterval(this.pinger);
+      this.closes.push({ at: now(), code, reason: String(reason), ours: this.closing });
+    });
     ws.on("message", (data) => {
+      this.lastMessageAt = now();
       const message = JSON.parse(String(data)) as MeetingServerMessage;
       this.messages.push(message);
       this.listeners.forEach((listener) => listener(message));
@@ -162,11 +199,16 @@ export class RoomSocket {
     const ws = new WebSocket(url, { headers: origin ? { Origin: origin } : {} });
     const socket = new RoomSocket(ws);
     return new Promise((resolve, reject) => {
+      const fail = (error: Error) => {
+        clearInterval(socket.pinger);
+        reject(error);
+      };
       ws.once("open", () => resolve(socket));
-      ws.once("unexpected-response", (_req, res) =>
-        reject(Object.assign(new Error(`HTTP ${res.statusCode}`), { status: res.statusCode }))
-      );
-      ws.once("error", reject);
+      ws.once("unexpected-response", (req, res) => {
+        req.destroy();
+        fail(Object.assign(new Error(`HTTP ${res.statusCode}`), { status: res.statusCode }));
+      });
+      ws.once("error", fail);
     });
   }
 
@@ -177,18 +219,36 @@ export class RoomSocket {
     return timeout(waiter, STEP_TIMEOUT_MS, what);
   }
 
+  /** Calls `listener` once when the socket closes. */
+  onClose(listener: (close: { at: number; code: number; reason: string; ours: boolean }) => void) {
+    this.ws.once("close", () => listener(this.closes[this.closes.length - 1]!));
+  }
+
   /** Calls `listener` for every message, past and future. */
   onMessage(listener: (m: MeetingServerMessage) => void) {
     this.messages.forEach(listener);
     this.listeners.push(listener);
   }
 
+  get isOpen() {
+    return this.ws.readyState === WebSocket.OPEN;
+  }
+
   send(message: unknown) {
-    this.ws.send(JSON.stringify(message));
+    if (this.isOpen) this.ws.send(JSON.stringify(message));
   }
 
   close() {
+    this.closing = true;
+    clearInterval(this.pinger);
     this.ws.close(1000, "smoke done");
+  }
+
+  /** A network blip: drop the TCP connection without a close handshake. */
+  terminate() {
+    this.closing = true;
+    clearInterval(this.pinger);
+    this.ws.terminate();
   }
 }
 
@@ -251,7 +311,7 @@ export function firstTurnUrl(iceServers: Json[]) {
 }
 
 /** partytracks closeTrackInBulk: stop, new offer, PUT tracks/close, apply the answer. */
-export async function closeTracks(room: RoomClient, pc: RTCPeerConnection, sessionId: string, token: string, transceivers: RTCRtpTransceiver[]) {
+export async function closeTracks(room: RoomClient, pc: RTCPeerConnection, sessionId: string, token: ProxyAuth, transceivers: RTCRtpTransceiver[]) {
   const mids = transceivers.map((t) => ({ mid: t.mid as string }));
   transceivers.forEach((t) => t.stop());
   const offer = await pc.createOffer();

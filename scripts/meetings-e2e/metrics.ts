@@ -149,7 +149,7 @@ export function signalingStats(participants: readonly Participant[]) {
     maxTotal: Math.max(...perUid.map((u) => u.total)),
     maxBusiest10s: Math.max(...perUid.map((u) => u.busiest10s)),
     rejected: perUid.flatMap((u) => u.rejected.map((r) => `${u.uid} ${r}`)),
-    roomErrors: participants.flatMap((p) => p.roomErrors.map((e) => `${p.uid}: ${e}`)),
+    roomErrors: participants.flatMap((p) => p.roomErrors.map((e) => `${p.uid}: ${e.message}`)),
     pullRequests: batches.length,
     tracksPerPull: { mean: batches.length ? batches.reduce((a, b) => a + b, 0) / batches.length : 0, max: batches.length ? Math.max(...batches) : 0 }
   };

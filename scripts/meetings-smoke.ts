@@ -332,7 +332,7 @@ async function negatives(ctx: Ctx) {
   );
   check("neg: bad Origin on room socket -> 403", wsStatus === 403, `HTTP ${wsStatus}`);
 
-  const otherMeeting = await ticket("smoke-b", "member", true, `${MEETING_ID}x`);
+  const otherMeeting = await ticket("smoke-b", "member", true, { mid: `${MEETING_ID}x` });
   const wrongMid = await proxy("/generate-ice-servers", otherMeeting, "GET");
   check("neg: ticket for another meeting -> 401", wrongMid.status === 401, describe(wrongMid));
 

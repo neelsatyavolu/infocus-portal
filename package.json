@@ -15,6 +15,7 @@
     "test:watch": "vitest",
     "vendor:noise-suppressor": "node scripts/vendor-noise-suppressor.mjs",
     "smoke:meetings": "tsx scripts/meetings-smoke.ts",
+    "e2e:meetings": "tsx scripts/meetings-e2e-load.ts",
     "prebuild": "node scripts/vendor-mediapipe.mjs",
     "vendor:mediapipe": "node scripts/vendor-mediapipe.mjs"
   },

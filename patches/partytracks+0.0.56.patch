@@ -1,0 +1,78 @@
+diff --git a/node_modules/partytracks/dist/client/index.js b/node_modules/partytracks/dist/client/index.js
+index 030793c..11f7ba3 100644
+--- a/node_modules/partytracks/dist/client/index.js
++++ b/node_modules/partytracks/dist/client/index.js
+@@ -77,10 +77,16 @@ var BulkRequestDispatcher = class {
+ 	#currentBatch;
+ 	#currentBulkResponse;
+ 	#batchSizeLimit;
+-	constructor(batchSizeLimit = DefaultBatchSizeLimit) {
++	#scheduler;
++	// [infocus patch] Optional FIFOScheduler. With it, a batch stays open until its turn in the
++	// queue starts (not just one setTimeout): requests that arrive while an earlier negotiation is
++	// in flight join the next batch instead of each queueing their own round trip. Without it
++	// (push, close), behaviour is unchanged.
++	constructor(batchSizeLimit = DefaultBatchSizeLimit, scheduler = null) {
+ 		this.#currentBatch = [];
+ 		this.#currentBulkResponse = null;
+ 		this.#batchSizeLimit = batchSizeLimit;
++		this.#scheduler = scheduler;
+ 	}
+ 	doBulkRequest(params, bulkRequestFunc) {
+ 		if (this.#currentBatch.length >= this.#batchSizeLimit) {
+@@ -90,15 +96,27 @@ var BulkRequestDispatcher = class {
+ 		this.#currentBatch.push(params);
+ 		if (this.#currentBulkResponse != null) return this.#currentBulkResponse;
+ 		const batch = this.#currentBatch;
+-		this.#currentBulkResponse = new Promise((resolve, reject) => {
+-			setTimeout(() => {
++		const dispatch = (resolve, reject) => {
++			// [infocus patch] Close only this batch (a full batch was already replaced above).
++			if (this.#currentBatch === batch) {
++				this.#currentBatch = [];
+ 				this.#currentBulkResponse = null;
+-				bulkRequestFunc(batch.splice(0, batch.length)).then((r) => {
+-					resolve(r);
+-				}).catch((err) => {
+-					reject(err);
+-				});
+-			}, 0);
++			}
++			bulkRequestFunc(batch.splice(0, batch.length)).then((r) => {
++				resolve(r);
++			}).catch((err) => {
++				reject(err);
++			});
++		};
++		const scheduler = this.#scheduler;
++		this.#currentBulkResponse = new Promise((resolve, reject) => {
++			if (!scheduler) {
++				setTimeout(() => dispatch(resolve, reject), 0);
++				return;
++			}
++			// [infocus patch] Wait one macrotask (as before), then for this batch's turn in the FIFO
++			// queue. The gate never awaits the request itself (that is queued behind it), so it can't deadlock.
++			scheduler.schedule(() => new Promise((ready) => setTimeout(ready, 0)).then(() => dispatch(resolve, reject))).catch(reject);
+ 		});
+ 		return this.#currentBulkResponse;
+ 	}
+@@ -223,7 +241,8 @@ var PartyTracks = class {
+ 	}
+ 	#taskScheduler = new FIFOScheduler();
+ 	#pushTrackDispatcher = new BulkRequestDispatcher(32);
+-	#pullTrackDispatcher = new BulkRequestDispatcher(32);
++	// [infocus patch] Pulls batch while a negotiation is in flight (see BulkRequestDispatcher).
++	#pullTrackDispatcher = new BulkRequestDispatcher(32, this.#taskScheduler);
+ 	#closeTrackDispatcher = new BulkRequestDispatcher(32);
+ 	async #fetchWithRecordedHistory(path, requestInit) {
+ 		this.history.log({
+@@ -1151,6 +1170,7 @@ const getCamera = getDevice({
+ 	permissionName: "camera"
+ });
+ //#endregion
+-export { DevicesExhaustedError, PartyTracks, createAudioSink, devices$, getCamera, getMic, getScreenshare, resilientTrack$, screenshare$, setLogLevel };
++// [infocus patch] BulkRequestDispatcher and FIFOScheduler are exported for unit tests.
++export { BulkRequestDispatcher, DevicesExhaustedError, FIFOScheduler, PartyTracks, createAudioSink, devices$, getCamera, getMic, getScreenshare, resilientTrack$, screenshare$, setLogLevel };
+ 
+ //# sourceMappingURL=index.js.map
+\ No newline at end of file

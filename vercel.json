@@ -1,11 +1,19 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "regions": ["sfo1"],
+  "regions": [
+    "sfo1"
+  ],
   "git": {
     "deploymentEnabled": {
       "master": true,
       "*": false
     }
   },
-  "crons": [{ "path": "/api/cron/news-alerts", "schedule": "*/10 * * * *" }]
+  "crons": [
+    {
+      "path": "/api/cron/news-alerts",
+      "schedule": "*/10 * * * *"
+    }
+  ],
+  "installCommand": "rm -rf node_modules/partytracks && npm install"
 }

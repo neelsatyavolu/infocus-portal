@@ -1,7 +1,14 @@
 import { z } from "zod";
 import { meetingUrl, producersMeetingUrl } from "@/src/lib/meetings/links";
 import { inngest } from "@/src/lib/inngest";
-import { MEETINGS_TIME_ZONE, PRODUCER_SERIES, pacificLocalStamp, producerOccurrences, producerSlotStart } from "@/src/lib/meetings/schedule";
+import {
+  MEETINGS_TIME_ZONE,
+  PRODUCER_SERIES,
+  pacificDateKey,
+  pacificLocalStamp,
+  producerOccurrences,
+  producerSlotStart
+} from "@/src/lib/meetings/schedule";
 import { prisma } from "@/src/lib/prisma";
 import { GoogleCalendarError, googleCalendarAccessToken, googleCalendarConnection } from "@/src/server/google-calendar-credential";
 import { execUserIds } from "@/src/server/meetings-people";
@@ -55,6 +62,8 @@ type GoogleEvent = {
   start?: { dateTime?: string };
   end?: { dateTime?: string };
   attendees?: { email?: string }[];
+  recurrence?: string[];
+  originalStartTime?: { dateTime?: string };
 };
 
 async function calendarApi<T>(
@@ -189,6 +198,8 @@ async function syncSeriesInstances(token: string, seriesEventId: string, now: Da
   });
   for (const instance of found?.items ?? []) {
     if (instance.status === "cancelled") continue;
+    // Google's timeMin also returns an occurrence already under way; only touch ones still to come.
+    if (!instance.start?.dateTime || new Date(instance.start.dateTime).getTime() < now.getTime()) continue;
     if (sameDetails(instance, { summary: PRODUCER_SERIES.title, ...want })) continue;
     await calendarApi(token, "PATCH", `/${encodeURIComponent(instance.id)}`, WRITE, { summary: PRODUCER_SERIES.title, ...want });
   }
@@ -213,45 +224,109 @@ async function readEvent(token: string, id: string) {
   }
 }
 
-/** Create the series event once; afterwards keep its guests, title and link in line (PATCH only on a difference). */
+/** Start (UTC) of the last series slot (Sun/Mon/Wed 21:15 Pacific) that began before `now`. */
+export function lastSlotStartBefore(now: Date) {
+  for (let back = 0; back <= 7; back += 1) {
+    const key = pacificDateKey(new Date(now.getTime() - back * 24 * 60 * 60 * 1000));
+    const weekday = new Date(`${key}T12:00:00.000Z`).getUTCDay();
+    if (!PRODUCER_SERIES.weekdays.includes(weekday)) continue;
+    const start = producerSlotStart(key);
+    if (start.getTime() < now.getTime()) return start;
+  }
+  return null;
+}
+
+/** "RRULE:…;UNTIL=20261005T041500Z": the same rule ending at `until` (UTC, as RFC 5545 needs with a TZID start). */
+export function rruleUntil(rule: string, until: Date) {
+  const stamp = until.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+  const parts = rule
+    .replace(/^RRULE:/, "")
+    .split(";")
+    .filter((part) => part && !/^(UNTIL|COUNT)=/i.test(part));
+  return `RRULE:${[...parts, `UNTIL=${stamp}`].join(";")}`;
+}
+
+/**
+ * Keep the series in line with only upcoming dates changing.
+ * - None yet: create it from the next slot.
+ * - Title, link or description differ and an occurrence already happened: split ("this and
+ *   following"). The old event's rule gets UNTIL at the last slot before now, so past dates keep
+ *   their old content, and a new event starts at the next slot with the new content and guests.
+ * - Otherwise PATCH in place: nothing has happened yet, or only the guest list changed. Guests are
+ *   series-wide in Google (it shows them on past dates too), but no past content is rewritten.
+ * Returns the current event id and whether a split happened (exceptions must be re-applied).
+ */
 async function syncSeries(token: string, rows: { email: string; userId: string | null }[], now: Date) {
   const attendees = calendarAttendees(rows, null);
   const state = await prisma.meetingSeriesCalendar.findUnique({ where: { seriesKey: SERIES_KEY }, select: { googleEventId: true } });
   const existing = state?.googleEventId ? await readEvent(token, state.googleEventId) : null;
-
-  if (!existing || existing.status === "cancelled") {
-    const first = producerOccurrences(now)[0];
-    const firstStart = producerSlotStart(first?.occurrenceKey ?? pacificDateTime(now).slice(0, 10));
-    const created = await calendarApi<GoogleEvent>(token, "POST", "", WRITE, seriesEventBody(firstStart, attendees));
+  const nextSlot = () => {
+    const next = producerOccurrences(now).find((slot) => slot.startsAt.getTime() > now.getTime());
+    return next?.startsAt ?? producerSlotStart(pacificDateKey(now));
+  };
+  const createSeries = async () => {
+    const created = await calendarApi<GoogleEvent>(token, "POST", "", WRITE, seriesEventBody(nextSlot(), attendees));
     await prisma.meetingSeriesCalendar.upsert({
       where: { seriesKey: SERIES_KEY },
       create: { seriesKey: SERIES_KEY, googleEventId: created!.id },
       update: { googleEventId: created!.id }
     });
     return created!.id;
-  }
+  };
+
+  if (!existing || existing.status === "cancelled") return { id: await createSeries(), split: false };
 
   const want = seriesEventBody(now, attendees);
-  if (!sameAttendees(existing, attendees) || !sameDetails(existing, want)) {
-    await calendarApi(token, "PATCH", `/${encodeURIComponent(existing.id)}`, WRITE, {
-      summary: want.summary,
-      location: want.location,
-      description: want.description,
-      attendees: want.attendees,
-      guestsCanSeeOtherGuests: false
-    });
+  const contentChanged = !sameDetails(existing, want);
+  if (!contentChanged && sameAttendees(existing, attendees)) return { id: existing.id, split: false };
+
+  const seriesStart = existing.start?.dateTime ? new Date(existing.start.dateTime).getTime() : Infinity;
+  const lastPast = lastSlotStartBefore(now);
+  if (contentChanged && lastPast && seriesStart <= lastPast.getTime()) {
+    const recurrence = (existing.recurrence ?? [SERIES_RRULE]).map((line) =>
+      line.startsWith("RRULE:") ? rruleUntil(line, lastPast) : line
+    );
+    await calendarApi(token, "PATCH", `/${encodeURIComponent(existing.id)}`, WRITE, { recurrence });
+    return { id: await createSeries(), split: true };
   }
-  return existing.id;
+
+  await calendarApi(token, "PATCH", `/${encodeURIComponent(existing.id)}`, WRITE, {
+    summary: want.summary,
+    location: want.location,
+    description: want.description,
+    attendees: want.attendees,
+    guestsCanSeeOtherGuests: false
+  });
+  return { id: existing.id, split: false };
+}
+
+/** Moved or cancelled upcoming slots, applied to the series event (after a split they start over on the new one). */
+async function syncUpcomingExceptions(token: string, seriesEventId: string, now: Date) {
+  const slots = await prisma.meeting.findMany({
+    where: { seriesKey: SERIES_KEY, startsAt: { gt: now }, status: { in: ["SCHEDULED", "CANCELED"] } },
+    select: { occurrenceKey: true, startsAt: true, durationMinutes: true, status: true }
+  });
+  for (const slot of slots) {
+    if (!slot.occurrenceKey) continue;
+    const original = producerSlotStart(slot.occurrenceKey);
+    const changed =
+      slot.status === "CANCELED" ||
+      slot.startsAt.getTime() !== original.getTime() ||
+      slot.durationMinutes !== PRODUCER_SERIES.durationMinutes;
+    if (changed) await syncOccurrence(token, seriesEventId, slot.occurrenceKey, now);
+  }
 }
 
 /** One series slot moved or cancelled: patch that instance (found by its original start). */
-async function syncOccurrence(token: string, seriesEventId: string, occurrenceKey: string) {
+async function syncOccurrence(token: string, seriesEventId: string, occurrenceKey: string, now: Date) {
   const meeting = await prisma.meeting.findUnique({
     where: { seriesKey_occurrenceKey: { seriesKey: SERIES_KEY, occurrenceKey } },
     select: { startsAt: true, durationMinutes: true, status: true }
   });
   if (!meeting) return;
   const originalStart = producerSlotStart(occurrenceKey);
+  // A slot whose date has passed is history: never rewrite it.
+  if (originalStart.getTime() < now.getTime()) return;
   const found = await calendarApi<{ items?: GoogleEvent[] }>(token, "GET", `/${encodeURIComponent(seriesEventId)}/instances`, {
     originalStart: originalStart.toISOString().replace(/\.\d{3}Z$/, "Z"),
     showDeleted: "true",
@@ -288,6 +363,8 @@ async function syncOneOff(token: string, meetingId: string, rows: { email: strin
     }
   });
   if (!meeting || meeting.seriesKey || meeting.calendarSequence === 0) return;
+  // Only upcoming or running meetings: an event whose end has passed is never edited or deleted.
+  if (meeting.startsAt.getTime() + meeting.durationMinutes * 60_000 <= now.getTime()) return;
 
   if (meeting.status === "CANCELED") {
     if (!meeting.googleEventId) return;
@@ -329,24 +406,14 @@ async function syncOneOff(token: string, meetingId: string, rows: { email: strin
 /** "Sync now": the series (guests), its moved or cancelled upcoming slots, and every upcoming one-off event. */
 async function fullSync(token: string, now: Date) {
   const rows = await inviteRows();
-  const seriesEventId = await syncSeries(token, rows, now);
-  await syncSeriesInstances(token, seriesEventId, now);
-  const upcoming = await prisma.meeting.findMany({
-    where: { startsAt: { gt: now }, status: { in: ["SCHEDULED", "CANCELED"] } },
-    select: { id: true, seriesKey: true, occurrenceKey: true, startsAt: true, durationMinutes: true, status: true, calendarSequence: true }
+  const series = await syncSeries(token, rows, now);
+  await syncSeriesInstances(token, series.id, now);
+  await syncUpcomingExceptions(token, series.id, now);
+  const oneOffs = await prisma.meeting.findMany({
+    where: { seriesKey: null, calendarSequence: { gt: 0 }, startsAt: { gt: now }, status: { in: ["SCHEDULED", "CANCELED"] } },
+    select: { id: true }
   });
-  for (const meeting of upcoming) {
-    if (meeting.seriesKey === SERIES_KEY && meeting.occurrenceKey) {
-      const original = producerSlotStart(meeting.occurrenceKey);
-      const changed =
-        meeting.status === "CANCELED" ||
-        meeting.startsAt.getTime() !== original.getTime() ||
-        meeting.durationMinutes !== PRODUCER_SERIES.durationMinutes;
-      if (changed) await syncOccurrence(token, seriesEventId, meeting.occurrenceKey);
-    } else if (!meeting.seriesKey && meeting.calendarSequence > 0) {
-      await syncOneOff(token, meeting.id, rows, now);
-    }
-  }
+  for (const meeting of oneOffs) await syncOneOff(token, meeting.id, rows, now);
   // Everyone on the list is now a guest of the series.
   await prisma.meetingInviteEmail.updateMany({ where: { seriesKey: SERIES_KEY, lastInvitedAt: null }, data: { lastInvitedAt: now } });
 }
@@ -375,8 +442,10 @@ export async function runMeetingCalendarJob(data: unknown, now = new Date()) {
     } else if (job.kind === "event") {
       await syncOneOff(token, job.meetingId, await inviteRows(), now);
     } else {
-      const seriesEventId = await syncSeries(token, await inviteRows(), now);
-      await syncOccurrence(token, seriesEventId, job.occurrenceKey);
+      const series = await syncSeries(token, await inviteRows(), now);
+      // After a split, every upcoming moved/cancelled slot (this one included) goes onto the new event.
+      if (series.split) await syncUpcomingExceptions(token, series.id, now);
+      else await syncOccurrence(token, series.id, job.occurrenceKey, now);
     }
     await recordSync(now, null);
     return { synced: job.kind };

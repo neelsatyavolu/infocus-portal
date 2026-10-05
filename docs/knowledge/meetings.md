@@ -50,6 +50,11 @@ Private video meetings for producers, with notes written on the InFocus Drive.
 - When a host moves or cancels one occurrence, only that day changes in everyone's calendar.
 - **Other scheduled meetings** (set more than 10 minutes ahead) get their own event, linking to `meet.infocuspaly.com/<id>`. Open meetings invite every address; invite-only meetings invite only the linked addresses of the people on them. Moving or renaming updates it; cancelling deletes it (guests get a cancellation); adding or removing someone from an invite-only meeting updates its guests. "Start now" meetings get no event.
 - Changes reach Google in the background (retried if Google is briefly unavailable). **Sync now** re-checks everything.
+- **Only upcoming dates change.** Past meetings keep what they said at the time:
+  - If the InFocus Producer Meeting's title, link or description changes after it has already met, the repeating event is split: the old one ends at the last past date, and a new one (with the new details and the same guests) starts at the next date. Moved or cancelled upcoming dates are applied to the new one. Guests get Google's update.
+  - Before the first date, the event is simply updated.
+  - Adding or removing a guest updates the repeating event in place. Google lists guests for the whole series, so a new guest also shows on past dates there, but nothing else about past dates changes.
+  - A meeting whose date has passed (including a one-off that has ended) is never edited or deleted.
 - If Google Calendar isn't connected, no invites go out at all.
 
 ### One-time setup (super admin or adviser)

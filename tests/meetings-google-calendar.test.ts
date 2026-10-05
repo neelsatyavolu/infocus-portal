@@ -209,9 +209,9 @@ describe("Sync now after the move to the Meetings host", () => {
         json({
           items: [
             // Follows the series (already updated): left alone.
-            { id: "series-1_20261005T041500Z", summary: "InFocus Producer Meeting", location: NEW_SERIES, description: describe_(NEW_SERIES) },
+            { id: "series-1_20261005T041500Z", summary: "InFocus Producer Meeting", location: NEW_SERIES, description: describe_(NEW_SERIES), start: { dateTime: "2026-10-05T04:15:00Z" } },
             // A moved occurrence keeps its own copy of the old link.
-            { id: "series-1_20261102T051500Z", summary: "InFocus Producer Meeting", location: OLD_SERIES, description: describe_(OLD_SERIES) },
+            { id: "series-1_20261102T051500Z", summary: "InFocus Producer Meeting", location: OLD_SERIES, description: describe_(OLD_SERIES), start: { dateTime: "2026-11-01T22:00:00-08:00" } },
             { id: "series-1_20261104T051500Z", status: "cancelled", location: OLD_SERIES }
           ]
         }),
@@ -240,6 +240,132 @@ describe("Sync now after the move to the Meetings host", () => {
       location: "https://meet.example.edu/m1",
       description: describe_("https://meet.example.edu/m1")
     });
+  });
+});
+
+describe("only upcoming dates change", () => {
+  const OLD_SERIES = "https://portal.example.edu/meet/producers";
+  const NEW_SERIES = "https://meet.example.edu/producers";
+  const describe_ = (url: string) => `${url}\n\nEncrypted InFocus meeting. Sign in with your InFocus account.`;
+  // Saturday Oct 10, noon Pacific: Sun Oct 4, Mon Oct 5 and Wed Oct 7 have happened.
+  const LATER = new Date("2026-10-10T19:00:00.000Z");
+  const oldSeries = (overrides: Record<string, unknown> = {}) => ({
+    id: "series-1",
+    summary: "InFocus Producer Meeting",
+    location: OLD_SERIES,
+    description: describe_(OLD_SERIES),
+    start: { dateTime: "2026-10-04T21:15:00-07:00" },
+    recurrence: ["RRULE:FREQ=WEEKLY;BYDAY=SU,MO,WE"],
+    attendees: rows.map((row) => ({ email: row.email })),
+    ...overrides
+  });
+
+  it("splits a series that has past dates: UNTIL on the old one, a new one from the next slot, exceptions re-applied", async () => {
+    mocks.series.findUnique.mockResolvedValue({ googleEventId: "series-1" });
+    // One upcoming slot was moved (Mon Oct 12 → 22:00).
+    mocks.meeting.findMany.mockImplementation(async ({ where }: { where: { seriesKey?: unknown } }) =>
+      where.seriesKey === "producers"
+        ? [{ occurrenceKey: "2026-10-12", startsAt: new Date("2026-10-13T05:00:00.000Z"), durationMinutes: 60, status: "SCHEDULED" }]
+        : []
+    );
+    mocks.meeting.findUnique.mockResolvedValue({ startsAt: new Date("2026-10-13T05:00:00.000Z"), durationMinutes: 60, status: "SCHEDULED" });
+    google({
+      "GET /series-1": () => json(oldSeries()),
+      "PATCH /series-1": () => json({}),
+      "POST /": () => json({ id: "series-2" }),
+      "GET /series-2/instances": (call) =>
+        call.url.searchParams.get("originalStart")
+          ? json({ items: [{ id: "series-2_20261013T041500Z", start: { dateTime: "2026-10-12T21:15:00-07:00" }, end: { dateTime: "2026-10-12T22:15:00-07:00" } }] })
+          : json({ items: [] }),
+      "PATCH /series-2_20261013T041500Z": () => json({})
+    });
+
+    await runMeetingCalendarJob({ kind: "sync" }, LATER);
+
+    const until = calls.find((call) => call.method === "PATCH" && call.url.pathname.endsWith("/series-1"))!;
+    // Last slot before now: Wed Oct 7, 21:15 PDT = 04:15 UTC Oct 8. Nothing else on the old event changes.
+    expect(until.body).toEqual({ recurrence: ["RRULE:FREQ=WEEKLY;BYDAY=SU,MO,WE;UNTIL=20261008T041500Z"] });
+    expect(until.url.searchParams.get("sendUpdates")).toBe("all");
+
+    const created = calls.find((call) => call.method === "POST")!;
+    expect(created.url.searchParams.get("sendUpdates")).toBe("all");
+    expect(created.body).toMatchObject({
+      location: NEW_SERIES,
+      description: describe_(NEW_SERIES),
+      start: { dateTime: "2026-10-11T21:15:00", timeZone: "America/Los_Angeles" },
+      recurrence: ["RRULE:FREQ=WEEKLY;BYDAY=SU,MO,WE"],
+      attendees: rows.map((row) => ({ email: row.email }))
+    });
+    expect(mocks.series.upsert).toHaveBeenCalledWith(expect.objectContaining({ update: { googleEventId: "series-2" } }));
+
+    // The moved slot is re-applied on the new event.
+    const moved = calls.find((call) => call.method === "PATCH" && call.url.pathname.endsWith("/series-2_20261013T041500Z"))!;
+    expect(moved.body).toMatchObject({ start: { dateTime: "2026-10-12T22:00:00" } });
+  });
+
+  it("PATCHes in place when the series hasn't had a date yet", async () => {
+    mocks.series.findUnique.mockResolvedValue({ googleEventId: "series-1" });
+    google({ "GET /series-1": () => json(oldSeries()), "PATCH /series-1": () => json({}) });
+    await runMeetingCalendarJob({ kind: "sync" }, NOW); // Sat Oct 3: the first date (Sun Oct 4) is still ahead
+    expect(calls.some((call) => call.method === "POST")).toBe(false);
+    expect(calls.find((call) => call.method === "PATCH")!.body).toMatchObject({ location: NEW_SERIES });
+  });
+
+  it("a guest-only change PATCHes the whole series without splitting, even with past dates", async () => {
+    mocks.series.findUnique.mockResolvedValue({ googleEventId: "series-1" });
+    const current = oldSeries({ location: NEW_SERIES, description: describe_(NEW_SERIES), attendees: [{ email: "abby@example.edu" }] });
+    google({ "GET /series-1": () => json(current), "PATCH /series-1": () => json({}) });
+    await runMeetingCalendarJob({ kind: "sync" }, LATER);
+    expect(calls.some((call) => call.method === "POST")).toBe(false);
+    const patch = calls.find((call) => call.method === "PATCH")!;
+    expect(patch.body).not.toHaveProperty("recurrence");
+    expect(patch.body?.attendees).toHaveLength(3);
+  });
+
+  it("never touches past instances, or an occurrence whose date has passed", async () => {
+    mocks.series.findUnique.mockResolvedValue({ googleEventId: "series-1" });
+    const current = oldSeries({ location: NEW_SERIES, description: describe_(NEW_SERIES) });
+    google({
+      "GET /series-1": () => json(current),
+      "GET /series-1/instances": () =>
+        json({
+          items: [
+            // Started an hour ago (Google's timeMin still returns it): left alone.
+            { id: "running", location: OLD_SERIES, description: describe_(OLD_SERIES), start: { dateTime: "2026-10-10T11:00:00-07:00" } }
+          ]
+        })
+    });
+    await runMeetingCalendarJob({ kind: "sync" }, LATER);
+    expect(calls.filter((call) => call.method !== "GET")).toEqual([]);
+
+    calls.length = 0;
+    mocks.meeting.findUnique.mockResolvedValue({ startsAt: new Date("2026-10-08T05:00:00.000Z"), durationMinutes: 60, status: "CANCELED" });
+    await runMeetingCalendarJob({ kind: "occurrence", occurrenceKey: "2026-10-07" }, LATER);
+    expect(calls.some((call) => call.url.pathname.endsWith("/instances"))).toBe(false);
+    expect(calls.filter((call) => call.method !== "GET")).toEqual([]);
+  });
+
+  it("never edits or deletes a one-off meeting that has ended", async () => {
+    for (const status of ["SCHEDULED", "CANCELED"]) {
+      calls.length = 0;
+      mocks.meeting.findUnique.mockResolvedValue({
+        id: "m1",
+        title: "Renamed later",
+        startsAt: new Date("2026-10-09T01:30:00.000Z"),
+        durationMinutes: 45,
+        status,
+        access: "OPEN",
+        createdById: "u-sage",
+        inviteeUserIds: [],
+        seriesKey: null,
+        calendarSequence: 1,
+        googleEventId: "evt-old"
+      });
+      google({});
+      await runMeetingCalendarJob({ kind: "event", meetingId: "m1" }, LATER);
+      expect(calls).toEqual([]);
+      expect(mocks.meeting.update).not.toHaveBeenCalled();
+    }
   });
 });
 

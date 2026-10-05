@@ -1,4 +1,5 @@
-import type { BlurEngine, Compositor, PersonMask, Segmenter } from "./background-blur";
+import type { BlurEngine, Compositor, FrameIo, FrameSource, PersonMask, Segmenter } from "./background-blur";
+import { canvas2d, createBlackPlaceholder, createFrameIo } from "./blur-io";
 
 /**
  * The real blur engine: MediaPipe Tasks Vision, vendored same-origin in public/vendor/mediapipe
@@ -6,13 +7,12 @@ import type { BlurEngine, Compositor, PersonMask, Segmenter } from "./background
  */
 
 const BASE = "/vendor/mediapipe";
-const FPS = 30;
 /** The background is blurred at 1/4 size, then scaled up (cheaper, and smoother). */
 const BG_SCALE = 4;
 
 type MpMask = { width: number; height: number; getAsFloat32Array: () => Float32Array };
 type MpSegmenter = {
-  segmentForVideo: (video: HTMLVideoElement, ts: number, cb: (r: { confidenceMasks?: MpMask[] }) => void) => void;
+  segmentForVideo: (frame: FrameSource, ts: number, cb: (r: { confidenceMasks?: MpMask[] }) => void) => void;
   close: () => void;
 };
 type VisionModule = {
@@ -45,98 +45,91 @@ async function createSegmenter(): Promise<Segmenter> {
   const segmenter = await create("GPU").catch(() => create("CPU"));
   let lastTs = 0;
   return {
-    segment: (video, timestampMs) => {
+    segment: (frame, timestampMs) => {
       // MediaPipe needs strictly increasing timestamps.
       lastTs = Math.max(lastTs + 1, Math.round(timestampMs));
       let mask: PersonMask | null = null;
-      segmenter.segmentForVideo(video, lastTs, (result) => {
+      segmenter.segmentForVideo(frame, lastTs, (result) => {
         const m = result.confidenceMasks?.[0];
         // Masks are only valid inside the callback: copy the data out.
         if (m) mask = { data: new Float32Array(m.getAsFloat32Array()), width: m.width, height: m.height };
       });
-      return Promise.resolve(mask);
+      return mask;
     },
     close: () => segmenter.close()
   };
 }
 
-async function createVideo(track: MediaStreamTrack) {
-  const video = document.createElement("video");
-  video.muted = true;
-  video.playsInline = true;
-  video.srcObject = new MediaStream([track]);
-  await video.play();
-  return video;
-}
-
-function canvas2d(width: number, height: number) {
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Canvas 2D is not available");
-  return { canvas, ctx };
-}
-
-function createCompositor(width: number, height: number): Compositor {
-  const out = canvas2d(width, height);
-  if (!("filter" in out.ctx)) throw new Error("Canvas filters are not supported");
+function createCompositor(io: FrameIo): Compositor {
+  const { width, height } = io;
+  const outCtx = io.canvas.getContext("2d") as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null;
+  if (!outCtx || !("filter" in outCtx)) throw new Error("Canvas filters are not supported");
   const bg = canvas2d(Math.max(1, Math.round(width / BG_SCALE)), Math.max(1, Math.round(height / BG_SCALE)));
   const person = canvas2d(width, height);
   let maskLayer: ReturnType<typeof canvas2d> | null = null;
   let maskImage: ImageData | null = null;
-  const track = out.canvas.captureStream(FPS).getVideoTracks()[0];
+  let paintedMask: PersonMask | null = null;
 
   const paintMask = (mask: PersonMask) => {
     if (!maskLayer || maskLayer.canvas.width !== mask.width || maskLayer.canvas.height !== mask.height) {
       maskLayer = canvas2d(mask.width, mask.height);
       maskImage = maskLayer.ctx.createImageData(mask.width, mask.height);
+      paintedMask = null;
     }
-    const pixels = maskImage!.data;
-    for (let i = 0; i < mask.data.length; i += 1) {
-      pixels[i * 4 + 3] = Math.round(Math.min(1, Math.max(0, mask.data[i])) * 255);
+    // Reused masks (performance guard) don't need repainting.
+    if (paintedMask !== mask) {
+      const pixels = maskImage!.data;
+      for (let i = 0; i < mask.data.length; i += 1) {
+        pixels[i * 4 + 3] = Math.round(Math.min(1, Math.max(0, mask.data[i])) * 255);
+      }
+      maskLayer.ctx.putImageData(maskImage!, 0, 0);
+      paintedMask = mask;
     }
-    maskLayer.ctx.putImageData(maskImage!, 0, 0);
     return maskLayer.canvas;
   };
 
   return {
-    track,
-    render: (video, mask, blurPx) => {
+    render: (frame, mask, blurPx) => {
       bg.ctx.filter = `blur(${blurPx / BG_SCALE}px)`;
-      bg.ctx.drawImage(video, 0, 0, bg.canvas.width, bg.canvas.height);
-      out.ctx.imageSmoothingEnabled = true;
-      out.ctx.drawImage(bg.canvas, 0, 0, width, height);
+      bg.ctx.drawImage(frame, 0, 0, bg.canvas.width, bg.canvas.height);
+      outCtx.imageSmoothingEnabled = true;
+      outCtx.drawImage(bg.canvas, 0, 0, width, height);
       if (!mask) return; // Until the first mask, the whole frame stays blurred.
       person.ctx.globalCompositeOperation = "copy";
-      person.ctx.drawImage(video, 0, 0, width, height);
+      person.ctx.drawImage(frame, 0, 0, width, height);
       person.ctx.globalCompositeOperation = "destination-in";
       person.ctx.drawImage(paintMask(mask), 0, 0, width, height);
-      out.ctx.drawImage(person.canvas, 0, 0);
+      outCtx.drawImage(person.canvas, 0, 0);
     },
-    dispose: () => track.stop()
+    dispose: () => {
+      maskLayer = null;
+      maskImage = null;
+    }
   };
 }
 
-type FrameVideo = HTMLVideoElement & {
-  requestVideoFrameCallback?: (cb: () => void) => number;
-  cancelVideoFrameCallback?: (id: number) => void;
-};
-
-function scheduleFrame(video: HTMLVideoElement, callback: () => void) {
-  const v = video as FrameVideo;
-  if (v.requestVideoFrameCallback && v.cancelVideoFrameCallback) {
-    const id = v.requestVideoFrameCallback(callback);
-    return () => v.cancelVideoFrameCallback?.(id);
-  }
-  const id = requestAnimationFrame(callback);
-  return () => cancelAnimationFrame(id);
+function createDownscaler(maxWidth: number, maxHeight: number) {
+  let small: ReturnType<typeof canvas2d> | null = null;
+  return (frame: FrameSource) => {
+    const w = (frame as { displayWidth?: number; videoWidth?: number; width?: number }).displayWidth
+      ?? (frame as HTMLVideoElement).videoWidth ?? (frame as { width?: number }).width ?? maxWidth;
+    const h = (frame as { displayHeight?: number; videoHeight?: number; height?: number }).displayHeight
+      ?? (frame as HTMLVideoElement).videoHeight ?? (frame as { height?: number }).height ?? maxHeight;
+    const scale = Math.min(1, maxWidth / Math.max(1, Number(w)), maxHeight / Math.max(1, Number(h)));
+    if (scale >= 1) return frame;
+    const tw = Math.round(Number(w) * scale);
+    const th = Math.round(Number(h) * scale);
+    if (!small || small.canvas.width !== tw || small.canvas.height !== th) small = canvas2d(tw, th);
+    small.ctx.drawImage(frame, 0, 0, tw, th);
+    return small.canvas as unknown as FrameSource;
+  };
 }
 
 export const mediapipeBlurEngine: BlurEngine = {
+  createPlaceholder: createBlackPlaceholder,
   createSegmenter,
-  createVideo,
+  createIo: createFrameIo,
   createCompositor,
-  scheduleFrame,
+  createDownscaler,
   now: () => performance.now()
 };

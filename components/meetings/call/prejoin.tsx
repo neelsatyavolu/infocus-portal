@@ -12,6 +12,7 @@ import { Avatar } from "./avatar";
 import { CallButton } from "./call-button";
 import { DevicePopover } from "./device-popover";
 import { useMeetEmbedded } from "./embed-context";
+import { shouldMonitorMic, micTestLabel } from "@/src/lib/meetings/client/mic-monitor";
 import { LevelMeter } from "./level-meter";
 import { VideoView, useObservableTrack } from "./media-elements";
 import { PreJoinBar } from "./top-bar";
@@ -19,7 +20,9 @@ import type { LocalMedia } from "./use-local-media";
 
 function Preview({ media, userName }: { media: LocalMedia; userName: string }) {
   const camera$ = useMemo(() => (media.videoOn ? media.camera.localMonitorTrack$ : NEVER), [media.videoOn, media.camera]);
-  const mic$ = useMemo(() => (media.audioOn ? media.mic.localMonitorTrack$ : NEVER), [media.audioOn, media.mic]);
+  // Pre-join always monitors the mic (processed, voice-isolated track) so it can be tested muted.
+  const monitorMic = shouldMonitorMic({ screen: "prejoin", settingsOpen: false, audioOn: media.audioOn });
+  const mic$ = useMemo(() => (monitorMic ? media.mic.localMonitorTrack$ : NEVER), [monitorMic, media.mic]);
   const cameraTrack = useObservableTrack(camera$);
   const micTrack = useObservableTrack(mic$);
   const showVideo = media.videoOn && cameraTrack;
@@ -35,8 +38,8 @@ function Preview({ media, userName }: { media: LocalMedia; userName: string }) {
         </div>
       )}
 
-      {media.audioOn ? (
-        <div className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-[6px] bg-[#0F110F]/60">
+      {micTrack ? (
+        <div title={micTestLabel(media.audioOn)} className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-[6px] bg-[#0F110F]/60">
           <LevelMeter track={micTrack} compact />
         </div>
       ) : null}
@@ -92,6 +95,8 @@ export function PreJoin({
             <Preview media={media} userName={userName} />
             {neverAllowed && !media.audioOn && !media.videoOn ? (
               <p className="text-center text-sm text-muted-foreground">Turn on your camera or mic to test them.</p>
+            ) : micPermission === "granted" && !media.audioOn ? (
+              <p className="text-center text-sm text-muted-foreground">{micTestLabel(false)}</p>
             ) : null}
           </section>
 

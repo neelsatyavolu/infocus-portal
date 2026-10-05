@@ -49,6 +49,8 @@ export type ControlsProps = {
   moreActions: MoreAction[];
   onLayout: (mode: LayoutMode) => void;
   onMic: () => void;
+  /** Hover/focus on the mic button: pre-warm the mic before an unmute. */
+  onMicIntent: () => void;
   onCamera: () => void;
   onShare: () => void;
   onHand: () => void;
@@ -140,7 +142,7 @@ export function ControlsBar(props: ControlsProps) {
         <div className="min-w-0">{!mobile ? <ClockAndTitle title={props.title} /> : null}</div>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          <CallButton label={props.audioOn ? "Turn off microphone" : "Turn on microphone"} shortcut="⌘D" state={props.audioOn ? "on" : "off"} onClick={props.onMic}>
+          <CallButton label={props.audioOn ? "Turn off microphone" : "Turn on microphone"} shortcut="⌘D" state={props.audioOn ? "on" : "off"} onClick={props.onMic} onPointerEnter={props.onMicIntent} onFocus={props.onMicIntent}>
             {props.audioOn ? <Mic /> : <MicOff />}
           </CallButton>
           <CallButton label={props.videoOn ? "Turn off camera" : "Turn on camera"} shortcut="⌘E" state={props.videoOn ? "on" : "off"} onClick={props.onCamera}>

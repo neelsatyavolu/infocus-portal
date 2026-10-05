@@ -15,13 +15,13 @@ export function SelfLevel({
 }: {
   track: MediaStreamTrack | undefined;
   uid: string;
-  onLevel: (uid: string, level: number) => void;
-  onSelfLevel: (level: number) => void;
+  onLevel: (uid: string, level: number) => boolean;
+  onSelfLevel: (speaking: boolean) => void;
 }) {
   const report = useCallback(
     (level: number) => {
-      onLevel(uid, level);
-      onSelfLevel(level);
+      // One detector: the speaking ring's decision is what auto-lowers the hand.
+      onSelfLevel(onLevel(uid, level));
     },
     [onLevel, onSelfLevel, uid]
   );

@@ -4,6 +4,7 @@ import { pointerSafeAutoFocus } from "@/components/meetings/focus-modality";
 import * as Popover from "@radix-ui/react-popover";
 import { Settings } from "lucide-react";
 import { CallButton } from "./call-button";
+import { micTestLabel } from "@/src/lib/meetings/client/mic-monitor";
 import { LevelMeter } from "./level-meter";
 import { AudioSettings, VideoSettings } from "./settings-sections";
 import type { LocalMedia } from "./use-local-media";
@@ -31,7 +32,7 @@ export function DevicePopover({ media, micTrack }: { media: LocalMedia; micTrack
           <AudioSettings media={media} showMeter={false} />
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <LevelMeter track={micTrack} />
-            <span>{media.audioOn ? "Speak to test your microphone" : "Turn on your mic to test it"}</span>
+            <span>{micTestLabel(media.audioOn)}</span>
           </div>
           <div className="h-px bg-[var(--ink-4)]" aria-hidden />
           <VideoSettings media={media} showPreview={false} showQuality={false} peopleCount={0} />

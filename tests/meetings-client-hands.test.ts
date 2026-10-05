@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { INITIAL_VAD, nextVad, type VadState } from "@/src/lib/meetings/client/voice-activity";
 import {
   AUTO_LOWER_SPEAKING_MS,
   INITIAL_AUTO_LOWER,
@@ -33,11 +34,17 @@ describe("ordinal", () => {
   });
 });
 
-/** Feeds samples every 150 ms (like the level meter); returns the time it lowered, or null. */
+/**
+ * Feeds levels every 150 ms (like the level meter) through the shared speaking detector, as
+ * call-room does; returns the time it lowered, or null.
+ */
 function run(levelAt: (t: number) => number, opts: { micOn?: boolean; handUp?: boolean; until?: number } = {}) {
   let state: AutoLowerState = INITIAL_AUTO_LOWER;
+  let vad: VadState = INITIAL_VAD;
   for (let t = 0; t <= (opts.until ?? 10_000); t += 150) {
-    const result = nextAutoLower(state, { at: t, level: levelAt(t), micOn: opts.micOn ?? true, handUp: opts.handUp ?? true });
+    const voice = nextVad(vad, t, levelAt(t));
+    vad = voice.state;
+    const result = nextAutoLower(state, { at: t, speaking: voice.speaking, micOn: opts.micOn ?? true, handUp: opts.handUp ?? true });
     state = result.state;
     if (result.lower) return t;
   }
@@ -69,9 +76,39 @@ describe("nextAutoLower", () => {
 
   it("forgets speech from before the hand went up", () => {
     let state: AutoLowerState = INITIAL_AUTO_LOWER;
-    for (let t = 0; t <= 2000; t += 150) state = nextAutoLower(state, { at: t, level: 0.5, micOn: true, handUp: false }).state;
+    for (let t = 0; t <= 2000; t += 150) state = nextAutoLower(state, { at: t, speaking: true, micOn: true, handUp: false }).state;
     expect(state.samples).toHaveLength(0);
-    const next = nextAutoLower(state, { at: 2100, level: 0.5, micOn: true, handUp: true });
-    expect(next.lower).toBe(false);
+    expect(nextAutoLower(state, { at: 2100, speaking: true, micOn: true, handUp: true }).lower).toBe(false);
+  });
+});
+
+describe("auto-lower regression: real speech through voice isolation", () => {
+  // Field bug: hand raised, person talked for a while, hand never lowered. Real speech is
+  // syllables with short gaps, and the voice-isolated (RNNoise) monitor track is quieter
+  // than the raw mic, so most samples sat under the old fixed level threshold (0.06).
+  // Levels below are what watchTrackLevel reports (RMS × 4) for that processed track.
+  const syllable = (t: number) => {
+    const phase = t % 350;
+    return phase < 200 ? 0.045 : 0.006; // ~ -39 dBFS voiced, ~ -56 dBFS between words
+  };
+
+  it("lowers after ~2.5 s of quiet-but-real speech with natural gaps", () => {
+    const at = run(syllable, { until: 8000 });
+    expect(at).not.toBeNull();
+    expect(at!).toBeLessThanOrEqual(4000);
+  });
+
+  it("still ignores a quiet room and a steady fan", () => {
+    expect(run(() => 0.006, { until: 10_000 })).toBeNull();
+    // A steady fan at about -45 dBFS: that's the floor, not speech.
+    expect(run(() => 0.022, { until: 10_000 })).toBeNull();
+  });
+
+  it("works with AGC boosting everything (louder speech over a louder floor)", () => {
+    expect(run((t) => (t % 350 < 200 ? 0.6 : 0.05), { until: 8000 })).not.toBeNull();
+  });
+
+  it("still ignores a cough", () => {
+    expect(run((t) => (t >= 3000 && t < 3450 ? 0.3 : 0.006), { until: 10_000 })).toBeNull();
   });
 });

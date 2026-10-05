@@ -27,11 +27,11 @@ export function useHand(serverHandAt: number | null, micOn: boolean) {
     prevServerHandAt.current = serverHandAt;
   }, [serverHandAt]);
 
-  /** Self mic level samples (~150 ms apart) from the level meter. */
-  const onSelfLevel = useCallback((level: number) => {
+  /** Self speaking decisions (~10 Hz) from the shared detector that also drives the speaking ring. */
+  const onSelfLevel = useCallback((speaking: boolean) => {
     const result = nextAutoLower(autoRef.current, {
       at: Date.now(),
-      level,
+      speaking,
       micOn: micRef.current,
       handUp: handRef.current
     });

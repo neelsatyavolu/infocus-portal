@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import type { LayoutMode } from "@/src/lib/meetings/client/layout";
 import { participantList, scribePresent } from "@/src/lib/meetings/client/room-state";
 import { handQueue } from "@/src/lib/meetings/client/hands";
+import { shouldMonitorMic } from "@/src/lib/meetings/client/mic-monitor";
 import { resumeAudio } from "@/src/lib/meetings/client/audio-level";
 import { MeetingInfoDialog, DevicesDialog, HostControlsDialog } from "./call-dialogs";
 import { SelfLevel, buildTiles } from "./call-room-parts";
@@ -37,6 +38,7 @@ import type { LocalMedia } from "./use-local-media";
 import type { useMeetingCall } from "./use-meeting-call";
 import { useChimes } from "./use-chimes";
 import { useHand } from "./use-hand";
+import { useMicPrewarm } from "./use-mic-prewarm";
 import { usePublish } from "./use-publish";
 
 type Call = ReturnType<typeof useMeetingCall>;
@@ -82,7 +84,10 @@ export function CallRoom({
   const { screenOn } = usePublish({ session, media, hand, send, welcomeCount: call.welcomeCount });
 
   const camera$ = useMemo(() => (media.videoOn ? media.camera.localMonitorTrack$ : NEVER), [media.videoOn, media.camera]);
-  const mic$ = useMemo(() => (media.audioOn ? media.mic.localMonitorTrack$ : NEVER), [media.audioOn, media.mic]);
+  // Self level (speaking ring, hand auto-lower) only while unmuted; the settings dialog monitors on its own.
+  const { prewarm, onMicIntent } = useMicPrewarm(media.audioOn);
+  const monitorSelf = shouldMonitorMic({ screen: "call", settingsOpen: false, audioOn: media.audioOn, prewarm });
+  const mic$ = useMemo(() => (monitorSelf ? media.mic.localMonitorTrack$ : NEVER), [monitorSelf, media.mic]);
   const selfCamera = useObservableTrack(camera$);
   const selfMic = useObservableTrack(mic$);
 
@@ -232,6 +237,7 @@ export function CallRoom({
         moreActions={moreActions}
         onLayout={setLayout}
         onMic={media.toggleAudio}
+        onMicIntent={onMicIntent}
         onCamera={media.toggleVideo}
         onShare={toggleShare}
         onHand={toggleHand}

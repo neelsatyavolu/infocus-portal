@@ -4,28 +4,49 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { nextSpeakerState, type ConnectionQuality, type SpeakerState } from "@/src/lib/meetings/client/layout";
 import { sampleQuality } from "@/src/lib/meetings/client/stats";
 import { watchTrackLevel } from "@/src/lib/meetings/client/audio-level";
+import { onTick } from "@/src/lib/meetings/client/ticker";
+import { INITIAL_VAD, nextVad, type VadState } from "@/src/lib/meetings/client/voice-activity";
 import type { PartyTracks } from "partytracks/client";
+
+function withoutKey<T>(record: Readonly<Record<string, T>>, key: string): Record<string, T> {
+  return Object.fromEntries(Object.entries(record).filter(([k]) => k !== key));
+}
 
 const INITIAL_SPEAKER: SpeakerState = { uid: null, since: 0, speaking: [] };
 
-/** Active speaker + who is talking, from per-participant audio levels (re-renders only on change). */
+/**
+ * Active speaker + who is talking, from per-participant audio levels (re-renders only on change).
+ * Each person's level runs through the shared speaking detector (voice-activity.ts); `onLevel`
+ * returns that decision so the caller (self → hand auto-lower) uses exactly the same signal.
+ */
 export function useSpeakers() {
-  const levels = useRef<Record<string, number>>({});
+  const voiced = useRef<Record<string, number>>({});
+  const vads = useRef<Record<string, VadState>>({});
   const stateRef = useRef<SpeakerState>(INITIAL_SPEAKER);
   const [view, setView] = useState<{ uid: string | null; speaking: readonly string[] }>({ uid: null, speaking: [] });
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      const next = nextSpeakerState(stateRef.current, levels.current, Date.now());
+    // Worker-driven tick: keeps running in background tabs (main-thread timers are throttled).
+    return onTick(() => {
+      const next = nextSpeakerState(stateRef.current, voiced.current, Date.now());
       const prev = stateRef.current;
       stateRef.current = next;
       if (next.uid !== prev.uid || next.speaking !== prev.speaking) setView({ uid: next.uid, speaking: next.speaking });
-    }, 200);
-    return () => clearInterval(timer);
+    });
   }, []);
 
   const onLevel = useCallback((uid: string, level: number) => {
-    levels.current = { ...levels.current, [uid]: level };
+    const others = withoutKey(voiced.current, uid);
+    if (level <= 0) {
+      // Digital silence, or the meter stopped (left / track gone): not speaking, forget the state.
+      vads.current = withoutKey(vads.current, uid);
+      voiced.current = others;
+      return false;
+    }
+    const result = nextVad(vads.current[uid] ?? INITIAL_VAD, Date.now(), level);
+    vads.current = { ...vads.current, [uid]: result.state };
+    voiced.current = result.speaking ? { ...others, [uid]: level } : others;
+    return result.speaking;
   }, []);
 
   return { activeSpeakerUid: view.uid, speaking: view.speaking, onLevel };

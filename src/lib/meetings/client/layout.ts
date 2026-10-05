@@ -17,7 +17,6 @@ export type { SimulcastRid } from "./quality";
 export const DESKTOP_MAX_TILES = 16;
 export const MOBILE_MAX_TILES = 4;
 export const SPEAKER_HOLD_MS = 1500;
-export const SPEAKING_LEVEL = 0.06;
 
 export function screenTileId(uid: string) {
   return `${uid}:screen`;
@@ -101,12 +100,12 @@ export function fitGrid(input: {
 export type SpeakerState = { uid: string | null; since: number; speaking: readonly string[] };
 
 /**
- * Active speaker with hysteresis: the loudest participant above the threshold takes over only
- * after the current speaker has been quiet for SPEAKER_HOLD_MS.
+ * Active speaker with hysteresis. `voiced` holds the current level of each person the shared
+ * detector (voice-activity.ts) says is speaking, the same decision hand auto-lower uses. The
+ * loudest of them takes over only after the current speaker has been quiet for SPEAKER_HOLD_MS.
  */
-export function nextSpeakerState(prev: SpeakerState, levels: Readonly<Record<string, number>>, now: number): SpeakerState {
-  const speaking = Object.entries(levels)
-    .filter(([, level]) => level >= SPEAKING_LEVEL)
+export function nextSpeakerState(prev: SpeakerState, voiced: Readonly<Record<string, number>>, now: number): SpeakerState {
+  const speaking = Object.entries(voiced)
     .sort((a, b) => b[1] - a[1])
     .map(([uid]) => uid);
   const sameSpeaking = speaking.length === prev.speaking.length && speaking.every((uid) => prev.speaking.includes(uid));

@@ -54,7 +54,10 @@ function deviceErrorMessage(kind: "microphone" | "camera", error: Error) {
 /** Mic, camera and screen share sources (partytracks), shared by pre-join and the call. */
 export function useLocalMedia(): LocalMedia {
   // Both start off; people can turn them on in pre-join to test before joining.
-  const [mic] = useState(() => getMic({ broadcasting: false, constraints: MIC_CONSTRAINTS }));
+  // retainIdleTrack false: partytracks' default (true) keeps the mic open whenever broadcastTrack$
+  // is subscribed, i.e. for the whole page, muted or not. Off, the device runs only while
+  // unmuted or while a mic test monitors it, so the browser's mic indicator matches reality.
+  const [mic] = useState(() => getMic({ broadcasting: false, constraints: MIC_CONSTRAINTS, retainIdleTrack: false }));
   const [camera] = useState(() => getCamera({ broadcasting: false, constraints: CAMERA_CAPTURE }));
   const [screen, setScreen] = useState<Screenshare | null>(null);
   const [speakerId, setSpeakerId] = useState("");

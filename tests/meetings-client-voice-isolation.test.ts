@@ -84,7 +84,8 @@ describe("createVoiceIsolationTransform", () => {
     const sub = transform(input).subscribe((track) => seen.push(track));
     await flush();
 
-    expect(seen).toEqual([fake.output]);
+    // Raw mic first (no silence while loading), then the processed track.
+    expect(seen).toEqual([input, fake.output]);
     expect(fake.source.connect).toHaveBeenCalledWith(fake.rnnoise);
     expect(fake.rnnoise.connect).toHaveBeenCalledWith(fake.destination);
 
@@ -128,9 +129,10 @@ describe("createVoiceIsolationTransform", () => {
     const fake = fakeEngine();
     const transform = createVoiceIsolationTransform(fake.engine, vi.fn());
     const seen: unknown[] = [];
-    transform({} as MediaStreamTrack).subscribe((track) => seen.push(track)).unsubscribe();
+    const input = {} as MediaStreamTrack;
+    transform(input).subscribe((track) => seen.push(track)).unsubscribe();
     await flush();
-    expect(seen).toEqual([]);
+    expect(seen).toEqual([input]);
     expect(fake.engine.createContext).not.toHaveBeenCalled();
   });
 
@@ -143,5 +145,73 @@ describe("createVoiceIsolationTransform", () => {
     resumeVoiceIsolation();
     expect(fake.context.resume).toHaveBeenCalled();
     sub.unsubscribe();
+  });
+
+  it("turns the browser's noise suppression off while RNNoise runs and back on after", async () => {
+    const fake = fakeEngine();
+    const constraints: MediaTrackConstraints[] = [];
+    let ns = true;
+    const input = {
+      readyState: "live",
+      getConstraints: () => ({ deviceId: { exact: "mic-1" } }),
+      getSettings: () => ({ noiseSuppression: ns }),
+      applyConstraints: vi.fn(async (c: MediaTrackConstraints) => {
+        constraints.push(c);
+        ns = Boolean(c.noiseSuppression);
+      }),
+      stop: vi.fn()
+    } as unknown as MediaStreamTrack;
+    const sub = createVoiceIsolationTransform(fake.engine, vi.fn())(input).subscribe();
+    await flush();
+    expect(constraints[0]).toEqual({ deviceId: { exact: "mic-1" }, noiseSuppression: false, echoCancellation: true, autoGainControl: true });
+    sub.unsubscribe();
+    await flush();
+    expect(constraints[1]).toMatchObject({ deviceId: { exact: "mic-1" }, noiseSuppression: true, echoCancellation: true });
+  });
+
+  it("leaves the browser's suppression alone where audio constraints can't change", async () => {
+    const fake = fakeEngine();
+    const input = {
+      readyState: "live",
+      getConstraints: () => ({}),
+      getSettings: () => ({ noiseSuppression: true }),
+      applyConstraints: vi.fn(async () => undefined),
+      stop: vi.fn()
+    } as unknown as MediaStreamTrack;
+    createVoiceIsolationTransform(fake.engine, vi.fn())(input).subscribe().unsubscribe();
+    await flush();
+    // It was never actually turned off, so nothing to restore.
+    expect((input.applyConstraints as ReturnType<typeof vi.fn>).mock.calls.length).toBeLessThanOrEqual(1);
+  });
+
+  it("a device switch builds exactly one new graph and closes the old one", async () => {
+    const contexts: Array<{ close: ReturnType<typeof vi.fn> }> = [];
+    const fake = fakeEngine();
+    const engine = {
+      ...fake.engine,
+      createContext: vi.fn(() => {
+        const ctx = { ...fake.context, close: vi.fn(() => Promise.resolve()) };
+        contexts.push(ctx);
+        return ctx as unknown as AudioContext;
+      })
+    };
+    const transform = createVoiceIsolationTransform(engine, vi.fn());
+    const micA = { stop: vi.fn() } as unknown as MediaStreamTrack;
+    const micB = { stop: vi.fn() } as unknown as MediaStreamTrack;
+    // partytracks subscribes twice per track (broadcast + local monitor), then switches device.
+    const a1 = transform(micA).subscribe();
+    const a2 = transform(micA).subscribe();
+    await flush();
+    a1.unsubscribe();
+    a2.unsubscribe();
+    const b1 = transform(micB).subscribe();
+    const b2 = transform(micB).subscribe();
+    await flush();
+    expect(contexts).toHaveLength(2);
+    expect(contexts[0].close).toHaveBeenCalledTimes(1);
+    expect(contexts[1].close).not.toHaveBeenCalled();
+    b1.unsubscribe();
+    b2.unsubscribe();
+    expect(contexts[1].close).toHaveBeenCalledTimes(1);
   });
 });

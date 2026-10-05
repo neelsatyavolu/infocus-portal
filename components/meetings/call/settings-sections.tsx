@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import type { BackgroundMode, ReceiveQuality, SendQuality } from "@/src/lib/meetings/client/meet-settings";
 import { estimateGbPerHour } from "@/src/lib/meetings/client/quality";
 import { DevicePicker, SettingSwitch, SpeakerPicker } from "./device-pickers";
+import { micTestLabel, shouldMonitorMic } from "@/src/lib/meetings/client/mic-monitor";
 import { LevelMeter } from "./level-meter";
 import { VideoView, useObservableTrack } from "./media-elements";
 import { Segmented } from "./segmented";
@@ -49,8 +50,10 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 }
 
 export function AudioSettings({ media, showMeter = true }: { media: LocalMedia; showMeter?: boolean }) {
-  // The meter reads the processed (voice-isolated) mic, so the effect is visible.
-  const mic$ = useMemo(() => (media.audioOn && showMeter ? media.mic.localMonitorTrack$ : NEVER), [media.audioOn, media.mic, showMeter]);
+  // Open settings = mic test: monitor even while muted (nothing is sent; see mic-monitor.ts). The
+  // meter reads the processed (voice-isolated) track. Unmounting (closing) releases the monitor.
+  const monitorMic = showMeter && shouldMonitorMic({ screen: "call", settingsOpen: true, audioOn: media.audioOn });
+  const mic$ = useMemo(() => (monitorMic ? media.mic.localMonitorTrack$ : NEVER), [monitorMic, media.mic]);
   const micTrack = useObservableTrack(mic$);
   return (
     <SettingsSection title="Audio">
@@ -66,7 +69,7 @@ export function AudioSettings({ media, showMeter = true }: { media: LocalMedia; 
       {showMeter ? (
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <LevelMeter track={micTrack} />
-          <span>{media.audioOn ? "Speak to test your microphone" : "Your microphone is off"}</span>
+          <span>{micTestLabel(media.audioOn)}</span>
         </div>
       ) : null}
       <SettingSwitch

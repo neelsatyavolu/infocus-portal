@@ -69,6 +69,26 @@ export function resumeVoiceIsolation() {
   });
 }
 
+/**
+ * Avoid double noise suppression: with RNNoise running, ask the browser to stop its own
+ * noiseSuppression on the source (echo cancellation and AGC stay on). applyConstraints replaces
+ * the whole constraint set, so the existing constraints (deviceId etc.) are carried over.
+ * Chrome applies audio-processing changes to a live mic track; where a browser ignores or
+ * rejects it (older Safari), both stay on, which is the safer default: RNNoise alone fails open
+ * if it ever stops, and the browser's suppressor stays as a net. Returns true when it was turned off.
+ */
+async function setBrowserNoiseSuppression(track: MediaStreamTrack, on: boolean) {
+  if (typeof track.applyConstraints !== "function" || track.readyState === "ended") return false;
+  try {
+    const current = typeof track.getConstraints === "function" ? track.getConstraints() : {};
+    await track.applyConstraints({ ...current, noiseSuppression: on, echoCancellation: true, autoGainControl: true });
+    const settings = typeof track.getSettings === "function" ? track.getSettings() : {};
+    return settings.noiseSuppression === on;
+  } catch {
+    return false;
+  }
+}
+
 function buildPipeline(engine: NoiseEngine, input: MediaStreamTrack): Pipeline {
   let context: AudioContext | null = null;
   let source: MediaStreamAudioSourceNode | null = null;
@@ -76,6 +96,7 @@ function buildPipeline(engine: NoiseEngine, input: MediaStreamTrack): Pipeline {
   let destination: MediaStreamAudioDestinationNode | null = null;
   let outputTrack: MediaStreamTrack | null = null;
   let closed = false;
+  let browserNsOff = false;
 
   const teardown = () => {
     closed = true;
@@ -84,6 +105,8 @@ function buildPipeline(engine: NoiseEngine, input: MediaStreamTrack): Pipeline {
     node?.destroy?.();
     destination?.disconnect();
     outputTrack?.stop(); // Never the input: partytracks owns the mic track.
+    // Voice isolation off (or the mic switched): give the browser its noise suppression back.
+    if (browserNsOff) void setBrowserNoiseSuppression(input, true);
     if (context) {
       liveContexts.delete(context);
       if (context.state !== "closed") void context.close().catch(() => undefined);
@@ -105,6 +128,9 @@ function buildPipeline(engine: NoiseEngine, input: MediaStreamTrack): Pipeline {
     const track = destination.stream.getAudioTracks()[0];
     if (!track) throw new Error("No processed audio track");
     outputTrack = track;
+    // Only now that RNNoise is live: no moment without any noise suppression.
+    browserNsOff = await setBrowserNoiseSuppression(input, false);
+    if (closed && browserNsOff) void setBrowserNoiseSuppression(input, true);
     return track;
   })();
   // Failures are handled by subscribers; don't leave an unhandled rejection behind.
@@ -115,8 +141,8 @@ function buildPipeline(engine: NoiseEngine, input: MediaStreamTrack): Pipeline {
 /**
  * Returns a stable transform `(track) => Observable<processed track>` for mic.addTransform.
  * Subscribers of the same input track share one audio graph (partytracks runs transforms
- * separately for the broadcast and the local monitor). If anything fails, the original track is
- * emitted and `onUnavailable` is called.
+ * separately for the broadcast and the local monitor). The original track is emitted first, then
+ * the processed one; if processing fails, the original keeps flowing and `onUnavailable` is called.
  */
 export function createVoiceIsolationTransform(engine: NoiseEngine, onUnavailable: () => void) {
   const pipelines = new Map<MediaStreamTrack, Pipeline>();
@@ -132,14 +158,15 @@ export function createVoiceIsolationTransform(engine: NoiseEngine, onUnavailable
       current.refs += 1;
       let active = true;
 
+      // The raw mic goes out at once (no silence while RNNoise loads); the processed track then
+      // replaces it on the sender (replaceTrack, no renegotiation).
+      subscriber.next(input);
       current.output.then(
         (track) => {
           if (active) subscriber.next(track);
         },
         () => {
-          if (!active) return;
-          onUnavailable();
-          subscriber.next(input);
+          if (active) onUnavailable();
         }
       );
 

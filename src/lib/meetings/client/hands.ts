@@ -1,5 +1,4 @@
 import type { MeetingParticipantView } from "@/src/lib/meetings/protocol";
-import { SPEAKING_LEVEL } from "./layout";
 
 /** Raised-hand queue and Meet-style auto-lower. Pure: no timers, no React. */
 
@@ -30,7 +29,8 @@ const MAX_SAMPLE_GAP_MS = 500;
 export type AutoLowerState = { samples: readonly { at: number; speaking: boolean }[] };
 export const INITIAL_AUTO_LOWER: AutoLowerState = { samples: [] };
 
-export type AutoLowerSample = { at: number; level: number; micOn: boolean; handUp: boolean };
+/** `speaking` comes from the shared detector (voice-activity.ts), the same one the speaking ring uses. */
+export type AutoLowerSample = { at: number; speaking: boolean; micOn: boolean; handUp: boolean };
 
 /** Speaking time inside the window: each interval counts when the sample that starts it was speech. */
 function speakingMs(samples: AutoLowerState["samples"]) {
@@ -43,15 +43,15 @@ function speakingMs(samples: AutoLowerState["samples"]) {
 }
 
 /**
- * Feeds one self mic level sample. Returns `lower: true` once the person has spoken for about
- * 2.5 s within 4 s with their mic on and hand up. Mic off or hand down resets, so speech from
- * before the hand went up never counts, and short blips never add up to enough.
+ * Feeds one self speaking sample. Returns `lower: true` once the person has spoken for about
+ * 2.5 s within 4 s with their mic on and hand up. Mic off or hand down clears the history, so
+ * speech from before the hand went up never counts, and coughs and blips never add up to enough.
  */
 export function nextAutoLower(state: AutoLowerState, sample: AutoLowerSample): { state: AutoLowerState; lower: boolean } {
   if (!sample.micOn || !sample.handUp) {
     return { state: state.samples.length ? INITIAL_AUTO_LOWER : state, lower: false };
   }
-  const samples = [...state.samples, { at: sample.at, speaking: sample.level >= SPEAKING_LEVEL }].filter(
+  const samples = [...state.samples, { at: sample.at, speaking: sample.speaking }].filter(
     (s) => s.at >= sample.at - AUTO_LOWER_WINDOW_MS
   );
   if (speakingMs(samples) >= AUTO_LOWER_SPEAKING_MS) return { state: INITIAL_AUTO_LOWER, lower: true };

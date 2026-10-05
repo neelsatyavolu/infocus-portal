@@ -1,3 +1,4 @@
+import { onTick } from "./ticker";
 import { resumeVoiceIsolation } from "./voice-isolation";
 
 /** Shared WebAudio level meters (one AudioContext per page). Levels are RMS in 0..1. */
@@ -18,22 +19,25 @@ export function resumeAudio() {
     .catch(() => undefined);
 }
 
-/** Calls `onLevel` about every `intervalMs` until the returned function is called. */
-export function watchTrackLevel(track: MediaStreamTrack, onLevel: (level: number) => void, intervalMs = 150) {
+/**
+ * Calls `onLevel` about every 100 ms until the returned function is called. Ticks come from the
+ * shared worker ticker, so meters keep running in background tabs.
+ */
+export function watchTrackLevel(track: MediaStreamTrack, onLevel: (level: number) => void) {
   const context = audioContext();
   const source = context.createMediaStreamSource(new MediaStream([track]));
   const analyser = context.createAnalyser();
   analyser.fftSize = 512;
   source.connect(analyser);
   const samples = new Float32Array(analyser.fftSize);
-  const timer = setInterval(() => {
+  const stopTicks = onTick(() => {
     analyser.getFloatTimeDomainData(samples);
     let sum = 0;
     for (const sample of samples) sum += sample * sample;
     onLevel(Math.min(1, Math.sqrt(sum / samples.length) * 4));
-  }, intervalMs);
+  });
   return () => {
-    clearInterval(timer);
+    stopTicks();
     source.disconnect();
     analyser.disconnect();
   };

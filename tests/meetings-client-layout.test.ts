@@ -8,6 +8,7 @@ import {
   selectVisibleTiles,
   type StageTile
 } from "@/src/lib/meetings/client/layout";
+import { INITIAL_VAD, nextVad, type VadState } from "@/src/lib/meetings/client/voice-activity";
 import {
   canJoinNow,
   formatCountdown,
@@ -122,7 +123,7 @@ describe("fitGrid", () => {
 describe("nextSpeakerState", () => {
   const start = { uid: null, since: 0, speaking: [] as string[] };
 
-  it("picks the loudest speaker and holds them through short pauses", () => {
+  it("picks the loudest voiced person and holds them through short pauses", () => {
     const a = nextSpeakerState(start, { x: 0.2, y: 0.1 }, 1000);
     expect(a.uid).toBe("x");
     const pause = nextSpeakerState(a, { y: 0.3 }, 1500);
@@ -134,6 +135,21 @@ describe("nextSpeakerState", () => {
   it("returns the same object when nothing changed", () => {
     const quiet = nextSpeakerState(start, {}, 10);
     expect(quiet).toBe(start);
+  });
+
+  it("rings for quiet voice-isolated speech, using the same detector as hand auto-lower", () => {
+    // Levels like the regression in meetings-client-hands: voiced ~0.045 between ~0.006 gaps,
+    // well under the old fixed 0.06 ring threshold.
+    let vad: VadState = INITIAL_VAD;
+    let ringOnFor = 0;
+    for (let t = 0; t <= 4000; t += 100) {
+      const level = t % 350 < 200 ? 0.045 : 0.006;
+      const result = nextVad(vad, t, level);
+      vad = result.state;
+      const state = nextSpeakerState(start, result.speaking ? { me: level } : {}, t);
+      if (state.speaking.includes("me")) ringOnFor += 100;
+    }
+    expect(ringOnFor).toBeGreaterThan(3000);
   });
 });
 

@@ -19,7 +19,7 @@ const GOLD = "#B08D3C";
 const WORDMARK_RATIO = 480 / 206;
 const TEXT_WIDTH = 1640;
 /** Where a drawn signature sits above its line. */
-const SIGNATURE_BOX = { width: 440, height: 100 } as const;
+const SIGNATURE_BOX = { width: 440, height: 88 } as const;
 const SIGNATURE_WIDTH = 480;
 
 let imagesPromise: Promise<CertificateImages> | null = null;
@@ -139,7 +139,7 @@ function Signature({ signer }: { signer: CertificateSigner | undefined }) {
 
 export function renderCertificate(data: CertificateData, images: CertificateImages) {
   const title = `“${data.title}”`;
-  const nameSize = fitFontSize(data.name, TEXT_WIDTH, 132, 72, 0.58);
+  const nameSize = fitFontSize(data.name, TEXT_WIDTH, 112, 72, 0.58);
   const titleSize = fitWrappedFontSize(title, TEXT_WIDTH, 2, 60, 36, 0.56);
   const awarded = data.awardedAt.toLocaleDateString("en-US", {
     month: "long",
@@ -177,16 +177,16 @@ export function renderCertificate(data: CertificateData, images: CertificateImag
           <CornerBracket corner="bottomLeft" />
           <CornerBracket corner="bottomRight" />
           <img src={images.wordmark} alt="" width={Math.round(132 * WORDMARK_RATIO)} height={132} />
-          <div style={{ ...label, marginTop: 44 }}>InFocus News · Certificate of Excellence</div>
+          <div style={{ ...label, marginTop: 36 }}>InFocus News · Certificate of Excellence</div>
           <div style={{ display: "flex", fontSize: 150, fontWeight: 600, letterSpacing: "-0.02em", marginTop: 20 }}>
             Package of the Cycle
           </div>
-          <div style={{ display: "flex", alignItems: "center", marginTop: 36 }}>
+          <div style={{ display: "flex", alignItems: "center", marginTop: 30 }}>
             <div style={{ display: "flex", width: 90, height: 3, backgroundColor: GOLD }} />
             <div style={{ display: "flex", width: 180, height: 8, backgroundColor: GREEN, margin: "0 20px" }} />
             <div style={{ display: "flex", width: 90, height: 3, backgroundColor: GOLD }} />
           </div>
-          <div style={{ display: "flex", fontSize: 38, color: INK_SOFT, marginTop: 52 }}>Presented to</div>
+          <div style={{ display: "flex", fontSize: 38, color: INK_SOFT, marginTop: 40 }}>Presented to</div>
           <div
             style={{
               display: "flex",
@@ -202,7 +202,7 @@ export function renderCertificate(data: CertificateData, images: CertificateImag
           >
             {data.name}
           </div>
-          <div style={{ display: "flex", fontSize: 36, color: INK_SOFT, marginTop: 44 }}>for the package</div>
+          <div style={{ display: "flex", fontSize: 36, color: INK_SOFT, marginTop: 34 }}>for the package</div>
           <div
             style={{
               display: "flex",
@@ -221,14 +221,17 @@ export function renderCertificate(data: CertificateData, images: CertificateImag
           <div style={{ display: "flex", fontSize: 32, color: INK_SOFT, marginTop: 32 }}>
             {`Chosen by the executive producers · Cycle ${data.cycleNumber} · ${schoolYearLabel(data.awardedAt)}`}
           </div>
+          {/* Grows to fill the space but never shrinks below its content, so it can't ride up over the text. */}
           <div
             style={{
               display: "flex",
-              flex: 1,
+              flexGrow: 1,
+              flexShrink: 0,
               width: "100%",
               flexDirection: "column",
               alignItems: "center",
-              justifyContent: "flex-end"
+              justifyContent: "flex-end",
+              paddingTop: 36
             }}
           >
             <div style={{ display: "flex", alignItems: "center" }}>

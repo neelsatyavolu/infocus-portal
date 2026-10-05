@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BellRing } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { SettingsRow } from "@/components/settings-layout";
 import {
   callMacApp,
   macNotificationStatusText,
@@ -9,9 +11,6 @@ import {
   type MacNotificationStatus,
   type PortalAppDevice
 } from "@/src/lib/mac-app-bridge";
-
-const buttonClass =
-  "rounded-lg border border-border bg-secondary px-3 py-1.5 text-xs font-semibold text-foreground disabled:opacity-50";
 
 function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
@@ -22,8 +21,8 @@ const WORDS: Record<PortalAppDevice, { device: string; system: string; settings:
   iphone: { device: "iPhone", system: "iOS", settings: "Settings" }
 };
 
-/** Settings block shown only inside the InFocus Mac or iPhone app (Apple Push, registered by the app). */
-export function MacNotificationsCard({ device }: { device: PortalAppDevice }) {
+/** Settings row shown only inside the InFocus Mac or iPhone app (Apple Push, registered by the app). */
+export function MacNotificationsRow({ device }: { device: PortalAppDevice }) {
   const words = WORDS[device];
   const [status, setStatus] = useState<MacNotificationStatus | null>(null);
   const [busy, setBusy] = useState(false);
@@ -92,32 +91,39 @@ export function MacNotificationsCard({ device }: { device: PortalAppDevice }) {
   const ready = status?.permission === "authorized" || status?.permission === "provisional";
 
   return (
-    <article className="rounded-xl border border-border bg-muted p-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="inline-flex items-center gap-2 text-sm text-foreground">
-          <BellRing className="h-4 w-4" /> {words.device} app notifications
-        </p>
-        <div className="flex items-center gap-2">
-          {status?.permission === "notDetermined" ? (
-            <button type="button" onClick={() => void turnOn()} disabled={busy} className={buttonClass}>
-              Turn on
-            </button>
+    <SettingsRow
+      title={`${words.device} app notifications`}
+      description={
+        <>
+          {status ? macNotificationStatusText(status, device) : `Checking this ${words.device}…`} They follow your email
+          settings.
+          {message ? <span className="mt-1 block text-foreground">{message}</span> : null}
+          {error ? (
+            <span className="mt-1 flex items-center gap-1.5 text-danger">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              {error}
+            </span>
           ) : null}
-          <button type="button" onClick={() => void sendTest()} disabled={busy || !ready || !status?.registered} className={buttonClass}>
-            Test Notification
-          </button>
-        </div>
-      </div>
-      <p className="mt-3 text-xs text-muted-foreground">
-        {status ? macNotificationStatusText(status, device) : `Checking this ${words.device}…`} They follow your email settings above.
-      </p>
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <button type="button" onClick={() => void openSettings()} className={buttonClass}>
-          Open {words.device} Notification Settings
-        </button>
-      </div>
-      {message ? <p className="mt-2 text-xs text-foreground">{message}</p> : null}
-      {error ? <p className="mt-2 text-xs text-amber-300">{error}</p> : null}
-    </article>
+        </>
+      }
+    >
+      {status?.permission === "notDetermined" ? (
+        <Button type="button" size="sm" onClick={() => void turnOn()} disabled={busy}>
+          Turn on
+        </Button>
+      ) : null}
+      <Button type="button" variant="outline" size="sm" onClick={() => void openSettings()}>
+        Open {words.device} settings
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => void sendTest()}
+        disabled={busy || !ready || !status?.registered}
+      >
+        Send test
+      </Button>
+    </SettingsRow>
   );
 }

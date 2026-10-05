@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, CalendarDays, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
+import { SettingsNotice, SettingsRow } from "@/components/settings-layout";
 import { cn } from "@/src/lib/utils";
 
 type Status = {
@@ -24,7 +25,7 @@ function statusLine(status: Status) {
 }
 
 /** Admin: the InFocus Google account that sends meeting invites as Google Calendar events (super admin, adviser). */
-export function GoogleCalendarCard() {
+export function GoogleCalendarRow() {
   const [status, setStatus] = useState<Status | null>(null);
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
 
@@ -55,52 +56,40 @@ export function GoogleCalendarCard() {
   const healthy = status?.connected === true && !status.lastSyncError;
 
   return (
-    <section className="rounded-2xl border border-border bg-card p-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex min-w-0 items-start gap-2">
-          <CalendarDays className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
-          <div className="min-w-0">
-            <h2 className="text-lg font-semibold text-foreground">Google Calendar</h2>
-            <p className="text-sm text-muted-foreground">
-              Meeting invites go out as Google Calendar events from this account. Sign in as the InFocus Google account.
-            </p>
-          </div>
-        </div>
-        <a href="/api/admin/google-calendar/connect" className={cn(buttonVariants(), "shrink-0")}>
+    <div>
+      <SettingsRow
+        title="Google Calendar"
+        description={
+          <>
+            Meeting invites go out as Google Calendar events from this account. Sign in as the InFocus Google account.
+            <span
+              className={cn(
+                "mt-1.5 flex items-start gap-1.5",
+                status === null ? "text-muted-foreground" : healthy ? "text-foreground" : "text-danger"
+              )}
+            >
+              {status === null ? null : healthy ? (
+                <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--brand-green)]" aria-hidden="true" />
+              ) : (
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              )}
+              <span>
+                {status === null ? "Checking Google Calendar…" : statusLine(status)}
+                {status?.lastSyncError ? ` · Last sync failed: ${status.lastSyncError}` : null}
+              </span>
+            </span>
+          </>
+        }
+      >
+        <a href="/api/admin/google-calendar/connect" className={buttonVariants({ variant: "outline" })}>
           {status?.connected ? "Reconnect Google Calendar" : "Connect Google Calendar"}
         </a>
-      </div>
-
-      <p
-        className={cn(
-          "mt-3 flex items-start gap-2 text-sm",
-          status === null ? "text-muted-foreground" : healthy ? "text-foreground" : "text-danger"
-        )}
-      >
-        {status === null ? null : healthy ? (
-          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[var(--brand-green)]" aria-hidden="true" />
-        ) : (
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-        )}
-        <span>
-          {status === null ? "Checking Google Calendar…" : statusLine(status)}
-          {status?.lastSyncError ? ` · Last sync failed: ${status.lastSyncError}` : null}
-        </span>
-      </p>
-
+      </SettingsRow>
       {result ? (
-        <p
-          role="status"
-          className={cn(
-            "mt-3 rounded-lg border px-3 py-2 text-sm",
-            result.ok
-              ? "border-[var(--brand-green)]/30 bg-[var(--brand-green)]/10 text-foreground"
-              : "border-danger/30 bg-danger-tint text-danger"
-          )}
-        >
-          {result.message}
-        </p>
+        <div className="px-4 pb-4 md:px-5">
+          <SettingsNotice tone={result.ok ? "success" : "error"}>{result.message}</SettingsNotice>
+        </div>
       ) : null}
-    </section>
+    </div>
   );
 }

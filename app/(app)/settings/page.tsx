@@ -1,16 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BellRing, Mail } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { ArrowUpRight, LayoutGrid, List } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { AppearanceCard } from "./appearance-card";
-import { ClassBoardPinCard } from "./class-board-pin-card";
-import { LivestreamPinCard } from "./livestream-pin-card";
-import { MacAppCard } from "./mac-app-card";
-import { MacNotificationsCard } from "./mac-notifications-card";
-import { portalAppDevice, type PortalAppDevice } from "@/src/lib/mac-app-bridge";
+import {
+  SaveStatus,
+  SegmentedControl,
+  SettingsHeader,
+  SettingsLayout,
+  SettingsNotice,
+  SettingsPanel,
+  SettingsRow,
+  SettingsSection,
+  type SettingsNavItem
+} from "@/components/settings-layout";
+import { PinRow, useAccessPin } from "./access-pins";
+import { ThemeRow } from "./appearance-card";
+import { MacAppPanel } from "./mac-app-card";
+import { NotificationsSection } from "./notifications-section";
 
 type PreferenceState = {
   autoPlay: boolean;
@@ -18,20 +28,7 @@ type PreferenceState = {
   defaultView: "grid" | "list";
 };
 
-type NotificationChannelState = {
-  emailEnabled: boolean;
-  notificationEmail: string | null;
-  browserEnabled: boolean;
-  emailAnnouncementsEnabled: boolean;
-  emailCommentsEnabled: boolean;
-  emailGradesEnabled: boolean;
-  browserAnnouncementsEnabled: boolean;
-  browserCommentsEnabled: boolean;
-  browserGradesEnabled: boolean;
-};
-
-type ChannelKey = "email" | "browser";
-type CategoryKey = "announcements" | "comments" | "grades";
+type Profile = { email: string | null; name: string | null; nickname: string | null };
 
 const STORAGE_KEY = "infocus-settings";
 
@@ -41,118 +38,42 @@ const defaults: PreferenceState = {
   defaultView: "grid"
 };
 
-const defaultChannels: NotificationChannelState = {
-  emailEnabled: true,
-  notificationEmail: null,
-  browserEnabled: false,
-  emailAnnouncementsEnabled: true,
-  emailCommentsEnabled: true,
-  emailGradesEnabled: false,
-  browserAnnouncementsEnabled: true,
-  browserCommentsEnabled: true,
-  browserGradesEnabled: false
-};
-
-const categoryLabels: Record<CategoryKey, string> = {
-  announcements: "Announcements",
-  comments: "Comments",
-  grades: "Grades"
-};
-
-const preferenceKeyMap: Record<ChannelKey, Record<CategoryKey, keyof NotificationChannelState>> = {
-  email: {
-    announcements: "emailAnnouncementsEnabled",
-    comments: "emailCommentsEnabled",
-    grades: "emailGradesEnabled"
+const APP_LINKS = [
+  {
+    href: "https://grades.infocuspaly.com",
+    title: "Grades dashboard",
+    description: "Estimated grade, participation, packages, and calculator · grades.infocuspaly.com"
   },
-  browser: {
-    announcements: "browserAnnouncementsEnabled",
-    comments: "browserCommentsEnabled",
-    grades: "browserGradesEnabled"
+  {
+    href: "https://teleprompter.infocuspaly.com",
+    title: "Teleprompter",
+    description: "Fullscreen run mode + AI reformat · teleprompter.infocuspaly.com"
+  },
+  {
+    href: "https://drive.infocuspaly.com",
+    title: "InFocus Drive",
+    description: "Media storage · drive.infocuspaly.com"
   }
-};
-
-function urlBase64ToUint8Array(base64String: string) {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-
-  for (let index = 0; index < rawData.length; index += 1) {
-    outputArray[index] = rawData.charCodeAt(index);
-  }
-
-  return outputArray;
-}
-
-function canUseWebPush() {
-  return (
-    typeof window !== "undefined" &&
-    "serviceWorker" in navigator &&
-    "PushManager" in window &&
-    "Notification" in window
-  );
-}
-
-async function readPushPublicKey() {
-  const response = await fetch("/api/push/public-key", { cache: "no-store" });
-  const payload = await response.json();
-
-  if (!response.ok || !payload.data) {
-    throw new Error(payload?.error?.message ?? "Failed to load web push configuration.");
-  }
-
-  const data = payload.data as {
-    configured: boolean;
-    publicKey: string | null;
-  };
-
-  if (!data.configured || !data.publicKey) {
-    throw new Error("Web push is not configured on the server yet.");
-  }
-
-  return data.publicKey;
-}
-
-function extractSubscriptionPayload(subscription: PushSubscription) {
-  const json = subscription.toJSON();
-  const endpoint = json.endpoint ?? subscription.endpoint;
-  const p256dh = json.keys?.p256dh;
-  const auth = json.keys?.auth;
-
-  if (!endpoint || !p256dh || !auth) {
-    throw new Error("Could not read browser push subscription keys.");
-  }
-
-  return {
-    endpoint,
-    keys: {
-      p256dh,
-      auth
-    }
-  };
-}
+];
 
 export default function SettingsPage() {
   const router = useRouter();
   const [prefs, setPrefs] = useState<PreferenceState>(defaults);
   const [savedLabel, setSavedLabel] = useState("");
-  const [channels, setChannels] = useState<NotificationChannelState>(defaultChannels);
-  const [channelsLoading, setChannelsLoading] = useState(true);
-  const [channelsSaving, setChannelsSaving] = useState(false);
-  const [channelsSavedLabel, setChannelsSavedLabel] = useState("");
-  const [channelsError, setChannelsError] = useState<string | null>(null);
-  const [browserEnableModalOpen, setBrowserEnableModalOpen] = useState(false);
-  const [notificationEmailInput, setNotificationEmailInput] = useState("");
-  const [emailTestSending, setEmailTestSending] = useState(false);
-  const [appDevice, setAppDevice] = useState<PortalAppDevice | null>(null);
-  const [profileEmail, setProfileEmail] = useState<string | null>(null);
-  const [profileGoogleName, setProfileGoogleName] = useState<string | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [nicknameInput, setNicknameInput] = useState("");
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSavedLabel, setProfileSavedLabel] = useState("");
   const [profileError, setProfileError] = useState<string | null>(null);
+  const classBoardPin = useAccessPin(
+    "/api/class-board/pin",
+    "Replace the current Class Board PIN? Devices using the old one will need the new PIN."
+  );
+  const livestreamPin = useAccessPin(
+    "/api/livestreams/pin",
+    "Replace the livestream dashboard PIN? Anyone using the old one will need the new PIN."
+  );
 
   useEffect(() => {
     let active = true;
@@ -173,9 +94,8 @@ export default function SettingsPage() {
           throw new Error(payload?.error?.message ?? "Failed to load profile.");
         }
 
-        const data = payload.data as { email: string | null; name: string | null; nickname: string | null };
-        setProfileEmail(data.email);
-        setProfileGoogleName(data.name);
+        const data = payload.data as Profile;
+        setProfile(data);
         setNicknameInput(data.nickname ?? "");
       } catch (error) {
         if (!active) {
@@ -212,56 +132,8 @@ export default function SettingsPage() {
     }
   }, []);
 
-  useEffect(() => {
-    let active = true;
-
-    async function loadChannels() {
-      setChannelsLoading(true);
-      setChannelsError(null);
-
-      try {
-        const response = await fetch("/api/notification-preferences", { cache: "no-store" });
-        const payload = await response.json();
-
-        if (!active) {
-          return;
-        }
-
-        if (!response.ok || !payload.data) {
-          throw new Error(payload?.error?.message ?? "Failed to load notification channels.");
-        }
-
-        const data = payload.data as NotificationChannelState;
-        setChannels({
-          ...defaultChannels,
-          ...data
-        });
-        setNotificationEmailInput(data.notificationEmail ?? "");
-      } catch (error) {
-        if (!active) {
-          return;
-        }
-
-        setChannelsError(error instanceof Error ? error.message : "Failed to load notification channels.");
-      } finally {
-        if (active) {
-          setChannelsLoading(false);
-        }
-      }
-    }
-
-    void loadChannels();
-
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    setAppDevice(portalAppDevice(window.navigator.userAgent));
-  }, []);
-
-  async function saveNickname() {
+  async function saveNickname(event: FormEvent) {
+    event.preventDefault();
     setProfileSaving(true);
     setProfileError(null);
 
@@ -277,9 +149,8 @@ export default function SettingsPage() {
         throw new Error(payload?.error?.message ?? "Failed to save nickname.");
       }
 
-      const data = payload.data as { email: string | null; name: string | null; nickname: string | null };
-      setProfileEmail(data.email);
-      setProfileGoogleName(data.name);
+      const data = payload.data as Profile;
+      setProfile(data);
       setNicknameInput(data.nickname ?? "");
       setProfileSavedLabel("Saved");
       router.refresh();
@@ -293,483 +164,164 @@ export default function SettingsPage() {
 
   function save(next: PreferenceState) {
     setPrefs(next);
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    } catch {
+      // Private windows can block storage; the choice still applies for this visit.
+    }
     setSavedLabel("Saved");
     window.setTimeout(() => setSavedLabel(""), 1200);
   }
 
-  async function saveChannels(next: NotificationChannelState) {
-    const previous = channels;
+  const nicknameUnchanged = nicknameInput.trim() === (profile?.nickname ?? "");
+  const showPins = classBoardPin.visible || livestreamPin.visible;
 
-    setChannels(next);
-    setChannelsSaving(true);
-    setChannelsError(null);
-
-    try {
-      const response = await fetch("/api/notification-preferences", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(next)
-      });
-      const payload = await response.json();
-
-      if (!response.ok || !payload.data) {
-        throw new Error(payload?.error?.message ?? "Failed to save notification settings.");
-      }
-
-      const data = payload.data as NotificationChannelState;
-      setChannels({
-        ...defaultChannels,
-        ...data
-      });
-      setNotificationEmailInput(data.notificationEmail ?? "");
-      setChannelsSavedLabel("Saved");
-      window.setTimeout(() => setChannelsSavedLabel(""), 1200);
-      return true;
-    } catch (error) {
-      setChannels(previous);
-      setChannelsError(error instanceof Error ? error.message : "Failed to save notification settings.");
-      return false;
-    } finally {
-      setChannelsSaving(false);
-    }
-  }
-
-  async function sendBrowserTestNotification() {
-    setChannelsError(null);
-
-    try {
-      if (!canUseWebPush()) {
-        throw new Error("This browser does not support push notifications.");
-      }
-
-      if (Notification.permission !== "granted") {
-        const permission = await Notification.requestPermission();
-        if (permission !== "granted") {
-          throw new Error("Browser notifications are blocked. Allow notifications and try again.");
-        }
-      }
-
-      const registration = await navigator.serviceWorker.register("/sw.js");
-      await registration.showNotification("InFocus Portal Test Notification", {
-        body: "Browser notifications are working.",
-        icon: "/favicon.ico"
-      });
-    } catch (error) {
-      setChannelsError(error instanceof Error ? error.message : "Failed to send test notification.");
-    }
-  }
-
-  async function sendEmailTestNotification() {
-    setChannelsError(null);
-    setEmailTestSending(true);
-
-    try {
-      const response = await fetch("/api/notification-preferences/test-email", {
-        method: "POST"
-      });
-      const payload = await response.json();
-
-      if (!response.ok || !payload.data) {
-        throw new Error(payload?.error?.message ?? "Failed to send test email notification.");
-      }
-
-      setChannelsSavedLabel("Test email sent");
-      window.setTimeout(() => setChannelsSavedLabel(""), 1200);
-    } catch (error) {
-      setChannelsError(error instanceof Error ? error.message : "Failed to send test email notification.");
-    } finally {
-      setEmailTestSending(false);
-    }
-  }
-
-  function updateCategoryPreference(channel: ChannelKey, category: CategoryKey, checked: boolean) {
-    const key = preferenceKeyMap[channel][category];
-    void saveChannels({
-      ...channels,
-      [key]: checked
-    });
-  }
-
-  async function saveNotificationEmail() {
-    const nextValue = notificationEmailInput.trim();
-
-    if (nextValue && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextValue)) {
-      setChannelsError("Enter a valid notification email address.");
-      return;
-    }
-
-    await saveChannels({
-      ...channels,
-      notificationEmail: nextValue || null
-    });
-  }
-
-  async function onBrowserToggle(nextValue: boolean) {
-    if (!nextValue) {
-      if (canUseWebPush()) {
-        try {
-          const registration = await navigator.serviceWorker.getRegistration("/sw.js");
-          const existingSubscription = await registration?.pushManager.getSubscription();
-          const endpoint = existingSubscription?.endpoint;
-
-          if (existingSubscription) {
-            await existingSubscription.unsubscribe();
-          }
-
-          await fetch("/api/push/subscription", {
-            method: "DELETE",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(endpoint ? { endpoint } : {})
-          });
-        } catch {
-          // best effort unsubscribe
-        }
-      }
-
-      await saveChannels({
-        ...channels,
-        browserEnabled: false
-      });
-      return;
-    }
-
-    setBrowserEnableModalOpen(true);
-
-    if (!canUseWebPush()) {
-      setChannelsError("This browser does not support push notifications.");
-      return;
-    }
-
-    let permission = Notification.permission;
-    if (permission !== "granted") {
-      permission = await Notification.requestPermission();
-    }
-
-    if (permission !== "granted") {
-      setChannelsError("Browser notifications are blocked. Allow notifications in your browser settings and try again.");
-      await saveChannels({
-        ...channels,
-        browserEnabled: false
-      });
-      return;
-    }
-
-    try {
-      const publicKey = await readPushPublicKey();
-      const registration = await navigator.serviceWorker.register("/sw.js");
-      const existingSubscription = await registration.pushManager.getSubscription();
-      const nextSubscription =
-        existingSubscription ??
-        (await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(publicKey)
-        }));
-
-      const response = await fetch("/api/push/subscription", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(extractSubscriptionPayload(nextSubscription))
-      });
-      const payload = await response.json();
-
-      if (!response.ok) {
-        throw new Error(payload?.error?.message ?? "Failed to save browser push subscription.");
-      }
-    } catch (error) {
-      setChannelsError(error instanceof Error ? error.message : "Failed to enable browser notifications.");
-      await saveChannels({
-        ...channels,
-        browserEnabled: false
-      });
-      return;
-    }
-
-    const saved = await saveChannels({
-      ...channels,
-      browserEnabled: true
-    });
-
-    if (saved) {
-      await sendBrowserTestNotification();
-    }
-  }
+  const nav: SettingsNavItem[] = [
+    { id: "profile", label: "Profile" },
+    { id: "appearance", label: "Appearance" },
+    { id: "playback", label: "Playback" },
+    { id: "notifications", label: "Notifications" },
+    ...(showPins ? [{ id: "pins", label: "PINs" }] : []),
+    { id: "mac-app", label: "InFocus for Mac" },
+    { id: "apps", label: "Apps & links" }
+  ];
 
   return (
-    <div className="route-enter mx-auto w-full max-w-5xl space-y-5">
-      <section className="brand-hero-panel relative overflow-hidden p-5 md:p-6">
-        <div className="relative min-w-0">
-          <div className="eyebrow">Account</div>
-          <h1 className="display-md mt-2 text-foreground">Settings</h1>
-          <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-            Nickname, appearance, playback, notifications, and quick links to the grades and teleprompter apps.
-          </p>
-        </div>
-      </section>
-
-      <MacAppCard />
-
-      <section className="space-y-3 rounded-2xl border border-border bg-card p-4">
-        <p className="text-sm font-semibold text-foreground">Nickname</p>
-        <p className="text-xs text-muted-foreground">
-          This is how you appear in InFocus. Signing in with Google will not overwrite it.
-        </p>
-        {profileGoogleName || profileEmail ? (
-          <p className="text-xs text-muted-foreground">
-            Google account{profileGoogleName ? `: ${profileGoogleName}` : ""}
-            {profileEmail ? ` · ${profileEmail}` : ""}
-          </p>
+    <SettingsLayout
+      nav={nav}
+      header={
+        <SettingsHeader
+          eyebrow="Account"
+          title="Settings"
+          description="Your profile, how Portal looks, and how it reaches you."
+        />
+      }
+    >
+      <SettingsSection
+        id="profile"
+        title="Profile"
+        description="How you appear to everyone in InFocus."
+        actions={<SaveStatus text={profileLoading ? "Loading…" : profileSavedLabel} pending={profileLoading} />}
+      >
+        {profileError ? (
+          <SettingsNotice tone="error" onDismiss={() => setProfileError(null)}>
+            {profileError}
+          </SettingsNotice>
         ) : null}
-        <div className="flex gap-2">
-          <input
-            value={nicknameInput}
-            onChange={(event) => setNicknameInput(event.target.value)}
-            placeholder="What should we call you?"
-            maxLength={60}
-            disabled={profileLoading || profileSaving}
-            className="h-10 flex-1 rounded-lg border border-border bg-muted px-3 text-sm text-foreground outline-none"
-          />
-          <button
-            type="button"
-            onClick={() => void saveNickname()}
-            disabled={profileLoading || profileSaving}
-            className="rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+        <SettingsPanel>
+          <SettingsRow
+            title="Nickname"
+            description="Shown on rosters, calendars, and comments. Signing in with Google won't overwrite it."
+            htmlFor="nickname"
           >
-            {profileSaving ? "Saving..." : "Save"}
-          </button>
-        </div>
-        {profileLoading ? <p className="text-xs text-muted-foreground">Loading profile...</p> : null}
-        {profileSavedLabel ? <p className="text-xs text-foreground">{profileSavedLabel}</p> : null}
-        {profileError ? <p className="text-xs text-amber-300">{profileError}</p> : null}
-      </section>
-
-      <AppearanceCard />
-
-      <ClassBoardPinCard />
-      <LivestreamPinCard />
-
-      <section className="space-y-3 rounded-2xl border border-border bg-card p-4">
-        <p className="text-sm font-semibold text-foreground">Apps & schedule</p>
-        <div className="grid gap-2 sm:grid-cols-2">
-          <a
-            href="https://grades.infocuspaly.com"
-            className="rounded-lg border border-border bg-muted p-3 text-sm transition hover:bg-accent"
-          >
-            <div className="font-semibold text-foreground">Grades dashboard</div>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Estimated grade, participation, packages, and calculator · grades.infocuspaly.com
-            </p>
-          </a>
-          <a
-            href="https://teleprompter.infocuspaly.com"
-            className="rounded-lg border border-border bg-muted p-3 text-sm transition hover:bg-accent"
-          >
-            <div className="font-semibold text-foreground">Teleprompter</div>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Fullscreen run mode + AI reformat · teleprompter.infocuspaly.com
-            </p>
-          </a>
-          <a
-            href="https://drive.infocuspaly.com"
-            className="rounded-lg border border-border bg-muted p-3 text-sm transition hover:bg-accent"
-          >
-            <div className="font-semibold text-foreground">InFocus Drive</div>
-            <p className="mt-0.5 text-xs text-muted-foreground">Media storage · drive.infocuspaly.com</p>
-          </a>
-          <div className="rounded-lg border border-border bg-muted p-3 text-sm">
-            <div className="font-semibold text-foreground">Weekly schedule</div>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Mon PA · Tue/Thu class · Wed/Fri shows · holidays off (PAUSD calendar seeded)
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section className="space-y-3 rounded-2xl border border-border bg-card p-4">
-        <p className="text-sm font-semibold text-foreground">Playback & Layout</p>
-
-        <label className="flex items-center justify-between rounded-lg border border-border bg-muted p-3 text-sm text-foreground">
-          <span>Autoplay videos on open</span>
-          <Switch
-            checked={prefs.autoPlay}
-            onCheckedChange={(next) => save({ ...prefs, autoPlay: next })}
-            aria-label="Autoplay videos on open"
-          />
-        </label>
-
-        <label className="flex items-center justify-between rounded-lg border border-border bg-muted p-3 text-sm text-foreground">
-          <span>Start with sound enabled</span>
-          <Switch
-            checked={prefs.soundEnabled}
-            onCheckedChange={(next) => save({ ...prefs, soundEnabled: next })}
-            aria-label="Start with sound enabled"
-          />
-        </label>
-
-        <div className="rounded-lg border border-border bg-muted p-3">
-          <p className="mb-2 text-sm text-foreground">Default view</p>
-          <div className="inline-flex rounded-lg border border-border bg-secondary p-1 text-sm">
-            <button
-              type="button"
-              className={`rounded-md px-3 py-1.5 ${prefs.defaultView === "grid" ? "bg-background text-foreground" : "text-muted-foreground"}`}
-              onClick={() => save({ ...prefs, defaultView: "grid" })}
-            >
-              Grid
-            </button>
-            <button
-              type="button"
-              className={`rounded-md px-3 py-1.5 ${prefs.defaultView === "list" ? "bg-background text-foreground" : "text-muted-foreground"}`}
-              onClick={() => save({ ...prefs, defaultView: "list" })}
-            >
-              List
-            </button>
-          </div>
-        </div>
-
-        {savedLabel ? <p className="text-xs text-muted-foreground">{savedLabel}</p> : null}
-      </section>
-
-      <section className="space-y-3 rounded-2xl border border-border bg-card p-4">
-        <p className="text-sm font-semibold text-foreground">Notification Channels</p>
-
-        <article className="rounded-xl border border-border bg-muted p-3">
-          <div className="flex items-center justify-between gap-2">
-            <p className="inline-flex items-center gap-2 text-sm text-foreground">
-              <Mail className="h-4 w-4" /> Email notifications
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => void sendEmailTestNotification()}
-                disabled={channelsLoading || channelsSaving || emailTestSending || !channels.emailEnabled}
-                className="rounded-lg border border-border bg-secondary px-3 py-1.5 text-xs font-semibold text-foreground disabled:opacity-50"
-              >
-                {emailTestSending ? "Sending..." : "Test Email"}
-              </button>
-              <Switch
-                checked={channels.emailEnabled}
-                onCheckedChange={(next) => void saveChannels({ ...channels, emailEnabled: next })}
-                aria-label="Email notifications"
-                disabled={channelsLoading || channelsSaving || emailTestSending}
+            <form onSubmit={saveNickname} className="flex w-full gap-2 sm:w-auto">
+              <Input
+                id="nickname"
+                value={nicknameInput}
+                onChange={(event) => setNicknameInput(event.target.value)}
+                placeholder="What should we call you?"
+                maxLength={60}
+                disabled={profileLoading || profileSaving}
+                className="sm:w-64"
               />
-            </div>
-          </div>
+              <Button type="submit" disabled={profileLoading || profileSaving || nicknameUnchanged}>
+                {profileSaving ? "Saving…" : "Save"}
+              </Button>
+            </form>
+          </SettingsRow>
+          {profile?.name || profile?.email ? (
+            <SettingsRow title="Google account" description={profile.name ?? undefined}>
+              {profile.email ? (
+                <span className="max-w-full truncate text-sm text-muted-foreground">{profile.email}</span>
+              ) : null}
+            </SettingsRow>
+          ) : null}
+        </SettingsPanel>
+      </SettingsSection>
 
-          <div className="mt-3 rounded-lg border border-border bg-background p-3">
-            <p className="mb-2 text-xs text-muted-foreground">
-              Notification email destination (optional). Leave blank to use your account email.
-            </p>
-            <div className="flex gap-2">
-              <input
-                value={notificationEmailInput}
-                onChange={(event) => setNotificationEmailInput(event.target.value)}
-                placeholder="notifications@example.com"
-                className="h-10 flex-1 rounded-lg border border-border bg-muted px-3 text-sm text-foreground outline-none"
-              />
-              <button
-                type="button"
-                onClick={() => void saveNotificationEmail()}
-                disabled={channelsLoading || channelsSaving}
-                className="rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground disabled:opacity-60"
-              >
-                Save
-              </button>
-            </div>
-          </div>
+      <SettingsSection id="appearance" title="Appearance">
+        <SettingsPanel>
+          <ThemeRow />
+          <SettingsRow title="Default view">
+            <SegmentedControl
+              label="Default view"
+              value={prefs.defaultView}
+              options={[
+                { value: "grid", label: "Grid", icon: <LayoutGrid /> },
+                { value: "list", label: "List", icon: <List /> }
+              ]}
+              onChange={(defaultView) => save({ ...prefs, defaultView })}
+            />
+          </SettingsRow>
+        </SettingsPanel>
+      </SettingsSection>
 
-          <div className="mt-3 grid gap-2 sm:grid-cols-3">
-            {(["announcements", "comments", "grades"] as CategoryKey[]).map((category) => {
-              const key = preferenceKeyMap.email[category];
-              return (
-                <label key={`email-${category}`} className="flex items-center justify-between rounded-lg border border-border bg-secondary px-3 py-2 text-xs text-foreground">
-                  <span>{categoryLabels[category]}</span>
-                  <Switch
-                    checked={Boolean(channels[key])}
-                    onCheckedChange={(next) => updateCategoryPreference("email", category, next)}
-                    aria-label={`Email ${categoryLabels[category]}`}
-                    disabled={channelsLoading || channelsSaving}
-                  />
-                </label>
-              );
-            })}
-          </div>
-        </article>
+      <SettingsSection id="playback" title="Playback" actions={<SaveStatus text={savedLabel} />}>
+        <SettingsPanel>
+          <SettingsRow title="Autoplay videos on open" htmlFor="pref-autoplay">
+            <Switch
+              id="pref-autoplay"
+              checked={prefs.autoPlay}
+              onCheckedChange={(next) => save({ ...prefs, autoPlay: next })}
+            />
+          </SettingsRow>
+          <SettingsRow title="Start with sound on" htmlFor="pref-sound">
+            <Switch
+              id="pref-sound"
+              checked={prefs.soundEnabled}
+              onCheckedChange={(next) => save({ ...prefs, soundEnabled: next })}
+            />
+          </SettingsRow>
+        </SettingsPanel>
+      </SettingsSection>
 
-        {/* Web push doesn't exist inside the apps' web views; app notifications replace it there. */}
-        {appDevice ? null : (
-        <article className="rounded-xl border border-border bg-muted p-3">
-          <div className="flex items-center justify-between gap-2">
-            <p className="inline-flex items-center gap-2 text-sm text-foreground">
-              <BellRing className="h-4 w-4" /> Browser notifications
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => void sendBrowserTestNotification()}
-                disabled={channelsLoading || channelsSaving || !channels.browserEnabled}
-                className="rounded-lg border border-border bg-secondary px-3 py-1.5 text-xs font-semibold text-foreground disabled:opacity-50"
-              >
-                Test Notification
-              </button>
-              <Switch
-                checked={channels.browserEnabled}
-                onCheckedChange={(next) => void onBrowserToggle(next)}
-                aria-label="Browser notifications"
-                disabled={channelsLoading || channelsSaving}
-              />
-            </div>
-          </div>
+      <NotificationsSection accountEmail={profile?.email ?? null} />
 
-          <div className="mt-3 grid gap-2 sm:grid-cols-3">
-            {(["announcements", "comments", "grades"] as CategoryKey[]).map((category) => {
-              const key = preferenceKeyMap.browser[category];
-              return (
-                <label key={`browser-${category}`} className="flex items-center justify-between rounded-lg border border-border bg-secondary px-3 py-2 text-xs text-foreground">
-                  <span>{categoryLabels[category]}</span>
-                  <Switch
-                    checked={Boolean(channels[key])}
-                    onCheckedChange={(next) => updateCategoryPreference("browser", category, next)}
-                    aria-label={`Browser ${categoryLabels[category]}`}
-                    disabled={channelsLoading || channelsSaving}
-                  />
-                </label>
-              );
-            })}
-          </div>
-        </article>
-        )}
+      {showPins ? (
+        <SettingsSection
+          id="pins"
+          title="PINs"
+          description="Unlock one screen without signing in. A PIN never signs anyone into Portal."
+        >
+          <SettingsPanel>
+            <PinRow title="Class Board PIN" description="Opens /class-board only." state={classBoardPin} />
+            <PinRow
+              title="Livestream dashboard PIN"
+              description="Opens the livestream dashboard at /live until midnight."
+              state={livestreamPin}
+            />
+          </SettingsPanel>
+        </SettingsSection>
+      ) : null}
 
-        {appDevice ? <MacNotificationsCard device={appDevice} /> : null}
+      <SettingsSection id="mac-app" title="InFocus for Mac" description="One app for Portal and Drive.">
+        <MacAppPanel />
+      </SettingsSection>
 
-        {channelsLoading ? <p className="text-xs text-muted-foreground">Loading notification preferences...</p> : null}
-        {channelsSavedLabel ? <p className="text-xs text-foreground">{channelsSavedLabel}</p> : null}
-        {channelsError ? <p className="text-xs text-amber-300">{channelsError}</p> : null}
-      </section>
-
-      <Dialog open={browserEnableModalOpen} onOpenChange={setBrowserEnableModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Enable Browser Notifications</DialogTitle>
-            <DialogDescription>Make sure notifications are enabled in both your browser and your device settings.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2 text-sm text-foreground">
-            <p>1. Allow notifications for this site when your browser prompts you.</p>
-            <p>2. In your browser settings, confirm notifications are allowed for this website.</p>
-            <p>3. In your device settings (Mac/Windows/iOS/Android), make sure notifications for your browser are enabled.</p>
-          </div>
-          <DialogFooter>
-            <button
-              type="button"
-              onClick={() => setBrowserEnableModalOpen(false)}
-              className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground"
+      <SettingsSection id="apps" title="Apps & links">
+        <SettingsPanel>
+          {APP_LINKS.map((link) => (
+            <a
+              key={link.href}
+              href={link.href}
+              className="group flex items-center justify-between gap-4 px-4 py-4 transition-colors hover:bg-secondary/60 md:px-5"
             >
-              Got it
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-foreground">{link.title}</p>
+                <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">{link.description}</p>
+              </div>
+              <ArrowUpRight
+                className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground"
+                aria-hidden="true"
+              />
+            </a>
+          ))}
+          <SettingsRow
+            title="Weekly schedule"
+            description="Mon PA · Tue/Thu class · Wed/Fri shows · holidays off (PAUSD calendar seeded)"
+          />
+        </SettingsPanel>
+      </SettingsSection>
+    </SettingsLayout>
   );
 }

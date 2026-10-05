@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BellRing, Download, HardDrive, Laptop, PanelsTopLeft } from "lucide-react";
+import { BellRing, Download, HardDrive, PanelsTopLeft } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
+import { SettingsPanel, SettingsPanelBody, SettingsRow } from "@/components/settings-layout";
 import { MAC_APP_DOWNLOAD_URL, macAppAudience, type MacAppAudience } from "@/src/lib/mac-app-bridge";
 
 const BENEFITS = [
@@ -18,7 +19,7 @@ const STEPS = [
 ];
 
 /** Settings → InFocus for Mac: what the app does and a one-click download. */
-export function MacAppCard() {
+export function MacAppPanel() {
   const [audience, setAudience] = useState<MacAppAudience | null>(null);
 
   useEffect(() => {
@@ -26,41 +27,41 @@ export function MacAppCard() {
   }, []);
 
   return (
-    <section className="space-y-3 rounded-2xl border border-border bg-card p-4">
-      <p className="inline-flex items-center gap-2 text-sm font-semibold text-foreground">
-        <Laptop className="h-4 w-4" /> InFocus for Mac
-      </p>
-      <p className="text-sm text-muted-foreground">One app for Portal and Drive.</p>
-      <div className="grid gap-2 sm:grid-cols-3">
+    <SettingsPanel>
+      <SettingsPanelBody className="grid gap-5 sm:grid-cols-3">
         {BENEFITS.map(({ Icon, title, text }) => (
-          <div key={title} className="rounded-lg border border-border bg-muted p-3">
-            <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">
-              <Icon className="h-3.5 w-3.5 text-brand-green" /> {title}
+          <div key={title}>
+            <p className="inline-flex items-center gap-2 text-sm font-medium text-foreground">
+              <Icon className="h-4 w-4 text-brand-green" aria-hidden="true" /> {title}
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">{text}</p>
+            <p className="mt-1 text-[13px] leading-snug text-muted-foreground">{text}</p>
           </div>
         ))}
-      </div>
+      </SettingsPanelBody>
 
       {audience === "app" ? (
-        <p className="text-xs text-muted-foreground">You&apos;re using InFocus for Mac. It updates itself.</p>
+        <SettingsRow title="You're using InFocus for Mac" description="It updates itself." />
       ) : audience === "mac" ? (
-        <div className="space-y-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <a href={MAC_APP_DOWNLOAD_URL} className={buttonVariants({ size: "lg" })}>
-              <Download className="mr-2 h-4 w-4" /> Download for Mac
+        <SettingsRow
+          title="Download"
+          description={
+            <ol className="mt-1 list-decimal space-y-0.5 pl-4">
+              {STEPS.map((step) => (
+                <li key={step}>{step}</li>
+              ))}
+            </ol>
+          }
+        >
+          <div className="flex flex-col items-start gap-1.5 sm:items-end">
+            <a href={MAC_APP_DOWNLOAD_URL} className={buttonVariants()}>
+              <Download /> Download for Mac
             </a>
             <span className="text-xs text-muted-foreground">macOS 13 or later · Free</span>
           </div>
-          <ol className="list-decimal space-y-1 pl-5 text-xs text-muted-foreground">
-            {STEPS.map((step) => (
-              <li key={step}>{step}</li>
-            ))}
-          </ol>
-        </div>
+        </SettingsRow>
       ) : audience === "other" ? (
-        <p className="text-xs text-muted-foreground">Available for Mac. Open Settings on a Mac to download it.</p>
+        <SettingsRow title="Available for Mac" description="Open Settings on a Mac to download it." />
       ) : null}
-    </section>
+    </SettingsPanel>
   );
 }

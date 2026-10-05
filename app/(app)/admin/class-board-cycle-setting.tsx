@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { SettingsRow } from "@/components/settings-layout";
+import { selectClass } from "./admin-types";
 
 type Setting = {
   cycleNumber: number | null;
@@ -51,19 +53,17 @@ export function ClassBoardCycleSetting() {
   }
 
   return (
-    <div className="mt-4 border-t border-border pt-4">
-      <label htmlFor="class-board-cycle" className="text-sm font-medium text-foreground">
-        Class Board cycle
-      </label>
-      <p className="mt-1 text-xs text-muted-foreground">
-        Which cycle&apos;s packages the Class Board shows. Current cycle moves on after each Final Cut deadline.
-      </p>
+    <SettingsRow
+      title="Class Board cycle"
+      description="Which cycle's packages the Class Board shows. Current cycle moves on after each Final Cut deadline."
+      htmlFor="class-board-cycle"
+    >
       <select
         id="class-board-cycle"
         value={setting.cycleNumber === null ? AUTOMATIC : String(setting.cycleNumber)}
         onChange={(event) => void save(event.target.value)}
         disabled={!setting.canEdit || saving}
-        className="mt-2 h-10 w-full rounded-lg border border-border bg-muted px-3 text-sm text-foreground outline-none disabled:opacity-50 sm:w-72"
+        className={`${selectClass} w-full sm:w-64`}
       >
         <option value={AUTOMATIC}>Current cycle (automatic)</option>
         {setting.cycles.map((cycle) => (
@@ -73,6 +73,6 @@ export function ClassBoardCycleSetting() {
           </option>
         ))}
       </select>
-    </div>
+    </SettingsRow>
   );
 }

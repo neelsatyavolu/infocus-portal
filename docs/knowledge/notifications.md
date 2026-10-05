@@ -6,17 +6,21 @@ First sign-in sends you here before any other page. Set a nickname (required, up
 
 ## Settings (`/settings`)
 
-- **InFocus for Mac** (first on the page): what the Mac app does (Mac notifications, Portal in its own window, Drive in Finder) and **Download for Mac** with three install steps. See `drive-and-media.md`.
-- **Nickname**: how you appear in Portal. Signing in with Google does not overwrite it.
-- **Appearance**: Dark (default) or Light theme. Saved in that browser and shared across the Portal subdomains (grades, teleprompter, equipment). The teleprompter run mode and video players stay dark.
-- **Class Board PIN** (super admins and the adviser only). It opens `/class-board` only. See `class-board.md`.
-- **Livestream dashboard PIN** (producers and appointed livestream managers only). Six digits, **Create PIN** / **New PIN**. It opens `/live` without signing in, until midnight, and is separate from the Class Board PIN. See `livestreams.md`.
-- **Apps & schedule**: links to the grades dashboard, teleprompter, and InFocus Drive, plus the weekly schedule.
-- **Playback & Layout**: autoplay videos on open, start with sound, default grid or list view.
-- **Notification Channels**:
-  - **Email notifications** on/off, **Test Email**, an optional destination address (blank uses your account email), and Announcements / Comments / Grades switches. New accounts start with email on and Grades off.
-  - **Browser notifications** on/off, **Test Notification**, and the same three switches. Turning it on asks the browser for permission and registers that device; do it on each device you want notified. The test only shows a notification on this device.
-  - **Mac app notifications** / **iPhone app notifications** (only inside the InFocus Mac app or the InFocus Portal iPhone app, which hide the Browser block): status, **Turn on** (asks macOS or iOS), **Test Notification** (sent through Apple to every Mac and iPhone you're signed in on), and **Open Mac/iPhone Notification Settings**. There are no per-category switches here; see below.
+Sections are listed down the left on wide screens (a strip across the top on phones); each one is a panel of rows with the setting on the left and its control on the right.
+
+- **Profile**: **Nickname**, how you appear in Portal. Signing in with Google does not overwrite it. Below it, the Google account you sign in with.
+- **Appearance**: **Theme**, Dark (default) or Light. Saved in that browser and shared across the Portal subdomains (grades, teleprompter, equipment). The teleprompter run mode and video players stay dark. Also **Default view** (Grid or List).
+- **Playback**: autoplay videos on open, start with sound on.
+- **Notifications**:
+  - **Email** on/off and **Send test**. **Send email to another address** is optional (blank uses your account email). New accounts start with email on and Grades off.
+  - **Browser** on/off and **Send test**. Turning it on asks the browser for permission and registers that device; do it on each device you want notified. The test only shows a notification on this device.
+  - **Mac app notifications** / **iPhone app notifications** (only inside the InFocus Mac app or the InFocus Portal iPhone app, which replace the Browser row): status, **Turn on** (asks macOS or iOS), **Open Mac/iPhone settings**, and **Send test** (sent through Apple to every Mac and iPhone you're signed in on). There are no per-category switches here; see below.
+  - A **Send me** grid: Announcements, Comments, and Grades switches for each channel (Email and Browser).
+- **PINs** (only shown to people who can see a PIN):
+  - **Class Board PIN** (super admins and the adviser only). It opens `/class-board` only. See `class-board.md`.
+  - **Livestream dashboard PIN** (producers and appointed livestream managers only). Six digits, **Create PIN** / **New PIN**. It opens `/live` without signing in, until midnight, and is separate from the Class Board PIN. See `livestreams.md`.
+- **InFocus for Mac**: what the Mac app does (Mac notifications, Portal in its own window, Drive in Finder) and **Download for Mac** with three install steps. See `drive-and-media.md`.
+- **Apps & links**: links to the grades dashboard, teleprompter, and InFocus Drive, plus the weekly schedule.
 
 ## Mac and iPhone notifications
 

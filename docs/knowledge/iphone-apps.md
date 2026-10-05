@@ -20,7 +20,7 @@ A native iPhone app for the Portal (bundle `com.infocuspaly.portal`), with the s
 A few tools still open the matching Portal page inside the app: Final Cut grading, timecoded review, whole-show upload, teleprompter scripts, package pills inside calendar cells, CSV export and the equipment kiosk.
 
 - **Sign in with your school account.** The app opens a browser sheet to approve Portal (`/app-sign-in`), the same hand-off as InFocus for Mac. Google doesn't allow its sign-in inside apps, which is why it uses a sheet.
-- **Notifications.** After the first sign-in the app asks to send notifications. You then get an iPhone notification for every email Portal sends you, under the same rules as the Mac app (see `notifications.md`). Tapping one opens its page in the app. Settings → **iPhone app notifications** shows the status and has **Test Notification**.
+- **Notifications.** After the first sign-in the app asks to send notifications. You then get an iPhone notification for every email Portal sends you, under the same rules as the Mac app (see `notifications.md`). Tapping one opens its page in the app. Settings → Notifications → **iPhone app notifications** shows the status and has **Send test**.
 - **Sign out** stops notifications on that iPhone.
 
 Portal pages opened inside the app show without the website's sidebar and header (the app sets the `infocus_embedded` cookie). Links outside Portal open in a browser sheet. The source is in the `infocus-drive` repo, `ios/`.

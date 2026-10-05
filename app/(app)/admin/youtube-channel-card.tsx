@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, CheckCircle2, Youtube } from "lucide-react";
+import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
+import { SettingsNotice, SettingsRow } from "@/components/settings-layout";
 import { cn } from "@/src/lib/utils";
 
 type Status = {
@@ -28,7 +29,7 @@ function statusLine(status: Status) {
 }
 
 /** Admin: the InFocus YouTube channel's authorization for show and package uploads (super admin only). */
-export function YoutubeChannelCard() {
+export function YoutubeChannelRow() {
   const [status, setStatus] = useState<Status | null>(null);
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
 
@@ -59,49 +60,39 @@ export function YoutubeChannelCard() {
   const healthy = status?.connected === true;
 
   return (
-    <section className="rounded-2xl border border-border bg-card p-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex min-w-0 items-start gap-2">
-          <Youtube className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
-          <div className="min-w-0">
-            <h2 className="text-lg font-semibold text-foreground">YouTube channel</h2>
-            <p className="text-sm text-muted-foreground">
-              Show and package uploads use this authorization. Google will ask you to choose the InFocus channel.
-            </p>
-          </div>
-        </div>
-        <a href="/api/admin/youtube/connect" className={cn(buttonVariants(), "shrink-0")}>
+    <div>
+      <SettingsRow
+        title="YouTube channel"
+        description={
+          <>
+            Show and package uploads use this authorization. Google will ask you to choose the InFocus channel.
+            <span
+              className={cn(
+                "mt-1.5 flex items-start gap-1.5",
+                status === null ? "text-muted-foreground" : healthy ? "text-foreground" : "text-danger"
+              )}
+            >
+              {status === null ? null : healthy ? (
+                <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--brand-green)]" aria-hidden="true" />
+              ) : (
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              )}
+              <span>
+                {status === null ? "Checking YouTube…" : statusLine(status)}
+              </span>
+            </span>
+          </>
+        }
+      >
+        <a href="/api/admin/youtube/connect" className={buttonVariants({ variant: "outline" })}>
           Reconnect YouTube
         </a>
-      </div>
-
-      <p
-        className={cn(
-          "mt-3 flex items-start gap-2 text-sm",
-          status === null ? "text-muted-foreground" : healthy ? "text-foreground" : "text-danger"
-        )}
-      >
-        {status === null ? null : healthy ? (
-          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[var(--brand-green)]" aria-hidden="true" />
-        ) : (
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-        )}
-        <span>{status === null ? "Checking YouTube…" : statusLine(status)}</span>
-      </p>
-
+      </SettingsRow>
       {result ? (
-        <p
-          role="status"
-          className={cn(
-            "mt-3 rounded-lg border px-3 py-2 text-sm",
-            result.ok
-              ? "border-[var(--brand-green)]/30 bg-[var(--brand-green)]/10 text-foreground"
-              : "border-danger/30 bg-danger-tint text-danger"
-          )}
-        >
-          {result.message}
-        </p>
+        <div className="px-4 pb-4 md:px-5">
+          <SettingsNotice tone={result.ok ? "success" : "error"}>{result.message}</SettingsNotice>
+        </div>
       ) : null}
-    </section>
+    </div>
   );
 }

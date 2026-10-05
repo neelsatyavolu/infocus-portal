@@ -32,7 +32,7 @@ Producers and appointed livestream managers can open **Edit** on a livestream an
 
 ## Livestream dashboard
 
-Route: `/live`. Anyone signed in to the Portal can open it, from **Dashboard** at the top of `/livestreams`. Signed-out crew can open `/live` with the 6-digit **livestream dashboard PIN**; only producers and appointed livestream managers can see it, in **Settings → Livestream dashboard PIN** (**Create PIN** the first time, **New PIN** to replace it). It is separate from the Class Board PIN. A PIN session lasts until midnight Pacific and only opens the dashboard. Replacing the PIN ends every PIN session. The PIN locks after 20 wrong tries in 15 minutes. The dashboard works on phones: its tabs sit at the bottom of the screen, and the Live image tab has **Push to OBS** right under the fields.
+Route: `/live`. Anyone signed in to the Portal can open it, from **Dashboard** at the top of `/livestreams`. Signed-out crew can open `/live` with the 6-digit **livestream dashboard PIN**; only producers and appointed livestream managers can see it, in **Settings → PINs → Livestream dashboard PIN** (**Create PIN** the first time, **New PIN** to replace it). It is separate from the Class Board PIN. A PIN session lasts until midnight Pacific and only opens the dashboard. Replacing the PIN ends every PIN session. The PIN locks after 20 wrong tries in 15 minutes. The dashboard works on phones: its tabs sit at the bottom of the screen, and the Live image tab has **Push to OBS** right under the fields.
 
 Pick a livestream (from 12 hours ago through the next 45 days; cancelled events are left out), then use one of three tabs. Several people can run the same livestream at once (one on the clock, one on the score) without undoing each other.
 

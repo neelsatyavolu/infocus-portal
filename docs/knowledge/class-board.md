@@ -4,7 +4,7 @@ Route: `/class-board`.
 
 Everyone signed in can open `/class-board` directly. It is not in the sidebar. It is the classroom display for the current package cycle, or for the cycle chosen in **Admin → Package Cycles → Class Board cycle** (executive producers and above; **Current cycle (automatic)** follows the cycle whose Final Cut deadline hasn't passed).
 
-Super admins and the adviser can open **Settings** and use **Class Board PIN**. The PIN is six digits. Entering it on `/class-board` opens that page only, on that browser, for 30 days. It does not sign anyone into Portal. **New PIN** replaces the old one, and devices using the old PIN have to enter the new one. Twenty wrong tries in 15 minutes pause further tries.
+Super admins and the adviser can open **Settings → PINs** and use **Class Board PIN**. The PIN is six digits. Entering it on `/class-board` opens that page only, on that browser, for 30 days. It does not sign anyone into Portal. **New PIN** replaces the old one, and devices using the old PIN have to enter the new one. Twenty wrong tries in 15 minutes pause further tries.
 
 **Package of the Cycle** winners always rank first, with an award icon, a green-tinted lane, and **Package of the Cycle** as their status. With two winners, the one whose Final Cut was turned in first is #1 and the other #2; everyone else is ranked after them. A Final Cut where every member has an official grade shows **Final Cut Graded** (it wins over Final Cut Queued).
 

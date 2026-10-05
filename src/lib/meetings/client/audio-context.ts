@@ -23,18 +23,52 @@ export function sharedAudioContext(): AudioContext {
   const context = factory();
   created += 1;
   shared = context;
-  // Suspended/interrupted (iOS phone call, Siri, another app taking audio) silence everything
-  // that runs through it, including voice-isolated mic audio: worth knowing after the fact.
+  // Suspended/interrupted (iOS phone call, Siri, another app taking audio, a long sleep) silences
+  // everything that runs through it, including the voice-isolated mic we send. Log it and try to
+  // resume at once; if the browser wants a gesture, the next tap/key/visibility change does it.
   context.addEventListener?.("statechange", () => {
     diagEvent("audio_context", { state: context.state, rate: context.sampleRate });
+    if (context === shared && needsResume(context)) resumeSharedAudio();
   });
+  installResumeTriggers();
   return context;
 }
 
-/** Call from a click/tap (join, unmute, "Tap to start audio"): resumes a suspended context. */
+function needsResume(context: AudioContext) {
+  // "interrupted" is WebKit's state while another app has the audio session.
+  return (context.state as string) === "suspended" || (context.state as string) === "interrupted";
+}
+
+let resuming = false;
+
+/** Resumes a suspended or interrupted context (safe to call any time; joins, unmutes, gestures). */
 export function resumeSharedAudio() {
-  if (!shared || shared.state === "closed" || shared.state === "running") return;
-  void shared.resume().catch(() => undefined);
+  if (!shared || !needsResume(shared) || resuming) return;
+  const context = shared;
+  const from = context.state as string;
+  resuming = true;
+  void context
+    .resume()
+    .then(() => diagEvent("audio_resume", { from, state: context.state }))
+    .catch(() => undefined)
+    .finally(() => {
+      resuming = false;
+    });
+}
+
+let triggersInstalled = false;
+
+/** Mid-call resumes need no button: the next pointer/key, the tab coming back, or a bfcache return. */
+function installResumeTriggers() {
+  if (triggersInstalled || typeof window === "undefined") return;
+  triggersInstalled = true;
+  const resume = () => resumeSharedAudio();
+  window.addEventListener("pointerdown", resume, true);
+  window.addEventListener("keydown", resume, true);
+  window.addEventListener("pageshow", resume);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") resume();
+  });
 }
 
 export function sharedAudioSnapshot() {

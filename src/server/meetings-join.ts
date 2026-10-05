@@ -11,6 +11,7 @@ import {
 import { ensureMeetingKey, readMeetingKey } from "@/src/server/meetings-keys";
 import { issueMeetingRoomTicket, meetingRoomSecret, meetingRoomUrl } from "@/src/server/meetings-room-client";
 import { decideAdmission, isMeetingExec, isMeetingHost, isMeetingOpen } from "@/src/server/meetings-rules";
+import { isReopenable, reopenMeeting } from "@/src/server/meetings-reopen";
 import { startMeetingScribe } from "@/src/server/meetings-scribe";
 import { MEETING_USAGE_LIMIT_MESSAGE, checkMeetingUsage } from "@/src/server/meetings-usage";
 
@@ -54,7 +55,7 @@ export async function markMeetingLive(meetingId: string, now = new Date()) {
 const MAX_JOIN_ATTEMPTS = 3;
 export const REMOVED_WHILE_JOINING = "A host removed you from this meeting. Join again to ask to be let back in.";
 
-async function participantState(meetingId: string, userId: string) {
+export async function participantState(meetingId: string, userId: string) {
   const row = await prisma.meetingParticipant.findUnique({
     where: { meetingId_userId: { meetingId, userId } },
     select: { state: true }
@@ -77,7 +78,8 @@ export async function admitOrQueue(input: {
   isHost: boolean;
   quickAccess: boolean;
   now: Date;
-  beforeAdmit?: () => Promise<void>;
+  /** Runs once before the first ADMITTED write, with the participant's state before this join. */
+  beforeAdmit?: (previous: Awaited<ReturnType<typeof participantState>>) => Promise<void>;
 }): Promise<"WAITING" | "ADMITTED"> {
   const { meetingId, userId, now } = input;
   let metered = false;
@@ -85,7 +87,7 @@ export async function admitOrQueue(input: {
     const previous = await participantState(meetingId, userId);
     const state = decideAdmission({ isHost: input.isHost, quickAccess: input.quickAccess, previous });
     if (state === "ADMITTED" && !metered) {
-      await input.beforeAdmit?.();
+      await input.beforeAdmit?.(previous);
       metered = true;
     }
 
@@ -115,12 +117,8 @@ function withHost(summary: MeetingSummary, isHost: boolean): MeetingSummary {
   return isHost && !summary.isHost ? { ...summary, isHost: true, canEdit: isMeetingOpen(summary.status) } : summary;
 }
 
-export async function joinMeeting(viewer: MeetingViewer, meetingId: string, now = new Date()): Promise<JoinResponse> {
-  // Fail before touching anything when the room is not configured.
-  meetingRoomSecret();
-  const roomUrl = meetingRoomUrl();
-
-  const meeting = await prisma.meeting.findUnique({
+function loadJoinMeeting(meetingId: string) {
+  return prisma.meeting.findUnique({
     where: { id: meetingId },
     select: {
       id: true,
@@ -129,25 +127,49 @@ export async function joinMeeting(viewer: MeetingViewer, meetingId: string, now 
       access: true,
       createdById: true,
       inviteeUserIds: true,
-      quickAccess: true
+      quickAccess: true,
+      endedReason: true,
+      endedAt: true,
+      roomGeneration: true
     }
   });
+}
+
+export async function joinMeeting(viewer: MeetingViewer, meetingId: string, now = new Date()): Promise<JoinResponse> {
+  // Fail before touching anything when the room is not configured.
+  meetingRoomSecret();
+  const roomUrl = meetingRoomUrl();
+
+  let meeting = await loadJoinMeeting(meetingId);
   assertCanSeeMeeting(viewer, meeting);
-  refuseClosed(meeting.status);
-  refuseBeforeJoinWindow(meeting, now);
 
   // Static hosts are always let in; a promoted host (handed host in the room) also joins as host.
   const isStaticHost = isMeetingHost(viewer, meeting);
   const isHost = isStaticHost || (await isMeetingHostOrPromoted(viewer, meeting));
+
+  // Everyone left a few minutes ago: someone who would be let in picks the meeting up again.
+  if (isReopenable(meeting, now)) {
+    const previous = await participantState(meetingId, viewer.userId);
+    if (decideAdmission({ isHost, quickAccess: meeting.quickAccess, previous }) === "ADMITTED") {
+      await reopenMeeting(meetingId, now);
+      meeting = (await loadJoinMeeting(meetingId)) ?? meeting;
+    }
+  }
+  refuseClosed(meeting.status);
+  refuseBeforeJoinWindow(meeting, now);
+
+  const status = meeting.status;
   const state = await admitOrQueue({
     meetingId,
     userId: viewer.userId,
     isHost,
     quickAccess: meeting.quickAccess,
     now,
-    // Only a join that would take the meeting LIVE is metered.
-    beforeAdmit: async () => {
-      if (meeting.status === "SCHEDULED" && (await checkMeetingUsage(now)) === "over") {
+    // Metered: a join that would take the meeting LIVE, and newcomers to a LIVE one (people
+    // already in keep their call when the month's allowance runs out; rejoining is fine).
+    beforeAdmit: async (previous) => {
+      const metered = status === "SCHEDULED" || previous !== "ADMITTED";
+      if (metered && (await checkMeetingUsage(now)) === "over") {
         throw new Error(MEETING_USAGE_LIMIT_MESSAGE);
       }
     }
@@ -172,6 +194,7 @@ export async function joinMeeting(viewer: MeetingViewer, meetingId: string, now 
       role: isHost ? "host" : "member",
       admitted: state === "ADMITTED",
       exec: isMeetingExec(viewer.role),
+      gen: meeting.roomGeneration,
       now: now.getTime()
     }),
     prisma.meeting.findUniqueOrThrow({ where: { id: meetingId }, select: meetingSummarySelect })

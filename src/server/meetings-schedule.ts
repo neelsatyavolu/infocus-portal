@@ -11,6 +11,7 @@ import {
   type MeetingViewer
 } from "@/src/server/meetings-access";
 import { meetingPeopleByIds } from "@/src/server/meetings-people";
+import { REOPEN_WINDOW_MS } from "@/src/server/meetings-reopen";
 import { isMeetingExec } from "@/src/server/meetings-rules";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -111,6 +112,14 @@ export async function resolveProducerSeriesMeetingId(now = new Date()) {
     select: { id: true }
   });
   if (live) return live.id;
+
+  // Everyone just left (an EMPTY end): it can still be picked up again for 15 minutes.
+  const reopenable = await prisma.meeting.findFirst({
+    where: { seriesKey, status: "ENDED", endedReason: "EMPTY", endedAt: { gte: new Date(now.getTime() - REOPEN_WINDOW_MS) } },
+    orderBy: { endedAt: "desc" },
+    select: { id: true }
+  });
+  if (reopenable) return reopenable.id;
 
   const scheduled = await prisma.meeting.findMany({
     where: { seriesKey, status: "SCHEDULED", startsAt: { gte: new Date(now.getTime() - MAX_MEETING_DURATION_MS) } },

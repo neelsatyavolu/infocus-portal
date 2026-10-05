@@ -156,6 +156,17 @@ describe("joinMeeting", () => {
     expect(mocks.scribeStart).not.toHaveBeenCalled();
   });
 
+  it("over the usage limit, people already in can rejoin a LIVE call but newcomers can't", async () => {
+    mocks.usage.mockResolvedValue("over");
+    mocks.meetingFindUnique.mockResolvedValue(meetingRow({ status: "LIVE", quickAccess: true }));
+    // Newcomer (no row yet): refused.
+    mocks.participantFindUnique.mockResolvedValueOnce(null).mockResolvedValueOnce(null);
+    await expect(joinMeeting(producer, "m1", NOW)).rejects.toThrow("over limit");
+    // Already admitted (refresh/rejoin): allowed.
+    mocks.participantFindUnique.mockResolvedValue({ state: "ADMITTED", promotedHost: false });
+    expect((await joinMeeting(producer, "m1", NOW)).state).toBe("ADMITTED");
+  });
+
   it("refuses ended and cancelled meetings, and new LIVE starts over the usage limit", async () => {
     mocks.meetingFindUnique.mockResolvedValueOnce(meetingRow({ status: "ENDED" }));
     await expect(joinMeeting(exec, "m1", NOW)).rejects.toThrow("This meeting has ended.");
@@ -404,7 +415,7 @@ describe("endMeeting", () => {
     await expect(endMeeting("m1", NOW)).resolves.toEqual({ ended: true });
     expect(mocks.meetingUpdateMany).toHaveBeenCalledWith({
       where: { id: "m1", status: { in: ["SCHEDULED", "LIVE"] } },
-      data: { status: "ENDED", endedAt: NOW, keyCiphertext: null }
+      data: { status: "ENDED", endedAt: NOW, endedReason: "HOST", keyCiphertext: null }
     });
     expect(mocks.roomEvent).toHaveBeenCalledWith("m1", { t: "ended" });
     expect(mocks.scribeStop).toHaveBeenCalledWith("m1");

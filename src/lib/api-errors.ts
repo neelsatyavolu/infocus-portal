@@ -22,6 +22,10 @@ export function handleRouteError(error: unknown) {
       return fail("Conflict", 409);
     }
 
+    if (error.message === "GONE") {
+      return fail("Gone", 410);
+    }
+
     if (error.message === "TOO_MANY_REQUESTS") {
       return fail("Rate limit exceeded", 429);
     }

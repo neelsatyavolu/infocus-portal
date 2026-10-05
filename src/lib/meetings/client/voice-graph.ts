@@ -146,7 +146,7 @@ export function createVoiceGraph(engine: NoiseEngine, callbacks: Callbacks) {
       loadNode();
     }
     active = { input, source };
-    if (graph.ctx.state === "suspended") void graph.ctx.resume().catch(() => undefined);
+    if (graph.ctx.state !== "running") void graph.ctx.resume().catch(() => undefined);
     return graph.output;
   };
 

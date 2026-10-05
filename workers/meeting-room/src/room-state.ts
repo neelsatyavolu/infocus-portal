@@ -19,6 +19,8 @@ export type RoomTicket = {
   adm: boolean;
   /** Exec (EP, adviser, super admin): first in line when host is handed over. */
   exec?: boolean;
+  /** Room generation the ticket was issued for (absent = 0); see checkTicket. */
+  gen?: number;
   iat: number;
 };
 
@@ -47,6 +49,11 @@ export type RoomState = {
   /** Failed `empty` reports so far, and when to try again (backoff); reset once humans return. */
   emptyReportFailures: number;
   emptyRetryAt: number | null;
+  /** Room generation (Meeting.roomGeneration): a reopened meeting runs a newer one. */
+  generation: number;
+  /** Promoted hosts the Portal hasn't recorded yet (report failed), and when to try again. */
+  pendingHostReports: readonly string[];
+  hostReportRetryAt: number | null;
 };
 
 export const DEFAULT_SETTINGS: MeetingRoomSettings = { quickAccess: false, notesEnabled: true };
@@ -67,7 +74,10 @@ export function initialState(meetingId: string | null = null): RoomState {
     execUids: {},
     handoffAt: null,
     emptyReportFailures: 0,
-    emptyRetryAt: null
+    emptyRetryAt: null,
+    generation: 0,
+    pendingHostReports: [],
+    hostReportRetryAt: null
   };
 }
 
@@ -90,9 +100,16 @@ function omit<T>(record: Readonly<Record<string, T>>, key: string): Record<strin
   return rest;
 }
 
-export type TicketCheck = { ok: true } | { ok: false; reason: "ended" | "removed" };
+export type TicketCheck = { ok: true; reopens?: true } | { ok: false; reason: "ended" | "removed" };
 
-export function checkTicket(state: RoomState, ticket: Pick<RoomTicket, "uid" | "iat">): TicketCheck {
+/**
+ * A ticket of an older generation belongs to a run that is over. A newer one means the Portal
+ * reopened the meeting: it starts a fresh room (`reopens`), even if this room was ended.
+ */
+export function checkTicket(state: RoomState, ticket: Pick<RoomTicket, "uid" | "iat" | "gen">): TicketCheck {
+  const gen = ticket.gen ?? 0;
+  if (gen < state.generation) return { ok: false, reason: "ended" };
+  if (gen > state.generation) return { ok: true, reopens: true };
   if (state.endedAt !== null) return { ok: false, reason: "ended" };
   const removedAt = state.removedAt[ticket.uid];
   if (removedAt !== undefined && ticket.iat < removedAt) return { ok: false, reason: "removed" };
@@ -262,14 +279,57 @@ export function afterEmptyReportFailed(
   return { state: { ...state, emptyReportFailures: failures, emptyRetryAt: now + delay }, giveUp: false };
 }
 
-/** What the room becomes once ended (by the Portal, or given up on): later tickets are rejected. */
+/** What the room becomes once ended (by the Portal, or given up on): later tickets of this generation are rejected. */
 export function endedState(state: RoomState, now: number): RoomState {
-  return { ...initialState(state.meetingId), endedAt: now };
+  return { ...initialState(state.meetingId), endedAt: now, generation: state.generation, epoch: state.epoch };
 }
 
-/** One alarm serves both deadlines: the earliest of the empty-room end and the host handoff. */
+/** A fresh room for a reopened meeting (a ticket of generation `gen`); the key epoch only moves forward. */
+export function reopenedState(state: RoomState, gen: number): RoomState {
+  return { ...initialState(state.meetingId), generation: gen, epoch: state.epoch };
+}
+
+/**
+ * Participants and lobby entries with no open socket (e.g. after a Worker restart or deploy, when
+ * close handlers never ran) are dropped. Returns who left and whether a host was among them.
+ */
+export function pruneGhosts(
+  state: RoomState,
+  live: { admitted: ReadonlySet<string>; waiting: ReadonlySet<string> },
+  now: number
+): { state: RoomState; left: string[]; hostLeft: boolean } {
+  let next = state;
+  const left: string[] = [];
+  let hostLeft = false;
+  for (const uid of Object.keys(state.participants)) {
+    if (live.admitted.has(uid)) continue;
+    hostLeft = hostLeft || Boolean(state.participants[uid]?.isHost);
+    next = leaveParticipant(next, uid, now).state;
+    left.push(uid);
+  }
+  for (const uid of Object.keys(state.waiting)) {
+    if (!live.waiting.has(uid)) next = leaveWaiting(next, uid).state;
+  }
+  return { state: next, left, hostLeft };
+}
+
+/** hostPromoted report retries: every minute until the Portal records it (or the uid isn't promoted any more). */
+export const HOST_REPORT_RETRY_MS = 60_000;
+
+export function withPendingHostReport(state: RoomState, uid: string, now: number): RoomState {
+  const pending = state.pendingHostReports.includes(uid) ? state.pendingHostReports : [...state.pendingHostReports, uid];
+  return { ...state, pendingHostReports: pending, hostReportRetryAt: now + HOST_REPORT_RETRY_MS };
+}
+
+export function withoutPendingHostReport(state: RoomState, uid: string): RoomState {
+  const pending = state.pendingHostReports.filter((entry) => entry !== uid);
+  return { ...state, pendingHostReports: pending, hostReportRetryAt: pending.length > 0 ? state.hostReportRetryAt : null };
+}
+
+/** One alarm serves every deadline: the empty-room end, the host handoff and hostPromoted retries. */
 export function nextAlarm(state: RoomState): number | null {
-  const deadlines = [emptyDeadline(state), state.endedAt === null ? state.handoffAt : null].filter(
+  const live = state.endedAt === null;
+  const deadlines = [emptyDeadline(state), live ? state.handoffAt : null, live ? state.hostReportRetryAt : null].filter(
     (value): value is number => value !== null
   );
   return deadlines.length > 0 ? Math.min(...deadlines) : null;
@@ -294,6 +354,7 @@ export function ticketFromPayload(payload: {
   role: MeetingRoomRole;
   adm: boolean;
   exec?: boolean;
+  gen?: number;
   iat: number;
 }): RoomTicket {
   return {
@@ -302,6 +363,7 @@ export function ticketFromPayload(payload: {
     role: payload.role,
     adm: payload.adm,
     ...(payload.exec ? { exec: true } : {}),
+    ...(payload.gen ? { gen: payload.gen } : {}),
     iat: payload.iat
   };
 }

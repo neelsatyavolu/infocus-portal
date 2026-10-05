@@ -6,6 +6,7 @@ import { Lock } from "lucide-react";
 import type { ConnectionQuality } from "@/src/lib/meetings/client/layout";
 import { formatElapsed } from "@/src/lib/meetings/client/time";
 import { cn } from "@/src/lib/utils";
+import { useElapsed } from "./use-call-helpers";
 import { Avatar } from "./avatar";
 
 /** The 56px bar shared by pre-join and the call (plus the top safe area). */
@@ -49,15 +50,21 @@ const QUALITY: Record<ConnectionQuality, { label: string; dot: string }> = {
 
 const TAG = "inline-flex h-7 items-center gap-1.5 rounded-sm border border-[var(--ink-4)] px-2 text-[11px] font-medium uppercase leading-none tracking-[0.11em]";
 
+/** Only this text re-renders every second. */
+function Elapsed({ since }: { since: number }) {
+  return <>{formatElapsed(useElapsed(since))}</>;
+}
+
 export function TopBar({
   title,
-  elapsedMs,
+  since,
   notesOn,
   quality,
   reconnecting
 }: {
   title: string;
-  elapsedMs: number;
+  /** Call start (epoch ms). The 1 Hz timer lives here, so it doesn't re-render the whole call. */
+  since: number;
   notesOn: boolean;
   quality: ConnectionQuality;
   reconnecting: boolean;
@@ -69,7 +76,7 @@ export function TopBar({
         <>
           <h1 className="min-w-0 truncate text-sm font-semibold text-foreground">{title}</h1>
           <span className="font-mono text-[13px] tabular-nums text-muted-foreground" aria-label="Time in call">
-            {formatElapsed(elapsedMs)}
+            <Elapsed since={since} />
           </span>
         </>
       }

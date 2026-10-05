@@ -75,10 +75,13 @@ export function ParticipantTile({
 }) {
   const { participant, isSelf, isScreen } = tile;
   const wantsVideo = isScreen ? participant.screenOn : participant.videoOn;
-  const meta = isSelf || !wantsVideo ? undefined : isScreen ? participant.tracks.screen : participant.tracks.video;
+  // A camera pull stays alive while the camera is off (the publisher sends a black placeholder),
+  // so camera off/on doesn't renegotiate; a screen pull only while sharing.
+  const meta = isSelf ? undefined : isScreen ? (participant.screenOn ? participant.tracks.screen : undefined) : participant.tracks.video;
   // Debounced so resizing the window doesn't thrash layer switches.
   const rid = useDebouncedValue(ridForTileHeight(tileHeight, receive, placement), RID_DEBOUNCE_MS);
-  const remoteTrack = usePulledTrack(partyTracks, meta, isScreen ? undefined : rid);
+  // Camera off: keep the pull at the smallest layer until it's back on.
+  const remoteTrack = usePulledTrack(partyTracks, meta, isScreen ? undefined : wantsVideo ? rid : "q");
   const failing = useDecryptFailing(e2ee, remoteTrack);
   const track = isSelf ? (isScreen ? undefined : selfTrack) : remoteTrack;
   const label = isScreen ? `${participant.name} (presenting)` : isSelf ? `${participant.name} (You)` : participant.name;

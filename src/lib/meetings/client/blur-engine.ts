@@ -1,4 +1,4 @@
-import type { BlurEngine, Compositor, FrameIo, FrameSource, PersonMask, Segmenter } from "./background-blur";
+import type { BlurEngine, Compositor, FrameIo, FrameSource, PersonMask, Segmenter, SegmenterOptions } from "./background-blur";
 import { canvas2d, createBlackPlaceholder, createFrameIo } from "./blur-io";
 
 /**
@@ -32,17 +32,39 @@ function loadVision() {
   return visionPromise;
 }
 
-async function createSegmenter(): Promise<Segmenter> {
+/** One mask buffer per segmenter, refilled in place (no 1 MB+ allocation per frame). */
+function maskBuffer() {
+  let mask: PersonMask | null = null;
+  return (source: Float32Array, width: number, height: number): PersonMask => {
+    if (!mask || mask.width !== width || mask.height !== height || mask.data.length !== source.length) {
+      mask = { data: new Float32Array(source.length), width, height, version: 0 };
+    }
+    mask.data.set(source);
+    mask.version += 1;
+    return mask;
+  };
+}
+
+async function createSegmenter({ cpu, onContextLost }: SegmenterOptions): Promise<Segmenter> {
   const vision = await loadVision();
   const fileset = await vision.FilesetResolver.forVisionTasks(`${BASE}/wasm`);
+  // Our own canvas for the GPU delegate, so a lost WebGL context is noticed (and handled).
+  const canvas = typeof OffscreenCanvas !== "undefined" ? new OffscreenCanvas(1, 1) : document.createElement("canvas");
   const create = (delegate: "GPU" | "CPU") =>
     vision.ImageSegmenter.createFromOptions(fileset, {
       baseOptions: { modelAssetPath: `${BASE}/selfie_segmenter.tflite`, delegate },
+      ...(delegate === "GPU" ? { canvas } : {}),
       runningMode: "VIDEO",
       outputConfidenceMasks: true,
       outputCategoryMask: false
     });
-  const segmenter = await create("GPU").catch(() => create("CPU"));
+  const segmenter = cpu ? await create("CPU") : await create("GPU").catch(() => create("CPU"));
+  const onLost = (event: Event) => {
+    event.preventDefault(); // Lets the browser restore the context; we rebuild on the CPU anyway.
+    onContextLost();
+  };
+  canvas.addEventListener("webglcontextlost", onLost as EventListener);
+  const toMask = maskBuffer();
   let lastTs = 0;
   return {
     segment: (frame, timestampMs) => {
@@ -51,12 +73,15 @@ async function createSegmenter(): Promise<Segmenter> {
       let mask: PersonMask | null = null;
       segmenter.segmentForVideo(frame, lastTs, (result) => {
         const m = result.confidenceMasks?.[0];
-        // Masks are only valid inside the callback: copy the data out.
-        if (m) mask = { data: new Float32Array(m.getAsFloat32Array()), width: m.width, height: m.height };
+        // Masks are only valid inside the callback: copy the data out (into the reused buffer).
+        if (m) mask = toMask(m.getAsFloat32Array(), m.width, m.height);
       });
       return mask;
     },
-    close: () => segmenter.close()
+    close: () => {
+      canvas.removeEventListener("webglcontextlost", onLost as EventListener);
+      segmenter.close();
+    }
   };
 }
 
@@ -68,22 +93,22 @@ function createCompositor(io: FrameIo): Compositor {
   const person = canvas2d(width, height);
   let maskLayer: ReturnType<typeof canvas2d> | null = null;
   let maskImage: ImageData | null = null;
-  let paintedMask: PersonMask | null = null;
+  let paintedVersion = -1;
 
   const paintMask = (mask: PersonMask) => {
     if (!maskLayer || maskLayer.canvas.width !== mask.width || maskLayer.canvas.height !== mask.height) {
       maskLayer = canvas2d(mask.width, mask.height);
       maskImage = maskLayer.ctx.createImageData(mask.width, mask.height);
-      paintedMask = null;
+      paintedVersion = -1;
     }
     // Reused masks (performance guard) don't need repainting.
-    if (paintedMask !== mask) {
+    if (paintedVersion !== mask.version) {
       const pixels = maskImage!.data;
       for (let i = 0; i < mask.data.length; i += 1) {
         pixels[i * 4 + 3] = Math.round(Math.min(1, Math.max(0, mask.data[i])) * 255);
       }
       maskLayer.ctx.putImageData(maskImage!, 0, 0);
-      paintedMask = mask;
+      paintedVersion = mask.version;
     }
     return maskLayer.canvas;
   };

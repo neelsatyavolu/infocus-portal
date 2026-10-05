@@ -13,6 +13,7 @@ import { discoverShowPublications, publishYoutubeShow } from "@/src/server/show-
 import { discoverYoutubePublications, publishYoutubePackage } from "@/src/server/youtube-publishing-jobs";
 import { runPackageReviewReminders } from "@/src/server/package-review-reminders";
 import { MEETING_CALENDAR_EVENT, runMeetingCalendarJob } from "@/src/server/meetings-google-calendar";
+import { reticketScribes, runMeetingHousekeeping } from "@/src/server/meetings-housekeeping";
 import { runMeetingReminders } from "@/src/server/meetings-notify";
 import { ensureUpcomingProducerMeetings } from "@/src/server/meetings-schedule";
 
@@ -412,6 +413,34 @@ export const meetingInvitesSend = inngest.createFunction(
   }
 );
 
+/** Meetings upkeep: stranded LIVE meetings, usage meter, stuck notes, stopped Scribes. */
+export const meetingsHousekeepingEveryMinute = inngest.createFunction(
+  {
+    id: "meetings-housekeeping-every-minute",
+    concurrency: 1
+  },
+  {
+    cron: "* * * * *"
+  },
+  async () => {
+    return runMeetingHousekeeping();
+  }
+);
+
+/** Fresh room tickets for recording Scribes (their tickets last 4 h). */
+export const meetingsScribeReticket = inngest.createFunction(
+  {
+    id: "meetings-scribe-reticket",
+    concurrency: 1
+  },
+  {
+    cron: "7 */2 * * *"
+  },
+  async () => {
+    return reticketScribes();
+  }
+);
+
 export const inngestFunctions = [
   discoverYoutubePublications,
   publishYoutubePackage,
@@ -427,5 +456,7 @@ export const inngestFunctions = [
   packageReviewRemindersHourly,
   meetingRemindersEveryMinute,
   producerMeetingScheduleDaily,
-  meetingInvitesSend
+  meetingInvitesSend,
+  meetingsHousekeepingEveryMinute,
+  meetingsScribeReticket
 ];

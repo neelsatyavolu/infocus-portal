@@ -1,7 +1,7 @@
 import { of, Subscription } from "rxjs";
 import type { MeetingServerMessage, MeetingTrackMetadata } from "@/src/lib/meetings/protocol";
 import { MeetingE2ee } from "@/src/lib/meetings/client/e2ee";
-import { createMediaSession, withBackoff, type MeetingMediaSession } from "@/src/lib/meetings/client/media-session";
+import { createMediaSession, withBackoff, type MediaTicket, type MeetingMediaSession } from "@/src/lib/meetings/client/media-session";
 import { RoomSocket } from "@/src/lib/meetings/client/room-socket";
 import { INITIAL_ROOM_STATE, roomReducer, type RoomState } from "@/src/lib/meetings/client/room-state";
 
@@ -15,13 +15,20 @@ declare global {
   interface Window {
     scribeChunk?: (uid: string, name: string, startMs: number, seq: number, b64: string) => unknown;
     scribeEvent?: (event: "ended" | "removed") => unknown;
-    __scribe?: { setKey: (key: string, epoch: number) => Promise<void>; leave: () => Promise<void> };
+    __scribe?: {
+      setKey: (key: string, epoch: number) => Promise<void>;
+      /** A fresh room ticket from the Drive (re-ticketing): used for every later reconnect and proxy call. */
+      setTicket?: (token: string) => void;
+      leave: () => Promise<void>;
+    };
   }
 }
 
 export type ScribeParams = { mid: string; room: string; token: string; key: string; epoch: number };
 
 const CHUNK_MS = 10_000;
+/** After a pull gives up (6 tries), wait this long before pulling that speaker again. */
+const REPULL_DELAY_MS = 10_000;
 const MIME = "audio/webm;codecs=opus";
 
 export function readScribeParams(hash: string): ScribeParams | null {
@@ -60,11 +67,19 @@ export class ScribeSession {
   private readonly pendingChunks = new Set<Promise<void>>();
   private done = false;
   private mediaGeneration = 0;
+  /** The current room ticket (the Drive swaps it via setTicket before the 4 h one runs out). */
+  private readonly ticket: MediaTicket;
 
   constructor(
     private readonly params: ScribeParams,
     private readonly onStatus: (status: string) => void
-  ) {}
+  ) {
+    this.ticket = { current: params.token };
+  }
+
+  setTicket(token: string) {
+    if (token) this.ticket.current = token;
+  }
 
   async start() {
     await this.e2ee.setKey(this.params.key, this.params.epoch);
@@ -72,7 +87,8 @@ export class ScribeSession {
     this.socket = new RoomSocket({
       roomUrl: this.params.room,
       meetingId: this.params.mid,
-      token: this.params.token,
+      // A 4 h ticket; the Drive re-tickets every ~2 h (setTicket) and on each rekey.
+      getToken: () => this.ticket.current,
       onMessage: (message) => this.handle(message),
       onStatus: (status) => {
         if (!this.done) this.onStatus(status === "open" ? this.recordingStatus() : `Room ${status}`);
@@ -91,7 +107,7 @@ export class ScribeSession {
       const media = await createMediaSession({
         roomUrl: this.params.room,
         meetingId: this.params.mid,
-        token: this.params.token,
+        ticket: this.ticket,
         e2ee: this.e2ee
       });
       if (this.done || generation !== this.mediaGeneration) {
@@ -137,6 +153,10 @@ export class ScribeSession {
       void this.resetMedia();
       return;
     }
+    if (message.t === "rekey") {
+      // The Scribe can't fetch keys itself (no session): the Drive pushes them via __scribe.setKey.
+      this.socket?.send({ t: "diag", kind: "event", data: { what: "scribe_rekey", epoch: message.epoch } });
+    }
     this.sync();
   }
 
@@ -167,7 +187,12 @@ export class ScribeSession {
     speaker.pull = media.partyTracks.pull(of({ ...meta, location: "remote" as const })).pipe(withBackoff()).subscribe({
       // A re-pull emits a new track: start a new recorder (seq 0) for it.
       next: (track) => this.record(speaker, uid, name, track),
-      error: () => this.onStatus("Couldn't pull a track")
+      error: () => {
+        // Retries are used up: forget this speaker so the next sync pulls the track again.
+        this.onStatus("Couldn't pull a track");
+        if (this.speakers.get(uid) === speaker) void this.stopSpeaker(uid);
+        setTimeout(() => this.sync(), REPULL_DELAY_MS);
+      }
     });
   }
 

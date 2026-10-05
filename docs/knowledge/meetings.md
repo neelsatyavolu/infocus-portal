@@ -78,6 +78,9 @@ This is separate from Admin → Reconnect YouTube and doesn't change it.
 - Admit, deny, admit all, mute, remove, lower hands, quick access, notes on/off, End for everyone.
 - **Remove** takes the person out and changes the meeting's encryption key, so they can't read or hear anything after that. They can ask to join again.
 - When the last person leaves, the meeting ends by itself after a minute (the minute covers a refresh or a dropped connection). Notes start processing then.
+- **Picking it up again:** a meeting that ended because everyone left can be rejoined for 15 minutes (for example, everyone dropped at once). Joining starts it again with a new encryption key, and notes start a new part. **End for everyone** is final: that meeting can't be reopened. The InFocus Producer Meeting link opens such a just-ended meeting while it can still be picked up.
+- A meeting left running far past its time (8 hours after its start) is ended automatically.
+- **Long meetings:** your connection to the call is renewed in the background, so meetings can run as long as needed.
 
 ## When the host leaves
 
@@ -111,12 +114,14 @@ This is separate from Admin → Reconnect YouTube and doesn't change it.
 - While notes are on, a **Notes** participant appears in the call. It records each speaker, and after the meeting the Drive writes a transcript and a summary (decisions, action items). Nothing leaves the school's Drive.
 - **All producers** can read the summary and the full transcript on `/meetings/<id>`. For invite-only meetings, only the people on that meeting can.
 - If the notes can't start, the meeting carries on and the notes show as failed.
+- **Notes in parts:** if the notes taker stops while people are still in the call (a crash, its time limit), a new part starts automatically (at most once every 10 minutes). Each finished part adds its summary under "Part 2", "Part 3" and so on, and the transcript shows every part in order. A part still recording never hides an earlier finished one.
+- Notes that stay "processing" for 12 hours, or "recording" an hour after the meeting ended, are marked failed with the reason.
 
 ## Limits
 
 - Use Chrome or Safari (including the iPhone and Mac apps). Firefox isn't supported yet.
 - No recording, live captions, guests from outside the Portal, or breakout rooms.
-- If the month's free video allowance is nearly used up, new meetings can't start until next month.
+- If the month's free video allowance is nearly used up, new meetings can't start and no one new can join a call in progress until next month. Calls already running carry on, and people in them can rejoin.
 
 ## Encryption limits
 

@@ -28,7 +28,6 @@ import {
   canShareScreen,
   useCallShortcuts,
   useConnectionQuality,
-  useElapsed,
   useIsLandscape,
   useIsMobile,
   useLockPageScroll,
@@ -87,7 +86,6 @@ export function CallRoom({
     background: media.settings.background,
     audioBlocked
   });
-  const elapsed = useElapsed(joinedAt);
 
   const self = selfUid ? room.participants[selfUid] : undefined;
   const agenda = useCallAgenda(meetingId, room.agendaVersion, call.welcomeCount);
@@ -159,7 +157,7 @@ export function CallRoom({
     <div className="fixed inset-0 flex touch-manipulation flex-col overflow-hidden overscroll-none bg-[var(--ink)]">
       <TopBar
         title={meeting?.title ?? "Meeting"}
-        elapsedMs={elapsed}
+        since={joinedAt}
         notesOn={scribePresent(room)}
         quality={quality}
         reconnecting={call.socketStatus === "reconnecting"}

@@ -10,7 +10,7 @@ import { routePartyTracksRequest } from "partytracks/server";
 import { verifyMeetingRoomToken } from "../../../src/lib/meetings/room-token";
 import { readLimitedBody } from "./body-limit";
 import type { Env } from "./env";
-import { corsHeaders, errorResponse, withCors } from "./http";
+import { corsHeaders, errorResponse, roomTicketFromRequest, withCors } from "./http";
 import { classifyPartyTracksPath, type MediaOp, type PartyTracksRoute } from "./media-auth";
 import { sanitizeSessionBody } from "./partytracks-body";
 import { ticketFromPayload, type RoomTicket } from "./room-state";
@@ -125,7 +125,7 @@ export async function proxyErrorSummary(response: Response): Promise<string | nu
 export async function handlePartyTracks(ctx: ProxyContext, subpath: string): Promise<Response> {
   const started = Date.now();
   const route = classifyPartyTracksPath(subpath);
-  const uid = await verifyMeetingRoomToken(new URL(ctx.request.url).searchParams.get("token") ?? "", ctx.env.MEETING_ROOM_SECRET)
+  const uid = await verifyMeetingRoomToken(roomTicketFromRequest(ctx.request), ctx.env.MEETING_ROOM_SECRET)
     .then((payload) => payload?.uid ?? null)
     .catch(() => null);
   const note: NonNullable<ProxyContext["note"]> = {};
@@ -148,7 +148,7 @@ async function handlePartyTracksInner(ctx: ProxyContext, subpath: string): Promi
   const { env, request, meetingId, origin } = ctx;
   const deny = (status: number, message: string) => errorResponse(status, message, corsHeaders(origin));
 
-  const payload = await verifyMeetingRoomToken(new URL(request.url).searchParams.get("token") ?? "", env.MEETING_ROOM_SECRET);
+  const payload = await verifyMeetingRoomToken(roomTicketFromRequest(request), env.MEETING_ROOM_SECRET);
   if (!payload || payload.mid !== meetingId) return deny(401, "Invalid or expired ticket.");
   if (!payload.adm) return deny(403, "Not admitted.");
   if (!env.REALTIME_APP_ID || !env.REALTIME_APP_TOKEN) return deny(503, "Media is not configured.");

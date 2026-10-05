@@ -5,7 +5,11 @@ export type RoomSocketStatus = "connecting" | "open" | "reconnecting" | "closed"
 export type RoomSocketOptions = {
   roomUrl: string;
   meetingId: string;
-  token: string;
+  /**
+   * The ticket for each (re)connect. May refresh it first (under 10 minutes left); null means the
+   * call is over (the caller already showed why), so the socket stops.
+   */
+  getToken: () => Promise<string | null> | string | null;
   onMessage: (message: MeetingServerMessage) => void;
   onStatus?: (status: RoomSocketStatus) => void;
   /** The room closed us for a reason that has no protocol message (4029 room full). No reconnect. */
@@ -30,6 +34,8 @@ const FINAL_CLOSE_CODES: Readonly<Record<number, "removed" | "denied" | "ended">
 };
 
 const ROOM_FULL_CODE = 4029;
+/** A wake/network-change probe: no message within this long → reopen at once. */
+export const PROBE_TIMEOUT_MS = 5000;
 
 export function roomSocketUrl(roomUrl: string, meetingId: string, token: string) {
   const base = roomUrl.replace(/\/+$/, "").replace(/^http/, "ws");
@@ -59,12 +65,14 @@ export class RoomSocket {
   private lastMessageAt = 0;
   private pingTimer: ReturnType<typeof setInterval> | null = null;
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
+  private probeTimer: ReturnType<typeof setTimeout> | null = null;
+  private opening = false;
 
   constructor(private readonly options: RoomSocketOptions) {}
 
   connect() {
     this.stopped = false;
-    this.open();
+    void this.open();
   }
 
   send(message: MeetingClientMessage) {
@@ -83,6 +91,32 @@ export class RoomSocket {
     return true;
   }
 
+  /**
+   * After a network change, wake or a new media connection: ping, and if nothing comes back within
+   * 5 s, the socket is half-dead (a stale NAT mapping), so reopen it now with the backoff reset.
+   */
+  probe() {
+    if (this.stopped || this.probeTimer) return;
+    if (!this.send({ t: "ping" })) {
+      if (!this.socket && !this.opening) this.reopenNow();
+      return;
+    }
+    this.probeTimer = setTimeout(() => {
+      this.probeTimer = null;
+      this.reopenNow();
+    }, PROBE_TIMEOUT_MS);
+  }
+
+  private reopenNow() {
+    if (this.stopped) return;
+    this.attempt = 0;
+    const socket = this.socket;
+    this.socket = null;
+    this.clearTimers();
+    if (socket && socket.readyState <= WebSocket.OPEN) socket.close(4000, "probe");
+    void this.open();
+  }
+
   close() {
     this.stopped = true;
     this.clearTimers();
@@ -92,8 +126,24 @@ export class RoomSocket {
     this.options.onStatus?.("closed");
   }
 
-  private open() {
-    const url = roomSocketUrl(this.options.roomUrl, this.options.meetingId, this.options.token);
+  private async open() {
+    if (this.opening) return;
+    this.opening = true;
+    let token: string | null;
+    try {
+      token = await this.options.getToken();
+    } catch {
+      token = null;
+    } finally {
+      this.opening = false;
+    }
+    if (this.stopped) return;
+    if (!token) {
+      this.stopped = true;
+      this.options.onStatus?.("closed");
+      return;
+    }
+    const url = roomSocketUrl(this.options.roomUrl, this.options.meetingId, token);
     const socket = this.options.createSocket ? this.options.createSocket(url) : new WebSocket(url);
     this.socket = socket;
     this.options.onStatus?.(this.attempt === 0 ? "connecting" : "reconnecting");
@@ -106,6 +156,10 @@ export class RoomSocket {
     };
     socket.onmessage = (event) => {
       this.lastMessageAt = Date.now();
+      if (this.probeTimer) {
+        clearTimeout(this.probeTimer);
+        this.probeTimer = null;
+      }
       const message = parseMessage(event.data);
       if (!message) return;
       if (FINAL_MESSAGES.has(message.t)) this.stopped = true;
@@ -129,7 +183,7 @@ export class RoomSocket {
         return;
       }
       this.options.onStatus?.("reconnecting");
-      this.retryTimer = setTimeout(() => this.open(), backoffDelay(this.attempt));
+      this.retryTimer = setTimeout(() => void this.open(), backoffDelay(this.attempt));
       this.attempt += 1;
     };
   }
@@ -152,6 +206,8 @@ export class RoomSocket {
 
   private clearTimers() {
     this.clearPing();
+    if (this.probeTimer) clearTimeout(this.probeTimer);
+    this.probeTimer = null;
     if (this.retryTimer) clearTimeout(this.retryTimer);
     this.retryTimer = null;
   }

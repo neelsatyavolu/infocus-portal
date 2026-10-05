@@ -60,6 +60,7 @@ export class MeetingE2ee {
   private readonly worker: Worker;
   private chatSend: SendSchedule<CryptoKey> = emptySendSchedule();
   private chatKeys = new Map<number, CryptoKey>();
+  private latestEpoch = -1;
   private readonly failing = new Set<string>();
   private readonly listeners = new Set<() => void>();
 
@@ -85,7 +86,23 @@ export class MeetingE2ee {
     const delayMs = options.rekey ? REKEY_SEND_DELAY_MS : 0;
     this.chatSend = scheduleSendKey(this.chatSend, { epoch, key: chatKey }, Date.now(), delayMs);
     this.chatKeys = new Map(this.chatKeys).set(epoch, chatKey);
+    this.latestEpoch = Math.max(this.latestEpoch, epoch);
     this.worker.postMessage({ type: "setKey", key: raw, epoch, sendDelayMs: delayMs });
+  }
+
+  /** The newest key epoch we hold (-1 before the first key). */
+  get currentEpoch() {
+    return this.latestEpoch;
+  }
+
+  /**
+   * A pulled track ended or is no longer shown: stop tracking its decrypt failures here and in the
+   * worker, so a long call doesn't keep (or keep reporting) failures for tracks that are gone.
+   */
+  forget(trackId: string) {
+    this.worker.postMessage({ type: "forget", id: trackId });
+    if (!this.failing.delete(trackId)) return;
+    this.listeners.forEach((listener) => listener());
   }
 
   /** The chat key to SEND with (follows the same rekey grace as media). */

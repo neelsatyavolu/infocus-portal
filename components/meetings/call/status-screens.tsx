@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/src/lib/utils";
 import { useMeetEmbedded } from "./embed-context";
 
 function Screen({ eyebrow, title, body, children }: { eyebrow: string; title: string; body?: string; children?: React.ReactNode }) {
@@ -60,12 +61,24 @@ export function JoiningScreen() {
   );
 }
 
+/** Reloads this meeting's URL: the middleware sends a signed-out visitor to sign-in and back here. */
+function SignInAgain() {
+  return (
+    <a
+      href={typeof window === "undefined" ? "/" : window.location.href}
+      className={cn(buttonVariants(), "h-11")}
+    >
+      Sign in again
+    </a>
+  );
+}
+
 export function EndScreen({
   kind,
   message,
   onRejoin
 }: {
-  kind: "left" | "removed" | "ended" | "error" | "unsupported" | "full";
+  kind: "left" | "removed" | "ended" | "error" | "unsupported" | "full" | "signin";
   message?: string | null;
   onRejoin?: () => void;
 }) {
@@ -74,12 +87,14 @@ export function EndScreen({
     removed: { title: "You were removed from the meeting", body: "A host removed you. You can't rejoin with this link." },
     ended: { title: "The meeting has ended", body: "A host ended the meeting for everyone." },
     error: { title: "Couldn't join the meeting", body: message ?? "Something went wrong. Try again." },
+    signin: { title: "Your sign-in expired", body: "Sign in again to get back into the meeting." },
     full: { title: "The meeting is full", body: "No more people can join right now. Try again later." },
     unsupported: { title: "This browser can't join", body: message ?? "Use a current Chrome or Safari." }
   }[kind];
   return (
     <Screen eyebrow="Meeting" title={copy.title} body={copy.body}>
       {onRejoin && (kind === "left" || kind === "error" || kind === "full") ? <Button className="h-11" onClick={onRejoin}>Rejoin</Button> : null}
+      {kind === "signin" ? <SignInAgain /> : null}
       <BackLink />
     </Screen>
   );

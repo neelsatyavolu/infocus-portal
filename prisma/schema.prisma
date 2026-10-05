@@ -1853,6 +1853,13 @@ enum MeetingNotesStatus {
 
 /// OPEN: any producer. INVITE_ONLY (execs create): only the creator and inviteeUserIds see or join it.
 /// EXECS_ONLY (execs create): only execs (EP, adviser, super admin) see or join it.
+/// Why a meeting ended: a host pressed End for everyone, the room sat empty, or it was left LIVE too long.
+enum MeetingEndReason {
+  HOST
+  EMPTY
+  STALE
+}
+
 enum MeetingAccess {
   OPEN
   INVITE_ONLY
@@ -1881,6 +1888,10 @@ model Meeting {
   keyCiphertext    String?
   startedAt        DateTime?
   endedAt          DateTime?
+  /// How it ended. EMPTY (everyone left) can be reopened for 15 minutes; HOST and STALE are final.
+  endedReason      MeetingEndReason?
+  /// Bumped on each reopen; room tickets carry it so the room tells the runs apart.
+  roomGeneration   Int      @default(0)
   /// Unused since 2026-10-04 (replaced by the 15- and 5-minute reminders).
   startNotifiedAt  DateTime?
   /// Push reminders claimed (15 and 5 minutes before startsAt). Cleared when the meeting moves.
@@ -1894,6 +1905,16 @@ model Meeting {
   notesSummary     String?  @db.Text
   /// Drive folder holding transcript.md / transcript.json / summary.md.
   notesDrivePath   String?
+  /// Every READY notes part's Drive folder, in order (a long or restarted meeting has several).
+  notesDrivePaths  String[] @default([])
+  /// The current Scribe session ("part"), 1 for the first; callbacks for older parts don't change notesStatus.
+  notesPart        Int      @default(0)
+  /// When notesStatus last changed (stuck PROCESSING/RECORDING sweeper).
+  notesStatusAt    DateTime?
+  /// Why notes FAILED, when the Portal marked them (e.g. stuck processing).
+  notesError       String?
+  /// Last Scribe start (restarts are at most one per 10 minutes).
+  scribeStartedAt  DateTime?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   createdBy        User?    @relation("MeetingCreator", fields: [createdById], references: [id], onDelete: SetNull)

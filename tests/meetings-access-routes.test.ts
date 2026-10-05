@@ -128,6 +128,7 @@ const inviteOnly = {
   notesStatus: "READY",
   notesSummary: "secret summary",
   notesDrivePath: "Meetings/x",
+  notesDrivePaths: ["Meetings/x"],
   startedAt: null,
   endedAt: null,
   keyCiphertext: "sealed",

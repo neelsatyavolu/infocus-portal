@@ -62,6 +62,9 @@ export const meetingsApi = {
   transcript: (id: string) => request<MeetingTranscriptResponse>(`${base(id)}/transcript`),
   join: (id: string) => request<JoinResponse>(`${base(id)}/join`, { method: "POST", json: {} }),
   key: (id: string) => request<KeyResponse>(`${base(id)}/key`),
+  /** Fresh room ticket + current key for an admitted participant (410 ended, 403 removed, 401 signed out). */
+  ticket: (id: string) =>
+    request<{ roomToken: string; roomUrl: string; key: KeyResponse }>(`${base(id)}/ticket`, { method: "POST", json: {} }),
   participant: (id: string, userId: string, action: "admit" | "deny" | "remove") =>
     request<unknown>(`${base(id)}/participants/${encodeURIComponent(userId)}`, { method: "POST", json: { action } }),
   admitAll: (id: string) => request<unknown>(`${base(id)}/admit-all`, { method: "POST", json: {} }),

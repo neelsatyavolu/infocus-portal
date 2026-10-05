@@ -27,7 +27,8 @@ export function corsHeaders(origin: string): Record<string, string> {
   return {
     "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Methods": "GET, POST, PUT, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+    // Authorization carries the room ticket on partytracks calls (preferred over ?token=).
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Access-Control-Max-Age": "600",
     Vary: "Origin"
   };
@@ -49,4 +50,12 @@ export function bearerToken(request: Request): string | null {
   const header = request.headers.get("Authorization") ?? "";
   const match = /^Bearer\s+(.+)$/i.exec(header);
   return match?.[1]?.trim() || null;
+}
+
+/**
+ * The room ticket of a partytracks request: `Authorization: Bearer <ticket>` first, then the older
+ * `?token=` query param. Never logged (Workers Logs redacts query strings; headers aren't logged).
+ */
+export function roomTicketFromRequest(request: Request): string {
+  return bearerToken(request) ?? new URL(request.url).searchParams.get("token") ?? "";
 }

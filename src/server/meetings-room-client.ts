@@ -28,6 +28,8 @@ export function issueMeetingRoomTicket(input: {
   admitted: boolean;
   /** Exec: first in line when the room hands host over. */
   exec?: boolean;
+  /** Meeting.roomGeneration: a reopened meeting's room rejects tickets of earlier runs. */
+  gen?: number;
   now?: number;
 }) {
   const now = input.now ?? Date.now();
@@ -41,6 +43,7 @@ export function issueMeetingRoomTicket(input: {
       role: input.role,
       adm: input.admitted,
       ...(input.exec ? { exec: true } : {}),
+      ...(input.gen ? { gen: input.gen } : {}),
       iat: now,
       exp: now + MEETING_ROOM_TOKEN_TTL_MS
     },

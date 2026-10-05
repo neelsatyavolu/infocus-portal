@@ -1,4 +1,6 @@
 import { Observable } from "rxjs";
+import { INITIAL_BLUR_PERF, SEGMENT_MAX_HEIGHT, SEGMENT_MAX_WIDTH, nextBlurPerf, nextSegmentHealth, shouldSegmentFrame, type SegmentHealth } from "./blur-perf";
+import { diagEvent } from "./diagnostics";
 import type { BackgroundMode } from "./meet-settings";
 
 /**
@@ -10,7 +12,8 @@ import type { BackgroundMode } from "./meet-settings";
 
 export const BLUR_PX: Record<Exclude<BackgroundMode, "off">, number> = { slight: 8, blur: 16 };
 
-export type PersonMask = { data: Float32Array; width: number; height: number };
+/** `version` changes on every new mask (the engine reuses one buffer, so identity can't be used). */
+export type PersonMask = { data: Float32Array; width: number; height: number; version: number };
 
 /** A video frame source (VideoFrame, <video>, canvas...). */
 export type FrameSource = CanvasImageSource;
@@ -19,6 +22,13 @@ export type Segmenter = {
   /** Synchronous (MediaPipe VIDEO mode): the person-confidence mask for this frame, or null. */
   segment: (frame: FrameSource, timestampMs: number) => PersonMask | null;
   close: () => void;
+};
+
+export type SegmenterOptions = {
+  /** CPU delegate only (after the GPU path failed or lost its WebGL context). */
+  cpu: boolean;
+  /** The segmenter's WebGL context was lost (GPU delegate): it can't produce masks any more. */
+  onContextLost: () => void;
 };
 
 export type Compositor = {
@@ -46,7 +56,7 @@ export type FrameIo = {
 export type BlurEngine = {
   /** A black track at the camera's size, created synchronously (shown while blur starts). */
   createPlaceholder: (input: MediaStreamTrack) => { track: MediaStreamTrack; stop: () => void };
-  createSegmenter: () => Promise<Segmenter>;
+  createSegmenter: (options: SegmenterOptions) => Promise<Segmenter>;
   createIo: (input: MediaStreamTrack) => Promise<FrameIo>;
   createCompositor: (io: FrameIo) => Compositor;
   /** Draws a frame at most this size for segmentation (performance guard level 2). */
@@ -54,40 +64,15 @@ export type BlurEngine = {
   now: () => number;
 };
 
-// ---------------------------------------------------------------------------
-// Performance guard (pure)
-// ---------------------------------------------------------------------------
-
-/** Budget per frame for segmentation + compositing at 30 fps (leaves room for the encoder). */
-export const BLUR_FRAME_BUDGET_MS = 28;
-const PERF_WINDOW_FRAMES = 30;
-export const SEGMENT_MAX_WIDTH = 640;
-export const SEGMENT_MAX_HEIGHT = 360;
-
-/** 0 = full, 1 = segment every other frame (reuse the last mask), 2 = also segment at ≤640×360. */
-export type BlurPerfState = { level: 0 | 1 | 2; totalMs: number; frames: number; notified: boolean };
-export const INITIAL_BLUR_PERF: BlurPerfState = { level: 0, totalMs: 0, frames: 0, notified: false };
-
-/**
- * Feeds one frame's processing time. Every 30 frames, if the window's average is over budget,
- * steps down one level (and measures afresh). A single slow frame never trips it.
- * `notify` is true exactly once, on the first step down.
- */
-export function nextBlurPerf(state: BlurPerfState, durationMs: number): { state: BlurPerfState; notify: boolean } {
-  const totalMs = state.totalMs + durationMs;
-  const frames = state.frames + 1;
-  if (frames < PERF_WINDOW_FRAMES) return { state: { ...state, totalMs, frames }, notify: false };
-  const overBudget = totalMs / frames > BLUR_FRAME_BUDGET_MS;
-  if (!overBudget || state.level === 2) {
-    return { state: { ...state, totalMs: 0, frames: 0 }, notify: false };
-  }
-  const level = (state.level + 1) as 1 | 2;
-  return { state: { level, totalMs: 0, frames: 0, notified: true }, notify: !state.notified };
-}
-
-export function shouldSegmentFrame(level: BlurPerfState["level"], frameIndex: number) {
-  return level === 0 || frameIndex % 2 === 0;
-}
+export {
+  BLUR_FRAME_BUDGET_MS,
+  INITIAL_BLUR_PERF,
+  SEGMENT_MAX_HEIGHT,
+  SEGMENT_MAX_WIDTH,
+  nextBlurPerf,
+  shouldSegmentFrame,
+  type BlurPerfState
+} from "./blur-perf";
 
 // ---------------------------------------------------------------------------
 // Pipeline
@@ -99,6 +84,9 @@ type Pipeline = {
   watch: (listener: (track: MediaStreamTrack) => void) => () => void;
   teardown: () => void;
 };
+
+/** Rebuild a broken segmenter at most this many times per pipeline (then whole-frame blur). */
+const MAX_REBUILDS = 3;
 
 export type BlurHooks = {
   /** Over budget: quality stepped down (once). */
@@ -146,16 +134,39 @@ function buildPipeline(engine: BlurEngine, input: MediaStreamTrack, hooks: Hooks
     placeholder.stop();
   };
 
-  // The model loads in parallel; frames are whole-frame blurred until it's ready (or for good).
-  void engine
-    .createSegmenter()
-    .then((created) => {
-      if (closed) created.close();
-      else segmenter = created;
-    })
-    .catch(() => {
-      if (!closed) hooks.onPartial();
-    });
+  let lastMask: PersonMask | null = null;
+  let rebuilds = 0;
+
+  /**
+   * (Re)builds the segmenter. Until it's ready, frames are whole-frame blurred. A broken one
+   * (failure streak or lost WebGL context) is dropped with its mask and rebuilt on the CPU.
+   */
+  const loadSegmenter = (cpu: boolean) => {
+    void engine
+      .createSegmenter({ cpu, onContextLost: () => broken("webgl_context_lost") })
+      .then((created) => {
+        if (closed) created.close();
+        else segmenter = created;
+      })
+      .catch(() => {
+        if (!closed) hooks.onPartial();
+      });
+  };
+
+  const broken = (reason: string) => {
+    if (closed) return;
+    diagEvent("blur_segmenter_broken", { reason, rebuilds });
+    lastMask = null; // Never keep cutting out a stale silhouette: whole-frame blur until rebuilt.
+    segmenter?.close();
+    segmenter = null;
+    hooks.onPartial();
+    if (rebuilds < MAX_REBUILDS) {
+      rebuilds += 1;
+      loadSegmenter(true);
+    }
+  };
+
+  loadSegmenter(false);
 
   void (async () => {
     const frameIo = await engine.createIo(input);
@@ -169,18 +180,23 @@ function buildPipeline(engine: BlurEngine, input: MediaStreamTrack, hooks: Hooks
     const downscale = engine.createDownscaler(SEGMENT_MAX_WIDTH, SEGMENT_MAX_HEIGHT);
 
     let perf = INITIAL_BLUR_PERF;
+    let health: SegmentHealth = { failures: 0 };
     let frameIndex = 0;
-    let lastMask: PersonMask | null = null;
     frameIo.start((frame) => {
       if (closed) return;
       const started = engine.now();
       if (segmenter && shouldSegmentFrame(perf.level, frameIndex)) {
+        let mask: PersonMask | null = null;
         try {
-          const mask = segmenter.segment(perf.level >= 2 ? downscale(frame) : frame, started);
-          if (mask) lastMask = mask;
+          mask = segmenter.segment(perf.level >= 2 ? downscale(frame) : frame, started);
         } catch {
-          // Keep the last mask; never show the room unblurred.
+          mask = null;
         }
+        // A brief miss reuses the last mask; a long streak means the model is broken.
+        if (mask) lastMask = mask;
+        const next = nextSegmentHealth(health, mask !== null);
+        health = next.state;
+        if (next.broken) broken("failure_streak");
       }
       comp.render(frame, lastMask, hooks.blurPx());
       frameIndex += 1;

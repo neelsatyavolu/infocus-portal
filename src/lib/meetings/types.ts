@@ -64,6 +64,12 @@ export type MeetingPeopleResponse = { people: MeetingPerson[] };
 /** GET /api/meetings/[id]/key, and `key` in JoinResponse. `key` is the 32-byte meeting key, base64url. */
 export type KeyResponse = { key: string; epoch: number };
 
+/**
+ * POST /api/meetings/[id]/ticket: a fresh room ticket (and the current key) for someone already in
+ * the call, before their 4 h ticket runs out or after a reconnect. Same room URL and role as /join.
+ */
+export type TicketResponse = { roomToken: string; roomUrl: string; key: KeyResponse };
+
 /** POST /api/meetings/[id]/join */
 export type JoinResponse = {
   /** Meeting-room Worker origin, e.g. https://meet.example.edu (append /rooms/<id>/ws). */

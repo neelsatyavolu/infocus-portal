@@ -21,6 +21,12 @@ export type MeetingRoomTokenPayload = {
   adm: boolean;
   /** Executive producer, adviser or super admin: first in line when host is handed over. */
   exec?: boolean;
+  /**
+   * The meeting's room generation (Meeting.roomGeneration; absent = 0). Bumped when a meeting that
+   * ended automatically is reopened: the room rejects older tickets, and the first newer one
+   * starts a fresh room in place of the ended one.
+   */
+  gen?: number;
   /** Issued at, epoch ms. The room rejects tickets issued before a removal. */
   iat: number;
   /** Expires at, epoch ms. */

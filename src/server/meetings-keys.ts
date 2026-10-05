@@ -48,3 +48,8 @@ export async function rotateMeetingKey(meetingId: string): Promise<KeyResponse> 
   });
   return { key: meetingKeyToBase64Url(key), epoch: updated.keyEpoch };
 }
+
+/** A new sealed key, for writing together with `keyEpoch: { increment: 1 }` (e.g. reopening a meeting). */
+export function sealedNewMeetingKey() {
+  return sealMeetingKey(createMeetingKey(), keySecret());
+}

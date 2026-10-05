@@ -7,7 +7,7 @@
  * Clear header: VP8 key frame 10 bytes, VP8 delta 3, audio 1.
  * Frames are dropped (never sent or rendered in the clear) when no key is available or decryption fails.
  *
- * Messages in:  { type: "setKey", key: Uint8Array(32), epoch: number, sendDelayMs?: number } | { type: "clearKeys" }
+ * Messages in:  { type: "setKey", key: Uint8Array(32), epoch: number, sendDelayMs?: number } | { type: "forget", id: string } | { type: "clearKeys" }
  * On a rekey (sendDelayMs > 0) the new key decrypts at once but encryption keeps the previous
  * epoch until the delay passes, so slower peers can fetch the new key (mirrors key-ring.ts).
  * Messages out: { type: "decrypt", id: string, ok: boolean }  (only on state change, per receiver)
@@ -164,6 +164,9 @@
         addKey(entry);
         scheduleSendKey(entry, Date.now(), delayMs);
       });
+    } else if (message.type === "forget" && typeof message.id === "string") {
+      // The receiver's track ended: drop its failure counter (a long call creates many).
+      delete failures[message.id];
     } else if (message.type === "clearKeys") {
       ring = { current: null, previous: null };
       schedule = { send: null, pending: null, switchAt: null };

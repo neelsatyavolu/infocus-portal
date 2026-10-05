@@ -9,7 +9,9 @@ export const dynamic = "force-dynamic";
 const notesSchema = z.object({
   status: z.enum(["RECORDING", "PROCESSING", "READY", "FAILED"]),
   summaryMarkdown: z.string().max(200_000).optional(),
-  drivePath: z.string().min(1).max(1024).optional()
+  drivePath: z.string().min(1).max(1024).optional(),
+  /** Which Scribe session ("part", 1, 2, …) this is about; the start call says. Absent = the current one. */
+  part: z.number().int().min(1).max(1000).optional()
 });
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {

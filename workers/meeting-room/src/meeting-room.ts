@@ -28,6 +28,11 @@ import {
   nextAlarm,
   normalizeState,
   participantList,
+  pruneGhosts,
+  reopenedState,
+  withPendingHostReport,
+  withoutPendingHostReport,
+  HOST_REPORT_RETRY_MS,
   registerSession,
   ticketFromPayload,
   waitingList,
@@ -58,7 +63,31 @@ export class MeetingRoom extends DurableObject<Env> {
     ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair(PING, PONG));
     void ctx.blockConcurrencyWhile(async () => {
       this.room = normalizeState(await ctx.storage.get<RoomState>(STATE_KEY));
+      // After a restart or deploy, close handlers may never have run: drop people with no socket.
+      await this.pruneGhostParticipants();
     });
+  }
+
+  /**
+   * Participants and lobby entries without an open socket are dropped (leave + host handoff),
+   * and the empty/handoff alarm is re-armed by the commit.
+   */
+  private async pruneGhostParticipants(): Promise<void> {
+    const admittedUids = new Set<string>();
+    const waitingUids = new Set<string>();
+    for (const ws of select(this.sockets(), () => true)) {
+      const ticket = attachmentOf(ws);
+      if (ticket) (ticket.adm ? admittedUids : waitingUids).add(ticket.uid);
+    }
+    const now = Date.now();
+    const pruned = pruneGhosts(this.room, { admitted: admittedUids, waiting: waitingUids }, now);
+    if (pruned.state === this.room) return;
+    const handoff = pruned.hostLeft ? afterHostLeft(pruned.state, false, now) : { state: pruned.state, promoted: null };
+    this.log("ghosts_pruned", null, { participants: pruned.left.length, hostLeft: pruned.hostLeft });
+    await this.commit(handoff.state);
+    for (const uid of pruned.left) sendAll(select(this.sockets(), admitted), { t: "left", uid });
+    this.broadcastWaiting();
+    if (handoff.promoted) await this.announcePromotion(handoff.promoted);
   }
 
   private async commit(next: RoomState): Promise<void> {
@@ -113,7 +142,15 @@ export class MeetingRoom extends DurableObject<Env> {
     const theirs = select(this.ctx.getWebSockets(uid), admitted);
     sendAll(theirs, { t: "role", isHost: true });
     sendAll(theirs, { t: "waiting", waiting: waitingList(this.room) });
-    await this.report({ t: "hostPromoted", uid });
+    await this.reportHostPromoted(uid);
+  }
+
+  /** The Portal must record a promotion (host actions there depend on it): on failure, retry from the alarm. */
+  private async reportHostPromoted(uid: string): Promise<void> {
+    const result = await this.report({ t: "hostPromoted", uid });
+    const settled = result.ok || result.status === 404 || result.status === 410;
+    const next = settled ? withoutPendingHostReport(this.room, uid) : withPendingHostReport(this.room, uid, Date.now());
+    if (next !== this.room) await this.commit(next);
   }
 
   private broadcastParticipants(uids: readonly string[], except?: WebSocket): void {
@@ -153,7 +190,9 @@ export class MeetingRoom extends DurableObject<Env> {
     const pair = new WebSocketPair();
     const [client, server] = [pair[0], pair[1]];
 
+    await this.pruneGhostParticipants();
     const check = checkTicket(this.room, ticket);
+    if (check.ok && check.reopens) await this.reopen(meetingId, ticket.gen ?? 0);
     if (!check.ok || isRoomFull(this.room, ticket)) {
       server.accept();
       if (!check.ok) send(server, { t: check.reason === "ended" ? "ended" : "removed" });
@@ -180,6 +219,18 @@ export class MeetingRoom extends DurableObject<Env> {
     return new Response(null, { status: 101, webSocket: client });
   }
 
+  /** The Portal reopened a meeting that ended automatically: a fresh room; older tickets' sockets close. */
+  private async reopen(meetingId: string, gen: number): Promise<void> {
+    const stale = select(this.sockets(), (other) => (other.gen ?? 0) < gen);
+    this.log("room_reopened", null, { generation: gen, from: this.room.generation, closed: stale.length });
+    await this.ctx.storage.deleteAll();
+    await this.commit(reopenedState(withMeetingId(this.room, meetingId), gen));
+    for (const ws of stale) {
+      send(ws, { t: "ended" });
+      closeSocket(ws, CLOSE_ENDED, "ended");
+    }
+  }
+
   private async connectAdmitted(ws: WebSocket, ticket: RoomTicket, base: RoomState): Promise<void> {
     const wasWaiting = Boolean(base.waiting[ticket.uid]);
     const { state, reportStarted } = joinParticipant(base, ticket, Date.now());
@@ -188,6 +239,8 @@ export class MeetingRoom extends DurableObject<Env> {
     this.broadcastParticipants([ticket.uid], ws);
     if (wasWaiting) this.broadcastWaiting();
     if (reportStarted) await this.report({ t: "started" });
+    // A promotion the Portal hasn't recorded yet: try again now that they're back.
+    if (this.room.pendingHostReports.includes(ticket.uid)) await this.reportHostPromoted(ticket.uid);
   }
 
   private async connectWaiting(ws: WebSocket, ticket: RoomTicket, base: RoomState): Promise<void> {
@@ -327,6 +380,7 @@ export class MeetingRoom extends DurableObject<Env> {
       await this.commit(state);
       if (promoted) await this.announcePromotion(promoted);
     }
+    if (this.room.hostReportRetryAt !== null && now >= this.room.hostReportRetryAt) await this.retryHostReports(now);
     if (!isEmptyDue(this.room, now)) return this.syncAlarm();
     const result = await this.report({ t: "empty" });
     if (!result.ok) {
@@ -336,9 +390,24 @@ export class MeetingRoom extends DurableObject<Env> {
       console.error("meeting-room: giving up on the empty report; clearing the room", result.status);
       return this.clearRoom();
     }
-    // The Portal answers with an `ended` event, which may already have arrived.
-    if (this.room.endedAt === null) {
-      await this.commit({ ...this.room, emptySince: null, emptyReportFailures: 0, emptyRetryAt: null });
+    // The Portal ended the meeting (its `ended` event may already have arrived): end here too,
+    // so this generation stays ended even if that event is lost.
+    if (this.room.endedAt === null) await this.clearRoom();
+  }
+
+  /** Re-sends hostPromoted for promotions the Portal hasn't recorded (dropped once they're no longer promoted). */
+  private async retryHostReports(now: number): Promise<void> {
+    const pending = this.room.pendingHostReports;
+    await this.commit({ ...this.room, hostReportRetryAt: null });
+    for (const uid of pending) {
+      if (!this.room.promotedHosts[uid]) {
+        await this.commit(withoutPendingHostReport(this.room, uid));
+        continue;
+      }
+      await this.reportHostPromoted(uid);
+    }
+    if (this.room.pendingHostReports.length > 0 && this.room.hostReportRetryAt === null) {
+      await this.commit({ ...this.room, hostReportRetryAt: now + HOST_REPORT_RETRY_MS });
     }
   }
 

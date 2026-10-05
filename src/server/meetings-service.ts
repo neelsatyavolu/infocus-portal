@@ -1,5 +1,4 @@
 import { timingSafeEqual } from "node:crypto";
-import type { MeetingNotesStatus } from "@prisma/client";
 import type { MeetingRoomReport } from "@/src/lib/meetings/protocol";
 import { verifyMeetingInternalToken } from "@/src/lib/meetings/room-token";
 import { prisma } from "@/src/lib/prisma";
@@ -48,22 +47,7 @@ export async function handleMeetingRoomReport(meetingId: string, report: Meeting
     });
     return { promoted: promoted.count === 1 };
   }
-  return endMeeting(meetingId);
+  return endMeeting(meetingId, new Date(), "EMPTY");
 }
 
-export async function applyMeetingNotesUpdate(
-  meetingId: string,
-  input: { status: MeetingNotesStatus; summaryMarkdown?: string; drivePath?: string }
-) {
-  const meeting = await prisma.meeting.findUnique({ where: { id: meetingId }, select: { id: true } });
-  if (!meeting) throw new Error("NOT_FOUND");
-  await prisma.meeting.update({
-    where: { id: meetingId },
-    data: {
-      notesStatus: input.status,
-      ...(input.summaryMarkdown !== undefined ? { notesSummary: input.summaryMarkdown } : {}),
-      ...(input.drivePath !== undefined ? { notesDrivePath: input.drivePath } : {})
-    }
-  });
-  return { notesStatus: input.status };
-}
+export { applyMeetingNotesUpdate } from "@/src/server/meetings-notes";

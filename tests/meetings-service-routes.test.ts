@@ -80,7 +80,7 @@ describe("POST /api/service/meetings/[id]/room", () => {
     expect(mocks.knock).toHaveBeenCalledWith(meeting, { uid: "u2", name: "Otto" });
 
     await roomPost(post("/api/service/meetings/m1/room", { t: "empty" }, token), params);
-    expect(mocks.endMeeting).toHaveBeenCalledWith("m1");
+    expect(mocks.endMeeting).toHaveBeenCalledWith("m1", expect.any(Date), "EMPTY");
   });
 
   it("404s an unknown meeting and 400s a bad report", async () => {
@@ -127,7 +127,10 @@ describe("POST /api/service/meetings/[id]/notes", () => {
     expect(mocks.update).not.toHaveBeenCalled();
   });
 
+  const notesRow = { id: "m1", status: "ENDED", notesEnabled: true, notesPart: 1, notesDrivePaths: [] as string[], notesSummary: null };
+
   it("stores the status, summary and Drive folder", async () => {
+    mocks.findUnique.mockResolvedValue(notesRow);
     const response = await notesPost(
       post(
         "/api/service/meetings/m1/notes",
@@ -139,13 +142,24 @@ describe("POST /api/service/meetings/[id]/notes", () => {
     expect(response.status).toBe(200);
     expect(mocks.update).toHaveBeenCalledWith({
       where: { id: "m1" },
-      data: { notesStatus: "READY", notesSummary: "## Summary", notesDrivePath: "Meetings/2026-10-04 2115 Producer meeting" }
+      data: {
+        notesStatus: "READY",
+        notesStatusAt: expect.any(Date),
+        notesError: null,
+        notesSummary: "## Summary",
+        notesDrivePath: "Meetings/2026-10-04 2115 Producer meeting",
+        notesDrivePaths: ["Meetings/2026-10-04 2115 Producer meeting"]
+      }
     });
   });
 
   it("only touches the status on a progress update and rejects unknown statuses", async () => {
+    mocks.findUnique.mockResolvedValue(notesRow);
     await notesPost(post("/api/service/meetings/m1/notes", { status: "PROCESSING" }, DRIVE_TOKEN), params);
-    expect(mocks.update).toHaveBeenCalledWith({ where: { id: "m1" }, data: { notesStatus: "PROCESSING" } });
+    expect(mocks.update).toHaveBeenCalledWith({
+      where: { id: "m1" },
+      data: { notesStatus: "PROCESSING", notesStatusAt: expect.any(Date), notesError: null }
+    });
     expect((await notesPost(post("/api/service/meetings/m1/notes", { status: "NONE" }, DRIVE_TOKEN), params)).status).toBe(400);
   });
 });

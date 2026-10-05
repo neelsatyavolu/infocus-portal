@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
-import { catchError, of, type Observable } from "rxjs";
-import { withBackoff } from "@/src/lib/meetings/client/media-session";
-import { useObservableAsValue, useValueAsObservable } from "partytracks/react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { of, type Observable } from "rxjs";
+import { pullRegistryFor } from "@/src/lib/meetings/client/media-session";
+import { metaKeyOf, type PullHandle } from "@/src/lib/meetings/client/pull-registry";
+import { useObservableAsValue } from "partytracks/react";
 import type { PartyTracks } from "partytracks/client";
 import type { MeetingTrackMetadata } from "@/src/lib/meetings/protocol";
 import type { SimulcastRid } from "@/src/lib/meetings/client/layout";
@@ -14,28 +15,38 @@ import { cn } from "@/src/lib/utils";
 
 const EMPTY: Observable<MediaStreamTrack> = of();
 
-/** Pulls one remote track (re-pulls when its metadata changes). `rid` picks the simulcast layer. */
+/**
+ * One remote track, through the media session's shared pull registry: every tile, the audio
+ * element and layout switches reuse the same live pull (released 15 s after the last user).
+ * `rid` is this consumer's wanted simulcast layer; the pull uses the highest any consumer wants.
+ */
 export function usePulledTrack(
   partyTracks: PartyTracks | null,
   meta: MeetingTrackMetadata | undefined,
   rid?: SimulcastRid
 ) {
-  const metaKey = meta?.sessionId && meta.trackName ? `${meta.sessionId}/${meta.trackName}` : null;
-  const rid$ = useValueAsObservable<string | undefined>(rid);
+  const metaKey = metaKeyOf(meta);
   const simulcast = rid !== undefined;
-  const track$ = useMemo(() => {
-    if (!partyTracks || !metaKey) return EMPTY;
-    const [sessionId, ...rest] = metaKey.split("/");
-    const trackData = of({ location: "remote" as const, sessionId, trackName: rest.join("/") });
-    const pulled = simulcast ? partyTracks.pull(trackData, { simulcast: { preferredRid$: rid$ } }) : partyTracks.pull(trackData);
-    return pulled.pipe(
-      withBackoff("pull"),
-      catchError((error) => {
-        diagEvent("pull_failed", { sid: sessionId.slice(0, 8), message: errorText(error) });
-        return EMPTY;
-      })
-    );
-  }, [partyTracks, metaKey, simulcast, rid$]);
+  const ridRef = useRef(rid);
+  const [handle, setHandle] = useState<PullHandle | null>(null);
+
+  useEffect(() => {
+    const registry = partyTracks ? pullRegistryFor(partyTracks) : null;
+    if (!registry || !metaKey) return;
+    const next = registry.acquire(metaKey, simulcast, ridRef.current);
+    setHandle(next);
+    return () => {
+      next.release();
+      setHandle((current) => (current === next ? null : current));
+    };
+  }, [partyTracks, metaKey, simulcast]);
+
+  useEffect(() => {
+    ridRef.current = rid;
+    if (handle && rid) handle.setRid(rid);
+  }, [handle, rid]);
+
+  const track$ = useMemo(() => handle?.track$ ?? EMPTY, [handle]);
   const track = useObservableAsValue(track$);
   // Lets diagnostics tell whose stream an inbound-rtp stat is.
   useEffect(() => {

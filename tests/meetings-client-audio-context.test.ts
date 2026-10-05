@@ -65,3 +65,31 @@ describe("shared AudioContext", () => {
     expect(made[0].resume).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("shared AudioContext auto-resume", () => {
+  let ctx: FakeCtx;
+  beforeEach(() => {
+    setAudioContextFactoryForTest(() => {
+      ctx = fakeCtx("running");
+      return ctx as unknown as AudioContext;
+    });
+  });
+  afterEach(() => setAudioContextFactoryForTest(null));
+
+  it("resumes on its own when the context gets suspended or interrupted mid-call", async () => {
+    sharedAudioContext();
+    for (const state of ["suspended", "interrupted"]) {
+      ctx.state = state;
+      ctx.listeners.forEach((listener) => listener());
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(ctx.state).toBe("running");
+    }
+    expect(ctx.resume).toHaveBeenCalledTimes(2);
+  });
+
+  it("does nothing while running", () => {
+    sharedAudioContext();
+    resumeSharedAudio();
+    expect(ctx.resume).not.toHaveBeenCalled();
+  });
+});

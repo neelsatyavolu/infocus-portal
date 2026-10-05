@@ -8,18 +8,27 @@ import {
   type BlurEngine,
   type BlurPerfState,
   type FrameIo,
-  type PersonMask
+  type PersonMask,
+  type SegmenterOptions
 } from "@/src/lib/meetings/client/background-blur";
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
-const mask: PersonMask = { data: new Float32Array(4), width: 2, height: 2 };
+const mask: PersonMask = { data: new Float32Array(4), width: 2, height: 2, version: 1 };
 
 function fakeEngine(
-  options: { failSegmenter?: boolean; frameMs?: number; throwOnSegment?: boolean; holdSegmenter?: boolean } = {}
+  options: {
+    failSegmenter?: boolean;
+    frameMs?: number;
+    throwOnSegment?: boolean;
+    holdSegmenter?: boolean;
+    /** The first segmenter (GPU) returns no mask: a broken model. */
+    emptyFirst?: boolean;
+  } = {}
 ) {
   let clock = 0;
   let onFrame: ((frame: CanvasImageSource) => void) | null = null;
   const segmenters: Array<{ segment: ReturnType<typeof vi.fn>; close: ReturnType<typeof vi.fn> }> = [];
+  const contextLost: Array<() => void> = [];
   const ios: Array<FrameIo & { stop: ReturnType<typeof vi.fn> }> = [];
   const compositor = {
     render: vi.fn((_frame: CanvasImageSource, _mask: PersonMask | null, _blurPx: number) => {
@@ -33,11 +42,14 @@ function fakeEngine(
   const placeholder = { track: { stop: vi.fn(), kind: "placeholder" } as unknown as MediaStreamTrack, stop: vi.fn() };
   const engine: BlurEngine = {
     createPlaceholder: vi.fn(() => placeholder),
-    createSegmenter: vi.fn(async () => {
+    createSegmenter: vi.fn(async (opts: SegmenterOptions) => {
       await segmenterGate;
       if (options.failSegmenter) throw new Error("no wasm");
+      const index = segmenters.length;
+      contextLost.push(opts.onContextLost);
       const s = {
         segment: vi.fn(() => {
+          if (options.emptyFirst && index === 0) return null;
           if (options.throwOnSegment) throw new Error("gpu lost");
           return mask;
         }),
@@ -68,7 +80,7 @@ function fakeEngine(
   const tick = (n = 1) => {
     for (let i = 0; i < n; i += 1) onFrame?.(frame);
   };
-  return { engine, segmenters, ios, compositor, tick, frame, downscaled, placeholder, releaseSegmenter: () => releaseSegmenter() };
+  return { engine, segmenters, ios, compositor, tick, frame, downscaled, placeholder, contextLost, releaseSegmenter: () => releaseSegmenter() };
 }
 
 const camera = () => ({ stop: vi.fn() }) as unknown as MediaStreamTrack;
@@ -221,6 +233,53 @@ describe("createBlurTransform", () => {
   });
 });
 
+describe("blur recovery", () => {
+  it("after 15 empty segmentations drops the stale mask (whole-frame blur) and rebuilds on the CPU", async () => {
+    const fake = fakeEngine({ emptyFirst: true });
+    const hooks = { onReduced: vi.fn(), onPartial: vi.fn(), onUnavailable: vi.fn() };
+    createBlurTransform(fake.engine, () => 8, hooks)(camera()).subscribe();
+    await flush();
+    fake.tick(14);
+    expect(hooks.onPartial).not.toHaveBeenCalled();
+    fake.tick();
+    expect(hooks.onPartial).toHaveBeenCalledTimes(1);
+    expect(fake.segmenters[0].close).toHaveBeenCalled();
+    expect(fake.engine.createSegmenter).toHaveBeenLastCalledWith(expect.objectContaining({ cpu: true }));
+    expect(fake.compositor.render).toHaveBeenLastCalledWith(fake.frame, null, 8);
+    await flush();
+    fake.tick();
+    expect(fake.compositor.render).toHaveBeenLastCalledWith(fake.frame, mask, 8);
+  });
+
+  it("a brief miss reuses the last mask; a long streak never keeps a stale cutout", async () => {
+    let fail = false;
+    const fake = fakeEngine();
+    const hooks = { onReduced: vi.fn(), onPartial: vi.fn(), onUnavailable: vi.fn() };
+    createBlurTransform(fake.engine, () => 8, hooks)(camera()).subscribe();
+    await flush();
+    fake.segmenters[0].segment.mockImplementation(() => (fail ? null : mask));
+    fake.tick();
+    fail = true;
+    fake.tick(3);
+    expect(fake.compositor.render).toHaveBeenLastCalledWith(fake.frame, mask, 8);
+    fake.tick(12);
+    expect(fake.compositor.render).toHaveBeenLastCalledWith(fake.frame, null, 8);
+  });
+
+  it("a lost WebGL context drops the mask and rebuilds on the CPU", async () => {
+    const fake = fakeEngine();
+    const hooks = { onReduced: vi.fn(), onPartial: vi.fn(), onUnavailable: vi.fn() };
+    createBlurTransform(fake.engine, () => 8, hooks)(camera()).subscribe();
+    await flush();
+    fake.tick();
+    fake.contextLost[0]();
+    fake.tick();
+    expect(fake.compositor.render).toHaveBeenLastCalledWith(fake.frame, null, 8);
+    expect(hooks.onPartial).toHaveBeenCalledTimes(1);
+    expect(fake.engine.createSegmenter).toHaveBeenLastCalledWith(expect.objectContaining({ cpu: true }));
+  });
+});
+
 describe("nextBlurPerf", () => {
   const feed = (state: BlurPerfState, ms: number, n: number) => {
     let s = state;
@@ -246,6 +305,17 @@ describe("nextBlurPerf", () => {
     const { s, notifies } = feed(INITIAL_BLUR_PERF, 45, 200);
     expect(s.level).toBe(2);
     expect(notifies).toBe(1);
+  });
+
+  it("steps back up after 10 windows comfortably under budget", () => {
+    const reduced = feed(INITIAL_BLUR_PERF, 45, 60).s;
+    expect(reduced.level).toBe(2);
+    expect(feed(reduced, 10, 30 * 9).s.level).toBe(2);
+    const up = feed(reduced, 10, 30 * 10).s;
+    expect(up.level).toBe(1);
+    expect(feed(up, 10, 30 * 10).s.level).toBe(0);
+    // Just under budget isn't enough to climb (it would oscillate).
+    expect(feed(reduced, BLUR_FRAME_BUDGET_MS - 1, 30 * 20).s.level).toBe(2);
   });
 
   it("segments every other frame from level 1", () => {

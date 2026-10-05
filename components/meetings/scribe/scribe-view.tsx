@@ -22,7 +22,11 @@ export default function ScribeView() {
       return;
     }
     const session = new ScribeSession(params, setStatus);
-    window.__scribe = { setKey: (key, epoch) => session.setKey(key, epoch), leave: () => session.leave() };
+    window.__scribe = {
+      setKey: (key, epoch) => session.setKey(key, epoch),
+      setTicket: (token) => session.setTicket(token),
+      leave: () => session.leave()
+    };
     session.start().catch(() => setStatus("Couldn't connect"));
     return () => {
       void session.leave();

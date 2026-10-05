@@ -1,3 +1,4 @@
+import type { MeetingEndReason } from "@prisma/client";
 import { prisma } from "@/src/lib/prisma";
 import { assertCanSeeMeeting, isMeetingHostOrPromoted, type MeetingViewer } from "@/src/server/meetings-access";
 import { readMeetingKey, rotateMeetingKey } from "@/src/server/meetings-keys";
@@ -22,7 +23,7 @@ async function requireHostOfOpenMeeting(viewer: MeetingViewer, meetingId: string
 
 export const ROOM_UPDATE_FAILED = "Removed, but the call didn't get the update — try again.";
 
-/** removed / rekey must reach the room: one retry, then report failure. */
+/** removed / rekey / ended must reach the room: one retry, then report failure. */
 async function sendCriticalRoomEvent(meetingId: string, event: Parameters<typeof sendMeetingRoomEvent>[1]) {
   if (await sendMeetingRoomEvent(meetingId, event)) return true;
   return sendMeetingRoomEvent(meetingId, event);
@@ -156,26 +157,45 @@ export async function admitAllWaiting(viewer: MeetingViewer, meetingId: string) 
   return { admitted: userIds.length };
 }
 
-/** Ends the meeting (host, or the room after it sat empty). Idempotent. */
-export async function endMeeting(meetingId: string, now = new Date()) {
+/**
+ * Ends the meeting: a host (HOST, final), the room after it sat empty (EMPTY, reopenable for 15
+ * minutes), or the stale-meeting cron (STALE, final). Idempotent: ending an ended meeting re-sends
+ * `ended` to the room (it may have missed it), and a host's End makes an EMPTY end final.
+ */
+export async function endMeeting(meetingId: string, now = new Date(), reason: MeetingEndReason = "HOST") {
   const meeting = await prisma.meeting.findUnique({
     where: { id: meetingId },
-    select: { status: true, notesEnabled: true }
+    select: { status: true, notesEnabled: true, endedReason: true }
   });
   if (!meeting) throw new Error("NOT_FOUND");
   const ended = await prisma.meeting.updateMany({
     where: { id: meetingId, status: { in: ["SCHEDULED", "LIVE"] } },
-    data: { status: "ENDED", endedAt: now, keyCiphertext: null }
+    data: { status: "ENDED", endedAt: now, endedReason: reason, keyCiphertext: null }
   });
-  if (ended.count === 0) return { ended: false };
+  if (ended.count === 0) {
+    if (meeting.status === "ENDED") {
+      if (reason === "HOST" && meeting.endedReason === "EMPTY") {
+        await prisma.meeting.updateMany({ where: { id: meetingId, status: "ENDED", endedReason: "EMPTY" }, data: { endedReason: "HOST" } });
+      }
+      await sendCriticalRoomEvent(meetingId, { t: "ended" });
+    }
+    return { ended: false };
+  }
 
-  await sendMeetingRoomEvent(meetingId, { t: "ended" });
+  await sendCriticalRoomEvent(meetingId, { t: "ended" });
   // Stopping makes the Scribe process the notes.
   if (meeting.status === "LIVE" && meeting.notesEnabled) await stopMeetingScribe(meetingId);
   return { ended: true };
 }
 
+/** End for everyone. On a meeting that already ended (e.g. it sat empty), it re-sends `ended` and makes that final. */
 export async function endMeetingAsHost(viewer: MeetingViewer, meetingId: string) {
-  await requireHostOfOpenMeeting(viewer, meetingId);
-  return endMeeting(meetingId);
+  const meeting = await prisma.meeting.findUnique({
+    where: { id: meetingId },
+    select: { id: true, status: true, access: true, createdById: true, inviteeUserIds: true }
+  });
+  assertCanSeeMeeting(viewer, meeting);
+  if (!(await isMeetingHostOrPromoted(viewer, meeting))) throw new Error("FORBIDDEN");
+  if (meeting.status === "CANCELED") throw new Error("This meeting is over.");
+  return endMeeting(meetingId, new Date(), "HOST");
 }

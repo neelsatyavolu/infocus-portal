@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import * as partytracks from "partytracks/client";
 
@@ -103,5 +105,44 @@ describe("partytracks pull batching (patched)", () => {
     expect(sent).toEqual([]);
     expect(await Promise.all([a, b])).toEqual([2, 2]);
     expect(sent).toEqual([["x", "y"]]);
+  });
+});
+
+describe("partytracks close during an ICE blip (patched)", () => {
+  const waitForConnected = (partytracks as unknown as {
+    waitForConnected: (pc: EventTarget & { connectionState: string }, timeout: number) => Promise<boolean>;
+  }).waitForConnected;
+
+  class Pc extends EventTarget {
+    constructor(public connectionState: string) {
+      super();
+    }
+    set(state: string) {
+      this.connectionState = state;
+      this.dispatchEvent(new Event("connectionstatechange"));
+    }
+  }
+
+  it("waits for the connection to come back before sending tracks/close", async () => {
+    const pc = new Pc("disconnected");
+    const result = waitForConnected(pc, 60_000);
+    pc.set("connecting");
+    pc.set("connected");
+    expect(await result).toBe(true);
+  });
+
+  it("gives up if the connection closes or fails, or never comes back", async () => {
+    const closed = new Pc("disconnected");
+    const a = waitForConnected(closed, 60_000);
+    closed.set("closed");
+    expect(await a).toBe(false);
+    expect(await waitForConnected(new Pc("disconnected"), 5)).toBe(false);
+    expect(await waitForConnected(new Pc("connected"), 5)).toBe(true);
+  });
+
+  it("emits transceivers on a plain Subject (no unbounded replay)", () => {
+    const source = readFileSync(join(process.cwd(), "node_modules/partytracks/dist/client/index.js"), "utf8");
+    expect(source).toContain("#transceiver$ = new Subject();");
+    expect(source).not.toContain("#transceiver$ = new ReplaySubject();");
   });
 });

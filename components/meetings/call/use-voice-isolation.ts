@@ -22,12 +22,21 @@ export function useVoiceIsolation(mic: MediaDevice) {
   const [enabled, setEnabledState] = useState(readVoiceIsolation);
   const [transform] = useState(() => {
     let warned = false;
-    return createVoiceIsolationTransform(rnnoiseEngine, () => {
-      if (warned) return;
-      warned = true;
-      diagEvent("voice_isolation_failed");
-      toast.error(UNAVAILABLE);
-    });
+    let bypassReported = false;
+    return createVoiceIsolationTransform(
+      rnnoiseEngine,
+      () => {
+        if (warned) return;
+        warned = true;
+        diagEvent("voice_isolation_failed");
+        toast.error(UNAVAILABLE);
+      },
+      ({ ctxRate, trackRate }) => {
+        if (bypassReported) return;
+        bypassReported = true;
+        diagEvent("rnnoise_bypassed", { ctxRate, trackRate: trackRate ?? null });
+      }
+    );
   });
 
   useEffect(() => {

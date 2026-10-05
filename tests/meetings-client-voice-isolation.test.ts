@@ -5,6 +5,9 @@ import {
   readVoiceIsolation,
   resumeVoiceIsolation,
   writeVoiceIsolation,
+  getVoiceIsolationEngine,
+  isChromiumBrowser,
+  rnnoiseSupported,
   type NoiseEngine
 } from "@/src/lib/meetings/client/voice-isolation";
 
@@ -45,13 +48,14 @@ describe("voice isolation setting", () => {
 type Fake = { connect: ReturnType<typeof vi.fn>; disconnect: ReturnType<typeof vi.fn> };
 const node = (): Fake => ({ connect: vi.fn(), disconnect: vi.fn() });
 
-function fakeEngine(options: { failWasm?: boolean; state?: AudioContextState } = {}) {
+function fakeEngine(options: { failWasm?: boolean; state?: AudioContextState; ctxRate?: number; chromium?: boolean } = {}) {
   const output = { stop: vi.fn(), kind: "audio" };
   const source = node();
   const destination = { ...node(), stream: { getAudioTracks: () => [output] } };
   const rnnoise = { ...node(), destroy: vi.fn() };
   const context = {
     state: options.state ?? "running",
+    sampleRate: options.ctxRate ?? 48_000,
     close: vi.fn(() => Promise.resolve()),
     resume: vi.fn(() => Promise.resolve()),
     createMediaStreamSource: vi.fn(() => source),
@@ -60,7 +64,8 @@ function fakeEngine(options: { failWasm?: boolean; state?: AudioContextState } =
   const engine: NoiseEngine = {
     loadWasm: vi.fn(() => (options.failWasm ? Promise.reject(new Error("404")) : Promise.resolve(new ArrayBuffer(8)))),
     createContext: vi.fn(() => context as unknown as AudioContext),
-    createNode: vi.fn(() => Promise.resolve(rnnoise as unknown as AudioNode & { destroy: () => void }))
+    createNode: vi.fn(() => Promise.resolve(rnnoise as unknown as AudioNode & { destroy: () => void })),
+    isChromium: () => options.chromium ?? true
   };
   return { engine, context, source, destination, rnnoise, output };
 }
@@ -122,7 +127,8 @@ describe("createVoiceIsolationTransform", () => {
     await flush();
     expect(seen).toEqual([input]);
     expect(onUnavailable).toHaveBeenCalledTimes(1);
-    expect(fake.engine.createContext).not.toHaveBeenCalled();
+    // The context (created first, to check its rate) is released at once.
+    expect(fake.context.close).toHaveBeenCalledTimes(1);
   });
 
   it("does nothing if unsubscribed before loading finishes", async () => {
@@ -133,7 +139,8 @@ describe("createVoiceIsolationTransform", () => {
     transform(input).subscribe((track) => seen.push(track)).unsubscribe();
     await flush();
     expect(seen).toEqual([input]);
-    expect(fake.engine.createContext).not.toHaveBeenCalled();
+    expect(fake.engine.createNode).not.toHaveBeenCalled();
+    expect(fake.context.close).toHaveBeenCalledTimes(1);
   });
 
   it("resumes a suspended context on a user gesture", async () => {
@@ -147,41 +154,47 @@ describe("createVoiceIsolationTransform", () => {
     sub.unsubscribe();
   });
 
-  it("turns the browser's noise suppression off while RNNoise runs and back on after", async () => {
+  it("never changes the browser's audio processing on the live mic (no applyConstraints)", async () => {
     const fake = fakeEngine();
-    const constraints: MediaTrackConstraints[] = [];
-    let ns = true;
-    const input = {
-      readyState: "live",
-      getConstraints: () => ({ deviceId: { exact: "mic-1" } }),
-      getSettings: () => ({ noiseSuppression: ns }),
-      applyConstraints: vi.fn(async (c: MediaTrackConstraints) => {
-        constraints.push(c);
-        ns = Boolean(c.noiseSuppression);
-      }),
-      stop: vi.fn()
-    } as unknown as MediaStreamTrack;
+    const input = { readyState: "live", getSettings: () => ({ sampleRate: 48_000 }), applyConstraints: vi.fn(), stop: vi.fn() } as unknown as MediaStreamTrack;
     const sub = createVoiceIsolationTransform(fake.engine, vi.fn())(input).subscribe();
     await flush();
-    expect(constraints[0]).toEqual({ deviceId: { exact: "mic-1" }, noiseSuppression: false, echoCancellation: true, autoGainControl: true });
     sub.unsubscribe();
     await flush();
-    expect(constraints[1]).toMatchObject({ deviceId: { exact: "mic-1" }, noiseSuppression: true, echoCancellation: true });
+    expect(input.applyConstraints).not.toHaveBeenCalled();
   });
 
-  it("leaves the browser's suppression alone where audio constraints can't change", async () => {
+  it("bypasses RNNoise when the rates don't match: raw mic only, no graph, no error toast", async () => {
+    const onUnavailable = vi.fn();
+    const onBypass = vi.fn();
+    for (const [ctxRate, trackRate, chromium] of [
+      [44_100, 48_000, true],
+      [48_000, 44_100, true],
+      [48_000, 16_000, false],
+      [48_000, undefined, false]
+    ] as const) {
+      const fake = fakeEngine({ ctxRate, chromium });
+      const input = { getSettings: () => ({ sampleRate: trackRate }), stop: vi.fn() } as unknown as MediaStreamTrack;
+      const seen: unknown[] = [];
+      createVoiceIsolationTransform(fake.engine, onUnavailable, onBypass)(input).subscribe((t) => seen.push(t));
+      await flush();
+      expect(seen).toEqual([input]);
+      expect(fake.engine.loadWasm).not.toHaveBeenCalled();
+      expect(fake.engine.createNode).not.toHaveBeenCalled();
+      expect(fake.context.close).toHaveBeenCalledTimes(1);
+      expect(getVoiceIsolationEngine()).toBe("browser");
+    }
+    expect(onBypass).toHaveBeenCalledTimes(4);
+    expect(onBypass).toHaveBeenCalledWith({ ctxRate: 44_100, trackRate: 48_000 });
+    expect(onUnavailable).not.toHaveBeenCalled();
+  });
+
+  it("reports the RNNoise engine when it runs", async () => {
     const fake = fakeEngine();
-    const input = {
-      readyState: "live",
-      getConstraints: () => ({}),
-      getSettings: () => ({ noiseSuppression: true }),
-      applyConstraints: vi.fn(async () => undefined),
-      stop: vi.fn()
-    } as unknown as MediaStreamTrack;
-    createVoiceIsolationTransform(fake.engine, vi.fn())(input).subscribe().unsubscribe();
+    const input = { getSettings: () => ({ sampleRate: 48_000 }), stop: vi.fn() } as unknown as MediaStreamTrack;
+    createVoiceIsolationTransform(fake.engine, vi.fn())(input).subscribe();
     await flush();
-    // It was never actually turned off, so nothing to restore.
-    expect((input.applyConstraints as ReturnType<typeof vi.fn>).mock.calls.length).toBeLessThanOrEqual(1);
+    expect(getVoiceIsolationEngine()).toBe("rnnoise");
   });
 
   it("a device switch builds exactly one new graph and closes the old one", async () => {
@@ -213,5 +226,26 @@ describe("createVoiceIsolationTransform", () => {
     b1.unsubscribe();
     b2.unsubscribe();
     expect(contexts[1].close).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("rnnoiseSupported", () => {
+  it("needs a real 48 kHz context", () => {
+    expect(rnnoiseSupported({ ctxRate: 44_100, trackRate: 48_000, isChromium: true })).toBe(false);
+    expect(rnnoiseSupported({ ctxRate: 24_000, trackRate: undefined, isChromium: true })).toBe(false);
+  });
+
+  it("needs a 48 kHz mic, or an unreported rate on Chromium only", () => {
+    expect(rnnoiseSupported({ ctxRate: 48_000, trackRate: 48_000, isChromium: false })).toBe(true);
+    expect(rnnoiseSupported({ ctxRate: 48_000, trackRate: undefined, isChromium: true })).toBe(true);
+    expect(rnnoiseSupported({ ctxRate: 48_000, trackRate: undefined, isChromium: false })).toBe(false);
+    expect(rnnoiseSupported({ ctxRate: 48_000, trackRate: 44_100, isChromium: true })).toBe(false);
+    expect(rnnoiseSupported({ ctxRate: 48_000, trackRate: 16_000, isChromium: false })).toBe(false);
+  });
+
+  it("detects Chromium from the user agent (iOS Chrome is WebKit)", () => {
+    expect(isChromiumBrowser("Mozilla/5.0 (Macintosh) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36")).toBe(true);
+    expect(isChromiumBrowser("Mozilla/5.0 (Macintosh) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15")).toBe(false);
+    expect(isChromiumBrowser("Mozilla/5.0 (iPhone) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/141.0 Mobile/15E148 Safari/604.1")).toBe(false);
   });
 });

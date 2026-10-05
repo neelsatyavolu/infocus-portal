@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Info, Video } from "lucide-react";
 import { NEVER } from "rxjs";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import type { BackgroundMode, ReceiveQuality, SendQuality } from "@/src/lib/meetings/client/meet-settings";
 import { estimateGbPerHour } from "@/src/lib/meetings/client/quality";
+import { getVoiceIsolationEngine, subscribeVoiceIsolationEngine } from "@/src/lib/meetings/client/voice-isolation";
 import { DevicePicker, SettingSwitch, SpeakerPicker } from "./device-pickers";
 import { micTestLabel, shouldMonitorMic } from "@/src/lib/meetings/client/mic-monitor";
 import { LevelMeter } from "./level-meter";
@@ -30,6 +31,15 @@ const RECEIVE = [
   { value: "auto", label: "Auto" },
   { value: "saver", label: "Data saver" }
 ] as const satisfies ReadonlyArray<{ value: ReceiveQuality; label: string }>;
+
+/** Shown when RNNoise can't run safely here (sample rates) and the browser's suppression is used. */
+function VoiceIsolationEngineNote() {
+  const engine = useSyncExternalStore(subscribeVoiceIsolationEngine, getVoiceIsolationEngine, () => "off" as const);
+  if (engine !== "browser") return null;
+  return (
+    <p className="-mt-1 text-xs text-muted-foreground">Voice isolation: using your browser&rsquo;s noise suppression on this device</p>
+  );
+}
 
 export function SettingsSection({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -64,6 +74,7 @@ export function AudioSettings({ media, showMeter = true }: { media: LocalMedia; 
         checked={media.voiceIsolation}
         onChange={media.setVoiceIsolation}
       />
+      {media.voiceIsolation ? <VoiceIsolationEngineNote /> : null}
       <DevicePicker label="Microphone" kind="mic" device={media.mic} />
       <SpeakerPicker value={media.speakerId} onChange={media.setSpeakerId} />
       {showMeter ? (

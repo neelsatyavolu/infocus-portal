@@ -51,6 +51,7 @@ export type NoiseEngine = {
   createContext: () => AudioContext;
   /** Registers the worklet module on a context and builds the RNNoise node. */
   createNode: (context: AudioContext, wasm: ArrayBuffer) => Promise<AudioNode & { destroy?: () => void }>;
+  isChromium: () => boolean;
 };
 
 type Pipeline = {
@@ -69,26 +70,60 @@ export function resumeVoiceIsolation() {
   });
 }
 
+/** RNNoise is a 48 kHz model; the vendored worklet never checks the rate (it just takes 480-sample frames). */
+export const RNNOISE_SAMPLE_RATE = 48_000;
+
 /**
- * Avoid double noise suppression: with RNNoise running, ask the browser to stop its own
- * noiseSuppression on the source (echo cancellation and AGC stay on). applyConstraints replaces
- * the whole constraint set, so the existing constraints (deviceId etc.) are carried over.
- * Chrome applies audio-processing changes to a live mic track; where a browser ignores or
- * rejects it (older Safari), both stay on, which is the safer default: RNNoise alone fails open
- * if it ever stops, and the browser's suppressor stays as a net. Returns true when it was turned off.
+ * Whether RNNoise may run. The AudioContext must really be 48 kHz (browsers may ignore the
+ * requested rate), and the mic must be 48 kHz too: WebKit mis-resamples a MediaStreamSource whose
+ * rate differs from its context (pitch-shifted, robotic audio), and Firefox throws. On Chromium
+ * a mic that doesn't report its rate is allowed (it resamples correctly). Anything else: bypass.
  */
-async function setBrowserNoiseSuppression(track: MediaStreamTrack, on: boolean) {
-  if (typeof track.applyConstraints !== "function" || track.readyState === "ended") return false;
-  try {
-    const current = typeof track.getConstraints === "function" ? track.getConstraints() : {};
-    await track.applyConstraints({ ...current, noiseSuppression: on, echoCancellation: true, autoGainControl: true });
-    const settings = typeof track.getSettings === "function" ? track.getSettings() : {};
-    return settings.noiseSuppression === on;
-  } catch {
-    return false;
+export function rnnoiseSupported(input: { ctxRate: number; trackRate: number | undefined; isChromium: boolean }) {
+  if (input.ctxRate !== RNNOISE_SAMPLE_RATE) return false;
+  if (input.trackRate === RNNOISE_SAMPLE_RATE) return true;
+  return input.trackRate === undefined && input.isChromium;
+}
+
+export function isChromiumBrowser(userAgent = typeof navigator === "undefined" ? "" : navigator.userAgent) {
+  // iOS Chrome ("CriOS") is WebKit and has no "Chrome/" token.
+  return /\bChrome\/\d+/.test(userAgent);
+}
+
+/** Which engine voice isolation uses right now, for the settings line and diagnostics. */
+export type VoiceIsolationEngine = "rnnoise" | "browser" | "off";
+let engineStatus: VoiceIsolationEngine = "off";
+const statusListeners = new Set<() => void>();
+
+function setEngineStatus(next: VoiceIsolationEngine) {
+  if (engineStatus === next) return;
+  engineStatus = next;
+  statusListeners.forEach((listener) => listener());
+}
+
+export function getVoiceIsolationEngine() {
+  return engineStatus;
+}
+
+export function subscribeVoiceIsolationEngine(listener: () => void) {
+  statusListeners.add(listener);
+  return () => {
+    statusListeners.delete(listener);
+  };
+}
+
+/** Thrown when RNNoise must not run here: the raw mic keeps flowing with the browser's own suppression. */
+export class RnnoiseBypassed extends Error {
+  constructor(readonly ctxRate: number, readonly trackRate: number | undefined) {
+    super("RNNoise bypassed: sample rate mismatch");
+    this.name = "RnnoiseBypassed";
   }
 }
 
+/**
+ * The browser's own noiseSuppression is never touched (no mid-call applyConstraints, which can
+ * restart capture or reset echo cancellation); it stays on under RNNoise.
+ */
 function buildPipeline(engine: NoiseEngine, input: MediaStreamTrack): Pipeline {
   let context: AudioContext | null = null;
   let source: MediaStreamAudioSourceNode | null = null;
@@ -96,7 +131,6 @@ function buildPipeline(engine: NoiseEngine, input: MediaStreamTrack): Pipeline {
   let destination: MediaStreamAudioDestinationNode | null = null;
   let outputTrack: MediaStreamTrack | null = null;
   let closed = false;
-  let browserNsOff = false;
 
   const teardown = () => {
     closed = true;
@@ -105,8 +139,6 @@ function buildPipeline(engine: NoiseEngine, input: MediaStreamTrack): Pipeline {
     node?.destroy?.();
     destination?.disconnect();
     outputTrack?.stop(); // Never the input: partytracks owns the mic track.
-    // Voice isolation off (or the mic switched): give the browser its noise suppression back.
-    if (browserNsOff) void setBrowserNoiseSuppression(input, true);
     if (context) {
       liveContexts.delete(context);
       if (context.state !== "closed") void context.close().catch(() => undefined);
@@ -114,10 +146,15 @@ function buildPipeline(engine: NoiseEngine, input: MediaStreamTrack): Pipeline {
   };
 
   const output = (async () => {
-    const wasm = await engine.loadWasm();
-    if (closed) throw new Error("closed");
+    // Check the rates before loading anything.
     context = engine.createContext();
     liveContexts.add(context);
+    const trackRate = typeof input.getSettings === "function" ? input.getSettings().sampleRate : undefined;
+    if (!rnnoiseSupported({ ctxRate: context.sampleRate, trackRate, isChromium: engine.isChromium() })) {
+      throw new RnnoiseBypassed(context.sampleRate, trackRate);
+    }
+    const wasm = await engine.loadWasm();
+    if (closed) throw new Error("closed");
     node = await engine.createNode(context, wasm);
     if (closed) throw new Error("closed");
     source = context.createMediaStreamSource(new MediaStream([input]));
@@ -128,13 +165,12 @@ function buildPipeline(engine: NoiseEngine, input: MediaStreamTrack): Pipeline {
     const track = destination.stream.getAudioTracks()[0];
     if (!track) throw new Error("No processed audio track");
     outputTrack = track;
-    // Only now that RNNoise is live: no moment without any noise suppression.
-    browserNsOff = await setBrowserNoiseSuppression(input, false);
-    if (closed && browserNsOff) void setBrowserNoiseSuppression(input, true);
     return track;
   })();
-  // Failures are handled by subscribers; don't leave an unhandled rejection behind.
-  output.catch(() => undefined);
+  // A bypass or failure releases the context right away; subscribers handle the outcome.
+  output.catch(() => {
+    if (!closed) teardown();
+  });
   return { refs: 0, output, teardown };
 }
 
@@ -144,7 +180,11 @@ function buildPipeline(engine: NoiseEngine, input: MediaStreamTrack): Pipeline {
  * separately for the broadcast and the local monitor). The original track is emitted first, then
  * the processed one; if processing fails, the original keeps flowing and `onUnavailable` is called.
  */
-export function createVoiceIsolationTransform(engine: NoiseEngine, onUnavailable: () => void) {
+export function createVoiceIsolationTransform(
+  engine: NoiseEngine,
+  onUnavailable: () => void,
+  onBypass: (info: { ctxRate: number; trackRate: number | undefined }) => void = () => undefined
+) {
   const pipelines = new Map<MediaStreamTrack, Pipeline>();
 
   return (input: MediaStreamTrack) =>
@@ -163,9 +203,16 @@ export function createVoiceIsolationTransform(engine: NoiseEngine, onUnavailable
       subscriber.next(input);
       current.output.then(
         (track) => {
+          setEngineStatus("rnnoise");
           if (active) subscriber.next(track);
         },
-        () => {
+        (error: unknown) => {
+          if (error instanceof RnnoiseBypassed) {
+            // Not an error: this device runs the browser's suppression on the raw mic instead.
+            setEngineStatus("browser");
+            if (active) onBypass({ ctxRate: error.ctxRate, trackRate: error.trackRate });
+            return;
+          }
           if (active) onUnavailable();
         }
       );

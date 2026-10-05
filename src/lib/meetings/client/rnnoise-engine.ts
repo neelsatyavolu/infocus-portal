@@ -1,4 +1,4 @@
-import { NOISE_SUPPRESSOR_ASSETS, type NoiseEngine } from "./voice-isolation";
+import { NOISE_SUPPRESSOR_ASSETS, isChromiumBrowser, type NoiseEngine } from "./voice-isolation";
 
 /** RNNoise assumes 48 kHz. */
 const SAMPLE_RATE = 48_000;
@@ -24,5 +24,6 @@ export const rnnoiseEngine: NoiseEngine = {
     const { RnnoiseWorkletNode } = await import("@sapphi-red/web-noise-suppressor");
     await context.audioWorklet.addModule(NOISE_SUPPRESSOR_ASSETS.worklet);
     return new RnnoiseWorkletNode(context, { maxChannels: 1, wasmBinary: wasm });
-  }
+  },
+  isChromium: () => isChromiumBrowser()
 };

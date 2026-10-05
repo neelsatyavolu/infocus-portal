@@ -90,8 +90,8 @@ This is separate from Admin → Reconnect YouTube and doesn't change it.
 
 ## Link previews
 
-- Sharing a meeting link in iMessage, Slack, Discord, WhatsApp, LinkedIn or Telegram shows a preview card with the meeting's title and its date and time (Pacific), or "Happening now" while it's live. `meet.infocuspaly.com/producers` (and the old `/meet/producers` link) shows the next InFocus Producer Meeting.
-- The card shows the title and time only, never who is invited or attending. A cancelled meeting shows "Cancelled · <title>"; a link to a meeting that doesn't exist shows "InFocus meeting".
+- Sharing a meeting link in iMessage, Slack, Discord, WhatsApp, LinkedIn or Telegram shows a preview card with the meeting's title, its date and time (Pacific) or "Happening now" while it's live, and the agenda items that aren't checked off yet (the first three, then "+N more"). `meet.infocuspaly.com/producers` (and the old `/meet/producers` link) shows the next InFocus Producer Meeting.
+- The card shows the title, time and agenda only, never who is invited or attending. Anyone the link reaches can see the agenda, so keep private details out of agenda lines. A cancelled meeting shows "Cancelled · <title>"; a link to a meeting that doesn't exist shows "InFocus meeting".
 - Opening the link still needs an InFocus sign-in.
 
 ## Privacy

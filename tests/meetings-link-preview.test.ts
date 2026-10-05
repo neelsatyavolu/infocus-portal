@@ -79,8 +79,28 @@ describe("preview contents", () => {
     expect(previewFromMeeting({ title: "Exec sync", startsAt, status: "SCHEDULED" })).toEqual({
       title: "Exec sync",
       description: "Sunday, October 4 · 9:15 PM Pacific · InFocus Portal",
-      when: "Sunday, October 4 · 9:15 PM Pacific"
+      when: "Sunday, October 4 · 9:15 PM Pacific",
+      agenda: [],
+      agendaMore: 0
     });
+  });
+
+  it("lists the open agenda, then +N more past three lines", () => {
+    const items = (n: number) => Array.from({ length: n }, (_, i) => ({ text: `Item ${i + 1}` }));
+    expect(previewFromMeeting({ title: "Rundown", startsAt, status: "SCHEDULED", agendaItems: items(4) })).toMatchObject({
+      agenda: ["Item 1", "Item 2", "Item 3", "Item 4"],
+      agendaMore: 0
+    });
+    expect(previewFromMeeting({ title: "Rundown", startsAt, status: "LIVE", agendaItems: items(6) })).toMatchObject({
+      agenda: ["Item 1", "Item 2", "Item 3"],
+      agendaMore: 3
+    });
+  });
+
+  it("clips long agenda lines", () => {
+    const [line] = previewFromMeeting({ title: "Rundown", startsAt, status: "SCHEDULED", agendaItems: [{ text: "x".repeat(300) }] }).agenda;
+    expect(line).toHaveLength(64);
+    expect(line.endsWith("…")).toBe(true);
   });
 
   it("says Happening now while live", () => {
@@ -92,17 +112,27 @@ describe("preview contents", () => {
 
   it("unknown ids are generic; cancelled meetings say so without a time", () => {
     expect(previewFromMeeting(null)).toEqual(GENERIC_MEETING_PREVIEW);
-    expect(previewFromMeeting({ title: "Rundown", startsAt, status: "CANCELED" })).toEqual({
+    expect(previewFromMeeting({ title: "Rundown", startsAt, status: "CANCELED", agendaItems: [{ text: "Pitches" }] })).toEqual({
       title: "Cancelled · Rundown",
       description: "InFocus Portal",
-      when: null
+      when: null,
+      agenda: [],
+      agendaMore: 0
     });
   });
 
-  it("only ever reads the title, time and status (never names, attendees or invitees)", async () => {
-    mocks.findUnique.mockResolvedValue({ title: "Rundown", startsAt, status: "SCHEDULED" });
-    await loadMeetingPreview("abc123");
-    expect(mocks.findUnique).toHaveBeenCalledWith({ where: { id: "abc123" }, select: { title: true, startsAt: true, status: true } });
+  it("only ever reads the title, time, status and open agenda text (never attendees or invitees)", async () => {
+    mocks.findUnique.mockResolvedValue({ title: "Rundown", startsAt, status: "SCHEDULED", agendaItems: [{ text: "Pitches" }] });
+    expect((await loadMeetingPreview("abc123")).agenda).toEqual(["Pitches"]);
+    expect(mocks.findUnique).toHaveBeenCalledWith({
+      where: { id: "abc123" },
+      select: {
+        title: true,
+        startsAt: true,
+        status: true,
+        agendaItems: { where: { done: false }, orderBy: { position: "asc" }, select: { text: true } }
+      }
+    });
   });
 
   it("resolves the stable producers link, and rejects odd ids without a lookup", async () => {

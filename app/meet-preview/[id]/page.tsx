@@ -5,7 +5,7 @@ import { loadMeetingPreview } from "@/src/server/meetings-preview";
 
 /**
  * Link-preview page for meeting links. Middleware rewrites `/meet/<id>` here only for preview
- * crawlers (iMessage, Slack, …); it carries metadata and nothing else (title and time only).
+ * crawlers (iMessage, Slack, …); it carries metadata and nothing else (title, time and the image's agenda).
  */
 
 export const dynamic = "force-dynamic";

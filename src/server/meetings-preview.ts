@@ -3,9 +3,9 @@ import { prisma } from "@/src/lib/prisma";
 import { resolveProducerSeriesMeetingId } from "@/src/server/meetings-schedule";
 
 /**
- * What a signed-out link preview (iMessage, Slack, …) may show for a meeting link: the title and
- * the time, nothing else (never names, attendees or invitees). Unknown ids get a generic card;
- * a cancelled meeting says so without a time.
+ * What a signed-out link preview (iMessage, Slack, …) may show for a meeting link: the title, the
+ * time and the open agenda lines, nothing else (never attendees or invitees). Anyone with the link
+ * can read these. Unknown ids get a generic card; a cancelled meeting says so without a time.
  */
 
 export type MeetingPreview = {
@@ -14,9 +14,23 @@ export type MeetingPreview = {
   description: string;
   /** The date/time line on the image; null when there's no time to show. */
   when: string | null;
+  /** The first open (unchecked) agenda lines, in order and clipped; empty when there are none. */
+  agenda: string[];
+  /** Open agenda lines beyond `agenda` ("+N more"). */
+  agendaMore: number;
 };
 
-export const GENERIC_MEETING_PREVIEW: MeetingPreview = { title: "InFocus meeting", description: "InFocus Portal", when: null };
+export const GENERIC_MEETING_PREVIEW: MeetingPreview = {
+  title: "InFocus meeting",
+  description: "InFocus Portal",
+  when: null,
+  agenda: [],
+  agendaMore: 0
+};
+
+/** Lines that fit under the title and time on the 1200×630 card. */
+export const PREVIEW_AGENDA_LINES = 3;
+const PREVIEW_AGENDA_CHARS = 64;
 
 const ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 
@@ -31,14 +45,35 @@ function pacificWhen(startsAt: Date) {
   return `${day} · ${time} Pacific`;
 }
 
+function clip(text: string) {
+  return text.length > PREVIEW_AGENDA_CHARS ? `${text.slice(0, PREVIEW_AGENDA_CHARS - 1).trimEnd()}…` : text;
+}
+
+type PreviewMeeting = {
+  title: string;
+  startsAt: Date;
+  status: string;
+  /** Open agenda items in position order. */
+  agendaItems?: { text: string }[];
+};
+
 /** Pure: the preview for a meeting row (or null for an unknown id). Access mode doesn't matter here. */
-export function previewFromMeeting(meeting: { title: string; startsAt: Date; status: string } | null): MeetingPreview {
+export function previewFromMeeting(meeting: PreviewMeeting | null): MeetingPreview {
   if (!meeting) return GENERIC_MEETING_PREVIEW;
   if (meeting.status === "CANCELED") {
-    return { title: `Cancelled · ${meeting.title}`, description: "InFocus Portal", when: null };
+    return { ...GENERIC_MEETING_PREVIEW, title: `Cancelled · ${meeting.title}` };
   }
   const when = meeting.status === "LIVE" ? "Happening now" : pacificWhen(meeting.startsAt);
-  return { title: meeting.title, description: `${when} · InFocus Portal`, when };
+  const open = meeting.agendaItems ?? [];
+  // "+1 more" would take the same room as the line itself, so show it instead.
+  const shown = open.length > PREVIEW_AGENDA_LINES + 1 ? PREVIEW_AGENDA_LINES : open.length;
+  return {
+    title: meeting.title,
+    description: `${when} · InFocus Portal`,
+    when,
+    agenda: open.slice(0, shown).map((item) => clip(item.text)),
+    agendaMore: open.length - shown
+  };
 }
 
 /** `id` is a meeting id or "producers" (the stable InFocus Producer Meeting link). */
@@ -46,10 +81,15 @@ export async function loadMeetingPreview(id: string): Promise<MeetingPreview> {
   if (!ID_PATTERN.test(id)) return GENERIC_MEETING_PREVIEW;
   try {
     const meetingId = id === PRODUCER_SERIES.seriesKey ? await resolveProducerSeriesMeetingId() : id;
-    if (!meetingId) return { title: PRODUCER_SERIES.title, description: "InFocus Portal", when: null };
+    if (!meetingId) return { ...GENERIC_MEETING_PREVIEW, title: PRODUCER_SERIES.title };
     const meeting = await prisma.meeting.findUnique({
       where: { id: meetingId },
-      select: { title: true, startsAt: true, status: true }
+      select: {
+        title: true,
+        startsAt: true,
+        status: true,
+        agendaItems: { where: { done: false }, orderBy: { position: "asc" }, select: { text: true } }
+      }
     });
     return previewFromMeeting(meeting);
   } catch (error) {

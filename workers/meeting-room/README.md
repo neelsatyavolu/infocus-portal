@@ -62,7 +62,9 @@ npx wrangler deploy                                            # needs the user'
 
 The Durable Object uses a `new_sqlite_classes` migration, which works on the Workers free plan.
 
-**Custom domain:** no route is configured yet. After the first deploy, add a custom domain in the dashboard (Worker → Settings → Domains & Routes) or add a `routes` entry with `custom_domain: true`, then set the Portal's `MEETING_ROOM_URL` to `https://<that host>`. Keep the real hostname out of this repo.
+**Hostname:** the Worker is served by a zone **route** (`<host>/*`, added in the dashboard under Worker → Settings → Domains & Routes) plus a proxied `AAAA 100::` DNS record for that host. Set the Portal's `MEETING_ROOM_URL` to `https://<that host>`. Keep the real hostname out of this repo.
+
+Do not use a Worker **Custom Domain** (or `custom_domain: true`). A Custom Domain issues its own certificate, and Cloudflare then serves it for the zone apex too. That certificate doesn't cover the other subdomains. Browsers reuse the apex connection for those subdomains, and Cloudflare answers the mismatched requests with an empty 403. That's what intermittently blocked InFocus Drive in October 2026.
 
 ## Client notes
 

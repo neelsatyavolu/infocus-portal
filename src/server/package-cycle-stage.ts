@@ -478,45 +478,45 @@ async function loadFinalCutGradePanel(input: {
 }
 
 export async function loadStudentNavGates(userId: string) {
-  const [cycleNumber, unread] = await Promise.all([
-    resolveStudentCycleNumber(userId),
-    loadStageCommentUnread(userId)
-  ]);
+  const cycleNumber = await resolveStudentCycleNumber(userId);
   const locked = { "a-roll": false, "initial-cut": false, "final-cut": false };
-  const row = await prisma.packageProgressRow.findFirst({
-    where: { cycleNumber, members: { some: { userId } } },
-    select: {
-      proofOfContact: true,
-      aRollBRoll: true,
-      initialCut: true,
-      awaitingRevisedInitialCut: true,
-      initialCutMediaItemId: true,
-      initialCutMediaItem: { select: { currentVersion: { select: { approvalStatus: true } } } },
-      finalCutMediaItemId: true,
-      brainstormDocUrl: true,
-      queuedForAirAt: true,
-      approval: {
-        select: {
-          stage: true,
-          controversial: true,
-          signoffs: { select: { userId: true, stage: true, approved: true } }
+  const [unread, row] = await Promise.all([
+    loadStageCommentUnread(userId, cycleNumber),
+    prisma.packageProgressRow.findFirst({
+      where: { cycleNumber, members: { some: { userId } } },
+      select: {
+        proofOfContact: true,
+        aRollBRoll: true,
+        initialCut: true,
+        awaitingRevisedInitialCut: true,
+        initialCutMediaItemId: true,
+        initialCutMediaItem: { select: { currentVersion: { select: { approvalStatus: true } } } },
+        finalCutMediaItemId: true,
+        brainstormDocUrl: true,
+        queuedForAirAt: true,
+        approval: {
+          select: {
+            stage: true,
+            controversial: true,
+            signoffs: { select: { userId: true, stage: true, approved: true } }
+          }
+        },
+        _count: { select: { proofOfContacts: true } },
+        stageMedia: {
+          where: { stage: "a-roll" },
+          select: { id: true, createdAt: true },
+          orderBy: { createdAt: "desc" },
+          take: 1
+        },
+        stageComments: {
+          where: { stage: "a-roll", NOT: { body: { startsWith: APPROVAL_COMMENT_PREFIX } } },
+          select: { id: true, createdAt: true },
+          orderBy: { createdAt: "desc" },
+          take: 1
         }
-      },
-      _count: { select: { proofOfContacts: true } },
-      stageMedia: {
-        where: { stage: "a-roll" },
-        select: { id: true, createdAt: true },
-        orderBy: { createdAt: "desc" },
-        take: 1
-      },
-      stageComments: {
-        where: { stage: "a-roll", NOT: { body: { startsWith: APPROVAL_COMMENT_PREFIX } } },
-        select: { id: true, createdAt: true },
-        orderBy: { createdAt: "desc" },
-        take: 1
       }
-    }
-  });
+    })
+  ]);
   if (!row) {
     return {
       cycleNumber,

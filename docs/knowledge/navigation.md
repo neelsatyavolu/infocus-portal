@@ -22,7 +22,7 @@ Tabs with no note are shown to everyone signed in.
 - Teleprompter (opens `teleprompter.infocuspaly.com`)
 - Managers (one card per manager area: equipment, livestream, website, social media; see `managers.md`)
 
-**The Cycle** — reporters, and associate producers who are on a package roster: Information, Brainstorming, A-roll/B-roll, Initial Cut, Final Cut. Later tabs are visible but disabled until the previous stage unlocks. Each tab shows its stage status and a count of unread feedback.
+**The Cycle** — reporters, and associate producers who are on a package roster: Information, Brainstorming, A-roll/B-roll, Initial Cut, Final Cut. Later tabs are visible but disabled until the previous stage unlocks. Each tab shows its stage status and a count of unread feedback on this cycle's package (earlier cycles never count).
 
 **Livestreams**
 

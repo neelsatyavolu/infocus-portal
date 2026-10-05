@@ -230,9 +230,10 @@ export async function loadStageUnreadCount(input: { userId: string; rowId: strin
   return unreadCountForStage(comments, reads, input.userId, input.stage);
 }
 
-export async function loadStageCommentUnread(userId: string): Promise<StageCommentUnread> {
+/** Unread stage feedback on the student's package in `cycleNumber` only (older cycles never count). */
+export async function loadStageCommentUnread(userId: string, cycleNumber: number): Promise<StageCommentUnread> {
   const memberships = await prisma.packageProgressMember.findMany({
-    where: { userId },
+    where: { userId, row: { cycleNumber } },
     select: { rowId: true }
   });
   const rowIds = memberships.map((membership) => membership.rowId);

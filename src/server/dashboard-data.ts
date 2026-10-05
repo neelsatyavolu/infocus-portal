@@ -11,6 +11,7 @@ import { MAX_CHECK_IN_POINTS_PER_CYCLE } from "@/src/lib/package-stages";
 import { prisma } from "@/src/lib/prisma";
 import { userDisplayName } from "@/src/lib/user-display";
 import { loadPackageProgressData } from "@/src/server/package-progress-data";
+import { resolveStudentCycleNumber } from "@/src/server/package-cycle-stage";
 import { loadStageCommentUnread } from "@/src/server/package-stage-comments";
 import { loadGradebookExtras } from "@/src/server/student-gradebook";
 import { buildGradeSummary } from "@/src/server/student-grade-summary";
@@ -297,7 +298,7 @@ export async function loadStudentDashboardSnapshot(userId: string): Promise<Stud
       where: { userId },
       select: { extensionDaysApplied: true, extensionExempt: true, freeExtensionDays: true }
     }),
-    loadStageCommentUnread(userId)
+    resolveStudentCycleNumber(userId).then((cycleNumber) => loadStageCommentUnread(userId, cycleNumber))
   ]);
   const thisWeek = pickCurrentParticipationWeek(extras.weeks);
 

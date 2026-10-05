@@ -97,6 +97,11 @@ describe("removal", () => {
 });
 
 describe("events", () => {
+  it("agenda events pass through without changing state", () => {
+    const state = initialState();
+    expect(applyRoomEvent(state, { t: "agenda", version: 5 }, 1)).toBe(state);
+  });
+
   it("rekey and settings update state", () => {
     const rekeyed = applyRoomEvent(initialState(), { t: "rekey", epoch: 3 }, 1);
     expect(rekeyed.epoch).toBe(3);

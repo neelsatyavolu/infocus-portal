@@ -16,6 +16,8 @@ export type RoomState = {
   waiting: readonly MeetingWaitingView[];
   settings: MeetingRoomSettings;
   epoch: number;
+  /** Bumped by the room's `agenda` event; the agenda panel refetches when it changes. */
+  agendaVersion: number;
 };
 
 export const INITIAL_ROOM_STATE: RoomState = {
@@ -25,7 +27,8 @@ export const INITIAL_ROOM_STATE: RoomState = {
   participants: {},
   waiting: [],
   settings: { quickAccess: false, notesEnabled: true },
-  epoch: 0
+  epoch: 0,
+  agendaVersion: 0
 };
 
 const TERMINAL: ReadonlySet<RoomPhase> = new Set(["removed", "ended"]);
@@ -67,6 +70,8 @@ export function roomReducer(state: RoomState, message: MeetingServerMessage): Ro
       return { ...state, epoch: Math.max(state.epoch, message.epoch) };
     case "role":
       return state.isHost === message.isHost ? state : { ...state, isHost: message.isHost };
+    case "agenda":
+      return { ...state, agendaVersion: Math.max(state.agendaVersion + 1, message.version) };
     case "settings":
       return { ...state, settings: message.settings };
     default:

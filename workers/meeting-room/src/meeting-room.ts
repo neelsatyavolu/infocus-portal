@@ -353,6 +353,8 @@ export class MeetingRoom extends DurableObject<Env> {
         return sendAll(select(all, admitted), { t: "rekey", epoch: event.epoch });
       case "settings":
         return sendAll(select(all, admitted), { t: "settings", settings: event.settings });
+      case "agenda":
+        return sendAll(select(all, admitted), { t: "agenda", version: event.version });
       case "ended":
         for (const ws of select(all, () => true)) {
           send(ws, { t: "ended" });

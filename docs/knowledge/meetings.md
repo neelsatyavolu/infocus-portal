@@ -90,6 +90,15 @@ This is separate from Admin → Reconnect YouTube and doesn't change it.
 
 - Audio, video, screen share and chat are encrypted on each device. The video service only relays scrambled data.
 - The key is given only to people a host let in, and it's deleted when the meeting ends.
+- Agendas are not end-to-end encrypted: they're stored in the Portal like meeting titles (see Agenda).
+
+## Agenda
+
+- Every meeting has its own agenda, including each producer meeting (Sunday, Monday and Wednesday each get a fresh one). Any producer who can see the meeting can add, edit, reorder and check off items; invite-only and execs-only agendas stay hidden from everyone else.
+- **Meetings tab:** the **Agenda** button on a meeting opens the editor. Drag the handle to reorder (or focus a handle, press Space, move with the arrow keys, press Space again). Click an item to edit it; delete has an Undo.
+- **In the call:** the **Agenda** button (next to Chat and People) shows how many items are left and opens the agenda panel: "3 of 7 done", a progress bar, and checkboxes. Checking an item off updates everyone's panel right away and shows who checked it. Anyone can add a quick item at the end; **Edit agenda** opens the full editor in a new tab.
+- Once a meeting ends or is cancelled, its agenda is read-only.
+- Agenda text is stored in the Portal like the meeting title. Unlike call audio, video and chat, it is **not** end-to-end encrypted.
 
 ## Notes
 

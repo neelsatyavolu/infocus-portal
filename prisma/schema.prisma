@@ -1898,6 +1898,7 @@ model Meeting {
   updatedAt        DateTime @updatedAt
   createdBy        User?    @relation("MeetingCreator", fields: [createdById], references: [id], onDelete: SetNull)
   participants     MeetingParticipant[]
+  agendaItems      MeetingAgendaItem[]
 
   @@unique([seriesKey, occurrenceKey])
   @@index([startsAt])
@@ -1920,6 +1921,26 @@ model MeetingParticipant {
 
   @@unique([meetingId, userId])
   @@index([userId])
+}
+
+/// One agenda line of a meeting (each series occurrence has its own). Plain Portal data, not E2EE.
+model MeetingAgendaItem {
+  id          String    @id @default(cuid())
+  meetingId   String
+  /// Trimmed, 1–300 characters.
+  text        String
+  /// 0..n-1 within the meeting.
+  position    Int
+  done        Boolean   @default(false)
+  doneAt      DateTime?
+  /// Who checked it off (a User id; no relation so deleting a user keeps the agenda).
+  doneById    String?
+  createdById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  meeting     Meeting   @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@index([meetingId, position])
 }
 
 /// Email addresses that get calendar invites (.ics) for a meeting series.

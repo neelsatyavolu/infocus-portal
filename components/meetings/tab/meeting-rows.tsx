@@ -15,6 +15,7 @@ import {
 import { cn } from "@/src/lib/utils";
 import { meetingUrl } from "@/src/lib/meetings/links";
 import { CopyLinkButton } from "./copy-link-button";
+import { AgendaButton } from "@/components/meetings/agenda/agenda-button";
 
 /** Tag text for restricted meetings; null for meetings every producer can join. */
 export function accessTagLabel(meeting: Pick<MeetingSummary, "access" | "inviteeCount">) {
@@ -69,6 +70,7 @@ export function LiveBanner({ meetings, now }: { meetings: MeetingSummary[]; now:
               <p className="text-xs text-muted-foreground">Started at {pacificTimeLabel(m.startsAt)}</p>
             </div>
             <AccessTag meeting={m} />
+            <AgendaButton meeting={m} />
             {m.seriesKey ? null : <CopyLinkButton url={meetingUrl(m.id)} iconOnly />}
             {canJoinNow(m, now) ? (
               <Link href={meetHref(m.id)} className={buttonVariants({ size: "sm" })}>
@@ -121,6 +123,7 @@ export function UpcomingList({
                   </div>
                   <AccessTag meeting={m} />
                   <div className="flex gap-2">
+                    <AgendaButton meeting={m} />
                     {m.seriesKey ? null : <CopyLinkButton url={meetingUrl(m.id)} iconOnly />}
                     {m.canEdit ? (
                       <>

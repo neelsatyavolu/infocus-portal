@@ -13,6 +13,7 @@ import type { MeetingListResponse, MeetingSummary } from "@/src/lib/meetings/typ
 import { errorMessage, meetingsApi } from "@/src/lib/meetings/client/api";
 import { ConfirmDialog } from "../confirm-dialog";
 import { CalendarSettingsDialog } from "./calendar-settings-dialog";
+import { AgendaFromQuery } from "@/components/meetings/agenda/agenda-button";
 import { LiveBanner, PastList, UpcomingList } from "./meeting-rows";
 import { MoveDialog } from "./move-dialog";
 import { ScheduleDialog } from "./schedule-dialog";
@@ -176,6 +177,7 @@ export default function MeetingsClient() {
         canCreateInviteOnly={Boolean(data?.canCreateInviteOnly)}
         onCreated={onCreated}
       />
+      <AgendaFromQuery />
       <MoveDialog meeting={moving} onOpenChange={(open) => !open && setMoving(null)} onMoved={() => void load()} />
       <ConfirmDialog
         open={cancelling !== null}

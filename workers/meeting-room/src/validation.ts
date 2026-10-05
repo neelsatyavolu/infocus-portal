@@ -134,6 +134,8 @@ export function parseRoomEvent(json: unknown): Parsed<MeetingRoomEvent> {
         return isSettings(json.settings)
           ? { t: "settings", settings: { quickAccess: json.settings.quickAccess, notesEnabled: json.settings.notesEnabled } }
           : null;
+      case "agenda":
+        return isEpoch(json.version) ? { t: "agenda", version: json.version } : null;
       case "ended":
         return { t: "ended" };
       default:

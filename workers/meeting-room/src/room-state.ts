@@ -218,6 +218,9 @@ export function applyRoomEvent(state: RoomState, event: MeetingRoomEvent, now: n
       return { ...state, epoch: event.epoch };
     case "settings":
       return { ...state, settings: event.settings };
+    case "agenda":
+      // Nothing stored: the agenda lives in the Portal; the DO only fans the change out.
+      return state;
     case "ended":
       return endedState(state, now);
   }

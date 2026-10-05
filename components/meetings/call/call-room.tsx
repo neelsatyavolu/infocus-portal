@@ -17,6 +17,8 @@ import { ControlsBar } from "./controls-bar";
 import { RemoteAudio, unblockAllAudio, useObservableTrack } from "./media-elements";
 import type { MoreAction } from "./more-menu";
 import { PeoplePanel } from "./people-panel";
+import { AgendaPanel, useCallAgenda } from "../agenda/agenda-panel";
+import { agendaProgress } from "@/src/lib/meetings/agenda";
 import { ReactionsOverlay } from "./reactions-overlay";
 import { Stage } from "./stage";
 import { TopBar } from "./top-bar";
@@ -38,7 +40,7 @@ import { useHand } from "./use-hand";
 import { usePublish } from "./use-publish";
 
 type Call = ReturnType<typeof useMeetingCall>;
-type Panel = "chat" | "people" | null;
+type Panel = "chat" | "people" | "agenda" | null;
 type DialogName = "info" | "devices" | "host" | "leave" | null;
 
 export function CallRoom({
@@ -73,6 +75,7 @@ export function CallRoom({
   const elapsed = useElapsed(joinedAt);
 
   const self = selfUid ? room.participants[selfUid] : undefined;
+  const agenda = useCallAgenda(meetingId, room.agendaVersion, call.welcomeCount);
   const serverHandAt = self?.handRaisedAt ?? null;
   const { hand, toggleHand, onSelfLevel } = useHand(serverHandAt, media.audioOn);
   useChimes(room, call.welcomeCount, media.settings.chimes, media.speakerId);
@@ -191,6 +194,9 @@ export function CallRoom({
         {panel === "chat" ? (
           <ChatPanel messages={call.chat} onSend={call.sendChat} onClose={() => setPanel(null)} mobile={mobile} />
         ) : null}
+        {panel === "agenda" ? (
+          <AgendaPanel meetingId={meetingId} agenda={agenda} selfName={self?.name ?? null} onClose={() => setPanel(null)} mobile={mobile} />
+        ) : null}
         {panel === "people" ? (
           <PeoplePanel
             meetingId={meetingId}
@@ -216,6 +222,8 @@ export function CallRoom({
         handPosition={selfUid ? hands[selfUid] : undefined}
         chatOpen={panel === "chat"}
         peopleOpen={panel === "people"}
+        agendaOpen={panel === "agenda"}
+        agendaRemaining={agenda.items ? agendaProgress(agenda.items).remaining : 0}
         unread={unread}
         peopleCount={people.filter((p) => !p.isScribe).length}
         waitingCount={room.isHost ? room.waiting.length : 0}
@@ -232,6 +240,7 @@ export function CallRoom({
         }}
         onChat={() => togglePanel("chat")}
         onPeople={() => togglePanel("people")}
+        onAgenda={() => togglePanel("agenda")}
         onInfo={() => setDialog("info")}
         onLeave={() => setDialog("leave")}
       />

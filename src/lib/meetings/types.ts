@@ -36,6 +36,8 @@ export type MeetingSummary = {
   notesStatus: MeetingNotesStatusValue;
   /** People who were let in (admitted, including anyone later removed). */
   participantCount: number;
+  /** Agenda items (each meeting, including each series occurrence, has its own agenda). */
+  agendaCount: number;
   createdByName: string | null;
 };
 

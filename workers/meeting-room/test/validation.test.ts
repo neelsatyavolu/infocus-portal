@@ -41,6 +41,12 @@ describe("parseRoomEvent", () => {
     expect(parseRoomEvent({ t: "removed", uid: "u" }).ok).toBe(false);
     expect(parseRoomEvent({ t: "settings", settings: { quickAccess: true, notesEnabled: false } }).ok).toBe(true);
     expect(parseRoomEvent({ t: "settings", settings: { quickAccess: "yes" } }).ok).toBe(false);
+    expect(parseRoomEvent({ t: "agenda", version: 1_760_000_000_000 })).toEqual({
+      ok: true,
+      value: { t: "agenda", version: 1_760_000_000_000 }
+    });
+    expect(parseRoomEvent({ t: "agenda" }).ok).toBe(false);
+    expect(parseRoomEvent({ t: "agenda", version: "1" }).ok).toBe(false);
     expect(parseRoomEvent({ t: "ended" }).ok).toBe(true);
     expect(parseRoomEvent("ended").ok).toBe(false);
   });

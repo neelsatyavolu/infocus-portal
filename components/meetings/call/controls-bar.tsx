@@ -6,6 +6,7 @@ import * as Popover from "@radix-ui/react-popover";
 import {
   Hand,
   Info,
+  ListChecks,
   MessageSquare,
   Mic,
   MicOff,
@@ -37,6 +38,9 @@ export type ControlsProps = {
   handPosition?: number;
   chatOpen: boolean;
   peopleOpen: boolean;
+  agendaOpen: boolean;
+  /** Agenda items not yet checked off (badge). */
+  agendaRemaining: number;
   unread: number;
   peopleCount: number;
   waitingCount: number;
@@ -51,6 +55,7 @@ export type ControlsProps = {
   onReact: (emoji: MeetingReaction) => void;
   onChat: () => void;
   onPeople: () => void;
+  onAgenda: () => void;
   onInfo: () => void;
   onLeave: () => void;
 };
@@ -120,6 +125,7 @@ export function ControlsBar(props: ControlsProps) {
     ? [
         { id: "chat", label: "Chat", icon: <MessageSquare />, onSelect: props.onChat, badge: props.unread },
         { id: "people", label: `People (${props.peopleCount})`, icon: <Users />, onSelect: props.onPeople, badge: hostBadge },
+        { id: "agenda", label: "Agenda", icon: <ListChecks />, onSelect: props.onAgenda, badge: props.agendaRemaining },
         ...shareAction,
         { id: "info", label: "Meeting info", icon: <Info />, onSelect: props.onInfo }
       ]
@@ -178,6 +184,14 @@ export function ControlsBar(props: ControlsProps) {
               </IconButton>
               <IconButton label={`People (${props.peopleCount})`} badge={hostBadge ?? props.peopleCount} onClick={props.onPeople} className={props.peopleOpen ? "bg-[var(--ink-3)] text-foreground" : undefined}>
                 <Users />
+              </IconButton>
+              <IconButton
+                label={props.agendaRemaining ? `Agenda (${props.agendaRemaining} left)` : "Agenda"}
+                badge={props.agendaRemaining || undefined}
+                onClick={props.onAgenda}
+                className={props.agendaOpen ? "bg-[var(--ink-3)] text-foreground" : undefined}
+              >
+                <ListChecks />
               </IconButton>
               <IconButton label="Meeting info" onClick={props.onInfo}>
                 <Info />

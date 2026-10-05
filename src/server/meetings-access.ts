@@ -74,7 +74,7 @@ export const meetingSummarySelect = {
   notesStatus: true,
   createdBy: { select: { name: true, nickname: true, email: true } },
   // Attendees: everyone who was let in, including anyone later removed.
-  _count: { select: { participants: { where: { state: { in: ["ADMITTED", "REMOVED"] } } } } }
+  _count: { select: { participants: { where: { state: { in: ["ADMITTED", "REMOVED"] } } }, agendaItems: true } }
 } satisfies Prisma.MeetingSelect;
 
 export const meetingDetailSelect = {
@@ -106,6 +106,7 @@ export function toMeetingSummary(row: MeetingSummaryRow, viewer: MeetingViewer):
     quickAccess: row.quickAccess,
     notesStatus: row.notesStatus,
     participantCount: row._count.participants,
+    agendaCount: row._count.agendaItems ?? 0,
     createdByName: row.createdBy ? userDisplayName(row.createdBy) || null : null
   };
 }

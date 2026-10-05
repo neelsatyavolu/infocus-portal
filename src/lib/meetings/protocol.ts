@@ -91,6 +91,8 @@ export type MeetingServerMessage =
   /** The meeting key changed (someone was removed). Fetch the new key from the Portal. */
   | { t: "rekey"; epoch: number }
   | { t: "settings"; settings: MeetingRoomSettings }
+  /** The meeting agenda changed in the Portal: refetch GET /api/meetings/<id>/agenda. Not E2EE (Portal data). */
+  | { t: "agenda"; version: number }
   | { t: "muted"; kind: "audio" | "video"; by: string }
   /** Your host status changed (host handed to you). Other people see it on your `participant` view. */
   | { t: "role"; isHost: boolean }
@@ -111,6 +113,8 @@ export type MeetingRoomEvent =
   | { t: "removed"; uid: string; at: number }
   | { t: "rekey"; epoch: number }
   | { t: "settings"; settings: MeetingRoomSettings }
+  /** Agenda changed (version = change time, epoch ms); fanned out to admitted sockets as-is. */
+  | { t: "agenda"; version: number }
   | { t: "ended" };
 
 // ---------------------------------------------------------------------------

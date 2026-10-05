@@ -74,6 +74,12 @@ describe("roomReducer", () => {
     });
   });
 
+  it("bumps the agenda version on agenda events", () => {
+    const once = roomReducer(welcome, { t: "agenda", version: 5 });
+    expect(once.agendaVersion).toBe(5);
+    expect(roomReducer(once, { t: "agenda", version: 3 }).agendaVersion).toBe(6);
+  });
+
   it("applies host hand-off", () => {
     const guest = roomReducer(welcome, { t: "role", isHost: false });
     expect(guest.isHost).toBe(false);

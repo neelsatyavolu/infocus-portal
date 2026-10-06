@@ -75,7 +75,7 @@ This is separate from Admin → Reconnect YouTube and doesn't change it.
 - If you rejoin after being let in (refresh, another device), you go straight back in.
 - When the call ends for you (ended, removed, or an error screen), your mic, camera and screen share turn off. Rejoining from that screen starts muted.
 - If the speaker you picked is unplugged (USB or Bluetooth), sound switches to the computer's default output.
-- **Voice isolation** (on by default) switches to the noise filter only once it has fully loaded, so the first words after unmuting aren't cut off. On a slow device that can't load it within 5 seconds, the browser's own noise suppression keeps working.
+- **Voice isolation** (on by default; each device remembers if you turn it off, and every device was reset to on on Oct 6, 2026) switches to the noise filter only once it has fully loaded, so the first words after unmuting aren't cut off. On a slow device that can't load it within 5 seconds, the browser's own noise suppression keeps working.
 
 ## Sharing
 

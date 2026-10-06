@@ -28,6 +28,11 @@ describe("voice isolation setting", () => {
     expect(readVoiceIsolation(storage)).toBe(true);
   });
 
+  it("ignores an off saved before Oct 6, 2026 (the robotic-audio days): back on by default", () => {
+    const storage = memoryStorage({ "infocus.meet.voiceIsolation": "0" });
+    expect(readVoiceIsolation(storage)).toBe(true);
+  });
+
   it("survives broken or missing storage", () => {
     const broken = {
       getItem: () => {

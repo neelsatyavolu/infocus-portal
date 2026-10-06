@@ -8,7 +8,8 @@ import { resumeSharedAudio } from "./audio-context";
  * lazily, only when voice isolation is on.
  */
 
-export const VOICE_ISOLATION_STORAGE_KEY = "infocus.meet.voiceIsolation";
+/** v2 (Oct 6, 2026): many turned it off while it sounded robotic (fixed Oct 4), so everyone starts on again. */
+export const VOICE_ISOLATION_STORAGE_KEY = "infocus.meet.voiceIsolation.v2";
 export const VOICE_ISOLATION_DEFAULT = true;
 
 export const NOISE_SUPPRESSOR_ASSETS = {

@@ -15,9 +15,9 @@ export async function GET(
 ) {
   try {
     const userId = await requireUserId();
-    await syncUserProfile(userId);
+    const user = await syncUserProfile(userId);
     const { chatId } = await context.params;
-    return ok(await getHubChatThread(userId, chatId));
+    return ok(await getHubChatThread(userId, chatId, user));
   } catch (error) {
     return handleRouteError(error);
   }
@@ -29,14 +29,14 @@ export async function POST(
 ) {
   try {
     const userId = await requireUserId();
-    await syncUserProfile(userId);
+    const user = await syncUserProfile(userId);
     const sendLimit = limitByKey(`hub-chat-send:${userId}`, { max: 30, windowMs: 60_000 });
     if (!sendLimit.allowed) {
       throw new Error("TOO_MANY_REQUESTS");
     }
     const { chatId } = await context.params;
     const payload = sendSchema.parse(await request.json());
-    return ok(await sendHubChatMessage(userId, chatId, payload.body));
+    return ok(await sendHubChatMessage(userId, chatId, payload.body, user));
   } catch (error) {
     return handleRouteError(error);
   }

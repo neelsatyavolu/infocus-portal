@@ -15,6 +15,7 @@ import {
 } from "@/src/lib/hub-chat";
 import { getPlatformRoleForEmail } from "@/src/lib/platform-admin";
 import { prisma } from "@/src/lib/prisma";
+import type { Prisma } from "@prisma/client";
 import { userDisplayName } from "@/src/lib/user-display";
 
 const personSelect = { id: true, name: true, nickname: true, email: true } as const;
@@ -47,11 +48,20 @@ type GroupRow = {
   members: Array<{ userId: string; user: { id: string; name: string | null; nickname: string | null; email: string | null } }>;
 };
 
-async function viewerFor(userId: string): Promise<HubChatViewer & { name: string }> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: personSelect
-  });
+type PersonRow = { id: string; name: string | null; nickname: string | null; email: string | null };
+
+/**
+ * knownUser is the caller's already-loaded User row (e.g. from syncUserProfile in the
+ * same request); passing it skips a duplicate lookup. Ignored unless it is this user.
+ */
+async function viewerFor(userId: string, knownUser?: PersonRow | null): Promise<HubChatViewer & { name: string }> {
+  const user =
+    knownUser && knownUser.id === userId
+      ? knownUser
+      : await prisma.user.findUnique({
+          where: { id: userId },
+          select: personSelect
+        });
   if (!user) {
     throw new Error("UNAUTHORIZED");
   }
@@ -64,10 +74,17 @@ async function viewerFor(userId: string): Promise<HubChatViewer & { name: string
   };
 }
 
-/** memberUserId narrows to that person's own groups (all a viewer without a platform role can see). */
-async function loadFilledGroups(memberUserId?: string) {
+/**
+ * memberUserId narrows to that person's own groups (all a viewer without a platform role can see).
+ * chatMemberUserId narrows to groups whose chat that person already belongs to (lite inbox polls).
+ */
+async function loadFilledGroups(memberUserId?: string, chatMemberUserId?: string) {
+  const filters: Prisma.PackageProgressRowWhereInput[] = [
+    ...(memberUserId ? [{ members: { some: { userId: memberUserId } } }] : []),
+    ...(chatMemberUserId ? [{ hubChats: { some: { members: { some: { userId: chatMemberUserId } } } } }] : [])
+  ];
   const rows = await prisma.packageProgressRow.findMany({
-    where: memberUserId ? { members: { some: { userId: memberUserId } } } : undefined,
+    where: filters.length === 0 ? undefined : filters.length === 1 ? filters[0] : { AND: filters },
     orderBy: [{ cycleNumber: "asc" }, { rowOrder: "asc" }],
     select: groupSelect
   });
@@ -126,6 +143,14 @@ async function ensureMembers(chatId: string, userIds: string[]) {
   });
 }
 
+/** Thread polls: only write when the roster gained someone who is not a member yet. */
+async function ensureMissingMembers(chatId: string, userIds: string[], existingMemberIds: string[]) {
+  const existing = new Set(existingMemberIds);
+  const missing = userIds.filter((id) => id && !existing.has(id));
+  await ensureMembers(chatId, missing);
+  return missing.length > 0;
+}
+
 async function markRead(chatId: string, userId: string) {
   await prisma.hubChatMember.updateMany({
     where: { chatId, userId },
@@ -159,9 +184,9 @@ async function unreadCountsByChat(userId: string, memberships: UnreadMembership[
   return new Map(grouped.map((group) => [group.chatId, group._count._all] as const));
 }
 
-export async function unreadHubChatCount(userId: string) {
+export async function unreadHubChatCount(userId: string, knownUser?: PersonRow | null) {
   const [viewer, memberships] = await Promise.all([
-    viewerFor(userId),
+    viewerFor(userId, knownUser),
     prisma.hubChatMember.findMany({
       where: { userId },
       select: {
@@ -251,11 +276,22 @@ async function latestMessagesByChat(chatIds: string[]) {
   return new Map(rows.map((row) => [row.chatId, { body: row.body, createdAt: row.createdAt }] as const));
 }
 
-export async function listHubInbox(userId: string) {
-  const viewerPromise = viewerFor(userId);
+/**
+ * lite (interval polls): only chats the viewer already belongs to, and no class roster.
+ * Unread counts and those chats' rows match full mode; never-opened groups and `members`
+ * come from the client's last full load.
+ */
+export async function listHubInbox(
+  userId: string,
+  options: { knownUser?: PersonRow | null; lite?: boolean } = {}
+) {
+  const lite = options.lite === true;
+  const viewerPromise = viewerFor(userId, options.knownUser);
   const [viewer, groups, memberships, people] = await Promise.all([
     viewerPromise,
-    viewerPromise.then(({ platformRole }) => loadFilledGroups(platformRole ? undefined : userId)),
+    viewerPromise.then(({ platformRole }) =>
+      loadFilledGroups(platformRole ? undefined : userId, lite ? userId : undefined)
+    ),
     prisma.hubChatMember.findMany({
       where: { userId },
       select: {
@@ -271,7 +307,9 @@ export async function listHubInbox(userId: string) {
         }
       }
     }),
-    viewerPromise.then(({ platformRole }) => (canStartDirectChat(platformRole) ? classMembers(userId) : []))
+    viewerPromise.then(({ platformRole }) =>
+      !lite && canStartDirectChat(platformRole) ? classMembers(userId) : []
+    )
   ]);
 
   const visibleGroups = visibleChatGroups(groups, viewer);
@@ -340,7 +378,8 @@ export async function listHubInbox(userId: string) {
     canStartDirect: canStartDirectChat(viewer.platformRole),
     unreadCount,
     chats,
-    members
+    members,
+    ...(lite ? { lite: true as const } : {})
   };
 }
 
@@ -356,9 +395,9 @@ async function loadGroupOrThrow(packageRowId: string) {
 }
 
 /** The viewer may read this chat (group visibility rules, or a direct-chat member). */
-export async function requireChatAccess(userId: string, chatId: string) {
+export async function requireChatAccess(userId: string, chatId: string, knownUser?: PersonRow | null) {
   const [viewer, chat] = await Promise.all([
-    viewerFor(userId),
+    viewerFor(userId, knownUser),
     prisma.hubChat.findUnique({
       where: { id: chatId },
       include: {
@@ -419,20 +458,24 @@ function serializeChat(input: {
   };
 }
 
+function loadThreadMessages(chatId: string) {
+  return prisma.hubChatMessage.findMany({
+    where: { chatId },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: HUB_CHAT_THREAD_MAX,
+    select: {
+      id: true,
+      body: true,
+      createdAt: true,
+      authorId: true,
+      author: { select: personSelect }
+    }
+  });
+}
+
 async function loadThread(chatId: string, userId: string) {
   const [messages, chat] = await Promise.all([
-    prisma.hubChatMessage.findMany({
-      where: { chatId },
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      take: HUB_CHAT_THREAD_MAX,
-      select: {
-        id: true,
-        body: true,
-        createdAt: true,
-        authorId: true,
-        author: { select: personSelect }
-      }
-    }),
+    loadThreadMessages(chatId),
     prisma.hubChat.findUnique({
       where: { id: chatId },
       include: {
@@ -452,9 +495,10 @@ async function loadThread(chatId: string, userId: string) {
 
 export async function openHubChat(
   userId: string,
-  target: { kind: "GROUP"; packageRowId: string } | { kind: "DIRECT"; userId: string }
+  target: { kind: "GROUP"; packageRowId: string } | { kind: "DIRECT"; userId: string },
+  knownUser?: PersonRow | null
 ) {
-  const viewer = await viewerFor(userId);
+  const viewer = await viewerFor(userId, knownUser);
 
   if (target.kind === "GROUP") {
     const row = await loadGroupOrThrow(target.packageRowId);
@@ -485,20 +529,48 @@ export async function openHubChat(
   return { me: { id: userId, name: viewer.name }, ...thread };
 }
 
-export async function getHubChatThread(userId: string, chatId: string) {
-  const { viewer, chat } = await requireChatAccess(userId, chatId);
-  if (chat.kind === "GROUP" && chat.packageRow) {
-    await ensureMembers(chat.id, [...groupChatParticipantIds(chat.packageRow), userId]);
-  } else {
-    await ensureMembers(chat.id, [userId]);
+/**
+ * Polled every few seconds while a chat is open, so the common case does no writes:
+ * members are only added when someone is missing, and lastReadAt only moves when a
+ * message is newer than it (unread counts are identical either way).
+ */
+export async function getHubChatThread(userId: string, chatId: string, knownUser?: PersonRow | null) {
+  const { viewer, chat } = await requireChatAccess(userId, chatId, knownUser);
+  const wanted =
+    chat.kind === "GROUP" && chat.packageRow
+      ? [...groupChatParticipantIds(chat.packageRow), userId]
+      : [userId];
+  const added = await ensureMissingMembers(
+    chat.id,
+    wanted,
+    chat.members.map((member) => member.userId)
+  );
+  if (added) {
+    // Rare: the member list changed, so re-read the chat as before.
+    const [, thread] = await Promise.all([markRead(chat.id, userId), loadThread(chat.id, userId)]);
+    return { me: { id: userId, name: viewer.name }, ...thread };
   }
-  const [, thread] = await Promise.all([markRead(chat.id, userId), loadThread(chat.id, userId)]);
-  return { me: { id: userId, name: viewer.name }, ...thread };
+  const messages = await loadThreadMessages(chat.id);
+  const lastReadAt = chat.members.find((member) => member.userId === userId)?.lastReadAt ?? null;
+  const newest = messages[0]?.createdAt;
+  if (!lastReadAt || (newest && newest > lastReadAt)) {
+    await markRead(chat.id, userId);
+  }
+  return {
+    me: { id: userId, name: viewer.name },
+    chat: serializeChat({ ...chat, viewerId: userId }),
+    messages: serializeMessages(messages.reverse())
+  };
 }
 
-export async function sendHubChatMessage(userId: string, chatId: string, rawBody: unknown) {
+export async function sendHubChatMessage(
+  userId: string,
+  chatId: string,
+  rawBody: unknown,
+  knownUser?: PersonRow | null
+) {
   const body = sanitizeHubChatBody(rawBody);
-  const { viewer, chat } = await requireChatAccess(userId, chatId);
+  const { viewer, chat } = await requireChatAccess(userId, chatId, knownUser);
   if (chat.kind === "GROUP" && chat.packageRow) {
     await ensureMembers(chat.id, [...groupChatParticipantIds(chat.packageRow), userId]);
   }

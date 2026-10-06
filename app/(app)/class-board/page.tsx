@@ -8,7 +8,7 @@ import ClassBoardPinGate from "./class-board-pin-gate";
 import ClassBoardView from "./class-board-view";
 
 export const metadata: Metadata = {
-  title: "Class Board · InFocus Portal"
+  title: "Class Board"
 };
 
 export default async function ClassBoardPage() {

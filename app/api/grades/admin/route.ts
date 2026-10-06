@@ -810,7 +810,7 @@ export async function POST(request: Request) {
       });
 
       if (turnedInDate && !cycle?.finalCutDate) {
-        return fail("Final Cut date is required. Please update it in Package Cycles first.", 400);
+        return fail("Final Cut date is required. Please set it in Cycle Dates first.", 400);
       }
 
       const turnedInChanged = toDateKey(existing?.turnedInDate ?? null) !== toDateKey(turnedInDate);
@@ -1001,7 +1001,7 @@ export async function POST(request: Request) {
       });
 
       if (turnedInDate && !cycle?.finalCutDate) {
-        return fail("Final Cut date is required. Please update it in Package Cycles first.", 400);
+        return fail("Final Cut date is required. Please set it in Cycle Dates first.", 400);
       }
 
       const turnedInChanged = toDateKey(existing?.turnedInDate ?? null) !== toDateKey(turnedInDate);

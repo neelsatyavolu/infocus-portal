@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Award } from "lucide-react";
 import { useEffect, useState, type CSSProperties } from "react";
 import type { CapacityTone } from "@/src/lib/livestream";
@@ -18,6 +19,11 @@ const TONE_TEXT: Record<GroupTileStatusTone, string> = {
   danger: "text-danger",
   approved: "text-[var(--brand-green)]"
 };
+
+/** Fresh board data (server re-render, no full page load). */
+const BOARD_REFRESH_MS = 30_000;
+/** Full reload now and then so an always-on kiosk still picks up new deploys. */
+const BOARD_HARD_RELOAD_MS = 3 * 60 * 60 * 1000;
 
 const KIND_TEXT: Record<ScheduleKind, string> = {
   SHOW: "text-[var(--brand-green)]",
@@ -74,15 +80,18 @@ function slotClass(tone: CapacityTone) {
 
 function BoardLiveHeader({ board }: { board: ClassBoardModel }) {
   const [now, setNow] = useState(board.generatedAt);
+  const router = useRouter();
 
   useEffect(() => {
     const tick = window.setInterval(() => setNow(new Date().toISOString()), 1000);
-    const reload = window.setInterval(() => window.location.reload(), 30_000);
+    const refresh = window.setInterval(() => router.refresh(), BOARD_REFRESH_MS);
+    const reload = window.setTimeout(() => window.location.reload(), BOARD_HARD_RELOAD_MS);
     return () => {
       window.clearInterval(tick);
-      window.clearInterval(reload);
+      window.clearInterval(refresh);
+      window.clearTimeout(reload);
     };
-  }, []);
+  }, [router]);
 
   const date = new Date(now);
   const focus = classBoardLiveFocus(board, date);

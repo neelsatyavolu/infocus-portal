@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Video } from "lucide-react";
 import { ProjectAssetsToolbar } from "@/components/project-assets-toolbar";
@@ -102,21 +103,21 @@ async function getProjectRouteData(params: {
     throw error;
   }
 
-  const [hasPendingVersions, shellData] = await Promise.all([
+  const [hasPendingVersions, shellData, mediaPage] = await Promise.all([
     projectHasPendingMediaVersions(params.projectId),
     getProjectShellData({
       projectId: params.projectId,
       canViewShareLinks: isDirectMember
+    }),
+    getProjectMediaPage({
+      projectId: params.projectId,
+      filter: params.filter,
+      sort: params.sort,
+      scope: params.scope,
+      folderId: params.folderId,
+      page: params.page
     })
   ]);
-  const mediaPage = await getProjectMediaPage({
-    projectId: params.projectId,
-    filter: params.filter,
-    sort: params.sort,
-    scope: params.scope,
-    folderId: params.folderId,
-    page: params.page
-  });
 
   if (hasPendingVersions) {
     void reconcileProjectMediaStatuses(params.projectId).catch(() => undefined);
@@ -129,6 +130,16 @@ async function getProjectRouteData(params: {
     shellData,
     mediaPage
   };
+}
+
+export async function generateMetadata({ params }: Pick<ProjectPageProps, "params">): Promise<Metadata> {
+  const { projectId } = await params;
+  try {
+    const { project } = await requireProjectRole(projectId, undefined, { allowVisibility: true });
+    return { title: project.name || "Project" };
+  } catch {
+    return { title: "Project" };
+  }
 }
 
 export default async function ProjectPage({ params, searchParams }: ProjectPageProps) {

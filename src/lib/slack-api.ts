@@ -12,7 +12,20 @@ export function slackHubIconUrl(origin = mainAppOrigin()) {
   return `${origin.replace(/\/+$/, "")}/favicon/infocus-hub-icon.png`;
 }
 
-export async function slackApi(method: string, token: string, payload: Record<string, string> = {}) {
+/** A slow Slack call must not hold a request open; a caller's own signal still applies. */
+export const SLACK_API_TIMEOUT_MS = 5000;
+
+function slackSignal(signal?: AbortSignal) {
+  const timeout = AbortSignal.timeout(SLACK_API_TIMEOUT_MS);
+  return signal ? AbortSignal.any([signal, timeout]) : timeout;
+}
+
+export async function slackApi(
+  method: string,
+  token: string,
+  payload: Record<string, string> = {},
+  options: { signal?: AbortSignal } = {}
+) {
   const body = new URLSearchParams(payload);
   const response = await fetch(`https://slack.com/api/${method}`, {
     method: "POST",
@@ -20,20 +33,27 @@ export async function slackApi(method: string, token: string, payload: Record<st
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/x-www-form-urlencoded; charset=utf-8"
     },
-    body
+    body,
+    signal: slackSignal(options.signal)
   });
   const data = (await response.json()) as { ok?: boolean; error?: string; [key: string]: unknown };
   return data;
 }
 
-export async function slackApiJson(method: string, token: string, payload: unknown) {
+export async function slackApiJson(
+  method: string,
+  token: string,
+  payload: unknown,
+  options: { signal?: AbortSignal } = {}
+) {
   const response = await fetch(`https://slack.com/api/${method}`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json; charset=utf-8"
     },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
+    signal: slackSignal(options.signal)
   });
   return (await response.json()) as { ok?: boolean; error?: string; [key: string]: unknown };
 }

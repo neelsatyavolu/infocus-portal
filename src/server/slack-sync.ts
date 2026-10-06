@@ -1,8 +1,7 @@
 import { proofSlackCatchUpReady, slackHasProofOfContactPost } from "@/src/lib/proof-of-contact-slack";
 import { slackBotToken, SLACK_PROOF_OF_CONTACT_CHANNEL_DEFAULT } from "@/src/lib/slack-api";
 import { prisma } from "@/src/lib/prisma";
-import { loadSlackAnnouncements } from "@/src/server/slack-announcements";
-import { ensureSlackChannelJoined, loadSlackChannelHistory } from "@/src/server/slack-history";
+import { loadSlackAnnouncements, loadSlackHistoryJoiningIfNeeded } from "@/src/server/slack-announcements";
 import { publishProofOfContactToSlack } from "@/src/server/proof-of-contact-slack";
 
 const SYNC_COOLDOWN_MS = 60_000;
@@ -25,8 +24,7 @@ async function syncMissingProofOfContactPosts() {
   if (!token) return 0;
 
   const channel = process.env.SLACK_PROOF_OF_CONTACT_CHANNEL?.trim() || SLACK_PROOF_OF_CONTACT_CHANNEL_DEFAULT;
-  await ensureSlackChannelJoined(token, channel);
-  const history = await loadSlackChannelHistory(token, channel);
+  const history = await loadSlackHistoryJoiningIfNeeded(token, channel);
   if (!history.ok) {
     console.error("slack proof-of-contact history failed", history.error);
     return 0;
@@ -37,29 +35,46 @@ async function syncMissingProofOfContactPosts() {
       id: true,
       cycleNumber: true,
       groupTopic: true,
-      members: {
-        select: {
-          user: { select: { name: true, nickname: true, email: true } }
-        }
-      },
       proofOfContacts: { select: { updatedAt: true } }
     }
   });
 
-  let posted = 0;
-  for (const row of rows) {
-    if (posted >= MAX_PROOF_POSTS_PER_SYNC) break;
+  const needsPost = rows.filter((row) => {
     const latestProof = row.proofOfContacts.reduce(
       (latest, proof) => (proof.updatedAt > latest ? proof.updatedAt : latest),
       row.proofOfContacts[0]?.updatedAt ?? new Date(0)
     );
-    if (!proofSlackCatchUpReady(latestProof)) continue;
+    if (!proofSlackCatchUpReady(latestProof)) return false;
     const matches = history.messages.filter((message) =>
       slackHasProofOfContactPost([message.text ?? ""], row.groupTopic, row.cycleNumber)
     );
-    if (matches.some((message) => (message.files?.length ?? 0) > 0)) continue;
+    return !matches.some((message) => (message.files?.length ?? 0) > 0);
+  });
+  if (needsPost.length === 0) return 0;
 
-    const result = await publishProofOfContactToSlack(row);
+  // Member names are only needed for the packages that still need a post (usually none).
+  const membersByRowId = new Map(
+    (
+      await prisma.packageProgressRow.findMany({
+        where: { id: { in: needsPost.map((row) => row.id) } },
+        select: {
+          id: true,
+          members: {
+            select: {
+              user: { select: { name: true, nickname: true, email: true } }
+            }
+          }
+        }
+      })
+    ).map((row) => [row.id, row.members] as const)
+  );
+
+  let posted = 0;
+  for (const row of needsPost) {
+    if (posted >= MAX_PROOF_POSTS_PER_SYNC) break;
+    const members = membersByRowId.get(row.id);
+    if (!members) continue;
+    const result = await publishProofOfContactToSlack({ ...row, members });
     if (result.ok) posted += 1;
   }
   return posted;

@@ -8,9 +8,10 @@ import {
 import { pacificDateKey } from "@/src/lib/deadlines";
 import { MAX_FINAL_CUT_POINTS } from "@/src/lib/grading";
 import { MAX_CHECK_IN_POINTS_PER_CYCLE } from "@/src/lib/package-stages";
+import type { PlatformRole } from "@prisma/client";
 import { prisma } from "@/src/lib/prisma";
-import { userDisplayName } from "@/src/lib/user-display";
-import { loadPackageProgressData } from "@/src/server/package-progress-data";
+import { labeledUser, userDisplayName } from "@/src/lib/user-display";
+import { activeCycleNumberFor, ensurePackageProgressDefaults } from "@/src/server/package-progress-data";
 import { resolveStudentCycleNumber } from "@/src/server/package-cycle-stage";
 import { loadStageCommentUnread } from "@/src/server/package-stage-comments";
 import { loadGradebookExtras } from "@/src/server/student-gradebook";
@@ -167,6 +168,45 @@ function activityVerb(type: string): string {
   }
 }
 
+const dashboardPersonSelect = { id: true, name: true, nickname: true, email: true } as const;
+
+/**
+ * Up next needs only the viewer's own row of the active cycle, so this loads that cycle's
+ * rows with just the fields the card reads instead of the whole package-progress grid.
+ * Active cycle (activeCycleNumberFor) and row order match loadPackageProgressData.
+ */
+async function loadUpNextCycle() {
+  const activeCycleNumber = activeCycleNumberFor(await ensurePackageProgressDefaults());
+  const [rows, cycleMeta] = await Promise.all([
+    prisma.packageProgressRow.findMany({
+      where: { cycleNumber: activeCycleNumber },
+      orderBy: { rowOrder: "asc" },
+      select: {
+        groupMembers: true,
+        groupTopic: true,
+        pitching: true,
+        proofOfContact: true,
+        aRollBRoll: true,
+        initialCut: true,
+        finalCut: true,
+        assignedProducer: { select: dashboardPersonSelect },
+        assignedExecutiveProducer: { select: dashboardPersonSelect },
+        members: { select: { user: { select: dashboardPersonSelect } } }
+      }
+    }),
+    prisma.packageCycle.findUnique({
+      where: { cycleNumber: activeCycleNumber },
+      select: {
+        proofOfContactDate: true,
+        aRollBRollDate: true,
+        initialCutDate: true,
+        finalCutDate: true
+      }
+    })
+  ]);
+  return { activeCycleNumber, rows, cycleMeta };
+}
+
 export async function getDashboardData({
   userId,
   userName,
@@ -185,7 +225,8 @@ export async function getDashboardData({
     if (isAppReviewEmail(userEmail)) return upNext;
 
     try {
-      const progress = await loadPackageProgressData();
+      const progress = await loadUpNextCycle();
+      const { cycleMeta } = progress;
       const candidates = buildUserNameCandidates(userName, userEmail);
 
       const myRow =
@@ -197,16 +238,6 @@ export async function getDashboardData({
           : null);
 
       if (myRow) {
-        const cycleMeta = await prisma.packageCycle.findUnique({
-          where: { cycleNumber: progress.activeCycleNumber },
-          select: {
-            proofOfContactDate: true,
-            aRollBRollDate: true,
-            initialCutDate: true,
-            finalCutDate: true
-          }
-        });
-
         const checkIns = [
           Boolean(myRow.pitching),
           Boolean(myRow.proofOfContact),
@@ -219,10 +250,11 @@ export async function getDashboardData({
           groupTopic: myRow.groupTopic?.trim() || null,
           finalCutDate: cycleMeta?.finalCutDate?.toISOString() ?? null,
           producerName:
-            myRow.assignedProducer?.name?.trim() ||
-            myRow.assignedExecutiveProducer?.name?.trim() ||
+            (myRow.assignedProducer ? labeledUser(myRow.assignedProducer).name?.trim() : null) ||
+            (myRow.assignedExecutiveProducer ? labeledUser(myRow.assignedExecutiveProducer).name?.trim() : null) ||
             null,
           memberNames: myRow.members
+            .map(({ user }) => labeledUser(user))
             .map((member) => member.name?.trim() || member.email?.split("@")[0] || "")
             .filter(Boolean),
           checkInsDone: checkIns.filter(Boolean).length,
@@ -290,10 +322,20 @@ export async function getDashboardData({
   return { upNext, activity };
 }
 
-export async function loadStudentDashboardSnapshot(userId: string): Promise<StudentDashboardSnapshot> {
-  const gradeSummary = await buildGradeSummary(userId);
-  const [extras, extensionRows, unread] = await Promise.all([
-    loadGradebookExtras(userId, gradeSummary.cycleNumbers, gradeSummary.checkInStages),
+/**
+ * known.platformRole: the caller's already-resolved role for this user (same lookup
+ * buildGradeSummary would do), so it skips re-reading the User row.
+ */
+export async function loadStudentDashboardSnapshot(
+  userId: string,
+  known?: { platformRole: PlatformRole | null }
+): Promise<StudentDashboardSnapshot> {
+  // Extensions and unread feedback don't depend on the grade summary; load them alongside it.
+  const [{ gradeSummary, extras }, extensionRows, unread] = await Promise.all([
+    buildGradeSummary(userId, undefined, known).then(async (gradeSummary) => ({
+      gradeSummary,
+      extras: await loadGradebookExtras(userId, gradeSummary.cycleNumbers, gradeSummary.checkInStages)
+    })),
     prisma.packageGrade.findMany({
       where: { userId },
       select: { extensionDaysApplied: true, extensionExempt: true, freeExtensionDays: true }

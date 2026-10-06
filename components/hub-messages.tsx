@@ -24,6 +24,8 @@ type InboxPayload = {
   unreadCount: number;
   chats: InboxChat[];
   members: Person[];
+  /** Lite polls list only chats you belong to and no class roster. */
+  lite?: boolean;
 };
 
 type ThreadMessage = {
@@ -50,6 +52,45 @@ type ThreadPayload = {
 const NEAR_BOTTOM_PX = 100;
 const INBOX_POLL_MS = 5000;
 const THREAD_POLL_MS = 4000;
+/** Interval polls fetch the lite inbox; the full lists refresh on open and at least this often. */
+const INBOX_FULL_REFRESH_MS = 60_000;
+
+/** Same order as sortHubInbox (src/lib/hub-chat.ts, which is server-only via its imports). */
+function sortInbox(chats: InboxChat[]) {
+  return [...chats].sort((a, b) => {
+    if (a.updatedAt && b.updatedAt) {
+      return b.updatedAt.localeCompare(a.updatedAt);
+    }
+    if (a.updatedAt) {
+      return -1;
+    }
+    if (b.updatedAt) {
+      return 1;
+    }
+    return a.title.localeCompare(b.title, undefined, { sensitivity: "base" });
+  });
+}
+
+/**
+ * A lite poll returns every chat you belong to (with current unread and preview) but not
+ * never-opened groups or the class roster, so keep those from the last full load.
+ */
+function mergeLiteInbox(previous: InboxPayload | null, lite: InboxPayload): InboxPayload {
+  if (!previous) {
+    return lite;
+  }
+  const openedRowIds = new Set(lite.chats.map((chat) => chat.packageRowId).filter(Boolean));
+  const neverOpened = previous.chats.filter(
+    (chat) => chat.id === null && !(chat.packageRowId && openedRowIds.has(chat.packageRowId))
+  );
+  const dmPeerIds = new Set(lite.chats.map((chat) => chat.peer?.id).filter(Boolean));
+  return {
+    ...lite,
+    lite: undefined,
+    chats: sortInbox([...lite.chats, ...neverOpened]),
+    members: previous.members.filter((person) => !dmPeerIds.has(person.id))
+  };
+}
 
 async function readData<T>(response: Response): Promise<T> {
   const payload = (await response.json()) as { data?: T; error?: { message?: string } };
@@ -89,10 +130,17 @@ export function HubMessages({
   const draftsRef = useRef<Record<string, string>>({});
 
   const navigationRef = useRef(0);
+  const lastFullInboxRef = useRef(0);
 
-  async function loadInbox() {
-    const data = await readData<InboxPayload>(await fetch("/api/hub-chat"));
-    setInbox(data);
+  async function loadInbox(mode: "full" | "auto" = "full") {
+    const lite = mode === "auto" && Date.now() - lastFullInboxRef.current < INBOX_FULL_REFRESH_MS;
+    const data = await readData<InboxPayload>(await fetch(lite ? "/api/hub-chat?lite=1" : "/api/hub-chat"));
+    if (lite) {
+      setInbox((previous) => mergeLiteInbox(previous, data));
+    } else {
+      lastFullInboxRef.current = Date.now();
+      setInbox(data);
+    }
     onUnread?.(data.unreadCount);
     return data;
   }
@@ -107,20 +155,21 @@ export function HubMessages({
       return;
     }
     let cancelled = false;
+    // Opening Messages (or a chat) loads the full lists; interval ticks poll lite.
+    let firstTick = true;
     const tick = async () => {
       const navigation = navigationRef.current;
+      const mode = firstTick ? "full" : "auto";
+      firstTick = false;
       try {
-        await loadInbox();
+        const chatId = activeIdRef.current;
+        const [, data] = await Promise.all([loadInbox(mode), chatId ? loadThread(chatId) : null]);
         if (cancelled || navigation !== navigationRef.current) {
           return;
         }
         setError(null);
-        const chatId = activeIdRef.current;
-        if (chatId) {
-          const data = await loadThread(chatId);
-          if (!cancelled && navigation === navigationRef.current && activeIdRef.current === chatId) {
-            setActive(data);
-          }
+        if (chatId && data && activeIdRef.current === chatId) {
+          setActive(data);
         }
       } catch (caught) {
         if (!cancelled && navigation === navigationRef.current) {
@@ -218,7 +267,7 @@ export function HubMessages({
       activeIdRef.current = data.chat.id;
       setInput(draftsRef.current[data.chat.id] ?? "");
       setActive(data);
-      await loadInbox();
+      await loadInbox("auto");
     } catch (caught) {
       if (navigation === navigationRef.current) {
         setError(caught instanceof Error ? caught.message : "Could not open that chat.");
@@ -261,7 +310,7 @@ export function HubMessages({
       const data = await loadThread(chatId);
       if (navigation === navigationRef.current) {
         setActive(data);
-        await loadInbox();
+        await loadInbox("auto");
       }
     } catch (caught) {
       if (navigation === navigationRef.current) {

@@ -16,11 +16,16 @@ export function withoutAppReviewUser<T extends { where?: Prisma.UserWhereInput }
 // PrismaClient type (code across the app passes it and its transactions as PrismaClient).
 function createPrismaClient(): PrismaClient {
   const base = new PrismaClient({
-    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"]
+    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+    // Image versions keep the whole file as base64 (up to ~13 MB) and every list/stage query that
+    // includes versions would drag it along. Leave it out by default; the image route and project
+    // download ask for it with an explicit `select: { imageBase64: true }`, which still works.
+    // uploadSignature is write-only (set at upload init, never read back).
+    omit: { mediaVersion: { imageBase64: true, uploadSignature: true } }
   });
   // Client bundles reach this file through shared libs (platform-admin). The browser PrismaClient
   // stub throws on any property access, so `$extends` there would crash every page on load.
-  if (typeof window !== "undefined") return base;
+  if (typeof window !== "undefined") return base as unknown as PrismaClient;
   const client = base.$extends({
     name: "hide-app-review-user",
     query: {
@@ -30,6 +35,8 @@ function createPrismaClient(): PrismaClient {
       }
     }
   });
+  // The cast also drops the global `omit` from the types: imageBase64 still type-checks on full
+  // rows but is undefined at runtime unless the query selects it.
   return client as unknown as PrismaClient;
 }
 

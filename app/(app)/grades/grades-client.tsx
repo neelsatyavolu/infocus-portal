@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { AllGradesView, GradeBadge } from "@/components/grades/all-grades-view";
 import {
@@ -17,11 +17,10 @@ import {
   PACKAGE_STAGE_LABELS
 } from "@/src/lib/package-stages";
 import { cycleSemesterTerm, parseSemesterTerm } from "@/src/lib/package-grades";
+import { currentGradebookWeekIndex, type GradeTab } from "@/src/lib/grades-view";
 import type { GradebookCheckIn, GradebookWeek } from "@/src/lib/student-gradebook";
 import { BottomTabDock, BottomTabDockButton } from "@/components/ui/bottom-tab-dock";
 import { cn } from "@/src/lib/utils";
-
-type GradeTab = "home" | "packages" | "participation" | "other" | "all";
 
 type GradeTile = {
   cycleNumber: number;
@@ -70,7 +69,7 @@ type GradebookPayload = {
   checkIns: GradebookCheckIn[];
 };
 
-type GradesMePayload = {
+export type GradesMePayload = {
   role: "ASSOCIATE_PRODUCER" | "EXECUTIVE_PRODUCER" | "SUPER_ADMIN" | "ADVISER" | null;
   isAdmin: boolean;
   summary: {
@@ -142,14 +141,33 @@ function sumGraded(values: Array<number | null>) {
   );
 }
 
-export default function GradesClient() {
-  const [data, setData] = useState<GradesMePayload | null>(null);
-  const [loading, setLoading] = useState(true);
+export default function GradesClient({
+  initialData,
+  initialTab,
+  initialWeekIndex
+}: {
+  /** Loaded on the server for first paint; null falls back to fetching (and showing any error). */
+  initialData: GradesMePayload | null;
+  initialTab: GradeTab;
+  initialWeekIndex: number;
+}) {
+  const [data, setData] = useState<GradesMePayload | null>(initialData);
+  const [loading, setLoading] = useState(initialData === null);
   const [message, setMessage] = useState<string | null>(null);
-  const [tab, setTab] = useState<GradeTab>("home");
-  const [weekIndex, setWeekIndex] = useState(0);
+  const [tab, setTab] = useState<GradeTab>(initialTab);
+  const [weekIndex, setWeekIndex] = useState(initialWeekIndex);
+
+  // Keep the open tab in the URL (?tab=) without a server round trip.
+  const selectTab = useCallback((next: GradeTab) => {
+    setTab(next);
+    const url = new URL(window.location.href);
+    if (next === "home") url.searchParams.delete("tab");
+    else url.searchParams.set("tab", next);
+    window.history.replaceState(null, "", url);
+  }, []);
 
   useEffect(() => {
+    if (initialData) return;
     let active = true;
 
     async function hydrate() {
@@ -162,12 +180,7 @@ export default function GradesClient() {
 
         const weeks = next.gradebook?.weeks ?? [];
         if (weeks.length > 0) {
-          const today = new Date().toISOString().slice(0, 10);
-          const current = weeks.findIndex((week, index) => {
-            const nextStart = weeks[index + 1]?.weekStart;
-            return week.weekStart <= today && (!nextStart || nextStart > today);
-          });
-          setWeekIndex(current >= 0 ? current : weeks.length - 1);
+          setWeekIndex(currentGradebookWeekIndex(weeks, new Date().toISOString().slice(0, 10)));
         }
       } catch (error) {
         if (!active) return;
@@ -181,7 +194,7 @@ export default function GradesClient() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [initialData]);
 
   const orderedCycles = useMemo(() => {
     return [...(data?.cycles ?? [])].sort((a, b) => a.cycleNumber - b.cycleNumber);
@@ -295,7 +308,7 @@ export default function GradesClient() {
 
       <BottomTabDock activeKey={tab} label="Grade views">
         {TABS.map((item) => (
-          <BottomTabDockButton key={item.id} active={tab === item.id} onClick={() => setTab(item.id)}>
+          <BottomTabDockButton key={item.id} active={tab === item.id} onClick={() => selectTab(item.id)}>
             {item.label}
           </BottomTabDockButton>
         ))}
@@ -532,7 +545,7 @@ function ParticipationView({
             value={weekIndex}
             disabled={weeks.length === 0}
             onChange={(event) => onWeekIndex(Number(event.target.value))}
-            className="max-w-[14rem] bg-transparent px-2 py-1 text-[12px] font-medium uppercase tracking-[0.11em] text-foreground outline-none"
+            className="max-w-[14rem] bg-transparent px-2 py-1 text-[12px] font-medium uppercase tracking-[0.11em] text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {weeks.length === 0 ? <option value={0}>No weeks yet</option> : null}
             {weeks.map((entry, index) => (

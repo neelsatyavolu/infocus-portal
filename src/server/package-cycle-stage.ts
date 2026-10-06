@@ -619,22 +619,6 @@ export async function loadCycleStageView(input: {
   const approvalStage = row.approval?.stage ?? "DRAFT";
   const unlocked = isProducer || studentStageUnlocked(input.slug, row, { stage: approvalStage });
   const memberIds = row.members.map((member) => member.userId);
-  const existingGrades =
-    input.slug === "final-cut"
-      ? await prisma.packageGrade.findMany({
-          where: {
-            cycleNumber: row.cycleNumber,
-            userId: { in: memberIds },
-            awardedFinalCutPoints: { not: null }
-          },
-          select: { awardedFinalCutPoints: true, revisionCount: true }
-        })
-      : [];
-  const allowSecondFinalCut = groupAllowsSecondFinalCut(existingGrades);
-  const canUpload =
-    isMember &&
-    studentCanUpload(input.slug, row, { stage: approvalStage }, { allowSecondFinalCut }) &&
-    (input.slug !== "initial-cut" || approvalStage !== "APPROVED");
 
   const rawMedia =
     input.slug === "a-roll"
@@ -654,21 +638,48 @@ export async function loadCycleStageView(input: {
         : input.slug === "final-cut" && row.finalCutMediaItem
           ? [serializeMedia(row.finalCutMediaItem)]
           : [];
-  const stageNotes =
+  const reviewVersionIds = rawMedia.map((item) => item.versionId).filter((id): id is string => Boolean(id));
+  // These reads only depend on `row`, so run them together instead of one after another.
+  const [existingGrades, stageNotes, reviewComments, media] = await Promise.all([
+    input.slug === "final-cut"
+      ? prisma.packageGrade.findMany({
+          where: {
+            cycleNumber: row.cycleNumber,
+            userId: { in: memberIds },
+            awardedFinalCutPoints: { not: null }
+          },
+          select: { awardedFinalCutPoints: true, revisionCount: true }
+        })
+      : [],
     input.slug === "a-roll" || rawMedia.length > 0
-      ? await prisma.packageStageComment.findMany({
+      ? prisma.packageStageComment.findMany({
           where: { rowId: row.id, stage: input.slug },
           select: { body: true, createdAt: true }
         })
-      : [];
-  if (rawMedia.length > 0) {
+      : [],
+    input.slug === "initial-cut" && reviewVersionIds.length > 0
+      ? prisma.reviewComment.groupBy({
+          by: ["mediaVersionId"],
+          where: { mediaVersionId: { in: reviewVersionIds } },
+          _count: { _all: true }
+        })
+      : null,
+    hydrateMediaCards(rawMedia)
+  ]);
+  const allowSecondFinalCut = groupAllowsSecondFinalCut(existingGrades);
+  const canUpload =
+    isMember &&
+    studentCanUpload(input.slug, row, { stage: approvalStage }, { allowSecondFinalCut }) &&
+    (input.slug !== "initial-cut" || approvalStage !== "APPROVED");
+  // Counts and "new" flags go on the hydrated cards (same order and ids as rawMedia).
+  if (media.length > 0) {
     const countByClip = new Map<string, number>();
     for (const note of stageNotes) {
       const clipId = parseClipComment(note.body).mediaItemId;
       if (!clipId) continue;
       countByClip.set(clipId, (countByClip.get(clipId) ?? 0) + 1);
     }
-    for (const item of rawMedia) {
+    for (const item of media) {
       item.commentCount = countByClip.get(item.id) ?? 0;
     }
   }
@@ -686,24 +697,17 @@ export async function loadCycleStageView(input: {
     aRollFeedbackNeedsChanges(row.aRollBRoll, revisionNotes.length > 0, latestFeedbackAt, latestFootageAt);
   if (input.slug === "a-roll" && isProducer) {
     const uploadedAtById = new Map(row.stageMedia.map((link) => [link.mediaItem.id, link.createdAt]));
-    for (const item of rawMedia) {
+    for (const item of media) {
       item.isNew = aRollUploadIsNew(row.aRollBRoll, latestFeedbackAt, uploadedAtById.get(item.id) ?? null);
     }
   }
-  const reviewVersionIds = rawMedia.map((item) => item.versionId).filter((id): id is string => Boolean(id));
-  if (input.slug === "initial-cut" && reviewVersionIds.length > 0) {
-    const reviewComments = await prisma.reviewComment.groupBy({
-      by: ["mediaVersionId"],
-      where: { mediaVersionId: { in: reviewVersionIds } },
-      _count: { _all: true }
-    });
+  if (reviewComments) {
     const countByVersion = new Map(reviewComments.map((row) => [row.mediaVersionId, row._count._all]));
-    for (const item of rawMedia) {
+    for (const item of media) {
       if (!item.versionId) continue;
       item.commentCount = countByVersion.get(item.versionId) ?? 0;
     }
   }
-  const media = await hydrateMediaCards(rawMedia);
   if (input.slug === "initial-cut") {
     const cutVersions = row.initialCutMediaItem?.versions ?? [];
     const signoffs = row.approval?.signoffs ?? [];
@@ -721,19 +725,18 @@ export async function loadCycleStageView(input: {
     });
   }
 
-  const finalCutGrade =
+  const [finalCutGrade, packageOfCycle] = await Promise.all([
     input.slug === "final-cut" && isProducer
-      ? await loadFinalCutGradePanel({
+      ? loadFinalCutGradePanel({
           rowId: row.id,
           role: input.role,
           userId: input.userId
         })
-      : null;
-
-  const packageOfCycle =
+      : null,
     input.slug === "final-cut" && isProducer && row.finalCutMediaItemId
-      ? await loadPackageOfCyclePanel({ rowId: row.id, userId: input.userId, role: input.role })
-      : null;
+      ? loadPackageOfCyclePanel({ rowId: row.id, userId: input.userId, role: input.role })
+      : null
+  ]);
 
   const cutApproval = isProducer && input.slug === "initial-cut"
     ? await loadApprovalView(row.id, {

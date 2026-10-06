@@ -13,6 +13,7 @@ import {
   loadPackageProgressData
 } from "@/src/server/package-progress-data";
 import { serializeProofs } from "@/src/lib/package-brainstorm";
+import { memberSetChanged, progressRowChanged } from "@/src/lib/package-progress-diff";
 import { labeledUser } from "@/src/lib/user-display";
 import { PACKAGE_ROSTER_NOTE_MAX, nextPackageRosterNote } from "@/src/lib/package-roster-notes";
 import { MAX_CYCLES_PER_SEMESTER } from "@/src/server/program-settings";
@@ -187,17 +188,34 @@ export async function POST(request: Request) {
 
     const existingRows = await prisma.packageProgressRow.findMany({
       where: { cycleNumber: payload.cycleNumber },
+      // Every field the save writes, so unchanged rows can be skipped below.
       select: {
         id: true,
-        initialCut: true,
-        finalCut: true,
-        initialCutManual: true,
-        finalCutManual: true,
+        cycleNumber: true,
+        rowOrder: true,
+        groupMembers: true,
+        groupTopic: true,
+        groupType: true,
+        category: true,
         assignedProducerUserId: true,
         assignedExecutiveProducerUserId: true,
+        projectId: true,
+        initialCutMediaItemId: true,
+        finalCutMediaItemId: true,
+        pitching: true,
+        proofOfContact: true,
+        aRollBRoll: true,
+        initialCut: true,
+        initialCutManual: true,
+        revisedInitialCut: true,
+        finalCut: true,
+        finalCutManual: true,
+        extension: true,
         possibleInterviews: true,
         possibleIdeas: true,
-        notes: true
+        notes: true,
+        stageNotes: true,
+        members: { select: { userId: true } }
       }
     });
     const priorById = new Map(existingRows.map((row) => [row.id, row]));
@@ -230,6 +248,7 @@ export async function POST(request: Request) {
 
       return {
         id: prior ? row.id : undefined,
+        prior,
         memberUserIds: [...new Set(row.memberUserIds ?? [])],
         data: {
           cycleNumber: payload.cycleNumber,
@@ -262,6 +281,7 @@ export async function POST(request: Request) {
 
     // Reconcile rather than delete-and-recreate: recreating would cascade away
     // the PackageProgressMember links that now tie packages to real students.
+    // Rows and member lists that already match what is stored are skipped (the write would be a no-op).
     await prisma.$transaction(async (tx) => {
       const keptIds = rows.map((row) => row.id).filter((id): id is string => Boolean(id));
 
@@ -273,13 +293,21 @@ export async function POST(request: Request) {
       });
 
       for (const row of rows) {
-        const saved = row.id
-          ? await tx.packageProgressRow.update({ where: { id: row.id }, data: row.data })
-          : await tx.packageProgressRow.create({ data: row.data });
+        let savedId: string;
+        if (row.id && row.prior) {
+          if (progressRowChanged(row.prior, row.data)) {
+            await tx.packageProgressRow.update({ where: { id: row.id }, data: row.data });
+          }
+          savedId = row.id;
+          const priorMemberIds = row.prior.members.map((member) => member.userId);
+          if (!memberSetChanged(priorMemberIds, row.memberUserIds)) continue;
+        } else {
+          savedId = (await tx.packageProgressRow.create({ data: row.data })).id;
+        }
 
         await tx.packageProgressMember.deleteMany({
           where: {
-            rowId: saved.id,
+            rowId: savedId,
             ...(row.memberUserIds.length > 0 ? { userId: { notIn: row.memberUserIds } } : {})
           }
         });
@@ -287,14 +315,14 @@ export async function POST(request: Request) {
         if (row.memberUserIds.length > 0) {
           await tx.packageProgressMember.createMany({
             data: row.memberUserIds.map((memberUserId) => ({
-              rowId: saved.id,
+              rowId: savedId,
               userId: memberUserId
             })),
             skipDuplicates: true
           });
         }
       }
-    });
+    }, { timeout: 15_000 });
 
     await recomputeCycleCutStatus(payload.cycleNumber);
 

@@ -133,13 +133,24 @@ export function makeNasVideoId(): string {
   return `nas_${randomBytes(16).toString("hex")}`;
 }
 
+/**
+ * Default cap for Drive service calls (mint-token, ensure-dir; delete passes a longer one). They are small JSON
+ * requests, so a slow or offline NAS fails fast instead of hanging a page render. Large transfers
+ * don't go through here (`nasUploadBytes` uses its own fetch); callers can pass their own `signal`.
+ */
+const DRIVE_SERVICE_TIMEOUT_MS = 8_000;
+
 export async function driveFetch(path: string, init: RequestInit = {}): Promise<Response> {
   const headers = new Headers(init.headers);
   headers.set("Authorization", `Bearer ${serviceToken()}`);
   if (init.body && !(init.body instanceof FormData) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
-  return fetch(`${driveBaseUrl()}${path}`, { ...init, headers });
+  return fetch(`${driveBaseUrl()}${path}`, {
+    ...init,
+    headers,
+    signal: init.signal ?? AbortSignal.timeout(DRIVE_SERVICE_TIMEOUT_MS)
+  });
 }
 
 export async function nasEnsureDir(relPath: string): Promise<void> {
@@ -217,8 +228,10 @@ export function nasDeriveWebPlaybackUrl(downloadUrl: string): string {
 }
 
 export async function nasDelete(relPath: string): Promise<void> {
+  // Deleting a folder can take a while on the NAS; give it longer than the default cap.
   const res = await driveFetch(`/api/service/file?path=${encodeURIComponent(relPath)}`, {
-    method: "DELETE"
+    method: "DELETE",
+    signal: AbortSignal.timeout(60_000)
   });
   if (!res.ok && res.status !== 404) {
     const text = await res.text();

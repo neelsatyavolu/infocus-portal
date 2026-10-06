@@ -39,7 +39,8 @@ export async function GET() {
         userEmail: user.email,
         workspaceIds: workspaces.map((workspace) => workspace.id)
       }),
-      isStudent ? loadStudentDashboardSnapshot(userId) : Promise.resolve(null)
+      // platformRole came from this user's stored email, the same lookup the grade summary does.
+      isStudent ? loadStudentDashboardSnapshot(userId, { platformRole }) : Promise.resolve(null)
     ]);
     return okUnmapped({
       ...panels,

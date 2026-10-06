@@ -52,12 +52,22 @@ export default function MeetingsClient() {
 
   useEffect(() => {
     void load();
-    const refresh = setInterval(() => void load(), REFRESH_MS);
+    // Hidden tabs skip the refresh; coming back reloads and resets the clock at once.
+    const refresh = setInterval(() => {
+      if (!document.hidden) void load();
+    }, REFRESH_MS);
     // Join buttons enable on time without waiting for the next refresh.
     const tick = setInterval(() => setNow(Date.now()), TICK_MS);
+    const onVisible = () => {
+      if (document.hidden) return;
+      setNow(Date.now());
+      void load();
+    };
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       clearInterval(refresh);
       clearInterval(tick);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [load]);
 

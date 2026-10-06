@@ -23,9 +23,9 @@ import { getClassBoardCycleNumber } from "@/src/server/program-settings";
 export async function loadClassBoard(role: PlatformRole | null, now = new Date()): Promise<ClassBoardModel> {
   const window = classBoardWindow(now);
   // Admin can pin the board to one cycle; otherwise it follows the current cycle.
-  const pinnedCycle = await getClassBoardCycleNumber();
+  // Only the roster waits for the pin; everything else starts right away.
   const [progress, cycles, events, calendars, classSessions] = await Promise.all([
-    loadPackageProgressData(pinnedCycle),
+    getClassBoardCycleNumber().then((pinnedCycle) => loadPackageProgressData(pinnedCycle)),
     prisma.packageCycle.findMany({
       orderBy: { cycleNumber: "asc" },
       select: {

@@ -5,7 +5,6 @@ import { parseReviewNotice, reviewNoticeHref } from "@/src/lib/package-review-no
 import { notifyPackageMembersOfComment } from "@/src/server/package-review-notify";
 import {
   countUnreadComments,
-  emptyStageCommentUnread,
   isFeedbackStage,
   parseApprovalComment,
   unreadCountForStage,
@@ -232,22 +231,15 @@ export async function loadStageUnreadCount(input: { userId: string; rowId: strin
 
 /** Unread stage feedback on the student's package in `cycleNumber` only (older cycles never count). */
 export async function loadStageCommentUnread(userId: string, cycleNumber: number): Promise<StageCommentUnread> {
-  const memberships = await prisma.packageProgressMember.findMany({
-    where: { userId, row: { cycleNumber } },
-    select: { rowId: true }
-  });
-  const rowIds = memberships.map((membership) => membership.rowId);
-  if (rowIds.length === 0) {
-    return emptyStageCommentUnread();
-  }
-
+  // Filter by the relation instead of pre-loading the student's row ids (one round trip fewer).
+  const row = { cycleNumber, members: { some: { userId } } };
   const [comments, reads] = await Promise.all([
     prisma.packageStageComment.findMany({
-      where: { rowId: { in: rowIds } },
+      where: { row },
       select: { rowId: true, stage: true, createdAt: true, authorId: true }
     }),
     prisma.packageStageCommentRead.findMany({
-      where: { userId, rowId: { in: rowIds } },
+      where: { userId, row },
       select: { rowId: true, stage: true, lastReadAt: true }
     })
   ]);

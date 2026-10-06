@@ -1,3 +1,4 @@
+import type { PlatformRole } from "@prisma/client";
 import {
   MAX_PORTFOLIO_POINTS,
   hasGradeableWork,
@@ -11,21 +12,11 @@ import { getPlatformRoleForEmail } from "@/src/lib/platform-admin";
 import { unresolvedFinalCutPoints } from "@/src/lib/package-revisions";
 import { checkInGradeForProgress, checkInOverrides, cycleCheckInDates } from "@/src/lib/package-stages";
 import { prisma } from "@/src/lib/prisma";
-import { participationPointsForDate, type ScheduleKind } from "@/src/lib/school-schedule";
+import { participationPointsForDate } from "@/src/lib/school-schedule";
 import { resolveLivestreamPointsForUser } from "@/src/server/livestream-credit";
 import { getCycleNumbers } from "@/src/server/program-settings";
+import { loadScheduleOverrides } from "@/src/server/school-calendar-overrides";
 import { finalCutDeadlinePassed } from "@/src/lib/deadlines";
-
-async function loadScheduleOverrides() {
-  const rows = await prisma.schoolCalendarDay.findMany({
-    select: { date: true, kind: true }
-  });
-  const map = new Map<string, ScheduleKind>();
-  for (const row of rows) {
-    map.set(row.date, row.kind as ScheduleKind);
-  }
-  return map;
-}
 
 /**
  * Assembles every input the 2026-27 weighted grade needs for one student:
@@ -34,10 +25,13 @@ async function loadScheduleOverrides() {
  *
  * Pass `livestreamPoints` to override the auto-tracked value (tests / tools).
  * Omit or pass `undefined` to resolve from completed livestream hours.
+ * Pass `known.platformRole` when the caller already resolved this user's role
+ * (getPlatformRoleForEmail of their email) to skip re-reading the User row.
  */
 export async function buildGradeSummary(
   userId: string,
-  livestreamPoints?: number | null
+  livestreamPoints?: number | null,
+  known?: { platformRole: PlatformRole | null }
 ) {
   const cycleNumbers = await getCycleNumbers();
 
@@ -73,9 +67,11 @@ export async function buildGradeSummary(
       }),
       loadScheduleOverrides(),
       livestreamPoints === undefined ? resolveLivestreamPointsForUser(userId) : Promise.resolve(livestreamPoints),
-      prisma.user.findUnique({ where: { id: userId }, select: { email: true } }).then((user) =>
-        getPlatformRoleForEmail(user?.email)
-      )
+      known
+        ? Promise.resolve(known.platformRole)
+        : prisma.user.findUnique({ where: { id: userId }, select: { email: true } }).then((user) =>
+            getPlatformRoleForEmail(user?.email)
+          )
     ]);
 
   const gradeByCycle = new Map(grades.map((grade) => [grade.cycleNumber, grade]));

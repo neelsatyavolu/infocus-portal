@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { prisma } from "@/src/lib/prisma";
 
 export const DEFAULT_CYCLES_PER_SEMESTER = 3;
@@ -6,7 +7,8 @@ export const MAX_CYCLES_PER_SEMESTER = 8;
 
 const SETTING_ID = "singleton";
 
-export async function getProgramSettings() {
+/** Deduped per server render via React cache(); route handlers run it each call. */
+export const getProgramSettings = cache(async function getProgramSettings() {
   const existing = await prisma.programSetting.findUnique({
     where: { id: SETTING_ID }
   });
@@ -20,7 +22,7 @@ export async function getProgramSettings() {
     update: {},
     create: { id: SETTING_ID, cyclesPerSemester: DEFAULT_CYCLES_PER_SEMESTER }
   });
-}
+});
 
 export async function getCyclesPerSemester() {
   const settings = await getProgramSettings();

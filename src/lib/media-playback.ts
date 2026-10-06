@@ -47,8 +47,17 @@ export async function resolveThumbnailUrl(version: VersionLike): Promise<string 
   const provider = (version.storageProvider || "BUNNY").toUpperCase();
   if (provider === "NAS" || isNasVideoId(version.bunnyVideoId)) {
     if (!version.nasPath) return null;
-    const downloadUrl = await nasMintDownloadUrl(version.nasPath, 60 * 60 * 6);
-    return nasDeriveThumbnailUrl(downloadUrl);
+    // A poster is optional: a slow or offline Drive must not fail the whole page render.
+    try {
+      const downloadUrl = await nasMintDownloadUrl(version.nasPath, 60 * 60 * 6);
+      return nasDeriveThumbnailUrl(downloadUrl);
+    } catch (error) {
+      console.error("[media-playback] NAS thumbnail mint failed", {
+        nasPath: version.nasPath,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return null;
+    }
   }
 
   try {

@@ -15,11 +15,13 @@ const openSchema = z.discriminatedUnion("kind", [
   })
 ]);
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const userId = await requireUserId();
-    await syncUserProfile(userId);
-    return ok(await listHubInbox(userId));
+    const user = await syncUserProfile(userId);
+    // ?lite=1: interval polls skip the class roster and never-opened groups.
+    const lite = new URL(request.url).searchParams.get("lite") === "1";
+    return ok(await listHubInbox(userId, { knownUser: user, lite }));
   } catch (error) {
     return handleRouteError(error);
   }
@@ -28,9 +30,9 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const userId = await requireUserId();
-    await syncUserProfile(userId);
+    const user = await syncUserProfile(userId);
     const payload = openSchema.parse(await request.json());
-    return ok(await openHubChat(userId, payload));
+    return ok(await openHubChat(userId, payload, user));
   } catch (error) {
     return handleRouteError(error);
   }

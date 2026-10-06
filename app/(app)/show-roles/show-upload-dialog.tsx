@@ -183,7 +183,10 @@ export function ShowUploadDialog({
   const publicationStatus = state?.publication?.status;
   useEffect(() => {
     if (!open || phase !== "status" || !publicationStatus || !ACTIVE.has(publicationStatus)) return;
-    const timer = window.setInterval(() => void load().catch(() => {}), 10_000);
+    const timer = window.setInterval(() => {
+      if (document.hidden) return;
+      void load().catch(() => {});
+    }, 10_000);
     return () => window.clearInterval(timer);
   }, [open, phase, publicationStatus, load]);
 

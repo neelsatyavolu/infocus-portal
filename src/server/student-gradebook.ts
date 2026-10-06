@@ -2,7 +2,7 @@ import { REQUIRED_LIVESTREAM_HOURS, semesterForDate } from "@/src/lib/livestream
 import { buildParticipationWeeks, type GradebookCheckIn, type GradebookWeek } from "@/src/lib/student-gradebook";
 import { prisma } from "@/src/lib/prisma";
 import { completedLivestreamHoursForUser } from "@/src/server/livestream-credit";
-import type { ScheduleKind } from "@/src/lib/school-schedule";
+import { loadScheduleOverrides } from "@/src/server/school-calendar-overrides";
 
 export type StudentGradebookExtras = {
   semester: {
@@ -16,17 +16,6 @@ export type StudentGradebookExtras = {
   portfolioFeedback: string;
   checkIns: GradebookCheckIn[];
 };
-
-async function loadScheduleOverrides() {
-  const rows = await prisma.schoolCalendarDay.findMany({
-    select: { date: true, kind: true }
-  });
-  const map = new Map<string, ScheduleKind>();
-  for (const row of rows) {
-    map.set(row.date, row.kind as ScheduleKind);
-  }
-  return map;
-}
 
 export async function loadGradebookExtras(
   userId: string,

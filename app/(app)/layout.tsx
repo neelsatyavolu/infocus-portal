@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { TeleprompterShell } from "@/components/teleprompter-shell";
 import { isAppReviewEmail } from "@/src/lib/app-review";
-import { getRealSessionUser, requireUserId, syncUserProfile } from "@/src/lib/auth";
+import { getRealSessionUser, getSessionUser, requireUserId, syncUserProfile } from "@/src/lib/auth";
 import { EMBEDDED_APP_COOKIE } from "@/src/lib/embedded-app";
 import { resolveAppSurface } from "@/src/lib/hosts";
 import { hasTeleprompterKioskCookie } from "@/src/server/teleprompter-access";
@@ -33,6 +33,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   try {
+    // Warm the per-request role cache with the session email while the profile syncs. The
+    // role below is still looked up by user.email; it reuses this only when the strings match.
+    void getSessionUser()
+      .then((session) => (session?.email ? getPlatformRoleForEmail(session.email) : null))
+      .catch(() => null);
     const [user, realSession] = await Promise.all([syncUserProfile(userId), getRealSessionUser()]);
     const viewingAs = Boolean(realSession && realSession.userId !== userId);
     // Only look up a second role while viewing as someone else; otherwise it is the same person.

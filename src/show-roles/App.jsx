@@ -46,6 +46,9 @@ import {
 import { formatDate, formatReadableDate, getCurrentShowDate, isShowDay, nextShowDate, parseDate } from "./lib/date";
 import { checkSession, loadCastPool, loadHistory, loadNonAnchors, saveHistory, saveNonAnchors } from "./lib/api";
 
+/** How often a visible tab checks for other people's show-role edits. */
+const HISTORY_POLL_MS = 20_000;
+
 const PALETTE = ["av-green", "av-red", "av-blue", "av-purple", "av-gray"];
 
 function showSortDesc(a, b) {
@@ -292,7 +295,9 @@ export default function App() {
 
   useEffect(() => {
     if (!authenticated) return undefined;
-    const timer = setInterval(async () => {
+    async function poll() {
+      // Hidden tabs skip the poll; becoming visible refreshes right away.
+      if (document.visibilityState !== "visible") return;
       try {
         const fresh = normalizeHistory(await loadHistory());
         setHistory((previous) => {
@@ -305,8 +310,13 @@ export default function App() {
           if (message.includes("session") || message.includes("access denied")) setAuthenticated(false);
         }
       }
-    }, 10000);
-    return () => clearInterval(timer);
+    }
+    const timer = setInterval(poll, HISTORY_POLL_MS);
+    document.addEventListener("visibilitychange", poll);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", poll);
+    };
   }, [authenticated]);
 
   useEffect(() => {

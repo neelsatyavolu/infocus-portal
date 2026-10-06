@@ -14,16 +14,17 @@ export async function GET(request: Request) {
   try {
     const userId = await requireUserId();
     const user = await syncUserProfile(userId);
-    const access = await getPlatformAccess(user.email);
     const { searchParams } = new URL(request.url);
     const slug = searchParams.get("stage") ?? "";
     if (!slug) {
+      // Student nav gates only read the caller's own row; no platform role needed.
       const { loadStudentNavGates } = await import("@/src/server/package-cycle-stage");
       return ok(await loadStudentNavGates(userId));
     }
     if (!isCycleStageSlug(slug)) {
       return fail("Invalid stage.", 400);
     }
+    const access = await getPlatformAccess(user.email);
 
     const rowId = searchParams.get("rowId");
     const cycle = searchParams.get("cycle");

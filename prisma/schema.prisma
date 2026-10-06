@@ -553,6 +553,7 @@ model MediaItem {
 
   @@index([projectId, createdAt])
   @@index([projectId, folderId, deletedAt, updatedAt])
+  @@index([folderId])
 }
 
 model MediaItemAssignment {
@@ -608,6 +609,7 @@ model MediaVersion {
   @@index([mediaItemId, createdAt])
   @@index([storageProvider, status])
   @@index([nasPath])
+  @@index([createdById])
 }
 
 model ReviewComment {
@@ -636,6 +638,8 @@ model ReviewComment {
 
   @@index([mediaVersionId, timeSeconds])
   @@index([parentCommentId])
+  @@index([authorId])
+  @@index([resolvedById])
 }
 
 model CommentMention {
@@ -647,6 +651,7 @@ model CommentMention {
   user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([commentId, userId])
+  @@index([userId])
 }
 
 model ApprovalEvent {
@@ -660,6 +665,7 @@ model ApprovalEvent {
   changedBy     User?           @relation("ApprovalActor", fields: [changedById], references: [id], onDelete: SetNull)
 
   @@index([mediaVersionId, createdAt])
+  @@index([changedById])
 }
 
 model GuestLink {
@@ -1102,6 +1108,7 @@ model PackageStageMedia {
 
   @@unique([rowId, mediaItemId])
   @@index([rowId, stage])
+  @@index([mediaItemId])
 }
 
 /// Idempotent review-email receipt (one send per row + stage + media version).

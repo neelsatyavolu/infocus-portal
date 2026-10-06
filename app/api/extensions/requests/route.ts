@@ -25,7 +25,8 @@ import {
   mayGrantExtensions,
   mayGrantPendingRequest
 } from "@/src/server/extension-requests";
-import { MAX_CYCLES_PER_SEMESTER } from "@/src/server/program-settings";
+import { resolveActiveCycleNumber, resolveStudentCycleNumber } from "@/src/server/package-cycle-stage";
+import { getCycleNumbers, MAX_CYCLES_PER_SEMESTER } from "@/src/server/program-settings";
 import { labeledUser, userDisplayName } from "@/src/lib/user-display";
 
 const extensionDaysSchema = z.number().refine(isValidExtensionDays, EXTENSION_DAYS_ERROR);
@@ -230,17 +231,22 @@ export async function GET() {
     const rowIds = memberships.map((entry) => entry.rowId);
 
     const viewer = { userId, role: access.role };
-    const loaded = await loadSerializedRequests(
-      isProducer
-        ? {}
-        : {
-            OR: [
-              { userId },
-              ...(rowIds.length > 0 ? [{ progressRowId: { in: rowIds } }] : [])
-            ]
-          },
-      viewer
-    );
+    // Seeds the request form's cycle: a student still owing last cycle's Final Cut lands on that cycle.
+    const [loaded, activeCycleNumber, cycleNumbers] = await Promise.all([
+      loadSerializedRequests(
+        isProducer
+          ? {}
+          : {
+              OR: [
+                { userId },
+                ...(rowIds.length > 0 ? [{ progressRowId: { in: rowIds } }] : [])
+              ]
+            },
+        viewer
+      ),
+      isProducer ? resolveActiveCycleNumber() : resolveStudentCycleNumber(userId),
+      getCycleNumbers()
+    ]);
     // A grant for only some members stays hidden from the members it doesn't cover.
     const requests = isProducer ? loaded : loaded.filter((entry) => extensionRequestVisibleTo(entry, userId));
 
@@ -249,6 +255,8 @@ export async function GET() {
       canGrant: mayGrantExtensions(access.role),
       currentUserId: userId,
       approvalsRequired: REQUIRED_EXTENSION_APPROVALS,
+      activeCycleNumber,
+      cycleNumbers,
       requests
     });
   } catch (error) {

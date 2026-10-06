@@ -74,53 +74,55 @@ export async function syncTurnedInDateForUpload(mediaItemId: string, uploadedAt:
   }
 
   const calculatedDays = calculateExtensionDays(cycle?.finalCutDate ?? null, turnedInDate);
-  let updatedCount = 0;
-
-  for (const assignment of media.memberAssignments) {
-    if (isAdminUserEmail(assignment.user.email, adminEmails)) {
-      continue;
-    }
-
-    const existing = await prisma.packageGrade.findUnique({
-      where: {
-        cycleNumber_userId: {
-          cycleNumber,
-          userId: assignment.userId
-        }
-      },
-      select: {
-        turnedInDate: true
-      }
-    });
-
-    if (existing?.turnedInDate) {
-      continue;
-    }
-
-    await prisma.packageGrade.upsert({
-      where: {
-        cycleNumber_userId: {
-          cycleNumber,
-          userId: assignment.userId
-        }
-      },
-      update: {
-        turnedInDate,
-        extensionDaysApplied: calculatedDays,
-        freeExtensionDays: 0,
-        extensionExempt: false
-      },
-      create: {
-        cycleNumber,
-        userId: assignment.userId,
-        turnedInDate,
-        extensionDaysApplied: calculatedDays,
-        freeExtensionDays: 0,
-        extensionExempt: false
-      }
-    });
-    updatedCount += 1;
+  const userIds = [
+    ...new Set(
+      media.memberAssignments
+        .filter((assignment) => !isAdminUserEmail(assignment.user.email, adminEmails))
+        .map((assignment) => assignment.userId)
+    )
+  ];
+  if (userIds.length === 0) {
+    return 0;
   }
+
+  // One read for every member's grade row instead of one per member.
+  const alreadyTurnedIn = new Set(
+    (
+      await prisma.packageGrade.findMany({
+        where: { cycleNumber, userId: { in: userIds }, turnedInDate: { not: null } },
+        select: { userId: true }
+      })
+    ).map((grade) => grade.userId)
+  );
+  const pending = userIds.filter((userId) => !alreadyTurnedIn.has(userId));
+
+  await Promise.all(
+    pending.map((userId) =>
+      prisma.packageGrade.upsert({
+        where: {
+          cycleNumber_userId: {
+            cycleNumber,
+            userId
+          }
+        },
+        update: {
+          turnedInDate,
+          extensionDaysApplied: calculatedDays,
+          freeExtensionDays: 0,
+          extensionExempt: false
+        },
+        create: {
+          cycleNumber,
+          userId,
+          turnedInDate,
+          extensionDaysApplied: calculatedDays,
+          freeExtensionDays: 0,
+          extensionExempt: false
+        }
+      })
+    )
+  );
+  const updatedCount = pending.length;
 
   return updatedCount;
 }

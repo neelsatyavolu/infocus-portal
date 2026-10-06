@@ -1,4 +1,5 @@
 import { type PackageCategory, PlatformRole } from "@prisma/client";
+import { cache } from "react";
 import { ASSOCIATE_REVIEW_AUDIT } from "@/src/server/associate-review-history";
 import { prisma } from "@/src/lib/prisma";
 import { remainingFromApproval } from "@/src/lib/package-approval";
@@ -136,23 +137,36 @@ export async function loadRequiredFinalCutGraders() {
   return loadAssignableExecutiveProducers();
 }
 
-async function ensureDefaultCycles(cycleNumbers: number[]) {
-  const existing = await prisma.packageCycle.findMany({
-    orderBy: { cycleNumber: "asc" },
-    select: {
-      cycleNumber: true,
-      focus: true,
-      pitchingDate: true,
-      proofOfContactDate: true,
-      aRollBRollDate: true,
-      initialCutDate: true,
-      finalCutDate: true
-    }
-  });
+const CYCLE_SELECT = {
+  cycleNumber: true,
+  focus: true,
+  pitchingDate: true,
+  proofOfContactDate: true,
+  aRollBRollDate: true,
+  initialCutDate: true,
+  finalCutDate: true
+} as const;
 
-  const existingSet = new Set(existing.map((cycle) => cycle.cycleNumber));
-  const missing = cycleNumbers.filter((cycleNumber) => !existingSet.has(cycleNumber));
+function loadCycles() {
+  return prisma.packageCycle.findMany({ orderBy: { cycleNumber: "asc" }, select: CYCLE_SELECT });
+}
 
+/** Cycle numbers that already have progress rows (GROUP BY in SQL, not every row). */
+async function loadProgressRowCycleNumbers() {
+  const groups = await prisma.packageProgressRow.groupBy({ by: ["cycleNumber"] });
+  return new Set(groups.map((group) => group.cycleNumber));
+}
+
+/** Cycle numbers in `wanted` that are not in `existing`. */
+export function missingCycleNumbers(wanted: number[], existing: Set<number>) {
+  return wanted.filter((cycleNumber) => !existing.has(cycleNumber));
+}
+
+async function ensureDefaultCycles(
+  cycleNumbers: number[],
+  existing: Awaited<ReturnType<typeof loadCycles>>
+) {
+  const missing = missingCycleNumbers(cycleNumbers, new Set(existing.map((cycle) => cycle.cycleNumber)));
   if (missing.length === 0) {
     return existing;
   }
@@ -164,29 +178,11 @@ async function ensureDefaultCycles(cycleNumbers: number[]) {
     }))
   });
 
-  return prisma.packageCycle.findMany({
-    orderBy: { cycleNumber: "asc" },
-    select: {
-      cycleNumber: true,
-      focus: true,
-      pitchingDate: true,
-      proofOfContactDate: true,
-      aRollBRollDate: true,
-      initialCutDate: true,
-      finalCutDate: true
-    }
-  });
+  return loadCycles();
 }
 
-async function ensureDefaultProgressRows(cycleNumbers: number[]) {
-  const existingRows = await prisma.packageProgressRow.findMany({
-    select: { cycleNumber: true },
-    distinct: ["cycleNumber"]
-  });
-
-  const existingSet = new Set(existingRows.map((row) => row.cycleNumber));
-  const missing = cycleNumbers.filter((cycleNumber) => !existingSet.has(cycleNumber));
-
+async function ensureDefaultProgressRows(cycleNumbers: number[], existing: Set<number>) {
+  const missing = missingCycleNumbers(cycleNumbers, existing);
   if (missing.length === 0) {
     return;
   }
@@ -196,25 +192,41 @@ async function ensureDefaultProgressRows(cycleNumbers: number[]) {
   });
 }
 
-export async function ensurePackageProgressDefaults() {
-  const cycleNumbers = await getCycleNumbers();
+/**
+ * Makes sure every configured cycle has a PackageCycle and default rows, and returns the cycles.
+ * The settings read and both existence checks run in parallel; writes only happen when missing.
+ * Deduped per server render via React cache().
+ */
+export const ensurePackageProgressDefaults = cache(async function ensurePackageProgressDefaults() {
+  const [cycleNumbers, existingCycles, rowCycleNumbers] = await Promise.all([
+    getCycleNumbers(),
+    loadCycles(),
+    loadProgressRowCycleNumbers()
+  ]);
   // Independent tables (PackageProgressRow.cycleNumber has no FK to PackageCycle).
   const [cycles] = await Promise.all([
-    ensureDefaultCycles(cycleNumbers),
-    ensureDefaultProgressRows(cycleNumbers)
+    ensureDefaultCycles(cycleNumbers, existingCycles),
+    ensureDefaultProgressRows(cycleNumbers, rowCycleNumbers)
   ]);
   return cycles;
+});
+
+/** The first cycle whose Final Cut is still open, else the last cycle (cycles sorted ascending). */
+export function activeCycleNumberFor(
+  cycles: ReadonlyArray<{ cycleNumber: number; finalCutDate: Date | null }>,
+  now: Date = new Date()
+) {
+  return (
+    cycles.find((cycle) => !finalCutDeadlinePassed(cycle.finalCutDate, now))?.cycleNumber ??
+    cycles[cycles.length - 1]?.cycleNumber ??
+    1
+  );
 }
 
 export async function loadPackageProgressData(requestedCycleNumber?: number | null) {
   const cycles = await ensurePackageProgressDefaults();
 
-  const now = new Date();
-  const activeCycleNumber =
-    requestedCycleNumber ??
-    cycles.find((cycle) => !finalCutDeadlinePassed(cycle.finalCutDate, now))?.cycleNumber ??
-    cycles[cycles.length - 1]?.cycleNumber ??
-    1;
+  const activeCycleNumber = requestedCycleNumber ?? activeCycleNumberFor(cycles);
 
   const [rows, producers, executives, previousCycleRows, finalCutGrades] = await Promise.all([
     prisma.packageProgressRow.findMany({

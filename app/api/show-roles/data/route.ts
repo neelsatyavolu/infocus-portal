@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUserId, syncUserProfile } from "@/src/lib/auth";
 import { getPlatformAccess, hasPlatformRole } from "@/src/lib/platform-admin";
+import { jsonEqual } from "@/src/lib/json-equal";
 import { prisma } from "@/src/lib/prisma";
 import { withAssociateShowManagers } from "@/src/server/show-roles-history";
 
@@ -125,7 +126,26 @@ export async function POST(request: NextRequest) {
         await tx.showRolesShow.deleteMany();
       }
 
+      // Shows already stored exactly as sent are skipped (the upsert would be a no-op).
+      const stored = new Map(
+        (
+          await tx.showRolesShow.findMany({
+            where: { date: { in: dates } },
+            select: { date: true, assignments: true, anchors: true, confirmed: true }
+          })
+        ).map((record) => [record.date, record])
+      );
+
       for (const show of shows) {
+        const current = stored.get(show.date);
+        if (
+          current &&
+          jsonEqual(current.assignments, show.assignments) &&
+          jsonEqual(current.anchors, show.anchors) &&
+          jsonEqual(current.confirmed, show.confirmed)
+        ) {
+          continue;
+        }
         await tx.showRolesShow.upsert({
           where: { date: show.date },
           create: {
@@ -140,6 +160,8 @@ export async function POST(request: NextRequest) {
             confirmed: show.confirmed
           }
         });
+        // A repeated date compares against what was just written, so the last copy still wins.
+        stored.set(show.date, show);
       }
     });
 

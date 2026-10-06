@@ -6,8 +6,8 @@ import { unreadHubChatCount } from "@/src/server/hub-chat";
 export async function GET() {
   try {
     const userId = await requireUserId();
-    await syncUserProfile(userId);
-    return ok({ unreadCount: await unreadHubChatCount(userId) });
+    const user = await syncUserProfile(userId);
+    return ok({ unreadCount: await unreadHubChatCount(userId, user) });
   } catch (error) {
     return handleRouteError(error);
   }

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import {
@@ -63,14 +64,22 @@ function normalizeView(value: string | undefined): ViewValue {
   return "grid";
 }
 
-async function getDashboardData(userId: string, platformRole: PlatformRole | null, email: string | null) {
+/** includeProjects: false for students, whose dashboard shows the snapshot instead of projects. */
+async function getDashboardData(
+  userId: string,
+  platformRole: PlatformRole | null,
+  email: string | null,
+  includeProjects: boolean
+) {
   return prisma.workspace.findMany({
     where: buildWorkspaceAccessWhere({
       userId,
       platformRole,
       email
     }),
-    include: {
+    select: {
+      id: true,
+      name: true,
       members: {
         where: {
           userId
@@ -82,7 +91,11 @@ async function getDashboardData(userId: string, platformRole: PlatformRole | nul
       },
       projects: {
         orderBy: { createdAt: "desc" },
-        include: {
+        ...(includeProjects ? {} : { take: 0 }),
+        select: {
+          id: true,
+          name: true,
+          updatedAt: true,
           _count: {
             select: {
               mediaItems: true
@@ -123,6 +136,8 @@ function sortProjects<T extends { name: string; updatedAt: Date; _count: { media
 }
 
 
+export const metadata: Metadata = { title: "Dashboard" };
+
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   const [{ workspaceId, sort, view }, currentAppUser] = await Promise.all([searchParams, getCurrentAppUser()]);
   const { userId, user, platformRole } = currentAppUser;
@@ -130,7 +145,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   // The App Review account sees its sample workspace's projects, not a (blank) student snapshot.
   const isStudent = !access.canManageWorkspaces && !isAppReviewEmail(user.email);
   // The student snapshot doesn't depend on workspaces, so start everything at once.
-  const workspacesPromise = getDashboardData(userId, platformRole, user.email);
+  const workspacesPromise = getDashboardData(userId, platformRole, user.email, !isStudent);
   const [workspaces, dashboardPanels, snapshot] = await Promise.all([
     workspacesPromise,
     workspacesPromise.then((loaded) =>

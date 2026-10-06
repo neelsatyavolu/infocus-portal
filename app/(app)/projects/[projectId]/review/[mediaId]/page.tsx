@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { WorkspaceRole } from "@prisma/client";
 import { ProjectShellBridge } from "@/components/project-shell-bridge";
@@ -127,14 +128,18 @@ async function getReviewData(
     ? media.versions.find((version) => version.id === requestedVersionId)
     : null;
   const currentVersion = requestedVersion ?? media.currentVersion ?? media.versions[0];
-  const approvalView =
+  // Independent lookups (a missing approval row reads as "review open" either way), so run them together.
+  const [approvalView, reviewClosed] =
     initialCutRow && currentUserId
-      ? await loadApprovalView(initialCutRow.id, {
-          userId: currentUserId,
-          email: reviewerEmail,
-          role: reviewerRole
-        })
-      : null;
+      ? await Promise.all([
+          loadApprovalView(initialCutRow.id, {
+            userId: currentUserId,
+            email: reviewerEmail,
+            role: reviewerRole
+          }),
+          initialCutReviewClosed(media.id, currentUserId, reviewerRole)
+        ])
+      : [null, false];
   const packageReview =
     initialCutRow && currentUserId && approvalView
       ? {
@@ -150,11 +155,7 @@ async function getReviewData(
         }
       : null;
 
-  const allowComment = !(
-    initialCutRow &&
-    currentUserId &&
-    (await initialCutReviewClosed(media.id, currentUserId, reviewerRole))
-  );
+  const allowComment = !reviewClosed;
 
   return {
     canViewShareLinks,
@@ -177,10 +178,12 @@ async function getReviewData(
       currentVersionId: currentVersion?.id ?? "",
       versions: await Promise.all(
         media.versions.map(async (version) => {
-          const playbackUrl =
-            version.sourceType === "VIDEO" && version.status === "READY"
-              ? await resolvePlaybackUrl(version)
-              : null;
+          const [playbackUrl, thumbnailUrl] = await Promise.all([
+            version.sourceType === "VIDEO" && version.status === "READY" ? resolvePlaybackUrl(version) : null,
+            version.sourceType === "IMAGE"
+              ? buildMediaVersionImageUrl(media.id, version.id)
+              : resolveThumbnailUrl(version)
+          ]);
 
           return {
             id: version.id,
@@ -198,10 +201,7 @@ async function getReviewData(
               : null,
             airedAt: version.airedAt?.toISOString() ?? null,
             playbackUrl,
-            thumbnailUrl:
-              version.sourceType === "IMAGE"
-                ? buildMediaVersionImageUrl(media.id, version.id)
-                : await resolveThumbnailUrl(version),
+            thumbnailUrl,
             imageUrl: version.sourceType === "IMAGE" ? buildMediaVersionImageUrl(media.id, version.id) : null,
             createdAt: version.createdAt.toISOString()
           };
@@ -226,6 +226,30 @@ async function getReviewData(
       )
     }
   };
+}
+
+export async function generateMetadata({
+  params
+}: {
+  params: Promise<{ projectId: string; mediaId: string }>;
+}): Promise<Metadata> {
+  const { projectId, mediaId } = await params;
+  try {
+    const { media } = await requireMediaAccess(
+      mediaId,
+      [WorkspaceRole.OWNER_ADMIN, WorkspaceRole.EDITOR, WorkspaceRole.REVIEWER],
+      { allowVisibility: true }
+    );
+    if (media.projectId !== projectId) return { title: "Review" };
+    // Initial cuts show a version title on the page instead of the file title.
+    const initialCutRow = await prisma.packageProgressRow.findFirst({
+      where: { initialCutMediaItemId: mediaId },
+      select: { id: true }
+    });
+    return { title: initialCutRow ? "Initial Cut" : media.title || "Review" };
+  } catch {
+    return { title: "Review" };
+  }
 }
 
 export default async function ReviewPage({

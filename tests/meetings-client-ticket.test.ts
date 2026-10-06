@@ -156,6 +156,34 @@ describe("KeyCatchUp", () => {
     expect(t.epoch()).toBe(0);
   });
 
+  it("keeps retrying past a long outage instead of leaving voices undecryptable", async () => {
+    const outage = Array.from({ length: 20 }, () => new Error("offline"));
+    const t = setup([...outage, { key: "k1", epoch: 1 }]);
+    await t.catchUp.ensure(1, { rekey: true });
+    expect(t.fetchKey).toHaveBeenCalledTimes(21);
+    expect(t.epoch()).toBe(1);
+  });
+
+  it("stops retrying once stopped (the call ended)", async () => {
+    let epoch = 0;
+    let calls = 0;
+    const catchUp: KeyCatchUp = new KeyCatchUp({
+      fetchKey: async () => {
+        calls += 1;
+        if (calls === 3) catchUp.stop();
+        throw new Error("offline");
+      },
+      setKey: async (key) => {
+        epoch = key.epoch;
+      },
+      currentEpoch: () => epoch,
+      onFatal: () => undefined,
+      sleep: async () => undefined
+    });
+    await catchUp.ensure(1, { rekey: true });
+    expect(calls).toBe(3);
+  });
+
   it("joins a run already in progress", async () => {
     const t = setup([{ key: "k2", epoch: 2 }]);
     await Promise.all([t.catchUp.ensure(1, { rekey: true }), t.catchUp.ensure(2, { rekey: true })]);

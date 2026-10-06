@@ -273,6 +273,12 @@ describe("notes in parts", () => {
     expect(data).not.toHaveProperty("notesDrivePaths");
   });
 
+  it("a retried READY for part 1 keeps the later parts' summaries", () => {
+    const twoParts = { ...row, notesDrivePaths: ["Meetings/part1", "Meetings/part2"], notesSummary: "one\n\n## Part 2\n\ntwo" };
+    const { data } = notesUpdateData(twoParts, { status: "READY", summaryMarkdown: "one", drivePath: "Meetings/part1", part: 1 }, NOW);
+    expect(data).not.toHaveProperty("notesSummary");
+  });
+
   it("restarts a stopped Scribe while the meeting is LIVE (claimed: at most once per 10 minutes)", async () => {
     mocks.meeting.findUnique
       .mockResolvedValueOnce({ id: "m1", status: "LIVE", notesEnabled: true, notesPart: 1, notesDrivePaths: [], notesSummary: null })

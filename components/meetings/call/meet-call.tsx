@@ -14,10 +14,13 @@ import { OpensAtScreen } from "./opens-at-screen";
 import { PreJoin } from "./prejoin";
 import { DeniedScreen, EndScreen, JoiningScreen, WaitingScreen } from "./status-screens";
 import { useLocalMedia } from "./use-local-media";
-import { useMeetingCall } from "./use-meeting-call";
+import { useMeetingCall, type CallStage } from "./use-meeting-call";
 
 /** When the server says "not open yet" but our clock disagrees, wait at least this long. */
 const SERVER_NOT_OPEN_RETRY_MS = 15_000;
+
+/** Stages where local media may stay on; every other stage is an end screen. */
+const LIVE_STAGES: ReadonlySet<CallStage> = new Set(["prejoin", "joining", "waiting", "denied", "incall"]);
 
 function SupportedCall({
   meeting,
@@ -50,6 +53,17 @@ function SupportedCall({
   useEffect(() => {
     if (call.notOpen) onNotOpen();
   }, [call.notOpen, onNotOpen]);
+
+  // End screens (ended, removed, left, full, error…) stop capture: the mic and camera would
+  // otherwise stay live (and their indicators on) behind the end screen. Rejoining starts muted.
+  const ended = !LIVE_STAGES.has(call.stage);
+  const { stopScreenShare } = media;
+  useEffect(() => {
+    if (!ended) return;
+    setAudio(false);
+    setVideo(false);
+    stopScreenShare();
+  }, [ended, setAudio, setVideo, stopScreenShare]);
 
   const join = () => {
     // The tap that joins also unlocks audio playback (iOS).

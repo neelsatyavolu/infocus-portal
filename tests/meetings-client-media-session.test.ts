@@ -170,6 +170,9 @@ describe("fetchIceServers", () => {
     vi.stubGlobal("fetch", fetchMock);
     const headers = new Headers({ Authorization: "Bearer t" });
     expect(await fetchIceServers("https://room.example.edu/p", { current: "t", headers })).toEqual([{ urls: "turn:x" }]);
-    expect(fetchMock).toHaveBeenCalledWith("https://room.example.edu/p/generate-ice-servers?token=t", { headers });
+    expect(fetchMock).toHaveBeenCalledWith("https://room.example.edu/p/generate-ice-servers?token=t", {
+      headers,
+      signal: expect.any(AbortSignal)
+    });
   });
 });

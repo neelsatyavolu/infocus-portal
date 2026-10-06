@@ -17,7 +17,27 @@ const files = [
   ["LICENSE", "LICENSE"]
 ];
 
+// The processor compiles its wasm asynchronously and outputs silence until then. Post "ready"
+// (or "error") on its port so voice-graph.ts keeps the raw mic until RNNoise really runs.
+const READY_FROM = "this.processor=p(t,{bufferSize:128,maxChannels:e.processorOptions.maxChannels}),this.destroyed&&this.destroy()})()";
+const READY_TO =
+  "this.processor=p(t,{bufferSize:128,maxChannels:e.processorOptions.maxChannels}),this.port.postMessage(`ready`),this.destroyed&&this.destroy()})().catch(()=>this.port.postMessage(`error`))";
+
+// Upstream listens for "destroy" with addEventListener but never starts the port, so it never
+// arrives and a dropped node keeps its RNNoise state. Start the port.
+const DESTROY_FROM = "this.port.addEventListener(`message`,e=>{e.data===`destroy`&&this.destroy()})";
+const DESTROY_TO = `${DESTROY_FROM},this.port.start()`;
+
+function withReadySignal(source) {
+  if (!source.includes(READY_FROM) || !source.includes(DESTROY_FROM)) {
+    throw new Error("rnnoiseWorklet.js changed upstream: update the ready-signal patch");
+  }
+  return source.replace(READY_FROM, READY_TO).replace(DESTROY_FROM, DESTROY_TO);
+}
+
 mkdirSync(outDir, { recursive: true });
 for (const [from, to] of files) copyFileSync(join(pkgDir, from), join(outDir, to));
+const workletPath = join(outDir, "rnnoiseWorklet.js");
+writeFileSync(workletPath, withReadySignal(readFileSync(workletPath, "utf8")));
 writeFileSync(join(outDir, "VERSION"), `@sapphi-red/web-noise-suppressor ${version}\n`);
 process.stdout.write(`Vendored @sapphi-red/web-noise-suppressor ${version} into public/vendor/noise-suppressor\n`);

@@ -105,13 +105,18 @@ export async function actOnParticipant(
   if (!participant) throw new Error("NOT_FOUND");
 
   if (action === "admit") {
-    if (participant.state === "ADMITTED") return { state: "ADMITTED" as const };
-    const updated = await prisma.meetingParticipant.updateMany({
-      where: { meetingId, userId, state: { in: ["WAITING", "DENIED"] } },
-      data: { state: "ADMITTED" }
-    });
-    if (updated.count === 0) throw new Error("They aren't waiting to join. Ask them to join again.");
-    await sendMeetingRoomEvent(meetingId, { t: "admitted", uid: userId });
+    if (participant.state !== "ADMITTED") {
+      const updated = await prisma.meetingParticipant.updateMany({
+        where: { meetingId, userId, state: { in: ["WAITING", "DENIED"] } },
+        data: { state: "ADMITTED" }
+      });
+      if (updated.count === 0) throw new Error("They aren't waiting to join. Ask them to join again.");
+    }
+    // Sent again for someone already admitted: if the first event was lost they'd sit in the lobby
+    // forever (the room only lets them in on this event), so a second Admit click must re-send it.
+    if (!(await sendMeetingRoomEvent(meetingId, { t: "admitted", uid: userId }))) {
+      throw new Error("Couldn't reach the call to let them in. Admit again.");
+    }
     return { state: "ADMITTED" as const };
   }
 

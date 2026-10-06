@@ -71,6 +71,21 @@ export function useLocalMedia(): LocalMedia {
 
   useEffect(() => keepBroadcasting([mic, camera]), [mic, camera]);
 
+  // The chosen speaker was unplugged (USB, Bluetooth): fall back to the system default output.
+  useEffect(() => {
+    const devices = typeof navigator === "undefined" ? undefined : navigator.mediaDevices;
+    if (!speakerId || !devices?.enumerateDevices) return;
+    const check = () =>
+      devices
+        .enumerateDevices()
+        .then((all) => {
+          if (!all.some((d) => d.kind === "audiooutput" && d.deviceId === speakerId)) setSpeakerId("");
+        })
+        .catch(() => undefined);
+    devices.addEventListener?.("devicechange", check);
+    return () => devices.removeEventListener?.("devicechange", check);
+  }, [speakerId]);
+
   useEffect(() => {
     const subs = [
       mic.error$.subscribe((error) => toast.error(deviceErrorMessage("microphone", error))),

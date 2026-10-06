@@ -117,4 +117,9 @@ describe("rekey send schedule", () => {
     const s = scheduleSendKey(emptySendSchedule<string>(), { epoch: 5, key: "k5" }, 0, 0);
     expect(scheduleSendKey(s, { epoch: 4, key: "k4" }, 10, REKEY_SEND_DELAY_MS)).toEqual(s);
   });
+
+  it("ignores an older epoch without a send grace too (a late catch-up key)", () => {
+    const s = scheduleSendKey(emptySendSchedule<string>(), { epoch: 5, key: "k5" }, 0, 0);
+    expect(scheduleSendKey(s, { epoch: 4, key: "k4" }, 10, 0)).toEqual(s);
+  });
 });

@@ -382,7 +382,11 @@ export class MeetingRoom extends DurableObject<Env> {
     }
     if (this.room.hostReportRetryAt !== null && now >= this.room.hostReportRetryAt) await this.retryHostReports(now);
     if (!isEmptyDue(this.room, now)) return this.syncAlarm();
+    const generation = this.room.generation;
     const result = await this.report({ t: "empty" });
+    // Other events run while the report is in flight: if the meeting was reopened (a newer
+    // generation joined), this result is about the old run and must not end the new one.
+    if (this.room.generation !== generation) return this.syncAlarm();
     if (!result.ok) {
       // Backoff via the stored retry time (the one alarm picks it up); give up on 404/410 or after ~1 hour.
       const failed = afterEmptyReportFailed(this.room, result.status, Date.now());

@@ -16,9 +16,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     });
     // INVITE_ONLY notes are only for the people on that meeting; EXECS_ONLY notes only for execs.
     assertCanSeeMeeting(viewer, meeting);
-    // Any READY part has a transcript (a later part may still be recording); parts are joined in order.
+    // Any READY part has a transcript (a later part may still be recording); the Drive joins parts in order.
     if (meeting.notesDrivePaths.length === 0 && meeting.notesStatus !== "READY") throw new Error("NOT_FOUND");
-    const markdown = await fetchMeetingTranscript(id, meeting.notesDrivePaths);
+    const markdown = await fetchMeetingTranscript(id);
     if (markdown === null) throw new Error("NOT_FOUND");
     return ok({ markdown });
   } catch (error) {

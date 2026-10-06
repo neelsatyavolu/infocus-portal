@@ -165,4 +165,13 @@ describe("e2ee worker interop", () => {
     expect(fresh.sendEpoch(6999)).toBe(0);
     expect(fresh.sendEpoch(7000)).toBe(1);
   });
+
+  it("never moves the send epoch backward when an older key arrives late", async () => {
+    const fresh = loadWorker();
+    const k1 = await fresh.deriveFrameKey(roomKey(1));
+    const k2 = await fresh.deriveFrameKey(roomKey(2));
+    fresh.setKeyForTest(2, k2, 1000, 0);
+    fresh.setKeyForTest(1, k1, 1001, 0);
+    expect(fresh.sendEpoch(1002)).toBe(2);
+  });
 });

@@ -5,10 +5,14 @@ export async function holdUploadWakeLock(): Promise<() => void> {
   }
 
   let lock: WakeLockSentinel | null = null;
+  let released = false;
 
   async function acquire() {
     try {
-      lock = await navigator.wakeLock.request("screen");
+      const next = await navigator.wakeLock.request("screen");
+      // Released while this request was in flight (a visibility re-acquire): don't keep it.
+      if (released) void next.release().catch(() => undefined);
+      else lock = next;
     } catch {
       lock = null;
     }
@@ -24,6 +28,7 @@ export async function holdUploadWakeLock(): Promise<() => void> {
   document.addEventListener("visibilitychange", onVisible);
 
   return () => {
+    released = true;
     document.removeEventListener("visibilitychange", onVisible);
     void lock?.release().catch(() => undefined);
   };

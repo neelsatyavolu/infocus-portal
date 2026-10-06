@@ -13,6 +13,7 @@ export function partyTracksPrefix(roomUrl: string, meetingId: string) {
 export type MediaTicket = { current: string; headers?: Headers };
 
 const ICE_ATTEMPTS = 3;
+const ICE_FETCH_TIMEOUT_MS = 8_000;
 
 /**
  * partytracks fetches `${prefix}/generate-ice-servers` without our auth, so the TURN credentials
@@ -28,7 +29,9 @@ export async function fetchIceServers(
     if (attempt > 0) await sleep(backoffDelay(attempt));
     try {
       const response = await fetch(`${prefix}/generate-ice-servers?token=${encodeURIComponent(ticket.current)}`, {
-        headers: ticket.headers
+        headers: ticket.headers,
+        // A request that never answers (captive portal, blackholed proxy) would hold the call on "joining".
+        signal: AbortSignal.timeout(ICE_FETCH_TIMEOUT_MS)
       });
       if (response.ok) {
         const body = (await response.json()) as { iceServers?: RTCIceServer[] };
@@ -43,10 +46,14 @@ export async function fetchIceServers(
   return undefined;
 }
 
-/** Retries a push/pull with jittered backoff (the room proxy answers 429 above 60 calls per 10 s). */
-export function withBackoff<T>(label = "media"): MonoTypeOperatorFunction<T> {
+/**
+ * Retries a push/pull with jittered backoff (the room proxy answers 429 above 60 calls per 10 s).
+ * The call's pushes and pulls pass `Infinity`: giving up left a mic that looked on but sent nothing,
+ * or a person nobody could hear, for the rest of the call. A dead session is rebuilt by watchSession.
+ */
+export function withBackoff<T>(label = "media", count = 6): MonoTypeOperatorFunction<T> {
   return retry({
-    count: 6,
+    count,
     delay: (error, attempt) => {
       // Push/pull errors (a 429/403 from the room proxy shows up in the message).
       diagEvent("media_retry", { op: label, attempt, message: errorText(error) });
@@ -176,7 +183,8 @@ export async function createMediaSession(input: {
   const pulls = new PullRegistry(
     (meta, rid$) =>
       (rid$ ? partyTracks.pull(of(meta), { simulcast: { preferredRid$: rid$ } }) : partyTracks.pull(of(meta))).pipe(
-        withBackoff("pull"),
+        // Until released: the registry only re-acquires when the track's id changes.
+        withBackoff("pull", Infinity),
         catchError((error) => {
           diagEvent("pull_failed", { sid: meta.sessionId.slice(0, 8), message: errorText(error) });
           return EMPTY;

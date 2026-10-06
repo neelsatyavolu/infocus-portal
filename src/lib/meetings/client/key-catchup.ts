@@ -18,7 +18,8 @@ type Deps = {
   currentEpoch: () => number;
   onFatal: (kind: TicketFatal) => void;
   sleep?: (ms: number) => Promise<void>;
-  maxAttempts?: number;
+  /** Failures before a `key_catchup_slow` diag event (retries continue at the capped backoff). */
+  slowAfterAttempts?: number;
 };
 
 const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -49,12 +50,10 @@ export class KeyCatchUp {
 
   private async run(rekey: boolean) {
     const sleep = this.deps.sleep ?? defaultSleep;
-    const maxAttempts = this.deps.maxAttempts ?? 12;
+    const slowAfter = this.deps.slowAfterAttempts ?? 12;
+    // Never give up while behind: until we have the key, peers' audio and video can't be decrypted.
     for (let attempt = 0; !this.stopped && this.deps.currentEpoch() < this.target; attempt += 1) {
-      if (attempt >= maxAttempts) {
-        diagEvent("key_catchup_gave_up", { have: this.deps.currentEpoch(), want: this.target });
-        return;
-      }
+      if (attempt === slowAfter) diagEvent("key_catchup_slow", { have: this.deps.currentEpoch(), want: this.target });
       try {
         const key = await this.deps.fetchKey();
         if (this.stopped) return;

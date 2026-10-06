@@ -53,8 +53,11 @@ export const SCREEN_CAPTURE: MediaTrackConstraints = {
 };
 export const SCREEN_ENCODINGS: RTCRtpEncodingParameters[] = [{ maxBitrate: 1_500_000, maxFramerate: 15 }];
 
-/** Opus speech at high quality; Chrome keeps in-band FEC on by default. */
-export const MIC_ENCODINGS: RTCRtpEncodingParameters[] = [{ maxBitrate: 64_000 }];
+/**
+ * Opus speech at high quality; Chrome keeps in-band FEC on by default. High priority: on a congested
+ * link the voice keeps its share ahead of the camera layers (and gets a voice DSCP mark where honored).
+ */
+export const MIC_ENCODINGS: RTCRtpEncodingParameters[] = [{ maxBitrate: 64_000, priority: "high", networkPriority: "high" }];
 
 /**
  * Simulcast layer for a tile from its on-screen height (CSS px). Under 360 px → q, under

@@ -72,10 +72,14 @@ This is separate from Admin → Reconnect YouTube and doesn't change it.
 - **Quick access** (host setting): producers join without asking. Someone a host removed still has to ask.
 - Hosts get a push when someone is waiting (at most every 2 minutes per person).
 - If you rejoin after being let in (refresh, another device), you go straight back in.
+- When the call ends for you (ended, removed, or an error screen), your mic, camera and screen share turn off. Rejoining from that screen starts muted.
+- If the speaker you picked is unplugged (USB or Bluetooth), sound switches to the computer's default output.
+- **Voice isolation** (on by default) switches to the noise filter only once it has fully loaded, so the first words after unmuting aren't cut off. On a slow device that can't load it within 5 seconds, the browser's own noise suppression keeps working.
 
 ## Host controls
 
 - Admit, deny, admit all, mute, remove, lower hands, quick access, notes on/off, End for everyone.
+- If someone is still in the lobby after you let them in, press **Admit** again: it re-sends the "come in". If the call can't be reached, Admit says so instead of looking like it worked.
 - **Remove** takes the person out and changes the meeting's encryption key, so they can't read or hear anything after that. They can ask to join again.
 - When the last person leaves, the meeting ends by itself after a minute (the minute covers a refresh or a dropped connection). Notes start processing then.
 - **Picking it up again:** a meeting that ended because everyone left can be rejoined for 15 minutes (for example, everyone dropped at once). Joining starts it again with a new encryption key, and notes start a new part. **End for everyone** is final: that meeting can't be reopened. The InFocus Producer Meeting link opens such a just-ended meeting while it can still be picked up.

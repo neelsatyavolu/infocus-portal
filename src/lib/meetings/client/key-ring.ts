@@ -46,8 +46,9 @@ export function emptySendSchedule<K>(): SendSchedule<K> {
 export function scheduleSendKey<K>(schedule: SendSchedule<K>, entry: KeyRingEntry<K>, now: number, delayMs: number): SendSchedule<K> {
   const settled = settleSendKey(schedule, now);
   const { send } = settled;
+  // Never move the send key backward (a late, older setKey): peers would drop it after their next rekey.
+  if (send && entry.epoch < send.epoch) return settled;
   if (!send || delayMs <= 0 || entry.epoch === send.epoch) return { send: entry, pending: null, switchAt: null };
-  if (entry.epoch < send.epoch) return settled;
   // A pending key is promoted before queueing the next, so the send key is always in the ring.
   return { send: settled.pending ?? send, pending: entry, switchAt: now + delayMs };
 }

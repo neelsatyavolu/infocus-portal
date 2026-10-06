@@ -44,7 +44,9 @@ export function notesUpdateData(meeting: NotesRow, input: NotesUpdate, now: Date
     if (input.drivePath && isNewPart) data.notesDrivePaths = [...paths, input.drivePath];
     if (summary !== undefined) {
       const partNumber = isNewPart ? paths.length + 1 : paths.indexOf(input.drivePath!) + 1;
-      if (partNumber <= 1) data.notesSummary = summary;
+      // Part 1 owns the whole summary only while it is the only part (a retried part-1 READY after
+      // part 2 arrived must not drop part 2).
+      if (partNumber <= 1 && paths.length <= 1) data.notesSummary = summary;
       else if (isNewPart) data.notesSummary = `${meeting.notesSummary ?? ""}\n\n## Part ${partNumber}\n\n${summary}`.trim();
     }
   } else if (summary !== undefined && current && paths.length === 0) {

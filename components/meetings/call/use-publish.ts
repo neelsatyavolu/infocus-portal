@@ -75,12 +75,12 @@ export function usePublish(input: {
     const subs = [
       partyTracks
         .push(media.mic.broadcastTrack$, { sendEncodings$: of(MIC_ENCODINGS) })
-        .pipe(withBackoff("push.audio"))
-        .subscribe({ next: (meta) => setTrack(session, "audio", meta), error: (e) => pushFailed("audio", e, "Couldn't send your microphone.") }),
+        .pipe(withBackoff("push.audio", Infinity))
+        .subscribe((meta) => setTrack(session, "audio", meta)),
       partyTracks
         .push(media.camera.broadcastTrack$, { sendEncodings$: cameraEncodings$ })
-        .pipe(withBackoff("push.video"))
-        .subscribe({ next: (meta) => setTrack(session, "video", meta), error: (e) => pushFailed("video", e, "Couldn't send your camera.") })
+        .pipe(withBackoff("push.video", Infinity))
+        .subscribe((meta) => setTrack(session, "video", meta))
     ];
     return () => subs.forEach((sub) => sub.unsubscribe());
   }, [session, media.mic, media.camera, cameraEncodings$, setTrack]);

@@ -111,7 +111,8 @@ export function createVoiceGraph(engine: NoiseEngine, callbacks: Callbacks) {
   const build = () => {
     if (built) return built;
     const ctx = engine.getContext();
-    const destination = ctx.createMediaStreamDestination();
+    // Mono out too (the default is stereo): the sent track is one voice channel, like the raw mic.
+    const destination = mono(ctx.createMediaStreamDestination());
     const rawGain = mono(ctx.createGain());
     const procGain = mono(ctx.createGain());
     rawGain.gain.value = 1;

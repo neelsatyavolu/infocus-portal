@@ -25,6 +25,7 @@
   var ring = { current: null, previous: null };
   var schedule = { send: null, pending: null, switchAt: null };
   var failures = {};
+  var keyQueue = Promise.resolve();
 
   function epochByte(epoch) {
     return ((epoch % 256) + 256) % 256;
@@ -62,6 +63,8 @@
 
   function scheduleSendKey(entry, now, delayMs) {
     var send = settleSendKey(now);
+    // Never move the send key backward (a late, older setKey).
+    if (send && entry.epoch < send.epoch) return;
     if (!send || !(delayMs > 0) || entry.epoch === send.epoch) {
       schedule = { send: entry, pending: null, switchAt: null };
     } else if (entry.epoch > send.epoch) {
@@ -159,11 +162,20 @@
       var raw = new Uint8Array(message.key);
       if (raw.byteLength !== 32) return;
       var delayMs = typeof message.sendDelayMs === "number" ? message.sendDelayMs : 0;
-      deriveFrameKey(raw).then(function (key) {
-        var entry = { epoch: message.epoch, key: key };
-        addKey(entry);
-        scheduleSendKey(entry, Date.now(), delayMs);
-      });
+      // Keys are applied in the order they arrive: two derivations finishing out of order could
+      // otherwise drop the older key from the ring.
+      keyQueue = keyQueue
+        .then(function () {
+          return deriveFrameKey(raw);
+        })
+        .then(function (key) {
+          var entry = { epoch: message.epoch, key: key };
+          addKey(entry);
+          scheduleSendKey(entry, Date.now(), delayMs);
+        })
+        .catch(function () {
+          return undefined;
+        });
     } else if (message.type === "forget" && typeof message.id === "string") {
       // The receiver's track ended: drop its failure counter (a long call creates many).
       delete failures[message.id];

@@ -139,8 +139,10 @@ export function RemoteAudio({
   }, [track, uid, onLevel, onBlocked]);
 
   useEffect(() => {
-    const el = ref.current as (HTMLAudioElement & { setSinkId?: (id: string) => Promise<void> }) | null;
-    if (el?.setSinkId && sinkId) void el.setSinkId(sinkId).catch(() => undefined);
+    const el = ref.current as (HTMLAudioElement & { sinkId?: string; setSinkId?: (id: string) => Promise<void> }) | null;
+    // "" is the system default: set it too, so an unplugged speaker doesn't keep playback on a dead device.
+    if (!el?.setSinkId || (el.sinkId ?? "") === sinkId) return;
+    void el.setSinkId(sinkId).catch((error: unknown) => diagEvent("sink_failed", { message: errorText(error) }));
   }, [sinkId, track]);
 
   return <audio ref={ref} autoPlay data-meet-audio="" className="hidden" />;

@@ -30,7 +30,38 @@ export const rnnoiseEngine: NoiseEngine = {
       ready.catch(() => registered.delete(context));
     }
     await ready;
-    return new RnnoiseWorkletNode(context, { maxChannels: 1, wasmBinary: wasm });
+    const node = new RnnoiseWorkletNode(context, { maxChannels: 1, wasmBinary: wasm });
+    await processorReady(node.port, PROCESSOR_READY_TIMEOUT_MS).catch((error: unknown) => {
+      node.destroy();
+      throw error;
+    });
+    return node;
   },
   isChromium: () => isChromiumBrowser()
 };
+
+/** A slow device still gets RNNoise if it compiles in time; otherwise the raw mic stays. */
+export const PROCESSOR_READY_TIMEOUT_MS = 5000;
+
+/**
+ * Resolves once the worklet's processor has compiled RNNoise (it posts "ready"; the vendored
+ * worklet is patched for this, see scripts/vendor-noise-suppressor.mjs). Until then it outputs
+ * silence, so switching to it earlier would swallow the first words after unmuting.
+ */
+export function processorReady(port: MessagePort, timeoutMs: number) {
+  return new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(() => done(new Error("RNNoise took too long to start")), timeoutMs);
+    const onMessage = (event: MessageEvent) => {
+      if (event.data === "ready") done(null);
+      else if (event.data === "error") done(new Error("RNNoise failed to start"));
+    };
+    const done = (error: Error | null) => {
+      clearTimeout(timer);
+      port.removeEventListener("message", onMessage);
+      if (error) reject(error);
+      else resolve();
+    };
+    port.addEventListener("message", onMessage);
+    port.start();
+  });
+}

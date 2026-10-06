@@ -59,7 +59,7 @@ describe("cameraEncodings", () => {
 
   it("has the screen and mic presets", () => {
     expect(SCREEN_ENCODINGS).toEqual([{ maxBitrate: 1_500_000, maxFramerate: 15 }]);
-    expect(MIC_ENCODINGS).toEqual([{ maxBitrate: 64_000 }]);
+    expect(MIC_ENCODINGS).toEqual([{ maxBitrate: 64_000, priority: "high", networkPriority: "high" }]);
   });
 });
 

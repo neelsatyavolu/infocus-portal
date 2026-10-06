@@ -27,8 +27,8 @@ declare global {
 export type ScribeParams = { mid: string; room: string; token: string; key: string; epoch: number };
 
 const CHUNK_MS = 10_000;
-/** After a pull gives up (6 tries), wait this long before pulling that speaker again. */
-const REPULL_DELAY_MS = 10_000;
+/** A dead or failed SFU session is rebuilt after this long (until the next welcome or leave). */
+const MEDIA_RESTART_DELAY_MS = 5_000;
 const MIME = "audio/webm;codecs=opus";
 
 export function readScribeParams(hash: string): ScribeParams | null {
@@ -67,6 +67,8 @@ export class ScribeSession {
   private readonly pendingChunks = new Set<Promise<void>>();
   private done = false;
   private mediaGeneration = 0;
+  /** The media session died while there was nobody to record; rebuilt on the next speaker. */
+  private mediaStale = false;
   /** The current room ticket (the Drive swaps it via setTicket before the 4 h one runs out). */
   private readonly ticket: MediaTicket;
 
@@ -100,6 +102,7 @@ export class ScribeSession {
   /** Every (re)connect gets a fresh SFU session; recorders restart at seq 0 on re-pull. */
   private async resetMedia() {
     const generation = ++this.mediaGeneration;
+    this.mediaStale = false;
     await Promise.all([...this.speakers.keys()].map((uid) => this.stopSpeaker(uid)));
     this.media?.close();
     this.media = null;
@@ -108,7 +111,10 @@ export class ScribeSession {
         roomUrl: this.params.room,
         meetingId: this.params.mid,
         ticket: this.ticket,
-        e2ee: this.e2ee
+        e2ee: this.e2ee,
+        // A session the SFU never accepted, or a peer connection that stays down, records nothing
+        // while the room socket looks healthy: rebuild it.
+        onZombie: () => this.restartMediaSoon(generation, "Media connection lost")
       });
       if (this.done || generation !== this.mediaGeneration) {
         media.close();
@@ -117,8 +123,23 @@ export class ScribeSession {
       this.media = media;
       this.sync();
     } catch {
-      this.onStatus("Couldn't connect media");
+      this.restartMediaSoon(generation, "Couldn't connect media");
     }
+  }
+
+  /** Rebuilds media after a delay, unless a newer session (welcome) or leave() got there first. */
+  private restartMediaSoon(generation: number, status: string) {
+    if (this.done || generation !== this.mediaGeneration) return;
+    // Nothing to record: a receive-only session with no pulls never connects, so rebuilding now
+    // would just loop. sync() rebuilds once someone with audio is in the room.
+    if (this.speakers.size === 0) {
+      this.mediaStale = true;
+      return;
+    }
+    this.onStatus(`${status}; retrying`);
+    setTimeout(() => {
+      if (!this.done && generation === this.mediaGeneration) void this.resetMedia();
+    }, MEDIA_RESTART_DELAY_MS);
   }
 
   setKey(key: string, epoch: number) {
@@ -162,6 +183,10 @@ export class ScribeSession {
 
   private sync() {
     if (this.done || !this.media) return;
+    if (this.mediaStale && this.hasAudioToRecord()) {
+      void this.resetMedia(); // Its sync() pulls everyone on the fresh session.
+      return;
+    }
     const present = new Set<string>();
     for (const participant of Object.values(this.state.participants)) {
       const meta = participant.tracks.audio;
@@ -179,21 +204,21 @@ export class ScribeSession {
     this.onStatus(this.recordingStatus());
   }
 
+  private hasAudioToRecord() {
+    return Object.values(this.state.participants).some((p) => !p.isScribe && p.tracks.audio?.sessionId && p.tracks.audio.trackName);
+  }
+
   private startSpeaker(uid: string, name: string, key: string, meta: MeetingTrackMetadata) {
     const media = this.media;
     if (!media) return;
     const speaker: Speaker = { trackKey: key, pull: Subscription.EMPTY, recorder: null, audio: null };
     this.speakers.set(uid, speaker);
-    speaker.pull = media.partyTracks.pull(of({ ...meta, location: "remote" as const })).pipe(withBackoff()).subscribe({
+    // Retried until the speaker leaves (stopSpeaker): giving up left a 10 s hole in the transcript.
+    speaker.pull = media.partyTracks
+      .pull(of({ ...meta, location: "remote" as const }))
+      .pipe(withBackoff("scribe.pull", Infinity))
       // A re-pull emits a new track: start a new recorder (seq 0) for it.
-      next: (track) => this.record(speaker, uid, name, track),
-      error: () => {
-        // Retries are used up: forget this speaker so the next sync pulls the track again.
-        this.onStatus("Couldn't pull a track");
-        if (this.speakers.get(uid) === speaker) void this.stopSpeaker(uid);
-        setTimeout(() => this.sync(), REPULL_DELAY_MS);
-      }
-    });
+      .subscribe((track) => this.record(speaker, uid, name, track));
   }
 
   private record(speaker: Speaker, uid: string, name: string, track: MediaStreamTrack) {

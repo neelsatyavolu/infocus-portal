@@ -76,18 +76,14 @@ describe("Scribe start", () => {
 });
 
 describe("transcripts in parts", () => {
-  it("joins parts in order under 'Part N'", async () => {
-    mocks.driveFetch.mockImplementation(async (path: string) => new Response(path.includes("part2") ? "two" : "one", { status: 200 }));
-    expect(await fetchMeetingTranscript("m1", ["Meetings/part1", "Meetings/part2"])).toBe("## Part 1\n\none\n\n## Part 2\n\ntwo");
-    expect(mocks.driveFetch.mock.calls.map((call) => call[0])).toEqual([
-      "/api/service/meetings/m1/transcript?drivePath=Meetings%2Fpart1",
-      "/api/service/meetings/m1/transcript?drivePath=Meetings%2Fpart2"
-    ]);
+  it("fetches once: the Drive already joins every part in order (per-part fetches repeated the meeting)", async () => {
+    mocks.driveFetch.mockResolvedValue(new Response("one\n---\n\ntwo", { status: 200 }));
+    expect(await fetchMeetingTranscript("m1")).toBe("one\n---\n\ntwo");
+    expect(mocks.driveFetch.mock.calls.map((call) => call[0])).toEqual(["/api/service/meetings/m1/transcript"]);
   });
 
-  it("asks without a part for one (or no) recorded part, as before", async () => {
-    mocks.driveFetch.mockResolvedValue(new Response("all", { status: 200 }));
-    expect(await fetchMeetingTranscript("m1", ["Meetings/part1"])).toBe("all");
-    expect(mocks.driveFetch.mock.calls[0]![0]).toBe("/api/service/meetings/m1/transcript");
+  it("is null when the Drive has no transcript", async () => {
+    mocks.driveFetch.mockResolvedValue(new Response("", { status: 404 }));
+    expect(await fetchMeetingTranscript("m1")).toBeNull();
   });
 });

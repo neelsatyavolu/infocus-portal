@@ -321,6 +321,19 @@ describe("actOnParticipant", () => {
     await expect(actOnParticipant(producer, "m1", "u-otto", "admit")).rejects.toThrow("FORBIDDEN");
   });
 
+  it("re-sends admitted when Admit is clicked again (a lost event must not strand them in the lobby)", async () => {
+    mocks.participantFindUnique.mockResolvedValue({ state: "ADMITTED" });
+    await expect(actOnParticipant(exec, "m1", "u-abby", "admit")).resolves.toEqual({ state: "ADMITTED" });
+    expect(mocks.roomEvent).toHaveBeenLastCalledWith("m1", { t: "admitted", uid: "u-abby" });
+  });
+
+  it("tells the host when the call couldn't be reached so they can admit again", async () => {
+    mocks.participantFindUnique.mockResolvedValue({ state: "WAITING" });
+    mocks.participantUpdateMany.mockResolvedValueOnce({ count: 1 });
+    mocks.roomEvent.mockResolvedValueOnce(false);
+    await expect(actOnParticipant(exec, "m1", "u-abby", "admit")).rejects.toThrow("Admit again");
+  });
+
   it("admits and denies through room events", async () => {
     mocks.participantFindUnique.mockResolvedValue({ state: "WAITING" });
     await actOnParticipant(exec, "m1", "u-abby", "admit");

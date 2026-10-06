@@ -10,6 +10,7 @@ import { participantList, scribePresent } from "@/src/lib/meetings/client/room-s
 import { handQueue } from "@/src/lib/meetings/client/hands";
 import { shouldMonitorMic } from "@/src/lib/meetings/client/mic-monitor";
 import { resumeAudio } from "@/src/lib/meetings/client/audio-level";
+import { holdUploadWakeLock as holdScreenWakeLock } from "@/src/lib/upload-wake-lock";
 import { MeetingInfoDialog, DevicesDialog, HostControlsDialog } from "./call-dialogs";
 import { SelfLevel, buildTiles } from "./call-room-parts";
 import { ChatPanel } from "./chat-panel";
@@ -122,6 +123,34 @@ export function CallRoom({
   useEffect(() => {
     if (sharerId) setPinnedId((current) => (current && current !== sharerId ? current : null));
   }, [sharerId]);
+
+  // Coming back (screen unlocked, a phone call or Siri ended, bfcache): iOS leaves remote <audio>
+  // paused without a play() rejection, so the room looks connected but is silent. Restart them.
+  useEffect(() => {
+    const restart = () => {
+      if (document.visibilityState === "visible") unblockAllAudio();
+    };
+    document.addEventListener("visibilitychange", restart);
+    window.addEventListener("pageshow", restart);
+    return () => {
+      document.removeEventListener("visibilitychange", restart);
+      window.removeEventListener("pageshow", restart);
+    };
+  }, []);
+
+  // Keep the screen awake for the whole call: a phone that auto-locks suspends the mic and the call.
+  useEffect(() => {
+    let release: (() => void) | null = null;
+    let left = false;
+    void holdScreenWakeLock().then((done) => {
+      if (left) done();
+      else release = done;
+    });
+    return () => {
+      left = true;
+      release?.();
+    };
+  }, []);
 
   const unread = panel === "chat" ? 0 : Math.max(0, call.chat.length - seenChat);
   useEffect(() => {

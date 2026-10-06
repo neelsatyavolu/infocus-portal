@@ -135,9 +135,12 @@ export async function stopMeetingScribe(meetingId: string) {
   }
 }
 
-async function fetchTranscriptPart(meetingId: string, drivePath: string | null) {
-  const query = drivePath ? `?drivePath=${encodeURIComponent(drivePath)}` : "";
-  const response = await driveFetch(`/api/service/meetings/${encodeURIComponent(meetingId)}/transcript${query}`, {
+/**
+ * Full transcript markdown from the Drive, or null when there is none. The Drive joins every
+ * notes part (a restarted or reopened Scribe) in order, so this is one request.
+ */
+export async function fetchMeetingTranscript(meetingId: string) {
+  const response = await driveFetch(`/api/service/meetings/${encodeURIComponent(meetingId)}/transcript`, {
     signal: AbortSignal.timeout(15_000)
   });
   if (response.status === 404) return null;
@@ -147,15 +150,4 @@ async function fetchTranscriptPart(meetingId: string, drivePath: string | null) 
     return typeof body.markdown === "string" ? body.markdown : null;
   }
   return response.text();
-}
-
-/**
- * Full transcript markdown from the Drive, or null when there is none. Several notes parts
- * (a restarted or reopened Scribe) are fetched one by one and joined in order under "Part N".
- */
-export async function fetchMeetingTranscript(meetingId: string, drivePaths: readonly string[] = []) {
-  if (drivePaths.length <= 1) return fetchTranscriptPart(meetingId, null);
-  const parts = await Promise.all(drivePaths.map((path) => fetchTranscriptPart(meetingId, path)));
-  const found = parts.map((markdown, index) => (markdown ? `## Part ${index + 1}\n\n${markdown}` : null)).filter(Boolean);
-  return found.length > 0 ? found.join("\n\n") : null;
 }

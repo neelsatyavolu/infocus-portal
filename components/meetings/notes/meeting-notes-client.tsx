@@ -92,7 +92,10 @@ export default function MeetingNotesClient({ meetingId }: { meetingId: string })
             {meeting.notesSummary ? (
               <MeetingMarkdown markdown={meeting.notesSummary} />
             ) : (
-              <p className="text-sm text-muted-foreground">{NOTES_COPY[meeting.notesStatus] || "No summary yet."}</p>
+              <>
+                <p className="text-sm text-muted-foreground">{NOTES_COPY[meeting.notesStatus] || "No summary yet."}</p>
+                {meeting.notesError ? <p className="text-sm text-muted-foreground">Reason: {meeting.notesError}</p> : null}
+              </>
             )}
           </section>
 

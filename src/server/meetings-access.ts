@@ -82,6 +82,7 @@ export const meetingDetailSelect = {
   notesSummary: true,
   notesDrivePath: true,
   notesDrivePaths: true,
+  notesError: true,
   startedAt: true,
   endedAt: true
 } satisfies Prisma.MeetingSelect;
@@ -120,6 +121,7 @@ export function toMeetingDetail(
   return {
     ...toMeetingSummary(row, viewer),
     notesSummary: row.notesSummary,
+    notesError: row.notesStatus === "FAILED" ? row.notesError : null,
     invitees,
     // Any READY part has a transcript, even while a later part records.
     hasTranscript: row.notesDrivePaths.length > 0 || (row.notesStatus === "READY" && Boolean(row.notesDrivePath)),

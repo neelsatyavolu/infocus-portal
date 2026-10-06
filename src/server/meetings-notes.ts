@@ -14,7 +14,7 @@ export const SCRIBE_RESTART_GAP_MS = 10 * 60 * 1000;
 export const NOTES_PROCESSING_LIMIT_MS = 12 * 60 * 60 * 1000;
 export const NOTES_RECORDING_AFTER_END_MS = 60 * 60 * 1000;
 
-export type NotesUpdate = { status: MeetingNotesStatus; summaryMarkdown?: string; drivePath?: string; part?: number };
+export type NotesUpdate = { status: MeetingNotesStatus; summaryMarkdown?: string; drivePath?: string; part?: number; reason?: string };
 
 type NotesRow = { notesPart: number; notesDrivePaths: string[]; notesSummary: string | null };
 
@@ -24,7 +24,7 @@ export function notesUpdateData(meeting: NotesRow, input: NotesUpdate, now: Date
   const data: {
     notesStatus?: MeetingNotesStatus;
     notesStatusAt?: Date;
-    notesError?: null;
+    notesError?: string | null;
     notesDrivePath?: string;
     notesDrivePaths?: string[];
     notesSummary?: string;
@@ -33,6 +33,7 @@ export function notesUpdateData(meeting: NotesRow, input: NotesUpdate, now: Date
     data.notesStatus = input.status;
     data.notesStatusAt = now;
     if (input.status !== "FAILED") data.notesError = null;
+    else if (input.reason) data.notesError = input.reason;
     if (input.drivePath) data.notesDrivePath = input.drivePath;
   }
 

@@ -43,6 +43,8 @@ export type MeetingSummary = {
 
 export type MeetingDetail = MeetingSummary & {
   notesSummary: string | null;
+  /** Why the notes failed (only while notesStatus is FAILED). */
+  notesError: string | null;
   invitees: MeetingPerson[];
   hasTranscript: boolean;
   startedAt: string | null;

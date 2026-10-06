@@ -113,7 +113,7 @@ This is separate from Admin → Reconnect YouTube and doesn't change it.
 - **On by default.** A host can turn them off for a meeting.
 - While notes are on, a **Notes** participant appears in the call. It records each speaker, and after the meeting the Drive writes a transcript and a summary (decisions, action items). Nothing leaves the school's Drive.
 - **All producers** can read the summary and the full transcript on `/meetings/<id>`. For invite-only meetings, only the people on that meeting can.
-- If the notes can't start, the meeting carries on and the notes show as failed.
+- If the notes can't start, the meeting carries on and the notes show as failed. The notes page says why (for example "could not join the meeting").
 - **Notes in parts:** if the notes taker stops while people are still in the call (a crash, its time limit), a new part starts automatically (at most once every 10 minutes). Each finished part adds its summary under "Part 2", "Part 3" and so on, and the transcript shows every part in order. A part still recording never hides an earlier finished one.
 - Notes that stay "processing" for 12 hours, or "recording" an hour after the meeting ended, are marked failed with the reason.
 

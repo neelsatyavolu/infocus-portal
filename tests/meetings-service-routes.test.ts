@@ -162,4 +162,13 @@ describe("POST /api/service/meetings/[id]/notes", () => {
     });
     expect((await notesPost(post("/api/service/meetings/m1/notes", { status: "NONE" }, DRIVE_TOKEN), params)).status).toBe(400);
   });
+
+  it("keeps the Scribe's reason when notes fail", async () => {
+    mocks.findUnique.mockResolvedValue(notesRow);
+    await notesPost(post("/api/service/meetings/m1/notes", { status: "FAILED", reason: "could not join the meeting" }, DRIVE_TOKEN), params);
+    expect(mocks.update).toHaveBeenCalledWith({
+      where: { id: "m1" },
+      data: { notesStatus: "FAILED", notesStatusAt: expect.any(Date), notesError: "could not join the meeting" }
+    });
+  });
 });

@@ -1,10 +1,12 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  buildGenericBreadcrumbs,
   buildGroupsBreadcrumbs,
   formatSegmentLabel,
   getGroupBreadcrumbTopic,
   publishedGroupTopicForRow,
-  publishGroupBreadcrumbTopic
+  publishGroupBreadcrumbTopic,
+  segmentLabel
 } from "@/src/lib/app-breadcrumbs";
 
 describe("buildGroupsBreadcrumbs", () => {
@@ -22,7 +24,7 @@ describe("buildGroupsBreadcrumbs", () => {
     ).toEqual([
       { label: "Groups", href: "/groups" },
       { label: "Lunch line wait times", href: "/groups/cmq0hy8270000oi90ayhdrayuy" },
-      { label: "A Roll" }
+      { label: "A-roll/B-roll" }
     ]);
   });
 
@@ -38,6 +40,49 @@ describe("buildGroupsBreadcrumbs", () => {
 describe("formatSegmentLabel", () => {
   it("title-cases hyphenated slugs", () => {
     expect(formatSegmentLabel("final-cut")).toBe("Final Cut");
+  });
+});
+
+describe("segmentLabel", () => {
+  it("uses the sidebar names", () => {
+    expect(segmentLabel("show-roles")).toBe("The Show");
+    expect(segmentLabel("package-progress")).toBe("Package Cycle");
+    expect(segmentLabel("package-cycles")).toBe("Cycle Dates");
+    expect(segmentLabel("a-roll")).toBe("A-roll/B-roll");
+    expect(segmentLabel("pa")).toBe("PA");
+  });
+
+  it("falls back to the title-cased slug", () => {
+    expect(segmentLabel("extension-requests")).toBe("Extension Requests");
+  });
+
+  it("shows ids as Details", () => {
+    expect(segmentLabel("cmq0hy8270000oi90ayhdrayuy")).toBe("Details");
+    expect(segmentLabel("3f2a9c4e-1b7d-4e8a-9c0f-5d6e7f8a9b0c")).toBe("Details");
+  });
+});
+
+describe("buildGenericBreadcrumbs", () => {
+  it("labels the root as Dashboard", () => {
+    expect(buildGenericBreadcrumbs([])).toEqual([{ label: "Dashboard" }]);
+  });
+
+  it("links a parent crumb that has its own page", () => {
+    expect(buildGenericBreadcrumbs(["announcements", "pa"])).toEqual([
+      { label: "Announcements", href: "/announcements" },
+      { label: "PA" }
+    ]);
+  });
+
+  it("shows a record id as Details under a linked parent", () => {
+    expect(buildGenericBreadcrumbs(["publishing-queue", "cmq0hy8270000oi90ayhdrayuy"])).toEqual([
+      { label: "Publishing Queue", href: "/publishing-queue" },
+      { label: "Details" }
+    ]);
+  });
+
+  it("never links the last crumb", () => {
+    expect(buildGenericBreadcrumbs(["show-roles"])).toEqual([{ label: "The Show" }]);
   });
 });
 

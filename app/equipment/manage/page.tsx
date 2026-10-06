@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { requireUserId, syncUserProfile } from "@/src/lib/auth";
 import { getPlatformAccess } from "@/src/lib/platform-admin";
 import { canManageEquipment } from "@/src/server/equipment-access";
 import EquipmentManageClient from "../manage-client";
+
+export const metadata: Metadata = { title: "Manage equipment" };
 
 export default async function EquipmentManagePage() {
   let userId: string | null = null;

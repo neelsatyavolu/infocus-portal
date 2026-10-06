@@ -1,11 +1,9 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 
-export const metadata: Metadata = { title: "Not found" };
-
-export default function NotFound() {
+/** notFound() inside the Portal renders here, inside the shell, so the sidebar stays. */
+export default function PortalNotFound() {
   return (
-    <main className="grid min-h-screen place-items-center px-6">
+    <div className="grid min-h-[60vh] place-items-center">
       <div className="space-y-4 text-center">
         <h1 className="text-3xl font-semibold text-foreground">Not found</h1>
         <p className="text-sm text-muted-foreground">The resource could not be located or you may not have access.</p>
@@ -13,6 +11,6 @@ export default function NotFound() {
           Back to dashboard
         </Link>
       </div>
-    </main>
+    </div>
   );
 }

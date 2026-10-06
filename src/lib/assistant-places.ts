@@ -69,10 +69,10 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
   },
   {
     id: "package-cycles",
-    label: "Package Cycles",
+    label: "Cycle Dates",
     href: "/package-cycles",
     hint: "Left sidebar, under Production",
-    aliases: ["cycle dates", "deadlines", "due dates"],
+    aliases: ["package cycles", "deadlines", "due dates"],
     audiences: ALL
   },
   {
@@ -250,7 +250,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "settings",
     label: "Settings",
     href: "/settings",
-    hint: "Left sidebar, under Admin",
+    hint: "Left sidebar, at the bottom",
     aliases: ["notifications", "account"],
     audiences: ALL
   },

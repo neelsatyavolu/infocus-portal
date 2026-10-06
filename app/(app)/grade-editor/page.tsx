@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { requireUserId, syncUserProfile } from "@/src/lib/auth";
 import { getPlatformAccess, hasPlatformRole } from "@/src/lib/platform-admin";
 import GradeEditorClient from "./grade-editor-client";
+
+export const metadata: Metadata = { title: "Grade Editor" };
 
 export default async function GradeEditorPage() {
   try {

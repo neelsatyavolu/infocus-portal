@@ -30,7 +30,7 @@ const navItems = [
   equipmentNav,
   { href: "/show-roles", label: "The Show", key: "show-roles", external: false },
   { href: "/master-calendar", label: "Master Calendar", key: "master-calendar", external: false },
-  { href: "/package-cycles", label: "Package Cycles", key: "package-cycles", external: false },
+  { href: "/package-cycles", label: "Cycle Dates", key: "package-cycles", external: false },
   { href: "/package-progress", label: "Package Cycle", key: "package-progress", external: false },
   {
     href: "https://drive.infocuspaly.com",

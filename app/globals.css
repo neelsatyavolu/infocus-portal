@@ -264,6 +264,16 @@ video {
   width: 100%;
 }
 
+/* Safety net so every control shows a focus ring (DESIGN.md §10). :where() has no specificity and
+   this sits in the base layer, so components with their own ring (`focus-visible:outline-none`
+   plus `ring-*` utilities) win and never show both. */
+@layer base {
+  :where(input, select, textarea, button, a, [tabindex]:not([tabindex="-1"]), summary):focus-visible {
+    outline: 2px solid var(--brand-green);
+    outline-offset: 2px;
+  }
+}
+
 /* ============================================================
    Brand utilities
    ============================================================ */
@@ -468,6 +478,12 @@ video {
   animation: route-enter 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* Portal page swaps (app/(app)/template.tsx): opacity only, so no transform ever traps
+   `position: fixed` descendants, and short enough not to slow navigation down. */
+.route-fade {
+  animation: route-fade 150ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 /* Entrances end on `transform: none`, not translateY(0): with fill-mode `both` a leftover
    transform would make the element the containing block for `position: fixed` descendants
    (bottom tab docks, toasts), pinning them to the page instead of the screen. */
@@ -493,9 +509,19 @@ video {
   }
 }
 
+@keyframes route-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .card-enter,
   .route-enter,
+  .route-fade,
   .rec-dot {
     animation: none !important;
   }

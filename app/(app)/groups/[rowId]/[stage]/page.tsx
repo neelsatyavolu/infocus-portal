@@ -1,4 +1,5 @@
-import { redirect } from "next/navigation";
+import type { Metadata } from "next";
+import { notFound, redirect } from "next/navigation";
 import { StageWorkspace } from "@/components/package-cycle/stage-workspace";
 import { getCurrentAppUser } from "@/src/lib/current-app-user";
 import { serializeProofs } from "@/src/lib/package-brainstorm";
@@ -7,6 +8,7 @@ import { isCycleStageSlug } from "@/src/lib/package-cycle-gates";
 import {
   initialReviewStageFromSlug,
   effectiveGroupApprovalStage,
+  GROUP_NAV_TAB_LABELS,
   isGroupNavSlug,
   pendingGroupNavSlug,
   workspaceSlugFromNav
@@ -21,6 +23,24 @@ import { GroupStageShell } from "../group-stage-shell";
 function producerName(person: { name: string | null; nickname?: string | null; email: string | null } | null) {
   if (!person) return null;
   return userDisplayName(person) || null;
+}
+
+export async function generateMetadata({
+  params
+}: {
+  params: Promise<{ rowId: string; stage: string }>;
+}): Promise<Metadata> {
+  const { rowId, stage } = await params;
+  const stageLabel = isGroupNavSlug(stage) ? GROUP_NAV_TAB_LABELS[stage] : null;
+  try {
+    const { platformRole } = await getCurrentAppUser();
+    if (!hasPlatformRole(platformRole, "ASSOCIATE_PRODUCER")) return { title: "Group" };
+    const row = await prisma.packageProgressRow.findUnique({ where: { id: rowId }, select: { groupTopic: true } });
+    const topic = row?.groupTopic?.trim() || "Group";
+    return { title: stageLabel ? `${topic} · ${stageLabel}` : topic };
+  } catch {
+    return { title: "Group" };
+  }
 }
 
 export default async function GroupStagePage({
@@ -53,7 +73,7 @@ export default async function GroupStagePage({
     }
   });
   if (!row) {
-    redirect("/groups");
+    notFound();
   }
 
   const nav = {

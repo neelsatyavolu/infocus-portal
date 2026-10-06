@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getCurrentAppUser } from "@/src/lib/current-app-user";
 import { pendingGroupNavSlug } from "@/src/lib/package-stages";
 import { hasPlatformRole } from "@/src/lib/platform-admin";
@@ -22,7 +22,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ ro
     }
   });
   if (!row) {
-    redirect("/groups");
+    notFound();
   }
 
   redirect(

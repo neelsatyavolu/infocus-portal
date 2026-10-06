@@ -4,7 +4,7 @@ import { LiveDashboard } from "./live-dashboard";
 import LivePinGate from "./live-pin-gate";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Livestream dashboard · InFocus Portal", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Livestream dashboard", robots: { index: false, follow: false } };
 
 export default async function LiveDashboardPage() {
   const access = await getLiveAccess();

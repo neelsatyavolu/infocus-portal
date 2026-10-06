@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getCurrentAppUser } from "@/src/lib/current-app-user";
 import { hasPlatformRole } from "@/src/lib/platform-admin";
 import TheShowClient from "./the-show-client";
+
+export const metadata: Metadata = { title: "The Show" };
 
 export default async function ShowRolesPage() {
   try {

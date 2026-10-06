@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Lock, ShieldCheck, UserCheck } from "lucide-react";
 import { MarketingHeader } from "@/components/marketing-header";
@@ -19,6 +20,8 @@ const points = [
     description: "Status changes and review events stay visible for auditability."
   }
 ];
+
+export const metadata: Metadata = { title: "Security" };
 
 export default function SecurityPage() {
   return (

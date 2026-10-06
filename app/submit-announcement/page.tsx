@@ -1,5 +1,8 @@
+import type { Metadata } from "next";
 import { Megaphone } from "lucide-react";
 import { AnnouncementSubmitForm } from "@/components/announcement-submit-form";
+
+export const metadata: Metadata = { title: "Submit an announcement" };
 
 export default function SubmitAnnouncementPage() {
   return (

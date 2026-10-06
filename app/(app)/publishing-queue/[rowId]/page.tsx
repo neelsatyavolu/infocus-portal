@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentAppUser } from "@/src/lib/current-app-user";
@@ -6,6 +7,21 @@ import { formatShowDateLabel } from "@/src/lib/show-assignment";
 import { youtubeEmbedCode, youtubeWatchUrl } from "@/src/lib/youtube-publication";
 import { requirePublishingViewer } from "@/src/server/publishing-access";
 import PublicationEmbed from "../publication-embed";
+
+export async function generateMetadata({ params }: { params: Promise<{ rowId: string }> }): Promise<Metadata> {
+  const { rowId } = await params;
+  try {
+    const { userId, platformRole } = await getCurrentAppUser();
+    await requirePublishingViewer(userId, platformRole);
+    const row = await prisma.packageProgressRow.findUnique({
+      where: { id: rowId },
+      select: { groupTopic: true, youtubePublication: { select: { title: true } } }
+    });
+    return { title: row?.youtubePublication?.title || row?.groupTopic || "Publication" };
+  } catch {
+    return { title: "Publication" };
+  }
+}
 
 export default async function PublicationPage({ params }: { params: Promise<{ rowId: string }> }) {
   const { userId, platformRole } = await getCurrentAppUser();

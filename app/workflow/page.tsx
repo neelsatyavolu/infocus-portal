@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { MarketingHeader } from "@/components/marketing-header";
@@ -20,6 +21,8 @@ const workflow = [
     body: "Move versions through review statuses and keep a clear audit trail for final sign-off."
   }
 ];
+
+export const metadata: Metadata = { title: "Workflow" };
 
 export default function WorkflowPage() {
   return (

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { GuestPermission } from "@prisma/client";
 import { ReviewShell } from "@/components/review-shell";
@@ -176,6 +177,8 @@ async function getGuestReviewData(token: string, passcode?: string): Promise<{
     permission: link.permission
   };
 }
+
+export const metadata: Metadata = { title: "Guest review" };
 
 export default async function GuestReviewPage({ params, searchParams }: GuestPageProps) {
   const { token } = await params;

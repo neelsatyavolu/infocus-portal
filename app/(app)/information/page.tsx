@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 const STAGES = [
   {
     title: "Package Pitching",
@@ -52,6 +53,8 @@ function StageItem({ title, body }: { title: string; body: string }) {
     </div>
   );
 }
+
+export const metadata: Metadata = { title: "Information" };
 
 export default function CycleInformationPage() {
   return (

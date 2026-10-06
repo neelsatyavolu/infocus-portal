@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { getRealSessionUser, getSessionUser } from "@/src/lib/auth";
 import { APP_STATE, PKCE_CHALLENGE } from "@/src/server/app-sign-in";
 
-export const metadata: Metadata = { title: "Sign in to the InFocus app" };
+export const metadata: Metadata = { title: { absolute: "Sign in to the InFocus app" } };
 
 type AppSignInPageProps = {
   searchParams: Promise<{ challenge?: string; state?: string }>;

@@ -1,4 +1,7 @@
+import type { Metadata } from "next";
 import { StageWorkspace } from "@/components/package-cycle/stage-workspace";
+
+export const metadata: Metadata = { title: "Initial Cut" };
 
 export default function InitialCutPage() {
   return (

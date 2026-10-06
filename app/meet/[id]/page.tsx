@@ -9,7 +9,7 @@ import { requireMeetingViewer } from "@/src/server/meetings-access";
 import { resolveProducerSeriesMeetingId } from "@/src/server/meetings-schedule";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Meeting · InFocus Portal", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Meeting", robots: { index: false, follow: false } };
 
 /** Permanent link for the recurring InFocus Producer Meeting. */
 const PRODUCER_SERIES_SLUG = "producers";

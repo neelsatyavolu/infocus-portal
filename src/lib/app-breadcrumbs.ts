@@ -57,6 +57,48 @@ export function formatSegmentLabel(segment: string) {
     .join(" ");
 }
 
+/** Breadcrumb labels that differ from the title-cased slug, so crumbs match the sidebar. */
+export const SEGMENT_LABELS: Record<string, string> = {
+  "a-roll": "A-roll/B-roll",
+  admin: "Admin Dashboard",
+  livestreams: "Livestream Tracker",
+  "package-cycles": "Cycle Dates",
+  "package-progress": "Package Cycle",
+  pa: "PA",
+  "show-roles": "The Show",
+  "social-media": "Instagram Post Maker"
+};
+
+/** Parent routes that have their own page, so their crumb can link back to it. */
+const LINKABLE_PARENT_ROUTES = new Set(["/announcements", "/managers", "/meetings", "/publishing-queue"]);
+
+/** Database ids (cuid) and other long tokens with digits are not readable labels. */
+export function isIdSegment(segment: string) {
+  return /^c[a-z0-9]{20,}$/i.test(segment) || (segment.length > 20 && /\d/.test(segment));
+}
+
+export function segmentLabel(segment: string) {
+  if (isIdSegment(segment)) {
+    return "Details";
+  }
+  return SEGMENT_LABELS[segment] ?? formatSegmentLabel(segment);
+}
+
+/** Fallback crumbs for routes without their own builder: one crumb per path segment. */
+export function buildGenericBreadcrumbs(segments: string[]): AppBreadcrumb[] {
+  if (segments.length === 0) {
+    return [{ label: "Dashboard" }];
+  }
+
+  return segments.map((segment, index) => {
+    const path = `/${segments.slice(0, index + 1).join("/")}`;
+    const isLast = index === segments.length - 1;
+    return !isLast && LINKABLE_PARENT_ROUTES.has(path)
+      ? { label: segmentLabel(segment), href: path }
+      : { label: segmentLabel(segment) };
+  });
+}
+
 export function buildGroupsBreadcrumbs(segments: string[], groupTopic?: string | null): AppBreadcrumb[] | null {
   if (segments[0] !== "groups") {
     return null;
@@ -78,7 +120,7 @@ export function buildGroupsBreadcrumbs(segments: string[], groupTopic?: string |
   });
 
   if (segments[2]) {
-    crumbs.push({ label: formatSegmentLabel(segments[2]) });
+    crumbs.push({ label: segmentLabel(segments[2]) });
   }
 
   return crumbs;

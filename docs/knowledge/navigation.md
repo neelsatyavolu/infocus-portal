@@ -4,6 +4,12 @@ Portal chrome is dark by default (Light is in Settings → Appearance). Sidebar 
 
 Sidebar category headings use compact spacing, with 0.675rem above each heading.
 
+## Header
+
+- The InFocus logo goes to the dashboard.
+- **Search…** (or ⌘K on a Mac, Ctrl+K on Windows) opens a command palette. Type a page name and press Enter to jump to any page you can open.
+- Breadcrumbs (for example, Dashboard / project / video) are links: click one to go back up.
+
 ## Sidebar, top to bottom
 
 Tabs with no note are shown to everyone signed in.
@@ -17,33 +23,33 @@ Tabs with no note are shown to everyone signed in.
 **Production**
 
 - Master Calendar
-- Package Cycles (dates)
+- Cycle Dates (`/package-cycles`: stage dates for each cycle)
 - InFocus Drive (opens `drive.infocuspaly.com` in a new tab)
 - Teleprompter (opens `teleprompter.infocuspaly.com`)
 - Managers (one card per manager area: equipment, livestream, website, social media; see `managers.md`)
 
-**The Cycle** — reporters, and associate producers who are on a package roster: Information, Brainstorming, A-roll/B-roll, Initial Cut, Final Cut. Later tabs are visible but disabled until the previous stage unlocks. Each tab shows its stage status and a count of unread feedback on this cycle's package (earlier cycles never count).
+**The Cycle** — reporters, and any producer (associate, executive, or super admin) who is on a package roster: Information, Brainstorming, A-roll/B-roll, Initial Cut, Final Cut. Later tabs are visible but disabled until the previous stage unlocks. Each tab shows its stage status and a count of unread feedback on this cycle's package (earlier cycles never count). Students see **Extension Requests** at the end of this section.
 
 **Livestreams**
 
 - Livestream Tracker
 
-**Producers**
+**Producers** — the heading and its tabs show only for associate producers and up.
 
 - Groups, Members, Package Cycle (roster), Publishing Queue, The Show, Participation — associate producers and up
 - Meetings (opens `meet.infocuspaly.com`) — associate producers and up. Calls open full screen at `meet.infocuspaly.com/<id>` (see `meetings.md`)
 - Grade Editor — executive producers, the adviser, and super admin
-- Extension Requests — everyone. A number shows how many requests are waiting on you.
+- Extension Requests — producers find it here; students find it at the end of The Cycle. A number shows how many requests are waiting on you.
 
 **Announcements**
 
 - Submitted — everyone can read. Associate producers and up can delete. Executive producers and super admin can invite outside viewers.
 - PA (assigned announcers and producers can edit)
 
-**Admin**
+**Admin** — the heading shows only for executive producers, the adviser, and super admin.
 
 - Admin Dashboard — executive producers, the adviser, and super admin
-- Settings
+- Settings — everyone. Without the Admin heading, Settings sits at the bottom on its own.
 
 **Bottom of the sidebar:** your name, a **Passwords** key icon (associate producers and up; see `passwords.md`), and **Sign out**. Super admin, the adviser, and anyone with a limited View as grant can click their name to View as another user (see `accounts-and-admin.md`).
 
@@ -76,6 +82,6 @@ Everyone signed in gets a green ✱ in the bottom-right of Portal. It opens a fl
 | `/access-denied` | Your email is not on Portal (request access here), or you opened a producer-only page like `/passwords` |
 | `/maintenance` | Only while maintenance mode is on. Students are sent here; associate producers and up keep full access. Shows the expected return date and a **Sign out** button. It is off right now |
 
-Old addresses that forward: `/workspaces` → `/dashboard`, `/extensions` → `/extension-requests`. `/workflow` and `/security` are leftover pages from an older design. Nothing in Portal links to them, and they need sign-in.
+Old addresses that forward: `/workspaces` → `/dashboard`, `/extensions` → `/extension-requests`, `/activity` → `/settings`. `/workflow` and `/security` are leftover pages from an older design. Nothing in Portal links to them, and they need sign-in.
 
 **Temporarily paused (September 21, 2026):** The associate producer feedback form is disabled until the user requests re-enabling it. The Give Feedback button is hidden and its API rejects new submissions. Existing responses remain available to authorized viewers. When enabled, student stages (Brainstorming, A-roll/B-roll, Initial Cut, Final Cut) have **Give Feedback** beside Refresh. The popup accepts shared anonymous feedback about the assigned associate for current or previous roster cycles. Only executive producers and super admin see saved group responses in Groups → Associates → Feedback; advisers and associates cannot read them.

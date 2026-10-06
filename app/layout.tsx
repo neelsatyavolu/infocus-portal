@@ -21,7 +21,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "InFocus Portal",
+  title: { default: "InFocus Portal", template: "%s · InFocus Portal" },
   applicationName: "InFocus Portal",
   appleWebApp: {
     title: "InFocus Portal"

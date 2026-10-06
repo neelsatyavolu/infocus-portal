@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { PackageCategory } from "@prisma/client";
 import { getCurrentAppUser } from "@/src/lib/current-app-user";
@@ -5,6 +6,8 @@ import { canEditPackageCycle, hasPlatformRole, normalizeEmail } from "@/src/lib/
 import { prisma } from "@/src/lib/prisma";
 import { loadPackageProgressData } from "@/src/server/package-progress-data";
 import GroupsClient, { type GroupsPayload } from "./groups-client";
+
+export const metadata: Metadata = { title: "Groups" };
 
 export default async function GroupsPage() {
   try {

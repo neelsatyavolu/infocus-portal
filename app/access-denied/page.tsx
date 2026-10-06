@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ShieldAlert } from "lucide-react";
 import { getSessionUser } from "@/src/lib/auth";
@@ -10,6 +11,8 @@ type AccessDeniedPageProps = {
     name?: string;
   }>;
 };
+
+export const metadata: Metadata = { title: "Access restricted" };
 
 export default async function AccessDeniedPage({ searchParams }: AccessDeniedPageProps) {
   const [session, params] = await Promise.all([getSessionUser(), searchParams]);

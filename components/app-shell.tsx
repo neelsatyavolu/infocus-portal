@@ -1,13 +1,15 @@
 "use client";
 
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import { BrandWordmark } from "@/components/brand-wordmark";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState, useSyncExternalStore, useTransition } from "react";
-import type { MouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from "react";
+import type { FormEvent, MouseEvent } from "react";
 import type { PlatformRole } from "@prisma/client";
 import {
+  AlertCircle,
   Briefcase,
   LayoutDashboard,
   CalendarDays,
@@ -16,11 +18,14 @@ import {
   ChevronLeft,
   ChevronRight,
   Ellipsis,
+  ExternalLink,
   FileVideo2,
   Folder,
   Grid3X3,
   GitBranch,
+  Hand,
   ListChecks,
+  ListOrdered,
   Users,
   UsersRound,
   Layers,
@@ -47,12 +52,15 @@ import {
   Trash2,
   UserCog,
   Video,
+  Volume2,
   X
 } from "lucide-react";
 import { AssistantChat } from "@/components/assistant-chat";
-import { DashboardWorkspaceSelector } from "@/components/dashboard-workspace-selector";
+import { CommandPalette } from "@/components/command-palette";
+import type { WorkspaceOption } from "@/components/dashboard-workspace-selector";
 import { ViewAsMenu } from "@/components/view-as-menu";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import {
   PROJECT_SHELL_STATE_EVENT,
@@ -63,9 +71,9 @@ import {
 } from "@/src/lib/project-shell";
 import { StageStatusChip } from "@/components/package-cycle/stage-status-chip";
 import {
+  buildGenericBreadcrumbs,
   buildGroupsBreadcrumbs,
   publishedGroupTopicForRow,
-  formatSegmentLabel,
   getGroupBreadcrumbTopic,
   subscribeGroupBreadcrumbTopic
 } from "@/src/lib/app-breadcrumbs";
@@ -75,7 +83,56 @@ import { executiveWaitPill } from "@/src/lib/package-approval";
 import type { CycleStageStatus } from "@/src/lib/package-stage-status";
 import { folderDisplayName, folderPathSegments } from "@/src/lib/project-folders";
 import { meetingsHomeUrl } from "@/src/lib/meetings/links";
+import type { AssistantAudience } from "@/src/lib/assistant-access";
 import { cn } from "@/src/lib/utils";
+
+// Only shown on the dashboard, so it stays out of the bundle other pages load.
+const DashboardWorkspaceSelector = dynamic(
+  () => import("@/components/dashboard-workspace-selector").then((m) => m.DashboardWorkspaceSelector),
+  { ssr: false }
+);
+
+/** Sidebar badges refetch on navigation or tab focus only when they are older than this. */
+const NAV_REFRESH_MS = 15_000;
+/** Slack catch-up runs at most once per tab in this window. */
+const SLACK_SYNC_MIN_MS = 10 * 60_000;
+const SLACK_SYNC_STORAGE_KEY = "infocus:slack-sync-at";
+/** How long the shell waits for the page's ProjectShellBridge before fetching project data itself. */
+const PROJECT_SHELL_FALLBACK_MS = 1_500;
+
+function runWhenIdle(callback: () => void, timeoutMs: number) {
+  const idleWindow = window as Window & {
+    requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
+    cancelIdleCallback?: (handle: number) => void;
+  };
+  if (typeof idleWindow.requestIdleCallback === "function") {
+    const id = idleWindow.requestIdleCallback(callback, { timeout: timeoutMs });
+    return () => idleWindow.cancelIdleCallback?.(id);
+  }
+  const id = window.setTimeout(callback, 1_000);
+  return () => window.clearTimeout(id);
+}
+
+/** True when this tab already ran the Slack catch-up recently; records the run otherwise. */
+function slackSyncedRecently() {
+  try {
+    const last = Number(window.sessionStorage.getItem(SLACK_SYNC_STORAGE_KEY));
+    if (Number.isFinite(last) && Date.now() - last < SLACK_SYNC_MIN_MS) {
+      return true;
+    }
+    window.sessionStorage.setItem(SLACK_SYNC_STORAGE_KEY, String(Date.now()));
+  } catch {
+    // Storage blocked (private mode): sync on every load, as before.
+  }
+  return false;
+}
+
+function assistantAudienceFor(role: PlatformRole | null): AssistantAudience {
+  if (role === "SUPER_ADMIN" || role === "ADVISER") return "admin";
+  if (role === "EXECUTIVE_PRODUCER") return "executive";
+  if (role === "ASSOCIATE_PRODUCER") return "associate";
+  return "member";
+}
 
 function hasRole(role: PlatformRole | null, minimum: PlatformRole) {
   if (!role) {
@@ -223,17 +280,22 @@ function SideNavLink({
       <a
         href={href}
         className={className}
+        aria-current={active ? "page" : undefined}
         {...(newTab ? { target: "_blank", rel: "noopener noreferrer" } : {})}
       >
         <Icon className="h-4 w-4 shrink-0" />
-        <span className="min-w-0 flex-1 truncate">{label}</span>
+        <span className="min-w-0 flex-1 truncate">
+          {label}
+          {newTab ? <span className="sr-only"> (opens in a new tab)</span> : null}
+        </span>
+        <ExternalLink className="h-3 w-3 shrink-0 opacity-60" aria-hidden />
         {trailing}
       </a>
     );
   }
 
   return (
-    <Link href={href as never} className={className}>
+    <Link href={href as never} className={className} aria-current={active ? "page" : undefined}>
       <Icon className="h-4 w-4 shrink-0" />
       <span className="min-w-0 flex-1 truncate">{label}</span>
       {trailing}
@@ -280,7 +342,7 @@ export function AppShell({
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
   const workspaceIdQuery = searchParams.get("workspaceId");
-  const segments = pathname.split("/").filter(Boolean);
+  const segments = useMemo(() => pathname.split("/").filter(Boolean), [pathname]);
   const isProjectRoute = segments[0] === "projects";
   const isDashboardRoute = segments[0] === "dashboard";
   const isReviewRoute = isProjectRoute && segments[2] === "review";
@@ -307,7 +369,10 @@ export function AppShell({
   const [folderModalOpen, setFolderModalOpen] = useState(false);
   const [folderNameInput, setFolderNameInput] = useState("");
   const [folderCreating, setFolderCreating] = useState(false);
+  const [folderError, setFolderError] = useState<string | null>(null);
   const [shellMessage, setShellMessage] = useState<string | null>(null);
+  const [dashboardWorkspaces, setDashboardWorkspaces] = useState<WorkspaceOption[] | null>(null);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const [breadcrumbPending, startBreadcrumbTransition] = useTransition();
   const groupBreadcrumb = useSyncExternalStore(
     subscribeGroupBreadcrumbTopic,
@@ -317,7 +382,6 @@ export function AppShell({
 
   const canManageWorkspaces = hasRole(platformRole, "ASSOCIATE_PRODUCER");
   const isProducer = canManageWorkspaces;
-  const isAssociate = platformRole === "ASSOCIATE_PRODUCER";
   const [onStudentPackage, setOnStudentPackage] = useState(false);
   const [cycleNav, setCycleNav] = useState<{
     "a-roll": boolean;
@@ -335,13 +399,21 @@ export function AppShell({
 
   useEffect(() => {
     if (sampleOnly) return;
-    void fetch("/api/slack/sync", { method: "POST", cache: "no-store" }).catch(() => {
-      /* Slack catch-up is best-effort */
-    });
+    return runWhenIdle(() => {
+      if (slackSyncedRecently()) return;
+      void fetch("/api/slack/sync", { method: "POST", cache: "no-store" }).catch(() => {
+        /* Slack catch-up is best-effort */
+      });
+    }, 3_000);
   }, [sampleOnly]);
 
+  // Sidebar badges: loaded once, refreshed by their change events, and otherwise only when
+  // older than NAV_REFRESH_MS on tab focus or navigation (not on every route change).
+  const navFetchedAtRef = useRef(0);
+  const refreshNavRef = useRef<(() => void) | null>(null);
+
   useEffect(() => {
-    if (sampleOnly || (isProducer && !isAssociate)) return;
+    if (sampleOnly) return;
     let cancelled = false;
     const loadNav = () => {
       void fetch("/api/package-cycle/stage", { cache: "no-store" })
@@ -374,17 +446,6 @@ export function AppShell({
           /* nav stays locked until we know */
         });
     };
-    loadNav();
-    window.addEventListener(STAGE_FEEDBACK_READ_EVENT, loadNav);
-    return () => {
-      cancelled = true;
-      window.removeEventListener(STAGE_FEEDBACK_READ_EVENT, loadNav);
-    };
-  }, [isProducer, isAssociate, pathname, sampleOnly]);
-
-  useEffect(() => {
-    if (sampleOnly) return;
-    let cancelled = false;
     const loadAwaiting = () => {
       void fetch("/api/extensions/requests/awaiting", { cache: "no-store" })
         .then(async (response) => {
@@ -397,13 +458,39 @@ export function AppShell({
           /* badge is best-effort */
         });
     };
-    loadAwaiting();
+    const loadAll = () => {
+      navFetchedAtRef.current = Date.now();
+      loadNav();
+      loadAwaiting();
+    };
+    const refreshIfStale = () => {
+      if (Date.now() - navFetchedAtRef.current >= NAV_REFRESH_MS) {
+        loadAll();
+      }
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        refreshIfStale();
+      }
+    };
+    refreshNavRef.current = refreshIfStale;
+    loadAll();
+    window.addEventListener(STAGE_FEEDBACK_READ_EVENT, loadNav);
     window.addEventListener(EXTENSION_REQUESTS_CHANGED_EVENT, loadAwaiting);
+    document.addEventListener("visibilitychange", onVisibilityChange);
     return () => {
       cancelled = true;
+      refreshNavRef.current = null;
+      window.removeEventListener(STAGE_FEEDBACK_READ_EVENT, loadNav);
       window.removeEventListener(EXTENSION_REQUESTS_CHANGED_EVENT, loadAwaiting);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
-  }, [pathname, sampleOnly]);
+  }, [sampleOnly]);
+
+  // Declared after the loader above so the first render's fetch is already stamped.
+  useEffect(() => {
+    refreshNavRef.current?.();
+  }, [pathname]);
 
   useEffect(() => {
     setNavOpen(false);
@@ -438,7 +525,8 @@ export function AppShell({
     return () => media.removeEventListener("change", onChange);
   }, []);
 
-  const showCycleTabs = !isProducer || (isAssociate && onStudentPackage);
+  // Any producer (AP, EP, super admin) on a package roster works it as a student.
+  const showCycleTabs = !isProducer || onStudentPackage;
   const canManageAllowedEmails = hasRole(platformRole, "EXECUTIVE_PRODUCER");
   const canManageGrades = hasRole(platformRole, "EXECUTIVE_PRODUCER");
   const canManageExtensions = hasRole(platformRole, "ASSOCIATE_PRODUCER");
@@ -481,65 +569,52 @@ export function AppShell({
     };
   }, [isProjectRoute, projectId]);
 
+  // Workspaces for the dashboard breadcrumb and selector: fetched once per dashboard visit.
   useEffect(() => {
-    let active = true;
+    if (!isDashboardRoute) {
+      setDashboardWorkspaces(null);
+      return;
+    }
 
-    async function hydrateNames() {
-      if (isDashboardRoute) {
+    let active = true;
+    void (async () => {
+      try {
         const response = await fetch("/api/workspaces", { cache: "no-store" });
         const payload = await response.json();
         if (!active || !response.ok) {
           return;
         }
-
-        const allWorkspaces = (payload.data as Array<{ id: string; name: string }>) ?? [];
-        const selected = allWorkspaces.find((workspace) => workspace.id === workspaceIdQuery) ?? allWorkspaces[0] ?? null;
-        setWorkspaceName(selected?.name ?? null);
-        setWorkspaceIdState(selected?.id ?? null);
-        setProjectName(null);
-        setProjectAssetCount(0);
-        setProjectFolders([]);
-        setCurrentAsset(null);
-        setCanViewShareLinks(false);
-        setProjectShareLinks([]);
-        setEstimatedStorageBytes(0);
-        setStorageIsEstimated(true);
-        return;
+        const list = (payload.data as Array<{ id: string; name: string }> | undefined) ?? [];
+        setDashboardWorkspaces(list.map((workspace) => ({ id: workspace.id, name: workspace.name })));
+      } catch {
+        /* breadcrumb falls back to "Workspace" and the selector stays hidden */
       }
+    })();
 
-      if (isProjectRoute && projectId) {
-        const domState = readProjectShellStateFromDom(projectId);
-        if (domState) {
-          setProjectName(domState.projectName);
-          setWorkspaceName(domState.workspace.name);
-          setWorkspaceIdState(domState.workspace.id);
-          setProjectAssetCount(domState.assetCount);
-          setProjectFolders(domState.folders);
-          setCurrentAsset(domState.currentAsset);
-          setCanViewShareLinks(domState.canViewShareLinks);
-        } else {
-          const response = await fetch(
-            mediaId ? `/api/projects/${projectId}/shell?mediaId=${mediaId}` : `/api/projects/${projectId}/shell`
-          );
+    return () => {
+      active = false;
+    };
+  }, [isDashboardRoute]);
 
-          if (!active) return;
+  const dashboardWorkspace = useMemo(() => {
+    if (!isDashboardRoute || !dashboardWorkspaces) {
+      return null;
+    }
+    return dashboardWorkspaces.find((workspace) => workspace.id === workspaceIdQuery) ?? dashboardWorkspaces[0] ?? null;
+  }, [dashboardWorkspaces, isDashboardRoute, workspaceIdQuery]);
 
-          if (response.ok) {
-            const payload = await response.json();
-            const data = payload.data as ProjectShellData;
-            setProjectName(data.projectName);
-            setWorkspaceName(data.workspace.name);
-            setWorkspaceIdState(data.workspace.id);
-            setProjectAssetCount(data.assetCount);
-            setProjectFolders(data.folders);
-            setCurrentAsset(data.currentAsset);
-            setCanViewShareLinks(data.canViewShareLinks);
-          }
-        }
+  useEffect(() => {
+    function applyShellData(data: ProjectShellData) {
+      setProjectName(data.projectName);
+      setWorkspaceName(data.workspace.name);
+      setWorkspaceIdState(data.workspace.id);
+      setProjectAssetCount(data.assetCount);
+      setProjectFolders(data.folders);
+      setCurrentAsset(data.currentAsset);
+      setCanViewShareLinks(data.canViewShareLinks);
+    }
 
-        return;
-      }
-
+    if (!isProjectRoute || !projectId) {
       setWorkspaceName(null);
       setWorkspaceIdState(null);
       setProjectName(null);
@@ -550,14 +625,60 @@ export function AppShell({
       setProjectShareLinks([]);
       setEstimatedStorageBytes(0);
       setStorageIsEstimated(true);
+      return;
     }
 
-    void hydrateNames();
+    const domState = readProjectShellStateFromDom(projectId);
+    if (domState) {
+      applyShellData(domState);
+      return;
+    }
+
+    // The page's ProjectShellBridge normally delivers this data in a moment (handled by the
+    // listener above); only fetch it ourselves if the bridge hasn't shown up by then.
+    let active = true;
+    const fallbackProjectId = projectId;
+    const fallbackUrl = mediaId
+      ? `/api/projects/${fallbackProjectId}/shell?mediaId=${mediaId}`
+      : `/api/projects/${fallbackProjectId}/shell`;
+
+    function cancelOnBridge(event: Event) {
+      if ((event as CustomEvent<ProjectShellData>).detail?.projectId === fallbackProjectId) {
+        window.clearTimeout(timer);
+        window.removeEventListener(PROJECT_SHELL_STATE_EVENT, cancelOnBridge);
+      }
+    }
+
+    const timer = window.setTimeout(() => {
+      window.removeEventListener(PROJECT_SHELL_STATE_EVENT, cancelOnBridge);
+      const lateDomState = readProjectShellStateFromDom(fallbackProjectId);
+      if (lateDomState) {
+        applyShellData(lateDomState);
+        return;
+      }
+      void (async () => {
+        try {
+          const response = await fetch(fallbackUrl);
+          if (!active || !response.ok) {
+            return;
+          }
+          const payload = await response.json();
+          if (active) {
+            applyShellData(payload.data as ProjectShellData);
+          }
+        } catch {
+          /* the shell keeps its placeholder names */
+        }
+      })();
+    }, PROJECT_SHELL_FALLBACK_MS);
+    window.addEventListener(PROJECT_SHELL_STATE_EVENT, cancelOnBridge);
 
     return () => {
       active = false;
+      window.clearTimeout(timer);
+      window.removeEventListener(PROJECT_SHELL_STATE_EVENT, cancelOnBridge);
     };
-  }, [isDashboardRoute, isProjectRoute, mediaId, projectId, workspaceIdQuery]);
+  }, [isProjectRoute, mediaId, projectId]);
 
   useEffect(() => {
     if (!isProjectRoute || !projectId) {
@@ -676,7 +797,7 @@ export function AppShell({
     }
 
     setFolderCreating(true);
-    setShellMessage(null);
+    setFolderError(null);
 
     try {
       const response = await fetch(`/api/projects/${projectId}/folders`, {
@@ -690,7 +811,7 @@ export function AppShell({
       });
 
       if (!response.ok) {
-        setShellMessage("Could not create folder.");
+        setFolderError("Could not create folder. Try again.");
         return;
       }
 
@@ -709,10 +830,15 @@ export function AppShell({
       setFolderNameInput("");
       router.refresh();
     } catch {
-      setShellMessage("Could not create folder.");
+      setFolderError("Could not create folder. Try again.");
     } finally {
       setFolderCreating(false);
     }
+  }
+
+  function onFolderFormSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    void submitFolderFromSidebar();
   }
 
   async function copyShareLink(token: string) {
@@ -735,8 +861,8 @@ export function AppShell({
     if (isDashboardRoute) {
       return [
         {
-          label: workspaceName ?? "Workspace",
-          href: workspaceIdState ? `/dashboard?workspaceId=${workspaceIdState}` : "/dashboard"
+          label: dashboardWorkspace?.name ?? "Workspace",
+          href: dashboardWorkspace ? `/dashboard?workspaceId=${dashboardWorkspace.id}` : "/dashboard"
         },
         { label: "Dashboard" }
       ];
@@ -786,17 +912,12 @@ export function AppShell({
       return baseCrumbs;
     }
 
-    if (segments.length === 0) {
-      return [{ label: "Dashboard" }];
-    }
-
-    return segments.map((segment) => ({
-      label: formatSegmentLabel(segment)
-    }));
+    return buildGenericBreadcrumbs(segments);
   }, [
     currentAsset?.folderName,
     currentAsset?.title,
     currentFolderName,
+    dashboardWorkspace,
     projectFolders,
     groupBreadcrumb,
     isDashboardRoute,
@@ -825,18 +946,9 @@ export function AppShell({
     router.push(`${pathname}?${next.toString()}` as never);
   }
 
-  function handleBreadcrumbClick(href: string) {
-    const currentHref = searchParamsString ? `${pathname}?${searchParamsString}` : pathname;
-    if (href === currentHref) {
-      return;
-    }
-
-    startBreadcrumbTransition(() => {
-      router.push(href as never);
-    });
-  }
-
-  function handleProjectSidebarLinkClick(event: MouseEvent<HTMLAnchorElement>, href: string) {
+  /** Breadcrumb and project-sidebar links: plain clicks navigate in a transition (progress bar),
+   *  modifier / middle clicks keep the browser's open-in-new-tab behavior. */
+  function handleShellLinkClick(event: MouseEvent<HTMLAnchorElement>, href: string) {
     if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
       return;
     }
@@ -880,7 +992,11 @@ export function AppShell({
 
   const usedStoragePct = Math.min(100, (estimatedStorageBytes / ONE_TB_BYTES) * 100);
   const activeShareLinks = projectShareLinks.filter((link) => link.revokedAt === null);
-  const homeUrl = "/";
+  const sortedProjectFolders = useMemo(
+    () => [...projectFolders].sort((left, right) => left.name.localeCompare(right.name)),
+    [projectFolders]
+  );
+  const assistantAudience = assistantAudienceFor(platformRole);
 
   return (
     <div
@@ -889,6 +1005,12 @@ export function AppShell({
         hideChrome || embedded ? "" : "lg:pl-[240px]"
       )}
     >
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground"
+      >
+        Skip to content
+      </a>
       {hideChrome || embedded ? null : (
       <>
       {navOpen ? (
@@ -908,13 +1030,13 @@ export function AppShell({
       >
         {/* Brand */}
         <div className="flex items-center justify-between gap-2">
-          <a
-            href={homeUrl}
+          <Link
+            href="/dashboard"
             className="flex min-w-0 items-center px-2 py-1.5"
             aria-label="InFocus Portal home"
           >
-            <BrandWordmark className="h-9 w-auto object-contain" priority />
-          </a>
+            <BrandWordmark className="h-9 w-auto object-contain" width={84} height={36} priority />
+          </Link>
           <button
             type="button"
             className="grid h-9 w-9 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-card hover:text-foreground lg:hidden"
@@ -986,7 +1108,7 @@ export function AppShell({
           <SideNavLink
             href={"/package-cycles" as never}
             icon={GitBranch}
-            label="Package Cycles"
+            label="Cycle Dates"
             active={pathname.startsWith("/package-cycles")}
           />
           <SideNavLink
@@ -1060,6 +1182,15 @@ export function AppShell({
                 unread={feedbackUnread?.["final-cut"]}
                 status={cycleStatuses?.["final-cut"]}
               />
+              {!canManageWorkspaces ? (
+                <SideNavLink
+                  href={"/extension-requests" as never}
+                  icon={Hourglass}
+                  label="Extension Requests"
+                  active={pathname.startsWith("/extension-requests")}
+                  unread={extensionRequestsAwaiting}
+                />
+              ) : null}
             </>
           ) : null}
 
@@ -1071,79 +1202,71 @@ export function AppShell({
             active={pathname.startsWith("/livestreams")}
           />
 
-          <SideSection label="Producers" />
           {canManageWorkspaces ? (
-            <SideNavLink
-              href={"/groups" as never}
-              icon={UsersRound}
-              label="Groups"
-              active={pathname.startsWith("/groups")}
-            />
+            <>
+              <SideSection label="Producers" />
+              <SideNavLink
+                href={"/groups" as never}
+                icon={UsersRound}
+                label="Groups"
+                active={pathname.startsWith("/groups")}
+              />
+              <SideNavLink
+                href={"/members" as never}
+                icon={Users}
+                label="Members"
+                active={pathname.startsWith("/members")}
+              />
+              <SideNavLink
+                href={meetingsHomeUrl()}
+                icon={Video}
+                label="Meetings"
+                external
+                active={pathname.startsWith("/meetings") || (onMeetHost && pathname === "/")}
+              />
+              <SideNavLink
+                href={"/package-progress" as never}
+                icon={ListChecks}
+                label="Package Cycle"
+                active={pathname.startsWith("/package-progress")}
+              />
+              <SideNavLink
+                href={"/publishing-queue" as never}
+                icon={ListOrdered}
+                label="Publishing Queue"
+                active={pathname.startsWith("/publishing-queue")}
+              />
+              {canManageGrades ? (
+                <SideNavLink
+                  href={"/grade-editor" as never}
+                  icon={Edit3}
+                  label="Grade Editor"
+                  active={pathname.startsWith("/grade-editor")}
+                />
+              ) : null}
+              <SideNavLink
+                href={"/show-roles" as never}
+                icon={Mic2}
+                label="The Show"
+                active={pathname.startsWith("/show-roles")}
+              />
+              {canManageExtensions ? (
+                <SideNavLink
+                  href={"/participation" as never}
+                  icon={Hand}
+                  label="Participation"
+                  active={pathname.startsWith("/participation")}
+                />
+              ) : null}
+              <SideNavLink
+                href={"/extension-requests" as never}
+                icon={Hourglass}
+                label="Extension Requests"
+                active={pathname.startsWith("/extension-requests")}
+                unread={extensionRequestsAwaiting}
+              />
+            </>
           ) : null}
-          {canManageWorkspaces ? (
-            <SideNavLink
-              href={"/members" as never}
-              icon={Users}
-              label="Members"
-              active={pathname.startsWith("/members")}
-            />
-          ) : null}
-          {canManageWorkspaces ? (
-            <SideNavLink
-              href={meetingsHomeUrl()}
-              icon={Video}
-              label="Meetings"
-              external
-              active={pathname.startsWith("/meetings") || (onMeetHost && pathname === "/")}
-            />
-          ) : null}
-          {canManageWorkspaces ? (
-            <SideNavLink
-              href={"/package-progress" as never}
-              icon={ListChecks}
-              label="Package Cycle"
-              active={pathname.startsWith("/package-progress")}
-            />
-          ) : null}
-          {canManageWorkspaces ? (
-            <SideNavLink
-              href={"/publishing-queue" as never}
-              icon={Radio}
-              label="Publishing Queue"
-              active={pathname.startsWith("/publishing-queue")}
-            />
-          ) : null}
-          {canManageGrades ? (
-            <SideNavLink
-              href={"/grade-editor" as never}
-              icon={Edit3}
-              label="Grade Editor"
-              active={pathname.startsWith("/grade-editor")}
-            />
-          ) : null}
-          {canManageWorkspaces ? (
-            <SideNavLink
-              href={"/show-roles" as never}
-              icon={Mic2}
-              label="The Show"
-              active={pathname.startsWith("/show-roles")}
-            />
-          ) : null}
-          {canManageExtensions ? (
-            <SideNavLink
-              href={"/participation" as never}
-              icon={Edit3}
-              label="Participation"
-              active={pathname.startsWith("/participation")}
-            />
-          ) : null}
-          <SideNavLink
-            href={"/extension-requests" as never}
-            icon={Hourglass}
-            label="Extension Requests"
-            active={pathname.startsWith("/extension-requests")}
-            unread={extensionRequestsAwaiting}
-          />
 
           <SideSection label="Announcements" />
           <SideNavLink
@@ -1154,20 +1277,24 @@ export function AppShell({
           />
           <SideNavLink
             href={"/announcements/pa" as never}
-            icon={Mic2}
+            icon={Volume2}
             label="PA"
             active={pathname === "/announcements/pa"}
           />
 
-          <SideSection label="Admin" />
           {canManageAllowedEmails ? (
-            <SideNavLink
-              href="/admin"
-              icon={Shield}
-              label="Admin Dashboard"
-              active={pathname.startsWith("/admin")}
-            />
-          ) : null}
+            <>
+              <SideSection label="Admin" />
+              <SideNavLink
+                href="/admin"
+                icon={Shield}
+                label="Admin Dashboard"
+                active={pathname.startsWith("/admin")}
+              />
+            </>
+          ) : (
+            <div aria-hidden className="mt-[0.675rem]" />
+          )}
           <SideNavLink
             href="/settings"
             icon={Settings}
@@ -1238,41 +1365,58 @@ export function AppShell({
         onOpenChange={(isOpen) => {
           if (!isOpen && folderCreating) return;
           setFolderModalOpen(isOpen);
-          if (!isOpen) setFolderNameInput("");
+          if (!isOpen) {
+            setFolderNameInput("");
+            setFolderError(null);
+          }
         }}
       >
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create Folder</DialogTitle>
-            <DialogDescription>Add a new folder to organize project assets.</DialogDescription>
-          </DialogHeader>
-          <input
-            value={folderNameInput}
-            onChange={(event) => setFolderNameInput(event.target.value)}
-            placeholder="Folder name"
-            className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
-          />
-          <DialogFooter>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setFolderModalOpen(false);
-                setFolderNameInput("");
-              }}
-              disabled={folderCreating}
-            >
-              Cancel
-            </Button>
-            <Button onClick={() => void submitFolderFromSidebar()} disabled={folderCreating || !folderNameInput.trim()}>
-              {folderCreating ? "Creating..." : "Create Folder"}
-            </Button>
-          </DialogFooter>
+          <form onSubmit={onFolderFormSubmit} className="grid gap-4">
+            <DialogHeader>
+              <DialogTitle>Create Folder</DialogTitle>
+              <DialogDescription>Add a new folder to organize project assets.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2">
+              <Input
+                value={folderNameInput}
+                onChange={(event) => setFolderNameInput(event.target.value)}
+                placeholder="Folder name"
+                aria-label="Folder name"
+                aria-invalid={folderError ? true : undefined}
+                autoFocus
+              />
+              {folderError ? (
+                <p role="alert" className="flex items-center gap-1.5 text-sm text-danger">
+                  <AlertCircle className="h-4 w-4 shrink-0" aria-hidden />
+                  {folderError}
+                </p>
+              ) : null}
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setFolderModalOpen(false);
+                  setFolderNameInput("");
+                  setFolderError(null);
+                }}
+                disabled={folderCreating}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={folderCreating || !folderNameInput.trim()}>
+                {folderCreating ? "Creating..." : "Create Folder"}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
       <div
         className={cn(
-          hideChrome ? "h-full min-h-0 min-w-0" : "min-h-screen min-w-0 lg:h-screen lg:overflow-y-auto",
+          hideChrome ? "h-full min-h-0 min-w-0" : "min-h-screen min-w-0 lg:h-screen lg:overflow-y-auto lg:scroll-pt-16",
           isProjectRoute && !isReviewRoute ? "lg:grid lg:grid-cols-[240px_1fr]" : ""
         )}
       >
@@ -1291,8 +1435,9 @@ export function AppShell({
                 onClick={createFolderFromSidebar}
                 className="grid h-6 w-6 place-items-center rounded border border-transparent text-muted-foreground transition hover:border-[var(--ink-3)] hover:bg-[var(--ink-2)] hover:text-foreground"
                 title="Create folder"
+                aria-label="Create folder"
               >
-                <Plus className="h-3.5 w-3.5" />
+                <Plus className="h-3.5 w-3.5" aria-hidden />
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-3">
@@ -1311,7 +1456,7 @@ export function AppShell({
                   <Link
                     href={buildProjectHref({ scope: "active", folderId: "all", collection: null }) as never}
                     onClick={(event) =>
-                      handleProjectSidebarLinkClick(
+                      handleShellLinkClick(
                         event,
                         buildProjectHref({ scope: "active", folderId: "all", collection: null })
                       )
@@ -1341,8 +1486,7 @@ export function AppShell({
 
                       {assetsOpen ? (
                         <div className="space-y-1 pl-4">
-                          {[...projectFolders]
-                            .sort((left, right) => left.name.localeCompare(right.name))
+                          {sortedProjectFolders
                             .map((folder) => {
                               const depth = Math.max(0, folderPathSegments(folder.name).length - 1);
                               return (
@@ -1350,7 +1494,7 @@ export function AppShell({
                               key={folder.id}
                               href={buildProjectHref({ scope: "active", folderId: folder.id, collection: null }) as never}
                               onClick={(event) =>
-                                handleProjectSidebarLinkClick(
+                                handleShellLinkClick(
                                   event,
                                   buildProjectHref({ scope: "active", folderId: folder.id, collection: null })
                                 )
@@ -1389,7 +1533,7 @@ export function AppShell({
                   <Link
                     href={buildProjectHref({ scope: "deleted", folderId: "all", collection: null }) as never}
                     onClick={(event) =>
-                      handleProjectSidebarLinkClick(event, buildProjectHref({ scope: "deleted", folderId: "all", collection: null }))
+                      handleShellLinkClick(event, buildProjectHref({ scope: "deleted", folderId: "all", collection: null }))
                     }
                     className={cn(
                       "mt-1 flex items-center gap-3 rounded-md px-2 py-1.5 text-muted-foreground hover:bg-accent",
@@ -1408,7 +1552,7 @@ export function AppShell({
               <Link
                 href={buildProjectHref({ collection: "videos", scope: "active", folderId: "all" }) as never}
                 onClick={(event) =>
-                  handleProjectSidebarLinkClick(
+                  handleShellLinkClick(
                     event,
                     buildProjectHref({ collection: "videos", scope: "active", folderId: "all" })
                   )
@@ -1512,18 +1656,25 @@ export function AppShell({
                 <div className="flex min-w-0 items-center gap-2 overflow-x-auto">
                 {breadcrumbs.map((crumb, index) => {
                   const href = crumb.href;
+                  const isLast = index === breadcrumbs.length - 1;
                   return (
                     <div key={`${crumb.label}-${index}`} className="flex items-center gap-2">
-                      {href && index < breadcrumbs.length ? (
-                        <button
-                          type="button"
-                          onClick={() => handleBreadcrumbClick(href)}
-                          className="rounded-md px-2 py-1 text-muted-foreground hover:text-foreground hover:bg-accent"
+                      {href ? (
+                        <Link
+                          href={href as never}
+                          onClick={(event) => handleShellLinkClick(event, href)}
+                          aria-current={isLast ? "page" : undefined}
+                          className="whitespace-nowrap rounded-md px-2 py-1 text-muted-foreground hover:text-foreground hover:bg-accent"
                         >
                           {crumb.label}
-                        </button>
+                        </Link>
                       ) : (
-                        <span className={index === breadcrumbs.length - 1 ? "font-semibold text-foreground" : ""}>{crumb.label}</span>
+                        <span
+                          aria-current={isLast ? "page" : undefined}
+                          className={cn("whitespace-nowrap", isLast ? "font-semibold text-foreground" : "")}
+                        >
+                          {crumb.label}
+                        </span>
                       )}
                       {index < breadcrumbs.length - 1 ? <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" /> : null}
                     </div>
@@ -1533,15 +1684,21 @@ export function AppShell({
               </div>
 
               <div className="flex items-center gap-2">
-                <DashboardWorkspaceSelector />
+                {isDashboardRoute ? <DashboardWorkspaceSelector workspaces={dashboardWorkspaces} /> : null}
 
-                <label className="hidden items-center gap-2 rounded-lg border border-border bg-muted px-2.5 py-2 text-sm text-muted-foreground md:flex">
-                  <Search className="h-4 w-4 text-muted-foreground" />
-                  <input
-                    placeholder="Search assets, projects, comments..."
-                    className="w-64 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
-                  />
-                </label>
+                {sampleOnly ? null : (
+                  <button
+                    type="button"
+                    onClick={() => setPaletteOpen(true)}
+                    aria-label="Search pages"
+                    aria-keyshortcuts="Meta+K Control+K"
+                    className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-muted px-2.5 text-sm text-muted-foreground transition hover:text-foreground"
+                  >
+                    <Search className="h-4 w-4" aria-hidden />
+                    <span className="hidden w-40 text-left md:inline">Search…</span>
+                    <kbd className="hidden font-mono-broadcast text-[11px] text-muted-foreground md:inline">⌘K</kbd>
+                  </button>
+                )}
 
                 {canControlLayout ? (
                   <div className="inline-flex rounded-lg border border-border bg-muted p-1">
@@ -1553,8 +1710,10 @@ export function AppShell({
                       type="button"
                       onClick={() => updateView("grid")}
                       title="Grid"
+                      aria-label="Grid view"
+                      aria-pressed={currentView === "grid"}
                     >
-                      <Grid3X3 className="h-4 w-4" />
+                      <Grid3X3 className="h-4 w-4" aria-hidden />
                     </button>
                     <button
                       className={cn(
@@ -1564,8 +1723,10 @@ export function AppShell({
                       type="button"
                       onClick={() => updateView("list")}
                       title="List"
+                      aria-label="List view"
+                      aria-pressed={currentView === "list"}
                     >
-                      <List className="h-4 w-4" />
+                      <List className="h-4 w-4" aria-hidden />
                     </button>
                   </div>
                 ) : null}
@@ -1605,24 +1766,26 @@ export function AppShell({
             </div>
           ) : null}
 
-          <main className={cn("min-w-0 flex-1", isClassBoard ? "flex min-h-0 flex-col overflow-hidden" : "p-4 pb-24 md:p-6 lg:pb-6")}>
+          <main
+            id="main"
+            tabIndex={-1}
+            className={cn(
+              "min-w-0 flex-1 outline-none",
+              isClassBoard ? "flex min-h-0 flex-col overflow-hidden" : "p-4 pb-24 md:p-6 lg:pb-6"
+            )}
+          >
             {children}
           </main>
         </div>
       </div>
       {!hideChrome && !sampleOnly && !embedded ? (
-        <AssistantChat
-          canMutate={platformRole === "SUPER_ADMIN" || platformRole === "ADVISER"}
-          audience={
-            platformRole === "SUPER_ADMIN" || platformRole === "ADVISER"
-              ? "admin"
-              : platformRole === "EXECUTIVE_PRODUCER"
-                ? "executive"
-                : platformRole === "ASSOCIATE_PRODUCER"
-                  ? "associate"
-                  : "member"
-          }
-        />
+        <>
+          <AssistantChat
+            canMutate={platformRole === "SUPER_ADMIN" || platformRole === "ADVISER"}
+            audience={assistantAudience}
+          />
+          <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} audience={assistantAudience} />
+        </>
       ) : null}
     </div>
   );

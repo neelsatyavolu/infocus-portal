@@ -27,7 +27,7 @@ People with owner access to the workspace can share a project or one version as 
 
 ## Activity
 
-`/activity` is an older media-review event feed (new uploads, new versions, comments, replies) for workspaces you can see. The checkboxes filter the feed in your browser only. Package-cycle work is easier to follow from Groups and student cycle tabs.
+`/activity` used to be a media-review event feed. It now forwards to Settings, where notification preferences live. Package-cycle work is easier to follow from Groups and student cycle tabs.
 
 ## Information
 

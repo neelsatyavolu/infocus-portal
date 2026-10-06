@@ -14,7 +14,7 @@ Super admin and the adviser give out Associate Producer, Executive Producer, and
 
 ## Rules that confuse people
 
-- An AP **on a package roster** works that package as a student (cycle tabs). They do not produce their own package.
+- An AP **on a package roster** works that package as a student (cycle tabs). They do not produce their own package. An EP or super admin on a roster also gets the cycle tabs for that package.
 - APs only produce **assigned** packages. They cannot edit the Package Cycle chart.
 - Assigned producer on a package can be an AP or an EP/super-admin (when the usual AP is a student on that package). That person does stage 1. Assigned EP is not a substitute for stage 3.
 - `isExecutiveProducer()` excludes the adviser. Use that for stage 3, The Show EP checks, and similar.

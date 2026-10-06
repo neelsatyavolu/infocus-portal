@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { CalendarClock, Sparkles, Wrench } from "lucide-react";
 import { getSessionUser } from "@/src/lib/auth";
 import {
@@ -5,6 +6,8 @@ import {
   HUB_MAINTENANCE_ETA,
   HUB_MAINTENANCE_TITLE
 } from "@/src/lib/maintenance";
+
+export const metadata: Metadata = { title: "Maintenance" };
 
 export default async function MaintenancePage() {
   const session = await getSessionUser();

@@ -1,4 +1,3 @@
 export default function AppTemplate({ children }: { children: React.ReactNode }) {
-  return <div className="route-enter">{children}</div>;
+  return <div className="route-fade">{children}</div>;
 }
-

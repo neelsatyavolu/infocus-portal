@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentAppUser } from "@/src/lib/current-app-user";
 import { hasPlatformRole } from "@/src/lib/platform-admin";
 import MembersClient from "./members-client";
+
+export const metadata: Metadata = { title: "Members" };
 
 export default async function MembersPage() {
   const { platformRole } = await getCurrentAppUser();

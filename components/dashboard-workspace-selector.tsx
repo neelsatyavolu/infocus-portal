@@ -1,53 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-type WorkspaceOption = {
+export type WorkspaceOption = {
   id: string;
   name: string;
 };
 
-export function DashboardWorkspaceSelector() {
-  const pathname = usePathname();
+/** The shell fetches the list once per dashboard visit and passes it in (null while loading). */
+export function DashboardWorkspaceSelector({ workspaces }: { workspaces: WorkspaceOption[] | null }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [workspaces, setWorkspaces] = useState<WorkspaceOption[]>([]);
-
-  const isDashboardRoute = pathname.startsWith("/dashboard");
-
-  useEffect(() => {
-    if (!isDashboardRoute) {
-      return;
-    }
-
-    let active = true;
-
-    async function loadWorkspaces() {
-      const response = await fetch("/api/workspaces", { cache: "no-store" });
-      const payload = await response.json();
-
-      if (!active || !response.ok) {
-        return;
-      }
-
-      const options = (payload.data as Array<{ id: string; name: string }>).map((item) => ({
-        id: item.id,
-        name: item.name
-      }));
-      setWorkspaces(options);
-    }
-
-    void loadWorkspaces();
-
-    return () => {
-      active = false;
-    };
-  }, [isDashboardRoute]);
 
   const currentWorkspaceId = useMemo(() => {
-    if (!workspaces.length) {
+    if (!workspaces?.length) {
       return "";
     }
 
@@ -56,7 +24,7 @@ export function DashboardWorkspaceSelector() {
     return match?.id ?? workspaces[0].id;
   }, [searchParams, workspaces]);
 
-  if (!isDashboardRoute) {
+  if (!workspaces) {
     return null;
   }
 

@@ -1,15 +1,15 @@
-# Package cycles and Package Cycle roster
+# Cycle Dates and Package Cycle roster
 
 Two different pages:
 
 | Page | Route | What it is |
 |---|---|---|
-| Package Cycles | `/package-cycles` | Stage dates for each cycle, plus Package of the Cycle winners |
+| Cycle Dates (formerly Package Cycles) | `/package-cycles` | Stage dates for each cycle, plus Package of the Cycle winners |
 | Package Cycle | `/package-progress` | Roster: topic, members, assigned producer |
 
 Cycle count is set in Admin or Edit Cycles on `/package-cycles` (default 3, max 8).
 
-## Package Cycles page (`/package-cycles`)
+## Cycle Dates page (`/package-cycles`)
 
 One card per cycle: the current cycle first (**Active**), then upcoming ones (**Planned**), then cycles whose Final Cut date has passed (**Closed**). Each card lists the five stage dates. A stage shows **Completed** once its date has passed, a countdown such as **in 8d** before that, or **TBD** with no date. Open cycles also show a **Next Stage** box with the next date ahead.
 
@@ -50,6 +50,6 @@ Each row: topic, interviews, notes, members, **one** assigned producer (shown as
 - Consecutive groupmates are flagged with **Same group last cycle: A and B** (students may not repeat the same partners next cycle). The **Add members** picker also marks each person who shared last cycle's group with someone already in the group (**Same group last cycle as A**). It is a warning; Portal does not block the save.
 - Assignable producers: associates plus executives and super admin.
 - Stage completion is not edited here; it lives on `/groups`.
-- An AP who is a **member** of the group gets student cycle tabs for that package.
+- An AP, EP, or super admin who is a **member** of the group gets student cycle tabs for that package.
 
 Quota: reporters 3 packages S1 / 4 S2; associates 2 S1 / 3 S2, capped at how many cycles exist that semester.

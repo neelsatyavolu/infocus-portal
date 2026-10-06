@@ -522,7 +522,7 @@ Light theme: background is a very light Mist (`hsl(141 12% 96%)`), cards are whi
 
 ### Motion
 
-The Tailwind defaults are the brand curves: `--default-transition-timing-function` is ease out `cubic-bezier(0.16, 1, 0.3, 1)` at 200ms, and `ease-in`, `ease-out`, `ease-in-out` are the section 5 curves. Card and route entrances run 280ms ease out. The rec dot fades in and out and never glows. Reduced motion disables the entrances and the dot animation.
+The Tailwind defaults are the brand curves: `--default-transition-timing-function` is ease out `cubic-bezier(0.16, 1, 0.3, 1)` at 200ms, and `ease-in`, `ease-out`, `ease-in-out` are the section 5 curves. Card and route entrances run 280ms ease out; the Portal page swap (`.route-fade`) is a 150ms opacity-only fade. The rec dot fades in and out and never glows. Reduced motion disables the entrances and the dot animation.
 
 ### Emails
 

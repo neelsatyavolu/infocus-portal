@@ -18,7 +18,7 @@ type SignInPageProps = {
 export async function generateMetadata({ searchParams }: SignInPageProps): Promise<Metadata> {
   const { returnTo } = await searchParams;
   const title = signInPageTitle(returnTo);
-  return { title, openGraph: { title } };
+  return { title: { absolute: title }, openGraph: { title } };
 }
 
 export default async function SignInPage({ searchParams }: SignInPageProps) {

@@ -309,7 +309,7 @@ export default function PackageCyclesPage() {
               <CalendarClock className="h-3 w-3" />
               Production · Run-of-Show
             </div>
-            <h1 className="display-md mt-2 text-foreground">Package Cycles</h1>
+            <h1 className="display-md mt-2 text-foreground">Cycle Dates</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Ordered by current cycle, upcoming cycles, then passed cycles.
               {!loading ? ` · ${cyclesPerSemester} cycle${cyclesPerSemester === 1 ? "" : "s"} this semester` : null}

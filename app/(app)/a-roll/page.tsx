@@ -1,4 +1,7 @@
+import type { Metadata } from "next";
 import { StageWorkspace } from "@/components/package-cycle/stage-workspace";
+
+export const metadata: Metadata = { title: "A-roll/B-roll" };
 
 export default function ARollPage() {
   return (

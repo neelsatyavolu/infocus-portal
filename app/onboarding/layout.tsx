@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/src/lib/auth";
 import {
@@ -5,6 +6,8 @@ import {
   HUB_MAINTENANCE_MODE
 } from "@/src/lib/maintenance";
 import { getPlatformRoleForEmail } from "@/src/lib/platform-admin";
+
+export const metadata: Metadata = { title: "Welcome" };
 
 export default async function OnboardingLayout({ children }: { children: React.ReactNode }) {
   if (HUB_MAINTENANCE_MODE) {

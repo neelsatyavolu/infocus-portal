@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
 import { requireUserId, syncUserProfile } from "@/src/lib/auth";
 import { getPlatformAccess } from "@/src/lib/platform-admin";
 import LivestreamsClient from "./livestreams-client";
+
+export const metadata: Metadata = { title: "Livestream Tracker" };
 
 export default async function LivestreamsPage() {
   const userId = await requireUserId();

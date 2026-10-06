@@ -151,13 +151,13 @@ export function CutPickerDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent onOpenAutoFocus={pointerSafeAutoFocus} className="flex max-h-[85dvh] max-w-xl flex-col gap-3 outline-none [&>*]:min-w-0">
-        <DialogHeader>
+        <DialogHeader className="shrink-0">
           <DialogTitle>Watch together</DialogTitle>
           <DialogDescription>Pick a cut. Everyone in the call watches it in sync, and anyone can pause or scrub.</DialogDescription>
         </DialogHeader>
 
         {catalog && catalog.cycles.length > 0 ? (
-          <div role="tablist" aria-label="Cycle" className="flex gap-1 overflow-x-auto">
+          <div role="tablist" aria-label="Cycle" className="flex shrink-0 gap-1 overflow-x-auto">
             {catalog.cycles.map((n) => {
               const active = (cycle ?? catalog.cycle) === n;
               return (
@@ -183,7 +183,7 @@ export function CutPickerDialog({
           </div>
         ) : null}
 
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
             <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search topic or member" aria-label="Search topic or member" className="pl-8" />
@@ -227,7 +227,7 @@ export function CutPickerDialog({
           )}
         </div>
 
-        <DialogFooter className="items-center gap-2 border-t border-[var(--ink-4)] pt-3 sm:justify-between">
+        <DialogFooter className="shrink-0 items-center gap-2 border-t border-[var(--ink-4)] pt-3 sm:justify-between">
           <p className="min-w-0 truncate text-sm text-muted-foreground">
             {selected
               ? `${selected.group.topic} · ${KIND_LABEL[selected.kind]} Cut v${selected.version.versionNumber}`

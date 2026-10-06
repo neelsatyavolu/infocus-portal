@@ -180,6 +180,19 @@ describe("pacific time", () => {
     expect(groups[0].items.map((i) => i.id)).toEqual(["a", "b"]);
   });
 
+  it("lists days and meetings newest first when asked (Past)", () => {
+    const groups = groupByPacificDay(
+      [
+        { id: "mon-am", startsAt: "2026-10-05T17:00:00.000Z" },
+        { id: "sun", startsAt: "2026-10-05T04:15:00.000Z" },
+        { id: "mon-pm", startsAt: "2026-10-06T04:15:00.000Z" }
+      ],
+      { newestFirst: true }
+    );
+    expect(groups.map((g) => g.key)).toEqual(["2026-10-05", "2026-10-04"]);
+    expect(groups[0].items.map((i) => i.id)).toEqual(["mon-pm", "mon-am"]);
+  });
+
   it("opens join at joinOpensAt, falling back to 5 minutes early", () => {
     const startsAt = "2026-10-05T04:15:00.000Z";
     const t = new Date(startsAt).getTime();

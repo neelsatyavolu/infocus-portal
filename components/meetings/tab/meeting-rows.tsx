@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { Lock, ShieldCheck } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -9,7 +10,6 @@ import {
   formatDuration,
   joinOpensAtMs,
   groupByPacificDay,
-  pacificDayLabel,
   pacificTimeLabel
 } from "@/src/lib/meetings/client/time";
 import { cn } from "@/src/lib/utils";
@@ -158,29 +158,57 @@ export function UpcomingList({
   );
 }
 
+/** Past shows the most recent few; older ones open in steps so the tab never becomes one long list. */
+const PAST_PREVIEW = 5;
+const PAST_STEP = 10;
+
 export function PastList({ meetings }: { meetings: MeetingSummary[] }) {
+  const [shown, setShown] = useState(PAST_PREVIEW);
   if (meetings.length === 0) return <p className="text-sm text-muted-foreground">No past meetings yet.</p>;
+  const groups = groupByPacificDay(meetings.slice(0, shown), { newestFirst: true });
+  const hidden = meetings.length - shown;
   return (
-    <ul className="divide-y divide-[var(--ink-4)] rounded-md border border-[var(--ink-4)] bg-card">
-      {meetings.map((m) => (
-        <li key={m.id}>
-          <Link
-            href={`/meetings/${encodeURIComponent(m.id)}` as never}
-            className="flex flex-wrap items-center gap-3 px-4 py-3 hover:bg-[var(--ink-3)] focus-visible:bg-[var(--ink-3)] focus-visible:outline-none"
-          >
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-foreground">{m.title}</p>
-              <p className="text-xs text-muted-foreground">
-                {pacificDayLabel(m.startsAt)} · {pacificTimeLabel(m.startsAt)} · {formatDuration(m.durationMinutes)} ·{" "}
-                <span className="font-mono tabular-nums">{m.participantCount}</span> attended
-              </p>
-            </div>
-            <AccessTag meeting={m} />
-            <NotesTag status={m.notesStatus} />
-            <span className="text-sm text-[var(--brand-green)]">Summary</span>
-          </Link>
-        </li>
+    <div className="space-y-5">
+      {groups.map((group) => (
+        <section key={group.key} aria-label={group.label}>
+          <h3 className="mb-2 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">{group.label}</h3>
+          <ul className="divide-y divide-[var(--ink-4)] rounded-md border border-[var(--ink-4)] bg-card">
+            {group.items.map((m) => (
+              <li key={m.id}>
+                <Link
+                  href={`/meetings/${encodeURIComponent(m.id)}` as never}
+                  className="flex flex-wrap items-center gap-3 px-4 py-3 hover:bg-[var(--ink-3)] focus-visible:bg-[var(--ink-3)] focus-visible:outline-none"
+                >
+                  <span className="w-20 shrink-0 font-mono text-sm tabular-nums text-[var(--ink-text)]">{pacificTimeLabel(m.startsAt)}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-foreground">{m.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatDuration(m.durationMinutes)} · <span className="font-mono tabular-nums">{m.participantCount}</span> attended
+                    </p>
+                  </div>
+                  <AccessTag meeting={m} />
+                  <NotesTag status={m.notesStatus} />
+                  <span className="text-sm text-[var(--brand-green)]">Summary</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
       ))}
-    </ul>
+      {hidden > 0 || shown > PAST_PREVIEW ? (
+        <div className="flex flex-wrap gap-2">
+          {hidden > 0 ? (
+            <Button size="sm" variant="outline" onClick={() => setShown((n) => n + PAST_STEP)}>
+              Show older meetings · <span className="font-mono tabular-nums">{hidden}</span> more
+            </Button>
+          ) : null}
+          {shown > PAST_PREVIEW ? (
+            <Button size="sm" variant="ghost" onClick={() => setShown(PAST_PREVIEW)}>
+              Show fewer
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
   );
 }

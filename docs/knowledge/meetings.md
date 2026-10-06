@@ -8,6 +8,7 @@ Private video meetings for producers, with notes written on the InFocus Drive.
 - Meetings have their own address: **meet.infocuspaly.com**. The Meetings tab is at the top (`meet.infocuspaly.com`), the InFocus Producer Meeting at **meet.infocuspaly.com/producers**, and each meeting at `meet.infocuspaly.com/<meeting id>`.
 - Copy link, calendar invites and link previews all use these addresses. Old `infocuspaly.com/meet/…` and `/meetings` links still work: they move to the meet address.
 - The InFocus Portal iPhone app keeps opening meetings inside the app, as before.
+- **Past** on the Meetings tab is grouped by day, newest first, and shows the 5 most recent meetings. **Show older meetings** opens 10 more at a time (up to the last 30), and **Show fewer** collapses it again.
 - Signing in from a meet link brings you back to that meeting.
 ## Who
 

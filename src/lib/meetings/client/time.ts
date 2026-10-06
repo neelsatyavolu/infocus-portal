@@ -47,9 +47,11 @@ export function pacificTimeLabel(iso: string | Date) {
   return timeFormat.format(new Date(iso));
 }
 
-export function groupByPacificDay<T extends { startsAt: string }>(items: readonly T[]) {
+/** Meetings by Pacific day, oldest first (Upcoming); `newestFirst` reverses days and meetings (Past). */
+export function groupByPacificDay<T extends { startsAt: string }>(items: readonly T[], { newestFirst = false } = {}) {
   const groups: Array<{ key: string; label: string; items: T[] }> = [];
-  for (const item of [...items].sort((a, b) => a.startsAt.localeCompare(b.startsAt))) {
+  const order = newestFirst ? -1 : 1;
+  for (const item of [...items].sort((a, b) => order * a.startsAt.localeCompare(b.startsAt))) {
     const key = pacificDayKey(item.startsAt);
     const last = groups[groups.length - 1];
     if (last && last.key === key) {

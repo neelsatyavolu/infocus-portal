@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { Eye, EyeOff, Settings, ShieldCheck, Volume2 } from "lucide-react";
 import { NEVER } from "rxjs";
 import { toast } from "sonner";
-import type { LayoutMode } from "@/src/lib/meetings/client/layout";
+import { WATCH_TILE_ID, type LayoutMode } from "@/src/lib/meetings/client/layout";
 import { participantList, scribePresent } from "@/src/lib/meetings/client/room-state";
 import { handQueue } from "@/src/lib/meetings/client/hands";
 import { shouldMonitorMic } from "@/src/lib/meetings/client/mic-monitor";
@@ -41,10 +41,16 @@ import { useHand } from "./use-hand";
 import { useMicPrewarm } from "./use-mic-prewarm";
 import { useCallDiagnostics } from "./use-call-diagnostics";
 import { usePublish } from "./use-publish";
+import { CutPickerDialog } from "../watch/cut-picker-dialog";
+import { useWatchParty } from "../watch/use-watch-party";
+import { WatchTile } from "../watch/watch-tile";
 
 type Call = ReturnType<typeof useMeetingCall>;
+
+/** Shared screen sound never drives the speaking ring. */
+const ignoreLevel = () => undefined;
 type Panel = "chat" | "people" | "agenda" | null;
-type DialogName = "info" | "devices" | "host" | "leave" | null;
+type DialogName = "info" | "devices" | "host" | "leave" | "watch" | null;
 
 export function CallRoom({
   meetingId,
@@ -94,6 +100,7 @@ export function CallRoom({
   const { hand, toggleHand, onSelfLevel } = useHand(serverHandAt, media.audioOn);
   useChimes(room, call.welcomeCount, media.settings.chimes, media.speakerId);
   const { screenOn } = usePublish({ session, media, hand, send, welcomeCount: call.welcomeCount });
+  const watchParty = useWatchParty({ watch: room.watch, selfUid, send, serverOffset: call.serverOffset });
 
   const camera$ = useMemo(() => (media.videoOn ? media.camera.localMonitorTrack$ : NEVER), [media.videoOn, media.camera]);
   // Self level (speaking ring, hand auto-lower) only while unmuted; the settings dialog monitors on its own.
@@ -121,8 +128,13 @@ export function CallRoom({
   // A new screen share takes the stage unless someone is pinned.
   const sharerId = tiles.find((t) => t.isScreen && !t.isSelf)?.id ?? null;
   useEffect(() => {
-    if (sharerId) setPinnedId((current) => (current && current !== sharerId ? current : null));
+    if (sharerId) setPinnedId((current) => (current && current !== sharerId && current !== WATCH_TILE_ID ? current : null));
   }, [sharerId]);
+  // A new watch-together video takes the stage too (the newest of the two wins).
+  const watchId = room.watch?.id ?? null;
+  useEffect(() => {
+    if (watchId) setPinnedId(WATCH_TILE_ID);
+  }, [watchId]);
 
   // Coming back (screen unlocked, a phone call or Siri ended, bfcache): iOS leaves remote <audio>
   // paused without a play() rejection, so the room looks connected but is silent. Restart them.
@@ -222,6 +234,13 @@ export function CallRoom({
             receive={media.settings.receiveQuality}
             mirrorSelf={media.settings.mirror}
             onOpenPeople={() => setPanel("people")}
+            watch={
+              room.watch
+                ? (placement) => (
+                    <WatchTile party={watchParty} placement={placement} sinkId={media.speakerId} onChange={() => setDialog("watch")} />
+                  )
+                : undefined
+            }
           />
           {selfInPip ? (
             <SelfPip
@@ -263,6 +282,7 @@ export function CallRoom({
         videoOn={media.videoOn}
         sharing={Boolean(media.screen)}
         canShare={shareSupported}
+        shareSound={media.settings.shareSound}
         handRaised={hand}
         handPosition={selfUid ? hands[selfUid] : undefined}
         chatOpen={panel === "chat"}
@@ -273,13 +293,15 @@ export function CallRoom({
         peopleCount={people.filter((p) => !p.isScribe).length}
         waitingCount={room.isHost ? room.waiting.length : 0}
         layout={layout}
-        layoutAlone={stageTiles.length <= 1}
+        layoutAlone={stageTiles.length + (room.watch ? 1 : 0) <= 1}
         moreActions={moreActions}
         onLayout={setLayout}
         onMic={media.toggleAudio}
         onMicIntent={onMicIntent}
         onCamera={media.toggleVideo}
         onShare={toggleShare}
+        onShareSound={(on) => media.updateSettings({ shareSound: on })}
+        onWatch={() => setDialog("watch")}
         onHand={toggleHand}
         onReact={(emoji) => {
           if (!call.sendReaction(emoji)) toast.error("You're offline. Try again in a moment.");
@@ -302,6 +324,19 @@ export function CallRoom({
           onBlocked={onAudioBlocked}
         />
       ))}
+      {remotes
+        .filter((p) => p.screenOn && p.tracks.screenAudio)
+        .map((p) => (
+          <RemoteAudio
+            key={`${p.uid}:screen`}
+            partyTracks={partyTracks}
+            meta={p.tracks.screenAudio}
+            uid={`${p.uid}:screen`}
+            sinkId={media.speakerId}
+            onLevel={ignoreLevel}
+            onBlocked={onAudioBlocked}
+          />
+        ))}
       {selfUid && media.audioOn ? <SelfLevel track={selfMic} uid={selfUid} onLevel={onLevel} onSelfLevel={onSelfLevel} /> : null}
 
       {meeting ? (
@@ -318,6 +353,12 @@ export function CallRoom({
         onOpenChange={(o) => setDialog(o ? "devices" : null)}
         media={media}
         peopleCount={people.filter((p) => !p.isScribe).length}
+      />
+      <CutPickerDialog
+        open={dialog === "watch"}
+        onOpenChange={(o) => setDialog(o ? "watch" : null)}
+        replacing={Boolean(room.watch)}
+        onWatch={watchParty.start}
       />
       <LeaveDialog
         open={dialog === "leave"}

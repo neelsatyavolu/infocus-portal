@@ -22,6 +22,10 @@ export function screenTileId(uid: string) {
   return `${uid}:screen`;
 }
 
+/** The watch-together tile: it takes the stage like a screen share. */
+export const WATCH_TILE_ID = "watch";
+export const WATCH_STAGE_TILE: StageTile = { id: WATCH_TILE_ID, uid: "", isSelf: false, isScreen: true, joinedAt: -1 };
+
 /** Decides the stage arrangement and which tile (if any) is the main one. */
 export function resolveStage(input: {
   mode: LayoutMode;

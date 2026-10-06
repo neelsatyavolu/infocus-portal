@@ -2,7 +2,8 @@ import type {
   MeetingParticipantView,
   MeetingRoomSettings,
   MeetingServerMessage,
-  MeetingWaitingView
+  MeetingWaitingView,
+  MeetingWatchState
 } from "@/src/lib/meetings/protocol";
 
 /** Where the call is, from the room's point of view. Media and chat live elsewhere. */
@@ -18,6 +19,8 @@ export type RoomState = {
   epoch: number;
   /** Bumped by the room's `agenda` event; the agenda panel refetches when it changes. */
   agendaVersion: number;
+  /** Watch together in progress (null: none). */
+  watch: MeetingWatchState | null;
 };
 
 export const INITIAL_ROOM_STATE: RoomState = {
@@ -28,7 +31,8 @@ export const INITIAL_ROOM_STATE: RoomState = {
   waiting: [],
   settings: { quickAccess: false, notesEnabled: true },
   epoch: 0,
-  agendaVersion: 0
+  agendaVersion: 0,
+  watch: null
 };
 
 const TERMINAL: ReadonlySet<RoomPhase> = new Set(["removed", "ended"]);
@@ -50,7 +54,8 @@ export function roomReducer(state: RoomState, message: MeetingServerMessage): Ro
         participants: Object.fromEntries(message.participants.map((p) => [p.uid, p])),
         waiting: message.waiting,
         settings: message.settings,
-        epoch: message.epoch
+        epoch: message.epoch,
+        watch: message.watch ?? null
       };
     case "participant":
       return { ...state, participants: { ...state.participants, [message.participant.uid]: message.participant } };
@@ -74,6 +79,8 @@ export function roomReducer(state: RoomState, message: MeetingServerMessage): Ro
       return { ...state, agendaVersion: Math.max(state.agendaVersion + 1, message.version) };
     case "settings":
       return { ...state, settings: message.settings };
+    case "watch":
+      return { ...state, watch: message.watch };
     default:
       return state;
   }

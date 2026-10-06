@@ -171,7 +171,9 @@ export class MeetingRoom extends DurableObject<Env> {
       participants,
       waiting: isHost ? waitingList(this.room) : [],
       settings: this.room.settings,
-      epoch: this.room.epoch
+      epoch: this.room.epoch,
+      watch: isAdmitted ? this.room.watch : null,
+      now: Date.now()
     });
   }
 
@@ -295,6 +297,12 @@ export class MeetingRoom extends DurableObject<Env> {
         return send(ws, { t: "error", message: outcome.message });
       case "broadcast":
         return sendAll(select(this.sockets(), admitted), outcome.message);
+      case "watch": {
+        await this.commit(outcome.state);
+        const watch = outcome.state.watch;
+        this.log("watch", ticket.uid, { action: parsed.value.t === "watch" ? parsed.value.action : "", playing: watch?.playing ?? false });
+        return sendAll(select(this.sockets(), admitted), { t: "watch", watch, now: Date.now() });
+      }
       case "muted": {
         const message: MeetingServerMessage = { t: "muted", kind: outcome.muteKind, by: outcome.by };
         for (const uid of outcome.targets) sendAll(select(this.ctx.getWebSockets(uid), admitted), message);

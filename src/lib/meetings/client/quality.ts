@@ -53,6 +53,10 @@ export const SCREEN_CAPTURE: MediaTrackConstraints = {
 };
 export const SCREEN_ENCODINGS: RTCRtpEncodingParameters[] = [{ maxBitrate: 1_500_000, maxFramerate: 15 }];
 
+/** Shared tab/screen sound is music and video, not speech: no voice processing, more bits. */
+export const SCREEN_AUDIO_CAPTURE: MediaTrackConstraints = { echoCancellation: false, noiseSuppression: false, autoGainControl: false };
+export const SCREEN_AUDIO_ENCODINGS: RTCRtpEncodingParameters[] = [{ maxBitrate: 128_000 }];
+
 /**
  * Opus speech at high quality; Chrome keeps in-band FEC on by default. High priority: on a congested
  * link the voice keeps its share ahead of the camera layers (and gets a voice DSCP mark where honored).

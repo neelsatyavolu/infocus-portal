@@ -4,6 +4,7 @@ import { pointerSafeAutoFocus } from "@/components/meetings/focus-modality";
 import { useEffect, useState } from "react";
 import * as Popover from "@radix-ui/react-popover";
 import {
+  Clapperboard,
   Hand,
   Info,
   ListChecks,
@@ -24,6 +25,7 @@ import { ordinal } from "@/src/lib/meetings/client/hands";
 import { pacificTimeLabel } from "@/src/lib/meetings/client/time";
 import { CallButton, IconButton, LeaveButton } from "./call-button";
 import { MoreMenu, type MoreAction } from "./more-menu";
+import { ShareMenu } from "./share-menu";
 
 export type ControlsProps = {
   mobile: boolean;
@@ -31,8 +33,10 @@ export type ControlsProps = {
   audioOn: boolean;
   videoOn: boolean;
   sharing: boolean;
-  /** False where getDisplayMedia is missing (iOS): the share control is hidden. */
+  /** False where getDisplayMedia is missing (iOS): screen sharing is left out (watch together stays). */
   canShare: boolean;
+  /** Ask for the shared tab or screen's sound. */
+  shareSound: boolean;
   handRaised: boolean;
   /** Our own raised-hand queue position, once the room has it. */
   handPosition?: number;
@@ -53,6 +57,9 @@ export type ControlsProps = {
   onMicIntent: () => void;
   onCamera: () => void;
   onShare: () => void;
+  onShareSound: (on: boolean) => void;
+  /** Open the watch-together picker. */
+  onWatch: () => void;
   onHand: () => void;
   onReact: (emoji: MeetingReaction) => void;
   onChat: () => void;
@@ -129,6 +136,7 @@ export function ControlsBar(props: ControlsProps) {
         { id: "people", label: `People (${props.peopleCount})`, icon: <Users />, onSelect: props.onPeople, badge: hostBadge },
         { id: "agenda", label: "Agenda", icon: <ListChecks />, onSelect: props.onAgenda, badge: props.agendaRemaining },
         ...shareAction,
+        { id: "watch", label: "Watch a package cut", icon: <Clapperboard />, onSelect: props.onWatch },
         { id: "info", label: "Meeting info", icon: <Info />, onSelect: props.onInfo }
       ]
     : [];
@@ -148,10 +156,15 @@ export function ControlsBar(props: ControlsProps) {
           <CallButton label={props.videoOn ? "Turn off camera" : "Turn on camera"} shortcut="⌘E" state={props.videoOn ? "on" : "off"} onClick={props.onCamera}>
             {props.videoOn ? <Video /> : <VideoOff />}
           </CallButton>
-          {!mobile && props.canShare ? (
-            <CallButton label={props.sharing ? "Stop presenting" : "Share screen"} state={props.sharing ? "active" : "on"} onClick={props.onShare}>
-              <MonitorUp />
-            </CallButton>
+          {!mobile ? (
+            <ShareMenu
+              canShare={props.canShare}
+              sharing={props.sharing}
+              shareSound={props.shareSound}
+              onShareSound={props.onShareSound}
+              onShare={props.onShare}
+              onWatch={props.onWatch}
+            />
           ) : null}
           <CallButton label={handLabel(props.handRaised, props.handPosition)} shortcut="⌘⌥H" state={props.handRaised ? "active" : "on"} onClick={props.onHand}>
             <Hand />

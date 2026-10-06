@@ -17,6 +17,8 @@ export type MeetSettings = {
   receiveQuality: ReceiveQuality;
   /** Soft chimes when someone joins or leaves. */
   chimes: boolean;
+  /** Ask for the tab, window or screen's sound when sharing. */
+  shareSound: boolean;
 };
 
 export const DEFAULT_MEET_SETTINGS: MeetSettings = {
@@ -24,7 +26,8 @@ export const DEFAULT_MEET_SETTINGS: MeetSettings = {
   mirror: true,
   sendQuality: "auto",
   receiveQuality: "auto",
-  chimes: true
+  chimes: true,
+  shareSound: true
 };
 
 type StorageLike = Pick<Storage, "getItem" | "setItem">;
@@ -53,7 +56,8 @@ export function loadMeetSettings(storage: StorageLike | null = defaultStorage())
       mirror: bool(parsed.mirror, d.mirror),
       sendQuality: pick(parsed.sendQuality, ["auto", "720p", "360p"], d.sendQuality),
       receiveQuality: pick(parsed.receiveQuality, ["auto", "saver"], d.receiveQuality),
-      chimes: bool(parsed.chimes, d.chimes)
+      chimes: bool(parsed.chimes, d.chimes),
+      shareSound: bool(parsed.shareSound, d.shareSound)
     };
   } catch {
     return DEFAULT_MEET_SETTINGS;

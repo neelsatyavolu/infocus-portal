@@ -7,7 +7,7 @@ import { NEVER, of } from "rxjs";
 import { toast } from "sonner";
 import { keepBroadcasting } from "@/src/lib/meetings/client/keep-broadcasting";
 import { resumeVoiceIsolation } from "@/src/lib/meetings/client/voice-isolation";
-import { CAMERA_CAPTURE, SCREEN_CAPTURE } from "@/src/lib/meetings/client/quality";
+import { CAMERA_CAPTURE, SCREEN_AUDIO_CAPTURE, SCREEN_CAPTURE } from "@/src/lib/meetings/client/quality";
 import type { MeetSettings } from "@/src/lib/meetings/client/meet-settings";
 import { useBackgroundBlur } from "./use-background-blur";
 import { useDevicePrefs } from "./use-device-prefs";
@@ -20,6 +20,8 @@ export type LocalMedia = {
   audioOn: boolean;
   videoOn: boolean;
   screen: Screenshare | null;
+  /** The current share asked for sound (the browser may still share none, e.g. a window on a Mac). */
+  screenSound: boolean;
   toggleAudio: () => void;
   toggleVideo: () => void;
   setAudio: (on: boolean) => void;
@@ -60,6 +62,7 @@ export function useLocalMedia(): LocalMedia {
   const [mic] = useState(() => getMic({ broadcasting: false, constraints: MIC_CONSTRAINTS, retainIdleTrack: false }));
   const [camera] = useState(() => getCamera({ broadcasting: false, constraints: CAMERA_CAPTURE }));
   const [screen, setScreen] = useState<Screenshare | null>(null);
+  const [screenSound, setScreenSound] = useState(false);
   const [speakerId, setSpeakerId] = useState("");
   const { voiceIsolation, setVoiceIsolation } = useVoiceIsolation(mic);
   useDevicePrefs(mic, camera, setSpeakerId);
@@ -108,6 +111,7 @@ export function useLocalMedia(): LocalMedia {
       audioOn,
       videoOn,
       screen,
+      screenSound: Boolean(screen) && screenSound,
       toggleAudio: () => {
         // The unmute tap is a user gesture: start any suspended voice-isolation audio.
         resumeVoiceIsolation();
@@ -121,13 +125,16 @@ export function useLocalMedia(): LocalMedia {
           toast.error("This device can't share its screen.");
           return;
         }
+        // With sound on, the browser's picker offers its own "share audio" checkbox.
+        const sound = settings.shareSound;
         const share = getScreenshare({
           video: { constraints: SCREEN_CAPTURE, options: { broadcasting: true } },
-          audio: false
+          audio: sound ? { constraints: SCREEN_AUDIO_CAPTURE, options: { broadcasting: true } } : false
         });
         // Keep text sharp: prefer resolution over frame rate.
         share.video.addTransform(markDetail);
         share.enableSource();
+        setScreenSound(sound);
         setScreen(share);
       },
       stopScreenShare: () => {
@@ -143,6 +150,6 @@ export function useLocalMedia(): LocalMedia {
       settings,
       updateSettings
     }),
-    [mic, camera, audioOn, videoOn, screen, speakerId, voiceIsolation, setVoiceIsolation, settings, updateSettings]
+    [mic, camera, audioOn, videoOn, screen, screenSound, speakerId, voiceIsolation, setVoiceIsolation, settings, updateSettings]
   );
 }

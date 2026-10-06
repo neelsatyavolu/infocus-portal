@@ -1,6 +1,7 @@
 /** Parsing of untrusted input: client WebSocket messages and Portal room events. */
 import {
   MEETING_REACTIONS,
+  MEETING_WATCH_MAX_SECONDS,
   type MeetingClientMessage,
   type MeetingReaction,
   type MeetingRoomEvent,
@@ -70,6 +71,29 @@ function parseChat(msg: Obj): MeetingClientMessage | null {
   return { t: "chat", id, ct, iv, epoch };
 }
 
+function isPosition(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= MEETING_WATCH_MAX_SECONDS;
+}
+
+function parseWatch(msg: Obj): MeetingClientMessage | null {
+  switch (msg.action) {
+    case "start":
+      return isId(msg.mediaId) && isId(msg.versionId)
+        ? { t: "watch", action: "start", mediaId: msg.mediaId, versionId: msg.versionId }
+        : null;
+    case "play":
+    case "pause":
+    case "seek":
+      return isId(msg.id, 64) && isPosition(msg.position)
+        ? { t: "watch", action: msg.action, id: msg.id, position: msg.position }
+        : null;
+    case "stop":
+      return isId(msg.id, 64) ? { t: "watch", action: "stop", id: msg.id } : null;
+    default:
+      return null;
+  }
+}
+
 function parseClientShape(msg: Obj): MeetingClientMessage | null {
   switch (msg.t) {
     case "ping":
@@ -91,6 +115,8 @@ function parseClientShape(msg: Obj): MeetingClientMessage | null {
       return isReaction(msg.emoji) ? { t: "reaction", emoji: msg.emoji } : null;
     case "chat":
       return parseChat(msg);
+    case "watch":
+      return parseWatch(msg);
     case "mute":
       return isId(msg.uid) && (msg.kind === "audio" || msg.kind === "video")
         ? { t: "mute", uid: msg.uid, kind: msg.kind }

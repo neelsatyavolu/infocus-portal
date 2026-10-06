@@ -45,6 +45,34 @@ export type MeetingRoomSettings = {
   notesEnabled: boolean;
 };
 
+/**
+ * Watch together: one package cut that everyone plays on their own device (straight from the
+ * Drive), kept in step by the room. The room only sees opaque ids and timing; titles come from
+ * the Portal (GET /api/meetings/cuts/<versionId>).
+ */
+export type MeetingWatchAction = "start" | "play" | "pause" | "seek";
+
+export type MeetingWatchState = {
+  /** New for every start: play/pause/seek/stop naming an older id are refused. */
+  id: string;
+  mediaId: string;
+  versionId: string;
+  playing: boolean;
+  /** Seconds into the video at `at`. */
+  position: number;
+  /** Room clock (epoch ms) of the last change. A start is in the future: it plays after a short lead. */
+  at: number;
+  /** Who made the last change, and what it was ("Paused by …"). */
+  by: string;
+  byName: string;
+  action: MeetingWatchAction;
+};
+
+/** A start plays this long after the room takes it, so every device has time to load. */
+export const MEETING_WATCH_START_LEAD_MS = 2000;
+/** Longest position the room accepts (seconds). */
+export const MEETING_WATCH_MAX_SECONDS = 4 * 60 * 60;
+
 /** Encrypted chat body: AES-GCM over UTF-8 JSON {text}, key derived from the meeting key (info "chat"). */
 export type MeetingChatCiphertext = { ct: string; iv: string; epoch: number };
 
@@ -65,6 +93,10 @@ export type MeetingClientMessage =
   | { t: "reaction"; emoji: MeetingReaction }
   | ({ t: "chat"; id: string } & MeetingChatCiphertext)
   | { t: "ping" }
+  /** Watch together (any admitted person; never the Scribe). */
+  | { t: "watch"; action: "start"; mediaId: string; versionId: string }
+  | { t: "watch"; action: "play" | "pause" | "seek"; id: string; position: number }
+  | { t: "watch"; action: "stop"; id: string }
   /** Deliberate leave (sent just before closing): if the last host leaves, host passes on at once. */
   | { t: "leave" }
   /**
@@ -91,6 +123,10 @@ export type MeetingServerMessage =
       waiting: MeetingWaitingView[];
       settings: MeetingRoomSettings;
       epoch: number;
+      /** Watch together in progress (admitted only). Optional: an older room doesn't send it. */
+      watch?: MeetingWatchState | null;
+      /** Room clock (epoch ms) when this was sent, for watch-together timing. */
+      now?: number;
     }
   | { t: "participant"; participant: MeetingParticipantView }
   | { t: "left"; uid: string }
@@ -108,6 +144,8 @@ export type MeetingServerMessage =
   /** Your host status changed (host handed to you). Other people see it on your `participant` view. */
   | { t: "role"; isHost: boolean }
   | { t: "reaction"; uid: string; emoji: MeetingReaction; at: number }
+  /** Watch together changed (null: stopped). `now` is the room clock when it was sent. */
+  | { t: "watch"; watch: MeetingWatchState | null; now: number }
   | ({ t: "chat"; id: string; uid: string; name: string; at: number } & MeetingChatCiphertext)
   | { t: "ended" }
   | { t: "pong" }

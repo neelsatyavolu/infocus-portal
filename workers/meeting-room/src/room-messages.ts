@@ -5,6 +5,7 @@
 import type { MeetingClientMessage, MeetingServerMessage, MeetingTracks } from "../../../src/lib/meetings/protocol";
 import { isEffectiveHost, type RoomState, type RoomTicket } from "./room-state";
 import type { RateKind } from "./rate-limit";
+import { applyWatch } from "./watch";
 
 export type MessageOutcome =
   | { kind: "pong" }
@@ -18,7 +19,9 @@ export type MessageOutcome =
   /** Send `muted` to every socket of each target uid. */
   | { kind: "muted"; targets: readonly string[]; muteKind: "audio" | "video"; by: string }
   /** Fan out to every admitted socket. */
-  | { kind: "broadcast"; message: MeetingServerMessage };
+  | { kind: "broadcast"; message: MeetingServerMessage }
+  /** Watch together changed: commit, then send `watch` (with the room clock) to every admitted socket. */
+  | { kind: "watch"; state: RoomState };
 
 const HOST_ONLY = new Set<MeetingClientMessage["t"]>(["mute", "muteAll", "lowerHand", "lowerAllHands"]);
 
@@ -26,6 +29,7 @@ const HOST_ONLY = new Set<MeetingClientMessage["t"]>(["mute", "muteAll", "lowerH
 export function rateKindOf(message: MeetingClientMessage): RateKind | null {
   if (message.t === "chat") return "chat";
   if (message.t === "reaction") return "reaction";
+  if (message.t === "watch") return "watch";
   return null;
 }
 
@@ -76,7 +80,8 @@ function handleParticipantMessage(
   state: RoomState,
   sender: RoomTicket,
   message: MeetingClientMessage,
-  now: number
+  now: number,
+  newId: () => string
 ): MessageOutcome {
   const uid = sender.uid;
   switch (message.t) {
@@ -98,6 +103,10 @@ function handleParticipantMessage(
       const { id, ct, iv, epoch } = message;
       return { kind: "broadcast", message: { t: "chat", id, uid, name: sender.name, at: now, ct, iv, epoch } };
     }
+    case "watch": {
+      const result = applyWatch(state, sender, message, now, newId);
+      return result.ok ? { kind: "watch", state: result.state } : { kind: "error", message: result.error };
+    }
     default:
       return handleHostCommand(state, sender, message);
   }
@@ -107,7 +116,8 @@ export function handleClientMessage(
   state: RoomState,
   sender: RoomTicket,
   message: MeetingClientMessage,
-  now: number
+  now: number,
+  newId: () => string = () => crypto.randomUUID()
 ): MessageOutcome {
   if (message.t === "ping") return { kind: "pong" };
   if (message.t === "leave") return { kind: "leave" };
@@ -120,5 +130,5 @@ export function handleClientMessage(
   if (HOST_ONLY.has(message.t) && !isEffectiveHost(state, sender)) {
     return { kind: "error", message: "Only a host can do that." };
   }
-  return handleParticipantMessage(state, sender, message, now);
+  return handleParticipantMessage(state, sender, message, now, newId);
 }

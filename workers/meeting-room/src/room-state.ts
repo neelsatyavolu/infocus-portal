@@ -7,7 +7,8 @@ import {
   type MeetingParticipantView,
   type MeetingRoomEvent,
   type MeetingRoomSettings,
-  type MeetingWaitingView
+  type MeetingWaitingView,
+  type MeetingWatchState
 } from "../../../src/lib/meetings/protocol";
 import type { MeetingRoomRole } from "../../../src/lib/meetings/room-token";
 
@@ -54,6 +55,8 @@ export type RoomState = {
   /** Promoted hosts the Portal hasn't recorded yet (report failed), and when to try again. */
   pendingHostReports: readonly string[];
   hostReportRetryAt: number | null;
+  /** Watch together in progress; null when nobody is watching a cut. */
+  watch: MeetingWatchState | null;
 };
 
 export const DEFAULT_SETTINGS: MeetingRoomSettings = { quickAccess: false, notesEnabled: true };
@@ -77,7 +80,8 @@ export function initialState(meetingId: string | null = null): RoomState {
     emptyRetryAt: null,
     generation: 0,
     pendingHostReports: [],
-    hostReportRetryAt: null
+    hostReportRetryAt: null,
+    watch: null
   };
 }
 

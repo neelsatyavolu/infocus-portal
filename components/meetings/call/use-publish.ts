@@ -6,7 +6,7 @@ import { useValueAsObservable } from "partytracks/react";
 import { toast } from "sonner";
 import type { TrackMetadata } from "partytracks/client";
 import type { MeetingClientMessage, MeetingTrackKind, MeetingTracks } from "@/src/lib/meetings/protocol";
-import { MIC_ENCODINGS, SCREEN_ENCODINGS, cameraEncodings } from "@/src/lib/meetings/client/quality";
+import { MIC_ENCODINGS, SCREEN_AUDIO_ENCODINGS, SCREEN_ENCODINGS, cameraEncodings } from "@/src/lib/meetings/client/quality";
 import { withBackoff, type MeetingMediaSession } from "@/src/lib/meetings/client/media-session";
 import { diagEvent, errorText } from "@/src/lib/meetings/client/diagnostics";
 import type { LocalMedia } from "./use-local-media";
@@ -96,6 +96,19 @@ export function usePublish(input: {
       setTrack(session, "screen", null);
     };
   }, [session, media.screen, setTrack]);
+
+  // The shared tab/screen's sound, when the share asked for it (an inaudible track if the browser gave none).
+  useEffect(() => {
+    if (!session || !media.screen || !media.screenSound) return;
+    const sub = session.partyTracks
+      .push(media.screen.audio.broadcastTrack$, { sendEncodings$: of(SCREEN_AUDIO_ENCODINGS) })
+      .pipe(withBackoff("push.screenAudio"))
+      .subscribe({ next: (meta) => setTrack(session, "screenAudio", meta), error: (e) => pushFailed("screenAudio", e, "Couldn't share your screen's sound.") });
+    return () => {
+      sub.unsubscribe();
+      setTrack(session, "screenAudio", null);
+    };
+  }, [session, media.screen, media.screenSound, setTrack]);
 
   const tracks = published.session === session ? published.tracks : EMPTY_TRACKS;
   const screenOn = Boolean(media.screen && tracks.screen);

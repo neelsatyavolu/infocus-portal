@@ -2,6 +2,8 @@ import type {
   JoinResponse,
   KeyResponse,
   MeetingAccessValue,
+  MeetingCut,
+  MeetingCutCatalog,
   MeetingDetail,
   MeetingInviteListResponse,
   MeetingListResponse,
@@ -77,7 +79,10 @@ export const meetingsApi = {
     request<unknown>(`/api/meetings/invites/${encodeURIComponent(inviteId)}`, { method: "PATCH", json: { userId } }),
   removeInvite: (inviteId: string) =>
     request<unknown>(`/api/meetings/invites/${encodeURIComponent(inviteId)}`, { method: "DELETE" }),
-  resendInvites: () => request<unknown>("/api/meetings/invites/send-all", { method: "POST", json: {} })
+  resendInvites: () => request<unknown>("/api/meetings/invites/send-all", { method: "POST", json: {} }),
+  /** Watch together: package cuts by cycle (omit `cycle` for the newest). */
+  cuts: (cycle?: number) => request<MeetingCutCatalog>(`/api/meetings/cuts${cycle === undefined ? "" : `?cycle=${cycle}`}`),
+  cut: (versionId: string) => request<MeetingCut>(`/api/meetings/cuts/${encodeURIComponent(versionId)}`)
 };
 
 export function errorMessage(error: unknown, fallback = "Something went wrong. Try again.") {

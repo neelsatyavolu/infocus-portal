@@ -118,3 +118,43 @@ export type MeetingInviteListResponse = {
     lastSyncError: string | null;
   };
 };
+
+export type MeetingCutKind = "initial" | "final";
+
+/** One playable version of a group's Initial or Final Cut (watch together). */
+export type MeetingCutVersion = {
+  versionId: string;
+  mediaId: string;
+  versionNumber: number;
+  durationSeconds: number | null;
+  /** Approved (or aired) in review. */
+  approved: boolean;
+  uploadedAt: string;
+};
+
+export type MeetingCutGroup = {
+  rowId: string;
+  topic: string;
+  /** Member display names (nickname first). */
+  members: string[];
+  initial: MeetingCutVersion[];
+  final: MeetingCutVersion[];
+};
+
+/** GET /api/meetings/cuts?cycle=N. `cycles` newest first; `cycle` is the one listed (null: no cuts yet). */
+export type MeetingCutCatalog = { cycles: number[]; cycle: number | null; groups: MeetingCutGroup[] };
+
+/** GET /api/meetings/cuts/<versionId>: what to show and play. */
+export type MeetingCut = {
+  versionId: string;
+  mediaId: string;
+  kind: MeetingCutKind;
+  versionNumber: number;
+  cycleNumber: number;
+  topic: string;
+  /** "Final Cut v1" */
+  label: string;
+  durationSeconds: number | null;
+  /** Signed for about 30 minutes; fetch again when playback fails. */
+  playbackUrl: string;
+};

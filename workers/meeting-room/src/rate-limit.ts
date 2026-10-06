@@ -7,6 +7,8 @@ export type RateRule = { limit: number; windowMs: number };
 export const RATE_RULES = {
   reaction: { limit: 20, windowMs: 10_000 },
   chat: { limit: 10, windowMs: 10_000 },
+  /** Watch-together play/pause/seek per uid (the scrubber is debounced on the client). */
+  watch: { limit: 20, windowMs: 10_000 },
   /** Partytracks proxy calls per uid. */
   proxy: { limit: 60, windowMs: 10_000 },
   /** Every non-ping message per socket (hand, media, tracks, host commands, …). */

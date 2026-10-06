@@ -77,6 +77,20 @@ This is separate from Admin → Reconnect YouTube and doesn't change it.
 - If the speaker you picked is unplugged (USB or Bluetooth), sound switches to the computer's default output.
 - **Voice isolation** (on by default) switches to the noise filter only once it has fully loaded, so the first words after unmuting aren't cut off. On a slow device that can't load it within 5 seconds, the browser's own noise suppression keeps working.
 
+## Sharing
+
+- On a computer, **Share** opens a menu: **Share screen, window or tab**, or **Watch a package cut**. On a phone, **Watch a package cut** is in the More menu (iPhones can't share their screen, but they can watch along).
+- **Share sound** (on by default, remembered on this device) sends the tab's or screen's sound with your share. Your browser's own picker then has a "share audio" checkbox. Sound works best when you share a Chrome tab. Sharing the whole screen carries sound on Windows. A single window carries no sound, and Safari and Firefox don't share sound at all.
+
+### Watch together
+
+- Pick any group's Initial or Final Cut, any version, from any cycle: cycle tabs at the top (newest first), search by topic or member, filter to Initial or Final, pick a version and press **Watch** (or double-click the version). Approved versions have a check.
+- Everyone's device plays the video itself, straight from the Drive at full quality, and the call keeps everyone at the same moment. It starts two seconds after you press Watch so every device has time to load.
+- **Anyone in the call** can play, pause, scrub, pick a different cut or stop it for everyone. Others see a short note ("Paused by Sage at 1:02"). Volume, mute and full screen are just for you.
+- It takes the main stage like a screen share. It keeps going if the person who started it leaves, and it ends with the meeting.
+- If your browser blocks sound until you tap (iPhone), the video still plays in sync without sound; tap **Tap for sound**.
+- Any producer can watch any group's cut here, the same as in Groups. The call itself only passes which version is playing and where; the title comes from the Portal.
+
 ## Host controls
 
 - Admit, deny, admit all, mute, remove, lower hands, quick access, notes on/off, End for everyone.

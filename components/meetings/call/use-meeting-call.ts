@@ -53,6 +53,8 @@ export function useMeetingCall(meetingId: string, onMuted: (kind: "audio" | "vid
   const selfUidRef = useRef<string | null>(null);
   const joinInfoRef = useRef<JoinResponse | null>(null);
   const mediaGenerationRef = useRef(0);
+  /** Room clock minus ours (ms), from the latest message that carried `now` (watch-together timing). */
+  const serverOffsetRef = useRef(0);
   const zombieAttemptRef = useRef(0);
 
   const e2ee = useCallback(() => {
@@ -209,6 +211,9 @@ export function useMeetingCall(meetingId: string, onMuted: (kind: "audio" | "vid
 
   useEffect(() => {
     handlerRef.current = (message) => {
+      if ((message.t === "welcome" || message.t === "watch") && typeof message.now === "number") {
+        serverOffsetRef.current = message.now - Date.now();
+      }
       dispatch(message);
       switch (message.t) {
         case "welcome":
@@ -277,6 +282,7 @@ export function useMeetingCall(meetingId: string, onMuted: (kind: "audio" | "vid
     joinInfo,
     session,
     e2ee: e2eeRef,
+    serverOffset: serverOffsetRef,
     socketStatus,
     welcomeCount,
     chat,

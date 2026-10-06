@@ -6,6 +6,8 @@ import type { MeetingE2ee } from "@/src/lib/meetings/client/e2ee";
 import {
   DESKTOP_MAX_TILES,
   MOBILE_MAX_TILES,
+  WATCH_STAGE_TILE,
+  WATCH_TILE_ID,
   fitGrid,
   resolveStage,
   selectVisibleTiles,
@@ -53,7 +55,8 @@ export function Stage({
   hands,
   receive,
   mirrorSelf,
-  onOpenPeople
+  onOpenPeople,
+  watch
 }: {
   tiles: TileModel[];
   mode: LayoutMode;
@@ -71,14 +74,18 @@ export function Stage({
   receive: ReceiveQuality;
   mirrorSelf: boolean;
   onOpenPeople: () => void;
+  /** Watch together in progress: renders the shared player for its placement. */
+  watch?: (placement: "main" | "grid" | "strip") => ReactNode;
 }) {
-  const stageTiles: StageTile[] = tiles.map((t) => ({
+  const peopleTiles: StageTile[] = tiles.map((t) => ({
     id: t.id,
     uid: t.participant.uid,
     isSelf: t.isSelf,
     isScreen: t.isScreen,
     joinedAt: t.participant.joinedAt
   }));
+  // Last, so a screen share (the first isScreen tile) still takes the stage unless the watch is pinned.
+  const stageTiles = watch ? [...peopleTiles, WATCH_STAGE_TILE] : peopleTiles;
   const byId = new Map(tiles.map((t) => [t.id, t]));
   const stage = resolveStage({ mode, tiles: stageTiles, pinnedId, activeSpeakerUid });
   const portraitPhone = mobile && !landscape;
@@ -86,6 +93,13 @@ export function Stage({
   // Strip tiles are fixed sizes (CSS below); their heights pick the simulcast layer.
   const stripHeight = portraitPhone ? 112 : mobile ? 90 : 135;
   const renderTile = (id: string, placement: "main" | "grid" | "strip", style?: { width: number; height: number }) => {
+    if (id === WATCH_TILE_ID && watch) {
+      return (
+        <div key={id} style={style} className={cn(!style && "h-full w-full")}>
+          {watch(placement)}
+        </div>
+      );
+    }
     const tile = byId.get(id);
     if (!tile) return null;
     return (

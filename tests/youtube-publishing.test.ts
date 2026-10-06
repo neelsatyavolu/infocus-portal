@@ -3,8 +3,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   row: vi.fn(), update: vi.fn(), upsert: vi.fn(), token: vi.fn(), progress: vi.fn(), chunk: vi.fn(), check: vi.fn(),
   source: vi.fn(), emails: vi.fn(), emailUpdate: vi.fn(), send: vi.fn(), manager: vi.fn(), managers: vi.fn(), rows: vi.fn(),
-  push: vi.fn()
+  push: vi.fn(), event: vi.fn()
 }));
+vi.mock("@/src/lib/inngest", () => ({ inngest: { send: mocks.event } }));
 vi.mock("@/src/lib/native-push", () => ({ sendNativePushToUserIds: mocks.push }));
 vi.mock("@/src/lib/prisma", () => ({ prisma: {
   packageProgressRow: { findUnique: mocks.row, findMany: mocks.rows },
@@ -20,7 +21,7 @@ vi.mock("@/src/server/youtube-client", async (original) => ({
   youtubeAccessToken: mocks.token, readUploadProgress: mocks.progress, uploadYoutubeChunk: mocks.chunk,
   checkYoutubeVideo: mocks.check
 }));
-import { advanceYoutubePublication, dueYoutubePackageIds } from "@/src/server/youtube-publishing";
+import { advanceYoutubePublication, dueYoutubePackageIds, startYoutubePublication } from "@/src/server/youtube-publishing";
 import { deliverPublicationEmails, publicationEmailPayload } from "@/src/server/youtube-publication-email";
 
 describe("publication retries", () => {
@@ -57,6 +58,14 @@ describe("publication retries", () => {
     mocks.row.mockResolvedValue({ queuedForAirAt: new Date(), queuedForShowDate: "2027-09-19" });
     await advanceYoutubePublication("row", new Date("2026-09-19T12:00:00Z"));
     expect(mocks.token).not.toHaveBeenCalled();
+  });
+  it("keeps uploading a manually started package before its air date", async () => {
+    const row = await mocks.row();
+    row.queuedForShowDate = "2026-09-25";
+    row.youtubePublication.showDate = "2026-09-25";
+    mocks.progress.mockResolvedValue({ offset: 20, videoId: "abcdefgh_12" });
+    expect(await advanceYoutubePublication("row", new Date("2026-09-19T12:00:00Z"))).toEqual({ more: true });
+    expect(mocks.progress).toHaveBeenCalled();
   });
   it("pauses a partially uploaded package if its air date moves", async () => {
     const row = await mocks.row();
@@ -99,6 +108,44 @@ describe("publication retries", () => {
       status: "PUBLISHED", emails: { createMany: { skipDuplicates: true, data: [expect.objectContaining({ recipientUserId: "manager", recipient: "manager@example.test" })] } }
     }) }));
     vi.unstubAllEnvs();
+  });
+});
+
+describe("manual publish", () => {
+  const version = { id: "v1", status: "READY", sourceType: "VIDEO" };
+  const futureRow = { id: "row", groupTopic: "Spirit Week", queuedForAirAt: new Date(), queuedForShowDate: "2027-01-05",
+    youtubePublication: null, finalCutMediaItem: { title: "Spirit Week Day 1 Recap", currentVersion: version } };
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.upsert.mockResolvedValue({ id: "pub" });
+    mocks.event.mockResolvedValue({});
+  });
+  it("pins the Final Cut for a future show and wakes the uploader", async () => {
+    mocks.row.mockResolvedValue(futureRow);
+    expect(await startYoutubePublication("row")).toBeNull();
+    expect(mocks.upsert).toHaveBeenCalledWith(expect.objectContaining({ create: expect.objectContaining({
+      rowId: "row", showDate: "2027-01-05", mediaVersionId: "v1" }) }));
+    expect(mocks.event).toHaveBeenCalledWith({ name: "youtube/publication.advance", data: { rowId: "row" } });
+  });
+  it("still succeeds when the wake-up event fails, since the cron resumes started uploads", async () => {
+    mocks.row.mockResolvedValue(futureRow);
+    mocks.event.mockRejectedValue(new Error("inngest down"));
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    expect(await startYoutubePublication("row")).toBeNull();
+  });
+  it("refuses unqueued, already started, and not-ready packages", async () => {
+    mocks.row.mockResolvedValue({ ...futureRow, queuedForAirAt: null });
+    expect(await startYoutubePublication("row")).toMatch(/show first/);
+    mocks.row.mockResolvedValue({ ...futureRow, youtubePublication: { id: "pub", status: "UPLOADING" } });
+    expect(await startYoutubePublication("row")).toMatch(/already/);
+    mocks.row.mockResolvedValue({ ...futureRow, finalCutMediaItem: { title: "x", currentVersion: { ...version, status: "PROCESSING" } } });
+    expect(await startYoutubePublication("row")).toMatch(/not ready/);
+    expect(mocks.upsert).not.toHaveBeenCalled();
+    expect(mocks.event).not.toHaveBeenCalled();
+  });
+  it("404s an unknown package", async () => {
+    mocks.row.mockResolvedValue(null);
+    await expect(startYoutubePublication("row")).rejects.toThrow("NOT_FOUND");
   });
 });
 

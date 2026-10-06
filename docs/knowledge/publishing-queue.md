@@ -14,6 +14,7 @@ Queue cards show the package topic and the Final Cut headline (when the students
 
 - **Air-date selector:** pick a show, or **Next empty show**. Full shows are greyed out.
 - **Download:** downloads the Final Cut file.
+- **Publish to YouTube** (producers, when YouTube publishing is configured, until the upload starts): after a confirmation, uploads the package now as unlisted instead of waiting for its air date.
 - **Remove:** takes the package off the queue.
 - **YouTube status** (pending, uploading, processing, published, failed): opens the package page (`/publishing-queue/<package>`) with the status and, once published, the video, **Watch on YouTube**, and **Copy embed code**.
 
@@ -25,7 +26,7 @@ The Master Calendar and The Show list each show's queued packages.
 
 The **Managers** button (producers) lets producers appoint registered users as website managers, or remove them. Managers receive an email when a package is ready on YouTube, with its title, air date, watch link, and embed code. The email also opens a package page with video playback and **Copy embed code**. Website managers can also open the queue **read-only**: they see which packages air on each show (including **Past shows**) and open each package's page from its YouTube status. They cannot add, move, download, or remove packages, see unqueued packages, or manage the manager list. This assignment does not grant producer permissions or access to Groups.
 
-When YouTube publishing is configured, queued packages upload automatically as **unlisted** on their assigned air date (Pacific time; default start is midnight). The YouTube title is the Final Cut headline, or the package topic when there is no headline. Uploading and YouTube processing take time. Emails are sent only after the video is processed, unlisted, and embeddable. Queue cards show publication status and errors; published packages remain accessible from **Past shows**.
+When YouTube publishing is configured, queued packages upload automatically as **unlisted** on their assigned air date (Pacific time; default start is midnight). Producers can start one earlier with **Publish to YouTube**; the activation date does not apply to a manual publish. The YouTube title is the Final Cut headline, or the package topic when there is no headline. Uploading and YouTube processing take time. Emails are sent only after the video is processed, unlisted, and embeddable. Queue cards show publication status and errors; published packages remain accessible from **Past shows**.
 
 Only dates on or after the configured activation date are eligible. Failed transfers retry using the same upload session. Each package publishes once, using the Final Cut version selected when its upload begins. Replacing a Final Cut or moving an already published package does not create another YouTube video. Removing a queued package pauses an unfinished upload; it does not delete an existing YouTube video. Changing the air date during upload requires an operator to reconcile the upload before resuming.
 

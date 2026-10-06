@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import Link from "next/link";
 import PublishingManagers from "./publishing-managers";
-import { Download, GripVertical, History, Play, Plus, Radio, Trash2 } from "lucide-react";
+import { Download, GripVertical, History, Play, Plus, Radio, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -69,7 +69,8 @@ function QueuePackageCard({
   onDragStart,
   onDragEnd,
   onMove,
-  onRemove
+  onRemove,
+  onPublish
 }: {
   row: QueueRow;
   busy: boolean;
@@ -83,6 +84,8 @@ function QueuePackageCard({
   onDragEnd?: () => void;
   onMove: (rowId: string, showDate: string) => void;
   onRemove: (rowId: string) => void;
+  /** Producers, when YouTube publishing is configured: upload now instead of on the air date. */
+  onPublish?: (row: QueueRow) => void;
 }) {
   const title = (
     <div className="min-w-0 break-words">
@@ -162,6 +165,19 @@ function QueuePackageCard({
                 })}
                 {extraCurrent ? <option value={extraCurrent.date}>{extraCurrent.label}</option> : null}
               </select>
+              {onPublish && !row.youtubePublication ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={busy}
+                  draggable={false}
+                  onClick={() => onPublish(row)}
+                >
+                  <Upload className="h-3.5 w-3.5" />
+                  Publish to YouTube
+                </Button>
+              ) : null}
               <Button
                 type="button"
                 size="sm"
@@ -235,6 +251,7 @@ export default function PublishingQueueClient({ canEdit }: { canEdit: boolean })
   const [addOpen, setAddOpen] = useState(false);
   const [pastOpen, setPastOpen] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [publishTarget, setPublishTarget] = useState<QueueRow | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverDate, setDragOverDate] = useState<string | null>(null);
   const [customTitle, setCustomTitle] = useState("");
@@ -325,6 +342,26 @@ export default function PublishingQueueClient({ canEdit }: { canEdit: boolean })
       setBusyId(null);
     }
   }
+
+  async function publishNow(row: QueueRow) {
+    setPublishTarget(null);
+    setBusyId(row.id);
+    try {
+      const response = await fetch(`/api/package-cycle/queue/${row.id}/youtube`, { method: "POST" });
+      const payload = (await response.json()) as { error?: { message?: string } };
+      if (!response.ok) {
+        throw new Error(payload.error?.message ?? "Could not start the YouTube upload.");
+      }
+      await load(addOpen);
+      toast.success("Uploading to YouTube. Website managers get the embed code once it's ready.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not start the YouTube upload.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  const onPublish = canEdit && publishingConfigured ? setPublishTarget : undefined;
 
   async function addCustom() {
     const title = customTitle.trim();
@@ -533,6 +570,7 @@ export default function PublishingQueueClient({ canEdit }: { canEdit: boolean })
                     }}
                     onMove={(rowId, showDate) => void updateQueue(rowId, true, showDate)}
                     onRemove={(rowId) => void updateQueue(rowId, false)}
+                    onPublish={onPublish}
                   />
                 ))}
                 {droppable && group.rows.length === 0 ? (
@@ -545,6 +583,25 @@ export default function PublishingQueueClient({ canEdit }: { canEdit: boolean })
           );
         })}
       </div>
+
+      <Dialog open={publishTarget !== null} onOpenChange={(open) => !open && setPublishTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Publish to YouTube now?</DialogTitle>
+            <DialogDescription>
+              {`“${publishTarget?.headline || publishTarget?.groupTopic || "This package"}” uploads now as unlisted instead of on its air date. Website managers get the embed code once YouTube finishes processing.`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setPublishTarget(null)}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={() => publishTarget && void publishNow(publishTarget)}>
+              Publish now
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={pastOpen} onOpenChange={setPastOpen}>
         <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
@@ -585,6 +642,7 @@ export default function PublishingQueueClient({ canEdit }: { canEdit: boolean })
                           occupiedOn={occupiedOn}
                           onMove={(rowId, showDate) => void updateQueue(rowId, true, showDate)}
                           onRemove={(rowId) => void updateQueue(rowId, false)}
+                          onPublish={onPublish}
                         />
                       ))}
                     </div>

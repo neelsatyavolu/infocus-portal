@@ -1,3 +1,5 @@
+import type { Prisma } from "@prisma/client";
+import { inngest } from "@/src/lib/inngest";
 import { prisma } from "@/src/lib/prisma";
 import { finalCutHeadline } from "@/src/lib/package-headline";
 import { resolveOriginalDownloadUrl } from "@/src/lib/media-playback";
@@ -11,8 +13,9 @@ export async function dueYoutubePackageIds(now = new Date(), afterId?: string) {
   if (!config) return [];
   const rows = await prisma.packageProgressRow.findMany({
     where: { OR: [
-      { queuedForAirAt: { not: null }, queuedForShowDate: { gte: config.startDate, lte: publicationDateKey(now) },
-        OR: [{ youtubePublication: null }, { youtubePublication: { status: { in: ["UPLOADING", "PROCESSING"] } } }] },
+      { queuedForAirAt: { not: null }, queuedForShowDate: { gte: config.startDate, lte: publicationDateKey(now) }, youtubePublication: null },
+      // Started uploads keep going whatever the air date, so a manual publish finishes before show day.
+      { queuedForAirAt: { not: null }, youtubePublication: { status: { in: ["UPLOADING", "PROCESSING"] } } },
       { youtubePublication: { status: "PUBLISHED", emails: { some: { sentAt: null, cancelledAt: null } } } }
     ] },
     select: { id: true }, orderBy: { id: "asc" }, take: 100,
@@ -21,35 +24,59 @@ export async function dueYoutubePackageIds(now = new Date(), afterId?: string) {
   return rows.map((row) => row.id);
 }
 
+const publicationInclude = {
+  youtubePublication: true, finalCutMediaItem: { include: { currentVersion: true } }
+} satisfies Prisma.PackageProgressRowInclude;
+
+type PublicationRow = Prisma.PackageProgressRowGetPayload<{ include: typeof publicationInclude }>;
+
+/** Pins the current Final Cut version for upload; null when it is not a ready video. */
+async function createPublication(row: PublicationRow, showDate: string, channelId: string) {
+  const source = row.finalCutMediaItem?.currentVersion;
+  if (!source || source.status !== "READY" || source.sourceType !== "VIDEO" || row.finalCutMediaItem?.deletedAt) return null;
+  return prisma.youtubePublication.upsert({ where: { rowId: row.id }, update: {}, create: {
+    rowId: row.id, title: finalCutHeadline(row.finalCutMediaItem) || row.groupTopic || "Untitled package", showDate,
+    mediaVersionId: source.id, channelId
+  } });
+}
+
+/** Producer's Publish to YouTube: starts the upload now instead of on the air date. Returns an error message, or null. */
+export async function startYoutubePublication(rowId: string): Promise<string | null> {
+  const config = youtubePublishingConfig();
+  if (!config) return "YouTube publishing is not configured.";
+  const row = await prisma.packageProgressRow.findUnique({ where: { id: rowId }, include: publicationInclude });
+  if (!row) throw new Error("NOT_FOUND");
+  if (!row.queuedForAirAt || !row.queuedForShowDate) return "Put this package on a show first.";
+  if (row.youtubePublication) return "This package is already on its way to YouTube.";
+  if (!await createPublication(row, row.queuedForShowDate, config.channelId)) return "The final cut is not ready to publish.";
+  // The discover cron also picks up started uploads, so a failed send only delays the start.
+  await inngest.send({ name: "youtube/publication.advance", data: { rowId } })
+    .catch((error) => console.error("youtube manual publish: event send failed", { rowId, error }));
+  return null;
+}
+
 /** One bounded chunk/processing check. Called only by the per-row serialized Inngest worker. */
 export async function advanceYoutubePublication(rowId: string, now = new Date()): Promise<{ more: boolean }> {
   const config = youtubePublishingConfig();
   if (!config) return { more: false };
-  const row = await prisma.packageProgressRow.findUnique({ where: { id: rowId }, include: {
-    youtubePublication: true, finalCutMediaItem: { include: { currentVersion: true } }
-  } });
+  const row = await prisma.packageProgressRow.findUnique({ where: { id: rowId }, include: publicationInclude });
   if (!row) return { more: false };
   let publication = row.youtubePublication;
   if (publication?.status === "PUBLISHED") {
     await deliverPublicationEmails(publication.id, now);
     return { more: false };
   }
-  if (!row.queuedForAirAt || !row.queuedForShowDate ||
-      !isPublicationDue(row.queuedForShowDate, config.startDate, config.hour, now) || publication?.status === "FAILED") {
-    return { more: false };
-  }
+  if (!row.queuedForAirAt || !row.queuedForShowDate || publication?.status === "FAILED") return { more: false };
+  // Only the start waits for the air date; a started (or manually published) upload continues.
+  if (!publication && !isPublicationDue(row.queuedForShowDate, config.startDate, config.hour, now)) return { more: false };
   if (publication && publication.showDate !== row.queuedForShowDate) {
     await prisma.youtubePublication.update({ where: { id: publication.id },
       data: { lastError: "Air date changed during upload. Reconcile the existing upload before resuming.", status: "FAILED" } });
     return { more: false };
   }
   if (!publication) {
-    const source = row.finalCutMediaItem?.currentVersion;
-    if (!source || source.status !== "READY" || source.sourceType !== "VIDEO" || row.finalCutMediaItem?.deletedAt) return { more: false };
-    publication = await prisma.youtubePublication.upsert({ where: { rowId }, update: {}, create: {
-      rowId, title: finalCutHeadline(row.finalCutMediaItem) || row.groupTopic || "Untitled package", showDate: row.queuedForShowDate,
-      mediaVersionId: source.id, channelId: config.channelId
-    } });
+    publication = await createPublication(row, row.queuedForShowDate, config.channelId);
+    if (!publication) return { more: false };
   }
   try {
     if (publication.channelId !== config.channelId) throw new PublicationError("Publishing channel changed during upload.", true);

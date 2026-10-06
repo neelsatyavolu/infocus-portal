@@ -44,7 +44,7 @@ export function StoryFrame({ showSafeZones, children }: { showSafeZones: boolean
               className={cn("pointer-events-none absolute inset-x-0 grid place-items-center border-dashed border-[#F2A516] bg-[#F2A516]/25", position)}
               style={{ height: SAFE_PERCENT }}
             >
-              <span className="rounded bg-background px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.11em] text-[#F2A516] light:text-[#B45309]">
+              <span className="rounded bg-background px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.11em] text-brand-amber">
                 Instagram covers this
               </span>
             </div>

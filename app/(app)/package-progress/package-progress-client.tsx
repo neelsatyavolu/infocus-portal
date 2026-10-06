@@ -157,7 +157,7 @@ function AssignmentSelect({
           user: match ? { userId: match.userId, name: match.name, email: match.email } : null
         });
       }}
-      className="w-full max-w-[14rem] rounded-md border border-border bg-black/40 light:bg-muted px-2 py-1.5 text-xs text-foreground outline-none focus:border-[var(--brand-green)]/50"
+      className="w-full max-w-[14rem] rounded-md border border-border bg-black/40 light:bg-muted px-2 py-1.5 text-base text-foreground outline-none focus:border-[var(--brand-green)]/50 md:text-xs"
     >
       <option value="">{emptyLabel}</option>
       {options.map((option) => (
@@ -309,7 +309,7 @@ function EditableTextCell({ value, minHeightClassName, className, onCommit }: Ed
         onCommit(latestValueRef.current);
       }}
       className={cn(
-        "-mx-2 -my-1.5 whitespace-pre-wrap break-words bg-transparent px-2 py-1.5 text-sm text-foreground outline-none focus:bg-accent/30",
+        "-mx-2 -my-1.5 whitespace-pre-wrap break-words bg-transparent px-2 py-1.5 text-base text-foreground outline-none focus:bg-accent/30 md:text-sm",
         minHeightClassName ?? "min-h-[2rem]",
         className
       )}
@@ -385,7 +385,7 @@ function RosterNoteCell({
               placeholder={placeholder}
               autoFocus
               onChange={(event) => setDraft(event.target.value.slice(0, PACKAGE_ROSTER_NOTE_MAX))}
-              className="min-h-[12rem] w-full resize-y rounded-md border border-border bg-black/40 light:bg-muted px-3 py-2 text-sm leading-6 text-foreground outline-none placeholder:text-muted-foreground focus:border-[var(--brand-green)]/50"
+              className="min-h-[12rem] w-full resize-y rounded-md border border-border bg-black/40 light:bg-muted px-3 py-2 text-base leading-6 text-foreground outline-none placeholder:text-muted-foreground focus:border-[var(--brand-green)]/50 md:text-sm"
             />
           ) : hasNote ? (
             <div className="min-h-[8rem] whitespace-pre-wrap break-words rounded-md border border-border bg-black/40 light:bg-muted px-3 py-2 text-sm leading-6 text-foreground">
@@ -581,7 +581,9 @@ export default function PackageProgressClient({ initialData }: { initialData?: P
     [cycles, activeCycleNumber]
   );
 
-  const isDirty = useMemo(() => serializeRows(rows) !== serializeRows(draftRows), [rows, draftRows]);
+  // Saved rows only change on load/save, so serialize them once instead of on every keystroke.
+  const serializedRows = useMemo(() => serializeRows(rows), [rows]);
+  const isDirty = useMemo(() => serializedRows !== serializeRows(draftRows), [serializedRows, draftRows]);
   const usersById = useMemo(() => new Map(users.map((user) => [user.id, user])), [users]);
 
   function replaceLocalRows(nextRows: ProgressRow[]) {

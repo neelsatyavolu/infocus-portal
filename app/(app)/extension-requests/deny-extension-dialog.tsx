@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog";
+import { isSubmitShortcut, SubmitShortcutHint } from "@/components/ui/submit-shortcut";
 import { Textarea } from "@/components/ui/textarea";
 
 /** Deny step for a producer. A reason is required and shown on the request. */
@@ -33,7 +34,7 @@ export function DenyExtensionDialog({
   }
 
   return (
-    <Dialog open onOpenChange={onOpenChange}>
+    <Dialog open onOpenChange={(next) => !saving && onOpenChange(next)}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Deny extension</DialogTitle>
@@ -45,10 +46,16 @@ export function DenyExtensionDialog({
           <Textarea
             value={reason}
             onChange={(event) => setReason(event.target.value)}
+            onKeyDown={(event) => {
+              if (!isSubmitShortcut(event)) return;
+              event.preventDefault();
+              if (!saving && trimmed) void confirm();
+            }}
             maxLength={1200}
             rows={4}
             autoFocus
           />
+          <SubmitShortcutHint action="deny" className="mt-1 block" />
         </label>
 
         <DialogFooter>

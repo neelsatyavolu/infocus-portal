@@ -121,12 +121,13 @@ export function ViewAsMenu({
               </Button>
             </div>
           ) : null}
-          <label className="flex items-center gap-2 rounded-lg border border-border bg-background px-2.5 py-2 text-sm">
-            <Search className="h-4 w-4 text-muted-foreground" />
+          <label className="flex items-center gap-2 rounded-lg border border-border bg-background px-2.5 py-2 text-sm focus-within:ring-2 focus-within:ring-ring">
+            <Search className="h-4 w-4 text-muted-foreground" aria-hidden />
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search name or email"
+              aria-label="Search name or email"
               className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
             />
           </label>
@@ -155,6 +156,8 @@ export function ViewAsMenu({
                           alt=""
                           width={24}
                           height={24}
+                          loading="lazy"
+                          decoding="async"
                           className="h-6 w-6 rounded-full object-cover"
                           referrerPolicy="no-referrer"
                         />

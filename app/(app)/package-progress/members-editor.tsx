@@ -177,7 +177,7 @@ export function MembersEditor({
 
             {open ? (
               <div className="absolute right-0 top-full z-40 mt-1 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-lg border border-border bg-card">
-                <div className="flex items-center gap-2 border-b border-border px-2.5 py-2">
+                <div className="flex items-center gap-2 border-b border-border px-2.5 py-2 focus-within:ring-1 focus-within:ring-inset focus-within:ring-ring">
                   <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                   <input
                     ref={inputRef}
@@ -203,7 +203,8 @@ export function MembersEditor({
                       }
                     }}
                     placeholder="Search by name or email…"
-                    className="w-full bg-transparent text-xs text-foreground outline-none placeholder:text-muted-foreground"
+                    aria-label="Search people to add"
+                    className="w-full bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground md:text-xs"
                   />
                 </div>
                 <div className="max-h-56 overflow-y-auto py-1">

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ExternalLink, Loader2, RefreshCcw, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   proofUploadFailureMessage,
   PROOF_OF_CONTACT_SLOTS,
@@ -117,6 +118,7 @@ export default function BrainstormingClient() {
   const [loading, setLoading] = useState(true);
   const [savingDocId, setSavingDocId] = useState<string | null>(null);
   const [uploadingKey, setUploadingKey] = useState<string | null>(null);
+  const [pendingProofRemoval, setPendingProofRemoval] = useState<{ packageId: string; slot: number } | null>(null);
   const [docDrafts, setDocDrafts] = useState<Record<string, string>>({});
   const fileInputs = useRef<Record<string, HTMLInputElement | null>>({});
 
@@ -208,18 +210,30 @@ export default function BrainstormingClient() {
     }
   }
 
-  async function removeProof(pkg: PackageCard, slot: number) {
+  // Throws on failure so the confirm dialog stays open for a retry.
+  async function removeProof(packageId: string, slot: number) {
     try {
-      const response = await fetch(`/api/brainstorming/proofs?rowId=${pkg.id}&slot=${slot}`, {
+      const response = await fetch(`/api/brainstorming/proofs?rowId=${packageId}&slot=${slot}`, {
         method: "DELETE"
       });
-      const body = (await response.json()) as { error?: { message?: string } };
+      const body = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
       if (!response.ok) {
-        throw new Error(body.error?.message ?? "Could not remove proof.");
+        throw new Error(body?.error?.message ?? "Could not remove proof.");
       }
-      replacePackage({ ...pkg, proofs: pkg.proofs.filter((proof) => proof.slot !== slot) });
+      setPayload((current) =>
+        current
+          ? {
+              ...current,
+              packages: current.packages.map((pkg) =>
+                pkg.id === packageId ? { ...pkg, proofs: pkg.proofs.filter((proof) => proof.slot !== slot) } : pkg
+              )
+            }
+          : current
+      );
+      toast.success("Proof removed");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not remove proof.");
+      throw error;
     }
   }
 
@@ -316,8 +330,9 @@ export default function BrainstormingClient() {
                             {proof && pkg.canEdit ? (
                               <button
                                 type="button"
-                                className="rounded p-0.5 hover:bg-secondary hover:text-foreground"
-                                onClick={() => void removeProof(pkg, slot)}
+                                className="rounded p-0.5 hover:bg-secondary hover:text-foreground disabled:opacity-50"
+                                onClick={() => setPendingProofRemoval({ packageId: pkg.id, slot })}
+                                disabled={pendingProofRemoval !== null}
                                 aria-label={`Remove proof ${slot}`}
                               >
                                 <X className="h-3.5 w-3.5" />
@@ -331,6 +346,8 @@ export default function BrainstormingClient() {
                                 src={proof.imageUrl}
                                 alt={proof.fileName}
                                 className="h-36 w-full rounded-lg object-cover"
+                                loading="lazy"
+                                decoding="async"
                               />
                             </a>
                           ) : pkg.canEdit ? (
@@ -421,6 +438,19 @@ export default function BrainstormingClient() {
           );
         })}
       </BottomTabDock>
+
+      <ConfirmDialog
+        open={pendingProofRemoval !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingProofRemoval(null);
+        }}
+        title={`Remove proof ${pendingProofRemoval?.slot ?? ""}?`}
+        description="The image is deleted. You can upload a new one afterward."
+        confirmLabel="Remove"
+        onConfirm={() =>
+          pendingProofRemoval ? removeProof(pendingProofRemoval.packageId, pendingProofRemoval.slot) : undefined
+        }
+      />
     </div>
   );
 }

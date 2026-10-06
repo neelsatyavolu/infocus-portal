@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import { AlertCircle, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 type CreateProjectTileProps = {
@@ -80,28 +81,47 @@ export function CreateProjectTile({ workspaceId }: CreateProjectTileProps) {
             <DialogTitle>Create Project</DialogTitle>
             <DialogDescription>Add a new project to this workspace.</DialogDescription>
           </DialogHeader>
-          <input
-            value={projectName}
-            onChange={(event) => setProjectName(event.target.value)}
-            placeholder="Project name"
-            className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
-          />
-          {errorMessage ? <p className="mt-2 text-sm text-amber-300">{errorMessage}</p> : null}
-          <DialogFooter>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setOpen(false);
-                setErrorMessage(null);
-              }}
+          <form
+            className="space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (!creating) {
+                void onCreate();
+              }
+            }}
+          >
+            <Input
+              value={projectName}
+              onChange={(event) => setProjectName(event.target.value)}
+              placeholder="Project name"
+              aria-label="Project name"
+              autoFocus
               disabled={creating}
-            >
-              Cancel
-            </Button>
-            <Button onClick={() => void onCreate()} disabled={creating || !projectName.trim()}>
-              {creating ? "Creating..." : "Create Project"}
-            </Button>
-          </DialogFooter>
+              className="h-10"
+            />
+            {errorMessage ? (
+              <p role="alert" className="flex items-center gap-1.5 text-sm text-danger">
+                <AlertCircle className="h-4 w-4 shrink-0" aria-hidden />
+                {errorMessage}
+              </p>
+            ) : null}
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setOpen(false);
+                  setErrorMessage(null);
+                }}
+                disabled={creating}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={creating || !projectName.trim()}>
+                {creating ? "Creating..." : "Create Project"}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </>

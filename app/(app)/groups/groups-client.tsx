@@ -115,6 +115,7 @@ export type GroupsPayload = {
 };
 
 type ViewMode = "cards" | "chart";
+const VIEW_MODE_STORAGE_KEY = "groups:view-mode:v1";
 
 const STAGE_SHORT: Record<PackageStage, string> = {
   pitching: "Pitch",
@@ -480,7 +481,28 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
   const [message, setMessage] = useState<string | null>(null);
   const [hasHydrated, setHasHydrated] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>("cards");
+  const [viewModeLoaded, setViewModeLoaded] = useState(false);
   const [otherGroupsOpen, setOtherGroupsOpen] = useState(false);
+
+  // Read the saved Cards/Chart choice after mount so server and first client render match.
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(VIEW_MODE_STORAGE_KEY);
+      if (stored === "cards" || stored === "chart") setViewMode(stored);
+    } catch {
+      // Storage unavailable (private mode); keep the default view.
+    }
+    setViewModeLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!viewModeLoaded) return;
+    try {
+      window.localStorage.setItem(VIEW_MODE_STORAGE_KEY, viewMode);
+    } catch {
+      // Storage may be unavailable (private mode / quota); skip persistence.
+    }
+  }, [viewMode, viewModeLoaded]);
 
   const rowsRef = useRef(rows);
   const saveInFlightRef = useRef(false);

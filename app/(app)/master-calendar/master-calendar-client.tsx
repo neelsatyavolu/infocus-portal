@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { CalendarDays, ChevronLeft, ChevronRight, Eraser, FileUp, Search, Users } from "lucide-react";
+import { AlertCircle, CalendarDays, ChevronLeft, ChevronRight, Eraser, FileUp, Search, Users } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { CastCountsDialog } from "@/components/master-calendar/cast-counts-dialog";
 import { PaDayControls, ShowDayControls, SpiritWeekControls } from "@/components/master-calendar/show-day-controls";
 import {
@@ -428,12 +430,13 @@ function PackagePickerPopover({ anchor, onSelect, onCancel }: PackagePickerProps
       className="fixed z-50 w-[320px] rounded-lg border border-border bg-card p-2 shadow-xl"
       style={{ left, top }}
     >
-      <div className="flex items-center gap-2 rounded-md border border-border bg-background px-2 py-1.5">
-        <Search className="h-3.5 w-3.5 text-muted-foreground" />
+      <div className="flex items-center gap-2 rounded-md border border-border bg-background px-2 py-1.5 focus-within:ring-2 focus-within:ring-ring">
+        <Search className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
         <input
           autoFocus
           type="text"
           placeholder="Search packages..."
+          aria-label="Search packages"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           onKeyDown={(event) => {
@@ -459,7 +462,10 @@ function PackagePickerPopover({ anchor, onSelect, onCancel }: PackagePickerProps
         {loading ? (
           <p className="px-2 py-2 text-xs text-muted-foreground">Searching...</p>
         ) : error ? (
-          <p className="px-2 py-2 text-xs text-amber-200">{error}</p>
+          <p role="alert" className="flex items-start gap-1.5 px-2 py-2 text-xs text-danger">
+            <AlertCircle className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden />
+            {error}
+          </p>
         ) : results.length === 0 ? (
           <p className="px-2 py-2 text-xs text-muted-foreground">
             {query.trim().length === 0 ? "Type to search packages." : "No matches."}
@@ -611,6 +617,7 @@ export default function MasterCalendarClient({ initialData }: { initialData: Cal
   );
   const [castBusyDate, setCastBusyDate] = useState<string | null>(null);
   const [wipingAnchors, setWipingAnchors] = useState(false);
+  const [confirmingWipe, setConfirmingWipe] = useState(false);
   const [castCountsOpen, setCastCountsOpen] = useState(false);
   const imageContextMenuRef = useRef<HTMLDivElement | null>(null);
   const autoSyncTimeoutRef = useRef<number | null>(null);
@@ -729,6 +736,20 @@ export default function MasterCalendarClient({ initialData }: { initialData: Cal
     setImageContextMenu(null);
     setPackagePicker(null);
     setPillRename(null);
+  }, [monthKey]);
+
+  // Keep ?month= in the URL so a reload or shared link opens the same month (page.tsx reads it).
+  const urlMonthSyncedRef = useRef(false);
+  useEffect(() => {
+    const firstRun = !urlMonthSyncedRef.current;
+    urlMonthSyncedRef.current = true;
+    const url = new URL(window.location.href);
+    const urlMonth = url.searchParams.get("month");
+    if (urlMonth === monthKey || (firstRun && urlMonth === null)) {
+      return;
+    }
+    url.searchParams.set("month", monthKey);
+    window.history.replaceState(window.history.state, "", url);
   }, [monthKey]);
 
   useEffect(() => {
@@ -1199,15 +1220,9 @@ export default function MasterCalendarClient({ initialData }: { initialData: Cal
     }
   }
 
+  // Throws on failure so the confirm dialog stays open for a retry.
   async function wipeMonthAnchors() {
     const monthLabel = formatMonthTitle(monthCursor);
-    const confirmed = window.confirm(
-      `Wipe all volunteer and random anchors for ${monthLabel}? PA announcers stay. You can re-assign after.`
-    );
-    if (!confirmed) {
-      return;
-    }
-
     setWipingAnchors(true);
     setMessage(null);
     setSyncMessage(null);
@@ -1236,7 +1251,10 @@ export default function MasterCalendarClient({ initialData }: { initialData: Cal
       }
       setSyncMessage({ text: `Cleared ${monthLabel} anchors.`, isError: false });
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to wipe anchors.");
+      const errorMessage = error instanceof Error ? error.message : "Failed to wipe anchors.";
+      setMessage(errorMessage);
+      toast.error(errorMessage);
+      throw error;
     } finally {
       setWipingAnchors(false);
     }
@@ -1345,7 +1363,7 @@ export default function MasterCalendarClient({ initialData }: { initialData: Cal
                     type="button"
                     size="sm"
                     variant="destructive-quiet"
-                    onClick={() => void wipeMonthAnchors()}
+                    onClick={() => setConfirmingWipe(true)}
                     disabled={wipingAnchors || syncing}
                   >
                     <Eraser className="mr-2 h-4 w-4" />
@@ -1374,7 +1392,13 @@ export default function MasterCalendarClient({ initialData }: { initialData: Cal
         ) : null}
 
         {message ? (
-          <p className="mt-3 rounded-lg border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">{message}</p>
+          <p
+            role="alert"
+            className="mt-3 flex items-start gap-2 rounded-lg border border-danger/40 bg-danger-tint px-3 py-2 text-sm text-danger"
+          >
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+            {message}
+          </p>
         ) : null}
 
         {syncMessage ? (
@@ -1624,6 +1648,14 @@ export default function MasterCalendarClient({ initialData }: { initialData: Cal
       {canViewCastCounts ? (
         <CastCountsDialog open={castCountsOpen} onOpenChange={setCastCountsOpen} />
       ) : null}
+      <ConfirmDialog
+        open={confirmingWipe}
+        onOpenChange={setConfirmingWipe}
+        title={`Wipe all volunteer and random anchors for ${formatMonthTitle(monthCursor)}?`}
+        description="PA announcers stay. You can re-assign anchors after."
+        confirmLabel="Wipe anchors"
+        onConfirm={wipeMonthAnchors}
+      />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { toast } from "sonner";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
@@ -19,7 +20,6 @@ import {
   Pencil,
   Play,
   RefreshCw,
-  Search,
   Trash2,
   Send,
   Save,
@@ -40,6 +40,9 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { MediaRange } from "@/components/media-range";
+import { RelativeAge } from "@/components/relative-age";
+import { PlayheadSeekRange, PlayheadTimecode, createValueStore } from "@/components/review-playhead";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ReviewTranscriptButton } from "@/components/review-transcript-button";
 import { Textarea } from "@/components/ui/textarea";
 import { MAX_EFFORT_POINTS, MAX_TEAMWORK_POINTS } from "@/src/lib/package-grades";
@@ -223,27 +226,6 @@ function avatarToneForName(name: string) {
   return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length];
 }
 
-function ageLabelFromDate(isoDate: string, nowMs: number) {
-  if (nowMs === 0) {
-    return "";
-  }
-  const createdMs = new Date(isoDate).getTime();
-  const diffMs = Math.max(0, nowMs - createdMs);
-  const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
-
-  if (diffDays >= 1) {
-    return `${diffDays}d`;
-  }
-
-  const diffHours = Math.floor(diffMs / (60 * 60 * 1000));
-  if (diffHours >= 1) {
-    return `${diffHours}h`;
-  }
-
-  const diffMinutes = Math.floor(diffMs / (60 * 1000));
-  return `${Math.max(1, diffMinutes)}m`;
-}
-
 function clampToDuration(timeSeconds: number, durationSeconds: number) {
   if (!Number.isFinite(timeSeconds)) {
     return 0;
@@ -387,22 +369,24 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
   const commentCardRefs = useRef<Record<string, HTMLElement | null>>({});
   const sidebarResizeDragRef = useRef<{ startX: number; startWidth: number } | null>(null);
 
-  const [nowMs, setNowMs] = useState(0);
   const [versions, setVersions] = useState(data.versions);
   const [comments, setComments] = useState(data.comments);
   const [currentVersionId, setCurrentVersionId] = useState(data.currentVersionId);
   const [selectedCommentId, setSelectedCommentId] = useState<string | null>(null);
   const [composerBody, setComposerBody] = useState("");
-  const [composerTimeSeconds, setComposerTimeSeconds] = useState(0);
   const [statusUpdating, setStatusUpdating] = useState(false);
   const [packageActionMessage, setPackageActionMessage] = useState<string | null>(null);
   const [approveFeedbackOpen, setApproveFeedbackOpen] = useState(false);
+  const [approveAnywayOpen, setApproveAnywayOpen] = useState(false);
   const [submittingPackageReview, setSubmittingPackageReview] = useState(false);
   const packageReview = data.packageReview;
   const [airedDialogOpen, setAiredDialogOpen] = useState(false);
   const [airedDateInput, setAiredDateInput] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
+  // Kept after close so the dialog text doesn't change while it fades out.
+  const [confirmDeleteThread, setConfirmDeleteThread] = useState<{ id: string; replyCount: number } | null>(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
   const [savingEditCommentId, setSavingEditCommentId] = useState<string | null>(null);
@@ -410,9 +394,11 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
   const [commentsTab, setCommentsTab] = useState<"COMMENTS" | "REVIEW">("COMMENTS");
   const [filterMode, setFilterMode] = useState<"ALL" | "OPEN" | "RESOLVED">("ALL");
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [bufferedTrack, setBufferedTrack] = useState<BufferedSpan[]>([]);
+  // Playhead + buffered ranges change several times a second; keep them out of React state here so
+  // only the scrubber and timecodes re-render during playback (components/review-playhead.tsx).
+  const [playheadStore] = useState(() => createValueStore(0));
+  const [bufferedStore] = useState(() => createValueStore<BufferedSpan[]>([]));
   const [isBuffering, setIsBuffering] = useState(false);
   const [volume, setVolume] = useState(1);
   const [playbackRate, setPlaybackRate] = useState(1);
@@ -494,12 +480,6 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
 
   useHlsPlayer(videoRef, isImageReview ? null : currentVersion?.playbackUrl);
 
-  useEffect(() => {
-    setNowMs(Date.now());
-    const id = window.setInterval(() => setNowMs(Date.now()), 60_000);
-    return () => window.clearInterval(id);
-  }, []);
-
   const versionComments = useMemo(
     () => comments.filter((comment) => comment.mediaVersionId === currentVersionId),
     [currentVersionId, comments]
@@ -579,9 +559,8 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
 
   useEffect(() => {
     if (isImageReview) {
-      setCurrentTime(0);
+      playheadStore.set(0);
       setDuration(0);
-      setComposerTimeSeconds(0);
       return;
     }
 
@@ -592,19 +571,20 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
     }
 
     pendingSeekRef.current = null;
-    setBufferedTrack([]);
+    bufferedStore.set([]);
     setIsBuffering(false);
 
     const syncBuffered = () => {
       const next = bufferedSpans(video.buffered, video.duration);
-      setBufferedTrack((current) => (sameBufferedSpans(current, next) ? current : next));
+      if (!sameBufferedSpans(bufferedStore.get(), next)) {
+        bufferedStore.set(next);
+      }
     };
 
     const syncState = () => {
       // Keep the scrubber where the user dropped it while a queued seek is still waiting.
       if (pendingSeekRef.current === null) {
-        setCurrentTime(video.currentTime || 0);
-        setComposerTimeSeconds(video.currentTime || 0);
+        playheadStore.set(video.currentTime || 0);
       }
       setDuration(video.duration || 0);
       syncBuffered();
@@ -659,7 +639,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
       window.clearTimeout(bufferingTimer);
       listeners.forEach(([type, handler]) => video.removeEventListener(type, handler));
     };
-  }, [currentVersionId, isImageReview]);
+  }, [currentVersionId, isImageReview, playheadStore, bufferedStore]);
 
   useEffect(() => {
     if (isImageReview) {
@@ -805,8 +785,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
     }
 
     const nextTime = clampToDuration(timeSeconds, video.duration || duration);
-    setCurrentTime(nextTime);
-    setComposerTimeSeconds(nextTime);
+    playheadStore.set(nextTime);
     if (video.seeking) {
       pendingSeekRef.current = nextTime;
       return;
@@ -854,7 +833,6 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
       xPct,
       yPct
     });
-    setComposerTimeSeconds(0);
     setSelectedCommentId(null);
   }
 
@@ -1254,7 +1232,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
       return;
     }
 
-    const clampedTime = isImageReview ? 0 : clampToDuration(composerTimeSeconds, duration);
+    const clampedTime = isImageReview ? 0 : clampToDuration(playheadStore.get(), duration);
 
     setSubmittingComment(true);
 
@@ -1323,7 +1301,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
         setComposerPin(null);
       }
     } catch {
-      window.alert("Could not send comment.");
+      toast.error("Could not send comment.");
     } finally {
       setSubmittingComment(false);
     }
@@ -1388,7 +1366,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
       ]);
       setReviewComposerBody("");
     } catch {
-      window.alert("Could not send comment.");
+      toast.error("Could not send comment.");
     } finally {
       setSubmittingReviewComment(false);
     }
@@ -1458,7 +1436,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
       }));
       setReplyingTo(null);
     } catch {
-      window.alert("Could not send reply.");
+      toast.error("Could not send reply.");
     } finally {
       setSubmittingReplyFor(null);
     }
@@ -1497,7 +1475,8 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
         return next;
       });
     } catch {
-      window.alert("Could not delete comment.");
+      toast.error("Could not delete comment.");
+      throw new Error("Could not delete comment.");
     } finally {
       setDeletingCommentId((current) => (current === commentId ? null : current));
     }
@@ -1539,7 +1518,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
       setEditingCommentId(null);
       setEditDraft("");
     } catch {
-      window.alert("Could not save comment.");
+      toast.error("Could not save comment.");
     } finally {
       setSavingEditCommentId(null);
     }
@@ -1560,7 +1539,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
 
   async function importCommentsFromFile(file: File) {
     if (!currentVersion || currentVersion.sourceType !== "VIDEO") {
-      window.alert("CSV import is only available for video reviews.");
+      toast.error("CSV import is only available for video reviews.");
       return;
     }
 
@@ -1606,9 +1585,9 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
           authorName: "You"
         }))
       ]);
-      window.alert(`Imported ${payload.data.importedCount} comments${payload.data.skippedCount ? ` (${payload.data.skippedCount} skipped)` : ""}.`);
+      toast.success(`Imported ${payload.data.importedCount} comments${payload.data.skippedCount ? ` (${payload.data.skippedCount} skipped)` : ""}.`);
     } catch {
-      window.alert("Could not import comments from CSV.");
+      toast.error("Could not import comments from CSV.");
     } finally {
       setImportingComments(false);
     }
@@ -1682,7 +1661,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
       );
       window.location.reload();
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : "Could not submit review.");
+      toast.error(error instanceof Error ? error.message : "Could not submit review.");
     } finally {
       setSubmittingPackageReview(false);
     }
@@ -1710,14 +1689,15 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
 
       window.location.reload();
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : "Could not approve this cut.");
+      toast.error(error instanceof Error ? error.message : "Could not approve this cut.");
     } finally {
       setStatusUpdating(false);
     }
   }
 
+  // Runs from the confirm dialog; rethrows so the dialog stays open when the request fails.
   async function approvePackageCutAnyway() {
-    if (!packageReview?.canApproveAnyway || !window.confirm(APPROVE_ANYWAY_CONFIRM)) {
+    if (!packageReview?.canApproveAnyway) {
       return;
     }
 
@@ -1738,7 +1718,8 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
 
       window.location.reload();
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : "Could not send the package to Stage 2.");
+      toast.error(error instanceof Error ? error.message : "Could not send the package to Stage 2.");
+      throw error;
     } finally {
       setStatusUpdating(false);
     }
@@ -1776,7 +1757,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
         )
       );
     } catch {
-      window.alert("Could not update approval state.");
+      toast.error("Could not update approval state.");
     } finally {
       setStatusUpdating(false);
     }
@@ -2405,7 +2386,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                   {packageReview.canApproveAnyway ? (
                     <Button type="button" className="h-9"
                       disabled={statusUpdating || submittingPackageReview}
-                      onClick={() => void approvePackageCutAnyway()}>
+                      onClick={() => setApproveAnywayOpen(true)}>
                       Approve anyway
                     </Button>
                   ) : null}
@@ -2585,6 +2566,8 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                     </div>
                   ) : !isPlaying ? (
                     <button
+                      type="button"
+                      aria-label="Play"
                       onClick={togglePlayback}
                       className="absolute left-1/2 top-1/2 grid h-16 w-16 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white/95 text-black shadow-2xl transition hover:scale-105"
                     >
@@ -2627,7 +2610,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                     })}
                   </div>
 
-                  <MediaRange value={currentTime} max={timelineDuration} step={0.01} label="Seek" onChange={seekTo} buffered={bufferedTrack} />
+                  <PlayheadSeekRange playhead={playheadStore} buffered={bufferedStore} max={timelineDuration} onSeek={seekTo} />
 
                   <div className="mt-1 flex items-center gap-1 sm:gap-2">
                     <Button variant="ghost" size="sm" className="h-8 w-8 shrink-0 p-0" onClick={togglePlayback} aria-label={isPlaying ? "Pause" : "Play"}>
@@ -2638,7 +2621,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                       <MediaRange value={volume} max={1} step={0.01} label="Volume" onChange={setVolume} className="w-16 md:w-20" />
                     </div>
                     <span className="ml-1 whitespace-nowrap font-mono text-[11px] tabular-nums text-muted-foreground">
-                      <span className="text-foreground">{formatTimecode(currentTime)}</span> / {formatTimecode(timelineDuration)}
+                      <span className="text-foreground"><PlayheadTimecode playhead={playheadStore} /></span> / {formatTimecode(timelineDuration)}
                     </span>
 
                     <div className="ml-auto flex items-center gap-1">
@@ -2730,36 +2713,44 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
           <div className="mt-3 flex items-center justify-between">
             <div className="inline-flex items-center gap-1 text-base font-medium text-foreground">
               <span>All comments</span>
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
             </div>
             <div className="flex items-center gap-1 text-muted-foreground">
               <button
+                type="button"
                 onClick={() => setFilterMode("ALL")}
                 title="All"
+                aria-label="Show all comments"
+                aria-pressed={filterMode === "ALL"}
                 className={`rounded-md p-1.5 transition ${filterMode === "ALL" ? "bg-secondary text-foreground" : "hover:text-foreground"}`}
               >
                 <ListFilter className="h-4 w-4" />
               </button>
               <button
+                type="button"
                 onClick={() => setFilterMode("OPEN")}
                 title="Open"
+                aria-label="Show open comments"
+                aria-pressed={filterMode === "OPEN"}
                 className={`rounded-md p-1.5 transition ${filterMode === "OPEN" ? "bg-secondary text-foreground" : "hover:text-foreground"}`}
               >
                 <Clock3 className="h-4 w-4" />
               </button>
               <button
+                type="button"
                 onClick={() => setFilterMode("RESOLVED")}
                 title="Resolved"
+                aria-label="Show resolved comments"
+                aria-pressed={filterMode === "RESOLVED"}
                 className={`rounded-md p-1.5 transition ${filterMode === "RESOLVED" ? "bg-secondary text-foreground" : "hover:text-foreground"}`}
               >
                 <CheckCircle2 className="h-4 w-4" />
               </button>
-              <button title="Search" className="rounded-md p-1.5 transition hover:text-foreground">
-                <Search className="h-4 w-4" />
-              </button>
               <div ref={commentsMenuRef} className="relative">
                 <button
+                  type="button"
                   title="More"
+                  aria-label="More comment actions"
+                  aria-expanded={commentsMenuOpen}
                   onClick={() => setCommentsMenuOpen((open) => !open)}
                   className={`rounded-md p-1.5 transition ${commentsMenuOpen ? "bg-secondary text-foreground" : "hover:text-foreground"}`}
                 >
@@ -2821,7 +2812,6 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
               ) : (
                 visibleReviewThreads.map((thread, index) => {
                   const initials = initialsFromName(thread.root.authorName);
-                  const ageLabel = ageLabelFromDate(thread.root.createdAt, nowMs);
 
                   return (
                     <article
@@ -2839,7 +2829,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                           <div className="flex items-center justify-between gap-2 text-xs">
                             <p className="truncate font-semibold text-foreground">{thread.root.authorName}</p>
                             <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                              <span>{ageLabel}</span>
+                              <span><RelativeAge iso={thread.root.createdAt} /></span>
                               <span>#{index + 1}</span>
                             </div>
                           </div>
@@ -2851,7 +2841,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                           {thread.replies.map((reply) => (
                             <div key={reply.id} className="text-sm">
                               <span className="font-semibold text-foreground">{reply.authorName}</span>
-                              <span className="ml-2 text-[11px] text-muted-foreground">{ageLabelFromDate(reply.createdAt, nowMs)}</span>
+                              <span className="ml-2 text-[11px] text-muted-foreground"><RelativeAge iso={reply.createdAt} /></span>
                               <p className="mt-0.5 whitespace-pre-wrap text-foreground">{reply.body}</p>
                             </div>
                           ))}
@@ -2909,7 +2899,6 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                 visibleThreads.map((thread, index) => {
                   const isSelected = selectedCommentId === thread.root.id;
                   const initials = initialsFromName(thread.root.authorName);
-                  const ageLabel = ageLabelFromDate(thread.root.createdAt, nowMs);
 
                   return (
                     <article
@@ -2937,7 +2926,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                           <div className="flex items-center justify-between gap-2 text-xs">
                             <p className="truncate font-semibold text-foreground">{thread.root.authorName}</p>
                             <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                              <span>{ageLabel}</span>
+                              <span><RelativeAge iso={thread.root.createdAt} /></span>
                               <span>#{index + 1}</span>
                             </div>
                           </div>
@@ -3029,7 +3018,8 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                               title="Delete comment"
                               onClick={(event) => {
                                 event.stopPropagation();
-                                void deleteComment(thread.root.id);
+                                setConfirmDeleteThread({ id: thread.root.id, replyCount: thread.replies.length });
+                                setConfirmDeleteOpen(true);
                               }}
                               disabled={deletingCommentId === thread.root.id}
                               className="inline-flex h-7 w-7 items-center justify-center rounded-md text-danger transition hover:bg-danger-tint disabled:cursor-not-allowed disabled:opacity-50"
@@ -3093,7 +3083,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                                         event.stopPropagation();
                                         startEditingComment(reply.id, reply.body);
                                       }}
-                                      className="shrink-0 opacity-0 group-hover:opacity-100 inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                                      className="shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition hover:bg-muted hover:text-foreground"
                                     >
                                       <Pencil className="h-3 w-3" />
                                     </button>
@@ -3157,7 +3147,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                       </span>
                     ) : (
                       <span className="rounded-md border border-[var(--brand-green)]/30 bg-[var(--brand-green)]/15 px-2 py-1 font-mono-broadcast text-xs font-semibold tabular-nums text-[var(--brand-green)]">
-                        @ {formatFrameAccurateTimecode(composerTimeSeconds, undefined, DEFAULT_REVIEW_FPS)}
+                        @ <PlayheadTimecode playhead={playheadStore} frameAccurate />
                       </span>
                     )}
                   </div>
@@ -3199,6 +3189,28 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
           </div>
         )}
       </aside>
+      <ConfirmDialog
+        open={approveAnywayOpen}
+        onOpenChange={setApproveAnywayOpen}
+        title="Approve anyway?"
+        description={APPROVE_ANYWAY_CONFIRM}
+        confirmLabel="Send to Stage 2"
+        cancelLabel="Cancel"
+        tone="default"
+        onConfirm={approvePackageCutAnyway}
+      />
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        onOpenChange={setConfirmDeleteOpen}
+        title="Delete comment?"
+        description={
+          confirmDeleteThread && confirmDeleteThread.replyCount > 0
+            ? `This also deletes ${confirmDeleteThread.replyCount} ${confirmDeleteThread.replyCount === 1 ? "reply" : "replies"}.`
+            : "This can't be undone."
+        }
+        confirmLabel="Delete"
+        onConfirm={() => (confirmDeleteThread ? deleteComment(confirmDeleteThread.id) : undefined)}
+      />
       <ApproveFeedbackDialog
         open={approveFeedbackOpen}
         saving={statusUpdating}

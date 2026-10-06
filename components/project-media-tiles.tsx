@@ -2958,14 +2958,17 @@ export function ProjectMediaTiles({
                 >
                   <div className="relative rounded-t-2xl">
                     <button
+                      type="button"
                       onClick={() => toggleSelect(item.id)}
                       className={cn(
                         "absolute left-2 top-2 z-20 grid h-6 w-6 place-items-center rounded border border-white/15 bg-black/70 text-soft-white transition hover:bg-black",
-                        selected ? "opacity-100" : "opacity-0 group-hover:opacity-100 focus:opacity-100"
+                        selected ? "opacity-100" : "opacity-0 group-hover:opacity-100 focus:opacity-100 [@media(hover:none)]:opacity-100"
                       )}
-                      title="Select video"
+                      title={selected ? "Deselect video" : "Select video"}
+                      aria-label={selected ? "Deselect video" : "Select video"}
+                      aria-pressed={selected}
                     >
-                      {selected ? <CheckSquare className="h-3.5 w-3.5 text-[#2BB36E]" /> : <Square className="h-3.5 w-3.5" />}
+                      {selected ? <CheckSquare className="h-3.5 w-3.5 text-[var(--brand-green)]" /> : <Square className="h-3.5 w-3.5" />}
                     </button>
 
                     <div className="absolute right-2 top-2 z-20">
@@ -3435,7 +3438,8 @@ export function ProjectMediaTiles({
             value={renameTitleInput}
             onChange={(event) => setRenameTitleInput(event.target.value)}
             placeholder="Video title"
-            className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+            aria-label="Video title"
+            className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring"
           />
           <DialogFooter>
             <Button
@@ -3541,7 +3545,8 @@ export function ProjectMediaTiles({
             value={folderNameInput}
             onChange={(event) => setFolderNameInput(event.target.value)}
             placeholder="Folder name"
-            className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+            aria-label="Folder name"
+            className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring"
           />
           <DialogFooter>
             <Button

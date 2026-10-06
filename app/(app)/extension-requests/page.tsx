@@ -1,6 +1,9 @@
+import type { Metadata } from "next";
 import { requireUserId, syncUserProfile } from "@/src/lib/auth";
 import { getPlatformAccess } from "@/src/lib/platform-admin";
 import ExtensionRequestsClient from "./extension-requests-client";
+
+export const metadata: Metadata = { title: "Extension Requests" };
 
 export default async function ExtensionRequestsPage() {
   const userId = await requireUserId();

@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { SettingsRow } from "@/components/settings-layout";
 
 export type AccessPin = {
@@ -11,6 +13,9 @@ export type AccessPin = {
   visible: boolean;
   busy: boolean;
   error: string | null;
+  /** Asked before replacing an existing PIN: "Question? Detail." */
+  replaceConfirm: string;
+  /** Throws on failure so a confirm dialog can stay open for a retry. */
   renew: () => Promise<void>;
 };
 
@@ -41,9 +46,6 @@ export function useAccessPin(url: string, replaceConfirm: string): AccessPin {
   }, [url]);
 
   async function renew() {
-    if (pin && !window.confirm(replaceConfirm)) {
-      return;
-    }
     setBusy(true);
     setError(null);
     try {
@@ -52,17 +54,25 @@ export function useAccessPin(url: string, replaceConfirm: string): AccessPin {
       if (!response.ok) throw new Error(payload?.error?.message ?? "Couldn't create a PIN.");
       setPin(typeof payload?.data?.pin === "string" ? payload.data.pin : null);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Couldn't create a PIN.");
+      const message = caught instanceof Error ? caught.message : "Couldn't create a PIN.";
+      setError(message);
+      toast.error(message);
+      throw caught;
     } finally {
       setBusy(false);
     }
   }
 
-  return { pin, visible, busy, error, renew };
+  return { pin, visible, busy, error, replaceConfirm, renew };
 }
 
 export function PinRow({ title, description, state }: { title: string; description: string; state: AccessPin }) {
+  const [confirmingReplace, setConfirmingReplace] = useState(false);
   if (!state.visible) return null;
+
+  const questionEnd = state.replaceConfirm.indexOf("?") + 1;
+  const replaceTitle = questionEnd > 0 ? state.replaceConfirm.slice(0, questionEnd) : state.replaceConfirm;
+  const replaceDetail = questionEnd > 0 ? state.replaceConfirm.slice(questionEnd).trim() : "";
 
   return (
     <SettingsRow
@@ -88,9 +98,25 @@ export function PinRow({ title, description, state }: { title: string; descripti
       >
         {state.pin ? `${state.pin.slice(0, 3)} ${state.pin.slice(3)}` : "Not set"}
       </span>
-      <Button type="button" variant="outline" size="sm" onClick={() => void state.renew()} disabled={state.busy}>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => (state.pin ? setConfirmingReplace(true) : void state.renew().catch(() => undefined))}
+        disabled={state.busy}
+      >
         {state.busy ? "Saving…" : state.pin ? "New PIN" : "Create PIN"}
       </Button>
+      <ConfirmDialog
+        open={confirmingReplace}
+        onOpenChange={setConfirmingReplace}
+        title={replaceTitle}
+        description={replaceDetail}
+        confirmLabel="Replace PIN"
+        cancelLabel="Cancel"
+        tone="default"
+        onConfirm={state.renew}
+      />
     </SettingsRow>
   );
 }

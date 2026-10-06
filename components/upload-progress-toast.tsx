@@ -113,7 +113,7 @@ export function UploadProgressToast({ items }: UploadProgressToastProps) {
   }
 
   const toast = (
-    <div className="fixed bottom-4 right-4 z-50 w-[360px] rounded-2xl border border-border bg-card p-4 shadow-2xl">
+    <div className="fixed inset-x-4 bottom-4 z-50 rounded-2xl sm:left-auto sm:w-[360px] border border-border bg-card p-4 shadow-2xl">
       <div className="mb-3 flex items-center justify-between gap-2">
         <div>
           <p className="text-sm font-semibold text-foreground">Uploads in progress</p>

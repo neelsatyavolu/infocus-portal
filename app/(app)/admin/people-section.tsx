@@ -4,6 +4,7 @@ import { FormEvent, useMemo, useState } from "react";
 import { Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { SettingsPanel, SettingsPanelBody, SettingsSection } from "@/components/settings-layout";
 import {
@@ -43,6 +44,7 @@ export function PeopleSection({
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<PlatformUser | null>(null);
 
   const roleByEmail = useMemo(
     () => new Map<string, PlatformRole>(roles.map((entry) => [entry.email.toLowerCase(), entry.role])),
@@ -143,12 +145,8 @@ export function PeopleSection({
     toast.success("Nickname saved.");
   }
 
+  // Throws on failure so the confirm dialog stays open for a retry.
   async function removeUser(user: PlatformUser) {
-    const label = user.email ?? user.name ?? "this user";
-    if (!window.confirm(`Delete ${label}? This removes their registered user profile from this platform.`)) {
-      return;
-    }
-
     setDeletingId(user.id);
     onMessage(null);
 
@@ -160,7 +158,7 @@ export function PeopleSection({
       onMessage(errorMessage);
       toast.error(errorMessage);
       setDeletingId(null);
-      return;
+      throw new Error(errorMessage);
     }
 
     const payload = await response.json().catch(() => null);
@@ -170,7 +168,7 @@ export function PeopleSection({
       onMessage(errorMessage);
       toast.error(errorMessage);
       setDeletingId(null);
-      return;
+      throw new Error(errorMessage);
     }
 
     onUserRemoved(user.id);
@@ -285,7 +283,7 @@ export function PeopleSection({
                     type="button"
                     variant="destructive-quiet"
                     size="sm"
-                    onClick={() => void removeUser(user)}
+                    onClick={() => setPendingDelete(user)}
                     disabled={busy}
                     aria-label={`Remove ${personLabel(user)}`}
                     title="Remove"
@@ -304,6 +302,16 @@ export function PeopleSection({
           ) : null}
         </ul>
       </SettingsPanel>
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingDelete(null);
+        }}
+        title={`Delete ${pendingDelete?.email ?? pendingDelete?.name ?? "this user"}?`}
+        description="This removes their registered user profile from this platform."
+        confirmLabel="Delete"
+        onConfirm={() => (pendingDelete ? removeUser(pendingDelete) : undefined)}
+      />
     </SettingsSection>
   );
 }

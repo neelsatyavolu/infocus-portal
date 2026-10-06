@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CalendarClock, Check, ChevronRight, Loader2, Mail, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -61,8 +61,15 @@ type Payload = {
   canGrant: boolean;
   currentUserId: string;
   approvalsRequired: number;
+  /** The cycle the viewer is working on; seeds the Cycle pickers. */
+  activeCycleNumber: number;
+  /** Real cycle numbers this semester. */
+  cycleNumbers: number[];
   requests: ExtensionRequest[];
 };
+
+const fieldClass =
+  "h-10 w-full rounded-lg border border-border bg-muted px-3 text-base text-foreground outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm";
 
 const STATUS_STYLES: Record<ExtensionRequest["status"], string> = {
   PENDING: "bg-[var(--brand-amber)]/15 text-[var(--brand-amber)] border-[var(--brand-amber)]/40",
@@ -88,7 +95,9 @@ function grantedTerms(entry: ExtensionRequest): GrantTerms {
 export default function ExtensionRequestsClient() {
   const [payload, setPayload] = useState<Payload | null>(null);
   const [loading, setLoading] = useState(true);
-  const [cycleNumber, setCycleNumber] = useState(1);
+  const [cycleNumber, setCycleNumber] = useState<number | null>(null);
+  // Seed the Cycle picker once; later reloads keep whatever the student picked.
+  const cycleSeededRef = useRef(false);
   const [requestedDays, setRequestedDays] = useState(2);
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -108,7 +117,12 @@ export default function ExtensionRequestsClient() {
         throw new Error(body?.error?.message ?? "Failed to load extension requests.");
       }
 
-      setPayload(body.data as Payload);
+      const data = body.data as Payload;
+      setPayload(data);
+      if (!cycleSeededRef.current) {
+        cycleSeededRef.current = true;
+        setCycleNumber(data.activeCycleNumber);
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to load extension requests.");
     } finally {
@@ -121,6 +135,7 @@ export default function ExtensionRequestsClient() {
   }, [load]);
 
   async function submitRequest() {
+    if (submitting || cycleNumber === null) return;
     setSubmitting(true);
 
     try {
@@ -240,6 +255,12 @@ export default function ExtensionRequestsClient() {
       deniedRequests: requests.filter((request) => request.status === "DENIED")
     };
   }, [payload]);
+
+  const cycleOptions = useMemo(() => {
+    const numbers = payload?.cycleNumbers ?? [];
+    if (cycleNumber === null || numbers.includes(cycleNumber)) return numbers;
+    return [...numbers, cycleNumber].sort((a, b) => a - b);
+  }, [payload, cycleNumber]);
 
   function renderRequest(entry: ExtensionRequest) {
     const approvedCount = entry.approvals.filter((approval) => approval.approved).length;
@@ -437,24 +458,33 @@ export default function ExtensionRequestsClient() {
           You must be assigned to a package group for the selected cycle. Your teammates will be asked
           to agree before producers review it.
         </p>
-        <div className="mt-3 grid gap-2 sm:grid-cols-[110px_110px_1fr_auto]">
+        <form
+          noValidate
+          className="mt-3 grid gap-2 sm:grid-cols-[110px_110px_1fr_auto]"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void submitRequest();
+          }}
+        >
           <label className="text-sm">
             <span className="mb-1 block text-xs text-muted-foreground">Cycle</span>
-            <input
-              type="number"
-              min={1}
-              value={cycleNumber}
-              onChange={(event) => setCycleNumber(Math.max(1, Number(event.target.value) || 1))}
-              className="h-10 w-full rounded-lg border border-border bg-muted px-3 text-foreground outline-none"
-            />
+            <select
+              value={cycleNumber ?? ""}
+              onChange={(event) => setCycleNumber(Number(event.target.value))}
+              disabled={cycleNumber === null}
+              className={fieldClass}
+            >
+              {cycleNumber === null ? <option value="">…</option> : null}
+              {cycleOptions.map((value) => (
+                <option key={value} value={value}>
+                  Cycle {value}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="text-sm">
             <span className="mb-1 block text-xs text-muted-foreground">Days</span>
-            <ExtensionDaysInput
-              value={requestedDays}
-              onChange={setRequestedDays}
-              className="h-10 w-full rounded-lg border border-border bg-muted px-3 text-foreground outline-none"
-            />
+            <ExtensionDaysInput value={requestedDays} onChange={setRequestedDays} className={fieldClass} />
           </label>
           <label className="text-sm">
             <span className="mb-1 block text-xs text-muted-foreground">Reason</span>
@@ -462,14 +492,14 @@ export default function ExtensionRequestsClient() {
               value={reason}
               onChange={(event) => setReason(event.target.value)}
               placeholder="Family emergency, unresolvable technical issue, …"
-              className="h-10 w-full rounded-lg border border-border bg-muted px-3 text-foreground outline-none"
+              className={fieldClass}
             />
           </label>
-          <Button className="self-end" onClick={() => void submitRequest()} disabled={submitting}>
+          <Button type="submit" className="self-end" disabled={submitting || cycleNumber === null}>
             {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Submit
           </Button>
-        </div>
+        </form>
       </section>
 
       <section className="space-y-3">
@@ -496,6 +526,8 @@ export default function ExtensionRequestsClient() {
 
       {granting ? (
         <GrantExtensionDialog
+          initialCycleNumber={payload?.activeCycleNumber ?? 1}
+          cycleNumbers={payload?.cycleNumbers ?? []}
           onOpenChange={(open) => {
             if (!open) setGranting(false);
           }}

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { CheckCircle2, ChevronDown, Clock3, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { SettingsPanel, SettingsPanelBody, SettingsRow, SettingsSection } from "@/components/settings-layout";
 import { cn } from "@/src/lib/utils";
 import type { PlatformAccessRequest, PlatformAccessRequestStatus, ReportMessage } from "./admin-types";
@@ -40,6 +41,7 @@ export function AccessRequestsSection({
 }) {
   const [decidingId, setDecidingId] = useState<string | null>(null);
   const [approvingAll, setApprovingAll] = useState(false);
+  const [confirmApproveAll, setConfirmApproveAll] = useState(false);
   const [showReviewed, setShowReviewed] = useState(false);
 
   const pending = useMemo(
@@ -82,12 +84,9 @@ export function AccessRequestsSection({
     toast.success(status === "APPROVED" ? "Access request approved and user notified by email." : "Access request denied and user notified by email.");
   }
 
+  // Throws on failure so the confirm dialog stays open for a retry.
   async function approveAll() {
     if (pending.length === 0) {
-      return;
-    }
-
-    if (!window.confirm(`Approve all ${pending.length} pending access requests?`)) {
       return;
     }
 
@@ -103,15 +102,17 @@ export function AccessRequestsSection({
       const payload = await response.json();
 
       if (!response.ok) {
-        onMessage(payload?.error?.message ?? "Failed to approve all pending access requests.");
-        return;
+        throw new Error(payload?.error?.message ?? "Failed to approve all pending access requests.");
       }
 
       const approvedCount = Number(payload?.data?.approvedCount ?? 0);
       await onChanged();
       toast.success(approvedCount > 0 ? `Approved ${approvedCount} pending access requests and sent email notifications.` : "No pending access requests to approve.");
     } catch (error) {
-      onMessage(error instanceof Error ? error.message : "Failed to approve all pending access requests.");
+      const errorMessage = error instanceof Error ? error.message : "Failed to approve all pending access requests.";
+      onMessage(errorMessage);
+      toast.error(errorMessage);
+      throw error;
     } finally {
       setApprovingAll(false);
     }
@@ -124,7 +125,7 @@ export function AccessRequestsSection({
       description="People who tried to sign in before they were added. Approve to let them in and email them a sign-in link."
       actions={
         pending.length > 1 ? (
-          <Button type="button" variant="outline" size="sm" onClick={() => void approveAll()} disabled={approvingAll || decidingId !== null}>
+          <Button type="button" variant="outline" size="sm" onClick={() => setConfirmApproveAll(true)} disabled={approvingAll || decidingId !== null}>
             {approvingAll ? "Approving…" : `Approve all ${pending.length}`}
           </Button>
         ) : null
@@ -194,6 +195,16 @@ export function AccessRequestsSection({
           </div>
         ) : null}
       </SettingsPanel>
+      <ConfirmDialog
+        open={confirmApproveAll}
+        onOpenChange={setConfirmApproveAll}
+        title={`Approve all ${pending.length} pending access requests?`}
+        description="Each person is let in and emailed a sign-in link."
+        confirmLabel="Approve all"
+        cancelLabel="Cancel"
+        tone="default"
+        onConfirm={approveAll}
+      />
     </SettingsSection>
   );
 }

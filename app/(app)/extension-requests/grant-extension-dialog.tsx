@@ -16,7 +16,8 @@ import { ExtensionDaysInput } from "./extension-days-input";
 type GroupMember = { userId: string; name: string | null; email: string | null };
 type Group = { id: string; groupTopic: string; members: GroupMember[] };
 
-const inputClass = "h-10 w-full rounded-lg border border-border bg-muted px-3 text-foreground outline-none";
+const inputClass =
+  "h-10 w-full rounded-lg border border-border bg-muted px-3 text-base text-foreground outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm";
 
 function memberLabel(member: GroupMember) {
   return member.name ?? member.email ?? "Unknown";
@@ -32,13 +33,19 @@ function groupLabel(group: Group) {
  * Mount it only while open so its state starts fresh.
  */
 export function GrantExtensionDialog({
+  initialCycleNumber,
+  cycleNumbers,
   onOpenChange,
   onGranted
 }: {
+  /** The current cycle; the dialog opens on it. */
+  initialCycleNumber: number;
+  /** Real cycle numbers this semester, for the Cycle picker. */
+  cycleNumbers: number[];
   onOpenChange: (open: boolean) => void;
   onGranted: () => Promise<void>;
 }) {
-  const [cycleNumber, setCycleNumber] = useState(1);
+  const [cycleNumber, setCycleNumber] = useState(initialCycleNumber);
   const [groups, setGroups] = useState<Group[]>([]);
   const [loadingGroups, setLoadingGroups] = useState(false);
   const [groupId, setGroupId] = useState("");
@@ -89,7 +96,10 @@ export function GrantExtensionDialog({
     );
   }
 
+  const canGrant = !saving && Boolean(group) && selected.length > 0;
+
   async function grant() {
+    if (!canGrant) return;
     setSaving(true);
     try {
       const response = await fetch("/api/extensions/grants", {
@@ -111,7 +121,7 @@ export function GrantExtensionDialog({
   }
 
   return (
-    <Dialog open onOpenChange={onOpenChange}>
+    <Dialog open onOpenChange={(next) => !saving && onOpenChange(next)}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Grant an extension</DialogTitle>
@@ -121,17 +131,29 @@ export function GrantExtensionDialog({
           </DialogDescription>
         </DialogHeader>
 
+        <form
+          noValidate
+          className="grid gap-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void grant();
+          }}
+        >
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-2">
             <label className="block text-sm">
               <span className="mb-1 block text-xs text-muted-foreground">Cycle</span>
-              <input
-                type="number"
-                min={1}
+              <select
                 value={cycleNumber}
-                onChange={(event) => setCycleNumber(Math.max(1, Math.round(Number(event.target.value)) || 1))}
+                onChange={(event) => setCycleNumber(Number(event.target.value))}
                 className={inputClass}
-              />
+              >
+                {(cycleNumbers.includes(cycleNumber) ? cycleNumbers : [...cycleNumbers, cycleNumber]).map((value) => (
+                  <option key={value} value={value}>
+                    Cycle {value}
+                  </option>
+                ))}
+              </select>
             </label>
             <label className="block text-sm">
               <span className="mb-1 block text-xs text-muted-foreground">Days</span>
@@ -181,14 +203,15 @@ export function GrantExtensionDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>
+          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>
             Cancel
           </Button>
-          <Button onClick={() => void grant()} disabled={saving || !group || selected.length === 0}>
+          <Button type="submit" disabled={!canGrant}>
             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Grant
           </Button>
         </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

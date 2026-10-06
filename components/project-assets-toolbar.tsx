@@ -18,6 +18,7 @@ import {
   Trash2,
   UploadCloud
 } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { DropdownOption } from "@/components/video-card-menu";
@@ -64,6 +65,7 @@ export function ProjectAssetsToolbar({
   const [syncingTurnedInDates, setSyncingTurnedInDates] = useState(false);
   const [syncTurnedInMessage, setSyncTurnedInMessage] = useState<string | null>(null);
   const [deletingAllMedia, setDeletingAllMedia] = useState(false);
+  const [confirmDeleteAllOpen, setConfirmDeleteAllOpen] = useState(false);
   const [deleteAllMessage, setDeleteAllMessage] = useState<string | null>(null);
   const newMenuRef = useRef<HTMLDivElement | null>(null);
 
@@ -170,14 +172,6 @@ export function ProjectAssetsToolbar({
 
   async function deleteAllMedia() {
     if (deletingAllMedia) {
-      return;
-    }
-
-    const confirmed = window.confirm(
-      `Delete all media in "${projectName}"? This will move every media item in this project to trash. You can restore items individually from each media's trash view.`
-    );
-
-    if (!confirmed) {
       return;
     }
 
@@ -330,7 +324,7 @@ export function ProjectAssetsToolbar({
 
           <button
             type="button"
-            onClick={() => void deleteAllMedia()}
+            onClick={() => setConfirmDeleteAllOpen(true)}
             disabled={deletingAllMedia}
             className={cn(
               "inline-flex items-center gap-1 rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm text-danger hover:bg-danger-tint",
@@ -473,6 +467,14 @@ export function ProjectAssetsToolbar({
         </DialogContent>
       </Dialog>
 
+      <ConfirmDialog
+        open={confirmDeleteAllOpen}
+        onOpenChange={setConfirmDeleteAllOpen}
+        title={`Delete all media in "${projectName}"?`}
+        description="This will move every media item in this project to trash. You can restore items individually from each media's trash view."
+        confirmLabel="Delete all media"
+        onConfirm={deleteAllMedia}
+      />
 
       {syncTurnedInMessage ? (
         <p className="mt-2 text-xs text-muted-foreground">{syncTurnedInMessage}</p>

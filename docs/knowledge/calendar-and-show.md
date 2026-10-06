@@ -16,7 +16,7 @@ First broadcast: **Friday, September 4, 2026**. Earlier Wed/Fri are class days. 
 
 ## Master Calendar (`/master-calendar`)
 
-Everyone signed in can view the calendar. Producers (associate producer and up) can edit it. It starts at September 2026. Use the arrows or **Today** to change months.
+Everyone signed in can view the calendar. Producers (associate producer and up) can edit it. It starts at September 2026. Use the arrows or **Today** to change months. The month you are viewing is kept in the link (`/master-calendar?month=2026-11`), so reloading or sharing it opens the same month.
 
 Each weekday cell depends on the day type:
 

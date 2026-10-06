@@ -35,7 +35,7 @@ In Grade Editor cycle tabs, **— Ungraded** means no grade has been assigned; *
 - **Ungraded:** type `-` or clear the field.
 - **Scored:** type a number from 0 to 50 (rounded to a whole number). This replaces the averaged score.
 
-Each cycle tab also has **Official** (after the late penalty), **Feedback** for each member, **Turned In** (the cycle needs a Final Cut date on Package Cycles first), and a **Published** / **Unpublished** / **Revised** status. Stat cards show Cycle Average, Cycle Percentage, Published, and Late Submissions. The toolbar has **Refresh**, **Download CSV**, **Save All**, and **Publish All**.
+Each cycle tab also has **Official** (after the late penalty), **Feedback** for each member, **Turned In** (locked until the cycle has a Final Cut date on Cycle Dates; hover it for the hint), and a **Published** / **Unpublished** / **Revised** status. Stat cards show Cycle Average, Cycle Percentage, Published, and Late Submissions. The toolbar has **Refresh**, **Download CSV**, **Save All**, and **Publish All**.
 
 **Missing Grades** lists, for every cycle that has at least one grade, people with no grade (**Not entered**) or an unpublished one (**Unpublished**). Exempt final cuts do not appear. **Exclude People** hides people from this list in your browser only.
 

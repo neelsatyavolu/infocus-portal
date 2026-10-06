@@ -1,7 +1,9 @@
 "use client";
 
 import { PointerEvent as ReactPointerEvent, useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { SaveStatus, SettingsNotice, SettingsPanel, SettingsPanelBody, SettingsSection } from "@/components/settings-layout";
 import { SIGNATURE_MAX_LENGTH } from "@/src/lib/signature-image";
 
@@ -79,16 +81,17 @@ export function useSignature(): SignatureState {
     }
   }
 
+  /** Throws on failure so the confirm dialog stays open for a retry. */
   async function remove() {
-    if (!window.confirm("Remove your signature? Certificates will show a blank line for you until you draw a new one.")) {
-      return;
-    }
     setBusy(true);
     setError(null);
     try {
       setSignature(await request("DELETE"));
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Couldn't remove your signature.");
+      const message = caught instanceof Error ? caught.message : "Couldn't remove your signature.";
+      setError(message);
+      toast.error(message);
+      throw caught;
     } finally {
       setBusy(false);
     }
@@ -283,6 +286,7 @@ function SignaturePad({
 export function SignatureSection({ state }: { state: SignatureState }) {
   const [redrawing, setRedrawing] = useState(false);
   const [savedLabel, setSavedLabel] = useState("");
+  const [confirmingRemove, setConfirmingRemove] = useState(false);
 
   async function save(signature: string) {
     if (!(await state.save(signature))) return;
@@ -320,7 +324,7 @@ export function SignatureSection({ state }: { state: SignatureState }) {
                 <img src={state.signature ?? undefined} alt="Your saved signature" className="max-h-full max-w-full object-contain" />
               </div>
               <div className="flex flex-wrap items-center justify-end gap-2">
-                <Button type="button" variant="destructive-quiet" onClick={() => void state.remove()} disabled={state.busy}>
+                <Button type="button" variant="destructive-quiet" onClick={() => setConfirmingRemove(true)} disabled={state.busy}>
                   Remove
                 </Button>
                 <Button type="button" variant="outline" onClick={() => setRedrawing(true)} disabled={state.busy}>
@@ -331,6 +335,14 @@ export function SignatureSection({ state }: { state: SignatureState }) {
           )}
         </SettingsPanelBody>
       </SettingsPanel>
+      <ConfirmDialog
+        open={confirmingRemove}
+        onOpenChange={setConfirmingRemove}
+        title="Remove your signature?"
+        description="Certificates will show a blank line for you until you draw a new one."
+        confirmLabel="Remove"
+        onConfirm={state.remove}
+      />
     </SettingsSection>
   );
 }

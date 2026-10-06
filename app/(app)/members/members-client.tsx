@@ -271,7 +271,7 @@ export default function MembersClient() {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search members…"
-              className="h-9 w-full rounded-md border border-border bg-muted pl-8 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+              className="h-9 w-full rounded-md border border-border bg-muted pl-8 pr-3 text-base text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring md:text-sm"
             />
           </label>
           <div className="inline-flex min-w-[10.5rem] items-center rounded-md border border-border bg-muted">

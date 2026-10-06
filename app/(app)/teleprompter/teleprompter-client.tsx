@@ -22,7 +22,9 @@ import {
   Trash2,
   X
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -724,6 +726,8 @@ export default function TeleprompterClient() {
   const [loading, setLoading] = useState(true);
   const [loadingWorkspaces, setLoadingWorkspaces] = useState(true);
   const [working, setWorking] = useState(false);
+  const [pendingDocDelete, setPendingDocDelete] = useState<TeleprompterDoc | null>(null);
+  const [pendingSectionDeleteId, setPendingSectionDeleteId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [autofillStatus, setAutofillStatus] = useState<TeleprompterAutofillStatus>({
     status: "ok"
@@ -994,12 +998,8 @@ export default function TeleprompterClient() {
     }
   }
 
+  // Throws on failure so the confirm dialog stays open for a retry.
   async function deleteDoc(doc: TeleprompterDoc) {
-    const confirmed = window.confirm(`Delete \"${doc.title}\" and all of its sections?`);
-    if (!confirmed) {
-      return;
-    }
-
     setWorking(true);
     setMessage(null);
 
@@ -1013,7 +1013,10 @@ export default function TeleprompterClient() {
         setSelectedDocId(null);
       }
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to delete script.");
+      const errorMessage = error instanceof Error ? error.message : "Failed to delete script.";
+      setMessage(errorMessage);
+      toast.error(errorMessage);
+      throw error;
     } finally {
       setWorking(false);
     }
@@ -1105,13 +1108,9 @@ export default function TeleprompterClient() {
     }
   }
 
+  // Throws on failure so the confirm dialog stays open for a retry.
   async function deleteSection(sectionId: string) {
     if (!activeDoc) {
-      return;
-    }
-
-    const confirmed = window.confirm("Delete this section?");
-    if (!confirmed) {
       return;
     }
 
@@ -1134,7 +1133,10 @@ export default function TeleprompterClient() {
         )
       );
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to delete section.");
+      const errorMessage = error instanceof Error ? error.message : "Failed to delete section.";
+      setMessage(errorMessage);
+      toast.error(errorMessage);
+      throw error;
     } finally {
       setWorking(false);
     }
@@ -1464,7 +1466,7 @@ export default function TeleprompterClient() {
                               <IconButton label="Rename script" onClick={() => openRenameDocModal(doc)}>
                                 <Edit3 className="h-3.5 w-3.5" />
                               </IconButton>
-                              <IconButton label="Delete script" destructive onClick={() => void deleteDoc(doc)}>
+                              <IconButton label="Delete script" destructive onClick={() => setPendingDocDelete(doc)}>
                                 <Trash2 className="h-3.5 w-3.5" />
                               </IconButton>
                             </div>
@@ -1620,7 +1622,7 @@ export default function TeleprompterClient() {
                                     <IconButton
                                       label="Delete section"
                                       destructive
-                                      onClick={() => void deleteSection(section.id)}
+                                      onClick={() => setPendingSectionDeleteId(section.id)}
                                     >
                                       <Trash2 className="h-3.5 w-3.5" />
                                     </IconButton>
@@ -1771,6 +1773,27 @@ export default function TeleprompterClient() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={pendingDocDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingDocDelete(null);
+        }}
+        title={`Delete "${pendingDocDelete?.title ?? "this script"}"?`}
+        description="The script and all of its sections are deleted."
+        confirmLabel="Delete script"
+        onConfirm={() => (pendingDocDelete ? deleteDoc(pendingDocDelete) : undefined)}
+      />
+      <ConfirmDialog
+        open={pendingSectionDeleteId !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingSectionDeleteId(null);
+        }}
+        title="Delete this section?"
+        description="Its script text is deleted too."
+        confirmLabel="Delete section"
+        onConfirm={() => (pendingSectionDeleteId ? deleteSection(pendingSectionDeleteId) : undefined)}
+      />
 
       {runModeOpen && activeDoc ? (
         <FullscreenRunMode

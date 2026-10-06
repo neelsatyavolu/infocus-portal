@@ -53,7 +53,10 @@ export function ApproveExtensionDialog({
     );
   }
 
+  const canConfirm = !saving && (Boolean(lockedTerms) || selected.length > 0);
+
   async function confirm() {
+    if (!canConfirm) return;
     setSaving(true);
     try {
       await onConfirm(lockedTerms ? null : { grantedDays: clampExtensionDays(days), grantedUserIds: selected });
@@ -65,7 +68,7 @@ export function ApproveExtensionDialog({
   const labelFor = (userId: string) => members.find((member) => member.userId === userId)?.label ?? "Unknown";
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(next) => !saving && onOpenChange(next)}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{grantWithoutAgreement ? "Grant extension" : "Approve extension"}</DialogTitle>
@@ -79,6 +82,14 @@ export function ApproveExtensionDialog({
           </DialogDescription>
         </DialogHeader>
 
+        <form
+          noValidate
+          className="grid gap-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void confirm();
+          }}
+        >
         {lockedTerms ? (
           <div className="space-y-1 text-sm">
             <p className="text-foreground">
@@ -93,7 +104,7 @@ export function ApproveExtensionDialog({
               <ExtensionDaysInput
                 value={days}
                 onChange={setDays}
-                className="h-10 w-28 rounded-lg border border-border bg-muted px-3 text-foreground outline-none"
+                className="h-10 w-28 rounded-lg border border-border bg-muted px-3 text-base text-foreground outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm"
               />
             </label>
             <fieldset className="space-y-2">
@@ -113,14 +124,15 @@ export function ApproveExtensionDialog({
         )}
 
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>
+          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>
             Cancel
           </Button>
-          <Button onClick={() => void confirm()} disabled={saving || (!lockedTerms && selected.length === 0)}>
+          <Button type="submit" disabled={!canConfirm}>
             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             {grantWithoutAgreement ? "Grant" : "Approve"}
           </Button>
         </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

@@ -17,7 +17,7 @@ import { cn } from "@/src/lib/utils";
 import { loadManagerRosters } from "@/src/server/manager-rosters";
 
 export const metadata: Metadata = {
-  title: "Managers · InFocus Portal"
+  title: "Managers"
 };
 
 const SHOWN_NAMES = 4;
@@ -146,9 +146,7 @@ export default async function ManagersPage() {
     <div className="route-enter mx-auto w-full max-w-[1760px] space-y-5 pb-28">
       <section className="brand-hero-panel relative overflow-hidden p-6 md:p-8">
         <p className="eyebrow">Managers</p>
-        <h1 className="mt-3 text-[32px] font-semibold leading-none text-foreground md:text-[44px]" style={{ letterSpacing: "-0.025em" }}>
-          Pick your area
-        </h1>
+        <h1 className="display-md mt-3 text-balance text-foreground">Pick your area</h1>
         <p className="mt-2 max-w-2xl text-sm text-[var(--ink-text)]">
           Each manager role has its own tool. Choose yours to open it.
         </p>

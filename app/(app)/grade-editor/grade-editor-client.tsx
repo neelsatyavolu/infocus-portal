@@ -147,6 +147,8 @@ const MAX_PACKAGE_PER_CYCLE = 50;
 const MAX_CHECK_INS_PER_CYCLE = 20;
 const MAX_LIVESTREAM = 40;
 const MAX_FINAL = 100;
+const FINAL_CUT_REQUIRED_HINT = "Set this cycle's Final Cut date in Cycle Dates first";
+const SORT_STORAGE_KEY = "grade-editor:sort-by:v1";
 
 function parseOverride(value: string | undefined, maxValue: number): number | null {
   if (value === undefined) return null;
@@ -368,6 +370,30 @@ export default function GradeEditorClient() {
   const [missingError, setMissingError] = useState<string | null>(null);
   const [showExcludePanel, setShowExcludePanel] = useState(false);
   const { excludedIds, toggleExcluded, isExcluded } = useExcludedPeople();
+  const [sortLoaded, setSortLoaded] = useState(false);
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(SORT_STORAGE_KEY);
+      if (stored === "firstName" || stored === "lastName") {
+        setSortBy(stored);
+      }
+    } catch {
+      // Storage unavailable (private mode); keep the default sort.
+    }
+    setSortLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!sortLoaded) {
+      return;
+    }
+    try {
+      window.localStorage.setItem(SORT_STORAGE_KEY, sortBy);
+    } catch {
+      // Storage may be unavailable (private mode / quota); skip persistence.
+    }
+  }, [sortBy, sortLoaded]);
 
   const visibleMissing = useMemo(
     () =>
@@ -1220,12 +1246,13 @@ export default function GradeEditorClient() {
       <section className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           {viewMode === STUDENT_VIEW ? null : (
-          <div className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-[var(--ink)] px-3">
+          <div className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-[var(--ink)] px-3 focus-within:ring-1 focus-within:ring-ring">
             <Search className="h-3.5 w-3.5 text-muted-foreground" />
             <input
               type="text"
               placeholder="Search reporters…"
-              className="w-[180px] bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+              aria-label="Search reporters"
+              className="w-[180px] bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground md:text-sm"
             />
           </div>
           )}
@@ -1314,6 +1341,11 @@ export default function GradeEditorClient() {
         />
       ) : (
       <>
+      {viewMode === "cycle" && activeCycle && !activeCycleHasFinalCut ? (
+        <p className="text-xs text-[var(--brand-amber)]">
+          Turned In dates unlock once this cycle has a Final Cut date. Set it in Cycle Dates.
+        </p>
+      ) : null}
       <p className="text-xs text-muted-foreground">Scores: — ungraded · \ exempt. Both are excluded from totals. Total tab adjustments are temporary; cycle scores save automatically.</p>
       <section className="overflow-hidden rounded-2xl border border-border bg-card">
         {viewMode === TOTAL_VIEW ? (
@@ -1783,21 +1815,10 @@ export default function GradeEditorClient() {
                         <input
                           type="date"
                           value={row.turnedInDate ?? ""}
-                          onFocus={(event) => {
-                            if (!activeCycleHasFinalCut) {
-                              window.alert(
-                                "Please set the Final Cut date for this cycle in Package Cycles before entering Turned In."
-                              );
-                              event.currentTarget.blur();
-                            }
-                          }}
+                          disabled={!activeCycleHasFinalCut}
+                          title={activeCycleHasFinalCut ? undefined : FINAL_CUT_REQUIRED_HINT}
+                          aria-label={`Turned In date for ${rowLabel(row)}`}
                           onChange={(event) => {
-                            if (!activeCycleHasFinalCut) {
-                              window.alert(
-                                "Please set the Final Cut date for this cycle in Package Cycles before entering Turned In."
-                              );
-                              return;
-                            }
                             updateRowAndAutosave(row.userId, {
                               turnedInDate: event.target.value || null
                             });
@@ -1806,7 +1827,7 @@ export default function GradeEditorClient() {
                             "h-8 w-full rounded-md border px-2 font-mono-broadcast tabular-nums text-xs text-foreground outline-none [color-scheme:dark] light:[color-scheme:light]",
                             activeCycleHasFinalCut
                               ? "border-border bg-[var(--ink)] focus:border-[var(--brand-green)]"
-                              : "border-[rgb(242,165,22,0.4)] bg-[rgb(242,165,22,0.08)] text-[var(--brand-amber)]"
+                              : "cursor-not-allowed border-[rgb(242,165,22,0.4)] bg-[rgb(242,165,22,0.08)] text-[var(--brand-amber)]"
                           )}
                         />
                       </td>

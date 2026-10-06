@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { AlertCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -120,7 +121,11 @@ export function CastCountsDialog({ open, onOpenChange }: CastCountsDialogProps) 
         </DialogHeader>
 
         {error ? (
-          <p className="rounded-lg border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">
+          <p
+            role="alert"
+            className="flex items-start gap-2 rounded-lg border border-danger/40 bg-danger-tint px-3 py-2 text-sm text-danger"
+          >
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
             {error}
           </p>
         ) : null}

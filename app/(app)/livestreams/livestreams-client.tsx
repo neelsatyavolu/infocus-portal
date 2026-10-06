@@ -17,7 +17,9 @@ import {
   Users,
   X
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   Dialog,
   DialogContent,
@@ -179,7 +181,7 @@ const emptyForm = (): EventFormState => ({
 });
 
 const fieldClass =
-  "mt-1.5 h-10 w-full rounded-lg border border-foreground/[0.08] bg-black/40 light:bg-muted px-3 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-[var(--brand-green)]/50 focus:ring-1 focus:ring-[var(--brand-green)]/30";
+  "mt-1.5 h-10 w-full rounded-lg border border-foreground/[0.08] bg-black/40 light:bg-muted px-3 text-base text-foreground outline-none transition placeholder:text-muted-foreground focus:border-[var(--brand-green)]/50 md:text-sm focus:ring-1 focus:ring-[var(--brand-green)]/30";
 
 const labelClass = "block text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-text)]";
 
@@ -198,6 +200,8 @@ export default function LivestreamsClient() {
   const [signupNote, setSignupNote] = useState<Record<string, string>>({});
   const [memberQuery, setMemberQuery] = useState("");
   const [mounted, setMounted] = useState(false);
+  const [pendingDeleteEventId, setPendingDeleteEventId] = useState<string | null>(null);
+  const [pendingManagerRemoval, setPendingManagerRemoval] = useState<Person | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -342,15 +346,17 @@ export default function LivestreamsClient() {
     }
   };
 
+  // Throws on failure so the confirm dialog stays open for a retry.
   const deleteEvent = async (id: string) => {
-    if (!confirm("Delete this livestream event?")) return;
     setBusy(true);
     try {
       await readJson(await fetch(`/api/livestreams/events/${id}`, { method: "DELETE" }));
       closeForm();
+      toast.success("Livestream deleted");
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Delete failed");
+      toast.error(e instanceof Error ? e.message : "Delete failed");
+      throw e;
     } finally {
       setBusy(false);
     }
@@ -424,6 +430,7 @@ export default function LivestreamsClient() {
     }
   };
 
+  // Throws on failure so the confirm dialog stays open for a retry.
   const removeManager = async (userId: string) => {
     setBusy(true);
     try {
@@ -434,7 +441,8 @@ export default function LivestreamsClient() {
       );
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not remove manager");
+      toast.error(e instanceof Error ? e.message : "Could not remove manager");
+      throw e;
     } finally {
       setBusy(false);
     }
@@ -509,20 +517,17 @@ export default function LivestreamsClient() {
     <div className="route-enter mx-auto w-full max-w-[1760px] space-y-5 pb-28">
       {/* Hero */}
       <section
-        className="brand-hero-panel relative overflow-hidden rounded-2xl border border-border p-6 md:p-8"
+        className="brand-hero-panel relative overflow-hidden border border-border p-6 md:p-8"
       >
         <div className="relative flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            <div className="inline-flex items-center gap-1.5 rounded-md border border-[rgb(43,179,110,0.4)] bg-black/40 light:bg-muted px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--brand-green)]">
+            <div className="inline-flex items-center gap-1.5 rounded-md border border-brand-green/40 bg-black/40 light:bg-muted px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--brand-green)]">
               <span
                 className="h-1.5 w-1.5 rounded-full bg-[var(--brand-green)]"
               />
               Livestreams · {data?.semester.label ?? "—"}
             </div>
-            <h1
-              className="mt-3 text-[32px] font-semibold leading-none tracking-tight text-foreground md:text-[44px]"
-              style={{ letterSpacing: "-0.025em" }}
-            >
+            <h1 className="display-md mt-3 text-balance text-foreground">
               {tab === "schedule"
                 ? "Schedule"
                 : tab === "completion"
@@ -808,14 +813,17 @@ export default function LivestreamsClient() {
                   >
                     <Users className="h-3 w-3 text-[var(--brand-green)]" />
                     {personLabel(m)}
-                    <button
+                    <Button
                       type="button"
-                      className="ml-0.5 text-[var(--ink-text)] transition hover:text-danger"
-                      onClick={() => removeManager(m.id)}
-                      aria-label={`Remove ${personLabel(m)}`}
+                      variant="ghost"
+                      size="icon"
+                      className="-my-1 -mr-2 h-7 w-7 text-[var(--ink-text)] hover:text-danger"
+                      onClick={() => setPendingManagerRemoval(m)}
+                      disabled={busy}
+                      aria-label={`Remove ${personLabel(m)} as livestream manager`}
                     >
                       <X className="h-3 w-3" />
-                    </button>
+                    </Button>
                   </span>
                 ))}
                 {!data.managers.length ? (
@@ -824,7 +832,8 @@ export default function LivestreamsClient() {
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
                 <select
-                  className="h-10 min-w-[240px] rounded-lg border border-foreground/[0.08] bg-black/40 light:bg-muted px-3 text-sm text-foreground outline-none focus:border-[var(--brand-green)]/50"
+                  aria-label="Add livestream manager"
+                  className="h-10 min-w-[240px] rounded-lg border border-foreground/[0.08] bg-black/40 light:bg-muted px-3 text-base text-foreground outline-none focus:border-[var(--brand-green)]/50 md:text-sm"
                   value={managerPick}
                   onChange={(e) => setManagerPick(e.target.value)}
                 >
@@ -1066,6 +1075,7 @@ export default function LivestreamsClient() {
                           <input
                             className="h-9 min-w-[160px] flex-1 rounded-lg border border-foreground/[0.08] bg-black/40 light:bg-muted px-3 text-xs text-foreground outline-none focus:border-[var(--brand-green)]/50"
                             placeholder="Optional note"
+                            aria-label={`Optional note for ${event.title}`}
                             value={signupNote[event.id] ?? ""}
                             onChange={(e) =>
                               setSignupNote((prev) => ({ ...prev, [event.id]: e.target.value }))
@@ -1123,6 +1133,12 @@ export default function LivestreamsClient() {
             </DialogHeader>
           </div>
 
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!busy) void saveEvent();
+            }}
+          >
           <div className="space-y-4 px-6 py-5">
             <label className={labelClass}>
               Event name
@@ -1243,6 +1259,7 @@ export default function LivestreamsClient() {
               <input
                 className={cn(fieldClass, "mb-2")}
                 placeholder="Search members…"
+                aria-label="Search members"
                 value={memberQuery}
                 onChange={(e) => setMemberQuery(e.target.value)}
               />
@@ -1302,7 +1319,7 @@ export default function LivestreamsClient() {
             <label className={labelClass}>
               Notes
               <textarea
-                className="mt-1.5 min-h-[72px] w-full rounded-lg border border-foreground/[0.08] bg-black/40 light:bg-muted px-3 py-2 text-sm text-foreground outline-none focus:border-[var(--brand-green)]/50 focus:ring-1 focus:ring-[var(--brand-green)]/30"
+                className="mt-1.5 min-h-[72px] w-full rounded-lg border border-foreground/[0.08] bg-black/40 light:bg-muted px-3 py-2 text-base text-foreground outline-none focus:border-[var(--brand-green)]/50 md:text-sm focus:ring-1 focus:ring-[var(--brand-green)]/30"
                 value={form.notes}
                 onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
               />
@@ -1316,7 +1333,7 @@ export default function LivestreamsClient() {
                 variant="destructive-quiet"
                 size="sm"
                 disabled={busy}
-                onClick={() => deleteEvent(editing.id)}
+                onClick={() => setPendingDeleteEventId(editing.id)}
               >
                 <Trash2 className="mr-1.5 h-3.5 w-3.5" />
                 Delete
@@ -1329,10 +1346,9 @@ export default function LivestreamsClient() {
                 Cancel
               </Button>
               <Button
-                type="button"
+                type="submit"
                 size="sm"
                 className="bg-[var(--brand-fill)] text-[var(--on-brand)]"
-                onClick={saveEvent}
                 disabled={busy}
               >
                 {busy ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
@@ -1340,8 +1356,30 @@ export default function LivestreamsClient() {
               </Button>
             </div>
           </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={pendingDeleteEventId !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingDeleteEventId(null);
+        }}
+        title="Delete this livestream event?"
+        description="This removes it from the semester schedule. This can't be undone."
+        confirmLabel="Delete"
+        onConfirm={() => (pendingDeleteEventId ? deleteEvent(pendingDeleteEventId) : undefined)}
+      />
+      <ConfirmDialog
+        open={pendingManagerRemoval !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingManagerRemoval(null);
+        }}
+        title={`Remove ${personLabel(pendingManagerRemoval)} as a livestream manager?`}
+        description="They can no longer edit the schedule, approve sign-ups, or view completion."
+        confirmLabel="Remove"
+        onConfirm={() => (pendingManagerRemoval ? removeManager(pendingManagerRemoval.id) : undefined)}
+      />
 
       {/* Floating tab bar — portaled so fixed isn't trapped by route-enter transform / scroll shell */}
       {mounted

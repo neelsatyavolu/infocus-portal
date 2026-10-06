@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { StickyNote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { isSubmitShortcut, SubmitShortcutHint } from "@/components/ui/submit-shortcut";
 import { PACKAGE_ROSTER_NOTE_MAX } from "@/src/lib/package-roster-notes";
 
 export default function GroupNotesButton({ rowId, topic, onSaved }: {
@@ -78,13 +79,19 @@ export default function GroupNotesButton({ rowId, topic, onSaved }: {
               aria-label="Package notes"
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (!isSubmitShortcut(event)) return;
+                event.preventDefault();
+                if (!saving) void save();
+              }}
               maxLength={PACKAGE_ROSTER_NOTE_MAX}
               disabled={saving}
               rows={10}
               placeholder="Notes…"
-              className="min-h-[12rem] w-full resize-y rounded-md border border-border bg-black/40 light:bg-muted px-3 py-2 text-sm leading-6 text-foreground outline-none placeholder:text-muted-foreground focus:border-[var(--brand-green)]/50"
+              className="min-h-[12rem] w-full resize-y rounded-md border border-border bg-black/40 light:bg-muted px-3 py-2 text-base leading-6 text-foreground outline-none placeholder:text-muted-foreground focus:border-[var(--brand-green)]/50 md:text-sm"
             />
           ) : null}
+          {loaded ? <SubmitShortcutHint action="save" className="-mt-2" /> : null}
           {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
           <DialogFooter>
             <Button type="button" variant="outline" disabled={saving} onClick={() => setOpen(false)}>Cancel</Button>

@@ -100,14 +100,15 @@ export function StudentGradebookPanel({
     <div className="grid gap-4 lg:grid-cols-[16.5rem_minmax(0,1fr)] lg:items-stretch">
       <aside className="flex max-h-[28rem] flex-col overflow-hidden rounded-2xl border border-border bg-card lg:max-h-none lg:min-h-0">
         <div className="shrink-0 border-b border-border px-3 py-3">
-          <div className="inline-flex h-9 w-full items-center gap-2 rounded-md border border-border bg-[var(--ink)] px-3">
+          <div className="inline-flex h-9 w-full items-center gap-2 rounded-md border border-border bg-[var(--ink)] px-3 focus-within:ring-1 focus-within:ring-ring">
             <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
             <input
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Find a reporter…"
-              className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+              aria-label="Find a reporter"
+              className="w-full bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground md:text-sm"
             />
           </div>
         </div>

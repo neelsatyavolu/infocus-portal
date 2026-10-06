@@ -218,9 +218,7 @@ export function StoryMaker({ canAppoint }: { canAppoint: boolean }) {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <p className="eyebrow">Managers · Social media</p>
-            <h1 className="mt-3 text-[32px] font-semibold leading-none text-foreground md:text-[44px]" style={{ letterSpacing: "-0.025em" }}>
-              Instagram Post Maker
-            </h1>
+            <h1 className="display-md mt-3 text-balance text-foreground">Instagram Post Maker</h1>
             <p className="mt-2 max-w-2xl text-sm text-[var(--ink-text)]">
               On-brand Instagram stories at 1080 × 1920. Pick a template, add a photo, write the text, and download a PNG. Photos stay on this device.
             </p>
@@ -307,8 +305,8 @@ export function StoryMaker({ canAppoint }: { canAppoint: boolean }) {
             {template.kind === "show" && show.draft ? <ShowSlideTabs api={show} locked={busy} /> : null}
 
             {overflow && (template.kind === "canvas" || template.kind === "show") ? (
-              <div role="status" className="flex items-start gap-2 rounded-md border border-[#F2A516]/50 bg-[#F2A516]/10 px-3 py-2 text-sm">
-                <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-[#F2A516] light:text-[#B45309]" />
+              <div role="status" className="flex items-start gap-2 rounded-md border border-brand-amber/50 bg-brand-amber/10 px-3 py-2 text-sm">
+                <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-brand-amber" />
                 <span>Some text is too long to fit, even after shrinking. Shorten it before you download.</span>
               </div>
             ) : null}

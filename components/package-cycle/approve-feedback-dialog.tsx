@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { isSubmitShortcut, SubmitShortcutHint } from "@/components/ui/submit-shortcut";
 
 export function ApproveFeedbackDialog({
   open,
@@ -25,7 +26,7 @@ export function ApproveFeedbackDialog({
   const feedback = draft.trim();
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(next) => !saving && onOpenChange(next)}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Any feedback to add?</DialogTitle>
@@ -36,12 +37,19 @@ export function ApproveFeedbackDialog({
         <textarea
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (!isSubmitShortcut(event)) return;
+            event.preventDefault();
+            if (!saving && feedback) onConfirm(feedback);
+          }}
           rows={4}
           maxLength={2000}
           disabled={saving}
+          aria-label="Feedback for this group"
           placeholder="Write feedback for this group…"
-          className="w-full resize-y rounded-lg border border-border bg-black/40 light:bg-muted px-3 py-2 text-sm text-foreground outline-none focus:border-[var(--brand-green)]/50"
+          className="w-full resize-y rounded-lg border border-border bg-black/40 light:bg-muted px-3 py-2 text-base text-foreground outline-none focus:border-[var(--brand-green)]/50 md:text-sm"
         />
+        <SubmitShortcutHint action="add feedback" className="-mt-2" />
         <DialogFooter>
           <Button
             type="button"

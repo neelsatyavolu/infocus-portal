@@ -124,7 +124,7 @@ export function NamePicker({
           sideOffset={4}
           className="z-50 w-[var(--radix-popover-trigger-width)] min-w-[12rem] rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md"
         >
-          <div className="flex items-center gap-2 border-b border-border px-2 pb-1">
+          <div className="flex items-center gap-2 border-b border-border px-2 pb-1 focus-within:border-ring">
             <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
             <input
               autoFocus

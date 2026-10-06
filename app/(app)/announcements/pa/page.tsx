@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { CalendarDays, Check, Clock3, List, Mic2, RefreshCcw, Save } from "lucide-react";
+import { AlertCircle, CalendarDays, Check, Clock3, List, Mic2, RefreshCcw, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -137,7 +137,12 @@ export default function PaAnnouncementsPage() {
         ) : null}
       </section>
 
-      {error ? <p role="alert" className="rounded-xl border border-amber-400/20 bg-amber-400/5 px-4 py-3 text-sm text-amber-200">{error}</p> : null}
+      {error ? (
+        <p role="alert" className="flex items-start gap-2 rounded-xl border border-danger/40 bg-danger-tint px-4 py-3 text-sm text-danger">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+          {error}
+        </p>
+      ) : null}
 
       {data?.autofill?.message ? <p role="status" className="rounded-xl border border-amber-400/20 bg-amber-400/5 px-4 py-3 text-sm text-amber-200">{data.autofill.message}</p> : null}
 

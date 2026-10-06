@@ -6,6 +6,7 @@ import { Loader2, MessageSquare, Play } from "lucide-react";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { isSubmitShortcut, SubmitShortcutHint } from "@/components/ui/submit-shortcut";
 import { parseClipComment, wrapClipComment } from "@/src/lib/package-clip-comments";
 import { parseReviewNotice } from "@/src/lib/package-review-notice";
 import { parseApprovalComment, STAGE_FEEDBACK_READ_EVENT } from "@/src/lib/package-stage-comments";
@@ -182,15 +183,24 @@ export function StageComments({
           <textarea
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (!isSubmitShortcut(event)) return;
+              event.preventDefault();
+              if (!saving && draft.trim()) event.currentTarget.form?.requestSubmit();
+            }}
             rows={3}
             maxLength={2000}
+            aria-label={mediaItemId ? "Feedback for this clip" : "Feedback for this group"}
             placeholder={mediaItemId ? "Write feedback for this clip…" : "Write feedback for this group…"}
-            className="w-full resize-y rounded-lg border border-border bg-black/40 light:bg-muted px-3 py-2 text-sm text-foreground outline-none focus:border-[var(--brand-green)]/50"
+            className="w-full resize-y rounded-lg border border-border bg-black/40 light:bg-muted px-3 py-2 text-base text-foreground outline-none focus:border-[var(--brand-green)]/50 md:text-sm"
           />
-          <Button type="submit" size="sm" disabled={saving || !draft.trim()}>
-            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-            Post feedback
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button type="submit" size="sm" disabled={saving || !draft.trim()}>
+              {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+              Post feedback
+            </Button>
+            <SubmitShortcutHint />
+          </div>
         </form>
       ) : null}
     </>

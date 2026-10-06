@@ -2,6 +2,8 @@
 
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { Route } from "next";
+import Link from "next/link";
 import { Check, ChevronRight, Download, GitMerge, MoreHorizontal, Pencil, RefreshCw, Trash2, UploadCloud } from "lucide-react";
 export type DropdownOption<TValue extends string = string> = {
   value: TValue;
@@ -343,15 +345,15 @@ export function VideoCardMenu({
             </button>
           ) : null}
 
-          <a
-            href={reviewHref}
+          <Link
+            href={reviewHref as Route}
             className={`block rounded-md px-2 py-1.5 text-foreground hover:bg-accent ${
               onUploadNewVersion || onMoveIntoVersion || onSyncTurnedInDate || onDownloadOriginal || onRename ? "mt-1" : ""
             }`}
             onClick={(event) => event.stopPropagation()}
           >
             Open review
-          </a>
+          </Link>
 
           {onDelete ? (
             <button

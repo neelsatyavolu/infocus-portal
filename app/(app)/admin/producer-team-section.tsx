@@ -2,7 +2,9 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { UserCog, X } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { SettingsPanel, SettingsPanelBody, SettingsSection } from "@/components/settings-layout";
 import {
   formatRoleLabel,
@@ -37,6 +39,8 @@ export function ProducerTeamSection({
 }) {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<PlatformRole>("ASSOCIATE_PRODUCER");
+  const [saving, setSaving] = useState(false);
+  const [pendingRemoval, setPendingRemoval] = useState<{ entry: RoleAssignment; label: string } | null>(null);
 
   const userByEmail = useMemo(
     () => new Map(users.flatMap((user) => (user.email ? [[user.email.toLowerCase(), user] as const] : []))),
@@ -62,36 +66,50 @@ export function ProducerTeamSection({
 
   async function upsertRole(event: FormEvent) {
     event.preventDefault();
-    if (!email.trim()) return;
+    if (!email.trim() || saving) return;
 
+    setSaving(true);
     onMessage(null);
+    try {
+      const response = await fetch("/api/platform/roles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, role })
+      });
+      const payload = await response.json().catch(() => null);
 
-    const response = await fetch("/api/platform/roles", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, role })
-    });
-    const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload?.error?.message ?? "Failed to update role.");
+      }
 
-    if (!response.ok) {
-      onMessage(payload?.error?.message ?? "Failed to update role.");
-      return;
+      setEmail("");
+      await onChanged();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to update role.";
+      onMessage(message);
+      toast.error(message);
+    } finally {
+      setSaving(false);
     }
-
-    setEmail("");
-    await onChanged();
   }
 
+  // Throws on failure so the confirm dialog stays open for a retry.
   async function removeRole(roleEmail: string) {
     onMessage(null);
-    const response = await fetch(`/api/platform/roles?email=${encodeURIComponent(roleEmail)}`, {
-      method: "DELETE"
-    });
-    const payload = await response.json();
+    try {
+      const response = await fetch(`/api/platform/roles?email=${encodeURIComponent(roleEmail)}`, {
+        method: "DELETE"
+      });
+      const payload = await response.json().catch(() => null);
 
-    if (!response.ok) {
-      onMessage(payload?.error?.message ?? "Failed to remove role.");
-      return;
+      if (!response.ok) {
+        throw new Error(payload?.error?.message ?? "Failed to remove role.");
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to remove role.";
+      onMessage(message);
+      toast.error(message);
+      throw error;
     }
 
     await onChanged();
@@ -125,8 +143,8 @@ export function ProducerTeamSection({
                 <option value="EXECUTIVE_PRODUCER">Executive Producer</option>
                 <option value="ADVISER">Adviser</option>
               </select>
-              <Button type="submit" disabled={!email}>
-                Save role
+              <Button type="submit" disabled={!email.trim() || saving}>
+                {saving ? "Saving…" : "Save role"}
               </Button>
             </form>
           ) : (
@@ -158,7 +176,8 @@ export function ProducerTeamSection({
                       type="button"
                       variant="ghost"
                       size="icon"
-                      onClick={() => void removeRole(entry.email)}
+                      onClick={() => setPendingRemoval({ entry, label: name ?? entry.email })}
+                      disabled={pendingRemoval !== null}
                       aria-label={`Remove ${formatRoleLabel(entry.role)} role from ${name ?? entry.email}`}
                       title="Remove role"
                       className="h-8 w-8 text-muted-foreground hover:text-foreground"
@@ -175,6 +194,20 @@ export function ProducerTeamSection({
           ) : null}
         </ul>
       </SettingsPanel>
+      <ConfirmDialog
+        open={pendingRemoval !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingRemoval(null);
+        }}
+        title={
+          pendingRemoval
+            ? `Remove ${formatRoleLabel(pendingRemoval.entry.role)} role from ${pendingRemoval.label}?`
+            : "Remove role?"
+        }
+        description="They keep their sign-in but lose this role's access."
+        confirmLabel="Remove role"
+        onConfirm={() => (pendingRemoval ? removeRole(pendingRemoval.entry.email) : undefined)}
+      />
     </SettingsSection>
   );
 }

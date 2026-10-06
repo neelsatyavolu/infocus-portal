@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowRight, Loader2, MessageSquare, Play, RefreshCcw, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { FinalCutGradeCardData, FinalCutScoreInput } from "@/components/package-cycle/final-cut-grade-card";
 import { FinalCutHeadlineDialog } from "@/components/package-cycle/final-cut-headline-dialog";
@@ -144,6 +145,9 @@ export function StageWorkspace({
   const [showOlderCuts, setShowOlderCuts] = useState(false);
   // Files dropped on the upload card, held while the A-roll/B-roll or headline dialog is open.
   const [droppedFiles, setDroppedFiles] = useState<File[] | null>(null);
+  // Final Cut file waiting on the "you can't replace it" confirm.
+  const [finalCutConfirmFiles, setFinalCutConfirmFiles] = useState<File[] | null>(null);
+  const [approveAnywayOpen, setApproveAnywayOpen] = useState(false);
   const fileInput = useRef<HTMLInputElement | null>(null);
   const pendingRollKind = useRef<RollKind | null>(null);
   const pendingHeadline = useRef("");
@@ -290,13 +294,8 @@ export function StageWorkspace({
 
   function startUpload(files: File[]) {
     if (files.length === 0) return;
-    if (
-      slug === "final-cut" &&
-      !view?.allowSecondFinalCut &&
-      !window.confirm(
-        `Upload this Final Cut with the headline "${pendingHeadline.current}"? You cannot replace it later unless the first grade is below 75%.`
-      )
-    ) {
+    if (slug === "final-cut" && !view?.allowSecondFinalCut) {
+      setFinalCutConfirmFiles(files.slice(0, 1));
       return;
     }
     void uploadFiles(slug === "a-roll" ? files : files.slice(0, 1));
@@ -393,7 +392,6 @@ export function StageWorkspace({
 
   async function approveCutAnyway() {
     if (!view?.row) return;
-    if (!window.confirm(APPROVE_ANYWAY_CONFIRM)) return;
     setApproving(true);
     try {
       const response = await fetch(`/api/package-progress/${view.row.id}/approval`, {
@@ -1028,7 +1026,7 @@ export function StageWorkspace({
             </Button>
           ) : null}
           {view.cutApproval?.canApproveAnyway ? (
-            <Button type="button" disabled={approving} onClick={() => void approveCutAnyway()}>
+            <Button type="button" disabled={approving} onClick={() => setApproveAnywayOpen(true)}>
               Approve anyway
             </Button>
           ) : null}
@@ -1051,6 +1049,30 @@ export function StageWorkspace({
             void approveCut(true, feedback);
           }
         }}
+      />
+      <ConfirmDialog
+        open={finalCutConfirmFiles !== null}
+        onOpenChange={(open) => {
+          if (!open) setFinalCutConfirmFiles(null);
+        }}
+        title="Upload this Final Cut?"
+        description={`Headline: "${pendingHeadline.current}". You cannot replace it later unless the first grade is below 75%.`}
+        confirmLabel="Upload Final Cut"
+        cancelLabel="Not yet"
+        tone="default"
+        onConfirm={() => {
+          if (finalCutConfirmFiles) void uploadFiles(finalCutConfirmFiles);
+        }}
+      />
+      <ConfirmDialog
+        open={approveAnywayOpen}
+        onOpenChange={setApproveAnywayOpen}
+        title="Approve anyway?"
+        description={APPROVE_ANYWAY_CONFIRM}
+        confirmLabel="Send to Stage 2"
+        cancelLabel="Not yet"
+        tone="default"
+        onConfirm={() => approveCutAnyway()}
       />
       <UploadProgressToast items={uploadItems} />
     </div>

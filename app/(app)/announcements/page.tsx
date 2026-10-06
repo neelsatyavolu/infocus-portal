@@ -1,4 +1,5 @@
-import { ExternalLink, FileText, Megaphone } from "lucide-react";
+import type { Metadata } from "next";
+import { AlertCircle, ExternalLink, FileText, Megaphone } from "lucide-react";
 import { requireUserId } from "@/src/lib/auth";
 import { groupSlackAnnouncements, type SlackAnnouncementItem } from "@/src/lib/slack-announcements";
 import { loadSlackAnnouncements } from "@/src/server/slack-announcements";
@@ -61,6 +62,8 @@ function initials(name: string) {
   );
 }
 
+export const metadata: Metadata = { title: "Announcements" };
+
 export default async function AnnouncementsPage() {
   await requireUserId();
   const { configured, items, error } = await loadSlackAnnouncements();
@@ -80,7 +83,10 @@ export default async function AnnouncementsPage() {
       </section>
 
       {error ? (
-        <article className="rounded-2xl border border-border bg-card p-5 text-sm text-amber-300">{error}</article>
+        <article role="alert" className="flex items-start gap-2 rounded-2xl border border-danger/40 bg-danger-tint p-5 text-sm text-danger">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+          {error}
+        </article>
       ) : !configured ? (
         <article className="rounded-2xl border border-dashed border-border bg-muted/50 p-6 text-sm text-muted-foreground">
           Slack announcements are not connected yet.
@@ -103,6 +109,10 @@ export default async function AnnouncementsPage() {
                     <img
                       src={item.authorImageUrl}
                       alt=""
+                      width={36}
+                      height={36}
+                      loading="lazy"
+                      decoding="async"
                       className="h-9 w-9 shrink-0 rounded-full object-cover"
                     />
                   ) : (

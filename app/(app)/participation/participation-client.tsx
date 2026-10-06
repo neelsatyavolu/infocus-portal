@@ -365,7 +365,7 @@ export default function ParticipationClient() {
     <div className="mx-auto w-full max-w-6xl px-4 py-8">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-semibold text-foreground">Classroom Participation</h1>
+          <h1 className="display-md text-balance text-foreground">Classroom Participation</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             35% of the grade. {PARTICIPATION_POINTS_PER_WEEK} points a week — 10 on Mondays (PA), 20 on
             Tue/Thu class; Wed/Fri shows and holidays off. Full marks post immediately. Docked scores

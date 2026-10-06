@@ -19,10 +19,8 @@ const MAX_DOC_CHARS = 14_000;
 const MAX_SEARCH_HITS = 8;
 const SNIPPET_CHARS = 280;
 
-// The docs are bundled via outputFileTracingIncludes (next.config.ts); without the ignore,
-// Turbopack traces this dynamic path as the whole repo.
 function repoPath(...parts: string[]) {
-  return path.join(/* turbopackIgnore: true */ process.cwd(), ...parts);
+  return path.join(process.cwd(), ...parts);
 }
 
 function titleFromMarkdown(id: string, markdown: string) {

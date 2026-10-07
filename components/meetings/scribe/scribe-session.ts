@@ -3,12 +3,14 @@ import type { MeetingServerMessage, MeetingTrackMetadata } from "@/src/lib/meeti
 import { MeetingE2ee } from "@/src/lib/meetings/client/e2ee";
 import { createMediaSession, withBackoff, type MediaTicket, type MeetingMediaSession } from "@/src/lib/meetings/client/media-session";
 import { RoomSocket } from "@/src/lib/meetings/client/room-socket";
-import { INITIAL_ROOM_STATE, roomReducer, type RoomState } from "@/src/lib/meetings/client/room-state";
+import { INITIAL_ROOM_STATE, roomReducer, sharedSoundPlaying, type RoomState } from "@/src/lib/meetings/client/room-state";
 
 /**
  * Drive Scribe client: joins as role "scribe" (never publishes), pulls every remote audio track and
  * hands 10-second WebM/Opus chunks to the headless browser host via window.scribeChunk.
  * seq restarts at 0 for each new MediaRecorder; startMs is that recorder's start (epoch ms).
+ * Recording stops while a cut plays together or someone shares their screen's sound (mics pick it
+ * up too), and starts again with fresh recorders afterwards.
  */
 
 declare global {
@@ -52,7 +54,15 @@ function blobToBase64(blob: Blob) {
   });
 }
 
-type Speaker = { trackKey: string; pull: Subscription; recorder: MediaRecorder | null; audio: HTMLAudioElement | null };
+type Speaker = {
+  uid: string;
+  name: string;
+  trackKey: string;
+  pull: Subscription;
+  stream: MediaStream | null;
+  recorder: MediaRecorder | null;
+  audio: HTMLAudioElement | null;
+};
 
 function trackKey(meta: MeetingTrackMetadata) {
   return `${meta.sessionId}/${meta.trackName}`;
@@ -69,6 +79,8 @@ export class ScribeSession {
   private mediaGeneration = 0;
   /** The media session died while there was nobody to record; rebuilt on the next speaker. */
   private mediaStale = false;
+  /** Shared sound is playing (sharedSoundPlaying): pulls stay up, recorders are stopped. */
+  private held = false;
   /** The current room ticket (the Drive swaps it via setTicket before the 4 h one runs out). */
   private readonly ticket: MediaTicket;
 
@@ -159,6 +171,7 @@ export class ScribeSession {
   }
 
   private recordingStatus() {
+    if (this.held) return `Paused for shared sound (${this.speakers.size} track${this.speakers.size === 1 ? "" : "s"})`;
     return `Recording ${this.speakers.size} track${this.speakers.size === 1 ? "" : "s"}`;
   }
 
@@ -187,6 +200,14 @@ export class ScribeSession {
       void this.resetMedia(); // Its sync() pulls everyone on the fresh session.
       return;
     }
+    const held = sharedSoundPlaying(this.state);
+    if (held !== this.held) {
+      this.held = held;
+      for (const speaker of this.speakers.values()) {
+        if (held) this.stopRecorder(speaker);
+        else this.startRecorder(speaker);
+      }
+    }
     const present = new Set<string>();
     for (const participant of Object.values(this.state.participants)) {
       const meta = participant.tracks.audio;
@@ -211,18 +232,18 @@ export class ScribeSession {
   private startSpeaker(uid: string, name: string, key: string, meta: MeetingTrackMetadata) {
     const media = this.media;
     if (!media) return;
-    const speaker: Speaker = { trackKey: key, pull: Subscription.EMPTY, recorder: null, audio: null };
+    const speaker: Speaker = { uid, name, trackKey: key, pull: Subscription.EMPTY, stream: null, recorder: null, audio: null };
     this.speakers.set(uid, speaker);
     // Retried until the speaker leaves (stopSpeaker): giving up left a 10 s hole in the transcript.
     speaker.pull = media.partyTracks
       .pull(of({ ...meta, location: "remote" as const }))
       .pipe(withBackoff("scribe.pull", Infinity))
       // A re-pull emits a new track: start a new recorder (seq 0) for it.
-      .subscribe((track) => this.record(speaker, uid, name, track));
+      .subscribe((track) => this.record(speaker, track));
   }
 
-  private record(speaker: Speaker, uid: string, name: string, track: MediaStreamTrack) {
-    speaker.recorder?.stop();
+  private record(speaker: Speaker, track: MediaStreamTrack) {
+    this.stopRecorder(speaker);
     const stream = new MediaStream([track]);
     // Remote WebRTC audio only flows into MediaRecorder reliably while a media element plays it.
     const audio = speaker.audio ?? new Audio();
@@ -230,8 +251,14 @@ export class ScribeSession {
     audio.srcObject = stream;
     void audio.play().catch(() => undefined);
     speaker.audio = audio;
+    speaker.stream = stream;
+    if (!this.held) this.startRecorder(speaker);
+  }
 
-    const recorder = new MediaRecorder(stream, MediaRecorder.isTypeSupported(MIME) ? { mimeType: MIME } : undefined);
+  private startRecorder(speaker: Speaker) {
+    if (!speaker.stream || speaker.recorder) return;
+    const { uid, name } = speaker;
+    const recorder = new MediaRecorder(speaker.stream, MediaRecorder.isTypeSupported(MIME) ? { mimeType: MIME } : undefined);
     const startMs = Date.now();
     let seq = 0;
     recorder.ondataavailable = (event) => {
@@ -248,6 +275,13 @@ export class ScribeSession {
     };
     recorder.start(CHUNK_MS);
     speaker.recorder = recorder;
+  }
+
+  /** Its final chunk still goes out (dataavailable fires before "stop"). */
+  private stopRecorder(speaker: Speaker) {
+    const recorder = speaker.recorder;
+    speaker.recorder = null;
+    if (recorder && recorder.state !== "inactive") recorder.stop();
   }
 
   private stopSpeaker(uid: string) {

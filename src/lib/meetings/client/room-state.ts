@@ -105,3 +105,12 @@ export function raisedHands(state: RoomState) {
 export function scribePresent(state: RoomState) {
   return Object.values(state.participants).some((p) => p.isScribe);
 }
+
+/**
+ * A cut is playing together, or someone is sharing their screen's sound. The Scribe stops
+ * recording meanwhile so that audio (which mics also pick up) stays out of the notes.
+ */
+export function sharedSoundPlaying(state: RoomState) {
+  if (state.watch?.playing) return true;
+  return Object.values(state.participants).some((p) => !p.isScribe && p.screenOn && Boolean(p.tracks.screenAudio?.trackName));
+}

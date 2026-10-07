@@ -142,6 +142,7 @@ export function WatchTile({
           className="h-full w-full object-contain"
           onTimeUpdate={(event) => setTime(event.currentTarget.currentTime)}
           onDurationChange={(event) => setDuration(event.currentTarget.duration)}
+          onEnded={(event) => party.finish(event.currentTarget.duration)}
           onWaiting={() => setBuffering(true)}
           onPlaying={() => setBuffering(false)}
           onCanPlay={() => {

@@ -15,6 +15,8 @@ export const WATCH_NUDGE_RATE = 0.05;
 const PAUSED_DRIFT_S = 0.05;
 /** How close to the end counts as finished (no more playing). */
 const END_SLACK_S = 0.05;
+/** A pause this close to the end (seconds) is the video running out (finish), not news. */
+const FINISHED_SLACK_S = 1;
 
 /** Where the video should be now (seconds, at least 0). Before a start's lead runs out, that's its start position. */
 export function watchTargetPosition(watch: MeetingWatchState, serverNow: number): number {
@@ -75,7 +77,13 @@ export function formatWatchTime(seconds: number): string {
  * A short notice when someone else changes the watch ("Paused by Sage at 1:02"); null for our
  * own changes and for nothing new. `prev` and `next` are consecutive room states.
  */
-export function watchNotice(prev: MeetingWatchState | null, next: MeetingWatchState | null, selfUid: string | null): string | null {
+export function watchNotice(
+  prev: MeetingWatchState | null,
+  next: MeetingWatchState | null,
+  selfUid: string | null,
+  /** The cut's length (seconds), when known: a pause at the end is just the video running out. */
+  duration: number | null = null
+): string | null {
   if (!next) return prev ? "Watch together ended." : null;
   if (next.by === selfUid) return null;
   if (prev && prev.id === next.id && prev.at === next.at && prev.action === next.action) return null;
@@ -83,6 +91,7 @@ export function watchNotice(prev: MeetingWatchState | null, next: MeetingWatchSt
     case "start":
       return prev?.id === next.id ? null : `${next.byName} started watching together.`;
     case "pause":
+      if (duration && next.position >= duration - FINISHED_SLACK_S) return null;
       return `Paused by ${next.byName} at ${formatWatchTime(next.position)}.`;
     case "play":
       return `${next.byName} pressed play.`;

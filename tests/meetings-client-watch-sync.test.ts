@@ -72,6 +72,9 @@ describe("watchNotice", () => {
   it("describes other people's changes", () => {
     expect(watchNotice(null, watch({ action: "start", byName: "Sage", by: "sage" }), "me")).toBe("Sage started watching together.");
     expect(watchNotice(watch(), watch({ action: "pause", position: 62, at: 2, byName: "Otto", by: "otto" }), "me")).toBe("Paused by Otto at 1:02.");
+    // The pause at the very end (finish) is no news: the video just ran out.
+    expect(watchNotice(watch(), watch({ action: "pause", position: 179.9, at: 2, by: "otto" }), "me", 180)).toBeNull();
+    expect(watchNotice(watch(), watch({ action: "pause", position: 62, at: 2, byName: "Otto", by: "otto" }), "me", 180)).toBe("Paused by Otto at 1:02.");
     expect(watchNotice(watch(), watch({ action: "seek", position: 75, at: 2 }), "me")).toBe("Abby jumped to 1:15.");
     expect(watchNotice(watch(), null, "me")).toBe("Watch together ended.");
   });

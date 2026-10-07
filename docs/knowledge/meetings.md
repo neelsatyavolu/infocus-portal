@@ -87,6 +87,7 @@ This is separate from Admin → Reconnect YouTube and doesn't change it.
 - Pick any group's Initial or Final Cut, any version, from any cycle: cycle tabs at the top (newest first), search by topic or member, filter to Initial or Final, pick a version and press **Watch** (or double-click the version). Approved versions have a check.
 - Everyone's device plays the video itself, straight from the Drive at full quality, and the call keeps everyone at the same moment. It starts two seconds after you press Watch so every device has time to load.
 - **Anyone in the call** can play, pause, scrub, pick a different cut or stop it for everyone. Others see a short note ("Paused by Sage at 1:02"). Volume, mute and full screen are just for you.
+- While it plays, notes pause (see Notes).
 - It takes the main stage like a screen share. It keeps going if the person who started it leaves, and it ends with the meeting.
 - If your browser blocks sound until you tap (iPhone), the video still plays in sync without sound; tap **Tap for sound**.
 - Any producer can watch any group's cut here, the same as in Groups. The call itself only passes which version is playing and where; the title comes from the Portal.
@@ -131,6 +132,7 @@ This is separate from Admin → Reconnect YouTube and doesn't change it.
 
 - **On by default.** A host can turn them off for a meeting.
 - While notes are on, a **Notes** participant appears in the call. It records each speaker, and after the meeting the Drive writes a transcript and a summary (decisions, action items). Nothing leaves the school's Drive.
+- Notes pause while a package cut plays in **Watch together** and while anyone shares their screen with sound, so the video's audio stays out of the transcript (anything said over it is left out too). They pick up again when the cut is paused, ends or stops, or the sound share stops. When a cut plays to the end, the call pauses it there by itself.
 - **All producers** can read the summary and the full transcript on `/meetings/<id>`. For invite-only meetings, only the people on that meeting can.
 - If the notes can't start, the meeting carries on and the notes show as failed. The notes page says why (for example "could not join the meeting").
 - **Notes in parts:** if the notes taker stops while people are still in the call (a crash, its time limit), a new part starts automatically (at most once every 10 minutes). Each finished part adds its summary under "Part 2", "Part 3" and so on, and the transcript shows every part in order. A part still recording never hides an earlier finished one.

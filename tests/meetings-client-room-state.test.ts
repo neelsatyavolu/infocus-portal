@@ -6,7 +6,8 @@ import {
   raisedHands,
   resetForReconnect,
   roomReducer,
-  scribePresent
+  scribePresent,
+  sharedSoundPlaying
 } from "@/src/lib/meetings/client/room-state";
 
 const person = (uid: string, extra: Partial<MeetingParticipantView> = {}): MeetingParticipantView => ({
@@ -99,5 +100,30 @@ describe("roomReducer", () => {
   it("ignores side-effect-only messages", () => {
     expect(roomReducer(welcome, { t: "pong" })).toBe(welcome);
     expect(roomReducer(welcome, { t: "muted", kind: "audio", by: "Abby" })).toBe(welcome);
+  });
+});
+
+describe("sharedSoundPlaying (kept out of the notes)", () => {
+  const track = { sessionId: "s1", trackName: "t1" };
+  const watch = { id: "w1", mediaId: "m1", versionId: "v1", playing: true, position: 0, at: 1, by: "abby", byName: "Abby", action: "start" as const };
+
+  it("is off for an ordinary call", () => {
+    expect(sharedSoundPlaying(welcome)).toBe(false);
+  });
+
+  it("is on while a cut plays together, off once it's paused or stopped", () => {
+    expect(sharedSoundPlaying(roomReducer(welcome, { t: "watch", watch, now: 1 }))).toBe(true);
+    const paused = { ...watch, playing: false, action: "pause" as const };
+    expect(sharedSoundPlaying(roomReducer(welcome, { t: "watch", watch: paused, now: 2 }))).toBe(false);
+    expect(sharedSoundPlaying(roomReducer(welcome, { t: "watch", watch: null, now: 3 }))).toBe(false);
+  });
+
+  it("is on while someone shares their screen's sound", () => {
+    const sharing = person("abby", { screenOn: true, tracks: { screen: track, screenAudio: track } });
+    expect(sharedSoundPlaying(roomReducer(welcome, { t: "participant", participant: sharing }))).toBe(true);
+    const silent = person("abby", { screenOn: true, tracks: { screen: track } });
+    expect(sharedSoundPlaying(roomReducer(welcome, { t: "participant", participant: silent }))).toBe(false);
+    const stopped = person("abby", { screenOn: false, tracks: { screenAudio: track } });
+    expect(sharedSoundPlaying(roomReducer(welcome, { t: "participant", participant: stopped }))).toBe(false);
   });
 });

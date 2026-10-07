@@ -24,6 +24,11 @@ export type WatchParty = {
   pause: (position: number) => void;
   seek: (position: number) => void;
   stop: () => void;
+  /**
+   * The cut ran out on this device. The room still says "playing" (which keeps the Scribe from
+   * taking notes), so whoever made the last change pauses it at the end.
+   */
+  finish: (position: number) => void;
   /** This device's volume and mute: kept here so they survive the tile moving on the stage. */
   volume: number;
   muted: boolean;
@@ -64,13 +69,16 @@ export function useWatchParty(input: {
     };
   }, [versionId, reloads]);
 
+  const current = load && load.versionId === versionId ? load : null;
+  const duration = current?.cut?.durationSeconds ?? null;
+
   // "Paused by Sage at 1:02": other people's changes only.
   const previous = useRef<MeetingWatchState | null>(watch);
   useEffect(() => {
-    const notice = watchNotice(previous.current, watch, selfUid);
+    const notice = watchNotice(previous.current, watch, selfUid, duration);
     previous.current = watch;
     if (notice) toast(notice);
-  }, [watch, selfUid]);
+  }, [watch, selfUid, duration]);
 
   const control = useCallback(
     (message: MeetingClientMessage) => {
@@ -85,8 +93,8 @@ export function useWatchParty(input: {
     },
     [control, id]
   );
+  const finishing = Boolean(watch?.playing && watch.by === selfUid);
 
-  const current = load && load.versionId === versionId ? load : null;
   return {
     watch,
     cut: current?.cut ?? null,
@@ -100,6 +108,12 @@ export function useWatchParty(input: {
     stop: useCallback(() => {
       if (id) control({ t: "watch", action: "stop", id });
     }, [control, id]),
+    finish: useCallback(
+      (position: number) => {
+        if (finishing) timed("pause", position);
+      },
+      [finishing, timed]
+    ),
     volume,
     muted,
     setVolume,

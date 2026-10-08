@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Copy, ExternalLink, Eye, EyeOff, Loader2, Pencil, ShieldCheck, StickyNote, Wifi } from "lucide-react";
+import { Check, Copy, ExternalLink, Eye, EyeOff, Loader2, Pencil, ShieldCheck, StickyNote, Users, Wifi } from "lucide-react";
 import type { VaultEntrySummary } from "@/src/lib/password-vault";
 import { cn } from "@/src/lib/utils";
 import { copyToClipboard, revealVaultTotp, revealVaultValue } from "./vault-api";
@@ -116,10 +116,12 @@ function FieldCell({ label, children }: { label: string; children: React.ReactNo
 export function VaultEntryRow({
   entry,
   onEdit,
+  onShare,
   onError
 }: {
   entry: VaultEntrySummary;
   onEdit: () => void;
+  onShare: () => void;
   onError: (message: string) => void;
 }) {
   const [password, setPassword] = useState<string | null>(null);
@@ -201,7 +203,12 @@ export function VaultEntryRow({
 
   return (
     <li className="border-b border-border last:border-b-0">
-      <div className="grid gap-3 px-4 py-3 lg:grid-cols-[16rem_minmax(0,1fr)_3.75rem] lg:items-center">
+      <div
+        className={cn(
+          "grid gap-3 px-4 py-3 lg:items-center",
+          entry.canShare ? "lg:grid-cols-[16rem_minmax(0,1fr)_5.5rem]" : "lg:grid-cols-[16rem_minmax(0,1fr)_3.75rem]"
+        )}
+      >
         <div className="flex min-w-0 items-center gap-3">
           <SiteIcon key={entry.url ?? ""} name={entry.name} url={entry.url} />
           <div className="min-w-0">
@@ -287,9 +294,19 @@ export function VaultEntryRow({
           ) : (
             <span className="hidden h-7 w-7 lg:block" aria-hidden />
           )}
-          <IconButton label={`Edit ${entry.name}`} onClick={onEdit}>
-            <Pencil className="h-3.5 w-3.5" />
-          </IconButton>
+          {entry.canShare ? (
+            <IconButton
+              label={entry.sharedWith ? `Shared with ${entry.sharedWith} · Share ${entry.name}` : `Share ${entry.name}`}
+              onClick={onShare}
+            >
+              <Users className={cn("h-3.5 w-3.5", entry.sharedWith > 0 && "text-[var(--brand-green)]")} />
+            </IconButton>
+          ) : null}
+          {entry.canEdit ? (
+            <IconButton label={`Edit ${entry.name}`} onClick={onEdit}>
+              <Pencil className="h-3.5 w-3.5" />
+            </IconButton>
+          ) : null}
         </div>
       </div>
 

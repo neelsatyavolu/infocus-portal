@@ -6,12 +6,13 @@ import { isAppReviewEmail } from "@/src/lib/app-review";
 import { getRealSessionUser, getSessionUser, requireUserId, syncUserProfile } from "@/src/lib/auth";
 import { EMBEDDED_APP_COOKIE } from "@/src/lib/embedded-app";
 import { resolveAppSurface } from "@/src/lib/hosts";
+import { hasSharedVaultEntries } from "@/src/server/password-vault";
 import { hasTeleprompterKioskCookie } from "@/src/server/teleprompter-access";
 import {
   canBypassHubMaintenance,
   HUB_MAINTENANCE_MODE
 } from "@/src/lib/maintenance";
-import { getPlatformRoleForEmail } from "@/src/lib/platform-admin";
+import { getPlatformRoleForEmail, hasPlatformRole } from "@/src/lib/platform-admin";
 import { userDisplayName } from "@/src/lib/user-display";
 import { canControlViewAs } from "@/src/lib/view-as";
 
@@ -71,12 +72,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       return <TeleprompterShell>{children}</TeleprompterShell>;
     }
 
+    // Producers always see Passwords; anyone else only once an exec shares a login with them.
+    const hasSharedPasswords =
+      !viewingAs && !hasPlatformRole(platformRole, "ASSOCIATE_PRODUCER") && (await hasSharedVaultEntries(userId));
+
     return (
       <AppShell
         platformRole={platformRole}
         currentUser={currentUser}
         canViewAs={canViewAs}
         viewingAs={viewingAs}
+        hasSharedPasswords={hasSharedPasswords}
         sampleOnly={isAppReviewEmail(user.email)}
         embedded={(await cookies()).get(EMBEDDED_APP_COOKIE)?.value === "1"}
       >

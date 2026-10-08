@@ -2,7 +2,13 @@ import { handleRouteError } from "@/src/lib/api-errors";
 import { okNoStore } from "@/src/lib/http";
 import { vaultEntryInputSchema } from "@/src/lib/password-vault";
 import { getRequestKey, limitByKey } from "@/src/lib/rate-limit";
-import { assertJsonRequest, createVaultEntry, listVaultEntries, requireVaultActor } from "@/src/server/password-vault";
+import {
+  assertJsonRequest,
+  createVaultEntry,
+  listVaultEntries,
+  requireFullVaultActor,
+  requireVaultActor
+} from "@/src/server/password-vault";
 
 export async function GET() {
   try {
@@ -15,7 +21,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const actor = await requireVaultActor();
+    const actor = await requireFullVaultActor();
     assertJsonRequest(request);
     if (!limitByKey(getRequestKey(request, `vault:write:${actor.userId}`), { max: 30, windowMs: 60_000 }).allowed) {
       throw new Error("TOO_MANY_REQUESTS");

@@ -1830,8 +1830,23 @@ model VaultEntry {
   updatedById    String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  shares         VaultEntryShare[]
 
   @@index([name])
+}
+
+/// A vault login an exec shared with one person outside the vault. They can
+/// use it (username, password, 2FA code, website) but not see notes or edit.
+model VaultEntryShare {
+  id         String     @id @default(cuid())
+  entryId    String
+  userId     String
+  sharedById String
+  createdAt  DateTime   @default(now())
+  entry      VaultEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@unique([entryId, userId])
+  @@index([userId])
 }
 
 /// Who created, edited, deleted, or revealed a vault entry. Kept after the

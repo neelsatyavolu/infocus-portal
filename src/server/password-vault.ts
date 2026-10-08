@@ -1,30 +1,43 @@
 import { randomUUID } from "node:crypto";
+import { isAppReviewEmail } from "@/src/lib/app-review";
 import { getRealSessionUser, getSessionUser } from "@/src/lib/auth";
 import { env } from "@/src/lib/env";
 import { getPlatformRoleForEmail, hasPlatformRole } from "@/src/lib/platform-admin";
 import {
   normalizeVaultUrl,
+  type VaultAccess,
   type VaultAction,
   type VaultActivityRow,
   type VaultEntryInput,
   type VaultEntrySummary,
   type VaultEntryUpdate,
   type VaultImportResult,
+  type VaultPerson,
   type VaultRevealField
 } from "@/src/lib/password-vault";
 import { prisma } from "@/src/lib/prisma";
+import { producerUserIds } from "@/src/server/meetings-people";
 import { generateTotp, parseTotpInput, type TotpConfig } from "@/src/lib/totp";
 import { userDisplayName } from "@/src/lib/user-display";
 import { decryptVaultField, encryptVaultField, parseVaultKey, type VaultField } from "@/src/lib/vault-crypto";
 
 export type VaultActor = {
   userId: string;
+  access: VaultAccess;
   canDeleteAny: boolean;
+  /** Executive producers, advisers, and super admins can share a login with people outside the vault. */
+  canShare: boolean;
 };
 
+export async function hasSharedVaultEntries(userId: string) {
+  return Boolean(await prisma.vaultEntryShare.findFirst({ where: { userId }, select: { id: true } }));
+}
+
 /**
- * Associate producers and up. Both the signed-in account and any View-as
- * target must qualify, and the log records the real account.
+ * Associate producers and up get the full vault. Both the signed-in account
+ * and any View-as target must qualify, and the log records the real account.
+ * Anyone else gets only the logins shared with them, and not while viewing as
+ * someone else.
  */
 export async function getVaultActor(): Promise<VaultActor | null> {
   const [real, effective] = await Promise.all([getRealSessionUser(), getSessionUser()]);
@@ -34,14 +47,15 @@ export async function getVaultActor(): Promise<VaultActor | null> {
     getPlatformRoleForEmail(real.email),
     getPlatformRoleForEmail(effective.email)
   ]);
-  if (!hasPlatformRole(realRole, "ASSOCIATE_PRODUCER") || !hasPlatformRole(effectiveRole, "ASSOCIATE_PRODUCER")) {
-    return null;
+  if (hasPlatformRole(realRole, "ASSOCIATE_PRODUCER") && hasPlatformRole(effectiveRole, "ASSOCIATE_PRODUCER")) {
+    const isExec = hasPlatformRole(realRole, "EXECUTIVE_PRODUCER");
+    return { userId: real.userId, access: "full", canDeleteAny: isExec, canShare: isExec };
   }
 
-  return {
-    userId: real.userId,
-    canDeleteAny: hasPlatformRole(realRole, "EXECUTIVE_PRODUCER")
-  };
+  if (real.userId === effective.userId && (await hasSharedVaultEntries(real.userId))) {
+    return { userId: real.userId, access: "shared", canDeleteAny: false, canShare: false };
+  }
+  return null;
 }
 
 export async function requireVaultActor() {
@@ -49,6 +63,19 @@ export async function requireVaultActor() {
   if (!real?.userId) throw new Error("UNAUTHORIZED");
   const actor = await getVaultActor();
   if (!actor) throw new Error("FORBIDDEN");
+  return actor;
+}
+
+/** Add, edit, delete, import, and activity: associate producers and up only. */
+export async function requireFullVaultActor() {
+  const actor = await requireVaultActor();
+  if (actor.access !== "full") throw new Error("FORBIDDEN");
+  return actor;
+}
+
+export async function requireVaultSharer() {
+  const actor = await requireVaultActor();
+  if (!actor.canShare) throw new Error("FORBIDDEN");
   return actor;
 }
 
@@ -106,7 +133,12 @@ async function displayNames(userIds: (string | null)[]) {
 
 export async function listVaultEntries(actor: VaultActor): Promise<VaultEntrySummary[]> {
   const key = vaultKey();
-  const entries = await prisma.vaultEntry.findMany({ orderBy: [{ name: "asc" }, { createdAt: "asc" }] });
+  const shared = actor.access === "shared";
+  const entries = await prisma.vaultEntry.findMany({
+    where: shared ? { shares: { some: { userId: actor.userId } } } : undefined,
+    orderBy: [{ name: "asc" }, { createdAt: "asc" }],
+    include: { _count: { select: { shares: true } } }
+  });
   const names = await displayNames(entries.map((entry) => entry.updatedById));
 
   return entries.map((entry) => ({
@@ -116,10 +148,13 @@ export async function listVaultEntries(actor: VaultActor): Promise<VaultEntrySum
     username: entry.usernameCipher ? decryptVaultField(entry.usernameCipher, key, entry.id, "username") : null,
     hasPassword: Boolean(entry.passwordCipher),
     hasTotp: Boolean(entry.totpCipher),
-    hasNotes: Boolean(entry.notesCipher),
+    hasNotes: !shared && Boolean(entry.notesCipher),
     updatedAt: entry.updatedAt.toISOString(),
     updatedBy: entry.updatedById ? (names.get(entry.updatedById) ?? null) : null,
-    canDelete: actor.canDeleteAny || entry.createdById === actor.userId
+    canDelete: !shared && (actor.canDeleteAny || entry.createdById === actor.userId),
+    canEdit: !shared,
+    canShare: actor.canShare,
+    sharedWith: shared ? 0 : entry._count.shares
   }));
 }
 
@@ -219,7 +254,12 @@ function decryptOrThrow(cipher: string | null, key: Buffer, entryId: string, fie
 /** Secrets leave the server one field at a time and every read is logged. */
 export async function revealVaultField(actor: VaultActor, entryId: string, field: VaultRevealField) {
   const key = vaultKey();
-  const entry = await findEntry(entryId);
+  const shared = actor.access === "shared";
+  if (shared && field === "notes") throw new Error("FORBIDDEN");
+  const entry = await prisma.vaultEntry.findFirst({
+    where: { id: entryId, ...(shared ? { shares: { some: { userId: actor.userId } } } : {}) }
+  });
+  if (!entry) throw new Error("NOT_FOUND");
 
   if (field === "totp") {
     const config = JSON.parse(decryptOrThrow(entry.totpCipher, key, entry.id, "totp")) as TotpConfig;
@@ -251,4 +291,63 @@ export async function listVaultActivity(entryId: string, limit = 25): Promise<Va
     actor: names.get(row.userId) ?? "Unknown",
     createdAt: row.createdAt.toISOString()
   }));
+}
+
+function byName(a: VaultPerson, b: VaultPerson) {
+  return a.name.localeCompare(b.name);
+}
+
+/** Everyone with a Portal account who isn't already in the vault (producers see every login anyway). */
+export async function listVaultShareCandidates(): Promise<VaultPerson[]> {
+  const [users, producers] = await Promise.all([
+    prisma.user.findMany({ where: { email: { not: null } }, select: { id: true, name: true, nickname: true, email: true } }),
+    producerUserIds()
+  ]);
+  const inVault = new Set(producers);
+  return users
+    .filter((user) => !inVault.has(user.id) && !isAppReviewEmail(user.email))
+    .map((user) => ({ id: user.id, name: userDisplayName(user) || user.email || "Unknown" }))
+    .sort(byName);
+}
+
+export async function listVaultEntryShares(entryId: string): Promise<VaultPerson[]> {
+  const entry = await findEntry(entryId);
+  const shares = await prisma.vaultEntryShare.findMany({ where: { entryId: entry.id }, select: { userId: true } });
+  const names = await displayNames(shares.map((share) => share.userId));
+  return shares.map((share) => ({ id: share.userId, name: names.get(share.userId) ?? "Unknown" })).sort(byName);
+}
+
+/**
+ * Replaces who a login is shared with. New people must be Portal members
+ * outside the vault; people already on the list can stay.
+ */
+export async function setVaultEntryShares(actor: VaultActor, entryId: string, userIds: string[]) {
+  if (!actor.canShare) throw new Error("FORBIDDEN");
+  const entry = await findEntry(entryId);
+  const wanted = [...new Set(userIds)];
+  const [current, candidates] = await Promise.all([
+    prisma.vaultEntryShare.findMany({ where: { entryId: entry.id }, select: { userId: true } }),
+    listVaultShareCandidates()
+  ]);
+  const currentIds = new Set(current.map((share) => share.userId));
+  const allowed = new Set(candidates.map((person) => person.id));
+  if (wanted.some((id) => !currentIds.has(id) && !allowed.has(id))) {
+    throw new Error("Logins can only be shared with Portal members outside the vault.");
+  }
+
+  const added = wanted.filter((id) => !currentIds.has(id));
+  const removed = [...currentIds].filter((id) => !wanted.includes(id));
+  if (added.length || removed.length) {
+    await prisma.$transaction([
+      prisma.vaultEntryShare.deleteMany({ where: { entryId: entry.id, userId: { in: removed } } }),
+      prisma.vaultEntryShare.createMany({
+        data: added.map((userId) => ({ entryId: entry.id, userId, sharedById: actor.userId })),
+        skipDuplicates: true
+      }),
+      prisma.vaultAccessLog.create({
+        data: { entryId: entry.id, entryName: entry.name, userId: actor.userId, action: "SHARE" }
+      })
+    ]);
+  }
+  return listVaultEntryShares(entry.id);
 }

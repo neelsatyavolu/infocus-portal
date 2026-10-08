@@ -17,7 +17,8 @@ export type VaultAction =
   | "DELETE"
   | "REVEAL_PASSWORD"
   | "REVEAL_NOTES"
-  | "VIEW_2FA_CODE";
+  | "VIEW_2FA_CODE"
+  | "SHARE";
 
 export const VAULT_ACTION_LABELS: Record<VaultAction, string> = {
   CREATE: "Added",
@@ -26,8 +27,16 @@ export const VAULT_ACTION_LABELS: Record<VaultAction, string> = {
   DELETE: "Deleted",
   REVEAL_PASSWORD: "Viewed password",
   REVEAL_NOTES: "Viewed notes",
-  VIEW_2FA_CODE: "Viewed 2FA code"
+  VIEW_2FA_CODE: "Viewed 2FA code",
+  SHARE: "Changed sharing"
 };
+
+/**
+ * "full": associate producers and up see and manage every login.
+ * "shared": anyone else sees only the logins an exec shared with them,
+ * and can use them (username, password, 2FA code) but not see notes or edit.
+ */
+export type VaultAccess = "full" | "shared";
 
 /** Only http(s) links are stored, so the list can never render a javascript: href. */
 export function normalizeVaultUrl(raw: string | null | undefined) {
@@ -64,6 +73,12 @@ export const vaultImportSchema = z.object({
   entries: z.array(vaultEntryInputSchema).min(1).max(VAULT_IMPORT_MAX)
 });
 
+export const VAULT_SHARE_MAX = 200;
+
+export const vaultShareSchema = z.object({
+  userIds: z.array(z.string().min(1).max(64)).max(VAULT_SHARE_MAX)
+});
+
 export type VaultEntryInput = z.infer<typeof vaultEntryInputSchema>;
 export type VaultEntryUpdate = z.infer<typeof vaultEntryUpdateSchema>;
 
@@ -78,7 +93,13 @@ export type VaultEntrySummary = {
   updatedAt: string;
   updatedBy: string | null;
   canDelete: boolean;
+  canEdit: boolean;
+  canShare: boolean;
+  /** How many people outside the vault this login is shared with (0 for shared viewers). */
+  sharedWith: number;
 };
+
+export type VaultPerson = { id: string; name: string };
 
 export type VaultImportResult = {
   imported: number;

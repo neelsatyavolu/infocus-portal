@@ -2,7 +2,7 @@ import { handleRouteError } from "@/src/lib/api-errors";
 import { okNoStore } from "@/src/lib/http";
 import { vaultEntryUpdateSchema } from "@/src/lib/password-vault";
 import { getRequestKey, limitByKey } from "@/src/lib/rate-limit";
-import { assertJsonRequest, deleteVaultEntry, requireVaultActor, updateVaultEntry } from "@/src/server/password-vault";
+import { assertJsonRequest, deleteVaultEntry, requireFullVaultActor, updateVaultEntry } from "@/src/server/password-vault";
 
 type Context = { params: Promise<{ entryId: string }> };
 
@@ -14,7 +14,7 @@ function enforceWriteLimit(request: Request, userId: string) {
 
 export async function PATCH(request: Request, { params }: Context) {
   try {
-    const actor = await requireVaultActor();
+    const actor = await requireFullVaultActor();
     enforceWriteLimit(request, actor.userId);
     assertJsonRequest(request);
     const { entryId } = await params;
@@ -27,7 +27,7 @@ export async function PATCH(request: Request, { params }: Context) {
 
 export async function DELETE(request: Request, { params }: Context) {
   try {
-    const actor = await requireVaultActor();
+    const actor = await requireFullVaultActor();
     enforceWriteLimit(request, actor.userId);
     const { entryId } = await params;
     return okNoStore(await deleteVaultEntry(actor, entryId));

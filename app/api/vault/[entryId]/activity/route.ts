@@ -1,10 +1,10 @@
 import { handleRouteError } from "@/src/lib/api-errors";
 import { okNoStore } from "@/src/lib/http";
-import { listVaultActivity, requireVaultActor } from "@/src/server/password-vault";
+import { listVaultActivity, requireFullVaultActor } from "@/src/server/password-vault";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ entryId: string }> }) {
   try {
-    await requireVaultActor();
+    await requireFullVaultActor();
     const { entryId } = await params;
     return okNoStore(await listVaultActivity(entryId));
   } catch (error) {

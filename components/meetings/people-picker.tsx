@@ -31,13 +31,16 @@ export function PeoplePicker({
   error,
   selected,
   onChange,
-  excludeIds = []
+  excludeIds = [],
+  noun = "producers"
 }: {
   people: MeetingPerson[] | null;
   error: string | null;
   selected: readonly string[];
   onChange: (ids: string[]) => void;
   excludeIds?: readonly string[];
+  /** Plural, lowercase, for the search box and loading text. */
+  noun?: string;
 }) {
   const [query, setQuery] = useState("");
   const byId = useMemo(() => new Map((people ?? []).map((p) => [p.id, p])), [people]);
@@ -56,7 +59,7 @@ export function PeoplePicker({
   if (!people) {
     return (
       <p className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Loading producers…
+        <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Loading {noun}…
       </p>
     );
   }
@@ -85,8 +88,8 @@ export function PeoplePicker({
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search producers"
-          aria-label="Search producers"
+          placeholder={`Search ${noun}`}
+          aria-label={`Search ${noun}`}
           className="pl-8 md:text-base"
         />
       </div>

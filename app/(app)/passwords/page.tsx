@@ -6,9 +6,10 @@ import PasswordsClient from "./passwords-client";
 export const metadata: Metadata = { title: "Passwords" };
 
 export default async function PasswordsPage() {
-  if (!(await getVaultActor())) {
+  const actor = await getVaultActor();
+  if (!actor) {
     redirect("/access-denied");
   }
 
-  return <PasswordsClient />;
+  return <PasswordsClient access={actor.access} />;
 }

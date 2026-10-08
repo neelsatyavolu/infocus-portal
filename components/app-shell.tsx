@@ -159,6 +159,8 @@ type AppShellProps = {
   };
   canViewAs?: boolean;
   viewingAs?: boolean;
+  /** An exec shared at least one Passwords login with this non-producer. */
+  hasSharedPasswords?: boolean;
   /** Apple App Review account: Dashboard and Settings only (src/lib/app-review.ts). */
   sampleOnly?: boolean;
   /** Inside the native InFocus Portal iPhone app, which brings its own navigation (src/lib/embedded-app.ts). */
@@ -331,6 +333,7 @@ export function AppShell({
   currentUser,
   canViewAs = false,
   viewingAs = false,
+  hasSharedPasswords = false,
   sampleOnly = false,
   embedded = false
 }: AppShellProps) {
@@ -1331,7 +1334,7 @@ export function AppShell({
               </p>
             </div>
           </ViewAsMenu>
-          {canManageWorkspaces ? (
+          {canManageWorkspaces || hasSharedPasswords ? (
             <Link
               href={"/passwords" as never}
               onClick={() => setNavOpen(false)}

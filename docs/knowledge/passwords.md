@@ -1,6 +1,6 @@
 # Passwords
 
-Route: `/passwords`. Associate producers, executive producers, advisers, and super admins. Open it from the **key icon** at the bottom of the sidebar, next to sign out. Students never see it, and View as a student hides it. Opening `/passwords` without access shows Access restricted.
+Route: `/passwords`. Associate producers, executive producers, advisers, and super admins. Open it from the **key icon** at the bottom of the sidebar, next to sign out. Students only see it once an exec shares a login with them (see Sharing). View as a student hides it. Opening `/passwords` without access shows Access restricted.
 
 A shared vault for InFocus logins (YouTube, Instagram, school accounts, and so on). **Search passwords…** filters the list. Each row has copy buttons for the username, password, and current 2FA code, and a link to the website.
 
@@ -17,6 +17,14 @@ Revealed passwords and notes hide again after 30 seconds.
 ## Import from 1Password
 
 **Import from 1Password** takes a `.1pux` or `.csv` export (1Password → File → Export). The file is read in your browser; tick the logins you want and only those are uploaded. Items that look already saved (same name and username) start unticked. Archived and deleted items are skipped. If a website or 2FA key in the export can't be used, that part is skipped and the import message says which.
+
+## Sharing with people outside the vault
+
+Executive producers, advisers, and super admins see a **people icon** on each login. It opens **Share**: pick anyone with a Portal account who isn't a producer (producers already see every login), then **Save**. The icon turns green while a login is shared.
+
+People a login is shared with get the key icon in their sidebar. Their Passwords page (**Shared with you**) lists only the logins shared with them. They can copy the username, password, and 2FA code and open the website. They can't see notes, add, edit, delete, import, or share. Their views are logged like everyone else's. Removing someone from Share takes the login away at once; with nothing left shared, the page shows Access restricted.
+
+Changing who a login is shared with is logged as **Changed sharing**. Deleting a login also removes its shares.
 
 ## Security
 

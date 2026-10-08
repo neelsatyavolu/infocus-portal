@@ -3,13 +3,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FileUp, KeyRound, Loader2, Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { VaultEntrySummary, VaultImportResult } from "@/src/lib/password-vault";
+import type { VaultAccess, VaultEntrySummary, VaultImportResult } from "@/src/lib/password-vault";
 import { vaultRequest } from "./vault-api";
 import { VaultEntryDialog } from "./vault-entry-dialog";
 import { VaultEntryRow } from "./vault-entry-row";
 import { VaultImportDialog } from "./vault-import-dialog";
+import { VaultShareDialog } from "./vault-share-dialog";
 
-export default function PasswordsClient() {
+export default function PasswordsClient({ access }: { access: VaultAccess }) {
+  const full = access === "full";
   const [entries, setEntries] = useState<VaultEntrySummary[]>([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
@@ -18,6 +20,7 @@ export default function PasswordsClient() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [editing, setEditing] = useState<VaultEntrySummary | null>(null);
+  const [sharing, setSharing] = useState<VaultEntrySummary | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -65,10 +68,12 @@ export default function PasswordsClient() {
       <section className="brand-hero-panel relative overflow-hidden rounded-2xl border border-border px-4 py-4 md:px-5">
         <div className="relative flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
-            <div className="eyebrow">Producer view</div>
+            <div className="eyebrow">{full ? "Producer view" : "Shared with you"}</div>
             <h1 className="display-md mt-1 text-balance text-foreground">Passwords</h1>
             <p className="mt-1 text-xs text-muted-foreground">
-              Shared InFocus logins and 2FA codes. Encrypted at rest; every view is logged.
+              {full
+                ? "Shared InFocus logins and 2FA codes. Encrypted at rest; every view is logged."
+                : "InFocus logins an executive producer shared with you. Every view is logged."}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -76,14 +81,18 @@ export default function PasswordsClient() {
               {entries.length} login{entries.length === 1 ? "" : "s"}
               {withTotp > 0 ? ` · ${withTotp} with 2FA` : ""}
             </span>
-            <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
-              <FileUp className="h-3.5 w-3.5" />
-              Import from 1Password
-            </Button>
-            <Button size="sm" onClick={openAdd}>
-              <Plus className="h-3.5 w-3.5" />
-              Add password
-            </Button>
+            {full ? (
+              <>
+                <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+                  <FileUp className="h-3.5 w-3.5" />
+                  Import from 1Password
+                </Button>
+                <Button size="sm" onClick={openAdd}>
+                  <Plus className="h-3.5 w-3.5" />
+                  Add password
+                </Button>
+              </>
+            ) : null}
           </div>
         </div>
 
@@ -120,19 +129,34 @@ export default function PasswordsClient() {
         ) : visibleEntries.length === 0 ? (
           <div className="flex flex-col items-center gap-2 px-4 py-10 text-center text-sm text-muted-foreground">
             <KeyRound className="h-5 w-5" />
-            {query.trim() ? "No passwords match that search." : "No passwords yet. Add one or import from 1Password."}
+            {query.trim()
+              ? "No passwords match that search."
+              : full
+                ? "No passwords yet. Add one or import from 1Password."
+                : "Nothing is shared with you right now."}
           </div>
         ) : (
           <ul>
             {visibleEntries.map((entry) => (
-              <VaultEntryRow key={entry.id} entry={entry} onEdit={() => openEdit(entry)} onError={setMessage} />
+              <VaultEntryRow
+                key={entry.id}
+                entry={entry}
+                onEdit={() => openEdit(entry)}
+                onShare={() => setSharing(entry)}
+                onError={setMessage}
+              />
             ))}
           </ul>
         )}
       </section>
 
-      <VaultEntryDialog open={dialogOpen} entry={editing} onOpenChange={setDialogOpen} onSaved={() => void load()} />
-      <VaultImportDialog open={importOpen} existing={entries} onOpenChange={setImportOpen} onImported={onImported} />
+      {full ? (
+        <>
+          <VaultEntryDialog open={dialogOpen} entry={editing} onOpenChange={setDialogOpen} onSaved={() => void load()} />
+          <VaultImportDialog open={importOpen} existing={entries} onOpenChange={setImportOpen} onImported={onImported} />
+          <VaultShareDialog entry={sharing} onOpenChange={(open) => !open && setSharing(null)} onSaved={() => void load()} />
+        </>
+      ) : null}
     </div>
   );
 }

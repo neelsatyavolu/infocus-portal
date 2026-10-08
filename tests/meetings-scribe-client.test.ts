@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ driveFetch: vi.fn(), findUnique: vi.fn(), update: vi.fn() }));
 vi.mock("@/src/lib/nas-storage", () => ({ driveFetch: mocks.driveFetch }));
 vi.mock("@/src/lib/prisma", () => ({ prisma: { meeting: { findUnique: mocks.findUnique, update: mocks.update } } }));
+vi.mock("@/src/server/meetings-scribe-vocabulary", () => ({ scribeVocabulary: async () => ["Abby Example", "Otto"] }));
 vi.mock("@/src/server/meetings-keys", () => ({
   readMeetingKey: (row: { keyCiphertext: string | null; keyEpoch: number }) => (row.keyCiphertext ? { key: `key-${row.keyEpoch}`, epoch: row.keyEpoch } : null)
 }));
@@ -71,7 +72,13 @@ describe("Scribe start", () => {
     mocks.driveFetch.mockResolvedValue(ok());
     await startMeetingScribe({ id: "m1", title: "Rundown", startsAt: NOW }, { key: "k", epoch: 1 }, NOW);
     expect(mocks.update).toHaveBeenCalledWith({ where: { id: "m1" }, data: { notesPart: { increment: 1 }, scribeStartedAt: NOW }, select: { notesPart: true } });
-    expect(bodyOf(mocks.driveFetch.mock.calls[0]!)).toMatchObject({ meetingId: "m1", part: 2, key: "k", epoch: 1 });
+    expect(bodyOf(mocks.driveFetch.mock.calls[0]!)).toMatchObject({
+      meetingId: "m1",
+      part: 2,
+      key: "k",
+      epoch: 1,
+      vocabulary: ["Abby Example", "Otto"]
+    });
   });
 });
 

@@ -3,6 +3,7 @@ import { mainAppOrigin } from "@/src/lib/hosts";
 import type { KeyResponse } from "@/src/lib/meetings/types";
 import { driveFetch } from "@/src/lib/nas-storage";
 import { prisma } from "@/src/lib/prisma";
+import { scribeVocabulary } from "@/src/server/meetings-scribe-vocabulary";
 import { MEETING_ROOM_TOKEN_TTL_MS } from "@/src/lib/meetings/room-token";
 import { readMeetingKey } from "@/src/server/meetings-keys";
 import { issueMeetingRoomTicket, meetingRoomUrl } from "@/src/server/meetings-room-client";
@@ -70,7 +71,14 @@ export async function startMeetingScribe(
       data: { notesPart: { increment: 1 }, scribeStartedAt: now },
       select: { notesPart: true }
     });
-    const { roomToken } = await scribeTicket(meeting.id, now.getTime());
+    const [{ roomToken }, vocabulary] = await Promise.all([
+      scribeTicket(meeting.id, now.getTime()),
+      // Names are a transcription hint only: never let them stop the notes from starting.
+      scribeVocabulary().catch((error: unknown) => {
+        console.error("Scribe vocabulary failed", error instanceof Error ? error.message : error);
+        return [] as string[];
+      })
+    ]);
     await postScribe("start", {
       meetingId: meeting.id,
       title: meeting.title,
@@ -80,7 +88,8 @@ export async function startMeetingScribe(
       key: key.key,
       epoch: key.epoch,
       portalBaseUrl: mainAppOrigin().replace(/\/+$/, ""),
-      part
+      part,
+      vocabulary
     });
     return true;
   } catch (error) {

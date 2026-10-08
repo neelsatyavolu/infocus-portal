@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { splitMarkdownSections } from "@/components/meetings/notes/meeting-markdown";
+import { splitMarkdownSections } from "@/src/lib/meetings/notes-markdown";
 import { isValidInviteEmail } from "@/components/meetings/tab/invites-panel";
 import { readScribeParams } from "@/components/meetings/scribe/scribe-session";
 

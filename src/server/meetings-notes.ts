@@ -1,6 +1,7 @@
 import type { MeetingNotesStatus } from "@prisma/client";
 import { prisma } from "@/src/lib/prisma";
 import { readMeetingKey } from "@/src/server/meetings-keys";
+import { emailMeetingNotes, shouldEmailNotes } from "@/src/server/meetings-notes-email";
 import { startMeetingScribe } from "@/src/server/meetings-scribe";
 
 /**
@@ -85,11 +86,20 @@ export async function maybeRestartScribe(meetingId: string, now = new Date()) {
 export async function applyMeetingNotesUpdate(meetingId: string, input: NotesUpdate, now = new Date()) {
   const meeting = await prisma.meeting.findUnique({
     where: { id: meetingId },
-    select: { id: true, status: true, notesEnabled: true, notesPart: true, notesDrivePaths: true, notesSummary: true }
+    select: {
+      id: true,
+      status: true,
+      notesEnabled: true,
+      notesStatus: true,
+      notesPart: true,
+      notesDrivePaths: true,
+      notesSummary: true
+    }
   });
   if (!meeting) throw new Error("NOT_FOUND");
   const { data, current } = notesUpdateData(meeting, input, now);
   if (Object.keys(data).length > 0) await prisma.meeting.update({ where: { id: meetingId }, data });
+  if (shouldEmailNotes(meeting, input.status, data)) await emailMeetingNotes(meetingId);
   // The current Scribe stopped while people are still in the call: start the next part.
   const stopped = input.status === "PROCESSING" || input.status === "READY" || input.status === "FAILED";
   if (current && stopped && meeting.status === "LIVE" && meeting.notesEnabled) await maybeRestartScribe(meetingId, now);

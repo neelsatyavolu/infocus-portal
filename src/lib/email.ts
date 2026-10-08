@@ -131,8 +131,11 @@ function uniqueRecipients(recipients: string[]) {
   return [...byKey.values()];
 }
 
-/** Identical content goes out as one email with every recipient in `to` (split past 50). */
-async function sendToAll(recipients: string[], subject: string, text: string, html: string) {
+/**
+ * Identical content goes out as one email with every recipient in `to` (split past 50).
+ * With `idempotencyKey`, Resend drops a repeat of the same batch for 24 hours (key + batch index).
+ */
+async function sendToAll(recipients: string[], subject: string, text: string, html: string, idempotencyKey?: string) {
   const mail = mailClient();
   const addresses = uniqueRecipients(recipients);
   if (!mail || addresses.length === 0) {
@@ -145,14 +148,17 @@ async function sendToAll(recipients: string[], subject: string, text: string, ht
   }
 
   const results = await Promise.allSettled(
-    batches.map(async (to) => {
-      const result = await mail.client.emails.send({
-        from: mail.from,
-        to,
-        subject,
-        text,
-        html
-      });
+    batches.map(async (to, index) => {
+      const result = await mail.client.emails.send(
+        {
+          from: mail.from,
+          to,
+          subject,
+          text,
+          html
+        },
+        idempotencyKey ? { idempotencyKey: `${idempotencyKey}/${index}` } : undefined
+      );
       if (result.error) {
         throw new Error(result.error.message);
       }
@@ -181,6 +187,8 @@ export async function sendBrandedEmails(payload: {
   extraHtml?: string;
   /** Mac app notification to the same people. Defaults to the subject, first non-greeting paragraph and button link; false skips it. */
   push?: false | { title?: string; body?: string; url?: string };
+  /** Same key → Resend sends that email only once (for 24 hours). */
+  idempotencyKey?: string;
 }) {
   const branded = renderBrandedEmail({
     heading: payload.heading,
@@ -193,7 +201,7 @@ export async function sendBrandedEmails(payload: {
   const push = payload.push;
   // The push never rejects, so it can't change the email result.
   const [result] = await Promise.all([
-    sendToAll(payload.recipients, payload.subject, branded.text, branded.html),
+    sendToAll(payload.recipients, payload.subject, branded.text, branded.html, payload.idempotencyKey),
     push === false
       ? null
       : sendNativePushToEmails(payload.recipients, {

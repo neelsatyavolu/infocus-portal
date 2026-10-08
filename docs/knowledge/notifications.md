@@ -57,6 +57,7 @@ Browser push goes only to devices with **Browser notifications** on. Every email
 | Meeting in 15 minutes, and in 5 minutes | Producers (only the picked people when some were picked; invite-only meetings: only the people on them) | Browser and app push, opens the call |
 | Meeting calendar invite, update or cancellation | Addresses on the Meetings calendar invite list (invite-only meetings: only addresses linked to the people on them) | Google Calendar's own email, from the InFocus Google account |
 | Someone waiting to join a meeting | That meeting's hosts | Browser and app push, at most every 2 minutes per person |
+| Meeting notes ready (after the meeting ends) | InFocus Producer Meeting: every producer, whether they came or not. Any other meeting: only the people who were let in (not anyone removed) | Email with the summary and a link to the notes and transcript, plus app push. Once per meeting (a new part sends the updated notes again). Skipped for people who turned email off |
 
 “Assigned producer” means the package's associate producer, else its executive producer, else the associate producer for its category. Student emails go to your notification address when you set one. Messages (group and direct chat) never email or push.
 

@@ -55,6 +55,18 @@ describe("sendBrandedEmails", () => {
     expect(result).toEqual({ configured: true, sent: 50, failed: 1 });
   });
 
+  it("passes an idempotency key per batch, and none by default", async () => {
+    const recipients = Array.from({ length: 51 }, (_, index) => `student${index}@example.edu`);
+    await sendBrandedEmails({ ...content, recipients, idempotencyKey: "meeting-notes/m1/1" });
+    expect(mocks.send.mock.calls.map((call) => call[1])).toEqual([
+      { idempotencyKey: "meeting-notes/m1/1/0" },
+      { idempotencyKey: "meeting-notes/m1/1/1" }
+    ]);
+    mocks.send.mockClear();
+    await sendBrandedEmails({ ...content, recipients: ["abby@example.edu"] });
+    expect(mocks.send.mock.calls[0][1]).toBeUndefined();
+  });
+
   it("skips sending when there are no recipients", async () => {
     const result = await sendBrandedEmails({ ...content, recipients: [" "] });
     expect(mocks.send).not.toHaveBeenCalled();

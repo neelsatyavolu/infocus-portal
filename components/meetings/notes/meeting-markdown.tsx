@@ -1,23 +1,10 @@
 import { parseAssistantReply, splitInlineBold } from "@/src/lib/assistant-format";
+import { splitMarkdownSections } from "@/src/lib/meetings/notes-markdown";
 
 /**
  * Renders the Scribe's summary/transcript markdown as plain React (no HTML injection):
  * "#" headings, then paragraphs, bullets and **bold** via the assistant formatter.
  */
-type Section = { heading: string | null; body: string };
-
-export function splitMarkdownSections(markdown: string): Section[] {
-  const sections: Section[] = [{ heading: null, body: "" }];
-  for (const line of markdown.split("\n")) {
-    const heading = /^#{1,6}\s+(.+)$/.exec(line.trim());
-    if (heading) sections.push({ heading: heading[1].trim(), body: "" });
-    else {
-      const last = sections[sections.length - 1];
-      sections[sections.length - 1] = { ...last, body: `${last.body}${line}\n` };
-    }
-  }
-  return sections.filter((s) => s.heading || s.body.trim());
-}
 
 function Inline({ text }: { text: string }) {
   return (

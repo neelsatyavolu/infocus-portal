@@ -89,6 +89,7 @@ type GroupRow = {
   stageNotes?: Record<string, string> | null;
   revisedInitialCut?: boolean;
   brainstormDocUrl?: string;
+  brainstormNeedsChanges?: boolean;
   proofs?: BrainstormProofView[];
   approvalStage?: string | null;
   remainingExecutiveSignoffs?: number | null;
@@ -320,6 +321,7 @@ function GroupTile({
     proofOfContact: row.proofOfContact,
     proofCount: row.proofs?.length ?? 0,
     brainstormDocUrl: row.brainstormDocUrl ?? "",
+    brainstormNeedsChanges: Boolean(row.brainstormNeedsChanges),
     aRollBRoll: row.aRollBRoll,
     aRollHasMedia: Boolean(row.aRollHasMedia),
     aRollNeedsChanges: Boolean(row.aRollNeedsChanges),

@@ -9,7 +9,7 @@ import { gradersDoneWithGroup } from "@/src/lib/package-final-cut-scores";
 import { membersAwaitingFinalCutScores } from "@/src/lib/package-revisions";
 import { currentCutRevisionStage } from "@/src/lib/initial-cut-review-versions";
 import { APPROVAL_COMMENT_PREFIX } from "@/src/lib/package-stage-comments";
-import { aRollFeedbackNeedsChanges } from "@/src/lib/package-stage-status";
+import { earlyStageNeedsChanges } from "@/src/lib/package-stage-status";
 import { serializeProofs } from "@/src/lib/package-brainstorm";
 import { previousTeammatesByUserFromGroups } from "@/src/lib/consecutive-groupmates";
 import { normalizeEmail, PLATFORM_SUPER_ADMIN_EMAIL } from "@/src/lib/platform-admin";
@@ -246,7 +246,7 @@ export async function loadPackageProgressData(requestedCycleNumber?: number | nu
           select: { id: true, name: true, nickname: true, email: true }
         },
         proofOfContacts: {
-          select: { id: true, slot: true, fileName: true, mimeType: true }
+          select: { id: true, slot: true, fileName: true, mimeType: true, updatedAt: true }
         },
         approval: {
           select: {
@@ -266,10 +266,13 @@ export async function loadPackageProgressData(requestedCycleNumber?: number | nu
           take: 1
         },
         stageComments: {
-          where: { stage: "a-roll", NOT: { body: { startsWith: APPROVAL_COMMENT_PREFIX } } },
-          select: { id: true, createdAt: true },
+          where: {
+            stage: { in: ["brainstorming", "a-roll"] },
+            NOT: { body: { startsWith: APPROVAL_COMMENT_PREFIX } }
+          },
+          select: { stage: true, createdAt: true },
           orderBy: { createdAt: "desc" },
-          take: 1
+          distinct: ["stage"]
         },
         finalCutScores: {
           select: { graderUserId: true, memberUserId: true, points: true, qualityPoints: true, effortPoints: true }
@@ -387,12 +390,7 @@ export async function loadPackageProgressData(requestedCycleNumber?: number | nu
         row.approval?.signoffs ?? []
       ),
       aRollHasMedia: row.stageMedia.length > 0,
-      aRollNeedsChanges: aRollFeedbackNeedsChanges(
-        row.aRollBRoll,
-        row.stageComments.length > 0,
-        row.stageComments[0]?.createdAt,
-        row.stageMedia[0]?.createdAt
-      ),
+      ...earlyStageNeedsChanges(row),
       queuedForAir: Boolean(row.queuedForAirAt),
       // Every member has an official Final Cut grade.
       finalCutGraded:

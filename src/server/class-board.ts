@@ -96,6 +96,7 @@ export async function loadClassBoard(role: PlatformRole | null, now = new Date()
       proofOfContact: row.proofOfContact,
       proofCount: row.proofs.length,
       brainstormDocUrl: row.brainstormDocUrl,
+      brainstormNeedsChanges: row.brainstormNeedsChanges,
       aRollBRoll: row.aRollBRoll,
       aRollHasMedia: row.aRollHasMedia,
       aRollNeedsChanges: row.aRollNeedsChanges,

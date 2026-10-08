@@ -43,6 +43,7 @@ export type CycleStageStatusInput = {
   proofOfContact: boolean;
   proofCount: number;
   brainstormDocUrl: string;
+  brainstormNeedsChanges: boolean;
   aRollBRoll: boolean;
   aRollHasMedia: boolean;
   aRollNeedsChanges: boolean;
@@ -62,20 +63,65 @@ function instantMs(value: Date | string | number | null | undefined) {
 }
 
 /**
- * Producer A-roll/B-roll feedback is a revision request until they approve,
- * or until students upload footage after that feedback.
+ * Producer brainstorming or A-roll/B-roll feedback is a revision request until they approve,
+ * or until students upload new proof or footage after that feedback.
  */
-export function aRollFeedbackNeedsChanges(
-  aRollBRoll: boolean,
+export function stageFeedbackNeedsChanges(
+  approved: boolean,
   hasFeedback: boolean,
   latestFeedbackAt?: Date | string | number | null,
-  latestFootageAt?: Date | string | number | null
+  latestUploadAt?: Date | string | number | null
 ) {
-  if (aRollBRoll || !hasFeedback) return false;
+  if (approved || !hasFeedback) return false;
   const feedbackAt = instantMs(latestFeedbackAt);
-  const footageAt = instantMs(latestFootageAt);
-  if (feedbackAt == null || footageAt == null) return true;
-  return feedbackAt >= footageAt;
+  const uploadAt = instantMs(latestUploadAt);
+  if (feedbackAt == null || uploadAt == null) return true;
+  return feedbackAt >= uploadAt;
+}
+
+type StageFeedback = Array<{ stage: string; createdAt: Date }>;
+
+function latestDate(dates: Date[]) {
+  return dates.reduce<Date | null>((latest, date) => (!latest || date > latest ? date : latest), null);
+}
+
+function latestFeedbackAt(comments: StageFeedback, stage: string) {
+  return latestDate(comments.filter((comment) => comment.stage === stage).map((comment) => comment.createdAt));
+}
+
+/** `stageComments` is producer feedback with approval notes excluded. */
+export function brainstormNeedsChanges(row: {
+  proofOfContact: boolean;
+  stageComments: StageFeedback;
+  proofOfContacts: Array<{ updatedAt: Date }>;
+}) {
+  const feedbackAt = latestFeedbackAt(row.stageComments, "brainstorming");
+  return stageFeedbackNeedsChanges(
+    row.proofOfContact,
+    feedbackAt != null,
+    feedbackAt,
+    latestDate(row.proofOfContacts.map((proof) => proof.updatedAt))
+  );
+}
+
+/** Brainstorming and A-roll/B-roll revision flags for one group. */
+export function earlyStageNeedsChanges(row: {
+  proofOfContact: boolean;
+  aRollBRoll: boolean;
+  stageComments: StageFeedback;
+  proofOfContacts: Array<{ updatedAt: Date }>;
+  stageMedia: Array<{ createdAt: Date }>;
+}) {
+  const aRollFeedbackAt = latestFeedbackAt(row.stageComments, "a-roll");
+  return {
+    brainstormNeedsChanges: brainstormNeedsChanges(row),
+    aRollNeedsChanges: stageFeedbackNeedsChanges(
+      row.aRollBRoll,
+      aRollFeedbackAt != null,
+      aRollFeedbackAt,
+      latestDate(row.stageMedia.map((link) => link.createdAt))
+    )
+  };
 }
 
 export function aRollUploadIsNew(
@@ -93,6 +139,7 @@ export function emptyCycleStageStatusInput(): CycleStageStatusInput {
     proofOfContact: false,
     proofCount: 0,
     brainstormDocUrl: "",
+    brainstormNeedsChanges: false,
     aRollBRoll: false,
     aRollHasMedia: false,
     aRollNeedsChanges: false,
@@ -122,8 +169,9 @@ export function cycleStageStatus(
 ): CycleStageStatus {
   if (slug === "brainstorming") {
     if (input.proofOfContact) return "approved";
-    if (brainstormMaterialsReady(input.proofCount, input.brainstormDocUrl)) return "submitted";
-    return "pending";
+    if (!brainstormMaterialsReady(input.proofCount, input.brainstormDocUrl)) return "pending";
+    if (input.brainstormNeedsChanges) return "needs-revisions";
+    return "submitted";
   }
 
   if (slug === "a-roll") {

@@ -3,9 +3,11 @@ import { prisma } from "@/src/lib/prisma";
 import { getPlatformAccess, hasPlatformRole } from "@/src/lib/platform-admin";
 import { filterBrainstormRowsForViewer, serializeProofs } from "@/src/lib/package-brainstorm";
 import { producerMayActOnPackage } from "@/src/lib/package-producer-assignment";
+import { APPROVAL_COMMENT_PREFIX } from "@/src/lib/package-stage-comments";
+import { brainstormNeedsChanges } from "@/src/lib/package-stage-status";
 import { labeledUser } from "@/src/lib/user-display";
 
-const rowInclude = {
+export const brainstormRowInclude = {
   members: {
     select: {
       userId: true,
@@ -16,7 +18,13 @@ const rowInclude = {
     select: { id: true, name: true, nickname: true, email: true }
   },
   proofOfContacts: {
-    select: { id: true, slot: true, fileName: true, mimeType: true }
+    select: { id: true, slot: true, fileName: true, mimeType: true, updatedAt: true }
+  },
+  stageComments: {
+    where: { stage: "brainstorming", NOT: { body: { startsWith: APPROVAL_COMMENT_PREFIX } } },
+    select: { stage: true, createdAt: true },
+    orderBy: { createdAt: "desc" },
+    take: 1
   }
 } as const;
 
@@ -31,7 +39,8 @@ export type BrainstormRowRecord = {
     userId: string;
     user: { id: string; name: string | null; nickname?: string | null; email: string | null };
   }>;
-  proofOfContacts: Array<{ id: string; slot: number; fileName: string; mimeType: string }>;
+  proofOfContacts: Array<{ id: string; slot: number; fileName: string; mimeType: string; updatedAt: Date }>;
+  stageComments: Array<{ stage: string; createdAt: Date }>;
 };
 
 export function serializeBrainstormPackage(row: BrainstormRowRecord) {
@@ -41,6 +50,7 @@ export function serializeBrainstormPackage(row: BrainstormRowRecord) {
     groupTopic: row.groupTopic,
     brainstormDocUrl: row.brainstormDocUrl,
     proofOfContact: row.proofOfContact,
+    needsChanges: brainstormNeedsChanges(row),
     assignedProducer: row.assignedProducer
       ? { userId: row.assignedProducer.id, ...labeledUser(row.assignedProducer) }
       : null,
@@ -55,7 +65,7 @@ export function serializeBrainstormPackage(row: BrainstormRowRecord) {
 export async function loadBrainstormRowAccess(rowId: string, userId: string, email: string | null) {
   const row = await prisma.packageProgressRow.findUnique({
     where: { id: rowId },
-    include: rowInclude
+    include: brainstormRowInclude
   });
 
   if (!row) {
@@ -96,7 +106,7 @@ export async function loadStudentBrainstormPackages(
   const rows = await prisma.packageProgressRow.findMany({
     where: { cycleNumber, members: { some: { userId } } },
     orderBy: { rowOrder: "asc" },
-    include: rowInclude
+    include: brainstormRowInclude
   });
 
   return filterBrainstormRowsForViewer(rows, {

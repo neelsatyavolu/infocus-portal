@@ -1,7 +1,7 @@
 import { isExcludedFromGrading, loadNonGradableEmails } from "@/src/lib/gradable-roster";
 import { filterGroupsForViewer, isGroupAssignedToViewer } from "@/src/lib/groups-visibility";
 import { groupTileStatus } from "@/src/lib/group-tile-status";
-import { aRollFeedbackNeedsChanges } from "@/src/lib/package-stage-status";
+import { earlyStageNeedsChanges } from "@/src/lib/package-stage-status";
 import { remainingFromApproval } from "@/src/lib/package-approval";
 import { parseClipComment } from "@/src/lib/package-clip-comments";
 import { extensionCoversUser } from "@/src/lib/package-extensions";
@@ -18,6 +18,9 @@ import { userDisplayName } from "@/src/lib/user-display";
 import { prisma } from "@/src/lib/prisma";
 import { assertValidCycleNumber } from "@/src/server/program-settings";
 import { buildGradeSummary } from "@/src/server/student-grade-summary";
+
+// Mutable on purpose: the `as const` select below would make an inline list readonly, which Prisma rejects.
+const EARLY_FEEDBACK_STAGES: string[] = ["brainstorming", "a-roll"];
 
 const groupSelect = {
   id: true,
@@ -46,6 +49,7 @@ const groupSelect = {
     }
   },
   _count: { select: { proofOfContacts: true, stageComments: true } },
+  proofOfContacts: { select: { updatedAt: true } },
   initialCutMediaItem: {
     select: { currentVersion: { select: { versionNumber: true, approvalStatus: true } } }
   },
@@ -57,10 +61,13 @@ const groupSelect = {
     select: { createdAt: true }
   },
   stageComments: {
-    where: { stage: "a-roll", NOT: { body: { startsWith: APPROVAL_COMMENT_PREFIX } } },
+    where: {
+      stage: { in: EARLY_FEEDBACK_STAGES },
+      NOT: { body: { startsWith: APPROVAL_COMMENT_PREFIX } }
+    },
     orderBy: { createdAt: "desc" as const },
-    take: 1,
-    select: { createdAt: true }
+    distinct: "stage" as const,
+    select: { stage: true, createdAt: true }
   }
 } as const;
 
@@ -88,12 +95,7 @@ export function summarizeAssistantGroup(row: GroupLookupRow, detail = false, act
     brainstormDocUrl: row.brainstormDocUrl,
     aRollBRoll: row.aRollBRoll,
     aRollHasMedia,
-    aRollNeedsChanges: aRollFeedbackNeedsChanges(
-      row.aRollBRoll,
-      row.stageComments.length > 0,
-      row.stageComments[0]?.createdAt,
-      row.stageMedia[0]?.createdAt
-    ),
+    ...earlyStageNeedsChanges(row),
     initialCutHasMedia: Boolean(row.initialCutMediaItem),
     initialCutVersionNumber: row.initialCutMediaItem?.currentVersion?.versionNumber ?? null,
     initialCutNeedsRevisions: row.initialCutMediaItem?.currentVersion?.approvalStatus === "NEEDS_CHANGES",

@@ -18,7 +18,7 @@ Tabs unlock in order. Later tabs are visible but disabled ("This stage is locked
 - Initial Cut opens when the producer approves A-roll/B-roll.
 - Final Cut opens when Stage 3 approves the Initial Cut.
 
-**Brainstorming**: upload three proof-of-contact images (one per slot) and paste the brainstorm link, then **Save link**. The link must be a Google Docs or Google Drive `https://` link. Any group member can replace or remove a proof. When all three proofs and the doc are in, the assigned producer gets an email and push. Each proof upload also posts to the class Slack proof-of-contact channel: one post per group with the members' names, topic, cycle, and the proofs so far, replacing the group's earlier post.
+**Brainstorming**: upload three proof-of-contact images (one per slot) and paste the brainstorm link, then **Save link**. The link must be a Google Docs or Google Drive `https://` link. Any group member can replace or remove a proof. When all three proofs and the doc are in, the assigned producer gets an email and push. Each proof upload also posts to the class Slack proof-of-contact channel: one post per group with the members' names, topic, cycle, and the proofs so far, replacing the group's earlier post. If a producer posts feedback without approving, the tab shows REVISIONS until the producer approves or a member uploads or replaces a proof.
 
 **A-roll/B-roll**: pick A-roll or B-roll, then one or more clips (up to 30 GB per A-roll file, 15 GB per B-roll file). The assigned producer gets an email and push the first time footage is uploaded each day. Once the producer approves A-roll/B-roll, uploads close; new producer feedback reopens it.
 

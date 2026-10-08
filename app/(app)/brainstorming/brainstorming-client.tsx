@@ -32,6 +32,7 @@ type PackageCard = {
   groupTopic: string;
   brainstormDocUrl: string;
   proofOfContact: boolean;
+  needsChanges: boolean;
   canEdit: boolean;
   assignedProducer: { userId: string; name: string | null; email: string | null } | null;
   members: Member[];
@@ -56,7 +57,8 @@ function packageStatus(pkg: PackageCard): CycleStageStatus {
     ...emptyCycleStageStatusInput(),
     proofOfContact: pkg.proofOfContact,
     proofCount: pkg.proofs.length,
-    brainstormDocUrl: pkg.brainstormDocUrl
+    brainstormDocUrl: pkg.brainstormDocUrl,
+    brainstormNeedsChanges: pkg.needsChanges
   });
 }
 
@@ -201,7 +203,8 @@ export default function BrainstormingClient() {
       const nextProofs = [...pkg.proofs.filter((proof) => proof.slot !== slot), body.data.proof].sort(
         (a, b) => a.slot - b.slot
       );
-      replacePackage({ ...pkg, proofs: nextProofs });
+      // A new proof after producer feedback sends brainstorming back for review.
+      replacePackage({ ...pkg, proofs: nextProofs, needsChanges: false });
       toast.success(`Proof ${slot} uploaded.`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not upload proof.");

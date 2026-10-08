@@ -55,9 +55,10 @@ import { labeledUser, userDisplayName } from "@/src/lib/user-display";
 import { getOrCreateApproval, loadApprovalView } from "@/src/server/package-approval-service";
 import {
   allCycleStageStatuses,
-  aRollFeedbackNeedsChanges,
   aRollUploadIsNew,
-  emptyCycleStageStatusInput
+  earlyStageNeedsChanges,
+  emptyCycleStageStatusInput,
+  stageFeedbackNeedsChanges
 } from "@/src/lib/package-stage-status";
 import { APPROVAL_COMMENT_PREFIX, isApprovalComment } from "@/src/lib/package-stage-comments";
 import { loadStageCommentUnread } from "@/src/server/package-stage-comments";
@@ -502,6 +503,7 @@ export async function loadStudentNavGates(userId: string) {
           }
         },
         _count: { select: { proofOfContacts: true } },
+        proofOfContacts: { select: { updatedAt: true } },
         stageMedia: {
           where: { stage: "a-roll" },
           select: { id: true, createdAt: true },
@@ -509,10 +511,13 @@ export async function loadStudentNavGates(userId: string) {
           take: 1
         },
         stageComments: {
-          where: { stage: "a-roll", NOT: { body: { startsWith: APPROVAL_COMMENT_PREFIX } } },
-          select: { id: true, createdAt: true },
+          where: {
+            stage: { in: ["brainstorming", "a-roll"] },
+            NOT: { body: { startsWith: APPROVAL_COMMENT_PREFIX } }
+          },
+          select: { stage: true, createdAt: true },
           orderBy: { createdAt: "desc" },
-          take: 1
+          distinct: ["stage"]
         }
       }
     })
@@ -535,12 +540,7 @@ export async function loadStudentNavGates(userId: string) {
     brainstormDocUrl: row.brainstormDocUrl,
     aRollBRoll: row.aRollBRoll,
     aRollHasMedia: row.stageMedia.length > 0,
-    aRollNeedsChanges: aRollFeedbackNeedsChanges(
-      row.aRollBRoll,
-      row.stageComments.length > 0,
-      row.stageComments[0]?.createdAt,
-      row.stageMedia[0]?.createdAt
-    ),
+    ...earlyStageNeedsChanges(row),
     initialCut: row.initialCut,
     initialCutHasMedia: Boolean(row.initialCutMediaItemId),
     awaitingRevisedInitialCut: row.awaitingRevisedInitialCut,
@@ -694,7 +694,7 @@ export async function loadCycleStageView(input: {
   }, null);
   const aRollNeedsChanges =
     input.slug === "a-roll" &&
-    aRollFeedbackNeedsChanges(row.aRollBRoll, revisionNotes.length > 0, latestFeedbackAt, latestFootageAt);
+    stageFeedbackNeedsChanges(row.aRollBRoll, revisionNotes.length > 0, latestFeedbackAt, latestFootageAt);
   if (input.slug === "a-roll" && isProducer) {
     const uploadedAtById = new Map(row.stageMedia.map((link) => [link.mediaItem.id, link.createdAt]));
     for (const item of media) {

@@ -28,6 +28,7 @@ function row(overrides: Record<string, unknown> = {}) {
     members: [{ userId: "lo-1", user: { name: "Lucas Hale", nickname: "Lo", email: "lo@pausd.us" } }],
     approval: null,
     _count: { proofOfContacts: 0, stageComments: 0 },
+    proofOfContacts: [],
     initialCutMediaItem: null,
     finalCutMediaItemId: null,
     stageMedia: [],

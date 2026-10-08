@@ -80,6 +80,17 @@ describe("groupTileStatus", () => {
         })
       )
     ).toEqual({ label: "Brainstorm Pending Review", tone: "warn" });
+    expect(
+      groupTileStatus(
+        base({
+          pitching: true,
+          proofOfContact: false,
+          proofCount: 3,
+          brainstormDocUrl: "https://docs.google.com/document/d/abc",
+          brainstormNeedsChanges: true
+        })
+      )
+    ).toEqual({ label: "Brainstorm Needs Revisions", tone: "danger" });
     expect(groupTileStatus(base({ aRollBRoll: false, aRollHasMedia: true }))).toEqual({
       label: "A-roll/B-roll Pending Review",
       tone: "warn"

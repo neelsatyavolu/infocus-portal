@@ -562,6 +562,7 @@ export function StageWorkspace({
           proofOfContact: view.row.proofOfContact,
           proofCount: 0,
           brainstormDocUrl: "",
+          brainstormNeedsChanges: false,
           aRollBRoll: view.row.aRollBRoll,
           aRollHasMedia: slug === "a-roll" && mediaCount > 0,
           aRollNeedsChanges: Boolean(view.row.aRollNeedsChanges),

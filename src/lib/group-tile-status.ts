@@ -19,6 +19,7 @@ export type GroupTileStatusInput = {
   proofOfContact: boolean;
   proofCount: number;
   brainstormDocUrl: string;
+  brainstormNeedsChanges?: boolean;
   aRollBRoll: boolean;
   aRollHasMedia: boolean;
   aRollNeedsChanges?: boolean;
@@ -66,6 +67,9 @@ export function groupTileStatus(input: GroupTileStatusInput, now = Date.now()): 
 
   if (!input.proofOfContact) {
     if (brainstormMaterialsReady(input.proofCount, input.brainstormDocUrl)) {
+      if (input.brainstormNeedsChanges) {
+        return { label: "Brainstorm Needs Revisions", tone: "danger" };
+      }
       return pendingReview("brainstorming", "Brainstorm");
     }
     return { label: "Brainstorming", tone: "neutral" };

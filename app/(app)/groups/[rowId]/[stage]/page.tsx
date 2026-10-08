@@ -3,6 +3,8 @@ import { notFound, redirect } from "next/navigation";
 import { StageWorkspace } from "@/components/package-cycle/stage-workspace";
 import { getCurrentAppUser } from "@/src/lib/current-app-user";
 import { serializeProofs } from "@/src/lib/package-brainstorm";
+import { APPROVAL_COMMENT_PREFIX } from "@/src/lib/package-stage-comments";
+import { brainstormNeedsChanges } from "@/src/lib/package-stage-status";
 import { currentCutRevisionStage } from "@/src/lib/initial-cut-review-versions";
 import { isCycleStageSlug } from "@/src/lib/package-cycle-gates";
 import {
@@ -69,7 +71,13 @@ export default async function GroupStagePage({
       initialCutMediaItem: {
         select: { currentVersion: { select: { createdAt: true, approvalStatus: true } } }
       },
-      proofOfContacts: { select: { id: true, slot: true, fileName: true, mimeType: true } }
+      proofOfContacts: { select: { id: true, slot: true, fileName: true, mimeType: true, updatedAt: true } },
+      stageComments: {
+        where: { stage: "brainstorming", NOT: { body: { startsWith: APPROVAL_COMMENT_PREFIX } } },
+        select: { stage: true, createdAt: true },
+        orderBy: { createdAt: "desc" },
+        take: 1
+      }
     }
   });
   if (!row) {
@@ -135,6 +143,7 @@ export default async function GroupStagePage({
           proofs={serializeProofs(row.proofOfContacts)}
           docUrl={row.brainstormDocUrl}
           approved={row.proofOfContact}
+          needsChanges={brainstormNeedsChanges(row)}
           canEdit={canEdit}
         />
       )}

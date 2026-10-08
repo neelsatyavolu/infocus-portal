@@ -11,6 +11,7 @@ import { prisma } from "@/src/lib/prisma";
 import { getRequestKey, limitByKey } from "@/src/lib/rate-limit";
 import { userDisplayName } from "@/src/lib/user-display";
 import {
+  brainstormRowInclude,
   loadStudentBrainstormPackages,
   requireBrainstormMember,
   requireBrainstormViewer,
@@ -117,18 +118,7 @@ export async function PATCH(request: Request) {
         const updated = await tx.packageProgressRow.update({
           where: { id: row.id },
           data: { brainstormDocUrl: url },
-          include: {
-            members: {
-              select: {
-                userId: true,
-                user: { select: { id: true, name: true, nickname: true, email: true } }
-              }
-            },
-            assignedProducer: { select: { id: true, name: true, nickname: true, email: true } },
-            proofOfContacts: {
-              select: { id: true, slot: true, fileName: true, mimeType: true }
-            }
-          }
+          include: brainstormRowInclude
         });
         if (becameReady) {
           await recordAssociateReviewHistory({ rowId: row.id, stage: "brainstorming", kind: "ready", actorId: userId }, tx);
@@ -167,18 +157,7 @@ export async function PATCH(request: Request) {
       const updated = await tx.packageProgressRow.update({
         where: { id: row.id },
         data: { proofOfContact: payload.approved },
-        include: {
-          members: {
-            select: {
-              userId: true,
-              user: { select: { id: true, name: true, nickname: true, email: true } }
-            }
-          },
-          assignedProducer: { select: { id: true, name: true, nickname: true, email: true } },
-          proofOfContacts: {
-            select: { id: true, slot: true, fileName: true, mimeType: true }
-          }
-        }
+        include: brainstormRowInclude
       });
       if (shouldNotifyApproved) {
         await recordAssociateReviewHistory({ rowId: row.id, stage: "brainstorming", kind: "review", actorId: userId, note: excerpt }, tx);

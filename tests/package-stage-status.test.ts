@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   allCycleStageStatuses,
-  aRollFeedbackNeedsChanges,
   aRollUploadIsNew,
+  brainstormNeedsChanges,
   cycleStageStatus,
-  emptyCycleStageStatusInput
+  earlyStageNeedsChanges,
+  emptyCycleStageStatusInput,
+  stageFeedbackNeedsChanges
 } from "@/src/lib/package-stage-status";
 
 describe("cycleStageStatus", () => {
@@ -33,6 +35,47 @@ describe("cycleStageStatus", () => {
     ).toBe("approved");
   });
 
+  it("treats producer brainstorming feedback without approval as REVISIONS", () => {
+    const ready = {
+      ...emptyCycleStageStatusInput(),
+      proofCount: 3,
+      brainstormDocUrl: "https://docs.google.com/document/d/abc"
+    };
+    expect(cycleStageStatus("brainstorming", { ...ready, brainstormNeedsChanges: true })).toBe("needs-revisions");
+    expect(
+      cycleStageStatus("brainstorming", { ...ready, brainstormNeedsChanges: true, proofOfContact: true })
+    ).toBe("approved");
+    expect(
+      cycleStageStatus("brainstorming", { ...emptyCycleStageStatusInput(), brainstormNeedsChanges: true })
+    ).toBe("pending");
+  });
+
+  it("clears brainstorming revisions on approval or a proof uploaded after the feedback", () => {
+    const feedbackAt = new Date("2026-10-08T18:00:00.000Z");
+    const before = new Date("2026-10-08T17:00:00.000Z");
+    const after = new Date("2026-10-08T18:05:00.000Z");
+    const feedback = [{ stage: "brainstorming", createdAt: feedbackAt }];
+    const base = { proofOfContact: false, stageComments: feedback, proofOfContacts: [{ updatedAt: before }] };
+    expect(brainstormNeedsChanges(base)).toBe(true);
+    expect(brainstormNeedsChanges({ ...base, proofOfContact: true })).toBe(false);
+    expect(brainstormNeedsChanges({ ...base, proofOfContacts: [{ updatedAt: before }, { updatedAt: after }] })).toBe(false);
+    expect(brainstormNeedsChanges({ ...base, stageComments: [] })).toBe(false);
+    expect(brainstormNeedsChanges({ ...base, stageComments: [{ stage: "a-roll", createdAt: feedbackAt }] })).toBe(false);
+  });
+
+  it("keeps brainstorming and a-roll feedback separate", () => {
+    const at = new Date("2026-10-08T18:00:00.000Z");
+    expect(
+      earlyStageNeedsChanges({
+        proofOfContact: true,
+        aRollBRoll: false,
+        stageComments: [{ stage: "a-roll", createdAt: at }],
+        proofOfContacts: [],
+        stageMedia: [{ createdAt: new Date("2026-10-08T17:00:00.000Z") }]
+      })
+    ).toEqual({ brainstormNeedsChanges: false, aRollNeedsChanges: true });
+  });
+
   it("locks later tabs until the previous stage is approved", () => {
     const locked = emptyCycleStageStatusInput();
     expect(cycleStageStatus("a-roll", locked)).toBe("locked");
@@ -49,8 +92,8 @@ describe("cycleStageStatus", () => {
 
   it("treats assigned-producer a-roll feedback as REVISIONS until they approve", () => {
     const unlocked = { ...emptyCycleStageStatusInput(), proofOfContact: true, aRollHasMedia: true };
-    expect(aRollFeedbackNeedsChanges(false, true)).toBe(true);
-    expect(aRollFeedbackNeedsChanges(true, true)).toBe(false);
+    expect(stageFeedbackNeedsChanges(false, true)).toBe(true);
+    expect(stageFeedbackNeedsChanges(true, true)).toBe(false);
     expect(cycleStageStatus("a-roll", { ...unlocked, aRollNeedsChanges: true })).toBe("needs-revisions");
     expect(cycleStageStatus("a-roll", { ...unlocked, aRollNeedsChanges: true, aRollBRoll: true })).toBe("approved");
   });
@@ -58,9 +101,9 @@ describe("cycleStageStatus", () => {
   it("returns a-roll to pending review after students upload past producer feedback", () => {
     const feedbackAt = new Date("2026-09-02T18:00:00.000Z");
     const footageAt = new Date("2026-09-02T18:05:00.000Z");
-    expect(aRollFeedbackNeedsChanges(false, true, feedbackAt, footageAt)).toBe(false);
-    expect(aRollFeedbackNeedsChanges(false, true, footageAt, feedbackAt)).toBe(true);
-    expect(aRollFeedbackNeedsChanges(false, true, feedbackAt, feedbackAt)).toBe(true);
+    expect(stageFeedbackNeedsChanges(false, true, feedbackAt, footageAt)).toBe(false);
+    expect(stageFeedbackNeedsChanges(false, true, footageAt, feedbackAt)).toBe(true);
+    expect(stageFeedbackNeedsChanges(false, true, feedbackAt, feedbackAt)).toBe(true);
     const unlocked = { ...emptyCycleStageStatusInput(), proofOfContact: true, aRollHasMedia: true };
     expect(cycleStageStatus("a-roll", { ...unlocked, aRollNeedsChanges: false })).toBe("submitted");
   });

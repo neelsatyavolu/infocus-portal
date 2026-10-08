@@ -101,12 +101,14 @@ export function BrainstormingPanel({
   proofs,
   docUrl,
   approved,
+  needsChanges,
   canEdit
 }: {
   rowId: string;
   proofs: BrainstormProofView[];
   docUrl: string;
   approved: boolean;
+  needsChanges: boolean;
   canEdit: boolean;
 }) {
   const router = useRouter();
@@ -146,7 +148,8 @@ export function BrainstormingPanel({
     ...emptyCycleStageStatusInput(),
     proofOfContact: done,
     proofCount: proofs.length,
-    brainstormDocUrl: docUrl
+    brainstormDocUrl: docUrl,
+    brainstormNeedsChanges: needsChanges
   });
 
   return (
@@ -164,7 +167,7 @@ export function BrainstormingPanel({
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
-          <StageComments rowId={rowId} stage="brainstorming" canWrite={canEdit} />
+          <StageComments rowId={rowId} stage="brainstorming" canWrite={canEdit} onPosted={() => router.refresh()} />
           <StageStatusChip status={status} size="lg" />
         </div>
       </div>

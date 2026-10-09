@@ -95,7 +95,7 @@ export async function GET(request: Request) {
         },
         orderBy: [{ queuedForShowDate: "asc" }, { queuedForAirAt: "desc" }]
       }),
-      listUpcomingShowDays(10),
+      listUpcomingShowDays(13),
       wantCandidates
         ? prisma.packageProgressRow.findMany({
             where: {

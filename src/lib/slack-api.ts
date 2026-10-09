@@ -8,6 +8,10 @@ export function slackBotToken() {
   return process.env.SLACK_BOT_TOKEN?.trim() || "";
 }
 
+export function slackAnnouncementsChannelId() {
+  return process.env.SLACK_ANNOUNCEMENTS_CHANNEL?.trim() || SLACK_ANNOUNCEMENTS_CHANNEL_DEFAULT;
+}
+
 export function slackHubIconUrl(origin = mainAppOrigin()) {
   return `${origin.replace(/\/+$/, "")}/favicon/infocus-hub-icon.png`;
 }

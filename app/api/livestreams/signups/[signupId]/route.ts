@@ -33,9 +33,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     const signup = await prisma.livestreamSignupRequest.findUnique({
       where: { id: signupId },
-      include: {
-        event: { include: { _count: { select: { attendees: true } } } }
-      }
+      include: { event: true }
     });
     if (!signup) {
       throw new Error("NOT_FOUND");
@@ -48,11 +46,28 @@ export async function PATCH(request: Request, context: RouteContext) {
       if (signup.event.status === "CANCELLED") {
         return fail("Cannot approve a signup for a cancelled event.", 400);
       }
-      if (signup.event._count.attendees >= signup.event.capacity) {
-        return fail("This livestream is full.", 400);
-      }
 
       const updated = await prisma.$transaction(async (tx) => {
+        // Lock the event so two approvals can't both pass the capacity check.
+        const [event] = await tx.$queryRaw<Array<{ capacity: number; status: string }>>`
+          SELECT "capacity", "status"::text AS "status"
+          FROM "LivestreamEvent"
+          WHERE "id" = ${signup.eventId}
+          FOR UPDATE
+        `;
+        if (!event) throw new Error("NOT_FOUND");
+        if (event.status === "CANCELLED") throw new Error("LIVESTREAM_CANCELLED");
+
+        const claimed = await tx.livestreamSignupRequest.updateMany({
+          where: { id: signupId, status: "PENDING" },
+          data: {
+            status: "APPROVED",
+            reviewedAt: new Date(),
+            reviewedByUserId: user.id
+          }
+        });
+        if (claimed.count !== 1) throw new Error("ALREADY_REVIEWED");
+
         await tx.livestreamAttendee.upsert({
           where: {
             eventId_userId: { eventId: signup.eventId, userId: signup.userId }
@@ -60,16 +75,24 @@ export async function PATCH(request: Request, context: RouteContext) {
           create: { eventId: signup.eventId, userId: signup.userId },
           update: {}
         });
+        const attendees = await tx.livestreamAttendee.count({ where: { eventId: signup.eventId } });
+        if (attendees > event.capacity) throw new Error("LIVESTREAM_FULL");
 
-        return tx.livestreamSignupRequest.update({
-          where: { id: signupId },
-          data: {
-            status: "APPROVED",
-            reviewedAt: new Date(),
-            reviewedByUserId: user.id
-          }
-        });
+        return tx.livestreamSignupRequest.findUniqueOrThrow({ where: { id: signupId } });
+      }).catch((error: unknown) => {
+        if (error instanceof Error && error.message === "LIVESTREAM_FULL") {
+          return fail("This livestream is full.", 400);
+        }
+        if (error instanceof Error && error.message === "LIVESTREAM_CANCELLED") {
+          return fail("Cannot approve a signup for a cancelled event.", 400);
+        }
+        if (error instanceof Error && error.message === "ALREADY_REVIEWED") {
+          return fail("This request was already reviewed.", 400);
+        }
+        throw error;
       });
+
+      if (updated instanceof Response) return updated;
 
       return ok({
         id: updated.id,
@@ -80,13 +103,19 @@ export async function PATCH(request: Request, context: RouteContext) {
       });
     }
 
-    const denied = await prisma.livestreamSignupRequest.update({
-      where: { id: signupId },
+    const deniedUpdate = await prisma.livestreamSignupRequest.updateMany({
+      where: { id: signupId, status: "PENDING" },
       data: {
         status: "DENIED",
         reviewedAt: new Date(),
         reviewedByUserId: user.id
       }
+    });
+    if (deniedUpdate.count !== 1) {
+      return fail("This request was already reviewed.", 400);
+    }
+    const denied = await prisma.livestreamSignupRequest.findUniqueOrThrow({
+      where: { id: signupId }
     });
 
     return ok({

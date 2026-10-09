@@ -283,7 +283,11 @@ export default async function ReviewPage({
   return (
     <>
       <ProjectShellBridge data={shellData} />
-      <ReviewShell data={review.data} allowComment={review.allowComment} />
+      <ReviewShell
+        key={`${review.data.mediaId}:${review.data.currentVersionId}`}
+        data={review.data}
+        allowComment={review.allowComment}
+      />
     </>
   );
 }

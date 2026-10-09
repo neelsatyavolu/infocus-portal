@@ -17,7 +17,7 @@ import {
   PACKAGE_STAGE_LABELS
 } from "@/src/lib/package-stages";
 import { cycleSemesterTerm, parseSemesterTerm } from "@/src/lib/package-grades";
-import { currentGradebookWeekIndex, type GradeTab } from "@/src/lib/grades-view";
+import { currentGradebookWeekIndex, gradebookTodayKey, type GradeTab } from "@/src/lib/grades-view";
 import type { GradebookCheckIn, GradebookWeek } from "@/src/lib/student-gradebook";
 import { BottomTabDock, BottomTabDockButton } from "@/components/ui/bottom-tab-dock";
 import { cn } from "@/src/lib/utils";
@@ -180,7 +180,7 @@ export default function GradesClient({
 
         const weeks = next.gradebook?.weeks ?? [];
         if (weeks.length > 0) {
-          setWeekIndex(currentGradebookWeekIndex(weeks, new Date().toISOString().slice(0, 10)));
+          setWeekIndex(currentGradebookWeekIndex(weeks, gradebookTodayKey()));
         }
       } catch (error) {
         if (!active) return;

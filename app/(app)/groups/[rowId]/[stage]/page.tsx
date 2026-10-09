@@ -136,9 +136,10 @@ export default async function GroupStagePage({
           reviewStage={initialReviewStageFromSlug(stage) ?? undefined}
         />
       ) : stage === "pitching" ? (
-        <PitchingPanel rowId={row.id} approved={row.pitching} canEdit={canEdit} />
+        <PitchingPanel key={row.id} rowId={row.id} approved={row.pitching} canEdit={canEdit} />
       ) : (
         <BrainstormingPanel
+          key={row.id}
           rowId={row.id}
           proofs={serializeProofs(row.proofOfContacts)}
           docUrl={row.brainstormDocUrl}

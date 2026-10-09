@@ -8,10 +8,17 @@ import {
   listUpcomingShowDates,
   monthKeyFromDateKey,
   nextUpcomingShowDate,
-  precedingPaDateKey
+  precedingPaDateKey,
+  todayDateKey
 } from "@/src/lib/show-assignment";
 
 describe("show assignment dates", () => {
+  it("uses the Pacific school day, including after 5pm", () => {
+    expect(todayDateKey(new Date("2026-10-12T00:30:00.000Z"))).toBe("2026-10-11");
+    expect(todayDateKey(new Date("2026-01-12T00:30:00.000Z"))).toBe("2026-01-11");
+    expect(todayDateKey(new Date("2026-10-11T19:00:00.000Z"))).toBe("2026-10-11");
+  });
+
   it("starts the 2026-27 season on September 4", () => {
     expect(FIRST_SHOW_DATE).toBe("2026-09-04");
     expect(nextUpcomingShowDate("2026-08-14")).toBe("2026-09-04");

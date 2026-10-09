@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const db = vi.hoisted(() => ({
   packageApproval: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
   packageProgressRow: { findUnique: vi.fn(), update: vi.fn() },
-  packageApprovalSignoff: { deleteMany: vi.fn(), create: vi.fn() },
+  packageApprovalSignoff: { deleteMany: vi.fn(), create: vi.fn(), findMany: vi.fn() },
   mediaVersion: { updateMany: vi.fn(), update: vi.fn(), findFirst: vi.fn() },
   mediaItem: { findUnique: vi.fn() },
   user: { findUnique: vi.fn() },
@@ -149,6 +149,23 @@ describe("recordDecision", () => {
     await expect(recordDecision("row", actor, true, "", "v2")).resolves.toEqual({ type: "ADVANCE", stage: "ADVISER_REVIEW" });
     expect(db.packageApproval.update).toHaveBeenCalledWith({ where: { id: "approval" }, data: { stage: "ADVISER_REVIEW" } });
     expect(db.mediaVersion.update).toHaveBeenCalledWith({ where: { id: "v2" }, data: { approvalStatus: "APPROVED" } });
+  });
+  it("emails the group when a concurrent Stage 3 vote is the one that approves", async () => {
+    db.packageApproval.findUnique.mockResolvedValue({
+      id: "approval", stage: "EXECUTIVE_REVIEW", controversial: false, signoffs: signoffs.slice(0, 2)
+    });
+    db.packageApprovalSignoff.findMany.mockResolvedValue([
+      { userId: "ep" },
+      { userId: "ep2" }
+    ]);
+    db.mediaItem.findUnique.mockResolvedValue({ currentVersionId: "v2" });
+    db.user.findUnique.mockResolvedValue({ name: "Sage", nickname: null, email: "ep2@example.com" });
+    const ep = { userId: "ep2", email: "ep2@example.com", role: "EXECUTIVE_PRODUCER" as const };
+    await expect(recordDecision("row", ep, true, "", "v2")).resolves.toMatchObject({
+      type: "AWAIT_SIGNOFFS"
+    });
+    expect(db.packageApproval.update).toHaveBeenCalledWith({ where: { id: "approval" }, data: { stage: "APPROVED" } });
+    expect(notify.notifyPackageMembersOfDecision).toHaveBeenCalledWith(expect.objectContaining({ kind: "approved" }));
   });
 });
 describe("approveAnyway", () => {

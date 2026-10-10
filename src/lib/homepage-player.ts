@@ -182,7 +182,7 @@ export function homepagePlayerScript(fallbackPlaylistId = FALLBACK_PLAYLIST_ID):
 })();`;
 }
 
-/** Full standalone HTML page. Transparent outside the nameplate; 60px heading strip + exact 16:9 video. */
+/** Full standalone HTML page. SNO-matched 54.4px heading strip + exact 16:9 video. */
 export function renderHomepagePlayerHtml(nonce: string, fallbackPlaylistId = FALLBACK_PLAYLIST_ID): string {
   const playlist = homepagePlayer.isPlaylistId(fallbackPlaylistId) ? fallbackPlaylistId : FALLBACK_PLAYLIST_ID;
   const src = homepagePlayer.embedUrl({ kind: "playlist", playlistId: playlist });
@@ -202,8 +202,13 @@ export function renderHomepagePlayerHtml(nonce: string, fallbackPlaylistId = FAL
 html, body { margin: 0; padding: 0; background: transparent; }
 body { font-family: "Lexend", system-ui, -apple-system, "Segoe UI", sans-serif; }
 #root { width: 100%; background: transparent; }
-.nameplate { box-sizing: border-box; height: 60px; display: flex; align-items: center; gap: 12px; padding: 0 20px; background: #0B6E3E; color: #ECEFEA; border-top-right-radius: 32px; overflow: hidden; min-width: 0; }
-#root.live .nameplate { background: #C21F3A; }
+.nameplate { box-sizing: border-box; height: 54.4px; display: flex; align-items: center; gap: 12px; padding: 0 20px; background: #F4F6F5; color: #0F110F; border-bottom: 4px solid #0B6E3E; overflow: hidden; min-width: 0; }
+#root.live .nameplate { border-bottom-color: #C21F3A; }
+#root.live #label { color: #C21F3A; }
+@media (prefers-color-scheme: dark) {
+  .nameplate { background: #1A1D1A; color: #ECEFEA; }
+  #root.live #label { color: #F48B9D; }
+}
 #label { flex: 0 1 auto; min-width: 0; font-size: 22px; font-weight: 600; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #root.live #label { flex: 0 0 auto; text-transform: uppercase; letter-spacing: 0.04em; }
 #title { flex: 1 1 auto; min-width: 0; font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0.92; }
@@ -212,7 +217,7 @@ body { font-family: "Lexend", system-ui, -apple-system, "Segoe UI", sans-serif; 
 .video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 @media (max-width: 420px) {
   .nameplate { padding: 0 14px; gap: 8px; }
-  #label { font-size: 18px; }
+  #label { font-size: 22px; }
   #title { font-size: 14px; }
 }
 </style>

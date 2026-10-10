@@ -2,6 +2,7 @@ import type { MeetingEndReason } from "@prisma/client";
 import { prisma } from "@/src/lib/prisma";
 import { assertCanSeeMeeting, isMeetingHostOrPromoted, type MeetingViewer } from "@/src/server/meetings-access";
 import { readMeetingKey, rotateMeetingKey } from "@/src/server/meetings-keys";
+import { emailMeetingNotes } from "@/src/server/meetings-notes-email";
 import { sendMeetingRoomEvent } from "@/src/server/meetings-room-client";
 import { isMeetingOpen } from "@/src/server/meetings-rules";
 import { rekeyMeetingScribe, stopMeetingScribe } from "@/src/server/meetings-scribe";
@@ -170,7 +171,7 @@ export async function admitAllWaiting(viewer: MeetingViewer, meetingId: string) 
 export async function endMeeting(meetingId: string, now = new Date(), reason: MeetingEndReason = "HOST") {
   const meeting = await prisma.meeting.findUnique({
     where: { id: meetingId },
-    select: { status: true, notesEnabled: true, endedReason: true }
+    select: { status: true, notesEnabled: true, notesStatus: true, endedReason: true }
   });
   if (!meeting) throw new Error("NOT_FOUND");
   const ended = await prisma.meeting.updateMany({
@@ -190,6 +191,8 @@ export async function endMeeting(meetingId: string, now = new Date(), reason: Me
   await sendCriticalRoomEvent(meetingId, { t: "ended" });
   // Stopping makes the Scribe process the notes.
   if (meeting.status === "LIVE" && meeting.notesEnabled) await stopMeetingScribe(meetingId);
+  // Notes that became READY while the call was still live never get a later callback.
+  if (meeting.notesStatus === "READY") await emailMeetingNotes(meetingId);
   return { ended: true };
 }
 

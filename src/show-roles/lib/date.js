@@ -68,9 +68,26 @@ export function getShowType(dateOrString) {
   return null;
 }
 
+/** Calendar day in Pacific time, as YYYY-MM-DD. */
+export function schoolTodayKey(now = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Los_Angeles",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+}
+
+function pacificWallDate(now = new Date()) {
+  const [year, month, day] = schoolTodayKey(now).split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
 // The show being prepped: the next show after today (on a show day, the following one).
-export function getCurrentShowDate(from = new Date()) {
-  return nextShowDate(from);
+// No argument means "now" on the Pacific school calendar. An explicit Date keeps its
+// own calendar day so date-only values constructed at local midnight stay put.
+export function getCurrentShowDate(from) {
+  return nextShowDate(from ?? pacificWallDate());
 }
 
 export function nextShowDate(from = new Date()) {

@@ -53,4 +53,13 @@ describe("pickCurrentParticipationWeek", () => {
   it("returns null when there are no weeks", () => {
     expect(pickCurrentParticipationWeek([], "2026-08-14")).toBeNull();
   });
+
+  it("defaults to the Pacific day, so Sunday evening stays on this week", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-12T00:30:00.000Z"));
+    expect(pickCurrentParticipationWeek([{ weekStart: "2026-10-05" }, { weekStart: "2026-10-12" }])).toEqual({
+      weekStart: "2026-10-05"
+    });
+    vi.useRealTimers();
+  });
 });

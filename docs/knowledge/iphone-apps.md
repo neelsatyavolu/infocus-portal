@@ -51,3 +51,7 @@ The public app (bundle `com.infocuspaly.news`, App Store name "InFocus News"). N
 - **Alerts:** optional notifications for new shows, new stories and streams going live, each toggled in Settings.
 
 The app reads `GET /api/public/shows`, `/api/public/shows/{date}/announcements` and `/api/public/live`, which need no sign-in. The source is in the `infocus-news-app` repo.
+
+### Public website player
+
+The infocusnews.tv homepage embeds `/api/public/live/embed` from the Portal. It uses these same public feeds: the latest show is the default, and an active public YouTube livestream replaces it with a **LIVE NOW** heading. Scheduled streams and ended replays do not take over. While the page is visible, the player checks live status every minute and shows every five minutes; feed caching can add a short delay. When a successful live check finds no active stream, the player returns to the latest show without a manual WordPress edit. The embed needs no sign-in and exposes no YouTube credentials.

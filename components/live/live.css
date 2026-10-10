@@ -108,7 +108,8 @@
 .lv-hb img { height: 70px; width: auto; }
 .lv-kicker { display: flex; align-items: center; gap: 20px; font-weight: 700; font-size: 38px; letter-spacing: 0.18em; color: #2bb36e; text-transform: uppercase; }
 .lv-ss-head { position: absolute; left: 120px; right: 120px; top: 250px; display: flex; flex-direction: column; gap: 24px; }
-.lv-ss-title { font-weight: 600; line-height: 1.02; letter-spacing: -0.02em; max-height: 2.04em; overflow: hidden; overflow-wrap: anywhere; text-wrap: balance; }
+/* The bottom padding keeps descenders (g, y) inside the clip; the negative margin puts the subtitle back where it was. */
+.lv-ss-title { font-weight: 600; line-height: 1.02; letter-spacing: -0.02em; box-sizing: border-box; max-height: 2.16em; padding-bottom: 0.12em; margin-bottom: -0.12em; overflow: hidden; overflow-wrap: anywhere; text-wrap: balance; }
 .lv-ss-sub { font-size: 56px; color: #dce2de; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lv-ss-plate { position: absolute; left: 0; bottom: 120px; width: 980px; height: 300px; background: #0b6e3e; padding: 48px 120px; display: flex; flex-direction: column; justify-content: center; gap: 14px; }
 .lv-ss-plate .lbl { font-weight: 500; font-size: 32px; letter-spacing: 0.11em; text-transform: uppercase; }

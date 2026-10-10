@@ -4,7 +4,7 @@ import { z } from "zod";
 export const GRAPHIC_IDS = ["starting-soon", "commentators", "spotlight", "halftime", "brb", "final"] as const;
 export type GraphicId = (typeof GRAPHIC_IDS)[number];
 
-export type GraphicField = { key: string; label: string; max: number };
+export type GraphicField = { key: string; label: string; max: number; placeholder?: string };
 
 export type GraphicDefinition = {
   id: GraphicId;
@@ -17,10 +17,11 @@ export const GRAPHICS: GraphicDefinition[] = [
   {
     id: "starting-soon",
     name: "Starting soon",
-    description: "Countdown to the event's start time.",
+    description: "Countdown to the event's start time, moved by the start offset.",
     fields: [
       { key: "title", label: "Title", max: 40 },
-      { key: "subtitle", label: "Subtitle", max: 60 }
+      { key: "subtitle", label: "Subtitle", max: 60 },
+      { key: "offset", label: "Start offset (minutes)", max: 6, placeholder: "0 · 60 is an hour later, -10 is earlier" }
     ]
   },
   {
@@ -82,7 +83,7 @@ export function defaultGraphicFields(
 ): Record<string, string> {
   switch (id) {
     case "starting-soon":
-      return { title: event.title.slice(0, 40), subtitle: event.location.slice(0, 60) };
+      return { title: event.title.slice(0, 40), subtitle: event.location.slice(0, 60), offset: "" };
     case "commentators":
       return { leftName: "", leftRole: "Play-by-play", rightName: "", rightRole: "Color commentary" };
     case "spotlight":
@@ -96,6 +97,12 @@ export function defaultGraphicFields(
     default:
       return {};
   }
+}
+
+/** The Starting soon offset field (minutes, negative is earlier) in milliseconds; blank or not a number is 0. */
+export function startOffsetMs(value: string | undefined) {
+  const minutes = Number(value ?? "");
+  return Number.isFinite(minutes) ? Math.round(minutes * 60_000) : 0;
 }
 
 export const liveImageSchema = z

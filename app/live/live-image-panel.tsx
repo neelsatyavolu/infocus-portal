@@ -75,6 +75,7 @@ export function LiveImagePanel({ event, scoreboard, liveImage, offset, overlayUr
                   id={`live-field-${queued}-${field.key}`}
                   value={fields[field.key] ?? ""}
                   maxLength={field.max}
+                  placeholder={field.placeholder}
                   onChange={(changeEvent) => editField(field.key, changeEvent.target.value)}
                 />
               </FieldLabel>

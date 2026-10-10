@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element -- broadcast graphics use plain img so OBS renders them without the image optimizer. */
 import type { CSSProperties } from "react";
 import type { LiveEventSummary } from "@/src/server/live-graphics";
-import type { GraphicId } from "@/src/lib/live/graphics";
+import { startOffsetMs, type GraphicId } from "@/src/lib/live/graphics";
 import type { ScoreboardState } from "@/src/lib/live/scoreboard";
 import { fitWrappedFontSize } from "@/src/lib/live/thumbnail";
 import { LIVE_ICON_SRC, LIVE_WORDMARK_SRC } from "./live-stage";
@@ -138,8 +138,8 @@ function PeriodTable({ scoreboard }: { scoreboard: ScoreboardState }) {
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Under a day: a live h:mm:ss countdown. A day or more: the start day and time. Past: "Starting now". */
-function startLabel(event: LiveEventSummary, now: number) {
-  const start = new Date(event.startsAt);
+function startLabel(event: LiveEventSummary, offsetMs: number, now: number) {
+  const start = new Date(new Date(event.startsAt).getTime() + offsetMs);
   const remaining = start.getTime() - now;
   if (remaining <= 0) return { kind: "now" as const, text: "Starting now" };
   if (remaining >= DAY_MS) {
@@ -163,7 +163,7 @@ export function LiveGraphic({ graphic, fields, scoreboard, event, now }: Graphic
 
   switch (graphic) {
     case "starting-soon": {
-      const start = startLabel(event, now);
+      const start = startLabel(event, startOffsetMs(field("offset")), now);
       const title = field("title");
       return (
         <div className="lv-card">

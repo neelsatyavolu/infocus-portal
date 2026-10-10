@@ -4,6 +4,7 @@ import { Chrome, Lock } from "lucide-react";
 import { getSessionUser, hasGoogleOAuthConfig, sanitizeReturnTo } from "@/src/lib/auth";
 import { EquipmentPasskeyButton } from "@/components/equipment-passkeys";
 import { EmailSignInForm } from "./email-sign-in-form";
+import { PasswordSignInForm } from "./password-sign-in-form";
 import {
   canBypassHubMaintenance,
   HUB_MAINTENANCE_MODE
@@ -76,6 +77,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
             ) : null}
             {safeReturnTo === "/equipment/manage" ? <EquipmentPasskeyButton purpose="login" /> : null}
             <EmailSignInForm returnTo={safeReturnTo} />
+            <PasswordSignInForm returnTo={safeReturnTo} />
             <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
               Workspace access granted by your producer.
             </p>

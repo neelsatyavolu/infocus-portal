@@ -292,6 +292,16 @@ export function sanitizeReturnTo(returnTo?: string | null, fallback = "/dashboar
   return value;
 }
 
+/** Where a JSON sign-in route sends the browser: a path on this origin, a trusted infocuspaly.com URL, or /dashboard. */
+export function resolveSignInReturnTo(returnTo: string | undefined, origin: string) {
+  // Resolve as a URL too: URL parsing can normalize backslashes into an external host.
+  const safe = sanitizeReturnTo(returnTo);
+  const target = new URL(safe, origin);
+  // Same origin → path only; another infocuspaly.com host (e.g. the Meetings host) → as is.
+  if (target.origin === origin) return `${target.pathname}${target.search}${target.hash}`;
+  return isTrustedReturnUrl(safe) ? safe : "/dashboard";
+}
+
 // Request-scoped memo (React cache): the layout, page, and access helpers all
 // call these in one render, so parse the cookie and hit the database once.
 export const getRealSessionUser = cache(async () => {

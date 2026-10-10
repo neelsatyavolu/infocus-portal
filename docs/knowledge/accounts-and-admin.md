@@ -8,6 +8,8 @@ On `/sign-in`, choose **Continue with Google** to use your registered Google acc
 
 Email sign-in uses your existing Portal account and permissions. If your email does not have access, ask a producer to add you in Admin → People.
 
+**Admin password sign-in** (a small link under the email form) is for the technical super admin only. Nobody else has a password, and one can't be set up in Portal; everyone else uses Google or an emailed code. It signs into the super admin's existing account. After 10 wrong tries in 15 minutes it locks for everyone until the 15 minutes pass; Google and email sign-in keep working.
+
 Google and email sign-in keep you signed in on that browser for 30 days. One sign-in covers the Portal, grades, teleprompter, and equipment manage hosts. **Sign out** is at the bottom of the sidebar. The first time you sign in, Portal sends you to `/onboarding` (nickname and notification channels; see `notifications.md`).
 
 **Add a person (preferred):** Admin → People → Full name + email → **Add person**. Optionally email them an invite (on by default). They sign in with that email address. No special paste syntax. The invite email is titled “You're invited to InFocus Portal”. Adding someone also sets up their InFocus Drive account.

@@ -20,6 +20,7 @@ Put these in `.env` (never commit it). Only the **Required** group is needed to 
 | `PACKAGE_ADVISER_EMAIL` | Class adviser (Stage 2 approver, admin powers) |
 | `VIEW_AS_LIMITED_ACTORS` | `actor@x=target@y\|other@y;actor2@x=target@y` |
 | `HUB_MAINTENANCE_BYPASS_EMAILS` | Comma-separated |
+| `SUPER_ADMIN_PASSWORD_USERNAME`, `SUPER_ADMIN_PASSWORD_HASH` | Optional password sign-in for the `PLATFORM_SUPER_ADMIN_EMAIL` account only (`src/server/password-sign-in.ts`). The hash comes from `op read "op://<vault>/<item>/password" \| npx tsx scripts/hash-password.ts`; the password itself is never stored. Unset either one to turn it off |
 
 ## Hosts and cookies
 

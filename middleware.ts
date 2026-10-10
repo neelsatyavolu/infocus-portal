@@ -36,6 +36,7 @@ const publicRoutePatterns = [
   /^\/api\/auth\/google\/callback$/,
   /^\/api\/auth\/email\/request$/,
   /^\/api\/auth\/email\/verify$/,
+  /^\/api\/auth\/password$/,
   /^\/api\/auth\/sign-out$/,
   // InFocus Mac app: code + PKCE verifier for a session (no session yet; see src/server/app-sign-in.ts).
   /^\/api\/auth\/app\/token$/,

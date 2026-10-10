@@ -77,6 +77,7 @@ describe("nextTarget", () => {
   it("builds embed urls only from valid ids", () => {
     expect(embedUrl(playlist)).toBe(`https://www.youtube.com/embed/videoseries?list=${FALLBACK_PLAYLIST_ID}&rel=0&playsinline=1`);
     expect(embedUrl({ kind: "show", videoId: SHOW_ID, title: "" })).toBe(`https://www.youtube.com/embed/${SHOW_ID}?rel=0&playsinline=1`);
+    expect(embedUrl({ kind: "live", videoId: LIVE_ID, title: "" })).toBe(`https://www.youtube.com/embed/${LIVE_ID}?rel=0&playsinline=1&autoplay=1&mute=1`);
     expect(embedUrl({ kind: "show", videoId: "x\"><script>", title: "" })).toBe("about:blank");
   });
 });

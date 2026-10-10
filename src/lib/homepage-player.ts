@@ -93,7 +93,8 @@ function playerLogic() {
       return "https://www.youtube.com/embed/videoseries?list=" + target.playlistId + "&rel=0&playsinline=1";
     }
     if (!isVideoId(target.videoId)) return "about:blank";
-    return "https://www.youtube.com/embed/" + target.videoId + "?rel=0&playsinline=1";
+    return "https://www.youtube.com/embed/" + target.videoId + "?rel=0&playsinline=1" +
+      (target.kind === "live" ? "&autoplay=1&mute=1" : "");
   }
 
   return { isVideoId, isPlaylistId, pickLive, pickLatest, nextTarget, targetKey, embedUrl };

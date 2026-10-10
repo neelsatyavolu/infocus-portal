@@ -1593,7 +1593,10 @@ enum LivestreamSignupStatus {
 model LivestreamEvent {
   id            String                  @id @default(cuid())
   title         String
+  /// When the event itself begins. Thumbnails, countdowns and public listings read this.
   startsAt      DateTime
+  /// When the crew should arrive. Null on events saved before the field existed.
+  arrivesAt     DateTime?
   location      String                  @default("")
   status        LivestreamEventStatus   @default(SCHEDULED)
   availability  LivestreamAvailability  @default(UNCONFIRMED)

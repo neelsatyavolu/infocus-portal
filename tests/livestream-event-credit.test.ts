@@ -75,10 +75,47 @@ describe("livestream credit editing", () => {
   });
   it("saves individual overrides when creating an event", async () => {
     const response = await POST(new Request("http://localhost/api/livestreams/events", {
-      method: "POST", body: JSON.stringify({ title: "Game", startsAt: "2026-09-18T12:00:00Z", status: "COMPLETED", hours: 3,
+      method: "POST", body: JSON.stringify({ title: "Game", startsAt: "2026-09-18T12:00:00Z", arrivesAt: "2026-09-18T10:30:00Z", status: "COMPLETED", hours: 3,
         attendeeUserIds: ["student"], attendeeCredits: [{ userId: "student", creditHours: 0 }] })
     }));
     expect(response.status).toBe(201);
     expect(db.livestreamEvent.create.mock.calls[0][0].data.attendees.create).toEqual([{ userId: "student", creditHours: 0 }]);
+  });
+});
+
+describe("livestream arrival and start times", () => {
+  const create = (body: Record<string, unknown>) => POST(new Request("http://localhost/api/livestreams/events", {
+    method: "POST", body: JSON.stringify({ title: "Game", ...body })
+  }));
+
+  it("saves the arrival time and the event start time on a new event", async () => {
+    expect((await create({ startsAt: "2026-09-18T19:00:00-07:00", arrivesAt: "2026-09-18T17:30:00-07:00" })).status).toBe(201);
+    const { data } = db.livestreamEvent.create.mock.calls[0][0];
+    expect(data.startsAt).toEqual(new Date("2026-09-19T02:00:00Z"));
+    expect(data.arrivesAt).toEqual(new Date("2026-09-19T00:30:00Z"));
+  });
+  it.each([{}, { arrivesAt: "" }, { arrivesAt: "soon" }])("rejects a new event with arrival %o", async (arrival) => {
+    expect((await create({ startsAt: "2026-09-18T19:00:00-07:00", ...arrival })).status).toBe(400);
+    expect(db.livestreamEvent.create).not.toHaveBeenCalled();
+  });
+  it("rejects a new event without a start time", async () => {
+    expect((await create({ arrivesAt: "2026-09-18T17:30:00-07:00" })).status).toBe(400);
+    expect(db.livestreamEvent.create).not.toHaveBeenCalled();
+  });
+  it("updates the arrival time and returns it", async () => {
+    const arrivesAt = new Date("2026-09-19T00:30:00Z");
+    db.livestreamEvent.update.mockResolvedValue({ id: "event", startsAt: new Date("2026-09-19T02:00:00Z"), arrivesAt, attendees: [] });
+    const response = await patch({ arrivesAt: "2026-09-18T17:30:00-07:00" });
+    expect(response.status).toBe(200);
+    expect(db.livestreamEvent.update.mock.calls[0][0].data.arrivesAt).toEqual(arrivesAt);
+    expect((await response.json()).data.arrivesAt).toBe("2026-09-19T00:30:00.000Z");
+  });
+  it("rejects an invalid arrival time on edit", async () => {
+    expect((await patch({ arrivesAt: "soon" })).status).toBe(400);
+    expect(db.$transaction).not.toHaveBeenCalled();
+  });
+  it("leaves the arrival time alone when an edit omits it", async () => {
+    expect((await patch({ hours: 2 })).status).toBe(200);
+    expect(db.livestreamEvent.update.mock.calls[0][0].data.arrivesAt).toBeUndefined();
   });
 });

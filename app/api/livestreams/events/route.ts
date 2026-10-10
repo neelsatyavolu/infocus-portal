@@ -11,6 +11,7 @@ import { requireLivestreamManagerAccess } from "@/src/server/livestream-access";
 const createSchema = z.object({
   title: z.string().trim().min(1).max(200),
   startsAt: z.string().min(1),
+  arrivesAt: z.string().min(1),
   location: z.string().trim().max(200).optional(),
   status: z.enum(["SCHEDULED", "COMPLETED", "CANCELLED"]).optional(),
   availability: z.enum(["PUBLIC", "UNLISTED", "UNCONFIRMED"]).optional(),
@@ -49,6 +50,10 @@ export async function POST(request: Request) {
     if (Number.isNaN(startsAt.getTime())) {
       return fail("Invalid startsAt datetime.", 400);
     }
+    const arrivesAt = new Date(body.arrivesAt);
+    if (Number.isNaN(arrivesAt.getTime())) {
+      return fail("Invalid arrivesAt datetime.", 400);
+    }
 
     const status = body.status ?? "SCHEDULED";
     if (status === "COMPLETED" && (body.hours === null || body.hours === undefined)) {
@@ -61,6 +66,7 @@ export async function POST(request: Request) {
       data: {
         title: body.title,
         startsAt,
+        arrivesAt,
         location: body.location ?? "",
         status,
         availability: body.availability ?? "UNCONFIRMED",
@@ -85,6 +91,7 @@ export async function POST(request: Request) {
         id: event.id,
         title: event.title,
         startsAt: event.startsAt.toISOString(),
+        arrivesAt: event.arrivesAt?.toISOString() ?? null,
         location: event.location,
         status: event.status,
         availability: event.availability,

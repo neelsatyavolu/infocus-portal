@@ -43,6 +43,7 @@ type EventRow = {
   id: string;
   title: string;
   startsAt: string;
+  arrivesAt: string | null;
   location: string;
   status: "SCHEDULED" | "COMPLETED" | "CANCELLED";
   availability: "PUBLIC" | "UNLISTED" | "UNCONFIRMED";
@@ -102,6 +103,7 @@ type Tab = "schedule" | "completion" | "signups";
 type EventFormState = {
   title: string;
   startsAt: string;
+  arrivalTime: string;
   location: string;
   status: EventRow["status"];
   availability: EventRow["availability"];
@@ -127,6 +129,14 @@ function formatWhen(iso: string) {
     hour: "numeric",
     minute: "2-digit"
   });
+}
+
+function formatDay(iso: string) {
+  return new Date(iso).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+}
+
+function formatTime(iso: string) {
+  return new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 }
 
 function toLocalInputValue(iso?: string) {
@@ -169,6 +179,7 @@ async function readJson<T>(res: Response): Promise<T> {
 const emptyForm = (): EventFormState => ({
   title: "",
   startsAt: toLocalInputValue(),
+  arrivalTime: "",
   location: "",
   status: "SCHEDULED",
   availability: "UNCONFIRMED",
@@ -278,6 +289,7 @@ export default function LivestreamsClient() {
     setForm({
       title: event.title,
       startsAt: toLocalInputValue(event.startsAt),
+      arrivalTime: event.arrivesAt ? toLocalInputValue(event.arrivesAt).slice(11) : "",
       location: event.location,
       status: event.status,
       availability: event.availability,
@@ -300,12 +312,21 @@ export default function LivestreamsClient() {
       setError("Title is required.");
       return;
     }
+    if (!form.startsAt) {
+      setError("Event start time is required.");
+      return;
+    }
+    if (!form.arrivalTime) {
+      setError("Arrival time is required.");
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
       const payload = {
         title: form.title.trim(),
         startsAt: new Date(form.startsAt).toISOString(),
+        arrivesAt: new Date(`${form.startsAt.slice(0, 10)}T${form.arrivalTime}`).toISOString(),
         location: form.location.trim(),
         status: form.status,
         availability: form.availability,
@@ -739,7 +760,11 @@ export default function LivestreamsClient() {
                           </div>
                         </td>
                         <td className="px-4 py-3.5 whitespace-nowrap text-[var(--ink-text)]">
-                          {formatWhen(event.startsAt)}
+                          <div>
+                            {formatDay(event.startsAt)} ·{" "}
+                            {event.arrivesAt ? `Arrive ${formatTime(event.arrivesAt)}` : "Arrival TBD"}
+                          </div>
+                          <div className="mt-0.5 text-[11px]">Starts {formatTime(event.startsAt)}</div>
                         </td>
                         <td className="px-4 py-3.5 text-[var(--ink-text)]">
                           {event.location || "—"}
@@ -1150,12 +1175,23 @@ export default function LivestreamsClient() {
               />
             </label>
             <label className={labelClass}>
-              Date & arrival time
+              Date & event start time
               <input
                 type="datetime-local"
                 className={fieldClass}
+                required
                 value={form.startsAt}
                 onChange={(e) => setForm((f) => ({ ...f, startsAt: e.target.value }))}
+              />
+            </label>
+            <label className={labelClass}>
+              Crew arrival time
+              <input
+                type="time"
+                className={fieldClass}
+                required
+                value={form.arrivalTime}
+                onChange={(e) => setForm((f) => ({ ...f, arrivalTime: e.target.value }))}
               />
             </label>
             <label className={labelClass}>

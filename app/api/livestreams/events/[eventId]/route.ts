@@ -10,6 +10,7 @@ import { requireLivestreamManagerAccess } from "@/src/server/livestream-access";
 const patchSchema = z.object({
   title: z.string().trim().min(1).max(200).optional(),
   startsAt: z.string().min(1).optional(),
+  arrivesAt: z.string().min(1).optional(),
   location: z.string().trim().max(200).optional(),
   status: z.enum(["SCHEDULED", "COMPLETED", "CANCELLED"]).optional(),
   availability: z.enum(["PUBLIC", "UNLISTED", "UNCONFIRMED"]).optional(),
@@ -59,6 +60,13 @@ export async function PATCH(request: Request, context: RouteContext) {
         return fail("Invalid startsAt datetime.", 400);
       }
     }
+    let arrivesAt: Date | undefined;
+    if (body.arrivesAt) {
+      arrivesAt = new Date(body.arrivesAt);
+      if (Number.isNaN(arrivesAt.getTime())) {
+        return fail("Invalid arrivesAt datetime.", 400);
+      }
+    }
 
     const nextStatus = body.status ?? existing.status;
     const nextHours = body.hours !== undefined ? body.hours : existing.hours;
@@ -91,6 +99,7 @@ export async function PATCH(request: Request, context: RouteContext) {
         data: {
           title: body.title,
           startsAt,
+          arrivesAt,
           location: body.location,
           status: body.status,
           availability: body.availability,
@@ -110,6 +119,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       id: event.id,
       title: event.title,
       startsAt: event.startsAt.toISOString(),
+      arrivesAt: event.arrivesAt?.toISOString() ?? null,
       location: event.location,
       status: event.status,
       availability: event.availability,

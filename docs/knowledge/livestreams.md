@@ -6,7 +6,7 @@ Semester 1 hours accumulate immediately, but livestream grades stay **—** and 
 
 Tabs: **Schedule** (everyone), **Completion** (producers and appointed livestream managers only), and **Sign ups** (everyone).
 
-The schedule lists today and upcoming livestreams first; livestreams from earlier days move to the bottom. Each row shows the event, when, location, status, crew, manager, and hours. Under the title it shows availability (**Public**, **Unlisted**, or **Unconfirmed**). The Crew column shows attendees by first name, with a count against capacity; the row color shows **Full**, **1 open**, or **2+ open**.
+The schedule lists today and upcoming livestreams first; livestreams from earlier days move to the bottom. Each row shows the event, when, location, status, crew, manager, and hours. **When** shows the day with the crew **arrival time** and, under it, the **event start time**. Events saved before arrival times existed show **Arrival TBD** until a producer or livestream manager edits them. Under the title it shows availability (**Public**, **Unlisted**, or **Unconfirmed**). The Crew column shows attendees by first name, with a count against capacity; the row color shows **Full**, **1 open**, or **2+ open**.
 
 Full credit: **8 completed hours per semester** (5 pts/hour → 40 pts in the Packages category). Hours come from attendees on **COMPLETED** events in the semester window (S1 Aug 13–Dec 18, S2 Jan 5–Jun 3). Appointed livestream managers instead earn **10 pts per COMPLETED livestream they manage** in the semester (the event's Manager field), so **4 managed livestreams = 40 pts**; extra managed events are not extra credit, and zero-hour (credit-cancelled) events do not count.
 
@@ -20,7 +20,7 @@ On **Sign ups**, pick an open livestream, add an optional note, and press **Requ
 
 ## Events and managers
 
-Producers and livestream managers use **Add event** and **Edit**: event name, date and arrival time, location, status (Scheduled, Completed, Cancelled), availability, default credit hours, capacity (default 4, up to 50), **Event manager**, crew, and notes. Hours are required to mark an event Completed. **Delete** removes the event. Any member can be picked as Event manager, but only appointed livestream managers earn manager credit for it.
+Producers and livestream managers use **Add event** and **Edit**: event name, date and event start time, crew arrival time (same day), location, status (Scheduled, Completed, Cancelled), availability, default credit hours, capacity (default 4, up to 50), **Event manager**, crew, and notes. Both times are required to save. The event start time is what the Livestream dashboard thumbnail and **Starting soon** countdown, the Class Board, and the public upcoming list use; the arrival time is only for the crew. Hours are required to mark an event Completed. **Delete** removes the event. Any member can be picked as Event manager, but only appointed livestream managers earn manager credit for it.
 
 Producers (associate and up) appoint and remove livestream managers in the **Livestream managers** box on the Schedule tab. Managers can edit the schedule, approve sign-ups, and view completion; they are not producers.
 

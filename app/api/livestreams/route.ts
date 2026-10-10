@@ -120,6 +120,7 @@ export async function GET() {
           id: event.id,
           title: event.title,
           startsAt: event.startsAt.toISOString(),
+          arrivesAt: event.arrivesAt?.toISOString() ?? null,
           location: event.location,
           status: event.status,
           availability: event.availability,

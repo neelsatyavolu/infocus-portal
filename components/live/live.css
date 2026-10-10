@@ -124,7 +124,8 @@
 .lv-score-row .big { font-weight: 600; font-size: 220px; line-height: 1; letter-spacing: -0.03em; }
 .lv-score-row .dash { width: 60px; height: 8px; background: #dce2de; }
 .lv-score-row .lose { color: #a3aba6; }
-.lv-qtable { position: absolute; left: 50%; top: 600px; transform: translateX(-50%); border-collapse: collapse; }
+/* Centered with auto margins, not a transform: the build-in animation ends on transform: none and would undo it. */
+.lv-qtable { position: absolute; left: 0; right: 0; top: 600px; width: max-content; margin: 0 auto; border-collapse: collapse; }
 .lv-qtable th { font-weight: 500; font-size: 26px; letter-spacing: 0.11em; color: #a3aba6; text-transform: uppercase; padding: 0 30px 14px; text-align: right; }
 .lv-qtable th:first-child { text-align: left; padding-left: 0; }
 .lv-qtable td { font-family: var(--font-geist-mono), ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; font-size: 46px; padding: 14px 30px; text-align: right; border-top: 2px solid #2b302b; }

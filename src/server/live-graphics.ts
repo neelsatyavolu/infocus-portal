@@ -45,6 +45,17 @@ export async function listLiveEvents(now = new Date()) {
   return events.map(summarize);
 }
 
+/** The 40 most recent livestreams that started more than 12 hours ago, newest first. */
+export async function listPastLiveEvents(now = new Date()) {
+  const events = await prisma.livestreamEvent.findMany({
+    where: { status: { not: "CANCELLED" }, startsAt: { lt: new Date(now.getTime() - LOOKBACK_MS) } },
+    orderBy: { startsAt: "desc" },
+    take: 40,
+    select: { id: true, title: true, startsAt: true, location: true }
+  });
+  return events.map(summarize);
+}
+
 async function findEvent(eventId: string) {
   const event = await prisma.livestreamEvent.findUnique({
     where: { id: eventId },

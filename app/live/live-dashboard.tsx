@@ -57,6 +57,7 @@ function formatEventOption(event: LiveEventSummary) {
 
 export function LiveDashboard({ canRotateKey, signedIn }: { canRotateKey: boolean; signedIn: boolean }) {
   const [events, setEvents] = useState<LiveEventSummary[] | null>(null);
+  const [pastEvents, setPastEvents] = useState<LiveEventSummary[]>([]);
   const [eventId, setEventId] = useState<string | null>(null);
   const [data, setData] = useState<LiveGraphicsPayload | null>(null);
   const [scoreboard, setScoreboard] = useState<ScoreboardState | null>(null);
@@ -80,10 +81,11 @@ export function LiveDashboard({ canRotateKey, signedIn }: { canRotateKey: boolea
   useEffect(() => {
     let cancelled = false;
     fetch("/api/live/events", { cache: "no-store" })
-      .then((response) => readJson<{ events: LiveEventSummary[] }>(response))
-      .then(({ events: list }) => {
+      .then((response) => readJson<{ events: LiveEventSummary[]; pastEvents: LiveEventSummary[] }>(response))
+      .then(({ events: list, pastEvents: past }) => {
         if (cancelled) return;
         setEvents(list);
+        setPastEvents(past);
         setEventId((current) => current ?? list[0]?.id ?? null);
       })
       .catch((caught: Error) => !cancelled && setError(`Couldn't load livestreams: ${caught.message}`));
@@ -266,6 +268,15 @@ export function LiveDashboard({ canRotateKey, signedIn }: { canRotateKey: boolea
                   {formatEventOption(event)}
                 </option>
               ))}
+              {pastEvents.length ? (
+                <optgroup label="Past livestreams">
+                  {pastEvents.map((event) => (
+                    <option key={event.id} value={event.id}>
+                      {formatEventOption(event)}
+                    </option>
+                  ))}
+                </optgroup>
+              ) : null}
             </select>
           </label>
           <div className="hidden md:block">
@@ -279,9 +290,10 @@ export function LiveDashboard({ canRotateKey, signedIn }: { canRotateKey: boolea
           </p>
         ) : null}
 
-        {events?.length === 0 ? (
+        {events?.length === 0 && !eventId ? (
           <p className="text-muted-foreground">
-            There are no livestreams from the last 12 hours or the next 45 days. Add one on the Livestreams page.
+            There are no livestreams from the last 12 hours or the next 45 days. Add one on the Livestreams page
+            {pastEvents.length ? ", or pick a past livestream above" : ""}.
           </p>
         ) : null}
 

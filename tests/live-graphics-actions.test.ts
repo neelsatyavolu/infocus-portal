@@ -3,6 +3,7 @@ import { applyScoreboardAction, defaultScoreboard } from "@/src/lib/live/scorebo
 
 const m = vi.hoisted(() => ({
   eventFind: vi.fn(),
+  eventFindMany: vi.fn(),
   graphicsFind: vi.fn(),
   graphicsCreate: vi.fn(),
   updateMany: vi.fn()
@@ -10,12 +11,12 @@ const m = vi.hoisted(() => ({
 
 vi.mock("@/src/lib/prisma", () => ({
   prisma: {
-    livestreamEvent: { findUnique: m.eventFind },
+    livestreamEvent: { findUnique: m.eventFind, findMany: m.eventFindMany },
     livestreamGraphics: { findUnique: m.graphicsFind, create: m.graphicsCreate, updateMany: m.updateMany }
   }
 }));
 
-import { applyScoreboardActions, getLiveGraphics } from "@/src/server/live-graphics";
+import { applyScoreboardActions, getLiveGraphics, listLiveEvents, listPastLiveEvents } from "@/src/server/live-graphics";
 
 const EVENT = { id: "e1", title: "Varsity Boys Basketball vs. Gunn", startsAt: new Date("2026-10-03T02:00:00Z"), location: "Paly Gym" };
 
@@ -63,5 +64,34 @@ describe("live graphics persistence", () => {
   it("throws NOT_FOUND for an unknown event", async () => {
     m.eventFind.mockResolvedValue(null);
     await expect(getLiveGraphics("missing")).rejects.toThrow("NOT_FOUND");
+  });
+});
+
+describe("live event lists", () => {
+  const NOW = new Date("2026-10-10T19:00:00Z");
+  const CUTOFF = new Date("2026-10-10T07:00:00Z");
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    m.eventFindMany.mockResolvedValue([EVENT]);
+  });
+
+  it("lists current livestreams from 12 hours ago, soonest first", async () => {
+    expect(await listLiveEvents(NOW)).toEqual([
+      { id: "e1", title: EVENT.title, startsAt: "2026-10-03T02:00:00.000Z", location: "Paly Gym" }
+    ]);
+    const query = m.eventFindMany.mock.calls[0][0];
+    expect(query.where).toMatchObject({ status: { not: "CANCELLED" }, startsAt: { gte: CUTOFF } });
+    expect(query.orderBy).toEqual({ startsAt: "asc" });
+  });
+
+  it("lists past livestreams older than 12 hours, newest first, without cancelled ones", async () => {
+    expect(await listPastLiveEvents(NOW)).toEqual([
+      { id: "e1", title: EVENT.title, startsAt: "2026-10-03T02:00:00.000Z", location: "Paly Gym" }
+    ]);
+    const query = m.eventFindMany.mock.calls[0][0];
+    expect(query.where).toEqual({ status: { not: "CANCELLED" }, startsAt: { lt: CUTOFF } });
+    expect(query.orderBy).toEqual({ startsAt: "desc" });
+    expect(query.take).toBe(40);
   });
 });

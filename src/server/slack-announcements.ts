@@ -1,7 +1,7 @@
 import {
   slackApi,
-  slackBotToken,
-  SLACK_ANNOUNCEMENTS_CHANNEL_DEFAULT
+  slackAnnouncementsChannelId,
+  slackBotToken
 } from "@/src/lib/slack-api";
 import {
   serializeSlackAnnouncement,
@@ -103,7 +103,7 @@ export async function loadSlackAnnouncements(options?: { refresh?: boolean }): P
   }
 
   const token = slackBotToken();
-  const channel = process.env.SLACK_ANNOUNCEMENTS_CHANNEL?.trim() || SLACK_ANNOUNCEMENTS_CHANNEL_DEFAULT;
+  const channel = slackAnnouncementsChannelId();
   if (!token) {
     const empty = { configured: false, items: [], error: null, at: Date.now() };
     announcementCache = empty;

@@ -215,6 +215,7 @@ export default async function GuestReviewPage({ params, searchParams }: GuestPag
         <p className="text-sm text-muted-foreground">You are viewing with {payload.permission.toLowerCase()} permissions.</p>
       </header>
       <ReviewShell
+        key={`${payload.mediaData.mediaId}:${payload.mediaData.currentVersionId}`}
         data={payload.mediaData}
         guestToken={token}
         isGuest={payload.permission === GuestPermission.VIEW}

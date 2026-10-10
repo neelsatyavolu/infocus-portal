@@ -1,7 +1,8 @@
 import { handleRouteError } from "@/src/lib/api-errors";
-import { requireUserId } from "@/src/lib/auth";
+import { requireUserId, syncUserProfile } from "@/src/lib/auth";
 import { fail } from "@/src/lib/http";
-import { slackApi, slackBotToken } from "@/src/lib/slack-api";
+import { slackFileSharedInChannel } from "@/src/lib/slack-announcements";
+import { slackAnnouncementsChannelId, slackApi, slackBotToken } from "@/src/lib/slack-api";
 
 const FILE_ID = /^F[A-Z0-9]+$/;
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
@@ -16,12 +17,18 @@ type SlackFileInfo = {
     mimetype?: string;
     size?: number;
     url_private_download?: string;
+    channels?: string[];
+    groups?: string[];
+    shares?: {
+      public?: Record<string, unknown>;
+      private?: Record<string, unknown>;
+    };
   };
 };
 
 export async function GET(_request: Request, context: { params: Promise<{ fileId: string }> }) {
   try {
-    await requireUserId();
+    await syncUserProfile(await requireUserId());
     const { fileId } = await context.params;
     if (!FILE_ID.test(fileId)) {
       return fail("Not found", 404);
@@ -37,6 +44,9 @@ export async function GET(_request: Request, context: { params: Promise<{ fileId
     const downloadUrl = file?.url_private_download?.trim();
     if (!info.ok || !file || !downloadUrl) {
       return fail(info.error === "file_not_found" ? "Not found" : "Could not open that file.", info.error === "file_not_found" ? 404 : 502);
+    }
+    if (!slackFileSharedInChannel(file, slackAnnouncementsChannelId())) {
+      return fail("Not found", 404);
     }
     if (typeof file.size === "number" && file.size > MAX_FILE_BYTES) {
       return fail("That file is too large to open here.", 413);

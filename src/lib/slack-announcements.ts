@@ -160,6 +160,24 @@ export function slackMrkdwnToPlain(text: string, users: Record<string, string> =
     .trim();
 }
 
+type SlackFileChannelInfo = {
+  channels?: string[];
+  groups?: string[];
+  shares?: {
+    public?: Record<string, unknown>;
+    private?: Record<string, unknown>;
+  };
+};
+
+/** True when Slack says this file is shared in the given channel (announcements proxy). */
+export function slackFileSharedInChannel(file: SlackFileChannelInfo, channelId: string) {
+  if (!channelId) return false;
+  if (file.channels?.includes(channelId) || file.groups?.includes(channelId)) return true;
+  const shares = file.shares;
+  if (!shares) return false;
+  return Boolean(shares.public && channelId in shares.public) || Boolean(shares.private && channelId in shares.private);
+}
+
 export function slackFileAttachments(files: SlackHistoryFile[] | undefined): SlackFileAttachment[] {
   return (files ?? []).flatMap((file) => {
     const id = file.id?.trim();

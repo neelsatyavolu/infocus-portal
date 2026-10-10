@@ -287,7 +287,7 @@ export function LiveDashboard({ canRotateKey, signedIn }: { canRotateKey: boolea
 
         {data && scoreboard ? (
           <>
-            {tab === "thumbnail" ? <ThumbnailPanel key={data.event.id} event={data.event} /> : null}
+            {tab === "thumbnail" ? <ThumbnailPanel key={data.event.id} event={data.event} scoreboard={scoreboard} /> : null}
             {tab === "scoreboard" ? (
               <ScoreboardPanel
                 scoreboard={scoreboard}

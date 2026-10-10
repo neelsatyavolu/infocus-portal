@@ -1,6 +1,7 @@
 import { z } from "zod";
+import type { ScoreboardState } from "@/src/lib/live/scoreboard";
 
-export const THUMBNAIL_TEMPLATES = ["matchup", "event"] as const;
+export const THUMBNAIL_TEMPLATES = ["matchup", "event", "final"] as const;
 export const THUMBNAIL_FORMATS = ["youtube", "post", "story"] as const;
 export type ThumbnailTemplate = (typeof THUMBNAIL_TEMPLATES)[number];
 export type ThumbnailFormat = (typeof THUMBNAIL_FORMATS)[number];
@@ -11,12 +12,17 @@ export const THUMBNAIL_SIZES: Record<ThumbnailFormat, { width: number; height: n
   story: { width: 1080, height: 1920, label: "Instagram story" }
 };
 
+const MAX_FINAL_SCORE = 999;
+const finalScoreSchema = z.coerce.number().int().min(0).max(MAX_FINAL_SCORE).default(0);
+
 export const thumbnailQuerySchema = z.object({
   template: z.enum(THUMBNAIL_TEMPLATES).default("matchup"),
   format: z.enum(THUMBNAIL_FORMATS).default("youtube"),
   home: z.string().trim().max(18).default("Paly"),
   away: z.string().trim().max(18).default(""),
   line: z.string().trim().max(40).default(""),
+  homeScore: finalScoreSchema,
+  awayScore: finalScoreSchema,
   title: z.string().trim().max(60).default(""),
   location: z.string().trim().max(30).default(""),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -41,6 +47,12 @@ export function parseEventTitle(title: string) {
     away,
     line: leftIsTeam ? "" : leftTrimmed
   };
+}
+
+/** Score inputs a final thumbnail starts with: sets won in volleyball, points in every other sport. */
+export function finalScoreInputs(scoreboard: Pick<ScoreboardState, "sport" | "teams">) {
+  const [home, away] = scoreboard.teams.map((team) => String(scoreboard.sport === "volleyball" ? team.sets : team.score));
+  return { homeScore: home, awayScore: away };
 }
 
 /** Date and time inputs (YYYY-MM-DD, HH:MM) for an instant, in Pacific time. */
@@ -105,7 +117,8 @@ export function fitWrappedFontSize(text: string, width: number, maxLines: number
 }
 
 export function thumbnailFileName(query: Pick<ThumbnailQuery, "template" | "format" | "home" | "away" | "title" | "date">) {
-  const base = query.template === "matchup" ? `${query.home}-vs-${query.away}` : query.title || "livestream";
+  const matchup = `${query.home}-vs-${query.away}`;
+  const base = query.template === "matchup" ? matchup : query.template === "final" ? `${matchup}-final` : query.title || "livestream";
   const slug = base.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "livestream";
   return `${slug}${query.date ? `-${query.date}` : ""}-${query.format}.png`;
 }

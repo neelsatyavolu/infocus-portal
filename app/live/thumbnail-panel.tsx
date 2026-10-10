@@ -3,17 +3,20 @@ import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import {
   THUMBNAIL_SIZES,
+  finalScoreInputs,
   pacificDateTimeInputs,
   parseEventTitle,
   type ThumbnailFormat,
   type ThumbnailTemplate
 } from "@/src/lib/live/thumbnail";
+import type { ScoreboardState } from "@/src/lib/live/scoreboard";
 import type { LiveEventSummary } from "@/src/server/live-graphics";
 import { FieldLabel, Panel, Seg } from "./live-controls";
 
 const TEMPLATE_OPTIONS = [
   { value: "matchup", label: "A · Matchup" },
-  { value: "event", label: "C · Event" }
+  { value: "event", label: "C · Event" },
+  { value: "final", label: "Final score" }
 ] as const;
 const FORMAT_OPTIONS = [
   { value: "youtube", label: "YouTube" },
@@ -23,7 +26,7 @@ const FORMAT_OPTIONS = [
 
 const PREVIEW_DEBOUNCE_MS = 400;
 
-export function ThumbnailPanel({ event }: { event: LiveEventSummary }) {
+export function ThumbnailPanel({ event, scoreboard }: { event: LiveEventSummary; scoreboard: ScoreboardState }) {
   const parsed = useMemo(() => parseEventTitle(event.title), [event.title]);
   const start = useMemo(() => pacificDateTimeInputs(event.startsAt), [event.startsAt]);
   const [template, setTemplate] = useState<ThumbnailTemplate>(parsed.isMatchup ? "matchup" : "event");
@@ -32,6 +35,7 @@ export function ThumbnailPanel({ event }: { event: LiveEventSummary }) {
     home: parsed.home.slice(0, 18),
     away: parsed.away.slice(0, 18),
     line: parsed.line.slice(0, 40),
+    ...finalScoreInputs(scoreboard),
     title: event.title.slice(0, 60),
     location: event.location.slice(0, 30),
     date: start.date,
@@ -63,6 +67,16 @@ export function ThumbnailPanel({ event }: { event: LiveEventSummary }) {
       <Input id={`thumb-${key}`} value={fields[key]} maxLength={max} onChange={(changeEvent) => set(key)(changeEvent.target.value)} />
     </FieldLabel>
   );
+  const score = (key: "homeScore" | "awayScore", label: string) => (
+    <FieldLabel label={label}>
+      <Input
+        id={`thumb-${key}`}
+        inputMode="numeric"
+        value={fields[key]}
+        onChange={(changeEvent) => set(key)(changeEvent.target.value.replace(/\D/g, "").slice(0, 3))}
+      />
+    </FieldLabel>
+  );
 
   return (
     <div className="grid items-start gap-6 lg:grid-cols-[minmax(320px,1fr)_minmax(0,1.4fr)]">
@@ -72,22 +86,30 @@ export function ThumbnailPanel({ event }: { event: LiveEventSummary }) {
           <Seg label="Format" value={format} options={FORMAT_OPTIONS} onChange={setFormat} />
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
-          {template === "matchup" ? (
+          {template === "event" ? (
+            <div className="sm:col-span-2">{text("title", "Title", 60)}</div>
+          ) : (
             <>
               {text("home", "Home team", 18)}
               {text("away", "Away team", 18)}
+              {template === "final" ? (
+                <>
+                  {score("homeScore", "Home score")}
+                  {score("awayScore", "Away score")}
+                </>
+              ) : null}
               {text("line", "Level and sport", 40)}
             </>
-          ) : (
-            <div className="sm:col-span-2">{text("title", "Title", 60)}</div>
           )}
           {text("location", "Location", 30)}
           <FieldLabel label="Date">
             <Input id="thumb-date" type="date" value={fields.date} onChange={(changeEvent) => set("date")(changeEvent.target.value)} />
           </FieldLabel>
-          <FieldLabel label="Start time">
-            <Input id="thumb-time" type="time" value={fields.time} onChange={(changeEvent) => set("time")(changeEvent.target.value)} />
-          </FieldLabel>
+          {template === "final" ? null : (
+            <FieldLabel label="Start time">
+              <Input id="thumb-time" type="time" value={fields.time} onChange={(changeEvent) => set("time")(changeEvent.target.value)} />
+            </FieldLabel>
+          )}
         </div>
         <a
           href={`/api/live/thumbnail?${params}&download=1`}

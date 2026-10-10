@@ -14,6 +14,7 @@ const INK = "#0F110F";
 const GREEN = "#0B6E3E";
 const GREEN_ON_DARK = "#2BB36E";
 const MIST = "#DCE2DE";
+const DIM = "rgba(255,255,255,0.5)";
 const RULE = "rgba(255,255,255,0.3)";
 const WORDMARK_RATIO = 900 / 192;
 
@@ -73,9 +74,9 @@ function Wordmark({ src, height, style }: { src: string; height: number; style?:
   return <img src={src} alt="" width={Math.round(height * WORDMARK_RATIO)} height={height} style={style} />;
 }
 
-function whenLine(query: ThumbnailQuery, withLocation: boolean) {
+function whenLine(query: ThumbnailQuery, withLocation: boolean, withTime = true) {
   const date = formatThumbnailDate(query.date);
-  const parts = [date.short && `${date.short}, ${date.monthDay}`, formatThumbnailTime(query.time), withLocation ? query.location : ""];
+  const parts = [date.short && `${date.short}, ${date.monthDay}`, withTime ? formatThumbnailTime(query.time) : "", withLocation ? query.location : ""];
   return parts.filter(Boolean).join(" · ");
 }
 
@@ -121,6 +122,79 @@ function MatchupTall(query: ThumbnailQuery, assets: Assets, story: boolean) {
         <span style={{ fontWeight: 600, fontSize: fitFontSize(whenLine(query, false), 836, 64, 40), letterSpacing: "-0.01em" }}>{whenLine(query, false)}</span>
         {query.location ? <span style={{ fontWeight: 500, fontSize: 38 }}>{query.location}</span> : null}
         <span style={{ fontWeight: 500, fontSize: 28, color: MIST, marginTop: 8 }}>Live on YouTube · @infocusnews</span>
+      </div>
+    </div>
+  );
+}
+
+type FinalTeam = { name: string; score: string; color: string };
+
+/** Home then away; the losing score is dimmed, a tie keeps both white. */
+function finalTeams(query: ThumbnailQuery): [FinalTeam, FinalTeam] {
+  const color = (own: number, other: number) => (own < other ? DIM : "#fff");
+  return [
+    { name: query.home, score: String(query.homeScore), color: color(query.homeScore, query.awayScore) },
+    { name: query.away, score: String(query.awayScore), color: color(query.awayScore, query.homeScore) }
+  ];
+}
+
+function FinalYouTube(query: ThumbnailQuery, assets: Assets) {
+  const teams = finalTeams(query);
+  const nameSize = Math.min(...teams.map((team) => fitFontSize(team.name, 480, 60, 30)));
+  const scoreSize = Math.min(...teams.map((team) => fitFontSize(team.score, 480, 250, 120)));
+  const played = whenLine(query, true, false);
+  const column = (team: FinalTeam) => (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 500 }}>
+      <span style={{ display: "flex", alignItems: "center", height: 80, fontSize: nameSize, letterSpacing: "-0.01em" }}>{team.name}</span>
+      <span style={{ display: "flex", alignItems: "center", height: 260, fontSize: scoreSize, lineHeight: 1, letterSpacing: "-0.02em", color: team.color }}>{team.score}</span>
+    </div>
+  );
+  return (
+    <div style={{ width: 1280, height: 720, display: "flex", position: "relative", background: INK, color: "#fff", fontFamily: "Lexend" }}>
+      <div style={abs({ left: 64, right: 64, top: 0, height: 128, alignItems: "center", justifyContent: "space-between", borderBottom: `3px solid ${RULE}` })}>
+        <span style={{ ...kicker, fontSize: 26 }}>Final</span>
+        <Wordmark src={assets.wordmark} height={46} />
+      </div>
+      <div style={abs({ left: 64, right: 64, top: 150, height: 400, alignItems: "center", justifyContent: "center", fontWeight: 600 })}>
+        {column(teams[0])}
+        <div style={{ display: "flex", width: 44, height: 8, background: MIST, margin: "80px 28px 0" }} />
+        {column(teams[1])}
+      </div>
+      <div style={abs({ left: 0, bottom: 0, width: 1080, height: 160, background: GREEN, borderTopRightRadius: 160, flexDirection: "column", justifyContent: "center", paddingLeft: 64, gap: 8 })}>
+        {query.line ? <span style={{ ...caps, fontSize: 28 }}>{query.line}</span> : null}
+        <span style={{ fontWeight: 600, fontSize: fitFontSize(played, 880, 46, 28), letterSpacing: "-0.01em" }}>{played}</span>
+      </div>
+    </div>
+  );
+}
+
+function FinalTall(query: ThumbnailQuery, assets: Assets, story: boolean) {
+  const teams = finalTeams(query);
+  const nameSize = Math.min(...teams.map((team) => fitFontSize(team.name, 540, 110, 44)));
+  const scoreSize = Math.min(...teams.map((team) => fitFontSize(team.score, 360, 230, 120)));
+  const rowHeight = story ? 400 : 350;
+  const played = whenLine(query, false, false);
+  const row = (team: FinalTeam, divider: boolean) => (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: rowHeight, ...(divider ? { borderTop: `3px solid ${RULE}` } : {}) }}>
+      <span style={{ fontSize: nameSize }}>{team.name}</span>
+      <span style={{ fontSize: scoreSize, lineHeight: 1, color: team.color }}>{team.score}</span>
+    </div>
+  );
+  return (
+    <div style={{ width: 1080, height: story ? 1920 : 1350, display: "flex", position: "relative", background: INK, color: "#fff", fontFamily: "Lexend" }}>
+      <div style={abs({ left: 72, right: 72, top: story ? 250 : 0, height: story ? 130 : 150, alignItems: "center", justifyContent: "space-between", borderBottom: `3px solid ${RULE}` })}>
+        <span style={{ ...kicker, fontSize: 30 }}>Final</span>
+        <Wordmark src={assets.wordmark} height={52} />
+      </div>
+      <div style={abs({ left: 72, right: 72, top: story ? 430 : 200, height: rowHeight * 2, flexDirection: "column", fontWeight: 600, letterSpacing: "-0.02em" })}>
+        {row(teams[0], false)}
+        {row(teams[1], true)}
+      </div>
+      <div style={abs({ left: 0, bottom: story ? 250 : 0, width: 980, height: story ? 400 : 350, background: GREEN, borderTopRightRadius: 120, padding: "0 72px", flexDirection: "column", justifyContent: "center", gap: 12 })}>
+        {query.line ? <span style={{ ...caps, fontSize: 32 }}>{query.line}</span> : null}
+        <span style={{ fontWeight: 600, fontSize: fitFontSize(played, 836, 64, 40), letterSpacing: "-0.01em" }}>{played}</span>
+        {query.location ? <span style={{ fontWeight: 500, fontSize: 38 }}>{query.location}</span> : null}
+        <span style={{ fontWeight: 500, fontSize: 28, color: MIST, marginTop: 8 }}>Replay on YouTube · @infocusnews</span>
       </div>
     </div>
   );
@@ -178,5 +252,6 @@ export function renderThumbnail(query: ThumbnailQuery, assets: Assets): ReactEle
   const tall = query.format !== "youtube";
   const story = query.format === "story";
   if (query.template === "event") return tall ? EventTall(query, assets, story) : EventYouTube(query, assets);
+  if (query.template === "final") return tall ? FinalTall(query, assets, story) : FinalYouTube(query, assets);
   return tall ? MatchupTall(query, assets, story) : MatchupYouTube(query, assets);
 }

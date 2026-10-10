@@ -12,6 +12,8 @@ describe("live thumbnail rendering", () => {
           format,
           away: "Sacred Heart Prep",
           line: "Varsity Boys Basketball",
+          homeScore: "102",
+          awayScore: "98",
           title: "Spring Musical: Into the Woods",
           location: "Paly Gym",
           date: "2026-10-02",

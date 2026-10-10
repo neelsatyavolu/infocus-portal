@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { applyScoreboardAction, defaultScoreboard } from "@/src/lib/live/scoreboard";
 import {
+  finalScoreInputs,
   fitFontSize,
   fitWrappedFontSize,
   formatThumbnailDate,
@@ -45,12 +47,42 @@ describe("live thumbnail helpers", () => {
     expect(() => thumbnailQuerySchema.parse({ date: "10/02/2026" })).toThrow();
   });
 
+  it("reads final scores from the query", () => {
+    expect(thumbnailQuerySchema.parse({ template: "final" })).toMatchObject({ homeScore: 0, awayScore: 0 });
+    expect(thumbnailQuerySchema.parse({ template: "final", homeScore: "56", awayScore: "48" })).toMatchObject({
+      template: "final",
+      homeScore: 56,
+      awayScore: 48
+    });
+    expect(() => thumbnailQuerySchema.parse({ homeScore: "-1" })).toThrow();
+    expect(() => thumbnailQuerySchema.parse({ homeScore: "1000" })).toThrow();
+    expect(() => thumbnailQuerySchema.parse({ awayScore: "5.5" })).toThrow();
+    expect(() => thumbnailQuerySchema.parse({ awayScore: "lots" })).toThrow();
+  });
+
+  it("starts a final thumbnail from the scoreboard", () => {
+    const basketball = applyScoreboardAction(defaultScoreboard("basketball"), { type: "scoreSet", team: 0, score: 56 }, 0);
+    expect(finalScoreInputs(applyScoreboardAction(basketball, { type: "scoreSet", team: 1, score: 48 }, 0))).toEqual({
+      homeScore: "56",
+      awayScore: "48"
+    });
+
+    const volleyball = defaultScoreboard("volleyball");
+    const [home, away] = volleyball.teams;
+    expect(
+      finalScoreInputs({ ...volleyball, teams: [{ ...home, score: 25, sets: 3 }, { ...away, score: 19, sets: 1 }] })
+    ).toEqual({ homeScore: "3", awayScore: "1" });
+  });
+
   it("names downloads after the event", () => {
     expect(thumbnailFileName({ template: "matchup", format: "post", home: "Paly", away: "Gunn", title: "", date: "2026-10-02" })).toBe(
       "paly-vs-gunn-2026-10-02-post.png"
     );
     expect(thumbnailFileName({ template: "event", format: "youtube", home: "", away: "", title: "Homecoming Rally!", date: undefined })).toBe(
       "homecoming-rally-youtube.png"
+    );
+    expect(thumbnailFileName({ template: "final", format: "youtube", home: "Paly", away: "Gunn", title: "", date: "2026-10-02" })).toBe(
+      "paly-vs-gunn-final-2026-10-02-youtube.png"
     );
   });
 });

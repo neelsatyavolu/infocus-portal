@@ -27,6 +27,7 @@ Tabs with no note are shown to everyone signed in.
 - InFocus Drive (opens `drive.infocuspaly.com` in a new tab)
 - Teleprompter (opens `teleprompter.infocuspaly.com`)
 - Managers (one card per manager area: equipment, livestream, website, social media; see `managers.md`)
+- Ideas (`/ideas`: story ideas from Bay Area news and events, new every 2 days; see `ideas.md`)
 
 **The Cycle** — reporters, and any producer (associate, executive, or super admin) who is on a package roster: Information, Brainstorming, A-roll/B-roll, Initial Cut, Final Cut. Later tabs are visible but disabled until the previous stage unlocks. Each tab shows its stage status and a count of unread feedback on this cycle's package (earlier cycles never count). Students see **Extension Requests** at the end of this section.
 

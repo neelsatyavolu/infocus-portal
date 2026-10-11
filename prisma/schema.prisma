@@ -448,6 +448,21 @@ model NewsFeedState {
   updatedAt DateTime @updatedAt
 }
 
+/// One set of AI story ideas from Bay Area news and events (/ideas). A new one every 2 days.
+model IdeaBatch {
+  id           String   @id @default(cuid())
+  /// Pacific date of the run ("YYYY-MM-DD"). Unique, so one day is never generated twice.
+  runDate      String   @unique
+  /// IdeaSuggestion[] JSON (src/lib/ideas.ts).
+  ideas        Json
+  /// Headlines the model was shown.
+  itemCount    Int
+  /// Workers AI tokens the run used (neurons: estimateNeurons in src/lib/ideas.ts).
+  inputTokens  Int
+  outputTokens Int
+  createdAt    DateTime @default(now())
+}
+
 model Project {
   id             String          @id @default(cuid())
   workspaceId    String

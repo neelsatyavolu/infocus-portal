@@ -29,6 +29,7 @@ When answering:
 | Class Board | `class-board.md` |
 | Publishing Queue | `publishing-queue.md` |
 | Managers tab and the Instagram Post Maker | `managers.md` |
+| Ideas tab (AI story ideas from Bay Area news and events) | `ideas.md` |
 | Livestream tracker and dashboard (`/live`, OBS overlays, thumbnails) | `livestreams.md` |
 | Announcements, PA scripts, and public submit form | `announcements.md` |
 | Teleprompter | `teleprompter.md` |

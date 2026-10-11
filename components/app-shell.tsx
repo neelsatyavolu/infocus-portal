@@ -38,6 +38,7 @@ import {
   KeyRound,
   Megaphone,
   Mic2,
+  Newspaper,
   LogOut,
   Menu,
   Plus,
@@ -1134,6 +1135,12 @@ export function AppShell({
             icon={UserCog}
             label="Managers"
             active={pathname.startsWith("/managers")}
+          />
+          <SideNavLink
+            href={"/ideas" as never}
+            icon={Newspaper}
+            label="Ideas"
+            active={pathname.startsWith("/ideas")}
           />
 
           {showCycleTabs ? (

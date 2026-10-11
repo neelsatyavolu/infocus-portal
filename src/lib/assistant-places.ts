@@ -151,6 +151,14 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     audiences: ALL
   },
   {
+    id: "ideas",
+    label: "Ideas",
+    href: "/ideas",
+    hint: "Left sidebar, under Production",
+    aliases: ["idea", "story ideas", "package ideas", "pitch ideas", "suggested ideas", "bay area news"],
+    audiences: ALL
+  },
+  {
     id: "story-maker",
     label: "Instagram Post Maker",
     href: "/managers/social-media",

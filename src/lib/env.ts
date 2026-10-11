@@ -117,6 +117,11 @@ const envSchema = z.object({
   CLOUDFLARE_ANALYTICS_TOKEN: z.preprocess(
     (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
     z.string().min(1).optional()
+  ),
+  /** Ideas tab: Cloudflare API token with only the Workers AI permission. Unset: no ideas are generated. */
+  CLOUDFLARE_WORKERS_AI_TOKEN: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().min(1).optional()
   )
 });
 

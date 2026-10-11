@@ -44,6 +44,8 @@ Apple App Review demo account (`src/lib/app-review.ts`): `APP_REVIEW_EMAIL` is t
 
 `GEMINI_API_KEY` (teleprompter), `GEMINI_API_KEY_CHAT` (Portal assistant), `GROQ_API_KEY`, `GROQ_MODEL` (assistant fallback).
 
+`CLOUDFLARE_WORKERS_AI_TOKEN` (Ideas tab): a Cloudflare API token with only the Workers AI permission, used with `CLOUDFLARE_ACCOUNT_ID` (or `R2_ACCOUNT_ID`, the same account). The job calls `@cf/openai/gpt-oss-120b` once per batch (a batch every 2 days; never more than one call a day, even when a run fails), capped at about 660 neurons a call, because meeting notes draw on the same free 10,000 neurons a day. Without the token no ideas are generated and the tab stays empty. After the first deploy, `PUT /api/inngest` so Inngest registers the job. Sending the Inngest event `ideas/generate.requested` runs the daily check right away (it still only writes a set when one is due).
+
 ## Google Docs and Sheets
 
 `GOOGLE_API_KEY`, `GOOGLE_CREDENTIALS`, `GOOGLE_OAUTH_TOKEN`, `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`, `GOOGLE_DOCS_MASTER_CALENDAR_DOC_ID`, `GOOGLE_SHEETS_SUBMITTED_ANNOUNCEMENTS_SPREADSHEET_ID`, `GOOGLE_SHEETS_SUBMITTED_ANNOUNCEMENTS_RANGE`, `GOOGLE_SHEETS_COLLEGE_VISITS_SPREADSHEET_ID`.

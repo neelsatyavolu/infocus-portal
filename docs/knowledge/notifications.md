@@ -78,3 +78,4 @@ If an Initial Cut stage sits unreviewed for 12 hours, its reviewers get an email
 - **Every 10 minutes**: alerts for the public InFocus iPhone app (new show, new story, a stream going live; see `iphone-apps.md`).
 - **Every 15 minutes**: Portal checks for queued packages and shows due to upload to YouTube on their air date. While an upload is in progress it checks every minute until it finishes. Starting a show upload begins right away.
 - **Daily**: the next 21 days of InFocus Producer Meetings are added to Meetings; equipment overdue emails (morning, Pacific); any Master Calendar edits not yet copied to the Google Doc are synced; media left in trash for 7 days is deleted for good; older versions of a video are removed once its current version is a week old.
+- **Every 2 days**: a new set of story ideas on the Ideas tab, written in the afternoon (4:30pm Pacific in daylight time, 3:30pm in standard time). Nobody is notified; see `ideas.md`.

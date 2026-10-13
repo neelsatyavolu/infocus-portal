@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { AlertCircle, CalendarDays, ChevronLeft, ChevronRight, Eraser, FileUp, Search, Users } from "lucide-react";
+import { AlertCircle, CalendarDays, ChevronLeft, ChevronRight, Eraser, FileUp, MoreHorizontal, Search, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { CastCountsDialog } from "@/components/master-calendar/cast-counts-dialog";
+import { clampMenuPosition } from "@/src/lib/menu-position";
 import { PaDayControls, ShowDayControls, SpiritWeekControls } from "@/components/master-calendar/show-day-controls";
 import {
   extractCalendarAnchors,
@@ -253,6 +254,9 @@ type ImageContextMenuState = {
   clientX: number;
   clientY: number;
 };
+
+/** Rendered size of the image menu (`min-w-[180px]`, one item), used to keep it on screen. */
+const IMAGE_MENU_SIZE = { width: 180, height: 48 };
 
 function EditableHtmlBlock({
   html,
@@ -1017,6 +1021,14 @@ export default function MasterCalendarClient({ initialData }: { initialData: Cal
     }
   }
 
+  function openImageMenu(dateKey: string, left: number, top: number) {
+    const position = clampMenuPosition({ x: left, y: top }, IMAGE_MENU_SIZE, {
+      width: window.innerWidth,
+      height: window.innerHeight
+    });
+    setImageContextMenu({ dateKey, clientX: position.x, clientY: position.y });
+  }
+
   async function handleImageToggle(dateKey: string) {
     const rawStoredContent = entries[dateKey] ?? "";
     const imageHidden = hasImageHidden(rawStoredContent);
@@ -1321,7 +1333,7 @@ export default function MasterCalendarClient({ initialData }: { initialData: Cal
                   onClick={() => shiftMonth(-1)}
                   disabled={atCalendarStart || loading}
                   aria-label="Previous month"
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-30"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground lg:h-7 lg:w-7 transition hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-30"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
@@ -1333,7 +1345,7 @@ export default function MasterCalendarClient({ initialData }: { initialData: Cal
                   onClick={() => shiftMonth(1)}
                   disabled={loading}
                   aria-label="Next month"
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-30"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground lg:h-7 lg:w-7 transition hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-30"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </button>
@@ -1417,8 +1429,9 @@ export default function MasterCalendarClient({ initialData }: { initialData: Cal
 
       <section className="rounded-2xl border border-border bg-card p-3 md:p-4">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[780px] table-fixed border-collapse overflow-hidden rounded-xl border border-border">
-            <thead>
+          {/* Below md the table is restyled as an agenda: one bordered block per week, one row per day. */}
+          <table className="w-full table-fixed border-collapse overflow-hidden rounded-xl border border-border max-md:block max-md:overflow-visible max-md:rounded-none max-md:border-0 md:min-w-[780px]">
+            <thead className="max-md:hidden">
               <tr>
                 {WEEKDAYS.map((label, index) => (
                   <th
@@ -1433,12 +1446,15 @@ export default function MasterCalendarClient({ initialData }: { initialData: Cal
                 ))}
               </tr>
             </thead>
-            <tbody>
+            <tbody className="max-md:block max-md:space-y-3">
               {weeks.map((week, weekIndex) => (
-                <tr key={`${monthKey}-week-${weekIndex}`}>
+                <tr
+                  key={`${monthKey}-week-${weekIndex}`}
+                  className="max-md:block max-md:overflow-hidden max-md:rounded-xl max-md:border max-md:border-border"
+                >
                   {week.map((date, weekdayIndex) => {
                     if (!date) {
-                      return <td key={`${monthKey}-blank-${weekIndex}-${weekdayIndex}`} className="border border-border bg-muted/30" />;
+                      return <td key={`${monthKey}-blank-${weekIndex}-${weekdayIndex}`} className="border border-border bg-muted/30 max-md:hidden" />;
                     }
 
                     const dateKey = toDateKey(date);
@@ -1457,8 +1473,8 @@ export default function MasterCalendarClient({ initialData }: { initialData: Cal
                       <td
                         key={dateKey}
                         className={cn(
-                          "align-top border border-border p-2 text-foreground md:p-3",
-                          schedule.kind === "SHOW" || schedule.kind === "PA" ? "h-64" : "",
+                          "align-top border border-border p-2 text-foreground max-md:-mt-px max-md:block max-md:border-x-0 max-md:border-b-0 md:p-3",
+                          schedule.kind === "SHOW" || schedule.kind === "PA" ? "md:h-64" : "",
                           isHoliday ? "bg-muted/40" : COLUMN_SURFACES[weekdayIndex]
                         )}
                         onContextMenu={(event) => {
@@ -1466,11 +1482,7 @@ export default function MasterCalendarClient({ initialData }: { initialData: Cal
                             return;
                           }
                           event.preventDefault();
-                          setImageContextMenu({
-                            dateKey,
-                            clientX: event.clientX,
-                            clientY: event.clientY
-                          });
+                          openImageMenu(dateKey, event.clientX, event.clientY);
                         }}
                       >
                         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
@@ -1487,6 +1499,7 @@ export default function MasterCalendarClient({ initialData }: { initialData: Cal
                                     : "bg-[var(--ink-3)] text-muted-foreground"
                                 )}
                               >
+                                <span className="md:hidden">{WEEKDAYS[weekdayIndex].slice(0, 3)}&nbsp;·&nbsp;</span>
                                 {date.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                               </span>
                             );
@@ -1503,6 +1516,20 @@ export default function MasterCalendarClient({ initialData }: { initialData: Cal
                             >
                               {schedule.label}
                             </span>
+                          ) : null}
+                          {canEdit && isImageDay ? (
+                            <button
+                              type="button"
+                              aria-label={imageHidden ? "Restore image" : "Delete image"}
+                              aria-haspopup="menu"
+                              onClick={(event) => {
+                                const rect = event.currentTarget.getBoundingClientRect();
+                                openImageMenu(dateKey, rect.right - IMAGE_MENU_SIZE.width, rect.bottom + 4);
+                              }}
+                              className="-my-1.5 ml-auto inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring lg:-my-1 lg:h-7 lg:w-7"
+                            >
+                              <MoreHorizontal className="h-4 w-4" aria-hidden />
+                            </button>
                           ) : null}
                         </div>
 
@@ -1610,8 +1637,8 @@ export default function MasterCalendarClient({ initialData }: { initialData: Cal
           ref={imageContextMenuRef}
           className="fixed z-50 min-w-[180px] rounded-lg border border-border bg-card p-1 shadow-lg"
           style={{
-            left: Math.max(8, imageContextMenu.clientX),
-            top: Math.max(8, imageContextMenu.clientY)
+            left: imageContextMenu.clientX,
+            top: imageContextMenu.clientY
           }}
         >
           <button
@@ -1620,7 +1647,7 @@ export default function MasterCalendarClient({ initialData }: { initialData: Cal
               void handleImageToggle(imageContextMenu.dateKey);
               setImageContextMenu(null);
             }}
-            className="w-full rounded-md px-3 py-1.5 text-left text-sm text-foreground transition hover:bg-accent"
+            className="w-full rounded-md px-3 py-1.5 text-left text-sm text-foreground transition hover:bg-accent max-lg:min-h-9"
           >
             {hasImageHidden(entries[imageContextMenu.dateKey] ?? "") ? "Restore Image" : "Delete Image"}
           </button>

@@ -63,7 +63,7 @@ export default function LivePinGate({ signedIn }: { signedIn: boolean }) {
   return (
     <main className="flex min-h-dvh touch-manipulation flex-col items-center justify-center bg-background px-6 py-10 text-foreground">
       <BrandWordmark className="h-12 w-auto object-contain" priority />
-      <h1 className="mt-6 text-4xl font-semibold leading-none tracking-tight">Livestream dashboard</h1>
+      <h1 className="mt-6 text-center text-4xl font-semibold leading-none tracking-tight">Livestream dashboard</h1>
       {signedIn ? (
         <p className="mt-3 text-center text-lg text-[var(--ink-text)]">We couldn&apos;t confirm your Portal account. Enter the 6-digit PIN.</p>
       ) : (

@@ -34,7 +34,7 @@ export function Modal({ open, onClose, title, description, children, className }
         role="dialog"
         aria-modal="true"
         className={cn(
-          "card-enter relative z-[121] w-full max-w-lg rounded-2xl border border-cyan-300/25 bg-card p-5 text-card-foreground shadow-2xl",
+          "card-enter relative z-[121] max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-2xl border border-cyan-300/25 bg-card p-5 text-card-foreground shadow-2xl",
           className,
         )}
       >

@@ -182,7 +182,7 @@ export default function OnboardingPage() {
 
   if (loading) {
     return (
-      <main className="mx-auto flex min-h-screen w-full max-w-3xl items-center px-6 py-10">
+      <main className="mx-auto flex min-h-screen w-full max-w-3xl items-center px-4 py-10 sm:px-6">
         <section className="w-full rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">
           Loading onboarding...
         </section>
@@ -191,7 +191,7 @@ export default function OnboardingPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-3xl items-center px-6 py-10">
+    <main className="mx-auto flex min-h-screen w-full max-w-3xl items-center px-4 py-10 sm:px-6">
       <section className="w-full rounded-2xl border border-border bg-card p-6 md:p-8">
         <h1 className="text-2xl font-semibold text-foreground">Welcome to InFocus Portal</h1>
         <p className="mt-2 text-sm text-muted-foreground">

@@ -176,7 +176,7 @@ export default function EquipmentRequestClient() {
                     return (
                       <Badge key={barcode} variant="secondary" className="gap-2">
                         {item ? `${item.name} · ${item.barcode}` : barcode}
-                        <button type="button" className="text-xs" onClick={() => toggleBarcode(barcode)}>
+                        <button type="button" className="text-xs max-sm:-my-1.5 max-sm:-mr-2 max-sm:inline-flex max-sm:h-9 max-sm:w-9 max-sm:items-center max-sm:justify-center max-sm:text-base" onClick={() => toggleBarcode(barcode)}>
                           ×
                         </button>
                       </Badge>
@@ -187,10 +187,10 @@ export default function EquipmentRequestClient() {
             </div>
 
             <div className="flex flex-wrap gap-2 sm:col-span-3">
-              <Button type="submit" disabled={busy}>
+              <Button type="submit" className="max-sm:h-11" disabled={busy}>
                 {busy ? "Submitting…" : "Submit request"}
               </Button>
-              <Button type="button" variant="outline" onClick={() => setSelectedBarcodes([])}>
+              <Button type="button" variant="outline" className="max-sm:h-11" onClick={() => setSelectedBarcodes([])}>
                 Clear items
               </Button>
             </div>
@@ -230,7 +230,7 @@ export default function EquipmentRequestClient() {
                           <td className="px-3 py-2 text-foreground">{item.name}</td>
                           <td className="px-3 py-2 font-mono text-[11px] tabular-nums text-muted-foreground">{item.barcode}</td>
                           <td className="px-3 py-2 text-right">
-                            <Button size="sm" variant={selected ? "secondary" : "outline"} type="button" onClick={() => toggleBarcode(item.barcode)}>
+                            <Button size="sm" className="max-sm:h-10" variant={selected ? "secondary" : "outline"} type="button" onClick={() => toggleBarcode(item.barcode)}>
                               {selected ? "Selected" : "Add"}
                             </Button>
                           </td>

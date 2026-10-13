@@ -1000,6 +1000,52 @@ export function AppShell({
     () => [...projectFolders].sort((left, right) => left.name.localeCompare(right.name)),
     [projectFolders]
   );
+  /** Below lg the Assets sidebar is hidden; the same destinations render as a chip row above the page. */
+  const phoneAssetChips = isProjectAssetsRoute
+    ? [
+        {
+          key: "all",
+          label: projectName ?? "Project",
+          Icon: Layers,
+          count: null as number | null,
+          href: buildProjectHref({ scope: "active", folderId: "all", collection: null }),
+          active:
+            currentScope === "active" && currentCollection === null && (currentFolderId === "all" || currentFolderId === "root")
+        },
+        ...sortedProjectFolders.map((folder) => ({
+          key: folder.id,
+          label: folderPathSegments(folder.name).join(" / "),
+          Icon: Folder,
+          count: folder.activeMediaCount as number | null,
+          href: buildProjectHref({ scope: "active", folderId: folder.id, collection: null }),
+          active: currentScope === "active" && currentFolderId === folder.id
+        })),
+        {
+          key: "videos",
+          label: "Videos",
+          Icon: FileVideo2,
+          count: projectAssetCount as number | null,
+          href: buildProjectHref({ collection: "videos", scope: "active", folderId: "all" }),
+          active: currentScope === "active" && currentCollection === "videos"
+        },
+        {
+          key: "deleted",
+          label: "Recently Deleted",
+          Icon: Trash2,
+          count: null as number | null,
+          href: buildProjectHref({ scope: "deleted", folderId: "all", collection: null }),
+          active: currentScope === "deleted"
+        }
+      ]
+    : [];
+  const phoneAssetChipsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const row = phoneAssetChipsRef.current;
+    const active = row?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (row && active) {
+      row.scrollLeft = Math.max(0, active.offsetLeft - 16);
+    }
+  }, [currentScope, currentFolderId, currentCollection, projectFolders.length]);
   const assistantAudience = assistantAudienceFor(platformRole);
 
   return (
@@ -1028,7 +1074,7 @@ export function AppShell({
       <aside
         id="app-sidebar"
         className={cn(
-          "fixed inset-y-0 left-0 z-[60] flex h-dvh w-[min(240px,85vw)] flex-col gap-3 border-r border-border bg-[var(--ink)] px-3 py-4 pt-[env(safe-area-inset-top)] transition-transform duration-200 ease-out lg:z-40",
+          "fixed inset-y-0 left-0 z-[60] flex h-dvh w-[min(240px,85vw)] flex-col gap-3 border-r border-border bg-[var(--ink)] px-3 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[env(safe-area-inset-top)] transition-transform duration-200 ease-out lg:z-40",
           navOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
@@ -1043,7 +1089,7 @@ export function AppShell({
           </Link>
           <button
             type="button"
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-card hover:text-foreground lg:hidden"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-card hover:text-foreground lg:hidden"
             onClick={() => setNavOpen(false)}
             aria-label="Close menu"
           >
@@ -1346,7 +1392,7 @@ export function AppShell({
               href={"/passwords" as never}
               onClick={() => setNavOpen(false)}
               className={cn(
-                "grid h-7 w-7 place-items-center rounded-md hover:bg-card hover:text-foreground",
+                "grid h-10 w-10 shrink-0 place-items-center rounded-md hover:bg-card hover:text-foreground lg:h-7 lg:w-7",
                 pathname.startsWith("/passwords") ? "bg-card text-foreground" : "text-muted-foreground"
               )}
               title="Passwords"
@@ -1358,7 +1404,7 @@ export function AppShell({
           <form action="/api/auth/sign-out?returnTo=/" method="post">
             <button
               type="submit"
-              className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground hover:bg-card hover:text-foreground"
+              className="grid h-10 w-10 place-items-center rounded-md text-muted-foreground hover:bg-card hover:text-foreground lg:h-7 lg:w-7"
               title="Sign out"
               aria-label="Sign out"
             >
@@ -1427,6 +1473,7 @@ export function AppShell({
       <div
         className={cn(
           hideChrome ? "h-full min-h-0 min-w-0" : "min-h-screen min-w-0 lg:h-screen lg:overflow-y-auto lg:scroll-pt-16",
+          isBareReview ? "max-xl:overflow-y-auto" : "",
           isProjectRoute && !isReviewRoute ? "lg:grid lg:grid-cols-[240px_1fr]" : ""
         )}
       >
@@ -1655,7 +1702,7 @@ export function AppShell({
               <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
                 <button
                   type="button"
-                  className="grid h-9 w-9 shrink-0 place-items-center rounded-md text-foreground hover:bg-accent lg:hidden"
+                  className="grid h-10 w-10 shrink-0 place-items-center rounded-md text-foreground hover:bg-accent lg:hidden"
                   onClick={() => setNavOpen(true)}
                   aria-label="Open menu"
                   aria-expanded={navOpen}
@@ -1781,9 +1828,50 @@ export function AppShell({
             tabIndex={-1}
             className={cn(
               "min-w-0 flex-1 outline-none",
-              isClassBoard ? "flex min-h-0 flex-col overflow-hidden" : "p-4 pb-24 md:p-6 lg:pb-6"
+              isClassBoard ? "flex min-h-0 flex-col overflow-hidden" : "p-4 pb-24 md:p-6 md:pb-24 lg:pb-6"
             )}
           >
+            {phoneAssetChips.length > 0 ? (
+              <nav aria-label="Folders" className="mb-4 flex min-w-0 items-center gap-2 lg:hidden">
+                <div ref={phoneAssetChipsRef} className="relative flex min-w-0 flex-1 gap-2 overflow-x-auto">
+                  {phoneAssetChips.map(({ key, label, Icon, count, href, active }) => (
+                    <Link
+                      key={key}
+                      href={href as never}
+                      onClick={(event) => handleShellLinkClick(event, href)}
+                      aria-current={active ? "page" : undefined}
+                      title={label}
+                      className={cn(
+                        "inline-flex h-10 max-w-[220px] shrink-0 items-center gap-2 rounded-lg border px-3 text-[13px] transition",
+                        active
+                          ? "border-[rgb(43,179,110,0.25)] bg-[rgb(43,179,110,0.10)] font-semibold text-foreground"
+                          : "border-border text-muted-foreground hover:bg-[var(--ink-2)] hover:text-foreground"
+                      )}
+                    >
+                      <Icon
+                        className={cn("h-3.5 w-3.5 shrink-0", active ? "text-[var(--brand-green)]" : "text-muted-foreground")}
+                        aria-hidden
+                      />
+                      <span className="truncate">{label}</span>
+                      {count === null ? null : (
+                        <span className="font-mono-broadcast text-[10px] font-medium tabular-nums text-muted-foreground">
+                          {count}
+                        </span>
+                      )}
+                    </Link>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={createFolderFromSidebar}
+                  className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-border text-muted-foreground transition hover:bg-[var(--ink-2)] hover:text-foreground"
+                  title="Create folder"
+                  aria-label="Create folder"
+                >
+                  <Plus className="h-4 w-4" aria-hidden />
+                </button>
+              </nav>
+            ) : null}
             {children}
           </main>
         </div>

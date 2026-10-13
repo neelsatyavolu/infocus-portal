@@ -375,7 +375,7 @@ export function HubMessages({
               <article key={message.id} className={cn("flex", mine ? "justify-end" : "justify-start")}>
                 <div
                   className={cn(
-                    "max-w-[85%] rounded-lg px-3 py-2 text-[13.5px] leading-relaxed",
+                    "max-w-[85%] break-words rounded-lg px-3 py-2 text-[13.5px] leading-relaxed",
                     mine
                       ? "whitespace-pre-wrap bg-primary text-primary-foreground"
                       : "border border-border bg-card text-foreground"

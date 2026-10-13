@@ -56,7 +56,7 @@ export function SharedSubmittedAnnouncements() {
   }, [token]);
 
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-5 px-6 py-8">
+    <main className="mx-auto w-full max-w-3xl space-y-5 px-4 py-8 sm:px-6">
       <section className="brand-hero-panel relative overflow-hidden p-6">
         <div className="relative">
           <div className="eyebrow flex items-center gap-2">

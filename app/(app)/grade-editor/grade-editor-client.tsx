@@ -1076,7 +1076,7 @@ export default function GradeEditorClient() {
 
         {/* Cycle tabs row */}
         {cycles.length > 0 ? (
-          <div className="relative mt-5 inline-flex items-center gap-1 rounded-lg border border-foreground/[0.08] bg-background p-1">
+          <div className="relative mt-5 inline-flex items-center gap-1 rounded-lg border border-foreground/[0.08] bg-background p-1 max-lg:max-w-full max-lg:flex-wrap">
             {cycles.map((cycle) => {
               const isActive = viewMode === "cycle" && activeCycleNumber === cycle.cycleNumber;
               return (
@@ -1353,7 +1353,7 @@ export default function GradeEditorClient() {
             <p className="px-4 py-6 text-sm text-muted-foreground">Loading totals...</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1200px] border-collapse text-sm text-foreground">
+              <table className="w-full min-w-[1200px] border-collapse text-sm text-foreground max-lg:[&_tr>*:first-child]:sticky max-lg:[&_tr>*:first-child]:left-0 max-lg:[&_tr>*:first-child]:z-10 max-lg:[&_td:first-child]:w-[150px] max-lg:[&_td:first-child]:bg-card">
                 <thead>
                   <tr>
                     {[
@@ -1444,7 +1444,7 @@ export default function GradeEditorClient() {
                           <div className="flex items-center gap-2.5">
                             <div
                               className={cn(
-                                "grid h-8 w-8 place-items-center rounded-full border-2 border-[var(--ink-3)] text-[11px] font-bold",
+                                "grid h-8 w-8 place-items-center rounded-full border-2 border-[var(--ink-3)] text-[11px] font-bold max-lg:hidden",
                                 av
                               )}
                             >
@@ -1660,7 +1660,7 @@ export default function GradeEditorClient() {
           <p className="px-4 py-6 text-sm text-muted-foreground">Loading grade editor...</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1200px] border-collapse text-sm text-foreground">
+            <table className="w-full min-w-[1200px] border-collapse text-sm text-foreground max-lg:[&_tr>*:first-child]:sticky max-lg:[&_tr>*:first-child]:left-0 max-lg:[&_tr>*:first-child]:z-10 max-lg:[&_td:first-child]:w-[150px] max-lg:[&_td:first-child]:bg-card">
               <thead>
                 <tr>
                   {[
@@ -1715,7 +1715,7 @@ export default function GradeEditorClient() {
                         <div className="flex items-center gap-2.5">
                           <div
                             className={cn(
-                              "grid h-8 w-8 place-items-center rounded-full border-2 border-[var(--ink-3)] text-[11px] font-bold",
+                              "grid h-8 w-8 place-items-center rounded-full border-2 border-[var(--ink-3)] text-[11px] font-bold max-lg:hidden",
                               av
                             )}
                           >

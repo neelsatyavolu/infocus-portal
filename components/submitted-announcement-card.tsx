@@ -123,7 +123,7 @@ export function SubmittedAnnouncementCard({
         </div>
       </div>
 
-      <p className="mt-3 whitespace-pre-wrap text-[15px] leading-6 text-pretty text-foreground">{entry.announcement}</p>
+      <p className="mt-3 whitespace-pre-wrap break-words text-[15px] leading-6 text-pretty text-foreground">{entry.announcement}</p>
 
       {mediaNote ? <p className="mt-2 text-sm text-pretty text-muted-foreground">{mediaNote}</p> : null}
       {moreInfoNote ? <p className="mt-2 text-sm text-pretty text-muted-foreground">{moreInfoNote}</p> : null}

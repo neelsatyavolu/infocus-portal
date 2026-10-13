@@ -337,7 +337,7 @@ export function ProjectAssetsToolbar({
           </button>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="relative flex flex-wrap items-center gap-2 lg:flex-nowrap">
           <button
             type="button"
             onClick={() => void openTerminalCommands()}
@@ -374,7 +374,7 @@ export function ProjectAssetsToolbar({
             Share
           </button>
 
-          <div ref={newMenuRef} className="relative">
+          <div ref={newMenuRef} className="lg:relative">
             <button
               type="button"
               onClick={() => setNewMenuOpen((current) => !current)}

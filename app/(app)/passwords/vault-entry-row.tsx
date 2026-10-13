@@ -91,7 +91,7 @@ function IconButton({
       disabled={busy}
       title={label}
       aria-label={label}
-      className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground active:scale-[0.94] disabled:opacity-50"
+      className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted-foreground max-lg:h-9 max-lg:w-9 transition hover:bg-foreground/5 hover:text-foreground active:scale-[0.94] disabled:opacity-50"
     >
       {busy ? (
         <Loader2 className="h-3.5 w-3.5 animate-spin" />

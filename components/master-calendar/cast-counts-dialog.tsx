@@ -112,7 +112,7 @@ export function CastCountsDialog({ open, onOpenChange }: CastCountsDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-3xl gap-5 overflow-y-auto sm:rounded-xl">
+      <DialogContent className="max-h-[90dvh] max-w-3xl gap-5 overflow-y-auto sm:rounded-xl">
         <DialogHeader>
           <DialogTitle className="text-balance">Anchors & PA</DialogTitle>
           <DialogDescription className="text-pretty">

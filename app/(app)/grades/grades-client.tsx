@@ -532,7 +532,7 @@ function ParticipationView({
             type="button"
             disabled={weekIndex <= 0}
             onClick={() => onWeekIndex(Math.max(0, weekIndex - 1))}
-            className="rounded-lg p-2 text-[var(--ink-text)] transition hover:bg-foreground/5 hover:text-foreground disabled:opacity-30"
+            className="rounded-lg p-3 text-[var(--ink-text)] transition hover:bg-foreground/5 hover:text-foreground disabled:opacity-30 lg:p-2"
             aria-label="Previous week"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -558,7 +558,7 @@ function ParticipationView({
             type="button"
             disabled={weekIndex >= weeks.length - 1}
             onClick={() => onWeekIndex(Math.min(weeks.length - 1, weekIndex + 1))}
-            className="rounded-lg p-2 text-[var(--ink-text)] transition hover:bg-foreground/5 hover:text-foreground disabled:opacity-30"
+            className="rounded-lg p-3 text-[var(--ink-text)] transition hover:bg-foreground/5 hover:text-foreground disabled:opacity-30 lg:p-2"
             aria-label="Next week"
           >
             <ChevronRight className="h-4 w-4" />

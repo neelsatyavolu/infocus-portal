@@ -40,7 +40,7 @@ const KIND_MARK: Record<ScheduleKind, string> = {
 };
 
 const LANE_GRID =
-  "grid w-full grid-cols-[1.75rem_minmax(0,1.2fr)_minmax(0,1.7fr)_minmax(0,0.95fr)] gap-x-2 px-3";
+  "grid w-full grid-cols-[1.75rem_minmax(0,1fr)_minmax(0,0.5fr)] gap-x-2 gap-y-1.5 px-3 lg:grid-cols-[1.75rem_minmax(0,1.2fr)_minmax(0,1.7fr)_minmax(0,0.95fr)] lg:gap-y-0";
 
 const TV_GATE_LABELS: Record<string, string> = {
   pitching: "Pitch",
@@ -131,7 +131,7 @@ function BoardLiveHeader({ board }: { board: ClassBoardModel }) {
           </div>
         </div>
       ) : null}
-      <div className="col-start-3 row-start-1 min-w-0 justify-self-end text-right">
+      <div className="col-start-3 row-start-1 flex min-w-0 items-baseline justify-between gap-3 lg:block lg:justify-self-end lg:text-right">
         <p className="font-mono-broadcast text-[clamp(1.25rem,1.7vw,2rem)] font-medium tabular-nums leading-none text-foreground">
           {time}
         </p>
@@ -145,7 +145,7 @@ function RaceTrack({ lane }: { lane: ClassBoardLane }) {
   const count = Math.max(lane.dots.length, 1);
   return (
     <div
-      className="relative grid min-w-0 items-center"
+      className="relative col-span-full row-start-2 grid min-w-0 items-center lg:col-span-1 lg:row-start-auto"
       style={{ gridTemplateColumns: `repeat(${count}, minmax(0, 1fr))` }}
     >
       <div
@@ -170,8 +170,8 @@ export default function ClassBoardView({ board }: { board: ClassBoardModel }) {
   const focus = board.cycleFocus ? ` · ${board.cycleFocus}` : "";
 
   return (
-    <div className="flex h-dvh min-h-0 w-full shrink-0 flex-col gap-3 overflow-hidden bg-background p-4">
-      <header className="grid h-14 shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,1.7fr)_minmax(0,1fr)] items-center gap-4 overflow-hidden">
+    <div className="flex h-dvh min-h-0 w-full shrink-0 flex-col gap-3 overflow-y-auto overflow-x-hidden bg-background p-4 lg:overflow-hidden">
+      <header className="flex shrink-0 flex-col gap-2 overflow-hidden lg:grid lg:h-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.7fr)_minmax(0,1fr)] lg:items-center lg:gap-4">
         <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-4">
           <Link href={"/dashboard" as never} className="inline-flex shrink-0 items-center" aria-label="InFocus Portal">
             {/* 2026 wordmark, cropped tight: Soft White on dark, color in light mode. */}
@@ -207,7 +207,7 @@ export default function ClassBoardView({ board }: { board: ClassBoardModel }) {
         <BoardLiveHeader board={board} />
       </header>
 
-      <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-3">
+      <div className="grid shrink-0 grid-cols-1 gap-3 lg:min-h-0 lg:flex-1 lg:shrink lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <section
           className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-card"
           style={{ "--lanes": Math.max(board.lanes.length, 1) } as CSSProperties}
@@ -216,7 +216,7 @@ export default function ClassBoardView({ board }: { board: ClassBoardModel }) {
             <span className="eyebrow-muted text-[0.65rem]">#</span>
             <span className="eyebrow-muted text-[0.65rem]">Package</span>
             <div
-              className="grid min-w-0 gap-1"
+              className="col-span-full row-start-2 grid min-w-0 gap-1 lg:col-span-1 lg:row-start-auto"
               style={{ gridTemplateColumns: `repeat(${Math.max(board.gates.length, 1)}, minmax(0, 1fr))` }}
             >
               {board.gates.map((gate) => (
@@ -244,7 +244,7 @@ export default function ClassBoardView({ board }: { board: ClassBoardModel }) {
                   key={lane.id}
                   className={cn(
                     LANE_GRID,
-                    "min-h-0 flex-1 items-center overflow-hidden border-b border-border last:border-b-0",
+                    "min-h-0 flex-1 items-center overflow-hidden border-b border-border py-2 last:border-b-0 lg:py-0",
                     lane.packageOfCycle && "bg-[var(--brand-green)]/[0.08]"
                   )}
                 >
@@ -287,7 +287,7 @@ export default function ClassBoardView({ board }: { board: ClassBoardModel }) {
           </div>
         </section>
 
-        <div className="grid min-h-0 grid-rows-[fit-content(45%)_minmax(0,1.45fr)_minmax(0,1fr)] gap-3 overflow-hidden">
+        <div className="flex min-h-0 flex-col gap-3 overflow-hidden lg:grid lg:grid-rows-[fit-content(45%)_minmax(0,1.45fr)_minmax(0,1fr)]">
           <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-card">
             <div className="flex shrink-0 items-baseline justify-between gap-3 border-b border-border px-[clamp(0.85rem,1vw,1.2rem)] py-[clamp(0.6rem,0.8vw,0.9rem)]">
               <h2 className="text-[clamp(1rem,1.2vw,1.45rem)] font-semibold tracking-tight">
@@ -310,7 +310,7 @@ export default function ClassBoardView({ board }: { board: ClassBoardModel }) {
                         {item.timeLabel}
                       </p>
                     </div>
-                    <p className="truncate text-[clamp(0.68rem,0.75vw,0.85rem)] leading-tight text-[var(--ink-text)]">
+                    <p className="text-[clamp(0.68rem,0.75vw,0.85rem)] leading-tight text-[var(--ink-text)] lg:truncate">
                       {item.dayLabel}
                       <span className="text-[var(--ink-4)]"> · </span>
                       {item.crew}
@@ -335,7 +335,7 @@ export default function ClassBoardView({ board }: { board: ClassBoardModel }) {
                 <p className="py-3 text-sm text-[var(--ink-text)]">No upcoming deadlines.</p>
               ) : (
                 board.deadlines.map((deadline) => (
-                  <div key={deadline.id} className="flex min-h-0 flex-1 items-center justify-between gap-2 overflow-hidden border-b border-border last:border-b-0">
+                  <div key={deadline.id} className="flex min-h-0 flex-1 items-center justify-between gap-2 overflow-hidden border-b border-border py-2 last:border-b-0 lg:py-0">
                     <div className="flex min-w-0 items-center gap-2.5">
                       <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--brand-amber)]" />
                       <div className="min-w-0">
@@ -368,7 +368,7 @@ export default function ClassBoardView({ board }: { board: ClassBoardModel }) {
               {board.days.map((day) => (
                 <article
                   key={day.date}
-                  className="grid min-h-0 flex-1 grid-cols-[4.6rem_minmax(0,1fr)] items-center gap-x-2 overflow-hidden border-b border-border px-3 last:border-b-0"
+                  className="grid min-h-0 flex-1 grid-cols-[4.6rem_minmax(0,1fr)] items-center gap-x-2 overflow-hidden border-b border-border px-3 py-2 last:border-b-0 lg:py-0"
                 >
                   <p className="font-mono-broadcast text-[clamp(0.62rem,0.7vw,0.8rem)] leading-none text-[var(--ink-5)]">
                     {day.weekday}
@@ -376,7 +376,7 @@ export default function ClassBoardView({ board }: { board: ClassBoardModel }) {
                       {day.dayNum}
                     </span>
                   </p>
-                  <p className="min-w-0 truncate text-[clamp(0.68rem,0.75vw,0.88rem)] leading-tight">
+                  <p className="min-w-0 text-[clamp(0.68rem,0.75vw,0.88rem)] leading-tight lg:truncate">
                     <span className={cn("mr-1 inline-block h-1.5 w-1.5 rounded-full align-middle", KIND_MARK[day.kind])} />
                     <span className={cn("font-semibold uppercase tracking-[0.11em]", KIND_TEXT[day.kind])}>
                       {day.kindLabel}

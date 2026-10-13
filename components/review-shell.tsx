@@ -3,7 +3,7 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { toast } from "sonner";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Check,
   CheckCircle2,
@@ -47,6 +47,7 @@ import { ReviewTranscriptButton } from "@/components/review-transcript-button";
 import { Textarea } from "@/components/ui/textarea";
 import { MAX_EFFORT_POINTS, MAX_TEAMWORK_POINTS } from "@/src/lib/package-grades";
 import { buildCommentsCsv } from "@/src/lib/comment-export-csv";
+import { isCoarsePointer, shouldEnterSend } from "@/src/lib/enter-to-send";
 import {
   DEFAULT_REVIEW_FPS,
   formatFrameAccurateTimecode,
@@ -82,6 +83,16 @@ type CommentThread = {
 const PLAYBACK_RATES = [0.5, 1, 1.25, 1.5, 2];
 const PLAYER_SELECT_TRIGGER_CLASS = "h-8 w-auto gap-1 border-0 bg-transparent px-2 text-xs shadow-none hover:bg-muted";
 const REVIEW_LAYOUT_MIN_HEIGHT_PX = 560;
+// Below the split layout, in portrait, the page scrolls: the player pins to the top and the
+// new-comment composer docks to the bottom. Both sit under dialogs and popovers (z-50 and up).
+const PINNED_PLAYER_CLASS =
+  "max-xl:portrait:sticky max-xl:portrait:top-[calc(var(--review-vv-top,0px)_+_env(safe-area-inset-top))] max-xl:portrait:z-[45] max-xl:portrait:bg-card";
+const DOCKED_COMPOSER_CLASS =
+  "max-xl:portrait:sticky max-xl:portrait:bottom-[var(--review-vv-bottom,0px)] max-xl:portrait:z-[46] max-xl:portrait:rounded-b-2xl max-xl:portrait:pb-[calc(0.75rem_+_env(safe-area-inset-bottom))]";
+// Keeps the docked composer clear of the floating Assistant button (bottom right of the app shell).
+const DOCKED_COMPOSER_LAUNCHER_GUTTER_CLASS = "max-xl:portrait:pr-[3.75rem]";
+// A marker tap scrolls its comment into the gap between the pinned player and the docked composer.
+const COMMENT_CARD_SCROLL_MARGIN_CLASS = "max-xl:portrait:scroll-mt-[calc(56.25vw_+_9rem)] max-xl:portrait:scroll-mb-52";
 
 type HlsInstance = {
   destroy: () => void;
@@ -355,6 +366,9 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
   const maxSidebarWidthPx = 560;
   const minLeftPaneWidthPx = 360;
   const router = useRouter();
+  // The app shell drops its floating Assistant button on bare reviews; guest links have no shell.
+  const isBareReview = useSearchParams().get("bare") === "1";
+  const hasAssistantLauncher = !guestToken && !isBareReview;
   const reviewLayoutRef = useRef<HTMLDivElement | null>(null);
   const reviewHeroRef = useRef<HTMLElement | null>(null);
   const reviewMainCardRef = useRef<HTMLDivElement | null>(null);
@@ -438,6 +452,32 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
     syncLayoutMode();
     window.addEventListener("resize", syncLayoutMode);
     return () => window.removeEventListener("resize", syncLayoutMode);
+  }, []);
+
+  // An on-screen keyboard shrinks and pans the visual viewport without resizing the layout that
+  // `sticky` measures against. Publish both offsets so the pinned player and docked composer follow.
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    const node = reviewLayoutRef.current;
+    if (!viewport || !node) {
+      return;
+    }
+    const sync = () => {
+      const isZoomed = viewport.scale > 1.01;
+      const top = isZoomed ? 0 : Math.max(0, viewport.offsetTop);
+      const bottom = isZoomed
+        ? 0
+        : Math.max(0, document.documentElement.clientHeight - viewport.offsetTop - viewport.height);
+      node.style.setProperty("--review-vv-top", `${Math.round(top)}px`);
+      node.style.setProperty("--review-vv-bottom", `${Math.round(bottom)}px`);
+    };
+    sync();
+    viewport.addEventListener("resize", sync);
+    viewport.addEventListener("scroll", sync);
+    return () => {
+      viewport.removeEventListener("resize", sync);
+      viewport.removeEventListener("scroll", sync);
+    };
   }, []);
 
   // Fill the viewport below the app header exactly; the CSS calc fallback guesses the header height.
@@ -1780,7 +1820,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
 
   const timelineDuration = duration > 0 ? duration : Math.max(1, ...commentThreads.map((thread) => thread.root.timeSeconds));
   const commentCount = commentThreads.length;
-  const reviewPaneMaxHeightClass = isMacDesktopApp ? "lg:max-h-[calc(100dvh-11.5rem)]" : "lg:max-h-[calc(100dvh-7.5rem)]";
+  const reviewPaneMaxHeightClass = isMacDesktopApp ? "lg:max-xl:landscape:max-h-[calc(100dvh-11.5rem)]" : "lg:max-xl:landscape:max-h-[calc(100dvh-7.5rem)]";
   const reviewLayoutHeightClass = isMacDesktopApp ? "xl:h-[calc(100dvh-11.5rem)]" : "xl:h-[calc(100dvh-7.5rem)]";
   const effectiveSidebarWidthPx = manualSidebarWidthPx ?? autoSidebarWidthPx ?? 420;
 
@@ -1930,7 +1970,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
     <div
       ref={reviewLayoutRef}
       className={cn(
-        "grid gap-5 xl:gap-0",
+        "group/review grid gap-5 max-xl:flex max-xl:flex-col xl:gap-0",
         reviewLayoutHeightClass,
         isMacDesktopApp ? "xl:place-content-center" : ""
       )}
@@ -1943,7 +1983,8 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
           : undefined
       }
     >
-      <section className="min-w-0 space-y-4 xl:min-h-0 xl:overflow-hidden xl:pr-2">
+      {/* Below xl this wrapper dissolves so the player can stay pinned past the end of it. */}
+      <section className="min-w-0 max-xl:contents xl:min-h-0 xl:space-y-4 xl:overflow-hidden xl:pr-2">
         {/* Hero strip */}
         <section ref={reviewHeroRef} className="relative border border-border bg-card px-4 py-3">
           <div className="relative flex flex-wrap items-start justify-between gap-3">
@@ -1989,7 +2030,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
           </div>
           <div className="relative mt-3 space-y-2">
             <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
               {!isGuest && !isImageReview && currentVersion?.status === "READY" ? (
                 <ReviewTranscriptButton
                   mediaId={data.mediaId}
@@ -2029,7 +2070,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                 <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               </label>
               {canManageQuickGrades ? (
-                <div ref={quickGradesRef} className="relative">
+                <div ref={quickGradesRef} className="lg:relative">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -2045,7 +2086,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                   </Button>
 
                   {quickGradesOpen ? (
-                    <div className="absolute left-0 top-[calc(100%+0.55rem)] z-[140] w-[min(96vw,40rem)] rounded-2xl border border-border bg-card p-3 shadow-2xl">
+                    <div className="absolute left-0 top-[calc(100%+0.55rem)] z-[140] w-full overflow-x-auto rounded-2xl border border-border bg-card p-3 shadow-2xl lg:w-[min(96vw,40rem)] lg:overflow-x-visible">
                       <div className="mb-3 flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Quick Grades</p>
@@ -2071,7 +2112,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                         </div>
                       ) : (
                         <>
-                          <div className="mb-2 grid grid-cols-[minmax(0,1fr)_6rem_6rem_8rem_8.5rem] items-center gap-2 px-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                          <div className="mb-2 grid min-w-[36rem] grid-cols-[minmax(0,1fr)_6rem_6rem_8rem_8.5rem] items-center gap-2 px-1 lg:min-w-0 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
                             <span>Name</span>
                             <span className="text-center">Effort /25</span>
                             <span className="text-center">Teamwork /15</span>
@@ -2079,7 +2120,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                             <span className="text-center">Feedback</span>
                           </div>
 
-                          <div className="max-h-[18.5rem] space-y-1.5 overflow-y-auto pr-1">
+                          <div className="max-h-[18.5rem] min-w-[36rem] space-y-1.5 overflow-y-auto pr-1 lg:min-w-0">
                             {quickGradeRows.map((row) => (
                               <div
                                 key={row.userId}
@@ -2484,10 +2525,10 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
           </div>
         </section>
 
-        <div ref={reviewMainCardRef} className="rounded-2xl border border-border bg-card/80 p-2 sm:p-3">
+        <div ref={reviewMainCardRef} className={cn("rounded-2xl border border-border bg-card/80 p-2 sm:p-3", PINNED_PLAYER_CLASS)}>
           <div
             ref={mediaStageRef}
-            className="mx-auto w-full"
+            className="mx-auto w-full max-lg:landscape:max-w-[calc((100dvh_-_9rem)_*_16_/_9)]"
             style={computedMediaStageMaxWidthPx ? { maxWidth: `${Math.round(computedMediaStageMaxWidthPx)}px` } : undefined}
           >
             {isImageReview && currentVersion?.imageUrl ? (
@@ -2576,9 +2617,13 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                   ) : null}
                 </div>
 
-                <div ref={mediaControlsRef} className="mt-2 px-1 sm:px-2">
+                {/* On a phone the controls step aside while the composer has focus, so the frame and the keyboard both fit. */}
+                <div
+                  ref={mediaControlsRef}
+                  className="mt-2 px-1 sm:px-2 [@media(pointer:coarse)]:max-xl:portrait:group-has-[[data-review-composer]:focus]/review:hidden"
+                >
                   {/* Comment markers sit in their own lane above the track so they never block scrubbing. */}
-                  <div className="relative h-4">
+                  <div className="relative h-6 lg:h-4">
                     {commentThreads.map((thread, index) => {
                       const left = `${Math.max(0, Math.min(100, (thread.root.timeSeconds / Math.max(timelineDuration, 1)) * 100))}%`;
                       const isSelected = selectedCommentId === thread.root.id;
@@ -2589,7 +2634,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                           onClick={() => focusCommentThread(thread, { scrollSidebar: true })}
                           title={`#${index + 1} · ${thread.root.authorName} · ${formatTimecode(thread.root.timeSeconds)}`}
                           aria-label={`Comment ${index + 1} by ${thread.root.authorName} at ${formatTimecode(thread.root.timeSeconds)}`}
-                          className="group/marker absolute top-1/2 grid h-4 w-4 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          className="group/marker absolute top-1/2 grid h-6 w-6 -translate-x-1/2 lg:h-4 lg:w-4 -translate-y-1/2 place-items-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           style={{ left, zIndex: isSelected ? 2 : 1 }}
                         >
                           <span
@@ -2613,7 +2658,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                   <PlayheadSeekRange playhead={playheadStore} buffered={bufferedStore} max={timelineDuration} onSeek={seekTo} />
 
                   <div className="mt-1 flex items-center gap-1 sm:gap-2">
-                    <Button variant="ghost" size="sm" className="h-8 w-8 shrink-0 p-0" onClick={togglePlayback} aria-label={isPlaying ? "Pause" : "Play"}>
+                    <Button variant="ghost" size="sm" className="h-10 w-10 shrink-0 p-0 lg:h-8 lg:w-8" onClick={togglePlayback} aria-label={isPlaying ? "Pause" : "Play"}>
                       {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                     </Button>
                     <div className="hidden items-center gap-2 sm:flex">
@@ -2681,7 +2726,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
 
       <aside
         className={cn(
-          "flex min-h-[620px] flex-col overflow-hidden rounded-2xl border border-border bg-card/95 xl:ml-2 xl:min-h-0 xl:max-h-none",
+          "flex min-h-[620px] flex-col overflow-hidden rounded-2xl border border-border bg-card/95 max-xl:portrait:min-h-0 max-xl:portrait:overflow-visible xl:ml-2 xl:min-h-0 xl:max-h-none",
           reviewPaneMaxHeightClass
         )}
       >
@@ -2721,7 +2766,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                 title="All"
                 aria-label="Show all comments"
                 aria-pressed={filterMode === "ALL"}
-                className={`rounded-md p-1.5 transition ${filterMode === "ALL" ? "bg-secondary text-foreground" : "hover:text-foreground"}`}
+                className={`rounded-md p-2.5 transition lg:p-1.5 ${filterMode === "ALL" ? "bg-secondary text-foreground" : "hover:text-foreground"}`}
               >
                 <ListFilter className="h-4 w-4" />
               </button>
@@ -2731,7 +2776,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                 title="Open"
                 aria-label="Show open comments"
                 aria-pressed={filterMode === "OPEN"}
-                className={`rounded-md p-1.5 transition ${filterMode === "OPEN" ? "bg-secondary text-foreground" : "hover:text-foreground"}`}
+                className={`rounded-md p-2.5 transition lg:p-1.5 ${filterMode === "OPEN" ? "bg-secondary text-foreground" : "hover:text-foreground"}`}
               >
                 <Clock3 className="h-4 w-4" />
               </button>
@@ -2741,7 +2786,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                 title="Resolved"
                 aria-label="Show resolved comments"
                 aria-pressed={filterMode === "RESOLVED"}
-                className={`rounded-md p-1.5 transition ${filterMode === "RESOLVED" ? "bg-secondary text-foreground" : "hover:text-foreground"}`}
+                className={`rounded-md p-2.5 transition lg:p-1.5 ${filterMode === "RESOLVED" ? "bg-secondary text-foreground" : "hover:text-foreground"}`}
               >
                 <CheckCircle2 className="h-4 w-4" />
               </button>
@@ -2752,7 +2797,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                   aria-label="More comment actions"
                   aria-expanded={commentsMenuOpen}
                   onClick={() => setCommentsMenuOpen((open) => !open)}
-                  className={`rounded-md p-1.5 transition ${commentsMenuOpen ? "bg-secondary text-foreground" : "hover:text-foreground"}`}
+                  className={`rounded-md p-2.5 transition lg:p-1.5 ${commentsMenuOpen ? "bg-secondary text-foreground" : "hover:text-foreground"}`}
                 >
                   <MoreHorizontal className="h-4 w-4" />
                 </button>
@@ -2853,7 +2898,13 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
               )}
             </div>
 
-            <div className="border-t border-border bg-card p-3">
+            <div
+              className={cn(
+                "border-t border-border bg-card p-3",
+                allowComment && DOCKED_COMPOSER_CLASS,
+                allowComment && hasAssistantLauncher && DOCKED_COMPOSER_LAUNCHER_GUTTER_CLASS
+              )}
+            >
               {!allowComment ? (
                 <p className="text-sm text-muted-foreground">
                   {isGuest ? "This link is view-only." : "Associate review closes after Stage 1."}
@@ -2863,8 +2914,14 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                   <Textarea
                     value={reviewComposerBody}
                     onChange={(event) => setReviewComposerBody(event.target.value)}
+                    data-review-composer
                     onKeyDown={(event) => {
-                      if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) {
+                      if (
+                        !shouldEnterSend(
+                          { key: event.key, shiftKey: event.shiftKey, isComposing: event.nativeEvent.isComposing },
+                          isCoarsePointer()
+                        )
+                      ) {
                         return;
                       }
                       event.preventDefault();
@@ -2907,7 +2964,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                         commentCardRefs.current[thread.root.id] = node;
                       }}
                       onClick={() => focusCommentThread(thread)}
-                      className={`cursor-pointer rounded-2xl border p-2.5 transition ${
+                      className={`cursor-pointer rounded-2xl border p-2.5 transition ${COMMENT_CARD_SCROLL_MARGIN_CLASS} ${
                         isSelected
                           ? "border-brand-green/70 bg-secondary"
                           : sidebarHighlightedCommentId === thread.root.id
@@ -3007,7 +3064,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                                   event.stopPropagation();
                                   startEditingComment(thread.root.id, thread.root.body);
                                 }}
-                                className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                                className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground lg:h-7 lg:w-7"
                               >
                                 <Pencil className="h-3.5 w-3.5" />
                               </button>
@@ -3022,7 +3079,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                                 setConfirmDeleteOpen(true);
                               }}
                               disabled={deletingCommentId === thread.root.id}
-                              className="inline-flex h-7 w-7 items-center justify-center rounded-md text-danger transition hover:bg-danger-tint disabled:cursor-not-allowed disabled:opacity-50"
+                              className="inline-flex h-9 w-9 items-center justify-center rounded-md text-danger transition hover:bg-danger-tint disabled:cursor-not-allowed disabled:opacity-50 lg:h-7 lg:w-7"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
@@ -3083,7 +3140,7 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                                         event.stopPropagation();
                                         startEditingComment(reply.id, reply.body);
                                       }}
-                                      className="shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                                      className="shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 inline-flex h-7 w-7 items-center justify-center rounded text-muted-foreground transition hover:bg-muted hover:text-foreground lg:h-5 lg:w-5"
                                     >
                                       <Pencil className="h-3 w-3" />
                                     </button>
@@ -3132,7 +3189,13 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
               )}
             </div>
 
-            <div className="border-t border-border bg-card p-3">
+            <div
+              className={cn(
+                "border-t border-border bg-card p-3",
+                allowComment && DOCKED_COMPOSER_CLASS,
+                allowComment && hasAssistantLauncher && DOCKED_COMPOSER_LAUNCHER_GUTTER_CLASS
+              )}
+            >
               {!allowComment ? (
                 <p className="text-sm text-muted-foreground">
                   {isGuest ? "This link is view-only." : "Associate review closes after Stage 1."}
@@ -3154,8 +3217,14 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
                   <Textarea
                     value={composerBody}
                     onChange={(event) => setComposerBody(event.target.value)}
+                    data-review-composer
                     onKeyDown={(event) => {
-                      if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) {
+                      if (
+                        !shouldEnterSend(
+                          { key: event.key, shiftKey: event.shiftKey, isComposing: event.nativeEvent.isComposing },
+                          isCoarsePointer()
+                        )
+                      ) {
                         return;
                       }
 

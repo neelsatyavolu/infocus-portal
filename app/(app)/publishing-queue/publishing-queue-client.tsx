@@ -604,7 +604,7 @@ export default function PublishingQueueClient({ canEdit }: { canEdit: boolean })
       </Dialog>
 
       <Dialog open={pastOpen} onOpenChange={setPastOpen}>
-        <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
+        <DialogContent className="max-h-[85dvh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Past shows</DialogTitle>
             <DialogDescription>

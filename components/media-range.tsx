@@ -17,7 +17,7 @@ export function MediaRange({ value, max, step, label, onChange, className, buffe
   const pct = max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0;
 
   return (
-    <div className={cn("group/range relative h-4", className)}>
+    <div className={cn("group/range relative h-7 lg:h-4", className)}>
       <input
         type="range"
         min={0}

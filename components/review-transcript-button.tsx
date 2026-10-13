@@ -118,7 +118,7 @@ export function ReviewTranscriptButton({ mediaId, versionId, versionNumber, onSe
       </Button>
 
       {open && transcript ? (
-        <div className="absolute left-0 top-[calc(100%+0.55rem)] z-[140] w-[min(92vw,30rem)] rounded-md border border-border bg-card p-3">
+        <div className="absolute left-0 top-[calc(100%+0.55rem)] z-[140] w-[min(calc(100vw_-_4.5rem),30rem)] rounded-md border border-border bg-card p-3">
           <div className="mb-2 flex items-center justify-between gap-3">
             <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
               Transcript · v{versionNumber ?? "—"}

@@ -272,7 +272,7 @@ export function ShowUploadDialog({
 
   return (
     <Dialog open={open} onOpenChange={(next) => (phase === "uploading" && !next ? undefined : onOpenChange(next))}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Upload show</DialogTitle>
           <DialogDescription>{showLabel}</DialogDescription>

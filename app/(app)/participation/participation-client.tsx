@@ -373,7 +373,7 @@ export default function ParticipationClient() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="inline-flex min-w-[10.5rem] items-center rounded-md border border-border bg-muted">
             <div className="pointer-events-none pl-2 text-muted-foreground">
               <ArrowUpDown className="h-3.5 w-3.5" />
@@ -422,7 +422,7 @@ export default function ParticipationClient() {
         <p className="mt-8 text-sm text-muted-foreground">Loading participation…</p>
       ) : (
         <div className="mt-6 overflow-x-auto rounded-2xl border border-border">
-          <table className="w-full min-w-[48rem] text-sm">
+          <table className="w-full min-w-[48rem] text-sm max-lg:[&_tr>*:first-child]:sticky max-lg:[&_tr>*:first-child]:left-0 max-lg:[&_tr>*:first-child]:z-10 max-lg:[&_td:first-child]:max-w-[9rem] max-lg:[&_td:first-child]:bg-background max-lg:[&_td:first-child]:[overflow-wrap:anywhere] max-lg:[&_th:first-child]:bg-muted">
             <thead className="bg-muted/50">
               <tr>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Student</th>
@@ -566,7 +566,7 @@ export default function ParticipationClient() {
       </Dialog>
 
       <Dialog open={queueOpen} onOpenChange={setQueueOpen}>
-        <DialogContent className="max-h-[85vh] max-w-3xl overflow-hidden">
+        <DialogContent className="max-h-[85dvh] max-w-3xl overflow-hidden">
           <DialogHeader>
             <DialogTitle>Pending participation</DialogTitle>
             <DialogDescription>

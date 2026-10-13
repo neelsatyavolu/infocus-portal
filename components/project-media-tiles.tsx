@@ -2589,7 +2589,7 @@ export function ProjectMediaTiles({
         </button>
 
         {selectedCount > 0 ? (
-          <div className="inline-flex items-center gap-2">
+          <div className="inline-flex flex-wrap items-center gap-2 lg:flex-nowrap">
             <span className="rounded-md border border-border bg-secondary px-2 py-1 text-xs text-foreground">
               {selectedCount} selected
             </span>

@@ -66,14 +66,14 @@ function FlyoutMenuRow({
   return (
     <div
       className="relative"
-      onMouseEnter={() => {
-        if (!disabled) {
+      onPointerEnter={(event) => {
+        if (!disabled && event.pointerType === "mouse") {
           clearCloseTimer();
           onOpenChange(true);
         }
       }}
-      onMouseLeave={() => {
-        if (!disabled) {
+      onPointerLeave={(event) => {
+        if (!disabled && event.pointerType === "mouse") {
           scheduleClose();
         }
       }}
@@ -97,7 +97,7 @@ function FlyoutMenuRow({
 
       {open ? (
         <div
-          className="absolute left-[calc(100%+6px)] top-0 z-40 min-w-48 rounded-lg border border-border bg-popover p-1.5 shadow-xl"
+          className="absolute left-[calc(100%+6px)] top-0 z-40 min-w-48 rounded-lg border border-border bg-popover p-1.5 shadow-xl max-lg:static max-lg:mt-1 max-lg:min-w-0 max-lg:shadow-none"
           onMouseEnter={clearCloseTimer}
           onMouseLeave={scheduleClose}
         >
@@ -203,14 +203,14 @@ export function VideoCardMenu({
             return next;
           });
         }}
-        className="rounded-md border border-border bg-muted p-1 text-foreground hover:bg-accent"
+        className="rounded-md border border-border bg-muted p-2 text-foreground hover:bg-accent lg:p-1"
       >
         <MoreHorizontal className="h-4 w-4" />
       </button>
 
       {open ? (
         <div
-          className="absolute right-0 top-8 z-30 w-52 rounded-lg border border-border bg-popover p-1.5 text-sm shadow-xl"
+          className="absolute right-0 top-10 z-30 w-52 rounded-lg border border-border bg-popover p-1.5 text-sm shadow-xl lg:top-8"
           onClick={(event) => event.stopPropagation()}
         >
           {hasVersionFlyout ? (

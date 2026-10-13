@@ -42,7 +42,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md items-center px-6 py-10">
-      <section className="brand-hero-panel relative w-full overflow-hidden p-8">
+      <section className="brand-hero-panel relative w-full overflow-hidden p-6 sm:p-8">
         <div className="relative">
           <div className="mb-5 grid h-12 w-12 place-items-center rounded-xl border border-[var(--brand-green)]/40 bg-[var(--brand-green)]/15 text-[var(--brand-green)]">
             <Lock className="h-5 w-5" aria-hidden="true" />

@@ -9,12 +9,17 @@ import {
   Copy,
   Edit3,
   Expand,
+  FastForward,
   Minimize2,
+  Minus,
   Monitor,
   PanelLeftClose,
   PanelLeftOpen,
+  Pause,
+  Play,
   Plus,
   RefreshCw,
+  Rewind,
   RotateCcw,
   ScrollText,
   Settings2,
@@ -340,6 +345,19 @@ function renderScriptLine(line: string, lineIndex: number, settings: RunModeSett
   return <SpokenLine text={classified.text} lineIndex={lineIndex} settings={settings} />;
 }
 
+type RunModeControl = Parameters<typeof teleprompterArrowState>[1];
+
+const RUN_MODE_KEY_CONTROLS: Record<string, RunModeControl | undefined> = {
+  " ": "space",
+  ArrowUp: "up",
+  ArrowDown: "down",
+  ArrowLeft: "left",
+  ArrowRight: "right"
+};
+
+const RUN_MODE_TOUCH_BUTTON_CLASS =
+  "inline-flex h-11 w-11 touch-manipulation items-center justify-center rounded-md text-[#0F110F] hover:bg-black/10 active:bg-black/10";
+
 function FullscreenRunMode({
   doc,
   docs,
@@ -461,6 +479,13 @@ function FullscreenRunMode({
     };
   }, [applyPosition]);
 
+  // One path for the keys and the on-screen touch controls.
+  const applyControl = useCallback((control: RunModeControl) => {
+    const next = teleprompterArrowState({ paused: pausedRef.current, speed: speedRef.current }, control);
+    setSpeed(next.speed);
+    setPaused(next.paused);
+  }, []);
+
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (event.target instanceof HTMLElement) {
@@ -470,43 +495,10 @@ function FullscreenRunMode({
         }
       }
 
-      if (event.key === " ") {
+      const control = RUN_MODE_KEY_CONTROLS[event.key];
+      if (control) {
         event.preventDefault();
-        const next = teleprompterArrowState({ paused: pausedRef.current, speed: speedRef.current }, "space");
-        setSpeed(next.speed);
-        setPaused(next.paused);
-        return;
-      }
-
-      if (event.key === "ArrowUp") {
-        event.preventDefault();
-        const next = teleprompterArrowState({ paused: pausedRef.current, speed: speedRef.current }, "up");
-        setSpeed(next.speed);
-        setPaused(next.paused);
-        return;
-      }
-
-      if (event.key === "ArrowDown") {
-        event.preventDefault();
-        const next = teleprompterArrowState({ paused: pausedRef.current, speed: speedRef.current }, "down");
-        setSpeed(next.speed);
-        setPaused(next.paused);
-        return;
-      }
-
-      if (event.key === "ArrowLeft") {
-        event.preventDefault();
-        const next = teleprompterArrowState({ paused: pausedRef.current, speed: speedRef.current }, "left");
-        setSpeed(next.speed);
-        setPaused(next.paused);
-        return;
-      }
-
-      if (event.key === "ArrowRight") {
-        event.preventDefault();
-        const next = teleprompterArrowState({ paused: pausedRef.current, speed: speedRef.current }, "right");
-        setSpeed(next.speed);
-        setPaused(next.paused);
+        applyControl(control);
         return;
       }
 
@@ -518,7 +510,7 @@ function FullscreenRunMode({
 
     window.addEventListener("keydown", onKeyDown, { passive: false });
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
+  }, [applyControl, onClose]);
 
   function jumpToSection(sectionId: string) {
     activeSectionIdRef.current = sectionId;
@@ -547,7 +539,7 @@ function FullscreenRunMode({
       <header className="relative z-20 flex h-9 shrink-0 items-center gap-1.5 border-b border-[#c5ccc8] bg-[#DCE2DE] px-2 text-[#0F110F]">
         <select
           aria-label="Show"
-          className="h-[22px] max-w-[280px] rounded-md border border-[#b5beb8] bg-white px-1.5 text-[12px] font-medium text-[#0F110F]"
+          className="h-[22px] min-w-0 max-w-[280px] rounded-md border border-[#b5beb8] bg-white px-1.5 text-[12px] font-medium text-[#0F110F]"
           value={doc.id}
           onChange={(event) => onSelectDoc(event.target.value)}
         >
@@ -560,7 +552,7 @@ function FullscreenRunMode({
         <ChevronRight className="h-3.5 w-3.5 shrink-0 text-[#6b736e]" />
         <select
           aria-label="Section"
-          className="h-[22px] max-w-[220px] rounded-md border border-[#b5beb8] bg-white px-1.5 text-[12px] font-medium tracking-[0.11em] text-[#0F110F]"
+          className="h-[22px] min-w-0 max-w-[220px] rounded-md border border-[#b5beb8] bg-white px-1.5 text-[12px] font-medium tracking-[0.11em] text-[#0F110F]"
           value={activeSectionId}
           disabled={sectionOptions.length === 0}
           onMouseDown={(event) => {
@@ -583,11 +575,11 @@ function FullscreenRunMode({
           ))}
         </select>
 
-        <div className="ml-auto flex items-center gap-0.5">
+        <div className="ml-auto flex shrink-0 items-center gap-0.5">
           <button
             type="button"
             className={cn(
-              "inline-flex h-7 w-7 items-center justify-center rounded-md text-[#0F110F] hover:bg-black/10",
+              "inline-flex h-9 w-9 items-center justify-center rounded-md text-[#0F110F] hover:bg-black/10 lg:h-7 lg:w-7",
               settingsOpen && "bg-black/10"
             )}
             onClick={() => setSettingsOpen((current) => !current)}
@@ -597,7 +589,7 @@ function FullscreenRunMode({
           </button>
           <button
             type="button"
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[#0F110F] hover:bg-black/10"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md text-[#0F110F] hover:bg-black/10 lg:h-7 lg:w-7"
             onClick={() => void toggleBrowserFullscreen()}
             aria-label={isBrowserFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
           >
@@ -605,7 +597,7 @@ function FullscreenRunMode({
           </button>
           <button
             type="button"
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[#0F110F] hover:bg-black/10"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md text-[#0F110F] hover:bg-black/10 lg:h-7 lg:w-7"
             onClick={onClose}
             aria-label="Exit teleprompter"
           >
@@ -708,6 +700,51 @@ function FullscreenRunMode({
           })}
         </div>
       </div>
+
+      {/* Touch devices only: a bar under the script, so nothing covers it and
+          mouse/keyboard displays look exactly as before. */}
+      <footer className="relative z-20 hidden shrink-0 items-center justify-center gap-2 border-t border-[#c5ccc8] bg-[#DCE2DE] px-2 py-1 pb-[max(0.25rem,env(safe-area-inset-bottom))] text-[#0F110F] pointer-coarse:flex">
+        <button
+          type="button"
+          className={RUN_MODE_TOUCH_BUTTON_CLASS}
+          onClick={() => applyControl("left")}
+          aria-label="Scroll backward"
+        >
+          <Rewind className="h-5 w-5" />
+        </button>
+        <button
+          type="button"
+          className={RUN_MODE_TOUCH_BUTTON_CLASS}
+          onClick={() => applyControl("down")}
+          aria-label="Slower"
+        >
+          <Minus className="h-5 w-5" />
+        </button>
+        <button
+          type="button"
+          className={RUN_MODE_TOUCH_BUTTON_CLASS}
+          onClick={() => applyControl("space")}
+          aria-label={paused ? "Resume" : "Pause"}
+        >
+          {paused ? <Play className="h-5 w-5" /> : <Pause className="h-5 w-5" />}
+        </button>
+        <button
+          type="button"
+          className={RUN_MODE_TOUCH_BUTTON_CLASS}
+          onClick={() => applyControl("up")}
+          aria-label="Faster"
+        >
+          <Plus className="h-5 w-5" />
+        </button>
+        <button
+          type="button"
+          className={RUN_MODE_TOUCH_BUTTON_CLASS}
+          onClick={() => applyControl("right")}
+          aria-label="Scroll forward"
+        >
+          <FastForward className="h-5 w-5" />
+        </button>
+      </footer>
     </div>
   );
 }
@@ -1332,7 +1369,7 @@ export default function TeleprompterClient() {
       <div
         className={cn(
           "route-enter mx-auto w-full max-w-[80rem] space-y-5 pb-24",
-          standaloneApp && "flex min-h-[calc(100vh-3rem)] flex-col px-3 py-3 pb-6 sm:px-4"
+          standaloneApp && "flex min-h-[calc(100dvh-3rem)] flex-col px-3 py-3 pb-6 sm:px-4"
         )}
       >
         <section className="brand-hero-panel relative overflow-hidden rounded-2xl border border-border p-5 md:p-6">

@@ -259,6 +259,7 @@ export default function EquipmentCheckoutClient() {
                       onFocus={() => setSuggestionsOpen(true)}
                       aria-describedby={selectedItem ? "selected-item-name item-code-help" : "item-code-help"}
                       placeholder="Scan code or search by code/name"
+                      className="max-sm:h-11"
                       autoComplete="off"
                       disabled={busy}
                       required={barcodes.length === 0}
@@ -270,7 +271,7 @@ export default function EquipmentCheckoutClient() {
                         }
                       }}
                     />
-                    <Button type="button" variant="outline" onClick={addItemCode} disabled={busy || !barcode.trim()}>
+                    <Button type="button" variant="outline" className="max-sm:h-11" onClick={addItemCode} disabled={busy || !barcode.trim()}>
                       Add
                     </Button>
                   </div>
@@ -305,7 +306,7 @@ export default function EquipmentCheckoutClient() {
               {barcodes.length > 0 ? (
                 <ul className="space-y-2" aria-label="Items to submit">
                   {barcodes.map((code) => (
-                    <li key={code} className="flex items-center justify-between rounded-md border border-border px-3 py-2">
+                    <li key={code} className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2">
                       <div className="min-w-0 space-y-0.5">
                         <p className="break-all font-mono text-[13px] tabular-nums">{code}</p>
                         <p className="break-words text-xs text-muted-foreground">{items.find((item) => item.barcode === code)?.name}</p>
@@ -314,6 +315,7 @@ export default function EquipmentCheckoutClient() {
                         type="button"
                         variant="ghost"
                         size="sm"
+                        className="shrink-0 max-sm:h-10 max-sm:w-10"
                         aria-label={`Remove ${code}`}
                         disabled={busy}
                         onClick={() => setBarcodes((current) => current.filter((entry) => entry !== code))}
@@ -325,7 +327,7 @@ export default function EquipmentCheckoutClient() {
                 </ul>
               ) : null}
               <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm" htmlFor="took-sd-card">
+                <label className="flex items-center gap-2 text-sm max-sm:min-h-10" htmlFor="took-sd-card">
                   <input
                     id="took-sd-card"
                     type="checkbox"
@@ -342,10 +344,10 @@ export default function EquipmentCheckoutClient() {
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button type="submit" disabled={busy || (barcodes.length === 0 && !barcode.trim())}>
+                <Button type="submit" className="max-sm:h-11" disabled={busy || (barcodes.length === 0 && !barcode.trim())}>
                   {busy ? "Submitting…" : `Submit ${barcodes.length + (barcode.trim() ? 1 : 0)} item(s)`}
                 </Button>
-                <Button type="button" variant="outline" onClick={() => void lockStation()} disabled={busy}>
+                <Button type="button" variant="outline" className="max-sm:h-11" onClick={() => void lockStation()} disabled={busy}>
                   Lock
                 </Button>
               </div>

@@ -699,7 +699,7 @@ export default function App() {
         <div className="min-w-0 space-y-4">
           <section className="overflow-hidden rounded-2xl border border-border bg-card">
             {/* Card head */}
-            <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-5 py-3.5">
               <h2 className="font-display text-[22px] italic font-bold uppercase leading-none tracking-tight text-foreground">
                 {showStatus?.kind === "past" ? "Past Show" : "Active Show"}
               </h2>

@@ -57,7 +57,8 @@ export function EquipmentShell({ children, dashboardUrl }: EquipmentShellProps) 
       <header className="sticky top-0 z-40 flex min-h-12 shrink-0 flex-wrap items-center gap-2 border-b border-border bg-[var(--ink)] px-3 py-1.5 sm:px-4">
         <a
           href={dashboardUrl}
-          className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[13px] font-medium text-muted-foreground transition hover:bg-card hover:text-foreground"
+          aria-label="Dashboard"
+          className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[13px] font-medium text-muted-foreground transition hover:bg-card hover:text-foreground max-sm:min-h-10 max-sm:min-w-10 max-sm:justify-center"
         >
           <ArrowLeft className="h-4 w-4" />
           <span className="hidden sm:inline">Dashboard</span>
@@ -74,7 +75,7 @@ export function EquipmentShell({ children, dashboardUrl }: EquipmentShellProps) 
           {NAV.map((item) => {
             if ("manageOnly" in item && item.manageOnly && !canManage) {
               return (
-                <Link key={item.href} href="/sign-in?returnTo=/equipment/manage" className="rounded-md px-2.5 py-1.5 text-[13px] font-medium text-muted-foreground transition hover:bg-card hover:text-foreground">
+                <Link key={item.href} href="/sign-in?returnTo=/equipment/manage" className="rounded-md px-2.5 py-1.5 text-[13px] font-medium text-muted-foreground transition hover:bg-card hover:text-foreground max-sm:inline-flex max-sm:min-h-10 max-sm:items-center">
                   Dashboard sign-in
                 </Link>
               );
@@ -85,7 +86,7 @@ export function EquipmentShell({ children, dashboardUrl }: EquipmentShellProps) 
                 key={item.href}
                 href={item.href as never}
                 className={cn(
-                  "rounded-md px-2.5 py-1.5 text-[13px] font-medium transition",
+                  "rounded-md px-2.5 py-1.5 text-[13px] font-medium transition max-sm:inline-flex max-sm:min-h-10 max-sm:items-center",
                   active
                     ? "bg-card text-foreground"
                     : "text-muted-foreground hover:bg-card hover:text-foreground"

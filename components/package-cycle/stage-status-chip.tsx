@@ -20,7 +20,7 @@ export function StageStatusChip({
       className={cn(
         "status-pill",
         size === "sm" && "status-pill-sm",
-        size === "lg" && "status-pill-lg",
+        size === "lg" && "status-pill-lg max-sm:whitespace-normal!",
         CYCLE_STAGE_STATUS_CLASS[status]
       )}
     >

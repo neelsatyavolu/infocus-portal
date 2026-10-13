@@ -150,7 +150,7 @@ export function MembersEditor({
                 type="button"
                 aria-label={`Remove ${pickFirstName(user)}`}
                 onClick={() => removeMember(user.id)}
-                className="rounded-sm p-0.5 text-muted-foreground hover:bg-black/20 light:hover:bg-foreground/5 hover:text-foreground"
+                className="rounded-sm p-0.5 text-muted-foreground hover:bg-black/20 light:hover:bg-foreground/5 hover:text-foreground max-lg:-m-2 max-lg:p-2.5"
               >
                 <X className="h-3 w-3" />
               </button>

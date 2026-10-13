@@ -1,9 +1,9 @@
 "use client";
 
-import { type MouseEvent as ReactMouseEvent, useEffect, useMemo, useRef, useState } from "react";
+import { type MouseEvent as ReactMouseEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { Edit3, ExternalLink, Plus, RefreshCcw, StickyNote } from "lucide-react";
+import { Edit3, ExternalLink, MoreVertical, Plus, RefreshCcw, StickyNote } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,6 +24,7 @@ import {
   selectedAssignedProducerId
 } from "@/src/lib/package-producer-assignment";
 import { MembersEditor, type MembersEditorUser } from "./members-editor";
+import { clampMenuPosition } from "@/src/lib/menu-position";
 import { BottomTabDock, BottomTabDockButton, CycleTabLabel } from "@/components/ui/bottom-tab-dock";
 
 const MEMBERS_CHIP_CLASS =
@@ -410,6 +411,8 @@ type QueuedSave = {
   rows: ProgressRow[];
 };
 
+const ROW_MENU_BUTTON_GAP_PX = 4;
+
 type RowContextMenuState = {
   rowId: string | null;
   rowIndex: number;
@@ -494,7 +497,7 @@ export default function PackageProgressClient({ initialData }: { initialData?: P
       setRowContextMenu(null);
     }
 
-    function onMouseDown(event: MouseEvent) {
+    function onPointerDown(event: PointerEvent) {
       if (!rowContextMenuRef.current) {
         closeMenu();
         return;
@@ -514,17 +517,34 @@ export default function PackageProgressClient({ initialData }: { initialData?: P
       }
     }
 
-    window.addEventListener("mousedown", onMouseDown);
+    // pointerdown, not mousedown: iOS does not send mouse events for taps on plain content.
+    window.addEventListener("pointerdown", onPointerDown);
     window.addEventListener("resize", closeMenu);
     window.addEventListener("scroll", closeMenu, true);
     window.addEventListener("keydown", onKeyDown);
 
     return () => {
-      window.removeEventListener("mousedown", onMouseDown);
+      window.removeEventListener("pointerdown", onPointerDown);
       window.removeEventListener("resize", closeMenu);
       window.removeEventListener("scroll", closeMenu, true);
       window.removeEventListener("keydown", onKeyDown);
     };
+  }, [rowContextMenu]);
+
+  useLayoutEffect(() => {
+    const menu = rowContextMenuRef.current;
+    if (!rowContextMenu || !menu) {
+      return;
+    }
+
+    const next = clampMenuPosition(
+      { x: rowContextMenu.x, y: rowContextMenu.y },
+      { width: menu.offsetWidth, height: menu.offsetHeight },
+      { width: window.innerWidth, height: window.innerHeight }
+    );
+    if (next.x !== rowContextMenu.x || next.y !== rowContextMenu.y) {
+      setRowContextMenu({ ...rowContextMenu, ...next });
+    }
   }, [rowContextMenu]);
 
   useEffect(() => {
@@ -691,6 +711,15 @@ export default function PackageProgressClient({ initialData }: { initialData?: P
     queueAutosave(nextRows);
   }
 
+  function openRowMenuAt(row: ProgressRow, rowIndex: number, x: number, y: number) {
+    setRowContextMenu({
+      rowId: row.id ?? null,
+      rowIndex,
+      x,
+      y
+    });
+  }
+
   function openRowContextMenu(
     event: ReactMouseEvent<HTMLElement>,
     row: ProgressRow,
@@ -702,12 +731,23 @@ export default function PackageProgressClient({ initialData }: { initialData?: P
 
     event.preventDefault();
 
-    setRowContextMenu({
-      rowId: row.id ?? null,
-      rowIndex,
-      x: event.clientX,
-      y: event.clientY
-    });
+    openRowMenuAt(row, rowIndex, event.clientX, event.clientY);
+  }
+
+  // Same menu as right-click, for touch screens (iOS has no contextmenu event).
+  function openRowContextMenuFromButton(
+    event: ReactMouseEvent<HTMLButtonElement>,
+    row: ProgressRow,
+    rowIndex: number
+  ) {
+    // Keep the row's own click (which switches to edit mode) out of it.
+    event.stopPropagation();
+    if (!canEdit) {
+      return;
+    }
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    openRowMenuAt(row, rowIndex, rect.left, rect.bottom + ROW_MENU_BUTTON_GAP_PX);
   }
 
   const rosterStats = useMemo(() => {
@@ -944,6 +984,11 @@ export default function PackageProgressClient({ initialData }: { initialData?: P
                       </th>
                     )
                   )}
+                  {canEdit ? (
+                    <th className="sticky right-0 w-[1%] bg-[hsl(var(--background))] px-1">
+                      <span className="sr-only">Row actions</span>
+                    </th>
+                  ) : null}
                 </tr>
               </thead>
               <tbody>
@@ -1095,11 +1140,24 @@ export default function PackageProgressClient({ initialData }: { initialData?: P
                         </span>
                       )}
                     </td>
+                    {canEdit ? (
+                      <td className="sticky right-0 w-[1%] bg-[var(--ink)] px-1 py-3 align-middle transition-colors duration-150 group-hover:bg-[var(--ink-2)]">
+                        <button
+                          type="button"
+                          aria-label={`More actions for ${row.groupTopic || "untitled package"}`}
+                          aria-haspopup="menu"
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition hover:bg-accent hover:text-foreground lg:h-7 lg:w-7"
+                          onClick={(event) => openRowContextMenuFromButton(event, row, index)}
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </button>
+                      </td>
+                    ) : null}
                   </tr>
                 ))}
                 {(editing ? draftRows : rows).length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                    <td colSpan={canEdit ? 6 : 5} className="px-4 py-8 text-center text-sm text-muted-foreground">
                       No groups yet. Add a row to create one.
                     </td>
                   </tr>

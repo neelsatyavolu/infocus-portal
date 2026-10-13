@@ -233,7 +233,7 @@ function LatePenalty({
         onValueChange={(value) => onChange(value === "auto" ? null : Number(value))}
         disabled={saving}
       >
-        <SelectTrigger className="h-8 w-52 text-xs" aria-label={`${name} late penalty`}>
+        <SelectTrigger className="h-8 w-52 min-w-0 text-xs" aria-label={`${name} late penalty`}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -278,7 +278,7 @@ function MemberRow({
   return (
     <li className="space-y-2 bg-black/20 light:bg-muted px-3 py-2.5">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <div className="min-w-0 flex-1 truncate text-sm text-foreground">{name}</div>
+        <div className="min-w-full flex-1 truncate text-sm text-foreground sm:min-w-0">{name}</div>
         {member.locked ? (
           <span className="status-pill status-pill-sm status-neutral">Keeps grade · not revising</span>
         ) : canGrade ? (

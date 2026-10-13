@@ -277,7 +277,7 @@ export default function SubmittedAnnouncementsClient({ canInvite }: { canInvite:
               This announcement will be removed from submissions and future scripts. This cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <p className="max-h-60 overflow-y-auto whitespace-pre-wrap rounded-xl border border-border bg-muted/40 p-3 text-sm">
+          <p className="max-h-60 overflow-y-auto whitespace-pre-wrap break-words rounded-xl border border-border bg-muted/40 p-3 text-sm">
             {deleteEntry?.announcement}
           </p>
           {deleteError ? <p role="alert" className="text-sm text-danger">{deleteError}</p> : null}

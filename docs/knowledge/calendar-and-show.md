@@ -18,13 +18,15 @@ First broadcast: **Friday, September 4, 2026**. Earlier Wed/Fri are class days. 
 
 Everyone signed in can view the calendar. Producers (associate producer and up) can edit it. It starts at September 2026. Use the arrows or **Today** to change months. The month you are viewing is kept in the link (`/master-calendar?month=2026-11`), so reloading or sharing it opens the same month.
 
+On a phone the month is a list instead of a grid: one row per weekday in date order, grouped by week, with the same content and controls as the grid cell.
+
 Each weekday cell depends on the day type:
 
 - **Show days:** **Anchors** (two slots, with **Randomize**), **Show manager**, and **Queue** (the packages queued for that show in the Publishing Queue). A special show also shows its name.
 - **PA days (Mondays):** **PA announcers** (two slots, with **Randomize**).
 - **Spirit Week (Mon Oct 5 – Fri Oct 9):** each day also shows that day's dress-up theme (for example, Tuesday is Salad dressing) and **Lunch filmers** and **Editors** lists. Monday and Friday also have **Brunch filmers**; Tuesday through Thursday, lunch filmers film brunch too. Wednesday (Oct 7) also has **Night rally filmers** for the night rally. Producers add people with the small **+** chip after each list (any number per list) and remove them with ×. The names are saved in the calendar cell and appear in the Google Doc.
 - Filmers picked before the brunch/lunch split show as **Filmers (unsorted)**. Adding one of them to a brunch, lunch, or night rally list takes them off the unsorted list; × removes them outright. The unsorted list disappears once it is empty.
-- **Class days:** a scenic photo and a notes box. Right-click the photo to **Delete Image** or **Restore Image**.
+- **Class days:** a scenic photo and a notes box. Producers can tap the **⋯** button on the day (or right-click the photo) to **Delete Image** or **Restore Image**.
 - **Holidays:** the holiday name.
 
 In a notes box, type `[package]` to search package videos and insert a package pill. Adding a pill marks that video as aired on that date; removing it undoes that. Click a pill to rename it (the file name stays the same) or remove it.

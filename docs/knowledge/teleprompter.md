@@ -19,6 +19,8 @@ A full-screen scroll with a playhead arrow near the top. The top bar has a show 
 
 After a Space pause, ← and → do not restart the scroll; use Space or ↑/↓.
 
+On phones and tablets (touch screens), a bar under the script has the same controls as buttons: scroll backward, slower, pause/resume, faster, and scroll forward. It does not appear on mouse-and-keyboard displays.
+
 ## Automatic show scripts
 
 When Teleprompter opens, it creates a script for the next show if there is none yet (titled `InFocus Show - M/D/YYYY`). Without a chosen date, it opens the next Wednesday or Friday show after today, skipping no-school days (for example, after Wednesday, September 30, 2026 it opens Wednesday, October 7, because Friday, October 2 is a Staff Development Day). On a show day, use The Show's **Open script** to get that day's script.

@@ -114,7 +114,7 @@ export function TeamCard({ scoreboard, dispatch, now, team }: CardProps & { team
             <div className="flex items-center gap-1 rounded-md border border-input pl-3">
               <span className="mr-1 text-sm">Timeouts</span>
               <TimeoutPips left={data.timeouts} />
-              <Button type="button" size="sm" variant="ghost" aria-label={`Give ${side} a timeout back`} onClick={() => dispatch({ type: "timeoutAdjust", team, delta: 1 })} disabled={data.timeouts >= FOOTBALL_TIMEOUTS_PER_HALF}>
+              <Button type="button" size="sm" variant="ghost" className="max-lg:h-11 max-lg:min-w-11" aria-label={`Give ${side} a timeout back`} onClick={() => dispatch({ type: "timeoutAdjust", team, delta: 1 })} disabled={data.timeouts >= FOOTBALL_TIMEOUTS_PER_HALF}>
                 +
               </Button>
             </div>

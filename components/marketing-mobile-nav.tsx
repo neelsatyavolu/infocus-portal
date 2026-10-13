@@ -25,7 +25,7 @@ export function MarketingMobileNav({
     <div className="lg:hidden">
       <button
         type="button"
-        className="grid h-9 w-9 place-items-center rounded-md text-foreground hover:bg-card"
+        className="grid h-10 w-10 place-items-center rounded-md text-foreground hover:bg-card"
         aria-label={open ? "Close menu" : "Open menu"}
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}

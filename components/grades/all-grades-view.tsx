@@ -240,12 +240,12 @@ export function AllGradesView({
 
   return (
     <section className="space-y-3">
-      <div className="flex items-center gap-4 rounded-2xl border border-border bg-card px-4 py-3">
+      <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card px-4 py-3 sm:flex-row sm:items-center sm:gap-4">
         <div className="min-w-0 flex-1">
           <h1 className="display-sm text-foreground">{title}</h1>
           <p className="text-xs text-muted-foreground">{description}</p>
         </div>
-        <div className="flex shrink-0 items-center gap-3">
+        <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-start">
           {hasWhatIf ? (
             <button
               type="button"

@@ -524,7 +524,7 @@ export default function EquipmentManageClient() {
             type="button"
             onClick={() => setTab(entry.id)}
             className={cn(
-              "rounded-md px-3 py-1.5 text-[13px] font-medium transition",
+              "rounded-md px-3 py-1.5 text-[13px] font-medium transition max-sm:min-h-10",
               tab === entry.id ? "bg-[var(--brand-fill)] text-[var(--on-brand)]" : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -782,7 +782,7 @@ export default function EquipmentManageClient() {
                         {canAppoint ? (
                           <button
                             type="button"
-                            className="text-muted-foreground transition hover:text-danger"
+                            className="-m-2 p-2 text-muted-foreground transition hover:text-danger"
                             onClick={() => void removeManager(row.userId)}
                             aria-label={`Remove ${hubLabel(row.user)}`}
                           >

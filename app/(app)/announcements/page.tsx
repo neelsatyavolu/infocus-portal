@@ -10,7 +10,7 @@ function AnnouncementBody({ item }: { item: SlackAnnouncementItem }) {
   return (
     <>
       {parts.length > 0 ? (
-        <p className="mt-2 whitespace-pre-wrap text-[15px] leading-6 text-pretty text-foreground">
+        <p className="mt-2 whitespace-pre-wrap break-words text-[15px] leading-6 text-pretty text-foreground">
           {parts.map((part, index) =>
             part.type === "link" ? (
               <a

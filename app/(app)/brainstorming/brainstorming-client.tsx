@@ -256,7 +256,7 @@ export default function BrainstormingClient() {
               Groups and approves the check-in.
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {payload?.canApprove ? (
               <Link
                 href={"/groups" as never}
@@ -333,7 +333,7 @@ export default function BrainstormingClient() {
                             {proof && pkg.canEdit ? (
                               <button
                                 type="button"
-                                className="rounded p-0.5 hover:bg-secondary hover:text-foreground disabled:opacity-50"
+                                className="-m-2.5 rounded p-3 hover:bg-secondary lg:m-0 lg:p-0.5 hover:text-foreground disabled:opacity-50"
                                 onClick={() => setPendingProofRemoval({ packageId: pkg.id, slot })}
                                 disabled={pendingProofRemoval !== null}
                                 aria-label={`Remove proof ${slot}`}

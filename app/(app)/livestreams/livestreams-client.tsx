@@ -1144,7 +1144,7 @@ export default function LivestreamsClient() {
           if (!open) closeForm();
         }}
       >
-        <DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto border-foreground/[0.08] bg-card p-0 sm:rounded-2xl">
+        <DialogContent className="max-h-[90dvh] max-w-xl overflow-y-auto border-foreground/[0.08] bg-card p-0 sm:rounded-2xl">
           <div className="border-b border-foreground/[0.06] px-6 py-5">
             <DialogHeader>
               <DialogTitle className="text-xl font-semibold tracking-tight text-foreground">
@@ -1422,9 +1422,9 @@ export default function LivestreamsClient() {
         ? createPortal(
             <nav
               aria-label="Livestream sections"
-              className="pointer-events-none fixed bottom-4 left-0 right-0 z-[60] flex justify-center px-4 lg:left-[240px]"
+              className="pointer-events-none fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-0 right-0 z-[60] flex justify-center px-4 lg:left-[240px]"
             >
-              <div className="pointer-events-auto inline-flex items-center gap-1 rounded-xl border border-foreground/[0.08] bg-card p-1">
+              <div className="pointer-events-auto inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-xl border border-foreground/[0.08] bg-card p-1">
                 {tabs.map((item) => {
                   const isActive = tab === item.id;
                   return (
@@ -1433,7 +1433,7 @@ export default function LivestreamsClient() {
                       type="button"
                       onClick={() => setTab(item.id)}
                       className={cn(
-                        "inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-[12px] font-medium uppercase tracking-[0.11em] transition",
+                        "inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2.5 text-[12px] font-medium uppercase tracking-[0.11em] transition max-sm:px-2.5 max-sm:text-[11px] max-sm:tracking-[0.08em]",
                         isActive
                           ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
                           : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"

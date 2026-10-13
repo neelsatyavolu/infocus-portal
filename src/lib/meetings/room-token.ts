@@ -49,6 +49,8 @@ export type MeetingTokenPayload = MeetingRoomTokenPayload | MeetingInternalToken
 
 export const MEETING_ROOM_TOKEN_TTL_MS = 4 * 60 * 60 * 1000;
 export const MEETING_INTERNAL_TOKEN_TTL_MS = 60 * 1000;
+/** `mid` of the Worker's every-minute tick token. The colon keeps it from ever being a real meeting id. */
+export const MEETING_TICK_TOKEN_ID = "cron:tick";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();

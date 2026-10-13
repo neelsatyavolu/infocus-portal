@@ -55,7 +55,7 @@ export function meetingPushUrl(meetingId: string) {
 }
 
 /**
- * Cron (every minute): 15- and 5-minute reminders. Each is claimed with its own stamp before
+ * Worker cron (every minute, via runMeetingTick): 15- and 5-minute reminders. Each is claimed with its own stamp before
  * pushing, so overlapping runs never send twice. Meetings created after a reminder's time are skipped.
  */
 export async function runMeetingReminders(now = new Date()) {

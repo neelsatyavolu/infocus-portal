@@ -3,11 +3,13 @@
  *   GET  /rooms/:id/ws?token=…            WebSocket into the meeting's Durable Object
  *   ALL  /rooms/:id/partytracks/*?token=… Cloudflare Realtime SFU proxy (see partytracks-proxy.ts)
  *   POST /internal/rooms/:id/events       Portal -> room events (Bearer internal token from "portal")
+ *   cron * * * * *                        Portal minute tick: meeting reminders and upkeep (see portal.ts)
  */
 import { verifyMeetingInternalToken, verifyMeetingRoomToken } from "../../../src/lib/meetings/room-token";
 import type { Env } from "./env";
 import { allowedOrigin, bearerToken, corsHeaders, errorResponse, json, parseAllowedOrigins } from "./http";
 import { handlePartyTracks } from "./partytracks-proxy";
+import { tickPortal } from "./portal";
 import { parseRoomEvent } from "./validation";
 
 export { MeetingRoom } from "./meeting-room";
@@ -80,5 +82,8 @@ export default {
       console.error("meeting-room: unhandled error", error instanceof Error ? error.message : error);
       return errorResponse(500, "Something went wrong.");
     }
+  },
+  async scheduled(_controller, env): Promise<void> {
+    await tickPortal(env);
   }
 } satisfies ExportedHandler<Env>;

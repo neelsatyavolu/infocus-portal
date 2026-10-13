@@ -6,7 +6,9 @@ const mocks = vi.hoisted(() => ({
   participantUpdateMany: vi.fn(),
   markLive: vi.fn(),
   endMeeting: vi.fn(),
-  knock: vi.fn()
+  knock: vi.fn(),
+  reminders: vi.fn(),
+  housekeeping: vi.fn()
 }));
 
 vi.mock("@/src/lib/prisma", () => ({
@@ -17,11 +19,13 @@ vi.mock("@/src/lib/prisma", () => ({
 }));
 vi.mock("@/src/server/meetings-join", () => ({ markMeetingLive: mocks.markLive }));
 vi.mock("@/src/server/meetings-moderation", () => ({ endMeeting: mocks.endMeeting }));
-vi.mock("@/src/server/meetings-notify", () => ({ notifyMeetingKnock: mocks.knock }));
+vi.mock("@/src/server/meetings-notify", () => ({ notifyMeetingKnock: mocks.knock, runMeetingReminders: mocks.reminders }));
+vi.mock("@/src/server/meetings-housekeeping", () => ({ runMeetingHousekeeping: mocks.housekeeping }));
 
 import { POST as notesPost } from "@/app/api/service/meetings/[id]/notes/route";
 import { POST as roomPost } from "@/app/api/service/meetings/[id]/room/route";
-import { signMeetingInternalToken } from "@/src/lib/meetings/room-token";
+import { POST as tickPost } from "@/app/api/service/meetings/tick/route";
+import { MEETING_TICK_TOKEN_ID, signMeetingInternalToken } from "@/src/lib/meetings/room-token";
 
 const ROOM_SECRET = "r".repeat(40);
 const DRIVE_TOKEN = "drive-service-token-for-tests";
@@ -45,6 +49,8 @@ beforeEach(() => {
   mocks.markLive.mockResolvedValue(true);
   mocks.endMeeting.mockResolvedValue({ ended: true });
   mocks.knock.mockResolvedValue(true);
+  mocks.reminders.mockResolvedValue({ pushed: 0 });
+  mocks.housekeeping.mockResolvedValue({ staleEnded: 0 });
 });
 
 afterEach(() => {
@@ -170,5 +176,37 @@ describe("POST /api/service/meetings/[id]/notes", () => {
       where: { id: "m1" },
       data: { notesStatus: "FAILED", notesStatusAt: expect.any(Date), notesError: "could not join the meeting" }
     });
+  });
+});
+
+describe("POST /api/service/meetings/tick", () => {
+  const tick = (token?: string) => tickPost(post("/api/service/meetings/tick", {}, token));
+
+  it("rejects a missing, forged, wrong-side or meeting-bound token", async () => {
+    expect((await tick()).status).toBe(401);
+    expect((await tick(await signMeetingInternalToken("room", MEETING_TICK_TOKEN_ID, "x".repeat(40)))).status).toBe(401);
+    expect((await tick(await signMeetingInternalToken("portal", MEETING_TICK_TOKEN_ID, ROOM_SECRET))).status).toBe(401);
+    expect((await tick(await signMeetingInternalToken("room", "m1", ROOM_SECRET))).status).toBe(401);
+    expect(mocks.reminders).not.toHaveBeenCalled();
+    expect(mocks.housekeeping).not.toHaveBeenCalled();
+  });
+
+  it("is unavailable when meetings are not configured", async () => {
+    vi.stubEnv("MEETING_ROOM_SECRET", "");
+    expect((await tick(await signMeetingInternalToken("room", MEETING_TICK_TOKEN_ID, ROOM_SECRET))).status).toBe(503);
+  });
+
+  it("runs reminders and housekeeping", async () => {
+    const response = await tick(await signMeetingInternalToken("room", MEETING_TICK_TOKEN_ID, ROOM_SECRET));
+    expect(response.status).toBe(200);
+    expect((await response.json()).data).toEqual({ reminders: { pushed: 0 }, housekeeping: { staleEnded: 0 } });
+  });
+
+  it("still runs housekeeping when reminders fail, and reports the failure", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.reminders.mockRejectedValueOnce(new Error("push down"));
+    const response = await tick(await signMeetingInternalToken("room", MEETING_TICK_TOKEN_ID, ROOM_SECRET));
+    expect(response.status).toBe(500);
+    expect(mocks.housekeeping).toHaveBeenCalled();
   });
 });

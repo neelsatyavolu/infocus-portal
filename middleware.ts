@@ -49,6 +49,8 @@ const publicRoutePatterns = [
   // Meetings: room reports from the meeting-room Worker (signed internal token) and Drive Scribe notes
   // (DRIVE_SERVICE_TOKEN), both checked in the handlers; the Scribe page reads its ticket from the URL fragment.
   /^\/api\/service\/meetings\/[^/]+\/(?:room|notes)$/,
+  // Meetings minute tick from the meeting-room Worker's cron (signed internal token, checked in the handler).
+  /^\/api\/service\/meetings\/tick$/,
   /^\/meet-scribe$/,
   // Meeting link previews (metadata + generated image only; src/lib/meetings/link-preview.ts).
   MEETING_PREVIEW_PUBLIC_PATH,

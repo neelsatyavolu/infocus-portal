@@ -15,8 +15,7 @@ import { discoverShowPublications, publishYoutubeShow } from "@/src/server/show-
 import { discoverYoutubePublications, publishYoutubePackage } from "@/src/server/youtube-publishing-jobs";
 import { runPackageReviewReminders } from "@/src/server/package-review-reminders";
 import { MEETING_CALENDAR_EVENT, runMeetingCalendarJob } from "@/src/server/meetings-google-calendar";
-import { reticketScribes, runMeetingHousekeeping } from "@/src/server/meetings-housekeeping";
-import { runMeetingReminders } from "@/src/server/meetings-notify";
+import { reticketScribes } from "@/src/server/meetings-housekeeping";
 import { ensureUpcomingProducerMeetings } from "@/src/server/meetings-schedule";
 
 type BunnyWebhookEvent = {
@@ -376,20 +375,6 @@ export const packageReviewRemindersHourly = inngest.createFunction(
   }
 );
 
-/** Meeting push reminders, 15 and 5 minutes before the start (replaced the single start push). */
-export const meetingRemindersEveryMinute = inngest.createFunction(
-  {
-    id: "meeting-reminders-every-minute",
-    concurrency: 1
-  },
-  {
-    cron: "* * * * *"
-  },
-  async () => {
-    return runMeetingReminders();
-  }
-);
-
 export const producerMeetingScheduleDaily = inngest.createFunction(
   {
     id: "producer-meeting-schedule-daily"
@@ -412,20 +397,6 @@ export const meetingInvitesSend = inngest.createFunction(
   { event: MEETING_CALENDAR_EVENT },
   async ({ event }) => {
     return runMeetingCalendarJob(event.data);
-  }
-);
-
-/** Meetings upkeep: stranded LIVE meetings, usage meter, stuck notes, stopped Scribes. */
-export const meetingsHousekeepingEveryMinute = inngest.createFunction(
-  {
-    id: "meetings-housekeeping-every-minute",
-    concurrency: 1
-  },
-  {
-    cron: "* * * * *"
-  },
-  async () => {
-    return runMeetingHousekeeping();
   }
 );
 
@@ -456,10 +427,8 @@ export const inngestFunctions = [
   hubDbBackupHourly,
   refreshAssociateFeedbackDaily,
   packageReviewRemindersHourly,
-  meetingRemindersEveryMinute,
   producerMeetingScheduleDaily,
   meetingInvitesSend,
-  meetingsHousekeepingEveryMinute,
   meetingsScribeReticket,
   generateIdeasDaily,
   syncFinalsWeeksDaily

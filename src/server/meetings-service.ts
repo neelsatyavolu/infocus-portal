@@ -2,11 +2,12 @@ import { timingSafeEqual } from "node:crypto";
 import type { MeetingRoomReport } from "@/src/lib/meetings/protocol";
 import { verifyMeetingInternalToken } from "@/src/lib/meetings/room-token";
 import { prisma } from "@/src/lib/prisma";
+import { runMeetingHousekeeping } from "@/src/server/meetings-housekeeping";
 import { markMeetingLive } from "@/src/server/meetings-join";
 import { endMeeting } from "@/src/server/meetings-moderation";
-import { notifyMeetingKnock } from "@/src/server/meetings-notify";
+import { notifyMeetingKnock, runMeetingReminders } from "@/src/server/meetings-notify";
 
-/** Server-to-server Meetings endpoints: room reports from the Worker, notes updates from the Drive. */
+/** Server-to-server Meetings endpoints: room reports and the minute tick from the Worker, notes updates from the Drive. */
 
 function bearer(request: Request) {
   const auth = request.headers.get("authorization") || "";
@@ -19,6 +20,22 @@ export async function checkRoomCaller(request: Request, meetingId: string) {
   if (!secret) return "unconfigured" as const;
   const payload = await verifyMeetingInternalToken(bearer(request), secret, "room", meetingId);
   return payload ? ("ok" as const) : ("denied" as const);
+}
+
+/**
+ * The Worker's every-minute cron: meeting reminders, then upkeep. One failing doesn't stop the
+ * other; the next tick retries. `failed` makes the route answer 500 so the Worker logs it.
+ */
+export async function runMeetingTick(now = new Date()) {
+  const [reminders, housekeeping] = await Promise.allSettled([runMeetingReminders(now), runMeetingHousekeeping(now)]);
+  for (const [name, result] of [["reminders", reminders], ["housekeeping", housekeeping]] as const) {
+    if (result.status === "rejected") console.error(`meetings tick: ${name} failed`, result.reason);
+  }
+  return {
+    failed: reminders.status === "rejected" || housekeeping.status === "rejected",
+    reminders: reminders.status === "fulfilled" ? reminders.value : null,
+    housekeeping: housekeeping.status === "fulfilled" ? housekeeping.value : null
+  };
 }
 
 /** Drive service token, compared in constant time (same as /api/service/drive-roster). */

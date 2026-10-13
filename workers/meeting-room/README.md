@@ -8,6 +8,8 @@ Cloudflare Worker for InFocus Meetings. It runs one Durable Object (`MeetingRoom
 
 The room also reports back to the Portal at `POST <PORTAL_BASE_URL>/api/service/meetings/<id>/room` with `started`, `knock` and `empty`.
 
+A cron trigger (`* * * * *` in `wrangler.jsonc`) calls `POST <PORTAL_BASE_URL>/api/service/meetings/tick` every minute. The Portal then sends the 15- and 5-minute meeting reminders and runs meeting upkeep (stranded meetings, usage meter, stuck notes, stopped Scribes). This replaced two every-minute Inngest functions in October 2026.
+
 Design: `docs/superpowers/specs/2026-10-03-meetings-design.md`. Shared contracts: `src/lib/meetings/protocol.ts` and `src/lib/meetings/room-token.ts` (imported by relative path).
 
 ## Layout

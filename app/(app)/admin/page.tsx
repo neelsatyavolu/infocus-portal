@@ -23,6 +23,7 @@ import {
   type RoleAssignment
 } from "./admin-types";
 import { BackupsSection } from "./backups-section";
+import { ConfigurationSection } from "./configuration-section";
 import { DangerZoneSection } from "./danger-zone-section";
 import { GoogleCalendarRow } from "./google-calendar-card";
 import { PackageCyclesSection } from "./package-cycles-section";
@@ -193,6 +194,7 @@ export default function AdminPage() {
     { id: "people", label: "People", badge: platformUsers.length },
     { id: "producer-team", label: "Producer Team" },
     { id: "package-cycles", label: "Package Cycles" },
+    { id: "configuration", label: "Configuration" },
     ...(canManagePlatformRoles
       ? [
           { id: "integrations", label: "Integrations" },
@@ -259,6 +261,8 @@ export default function AdminPage() {
       />
 
       <PackageCyclesSection cyclesPerSemester={cyclesPerSemester} onCyclesPerSemesterChange={setCyclesPerSemester} />
+
+      <ConfigurationSection />
 
       {canManagePlatformRoles ? (
         <>

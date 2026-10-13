@@ -82,7 +82,7 @@ describe("planning a finals sync", () => {
   it("writes the week, leaving hand-set days and seeded holidays alone", () => {
     const plan = planFinalsSync({
       finalsDates: ["2026-12-15", "2027-06-01"],
-      existing: [{ date: "2026-12-14", source: "manual" }, { date: "2026-12-15", source: "feed" }],
+      existing: [{ date: "2026-12-14", source: "manual" }, { date: "2026-12-15", source: "feed" }, { date: "2027-06-04", source: "config" }],
       today
     });
     expect(plan.upsert).toEqual(["2026-12-15", "2026-12-16", "2026-12-17", "2026-12-18", "2027-06-01", "2027-06-02", "2027-06-03", "2027-06-04"]);
@@ -125,8 +125,8 @@ describe("syncing finals weeks", () => {
       skipDuplicates: true
     });
     expect(m.update).toHaveBeenCalledWith({
-      where: { date: { in: days }, source: "feed" },
-      data: { kind: "HOLIDAY", label: "Finals week" }
+      where: { date: { in: days }, source: { in: ["feed", "config"] } },
+      data: { kind: "HOLIDAY", label: "Finals week", source: "feed" }
     });
     expect(m.remove).toHaveBeenCalledWith({ where: { date: { in: ["2026-11-30"] }, source: "feed" } });
   });

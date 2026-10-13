@@ -1,10 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { buildPaScript, nextPaDate, paTimeLabel, refreshPaNames, resolvePaPeople } from "@/src/lib/pa-script";
+import { DEFAULT_SCHOOL_YEARS } from "@/src/lib/program-config";
+import { schoolYearDays, schoolYearsThrough } from "@/src/lib/school-year-days";
 
 describe("PA schedule", () => {
-  it("does not generate scripts outside the supported school year", () => {
-    expect(nextPaDate(new Date("2027-06-04T17:00:00Z"))).toBeNull();
+  it("starts with the first PA Monday of 2026-27", () => {
     expect(nextPaDate(new Date("2026-08-01T17:00:00Z"))).toBe("2026-08-17");
+  });
+  it("skips summer once the school calendar marks it, and picks up next year", () => {
+    const summer = new Map(schoolYearDays(schoolYearsThrough(DEFAULT_SCHOOL_YEARS, "2028-01-01")).map((day) => [day.date, day]));
+    expect(nextPaDate(new Date("2027-06-04T17:00:00Z"), summer)).toBe("2027-08-16");
+    expect(nextPaDate(new Date("2027-06-04T17:00:00Z"), new Map([...summer].filter(([, day]) => day.kind !== "HOLIDAY")))).toBe("2027-06-07");
   });
   it("keeps the current Monday through the end of the Los Angeles day", () => {
     expect(nextPaDate(new Date("2026-09-15T06:59:00Z"))).toBe("2026-09-14");

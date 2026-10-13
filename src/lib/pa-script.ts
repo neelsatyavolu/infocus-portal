@@ -1,9 +1,18 @@
 import { resolveScheduleDay, type ScheduleKind } from "@/src/lib/school-schedule";
 import { addDaysToDateKey } from "@/src/lib/show-assignment";
 
-// The supported 2026–27 school calendar; do not invent summer PA dates.
+// PA scripts began with the 2026–27 school year.
 export const PA_CALENDAR_START = "2026-08-13";
-export const PA_CALENDAR_END = "2027-06-03";
+/** How far ahead the next PA day is looked for: longer than any summer break. */
+const PA_LOOKAHEAD_DAYS = 120;
+
+/**
+ * Last date a PA script may be opened for. Summer has no PA because the school calendar
+ * marks those days off (Admin → Configuration), not because of a fixed end date.
+ */
+export function paCalendarEnd(today: string) {
+  return addDaysToDateKey(today, PA_LOOKAHEAD_DAYS);
+}
 
 export function paToday(now = new Date()) {
   return new Intl.DateTimeFormat("en-CA", {
@@ -16,7 +25,9 @@ export function nextPaDate(
   overrides?: ReadonlyMap<string, { kind: ScheduleKind; label?: string }>
 ) {
   const today = paToday(now);
-  for (let date = today < PA_CALENDAR_START ? PA_CALENDAR_START : today; date <= PA_CALENDAR_END; date = addDaysToDateKey(date, 1)) {
+  const start = today < PA_CALENDAR_START ? PA_CALENDAR_START : today;
+  const end = paCalendarEnd(start);
+  for (let date = start; date <= end; date = addDaysToDateKey(date, 1)) {
     if (resolveScheduleDay(date, overrides).kind === "PA") return date;
   }
   return null;

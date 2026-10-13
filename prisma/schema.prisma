@@ -827,6 +827,8 @@ model ProgramSetting {
   livestreamPinFailureAt DateTime?
   /// Cycle the Class Board shows. Null = follow the current cycle.
   classBoardCycleNumber  Int?
+  /// Admin → Configuration. Shape and defaults: src/lib/program-config.ts.
+  config                 Json      @default("{}")
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
 }

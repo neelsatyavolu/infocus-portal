@@ -1,7 +1,7 @@
 import { prisma } from "@/src/lib/prisma";
 import { getPlatformRoleForEmail, hasPlatformRole } from "@/src/lib/platform-admin";
 import { extractCalendarPaAnnouncers } from "@/src/lib/calendar-show-content";
-import { buildPaScript, nextPaDate, PA_CALENDAR_END, PA_CALENDAR_START, paDateLabel, paToday, refreshPaNames, resolvePaPeople } from "@/src/lib/pa-script";
+import { buildPaScript, nextPaDate, PA_CALENDAR_START, paCalendarEnd, paDateLabel, paToday, refreshPaNames, resolvePaPeople } from "@/src/lib/pa-script";
 import { resolveScheduleDay, type ScheduleKind } from "@/src/lib/school-schedule";
 import { loadA2Bulletin, type BulletinAutofill } from "@/src/server/teleprompter-bulletin";
 
@@ -10,7 +10,7 @@ type Actor = { userId: string; email?: string | null };
 async function scheduleOverrides(now: Date) {
   const today = paToday(now);
   const rows = await prisma.schoolCalendarDay.findMany({
-    where: { date: { gte: today < PA_CALENDAR_START ? PA_CALENDAR_START : today, lte: PA_CALENDAR_END } },
+    where: { date: { gte: today < PA_CALENDAR_START ? PA_CALENDAR_START : today, lte: paCalendarEnd(today < PA_CALENDAR_START ? PA_CALENDAR_START : today) } },
     select: { date: true, kind: true, label: true }
   });
   return new Map(rows.map((row) => [row.date, { kind: row.kind as ScheduleKind, label: row.label }]));
@@ -69,7 +69,7 @@ export async function loadPaPage(actor: Actor, now = new Date()) {
 
 export async function savePaScript(actor: Actor, input: { date: string; version: number } & ({ content: string } | { regenerate: true }), now = new Date()) {
   const today = paToday(now);
-  if (input.date < today || input.date < PA_CALENDAR_START || input.date > PA_CALENDAR_END) throw new Error("BAD_REQUEST");
+  if (input.date < today || input.date < PA_CALENDAR_START || input.date > paCalendarEnd(today)) throw new Error("BAD_REQUEST");
   const overrides = await scheduleOverrides(now);
   if (resolveScheduleDay(input.date, overrides).kind !== "PA") throw new Error("BAD_REQUEST");
   const access = await paAccess(actor, input.date);

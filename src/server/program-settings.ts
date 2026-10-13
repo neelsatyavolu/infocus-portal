@@ -1,4 +1,6 @@
 import { cache } from "react";
+import type { Prisma } from "@prisma/client";
+import { parseProgramConfig, type ProgramConfig } from "@/src/lib/program-config";
 import { prisma } from "@/src/lib/prisma";
 
 export const DEFAULT_CYCLES_PER_SEMESTER = 3;
@@ -85,4 +87,24 @@ export async function setClassBoardCycleNumber(value: number | null) {
     update: { classBoardCycleNumber: value },
     create: { id: SETTING_ID, cyclesPerSemester: DEFAULT_CYCLES_PER_SEMESTER, classBoardCycleNumber: value }
   });
+}
+
+/** Admin → Configuration values, with defaults filled in. */
+export async function getProgramConfig(): Promise<ProgramConfig> {
+  const settings = await getProgramSettings();
+  return parseProgramConfig(settings.config);
+}
+
+/** Merges `patch` into the stored configuration and returns the result. */
+export async function updateProgramConfig(patch: Partial<ProgramConfig>): Promise<ProgramConfig> {
+  // Read the row directly: getProgramSettings() is cached for the request and may be stale here.
+  const row = await prisma.programSetting.findUnique({ where: { id: SETTING_ID }, select: { config: true } });
+  const next = parseProgramConfig({ ...parseProgramConfig(row?.config), ...patch });
+  const config = next as unknown as Prisma.InputJsonValue;
+  await prisma.programSetting.upsert({
+    where: { id: SETTING_ID },
+    update: { config },
+    create: { id: SETTING_ID, cyclesPerSemester: DEFAULT_CYCLES_PER_SEMESTER, config }
+  });
+  return next;
 }

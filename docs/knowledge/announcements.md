@@ -22,7 +22,7 @@ Executive producers and super admin can **Invite** extra viewers: a link that la
 
 Open **Announcements → PA** for the current or next PA script. PA runs at the start of second period on Mondays (start of fifth period on Monday, September 28, 2026, which runs the Friday 5–7 bell schedule), skipping school holidays and finals weeks and respecting Master Calendar schedule overrides. Monday's script stays current all day in Pacific time; the page advances the next day.
 
-PA dates are limited to the supported 2026–27 school year (August 13–June 3); summer Mondays do not generate scripts.
+Summer Mondays do not generate scripts: the school years in Admin → Configuration mark summer weekdays off, and the page then shows the first PA Monday of the next year (it looks up to 120 days ahead).
 
 When the college-visit sheet supplies a bulletin, it replaces submitted college-visit lists, including lists labeled “college rep visits” or “college representative visits.” This prevents those older lists from appearing alongside the current sheet visits. Existing saved scripts keep their copy until an editor regenerates them.
 

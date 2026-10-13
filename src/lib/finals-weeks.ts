@@ -1,4 +1,5 @@
 import { isSeededHoliday, utcWeekdayFromDateKey } from "@/src/lib/school-schedule";
+import { SCHOOL_YEAR_SOURCE } from "@/src/lib/school-year-days";
 import { addDaysToDateKey } from "@/src/lib/show-assignment";
 
 /** Calendar label for a day in a finals week. */
@@ -24,9 +25,10 @@ export function finalsWeekDays(finalsDates: readonly string[]): string[] {
 }
 
 /**
- * Which calendar days a sync should write and remove. Hand-set days always win, and
- * seeded holidays keep their own name. A feed with no finals changes nothing, so a
- * broken or not-yet-published feed can never put shows back into a finals week.
+ * Which calendar days a sync should write and remove. Hand-set days always win, seeded
+ * holidays keep their own name, and finals replace a day generated from the school years.
+ * A feed with no finals changes nothing, so a broken or not-yet-published feed can never
+ * put shows back into a finals week.
  */
 export function planFinalsSync(input: {
   finalsDates: readonly string[];
@@ -42,7 +44,10 @@ export function planFinalsSync(input: {
   const wanted = new Set(desired);
   const sourceByDate = new Map(input.existing.map((row) => [row.date, row.source]));
   return {
-    upsert: desired.filter((date) => (sourceByDate.get(date) ?? FINALS_FEED_SOURCE) === FINALS_FEED_SOURCE),
+    upsert: desired.filter((date) => {
+      const source = sourceByDate.get(date) ?? FINALS_FEED_SOURCE;
+      return source === FINALS_FEED_SOURCE || source === SCHOOL_YEAR_SOURCE;
+    }),
     remove: input.existing
       .filter((row) => row.source === FINALS_FEED_SOURCE && row.date >= input.today && !wanted.has(row.date))
       .map((row) => row.date)

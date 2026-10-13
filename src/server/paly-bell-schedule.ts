@@ -86,6 +86,34 @@ export function parsePalyFinalsDates(ics: string): string[] {
   return [...dates].sort();
 }
 
+/**
+ * Every date (YYYY-MM-DD) that has a bell schedule. Used only for the first and last day of a
+ * school year: the feed is not a reliable list of days off.
+ */
+export function parsePalySchoolDays(ics: string): string[] {
+  const calendar = new ICAL.Component(ICAL.parse(ics));
+  if (calendar.name !== "vcalendar") throw new Error("Invalid bell schedule feed");
+  const dates = new Set<string>();
+
+  for (const component of calendar.getAllSubcomponents("vevent")) {
+    if (component.getFirstPropertyValue("status") === "CANCELLED") continue;
+    const event = new ICAL.Event(component);
+    if (!event.isRecurring()) {
+      dates.add(event.startDate.toString().slice(0, 10));
+      continue;
+    }
+    // A weekly rule covers one school year at most. Bound it in case a rule has no end.
+    const iterator = event.iterator();
+    for (let count = 0; count < 400; count += 1) {
+      const occurrence = iterator.next();
+      if (!occurrence) break;
+      dates.add(occurrence.toString().slice(0, 10));
+    }
+  }
+
+  return [...dates].sort();
+}
+
 /** The raw feed, uncached. Throws when it cannot be read, so a sync never acts on a bad response. */
 export async function fetchPalyBellFeed(): Promise<string> {
   const response = await fetch(PALY_BELL_FEED, { cache: "no-store", signal: AbortSignal.timeout(10_000) });

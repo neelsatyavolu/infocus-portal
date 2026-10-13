@@ -10,6 +10,7 @@ const db = vi.hoisted(() => ({
   packageCycle: { findMany: vi.fn(), findUnique: vi.fn(), createMany: vi.fn() },
   schoolCalendarDay: { findMany: vi.fn() },
   packageGradeHistoryEvent: { create: vi.fn() },
+  packageTotalNote: { findMany: vi.fn(async () => []) },
   $transaction: vi.fn()
 }));
 const actor = vi.hoisted(() => ({ role: "EXECUTIVE_PRODUCER" as string | null }));
@@ -122,6 +123,45 @@ describe("persisted check-in overrides", () => {
     const { byUserId } = await loadGradeEditorCredits({ userIds: ["student"], cycles: [cycle] });
     expect(byUserId.get("student")?.checkInScoresByCycle[1]).toEqual({ pitching: null, proofOfContact: null, aRollBRoll: null, initialCut: null });
     expect(byUserId.get("student")?.checkInPoints).toBeNull();
+  });
+});
+
+describe("missed final cut", () => {
+  beforeEach(() => vi.setSystemTime(new Date("2026-10-03T12:00:00Z")));
+
+  it("is an automatic zero in the Grade Editor once the deadline passes, matching the student grade", async () => {
+    expect((await buildGradeSummary("student")).finalCutPoints).toEqual([0]);
+    const { byUserId } = await loadGradeEditorCredits({ userIds: ["student"], cycles: [cycle] });
+    expect(byUserId.get("student")?.finalCutMissingByCycle[1]).toBe(true);
+
+    const cycleView = await (await GET(new Request("http://test/api/grades/admin?cycle=1"))).json();
+    expect(cycleView.data.rows[0]).toMatchObject({ finalCutMissing: true, effortPoints: null });
+    const totals = await (await GET(new Request("http://test/api/grades/admin?view=totals"))).json();
+    expect(totals.data.totalsRows[0].cycleTotals[0]).toMatchObject({ totalPoints: 0, missing: true });
+  });
+
+  it("stays ungraded before the deadline, with an approved final cut, or when marked ungraded", async () => {
+    vi.setSystemTime(new Date("2026-09-12T12:00:00Z"));
+    const early = await loadGradeEditorCredits({ userIds: ["student"], cycles: [cycle] });
+    expect(early.byUserId.get("student")?.finalCutMissingByCycle[1]).toBe(false);
+
+    vi.setSystemTime(new Date("2026-10-03T12:00:00Z"));
+    const [row] = await db.packageProgressRow.findMany();
+    db.packageProgressRow.findMany.mockResolvedValue([{ ...row, finalCutMediaItemId: "final", approval: { stage: "APPROVED" } }]);
+    const approved = await loadGradeEditorCredits({ userIds: ["student"], cycles: [cycle] });
+    expect(approved.byUserId.get("student")?.finalCutMissingByCycle[1]).toBe(false);
+
+    db.packageProgressRow.findMany.mockResolvedValue([row]);
+    db.packageGrade.findMany.mockResolvedValue([{ userId: "student", cycleNumber: 1, finalCutState: "UNGRADED", awardedFinalCutPoints: null }]);
+    const totals = await (await GET(new Request("http://test/api/grades/admin?view=totals"))).json();
+    expect(totals.data.totalsRows[0].cycleTotals[0]).toMatchObject({ totalPoints: null, missing: false });
+  });
+
+  it("does not zero an associate for a cycle they skipped", async () => {
+    db.packageProgressRow.findMany.mockResolvedValue([]);
+    db.platformRoleAssignment.findMany.mockResolvedValue([{ email: "student@example.com", role: "ASSOCIATE_PRODUCER" }]);
+    const { byUserId } = await loadGradeEditorCredits({ userIds: ["student"], cycles: [cycle] });
+    expect(byUserId.get("student")?.finalCutMissingByCycle[1]).toBe(false);
   });
 });
 

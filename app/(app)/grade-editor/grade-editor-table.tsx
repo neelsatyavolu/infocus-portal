@@ -7,8 +7,11 @@ import { cn } from "@/src/lib/utils";
 export type HeaderColumn = {
   label: string;
   sub?: string | null;
+  /** Full name shown on hover when the label is abbreviated. */
+  title?: string;
   align?: "left" | "center" | "right";
-  width?: string;
+  /** Fixed pixel width. The one column without a width takes the remaining space. */
+  width?: number;
 };
 
 export type HeaderGroup = {
@@ -22,16 +25,40 @@ const ALIGN = { left: "text-left", center: "text-center", right: "text-right" } 
 /** Left border on the first cell of every group after the first, in both header rows and body rows. */
 export const GROUP_START = "border-l border-[hsl(var(--border))]";
 
-/** The reporter column stays put while the wide table scrolls sideways. */
+/**
+ * Fixed layout: every column has a set width so the table fits the page without
+ * sideways scrolling on a laptop. On narrow screens it scrolls and the reporter
+ * column stays put.
+ */
 export const TABLE_CLASS = cn(
-  "w-full border-collapse text-sm text-foreground",
+  "w-full table-fixed border-collapse text-sm text-foreground",
   "[&_tr>*:first-child]:sticky [&_tr>*:first-child]:left-0 [&_tr>*:first-child]:z-10",
-  "[&_td:first-child]:bg-card [&_th:first-child]:bg-[hsl(var(--background))]",
-  "max-lg:[&_td:first-child]:w-[150px]"
+  "[&_td:first-child]:bg-card [&_th:first-child]:bg-[hsl(var(--background))]"
 );
+
+/** Body cell padding shared by both tables. */
+export const CELL = "px-2 py-2.5 align-middle";
+
+const REPORTER_MIN_WIDTH = 168;
+
+/** Narrowest the table can get before it scrolls: every fixed column plus the reporter column. */
+export function tableMinWidth(groups: HeaderGroup[]) {
+  return groups.reduce(
+    (total, group) => total + group.columns.reduce((sum, col) => sum + (col.width ?? REPORTER_MIN_WIDTH), 0),
+    0
+  );
+}
 
 export function GradeTableHead({ groups }: { groups: HeaderGroup[] }) {
   return (
+    <>
+    <colgroup>
+      {groups.flatMap((group, groupIndex) =>
+        group.columns.map((col, colIndex) => (
+          <col key={`${groupIndex}-${colIndex}`} style={col.width ? { width: col.width } : undefined} />
+        ))
+      )}
+    </colgroup>
     <thead>
       <tr>
         {groups.map((group, index) => (
@@ -40,7 +67,7 @@ export function GradeTableHead({ groups }: { groups: HeaderGroup[] }) {
             colSpan={group.columns.length}
             scope="colgroup"
             className={cn(
-              "bg-[hsl(var(--background))] px-3 pt-3 pb-1 text-left text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--brand-green)]",
+              "truncate bg-[hsl(var(--background))] px-2 pt-3 pb-1 text-left text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--brand-green)]",
               index > 0 && GROUP_START
             )}
           >
@@ -57,9 +84,9 @@ export function GradeTableHead({ groups }: { groups: HeaderGroup[] }) {
             <th
               key={`${group.label}-${col.label}-${colIndex}`}
               scope="col"
-              style={col.width ? { width: col.width, minWidth: col.width } : undefined}
+              title={col.title}
               className={cn(
-                "bg-[hsl(var(--background))] px-3 pb-3 pt-1 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground",
+                "truncate whitespace-nowrap bg-[hsl(var(--background))] px-2 pb-3 pt-1 text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground",
                 ALIGN[col.align ?? "left"],
                 groupIndex > 0 && colIndex === 0 && GROUP_START
               )}
@@ -71,6 +98,7 @@ export function GradeTableHead({ groups }: { groups: HeaderGroup[] }) {
         )}
       </tr>
     </thead>
+    </>
   );
 }
 
@@ -101,11 +129,11 @@ export function ReporterCell({
   children?: ReactNode;
 }) {
   return (
-    <td className="w-[220px] min-w-[200px] px-3 py-3 align-middle">
-      <div className="flex items-center gap-3">
+    <td className="px-3 py-2.5 align-middle">
+      <div className="flex items-center gap-2.5">
         <div
           className={cn(
-            "grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-[var(--ink-3)] text-[11px] font-bold max-lg:hidden",
+            "grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 border-[var(--ink-3)] text-[11px] font-bold max-2xl:hidden",
             AVATAR_PALETTE[rowIndex % AVATAR_PALETTE.length]
           )}
         >
@@ -115,7 +143,8 @@ export function ReporterCell({
           <button
             type="button"
             onClick={onOpen}
-            className="block truncate text-left text-[15px] font-semibold leading-tight text-foreground hover:text-[var(--brand-green)] hover:underline"
+            title={name}
+            className="block max-w-full truncate text-left text-sm font-semibold leading-tight text-foreground hover:text-[var(--brand-green)] hover:underline"
           >
             {name}
           </button>
@@ -192,13 +221,13 @@ export function PointsReadout({
   const numeric = typeof earned === "number" ? earned : null;
   const percent = numeric !== null && possible && possible > 0 ? (numeric / possible) * 100 : null;
   return (
-    <div className="min-w-[72px]" title={title}>
-      <div className={cn("font-mono-broadcast tabular-nums leading-none", emphasis ? "text-lg font-semibold" : "text-[15px] font-semibold")}>
+    <div className="min-w-0" title={title}>
+      <div className={cn("whitespace-nowrap font-mono-broadcast tabular-nums leading-none", emphasis ? "text-base font-semibold" : "text-sm font-semibold")}>
         <span className={numeric === null ? "text-muted-foreground" : "text-foreground"}>
           {earned === null ? "—" : earned}
         </span>
         {possible !== null ? (
-          <span className="ml-1 text-xs font-normal text-muted-foreground">/{possible}</span>
+          <span className="ml-0.5 text-xs font-normal text-muted-foreground">/{possible}</span>
         ) : null}
       </div>
       {possible !== null ? (
@@ -207,7 +236,7 @@ export function PointsReadout({
         </div>
       ) : null}
       {caption ? <div className="mt-1 text-[11px] leading-none text-muted-foreground">{caption}</div> : null}
-      {meter && possible !== null ? <Meter percent={percent} className="mt-1.5 max-w-[88px]" /> : null}
+      {meter && possible !== null ? <Meter percent={percent} className="mt-1.5 max-w-[64px]" /> : null}
     </div>
   );
 }
@@ -220,7 +249,7 @@ export function ScoreInput({
   label,
   placeholder = "—",
   dashed = false,
-  width = "w-14"
+  width = "w-12"
 }: {
   value: string;
   onChange: (raw: string) => void;
@@ -231,7 +260,7 @@ export function ScoreInput({
   width?: string;
 }) {
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-1">
       <input
         aria-label={label}
         title="Enter points, - for ungraded, or \ for exempt"
@@ -240,7 +269,7 @@ export function ScoreInput({
         placeholder={placeholder}
         inputMode="decimal"
         className={cn(
-          "h-9 rounded-md border bg-[var(--ink)] px-2 text-center font-mono-broadcast text-sm font-semibold tabular-nums text-foreground outline-none transition focus:border-[var(--brand-green)] focus:ring-1 focus:ring-[var(--brand-green)]",
+          "h-9 shrink-0 rounded-md border bg-[var(--ink)] px-1 text-center font-mono-broadcast text-sm font-semibold tabular-nums text-foreground outline-none transition focus:border-[var(--brand-green)] focus:ring-1 focus:ring-[var(--brand-green)]",
           dashed ? "border-dashed border-[var(--ink-4)]" : "border-border",
           width
         )}

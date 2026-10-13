@@ -402,11 +402,15 @@ export async function GET(request: Request) {
             portfolioPoints: credits?.portfolioPoints ?? null,
             cycleTotals: cycles.map((cycle) => {
               const grade = cycleMap.get(cycle.cycleNumber);
-              const totalPoints = grade ? gradeTotal(grade.effortPoints, grade.teamworkPoints) : null;
+              const finalCutState = finalStateByUserCycle.get(`${entry.id}:${cycle.cycleNumber}`) ?? null;
+              // No score, not excluded, deadline passed with no approved Final Cut: the automatic 0/50.
+              const missing = !grade && !finalCutState && Boolean(credits?.finalCutMissingByCycle[cycle.cycleNumber]);
+              const totalPoints = grade ? gradeTotal(grade.effortPoints, grade.teamworkPoints) : missing ? 0 : null;
               return {
                 cycleNumber: cycle.cycleNumber,
-                finalCutState: finalStateByUserCycle.get(`${entry.id}:${cycle.cycleNumber}`) ?? null,
-                totalPoints
+                finalCutState,
+                totalPoints,
+                missing
               };
             })
           };
@@ -665,6 +669,10 @@ export async function GET(request: Request) {
           checkInScores: creditsByUserId.get(entry.id)?.checkInScoresByCycle[activeCycleNumber] ?? checkInOverrides(null),
           checkInOverrides: checkInOverrides(grade),
           finalCutState: grade?.finalCutState ?? null,
+          finalCutMissing:
+            totalPoints === null &&
+            !grade?.finalCutState &&
+            Boolean(creditsByUserId.get(entry.id)?.finalCutMissingByCycle[activeCycleNumber]),
           effortPoints: totalPoints,
           teamworkPoints: grade?.teamworkPoints ?? null,
           previousEffortPoints: grade?.previousEffortPoints ?? null,

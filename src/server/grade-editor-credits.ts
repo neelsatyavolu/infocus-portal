@@ -36,6 +36,8 @@ export type GradeEditorCycleDates = {
 
 export type GradeEditorCredits = {
   checkInScoresByCycle: Record<number, CheckInScores>;
+  /** Effective Final Cut deadline passed with no approved Final Cut on the package: an automatic 0/50. */
+  finalCutMissingByCycle: Record<number, boolean>;
   checkInPoints: number | null;
   checkInPossible: number | null;
   livestreamPoints: number | null;
@@ -59,6 +61,7 @@ export async function loadGradeEditorCredits(input: {
 
   const emptyCredits = (): GradeEditorCredits => ({
     checkInScoresByCycle: {},
+    finalCutMissingByCycle: {},
     checkInPoints: null,
     checkInPossible: null,
     livestreamPoints: null,
@@ -91,6 +94,8 @@ export async function loadGradeEditorCredits(input: {
             initialCut: true,
             brainstormDocUrl: true,
             initialCutMediaItemId: true,
+            finalCutMediaItemId: true,
+            approval: { select: { stage: true } },
             _count: { select: { proofOfContacts: true } },
             stageMedia: { where: { stage: "a-roll" }, select: { id: true } },
             extension: true,
@@ -139,7 +144,9 @@ export async function loadGradeEditorCredits(input: {
 
   const snapshotByUserCycle = new Map<string, CheckInProgressSnapshot>();
   const extensionDaysByUserCycle = new Map<string, number>();
+  const validFinalCutByUserCycle = new Set<string>();
   for (const row of rows) {
+    const hasValidFinalCut = Boolean(row.finalCutMediaItemId && row.approval?.stage === "APPROVED");
     const snapshot: CheckInProgressSnapshot = {
       pitching: row.pitching,
       proofOfContact: row.proofOfContact,
@@ -153,6 +160,7 @@ export async function loadGradeEditorCredits(input: {
     for (const member of row.members) {
       snapshotByUserCycle.set(`${member.userId}:${row.cycleNumber}`, snapshot);
       extensionDaysByUserCycle.set(`${member.userId}:${row.cycleNumber}`, approvedExtensionDaysFor(row, member.userId));
+      if (hasValidFinalCut) validFinalCutByUserCycle.add(`${member.userId}:${row.cycleNumber}`);
     }
   }
 
@@ -177,13 +185,19 @@ export async function loadGradeEditorCredits(input: {
               overrides
             });
       credits.checkInScoresByCycle[cycle.cycleNumber] = releasedCheckInScores(grade, dates, now, overrides);
+      const finalDeadlinePassed = finalCutDeadlinePassed(finalDeadline, now);
+      // Same rule as the student gradebook: an associate is not zeroed for a cycle they skipped.
+      credits.finalCutMissingByCycle[cycle.cycleNumber] =
+        finalDeadlinePassed &&
+        !(associate && !row) &&
+        !validFinalCutByUserCycle.has(`${userId}:${cycle.cycleNumber}`);
       return {
         cycleNumber: cycle.cycleNumber,
         isMember: Boolean(row),
         finalCutPoints: null as number | null,
         checkInPoints: grade.earned,
         checkInPossible: grade.earned === null ? null : grade.possible,
-        finalDeadlinePassed: finalCutDeadlinePassed(finalDeadline, now)
+        finalDeadlinePassed
       };
     });
     const quota = applyCycleRequirementQuota(perCycle, role);

@@ -12,6 +12,7 @@ import {
   ClipboardList,
   Clock,
   Download,
+  MessageSquare,
   RefreshCcw,
   Save,
   Search,
@@ -38,14 +39,17 @@ import { REQUIRED_LIVESTREAM_HOURS } from "@/src/lib/livestream";
 import { StudentGradebookPanel } from "./student-gradebook-panel";
 import { useExcludedPeople } from "./use-excluded-people";
 import {
+  CELL,
   GROUP_START,
   GradeTableHead,
+  type HeaderGroup,
   PointsReadout,
   ReporterCell,
   ScoreInput,
   TABLE_CLASS,
   checkInTone,
-  gradeBadgeTone
+  gradeBadgeTone,
+  tableMinWidth
 } from "./grade-editor-table";
 
 type CycleTab = {
@@ -65,6 +69,8 @@ const CHECK_IN_LABELS = { pitching: "Pitching", proofOfContact: "PoC", aRollBRol
 
 type GradeRow = {
   finalCutState: GradeScoreState | null;
+  /** Deadline passed with no approved Final Cut: counts as 0 until a score is entered. */
+  finalCutMissing: boolean;
   checkInScores: CheckInScores;
   checkInOverrides: CheckInScores;
   userId: string;
@@ -108,6 +114,8 @@ type TotalsCycleEntry = {
   finalCutState: GradeScoreState | null;
   cycleNumber: number;
   totalPoints: number | null;
+  /** totalPoints is the automatic 0 for a missed Final Cut, not an entered score. */
+  missing: boolean;
 };
 
 type TotalsRow = {
@@ -158,6 +166,30 @@ const MAX_PACKAGE_PER_CYCLE = 50;
 const MAX_CHECK_INS_PER_CYCLE = 20;
 const MAX_LIVESTREAM = 40;
 const MAX_FINAL = 100;
+const CHECK_IN_SHORT_LABELS = { pitching: "Pitch", proofOfContact: "PoC", aRollBRoll: "A/B-roll", initialCut: "Initial" } as const;
+
+const CYCLE_GROUPS: HeaderGroup[] = [
+  { label: "", columns: [{ label: "Reporter" }] },
+  {
+    label: "Check-ins",
+    hint: "5 pts each",
+    columns: [
+      ...CHECK_IN_STAGES.map((stage) => ({ label: CHECK_IN_SHORT_LABELS[stage], title: CHECK_IN_LABELS[stage], width: 86 })),
+      { label: "Total", sub: `/${MAX_CHECK_INS_PER_CYCLE}`, title: "Released check-ins this cycle", width: 82 }
+    ]
+  },
+  {
+    label: "Final cut",
+    columns: [
+      { label: "Score", sub: `/${MAX_PACKAGE_PER_CYCLE}`, width: 76 },
+      { label: "Official", title: "After the late penalty", width: 84 },
+      { label: "Turned in", width: 132 }
+    ]
+  },
+  { label: "Semester", columns: [{ label: "Participation", title: "Graded days in weeks that have ended", width: 112 }] },
+  { label: "Publishing", columns: [{ label: "Feedback · Status", width: 164 }] }
+];
+
 const FINAL_CUT_REQUIRED_HINT = "Set this cycle's Final Cut date in Cycle Dates first";
 const SORT_STORAGE_KEY = "grade-editor:sort-by:v1";
 
@@ -969,6 +1001,30 @@ export default function GradeEditorClient() {
     };
   }, []);
 
+  const totalsGroups: HeaderGroup[] = [
+    { label: "", columns: [{ label: "Reporter" }] },
+    {
+      label: "Packages",
+      hint: `/${MAX_PACKAGE_PER_CYCLE} each`,
+      columns: [
+        ...cycles.map((cycle) => ({ label: `Cycle ${cycle.cycleNumber}`, width: 76 })),
+        { label: "Subtotal", width: 84 }
+      ]
+    },
+    {
+      label: "Semester credits",
+      columns: [
+        { label: "Check-ins", width: 96 },
+        { label: "Livestream", sub: `/${MAX_LIVESTREAM}`, width: 108 },
+        { label: "Participation", title: "Graded days in weeks that have ended", width: 112 },
+        { label: "Final", sub: `/${MAX_FINAL}`, width: 84 },
+        { label: "Extra", title: "Earned / possible", width: 112 }
+      ]
+    },
+    { label: "Total grade", columns: [{ label: "Grade", width: 136 }] },
+    { label: "", columns: [{ label: "Notes", width: 56 }] }
+  ];
+
   return (
     <div className="route-enter mx-auto w-full max-w-[1760px] space-y-5 pb-24">
       {/* ============= Hero (new design) ============= */}
@@ -1358,46 +1414,8 @@ export default function GradeEditorClient() {
             <p className="px-4 py-6 text-sm text-muted-foreground">Loading totals...</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className={cn(TABLE_CLASS, "min-w-[1360px]")}>
-                <GradeTableHead
-                  groups={[
-                    { label: "", columns: [{ label: "Reporter" }] },
-                    {
-                      label: "Packages",
-                      hint: `${MAX_PACKAGE_PER_CYCLE} per cycle`,
-                      columns: [
-                        ...cycles.map((cycle) => ({
-                          label: `Cycle ${String(cycle.cycleNumber).padStart(2, "0")}`,
-                          sub: `/ ${MAX_PACKAGE_PER_CYCLE}`,
-                          width: "108px"
-                        })),
-                        { label: "Subtotal", width: "116px" }
-                      ]
-                    },
-                    {
-                      label: "Semester credits",
-                      columns: [
-                        {
-                          label: "Check-ins",
-                          sub: `/ ${checkInPossible > 0 ? checkInPossible : cycles.length * MAX_CHECK_INS_PER_CYCLE}`,
-                          width: "124px"
-                        },
-                        { label: "Livestream", sub: `/ ${MAX_LIVESTREAM}`, width: "132px" },
-                        { label: "Participation", sub: "ended weeks", width: "116px" },
-                        { label: "Final", sub: `/ ${MAX_FINAL}`, width: "124px" },
-                        { label: "Extra", sub: "earned / possible", width: "156px" }
-                      ]
-                    },
-                    {
-                      label: "Total grade",
-                      columns: [
-                        { label: "Points", width: "124px" },
-                        { label: "Letter", width: "88px" }
-                      ]
-                    },
-                    { label: "", columns: [{ label: "Notes", width: "92px" }] }
-                  ]}
-                />
+              <table className={TABLE_CLASS} style={{ minWidth: tableMinWidth(totalsGroups) }}>
+                <GradeTableHead groups={totalsGroups} />
                 <tbody>
                   {sortedTotalsRows.map((row, rowIdx) => {
                     const adjustments = getAdjustments(row.userId);
@@ -1439,15 +1457,12 @@ export default function GradeEditorClient() {
                           const override = adjustments.cycleOverrides[entry.cycleNumber];
                           const isEditable = entry.totalPoints === null;
                           return (
-                            <td
-                              key={entry.cycleNumber}
-                              className={cn("px-3 py-3 align-middle", entryIdx === 0 && GROUP_START)}
-                            >
+                            <td key={entry.cycleNumber} className={cn(CELL, entryIdx === 0 && GROUP_START)}>
                               {isEditable ? (
                                 <ScoreInput
                                   label={`${row.name ?? "Student"} Cycle ${entry.cycleNumber} score`}
                                   value={override ?? gradeScoreInput(entry.finalCutState ?? null)}
-                                  max={MAX_PACKAGE_PER_CYCLE}
+                                  max={null}
                                   dashed
                                   onChange={(raw) => {
                                     const nextOverrides = { ...adjustments.cycleOverrides };
@@ -1465,19 +1480,27 @@ export default function GradeEditorClient() {
                                   }}
                                 />
                               ) : (
-                                <PointsReadout earned={entry.totalPoints} possible={MAX_PACKAGE_PER_CYCLE} meter={false} />
+                                <span
+                                  className={cn(
+                                    "font-mono-broadcast text-sm font-semibold tabular-nums",
+                                    entry.missing ? "text-danger" : "text-foreground"
+                                  )}
+                                  title={entry.missing ? "No approved Final Cut by the deadline" : undefined}
+                                >
+                                  {entry.totalPoints}
+                                </span>
                               )}
                             </td>
                           );
                         })}
-                        <td className="px-3 py-3 align-middle">
+                        <td className={CELL}>
                           <PointsReadout
                             earned={packages.possible > 0 ? packages.earned : null}
                             possible={packages.possible > 0 ? packages.possible : null}
-                            caption={packages.possible > 0 ? undefined : "No package scored yet"}
+                            meter={false}
                           />
                         </td>
-                        <td className={cn("px-3 py-3 align-middle", GROUP_START)}>
+                        <td className={cn(CELL, GROUP_START)}>
                           <ScoreInput
                             label={`${row.name ?? "Student"} checkIns score`}
                             value={gradeScoreInput(adjustments.checkIns)}
@@ -1488,21 +1511,24 @@ export default function GradeEditorClient() {
                             }}
                           />
                         </td>
-                        <td className="px-3 py-3 align-middle">
+                        <td className={CELL}>
                           <ScoreInput
                             label={`${row.name ?? "Student"} livestream score`}
                             value={gradeScoreInput(adjustments.livestream)}
-                            max={MAX_LIVESTREAM}
+                            max={null}
                             onChange={(raw) => {
                               const score = parseGradeScore(raw, MAX_LIVESTREAM);
                               if (score !== undefined) updateAdjustment(row.userId, { livestream: score });
                             }}
                           />
-                          <p className="mt-1.5 text-[11px] leading-none text-muted-foreground">
-                            {row.livestreamHours}/{REQUIRED_LIVESTREAM_HOURS} hours completed
+                          <p
+                            className="mt-1 whitespace-nowrap text-[11px] leading-none text-muted-foreground"
+                            title={`${row.livestreamHours}/${REQUIRED_LIVESTREAM_HOURS} hours completed`}
+                          >
+                            {row.livestreamHours}/{REQUIRED_LIVESTREAM_HOURS} hrs
                           </p>
                         </td>
-                        <td className="px-3 py-3 align-middle">
+                        <td className={CELL}>
                           <PointsReadout
                             earned={row.participationEarned}
                             possible={row.participationPossible}
@@ -1510,23 +1536,24 @@ export default function GradeEditorClient() {
                             title="Graded participation from weeks ending before this Monday, Pacific time. Ungraded days are excluded."
                           />
                         </td>
-                        <td className="px-3 py-3 align-middle">
+                        <td className={CELL}>
                           <ScoreInput
                             label={`${row.name ?? "Student"} final score`}
                             value={gradeScoreInput(adjustments.final)}
-                            max={MAX_FINAL}
+                            max={null}
                             onChange={(raw) => {
                               const score = parseGradeScore(raw, MAX_FINAL);
                               if (score !== undefined) updateAdjustment(row.userId, { final: score });
                             }}
                           />
                         </td>
-                        <td className="px-3 py-3 align-middle">
-                          <div className="flex items-center gap-1.5">
+                        <td className={CELL}>
+                          <div className="flex items-center gap-1">
                             <ScoreInput
                               label={`${row.name ?? "Student"} extraPoints score`}
                               value={gradeScoreInput(adjustments.extraPoints)}
                               max={null}
+                              width="w-10"
                               placeholder="0"
                               onChange={(raw) => {
                                 const score = parseGradeScore(raw, Number.MAX_SAFE_INTEGER);
@@ -1543,39 +1570,44 @@ export default function GradeEditorClient() {
                                   extraMax: clampNonNegative(event.target.value)
                                 })
                               }
-                              className="h-9 w-14 rounded-md border border-border bg-[var(--ink)] px-2 text-center font-mono-broadcast text-sm font-semibold tabular-nums text-foreground outline-none transition focus:border-[var(--brand-green)] focus:ring-1 focus:ring-[var(--brand-green)]"
+                              className="h-9 w-10 shrink-0 rounded-md border border-border bg-[var(--ink)] px-1 text-center font-mono-broadcast text-sm font-semibold tabular-nums text-foreground outline-none transition focus:border-[var(--brand-green)] focus:ring-1 focus:ring-[var(--brand-green)]"
                               placeholder="0"
                             />
                           </div>
                         </td>
-                        <td className={cn("px-3 py-3 align-middle", GROUP_START)}>
-                          <PointsReadout
-                            earned={totalMax > 0 ? totalGrade : null}
-                            possible={totalMax > 0 ? totalMax : null}
-                            emphasis
-                          />
+                        <td className={cn(CELL, GROUP_START)}>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={cn(
+                                "grid h-9 w-9 shrink-0 place-items-center rounded-md border text-lg font-semibold leading-none",
+                                gradeBadgeTone(totalPct)
+                              )}
+                              aria-label={totalPct === null ? "No letter grade yet" : `Letter grade ${letterGrade(totalPct)}`}
+                            >
+                              {totalPct === null ? "—" : letterGrade(totalPct)}
+                            </span>
+                            <PointsReadout
+                              earned={totalMax > 0 ? totalGrade : null}
+                              possible={totalMax > 0 ? totalMax : null}
+                              meter={false}
+                            />
+                          </div>
                         </td>
-                        <td className="px-3 py-3 align-middle">
-                          <span
-                            className={cn(
-                              "grid h-11 w-11 place-items-center rounded-md border text-2xl font-semibold leading-none tracking-tight",
-                              gradeBadgeTone(totalPct)
-                            )}
-                            aria-label={totalPct === null ? "No letter grade yet" : `Letter grade ${letterGrade(totalPct)}`}
-                          >
-                            {totalPct === null ? "—" : letterGrade(totalPct)}
-                          </span>
-                        </td>
-                        <td className="px-3 py-3 align-middle">
-                          <Button
+                        <td className={CELL}>
+                          <button
                             type="button"
-                            variant="outline"
-                            size="sm"
                             onClick={() => setTotalsNotesUserId(row.userId)}
-                            className="h-9 px-3 text-xs"
+                            title={row.notes.trim() ? "View notes" : "Add notes"}
+                            aria-label={`${row.notes.trim() ? "View" : "Add"} notes for ${row.name ?? "student"}`}
+                            className={cn(
+                              "grid h-9 w-9 place-items-center rounded-md border transition",
+                              row.notes.trim()
+                                ? "border-[rgb(43,179,110,0.35)] bg-[rgb(43,179,110,0.10)] text-[var(--brand-green)] hover:bg-[rgb(43,179,110,0.18)]"
+                                : "border-border bg-[var(--ink)] text-muted-foreground hover:border-[var(--brand-green)] hover:text-foreground"
+                            )}
                           >
-                            {row.notes.trim() ? "View" : "Add"}
-                          </Button>
+                            <MessageSquare className="h-4 w-4" />
+                          </button>
                         </td>
                       </tr>
                     );
@@ -1583,7 +1615,7 @@ export default function GradeEditorClient() {
                   {totalsRows.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={cycles.length + 10}
+                        colSpan={cycles.length + 9}
                         className="px-4 py-6 text-center text-sm text-muted-foreground"
                       >
                         No gradable users found.
@@ -1598,37 +1630,8 @@ export default function GradeEditorClient() {
           <p className="px-4 py-6 text-sm text-muted-foreground">Loading grade editor...</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className={cn(TABLE_CLASS, "min-w-[1440px]")}>
-              <GradeTableHead
-                groups={[
-                  { label: "", columns: [{ label: "Reporter" }] },
-                  {
-                    label: "Check-ins",
-                    hint: "released stages · 5 pts each",
-                    columns: [
-                      ...CHECK_IN_STAGES.map((stage) => ({ label: CHECK_IN_LABELS[stage], sub: "/ 5", width: "100px" })),
-                      { label: "Total", sub: `/ ${MAX_CHECK_INS_PER_CYCLE}`, width: "112px" }
-                    ]
-                  },
-                  {
-                    label: "Final cut",
-                    hint: `${MAX_PACKAGE_PER_CYCLE} pts · late penalty applies to Official`,
-                    columns: [
-                      { label: "Score", sub: `/ ${MAX_PACKAGE_PER_CYCLE}`, width: "116px" },
-                      { label: "Official", sub: "after late", width: "112px" },
-                      { label: "Turned in", width: "152px" }
-                    ]
-                  },
-                  { label: "Semester", columns: [{ label: "Participation", sub: "ended weeks", width: "112px" }] },
-                  {
-                    label: "Publishing",
-                    columns: [
-                      { label: "Feedback", width: "88px" },
-                      { label: "Status", width: "236px" }
-                    ]
-                  }
-                ]}
-              />
+            <table className={TABLE_CLASS} style={{ minWidth: tableMinWidth(CYCLE_GROUPS) }}>
+              <GradeTableHead groups={CYCLE_GROUPS} />
               <tbody>
                 {sortedRows.map((row, rowIdx) => {
                   const total = scoreTotal(row);
@@ -1638,6 +1641,8 @@ export default function GradeEditorClient() {
                   const checkIns = cycleCheckInSummary(row.checkInScores);
                   const checkInsCounted = checkIns.possible > 0;
                   const participation = totalsByUserId.get(row.userId);
+                  const missedFinalCut = row.finalCutMissing && row.effortPoints === null && !row.finalCutState;
+                  const hasFeedback = Boolean(row.feedback.trim());
 
                   return (
                     <tr
@@ -1654,7 +1659,7 @@ export default function GradeEditorClient() {
                         onOpen={() => goToStudentView(row.userId)}
                       >
                         {dirty ? (
-                          <span className="inline-flex items-center gap-1 text-[var(--brand-amber)]">
+                          <span className="inline-flex shrink-0 items-center gap-1 text-[var(--brand-amber)]">
                             <span className="h-1.5 w-1.5 rounded-full bg-[var(--brand-amber)]" />
                             unsaved
                           </span>
@@ -1664,7 +1669,7 @@ export default function GradeEditorClient() {
                         const score = row.checkInScores[stage];
                         const override = row.checkInOverrides[stage];
                         return (
-                          <td key={stage} className={cn("px-2 py-3 align-middle", stageIdx === 0 && GROUP_START)}>
+                          <td key={stage} className={cn("px-1 py-2.5 align-middle", stageIdx === 0 && GROUP_START, stageIdx === 0 && "pl-2")}>
                             {score === null ? (
                               <span className="inline-flex h-9 items-center px-2 text-xs text-muted-foreground">N/A</span>
                             ) : (
@@ -1675,42 +1680,41 @@ export default function GradeEditorClient() {
                                 disabled={savingCheckIn}
                                 onChange={(event) => void saveCheckIn(row.userId, stage, event.target.value)}
                                 className={cn(
-                                  "h-9 w-full min-w-[84px] rounded-md border bg-[var(--ink)] px-2 font-mono-broadcast text-sm font-semibold tabular-nums outline-none transition focus:border-[var(--brand-green)] disabled:opacity-50",
+                                  "h-9 w-full appearance-none rounded-md border bg-[var(--ink)] px-2 text-xs font-semibold tabular-nums outline-none transition focus:border-[var(--brand-green)] disabled:opacity-50",
                                   override === null ? "border-border" : "border-[rgb(43,179,110,0.45)]",
                                   checkInTone(score)
                                 )}
                               >
-                                <option value="auto">{override === null ? `Auto · ${gradeScoreLabel(score)}` : "Automatic"}</option>
+                                <option value="auto">{override === null ? `Auto ${gradeScoreLabel(score)}` : "Auto"}</option>
                                 {[5, 4, 3, 2, 1, 0].map((points) => (
-                                  <option key={points} value={points}>{points} / 5</option>
+                                  <option key={points} value={points}>{points}</option>
                                 ))}
-                                <option value="UNGRADED">— Ungraded</option>
+                                <option value="UNGRADED">Ungraded</option>
                                 <option value="EXEMPT">Exempt</option>
                               </select>
                             )}
                           </td>
                         );
                       })}
-                      <td className="px-3 py-3 align-middle">
+                      <td className={CELL}>
                         <PointsReadout
                           earned={checkInsCounted ? checkIns.earned : null}
                           possible={checkInsCounted ? checkIns.possible : null}
-                          caption={
+                          title={
                             checkIns.released === 0
-                              ? "Nothing due yet"
+                              ? "No check-in is due yet"
                               : !checkInsCounted
-                                ? "Excluded"
-                                : checkIns.released < CHECK_IN_STAGES.length
-                                  ? `${checkIns.released} of ${CHECK_IN_STAGES.length} due so far`
-                                  : undefined
+                                ? "Every due check-in is ungraded or exempt"
+                                : `${checkIns.released} of ${CHECK_IN_STAGES.length} check-ins due so far`
                           }
                         />
                       </td>
-                      <td className={cn("px-3 py-3 align-middle", GROUP_START)}>
+                      <td className={cn(CELL, GROUP_START)}>
                         <ScoreInput
                           label={`${rowLabel(row)} Final Cut score`}
                           value={gradeScoreInput(row.finalCutState ?? row.effortPoints)}
-                          max={MAX_PACKAGE_PER_CYCLE}
+                          max={null}
+                          placeholder={missedFinalCut ? "0" : "—"}
                           onChange={(raw) => {
                             const score = parseGradeScore(raw, MAX_PACKAGE_PER_CYCLE);
                             if (score === undefined) return;
@@ -1722,14 +1726,22 @@ export default function GradeEditorClient() {
                           }}
                         />
                       </td>
-                      <td className="px-3 py-3 align-middle">
+                      <td className={CELL}>
                         <PointsReadout
-                          earned={row.finalCutState === "EXEMPT" ? "Exempt" : row.effortPoints === null ? null : total}
+                          earned={
+                            row.finalCutState === "EXEMPT"
+                              ? "Exempt"
+                              : row.effortPoints !== null
+                                ? total
+                                : missedFinalCut
+                                  ? 0
+                                  : null
+                          }
                           possible={row.finalCutState === "EXEMPT" ? null : MAX_PACKAGE_PER_CYCLE}
-                          emphasis
+                          title={missedFinalCut ? "No approved Final Cut by the deadline" : undefined}
                         />
                       </td>
-                      <td className="px-3 py-3 align-middle">
+                      <td className={CELL}>
                         <input
                           type="date"
                           value={row.turnedInDate ?? ""}
@@ -1742,14 +1754,14 @@ export default function GradeEditorClient() {
                             });
                           }}
                           className={cn(
-                            "h-9 w-full rounded-md border px-2 font-mono-broadcast text-sm tabular-nums text-foreground outline-none [color-scheme:dark] light:[color-scheme:light]",
+                            "h-9 w-full rounded-md border px-1.5 font-mono-broadcast text-xs tabular-nums text-foreground outline-none [color-scheme:dark] light:[color-scheme:light]",
                             activeCycleHasFinalCut
                               ? "border-border bg-[var(--ink)] focus:border-[var(--brand-green)]"
                               : "cursor-not-allowed border-[rgb(242,165,22,0.4)] bg-[rgb(242,165,22,0.08)] text-[var(--brand-amber)]"
                           )}
                         />
                       </td>
-                      <td className={cn("px-3 py-3 align-middle", GROUP_START)}>
+                      <td className={cn(CELL, GROUP_START)}>
                         {participation ? (
                           <PointsReadout
                             earned={participation.participationEarned}
@@ -1761,34 +1773,22 @@ export default function GradeEditorClient() {
                           <span className="text-xs text-muted-foreground">—</span>
                         )}
                       </td>
-                      <td className={cn("px-3 py-3 align-middle", GROUP_START)}>
-                        <button
-                          type="button"
-                          onClick={() => setFeedbackModalUserId(row.userId)}
-                          className={cn(
-                            "inline-flex h-9 items-center justify-center rounded-md border px-3 text-xs font-semibold transition",
-                            row.feedback.trim()
-                              ? "border-[rgb(43,179,110,0.35)] bg-[rgb(43,179,110,0.10)] text-[var(--brand-green)] hover:bg-[rgb(43,179,110,0.18)]"
-                              : "border-border bg-[var(--ink)] text-muted-foreground hover:border-[var(--brand-green)] hover:text-foreground"
-                          )}
-                        >
-                          {row.feedback.trim() ? "View" : "Add"}
-                        </button>
-                      </td>
-                      <td className="px-3 py-3 align-middle">
-                        <div className="flex items-center gap-2">
-                          <span
+                      <td className={cn(CELL, GROUP_START)}>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setFeedbackModalUserId(row.userId)}
+                            title={hasFeedback ? "View feedback" : "Add feedback"}
+                            aria-label={`${hasFeedback ? "View" : "Add"} feedback for ${rowLabel(row)}`}
                             className={cn(
-                              "status-pill",
-                              row.revised
-                                ? "status-warn"
-                                : row.published
-                                  ? "status-approved"
-                                  : "status-neutral"
+                              "grid h-9 w-9 shrink-0 place-items-center rounded-md border transition",
+                              hasFeedback
+                                ? "border-[rgb(43,179,110,0.35)] bg-[rgb(43,179,110,0.10)] text-[var(--brand-green)] hover:bg-[rgb(43,179,110,0.18)]"
+                                : "border-border bg-[var(--ink)] text-muted-foreground hover:border-[var(--brand-green)] hover:text-foreground"
                             )}
                           >
-                            {row.revised ? "Revised" : row.published ? "Published" : "Unpublished"}
-                          </span>
+                            <MessageSquare className="h-4 w-4" />
+                          </button>
                           <button
                             type="button"
                             onClick={() => void togglePublish(row.userId)}
@@ -1800,7 +1800,7 @@ export default function GradeEditorClient() {
                               (!row.published && !canPublishRow)
                             }
                             className={cn(
-                              "h-9 rounded-md px-3 text-[11px] font-bold transition",
+                              "h-9 min-w-0 flex-1 rounded-md px-2 text-[11px] font-bold transition",
                               row.published
                                 ? "border border-[rgb(242,165,22,0.30)] bg-[rgb(242,165,22,0.10)] text-[var(--brand-amber)] hover:bg-[rgb(242,165,22,0.20)]"
                                 : "bg-[var(--brand-fill)] text-[var(--on-brand)] hover:bg-[var(--brand-fill-hover)]",
@@ -1818,7 +1818,7 @@ export default function GradeEditorClient() {
                             <button
                               type="button"
                               onClick={() => setPublicationHistoryUserId(row.userId)}
-                              className="grid h-9 w-9 place-items-center rounded-md text-muted-foreground hover:bg-[var(--ink-2)] hover:text-foreground"
+                              className="grid h-9 w-7 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-[var(--ink-2)] hover:text-foreground"
                               title="View publish history"
                               aria-label="View publish history"
                             >
@@ -1826,13 +1826,25 @@ export default function GradeEditorClient() {
                             </button>
                           ) : null}
                         </div>
+                        <div
+                          className={cn(
+                            "mt-1 text-[11px] leading-none",
+                            row.revised
+                              ? "text-[var(--brand-amber)]"
+                              : row.published
+                                ? "text-[var(--brand-green)]"
+                                : "text-muted-foreground"
+                          )}
+                        >
+                          {row.revised ? "Revised" : row.published ? "Published" : "Not published"}
+                        </div>
                       </td>
                     </tr>
                   );
                 })}
                 {rows.length === 0 ? (
                   <tr>
-                    <td colSpan={12} className="px-4 py-6 text-center text-sm text-muted-foreground">
+                    <td colSpan={11} className="px-4 py-6 text-center text-sm text-muted-foreground">
                       No gradable users found.
                     </td>
                   </tr>

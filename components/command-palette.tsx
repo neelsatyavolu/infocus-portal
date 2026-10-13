@@ -43,6 +43,7 @@ export function CommandPalette({
   const router = useRouter();
   const listId = useId();
   const listRef = useRef<HTMLUListElement>(null);
+  const moveByKeyboard = useRef(false);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -73,8 +74,15 @@ export function CommandPalette({
   }, [open]);
 
   useEffect(() => {
+    if (!moveByKeyboard.current) return;
+    moveByKeyboard.current = false;
     listRef.current?.querySelector('[data-active="true"]')?.scrollIntoView({ block: "nearest" });
   }, [activeIndex]);
+
+  function moveActive(direction: 1 | -1) {
+    moveByKeyboard.current = true;
+    setActiveIndex((index) => (index + direction + results.length) % results.length);
+  }
 
   function go(place: Place) {
     onOpenChange(false);
@@ -95,10 +103,10 @@ export function CommandPalette({
     }
     if (event.key === "ArrowDown") {
       event.preventDefault();
-      setActiveIndex((index) => (index + 1) % results.length);
+      moveActive(1);
     } else if (event.key === "ArrowUp") {
       event.preventDefault();
-      setActiveIndex((index) => (index - 1 + results.length) % results.length);
+      moveActive(-1);
     } else if (event.key === "Enter") {
       event.preventDefault();
       const place = results[Math.min(activeIndex, results.length - 1)];
@@ -125,6 +133,7 @@ export function CommandPalette({
             onChange={(event) => {
               setQuery(event.target.value);
               setActiveIndex(0);
+              listRef.current?.scrollTo({ top: 0 });
             }}
             onKeyDown={onInputKeyDown}
             placeholder="Go to a page…"
@@ -149,7 +158,7 @@ export function CommandPalette({
                   role="option"
                   aria-selected={active}
                   data-active={active}
-                  onMouseMove={() => setActiveIndex(index)}
+                  onMouseEnter={() => setActiveIndex(index)}
                   onClick={() => go(place)}
                   className={cn(
                     "flex cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm",

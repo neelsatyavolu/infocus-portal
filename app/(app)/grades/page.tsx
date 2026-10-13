@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect, unstable_rethrow } from "next/navigation";
 import { syncUserProfile } from "@/src/lib/auth";
 import { getCurrentAppUser } from "@/src/lib/current-app-user";
-import { currentGradebookWeekIndex, parseGradeTab } from "@/src/lib/grades-view";
+import { currentGradebookWeekIndex, gradebookTodayKey, parseGradeTab } from "@/src/lib/grades-view";
 import { getPlatformAccess, seesStudentGrades } from "@/src/lib/platform-admin";
 import { loadMyGrades } from "@/src/server/grades-me";
 import GradesClient, { type GradesMePayload } from "./grades-client";
@@ -37,7 +37,7 @@ export default async function GradesPage({
   const [initialData, { tab }] = await Promise.all([loadInitialGrades(userId), searchParams]);
   const initialWeekIndex = currentGradebookWeekIndex(
     initialData?.gradebook?.weeks ?? [],
-    new Date().toISOString().slice(0, 10)
+    gradebookTodayKey()
   );
 
   return <GradesClient initialData={initialData} initialTab={parseGradeTab(tab)} initialWeekIndex={initialWeekIndex} />;

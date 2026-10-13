@@ -19,7 +19,7 @@ vi.mock("@/src/lib/prisma", () => ({
 vi.mock("@/src/server/student-grade-summary", () => ({ buildGradeSummary: mocks.buildGradeSummary }));
 vi.mock("@/src/server/student-gradebook", () => ({ loadGradebookExtras: mocks.loadGradebookExtras }));
 
-import { currentGradebookWeekIndex, parseGradeTab } from "@/src/lib/grades-view";
+import { currentGradebookWeekIndex, gradebookTodayKey, parseGradeTab } from "@/src/lib/grades-view";
 import { loadMyGrades } from "@/src/server/grades-me";
 
 const summary = {
@@ -120,5 +120,12 @@ describe("grades view helpers", () => {
     expect(currentGradebookWeekIndex(weeks, "2026-10-05")).toBe(2);
     expect(currentGradebookWeekIndex(weeks, "2026-09-01")).toBe(2);
     expect(currentGradebookWeekIndex([], "2026-09-16")).toBe(0);
+  });
+
+  it("keeps Sunday evening Pacific on the current participation week", () => {
+    const weeks = [{ weekStart: "2026-10-05" }, { weekStart: "2026-10-12" }];
+    const sundayEvening = gradebookTodayKey(new Date("2026-10-12T00:30:00.000Z"));
+    expect(sundayEvening).toBe("2026-10-11");
+    expect(currentGradebookWeekIndex(weeks, sundayEvening)).toBe(0);
   });
 });

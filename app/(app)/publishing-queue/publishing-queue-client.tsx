@@ -139,6 +139,7 @@ function QueuePackageCard({
           {readOnly ? null : (
             <>
               <select
+                aria-label="Show date"
                 value={row.queuedForShowDate ?? ""}
                 disabled={busy}
                 draggable={false}
@@ -153,7 +154,7 @@ function QueuePackageCard({
                 }}
                 className="h-8 min-w-0 max-w-full rounded-md border border-border bg-background px-2 text-xs text-foreground"
               >
-                <option value="">Next empty show</option>
+                {row.queuedForShowDate ? null : <option value="">Next empty show</option>}
                 {showOptions.map((show) => {
                   const full = !canManuallyPlaceOnShow(occupiedOn(show.date, row.id));
                   const current = show.date === row.queuedForShowDate;

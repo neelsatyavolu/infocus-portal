@@ -126,7 +126,7 @@ export function VaultEntryDialog({
 
   function secretValue(mode: SecretMode, value: string) {
     if (mode === "remove") return "";
-    if (mode === "keep" || (editing && !value)) return undefined;
+    if (mode === "keep") return undefined;
     return value;
   }
 
@@ -134,6 +134,14 @@ export function VaultEntryDialog({
     event.preventDefault();
     if (!name.trim()) {
       setError("Name is required.");
+      return;
+    }
+    if (editing && passwordMode === "replace" && !password) {
+      setError("Enter a new password, or choose Keep or Remove.");
+      return;
+    }
+    if (editing && totpMode === "replace" && !totp.trim()) {
+      setError("Enter a new 2FA key, or choose Keep or Remove.");
       return;
     }
     setBusy("save");

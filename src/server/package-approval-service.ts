@@ -283,6 +283,7 @@ export async function recordDecision(
   }
 
   const mediaItemId = await mediaItemForStage(progressRowId);
+  let promotedToApproved = false;
 
   await prisma.$transaction(async (tx) => {
     if (approval.stage === "ASSOCIATE_REVIEW") {
@@ -362,6 +363,7 @@ export async function recordDecision(
         where: { id: approval.id },
         data: { stage: "APPROVED" }
       });
+      promotedToApproved = true;
     }
   });
 
@@ -385,7 +387,8 @@ export async function recordDecision(
 
   if (
     decision.type === "ADVANCE" ||
-    decision.type === "SEND_BACK"
+    decision.type === "SEND_BACK" ||
+    promotedToApproved
   ) {
     const reviewer = await prisma.user.findUnique({
       where: { id: actor.userId },

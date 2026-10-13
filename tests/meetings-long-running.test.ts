@@ -10,7 +10,8 @@ const mocks = vi.hoisted(() => ({
   scribeStart: vi.fn(),
   scribeStop: vi.fn(),
   scribeRekey: vi.fn(),
-  usage: vi.fn()
+  usage: vi.fn(),
+  emailNotes: vi.fn()
 }));
 
 vi.mock("@/src/lib/auth", () => ({
@@ -37,6 +38,10 @@ vi.mock("@/src/server/meetings-scribe", () => ({
   rekeyMeetingScribe: mocks.scribeRekey
 }));
 vi.mock("@/src/server/meetings-usage", () => ({ checkMeetingUsage: mocks.usage, MEETING_USAGE_LIMIT_MESSAGE: "over" }));
+vi.mock("@/src/server/meetings-notes-email", () => ({
+  emailMeetingNotes: mocks.emailNotes,
+  shouldEmailNotes: vi.fn(() => false)
+}));
 vi.mock("@/src/server/meetings-room-client", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/src/server/meetings-room-client")>()),
   sendMeetingRoomEvent: mocks.roomEvent
@@ -200,6 +205,7 @@ describe("ended reaches the room", () => {
       data: { status: "ENDED", endedAt: NOW, endedReason: "EMPTY", keyCiphertext: null }
     });
     expect(mocks.scribeStop).toHaveBeenCalledWith("m1");
+    expect(mocks.emailNotes).not.toHaveBeenCalled();
 
     mocks.roomEvent.mockReset().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
     mocks.meeting.updateMany.mockReset().mockResolvedValue({ count: 0 });
@@ -207,6 +213,12 @@ describe("ended reaches the room", () => {
     await expect(endMeeting("m1", NOW, "EMPTY")).resolves.toEqual({ ended: false });
     expect(mocks.roomEvent).toHaveBeenCalledTimes(2);
     expect(mocks.roomEvent).toHaveBeenLastCalledWith("m1", { t: "ended" });
+  });
+
+  it("emails notes that were already ready when the meeting ends", async () => {
+    mocks.meeting.findUnique.mockResolvedValue({ status: "LIVE", notesEnabled: false, notesStatus: "READY", endedReason: null });
+    await endMeeting("m1", NOW, "HOST");
+    expect(mocks.emailNotes).toHaveBeenCalledWith("m1");
   });
 
   it("a host's End on an EMPTY-ended meeting makes it final", async () => {
@@ -269,6 +281,12 @@ describe("notes in parts", () => {
 
   it("ignores a repeated READY for a part it already has", () => {
     const { data } = notesUpdateData({ ...row, notesDrivePaths: ["Meetings/part1", "Meetings/part2"] }, { status: "READY", summaryMarkdown: "again", drivePath: "Meetings/part2", part: 2 }, NOW);
+    expect(data).not.toHaveProperty("notesSummary");
+    expect(data).not.toHaveProperty("notesDrivePaths");
+  });
+
+  it("a READY retry with no folder does not invent another part", () => {
+    const { data } = notesUpdateData(row, { status: "READY", summaryMarkdown: "Part one summary again", part: 1 }, NOW);
     expect(data).not.toHaveProperty("notesSummary");
     expect(data).not.toHaveProperty("notesDrivePaths");
   });

@@ -326,6 +326,21 @@ function applyMutationToRow(row: GradeRow, payload: GradeMutationPayload) {
   };
 }
 
+type GradeSaveSnapshot = Pick<GradeRow, "finalCutState" | "effortPoints" | "teamworkPoints" | "feedback" | "turnedInDate">;
+
+/** Keep keystrokes that landed after the save request left, so the response cannot wipe them. */
+export function mergeGradeRowAfterSave(current: GradeRow, sent: GradeSaveSnapshot, saved: GradeRow): GradeRow {
+  return {
+    ...saved,
+    finalCutState: current.finalCutState !== sent.finalCutState ? current.finalCutState : saved.finalCutState,
+    effortPoints: (current.effortPoints ?? null) !== (sent.effortPoints ?? null) ? current.effortPoints : saved.effortPoints,
+    teamworkPoints:
+      (current.teamworkPoints ?? null) !== (sent.teamworkPoints ?? null) ? current.teamworkPoints : saved.teamworkPoints,
+    feedback: current.feedback !== sent.feedback ? current.feedback : saved.feedback,
+    turnedInDate: (current.turnedInDate ?? null) !== (sent.turnedInDate ?? null) ? current.turnedInDate : saved.turnedInDate
+  };
+}
+
 export default function GradeEditorClient() {
   const [cycles, setCycles] = useState<CycleTab[]>([]);
   const [activeCycleNumber, setActiveCycleNumber] = useState(1);
@@ -763,6 +778,14 @@ export default function GradeEditorClient() {
   async function saveRow(userId: string) {
     const row = rowsRef.current.find((entry) => entry.userId === userId);
     if (!row) return false;
+    const sent: GradeSaveSnapshot = {
+      finalCutState: row.finalCutState,
+      effortPoints: row.effortPoints,
+      teamworkPoints: row.teamworkPoints,
+      feedback: row.feedback,
+      turnedInDate: row.turnedInDate
+    };
+    const timerAtStart = autosaveTimersRef.current.get(userId);
 
     try {
       setSavingUserId(userId);
@@ -791,8 +814,30 @@ export default function GradeEditorClient() {
         throw new Error(payload.error?.message ?? "Failed to save grade.");
       }
 
-      clearRowAutosaveTimer(userId);
-      pendingAutosaveUserIdsRef.current.delete(userId);
+      const timerNow = autosaveTimersRef.current.get(userId);
+      const followUpQueued = pendingAutosaveUserIdsRef.current.has(userId) || Boolean(timerNow && timerNow !== timerAtStart);
+      const latest = rowsRef.current.find((entry) => entry.userId === userId) ?? row;
+      const savedPreview = applyMutationToRow(latest, payload.data!);
+      const mergedPreview = mergeGradeRowAfterSave(latest, sent, savedPreview);
+      const keptLocalEdits =
+        mergedPreview.finalCutState !== savedPreview.finalCutState ||
+        (mergedPreview.effortPoints ?? null) !== (savedPreview.effortPoints ?? null) ||
+        (mergedPreview.teamworkPoints ?? null) !== (savedPreview.teamworkPoints ?? null) ||
+        mergedPreview.feedback !== savedPreview.feedback ||
+        (mergedPreview.turnedInDate ?? null) !== (savedPreview.turnedInDate ?? null);
+      setRows((current) =>
+        current.map((entry) =>
+          entry.userId === userId ? mergeGradeRowAfterSave(entry, sent, applyMutationToRow(entry, payload.data!)) : entry
+        )
+      );
+      if (keptLocalEdits) {
+        clearRowAutosaveTimer(userId);
+        pendingAutosaveUserIdsRef.current.add(userId);
+        if (!autosaveRunningRef.current) void flushAutosaves();
+      } else if (!followUpQueued) {
+        clearRowAutosaveTimer(userId);
+        pendingAutosaveUserIdsRef.current.delete(userId);
+      }
 
       const previousSaved = savedRowMapRef.current.get(userId);
       const turnedInDateChanged = (previousSaved?.turnedInDate ?? null) !== (payload.data!.turnedInDate ?? null);
@@ -804,9 +849,6 @@ export default function GradeEditorClient() {
         });
       }
 
-      setRows((current) =>
-        current.map((entry) => (entry.userId === userId ? applyMutationToRow(entry, payload.data!) : entry))
-      );
       setSavedRows((current) =>
         current.map((entry) => (entry.userId === userId ? applyMutationToRow(entry, payload.data!) : entry))
       );

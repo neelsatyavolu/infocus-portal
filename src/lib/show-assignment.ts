@@ -1,3 +1,4 @@
+import { pacificDateKey } from "@/src/lib/deadlines";
 import {
   FIRST_SHOW_DATE,
   resolveScheduleDay,
@@ -19,9 +20,12 @@ export function dateKeyFromParts(year: number, month: number, day: number) {
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
-/** Local calendar date — matches master calendar cells, not UTC. */
+/**
+ * School day in Pacific time. Vercel runs in UTC, so `getDate()` / `toISOString()`
+ * are already the next day after 5pm PDT (4pm PST).
+ */
 export function todayDateKey(now = new Date()) {
-  return dateKeyFromParts(now.getFullYear(), now.getMonth() + 1, now.getDate());
+  return pacificDateKey(now);
 }
 
 export function parseDateKeyUtc(dateKey: string) {

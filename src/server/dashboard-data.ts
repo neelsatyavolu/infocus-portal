@@ -107,7 +107,7 @@ function sumGraded(values: Array<number | null>) {
 
 export function pickCurrentParticipationWeek<T extends { weekStart: string }>(
   weeks: T[],
-  today = new Date().toISOString().slice(0, 10)
+  today = pacificDateKey(new Date())
 ): T | null {
   if (weeks.length === 0) {
     return null;

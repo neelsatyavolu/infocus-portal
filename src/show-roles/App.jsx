@@ -43,7 +43,7 @@ import {
   repickRole,
   upsertShow,
 } from "./lib/assignments";
-import { formatDate, formatReadableDate, getCurrentShowDate, isShowDay, nextShowDate, parseDate } from "./lib/date";
+import { formatDate, formatReadableDate, getCurrentShowDate, isShowDay, nextShowDate, parseDate, schoolTodayKey } from "./lib/date";
 import { checkSession, loadCastPool, loadHistory, loadNonAnchors, saveHistory, saveNonAnchors } from "./lib/api";
 
 /** How often a visible tab checks for other people's show-role edits. */
@@ -445,7 +445,7 @@ export default function App() {
   }
 
   async function handleCreateNewShow() {
-    const todayStr = formatDate(new Date());
+    const todayStr = schoolTodayKey();
     if (!newShowDate) {
       setFlash("error", "Date required", "Select a date for the new show.");
       return;
@@ -539,7 +539,7 @@ export default function App() {
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const href = URL.createObjectURL(blob);
-    const dateStamp = formatDate(new Date());
+    const dateStamp = schoolTodayKey();
     const link = document.createElement("a");
     link.href = href;
     link.download = `show_roles_backup_${dateStamp}.json`;
@@ -784,7 +784,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => {
-                    setNewShowDate(formatDate(nextShowDate(parseDate(currentShowDate || formatDate(new Date())))));
+                    setNewShowDate(formatDate(nextShowDate(parseDate(currentShowDate || schoolTodayKey()))));
                     setNewShowOpen(true);
                   }}
                   className="rounded-md border border-transparent px-2.5 py-1.5 text-xs font-semibold text-[var(--brand-amber)] hover:bg-[rgb(242,165,22,0.10)]"
@@ -844,7 +844,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => {
-                  setNewShowDate(formatDate(nextShowDate(parseDate(currentShowDate || formatDate(new Date())))));
+                  setNewShowDate(formatDate(nextShowDate(parseDate(currentShowDate || schoolTodayKey()))));
                   setNewShowOpen(true);
                 }}
                 disabled={saving || loadingHistory}
@@ -1229,7 +1229,7 @@ export default function App() {
         open={newShowOpen}
         onClose={() => setNewShowOpen(false)}
         title="Create a new show"
-        description="Select a Tuesday or Thursday date."
+        description="Select a Wednesday or Friday school day."
       >
         <div className="space-y-2">
           <label htmlFor="new-show-date" className="text-sm font-medium leading-none">
@@ -1238,7 +1238,7 @@ export default function App() {
           <Input
             id="new-show-date"
             type="date"
-            min={formatDate(new Date())}
+            min={schoolTodayKey()}
             value={newShowDate}
             onChange={(event) => setNewShowDate(event.target.value)}
             className="interactive-surface"

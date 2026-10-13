@@ -41,10 +41,12 @@ export function notesUpdateData(meeting: NotesRow, input: NotesUpdate, now: Date
   const paths = meeting.notesDrivePaths;
   const summary = input.summaryMarkdown;
   if (input.status === "READY") {
-    const isNewPart = !input.drivePath || !paths.includes(input.drivePath);
-    if (input.drivePath && isNewPart) data.notesDrivePaths = [...paths, input.drivePath];
-    if (summary !== undefined) {
-      const partNumber = isNewPart ? paths.length + 1 : paths.indexOf(input.drivePath!) + 1;
+    // A callback with no folder is a retry of the current part, not a new one.
+    const drivePath = input.drivePath;
+    const isNewPart = typeof drivePath === "string" && drivePath.length > 0 && !paths.includes(drivePath);
+    if (drivePath && isNewPart) data.notesDrivePaths = [...paths, drivePath];
+    if (summary !== undefined && (drivePath || paths.length === 0)) {
+      const partNumber = isNewPart ? paths.length + 1 : drivePath ? paths.indexOf(drivePath) + 1 : 1;
       // Part 1 owns the whole summary only while it is the only part (a retried part-1 READY after
       // part 2 arrived must not drop part 2).
       if (partNumber <= 1 && paths.length <= 1) data.notesSummary = summary;

@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { formatDate, getCurrentShowDate, isShowDay, nextShowDate } from "@/src/show-roles/lib/date";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { formatDate, getCurrentShowDate, isShowDay, nextShowDate, schoolTodayKey } from "@/src/show-roles/lib/date";
 
 describe("show roles show dates", () => {
   it("treats Wednesday and Friday school days as show days", () => {
@@ -24,4 +24,16 @@ describe("show roles show dates", () => {
     expect(formatDate(getCurrentShowDate(new Date(2026, 8, 23)))).toBe("2026-09-25");
     expect(formatDate(getCurrentShowDate(new Date(2026, 8, 25)))).toBe("2026-09-30");
   });
+
+  it("preps the next show from the Pacific day when no date is passed", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-07T01:00:00.000Z"));
+    expect(schoolTodayKey()).toBe("2026-10-06");
+    expect(formatDate(getCurrentShowDate())).toBe("2026-10-07");
+    vi.useRealTimers();
+  });
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });

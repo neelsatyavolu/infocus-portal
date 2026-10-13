@@ -6,7 +6,7 @@ import { inngest } from "@/src/lib/inngest";
 import { prisma } from "@/src/lib/prisma";
 import { recomputeForProjectName } from "@/src/server/cycle-cut-status";
 import { runEquipmentOverdueJob } from "@/src/server/equipment-overdue";
-import { syncSchoolCalendarDaily } from "@/src/server/school-calendar-schedule";
+import { syncFinalsWeeksDaily } from "@/src/server/finals-calendar-schedule";
 import { generateIdeasDaily } from "@/src/server/ideas-schedule";
 import { runConfiguredHubBackup } from "@/src/server/hub-backup-run";
 import { getPendingMasterCalendarSyncMonths, syncMasterCalendarMonth } from "@/src/server/master-calendar-sync";
@@ -15,7 +15,8 @@ import { discoverShowPublications, publishYoutubeShow } from "@/src/server/show-
 import { discoverYoutubePublications, publishYoutubePackage } from "@/src/server/youtube-publishing-jobs";
 import { runPackageReviewReminders } from "@/src/server/package-review-reminders";
 import { MEETING_CALENDAR_EVENT, runMeetingCalendarJob } from "@/src/server/meetings-google-calendar";
-import { reticketScribes } from "@/src/server/meetings-housekeeping";
+import { reticketScribes, runMeetingHousekeeping } from "@/src/server/meetings-housekeeping";
+import { runMeetingReminders } from "@/src/server/meetings-notify";
 import { ensureUpcomingProducerMeetings } from "@/src/server/meetings-schedule";
 
 type BunnyWebhookEvent = {
@@ -375,6 +376,20 @@ export const packageReviewRemindersHourly = inngest.createFunction(
   }
 );
 
+/** Meeting push reminders, 15 and 5 minutes before the start (replaced the single start push). */
+export const meetingRemindersEveryMinute = inngest.createFunction(
+  {
+    id: "meeting-reminders-every-minute",
+    concurrency: 1
+  },
+  {
+    cron: "* * * * *"
+  },
+  async () => {
+    return runMeetingReminders();
+  }
+);
+
 export const producerMeetingScheduleDaily = inngest.createFunction(
   {
     id: "producer-meeting-schedule-daily"
@@ -397,6 +412,20 @@ export const meetingInvitesSend = inngest.createFunction(
   { event: MEETING_CALENDAR_EVENT },
   async ({ event }) => {
     return runMeetingCalendarJob(event.data);
+  }
+);
+
+/** Meetings upkeep: stranded LIVE meetings, usage meter, stuck notes, stopped Scribes. */
+export const meetingsHousekeepingEveryMinute = inngest.createFunction(
+  {
+    id: "meetings-housekeeping-every-minute",
+    concurrency: 1
+  },
+  {
+    cron: "* * * * *"
+  },
+  async () => {
+    return runMeetingHousekeeping();
   }
 );
 
@@ -427,9 +456,11 @@ export const inngestFunctions = [
   hubDbBackupHourly,
   refreshAssociateFeedbackDaily,
   packageReviewRemindersHourly,
+  meetingRemindersEveryMinute,
   producerMeetingScheduleDaily,
   meetingInvitesSend,
+  meetingsHousekeepingEveryMinute,
   meetingsScribeReticket,
   generateIdeasDaily,
-  syncSchoolCalendarDaily
+  syncFinalsWeeksDaily
 ];

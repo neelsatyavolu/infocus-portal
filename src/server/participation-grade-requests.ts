@@ -14,6 +14,7 @@ import {
 import { getPlatformAccess, hasPlatformRole, normalizeEmail } from "@/src/lib/platform-admin";
 import { prisma } from "@/src/lib/prisma";
 import { userDisplayName } from "@/src/lib/user-display";
+import { loadScheduleOverrides } from "@/src/server/school-calendar-overrides";
 
 type Actor = {
   id: string;
@@ -235,10 +236,11 @@ export async function submitParticipationGradeRequest(actor: Actor, cells: Propo
     return { saved: 0, pending: false as const, itemCount: 0, requestId: null as string | null, emailed: false };
   }
 
+  const overrides = await loadScheduleOverrides();
   const { autoApply, needsApproval } = splitParticipationChanges(
     changed.map((entry) => ({
       ...entry,
-      maxPoints: participationPointsForDate(utcDateFromKey(entry.dateKey))
+      maxPoints: participationPointsForDate(utcDateFromKey(entry.dateKey), overrides)
     }))
   );
 

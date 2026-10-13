@@ -6,6 +6,7 @@ import { inngest } from "@/src/lib/inngest";
 import { prisma } from "@/src/lib/prisma";
 import { recomputeForProjectName } from "@/src/server/cycle-cut-status";
 import { runEquipmentOverdueJob } from "@/src/server/equipment-overdue";
+import { syncFinalsWeeksDaily } from "@/src/server/finals-calendar-schedule";
 import { generateIdeasDaily } from "@/src/server/ideas-schedule";
 import { runConfiguredHubBackup } from "@/src/server/hub-backup-run";
 import { getPendingMasterCalendarSyncMonths, syncMasterCalendarMonth } from "@/src/server/master-calendar-sync";
@@ -460,5 +461,6 @@ export const inngestFunctions = [
   meetingInvitesSend,
   meetingsHousekeepingEveryMinute,
   meetingsScribeReticket,
-  generateIdeasDaily
+  generateIdeasDaily,
+  syncFinalsWeeksDaily
 ];

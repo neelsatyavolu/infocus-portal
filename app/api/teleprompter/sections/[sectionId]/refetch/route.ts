@@ -2,6 +2,7 @@ import { handleRouteError } from "@/src/lib/api-errors";
 import { ok } from "@/src/lib/http";
 import { prisma } from "@/src/lib/prisma";
 import { TELEPROMPTER_TIME_ZONE, getNextShowDate } from "@/src/lib/teleprompter-template";
+import { loadUpcomingScheduleOverrides } from "@/src/server/show-schedule";
 import { loadA2Bulletin } from "@/src/server/teleprompter-bulletin";
 import { requireTeleprompterActor, requireTeleprompterSectionAccess } from "@/src/server/teleprompter-access";
 
@@ -54,7 +55,8 @@ export async function POST(
       throw new Error("NOT_FOUND");
     }
 
-    const showDate = section.doc.showDate ?? getNextShowDate(new Date(), TELEPROMPTER_TIME_ZONE);
+    const showDate =
+      section.doc.showDate ?? getNextShowDate(new Date(), TELEPROMPTER_TIME_ZONE, await loadUpcomingScheduleOverrides());
     const bulletin = await loadA2Bulletin(showDate);
     const content = bulletin.content ? `BULLETIN\n\n${bulletin.content}` : "BULLETIN";
 

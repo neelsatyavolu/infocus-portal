@@ -167,6 +167,8 @@ Legacy pool code still exists in `src/lib/extensions.ts` and `/extensions`; the 
 Holidays / staff days cancel all activity (seeded from the PAUSD 2026–27 calendar in
 `src/lib/school-schedule.ts`; overridable via `SchoolCalendarDay` / Admin). Days may
 be switched around holidays with schedule overrides (`PA` / `SHOW` / `NONE` / `HOLIDAY`).
+Finals weeks (Monday to Friday of any week with a finals day) have no shows, no PA, and no
+participation points. They are read from Paly's bell schedule each day, not typed in.
 Participation grades start **August 18, 2026** — August days before that remain
 on the master calendar but are not scored. Show days stay Wednesday and Friday
 starting **Friday, September 4, 2026** (`FIRST_SHOW_DATE`); earlier Wed/Fri are

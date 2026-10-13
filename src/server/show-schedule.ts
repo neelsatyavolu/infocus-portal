@@ -18,6 +18,12 @@ export async function loadScheduleOverrides(fromKey: string, toKey: string): Pro
   );
 }
 
+/** Calendar overrides for the next `days` days, for callers that look ahead from `from`. */
+export async function loadUpcomingScheduleOverrides(from = new Date(), days = 90) {
+  const fromKey = todayDateKey(from);
+  return loadScheduleOverrides(fromKey, addDaysToDateKey(fromKey, days));
+}
+
 export async function listUpcomingShows(count = 8, from = new Date()) {
   const fromKey = todayDateKey(from);
   const endKey = addDaysToDateKey(fromKey, 90);

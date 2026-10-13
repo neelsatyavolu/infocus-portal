@@ -20,7 +20,7 @@ Executive producers and super admin can **Invite** extra viewers: a link that la
 
 ## PA (`/announcements/pa`)
 
-Open **Announcements → PA** for the current or next PA script. PA runs at the start of second period on Mondays (start of fifth period on Monday, September 28, 2026, which runs the Friday 5–7 bell schedule), skipping school holidays and respecting Master Calendar schedule overrides. Monday's script stays current all day in Pacific time; the page advances the next day.
+Open **Announcements → PA** for the current or next PA script. PA runs at the start of second period on Mondays (start of fifth period on Monday, September 28, 2026, which runs the Friday 5–7 bell schedule), skipping school holidays and finals weeks and respecting Master Calendar schedule overrides. Monday's script stays current all day in Pacific time; the page advances the next day.
 
 PA dates are limited to the supported 2026–27 school year (August 13–June 3); summer Mondays do not generate scripts.
 

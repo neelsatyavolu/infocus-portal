@@ -13,7 +13,7 @@ import {
 } from "@/src/lib/teleprompter-template";
 import { loadA2Bulletin, type BulletinAutofill } from "@/src/server/teleprompter-bulletin";
 import { syncTeleprompterPackageTosses } from "@/src/server/teleprompter-packages";
-import { loadScheduleOverrides } from "@/src/server/show-schedule";
+import { loadScheduleOverrides, loadUpcomingScheduleOverrides } from "@/src/server/show-schedule";
 import { resolveScheduleDay } from "@/src/lib/school-schedule";
 import { spiritWeekRecapToss } from "@/src/lib/spirit-week";
 import {
@@ -148,7 +148,7 @@ export async function GET(request: Request) {
     const nextShowDate =
       requestedShowDate && DATE_KEY_PATTERN.test(requestedShowDate)
         ? new Date(`${requestedShowDate}T12:00:00.000Z`)
-        : getNextShowDate(new Date(), TELEPROMPTER_TIME_ZONE);
+        : getNextShowDate(new Date(), TELEPROMPTER_TIME_ZONE, await loadUpcomingScheduleOverrides());
     const nextShowDateIso = nextShowDate.toISOString();
 
     const workspaceResolution = await resolveTeleprompterWorkspace({

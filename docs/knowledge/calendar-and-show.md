@@ -12,6 +12,8 @@
 
 First broadcast: **Friday, September 4, 2026**. Earlier Wed/Fri are class days. Seeded PAUSD no-school days cancel activity (for example, Friday, October 2, 2026). The Show, Teleprompter, and the Publishing Queue skip no-school days when they pick the next show.
 
+**Finals weeks** — there are no shows, no PA, and no participation points in a finals week: Monday to Friday of any week that has a finals day. The Portal reads the finals days from Paly's bell schedule once a day and marks those weeks on the calendar as **Finals week**, so nobody has to enter them each year (2026–27: Dec 14–18, May 24–28, and Jun 1–4). A hand-set calendar override always wins over the automatic one, but the Portal has no screen for setting one yet. Two places do not skip finals weeks yet: the run-date count on the announcement submit form, and The Show's generator when it picks its opening date.
+
 **Special shows** — a calendar override can make any weekday a show day and give it a name (for example, Spirit Week: Tue–Fri Oct 6–9 are Day 1–4 recaps, and Wed Oct 14 is the Overall Recap). The name shows on the Master Calendar cell and in the Google Doc. The Publishing Queue does not auto-assign packages to named shows.
 
 ## Master Calendar (`/master-calendar`)
@@ -27,7 +29,7 @@ Each weekday cell depends on the day type:
 - **Spirit Week (Mon Oct 5 – Fri Oct 9):** each day also shows that day's dress-up theme (for example, Tuesday is Salad dressing) and **Lunch filmers** and **Editors** lists. Monday and Friday also have **Brunch filmers**; Tuesday through Thursday, lunch filmers film brunch too. Wednesday (Oct 7) also has **Night rally filmers** for the night rally. Producers add people with the small **+** chip after each list (any number per list) and remove them with ×. The names are saved in the calendar cell and appear in the Google Doc.
 - Filmers picked before the brunch/lunch split show as **Filmers (unsorted)**. Adding one of them to a brunch, lunch, or night rally list takes them off the unsorted list; × removes them outright. The unsorted list disappears once it is empty.
 - **Class days:** a scenic photo and a notes box. Producers can tap the **⋯** button on the day (or right-click the photo) to **Delete Image** or **Restore Image**.
-- **Holidays:** the holiday name.
+- **Holidays and finals weeks:** the holiday name, or **Finals week**.
 
 In a notes box, type `[package]` to search package videos and insert a package pill. Adding a pill marks that video as aired on that date; removing it undoes that. Click a pill to rename it (the file name stays the same) or remove it.
 

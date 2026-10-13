@@ -13,6 +13,7 @@ import {
   pendingParticipationOverlay,
   submitParticipationGradeRequest
 } from "@/src/server/participation-grade-requests";
+import { loadScheduleOverrides } from "@/src/server/school-calendar-overrides";
 
 const entrySchema = z.object({
   userId: z.string().min(1),
@@ -48,7 +49,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const { start, end } = weekRange(searchParams.get("weekStart") ?? "");
 
-    const [users, entries, nonGradableEmails, pending] = await Promise.all([
+    const [users, entries, nonGradableEmails, pending, overrides] = await Promise.all([
       prisma.user.findMany({
         select: { id: true, name: true, nickname: true, email: true },
         orderBy: [{ name: "asc" }, { email: "asc" }]
@@ -57,7 +58,8 @@ export async function GET(request: Request) {
         where: { date: { gte: start, lt: end } }
       }),
       loadNonGradableEmails(),
-      pendingParticipationOverlay({ start, end })
+      pendingParticipationOverlay({ start, end }),
+      loadScheduleOverrides()
     ]);
 
     const students = users.filter((user) => !isExcludedFromGrading(user, nonGradableEmails));
@@ -74,12 +76,12 @@ export async function GET(request: Request) {
       })),
       pendingCount: pending.pendingCount,
       pendingItems: pending.pendingItems,
-      // Monday PA short period; Tue/Thu class; holidays/Wed/Fri shows = 0.
+      // Monday PA short period; Tue/Thu class; holidays, finals weeks and Wed/Fri shows = 0.
       maxPointsByDate: Array.from({ length: 7 }, (_, offset) => {
         const date = new Date(start.getTime() + offset * 24 * 60 * 60 * 1000);
         return {
           date: date.toISOString().slice(0, 10),
-          maxPoints: participationPointsForDate(date)
+          maxPoints: participationPointsForDate(date, overrides)
         };
       })
     });
@@ -110,6 +112,7 @@ export async function POST(request: Request) {
     }
 
     const payload = payloadSchema.parse(await request.json());
+    const overrides = await loadScheduleOverrides();
 
     const entries = payload.entries.map((entry) => {
       const date = parseDateInput(entry.date);
@@ -118,7 +121,7 @@ export async function POST(request: Request) {
       }
 
       // Never let a day be scored above what that weekday is worth.
-      const maxPoints = participationPointsForDate(date);
+      const maxPoints = participationPointsForDate(date, overrides);
 
       return {
         userId: entry.userId,

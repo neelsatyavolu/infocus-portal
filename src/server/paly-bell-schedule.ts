@@ -60,6 +60,39 @@ export function parsePalyClassSessions(ics: string, from: string, until: string)
   });
 }
 
+/** Dates (YYYY-MM-DD) the bell schedule marks as finals, e.g. "Finals Periods (5, 6)" or "Period 1 Final". */
+export function parsePalyFinalsDates(ics: string): string[] {
+  const calendar = new ICAL.Component(ICAL.parse(ics));
+  if (calendar.name !== "vcalendar") throw new Error("Invalid bell schedule feed");
+  const dates = new Set<string>();
+
+  for (const component of calendar.getAllSubcomponents("vevent")) {
+    const event = new ICAL.Event(component);
+    if (component.getFirstPropertyValue("status") === "CANCELLED") continue;
+    if (!/\bfinals?\b/i.test(`${event.summary ?? ""} ${event.description ?? ""}`)) continue;
+    if (!event.isRecurring()) {
+      dates.add(event.startDate.toString().slice(0, 10));
+      continue;
+    }
+    // Finals are single days. Bound the expansion in case a rule ever repeats one.
+    const iterator = event.iterator();
+    for (let count = 0; count < 60; count += 1) {
+      const occurrence = iterator.next();
+      if (!occurrence) break;
+      dates.add(occurrence.toString().slice(0, 10));
+    }
+  }
+
+  return [...dates].sort();
+}
+
+/** The raw feed, uncached. Throws when it cannot be read, so a sync never acts on a bad response. */
+export async function fetchPalyBellFeed(): Promise<string> {
+  const response = await fetch(PALY_BELL_FEED, { cache: "no-store", signal: AbortSignal.timeout(10_000) });
+  if (!response.ok) throw new Error(`Bell schedule feed returned ${response.status}`);
+  return response.text();
+}
+
 export async function loadPalyClassSessions(from: string, until: string): Promise<ClassBoardClassSession[]> {
   try {
     const response = await fetch(PALY_BELL_FEED, { next: { revalidate: 3600 }, signal: AbortSignal.timeout(5000) });

@@ -130,6 +130,7 @@ export function StageWorkspace({
 }) {
   const [view, setView] = useState<StageView | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadItems, setUploadItems] = useState<UploadProgressToastItem[]>([]);
   const [gradePreview, setGradePreview] = useState<string | null>(null);
@@ -159,17 +160,47 @@ export function StageWorkspace({
     setUploadItems((current) => current.map((item) => (item.id === id ? { ...item, ...patch } : item)));
   }
 
+  const scopeKey = `${slug}\0${rowId ?? ""}\0${reviewStage ?? ""}`;
+  const scopeRef = useRef(scopeKey);
+  scopeRef.current = scopeKey;
+  const viewScopeRef = useRef<string | null>(null);
+  const loadSeq = useRef(0);
+  const [renderedScope, setRenderedScope] = useState(scopeKey);
+  if (renderedScope !== scopeKey) {
+    setRenderedScope(scopeKey);
+    setView(null);
+    setLoading(true);
+    setLoadError(null);
+    viewScopeRef.current = null;
+  }
+
   const load = useCallback(async (options?: { quiet?: boolean }) => {
-    if (!options?.quiet) setLoading(true);
+    const quiet = Boolean(options?.quiet);
+    const seq = quiet ? loadSeq.current : ++loadSeq.current;
+    const requestedScope = scopeKey;
+    if (!quiet) {
+      setLoading(true);
+      setLoadError(null);
+    }
     try {
       const next = await fetchView(slug, rowId, reviewStage);
+      if (seq !== loadSeq.current || requestedScope !== scopeRef.current) return;
+      viewScopeRef.current = requestedScope;
       setView(next);
+      setLoadError(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to load.");
+      if (seq !== loadSeq.current || requestedScope !== scopeRef.current) return;
+      const message = error instanceof Error ? error.message : "Failed to load.";
+      if (viewScopeRef.current === requestedScope) {
+        toast.error(message);
+      } else {
+        setView(null);
+        setLoadError(message);
+      }
     } finally {
-      if (!options?.quiet) setLoading(false);
+      if (!quiet && seq === loadSeq.current) setLoading(false);
     }
-  }, [slug, rowId, reviewStage]);
+  }, [slug, rowId, reviewStage, scopeKey]);
 
   useEffect(() => {
     void load();
@@ -529,6 +560,13 @@ export function StageWorkspace({
         Loading…
       </div>
     );
+  }
+
+  if (!view && loadError) {
+    return <div className="space-y-3">
+      <p role="alert" className="text-sm text-danger">{loadError}</p>
+      <Button type="button" size="sm" variant="outline" onClick={() => void load()}><RefreshCcw className="mr-1.5 h-3.5 w-3.5" />Try again</Button>
+    </div>;
   }
 
   if (!view || view.empty) {

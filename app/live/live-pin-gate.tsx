@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BrandWordmark } from "@/components/brand-wordmark";
 
 const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "clear", "0", "back"] as const;
@@ -9,9 +9,19 @@ export default function LivePinGate({ signedIn }: { signedIn: boolean }) {
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const pinRef = useRef("");
+  const pendingRef = useRef(false);
+
+  function resetPin() {
+    pinRef.current = "";
+    pendingRef.current = false;
+    setPin("");
+    setPending(false);
+  }
 
   async function submit(value: string) {
-    if (pending || value.length !== 6) return;
+    if (pendingRef.current || value.length !== 6) return;
+    pendingRef.current = true;
     setPending(true);
     setError(null);
     try {
@@ -22,43 +32,57 @@ export default function LivePinGate({ signedIn }: { signedIn: boolean }) {
       });
       const payload = await response.json().catch(() => null);
       if (!response.ok) {
-        setPin("");
+        resetPin();
         setError(payload?.error?.message ?? "That PIN is not right.");
-        setPending(false);
         return;
       }
       window.location.assign("/live");
     } catch {
-      setPin("");
+      resetPin();
       setError("Couldn't check that PIN. Check your connection and try again.");
-      setPending(false);
     }
   }
 
   function press(key: (typeof KEYS)[number]) {
-    if (pending) return;
+    if (pendingRef.current) return;
     if (key === "clear") {
+      pinRef.current = "";
       setPin("");
       setError(null);
       return;
     }
     if (key === "back") {
-      setPin((current) => current.slice(0, -1));
+      const next = pinRef.current.slice(0, -1);
+      pinRef.current = next;
+      setPin(next);
       return;
     }
-    const next = pin.length >= 6 ? pin : `${pin}${key}`;
+    if (pinRef.current.length >= 6) return;
+    const next = `${pinRef.current}${key}`;
+    pinRef.current = next;
     setPin(next);
     if (next.length === 6) void submit(next);
   }
 
+  const pressRef = useRef(press);
+  pressRef.current = press;
+
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
-      if (/^\d$/.test(event.key)) press(event.key as (typeof KEYS)[number]);
-      if (event.key === "Backspace") press("back");
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target;
+      if (target instanceof HTMLElement && target.closest("input, textarea, select, [contenteditable='true']")) return;
+      if (/^\d$/.test(event.key)) {
+        event.preventDefault();
+        pressRef.current(event.key as (typeof KEYS)[number]);
+      } else if (event.key === "Backspace") {
+        event.preventDefault();
+        pressRef.current("back");
+      }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  });
+  }, []);
 
   return (
     <main className="flex min-h-dvh touch-manipulation flex-col items-center justify-center bg-background px-6 py-10 text-foreground">

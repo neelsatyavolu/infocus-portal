@@ -5,6 +5,7 @@ import {
   isSlackAnnouncementMessage,
   serializeSlackAnnouncement,
   slackFileAttachments,
+  slackFileSharedInChannel,
   slackMrkdwnParts,
   slackMrkdwnToPlain,
   slackPermalink,
@@ -85,5 +86,16 @@ describe("slack announcement copy", () => {
     expect(item?.authorName).toBe("Alex Lee");
     expect(item?.text).toBe("@channel Fill this out.");
     expect(item?.attachments).toEqual([{ id: "F123", title: "manager-form.pdf", prettyType: "PDF" }]);
+  });
+
+  it("only treats a file as downloadable when it is shared in that channel", () => {
+    const channel = "C0BEQV4DUCR";
+    expect(slackFileSharedInChannel({ channels: [channel] }, channel)).toBe(true);
+    expect(slackFileSharedInChannel({ groups: [channel] }, channel)).toBe(true);
+    expect(slackFileSharedInChannel({ shares: { public: { [channel]: [] } } }, channel)).toBe(true);
+    expect(slackFileSharedInChannel({ shares: { private: { [channel]: [] } } }, channel)).toBe(true);
+    expect(slackFileSharedInChannel({ channels: ["C_OTHER"] }, channel)).toBe(false);
+    expect(slackFileSharedInChannel({}, channel)).toBe(false);
+    expect(slackFileSharedInChannel({ channels: [channel] }, "")).toBe(false);
   });
 });

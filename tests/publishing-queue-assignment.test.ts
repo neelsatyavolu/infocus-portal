@@ -198,15 +198,18 @@ const mocks = vi.hoisted(() => ({
   listUpcomingShowDays: vi.fn()
 }));
 
-vi.mock("@/src/lib/prisma", () => ({
-  prisma: {
+vi.mock("@/src/lib/prisma", () => {
+  const prisma = {
+    $executeRaw: vi.fn(async () => 0),
     packageProgressRow: {
       findUniqueOrThrow: mocks.findUniqueOrThrow,
       findMany: mocks.findMany,
       update: mocks.update
-    }
-  }
-}));
+    },
+    $transaction: async (fn: (tx: unknown) => unknown) => fn(prisma)
+  };
+  return { prisma };
+});
 
 vi.mock("@/src/server/show-schedule", () => ({
   listUpcomingShowDays: mocks.listUpcomingShowDays

@@ -18,6 +18,7 @@ export default function GroupNotesButton({ rowId, topic, onSaved }: {
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (!open) return;
@@ -41,7 +42,7 @@ export default function GroupNotesButton({ rowId, topic, onSaved }: {
       }
     })();
     return () => { active = false; };
-  }, [open, rowId]);
+  }, [open, rowId, attempt]);
 
   async function save() {
     setSaving(true);
@@ -93,6 +94,9 @@ export default function GroupNotesButton({ rowId, topic, onSaved }: {
           ) : null}
           {loaded ? <SubmitShortcutHint action="save" className="-mt-2" /> : null}
           {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
+          {error && !loaded && !loading ? (
+            <Button type="button" variant="outline" onClick={() => setAttempt((current) => current + 1)}>Try again</Button>
+          ) : null}
           <DialogFooter>
             <Button type="button" variant="outline" disabled={saving} onClick={() => setOpen(false)}>Cancel</Button>
             <Button type="button" disabled={!loaded || loading || saving} onClick={() => void save()}>{saving ? "Saving…" : "Save"}</Button>

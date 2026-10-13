@@ -37,10 +37,11 @@ export function ViewAsMenu({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [users, setUsers] = useState<DirectoryUser[] | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!open || users) return;
+    if (!open || users || loadError) return;
     let cancelled = false;
     void fetch("/api/auth/view-as/users", { cache: "no-store" })
       .then(async (response) => {
@@ -51,12 +52,13 @@ export function ViewAsMenu({
         if (!cancelled) setUsers(body.data);
       })
       .catch((error: unknown) => {
-        toast.error(error instanceof Error ? error.message : "Could not load users.");
+        if (cancelled) return;
+        setLoadError(error instanceof Error ? error.message : "Could not load users.");
       });
     return () => {
       cancelled = true;
     };
-  }, [open, users]);
+  }, [open, users, loadError]);
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -103,7 +105,13 @@ export function ViewAsMenu({
       >
         {children}
       </button>
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next);
+          if (!next) setLoadError(null);
+        }}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>View as</DialogTitle>
@@ -132,7 +140,14 @@ export function ViewAsMenu({
             />
           </label>
           <div className="max-h-72 overflow-y-auto rounded-lg border border-border">
-            {users == null ? (
+            {loadError ? (
+              <div className="px-3 py-8 text-center">
+                <p role="alert" className="text-sm text-danger">{loadError}</p>
+                <Button type="button" size="sm" variant="outline" className="mt-3" onClick={() => setLoadError(null)}>
+                  Try again
+                </Button>
+              </div>
+            ) : users == null ? (
               <div className="flex items-center justify-center gap-2 px-3 py-8 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Loading users…

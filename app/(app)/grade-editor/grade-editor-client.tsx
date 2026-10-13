@@ -1482,7 +1482,7 @@ export default function GradeEditorClient() {
                               ) : (
                                 <span
                                   className={cn(
-                                    "font-mono-broadcast text-sm font-semibold tabular-nums",
+                                    "grid h-9 w-12 place-items-center font-mono-broadcast text-sm font-semibold tabular-nums",
                                     entry.missing ? "text-danger" : "text-foreground"
                                   )}
                                   title={entry.missing ? "No approved Final Cut by the deadline" : undefined}

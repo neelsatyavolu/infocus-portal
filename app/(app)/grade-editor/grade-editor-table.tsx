@@ -10,7 +10,7 @@ export type HeaderColumn = {
   /** Full name shown on hover when the label is abbreviated. */
   title?: string;
   align?: "left" | "center" | "right";
-  /** Fixed pixel width. The one column without a width takes the remaining space. */
+  /** Pixel width at the table's natural size. Omit for the reporter column. */
   width?: number;
 };
 
@@ -40,6 +40,11 @@ export const TABLE_CLASS = cn(
 export const CELL = "px-2 py-2.5 align-middle";
 
 const REPORTER_MIN_WIDTH = 168;
+/**
+ * The reporter column gets a width like every other column, so spare room on a
+ * wide window spreads across all columns in proportion instead of pooling beside the names.
+ */
+const REPORTER_WIDTH = 210;
 
 /** Narrowest the table can get before it scrolls: every fixed column plus the reporter column. */
 export function tableMinWidth(groups: HeaderGroup[]) {
@@ -55,7 +60,7 @@ export function GradeTableHead({ groups }: { groups: HeaderGroup[] }) {
     <colgroup>
       {groups.flatMap((group, groupIndex) =>
         group.columns.map((col, colIndex) => (
-          <col key={`${groupIndex}-${colIndex}`} style={col.width ? { width: col.width } : undefined} />
+          <col key={`${groupIndex}-${colIndex}`} style={{ width: col.width ?? REPORTER_WIDTH }} />
         ))
       )}
     </colgroup>

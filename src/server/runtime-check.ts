@@ -57,7 +57,7 @@ const CHECKS: Record<string, () => Promise<string | void>> = {
     const key = crypto.randomBytes(32);
     const iv = crypto.randomBytes(12);
     const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
-    const sealed = Buffer.concat([cipher.update("ok"), cipher.final()]);
+    const sealed = Buffer.concat([cipher.update("ok", "utf8"), cipher.final()]);
     const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
     decipher.setAuthTag(cipher.getAuthTag());
     if (Buffer.concat([decipher.update(sealed), decipher.final()]).toString() !== "ok") throw new Error("aes-256-gcm mismatch");

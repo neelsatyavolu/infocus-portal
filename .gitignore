@@ -80,3 +80,7 @@ tsconfig.tsbuildinfo
 
 # Assistant knowledge docs bundled for the server (scripts/bundle-assistant-docs.mjs; install, dev and build).
 /src/generated/
+
+# Cloudflare Workers build output (npm run cf:build) and local Worker env.
+/.open-next/
+.dev.vars

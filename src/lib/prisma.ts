@@ -1,5 +1,6 @@
 import { type Prisma, PrismaClient } from "@prisma/client";
 import { appReviewEmail } from "@/src/lib/app-review";
+import { pgAdapter, workersRequest, type WorkersRequest } from "@/src/lib/prisma-workers";
 
 /**
  * The App Review demo account (src/lib/app-review.ts) never appears in people lists: rosters,
@@ -14,8 +15,10 @@ export function withoutAppReviewUser<T extends { where?: Prisma.UserWhereInput }
 
 // A query-only extension leaves every method's shape unchanged, so the client keeps its plain
 // PrismaClient type (code across the app passes it and its transactions as PrismaClient).
-function createPrismaClient(): PrismaClient {
+// On Cloudflare Workers the client gets a driver adapter over that request's Hyperdrive connection.
+function createPrismaClient(connectionString?: string): PrismaClient {
   const base = new PrismaClient({
+    ...(connectionString ? { adapter: pgAdapter(connectionString) } : {}),
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
     // Image versions keep the whole file as base64 (up to ~13 MB) and every list/stage query that
     // includes versions would drag it along. Leave it out by default; the image route and project
@@ -43,9 +46,40 @@ function createPrismaClient(): PrismaClient {
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
+const clientsByRequest = new WeakMap<object, PrismaClient>();
 
-export const prisma = globalForPrisma.prisma ?? createPrismaClient();
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
+/**
+ * One client per Cloudflare Workers request (a connection there cannot outlive its request);
+ * one shared client on every other host.
+ */
+export function resolvePrismaClient(
+  request: WorkersRequest | null,
+  {
+    shared = globalForPrisma,
+    perRequest = clientsByRequest,
+    make = createPrismaClient
+  }: {
+    shared?: { prisma: PrismaClient | undefined };
+    perRequest?: WeakMap<object, PrismaClient>;
+    make?: (connectionString?: string) => PrismaClient;
+  } = {}
+): PrismaClient {
+  if (!request) {
+    shared.prisma ??= make();
+    return shared.prisma;
+  }
+  const existing = perRequest.get(request.key);
+  if (existing) return existing;
+  const client = make(request.connectionString);
+  perRequest.set(request.key, client);
+  return client;
 }
+
+// Resolved on first use, so importing this file never builds a client or opens a connection.
+export const prisma: PrismaClient = new Proxy({} as PrismaClient, {
+  get(_target, property) {
+    const client = resolvePrismaClient(workersRequest());
+    const value: unknown = Reflect.get(client, property, client);
+    return typeof value === "function" ? value.bind(client) : value;
+  }
+});

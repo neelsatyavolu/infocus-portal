@@ -30,6 +30,20 @@ const nextConfig: NextConfig = {
   typescript: { ignoreBuildErrors: HOSTED_BUILD },
   // Commit the build came from, shown in call diagnostics.
   env: { NEXT_PUBLIC_BUILD_SHA: process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.WORKERS_CI_COMMIT_SHA ?? "" },
+  // Prisma on Cloudflare Workers (OpenNext patches these two packages; they must stay external).
+  serverExternalPackages: ["@prisma/client", ".prisma/client"],
+  webpack: (config, { isServer, webpack }) => {
+    // src/lib/prisma.ts reaches client bundles through shared libs; keep `pg` out of the browser.
+    if (!isServer) {
+      config.plugins.push(
+        new webpack.NormalModuleReplacementPlugin(
+          /[\\/]src[\\/]lib[\\/]prisma-workers$/,
+          path.join(__dirname, "src/lib/prisma-workers.browser.ts")
+        )
+      );
+    }
+    return config;
+  },
   experimental: {
     optimizePackageImports: ["lucide-react"]
   }

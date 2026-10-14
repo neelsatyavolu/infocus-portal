@@ -19,7 +19,9 @@
     "e2e:meetings": "tsx scripts/meetings-e2e-load.ts",
     "meetings:logs": "tsx scripts/meetings-logs.ts",
     "prebuild": "node scripts/vendor-mediapipe.mjs && node scripts/bundle-assistant-docs.mjs",
-    "vendor:mediapipe": "node scripts/vendor-mediapipe.mjs"
+    "vendor:mediapipe": "node scripts/vendor-mediapipe.mjs",
+    "cf:build": "opennextjs-cloudflare build",
+    "cf:deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1125.0",
@@ -30,6 +32,8 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@google/genai": "^1.44.0",
     "@hookform/resolvers": "^3.10.0",
+    "@opennextjs/cloudflare": "^1.20.11",
+    "@prisma/adapter-pg": "^6.19.2",
     "@prisma/client": "^6.3.1",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-label": "^2.1.8",
@@ -92,6 +96,7 @@
     "typescript": "^5.7.3",
     "vitest": "^3.0.5",
     "werift": "^0.24.4",
+    "wrangler": "^4.150.0",
     "ws": "^8.19.0"
   }
 }

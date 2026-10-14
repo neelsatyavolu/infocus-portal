@@ -1,0 +1,23 @@
+{
+  // infocus-portal: the Portal (this Next.js app, built by OpenNext) on Cloudflare Workers.
+  // Served by zone routes added in the dashboard, never a Custom Domain (workers/meeting-room/README.md).
+  // Secrets are the same env vars as docs/ENVIRONMENT.md, set with `wrangler secret bulk`; never committed.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "infocus-portal",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "infocus-portal" }],
+  // Pooled connection to the Portal's Postgres (src/lib/prisma-workers.ts). The id is not a credential.
+  "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "REPLACE_WITH_HYPERDRIVE_ID" }],
+  "r2_buckets": [{ "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "infocus-portal-next-cache" }],
+  "durable_objects": { "bindings": [{ "name": "NEXT_CACHE_DO_QUEUE", "class_name": "DOQueueHandler" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["DOQueueHandler"] }],
+  "images": { "binding": "IMAGES" },
+  // Matches the longest maxDuration in the app (300 s).
+  "limits": { "cpu_ms": 300000 },
+  // Run near the database, as the sfo1 pin did on Vercel.
+  "placement": { "mode": "smart" },
+  "observability": { "enabled": true }
+}

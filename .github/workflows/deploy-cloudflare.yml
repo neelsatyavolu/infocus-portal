@@ -7,6 +7,13 @@ name: Deploy to Cloudflare
 on:
   push:
     branches: [master]
+    # Changes that cannot affect the Worker don't deploy (docs/knowledge does: it is bundled).
+    paths-ignore:
+      - "tests/**"
+      - "workers/**"
+      - "docs/superpowers/**"
+      - "README.md"
+      - ".github/workflows/checks.yml"
   workflow_dispatch:
 
 concurrency:
@@ -23,7 +30,24 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      - run: npm ci
+      # Reuse installed packages (with Prisma's generated client and the applied patches) when
+      # nothing that shapes node_modules changed; otherwise install fresh.
+      - name: Restore node_modules
+        id: modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: modules-${{ runner.os }}-node24-${{ hashFiles('package-lock.json', 'prisma/schema.prisma', 'patches/**', 'scripts/apply-patches.mjs') }}
+      - if: steps.modules.outputs.cache-hit != 'true'
+        run: npm ci --prefer-offline --no-audit --no-fund
+      # Next.js compile cache from the last deploy.
+      - uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
+          restore-keys: |
+            next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
+            next-${{ runner.os }}-
       - name: Build
         run: npx opennextjs-cloudflare build
         env:

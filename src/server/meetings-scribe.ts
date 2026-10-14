@@ -1,6 +1,6 @@
-import { after } from "next/server";
 import { mainAppOrigin } from "@/src/lib/hosts";
 import type { KeyResponse } from "@/src/lib/meetings/types";
+import { inngest } from "@/src/lib/inngest";
 import { driveFetch } from "@/src/lib/nas-storage";
 import { prisma } from "@/src/lib/prisma";
 import { scribeVocabulary } from "@/src/server/meetings-scribe-vocabulary";
@@ -33,16 +33,8 @@ async function postScribe(action: "start" | "rekey" | "stop", body: Record<strin
   if (!response.ok) throw new Error(`Drive scribe ${action} returned ${response.status}`);
 }
 
-/** Runs after the response when there is a request (Vercel keeps it alive), else right away. */
-function inBackground(task: () => Promise<unknown>) {
-  try {
-    after(task);
-  } catch {
-    void task();
-  }
-}
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+/** Asks Inngest to run the retries (meeting-scribe-rekey-retry). Carries the meeting id only, never a key. */
+export const SCRIBE_REKEY_RETRY_EVENT = "meetings/scribe.rekey.retry";
 
 /** The Scribe's room ticket (4 h, like everyone's), for the meeting's current room generation. */
 async function scribeTicket(meetingId: string, now = Date.now()) {
@@ -113,7 +105,8 @@ async function sendRekey(meetingId: string, fallbackKey: KeyResponse | null) {
 /**
  * Sends the Scribe the current key plus a fresh room ticket (re-ticketing). The first try is
  * awaited; if it fails (including 404 while the Scribe is still starting), two more tries run in
- * the background (5 s and 20 s later), so a host's action never waits on the Drive.
+ * Inngest (5 s and 20 s later), so a host's action never waits on the Drive. Those tries read the
+ * key from the meeting row; the `key` passed here only backs up the first one.
  */
 export async function rekeyMeetingScribe(meetingId: string, key: KeyResponse | null = null) {
   try {
@@ -122,18 +115,23 @@ export async function rekeyMeetingScribe(meetingId: string, key: KeyResponse | n
   } catch (error) {
     console.error("Meeting scribe rekey failed; retrying", { meetingId }, error instanceof Error ? error.message : error);
   }
-  inBackground(async () => {
-    for (const delay of SCRIBE_RETRY_DELAYS_MS) {
-      await sleep(delay);
-      try {
-        await sendRekey(meetingId, key);
-        return;
-      } catch (error) {
-        console.error("Meeting scribe rekey retry failed", { meetingId }, error instanceof Error ? error.message : error);
-      }
-    }
-  });
+  try {
+    await inngest.send({ name: SCRIBE_REKEY_RETRY_EVENT, data: { meetingId } });
+  } catch (error) {
+    console.error("Meeting scribe rekey retry could not be queued", { meetingId }, error instanceof Error ? error.message : error);
+  }
   return false;
+}
+
+/** One queued retry (see SCRIBE_REKEY_RETRY_EVENT). True when the Scribe took it. */
+export async function retryScribeRekey(meetingId: string) {
+  try {
+    await sendRekey(meetingId, null);
+    return true;
+  } catch (error) {
+    console.error("Meeting scribe rekey retry failed", { meetingId }, error instanceof Error ? error.message : error);
+    return false;
+  }
 }
 
 export async function stopMeetingScribe(meetingId: string) {

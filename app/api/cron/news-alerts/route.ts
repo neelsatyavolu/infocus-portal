@@ -4,7 +4,7 @@ import { runNewsAlerts } from "@/src/server/news-alerts";
 
 export const maxDuration = 300;
 
-/** Every 10 minutes (vercel.json): alerts the public InFocus app about new shows, stories and live streams. */
+/** Manual trigger (Bearer CRON_SECRET). The 10-minute schedule is the Inngest function news-alerts-every-ten-minutes. */
 export async function GET(request: Request) {
   if (!isCronRequest(request)) return fail("Unauthorized", 401);
   return okNoStore(await runNewsAlerts());

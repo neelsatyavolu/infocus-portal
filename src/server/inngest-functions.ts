@@ -17,6 +17,8 @@ import { runPackageReviewReminders } from "@/src/server/package-review-reminders
 import { MEETING_CALENDAR_EVENT, runMeetingCalendarJob } from "@/src/server/meetings-google-calendar";
 import { reticketScribes, runMeetingHousekeeping } from "@/src/server/meetings-housekeeping";
 import { runMeetingReminders } from "@/src/server/meetings-notify";
+import { retryScribeRekey, SCRIBE_REKEY_RETRY_EVENT, SCRIBE_RETRY_DELAYS_MS } from "@/src/server/meetings-scribe";
+import { runNewsAlerts } from "@/src/server/news-alerts";
 import { ensureUpcomingProducerMeetings } from "@/src/server/meetings-schedule";
 
 type BunnyWebhookEvent = {
@@ -443,6 +445,41 @@ export const meetingsScribeReticket = inngest.createFunction(
   }
 );
 
+/** The two later tries of a failed Scribe rekey (5 s, then 20 s), outside the request that noticed it. */
+export const meetingScribeRekeyRetry = inngest.createFunction(
+  {
+    id: "meeting-scribe-rekey-retry",
+    retries: 0
+  },
+  {
+    event: SCRIBE_REKEY_RETRY_EVENT
+  },
+  async ({ event, step }) => {
+    const meetingId = String((event.data as { meetingId?: string }).meetingId ?? "");
+    if (!meetingId) return false;
+    for (const [index, delay] of SCRIBE_RETRY_DELAYS_MS.entries()) {
+      await step.sleep(`wait-${index}`, delay);
+      if (await step.run(`rekey-${index}`, () => retryScribeRekey(meetingId))) return true;
+    }
+    return false;
+  }
+);
+
+/** Alerts the public InFocus app about new shows, stories and live streams (was a Vercel Cron). */
+export const newsAlertsEveryTenMinutes = inngest.createFunction(
+  {
+    id: "news-alerts-every-ten-minutes",
+    concurrency: 1,
+    retries: 0
+  },
+  {
+    cron: "*/10 * * * *"
+  },
+  async () => {
+    return runNewsAlerts();
+  }
+);
+
 export const inngestFunctions = [
   discoverYoutubePublications,
   publishYoutubePackage,
@@ -462,5 +499,7 @@ export const inngestFunctions = [
   meetingsHousekeepingEveryMinute,
   meetingsScribeReticket,
   generateIdeasDaily,
-  syncSchoolCalendarDaily
+  syncSchoolCalendarDaily,
+  meetingScribeRekeyRetry,
+  newsAlertsEveryTenMinutes
 ];

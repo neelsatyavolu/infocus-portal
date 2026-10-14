@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ driveFetch: vi.fn(), findUnique: vi.fn(), update: vi.fn() }));
+const mocks = vi.hoisted(() => ({ driveFetch: vi.fn(), findUnique: vi.fn(), update: vi.fn(), send: vi.fn() }));
+vi.mock("@/src/lib/inngest", () => ({ inngest: { send: mocks.send } }));
 vi.mock("@/src/lib/nas-storage", () => ({ driveFetch: mocks.driveFetch }));
 vi.mock("@/src/lib/prisma", () => ({ prisma: { meeting: { findUnique: mocks.findUnique, update: mocks.update } } }));
 vi.mock("@/src/server/meetings-scribe-vocabulary", () => ({ scribeVocabulary: async () => ["Abby Example", "Otto"] }));
@@ -9,7 +10,7 @@ vi.mock("@/src/server/meetings-keys", () => ({
 }));
 
 import { verifyMeetingRoomToken } from "@/src/lib/meetings/room-token";
-import { fetchMeetingTranscript, rekeyMeetingScribe, startMeetingScribe } from "@/src/server/meetings-scribe";
+import { fetchMeetingTranscript, rekeyMeetingScribe, retryScribeRekey, SCRIBE_REKEY_RETRY_EVENT, startMeetingScribe } from "@/src/server/meetings-scribe";
 
 const SECRET = "s".repeat(40);
 const NOW = new Date("2026-10-05T05:00:00.000Z");
@@ -46,23 +47,25 @@ describe("Scribe re-ticket (POST /api/service/meetings/scribe/rekey)", () => {
     expect(new Date(body.ticketExpiresAt).getTime()).toBe(ticket!.exp);
   });
 
-  it("retries twice more (5 s, then 20 s), including on 404 while the Scribe starts", async () => {
-    vi.useFakeTimers();
-    mocks.driveFetch
-      .mockResolvedValueOnce(new Response("", { status: 404 }))
-      .mockResolvedValueOnce(new Response("", { status: 404 }))
-      .mockResolvedValueOnce(ok());
+  it("queues the retries (meeting id only, never the key) when the first try fails, including on 404", async () => {
+    mocks.driveFetch.mockResolvedValueOnce(new Response("", { status: 404 }));
+    expect(await rekeyMeetingScribe("m1", { key: "fallback-key", epoch: 6 })).toBe(false);
+    expect(mocks.driveFetch).toHaveBeenCalledTimes(1);
+    expect(mocks.send).toHaveBeenCalledWith({ name: SCRIBE_REKEY_RETRY_EVENT, data: { meetingId: "m1" } });
+    expect(JSON.stringify(mocks.send.mock.calls)).not.toContain("fallback-key");
+  });
+
+  it("still reports the failure when the retry cannot be queued", async () => {
+    mocks.driveFetch.mockResolvedValueOnce(new Response("", { status: 500 }));
+    mocks.send.mockRejectedValueOnce(new Error("Inngest is down"));
     expect(await rekeyMeetingScribe("m1")).toBe(false);
-    expect(mocks.driveFetch).toHaveBeenCalledTimes(1);
-    // Signing the ticket is real WebCrypto (not a timer), so wait for each try to land.
-    await vi.advanceTimersByTimeAsync(4_999);
-    expect(mocks.driveFetch).toHaveBeenCalledTimes(1);
-    await vi.advanceTimersByTimeAsync(1);
-    await vi.waitFor(() => expect(mocks.driveFetch).toHaveBeenCalledTimes(2));
-    await vi.advanceTimersByTimeAsync(20_000);
-    await vi.waitFor(() => expect(mocks.driveFetch).toHaveBeenCalledTimes(3));
-    await vi.advanceTimersByTimeAsync(60_000);
-    expect(mocks.driveFetch).toHaveBeenCalledTimes(3);
+  });
+
+  it("a queued retry sends the stored key and says whether it landed", async () => {
+    mocks.driveFetch.mockResolvedValueOnce(new Response("", { status: 404 })).mockResolvedValueOnce(ok());
+    expect(await retryScribeRekey("m1")).toBe(false);
+    expect(await retryScribeRekey("m1")).toBe(true);
+    expect(bodyOf(mocks.driveFetch.mock.calls[1]!)).toMatchObject({ meetingId: "m1", key: "key-7", epoch: 7 });
   });
 });
 

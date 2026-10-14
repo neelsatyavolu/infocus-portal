@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  find: vi.fn(), update: vi.fn(), findMany: vi.fn(),
+  find: vi.fn(), update: vi.fn(), updateMany: vi.fn(), findMany: vi.fn(),
   token: vi.fn(), verify: vi.fn(), size: vi.fn(), begin: vi.fn(), progress: vi.fn(), chunk: vi.fn(),
   check: vi.fn(), playlists: vi.fn(), createPlaylist: vi.fn(), hasVideo: vi.fn(), addVideo: vi.fn(),
   thumbnail: vi.fn(), download: vi.fn(), fetch: vi.fn()
 }));
 
 vi.mock("@/src/lib/prisma", () => ({ prisma: {
-  showPublication: { findUnique: mocks.find, update: mocks.update, findMany: mocks.findMany }
+  showPublication: { findUnique: mocks.find, update: mocks.update, updateMany: mocks.updateMany, findMany: mocks.findMany }
 } }));
 vi.mock("@/src/lib/nas-storage", async (original) => ({
   ...await original<typeof import("@/src/lib/nas-storage")>(),
@@ -45,7 +45,16 @@ describe("advanceShowPublication", () => {
     vi.stubGlobal("fetch", mocks.fetch);
     mocks.token.mockResolvedValue("token");
     mocks.update.mockResolvedValue({});
+    mocks.updateMany.mockResolvedValue({ count: 1 });
     mocks.download.mockResolvedValue("https://drive.example/file");
+  });
+
+  it("never opens a second YouTube upload when a cached read missed the saved session", async () => {
+    mocks.find.mockResolvedValue(base);
+    mocks.updateMany.mockResolvedValue({ count: 0 });
+    expect(await advanceShowPublication("pub", NOW)).toEqual({ more: false });
+    expect(mocks.updateMany.mock.calls[0][0].where).toMatchObject({ id: "pub", uploadSessionUrl: null });
+    expect(mocks.begin).not.toHaveBeenCalled();
   });
 
   it("ignores drafts and finished uploads", async () => {
@@ -81,7 +90,7 @@ describe("advanceShowPublication", () => {
     mocks.progress.mockResolvedValue({ offset: 40 });
     mocks.chunk.mockResolvedValue({ offset: 100, videoId: "abcdefgh_12" });
     expect(await advanceShowPublication("pub", NOW)).toEqual({ more: true });
-    expect(mocks.chunk).toHaveBeenCalledWith(expect.objectContaining({ offset: 40, size: 100, chunkBytes: 256 * 1024 * 1024 }));
+    expect(mocks.chunk).toHaveBeenCalledWith(expect.objectContaining({ offset: 40, size: 100, chunkBytes: 64 * 1024 * 1024 }));
     expect(lastUpdateData()).toMatchObject({ videoId: "abcdefgh_12", status: "PROCESSING", uploadedBytes: 100n });
   });
 

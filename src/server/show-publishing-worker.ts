@@ -11,8 +11,9 @@ import {
 export const ACTIVE_SHOW_STATUSES = ["UPLOADING", "PROCESSING", "FINALIZING"];
 const DOWNLOAD_TTL_SECONDS = 15 * 60;
 const MAX_THUMBNAIL_BYTES = 2 * 1024 * 1024;
-// Each PUT streams up to 256 MiB (a multiple of YouTube's 256 KiB) and may take up to 5 minutes.
-const SHOW_CHUNK_BYTES = 256 * 1024 * 1024;
+// Each PUT streams up to 64 MiB (a multiple of YouTube's 256 KiB) and may take up to 5 minutes.
+// 256 MiB was refused with HTTP 413: a Worker's request body must stay under Cloudflare's 100 MB limit.
+const SHOW_CHUNK_BYTES = 64 * 1024 * 1024;
 const SHOW_CHUNK_TIMEOUT_MS = 5 * 60_000;
 // A queue run has 15 minutes; no new piece starts after 9, so the last one ends in time.
 export const SHOW_RUN_BUDGET_MS = 9 * 60_000;
@@ -97,6 +98,12 @@ async function startUpload(token: string, publication: ShowPublication, channelI
   if (publication.publishAt.getTime() <= now.getTime()) {
     throw new PublicationError("The scheduled time passed before the upload started. Pick a new time and upload again.", true);
   }
+  // Reads can be served from Hyperdrive's cache, so `publication` may predate a session this run
+  // already saved. Confirm on the database (writes are never cached) before YouTube creates a video.
+  const stillNew = await prisma.showPublication.updateMany({
+    where: { id: publication.id, status: { in: ACTIVE_SHOW_STATUSES }, uploadSessionUrl: null }, data: { lastError: null }
+  });
+  if (stillNew.count === 0) return { more: false };
   await verifyYoutubeChannel(token, channelId);
   const sourceUrl = await nasMintDownloadUrl(publication.nasPath, DOWNLOAD_TTL_SECONDS);
   const size = await sourceVideoSize(sourceUrl);

@@ -1,5 +1,6 @@
 import { gzipSync } from "node:zlib";
 import { Client } from "pg";
+import { workersRequest } from "@/src/lib/prisma-workers";
 
 export const LATEST_BACKUP_KEY = "hub/latest.json";
 export const BACKUP_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
@@ -258,7 +259,8 @@ export function pgDumpClientOptions(connectionString: string): {
   ssl?: { rejectUnauthorized: boolean };
 } {
   const stripped = stripQueryParams(connectionString, ["sslmode", "ssl"]);
-  if (/localhost|127\.0\.0\.1/i.test(stripped)) {
+  // Hyperdrive (Cloudflare Workers) is a local proxy that does its own TLS to the database.
+  if (/localhost|127\.0\.0\.1|\.hyperdrive\.local/i.test(stripped)) {
     return { connectionString: stripped };
   }
   return { connectionString: stripped, ssl: { rejectUnauthorized: false } };
@@ -301,6 +303,8 @@ export function isRetryableBackupDbError(error: unknown): boolean {
 }
 
 type BackupDbEnv = {
+  /** Set on Cloudflare Workers only, where a direct TCP+TLS client to the database is not available. */
+  HYPERDRIVE_URL?: string;
   DIRECT_URL?: string;
   POSTGRES_URL_NON_POOLING?: string;
   DATABASE_URL?: string;
@@ -308,6 +312,7 @@ type BackupDbEnv = {
 
 function envBackupUrls(): BackupDbEnv {
   return {
+    HYPERDRIVE_URL: workersRequest()?.connectionString,
     DIRECT_URL: process.env.DIRECT_URL,
     POSTGRES_URL_NON_POOLING: process.env.POSTGRES_URL_NON_POOLING,
     DATABASE_URL: process.env.DATABASE_URL
@@ -316,7 +321,7 @@ function envBackupUrls(): BackupDbEnv {
 
 export function backupDatabaseUrls(source: BackupDbEnv = envBackupUrls()): string[] {
   const urls: string[] = [];
-  for (const raw of [source.DIRECT_URL, source.POSTGRES_URL_NON_POOLING, source.DATABASE_URL]) {
+  for (const raw of [source.HYPERDRIVE_URL, source.DIRECT_URL, source.POSTGRES_URL_NON_POOLING, source.DATABASE_URL]) {
     const url = raw?.trim();
     if (url && !urls.includes(url)) {
       urls.push(url);

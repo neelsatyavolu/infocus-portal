@@ -1,6 +1,4 @@
 /* eslint-disable @next/next/no-img-element -- next/og renders plain img elements. */
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import type { CSSProperties, ReactElement } from "react";
 import {
   fitFontSize,
@@ -9,6 +7,7 @@ import {
   formatThumbnailTime,
   type ThumbnailQuery
 } from "@/src/lib/live/thumbnail";
+import { readPublicFile } from "@/src/server/public-file";
 
 const INK = "#0F110F";
 const GREEN = "#0B6E3E";
@@ -22,11 +21,11 @@ type Assets = { wordmark: string; icon: string };
 
 let assetsPromise: Promise<Assets> | null = null;
 
-/** Logo files from public/live (listed in next.config outputFileTracingIncludes). */
+/** Logo files from public/live (listed in next.config outputFileTracingIncludes for Vercel). */
 export function loadThumbnailAssets() {
   assetsPromise ??= Promise.all([
-    readFile(path.join(process.cwd(), "public/live/infocus-wordmark-white.png")),
-    readFile(path.join(process.cwd(), "public/live/infocus-icon.png"))
+    readPublicFile("live/infocus-wordmark-white.png"),
+    readPublicFile("live/infocus-icon.png")
   ]).then(([wordmark, icon]) => ({
     wordmark: `data:image/png;base64,${wordmark.toString("base64")}`,
     icon: `data:image/png;base64,${icon.toString("base64")}`

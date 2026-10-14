@@ -1,9 +1,8 @@
 /* eslint-disable @next/next/no-img-element -- next/og renders plain img elements. */
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import type { CSSProperties } from "react";
 import { fitFontSize, fitWrappedFontSize } from "@/src/lib/live/thumbnail";
 import { loadLexend } from "@/src/server/live-thumbnail";
+import { readPublicFile } from "@/src/server/public-file";
 import { CERTIFICATE_SIGNER_COUNT, fitSignature, type CertificateSigner } from "@/src/lib/signature-image";
 import type { CertificateData } from "@/src/server/package-of-cycle";
 
@@ -30,8 +29,8 @@ export type CertificateImages = { wordmark: string; icon: string };
 function loadImages() {
   const dataUrl = (file: Buffer) => `data:image/png;base64,${file.toString("base64")}`;
   imagesPromise ??= Promise.all([
-    readFile(path.join(process.cwd(), "public/favicon/infocus-wordmark-light.png")),
-    readFile(path.join(process.cwd(), "public/live/infocus-icon.png"))
+    readPublicFile("favicon/infocus-wordmark-light.png"),
+    readPublicFile("live/infocus-icon.png")
   ]).then(([wordmark, icon]) => ({ wordmark: dataUrl(wordmark), icon: dataUrl(icon) }));
   return imagesPromise;
 }

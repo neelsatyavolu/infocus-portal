@@ -254,6 +254,21 @@ describe("backup database urls", () => {
     ).toEqual(["postgres://direct", "postgres://session", "postgres://pool"]);
   });
 
+  it("puts the Hyperdrive connection first on Cloudflare Workers", () => {
+    expect(
+      backupDatabaseUrls({
+        HYPERDRIVE_URL: "postgres://user:pass@abc123.hyperdrive.local:5432/postgres",
+        DIRECT_URL: "postgres://direct",
+        DATABASE_URL: "postgres://pool"
+      })
+    ).toEqual(["postgres://user:pass@abc123.hyperdrive.local:5432/postgres", "postgres://direct", "postgres://pool"]);
+  });
+
+  it("leaves TLS to Hyperdrive for its own connection string", () => {
+    const options = pgDumpClientOptions("postgres://user:pass@abc123.hyperdrive.local:5432/postgres?sslmode=disable");
+    expect(options).toEqual({ connectionString: "postgres://user:pass@abc123.hyperdrive.local:5432/postgres" });
+  });
+
   it("skips blanks and duplicates", () => {
     expect(
       backupDatabaseUrls({

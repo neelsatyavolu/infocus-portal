@@ -156,7 +156,13 @@ export async function confirmShowPublication(input: {
     }
   });
   if (updated.count === 0) throw new ShowUploadError("This show was already sent to YouTube.", 409);
-  // Start right away; if the queue is unreachable, the Worker cron queues it within two minutes.
-  await enqueueShowUploads([publication.id]).catch((error) => console.error("show upload: enqueue failed", error));
+  // The queue consumer carries it from here (worker.ts). If queueing fails, undo so Schedule can be retried.
+  try {
+    await enqueueShowUploads([publication.id]);
+  } catch (error) {
+    console.error("show upload: enqueue failed", error);
+    await prisma.showPublication.update({ where: { id: publication.id }, data: { status: "DRAFT" } });
+    throw new ShowUploadError("Could not start the YouTube upload. Try again.", 503);
+  }
   return showPublicationState(input.showDate);
 }

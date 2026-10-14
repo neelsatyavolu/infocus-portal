@@ -21,12 +21,12 @@
   // Run near the database, as the sfo1 pin did on Vercel.
   "placement": { "mode": "smart" },
   "observability": { "enabled": true },
-  // Every minute: meeting reminders and upkeep, and queueing show uploads (worker.ts). Replaces the two every-minute Inngest functions.
+  // Every minute: meeting reminders and upkeep (worker.ts). Replaces the two every-minute Inngest functions.
   "triggers": { "crons": ["* * * * *"] },
-  // Show → YouTube uploads (worker.ts queue handler). One show at a time; each run gets up to 15 minutes.
+  // Show → YouTube uploads (worker.ts queue handler; each run queues the next, no cron). One show at a time; each run gets up to 15 minutes.
   "queues": {
     "producers": [{ "binding": "SHOW_UPLOADS", "queue": "infocus-show-uploads" }],
-    "consumers": [{ "queue": "infocus-show-uploads", "max_batch_size": 1, "max_batch_timeout": 1, "max_concurrency": 1, "max_retries": 2 }]
+    "consumers": [{ "queue": "infocus-show-uploads", "max_batch_size": 1, "max_batch_timeout": 1, "max_concurrency": 1, "max_retries": 10 }]
   },
   // Keep the workers.dev test address alongside the routes.
   "workers_dev": true,

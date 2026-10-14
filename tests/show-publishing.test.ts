@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  find: vi.fn(), findFirst: vi.fn(), upsert: vi.fn(), updateMany: vi.fn(),
+  find: vi.fn(), findFirst: vi.fn(), upsert: vi.fn(), update: vi.fn(), updateMany: vi.fn(),
   calendar: vi.fn(), show: vi.fn(), rows: vi.fn(),
   mint: vi.fn(), download: vi.fn(), send: vi.fn(), size: vi.fn(), token: vi.fn(), playlists: vi.fn(),
   configured: { value: true }
 }));
 
 vi.mock("@/src/lib/prisma", () => ({ prisma: {
-  showPublication: { findUnique: mocks.find, findFirst: mocks.findFirst, upsert: mocks.upsert, updateMany: mocks.updateMany },
+  showPublication: { findUnique: mocks.find, findFirst: mocks.findFirst, upsert: mocks.upsert, update: mocks.update, updateMany: mocks.updateMany },
   masterCalendarEntry: { findUnique: mocks.calendar },
   showRolesShow: { findUnique: mocks.show },
   packageProgressRow: { findMany: mocks.rows }
@@ -112,6 +112,15 @@ describe("show publishing service", () => {
       })
     });
     expect(mocks.send).toHaveBeenCalledWith(["pub"]);
+  });
+
+  it("puts the show back to draft when it cannot be queued, so Schedule can be pressed again", async () => {
+    mocks.find.mockResolvedValue(draft);
+    mocks.size.mockResolvedValue(100);
+    mocks.updateMany.mockResolvedValue({ count: 1 });
+    mocks.send.mockRejectedValue(new Error("queue down"));
+    await expect(confirmShowPublication(confirmInput, NOW)).rejects.toThrow("Try again");
+    expect(mocks.update).toHaveBeenCalledWith({ where: { id: "pub" }, data: { status: "DRAFT" } });
   });
 
   it("rejects a past publish time and an unfinished Drive upload", async () => {

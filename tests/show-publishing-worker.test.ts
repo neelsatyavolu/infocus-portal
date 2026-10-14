@@ -25,7 +25,7 @@ vi.mock("@/src/server/youtube-client", async (original) => ({
 }));
 
 import { PublicationError } from "@/src/server/youtube-client";
-import { advanceShowPublication, dueShowPublicationIds, runShowPublication } from "@/src/server/show-publishing-worker";
+import { advanceShowPublication, runShowPublication } from "@/src/server/show-publishing-worker";
 
 const NOW = new Date("2026-09-21T20:00:00Z");
 const base = {
@@ -181,7 +181,9 @@ describe("runShowPublication", () => {
     mocks.progress.mockResolvedValueOnce({ offset: 0 }).mockResolvedValueOnce({ offset: 60 });
     mocks.chunk.mockResolvedValueOnce({ offset: 60 }).mockResolvedValueOnce({ offset: 100, videoId: "abcdefgh_12" });
     mocks.check.mockResolvedValue(false);
-    expect(await runShowPublication("pub", 60_000)).toEqual({ steps: 3 });
+    mocks.find.mockResolvedValueOnce({ status: "PROCESSING" });
+    // Waiting on YouTube processing: run again in a minute.
+    expect(await runShowPublication("pub", 60_000)).toEqual({ steps: 3, nextInSeconds: 60 });
     expect(mocks.chunk).toHaveBeenCalledTimes(2);
   });
 
@@ -191,17 +193,14 @@ describe("runShowPublication", () => {
     mocks.chunk.mockResolvedValue({ offset: 10 });
     let now = 0;
     const clock = () => (now += 400);
-    expect(await runShowPublication("pub", 1_000, clock)).toEqual({ steps: 2 });
+    // Out of time mid-upload: run again right away.
+    expect(await runShowPublication("pub", 1_000, clock)).toEqual({ steps: 2, nextInSeconds: 0 });
   });
-});
 
-describe("dueShowPublicationIds", () => {
-  it("only queues active shows that no run has touched for 90 seconds", async () => {
-    mocks.findMany.mockResolvedValue([{ id: "pub" }]);
-    expect(await dueShowPublicationIds(NOW)).toEqual(["pub"]);
-    expect(mocks.findMany.mock.calls[0][0].where).toEqual({
-      status: { in: ["UPLOADING", "PROCESSING", "FINALIZING"] },
-      updatedAt: { lt: new Date(NOW.getTime() - 90_000) }
-    });
+  it("stops queueing once the show is scheduled or failed", async () => {
+    mocks.find
+      .mockResolvedValueOnce({ ...base, status: "FINALIZING", videoId: "abcdefgh_12", thumbnailSetAt: NOW, playlistAddedAt: NOW })
+      .mockResolvedValueOnce({ status: "SCHEDULED" });
+    expect(await runShowPublication("pub", 60_000)).toEqual({ steps: 1, nextInSeconds: null });
   });
 });

@@ -17,18 +17,8 @@ const SHOW_CHUNK_BYTES = 64 * 1024 * 1024;
 const SHOW_CHUNK_TIMEOUT_MS = 5 * 60_000;
 // A queue run has 15 minutes; no new piece starts after 9, so the last one ends in time.
 export const SHOW_RUN_BUDGET_MS = 9 * 60_000;
-// A run saves progress after every piece. A show untouched this long has no run going.
-const IDLE_MS = 90_000;
-
-/** Active shows no run is working on (the Worker cron queues these every minute). */
-export async function dueShowPublicationIds(now = new Date()) {
-  if (!youtubePublishingConfig()) return [];
-  const rows = await prisma.showPublication.findMany({
-    where: { status: { in: ACTIVE_SHOW_STATUSES }, updatedAt: { lt: new Date(now.getTime() - IDLE_MS) } },
-    select: { id: true }, orderBy: { showDate: "asc" }, take: 20
-  });
-  return rows.map((row) => row.id);
-}
+// While YouTube processes (or after a transient error), check again this often.
+const WAIT_SECONDS = 60;
 
 // Returns null when no poster was saved (capture failed); YouTube then keeps its own frame.
 async function readPoster(nasPath: string) {
@@ -148,13 +138,19 @@ export async function advanceShowPublication(id: string, now = new Date()): Prom
   }
 }
 
-/** Advances a show until it is done, waiting on YouTube, or out of time; the next cron tick picks it up again. */
+/**
+ * Advances a show until it is done, waiting on YouTube, or out of time. `nextInSeconds` is when the
+ * queue consumer should run it again (worker.ts sends itself a delayed message), or null when done.
+ */
 export async function runShowPublication(id: string, budgetMs = SHOW_RUN_BUDGET_MS, clock = () => Date.now()) {
   const deadline = clock() + budgetMs;
   let steps = 0;
-  while (clock() < deadline) {
+  let more = true;
+  while (more && clock() < deadline) {
     steps += 1;
-    if (!(await advanceShowPublication(id)).more) break;
+    more = (await advanceShowPublication(id)).more;
   }
-  return { steps };
+  const publication = await prisma.showPublication.findUnique({ where: { id }, select: { status: true } });
+  const active = !!publication && ACTIVE_SHOW_STATUSES.includes(publication.status);
+  return { steps, nextInSeconds: active ? (more ? 0 : WAIT_SECONDS) : null };
 }

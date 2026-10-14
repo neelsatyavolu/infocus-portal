@@ -7,6 +7,9 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { N3EL_ANALYTICS_SRC, shouldLoadN3elAnalytics } from "@/src/lib/n3el-analytics";
 
+// Vercel sets this at build time. Its analytics scripts only exist on Vercel, so skip them on any other host.
+const ON_VERCEL = Boolean(process.env.NEXT_PUBLIC_VERCEL_ENV);
+
 declare global {
   interface Window {
     n3elAnalyticsShouldTrack?: () => boolean;
@@ -27,8 +30,8 @@ export function N3elAnalytics() {
   if (hostname === null || !shouldLoadN3elAnalytics(pathname, hostname)) return null;
   return (
     <>
-      <Analytics />
-      <SpeedInsights />
+      {ON_VERCEL ? <Analytics /> : null}
+      {ON_VERCEL ? <SpeedInsights /> : null}
       <Script src={N3EL_ANALYTICS_SRC} strategy="afterInteractive" />
     </>
   );

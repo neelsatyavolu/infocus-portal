@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 import path from "node:path";
 
+// Hosted builds (Vercel, Cloudflare Workers Builds) skip lint + type checking (~40s);
+// .github/workflows/checks.yml runs both on every push. Local `npm run build` still checks.
+const HOSTED_BUILD = process.env.VERCEL === "1" || process.env.WORKERS_CI === "1";
+
 const nextConfig: NextConfig = {
   typedRoutes: true,
   outputFileTracingRoot: path.join(__dirname),
@@ -22,10 +26,10 @@ const nextConfig: NextConfig = {
       { protocol: "http", hostname: "drive.infocuspaly.com" }
     ]
   },
-  // Vercel deploys skip lint + type checking (~40s); .github/workflows/checks.yml runs both
-  // on every push. Local `npm run build` still checks.
-  eslint: { ignoreDuringBuilds: process.env.VERCEL === "1" },
-  typescript: { ignoreBuildErrors: process.env.VERCEL === "1" },
+  eslint: { ignoreDuringBuilds: HOSTED_BUILD },
+  typescript: { ignoreBuildErrors: HOSTED_BUILD },
+  // Commit the build came from, shown in call diagnostics.
+  env: { NEXT_PUBLIC_BUILD_SHA: process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.WORKERS_CI_COMMIT_SHA ?? "" },
   experimental: {
     optimizePackageImports: ["lucide-react"]
   }

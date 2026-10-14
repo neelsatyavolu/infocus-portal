@@ -26,7 +26,7 @@ type OpenProps = { open: boolean; onOpenChange: (open: boolean) => void };
 function CopyDebugInfoButton({ meetingId, uid }: { meetingId: string; uid: string | null }) {
   async function copy() {
     try {
-      const build = process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? null;
+      const build = process.env.NEXT_PUBLIC_BUILD_SHA?.slice(0, 7) || null;
       await navigator.clipboard.writeText(debugInfo({ meetingId, uid, userAgent: navigator.userAgent, build }));
       toast.success("Debug info copied. Paste it in your message to us.");
     } catch {

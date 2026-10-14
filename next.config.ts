@@ -5,12 +5,6 @@ const nextConfig: NextConfig = {
   typedRoutes: true,
   outputFileTracingRoot: path.join(__dirname),
   outputFileTracingIncludes: {
-    "/api/assistant/chat": [
-      "./docs/knowledge/**/*",
-      "./docs/class-rules-2026-27.md",
-      "./docs/NAS-STORAGE.md",
-      "./docs/SUBDOMAINS.md"
-    ],
     "/api/live/thumbnail": ["./public/live/infocus-wordmark-white.png", "./public/live/infocus-icon.png"],
     // Meeting link preview image (falls back to a text wordmark if the file is missing).
     "/meet-preview/**": ["./public/live/infocus-wordmark-white.png", "./public/live/infocus-icon.png"],

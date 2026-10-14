@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/bundle-assistant-docs.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -11,13 +12,13 @@
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
     "test": "vitest run",
-    "postinstall": "node scripts/apply-patches.mjs && prisma generate",
+    "postinstall": "node scripts/apply-patches.mjs && prisma generate && node scripts/bundle-assistant-docs.mjs",
     "test:watch": "vitest",
     "vendor:noise-suppressor": "node scripts/vendor-noise-suppressor.mjs",
     "smoke:meetings": "tsx scripts/meetings-smoke.ts",
     "e2e:meetings": "tsx scripts/meetings-e2e-load.ts",
     "meetings:logs": "tsx scripts/meetings-logs.ts",
-    "prebuild": "node scripts/vendor-mediapipe.mjs",
+    "prebuild": "node scripts/vendor-mediapipe.mjs && node scripts/bundle-assistant-docs.mjs",
     "vendor:mediapipe": "node scripts/vendor-mediapipe.mjs"
   },
   "dependencies": {

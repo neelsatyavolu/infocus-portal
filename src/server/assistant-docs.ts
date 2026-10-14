@@ -1,5 +1,4 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
-import path from "node:path";
+import bundledDocs from "@/src/generated/assistant-docs.json";
 import { assistantDocAllowed, type AssistantAudience } from "@/src/lib/assistant-access";
 
 export type AssistantDocMeta = {
@@ -19,8 +18,11 @@ const MAX_DOC_CHARS = 14_000;
 const MAX_SEARCH_HITS = 8;
 const SNIPPET_CHARS = 280;
 
-function repoPath(...parts: string[]) {
-  return path.join(process.cwd(), ...parts);
+/** Markdown by repo-relative path, bundled by scripts/bundle-assistant-docs.mjs (no disk reads at runtime). */
+const BUNDLED_DOCS: Record<string, string> = bundledDocs;
+
+function readBundledDoc(relative: string) {
+  return BUNDLED_DOCS[relative] ?? null;
 }
 
 function titleFromMarkdown(id: string, markdown: string) {
@@ -29,21 +31,13 @@ function titleFromMarkdown(id: string, markdown: string) {
 }
 
 function listKnowledgeFiles() {
-  const dir = repoPath(KNOWLEDGE_DIR);
-  const entries = readdirSync(dir);
   const docs: AssistantDocMeta[] = [];
 
-  for (const entry of entries) {
-    if (!entry.endsWith(".md")) {
+  for (const [relative, markdown] of Object.entries(BUNDLED_DOCS)) {
+    if (!relative.startsWith(`${KNOWLEDGE_DIR}/`) || !relative.endsWith(".md")) {
       continue;
     }
-    const relative = `${KNOWLEDGE_DIR}/${entry}`;
-    const absolute = repoPath(relative);
-    if (!statSync(absolute).isFile()) {
-      continue;
-    }
-    const id = entry.replace(/\.md$/i, "");
-    const markdown = readFileSync(absolute, "utf8");
+    const id = relative.slice(KNOWLEDGE_DIR.length + 1).replace(/\.md$/i, "");
     docs.push({
       id,
       title: titleFromMarkdown(id, markdown),
@@ -70,9 +64,7 @@ export function resolveAssistantDoc(id: string, audience: AssistantAudience = "e
     return null;
   }
 
-  const absolute = repoPath(match.path);
-  const docsRoot = repoPath("docs");
-  if (!absolute.startsWith(docsRoot + path.sep) && absolute !== docsRoot) {
+  if (readBundledDoc(match.path) === null) {
     return null;
   }
 
@@ -85,7 +77,7 @@ export function readAssistantDoc(id: string, audience: AssistantAudience = "exec
     return null;
   }
 
-  const markdown = readFileSync(repoPath(meta.path), "utf8").trim();
+  const markdown = (readBundledDoc(meta.path) ?? "").trim();
   const truncated = markdown.length > MAX_DOC_CHARS;
   return {
     id: meta.id,
@@ -118,7 +110,7 @@ export function searchAssistantDocs(query: string, audience: AssistantAudience =
   const hits: Array<{ id: string; title: string; snippet: string; score: number }> = [];
 
   for (const meta of listAssistantDocs(audience)) {
-    const markdown = readFileSync(repoPath(meta.path), "utf8");
+    const markdown = readBundledDoc(meta.path) ?? "";
     const lower = markdown.toLowerCase();
     const titleLower = meta.title.toLowerCase();
     let score = 0;

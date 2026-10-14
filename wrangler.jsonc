@@ -25,6 +25,9 @@
   // Live traffic moves from Vercel one route at a time; deleting a route sends it back.
   "routes": [
     { "pattern": "infocuspaly.com/*", "zone_name": "infocuspaly.com" },
-    { "pattern": "meet.infocuspaly.com/*", "zone_name": "infocuspaly.com" }
+    { "pattern": "meet.infocuspaly.com/*", "zone_name": "infocuspaly.com" },
+    { "pattern": "grades.infocuspaly.com/*", "zone_name": "infocuspaly.com" },
+    { "pattern": "equipment.infocuspaly.com/*", "zone_name": "infocuspaly.com" },
+    { "pattern": "teleprompter.infocuspaly.com/*", "zone_name": "infocuspaly.com" }
   ]
 }

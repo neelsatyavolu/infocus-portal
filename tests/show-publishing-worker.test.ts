@@ -18,14 +18,14 @@ vi.mock("@/src/server/youtube-client", async (original) => ({
   ...await original<typeof import("@/src/server/youtube-client")>(),
   youtubePublishingConfig: () => ({ channelId: "channel", startDate: "2026-09-19", hour: 0 }),
   youtubeAccessToken: mocks.token, verifyYoutubeChannel: mocks.verify, sourceVideoSize: mocks.size,
-  beginYoutubeShowUpload: mocks.begin, readUploadProgress: mocks.progress, uploadYoutubeChunk: mocks.chunk,
+  beginYoutubeShowUpload: mocks.begin, readUploadProgress: mocks.progress, streamYoutubeChunk: mocks.chunk,
   checkScheduledYoutubeVideo: mocks.check, listYoutubePlaylists: mocks.playlists,
   createYoutubePlaylist: mocks.createPlaylist, playlistHasVideo: mocks.hasVideo,
   addVideoToPlaylist: mocks.addVideo, setYoutubeThumbnail: mocks.thumbnail
 }));
 
 import { PublicationError } from "@/src/server/youtube-client";
-import { advanceShowPublication } from "@/src/server/show-publishing-worker";
+import { advanceShowPublication, dueShowPublicationIds, runShowPublication } from "@/src/server/show-publishing-worker";
 
 const NOW = new Date("2026-09-21T20:00:00Z");
 const base = {
@@ -81,7 +81,7 @@ describe("advanceShowPublication", () => {
     mocks.progress.mockResolvedValue({ offset: 40 });
     mocks.chunk.mockResolvedValue({ offset: 100, videoId: "abcdefgh_12" });
     expect(await advanceShowPublication("pub", NOW)).toEqual({ more: true });
-    expect(mocks.chunk).toHaveBeenCalledWith(expect.objectContaining({ offset: 40, size: 100 }));
+    expect(mocks.chunk).toHaveBeenCalledWith(expect.objectContaining({ offset: 40, size: 100, chunkBytes: 256 * 1024 * 1024 }));
     expect(lastUpdateData()).toMatchObject({ videoId: "abcdefgh_12", status: "PROCESSING", uploadedBytes: 100n });
   });
 
@@ -153,5 +153,46 @@ describe("advanceShowPublication", () => {
     const data = lastUpdateData();
     expect(data.status).toBeUndefined();
     expect(data.lastError).not.toContain("secret");
+  });
+});
+
+describe("runShowPublication", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.token.mockResolvedValue("token");
+    mocks.update.mockResolvedValue({});
+    mocks.download.mockResolvedValue("https://drive.example/file");
+  });
+
+  it("keeps sending pieces until YouTube has the whole video and is processing", async () => {
+    mocks.find
+      .mockResolvedValueOnce({ ...base, sourceSize: 100n, uploadSessionUrl: "session" })
+      .mockResolvedValueOnce({ ...base, sourceSize: 100n, uploadSessionUrl: "session" })
+      .mockResolvedValueOnce({ ...base, status: "PROCESSING", videoId: "abcdefgh_12" });
+    mocks.progress.mockResolvedValueOnce({ offset: 0 }).mockResolvedValueOnce({ offset: 60 });
+    mocks.chunk.mockResolvedValueOnce({ offset: 60 }).mockResolvedValueOnce({ offset: 100, videoId: "abcdefgh_12" });
+    mocks.check.mockResolvedValue(false);
+    expect(await runShowPublication("pub", 60_000)).toEqual({ steps: 3 });
+    expect(mocks.chunk).toHaveBeenCalledTimes(2);
+  });
+
+  it("stops starting pieces once the run is out of time", async () => {
+    mocks.find.mockResolvedValue({ ...base, sourceSize: 100n, uploadSessionUrl: "session" });
+    mocks.progress.mockResolvedValue({ offset: 0 });
+    mocks.chunk.mockResolvedValue({ offset: 10 });
+    let now = 0;
+    const clock = () => (now += 400);
+    expect(await runShowPublication("pub", 1_000, clock)).toEqual({ steps: 2 });
+  });
+});
+
+describe("dueShowPublicationIds", () => {
+  it("only queues active shows that no run has touched for 90 seconds", async () => {
+    mocks.findMany.mockResolvedValue([{ id: "pub" }]);
+    expect(await dueShowPublicationIds(NOW)).toEqual(["pub"]);
+    expect(mocks.findMany.mock.calls[0][0].where).toEqual({
+      status: { in: ["UPLOADING", "PROCESSING", "FINALIZING"] },
+      updatedAt: { lt: new Date(NOW.getTime() - 90_000) }
+    });
   });
 });

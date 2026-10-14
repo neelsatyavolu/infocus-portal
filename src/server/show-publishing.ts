@@ -1,6 +1,5 @@
 import type { ShowPublication } from "@prisma/client";
 import { prisma } from "@/src/lib/prisma";
-import { inngest } from "@/src/lib/inngest";
 import { extractCalendarAnchors } from "@/src/lib/calendar-show-content";
 import { semesterForDate } from "@/src/lib/livestream";
 import { buildShowNasPath, isNasStorageEnabled, nasMintDownloadUrl, nasMintUploadSession, nasPosterPath, nasUploadBytes } from "@/src/lib/nas-storage";
@@ -9,7 +8,7 @@ import {
 } from "@/src/lib/show-publication";
 import { userDisplayName } from "@/src/lib/user-display";
 import { youtubeWatchUrl } from "@/src/lib/youtube-publication";
-import { SHOW_PUBLICATION_EVENT } from "@/src/server/show-publishing-jobs";
+import { enqueueShowUploads } from "@/src/server/show-upload-queue";
 import { listYoutubePlaylists, sourceVideoSize, youtubeAccessToken, youtubePublishingConfig } from "@/src/server/youtube-client";
 
 /** User-facing refusal with a plain message (routes turn it into `fail(message, status)`). */
@@ -157,6 +156,7 @@ export async function confirmShowPublication(input: {
     }
   });
   if (updated.count === 0) throw new ShowUploadError("This show was already sent to YouTube.", 409);
-  await inngest.send({ name: SHOW_PUBLICATION_EVENT, data: { id: publication.id } });
+  // Start right away; if the queue is unreachable, the Worker cron queues it within two minutes.
+  await enqueueShowUploads([publication.id]).catch((error) => console.error("show upload: enqueue failed", error));
   return showPublicationState(input.showDate);
 }

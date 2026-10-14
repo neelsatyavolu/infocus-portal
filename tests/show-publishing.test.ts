@@ -13,7 +13,7 @@ vi.mock("@/src/lib/prisma", () => ({ prisma: {
   showRolesShow: { findUnique: mocks.show },
   packageProgressRow: { findMany: mocks.rows }
 } }));
-vi.mock("@/src/lib/inngest", () => ({ inngest: { send: mocks.send, createFunction: vi.fn() } }));
+vi.mock("@/src/server/show-upload-queue", () => ({ enqueueShowUploads: mocks.send }));
 vi.mock("@/src/lib/nas-storage", async (original) => ({
   ...await original<typeof import("@/src/lib/nas-storage")>(),
   isNasStorageEnabled: () => true,
@@ -38,6 +38,7 @@ const confirmInput = {
 describe("show publishing service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.send.mockResolvedValue(undefined);
     mocks.configured.value = true;
     mocks.calendar.mockResolvedValue(null);
     mocks.show.mockResolvedValue({ anchors: ["Abby Ames", "Otto Ortiz"] });
@@ -110,7 +111,7 @@ describe("show publishing service", () => {
         semesterLabel: "2026-27 S1", channelId: "channel"
       })
     });
-    expect(mocks.send).toHaveBeenCalledWith({ name: "youtube/show-publication.advance", data: { id: "pub" } });
+    expect(mocks.send).toHaveBeenCalledWith(["pub"]);
   });
 
   it("rejects a past publish time and an unfinished Drive upload", async () => {

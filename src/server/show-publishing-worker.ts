@@ -5,17 +5,26 @@ import { parseSeasonNumber, seasonPlaylistTitle } from "@/src/lib/show-publicati
 import {
   addVideoToPlaylist, beginYoutubeShowUpload, checkScheduledYoutubeVideo, createYoutubePlaylist,
   listYoutubePlaylists, playlistHasVideo, PublicationError, readUploadProgress, setYoutubeThumbnail,
-  sourceVideoSize, uploadYoutubeChunk, verifyYoutubeChannel, youtubeAccessToken, youtubePublishingConfig
+  sourceVideoSize, streamYoutubeChunk, verifyYoutubeChannel, youtubeAccessToken, youtubePublishingConfig
 } from "@/src/server/youtube-client";
 
 export const ACTIVE_SHOW_STATUSES = ["UPLOADING", "PROCESSING", "FINALIZING"];
 const DOWNLOAD_TTL_SECONDS = 15 * 60;
 const MAX_THUMBNAIL_BYTES = 2 * 1024 * 1024;
+// Each PUT streams up to 256 MiB (a multiple of YouTube's 256 KiB) and may take up to 5 minutes.
+const SHOW_CHUNK_BYTES = 256 * 1024 * 1024;
+const SHOW_CHUNK_TIMEOUT_MS = 5 * 60_000;
+// A queue run has 15 minutes; no new piece starts after 9, so the last one ends in time.
+export const SHOW_RUN_BUDGET_MS = 9 * 60_000;
+// A run saves progress after every piece. A show untouched this long has no run going.
+const IDLE_MS = 90_000;
 
-export async function dueShowPublicationIds() {
+/** Active shows no run is working on (the Worker cron queues these every minute). */
+export async function dueShowPublicationIds(now = new Date()) {
   if (!youtubePublishingConfig()) return [];
   const rows = await prisma.showPublication.findMany({
-    where: { status: { in: ACTIVE_SHOW_STATUSES } }, select: { id: true }, orderBy: { showDate: "asc" }, take: 20
+    where: { status: { in: ACTIVE_SHOW_STATUSES }, updatedAt: { lt: new Date(now.getTime() - IDLE_MS) } },
+    select: { id: true }, orderBy: { showDate: "asc" }, take: 20
   });
   return rows.map((row) => row.id);
 }
@@ -74,7 +83,9 @@ async function sendNextChunk(token: string, publication: ShowPublication, sessio
   }
   if (progress.offset === size) return { more: false };
   const sourceUrl = await nasMintDownloadUrl(publication.nasPath, DOWNLOAD_TTL_SECONDS);
-  const result = await uploadYoutubeChunk({ sourceUrl, sessionUrl, token, size, offset: progress.offset });
+  const result = await streamYoutubeChunk({
+    sourceUrl, sessionUrl, token, size, offset: progress.offset, chunkBytes: SHOW_CHUNK_BYTES, timeoutMs: SHOW_CHUNK_TIMEOUT_MS
+  });
   await prisma.showPublication.update({ where: { id: publication.id }, data: {
     lastError: null, uploadedBytes: BigInt(result.offset),
     ...(result.videoId ? { videoId: result.videoId, status: "PROCESSING" } : {})
@@ -97,7 +108,7 @@ async function startUpload(token: string, publication: ShowPublication, channelI
   return { more: true };
 }
 
-/** One bounded step. Called only by the serialized Inngest worker. */
+/** One bounded step. Called only through runShowPublication (one queue consumer at a time). */
 export async function advanceShowPublication(id: string, now = new Date()): Promise<{ more: boolean }> {
   const config = youtubePublishingConfig();
   if (!config) return { more: false };
@@ -128,4 +139,15 @@ export async function advanceShowPublication(id: string, now = new Date()): Prom
     } });
     return { more: false };
   }
+}
+
+/** Advances a show until it is done, waiting on YouTube, or out of time; the next cron tick picks it up again. */
+export async function runShowPublication(id: string, budgetMs = SHOW_RUN_BUDGET_MS, clock = () => Date.now()) {
+  const deadline = clock() + budgetMs;
+  let steps = 0;
+  while (clock() < deadline) {
+    steps += 1;
+    if (!(await advanceShowPublication(id)).more) break;
+  }
+  return { steps };
 }

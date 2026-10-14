@@ -73,7 +73,7 @@ Any producer (associate producer and up) can press **Upload show** at the top of
 
 1. **Choose show video.** The file uploads to InFocus Drive (`Package Storage/Shows/<date>/`) with a progress bar. Keep the window open until it finishes.
 2. **Review.** Everything is editable before it goes to YouTube:
-   - **Thumbnail:** a frame from 17.5 seconds in. Type another time and press **Retake** to change it. If no frame can be grabbed, YouTube picks one.
+   - **Thumbnail:** a frame from 16.5 seconds in. Type another time and press **Retake** to change it. If no frame can be grabbed, YouTube picks one.
    - **Title:** `InFocus News | Tuesday, September 22nd, 2026` for the show date.
    - **Goes public:** the show date at 8:30 AM Pacific.
    - **Playlist:** `InFocus News | Season N`. It defaults to the highest season on the channel. The first show of a new semester defaults to the next number, and that playlist is created automatically.

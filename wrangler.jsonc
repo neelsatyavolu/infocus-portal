@@ -4,7 +4,7 @@
   // Secrets are the same env vars as docs/ENVIRONMENT.md, set with `wrangler secret bulk`; never committed.
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "infocus-portal",
-  // worker.ts wraps the OpenNext build (.open-next/worker.js) and adds the cron below.
+  // worker.ts wraps the OpenNext build (.open-next/worker.js) and adds the cron and queue consumer below.
   "main": "worker.ts",
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
@@ -21,8 +21,13 @@
   // Run near the database, as the sfo1 pin did on Vercel.
   "placement": { "mode": "smart" },
   "observability": { "enabled": true },
-  // Every minute: meeting reminders and upkeep (worker.ts). Replaces the two every-minute Inngest functions.
+  // Every minute: meeting reminders and upkeep, and queueing show uploads (worker.ts). Replaces the two every-minute Inngest functions.
   "triggers": { "crons": ["* * * * *"] },
+  // Show → YouTube uploads (worker.ts queue handler). One show at a time; each run gets up to 15 minutes.
+  "queues": {
+    "producers": [{ "binding": "SHOW_UPLOADS", "queue": "infocus-show-uploads" }],
+    "consumers": [{ "queue": "infocus-show-uploads", "max_batch_size": 1, "max_batch_timeout": 1, "max_concurrency": 1, "max_retries": 2 }]
+  },
   // Keep the workers.dev test address alongside the routes.
   "workers_dev": true,
   // Live traffic moves from Vercel one route at a time; deleting a route sends it back.

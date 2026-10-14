@@ -53,6 +53,8 @@ const publicRoutePatterns = [
   /^\/api\/service\/meetings\/tick$/,
   // Host self-check for the move to Cloudflare Workers (CRON_SECRET bearer, checked in the handler).
   /^\/api\/service\/runtime-check$/,
+  // Show → YouTube uploads from the Portal Worker's queue consumer and cron (CRON_SECRET bearer, checked in the handler).
+  /^\/api\/service\/shows\/upload$/,
   /^\/meet-scribe$/,
   // Meeting link previews (metadata + generated image only; src/lib/meetings/link-preview.ts).
   MEETING_PREVIEW_PUBLIC_PATH,

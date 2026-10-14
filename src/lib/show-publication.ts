@@ -1,7 +1,7 @@
 import { pacificDayStart } from "@/src/lib/class-board";
 
 export const SHOW_PUBLISH_TIME = "08:30";
-export const SHOW_THUMBNAIL_SECONDS = 17.5;
+export const SHOW_THUMBNAIL_SECONDS = 16.5;
 export const SHOW_TITLE_MAX = 100;
 export const SHOW_DESCRIPTION_MAX = 5000;
 

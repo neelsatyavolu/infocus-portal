@@ -34,7 +34,7 @@ Production setup, migration application, and a real channel upload require opera
 
 ## Whole-show uploads (The Show → Upload show)
 
-The whole show uses the same credentials and channel as packages, with its own table (`ShowPublication`, one row per show date) and jobs (`youtube-show-publications-discover` every minute and `youtube-show-publish`, a singleton that keeps sending chunks until the upload finishes, up to 600 per run; discovery is skipped while it runs). Code: `src/server/show-publishing.ts` (popup API), `src/server/show-publishing-worker.ts` (upload steps), `src/lib/show-publication.ts` (title, 8:30 AM Pacific time, description, and season rules).
+The whole show uses the same credentials and channel as packages, with its own table (`ShowPublication`, one row per show date) and its own runner on Cloudflare, not Inngest. Confirming queues the show on the `infocus-show-uploads` queue. The Portal Worker's consumer (`worker.ts`, one show at a time) calls `POST /api/service/shows/upload` in-process, which streams the video from Drive to YouTube in 256 MiB pieces for up to 9 minutes per run, then waits on processing and sets the thumbnail and playlist. The every-minute Worker cron queues any active show that has had no progress for 90 seconds, so unfinished, waiting and retrying shows carry on. Code: `src/server/show-publishing.ts` (popup API), `src/server/show-publishing-worker.ts` (upload steps), `src/lib/show-publication.ts` (title, 8:30 AM Pacific time, description, and season rules).
 
 **Setup beyond package publishing**
 

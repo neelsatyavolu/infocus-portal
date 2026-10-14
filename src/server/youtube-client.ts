@@ -20,9 +20,9 @@ export function youtubePublishingConfig() {
 }
 
 // Do not propagate fetch errors: they may contain signed source/session URLs.
-async function request(url: string, init?: RequestInit) {
+async function request(url: string, init?: RequestInit, timeoutMs = 45_000) {
   try {
-    return await fetch(url, { ...init, cache: "no-store", signal: AbortSignal.timeout(45_000) });
+    return await fetch(url, { ...init, cache: "no-store", signal: AbortSignal.timeout(timeoutMs) });
   } catch {
     throw new PublicationError("YouTube or media transfer interrupted; retry pending.");
   }
@@ -232,6 +232,40 @@ export async function uploadYoutubeChunk(input: { sourceUrl: string; sessionUrl:
       "Content-Length": String(bytes.byteLength), "Content-Range": `bytes ${offset}-${end}/${size}` },
     body: bytes
   }), size);
+}
+
+// Cloudflare Workers only: sends a stream with a fixed Content-Length and errors if the byte count differs.
+type FixedLengthStreamCtor = new (length: number) => TransformStream<Uint8Array, Uint8Array>;
+
+/** Pipes one large range from Drive straight to YouTube without holding it in memory (shows on Workers). */
+export async function streamYoutubeChunk(input: {
+  sourceUrl: string; sessionUrl: string; token: string; size: number; offset: number; chunkBytes: number; timeoutMs: number
+}) {
+  const { sourceUrl, sessionUrl, token, size, offset, chunkBytes, timeoutMs } = input;
+  uploadUrl(sessionUrl);
+  const end = Math.min(offset + chunkBytes, size) - 1;
+  const source = await request(sourceUrl, {
+    headers: { Range: `bytes=${offset}-${end}`, "Accept-Encoding": "identity" }
+  }, timeoutMs);
+  if (source.status !== 206 || source.headers.get("content-range") !== `bytes ${offset}-${end}/${size}` || !source.body) {
+    await source.body?.cancel();
+    throw new PublicationError("Final Cut download returned an unexpected byte range.");
+  }
+  const length = end - offset + 1;
+  const FixedLengthStream = (globalThis as { FixedLengthStream?: FixedLengthStreamCtor }).FixedLengthStream;
+  let body: ReadableStream<Uint8Array> = source.body;
+  if (FixedLengthStream) {
+    const fixed = new FixedLengthStream(length);
+    // A short or oversized source fails the PUT; the next run resumes from YouTube's offset.
+    source.body.pipeTo(fixed.writable).catch(() => {});
+    body = fixed.readable;
+  }
+  return parseProgress(await request(uploadUrl(sessionUrl), {
+    method: "PUT", redirect: "manual",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/octet-stream",
+      "Content-Length": String(length), "Content-Range": `bytes ${offset}-${end}/${size}` },
+    body, duplex: "half"
+  } as RequestInit, timeoutMs), size);
 }
 
 export async function checkYoutubeVideo(videoId: string, token: string, channelId: string) {

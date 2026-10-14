@@ -46,14 +46,14 @@ export default async function MaintenancePage() {
             <div>
               <p className="text-sm font-semibold text-foreground">What&apos;s coming</p>
               <p className="mt-0.5 text-sm text-muted-foreground">
-                A more comprehensive, powerful, and faster portal with a better user experience.
+                The same Portal, with everything where you left it.
               </p>
             </div>
           </div>
         </div>
 
         <p className="mt-7 text-center text-xs text-muted-foreground">
-          Producers retain full access while we rebuild.
+          Producers retain full access during the move.
         </p>
 
         {session ? (

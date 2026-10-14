@@ -5,14 +5,14 @@ import { hasPlatformRole, normalizeEmail } from "@/src/lib/platform-admin";
  * When true, signed-in users without a producer platform role are redirected
  * to /maintenance. Flip to false to reopen the portal for everyone.
  */
-export const HUB_MAINTENANCE_MODE = false;
+export const HUB_MAINTENANCE_MODE = true;
 
-export const HUB_MAINTENANCE_ETA = "August 20th";
+export const HUB_MAINTENANCE_ETA = "Wednesday morning, October 14";
 
 export const HUB_MAINTENANCE_TITLE = "The InFocus Portal is currently under maintenance.";
 
 export const HUB_MAINTENANCE_BODY =
-  "We are currently revamping the entire website to be more comprehensive, powerful, faster, and have a better user experience.";
+  "We are moving the Portal to new hosting. Your work is saved, and nothing is being changed or deleted.";
 
 /** Emails that may use the portal during maintenance without a producer role (env, comma-separated). */
 const HUB_MAINTENANCE_EMAIL_BYPASS = new Set(

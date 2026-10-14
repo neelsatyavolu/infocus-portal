@@ -24,7 +24,7 @@
   "workers_dev": true,
   // Live traffic moves from Vercel one route at a time; deleting a route sends it back.
   "routes": [
-    { "pattern": "infocuspaly.com/api/live/overlay/*", "zone_name": "infocuspaly.com" },
-    { "pattern": "infocuspaly.com/api/inngest*", "zone_name": "infocuspaly.com" }
+    { "pattern": "infocuspaly.com/*", "zone_name": "infocuspaly.com" },
+    { "pattern": "meet.infocuspaly.com/*", "zone_name": "infocuspaly.com" }
   ]
 }

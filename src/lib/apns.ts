@@ -1,7 +1,11 @@
 import crypto from "node:crypto";
 import http2 from "node:http2";
 
-/** Apple Push (APNs) for the InFocus Mac and iPhone apps. Token auth (.p8 key), HTTP/2, no dependency. */
+/**
+ * Apple Push (APNs) for the InFocus Mac and iPhone apps. Token auth (.p8 key), HTTP/2, no dependency.
+ * On Node it speaks HTTP/2 itself; on Cloudflare Workers (no working node:http2) it uses fetch, which
+ * Cloudflare carries to Apple over HTTP/2.
+ */
 
 export type ApnsEnvironment = "production" | "development";
 /** `topic` is the receiving app's bundle ID: every app has its own. */
@@ -23,6 +27,8 @@ const APNS_HOSTS: Record<ApnsEnvironment, string> = {
 /** Apple accepts a provider token for an hour and rejects refreshes more often than every 20 minutes. */
 const PROVIDER_TOKEN_TTL_MS = 50 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 5000;
+/** Workers allow 6 outbound connections at once. */
+const FETCH_BATCH_SIZE = 5;
 /** Responses that mean the token will never work again. */
 const DEAD_TOKEN_REASONS = new Set(["BadDeviceToken", "DeviceTokenNotForTopic", "Unregistered"]);
 
@@ -124,17 +130,66 @@ function sendOne(
   });
 }
 
+function isWorkersRuntime() {
+  return typeof navigator !== "undefined" && navigator.userAgent === "Cloudflare-Workers";
+}
+
+/** One push over fetch (the Workers transport). Never throws. */
+export async function sendOneWithFetch(
+  host: string,
+  device: ApnsDevice,
+  headers: Record<string, string>,
+  body: string,
+  fetchImpl: typeof fetch = fetch
+): Promise<ApnsResult> {
+  try {
+    const response = await fetchImpl(`${host}/3/device/${device.token}`, {
+      method: "POST",
+      headers: { ...headers, "apns-topic": device.topic },
+      body,
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS)
+    });
+    if (response.status === 200) return { token: device.token, ok: true, dead: false, status: 200 };
+    let reason: string | undefined;
+    try {
+      reason = ((await response.json()) as { reason?: string }).reason;
+    } catch {
+      reason = undefined;
+    }
+    if (reason === "ExpiredProviderToken" || reason === "InvalidProviderToken") cachedProviderToken = null;
+    return {
+      token: device.token,
+      ok: false,
+      dead: response.status === 410 || DEAD_TOKEN_REASONS.has(reason ?? ""),
+      status: response.status,
+      reason
+    };
+  } catch (error) {
+    return { token: device.token, ok: false, dead: false, reason: error instanceof Error ? error.message : "APNs request failed" };
+  }
+}
+
+async function sendToHostWithFetch(host: string, devices: ApnsDevice[], headers: Record<string, string>, body: string) {
+  const results: ApnsResult[] = [];
+  for (let start = 0; start < devices.length; start += FETCH_BATCH_SIZE) {
+    const batch = devices.slice(start, start + FETCH_BATCH_SIZE);
+    results.push(...(await Promise.all(batch.map((device) => sendOneWithFetch(host, device, headers, body)))));
+  }
+  return results;
+}
+
 async function sendToHost(environment: ApnsEnvironment, devices: ApnsDevice[], config: ApnsConfig, body: string) {
+  const headers = {
+    authorization: `bearer ${providerToken(config)}`,
+    "apns-push-type": "alert",
+    "apns-priority": "10",
+    "content-type": "application/json"
+  };
+  if (isWorkersRuntime()) return sendToHostWithFetch(APNS_HOSTS[environment], devices, headers, body);
   const session = http2.connect(APNS_HOSTS[environment]);
   // A connection error fails each pending request through its own "error" handler.
   session.on("error", () => undefined);
   try {
-    const headers = {
-      authorization: `bearer ${providerToken(config)}`,
-      "apns-push-type": "alert",
-      "apns-priority": "10",
-      "content-type": "application/json"
-    };
     return await Promise.all(devices.map((device) => sendOne(session, device, headers, body)));
   } finally {
     session.close();

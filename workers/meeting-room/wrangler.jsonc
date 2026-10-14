@@ -13,8 +13,9 @@
     "bindings": [{ "name": "MEETING_ROOM", "class_name": "MeetingRoom" }]
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["MeetingRoom"] }],
-  // Every minute: the Portal sends meeting reminders and runs meeting upkeep (src/portal.ts tickPortal).
-  "triggers": { "crons": ["* * * * *"] },
+  // No cron: the Portal Worker ticks itself every minute (worker.ts at the repo root). A tick from here
+  // too would send meeting reminders twice.
+  "triggers": { "crons": [] },
   "vars": {
     "PORTAL_BASE_URL": "https://portal.example.edu",
     "ALLOWED_ORIGINS": "https://portal.example.edu"

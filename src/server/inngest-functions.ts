@@ -15,8 +15,7 @@ import { discoverShowPublications, publishYoutubeShow } from "@/src/server/show-
 import { discoverYoutubePublications, publishYoutubePackage } from "@/src/server/youtube-publishing-jobs";
 import { runPackageReviewReminders } from "@/src/server/package-review-reminders";
 import { MEETING_CALENDAR_EVENT, runMeetingCalendarJob } from "@/src/server/meetings-google-calendar";
-import { reticketScribes, runMeetingHousekeeping } from "@/src/server/meetings-housekeeping";
-import { runMeetingReminders } from "@/src/server/meetings-notify";
+import { reticketScribes } from "@/src/server/meetings-housekeeping";
 import { retryScribeRekey, SCRIBE_REKEY_RETRY_EVENT, SCRIBE_RETRY_DELAYS_MS } from "@/src/server/meetings-scribe";
 import { runNewsAlerts } from "@/src/server/news-alerts";
 import { ensureUpcomingProducerMeetings } from "@/src/server/meetings-schedule";
@@ -378,20 +377,6 @@ export const packageReviewRemindersHourly = inngest.createFunction(
   }
 );
 
-/** Meeting push reminders, 15 and 5 minutes before the start (replaced the single start push). */
-export const meetingRemindersEveryMinute = inngest.createFunction(
-  {
-    id: "meeting-reminders-every-minute",
-    concurrency: 1
-  },
-  {
-    cron: "* * * * *"
-  },
-  async () => {
-    return runMeetingReminders();
-  }
-);
-
 export const producerMeetingScheduleDaily = inngest.createFunction(
   {
     id: "producer-meeting-schedule-daily"
@@ -417,19 +402,8 @@ export const meetingInvitesSend = inngest.createFunction(
   }
 );
 
-/** Meetings upkeep: stranded LIVE meetings, usage meter, stuck notes, stopped Scribes. */
-export const meetingsHousekeepingEveryMinute = inngest.createFunction(
-  {
-    id: "meetings-housekeeping-every-minute",
-    concurrency: 1
-  },
-  {
-    cron: "* * * * *"
-  },
-  async () => {
-    return runMeetingHousekeeping();
-  }
-);
+// Meeting reminders and meetings upkeep run every minute from the Portal Worker's own cron
+// (worker.ts -> /api/service/meetings/tick), not here: Inngest runs are metered.
 
 /** Fresh room tickets for recording Scribes (their tickets last 4 h). */
 export const meetingsScribeReticket = inngest.createFunction(
@@ -493,10 +467,8 @@ export const inngestFunctions = [
   hubDbBackupHourly,
   refreshAssociateFeedbackDaily,
   packageReviewRemindersHourly,
-  meetingRemindersEveryMinute,
   producerMeetingScheduleDaily,
   meetingInvitesSend,
-  meetingsHousekeepingEveryMinute,
   meetingsScribeReticket,
   generateIdeasDaily,
   syncSchoolCalendarDaily,

@@ -10,7 +10,7 @@
   "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
   "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "infocus-portal" }],
   // Pooled connection to the Portal's Postgres (src/lib/prisma-workers.ts). The id is not a credential.
-  "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "REPLACE_WITH_HYPERDRIVE_ID" }],
+  "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "ed1d440dbd764d159d1e6071f2c51435" }],
   "r2_buckets": [{ "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "infocus-portal-next-cache" }],
   "durable_objects": { "bindings": [{ "name": "NEXT_CACHE_DO_QUEUE", "class_name": "DOQueueHandler" }] },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["DOQueueHandler"] }],

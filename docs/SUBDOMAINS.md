@@ -17,19 +17,14 @@ Session cookie `infocus_session` is set with `Domain=.infocuspaly.com` in produc
 
 OAuth redirect URI stays on `APP_BASE_URL` (`https://infocuspaly.com/api/auth/google/callback`). After login, `returnTo` can send users back to a subdomain path; absolute `returnTo` URLs are accepted only for `https://` on `infocuspaly.com` or a subdomain (`isTrustedReturnUrl` in `src/lib/auth.ts`). Sign-in from the meet host goes to the main host with `returnTo=https://meet.infocuspaly.com/…`.
 
-## Vercel / DNS
+## Hosting / DNS
 
-1. Add domains on the Vercel project:
-   - `grades.infocuspaly.com`
-   - `teleprompter.infocuspaly.com`
-   - `equipment.infocuspaly.com`
-   - `meet.infocuspaly.com`
-2. Point DNS (Cloudflare recommended):
-   - CNAME `grades` → `cname.vercel-dns.com` (or Vercel’s target)
-   - CNAME `teleprompter` → same
-   - CNAME `equipment` → same
-   - CNAME `meet` → same (proxied); add the meet origin to the meeting-room Worker's `ALLOWED_ORIGINS`
-3. Apply DB migration: `prisma/migrations/20260809_school_calendar_days`
+The Portal is the Cloudflare Worker `infocus-portal` (see AGENTS.md "Deploying").
+
+1. Each host has a proxied DNS record in Cloudflare and a zone route `<host>/*` in `wrangler.jsonc`. To add a host, add both.
+2. `www.infocuspaly.com` is a Cloudflare redirect rule to `https://infocuspaly.com`.
+3. Add any new meet origin to the meeting-room Worker's `ALLOWED_ORIGINS`.
+4. While the Vercel project is kept as a fallback, the routes `<host>/.well-known/acme-challenge/*` and `<host>/.well-known/vercel/*` have no Worker, so Vercel can renew its certificates. Delete them when Vercel is retired.
 
 ## Local with cloudflared (optional)
 

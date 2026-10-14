@@ -81,7 +81,7 @@ Everyone signed in gets a green ✱ in the bottom-right of Portal. It opens a fl
 | `/sign-in` | Not signed in. After sign-in you go back to the page you asked for, or the dashboard |
 | `/onboarding` | First sign-in, until you finish it (see `notifications.md`) |
 | `/access-denied` | Your email is not on Portal (request access here), or you opened a producer-only page like `/passwords` |
-| `/maintenance` | Only while maintenance mode is on. Students are sent here; associate producers and up keep full access. Shows the expected return date and a **Sign out** button. It is on right now (hosting move, started October 13, 2026) |
+| `/maintenance` | Only while maintenance mode is on. Students are sent here; associate producers and up keep full access. Shows the expected return date and a **Sign out** button. It is off right now |
 
 Old addresses that forward: `/workspaces` → `/dashboard`, `/extensions` → `/extension-requests`, `/activity` → `/settings`. `/workflow` and `/security` are leftover pages from an older design. Nothing in Portal links to them, and they need sign-in.
 

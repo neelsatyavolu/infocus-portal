@@ -1,9 +1,10 @@
 import type { NextConfig } from "next";
 import path from "node:path";
 
-// Hosted builds (Vercel, Cloudflare Workers Builds) skip lint + type checking (~40s);
+// Hosted builds (Vercel, the Cloudflare deploy workflow, Workers Builds) skip lint + type checking (~40s);
 // .github/workflows/checks.yml runs both on every push. Local `npm run build` still checks.
-const HOSTED_BUILD = process.env.VERCEL === "1" || process.env.WORKERS_CI === "1";
+const HOSTED_BUILD =
+  process.env.VERCEL === "1" || process.env.WORKERS_CI === "1" || process.env.PORTAL_DEPLOY_BUILD === "1";
 
 const nextConfig: NextConfig = {
   typedRoutes: true,
@@ -29,7 +30,7 @@ const nextConfig: NextConfig = {
   eslint: { ignoreDuringBuilds: HOSTED_BUILD },
   typescript: { ignoreBuildErrors: HOSTED_BUILD },
   // Commit the build came from, shown in call diagnostics.
-  env: { NEXT_PUBLIC_BUILD_SHA: process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.WORKERS_CI_COMMIT_SHA ?? "" },
+  env: { NEXT_PUBLIC_BUILD_SHA: process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.WORKERS_CI_COMMIT_SHA ?? process.env.GITHUB_SHA ?? "" },
   // Prisma on Cloudflare Workers (OpenNext patches these two packages; they must stay external).
   serverExternalPackages: ["@prisma/client", ".prisma/client"],
   webpack: (config, { isServer, webpack }) => {

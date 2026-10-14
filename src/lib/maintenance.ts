@@ -5,7 +5,7 @@ import { hasPlatformRole, normalizeEmail } from "@/src/lib/platform-admin";
  * When true, signed-in users without a producer platform role are redirected
  * to /maintenance. Flip to false to reopen the portal for everyone.
  */
-export const HUB_MAINTENANCE_MODE = true;
+export const HUB_MAINTENANCE_MODE = false;
 
 export const HUB_MAINTENANCE_ETA = "Wednesday morning, October 14";
 

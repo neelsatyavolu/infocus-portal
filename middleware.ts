@@ -51,6 +51,8 @@ const publicRoutePatterns = [
   /^\/api\/service\/meetings\/[^/]+\/(?:room|notes)$/,
   // Meetings minute tick from the meeting-room Worker's cron (signed internal token, checked in the handler).
   /^\/api\/service\/meetings\/tick$/,
+  // Host self-check for the move to Cloudflare Workers (CRON_SECRET bearer, checked in the handler).
+  /^\/api\/service\/runtime-check$/,
   /^\/meet-scribe$/,
   // Meeting link previews (metadata + generated image only; src/lib/meetings/link-preview.ts).
   MEETING_PREVIEW_PUBLIC_PATH,

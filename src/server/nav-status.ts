@@ -1,6 +1,7 @@
 import type { PlatformRole, Prisma } from "@prisma/client";
 import { z } from "zod";
 import { viewerAttention, visibleGroupRows, type AttentionRow } from "@/components/groups/group-attention";
+import { isAppReviewEmail } from "@/src/lib/app-review";
 import { deadlineClosesAt, finalCutClosesAt } from "@/src/lib/deadlines";
 import { approvedExtensionDaysFor, effectiveDeadline } from "@/src/lib/package-extensions";
 import { canGradeFinalCut, gradersDoneWithGroup } from "@/src/lib/package-final-cut-scores";
@@ -13,6 +14,8 @@ import {
   EMPTY_NAV_STATUS,
   NAV_STATUS_FIELD,
   NAV_STATUS_PARTS,
+  navStatusPartsFor,
+  STAGE_BAR_PARTS,
   type NavPackageStatus,
   type NavStatus,
   type NavStatusPart,
@@ -308,3 +311,24 @@ export async function loadNavStatus(
   return { ...status, parts: NAV_STATUS_PARTS.filter((part) => wanted.has(part)), failed };
 }
 
+export type InitialNavStatus = { parts: NavStatusPart[]; status: Promise<NavStatusResponse | null> };
+
+/**
+ * The first statuses, started by the app layout so they stream in with the page instead of
+ * waiting for hydration and a request of their own. Only the stage bar's parts (package and
+ * extension requests: the badges that change most, fresh for 15 s): they share the pages' cached
+ * ensurePackageProgressDefaults and cost about four small queries, while the rest (the Groups
+ * roster for executives) would compete with the page for connections; the client loads those as
+ * before. Not awaited by the layout, so the shell never waits on it; never rejects (null = the
+ * client loads these parts itself). Same parts and App Review rule as GET /api/nav/status.
+ */
+export function startInitialNavStatus(viewer: NavStatusViewer, email: string | null): InitialNavStatus {
+  const parts = navStatusPartsFor(viewer.role).filter((part) => STAGE_BAR_PARTS.includes(part));
+  const status = isAppReviewEmail(email)
+    ? Promise.resolve(emptyNavStatus(parts))
+    : loadNavStatus(viewer, parts).catch((error: unknown) => {
+        console.error("Initial nav status failed", error);
+        return null;
+      });
+  return { parts, status };
+}

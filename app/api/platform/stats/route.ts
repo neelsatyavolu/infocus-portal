@@ -1,5 +1,6 @@
 import { handleRouteError } from "@/src/lib/api-errors";
 import { requireUserId, syncUserProfile } from "@/src/lib/auth";
+import { afterResponse } from "@/src/lib/after-response";
 import { ok } from "@/src/lib/http";
 import { getPlatformAccess } from "@/src/lib/platform-admin";
 import { prisma } from "@/src/lib/prisma";
@@ -79,7 +80,12 @@ export async function GET() {
       }))
     );
     if (refreshIds.length > 0) {
-      void Promise.all(refreshIds.map((projectId) => refreshProjectStorageCache(projectId))).catch(() => undefined);
+      // A few at a time after the response: Workers allow 6 connections at once.
+      afterResponse("platform stats storage refresh", async () => {
+        for (let index = 0; index < refreshIds.length; index += 3) {
+          await Promise.all(refreshIds.slice(index, index + 3).map((projectId) => refreshProjectStorageCache(projectId)));
+        }
+      });
     }
 
     return ok({

@@ -1,0 +1,5 @@
+# Workers static assets (wrangler.jsonc "assets"). Build output under /_next/static has content
+# hashes in its file names, so browsers can keep it for a year without checking back.
+# Never add sw.js or meet-e2ee-worker.js here: they must stay fresh.
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable

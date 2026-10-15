@@ -7,14 +7,13 @@ import {
   downText,
   formatClock,
   parseClockInput,
-  parseScoreboard,
   periodLabel,
   pruneTags,
-  scoreboardSchema,
   TOUCHDOWN_MS,
   type ScoreboardAction,
   type ScoreboardState
 } from "@/src/lib/live/scoreboard";
+import { parseScoreboard, scoreboardSchema } from "@/src/lib/live/scoreboard-schema";
 
 const T0 = 1_800_000_000_000;
 

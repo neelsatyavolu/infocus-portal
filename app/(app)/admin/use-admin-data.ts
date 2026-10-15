@@ -17,12 +17,16 @@ import {
 /** In memory only (src/lib/client-cache.ts): AppShell clears it when the signed-in person changes. */
 const CACHE_KEY = "admin:data";
 
-type Snapshot = {
+/** What the page loads on the server (page.tsx): who you are and, for admins, the lists. */
+export type AdminInitialData = {
   me: PlatformMe;
   roles: RoleAssignment[];
   users: PlatformUser[];
   requests: PlatformAccessRequest[];
   cyclesPerSemester: number;
+};
+
+type Snapshot = AdminInitialData & {
   stats: PlatformStats | null;
   backups: BackupStatus | null;
 };
@@ -35,11 +39,17 @@ function pendingCount(requests: PlatformAccessRequest[]) {
 
 /**
  * Everything Admin loads up front: who you are, roles, people, access requests, cycles per
- * semester, platform totals (in the background) and backups (adviser and super admin). The last
- * copy shows at once on a return visit while a quiet refresh runs.
+ * semester, platform totals (in the background) and backups (adviser and super admin). The server
+ * sends who you are and the lists (page.tsx); totals and backups load after hydration, with the
+ * last copy of the totals shown at once. Without the server's copy, the last copy of everything
+ * shows at once on a return visit while a quiet refresh runs.
  */
-export function useAdminData() {
-  const [initial] = useState(() => (typeof window === "undefined" ? undefined : cachedValue<Snapshot>(CACHE_KEY)));
+export function useAdminData(initialData: AdminInitialData | null) {
+  const [initial] = useState<Snapshot | undefined>(() => {
+    const cached = typeof window === "undefined" ? undefined : cachedValue<Snapshot>(CACHE_KEY);
+    if (!initialData) return cached;
+    return { ...initialData, stats: cached?.stats ?? null, backups: cached?.backups ?? null };
+  });
   const [me, setMe] = useState<PlatformMe | null>(initial?.me ?? null);
   const [roles, setRoles] = useState<RoleAssignment[]>(initial?.roles ?? []);
   const [users, setUsers] = useState<PlatformUser[]>(initial?.users ?? []);
@@ -49,11 +59,15 @@ export function useAdminData() {
   const [statsError, setStatsError] = useState<string | null>(null);
   const [backups, setBackups] = useState<BackupStatus | null>(initial?.backups ?? null);
   const [backupsError, setBackupsError] = useState<string | null>(null);
-  const [listsLoaded, setListsLoaded] = useState(Boolean(initial));
+  const [listsLoaded, setListsLoaded] = useState(
+    initialData ? initialData.me.permissions.canManageAllowedEmails : Boolean(initial)
+  );
   const [loading, setLoading] = useState(!initial);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const startedRef = useRef(false);
+  /** Who you are, once known (server or API): later refreshes skip GET /api/platform/me. */
+  const meRef = useRef<PlatformMe | null>(initialData?.me ?? null);
   /** The load error the banner is showing, so a later successful load can take it down. */
   const loadErrorRef = useRef<string | null>(null);
 
@@ -67,6 +81,16 @@ export function useAdminData() {
     }
   }, []);
 
+  const loadStats = useCallback(() => {
+    void getData<PlatformStats>("/api/platform/stats")
+      .then((nextStats) => {
+        setStats(nextStats);
+        setStatsError(null);
+      })
+      // Shown once under Platform totals, not repeated in the page banner.
+      .catch((error) => setStatsError(errorText(error, "Failed to load admin stats.")));
+  }, []);
+
   const refresh = useCallback(
     async (options?: RefreshOptions) => {
       const pageLoader = options?.pageLoader ?? true;
@@ -76,19 +100,12 @@ export function useAdminData() {
       }
 
       try {
-        const nextMe = await getData<PlatformMe>("/api/platform/me");
+        const nextMe = meRef.current ?? (await getData<PlatformMe>("/api/platform/me"));
+        meRef.current = nextMe;
         setMe(nextMe);
 
         if (nextMe.permissions.canManageAllowedEmails) {
-          if (includeStats) {
-            void getData<PlatformStats>("/api/platform/stats")
-              .then((nextStats) => {
-                setStats(nextStats);
-                setStatsError(null);
-              })
-              // Shown once under Platform totals, not repeated in the page banner.
-              .catch((error) => setStatsError(errorText(error, "Failed to load admin stats.")));
-          }
+          if (includeStats) loadStats();
 
           const [nextRoles, nextUsers, nextRequests, program] = await Promise.all([
             getData<RoleAssignment[]>("/api/platform/roles"),
@@ -129,14 +146,23 @@ export function useAdminData() {
         }
       }
     },
-    [loadBackups]
+    [loadBackups, loadStats]
   );
 
   useEffect(() => {
     if (startedRef.current) return;
     startedRef.current = true;
+    if (initialData) {
+      // The lists came with the page; only the totals and backups are left to load.
+      if (initialData.me.permissions.canManageAllowedEmails) {
+        announceAccessRequests(pendingCount(initialData.requests));
+        loadStats();
+      }
+      if (initialData.me.permissions.canManagePlatformRoles) void loadBackups();
+      return;
+    }
     void refresh({ pageLoader: !initial, includeStats: true });
-  }, [initial, refresh]);
+  }, [initial, initialData, loadBackups, loadStats, refresh]);
 
   useEffect(() => {
     if (!me || !listsLoaded) return;

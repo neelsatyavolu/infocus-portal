@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { handleRouteError } from "@/src/lib/api-errors";
 import { requireUserId, syncUserProfile } from "@/src/lib/auth";
+import { afterResponse } from "@/src/lib/after-response";
 import { ok } from "@/src/lib/http";
 import { getPlatformAccess, hasPlatformRole } from "@/src/lib/platform-admin";
 import { sendAnnouncementEmails } from "@/src/lib/email";
@@ -145,119 +146,122 @@ export async function POST(request: Request) {
       select: { id: true }
     });
 
-    if (isWebPushConfigured()) {
-      const recipients = await prisma.pushNotificationSubscription.findMany({
+    // Push and email go out after the response so posting returns at once.
+    afterResponse("announcement notify", async () => {
+      if (isWebPushConfigured()) {
+        const recipients = await prisma.pushNotificationSubscription.findMany({
+          where: {
+            userId: {
+              not: user.id
+            },
+            user: {
+              notificationPreference: {
+                browserEnabled: true,
+                browserAnnouncementsEnabled: true
+              }
+            }
+          },
+          select: {
+            id: true,
+            endpoint: true,
+            p256dh: true,
+            auth: true
+          }
+        });
+
+        if (recipients.length > 0) {
+          const title = "New Announcement";
+          const body =
+            payload.content.trim().length > 120
+              ? `${payload.content.trim().slice(0, 117)}...`
+              : payload.content.trim();
+
+          const results = await Promise.all(
+            recipients.map((recipient) =>
+              sendWebPush(
+                {
+                  endpoint: recipient.endpoint,
+                  p256dh: recipient.p256dh,
+                  auth: recipient.auth
+                },
+                {
+                  title,
+                  body,
+                  url: "/announcements"
+                }
+              ).then((result) => ({
+                id: recipient.id,
+                result
+              }))
+            )
+          );
+
+          const staleIds = results
+            .filter((entry) => entry.result.stale)
+            .map((entry) => entry.id);
+
+          if (staleIds.length > 0) {
+            await prisma.pushNotificationSubscription.deleteMany({
+              where: {
+                id: {
+                  in: staleIds
+                }
+              }
+            });
+          }
+        }
+      }
+
+      const emailRecipients = await prisma.user.findMany({
         where: {
-          userId: {
+          id: {
             not: user.id
           },
-          user: {
-            notificationPreference: {
-              browserEnabled: true,
-              browserAnnouncementsEnabled: true
+          OR: [
+            {
+              email: {
+                not: null
+              },
+              notificationPreference: {
+                is: null
+              }
+            },
+            {
+              notificationPreference: {
+                is: {
+                  emailEnabled: true,
+                  emailAnnouncementsEnabled: true
+                }
+              }
             }
-          }
+          ]
         },
         select: {
-          id: true,
-          endpoint: true,
-          p256dh: true,
-          auth: true
+          email: true,
+          notificationPreference: {
+            select: {
+              notificationEmail: true
+            }
+          }
         }
       });
 
-      if (recipients.length > 0) {
-        const title = "New Announcement";
-        const body =
-          payload.content.trim().length > 120
-            ? `${payload.content.trim().slice(0, 117)}...`
-            : payload.content.trim();
+      const uniqueEmails = [
+        ...new Set(
+          emailRecipients
+            .map((entry) => entry.notificationPreference?.notificationEmail ?? entry.email)
+            .filter(Boolean)
+        )
+      ] as string[];
+      const baseUrl = process.env.APP_BASE_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "";
+      const announcementUrl = baseUrl ? `${baseUrl.replace(/\/+$/, "")}/announcements` : "/announcements";
 
-        const results = await Promise.all(
-          recipients.map((recipient) =>
-            sendWebPush(
-              {
-                endpoint: recipient.endpoint,
-                p256dh: recipient.p256dh,
-                auth: recipient.auth
-              },
-              {
-                title,
-                body,
-                url: "/announcements"
-              }
-            ).then((result) => ({
-              id: recipient.id,
-              result
-            }))
-          )
-        );
-
-        const staleIds = results
-          .filter((entry) => entry.result.stale)
-          .map((entry) => entry.id);
-
-        if (staleIds.length > 0) {
-          await prisma.pushNotificationSubscription.deleteMany({
-            where: {
-              id: {
-                in: staleIds
-              }
-            }
-          });
-        }
-      }
-    }
-
-    const emailRecipients = await prisma.user.findMany({
-      where: {
-        id: {
-          not: user.id
-        },
-        OR: [
-          {
-            email: {
-              not: null
-            },
-            notificationPreference: {
-              is: null
-            }
-          },
-          {
-            notificationPreference: {
-              is: {
-                emailEnabled: true,
-                emailAnnouncementsEnabled: true
-              }
-            }
-          }
-        ]
-      },
-      select: {
-        email: true,
-        notificationPreference: {
-          select: {
-            notificationEmail: true
-          }
-        }
-      }
-    });
-
-    const uniqueEmails = [
-      ...new Set(
-        emailRecipients
-          .map((entry) => entry.notificationPreference?.notificationEmail ?? entry.email)
-          .filter(Boolean)
-      )
-    ] as string[];
-    const baseUrl = process.env.APP_BASE_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "";
-    const announcementUrl = baseUrl ? `${baseUrl.replace(/\/+$/, "")}/announcements` : "/announcements";
-
-    void sendAnnouncementEmails({
-      recipients: uniqueEmails,
-      authorName: userDisplayName(user) || user.email || "A manager",
-      content: payload.content.trim(),
-      announcementUrl
+      await sendAnnouncementEmails({
+        recipients: uniqueEmails,
+        authorName: userDisplayName(user) || user.email || "A manager",
+        content: payload.content.trim(),
+        announcementUrl
+      });
     });
 
     return ok(created, 201);

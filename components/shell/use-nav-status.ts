@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { createContext, createElement, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { STAGE_FEEDBACK_READ_EVENT } from "@/src/lib/package-stage-comments";
 import { EXTENSION_REQUESTS_CHANGED_EVENT } from "@/src/lib/package-extensions";
 import {
@@ -31,6 +31,15 @@ export function mergeNavStatus(previous: NavStatus, response: NavStatusResponse,
   );
 }
 
+/** Statuses the app layout started on the server (startInitialNavStatus); streamed with the page. */
+export type InitialNavStatus = { parts: NavStatusPart[]; status: Promise<NavStatusResponse | null> };
+
+const InitialNavStatusContext = createContext<InitialNavStatus | null>(null);
+
+export function InitialNavStatusProvider({ value, children }: { value: InitialNavStatus | null; children: ReactNode }) {
+  return createElement(InitialNavStatusContext.Provider, { value }, children);
+}
+
 /** The pending count the Admin page sends with its access-request event, when it is a usable number. */
 export function accessRequestsFromEvent(event: Event): number | null {
   const pending = (event as CustomEvent<{ pending?: unknown }>).detail?.pending;
@@ -56,6 +65,8 @@ export function useNavStatus({
   parts: NavStatusPart[];
   pathname: string;
 }) {
+  const initial = useContext(InitialNavStatusContext);
+  const initialUsedRef = useRef(false);
   const [status, setStatus] = useState<NavStatus>(EMPTY_NAV_STATUS);
   const [loaded, setLoaded] = useState<Set<NavStatusPart>>(() => new Set());
   const fetchedAtRef = useRef<Partial<Record<NavStatusPart, number>>>({});
@@ -100,6 +111,9 @@ export function useNavStatus({
   );
 
   useEffect(() => {
+    // The server's statuses are only for the first run; later they would be stale.
+    const initialForThisRun = initialUsedRef.current ? null : initial;
+    initialUsedRef.current = true;
     if (!enabled) return;
     const refreshStale = () => {
       const now = Date.now();
@@ -137,7 +151,32 @@ export function useNavStatus({
       : null;
 
     refreshStaleRef.current = refreshStale;
-    // Everything is stale on the first run; coming back from a full-screen page loads only what aged.
+    // The server's first statuses count as fetched at load time; the newest-request rule and the
+    // freshness windows apply to them as to any request. If they can't load, fetch them here.
+    if (initialForThisRun) {
+      const covered = initialForThisRun.parts.filter((part) => parts.includes(part));
+      const seq = ++seqRef.current;
+      const now = Date.now();
+      for (const part of covered) {
+        fetchedAtRef.current = { ...fetchedAtRef.current, [part]: now };
+        requestSeqRef.current = { ...requestSeqRef.current, [part]: seq };
+      }
+      void initialForThisRun.status
+        .then((data) => {
+          if (!data) {
+            load(covered);
+            return;
+          }
+          const applied = covered.filter(
+            (part) => requestSeqRef.current[part] === seq && !(data.failed ?? []).includes(part)
+          );
+          if (applied.length === 0) return;
+          setStatus((previous) => mergeNavStatus(previous, data, applied));
+          setLoaded((previous) => new Set([...previous, ...applied]));
+        })
+        .catch(() => load(covered));
+    }
+    // Everything else is stale on the first run; coming back from a full-screen page loads only what aged.
     refreshStale();
     window.addEventListener(STAGE_FEEDBACK_READ_EVENT, onFeedbackRead);
     window.addEventListener(EXTENSION_REQUESTS_CHANGED_EVENT, onExtensionsChanged);

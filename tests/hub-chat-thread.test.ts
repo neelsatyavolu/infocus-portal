@@ -3,9 +3,9 @@ import { HUB_CHAT_THREAD_MAX } from "@/src/lib/hub-chat";
 
 const db = vi.hoisted(() => ({
   user: { findUnique: vi.fn() },
-  hubChat: { findUnique: vi.fn() },
-  hubChatMember: { createMany: vi.fn(), updateMany: vi.fn(), findMany: vi.fn() },
-  hubChatMessage: { findMany: vi.fn(), groupBy: vi.fn() },
+  hubChat: { findUnique: vi.fn(), update: vi.fn() },
+  hubChatMember: { createMany: vi.fn(), updateMany: vi.fn(), findMany: vi.fn(), findUnique: vi.fn() },
+  hubChatMessage: { findMany: vi.fn(), groupBy: vi.fn(), create: vi.fn() },
   packageProgressRow: { findMany: vi.fn() },
   $queryRaw: vi.fn()
 }));
@@ -14,7 +14,7 @@ vi.mock("@/src/lib/platform-admin", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/src/lib/platform-admin")>(),
   getPlatformRoleForEmail: vi.fn().mockResolvedValue(null)
 }));
-import { getHubChatThread, listHubInbox } from "@/src/server/hub-chat";
+import { getHubChatThread, listHubInbox, sendHubChatMessage } from "@/src/server/hub-chat";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -141,5 +141,39 @@ describe("Portal inbox lite polls", () => {
     expect(inbox.members).toEqual([]);
     expect(inbox.unreadCount).toBe(3);
     expect(inbox.chats.map((chat) => chat.id)).toEqual(["chat"]);
+  });
+});
+
+describe("sendHubChatMessage", () => {
+  const author = { id: "abby", name: "Abby", nickname: null, email: null };
+  const peer = { id: "otto", name: "Otto", nickname: null, email: null };
+
+  it("sends to a direct chat from the members it already loaded, without extra member writes", async () => {
+    db.user.findUnique.mockResolvedValue(author);
+    db.hubChat.findUnique.mockResolvedValue({
+      id: "chat", kind: "DIRECT", packageRowId: null, packageRow: null,
+      members: [
+        { userId: author.id, lastReadAt: null, user: author },
+        { userId: peer.id, lastReadAt: null, user: peer }
+      ]
+    });
+    const createdAt = new Date(Date.UTC(2026, 8, 8, 0, 0, 1));
+    db.hubChatMessage.create.mockResolvedValue({ id: "m1", body: "Hi", createdAt, authorId: author.id, author });
+
+    const result = await sendHubChatMessage(author.id, "chat", "Hi");
+
+    expect(result).toEqual({
+      me: { id: author.id, name: "Abby" },
+      message: {
+        id: "m1", body: "Hi", createdAt: createdAt.toISOString(), authorId: author.id,
+        author: expect.objectContaining({ id: author.id })
+      }
+    });
+    expect(db.hubChatMember.createMany).not.toHaveBeenCalled();
+    expect(db.hubChatMember.findUnique).not.toHaveBeenCalled();
+    expect(db.hubChat.update).toHaveBeenCalledWith({ where: { id: "chat" }, data: { updatedAt: expect.any(Date) } });
+    expect(db.hubChatMember.updateMany).toHaveBeenCalledWith({
+      where: { chatId: "chat", userId: author.id }, data: { lastReadAt: expect.any(Date) }
+    });
   });
 });

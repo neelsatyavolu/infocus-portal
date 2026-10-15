@@ -10,6 +10,7 @@ import {
   nextStage,
   remainingExecutiveSignoffs,
   requiredExecutiveSignoffs,
+  type ApprovalDecision,
   type ApprovalState
 } from "@/src/lib/package-approval";
 import {
@@ -23,6 +24,7 @@ import { versionApprovedInStage } from "@/src/lib/initial-cut-review-versions";
 import { prisma } from "@/src/lib/prisma";
 import { wrapReviewNotice } from "@/src/lib/package-review-notice";
 import { createStageComment } from "@/src/server/package-stage-comments";
+import { afterResponse } from "@/src/lib/after-response";
 
 /**
  * Approval hangs off the package (PackageProgressRow), not off any single cut:
@@ -365,34 +367,12 @@ export async function recordDecision(
     }
   });
 
-  if (decision.type === "ADVANCE" && approval.stage === "ASSOCIATE_REVIEW") {
-    const { notifyPackageReview } = await import("@/src/server/package-review-notify");
-    try {
-      await notifyPackageReview({
-        progressRowId,
-        kind: "adviser",
-        mediaVersionId: row?.initialCutMediaItem?.currentVersion?.id
-      });
-    } catch (error) {
-      console.error("notifyPackageReview failed", error);
-    }
-  }
-
-  if (decision.type === "ADVANCE" && approval.stage === "ADVISER_REVIEW") {
-    const { notifyPackageReview } = await import("@/src/server/package-review-notify");
-    await notifyPackageReview({ progressRowId, kind: "execs" });
-  }
-
   if (
     decision.type === "ADVANCE" ||
     decision.type === "SEND_BACK"
   ) {
-    const reviewer = await prisma.user.findUnique({
-      where: { id: actor.userId },
-      select: { name: true, nickname: true, email: true }
-    });
-    const reviewerName = reviewer ? userDisplayName(reviewer) || "A producer" : "A producer";
     const excerpt = note.trim();
+    // The comment stays awaited: the stage page the client reloads next shows it.
     if (approved && excerpt) {
       const { createApprovalStageComment } = await import("@/src/server/package-stage-comments");
       await createApprovalStageComment({
@@ -402,29 +382,74 @@ export async function recordDecision(
         body: excerpt
       });
     }
-    const { notifyPackageMembersOfDecision } = await import("@/src/server/package-review-notify");
-    const kind =
-      decision.type === "SEND_BACK"
-        ? "sent-back"
-        : approval.stage === "ASSOCIATE_REVIEW"
-          ? "stage-1"
-          : approval.stage === "ADVISER_REVIEW"
-            ? "stage-2"
-            : "approved";
+  }
+
+  // Emails and push go out after the response so the decision returns at once.
+  const reviewMediaVersionId = row?.initialCutMediaItem?.currentVersion?.id;
+  afterResponse("recordDecision notify", () =>
+    notifyAfterDecision({ progressRowId, actor, approval, decision, note, mediaVersionId: reviewMediaVersionId })
+  );
+
+  return decision;
+}
+
+async function notifyAfterDecision(input: {
+  progressRowId: string;
+  actor: ApprovalActorContext;
+  approval: { stage: PackageApprovalStage };
+  decision: ApprovalDecision;
+  note: string;
+  mediaVersionId?: string;
+}) {
+  const { progressRowId, actor, approval, decision, note } = input;
+  const { notifyPackageReview, notifyPackageMembersOfDecision } = await import("@/src/server/package-review-notify");
+
+  if (decision.type === "ADVANCE" && approval.stage === "ASSOCIATE_REVIEW") {
     try {
-      await notifyPackageMembersOfDecision({
+      await notifyPackageReview({
         progressRowId,
-        kind,
-        reviewerName,
-        excludeUserId: actor.userId,
-        excerpt
+        kind: "adviser",
+        mediaVersionId: input.mediaVersionId
       });
     } catch (error) {
-      console.error("notifyPackageMembersOfDecision failed", error);
+      console.error("notifyPackageReview failed", error);
     }
   }
 
-  return decision;
+  if (decision.type === "ADVANCE" && approval.stage === "ADVISER_REVIEW") {
+    try {
+      await notifyPackageReview({ progressRowId, kind: "execs" });
+    } catch (error) {
+      console.error("notifyPackageReview failed", error);
+    }
+  }
+
+  if (decision.type !== "ADVANCE" && decision.type !== "SEND_BACK") return;
+
+  const reviewer = await prisma.user.findUnique({
+    where: { id: actor.userId },
+    select: { name: true, nickname: true, email: true }
+  });
+  const reviewerName = reviewer ? userDisplayName(reviewer) || "A producer" : "A producer";
+  const kind =
+    decision.type === "SEND_BACK"
+      ? "sent-back"
+      : approval.stage === "ASSOCIATE_REVIEW"
+        ? "stage-1"
+        : approval.stage === "ADVISER_REVIEW"
+          ? "stage-2"
+          : "approved";
+  try {
+    await notifyPackageMembersOfDecision({
+      progressRowId,
+      kind,
+      reviewerName,
+      excludeUserId: actor.userId,
+      excerpt: note.trim()
+    });
+  } catch (error) {
+    console.error("notifyPackageMembersOfDecision failed", error);
+  }
 }
 
 /**
@@ -482,26 +507,29 @@ export async function approveAnyway(progressRowId: string, actor: ApprovalActorC
     }
   });
 
-  const { notifyPackageReview, notifyPackageMembersOfDecision } = await import("@/src/server/package-review-notify");
-  const reviewer = await prisma.user.findUnique({
-    where: { id: actor.userId },
-    select: { name: true, nickname: true, email: true }
-  });
-  try {
-    await notifyPackageReview({ progressRowId, kind: "adviser", mediaVersionId: versionId });
-  } catch (error) {
-    console.error("notifyPackageReview failed", error);
-  }
-  try {
-    await notifyPackageMembersOfDecision({
-      progressRowId,
-      kind: "stage-1",
-      reviewerName: reviewer ? userDisplayName(reviewer) || "A producer" : "A producer",
-      excludeUserId: actor.userId
+  // Emails and push go out after the response so Approve anyway returns at once.
+  afterResponse("approveAnyway notify", async () => {
+    const { notifyPackageReview, notifyPackageMembersOfDecision } = await import("@/src/server/package-review-notify");
+    const reviewer = await prisma.user.findUnique({
+      where: { id: actor.userId },
+      select: { name: true, nickname: true, email: true }
     });
-  } catch (error) {
-    console.error("notifyPackageMembersOfDecision failed", error);
-  }
+    try {
+      await notifyPackageReview({ progressRowId, kind: "adviser", mediaVersionId: versionId });
+    } catch (error) {
+      console.error("notifyPackageReview failed", error);
+    }
+    try {
+      await notifyPackageMembersOfDecision({
+        progressRowId,
+        kind: "stage-1",
+        reviewerName: reviewer ? userDisplayName(reviewer) || "A producer" : "A producer",
+        excludeUserId: actor.userId
+      });
+    } catch (error) {
+      console.error("notifyPackageMembersOfDecision failed", error);
+    }
+  });
 }
 
 export async function submitCutReview(

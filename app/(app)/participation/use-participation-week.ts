@@ -230,13 +230,16 @@ export function useParticipationWeek() {
         toast.message("No participation changes to submit.");
       }
       announceRequestsChanged();
-      // Edits made while the save was out stay; everything that was sent takes the server's copy.
-      await Promise.all([load(current.key, snapshot), options.reloadQueue ? loadQueue({ silent: true }) : null]);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to save participation.");
-    } finally {
       setSaving(false);
+      return;
     }
+    // What was sent stops counting as unsaved now (edits made while the save was out still do),
+    // and the week reloads quietly: everything that was sent then takes the server's copy.
+    setSheet((previous) => (previous && previous.key === current.key ? { ...previous, baseline: snapshot } : previous));
+    setSaving(false);
+    await Promise.all([load(current.key, snapshot), options.reloadQueue ? loadQueue({ silent: true }) : null]);
   }
 
   async function decide(requestId: string, approved: boolean) {

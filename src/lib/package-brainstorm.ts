@@ -1,6 +1,6 @@
 import type { PackageCategory, PlatformRole } from "@prisma/client";
 import { filterGroupsForViewer } from "@/src/lib/groups-visibility";
-import { hasPlatformRole } from "@/src/lib/platform-admin";
+import { hasPlatformRole } from "@/src/lib/platform-roles";
 
 export const PROOF_OF_CONTACT_SLOTS = [1, 2, 3] as const;
 

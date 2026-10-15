@@ -83,8 +83,12 @@ describe("loadMyGrades", () => {
     const result = await loadMyGrades("student-1", "ASSOCIATE_PRODUCER");
 
     expect(mocks.gradeFindMany).toHaveBeenCalledWith(expect.objectContaining({ where: { userId: "student-1" } }));
-    expect(mocks.buildGradeSummary).toHaveBeenCalledWith("student-1");
-    expect(mocks.loadGradebookExtras).toHaveBeenCalledWith("student-1", [1, 2], []);
+    expect(mocks.buildGradeSummary).toHaveBeenCalledWith("student-1", undefined, {
+      platformRole: "ASSOCIATE_PRODUCER"
+    });
+    expect(mocks.loadGradebookExtras).toHaveBeenCalledWith("student-1", [], []);
+    expect(result.gradebook.checkIns).toEqual(summary.checkInStages);
+    expect(mocks.cycleCreateMany).not.toHaveBeenCalled();
     expect(result.isAdmin).toBe(false);
     expect(result.cycles[0]).toMatchObject({
       cycleNumber: 1,
@@ -95,6 +99,27 @@ describe("loadMyGrades", () => {
       reviewMediaId: "media-1"
     });
     expect(result.summary.publishedCycleCount).toBe(1);
+  });
+
+  it("creates missing default cycles, then loads again", async () => {
+    mocks.cycleFindMany
+      .mockResolvedValueOnce([{ cycleNumber: 1, focus: "Elections" }])
+      .mockResolvedValueOnce([
+        { cycleNumber: 1, focus: "Elections" },
+        { cycleNumber: 2, focus: "" },
+        { cycleNumber: 3, focus: "" },
+        { cycleNumber: 4, focus: "" },
+        { cycleNumber: 5, focus: "" },
+        { cycleNumber: 6, focus: "" }
+      ]);
+
+    const result = await loadMyGrades("student-1", null);
+
+    expect(mocks.cycleCreateMany).toHaveBeenCalledWith({
+      data: [2, 3, 4].map((cycleNumber) => ({ cycleNumber, focus: "" }))
+    });
+    expect(mocks.cycleFindMany).toHaveBeenCalledTimes(2);
+    expect(result.cycles).toHaveLength(6);
   });
 
   it("hides published grades from executive producers", async () => {

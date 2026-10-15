@@ -88,12 +88,15 @@ async function randomizeAnchorsFor(date: string) {
   await postJson("/api/show-roles/anchors", { date, names: suggested, source: "random" }, "Could not save anchors.");
 }
 
-function OverviewBody() {
+function OverviewBody({ initial }: { initial: View | null }) {
   // Reminder emails link to a filmed show with ?date=; the show strip writes it too.
   const requestedDate = useSearchParams().get("date") ?? undefined;
   const viewKey = requestedDate ?? "";
-  const [view, setView] = useState<View | null>(null);
-  const [loading, setLoading] = useState(true);
+  // The server's copy (page.tsx) is for the address the page opened on; the strip swaps the
+  // address in place (no server render), so later shows load here as before.
+  const [view, setView] = useState<View | null>(() => (initial?.key === viewKey ? initial : null));
+  const [loading, setLoading] = useState(() => initial?.key !== viewKey);
+  const serverCopyRef = useRef(initial?.key === viewKey ? initial : null);
   const [loadError, setLoadError] = useState<LoadError | null>(null);
   const [retrying, setRetrying] = useState(false);
   const [saving, setSaving] = useState<SavingTarget>(null);
@@ -138,6 +141,14 @@ function OverviewBody() {
   }, []);
 
   useEffect(() => {
+    const serverCopy = serverCopyRef.current;
+    serverCopyRef.current = null;
+    if (serverCopy && serverCopy.key === (requestedDate ?? "")) {
+      // Already fresh from the server: keep it as the last copy, like a load would.
+      rememberValue(overviewCacheKey(serverCopy.overview.date), serverCopy.overview);
+      if (serverCopy.key === "") rememberValue(overviewCacheKey(), serverCopy.overview);
+      return;
+    }
     let current = true;
     load({ key: requestedDate ?? "", date: requestedDate, cached: true })
       .catch((error: unknown) => {
@@ -332,7 +343,7 @@ function OverviewBody() {
   );
 }
 
-export default function TheShowClient() {
+export default function TheShowClient({ initial }: { initial: View | null }) {
   const params = useSearchParams();
   if (params.get("generator") === "1") {
     return (
@@ -342,5 +353,5 @@ export default function TheShowClient() {
       </div>
     );
   }
-  return <OverviewBody />;
+  return <OverviewBody initial={initial} />;
 }

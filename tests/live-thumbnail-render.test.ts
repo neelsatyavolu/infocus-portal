@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 import { describe, expect, it } from "vitest";
-import { THUMBNAIL_FORMATS, THUMBNAIL_SIZES, THUMBNAIL_TEMPLATES, thumbnailQuerySchema } from "@/src/lib/live/thumbnail";
+import { THUMBNAIL_FORMATS, THUMBNAIL_SIZES, THUMBNAIL_TEMPLATES } from "@/src/lib/live/thumbnail";
+import { thumbnailQuerySchema } from "@/src/lib/live/thumbnail-schema";
 import { loadThumbnailAssets, renderThumbnail } from "@/src/server/live-thumbnail";
 
 describe("live thumbnail rendering", () => {

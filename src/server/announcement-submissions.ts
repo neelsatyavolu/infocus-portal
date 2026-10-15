@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
+import { announcementSubmitSchema } from "@/src/lib/announcement-submission-schema";
 import {
-  announcementSubmitSchema,
   dateKeyToIso,
   isSchoologyOnly,
   runOnLabel,

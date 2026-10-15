@@ -1,4 +1,5 @@
-import { z } from "zod";
+import type { z } from "zod";
+import type { vaultEntryInputSchema, vaultEntryUpdateSchema } from "@/src/lib/password-vault-schema";
 
 export const VAULT_NAME_MAX = 120;
 export const VAULT_URL_MAX = 500;
@@ -52,32 +53,9 @@ export function normalizeVaultUrl(raw: string | null | undefined) {
   }
 }
 
-/**
- * On create every field is optional except name. On update an omitted field
- * is left alone and an empty string clears it.
- */
-export const vaultEntryInputSchema = z.object({
-  name: z.string().trim().min(1, "Name is required.").max(VAULT_NAME_MAX),
-  url: z.string().max(VAULT_URL_MAX).optional(),
-  username: z.string().max(VAULT_USERNAME_MAX).optional(),
-  password: z.string().max(VAULT_PASSWORD_MAX).optional(),
-  totp: z.string().max(VAULT_TOTP_MAX).optional(),
-  notes: z.string().max(VAULT_NOTES_MAX).optional()
-});
-
-export const vaultEntryUpdateSchema = vaultEntryInputSchema.partial();
-
 export const VAULT_IMPORT_MAX = 500;
 
-export const vaultImportSchema = z.object({
-  entries: z.array(vaultEntryInputSchema).min(1).max(VAULT_IMPORT_MAX)
-});
-
 export const VAULT_SHARE_MAX = 200;
-
-export const vaultShareSchema = z.object({
-  userIds: z.array(z.string().min(1).max(64)).max(VAULT_SHARE_MAX)
-});
 
 export type VaultEntryInput = z.infer<typeof vaultEntryInputSchema>;
 export type VaultEntryUpdate = z.infer<typeof vaultEntryUpdateSchema>;

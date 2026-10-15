@@ -176,30 +176,41 @@ function activityVerb(type: string): string {
 
 const dashboardPersonSelect = { id: true, name: true, nickname: true, email: true } as const;
 
+const upNextRowSelect = {
+  groupMembers: true,
+  groupTopic: true,
+  pitching: true,
+  proofOfContact: true,
+  aRollBRoll: true,
+  initialCut: true,
+  finalCut: true,
+  assignedProducer: { select: dashboardPersonSelect },
+  assignedExecutiveProducer: { select: dashboardPersonSelect },
+  members: { select: { user: { select: dashboardPersonSelect } } }
+} as const;
+
 /**
- * Up next needs only the viewer's own row of the active cycle, so this loads that cycle's
- * rows with just the fields the card reads instead of the whole package-progress grid.
- * Active cycle (activeCycleNumberFor) and row order match loadPackageProgressData.
+ * Up next needs only the viewer's own row of the active cycle. Same pick as before (the first
+ * row, in rowOrder, whose member list mentions the viewer, else the first that names them), but
+ * only rows that mention them load with people; the name fallback reads just member text and
+ * loads its one row after. Active cycle (activeCycleNumberFor) and row order match
+ * loadPackageProgressData.
  */
-async function loadUpNextCycle() {
+async function loadUpNextCycle(userId: string, candidates: Set<string>) {
   const activeCycleNumber = activeCycleNumberFor(await ensurePackageProgressDefaults());
-  const [rows, cycleMeta] = await Promise.all([
+  const [mentionRows, nameRows, cycleMeta] = await Promise.all([
     prisma.packageProgressRow.findMany({
-      where: { cycleNumber: activeCycleNumber },
+      where: { cycleNumber: activeCycleNumber, groupMembers: { contains: `(${userId})` } },
       orderBy: { rowOrder: "asc" },
-      select: {
-        groupMembers: true,
-        groupTopic: true,
-        pitching: true,
-        proofOfContact: true,
-        aRollBRoll: true,
-        initialCut: true,
-        finalCut: true,
-        assignedProducer: { select: dashboardPersonSelect },
-        assignedExecutiveProducer: { select: dashboardPersonSelect },
-        members: { select: { user: { select: dashboardPersonSelect } } }
-      }
+      select: upNextRowSelect
     }),
+    candidates.size > 0
+      ? prisma.packageProgressRow.findMany({
+          where: { cycleNumber: activeCycleNumber },
+          orderBy: { rowOrder: "asc" },
+          select: { id: true, groupMembers: true }
+        })
+      : Promise.resolve([]),
     prisma.packageCycle.findUnique({
       where: { cycleNumber: activeCycleNumber },
       select: {
@@ -210,7 +221,14 @@ async function loadUpNextCycle() {
       }
     })
   ]);
-  return { activeCycleNumber, rows, cycleMeta };
+  const mentioned = mentionRows.find((row) => extractMentionUserIds(row.groupMembers).includes(userId));
+  const named = mentioned ? null : nameRows.find((row) => groupMembersIncludeUserName(row.groupMembers, candidates));
+  const myRow =
+    mentioned ??
+    (named
+      ? await prisma.packageProgressRow.findUnique({ where: { id: named.id }, select: upNextRowSelect })
+      : null);
+  return { activeCycleNumber, myRow, cycleMeta };
 }
 
 export async function getDashboardData({
@@ -222,7 +240,8 @@ export async function getDashboardData({
   userId: string;
   userName: string | null;
   userEmail: string | null;
-  workspaceIds: string[];
+  /** May be pending: up next doesn't need it, so it starts before the workspaces load. */
+  workspaceIds: string[] | Promise<string[]>;
 }): Promise<DashboardData> {
   // Up next and recent activity are independent; load them side by side.
   const upNextPromise = (async () => {
@@ -231,17 +250,8 @@ export async function getDashboardData({
     if (isAppReviewEmail(userEmail)) return upNext;
 
     try {
-      const progress = await loadUpNextCycle();
-      const { cycleMeta } = progress;
-      const candidates = buildUserNameCandidates(userName, userEmail);
-
-      const myRow =
-        progress.rows.find((row) =>
-          extractMentionUserIds(row.groupMembers).includes(userId)
-        ) ??
-        (candidates.size > 0
-          ? progress.rows.find((row) => groupMembersIncludeUserName(row.groupMembers, candidates))
-          : null);
+      const progress = await loadUpNextCycle(userId, buildUserNameCandidates(userName, userEmail));
+      const { cycleMeta, myRow } = progress;
 
       if (myRow) {
         const checkIns = [
@@ -282,11 +292,12 @@ export async function getDashboardData({
 
   const activityPromise = (async () => {
     let activity: DashboardActivityEntry[] = [];
+    const ids = await workspaceIds;
 
-    if (workspaceIds.length > 0) {
+    if (ids.length > 0) {
       try {
         const events = await prisma.activityEvent.findMany({
-          where: { workspaceId: { in: workspaceIds }, actorId: userId },
+          where: { workspaceId: { in: ids }, actorId: userId },
           orderBy: { createdAt: "desc" },
           take: 6,
           include: {
@@ -337,12 +348,12 @@ export async function loadStudentDashboardSnapshot(
   userId: string,
   known?: { platformRole: PlatformRole | null }
 ): Promise<StudentDashboardSnapshot> {
-  // Extensions and unread feedback don't depend on the grade summary; load them alongside it.
-  const [{ gradeSummary, extras }, extensionRows, unread] = await Promise.all([
-    buildGradeSummary(userId, undefined, known).then(async (gradeSummary) => ({
-      gradeSummary,
-      extras: await loadGradebookExtras(userId, gradeSummary.cycleNumbers, gradeSummary.checkInStages)
-    })),
+  // Extensions, unread feedback and the gradebook extras don't depend on the grade summary; load
+  // them alongside it. The extras only use cycle numbers and check-ins for their `checkIns`, which
+  // the snapshot never reads, so they don't wait for the summary.
+  const [gradeSummary, extras, extensionRows, unread] = await Promise.all([
+    buildGradeSummary(userId, undefined, known),
+    loadGradebookExtras(userId, [], []),
     prisma.packageGrade.findMany({
       where: { userId },
       select: { extensionDaysApplied: true, extensionExempt: true, freeExtensionDays: true }

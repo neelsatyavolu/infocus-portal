@@ -1,24 +1,21 @@
 import { recordAssociateReviewHistory } from "@/src/server/associate-review-history";
-import { type PackageCategory } from "@prisma/client";
 import { z } from "zod";
+import { afterResponse } from "@/src/lib/after-response";
 import { handleRouteError } from "@/src/lib/api-errors";
 import { requireUserId, syncUserProfile } from "@/src/lib/auth";
 import { fail, ok } from "@/src/lib/http";
 import { isGoogleDocUrl } from "@/src/lib/package-brainstorm";
 import { brainstormBecameReady } from "@/src/lib/package-stage-events";
-import { getPlatformAccess, normalizeEmail } from "@/src/lib/platform-admin";
 import { prisma } from "@/src/lib/prisma";
 import { getRequestKey, limitByKey } from "@/src/lib/rate-limit";
 import { userDisplayName } from "@/src/lib/user-display";
+import { loadBrainstormingPayload } from "@/src/server/brainstorming-payload";
 import {
   brainstormRowInclude,
-  loadStudentBrainstormPackages,
   requireBrainstormMember,
   requireBrainstormViewer,
   serializeBrainstormPackage
 } from "@/src/server/package-brainstorm";
-import { resolveStudentCycleNumber } from "@/src/server/package-cycle-stage";
-import { ensurePackageProgressDefaults } from "@/src/server/package-progress-data";
 import { MAX_CYCLES_PER_SEMESTER } from "@/src/server/program-settings";
 
 const docSchema = z.object({
@@ -49,37 +46,11 @@ export async function GET(request: Request) {
   try {
     const userId = await requireUserId();
     const user = await syncUserProfile(userId);
-    const access = await getPlatformAccess(user.email);
 
     const { searchParams } = new URL(request.url);
     const requestedCycleNumber = parseCycleNumber(searchParams.get("cycle"));
-    const cycles = await ensurePackageProgressDefaults();
-    const activeCycleNumber = requestedCycleNumber ?? (await resolveStudentCycleNumber(userId));
 
-    let producerCategory: PackageCategory | null = null;
-    if (access.role === "ASSOCIATE_PRODUCER") {
-      const assignment = await prisma.platformRoleAssignment.findUnique({
-        where: { email: normalizeEmail(user.email) },
-        select: { category: true }
-      });
-      producerCategory = assignment?.category ?? null;
-    }
-
-    const packages = await loadStudentBrainstormPackages(userId, activeCycleNumber, {
-      platformRole: access.role,
-      producerCategory
-    });
-
-    return ok({
-      currentUserId: userId,
-      canApprove: false,
-      activeCycleNumber,
-      cycles: cycles.map((cycle) => ({
-        cycleNumber: cycle.cycleNumber,
-        focus: cycle.focus
-      })),
-      packages
-    });
+    return ok(await loadBrainstormingPayload({ userId, email: user.email, requestedCycleNumber }));
   } catch (error) {
     if (error instanceof Error && error.message === "BAD_REQUEST") {
       return fail("Invalid cycle number.", 400);
@@ -127,10 +98,10 @@ export async function PATCH(request: Request) {
       });
 
       if (becameReady) {
-        const { notifyBrainstormMaterialsReady } = await import("@/src/server/package-review-notify");
-        void notifyBrainstormMaterialsReady(row.id).catch((error) =>
-          console.error("notifyBrainstormMaterialsReady failed", error)
-        );
+        afterResponse("notifyBrainstormMaterialsReady", async () => {
+          const { notifyBrainstormMaterialsReady } = await import("@/src/server/package-review-notify");
+          await notifyBrainstormMaterialsReady(row.id);
+        });
       }
 
       return ok({ package: serializeBrainstormPackage(updated) });
@@ -166,14 +137,16 @@ export async function PATCH(request: Request) {
     });
 
     if (shouldNotifyApproved) {
-      const { notifyCheckInApproved } = await import("@/src/server/package-review-notify");
-      void notifyCheckInApproved({
-        progressRowId: row.id,
-        stage: "brainstorming",
-        reviewerName: userDisplayName(user) || user.email || "A producer",
-        excludeUserId: userId,
-        excerpt
-      }).catch((error) => console.error("notifyCheckInApproved failed", error));
+      afterResponse("notifyCheckInApproved", async () => {
+        const { notifyCheckInApproved } = await import("@/src/server/package-review-notify");
+        await notifyCheckInApproved({
+          progressRowId: row.id,
+          stage: "brainstorming",
+          reviewerName: userDisplayName(user) || user.email || "A producer",
+          excludeUserId: userId,
+          excerpt
+        });
+      });
     }
 
     return ok({ package: serializeBrainstormPackage(updated) });

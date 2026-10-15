@@ -1,3 +1,4 @@
+import { afterResponse } from "@/src/lib/after-response";
 import { GoogleDocsSyncPermissionError, syncCalendarToGoogleDoc } from "@/src/lib/google-docs-sync";
 import { prisma } from "@/src/lib/prisma";
 import { type ScheduleKind } from "@/src/lib/school-schedule";
@@ -88,7 +89,8 @@ export async function markMasterCalendarEdited(dateKey: string, editedAt = new D
       throw error;
     }
   }
-  await syncTeleprompterAnchorNames({ dateKey });
+  // Teleprompter anchor names refresh after the response so calendar saves return at once.
+  afterResponse("syncTeleprompterAnchorNames", () => syncTeleprompterAnchorNames({ dateKey }));
 }
 
 async function markSyncSuccess(monthKey: string, syncedAt = new Date()) {

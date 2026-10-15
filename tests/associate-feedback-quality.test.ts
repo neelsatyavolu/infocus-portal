@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { anonymizeFeedback, sampleFeedback, summarizeQuality } from "@/src/lib/associate-feedback-quality";
+import { anonymizeFeedback, sampleFeedback } from "@/src/lib/associate-feedback-quality";
+import { summarizeQuality } from "@/src/lib/associate-feedback-quality-schema";
 const notes = [{ id: "1", rowId: "g1", topic: "Private title", stage: "a-roll", body: "Iris: tighten the framing so the subject is clear.", createdAt: "2026-09-01" }];
 describe("consistent feedback quality", () => {
   it("redacts identities, emails and links", () => {

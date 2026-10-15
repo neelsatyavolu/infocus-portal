@@ -1,11 +1,13 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
+import { InitialNavStatusProvider } from "@/components/shell/use-nav-status";
 import { TeleprompterShell } from "@/components/teleprompter-shell";
 import { isAppReviewEmail } from "@/src/lib/app-review";
 import { getRealSessionUser, getSessionUser, requireUserId, syncUserProfile } from "@/src/lib/auth";
 import { EMBEDDED_APP_COOKIE } from "@/src/lib/embedded-app";
 import { resolveAppSurface } from "@/src/lib/hosts";
+import { startInitialNavStatus } from "@/src/server/nav-status";
 import { hasSharedVaultEntries } from "@/src/server/password-vault";
 import { hasTeleprompterKioskCookie } from "@/src/server/teleprompter-access";
 import {
@@ -39,6 +41,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     void getSessionUser()
       .then((session) => (session?.email ? getPlatformRoleForEmail(session.email) : null))
       .catch(() => null);
+    // Needs only the user id, so it runs beside the profile and role lookups (awaited below,
+    // where it's used; the no-op catch only keeps an early redirect from leaving it unhandled).
+    const sharedVaultPromise = surface === "teleprompter" ? Promise.resolve(false) : hasSharedVaultEntries(userId);
+    sharedVaultPromise.catch(() => undefined);
     const [user, realSession] = await Promise.all([syncUserProfile(userId), getRealSessionUser()]);
     const viewingAs = Boolean(realSession && realSession.userId !== userId);
     // Only look up a second role while viewing as someone else; otherwise it is the same person.
@@ -73,21 +79,27 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     }
 
     // Producers always see Passwords; anyone else only once an exec shares a login with them.
+    const embedded = (await cookies()).get(EMBEDDED_APP_COOKIE)?.value === "1";
+    // The sidebar's first statuses stream in with the page (not awaited here). The embedded app
+    // shows no sidebar, so it skips them.
+    const initialNavStatus = embedded ? null : startInitialNavStatus({ userId, role: platformRole }, user.email);
     const hasSharedPasswords =
-      !viewingAs && !hasPlatformRole(platformRole, "ASSOCIATE_PRODUCER") && (await hasSharedVaultEntries(userId));
+      !viewingAs && !hasPlatformRole(platformRole, "ASSOCIATE_PRODUCER") && (await sharedVaultPromise);
 
     return (
-      <AppShell
-        platformRole={platformRole}
-        currentUser={currentUser}
-        canViewAs={canViewAs}
-        viewingAs={viewingAs}
-        hasSharedPasswords={hasSharedPasswords}
-        sampleOnly={isAppReviewEmail(user.email)}
-        embedded={(await cookies()).get(EMBEDDED_APP_COOKIE)?.value === "1"}
-      >
-        {children}
-      </AppShell>
+      <InitialNavStatusProvider value={initialNavStatus}>
+        <AppShell
+          platformRole={platformRole}
+          currentUser={currentUser}
+          canViewAs={canViewAs}
+          viewingAs={viewingAs}
+          hasSharedPasswords={hasSharedPasswords}
+          sampleOnly={isAppReviewEmail(user.email)}
+          embedded={embedded}
+        >
+          {children}
+        </AppShell>
+      </InitialNavStatusProvider>
     );
   } catch (error) {
     if (error instanceof Error && error.message === "FORBIDDEN") {

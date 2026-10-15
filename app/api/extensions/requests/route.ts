@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { handleRouteError } from "@/src/lib/api-errors";
 import { requireUserId, syncUserProfile } from "@/src/lib/auth";
+import { afterResponse } from "@/src/lib/after-response";
 import { ok } from "@/src/lib/http";
 import {
   denialReasonFor,
@@ -409,7 +410,7 @@ export async function PATCH(request: Request) {
           where: { id: payload.requestId },
           data: { status: "DENIED", decidedAt: new Date() }
         });
-        await notifyGroupOfExtensionDecision(payload.requestId);
+        afterResponse("notifyGroupOfExtensionDecision", () => notifyGroupOfExtensionDecision(payload.requestId));
         return ok({ status: "DENIED" as const });
       }
 
@@ -554,9 +555,9 @@ export async function PATCH(request: Request) {
     });
 
     if (status !== "PENDING") {
-      await notifyGroupOfExtensionDecision(withApprovals.id);
+      afterResponse("notifyGroupOfExtensionDecision", () => notifyGroupOfExtensionDecision(withApprovals.id));
     } else if (convertsToGrant) {
-      await notifyExecsOfExtensionGrant(withApprovals.id);
+      afterResponse("notifyExecsOfExtensionGrant", () => notifyExecsOfExtensionGrant(withApprovals.id));
     }
 
     return ok({ status });

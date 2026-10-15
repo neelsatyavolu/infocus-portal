@@ -27,16 +27,16 @@ export function errorMessage(error: unknown, fallback: string) {
 }
 
 /**
- * Everything the page loads and changes. GET /api/livestreams shows the last copy at once
- * (client cache) and refreshes quietly; members load once per visit (managers only); the
+ * Everything the page loads and changes. The first payload comes from the server (page.tsx);
+ * without it, GET /api/livestreams shows the last copy at once (client cache) and refreshes quietly; members load once per visit (managers only); the
  * completion roster loads only when it is shown. Mutations throw, so each dialog or row can
  * show its own error and pending state.
  */
-export function useLivestreamsData() {
-  const [data, setData] = useState<Payload | null>(null);
-  /** The latest payload that came from the network (not the cache). */
-  const [fresh, setFresh] = useState<Payload | null>(null);
-  const [initialLoading, setInitialLoading] = useState(true);
+export function useLivestreamsData(initialData: Payload | null) {
+  const [data, setData] = useState<Payload | null>(initialData);
+  /** The latest payload that came from the server or the network (not the cache). */
+  const [fresh, setFresh] = useState<Payload | null>(initialData);
+  const [initialLoading, setInitialLoading] = useState(initialData === null);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   /** Only the newest payload request may write state; `inFlight` keeps the spinner up until all settle. */
@@ -75,6 +75,11 @@ export function useLivestreamsData() {
   }, []);
 
   useEffect(() => {
+    if (initialData) {
+      // Already fresh from the server: keep it as the last copy for a client-side return.
+      rememberValue(PAYLOAD_KEY, initialData);
+      return;
+    }
     // Show the last copy at once and refresh it quietly (src/lib/client-cache.ts).
     const cached = cachedValue<Payload>(PAYLOAD_KEY);
     if (cached) {
@@ -82,7 +87,7 @@ export function useLivestreamsData() {
       setInitialLoading(false);
     }
     void reload();
-  }, [reload]);
+  }, [initialData, reload]);
 
   const loadCompletion = useCallback(async () => {
     const seq = ++completionSeq.current;
@@ -177,7 +182,7 @@ export function useLivestreamsData() {
   const requestSignup = useCallback(
     async (eventId: string, note: string) => {
       await readJson(await fetch("/api/livestreams/signups", jsonInit("POST", { eventId, availableFullEvent: true, note })));
-      await afterChange();
+      void afterChange();
     },
     [afterChange]
   );
@@ -185,7 +190,7 @@ export function useLivestreamsData() {
   const reviewSignup = useCallback(
     async (signupId: string, status: "APPROVED" | "DENIED") => {
       await readJson(await fetch(`/api/livestreams/signups/${signupId}`, jsonInit("PATCH", { status })));
-      await afterChange();
+      void afterChange();
     },
     [afterChange]
   );

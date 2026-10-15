@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { CalendarPlus, Lock } from "lucide-react";
 import { toast } from "sonner";
@@ -10,7 +11,6 @@ import { SegmentedControl } from "@/components/kit/segmented-control";
 import { LoadingRegion } from "@/components/kit/skeleton";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
-import { AgendaFromQuery, MeetingAgendaSheet } from "@/components/meetings/agenda/agenda-button";
 import { cachedValue, rememberValue } from "@/src/lib/client-cache";
 import type { MeetingListResponse, MeetingSummary } from "@/src/lib/meetings/types";
 import { errorMessage, meetingsApi } from "@/src/lib/meetings/client/api";
@@ -28,6 +28,10 @@ import { ProducerSeriesCard } from "./producer-series-card";
 import { ScheduleDialog } from "./schedule-dialog";
 import { StartMeetingButton } from "./start-meeting-button";
 import { UpcomingPanel } from "./upcoming-panel";
+
+// The agenda editor (and @dnd-kit) loads on demand; both sheets start closed.
+const MeetingAgendaSheet = dynamic(() => import("@/components/meetings/agenda/agenda-sheets").then((m) => m.MeetingAgendaSheet), { ssr: false });
+const AgendaFromQuery = dynamic(() => import("@/components/meetings/agenda/agenda-sheets").then((m) => m.AgendaFromQuery), { ssr: false });
 
 const REFRESH_MS = 60_000;
 const TICK_MS = 10_000;

@@ -192,12 +192,59 @@ async function ensureDefaultProgressRows(cycleNumbers: number[], existing: Set<n
   });
 }
 
+type CycleRow = Awaited<ReturnType<typeof loadCycles>>[number];
+export type CycleCheckRow = CycleRow & { cyclesPerSemester: number | null; hasRows: boolean };
+
+/**
+ * The read path in one query: every cycle (as loadCycles returns it), each with the configured
+ * cycles per semester and whether it has progress rows. ProgramSetting's id is "singleton"
+ * (src/server/program-settings.ts).
+ */
+function loadCycleCheck() {
+  return prisma.$queryRaw<CycleCheckRow[]>`
+    SELECT c."cycleNumber", c."focus", c."pitchingDate", c."proofOfContactDate", c."aRollBRollDate",
+      c."initialCutDate", c."finalCutDate",
+      (SELECT s."cyclesPerSemester" FROM "ProgramSetting" s WHERE s."id" = 'singleton') AS "cyclesPerSemester",
+      EXISTS (SELECT 1 FROM "PackageProgressRow" r WHERE r."cycleNumber" = c."cycleNumber") AS "hasRows"
+    FROM "PackageCycle" c
+    ORDER BY c."cycleNumber" ASC
+  `;
+}
+
+/**
+ * The cycles when nothing needs seeding: the settings row exists and every configured cycle
+ * (1..cyclesPerSemester, which setCyclesPerSemester can change) has a PackageCycle and rows.
+ * Otherwise null, and the caller seeds.
+ */
+export function cyclesIfComplete(rows: CycleCheckRow[]): CycleRow[] | null {
+  const perSemester = rows[0]?.cyclesPerSemester;
+  if (perSemester == null) return null;
+  const seeded = new Set(rows.filter((row) => row.hasRows).map((row) => row.cycleNumber));
+  for (let cycleNumber = 1; cycleNumber <= perSemester; cycleNumber += 1) {
+    if (!seeded.has(cycleNumber)) return null;
+  }
+  return rows.map((row) => ({
+    cycleNumber: row.cycleNumber,
+    focus: row.focus,
+    pitchingDate: row.pitchingDate,
+    proofOfContactDate: row.proofOfContactDate,
+    aRollBRollDate: row.aRollBRollDate,
+    initialCutDate: row.initialCutDate,
+    finalCutDate: row.finalCutDate
+  }));
+}
+
 /**
  * Makes sure every configured cycle has a PackageCycle and default rows, and returns the cycles.
- * The settings read and both existence checks run in parallel; writes only happen when missing.
+ * Reads first check everything in one query (loadCycleCheck); only when something is missing
+ * do the settings read and both existence checks run (in parallel), then the writes.
  * Deduped per server render via React cache().
  */
 export const ensurePackageProgressDefaults = cache(async function ensurePackageProgressDefaults() {
+  const complete = cyclesIfComplete(await loadCycleCheck());
+  if (complete) {
+    return complete;
+  }
   const [cycleNumbers, existingCycles, rowCycleNumbers] = await Promise.all([
     getCycleNumbers(),
     loadCycles(),

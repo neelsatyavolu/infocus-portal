@@ -571,13 +571,11 @@ export async function sendHubChatMessage(
 ) {
   const body = sanitizeHubChatBody(rawBody);
   const { viewer, chat } = await requireChatAccess(userId, chatId, knownUser);
+  // The chat already carries its members, so only write the ones that are missing.
+  const memberIds = chat.members.map((member) => member.userId);
   if (chat.kind === "GROUP" && chat.packageRow) {
-    await ensureMembers(chat.id, [...groupChatParticipantIds(chat.packageRow), userId]);
-  }
-  const membership = await prisma.hubChatMember.findUnique({
-    where: { chatId_userId: { chatId, userId } }
-  });
-  if (!membership) {
+    await ensureMissingMembers(chat.id, [...groupChatParticipantIds(chat.packageRow), userId], memberIds);
+  } else if (!memberIds.includes(userId)) {
     throw new Error("FORBIDDEN");
   }
   const message = await prisma.hubChatMessage.create({
@@ -590,11 +588,13 @@ export async function sendHubChatMessage(
       author: { select: personSelect }
     }
   });
-  await prisma.hubChat.update({
-    where: { id: chatId },
-    data: { updatedAt: new Date() }
-  });
-  await markRead(chatId, userId);
+  await Promise.all([
+    prisma.hubChat.update({
+      where: { id: chatId },
+      data: { updatedAt: new Date() }
+    }),
+    markRead(chatId, userId)
+  ]);
   return {
     me: { id: userId, name: viewer.name },
     message: serializeMessages([message])[0]

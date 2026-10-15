@@ -1,7 +1,8 @@
 import { prisma } from "@/src/lib/prisma";
 import { userDisplayName } from "@/src/lib/user-display";
 import { getCanonicalWorkspaceId } from "@/src/lib/canonical-workspace";
-import { PRODUCER_FEEDBACK_ACTION, producerFeedbackSchema, savedProducerFeedbackSchema, type GroupProducerFeedback, type ProducerFeedbackGroup } from "@/src/lib/producer-feedback";
+import { PRODUCER_FEEDBACK_ACTION, type GroupProducerFeedback, type ProducerFeedbackGroup } from "@/src/lib/producer-feedback";
+import { producerFeedbackSchema, savedProducerFeedbackSchema } from "@/src/lib/producer-feedback-schema";
 
 function reviewId(rowId: string, producerId: string) {
   return `producer-feedback:${rowId}:${producerId}`;

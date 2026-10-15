@@ -21,7 +21,12 @@ export function workersRequest(): WorkersRequest | null {
   return { key: ctx, connectionString };
 }
 
-/** Stays under the Workers limit of 6 outbound connections at once; Hyperdrive does the real pooling. */
+/**
+ * Stays under the Workers limit of 6 outbound connections at once; Hyperdrive does the real pooling.
+ * Keep `maxUses: 1` (OpenNext's recommended setup): a socket must never outlive its request, and
+ * Workers hang when a pooled socket is reused (prisma/prisma#28193). Opening a socket to Hyperdrive
+ * is cheap, so dropping it saves little.
+ */
 export function pgAdapter(connectionString: string) {
   return new PrismaPg({ connectionString, max: 5, maxUses: 1 });
 }

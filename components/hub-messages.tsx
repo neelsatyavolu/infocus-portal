@@ -21,6 +21,22 @@ function withoutKey(record: Record<string, string>, key: string) {
   return Object.fromEntries(Object.entries(record).filter(([entryKey]) => entryKey !== key));
 }
 
+/** The open thread with the message being sent at its end, until the send returns the saved row. */
+function withPending(thread: ThreadPayload, pending: { chatId: string; message: ThreadMessage } | null): ThreadPayload {
+  if (!pending || pending.chatId !== thread.chat.id) {
+    return thread;
+  }
+  return { ...thread, messages: [...thread.messages, pending.message] };
+}
+
+/** The saved row in place of the pending one; a poll that already brought it is left as is. */
+function withSent(thread: ThreadPayload | null, chatId: string, message: ThreadMessage): ThreadPayload | null {
+  if (!thread || thread.chat.id !== chatId || thread.messages.some((entry) => entry.id === message.id)) {
+    return thread;
+  }
+  return { ...thread, messages: [...thread.messages, message] };
+}
+
 function prefersFinePointer() {
   return window.matchMedia("(pointer: fine)").matches;
 }
@@ -52,6 +68,7 @@ export function HubMessages({
   const [active, setActive] = useState<ThreadPayload | null>(null);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [pending, setPending] = useState<{ chatId: string; message: ThreadMessage } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [openingKey, setOpeningKey] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -223,6 +240,11 @@ export function HubMessages({
     setInput(value);
   }
 
+  /**
+   * Shows the message at the end of the thread at once (polls keep it there), swaps in the saved
+   * row when the send returns, and refreshes the inbox in the background. A failed send takes it
+   * out again and shows the error; the draft stays in the composer.
+   */
   async function send() {
     const content = input.trim();
     const chatId = active?.chat.id;
@@ -233,14 +255,26 @@ export function HubMessages({
     setBusy(true);
     setError(null);
     pinnedRef.current = true;
+    setPending({
+      chatId,
+      message: {
+        id: `pending-${Date.now()}`,
+        body: content,
+        createdAt: new Date().toISOString(),
+        authorId: active.me.id,
+        author: active.me
+      }
+    });
     try {
-      await readData<{ message: ThreadMessage }>(
+      const { message } = await readData<{ message: ThreadMessage }>(
         await fetch(`/api/hub-chat/${chatId}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ body: content })
         })
       );
+      setPending(null);
+      setActive((current) => withSent(current, chatId, message));
       // Clear the draft only if it is still the text that was sent.
       if (draftsRef.current[chatId] === input) {
         draftsRef.current = withoutKey(draftsRef.current, chatId);
@@ -248,15 +282,11 @@ export function HubMessages({
           setInput("");
         }
       }
-      if (navigation !== navigationRef.current) {
-        return;
-      }
-      const data = await loadThread(chatId);
       if (navigation === navigationRef.current) {
-        setActive(data);
-        await loadInbox("auto");
+        void loadInbox("auto").catch((caught) => console.error("Could not refresh messages after sending", caught));
       }
     } catch (caught) {
+      setPending(null);
       if (navigation === navigationRef.current) {
         setError(caught instanceof Error ? caught.message : "Could not send.");
       }
@@ -268,7 +298,7 @@ export function HubMessages({
   if (active) {
     return (
       <ThreadView
-        thread={active}
+        thread={withPending(active, pending)}
         scrollRef={scrollRef}
         inputRef={inputRef}
         titleRef={titleRef}

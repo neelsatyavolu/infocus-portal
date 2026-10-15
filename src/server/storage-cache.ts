@@ -1,6 +1,7 @@
 import { getBunnyVideo } from "@/src/lib/bunny";
 import { isNasVideoId } from "@/src/lib/nas-storage";
 import { prisma } from "@/src/lib/prisma";
+import { afterResponse } from "@/src/lib/after-response";
 
 export const STORAGE_CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -212,7 +213,7 @@ export async function getProjectStorageSnapshot(projectId: string, ttlMs = STORA
   }
 
   if (stale) {
-    void refreshProjectStorageCache(projectId, ttlMs).catch(() => undefined);
+    afterResponse("refreshProjectStorageCache", () => refreshProjectStorageCache(projectId, ttlMs));
   }
 
   return {

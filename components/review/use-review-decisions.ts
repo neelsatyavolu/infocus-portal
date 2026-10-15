@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, type Dispatch, type SetStateAction } from "react";
+import { useState, useTransition, type Dispatch, type SetStateAction } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { toAiredDateInput, type ReviewVersion } from "@/components/review/comment-utils";
 import type { PackageReview } from "@/components/review/review-decisions";
+import { requestNavStatusRefresh } from "@/src/lib/sidebar-nav";
 import type { ApprovalStatusValue } from "@/src/lib/types";
 
 async function errorMessage(response: Response, fallback: string) {
@@ -14,8 +16,10 @@ async function errorMessage(response: Response, fallback: string) {
 export type ReviewDecisionsState = ReturnType<typeof useReviewDecisions>;
 
 /**
- * Review decisions and their dialogs. Package (Initial Cut) decisions reload the page when they
- * succeed (the URL keeps ?version). Other media set a version's status in place.
+ * Review decisions and their dialogs. Package (Initial Cut) decisions re-render the page's server
+ * data when they succeed (router.refresh(), no full reload; the shell keeps the selected version),
+ * since the approval strip, version statuses and comment lock all come from it, and stay busy until
+ * that data arrives. Other media set a version's status in place.
  */
 export function useReviewDecisions({
   mediaId,
@@ -36,6 +40,16 @@ export function useReviewDecisions({
   const [approveAnywayOpen, setApproveAnywayOpen] = useState(false);
   const [airedDialogOpen, setAiredDialogOpen] = useState(false);
   const [airedDateInput, setAiredDateInput] = useState("");
+  const router = useRouter();
+  const [refreshing, startRefresh] = useTransition();
+  const [refreshingReview, setRefreshingReview] = useState(false);
+
+  /** After a package decision: the page's server data and the sidebar's Groups and package counts. */
+  function refreshAfterDecision(review = false) {
+    setRefreshingReview(review);
+    startRefresh(() => router.refresh());
+    requestNavStatusRefresh(["groups", "package"]);
+  }
 
   async function postPackageApproval(body: Record<string, unknown>) {
     return fetch(`/api/media/${mediaId}/package-approval`, {
@@ -58,7 +72,7 @@ export function useReviewDecisions({
       setVersions((current) =>
         current.map((version) => (version.id === currentVersion.id ? { ...version, approvalStatus: "NEEDS_CHANGES" } : version))
       );
-      window.location.reload();
+      refreshAfterDecision(true);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not submit review.");
     } finally {
@@ -81,7 +95,8 @@ export function useReviewDecisions({
       if (!response.ok) {
         throw new Error(await errorMessage(response, "Could not approve this cut."));
       }
-      window.location.reload();
+      setApproveFeedbackOpen(false);
+      refreshAfterDecision();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not approve this cut.");
     } finally {
@@ -100,7 +115,7 @@ export function useReviewDecisions({
       if (!response.ok) {
         throw new Error(await errorMessage(response, "Could not send the package to Stage 2."));
       }
-      window.location.reload();
+      refreshAfterDecision();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not send the package to Stage 2.");
       throw error;
@@ -154,8 +169,8 @@ export function useReviewDecisions({
   }
 
   return {
-    statusUpdating,
-    submittingReview,
+    statusUpdating: statusUpdating || (refreshing && !refreshingReview),
+    submittingReview: submittingReview || (refreshing && refreshingReview),
     approveFeedbackOpen,
     setApproveFeedbackOpen,
     approveAnywayOpen,

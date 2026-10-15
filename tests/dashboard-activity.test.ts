@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   activityEventFindMany: vi.fn(),
   ensurePackageProgressDefaults: vi.fn(),
   progressRowFindMany: vi.fn(),
+  progressRowFindUnique: vi.fn(),
   cycleFindUnique: vi.fn()
 }));
 
@@ -12,7 +13,7 @@ vi.mock("@/src/lib/prisma", () => ({
     activityEvent: {
       findMany: mocks.activityEventFindMany
     },
-    packageProgressRow: { findMany: mocks.progressRowFindMany },
+    packageProgressRow: { findMany: mocks.progressRowFindMany, findUnique: mocks.progressRowFindUnique },
     packageCycle: { findUnique: mocks.cycleFindUnique }
   }
 }));
@@ -58,8 +59,9 @@ describe("dashboard activity", () => {
     const person = (id: string, name: string | null, nickname: string | null, email: string | null) => ({
       id, name, nickname, email
     });
-    mocks.progressRowFindMany.mockResolvedValue([
+    const rows = [
       {
+        id: "row-other",
         groupMembers: "@[Otto](other)", groupTopic: "Other", pitching: true, proofOfContact: false,
         aRollBRoll: false, initialCut: false, finalCut: false,
         assignedProducer: null, assignedExecutiveProducer: null, members: []
@@ -74,7 +76,12 @@ describe("dashboard activity", () => {
           { user: person("u2", null, null, "otto@example.edu") }
         ]
       }
-    ]);
+    ];
+    // Like the database: the mention filter is a substring match on the member text.
+    mocks.progressRowFindMany.mockImplementation(
+      async ({ where }: { where: { groupMembers?: { contains: string } } }) =>
+        where.groupMembers ? rows.filter((row) => row.groupMembers.includes(where.groupMembers!.contains)) : rows
+    );
     mocks.cycleFindUnique.mockResolvedValue({
       proofOfContactDate: null, aRollBRollDate: null, initialCutDate: null, finalCutDate: due
     });
@@ -84,8 +91,16 @@ describe("dashboard activity", () => {
     });
 
     expect(mocks.progressRowFindMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { cycleNumber: 2 }, orderBy: { rowOrder: "asc" } })
+      expect.objectContaining({
+        where: { cycleNumber: 2, groupMembers: { contains: "(user_self)" } },
+        orderBy: { rowOrder: "asc" }
+      })
     );
+    // The name fallback reads member text only, and isn't needed when a mention matches.
+    expect(mocks.progressRowFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { cycleNumber: 2 }, select: { id: true, groupMembers: true } })
+    );
+    expect(mocks.progressRowFindUnique).not.toHaveBeenCalled();
     expect(mocks.cycleFindUnique).toHaveBeenCalledWith(expect.objectContaining({ where: { cycleNumber: 2 } }));
     expect(upNext).toEqual({
       cycleNumber: 2,
@@ -102,5 +117,38 @@ describe("dashboard activity", () => {
         { key: "finalCut", label: "Final Cut", done: false, dueDate: due.toISOString() }
       ]
     });
+  });
+
+  it("falls back to the first row that names the viewer, loading only that row", async () => {
+    mocks.progressRowFindMany.mockImplementation(async ({ where }: { where: { groupMembers?: unknown } }) =>
+      where.groupMembers
+        ? []
+        : [
+            { id: "row-1", groupMembers: "Otto Anchor, Sage Reporter" },
+            { id: "row-2", groupMembers: "Abby Reporter, Otto Anchor" }
+          ]
+    );
+    mocks.progressRowFindUnique.mockResolvedValue({
+      groupMembers: "Abby Reporter, Otto Anchor", groupTopic: "Library", pitching: false, proofOfContact: false,
+      aRollBRoll: false, initialCut: false, finalCut: false,
+      assignedProducer: null, assignedExecutiveProducer: null, members: []
+    });
+
+    const { upNext } = await getDashboardData({
+      userId: "user_self", userName: "Abby Reporter", userEmail: "abby@example.edu", workspaceIds: []
+    });
+
+    expect(mocks.progressRowFindUnique).toHaveBeenCalledWith(expect.objectContaining({ where: { id: "row-2" } }));
+    expect(upNext).toMatchObject({ cycleNumber: 1, groupTopic: "Library", checkInsDone: 0 });
+  });
+
+  it("waits for pending workspace ids before loading activity", async () => {
+    await getDashboardData({
+      userId: "user_self", userName: "Abby", userEmail: "abby@example.edu", workspaceIds: Promise.resolve(["ws_1"])
+    });
+
+    expect(mocks.activityEventFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { workspaceId: { in: ["ws_1"] }, actorId: "user_self" } })
+    );
   });
 });

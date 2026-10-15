@@ -1,16 +1,37 @@
 import type { Metadata, Viewport } from "next";
-import { GeistMono } from "geist/font/mono";
 import { Lexend } from "next/font/google";
+import localFont from "next/font/local";
 import { Toaster } from "@/components/ui/sonner";
 import { N3elAnalytics } from "@/components/n3el-analytics";
 import { THEME_INIT_SCRIPT } from "@/src/lib/theme";
 import "./globals.css";
 
+// Variable font: one file covers every weight the app uses (400–700).
 const lexend = Lexend({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
   variable: "--font-lexend",
   display: "swap"
+});
+
+// Same file and settings as `geist/font/mono`, but not preloaded: it is data-only
+// (numbers, timecodes), so it shouldn't compete with Lexend on first paint.
+const geistMono = localFont({
+  src: "../node_modules/geist/dist/fonts/geist-mono/GeistMono-Variable.woff2",
+  variable: "--font-geist-mono",
+  adjustFontFallback: false,
+  fallback: [
+    "ui-monospace",
+    "SFMono-Regular",
+    "Roboto Mono",
+    "Menlo",
+    "Monaco",
+    "Liberation Mono",
+    "DejaVu Sans Mono",
+    "Courier New",
+    "monospace"
+  ],
+  weight: "100 900",
+  preload: false
 });
 
 export const viewport: Viewport = {
@@ -50,7 +71,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`dark bg-background ${lexend.variable} ${GeistMono.variable}`}
+      className={`dark bg-background ${lexend.variable} ${geistMono.variable}`}
       suppressHydrationWarning
     >
       <head>

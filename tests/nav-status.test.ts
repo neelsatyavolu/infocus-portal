@@ -1,7 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  requireUserId: vi.fn(),
+  getSessionUser: vi.fn(),
   syncUserProfile: vi.fn(),
   getPlatformAccess: vi.fn(),
   loadStudentNavGates: vi.fn(),
@@ -10,6 +10,8 @@ const mocks = vi.hoisted(() => ({
   canManageLivestreams: vi.fn(),
   getCycleNumbers: vi.fn(),
   prisma: {
+    // ensurePackageProgressDefaults' one-query check; empty sends it down the full path.
+    $queryRaw: vi.fn(async () => []),
     packageCycle: { findUnique: vi.fn(), findMany: vi.fn(), createMany: vi.fn() },
     packageProgressRow: { findFirst: vi.fn(), findMany: vi.fn(), groupBy: vi.fn(), createMany: vi.fn() },
     packageGrade: { findMany: vi.fn(), findFirst: vi.fn() },
@@ -24,7 +26,7 @@ const mocks = vi.hoisted(() => ({
   }
 }));
 
-vi.mock("@/src/lib/auth", () => ({ requireUserId: mocks.requireUserId, syncUserProfile: mocks.syncUserProfile }));
+vi.mock("@/src/lib/auth", () => ({ getSessionUser: mocks.getSessionUser, syncUserProfile: mocks.syncUserProfile }));
 vi.mock("@/src/lib/prisma", () => ({ prisma: mocks.prisma }));
 vi.mock("@/src/lib/platform-admin", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/src/lib/platform-admin")>()),
@@ -58,6 +60,7 @@ import {
   loadNavStatus,
   parseNavStatusParts,
   stageClosesAt,
+  startInitialNavStatus,
   type GroupAttentionRow,
   type NavStatusViewer
 } from "@/src/server/nav-status";
@@ -92,7 +95,7 @@ async function call(query = "") {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.requireUserId.mockResolvedValue("u-abby");
+  mocks.getSessionUser.mockResolvedValue({ userId: "u-abby", email: "abby@example.edu" });
   mocks.syncUserProfile.mockResolvedValue({ id: "u-abby", email: "abby@example.edu" });
   mocks.getPlatformAccess.mockResolvedValue({ role: null });
   mocks.loadStudentNavGates.mockResolvedValue(gates);
@@ -112,9 +115,26 @@ beforeEach(() => {
 
 describe("GET /api/nav/status", () => {
   it("rejects signed-out requests before loading anything", async () => {
-    mocks.requireUserId.mockRejectedValue(new Error("UNAUTHORIZED"));
+    mocks.getSessionUser.mockResolvedValue(null);
     expect((await call()).status).toBe(401);
     expect(mocks.loadStudentNavGates).not.toHaveBeenCalled();
+  });
+
+  it("looks up the role once, by the session email, while the profile syncs", async () => {
+    mocks.getSessionUser.mockResolvedValue({ userId: "u-abby", email: "Abby@Example.edu" });
+    await call("?parts=package");
+    expect(mocks.getPlatformAccess).toHaveBeenCalledTimes(1);
+    expect(mocks.getPlatformAccess).toHaveBeenCalledWith("Abby@Example.edu");
+  });
+
+  it("looks up the role by the profile email when the session's differs", async () => {
+    mocks.getSessionUser.mockResolvedValue({ userId: "u-abby", email: "old-abby@example.edu" });
+    mocks.getPlatformAccess.mockImplementation(async (email: string) => ({
+      role: email === "abby@example.edu" ? "EXECUTIVE_PRODUCER" : null
+    }));
+    await call("?parts=admin");
+    expect(mocks.getPlatformAccess).toHaveBeenLastCalledWith("abby@example.edu");
+    expect(mocks.prisma.platformAccessRequest.count).toHaveBeenCalled();
   });
 
   it("rejects unknown parts", async () => {
@@ -123,6 +143,7 @@ describe("GET /api/nav/status", () => {
   });
 
   it("gives the App Review account nothing", async () => {
+    mocks.getSessionUser.mockResolvedValue({ userId: "u-review", email: "Review@example.edu" });
     mocks.syncUserProfile.mockResolvedValue({ id: "u-review", email: "Review@example.edu" });
     const { status, body } = await call();
     expect(status).toBe(200);
@@ -243,6 +264,24 @@ describe("GET /api/nav/status", () => {
     expect(body.data).toMatchObject({ groupsNeedYou: 1, accessRequests: 4, latestGradePublishedAt: null });
     expect(mocks.prisma.packageProgressRow.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { cycleNumber: 3 } }));
     expect(mocks.prisma.packageGrade.findFirst).not.toHaveBeenCalled();
+  });
+});
+
+describe("startInitialNavStatus (the layout's first statuses)", () => {
+  it("loads only the stage bar's parts, as the route would", async () => {
+    const initial = startInitialNavStatus({ userId: "u-abby", role: "EXECUTIVE_PRODUCER" }, "abby@example.edu");
+    expect(initial.parts).toEqual(["package", "extensions"]);
+    const data = await initial.status;
+    expect(data).toMatchObject({ extensionRequestsAwaiting: 1, parts: ["package", "extensions"], failed: [] });
+    expect(data?.package).toMatchObject({ hasRow: true, cycleNumber: 3 });
+    expect(mocks.prisma.packageProgressRow.findMany).not.toHaveBeenCalled();
+    expect(mocks.prisma.platformAccessRequest.count).not.toHaveBeenCalled();
+  });
+
+  it("gives the App Review account nothing", async () => {
+    const initial = startInitialNavStatus({ userId: "u-review", role: null }, "Review@example.edu");
+    expect(await initial.status).toMatchObject({ package: null, extensionRequestsAwaiting: null, failed: [] });
+    expect(mocks.loadStudentNavGates).not.toHaveBeenCalled();
   });
 });
 

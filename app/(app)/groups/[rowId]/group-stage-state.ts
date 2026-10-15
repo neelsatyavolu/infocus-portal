@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { requestNavStatusRefresh } from "@/src/lib/sidebar-nav";
 import {
   pruneFlagOverrides,
@@ -59,12 +59,13 @@ export function useStageFlag(key: FlagKey, base: boolean): [boolean, (next: bool
  */
 export function useRefreshAfterStageWrites(rowId: string, enabled: boolean) {
   const router = useRouter();
+  const stage = useParams<{ stage?: string }>()?.stage;
 
   useEffect(() => {
     if (!enabled || typeof PerformanceObserver === "undefined") return;
     const origin = window.location.origin;
     const observer = new PerformanceObserver((list) => {
-      if (list.getEntries().some((entry) => isStageWrite(entry as PerformanceResourceTiming, origin, rowId))) {
+      if (list.getEntries().some((entry) => isStageWrite(entry as PerformanceResourceTiming, origin, rowId, stage))) {
         router.refresh();
         requestNavStatusRefresh(["groups"]);
       }
@@ -76,7 +77,7 @@ export function useRefreshAfterStageWrites(rowId: string, enabled: boolean) {
       return;
     }
     return () => observer.disconnect();
-  }, [enabled, rowId, router]);
+  }, [enabled, rowId, stage, router]);
 }
 
 function seenKey(rowId: string) {

@@ -62,31 +62,18 @@ function shouldReplaceReviewTarget(
   return next.updatedAtMs > current.updatedAtMs;
 }
 
-async function ensureDefaultCycles() {
-  const existing = await prisma.packageCycle.findMany({
-    select: { cycleNumber: true }
-  });
-
-  const existingSet = new Set(existing.map((entry) => entry.cycleNumber));
-  const missing = PACKAGE_CYCLE_NUMBERS.filter((cycleNumber) => !existingSet.has(cycleNumber));
-
-  if (missing.length > 0) {
-    await prisma.packageCycle.createMany({
-      data: missing.map((cycleNumber) => ({
-        cycleNumber,
-        focus: ""
-      }))
-    });
-  }
+/** Cycle numbers the tiles expect but that have no PackageCycle row yet. */
+function missingDefaultCycles(cycles: Array<{ cycleNumber: number }>) {
+  const existingSet = new Set(cycles.map((entry) => entry.cycleNumber));
+  return PACKAGE_CYCLE_NUMBERS.filter((cycleNumber) => !existingSet.has(cycleNumber));
 }
 
-export async function loadMyGrades(userId: string, role: PlatformRole | null) {
-  const isAdmin = hasPlatformRole(role, "EXECUTIVE_PRODUCER");
-
-  await ensureDefaultCycles();
-
-  // The weighted summary only needs the cycles to exist, so it runs alongside the tile queries.
-  const [cycles, myGrades, assignedMediaItems, gradeSummary] = await Promise.all([
+/**
+ * Everything the page reads, in one wave. The gradebook extras use cycle numbers and check-ins
+ * only for `checkIns`, which loadMyGrades fills from the summary, so they don't wait for it.
+ */
+function loadGradeSources(userId: string, role: PlatformRole | null) {
+  return Promise.all([
     prisma.packageCycle.findMany({
       orderBy: { cycleNumber: "asc" },
       select: {
@@ -138,9 +125,30 @@ export async function loadMyGrades(userId: string, role: PlatformRole | null) {
     }),
     // Weighted 2026–27 grade (packages / participation / portfolio).
     // Livestream credit is derived from completed hours on the livestream tracker.
-    buildGradeSummary(userId)
+    // The caller already resolved this user's role, so the summary skips re-reading it.
+    buildGradeSummary(userId, undefined, { platformRole: role }),
+    loadGradebookExtras(userId, [], [])
   ]);
-  const gradebook = await loadGradebookExtras(userId, gradeSummary.cycleNumbers, gradeSummary.checkInStages);
+}
+
+export async function loadMyGrades(userId: string, role: PlatformRole | null) {
+  const isAdmin = hasPlatformRole(role, "EXECUTIVE_PRODUCER");
+
+  // The cycle list doubles as the default-cycles check: in the rare case a default cycle is
+  // missing, create it and load again, so nothing reads a half-made set of cycles.
+  let sources = await loadGradeSources(userId, role);
+  const missing = missingDefaultCycles(sources[0]);
+  if (missing.length > 0) {
+    await prisma.packageCycle.createMany({
+      data: missing.map((cycleNumber) => ({
+        cycleNumber,
+        focus: ""
+      }))
+    });
+    sources = await loadGradeSources(userId, role);
+  }
+  const [cycles, myGrades, assignedMediaItems, gradeSummary, extras] = sources;
+  const gradebook = { ...extras, checkIns: gradeSummary.checkInStages };
 
   const myGradeMap = new Map(myGrades.map((entry) => [entry.cycleNumber, entry]));
   const reviewTargetByCycle = new Map<

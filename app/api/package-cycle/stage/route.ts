@@ -1,5 +1,6 @@
 import { recordAssociateReviewHistory } from "@/src/server/associate-review-history";
 import { z } from "zod";
+import { afterResponse } from "@/src/lib/after-response";
 import { handleRouteError } from "@/src/lib/api-errors";
 import { requireUserId, syncUserProfile } from "@/src/lib/auth";
 import { fail, ok } from "@/src/lib/http";
@@ -24,7 +25,8 @@ export async function GET(request: Request) {
     if (!isCycleStageSlug(slug)) {
       return fail("Invalid stage.", 400);
     }
-    const access = await getPlatformAccess(user.email);
+    // The role lookup runs alongside the row read inside loadCycleStageView.
+    const role = getPlatformAccess(user.email).then((access) => access.role);
 
     const rowId = searchParams.get("rowId");
     const cycle = searchParams.get("cycle");
@@ -36,7 +38,8 @@ export async function GET(request: Request) {
 
     const view = await loadCycleStageView({
       userId,
-      role: access.role,
+      role,
+      email: user.email,
       slug,
       rowId,
       cycleNumber,
@@ -118,14 +121,16 @@ export async function PATCH(request: Request) {
       });
     }
     if (payload.approved && !wasApproved) {
-      const { notifyCheckInApproved } = await import("@/src/server/package-review-notify");
-      void notifyCheckInApproved({
-        progressRowId: payload.rowId,
-        stage,
-        reviewerName: userDisplayName(user) || user.email || "A producer",
-        excludeUserId: userId,
-        excerpt
-      }).catch((error) => console.error("notifyCheckInApproved failed", error));
+      afterResponse("notifyCheckInApproved", async () => {
+        const { notifyCheckInApproved } = await import("@/src/server/package-review-notify");
+        await notifyCheckInApproved({
+          progressRowId: payload.rowId,
+          stage,
+          reviewerName: userDisplayName(user) || user.email || "A producer",
+          excludeUserId: userId,
+          excerpt
+        });
+      });
     }
 
     return ok({ ok: true });

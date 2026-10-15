@@ -101,3 +101,13 @@ describe("package cycle chart editing", () => {
     expect(canEditPackageCycle(null)).toBe(false);
   });
 });
+
+describe("client-safe platform-roles module", () => {
+  it("is what platform-admin re-exports, so server and client share one implementation", async () => {
+    const roles = await import("@/src/lib/platform-roles");
+    expect(roles.hasPlatformRole).toBe(hasPlatformRole);
+    expect(roles.isExecutiveProducer).toBe(isExecutiveProducer);
+    expect(roles.seesStudentGrades).toBe(seesStudentGrades);
+    expect(roles.buildPlatformAccess).toBe(buildPlatformAccess);
+  });
+});

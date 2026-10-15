@@ -1,5 +1,5 @@
 import type { PlatformRole } from "@prisma/client";
-import { hasPlatformRole } from "@/src/lib/platform-admin";
+import { hasPlatformRole } from "@/src/lib/platform-roles";
 import { userDisplayName } from "@/src/lib/user-display";
 
 export type AssignedProducerRef = {

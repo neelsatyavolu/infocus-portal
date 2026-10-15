@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { use, useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { cachedValue, rememberValue } from "@/src/lib/client-cache";
 import {
@@ -34,22 +34,35 @@ export function cachedPayload(urlCycle: number | null) {
   return target !== null ? cachedValue<BrainstormPayload>(cacheKey(target)) : undefined;
 }
 
+/** The page's server-loaded payload for the ?cycle it rendered (null = the current cycle). */
+export type InitialBrainstorming = { cycle: number | null; payload: Promise<BrainstormPayload | null> };
+
 /**
  * The page's data: GET /api/brainstorming for ?cycle (or the current cycle). A visit shows the
  * cached copy at once and refreshes it quietly (src/lib/client-cache.ts). Answers that arrive
  * out of order are dropped, and when an upload, removal or save lands while a load is in flight,
  * that load fetches again so an older answer never overwrites the change.
+ * `initial` (the same payload, loaded by the server page) answers the first load instead of a
+ * fetch; with no cached copy the page waits for it (loading.tsx), so a full page load arrives
+ * with content. It resolves to null on failure, and the first load then fetches as before.
  */
-export function useBrainstorming(urlCycle: number | null) {
-  const [view, setView] = useState<BrainstormView | null>(null);
-  const [currentCycle, setCurrentCycle] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
+export function useBrainstorming(urlCycle: number | null, initial?: InitialBrainstorming) {
+  const serverCopy = useRef(initial ?? null);
+  const [hadCopy] = useState(() => cachedPayload(urlCycle) !== undefined);
+  const first = initial && initial.cycle === urlCycle && !hadCopy ? use(initial.payload) : null;
+  const [view, setView] = useState<BrainstormView | null>(() => (first ? { payload: first, requested: urlCycle } : null));
+  const [currentCycle, setCurrentCycle] = useState<number | null>(() =>
+    first && urlCycle === null ? first.activeCycleNumber : null
+  );
+  const [loading, setLoading] = useState(!first);
   const [error, setError] = useState<string | null>(null);
   const requestSeq = useRef(0);
   const editSeq = useRef(0);
   const dataOnScreen = useRef(false);
 
   const load = useCallback(async function run(requested: number | null, options?: { cached?: boolean }): Promise<void> {
+    const fromServer = serverCopy.current?.cycle === requested ? serverCopy.current.payload : null;
+    serverCopy.current = null;
     const seq = ++requestSeq.current;
     const editsAtStart = editSeq.current;
     const knownCurrent = cachedValue<number>(CURRENT_CYCLE_KEY) ?? null;
@@ -60,11 +73,12 @@ export function useBrainstorming(urlCycle: number | null) {
     if (cached) {
       setView({ payload: cached, requested });
       setLoading(false);
-    } else {
+    } else if (!(fromServer && !hadCopy)) {
+      // (The server's copy, with no cached one before it, is already on screen.)
       setLoading(true);
     }
     try {
-      const data = await fetchPayload(requested);
+      const data = (fromServer && (await fromServer)) || (await fetchPayload(requested));
       if (seq !== requestSeq.current) return; // a newer request owns the screen
       if (editSeq.current !== editsAtStart) {
         // A change landed on screen meanwhile and this answer may predate it: ask again.
@@ -85,7 +99,7 @@ export function useBrainstorming(urlCycle: number | null) {
     } finally {
       if (seq === requestSeq.current) setLoading(false);
     }
-  }, []);
+  }, [hadCopy]);
 
   useEffect(() => {
     void load(urlCycle, { cached: true });

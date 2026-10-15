@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 import { handleRouteError } from "@/src/lib/api-errors";
-import { THUMBNAIL_SIZES, thumbnailFileName, thumbnailQuerySchema } from "@/src/lib/live/thumbnail";
+import { THUMBNAIL_SIZES, thumbnailFileName } from "@/src/lib/live/thumbnail";
+import { thumbnailQuerySchema } from "@/src/lib/live/thumbnail-schema";
 import { getRequestKey, limitByKey } from "@/src/lib/rate-limit";
 import { requireLiveAccess } from "@/src/server/live-access";
 import { loadThumbnailAssets, loadThumbnailFonts, renderThumbnail } from "@/src/server/live-thumbnail";

@@ -2,7 +2,7 @@ import { z } from "zod";
 import { handleRouteError } from "@/src/lib/api-errors";
 import { okNoStore } from "@/src/lib/http";
 import { liveImageSchema, sanitizeGraphicFields } from "@/src/lib/live/graphics";
-import { scoreboardActionSchema } from "@/src/lib/live/scoreboard";
+import { scoreboardActionSchema } from "@/src/lib/live/scoreboard-schema";
 import { getRequestKey, limitByKey } from "@/src/lib/rate-limit";
 import { requireLiveAccess } from "@/src/server/live-access";
 import { applyScoreboardActions, getLiveGraphics, saveLiveImage } from "@/src/server/live-graphics";

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
+import { cache, Suspense } from "react";
 import { StageWorkspace } from "@/components/package-cycle/stage-workspace";
+import { StageWorkspaceSkeleton } from "@/components/package-stages/stage-states";
 import { getCurrentAppUser } from "@/src/lib/current-app-user";
 import { serializeProofs } from "@/src/lib/package-brainstorm";
 import { APPROVAL_COMMENT_PREFIX } from "@/src/lib/package-stage-comments";
@@ -19,6 +21,7 @@ import { producerMayActOnPackage } from "@/src/lib/package-producer-assignment";
 import { hasPlatformRole } from "@/src/lib/platform-admin";
 import { prisma } from "@/src/lib/prisma";
 import { userDisplayName } from "@/src/lib/user-display";
+import { loadStagePageView } from "@/src/server/stage-page-view";
 import { BrainstormingPanel, PitchingPanel } from "../early-stage-panel";
 import { GroupStageShell } from "../group-stage-shell";
 import type { GroupStageFacts } from "../stage-bar-model";
@@ -33,36 +36,9 @@ function latestIso(dates: Date[]) {
   return latest ? latest.toISOString() : null;
 }
 
-export async function generateMetadata({
-  params
-}: {
-  params: Promise<{ rowId: string; stage: string }>;
-}): Promise<Metadata> {
-  const { rowId, stage } = await params;
-  const stageLabel = isGroupNavSlug(stage) ? GROUP_NAV_TAB_LABELS[stage] : null;
-  try {
-    const { platformRole } = await getCurrentAppUser();
-    if (!hasPlatformRole(platformRole, "ASSOCIATE_PRODUCER")) return { title: "Group" };
-    const row = await prisma.packageProgressRow.findUnique({ where: { id: rowId }, select: { groupTopic: true } });
-    const topic = row?.groupTopic?.trim() || "Group";
-    return { title: stageLabel ? `${topic} · ${stageLabel}` : topic };
-  } catch {
-    return { title: "Group" };
-  }
-}
-
-export default async function GroupStagePage({
-  params
-}: {
-  params: Promise<{ rowId: string; stage: string }>;
-}) {
-  const { platformRole, userId } = await getCurrentAppUser();
-  if (!hasPlatformRole(platformRole, "ASSOCIATE_PRODUCER")) {
-    redirect("/access-denied");
-  }
-
-  const { rowId, stage } = await params;
-  const row = await prisma.packageProgressRow.findUnique({
+/** One read per request, shared by generateMetadata (the topic) and the page. */
+const loadGroupRow = cache((rowId: string) =>
+  prisma.packageProgressRow.findUnique({
     where: { id: rowId },
     include: {
       members: { include: { user: { select: { name: true, nickname: true, email: true } } } },
@@ -85,7 +61,45 @@ export default async function GroupStagePage({
         take: 1
       }
     }
-  });
+  })
+);
+
+export async function generateMetadata({
+  params
+}: {
+  params: Promise<{ rowId: string; stage: string }>;
+}): Promise<Metadata> {
+  const { rowId, stage } = await params;
+  const stageLabel = isGroupNavSlug(stage) ? GROUP_NAV_TAB_LABELS[stage] : null;
+  try {
+    const { platformRole } = await getCurrentAppUser();
+    if (!hasPlatformRole(platformRole, "ASSOCIATE_PRODUCER")) return { title: "Group" };
+    const row = await loadGroupRow(rowId);
+    const topic = row?.groupTopic?.trim() || "Group";
+    return { title: stageLabel ? `${topic} · ${stageLabel}` : topic };
+  } catch {
+    return { title: "Group" };
+  }
+}
+
+export default async function GroupStagePage({
+  params
+}: {
+  params: Promise<{ rowId: string; stage: string }>;
+}) {
+  const { platformRole, userId } = await getCurrentAppUser();
+  if (!hasPlatformRole(platformRole, "ASSOCIATE_PRODUCER")) {
+    redirect("/access-denied");
+  }
+
+  const { rowId, stage } = await params;
+  const reviewStage = initialReviewStageFromSlug(stage) ?? undefined;
+  // The stage view (what StageWorkspace would fetch after hydration) starts now, alongside the
+  // row read, and streams to the client; only stage routes that render it start it.
+  const viewSlug = stage !== "initial-cut" && isGroupNavSlug(stage) ? workspaceSlugFromNav(stage) : null;
+  const initialView =
+    viewSlug && isCycleStageSlug(viewSlug) ? loadStagePageView({ slug: viewSlug, rowId, reviewStage }) : undefined;
+  const row = await loadGroupRow(rowId);
   if (!row) {
     notFound();
   }
@@ -165,13 +179,16 @@ export default async function GroupStagePage({
       facts={facts}
     >
       {isCycleStageSlug(workSlug) ? (
-        <StageWorkspace
-          slug={workSlug}
-          rowId={row.id}
-          producerChrome
-          embedded
-          reviewStage={initialReviewStageFromSlug(stage) ?? undefined}
-        />
+        <Suspense fallback={<StageWorkspaceSkeleton slug={workSlug} embedded />}>
+          <StageWorkspace
+            slug={workSlug}
+            rowId={row.id}
+            producerChrome
+            embedded
+            reviewStage={reviewStage}
+            initialView={initialView}
+          />
+        </Suspense>
       ) : stage === "pitching" ? (
         <PitchingPanel rowId={row.id} approved={row.pitching} canEdit={canEdit} />
       ) : (

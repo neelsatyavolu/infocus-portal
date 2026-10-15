@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { thumbnailQuerySchema } from "@/src/lib/live/thumbnail";
+import { thumbnailQuerySchema } from "@/src/lib/live/thumbnail-schema";
 import {
   apDate,
   defaultLivestreamFields,

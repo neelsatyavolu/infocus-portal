@@ -2,7 +2,7 @@ import { handleRouteError } from "@/src/lib/api-errors";
 import { requireUserId, syncUserProfile } from "@/src/lib/auth";
 import { okUnmapped } from "@/src/lib/http";
 import { getPlatformAccess, hasPlatformRole } from "@/src/lib/platform-admin";
-import { prisma } from "@/src/lib/prisma";
+import { listPlatformUsers } from "@/src/server/platform-admin-lists";
 
 export async function GET() {
   try {
@@ -14,16 +14,7 @@ export async function GET() {
       throw new Error("FORBIDDEN");
     }
 
-    const users = await prisma.user.findMany({
-      orderBy: [{ name: "asc" }, { email: "asc" }, { createdAt: "desc" }],
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        nickname: true,
-        createdAt: true
-      }
-    });
+    const users = await listPlatformUsers();
 
     return okUnmapped(users);
   } catch (error) {

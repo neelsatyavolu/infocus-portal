@@ -8,6 +8,7 @@ import { getPlatformAccess, isEmailAllowedToUsePlatform, normalizeEmail } from "
 import { provisionNasUsers } from "@/src/lib/drive-user-sync";
 import { prisma } from "@/src/lib/prisma";
 import { getRequestKey, limitByKey } from "@/src/lib/rate-limit";
+import { listAccessRequests } from "@/src/server/platform-admin-lists";
 import { userDisplayName } from "@/src/lib/user-display";
 
 const createPayloadSchema = z.object({
@@ -41,24 +42,7 @@ export async function GET() {
       throw new Error("FORBIDDEN");
     }
 
-    const requests = await prisma.platformAccessRequest.findMany({
-      orderBy: [{ requestedAt: "desc" }, { createdAt: "desc" }]
-    });
-
-    const statusWeight: Record<string, number> = {
-      PENDING: 0,
-      APPROVED: 1,
-      DENIED: 2
-    };
-
-    requests.sort((a, b) => {
-      const byStatus = (statusWeight[a.status] ?? 10) - (statusWeight[b.status] ?? 10);
-      if (byStatus !== 0) {
-        return byStatus;
-      }
-
-      return b.requestedAt.getTime() - a.requestedAt.getTime();
-    });
+    const requests = await listAccessRequests();
 
     return ok(requests);
   } catch (error) {

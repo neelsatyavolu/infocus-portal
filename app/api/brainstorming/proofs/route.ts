@@ -1,6 +1,7 @@
 import { recordAssociateReviewHistory } from "@/src/server/associate-review-history";
 import { z } from "zod";
 import { brainstormBecameReady } from "@/src/lib/package-stage-events";
+import { afterResponse } from "@/src/lib/after-response";
 import { handleRouteError } from "@/src/lib/api-errors";
 import { requireUserId, syncUserProfile } from "@/src/lib/auth";
 import { fail, ok } from "@/src/lib/http";
@@ -79,16 +80,16 @@ export async function POST(request: Request) {
       return proof;
     });
 
-    const { publishProofOfContactToSlack } = await import("@/src/server/proof-of-contact-slack");
-    void publishProofOfContactToSlack(row).catch((error) =>
-      console.error("publishProofOfContactToSlack failed", error)
-    );
+    afterResponse("publishProofOfContactToSlack", async () => {
+      const { publishProofOfContactToSlack } = await import("@/src/server/proof-of-contact-slack");
+      await publishProofOfContactToSlack(row);
+    });
 
     if (becameReady) {
-      const { notifyBrainstormMaterialsReady } = await import("@/src/server/package-review-notify");
-      void notifyBrainstormMaterialsReady(row.id).catch((error) =>
-        console.error("notifyBrainstormMaterialsReady failed", error)
-      );
+      afterResponse("notifyBrainstormMaterialsReady", async () => {
+        const { notifyBrainstormMaterialsReady } = await import("@/src/server/package-review-notify");
+        await notifyBrainstormMaterialsReady(row.id);
+      });
     }
 
     return ok({ proof: serializeProofs([proof])[0] }, 201);

@@ -243,21 +243,27 @@ describe("stage writes", () => {
   const write = (path: string, initiatorType = "fetch") => ({ name: `${origin}${path}`, initiatorType });
 
   it("counts the hosted workspace's writes for this group", () => {
-    expect(isStageWrite(write("/api/package-cycle/stage"), origin, "row_1")).toBe(true);
-    expect(isStageWrite(write("/api/package-cycle/queue"), origin, "row_1")).toBe(true);
-    expect(isStageWrite(write("/api/package-cycle/upload"), origin, "row_1")).toBe(true);
-    expect(isStageWrite(write("/api/package-cycle/comments"), origin, "row_1")).toBe(true);
-    expect(isStageWrite(write("/api/package-progress/row_1/approval"), origin, "row_1")).toBe(true);
+    expect(isStageWrite(write("/api/package-cycle/stage"), origin, "row_1", "initial-stage-1")).toBe(true);
+    expect(isStageWrite(write("/api/package-cycle/queue"), origin, "row_1", "initial-stage-1")).toBe(true);
+    expect(isStageWrite(write("/api/package-cycle/upload"), origin, "row_1", "initial-stage-1")).toBe(true);
+    expect(isStageWrite(write("/api/package-progress/row_1/approval"), origin, "row_1", "initial-stage-1")).toBe(true);
+  });
+
+  it("counts a feedback note only on A/B-roll, where it clears the A-roll approval", () => {
+    expect(isStageWrite(write("/api/package-cycle/comments"), origin, "row_1", "a-roll")).toBe(true);
+    expect(isStageWrite(write("/api/package-cycle/comments"), origin, "row_1", "initial-stage-1")).toBe(false);
+    expect(isStageWrite(write("/api/package-cycle/comments"), origin, "row_1", "final-cut")).toBe(false);
+    expect(isStageWrite(write("/api/package-cycle/comments"), origin, "row_1", undefined)).toBe(false);
   });
 
   it("ignores reads, other groups, other origins and non-fetch requests", () => {
-    expect(isStageWrite(write("/api/package-cycle/stage?stage=a-roll&rowId=row_1"), origin, "row_1")).toBe(false);
-    expect(isStageWrite(write("/api/package-cycle/comments?rowId=row_1&stage=a-roll"), origin, "row_1")).toBe(false);
-    expect(isStageWrite(write("/api/package-progress/row_2/approval"), origin, "row_1")).toBe(false);
-    expect(isStageWrite(write("/groups/row_1/a-roll"), origin, "row_1")).toBe(false);
-    expect(isStageWrite({ name: "https://cdn.example.edu/api/package-cycle/upload", initiatorType: "fetch" }, origin, "row_1")).toBe(false);
-    expect(isStageWrite(write("/api/package-cycle/upload", "img"), origin, "row_1")).toBe(false);
-    expect(isStageWrite({ name: "not a url", initiatorType: "fetch" }, origin, "row_1")).toBe(false);
+    expect(isStageWrite(write("/api/package-cycle/stage?stage=a-roll&rowId=row_1"), origin, "row_1", "initial-stage-1")).toBe(false);
+    expect(isStageWrite(write("/api/package-cycle/comments?rowId=row_1&stage=a-roll"), origin, "row_1", "initial-stage-1")).toBe(false);
+    expect(isStageWrite(write("/api/package-progress/row_2/approval"), origin, "row_1", "initial-stage-1")).toBe(false);
+    expect(isStageWrite(write("/groups/row_1/a-roll"), origin, "row_1", "initial-stage-1")).toBe(false);
+    expect(isStageWrite({ name: "https://cdn.example.edu/api/package-cycle/upload", initiatorType: "fetch" }, origin, "row_1", "initial-stage-1")).toBe(false);
+    expect(isStageWrite(write("/api/package-cycle/upload", "img"), origin, "row_1", "initial-stage-1")).toBe(false);
+    expect(isStageWrite({ name: "not a url", initiatorType: "fetch" }, origin, "row_1", "initial-stage-1")).toBe(false);
   });
 
   it("watches only the hosted workspace stages", () => {

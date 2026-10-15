@@ -132,6 +132,9 @@ export function useMasterCalendar(initialData: CalendarResponse) {
   const knownAiredIdsRef = useRef<Record<string, Set<string>>>(
     Object.fromEntries(Object.entries(initialEntries).map(([dateKey, html]) => [dateKey, extractPackageIds(html)]))
   );
+  // Aired syncs run one after another (a pill removed then put back can't land out of order), but
+  // never hold up a cell's save.
+  const airedSyncRef = useRef<Promise<void>>(Promise.resolve());
   const monthCacheRef = useRef<Map<string, CalendarResponse>>(new Map([[initialData.month, initialData]]));
   const loadGenerationRef = useRef(0);
   const cellQueuesRef = useRef(new Map<string, CellSaveQueue>());
@@ -384,7 +387,8 @@ export function useMasterCalendar(initialData: CalendarResponse) {
       lastEditAtRef.current = Date.now();
       scheduleAutoSyncCheck();
 
-      await syncAiredStateForPills(dateKey, savedContent);
+      // Each mark/unmark catches its own failure (shown in the message bar), so the chain never rejects.
+      airedSyncRef.current = airedSyncRef.current.then(() => syncAiredStateForPills(dateKey, savedContent));
       return savedContent;
     } catch (error) {
       markFailed(dateKey, errorText(error, "Failed to save cell."));

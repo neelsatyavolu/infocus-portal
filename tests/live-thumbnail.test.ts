@@ -8,9 +8,9 @@ import {
   formatThumbnailTime,
   pacificDateTimeInputs,
   parseEventTitle,
-  thumbnailFileName,
-  thumbnailQuerySchema
+  thumbnailFileName
 } from "@/src/lib/live/thumbnail";
+import { thumbnailQuerySchema } from "@/src/lib/live/thumbnail-schema";
 
 describe("live thumbnail helpers", () => {
   it("reads teams out of tracker titles", () => {

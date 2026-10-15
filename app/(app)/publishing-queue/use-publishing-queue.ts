@@ -61,17 +61,18 @@ export async function uploadCustomPackage(
 }
 
 /**
- * The queue's data and every call that changes it. On arrival the last copy shows at once
- * (src/lib/client-cache.ts) while a quiet refresh runs; only the plain queue is cached.
+ * The queue's data and every call that changes it. The first copy comes from the server
+ * (page.tsx); without it the last copy shows at once (src/lib/client-cache.ts) while a quiet
+ * refresh runs. Only the plain queue is cached.
  */
-export function usePublishingQueue() {
-  const [rows, setRows] = useState<QueueRow[]>([]);
-  const [upcoming, setUpcoming] = useState<UpcomingShow[]>([]);
-  const [today, setToday] = useState<string | undefined>(undefined);
-  const [publishingConfigured, setPublishingConfigured] = useState<boolean | null>(null);
+export function usePublishingQueue(initialData: QueueData | null) {
+  const [rows, setRows] = useState<QueueRow[]>(initialData?.packages ?? []);
+  const [upcoming, setUpcoming] = useState<UpcomingShow[]>(initialData?.upcomingShows ?? []);
+  const [today, setToday] = useState<string | undefined>(initialData?.today);
+  const [publishingConfigured, setPublishingConfigured] = useState<boolean | null>(initialData?.publishingConfigured ?? null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [candidatesStatus, setCandidatesStatus] = useState<CandidatesStatus>("idle");
-  const [phase, setPhase] = useState<"loading" | "ready" | "error">("loading");
+  const [phase, setPhase] = useState<"loading" | "ready" | "error">(initialData ? "ready" : "loading");
   const [retrying, setRetrying] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   // While the Add dialog is open, reloads also refresh the candidate list.
@@ -100,6 +101,11 @@ export function usePublishingQueue() {
   );
 
   useEffect(() => {
+    if (initialData) {
+      // Already fresh from the server: keep it as the last copy for a client-side return.
+      rememberValue(QUEUE_CACHE_KEY, initialData);
+      return;
+    }
     const cached = cachedValue<QueueData>(QUEUE_CACHE_KEY);
     if (cached) {
       applyQueue(cached, false);
@@ -110,7 +116,7 @@ export function usePublishingQueue() {
       if (cached) toast.error(LOAD_ERROR);
       else setPhase("error");
     });
-  }, [applyQueue, load]);
+  }, [initialData, applyQueue, load]);
 
   async function retry() {
     setRetrying(true);

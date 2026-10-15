@@ -17,7 +17,10 @@ vi.mock("@/src/server/publishing-queue", () => ({ setQueuedForAir: mocks.setQueu
 vi.mock("@/src/server/show-schedule", () => ({ listUpcomingShowDays: async () => [] }));
 vi.mock("@/src/server/youtube-client", () => ({ youtubePublishingConfig: () => null }));
 vi.mock("@/src/lib/media-playback", () => ({ resolveThumbnailUrl: async () => null }));
-vi.mock("next/navigation", () => ({ redirect: (path: string) => { throw new Error(`REDIRECT:${path}`); } }));
+vi.mock("next/navigation", () => ({
+  redirect: (path: string) => { throw new Error(`REDIRECT:${path}`); },
+  unstable_rethrow: () => undefined
+}));
 import { GET, POST } from "@/app/api/package-cycle/queue/route";
 import PublishingQueuePage from "@/app/(app)/publishing-queue/page";
 
@@ -79,6 +82,24 @@ describe("publishing queue for website managers", () => {
     expect(((await PublishingQueuePage()) as { props: { canEdit: boolean } }).props.canEdit).toBe(false);
     asRole("ASSOCIATE_PRODUCER", false);
     expect(((await PublishingQueuePage()) as { props: { canEdit: boolean } }).props.canEdit).toBe(true);
+  });
+
+  it("gives the page the same first data as GET, without candidates", async () => {
+    asRole("ASSOCIATE_PRODUCER", false);
+    const page = (await PublishingQueuePage()) as { props: { initialData: Record<string, unknown> | null } };
+    const body = (await (await get()).json()).data;
+    expect(page.props.initialData).toEqual(body);
+    expect(page.props.initialData?.candidates).toEqual([]);
+    expect(mocks.rows).toHaveBeenCalledTimes(2);
+  });
+
+  it("leaves the first load to the client when the server load fails", async () => {
+    asRole("ASSOCIATE_PRODUCER", false);
+    mocks.rows.mockRejectedValueOnce(new Error("database down"));
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const page = (await PublishingQueuePage()) as { props: { initialData: unknown } };
+    expect(page.props.initialData).toBeNull();
+    consoleError.mockRestore();
   });
 
   it("sends everyone else to access denied", async () => {

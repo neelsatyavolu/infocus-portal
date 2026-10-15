@@ -10,6 +10,7 @@ import {
 } from "@/src/lib/platform-admin";
 import { prisma } from "@/src/lib/prisma";
 import { getRequestKey, limitByKey } from "@/src/lib/rate-limit";
+import { listRoleAssignments } from "@/src/server/platform-admin-lists";
 
 const payloadSchema = z.object({
   email: z.string().email(),
@@ -26,9 +27,7 @@ export async function GET() {
       throw new Error("FORBIDDEN");
     }
 
-    const roles = await prisma.platformRoleAssignment.findMany({
-      orderBy: [{ role: "asc" }, { email: "asc" }]
-    });
+    const roles = await listRoleAssignments();
 
     return ok(roles);
   } catch (error) {

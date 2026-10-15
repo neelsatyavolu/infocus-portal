@@ -17,6 +17,7 @@ import {
   allowedViews,
   needsCompletion,
   scheduleFilterOptions,
+  type Payload,
   VIEW_TITLES,
   type EventRow,
   type ScheduleFilter,
@@ -72,8 +73,8 @@ function StaleDataAlert({ message, busy, onRetry }: { message: string; busy: boo
   );
 }
 
-export default function LivestreamsClient() {
-  const live = useLivestreamsData();
+export default function LivestreamsClient({ initialData }: { initialData: Payload | null }) {
+  const live = useLivestreamsData(initialData);
   const { data, showCompletion, ensureMembers } = live;
   const visit = useSinceLastVisit(live.fresh);
 

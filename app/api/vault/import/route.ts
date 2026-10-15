@@ -1,6 +1,6 @@
 import { handleRouteError } from "@/src/lib/api-errors";
 import { okNoStore } from "@/src/lib/http";
-import { vaultImportSchema } from "@/src/lib/password-vault";
+import { vaultImportSchema } from "@/src/lib/password-vault-schema";
 import { getRequestKey, limitByKey } from "@/src/lib/rate-limit";
 import { assertJsonRequest, importVaultEntries, requireFullVaultActor } from "@/src/server/password-vault";
 

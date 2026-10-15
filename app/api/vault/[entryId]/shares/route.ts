@@ -1,6 +1,6 @@
 import { handleRouteError } from "@/src/lib/api-errors";
 import { okNoStore } from "@/src/lib/http";
-import { vaultShareSchema } from "@/src/lib/password-vault";
+import { vaultShareSchema } from "@/src/lib/password-vault-schema";
 import { getRequestKey, limitByKey } from "@/src/lib/rate-limit";
 import {
   assertJsonRequest,

@@ -1,4 +1,5 @@
-import { z } from "zod";
+import type { z } from "zod";
+import type { thumbnailQuerySchema } from "@/src/lib/live/thumbnail-schema";
 import type { ScoreboardState } from "@/src/lib/live/scoreboard";
 
 export const THUMBNAIL_TEMPLATES = ["matchup", "event", "final"] as const;
@@ -11,24 +12,6 @@ export const THUMBNAIL_SIZES: Record<ThumbnailFormat, { width: number; height: n
   post: { width: 1080, height: 1350, label: "Instagram post" },
   story: { width: 1080, height: 1920, label: "Instagram story" }
 };
-
-const MAX_FINAL_SCORE = 999;
-const finalScoreSchema = z.coerce.number().int().min(0).max(MAX_FINAL_SCORE).default(0);
-
-export const thumbnailQuerySchema = z.object({
-  template: z.enum(THUMBNAIL_TEMPLATES).default("matchup"),
-  format: z.enum(THUMBNAIL_FORMATS).default("youtube"),
-  home: z.string().trim().max(18).default("Paly"),
-  away: z.string().trim().max(18).default(""),
-  line: z.string().trim().max(40).default(""),
-  homeScore: finalScoreSchema,
-  awayScore: finalScoreSchema,
-  title: z.string().trim().max(60).default(""),
-  location: z.string().trim().max(30).default(""),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  time: z.string().regex(/^\d{2}:\d{2}$/).optional(),
-  download: z.enum(["1"]).optional()
-});
 
 export type ThumbnailQuery = z.infer<typeof thumbnailQuerySchema>;
 

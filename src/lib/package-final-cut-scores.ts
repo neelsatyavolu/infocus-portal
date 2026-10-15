@@ -1,5 +1,5 @@
-import { type PlatformRole } from "@prisma/client";
-import { isExecutiveProducer } from "@/src/lib/platform-admin";
+import type { PlatformRole } from "@prisma/client";
+import { isExecutiveProducer } from "@/src/lib/platform-roles";
 import { MAX_FINAL_CUT_POINTS } from "@/src/lib/grading";
 
 /** Final-cut quality scores are stored to one decimal place. */

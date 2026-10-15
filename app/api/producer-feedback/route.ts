@@ -3,7 +3,8 @@ import { requireUserId } from "@/src/lib/auth";
 import { handleRouteError } from "@/src/lib/api-errors";
 import { fail, ok } from "@/src/lib/http";
 import { limitByKey } from "@/src/lib/rate-limit";
-import { PRODUCER_FEEDBACK_ENABLED, producerFeedbackSchema } from "@/src/lib/producer-feedback";
+import { PRODUCER_FEEDBACK_ENABLED } from "@/src/lib/producer-feedback";
+import { producerFeedbackSchema } from "@/src/lib/producer-feedback-schema";
 import { loadProducerFeedbackGroups, saveProducerFeedback } from "@/src/server/producer-feedback";
 
 export async function GET() {

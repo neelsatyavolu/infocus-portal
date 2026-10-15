@@ -159,12 +159,19 @@ export function SignupsView({
   onReview: Review;
 }) {
   const [pending, setPending] = useState<Record<string, "APPROVED" | "DENIED">>({});
-  const groups = groupRequests(payload.pendingSignups, payload.events, now);
+  /** Reviewed requests stay hidden while the payload refreshes in the background. */
+  const [decided, setDecided] = useState<ReadonlySet<string>>(() => new Set());
+  const groups = groupRequests(
+    payload.pendingSignups.filter((request) => !decided.has(request.id)),
+    payload.events,
+    now
+  );
 
   async function review(request: PendingSignup, status: "APPROVED" | "DENIED") {
     setPending((current) => ({ ...current, [request.id]: status }));
     try {
       await onReview(request.id, status);
+      setDecided((current) => new Set(current).add(request.id));
       toast.success(status === "APPROVED" ? "Approved: added to crew" : "Denied");
     } catch (e) {
       toast.error(errorMessage(e, "Review failed"));

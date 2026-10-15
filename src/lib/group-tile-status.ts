@@ -4,7 +4,7 @@ import { approvalProgressLabel, executiveWaitPill } from "@/src/lib/package-appr
 import { initialCutVersionTitle } from "@/src/lib/package-cut-transitions";
 import { canGradeFinalCut } from "@/src/lib/package-final-cut-scores";
 import { isAssignedPackageProducer } from "@/src/lib/package-producer-assignment";
-import { hasPlatformRole } from "@/src/lib/platform-admin";
+import { hasPlatformRole } from "@/src/lib/platform-roles";
 
 export type GroupTileStatusTone = "neutral" | "warn" | "review" | "danger" | "approved";
 

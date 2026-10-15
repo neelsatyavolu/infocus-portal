@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   airWindowFor,
-  announcementSubmitSchema,
   formatAnnouncementCopy,
   formatAnnouncementListCopy,
   groupSubmittedAnnouncements,
@@ -9,6 +8,7 @@ import {
   maxAnnouncementEndDate,
   showDatesInRange
 } from "@/src/lib/announcement-submission";
+import { announcementSubmitSchema } from "@/src/lib/announcement-submission-schema";
 
 const validPayload = {
   email: "teacher@pausd.org",

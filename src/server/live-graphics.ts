@@ -3,11 +3,11 @@ import { Prisma } from "@prisma/client";
 import { parseLiveImage, type LiveImageState } from "@/src/lib/live/graphics";
 import {
   applyScoreboardAction,
-  parseScoreboard,
   pruneTags,
   type ScoreboardAction,
   type ScoreboardState
 } from "@/src/lib/live/scoreboard";
+import { parseScoreboard } from "@/src/lib/live/scoreboard-schema";
 import { prisma } from "@/src/lib/prisma";
 
 const LOOKBACK_MS = 12 * 60 * 60 * 1000;

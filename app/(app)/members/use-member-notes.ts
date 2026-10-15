@@ -36,14 +36,14 @@ function without(record: Readonly<Record<string, string>>, key: string) {
 }
 
 /**
- * Members data: the roster and cycles (GET /api/members, shown from the client cache at once and
- * refreshed quietly), note drafts, and autosave (PATCH /api/members/notes) — 700 ms after typing
+ * Members data: the roster and cycles (first copy from the server; without it, GET /api/members
+ * shown from the client cache at once and refreshed quietly), note drafts, and autosave (PATCH /api/members/notes) — 700 ms after typing
  * stops, on blur, and on leaving the page. One save per note is in flight at a time; edits made
  * meanwhile go out when it returns, so the server always ends with the latest text. A note that
  * failed to save is sent again by "Try again" and whenever pending notes are flushed.
  */
-export function useMemberNotes() {
-  const [initial] = useState(() => cachedValue<MembersPayload>(MEMBERS_CACHE_KEY) ?? null);
+export function useMemberNotes(initialData: MembersPayload | null) {
+  const [initial] = useState(() => initialData ?? cachedValue<MembersPayload>(MEMBERS_CACHE_KEY) ?? null);
   const [data, setData] = useState<MembersPayload | null>(initial);
   const [drafts, setDrafts] = useState<NoteMap>(() => (initial ? notesFromMembers(initial.members) : {}));
   const [saved, setSaved] = useState<NoteMap>(() => (initial ? notesFromMembers(initial.members) : {}));
@@ -219,8 +219,13 @@ export function useMemberNotes() {
   );
 
   useEffect(() => {
+    if (initialData) {
+      // Already fresh from the server: keep it as the last copy for a client-side return.
+      rememberValue(MEMBERS_CACHE_KEY, initialData);
+      return;
+    }
     void load();
-  }, [load]);
+  }, [initialData, load]);
 
   // Leaving the page (route change, tab close, app switch) sends unsaved notes instead of dropping them.
   const flushAllRef = useRef(flushAll);

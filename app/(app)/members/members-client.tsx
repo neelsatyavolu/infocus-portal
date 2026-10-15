@@ -21,6 +21,7 @@ import { MemberDetail, MemberStepper } from "./member-detail";
 import { MemberList, RosterEmpty, RosterHeader } from "./member-list";
 import {
   type MembersLayout,
+  type MembersPayload,
   type NoteFilter,
   isCycleTabValue,
   isMembersLayout,
@@ -41,8 +42,8 @@ import { usePhoneDetail } from "./use-phone-detail";
  * and the selected person on the right (the active tab's note, their General note and every other
  * cycle). "Class": every member's note for the active tab on one page. Notes autosave.
  */
-export default function MembersClient() {
-  const notes = useMemberNotes();
+export default function MembersClient({ initialData }: { initialData: MembersPayload | null }) {
+  const notes = useMemberNotes(initialData);
   const mounted = useMounted();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const [tab, setTab, tabLoaded] = useRememberedState<number>(

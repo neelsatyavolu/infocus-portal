@@ -14,6 +14,16 @@ vi.mock("@/src/server/associate-review-history", () => ({ recordAssociateReviewH
 vi.mock("@/src/server/package-stage-comments", () => ({ createStageComment: vi.fn() }));
 const notify = vi.hoisted(() => ({ notifyPackageMembersOfDecision: vi.fn(), notifyPackageReview: vi.fn() }));
 vi.mock("@/src/server/package-review-notify", () => notify);
+const deferred = vi.hoisted(() => [] as Array<() => Promise<unknown>>);
+vi.mock("@/src/lib/after-response", () => ({
+  afterResponse: (_label: string, task: () => Promise<unknown>) => {
+    deferred.push(task);
+  }
+}));
+async function runAfterResponse() {
+  const tasks = deferred.splice(0);
+  for (const task of tasks) await task();
+}
 
 import { approveAnyway, recordDecision, unapproveCut, submitCutReview } from "@/src/server/package-approval-service";
 
@@ -40,6 +50,7 @@ function row(queuedForAirAt: Date | null = null) {
 }
 beforeEach(() => {
   vi.resetAllMocks();
+  deferred.length = 0;
   db.$transaction.mockImplementation(async (fn) => fn(db));
   db.packageApproval.findUnique.mockResolvedValue({ id: "approval", stage: "APPROVED", controversial: false, signoffs });
   db.packageProgressRow.findUnique.mockResolvedValue(row());
@@ -98,6 +109,9 @@ describe("submitCutReview", () => {
     await submitCutReview("row", actor, "v2");
     expect(db.packageApproval.update).not.toHaveBeenCalled();
     expect(db.mediaVersion.update).toHaveBeenCalledWith({ where: { id: "v2" }, data: { approvalStatus: "NEEDS_CHANGES" } });
+    // The email waits until after the response.
+    expect(notify.notifyPackageMembersOfDecision).not.toHaveBeenCalled();
+    await runAfterResponse();
     expect(notify.notifyPackageMembersOfDecision).toHaveBeenCalledWith(expect.objectContaining({ kind: "sent-back" }));
   });
   it("rejects a review of an older version without changing anything", async () => {
@@ -149,6 +163,13 @@ describe("recordDecision", () => {
     await expect(recordDecision("row", actor, true, "", "v2")).resolves.toEqual({ type: "ADVANCE", stage: "ADVISER_REVIEW" });
     expect(db.packageApproval.update).toHaveBeenCalledWith({ where: { id: "approval" }, data: { stage: "ADVISER_REVIEW" } });
     expect(db.mediaVersion.update).toHaveBeenCalledWith({ where: { id: "v2" }, data: { approvalStatus: "APPROVED" } });
+    // The decision returns before the adviser and the group are emailed.
+    expect(notify.notifyPackageReview).not.toHaveBeenCalled();
+    await runAfterResponse();
+    expect(notify.notifyPackageReview).toHaveBeenCalledWith({ progressRowId: "row", kind: "adviser", mediaVersionId: "v2" });
+    expect(notify.notifyPackageMembersOfDecision).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: "stage-1", reviewerName: "Abby", excludeUserId: "ap" })
+    );
   });
 });
 describe("approveAnyway", () => {
@@ -174,6 +195,8 @@ describe("approveAnyway", () => {
       data: expect.objectContaining({ approvalId: "approval", userId: "ap", stage: "ASSOCIATE_REVIEW", approved: true, mediaItemId: "cut" })
     });
     expect(db.mediaVersion.update).toHaveBeenCalledWith({ where: { id: "v2" }, data: { approvalStatus: "APPROVED" } });
+    expect(notify.notifyPackageReview).not.toHaveBeenCalled();
+    await runAfterResponse();
     expect(notify.notifyPackageReview).toHaveBeenCalledWith({ progressRowId: "row", kind: "adviser", mediaVersionId: "v2" });
     expect(notify.notifyPackageMembersOfDecision).toHaveBeenCalledWith(expect.objectContaining({ kind: "stage-1" }));
   });
@@ -196,6 +219,7 @@ describe("approveAnyway", () => {
     db.packageApproval.updateMany.mockResolvedValue({ count: 0 });
     await expect(approveAnyway("row", actor)).rejects.toThrow("FORBIDDEN");
     expect(db.packageApprovalSignoff.create).not.toHaveBeenCalled();
+    expect(deferred).toHaveLength(0);
     expect(notify.notifyPackageReview).not.toHaveBeenCalled();
   });
 });

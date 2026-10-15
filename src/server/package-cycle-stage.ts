@@ -1,5 +1,5 @@
 import { recordAssociateReviewHistory } from "@/src/server/associate-review-history";
-import { MediaStatus, type PlatformRole } from "@prisma/client";
+import { MediaStatus, type PlatformRole, type Prisma } from "@prisma/client";
 import { hasPlatformRole, isExecutiveProducer } from "@/src/lib/platform-admin";
 import {
   canGradeFinalCut,
@@ -42,7 +42,8 @@ import {
   nextMemberRevisionCount,
   previewFinalCutOfficial
 } from "@/src/lib/package-revisions";
-import { resolvePlaybackUrl, resolveThumbnailUrl } from "@/src/lib/media-playback";
+import { afterResponse } from "@/src/lib/after-response";
+import { resolveCardMediaUrls } from "@/src/lib/media-card-urls";
 import { buildCycleStageNasPath, isNasStorageEnabled, nasMintUploadSession } from "@/src/lib/nas-storage";
 import { parseClipComment } from "@/src/lib/package-clip-comments";
 import { finalCutTurnInDateKey, finalCutDeadlinePassed } from "@/src/lib/deadlines";
@@ -76,22 +77,25 @@ function uploadTurnInDate(uploadedAt: Date, finalCutDate: Date | null) {
   return new Date(`${finalCutTurnInDateKey(uploadedAt, finalCutDate)}T00:00:00.000Z`);
 }
 
-export async function resolveActiveCycleNumber(requested?: number | null) {
-  const cycles = await ensurePackageProgressDefaults();
-  if (requested && cycles.some((cycle) => cycle.cycleNumber === requested)) {
+type CycleList = Awaited<ReturnType<typeof ensurePackageProgressDefaults>>;
+
+/** `cycles`: the caller's ensurePackageProgressDefaults() result, so it is not read twice. */
+export async function resolveActiveCycleNumber(requested?: number | null, cycles?: CycleList) {
+  const list = cycles ?? (await ensurePackageProgressDefaults());
+  if (requested && list.some((cycle) => cycle.cycleNumber === requested)) {
     return requested;
   }
   const now = new Date();
   return (
-    cycles.find((cycle) => !finalCutDeadlinePassed(cycle.finalCutDate, now))?.cycleNumber ??
-    cycles[cycles.length - 1]?.cycleNumber ??
+    list.find((cycle) => !finalCutDeadlinePassed(cycle.finalCutDate, now))?.cycleNumber ??
+    list[list.length - 1]?.cycleNumber ??
     1
   );
 }
 
 /** Active cycle for a student's own tabs; an explicit valid request wins. */
-export async function resolveStudentCycleNumber(userId: string, requested?: number | null) {
-  const active = await resolveActiveCycleNumber(requested);
+export async function resolveStudentCycleNumber(userId: string, requested?: number | null, cycles?: CycleList) {
+  const active = await resolveActiveCycleNumber(requested, cycles);
   if (requested && active === requested) return active;
   const previousRow = active > 1
     ? await prisma.packageProgressRow.findFirst({
@@ -102,27 +106,62 @@ export async function resolveStudentCycleNumber(userId: string, requested?: numb
   return studentCycleNumber(active, previousRow);
 }
 
+const STAGE_ROW_INCLUDE = {
+  members: { include: { user: { select: { id: true, name: true, nickname: true, email: true } } } },
+  assignedProducer: { select: { id: true, name: true, nickname: true, email: true } },
+  approval: {
+    select: {
+      stage: true,
+      controversial: true,
+      signoffs: { select: { userId: true, stage: true, approved: true, createdAt: true } }
+    }
+  },
+  initialCutMediaItem: { include: { currentVersion: true, versions: { orderBy: { versionNumber: "asc" } } } },
+  finalCutMediaItem: { include: { currentVersion: true } },
+  stageMedia: {
+    where: { stage: "a-roll" },
+    include: { mediaItem: { include: { currentVersion: true } } }
+  }
+} satisfies Prisma.PackageProgressRowInclude;
+
 export async function loadStudentCycleRow(userId: string, cycleNumber: number) {
   return prisma.packageProgressRow.findFirst({
     where: { cycleNumber, members: { some: { userId } } },
-    include: {
-      members: { include: { user: { select: { id: true, name: true, nickname: true, email: true } } } },
-      assignedProducer: { select: { id: true, name: true, nickname: true, email: true } },
-      approval: {
-        select: {
-          stage: true,
-          controversial: true,
-          signoffs: { select: { userId: true, stage: true, approved: true, createdAt: true } }
-        }
-      },
-      initialCutMediaItem: { include: { currentVersion: true, versions: { orderBy: { versionNumber: "asc" } } } },
-      finalCutMediaItem: { include: { currentVersion: true } },
-      stageMedia: {
-        where: { stage: "a-roll" },
-        include: { mediaItem: { include: { currentVersion: true } } }
-      }
-    }
+    include: STAGE_ROW_INCLUDE
   });
+}
+
+/**
+ * The student's row on their own cycle (resolveStudentCycleNumber + loadStudentCycleRow).
+ * When the previous cycle decides which one that is, both cycles' rows load in one query and the
+ * previous row's Final Cut picks, instead of a check and then a second read.
+ */
+async function loadStudentStageRow(userId: string, requested?: number | null) {
+  const active = await resolveActiveCycleNumber(requested);
+  if ((requested && active === requested) || active <= 1) {
+    return loadStudentCycleRow(userId, active);
+  }
+  const rows = await prisma.packageProgressRow.findMany({
+    where: { cycleNumber: { in: [active - 1, active] }, members: { some: { userId } } },
+    include: STAGE_ROW_INCLUDE
+  });
+  const previousRow = rows.find((row) => row.cycleNumber === active - 1) ?? null;
+  const cycleNumber = studentCycleNumber(active, previousRow);
+  return rows.find((row) => row.cycleNumber === cycleNumber) ?? null;
+}
+
+/** Runs `task` over `items` with at most `limit` at once (Workers allow 6 open connections), in order. */
+async function mapWithLimit<T, R>(items: T[], limit: number, task: (item: T) => Promise<R>) {
+  const results = new Array<R>(items.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      const index = next++;
+      results[index] = await task(items[index]);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
 }
 
 async function ensureCycleProject(cycleNumber: number) {
@@ -211,28 +250,27 @@ async function hydrateMediaCards(
     }
   >
 > {
-  return Promise.all(
-    items.map(async (item) => {
-      const [thumbnailUrl, playbackUrl] = item.version
-        ? await Promise.all([resolveThumbnailUrl(item.version), resolvePlaybackUrl(item.version)])
-        : [null, null];
-      return {
-        id: item.id,
-        title: item.title,
-        rollKind: item.rollKind,
-        projectId: item.projectId,
-        versionId: item.versionId,
-        versionNumber: item.versionNumber,
-        status: item.status,
-        approvalStatus: item.approvalStatus,
-        approvedInStage: item.approvedInStage,
-        thumbnailUrl,
-        playbackUrl,
-        commentCount: item.commentCount,
-        isNew: item.isNew
-      };
-    })
-  );
+  // One Drive mint per video (resolveCardMediaUrls), at most three at once.
+  return mapWithLimit(items, 3, async (item) => {
+    const { thumbnailUrl, playbackUrl } = item.version
+      ? await resolveCardMediaUrls(item.version)
+      : { thumbnailUrl: null, playbackUrl: null };
+    return {
+      id: item.id,
+      title: item.title,
+      rollKind: item.rollKind,
+      projectId: item.projectId,
+      versionId: item.versionId,
+      versionNumber: item.versionNumber,
+      status: item.status,
+      approvalStatus: item.approvalStatus,
+      approvedInStage: item.approvedInStage,
+      thumbnailUrl,
+      playbackUrl,
+      commentCount: item.commentCount,
+      isNew: item.isNew
+    };
+  });
 }
 
 export type FinalCutMemberGrade = {
@@ -563,39 +601,31 @@ export async function loadStudentNavGates(userId: string) {
   };
 }
 
+/** The caller's email when given, else the stored one. */
+async function loadViewerEmail(input: { userId: string; email?: string | null }) {
+  if (input.email !== undefined) return input.email;
+  const user = await prisma.user.findUnique({ where: { id: input.userId }, select: { email: true } });
+  return user?.email ?? null;
+}
+
 export async function loadCycleStageView(input: {
   userId: string;
-  role: PlatformRole | null;
+  /** May be a pending lookup: it then runs alongside the row read. */
+  role: PlatformRole | null | Promise<PlatformRole | null>;
+  /** The viewer's email when the caller has it (saves a user read for the Initial Cut approval). */
+  email?: string | null;
   slug: CycleStageSlug;
   rowId?: string | null;
   cycleNumber?: number | null;
   reviewStage?: 1 | 2 | 3 | null;
 }) {
-  const platformProducer = hasPlatformRole(input.role, "ASSOCIATE_PRODUCER");
-  const cycleNumber = input.rowId ? undefined : await resolveStudentCycleNumber(input.userId, input.cycleNumber);
-
-  const row = input.rowId
-    ? await prisma.packageProgressRow.findUnique({
-        where: { id: input.rowId },
-        include: {
-          members: { include: { user: { select: { id: true, name: true, nickname: true, email: true } } } },
-          assignedProducer: { select: { id: true, name: true, nickname: true, email: true } },
-          approval: {
-            select: {
-              stage: true,
-              controversial: true,
-              signoffs: { select: { userId: true, stage: true, approved: true, createdAt: true } }
-            }
-          },
-          initialCutMediaItem: { include: { currentVersion: true, versions: { orderBy: { versionNumber: "asc" } } } },
-          finalCutMediaItem: { include: { currentVersion: true } },
-          stageMedia: {
-            where: { stage: "a-roll" },
-            include: { mediaItem: { include: { currentVersion: true } } }
-          }
-        }
-      })
-    : await loadStudentCycleRow(input.userId, cycleNumber!);
+  const [role, row] = await Promise.all([
+    input.role,
+    input.rowId
+      ? prisma.packageProgressRow.findUnique({ where: { id: input.rowId }, include: STAGE_ROW_INCLUDE })
+      : loadStudentStageRow(input.userId, input.cycleNumber)
+  ]);
+  const platformProducer = hasPlatformRole(role, "ASSOCIATE_PRODUCER");
 
   if (!row) {
     return {
@@ -615,7 +645,7 @@ export async function loadCycleStageView(input: {
   // Student cycle URLs (no rowId) treat an associate who is on the roster as a student.
   // Associates only get producer tools on packages they are assigned to — never their own.
   const isProducer =
-    Boolean(input.rowId) && producerMayActOnPackage(input.role, input.userId, row);
+    Boolean(input.rowId) && producerMayActOnPackage(role, input.userId, row);
   const approvalStage = row.approval?.stage ?? "DRAFT";
   const unlocked = isProducer || studentStageUnlocked(input.slug, row, { stage: approvalStage });
   const memberIds = row.members.map((member) => member.userId);
@@ -639,8 +669,8 @@ export async function loadCycleStageView(input: {
           ? [serializeMedia(row.finalCutMediaItem)]
           : [];
   const reviewVersionIds = rawMedia.map((item) => item.versionId).filter((id): id is string => Boolean(id));
-  // These reads only depend on `row`, so run them together instead of one after another.
-  const [existingGrades, stageNotes, reviewComments, media] = await Promise.all([
+  // These reads only depend on `row` (and the role), so run them together instead of one after another.
+  const [existingGrades, stageNotes, reviewComments, media, finalCutGrade, packageOfCycle, cutApproval] = await Promise.all([
     input.slug === "final-cut"
       ? prisma.packageGrade.findMany({
           where: {
@@ -664,7 +694,16 @@ export async function loadCycleStageView(input: {
           _count: { _all: true }
         })
       : null,
-    hydrateMediaCards(rawMedia)
+    hydrateMediaCards(rawMedia),
+    input.slug === "final-cut" && isProducer
+      ? loadFinalCutGradePanel({ rowId: row.id, role, userId: input.userId })
+      : null,
+    input.slug === "final-cut" && isProducer && row.finalCutMediaItemId
+      ? loadPackageOfCyclePanel({ rowId: row.id, userId: input.userId, role })
+      : null,
+    isProducer && input.slug === "initial-cut"
+      ? loadViewerEmail(input).then((email) => loadApprovalView(row.id, { userId: input.userId, role, email }))
+      : null
   ]);
   const allowSecondFinalCut = groupAllowsSecondFinalCut(existingGrades);
   const canUpload =
@@ -725,26 +764,6 @@ export async function loadCycleStageView(input: {
     });
   }
 
-  const [finalCutGrade, packageOfCycle] = await Promise.all([
-    input.slug === "final-cut" && isProducer
-      ? loadFinalCutGradePanel({
-          rowId: row.id,
-          role: input.role,
-          userId: input.userId
-        })
-      : null,
-    input.slug === "final-cut" && isProducer && row.finalCutMediaItemId
-      ? loadPackageOfCyclePanel({ rowId: row.id, userId: input.userId, role: input.role })
-      : null
-  ]);
-
-  const cutApproval = isProducer && input.slug === "initial-cut"
-    ? await loadApprovalView(row.id, {
-        userId: input.userId, role: input.role,
-        email: (await prisma.user.findUnique({ where: { id: input.userId }, select: { email: true } }))?.email ?? null
-      })
-    : null;
-
   return {
     empty: false as const,
     slug: input.slug,
@@ -753,10 +772,10 @@ export async function loadCycleStageView(input: {
     canUpload,
     allowSecondFinalCut,
     canComment:
-      isProducer && !(input.slug === "initial-cut" && associateReviewClosed(input.role, approvalStage)),
+      isProducer && !(input.slug === "initial-cut" && associateReviewClosed(role, approvalStage)),
     cutApproval,
     canApproveAroll: isProducer && input.slug === "a-roll" && !row.aRollBRoll,
-    canGradeFinalCut: canGradeFinalCut(input.role),
+    canGradeFinalCut: canGradeFinalCut(role),
     finalCutGrade,
     packageOfCycle,
     canEditToss: input.slug === "final-cut" && Boolean(row.finalCutMediaItemId) && (isMember || isProducer),
@@ -1011,11 +1030,7 @@ export async function completeCycleStageUpload(input: {
       update: {}
     });
     await recordAssociateReviewHistory({ rowId: row.id, stage: "a-roll", kind: "ready", actorId: input.userId, mediaVersionId: version.id });
-    try {
-      await notifyARollUploaded(row.id);
-    } catch (error) {
-      console.error("notifyARollUploaded failed", error);
-    }
+    afterResponse("notifyARollUploaded", () => notifyARollUploaded(row.id));
     return;
   }
 
@@ -1032,11 +1047,7 @@ export async function completeCycleStageUpload(input: {
     if (replacing) {
       await prisma.packageFinalCutScore.deleteMany({ where: { rowId: row.id } });
     }
-    try {
-      await notifyFinalCutUploaded(row.id);
-    } catch (error) {
-      console.error("notifyFinalCutUploaded failed", error);
-    }
+    afterResponse("notifyFinalCutUploaded", () => notifyFinalCutUploaded(row.id));
     return;
   }
 
@@ -1073,16 +1084,15 @@ export async function completeCycleStageUpload(input: {
     });
   }
 
-  if (transition.email) {
-    try {
-      await notifyPackageReview({
+  const reviewEmail = transition.email;
+  if (reviewEmail) {
+    afterResponse("notifyPackageReview", () =>
+      notifyPackageReview({
         progressRowId: row.id,
-        kind: transition.email,
+        kind: reviewEmail,
         mediaVersionId: version.id
-      });
-    } catch (error) {
-      console.error("notifyPackageReview failed", error);
-    }
+      })
+    );
   }
 }
 
@@ -1271,14 +1281,16 @@ function notifyMembersGradesPublished(input: {
     return email ? [email] : [];
   });
   if (recipients.length === 0) return;
-  void sendGradeEmails({
-    recipients,
-    cycleNumber: input.cycleNumber,
-    totalPoints: input.totalPoints,
-    percentage: input.percentage,
-    gradeUrl,
-    mode: "published"
-  });
+  afterResponse("sendGradeEmails", () =>
+    sendGradeEmails({
+      recipients,
+      cycleNumber: input.cycleNumber,
+      totalPoints: input.totalPoints,
+      percentage: input.percentage,
+      gradeUrl,
+      mode: "published"
+    })
+  );
 }
 
 export async function savePackageCycleGradeFeedback(input: {

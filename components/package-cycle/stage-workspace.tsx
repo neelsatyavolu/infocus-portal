@@ -104,15 +104,18 @@ export function StageWorkspace({
   rowId,
   producerChrome = false,
   embedded = false,
-  reviewStage
+  reviewStage,
+  initialView
 }: {
   slug: CycleStageSlug;
   rowId?: string;
   producerChrome?: boolean;
   embedded?: boolean;
   reviewStage?: 1 | 2 | 3;
+  /** The page's server-loaded view (src/server/stage-page-view.ts); see useStageView. */
+  initialView?: Promise<StageView | null>;
 }) {
-  const { view, loading, refreshing, error, reload } = useStageView(slug, rowId, reviewStage);
+  const { view, loading, refreshing, error, reload } = useStageView(slug, rowId, reviewStage, initialView);
   // Bumped on every page reload so the feedback panel fetches its thread again too.
   const [feedbackSignal, setFeedbackSignal] = useState(0);
   const reloadAll = useCallback(() => {

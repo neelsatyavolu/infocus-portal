@@ -31,7 +31,7 @@ import { BrainstormingBodySkeleton, LOADING_LABEL } from "./brainstorming-skelet
 import { BrainstormStatusTag, PackageWorkspace, type MaterialsProps } from "./package-panel";
 import { isPackageId, PACKAGE_CHOICE_KEY, PACKAGE_TABS_ID, PackageTabs } from "./package-tabs";
 import { useBrainstormEdits } from "./use-brainstorm-edits";
-import { cachedPayload, useBrainstorming } from "./use-brainstorming";
+import { cachedPayload, useBrainstorming, type InitialBrainstorming } from "./use-brainstorming";
 
 /** One 40px row on phones: each header action carries it (PageHeader holds children to h-9). */
 const TOUCH = "max-sm:h-10";
@@ -44,10 +44,10 @@ const TOUCH = "max-sm:h-10";
  * names the cycle and the page and keeps the instruction line. A viewer on several packages
  * picks one with tabs (remembered); the header follows the chosen one. Review stays on Groups.
  */
-export default function BrainstormingClient() {
+export default function BrainstormingClient({ initial }: { initial?: InitialBrainstorming }) {
   const searchParams = useSearchParams();
   const urlCycle = parseCycleParam(searchParams.get("cycle"));
-  const data = useBrainstorming(urlCycle);
+  const data = useBrainstorming(urlCycle, initial);
   const edits = useBrainstormEdits(data.updatePackage);
   const { payload, currentCycle, state, displayCycle, packages } = data;
   const [chosenId, setChosenId] = useRememberedState<string>(PACKAGE_CHOICE_KEY, "", isPackageId);

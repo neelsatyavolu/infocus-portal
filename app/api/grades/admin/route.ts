@@ -2,6 +2,7 @@ import type { GradeScoreState } from "@prisma/client";
 import { z } from "zod";
 import { handleRouteError } from "@/src/lib/api-errors";
 import { requireUserId, syncUserProfile } from "@/src/lib/auth";
+import { afterResponse } from "@/src/lib/after-response";
 import { sendGradeEmails } from "@/src/lib/email";
 import { fail, ok } from "@/src/lib/http";
 import {
@@ -291,7 +292,7 @@ async function notifyGradeUser(
     const recipientEmail = preference.notificationEmail ?? recipient.email;
 
     if (recipientEmail) {
-      void sendGradeEmails({
+      await sendGradeEmails({
         recipients: [recipientEmail],
         cycleNumber: payload.cycleNumber,
         totalPoints: payload.totalPoints,
@@ -952,12 +953,14 @@ export async function POST(request: Request) {
 
       if (existing?.publishedAt && changed && !revisedPublishedGrade) {
         const totalPoints = gradeTotal(updated.effortPoints, updated.teamworkPoints);
-        await notifyGradeUser(targetUser, {
-          mode: "updated",
-          cycleNumber: updated.cycleNumber,
-          totalPoints,
-          percentage: gradePercentage(totalPoints)
-        });
+        afterResponse("notifyGradeUser", () =>
+          notifyGradeUser(targetUser, {
+            mode: "updated",
+            cycleNumber: updated.cycleNumber,
+            totalPoints,
+            percentage: gradePercentage(totalPoints)
+          })
+        );
       }
 
       const extensionsRemaining = await getExtensionsRemainingForUser(payload.userId);
@@ -1223,19 +1226,23 @@ export async function POST(request: Request) {
 
     if (!existing?.publishedAt && !updated.finalCutState && updated.awardedFinalCutPoints !== null) {
       const totalPoints = gradeTotal(updated.effortPoints, updated.teamworkPoints);
-      await notifyGradeUser(targetUser, {
-        mode: "published",
-        cycleNumber: updated.cycleNumber,
-        totalPoints,
-        percentage: gradePercentage(totalPoints)
-      });
+      afterResponse("notifyGradeUser", () =>
+        notifyGradeUser(targetUser, {
+          mode: "published",
+          cycleNumber: updated.cycleNumber,
+          totalPoints,
+          percentage: gradePercentage(totalPoints)
+        })
+      );
     }
 
-    const extensionsRemaining = await getExtensionsRemainingForUser(payload.userId);
-    const cycle = await prisma.packageCycle.findUnique({
-      where: { cycleNumber: payload.cycleNumber },
-      select: { finalCutDate: true }
-    });
+    const [extensionsRemaining, cycle] = await Promise.all([
+      getExtensionsRemainingForUser(payload.userId),
+      prisma.packageCycle.findUnique({
+        where: { cycleNumber: payload.cycleNumber },
+        select: { finalCutDate: true }
+      })
+    ]);
     return ok({
       ...serializeGrade(updated, { finalCutDate: cycle?.finalCutDate ?? null }),
       extensionsRemaining

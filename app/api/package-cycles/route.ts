@@ -7,10 +7,9 @@ import { prisma } from "@/src/lib/prisma";
 import {
   MAX_CYCLES_PER_SEMESTER,
   MIN_CYCLES_PER_SEMESTER,
-  assertValidCycleNumber,
-  getCyclesPerSemester,
-  getCycleNumbers
+  assertValidCycleNumber
 } from "@/src/server/program-settings";
+import { ensureDefaultCycles, loadPackageCycles, toDateKey } from "@/src/server/package-cycles-data";
 
 const payloadSchema = z.object({
   cycleNumber: z.number().int().min(MIN_CYCLES_PER_SEMESTER).max(MAX_CYCLES_PER_SEMESTER),
@@ -21,11 +20,6 @@ const payloadSchema = z.object({
   initialCutDate: z.string().nullable().optional(),
   finalCutDate: z.string().nullable().optional()
 });
-
-function toDateKey(value: Date | null) {
-  if (!value) return null;
-  return value.toISOString().slice(0, 10);
-}
 
 function parseDateInput(value: string | null | undefined) {
   if (!value) {
@@ -44,55 +38,12 @@ function parseDateInput(value: string | null | undefined) {
   return parsed;
 }
 
-async function ensureDefaultCycles() {
-  const cycleNumbers = await getCycleNumbers();
-  const existing = await prisma.packageCycle.findMany({
-    select: { cycleNumber: true }
-  });
-
-  const existingSet = new Set(existing.map((cycle) => cycle.cycleNumber));
-  const missing = cycleNumbers.filter((cycleNumber) => !existingSet.has(cycleNumber));
-
-  if (missing.length > 0) {
-    await prisma.packageCycle.createMany({
-      data: missing.map((cycleNumber) => ({
-        cycleNumber,
-        focus: ""
-      }))
-    });
-  }
-}
-
 export async function GET() {
   try {
     const userId = await requireUserId();
     const user = await syncUserProfile(userId);
     const access = await getPlatformAccess(user.email);
-    const canEdit = hasPlatformRole(access.role, "ASSOCIATE_PRODUCER");
-    const canEditCycleCount = hasPlatformRole(access.role, "EXECUTIVE_PRODUCER");
-    const cyclesPerSemester = await getCyclesPerSemester();
-
-    await ensureDefaultCycles();
-
-    const cycles = await prisma.packageCycle.findMany({
-      where: { cycleNumber: { lte: cyclesPerSemester } },
-      orderBy: { cycleNumber: "asc" }
-    });
-
-    return ok({
-      canEdit,
-      canEditCycleCount,
-      cyclesPerSemester,
-      cycles: cycles.map((cycle) => ({
-        cycleNumber: cycle.cycleNumber,
-        focus: cycle.focus,
-        pitchingDate: toDateKey(cycle.pitchingDate),
-        proofOfContactDate: toDateKey(cycle.proofOfContactDate),
-        aRollBRollDate: toDateKey(cycle.aRollBRollDate),
-        initialCutDate: toDateKey(cycle.initialCutDate),
-        finalCutDate: toDateKey(cycle.finalCutDate)
-      }))
-    });
+    return ok(await loadPackageCycles(access.role));
   } catch (error) {
     return handleRouteError(error);
   }

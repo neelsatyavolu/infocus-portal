@@ -4,12 +4,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { cachedValue, rememberValue } from "@/src/lib/client-cache";
 import { clampExtensionDays, EXTENSION_REQUESTS_CHANGED_EVENT } from "@/src/lib/package-extensions";
-import type { GrantTerms, Payload } from "./request-view";
+import { withMemberVote, withProducerVote } from "./request-patch";
+import type { GrantTerms, Payload, RequestStatus } from "./request-view";
 
 const CACHE_KEY = "extension-requests";
 const LOAD_ERROR = "Failed to load extension requests.";
 
-/** A mutation's outcome, with the reloaded list so the page can open the next request. */
+/**
+ * A mutation's outcome, with the list as the vote left it (patched from the response; a quiet
+ * reload follows) so the page can open the next request.
+ */
 export type MutationResult = { ok: boolean; data: Payload | null };
 
 function errorMessage(error: unknown, fallback: string) {
@@ -27,6 +31,11 @@ async function send(url: string, method: "POST" | "PATCH", body: unknown, fallba
     throw new Error(data?.error?.message ?? fallback);
   }
   return data;
+}
+
+function statusOf(body: unknown): RequestStatus | null {
+  const status = (body as { data?: { status?: unknown } } | null)?.data?.status;
+  return status === "PENDING" || status === "APPROVED" || status === "DENIED" ? status : null;
 }
 
 /** Tells the shell to refresh the sidebar / stage-bar "waiting on you" count. */
@@ -84,6 +93,24 @@ export function useExtensionRequests() {
     void load();
   }, [load]);
 
+  /**
+   * Shows a saved vote at once and reloads in the background. Without a list or a status to
+   * patch, waits for the reload as before. Returns the list the page should advance through.
+   */
+  const applyVote = useCallback(
+    async (patch: ((current: Payload) => Payload) | null): Promise<Payload | null> => {
+      const current = payloadRef.current;
+      if (!patch || !current) return load();
+      const next = patch(current);
+      payloadRef.current = next;
+      setPayload(next);
+      // The reload takes a newer ticket, so an older load still in flight can't bring back the pre-vote list.
+      void load();
+      return next;
+    },
+    [load]
+  );
+
   const submitRequest = useCallback(
     async (input: { cycleNumber: number; requestedDays: number; reason: string }) => {
       try {
@@ -118,7 +145,7 @@ export function useExtensionRequests() {
       onSaved?: () => void
     ): Promise<MutationResult> => {
       try {
-        await send(
+        const body = await send(
           "/api/extensions/requests",
           "PATCH",
           {
@@ -133,23 +160,50 @@ export function useExtensionRequests() {
         );
         onSaved?.();
         announceChange();
-        return { ok: true, data: await load() };
+        const status = statusOf(body);
+        const at = new Date().toISOString();
+        return {
+          ok: true,
+          data: await applyVote(
+            status
+              ? (current) =>
+                  withProducerVote(current, {
+                    requestId: input.requestId,
+                    approved: input.approved,
+                    reason: input.reason,
+                    grantWithoutAgreement: input.grantWithoutAgreement,
+                    status,
+                    at
+                  })
+              : null
+          )
+        };
       } catch (error) {
         toast.error(errorMessage(error, "Failed to record decision."));
         return { ok: false, data: null };
       }
     },
-    [load]
+    [applyVote]
   );
 
   const decideMember = useCallback(
     async (requestId: string, agreed: boolean): Promise<MutationResult> => {
       setMemberBusy({ id: requestId, agreed });
       try {
-        await send("/api/extensions/requests", "PATCH", { kind: "member", requestId, agreed }, "Failed to record agreement.");
+        const body = await send(
+          "/api/extensions/requests",
+          "PATCH",
+          { kind: "member", requestId, agreed },
+          "Failed to record agreement."
+        );
         toast.success(agreed ? "You agreed to the extension request." : "You declined the extension request.");
         announceChange();
-        return { ok: true, data: await load() };
+        const status = statusOf(body);
+        const at = new Date().toISOString();
+        return {
+          ok: true,
+          data: await applyVote(status ? (current) => withMemberVote(current, { requestId, agreed, status, at }) : null)
+        };
       } catch (error) {
         toast.error(errorMessage(error, "Failed to record agreement."));
         return { ok: false, data: null };
@@ -157,7 +211,7 @@ export function useExtensionRequests() {
         setMemberBusy(null);
       }
     },
-    [load]
+    [applyVote]
   );
 
   const emailGroup = useCallback(async (requestId: string) => {
@@ -173,10 +227,10 @@ export function useExtensionRequests() {
     }
   }, []);
 
-  /** After a direct grant (the dialog posts it and toasts). */
+  /** After a direct grant (the dialog posts it and toasts): the new request comes with a quiet reload. */
   const afterGrant = useCallback(async () => {
     announceChange();
-    await load();
+    void load();
   }, [load]);
 
   return {

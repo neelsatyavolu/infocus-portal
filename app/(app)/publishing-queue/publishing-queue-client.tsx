@@ -19,7 +19,7 @@ import PublishingManagers from "./publishing-managers";
 import { QueuePackageRow } from "./queue-package-row";
 import { QueueSkeleton } from "./queue-skeleton";
 import { QueueSummary } from "./queue-summary";
-import type { OccupiedOn, QueueRow } from "./queue-types";
+import type { OccupiedOn, QueueData, QueueRow } from "./queue-types";
 import { buildQueueView, countOnShow } from "./queue-view-model";
 import { RECENT_PUBLICATIONS_ID, RecentPublications } from "./recent-publications";
 import { ShowRundown, showAnchorId } from "./show-rundown";
@@ -55,8 +55,8 @@ const PANEL_JUMP_TARGET = "scroll-mt-24 outline-none focus-visible:ring-2 focus-
  * Publishing Queue. Producers: is every upcoming show covered, and is YouTube OK? Then fill or
  * move packages. Website managers (read-only): what is on YouTube, and where is the embed code?
  */
-export default function PublishingQueueClient({ canEdit }: { canEdit: boolean }) {
-  const queue = usePublishingQueue();
+export default function PublishingQueueClient({ canEdit, initialData }: { canEdit: boolean; initialData: QueueData | null }) {
+  const queue = usePublishingQueue(initialData);
   const { rows, upcoming, today, publishingConfigured, busyId } = queue;
   const [addOpen, setAddOpen] = useState(false);
   const [pastOpen, setPastOpen] = useState(false);

@@ -13,6 +13,7 @@ import {
 } from "@/src/lib/package-stage-comments";
 import type { GroupStageSlug } from "@/src/lib/package-stages";
 import { prisma } from "@/src/lib/prisma";
+import { afterResponse } from "@/src/lib/after-response";
 import { userDisplayName } from "@/src/lib/user-display";
 
 export type StageCommentView = {
@@ -174,13 +175,15 @@ export async function createStageComment(input: {
   }
   const serialized = serializeStageComment(comment);
   if (!input.fromApproval) {
-    void notifyPackageMembersOfComment({
-      progressRowId: input.rowId,
-      stage: input.stage,
-      authorId: input.authorId,
-      authorName: serialized.author.name?.trim() || serialized.author.email || "A producer",
-      body
-    }).catch((error) => console.error("notifyPackageMembersOfComment failed", error));
+    afterResponse("notifyPackageMembersOfComment", () =>
+      notifyPackageMembersOfComment({
+        progressRowId: input.rowId,
+        stage: input.stage,
+        authorId: input.authorId,
+        authorName: serialized.author.name?.trim() || serialized.author.email || "A producer",
+        body
+      })
+    );
   }
   return serialized;
 }

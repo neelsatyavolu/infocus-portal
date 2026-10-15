@@ -40,6 +40,17 @@ export function InitialNavStatusProvider({ value, children }: { value: InitialNa
   return createElement(InitialNavStatusContext.Provider, { value }, children);
 }
 
+/**
+ * The server's first statuses as a real promise that never rejects (null when they failed).
+ * Across the server→client boundary React passes a thenable whose then() returns nothing, so
+ * chaining .catch on it directly throws; Promise.resolve adopts it first.
+ */
+export function initialStatusResult(
+  status: PromiseLike<NavStatusResponse | null> | null | undefined
+): Promise<NavStatusResponse | null> {
+  return Promise.resolve(status ?? null).catch(() => null);
+}
+
 /** The pending count the Admin page sends with its access-request event, when it is a usable number. */
 export function accessRequestsFromEvent(event: Event): number | null {
   const pending = (event as CustomEvent<{ pending?: unknown }>).detail?.pending;
@@ -161,20 +172,18 @@ export function useNavStatus({
         fetchedAtRef.current = { ...fetchedAtRef.current, [part]: now };
         requestSeqRef.current = { ...requestSeqRef.current, [part]: seq };
       }
-      void initialForThisRun.status
-        .then((data) => {
-          if (!data) {
-            load(covered);
-            return;
-          }
-          const applied = covered.filter(
-            (part) => requestSeqRef.current[part] === seq && !(data.failed ?? []).includes(part)
-          );
-          if (applied.length === 0) return;
-          setStatus((previous) => mergeNavStatus(previous, data, applied));
-          setLoaded((previous) => new Set([...previous, ...applied]));
-        })
-        .catch(() => load(covered));
+      void initialStatusResult(initialForThisRun.status).then((data) => {
+        if (!data) {
+          load(covered);
+          return;
+        }
+        const applied = covered.filter(
+          (part) => requestSeqRef.current[part] === seq && !(data.failed ?? []).includes(part)
+        );
+        if (applied.length === 0) return;
+        setStatus((previous) => mergeNavStatus(previous, data, applied));
+        setLoaded((previous) => new Set([...previous, ...applied]));
+      });
     }
     // Everything else is stale on the first run; coming back from a full-screen page loads only what aged.
     refreshStale();

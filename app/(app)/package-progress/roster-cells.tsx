@@ -432,9 +432,10 @@ export function NotesCell({
         // Interviews | Notes share a line on the row's own columns (a subgrid), like Members |
         // Producer; a note on its own takes the whole line.
         showNone ? "hidden" : "@2xl:grid @2xl:grid-cols-subgrid @2xl:space-y-0",
-        // Table: one 32px line (a second only when both notes have text), held to the top of the
-        // row like every other cell instead of stretching to the row's height.
-        "@4xl:flex @4xl:min-h-8 @4xl:flex-wrap @4xl:items-center @4xl:content-start @4xl:self-start @4xl:gap-x-3"
+        // Table: two fixed halves, Interviews then Notes (one note alone spans both), so every
+        // row's icons and text start on the same lines; held to the top of the row like every
+        // other cell instead of stretching to the row's height.
+        "@4xl:grid @4xl:min-h-8 @4xl:grid-cols-2 @4xl:items-center @4xl:content-start @4xl:self-start @4xl:gap-x-3"
       )}
     >
       {showInterviews ? (
@@ -446,7 +447,6 @@ export function NotesCell({
           topic={row.groupTopic}
           editing={context.editing}
           disabled={context.locked}
-          fullLine={hasInterviews && hasNotes}
           className={showBoth ? undefined : "@2xl:col-span-full"}
           onCommit={(value) => onUpdate({ possibleInterviews: value })}
         />
@@ -460,14 +460,13 @@ export function NotesCell({
           topic={row.groupTopic}
           editing={context.editing}
           disabled={context.locked}
-          fullLine={hasInterviews && hasNotes}
           // Beside Interviews it starts on Producer's column (and spans the ⋮ column too, like Producer).
           className={showBoth ? "@2xl:[grid-column:2/-1]" : "@2xl:col-span-full"}
           onCommit={(value) => onUpdate({ possibleIdeas: value })}
         />
       ) : null}
       {showNone ? (
-        <span className="hidden h-8 items-center text-sm text-muted-foreground @4xl:flex">
+        <span className="hidden h-8 items-center text-sm text-muted-foreground @4xl:col-span-2 @4xl:flex">
           <span aria-hidden>—</span>
           <span className="sr-only">No interviews or notes</span>
         </span>

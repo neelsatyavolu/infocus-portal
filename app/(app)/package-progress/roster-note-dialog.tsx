@@ -46,7 +46,6 @@ export function NoteField({
   topic,
   editing,
   disabled = false,
-  fullLine = false,
   className,
   onCommit
 }: {
@@ -58,8 +57,6 @@ export function NoteField({
   /** Edit mode: the dialog has a text box and the empty preview reads "+ Add". */
   editing: boolean;
   disabled?: boolean;
-  /** Table mode: take a whole line (both notes have text, so they stack). */
-  fullLine?: boolean;
   className?: string;
   onCommit: (value: string) => void;
 }) {
@@ -119,11 +116,10 @@ export function NoteField({
         title={`Add ${label.toLowerCase()}`}
         onClick={openDialog}
         onPointerDown={stop}
-        className={cn(buttonClass, "gap-1 text-muted-foreground @4xl:px-1.5")}
+        className={cn(buttonClass, "gap-1 text-muted-foreground")}
       >
         <Plus className="h-4 w-4 shrink-0" aria-hidden />
-        <span className="@4xl:hidden">Add</span>
-        {renderIcon(icon, "hidden h-4 w-4 shrink-0 @4xl:block")}
+        <span>Add</span>
       </button>
     );
   }
@@ -131,15 +127,15 @@ export function NoteField({
   return (
     <div
       className={cn(
-        "grid min-w-0 grid-cols-[5.5rem_minmax(0,1fr)] items-start gap-x-3 @4xl:flex @4xl:items-center @4xl:gap-x-2",
-        hasNote ? cn("@4xl:min-w-0 @4xl:flex-1", fullLine && "@4xl:basis-full") : "@4xl:shrink-0",
+        // Table: the icon then the note (or "+ Add") always start at the same place in this half.
+        "grid min-w-0 grid-cols-[5.5rem_minmax(0,1fr)] items-start gap-x-3 @4xl:flex @4xl:min-w-0 @4xl:items-center @4xl:gap-x-2",
         className
       )}
     >
       <span
         aria-hidden
         title={label}
-        className={cn(CELL_LABEL, "@4xl:flex @4xl:h-8 @4xl:shrink-0 @4xl:items-center", !hasNote && "@4xl:hidden")}
+        className={cn(CELL_LABEL, "@4xl:flex @4xl:h-8 @4xl:shrink-0 @4xl:items-center")}
       >
         {renderIcon(icon, "hidden h-4 w-4 @4xl:block")}
         <span className="@4xl:hidden">{label}</span>

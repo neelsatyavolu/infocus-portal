@@ -21,6 +21,7 @@ import {
   suggestPaForDate
 } from "@/src/server/show-cast";
 import { resolveShowManagers } from "@/src/server/show-manager";
+import { loadShowRolesConfirmation } from "@/src/server/show-roles-confirm";
 import { ROLES } from "@/src/show-roles/lib/constants";
 import { anchorModeForDate, weekOfMonth } from "@/src/show-roles/lib/anchors";
 
@@ -48,7 +49,7 @@ export async function GET(request: Request) {
     const schedule = resolveScheduleDay(dateKey, overrides);
     const date = new Date(`${dateKey}T12:00:00`);
 
-    const [entry, show, queued, suggestion, paSuggestion, monthAnchors, castPool, teleprompterDoc, showManager] = await Promise.all([
+    const [entry, show, queued, suggestion, paSuggestion, monthAnchors, castPool, teleprompterDoc, showManager, rolesConfirmation] = await Promise.all([
       prisma.masterCalendarEntry.findUnique({ where: { date: dateKey } }),
       prisma.showRolesShow.findUnique({ where: { date: dateKey } }),
       prisma.packageProgressRow.findMany({
@@ -71,7 +72,8 @@ export async function GET(request: Request) {
         },
         orderBy: { updatedAt: "desc" }
       }),
-      resolveShowManagers([dateKey, ...upcoming])
+      resolveShowManagers([dateKey, ...upcoming]),
+      loadShowRolesConfirmation(dateKey)
     ]);
 
     const calendarAnchors = entry ? extractCalendarAnchors(entry.content) : [];
@@ -111,6 +113,7 @@ export async function GET(request: Request) {
       confirmed,
       showManager: showManager.managers[dateKey] ?? { name: "", source: "rotation" as const },
       showManagerPool: showManager.pool,
+      rolesConfirmation,
       monthAnchors,
       suggestedAnchors: suggestion.suggested,
       suggestedPa: paSuggestion.suggested,

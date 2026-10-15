@@ -11,7 +11,8 @@ export type ShowManagerAssignment = {
   source: ShowManagerSource;
 };
 
-export function buildShowManagerPool(
+/** Eligible show managers in pool order: display name (as stored on the calendar) and email. */
+export function buildShowManagerDirectory(
   users: NamedPerson[],
   roleEmails: Iterable<string | null | undefined>,
   extraEmails: Iterable<string | null | undefined> = [PLATFORM_SUPER_ADMIN_EMAIL]
@@ -21,12 +22,23 @@ export function buildShowManagerPool(
   );
   eligible.delete(normalizeEmail(PACKAGE_ADVISER_EMAIL));
 
-  const people = users.filter((user) => {
-    const email = normalizeEmail(user.email);
-    return Boolean(email && eligible.has(email));
-  });
+  const people = sortNamedPeople(
+    users.filter((user) => {
+      const email = normalizeEmail(user.email);
+      return Boolean(email && eligible.has(email) && (user.nickname?.trim() || user.name?.trim()));
+    }),
+    "firstName"
+  );
+  const names = castDisplayNames(people);
+  return people.map((person, index) => ({ name: names[index] ?? "", email: normalizeEmail(person.email) }));
+}
 
-  return castDisplayNames(sortNamedPeople(people, "firstName"));
+export function buildShowManagerPool(
+  users: NamedPerson[],
+  roleEmails: Iterable<string | null | undefined>,
+  extraEmails: Iterable<string | null | undefined> = [PLATFORM_SUPER_ADMIN_EMAIL]
+) {
+  return buildShowManagerDirectory(users, roleEmails, extraEmails).map((person) => person.name);
 }
 
 export function rotatedShowManager(pool: readonly string[], showIndex: number) {

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { FIRST_SHOW_DATE } from "@/src/lib/school-schedule";
 import { listShowDatesThrough } from "@/src/lib/show-assignment";
 import {
+  buildShowManagerDirectory,
   buildShowManagerPool,
   resolveShowManager,
   resolveShowManagersForDates,
@@ -24,6 +25,24 @@ describe("show manager rotation", () => {
       "2026-09-04",
       "2026-09-08",
       "2026-09-11"
+    ]);
+  });
+
+  it("maps each pool name to that person's email, skipping people with no name", () => {
+    const directory = buildShowManagerDirectory(
+      [
+        { name: "Otto Park", email: "Otto@example.edu" },
+        { name: null, email: "noname@example.edu" },
+        { name: "Abby Chen", email: "abby@example.edu" },
+        { name: "Abby Lane", nickname: "Abby L", email: "abby.l@example.edu" }
+      ],
+      ["otto@example.edu", "noname@example.edu", "abby@example.edu", "abby.l@example.edu"],
+      []
+    );
+    expect(directory).toEqual([
+      { name: "Abby Chen", email: "abby@example.edu" },
+      { name: "Abby L", email: "abby.l@example.edu" },
+      { name: "Otto", email: "otto@example.edu" }
     ]);
   });
 

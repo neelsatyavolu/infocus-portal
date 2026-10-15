@@ -2,6 +2,7 @@ import { prisma } from "@/src/lib/prisma";
 import { extractCalendarShowManager } from "@/src/lib/calendar-show-content";
 import {
   SHOW_MANAGER_ROLES,
+  buildShowManagerDirectory,
   buildShowManagerPool,
   resolveShowManagersForDates,
   type ShowManagerAssignment
@@ -9,7 +10,7 @@ import {
 import { FIRST_SHOW_DATE, isDateKey } from "@/src/lib/show-assignment";
 import { loadScheduleOverrides } from "@/src/server/show-schedule";
 
-export async function listShowManagerPool() {
+async function loadShowManagerCandidates() {
   const [users, assignments] = await Promise.all([
     prisma.user.findMany({
       select: { name: true, nickname: true, email: true },
@@ -20,10 +21,18 @@ export async function listShowManagerPool() {
       select: { email: true }
     })
   ]);
-  return buildShowManagerPool(
-    users,
-    assignments.map((row) => row.email)
-  );
+  return { users, roleEmails: assignments.map((row) => row.email) };
+}
+
+export async function listShowManagerPool() {
+  const { users, roleEmails } = await loadShowManagerCandidates();
+  return buildShowManagerPool(users, roleEmails);
+}
+
+/** Email of the eligible show manager shown as `name`, or "" if no one in the pool has that name. */
+export async function findShowManagerEmail(name: string) {
+  const { users, roleEmails } = await loadShowManagerCandidates();
+  return buildShowManagerDirectory(users, roleEmails).find((person) => person.name === name)?.email ?? "";
 }
 
 export async function resolveShowManagers(dateKeys: string[]): Promise<{

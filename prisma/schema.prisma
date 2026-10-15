@@ -774,6 +774,17 @@ model ShowRolesShow {
   @@index([date])
 }
 
+/// Show manager's sign-off that a filmed show's roles are right. Reminder emails stop once confirmedAt is set.
+model ShowRolesConfirmation {
+  date           String    @id
+  confirmedAt    DateTime?
+  confirmedBy    String?
+  lastReminderAt DateTime?
+  reminderCount  Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
 model ShowRolesNonAnchor {
   name      String   @id
   createdAt DateTime @default(now())

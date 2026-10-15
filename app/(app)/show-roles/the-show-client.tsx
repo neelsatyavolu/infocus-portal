@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { CalendarDays, Mic2, ScrollText, Sparkles, Upload, Wand2 } from "lucide-react";
+import { CalendarDays, Check, Mic2, ScrollText, Sparkles, Upload, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { NamePicker } from "@/components/name-picker";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -26,6 +26,7 @@ type Overview = {
   confirmed: Record<string, boolean>;
   showManager?: { name: string; source: "rotation" | "manual" };
   showManagerPool?: string[];
+  rolesConfirmation?: { confirmedAt: string | null; confirmedBy: string | null };
   monthAnchors: string[];
   suggestedAnchors: string[];
   suggestedPa: string[];
@@ -55,6 +56,8 @@ const ShowUploadDialog = dynamic(
 );
 
 function OverviewBody() {
+  // Reminder emails link to a filmed show with ?date=.
+  const requestedDate = useSearchParams().get("date") ?? undefined;
   const [data, setData] = useState<Overview | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -71,10 +74,10 @@ function OverviewBody() {
   }, []);
 
   useEffect(() => {
-    void load()
+    void load(requestedDate)
       .catch((error: unknown) => toast.error(error instanceof Error ? error.message : "Could not load the show."))
       .finally(() => setLoading(false));
-  }, [load]);
+  }, [load, requestedDate]);
 
   async function saveAnchors(names: string[], source: "manual" | "random") {
     if (!data) return;
@@ -113,6 +116,28 @@ function OverviewBody() {
       await load(data.date);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not save show manager.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function confirmRoles() {
+    if (!data) return;
+    setSaving(true);
+    try {
+      const response = await fetch("/api/show-roles/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date: data.date })
+      });
+      const payload = (await response.json()) as { error?: { message?: string } };
+      if (!response.ok) {
+        throw new Error(payload.error?.message ?? "Could not confirm the roles.");
+      }
+      await load(data.date);
+      toast.success("Roles confirmed.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not confirm the roles.");
     } finally {
       setSaving(false);
     }
@@ -333,6 +358,25 @@ function OverviewBody() {
             </div>
           ))}
         </div>
+        {daysOut !== null && daysOut <= 0 ? (
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+            {data.rolesConfirmation?.confirmedAt ? (
+              <p className="text-xs text-muted-foreground">
+                Confirmed{data.rolesConfirmation.confirmedBy ? ` by ${data.rolesConfirmation.confirmedBy}` : ""}.
+              </p>
+            ) : (
+              <>
+                <p className="text-xs text-muted-foreground">
+                  Filmed. The show manager is emailed every 3 hours until the roles are confirmed.
+                </p>
+                <Button type="button" size="sm" disabled={saving} onClick={() => void confirmRoles()}>
+                  <Check className="h-3.5 w-3.5" />
+                  Roles are correct
+                </Button>
+              </>
+            )}
+          </div>
+        ) : null}
       </section>
 
       {uploadOpen ? (

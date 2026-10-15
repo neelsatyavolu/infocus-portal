@@ -123,6 +123,8 @@ export type ReviewQueueRow = {
   dueAt: string | null;
   /** The viewer is one of the people it waits on. */
   forViewer: boolean;
+  /** "Cycle 1" when the group is from an earlier cycle that still has open work. */
+  cycleLabel?: string | null;
 };
 
 type ReviewStep = { stage: string; waitingOn: string; since: string | null; withDeadline: boolean };
@@ -225,6 +227,8 @@ export type GradingQueueRow = {
   href: string;
   since: string | null;
   forViewer: boolean;
+  /** "Cycle 1" when the group is from an earlier cycle that still has open work. */
+  cycleLabel?: string | null;
 };
 
 function graderName(grader: Grader) {

@@ -27,7 +27,7 @@ vi.mock("@/src/server/package-progress-data", async (importOriginal) => ({
 vi.mock("@/src/server/livestream-access", () => ({ canManageLivestreams: mocks.canManageLivestreams }));
 
 import { buildCalendarPart } from "@/components/home/executive-calendar";
-import { buildGroupsPart, loadExecutiveDashboard } from "@/src/server/executive-dashboard";
+import { buildAllCyclesPart, buildGroupsPart, loadExecutiveDashboard } from "@/src/server/executive-dashboard";
 import { setCalendarAnchors } from "@/src/lib/calendar-show-content";
 import { SHOW_TEMPLATE } from "@/src/lib/master-calendar-cells";
 
@@ -476,5 +476,31 @@ describe("upcoming show days and livestreams", () => {
     expect(livestreams).toEqual([
       expect.objectContaining({ id: "ls-1", crew: 4, capacity: 4, openLabel: "Full", pending: 0 })
     ]);
+  });
+});
+
+describe("buildAllCyclesPart", () => {
+  it("keeps an earlier cycle's cut in review in the queue, tagged with its cycle, while the overview stays on this cycle", () => {
+    const earlier = { ...stage3, id: "old-robotics", cycleNumber: 1, groupTopic: "Old Robotics" };
+    const current = RECORDS.map((entry) => ({ ...entry, cycleNumber: 2 }));
+    const cycles = [
+      { cycleNumber: 1, pitchingDate: null, proofOfContactDate: null, aRollBRollDate: null, initialCutDate: null, finalCutDate: null },
+      { cycleNumber: 2, pitchingDate: null, proofOfContactDate: null, aRollBRollDate: null, initialCutDate: null, finalCutDate: null }
+    ];
+    const part = buildAllCyclesPart(
+      [earlier, ...current] as never,
+      [],
+      READY,
+      EXEC,
+      cycles as never,
+      2,
+      NOW
+    );
+    const old = part.reviewQueue.find((row) => row.topic === "Old Robotics");
+    expect(old?.cycleLabel).toBe("Cycle 1");
+    expect(old?.waitingOn).toMatch(/^Execs/);
+    expect(part.reviewQueue.filter((row) => row.cycleLabel === null).length).toBeGreaterThan(0);
+    const totalCurrent = buildGroupsPart(current as never, [], READY, EXEC, null, NOW).overview.total;
+    expect(part.overview.total).toBe(totalCurrent);
   });
 });

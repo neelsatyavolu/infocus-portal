@@ -46,7 +46,14 @@ export function ExecutiveGradingPanel({
               key={row.key}
               href={row.href}
               title={row.topic}
-              tags={row.forViewer ? <StatusTag tone="info">You</StatusTag> : null}
+              tags={
+                  row.forViewer || row.cycleLabel ? (
+                    <>
+                      {row.cycleLabel ? <StatusTag tone="neutral">{row.cycleLabel}</StatusTag> : null}
+                      {row.forViewer ? <StatusTag tone="info">You</StatusTag> : null}
+                    </>
+                  ) : null
+                }
               meta={
                 row.state === "scoring" ? (
                   <StatusTag tone="warning">{gradersLoaded ? `${row.scored} of ${row.graders} scored` : "Scoring"}</StatusTag>

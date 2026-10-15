@@ -102,6 +102,7 @@ const PERSON = { select: { name: true, nickname: true, email: true } } as const;
 
 const GROUP_SELECT = {
   id: true,
+  cycleNumber: true,
   groupTopic: true,
   groupMembers: true,
   groupType: true,
@@ -357,6 +358,60 @@ export function buildGroupsPart(
   };
 }
 
+/**
+ * Every cycle up to the current one, each built with its own dates and grades, then merged: the
+ * queues, Needs you and activity span them (an earlier cycle's rows carry "Cycle N"), while the
+ * class overview is the current cycle's.
+ */
+export function buildAllCyclesPart(
+  records: GroupRecord[],
+  finalCutGrades: Array<FinalCutGrade & { cycleNumber: number }>,
+  readyAt: Map<string, Date>,
+  viewer: ExecutiveViewer,
+  cycles: Cycle[],
+  activeCycle: number,
+  now: Date,
+  graders: Grader[] | null = null
+) {
+  // A row or grade without a cycle number counts as the current cycle's.
+  const cycleOf = (entry: { cycleNumber?: number | null }) => entry.cycleNumber ?? activeCycle;
+  const numbers = [...new Set(records.map(cycleOf))].sort((a, b) => a - b);
+  const parts = numbers.map((number) => {
+    const part = buildGroupsPart(
+      records.filter((record) => cycleOf(record) === number),
+      finalCutGrades.filter((grade) => cycleOf(grade) === number),
+      readyAt,
+      viewer,
+      cycleDatesOf(cycles.find((cycle) => cycle.cycleNumber === number)),
+      now,
+      graders
+    );
+    const cycleLabel = number === activeCycle ? null : `Cycle ${number}`;
+    return {
+      number,
+      part: {
+        ...part,
+        reviewQueue: part.reviewQueue.map((row) => ({ ...row, cycleLabel })),
+        gradingQueue: part.gradingQueue.map((row) => ({ ...row, cycleLabel }))
+      }
+    };
+  });
+  const current = parts.find((entry) => entry.number === activeCycle)?.part;
+  return {
+    needs: parts.flatMap(({ part }) => part.needs),
+    overview: current?.overview ?? buildGroupsPart([], [], readyAt, viewer, null, now, graders).overview,
+    reviewQueue: orderReviewQueue(
+      parts.flatMap(({ part }) => part.reviewQueue),
+      now
+    ),
+    gradingQueue: parts.flatMap(({ part }) => part.gradingQueue),
+    activity: parts
+      .flatMap(({ part }) => part.activity)
+      .sort((a, b) => Date.parse(b.at) - Date.parse(a.at))
+      .slice(0, 10)
+  };
+}
+
 // ---------------------------------------------------------------------------------------------
 // Counted kinds: one row each, with the oldest item's age.
 
@@ -505,16 +560,21 @@ export async function loadExecutiveDashboard(viewer: ExecutiveViewer, now: Date 
   const cycleNumber = cycles ? activeCycleNumberFor(cycles, now) : null;
   const activeCycle = cycles?.find((cycle) => cycle.cycleNumber === cycleNumber);
 
-  // Wave 2 (5): the cycle's roster and Final Cut grades, and two weeks of calendar.
+  // Wave 2 (5): the roster and Final Cut grades of this cycle and every earlier one (an earlier
+  // cycle can still have cuts in review or grades owed), and two weeks of calendar.
   const [groupRecords, calendarBase] = await Promise.all([
     cycleNumber === null
       ? Promise.resolve(null)
       : attempt("groups", failed, () =>
           Promise.all([
-            prisma.packageProgressRow.findMany({ where: { cycleNumber }, orderBy: { rowOrder: "asc" }, select: GROUP_SELECT }),
+            prisma.packageProgressRow.findMany({
+              where: { cycleNumber: { lte: cycleNumber } },
+              orderBy: [{ cycleNumber: "asc" }, { rowOrder: "asc" }],
+              select: GROUP_SELECT
+            }),
             prisma.packageGrade.findMany({
-              where: { cycleNumber, awardedFinalCutPoints: { not: null } },
-              select: { userId: true, awardedFinalCutPoints: true, revisionCount: true, publishedAt: true }
+              where: { cycleNumber: { lte: cycleNumber }, awardedFinalCutPoints: { not: null } },
+              select: { userId: true, cycleNumber: true, awardedFinalCutPoints: true, revisionCount: true, publishedAt: true }
             })
           ])
         ),
@@ -565,8 +625,8 @@ export async function loadExecutiveDashboard(viewer: ExecutiveViewer, now: Date 
   ]);
 
   const groups =
-    groupRecords && readyAt
-      ? buildGroupsPart(groupRecords[0], groupRecords[1], readyAt, viewer, cycleDatesOf(activeCycle), now, graders)
+    groupRecords && readyAt && cycleNumber !== null
+      ? buildAllCyclesPart(groupRecords[0], groupRecords[1], readyAt, viewer, cycles ?? [], cycleNumber, now, graders)
       : null;
   const calendar =
     calendarBase && livestreams

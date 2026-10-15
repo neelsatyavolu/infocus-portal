@@ -41,7 +41,14 @@ export function ExecutiveReviewPanel({ rows, now, className }: { rows: ReviewQue
                 key={row.key}
                 href={row.href}
                 title={row.topic}
-                tags={row.forViewer ? <StatusTag tone="info">You</StatusTag> : null}
+                tags={
+                  row.forViewer || row.cycleLabel ? (
+                    <>
+                      {row.cycleLabel ? <StatusTag tone="neutral">{row.cycleLabel}</StatusTag> : null}
+                      {row.forViewer ? <StatusTag tone="info">You</StatusTag> : null}
+                    </>
+                  ) : null
+                }
                 meta={deadline ? <StatusTag tone={deadline.tone}>{deadline.label}</StatusTag> : null}
                 subtitle={rowDetail(row, now)}
               />

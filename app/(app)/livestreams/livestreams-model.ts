@@ -50,6 +50,11 @@ export type CompletionRow = {
   managedEvents: number;
   requiredManagedEvents: number;
   creditPercent: number;
+  /** Hours from livestreams they're signed up for that haven't happened yet. */
+  scheduledHours?: number;
+  scheduledEvents?: number;
+  /** creditPercent plus those scheduled hours (capped at 100). */
+  projectedPercent?: number;
   points: number;
 };
 

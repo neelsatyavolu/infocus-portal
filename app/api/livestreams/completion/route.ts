@@ -31,8 +31,9 @@ export async function GET() {
     await requireLivestreamManagerAccess(user.id, access.role);
 
     const semester = semesterForDate();
+    const now = new Date();
 
-    const [users, staffEmails, completedEvents] = await Promise.all([
+    const [users, staffEmails, completedEvents, upcomingEvents] = await Promise.all([
       prisma.user.findMany({
         select: { id: true, name: true, nickname: true, email: true },
         orderBy: [{ name: "asc" }, { email: "asc" }]
@@ -47,6 +48,17 @@ export async function GET() {
           id: true,
           title: true,
           startsAt: true,
+          hours: true,
+          attendees: { select: { userId: true, creditHours: true } }
+        }
+      }),
+      // Livestreams people are signed up for that haven't happened yet (the shaded part of the bar).
+      prisma.livestreamEvent.findMany({
+        where: {
+          status: "SCHEDULED",
+          startsAt: { gte: now, lte: semester.end }
+        },
+        select: {
           hours: true,
           attendees: { select: { userId: true, creditHours: true } }
         }
@@ -70,6 +82,16 @@ export async function GET() {
       }
     }
 
+    const scheduledHoursByUser = new Map<string, number>();
+    const scheduledCountByUser = new Map<string, number>();
+    for (const event of upcomingEvents) {
+      for (const attendee of event.attendees) {
+        const hours = livestreamAttendeeHours(event.hours, attendee.creditHours);
+        scheduledHoursByUser.set(attendee.userId, (scheduledHoursByUser.get(attendee.userId) ?? 0) + hours);
+        scheduledCountByUser.set(attendee.userId, (scheduledCountByUser.get(attendee.userId) ?? 0) + 1);
+      }
+    }
+
     return ok({
       semester: {
         label: semester.label,
@@ -88,6 +110,7 @@ export async function GET() {
           ? livestreamPointsFromManagedCount(managedEvents)
           : livestreamPointsFromHours(hours);
         const fraction = isManager ? points / MAX_LIVESTREAM_POINTS : livestreamCreditFraction(hours);
+        const scheduledHours = isManager ? 0 : (scheduledHoursByUser.get(student.id) ?? 0);
         return {
           userId: student.id,
           name: userDisplayName(student) || student.name,
@@ -99,6 +122,12 @@ export async function GET() {
           managedEvents: managedEvents ?? 0,
           requiredManagedEvents: REQUIRED_MANAGED_LIVESTREAMS,
           creditPercent: Math.round(fraction * 100),
+          scheduledHours: Number(scheduledHours.toFixed(2)),
+          scheduledEvents: isManager ? 0 : (scheduledCountByUser.get(student.id) ?? 0),
+          // Credit if every livestream they're signed up for goes ahead (managers: unchanged).
+          projectedPercent: isManager
+            ? Math.round(fraction * 100)
+            : Math.round(livestreamCreditFraction(hours + scheduledHours) * 100),
           points
         };
       })

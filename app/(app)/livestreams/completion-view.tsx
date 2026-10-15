@@ -6,13 +6,13 @@ import { Toolbar } from "@/components/kit/action-bar";
 import { Alert } from "@/components/kit/alert";
 import { DataTable, type DataColumn } from "@/components/kit/data-table";
 import { EmptyState } from "@/components/kit/empty-state";
-import { ProgressBar } from "@/components/kit/progress";
 import { useRememberedState } from "@/components/kit/remembered-state";
 import { SearchField } from "@/components/kit/search-field";
 import { SegmentedControl } from "@/components/kit/segmented-control";
 import { Spinner } from "@/components/kit/spinner";
 import { StatusTag } from "@/components/kit/status-tag";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/src/lib/utils";
 import { filterCompletion, fullCreditCount, personLabel, type CompletionFilter, type CompletionRow } from "./livestreams-model";
 
 /** The table keeps its own scroll so the header stays in view down a long roster. */
@@ -37,8 +37,50 @@ function NameCell({ row }: { row: CompletionRow }) {
   );
 }
 
+/** Shaded segments: hours from livestreams someone is signed up for that haven't happened yet. */
+const SCHEDULED_FILL =
+  "bg-[var(--brand-green)]/25 bg-[repeating-linear-gradient(135deg,transparent_0_3px,rgb(0_0_0/0.18)_3px_6px)]";
+
+function scheduledLabel(row: CompletionRow) {
+  const hours = row.scheduledHours ?? 0;
+  return hours > 0 ? `+${hours} h signed up` : null;
+}
+
+/**
+ * Earned credit as the solid fill, and on top of the track (lighter, striped) what the
+ * livestreams they're signed up for would add once they happen.
+ */
 function CreditBar({ row, className }: { row: CompletionRow; className?: string }) {
-  return <ProgressBar value={Math.min(100, row.creditPercent)} label={`Credit for ${personLabel(row)}`} className={className} />;
+  const earned = Math.min(100, row.creditPercent);
+  const projected = Math.max(earned, Math.min(100, row.projectedPercent ?? earned));
+  const scheduled = scheduledLabel(row);
+  return (
+    <span
+      role="progressbar"
+      aria-label={`Credit for ${personLabel(row)}`}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={earned}
+      aria-valuetext={scheduled ? `${earned}%, ${projected}% with livestreams signed up` : `${earned}%`}
+      className={cn("relative block h-1.5 min-w-0 overflow-hidden rounded-full bg-[var(--ink-4)]", className)}
+    >
+      {projected > earned ? (
+        <span className={cn("absolute inset-y-0 left-0", SCHEDULED_FILL)} style={{ width: `${projected}%` }} />
+      ) : null}
+      <span className="absolute inset-y-0 left-0 bg-[var(--brand-fill)]" style={{ width: `${earned}%` }} />
+    </span>
+  );
+}
+
+function HoursCell({ row }: { row: CompletionRow }) {
+  if (row.isManager) return <span className="text-muted-foreground">—</span>;
+  const scheduled = scheduledLabel(row);
+  return (
+    <span className="flex flex-col items-end leading-tight">
+      <span>{`${row.completedHours} / ${row.requiredHours}`}</span>
+      {scheduled ? <span className="text-[11px] text-muted-foreground">{scheduled}</span> : null}
+    </span>
+  );
 }
 
 const COLUMNS: Array<DataColumn<CompletionRow>> = [
@@ -56,9 +98,8 @@ const COLUMNS: Array<DataColumn<CompletionRow>> = [
     header: "Hours",
     align: "end",
     mono: true,
-    width: "7rem",
-    render: (row) =>
-      row.isManager ? <span className="text-muted-foreground">—</span> : `${row.completedHours} / ${row.requiredHours}`
+    width: "8rem",
+    render: (row) => <HoursCell row={row} />
   },
   {
     key: "credit",
@@ -78,7 +119,7 @@ const COLUMNS: Array<DataColumn<CompletionRow>> = [
 function PhoneRow({ row }: { row: CompletionRow }) {
   const summary = row.isManager
     ? `${row.managedEvents} / ${row.requiredManagedEvents} managed · ${row.creditPercent}%`
-    : `${row.completedHours} / ${row.requiredHours} h · ${row.creditPercent}% · ${row.completedEvents} ${row.completedEvents === 1 ? "livestream" : "livestreams"}`;
+    : `${row.completedHours} / ${row.requiredHours} h${scheduledLabel(row) ? ` (${scheduledLabel(row)})` : ""} · ${row.creditPercent}% · ${row.completedEvents} ${row.completedEvents === 1 ? "livestream" : "livestreams"}`;
   return (
     <div className="space-y-2 px-4 py-3">
       <div className="flex min-w-0 items-start justify-between gap-3">
@@ -155,10 +196,16 @@ export function CompletionView({
         meta={
           // Just the count; the credit rule is the header's line for this view.
           rows ? (
-            <>
-              <span className="font-mono-broadcast tabular-nums text-foreground">{full}</span> of{" "}
-              <span className="font-mono-broadcast tabular-nums text-foreground">{rows.length}</span> at full credit
-            </>
+            <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span>
+                <span className="font-mono-broadcast tabular-nums text-foreground">{full}</span> of{" "}
+                <span className="font-mono-broadcast tabular-nums text-foreground">{rows.length}</span> at full credit
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span aria-hidden className={cn("inline-block h-1.5 w-4 rounded-full", SCHEDULED_FILL)} />
+                Signed up, not yet held
+              </span>
+            </span>
           ) : null
         }
       />

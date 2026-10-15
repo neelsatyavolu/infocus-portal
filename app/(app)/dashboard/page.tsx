@@ -1,18 +1,20 @@
 import type { Metadata } from "next";
 import { type PlatformRole } from "@prisma/client";
 import { ProducerPackages } from "@/components/home/producer-packages";
+import { ExecutiveHome } from "@/components/home/executive-home";
 import { StudentHome } from "@/components/home/student-home";
 import { normalizeSort, normalizeView, packagePeopleLine, plural, type SortValue } from "@/components/home/home-format";
 import { isAppReviewEmail } from "@/src/lib/app-review";
 import { getCurrentAppUser } from "@/src/lib/current-app-user";
 import { userDisplayName } from "@/src/lib/user-display";
-import { buildPlatformAccess } from "@/src/lib/platform-admin";
+import { buildPlatformAccess, hasPlatformRole } from "@/src/lib/platform-admin";
 import { prisma } from "@/src/lib/prisma";
 import {
   getDashboardData as fetchDashboardPanels,
   loadStudentDashboardSnapshot,
   type StudentDashboardSnapshot
 } from "@/src/server/dashboard-data";
+import { loadExecutiveDashboard } from "@/src/server/executive-dashboard";
 import { buildWorkspaceAccessWhere } from "@/src/server/workspace-access";
 
 type DashboardPageProps = {
@@ -134,6 +136,13 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const access = buildPlatformAccess(platformRole);
   // The App Review account sees its sample workspace's projects, not a (blank) student snapshot.
   const isStudent = !access.canManageWorkspaces && !isAppReviewEmail(user.email);
+  // Executives, the adviser and super admin (the people Groups shows "Needs you" to) get their
+  // home above the projects. It loads first, in its own waves, so the two never compete for the
+  // Workers connection pool; the projects' loaders then reuse the cached cycles.
+  const now = new Date();
+  const executive = hasPlatformRole(platformRole, "EXECUTIVE_PRODUCER")
+    ? await loadExecutiveDashboard({ userId, role: platformRole }, now)
+    : null;
   // The student snapshot and up next don't depend on workspaces, so start everything at once.
   const viewer = { userId, platformRole, email: user.email };
   const workspacesPromise = loadWorkspaces(viewer);
@@ -153,9 +162,9 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   ]);
   const { upNext, activity } = dashboardPanels;
   const peopleLine = upNext ? packagePeopleLine({ memberNames: upNext.memberNames, producerName: upNext.producerName }) : null;
+  const firstName = (viewerName || "").trim().split(/\s+/)[0] || null;
 
   if (isStudent) {
-    const firstName = (viewerName || "").trim().split(/\s+/)[0] || null;
     return <StudentHome firstName={firstName} upNext={upNext} activity={activity} snapshot={snapshot} peopleLine={peopleLine} />;
   }
 
@@ -173,7 +182,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     ? `${plural(projects.length, "project")} · ${plural(workspaces.length, "workspace")} · Shows Wed & Fri`
     : "Projects show here once you're added to a workspace.";
 
-  return (
+  const producerPackages = (
     <ProducerPackages
       eyebrow={access.canManageWorkspaces ? "Packages" : "Dashboard"}
       title={selectedWorkspace?.name ?? accountName}
@@ -189,6 +198,13 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       upNext={upNext}
       peopleLine={peopleLine}
       activity={activity}
+      embedded={Boolean(executive)}
     />
+  );
+
+  return executive ? (
+    <ExecutiveHome firstName={firstName} dashboard={executive} now={now} projects={producerPackages} />
+  ) : (
+    producerPackages
   );
 }

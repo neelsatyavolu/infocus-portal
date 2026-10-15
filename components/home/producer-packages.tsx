@@ -4,6 +4,7 @@ import { CreateProjectButton } from "@/components/create-project-tile";
 import { EmptyState } from "@/components/kit/empty-state";
 import { MainWithRail } from "@/components/kit/layout";
 import { StatusTag } from "@/components/kit/status-tag";
+import { SectionHeader } from "@/components/kit/section";
 import { PageHeader } from "@/components/page-header";
 import { ActivityPanel } from "@/components/home/activity-panel";
 import { MyPackageStrip } from "@/components/home/my-package-strip";
@@ -41,7 +42,8 @@ export function ProducerPackages({
   canDelete,
   upNext,
   peopleLine,
-  activity
+  activity,
+  embedded = false
 }: {
   eyebrow: string;
   title: string;
@@ -59,6 +61,8 @@ export function ProducerPackages({
   upNext: DashboardUpNext | null;
   peopleLine: string | null;
   activity: DashboardActivityEntry[];
+  /** Inside the executive home: a "Projects" section heading instead of a second page header. */
+  embedded?: boolean;
 }) {
   const createButton = selectedWorkspace ? (
     <CreateProjectButton workspaceId={selectedWorkspace.id} workspaceName={selectedWorkspace.name} />
@@ -90,13 +94,22 @@ export function ProducerPackages({
 
   return (
     <div className="space-y-4 sm:space-y-5">
-      <PageHeader
-        eyebrow={eyebrow}
-        status={upNext ? <StatusTag tone="neutral">{`Cycle ${upNext.cycleNumber}`}</StatusTag> : null}
-        title={title}
-        description={description}
-        actions={canCreate && projects.length > 0 ? createButton : null}
-      />
+      {embedded ? (
+        <SectionHeader
+          id="home-projects-heading"
+          title="Projects"
+          description={selectedWorkspace?.name}
+          actions={canCreate && projects.length > 0 ? createButton : null}
+        />
+      ) : (
+        <PageHeader
+          eyebrow={eyebrow}
+          status={upNext ? <StatusTag tone="neutral">{`Cycle ${upNext.cycleNumber}`}</StatusTag> : null}
+          title={title}
+          description={description}
+          actions={canCreate && projects.length > 0 ? createButton : null}
+        />
+      )}
 
       {upNext ? <MyPackageStrip upNext={upNext} peopleLine={peopleLine ?? ""} /> : null}
 

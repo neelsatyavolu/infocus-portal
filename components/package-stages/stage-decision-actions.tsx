@@ -39,6 +39,7 @@ export function useStageDecisions({
   reviewStage,
   enabled,
   queuePrimary,
+  approveOutline = false,
   reload
 }: {
   slug: CycleStageSlug;
@@ -48,6 +49,8 @@ export function useStageDecisions({
   enabled: boolean;
   /** Final Cut: Send to queue is the view's one primary. */
   queuePrimary: boolean;
+  /** Initial Cut on Groups: Open review is the view's one primary, so Approve is an outline. */
+  approveOutline?: boolean;
   reload: () => Promise<void>;
 }) {
   const [approveKind, setApproveKind] = useState<"aroll" | "cut" | null>(null);
@@ -215,7 +218,13 @@ export function useStageDecisions({
         key: "approve",
         dock: true,
         node: (
-          <Button type="button" disabled={approving} onClick={() => setApproveKind("cut")} className="max-lg:px-3">
+          <Button
+            type="button"
+            variant={approveOutline ? "outline" : "default"}
+            disabled={approving}
+            onClick={() => setApproveKind("cut")}
+            className="max-lg:px-3"
+          >
             {row.initialCutNeedsRevisions ? "Approve anyway" : "Approve"}
           </Button>
         )

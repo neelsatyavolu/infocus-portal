@@ -35,79 +35,146 @@ function CutStatus({
 
 /**
  * Initial Cut versions: the newest plays in place with Open review (no tag: the stage bar and the
- * header already name its status), and earlier versions are compact rows with their own review
+ * header already name its status), or on Groups is a "Current" row with Watch here; earlier versions are compact rows with their own review
  * status (the newest two show by default; the rest fold behind "Show older versions", remembered
  * per browser).
  */
 export function CutVersions({
   media,
   reviewStage,
-  remainingExecutiveSignoffs
+  remainingExecutiveSignoffs,
+  collapsePlayer = false
 }: {
   /** Newest first. */
   media: StageMediaCard[];
   reviewStage: 1 | 2 | 3 | null;
   remainingExecutiveSignoffs?: number;
+  /**
+   * Producers on Groups open the review from the decision bar, so the newest version is a row
+   * like the others ("Current") and its player folds behind Watch here (remembered per browser).
+   */
+  collapsePlayer?: boolean;
 }) {
   const [showOlder, setShowOlder] = useRememberedState("package-stages:older-versions:v1", false, isBoolean);
+  const [watchHere, setWatchHere] = useRememberedState("package-stages:watch-here:v1", false, isBoolean);
   const [latest, ...earlier] = media;
   if (!latest) return null;
-  const olderCount = Math.max(0, earlier.length - 1);
-  const visibleEarlier = showOlder ? earlier : earlier.slice(0, 1);
-
+  if (collapsePlayer) {
+    const href = stageReviewHref(latest, true);
+    return (
+      <div className="space-y-3">
+        <div className="flex min-h-14 min-w-0 items-center gap-3 rounded-md border border-border px-3 py-2">
+          <MediaThumb src={latest.thumbnailUrl} size="sm" />
+          <span className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+            <span className="min-w-0 truncate text-sm font-medium text-foreground sm:flex-1" title={latest.title}>
+              {latest.title}
+            </span>
+            <span className="flex min-w-0 items-center gap-3">
+              <StatusTag tone="success">Current</StatusTag>
+              <CommentCount count={latest.commentCount} />
+            </span>
+          </span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="shrink-0 max-sm:h-10"
+            aria-expanded={watchHere}
+            onClick={() => setWatchHere((open) => !open)}
+          >
+            <ChevronDown aria-hidden className={cn("transition-transform", watchHere && "rotate-180")} />
+            {watchHere ? "Hide player" : "Watch here"}
+          </Button>
+        </div>
+        {watchHere ? <StageVideo item={latest} title={latest.title} reviewHref={href} /> : null}
+        {earlier.length > 0 ? (
+          <EarlierVersions
+            items={showOlder ? earlier : earlier.slice(0, 1)}
+            olderCount={Math.max(0, earlier.length - 1)}
+            showOlder={showOlder}
+            onToggleOlder={() => setShowOlder((open) => !open)}
+            reviewStage={reviewStage}
+            remainingExecutiveSignoffs={remainingExecutiveSignoffs}
+          />
+        ) : null}
+      </div>
+    );
+  }
   return (
     <div className="space-y-5">
       <StageVideo item={latest} title={latest.title} reviewHref={stageReviewHref(latest, true)} />
-      {visibleEarlier.length > 0 ? (
-        <div className="space-y-2">
-          <h3 className="text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">
-            Earlier versions
-          </h3>
-          <ul className="divide-y divide-border rounded-md border border-border">
-            {visibleEarlier.map((item) => {
-              const href = stageReviewHref(item, true);
-              return (
-                <li key={item.versionId ?? item.id} className="flex min-h-14 min-w-0 items-center gap-3 px-3 py-2">
-                  <MediaThumb src={item.thumbnailUrl} size="sm" />
-                  <span className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
-                    <span className="min-w-0 truncate text-sm font-medium text-foreground sm:flex-1" title={item.title}>
-                      {item.title}
-                    </span>
-                    <span className="flex min-w-0 items-center gap-3">
-                      <CutStatus
-                        item={item}
-                        reviewStage={reviewStage}
-                        remainingExecutiveSignoffs={remainingExecutiveSignoffs}
-                      />
-                      <CommentCount count={item.commentCount} />
-                    </span>
-                  </span>
-                  {href ? (
-                    <Link
-                      href={href as never}
-                      className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "shrink-0 max-sm:h-10")}
-                    >
-                      Review
-                    </Link>
-                  ) : null}
-                </li>
-              );
-            })}
-          </ul>
-          {olderCount > 0 ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="max-sm:h-10"
-              aria-expanded={showOlder}
-              onClick={() => setShowOlder((open) => !open)}
-            >
-              <ChevronDown aria-hidden className={cn("transition-transform", showOlder && "rotate-180")} />
-              {showOlder ? "Hide older versions" : `Show older versions (${olderCount})`}
-            </Button>
-          ) : null}
-        </div>
+      {earlier.length > 0 ? (
+        <EarlierVersions
+          items={showOlder ? earlier : earlier.slice(0, 1)}
+          olderCount={Math.max(0, earlier.length - 1)}
+          showOlder={showOlder}
+          onToggleOlder={() => setShowOlder((open) => !open)}
+          reviewStage={reviewStage}
+          remainingExecutiveSignoffs={remainingExecutiveSignoffs}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+/** Earlier versions as compact rows with their own review status, the oldest folded away. */
+function EarlierVersions({
+  items,
+  olderCount,
+  showOlder,
+  onToggleOlder,
+  reviewStage,
+  remainingExecutiveSignoffs
+}: {
+  items: StageMediaCard[];
+  olderCount: number;
+  showOlder: boolean;
+  onToggleOlder: () => void;
+  reviewStage: 1 | 2 | 3 | null;
+  remainingExecutiveSignoffs?: number;
+}) {
+  return (
+    <div className="space-y-2">
+      <h3 className="text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">Earlier versions</h3>
+      <ul className="divide-y divide-border rounded-md border border-border">
+        {items.map((item) => {
+          const href = stageReviewHref(item, true);
+          return (
+            <li key={item.versionId ?? item.id} className="flex min-h-14 min-w-0 items-center gap-3 px-3 py-2">
+              <MediaThumb src={item.thumbnailUrl} size="sm" />
+              <span className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+                <span className="min-w-0 truncate text-sm font-medium text-foreground sm:flex-1" title={item.title}>
+                  {item.title}
+                </span>
+                <span className="flex min-w-0 items-center gap-3">
+                  <CutStatus item={item} reviewStage={reviewStage} remainingExecutiveSignoffs={remainingExecutiveSignoffs} />
+                  <CommentCount count={item.commentCount} />
+                </span>
+              </span>
+              {href ? (
+                <Link
+                  href={href as never}
+                  className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "shrink-0 max-sm:h-10")}
+                >
+                  Review
+                </Link>
+              ) : null}
+            </li>
+          );
+        })}
+      </ul>
+      {olderCount > 0 ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="max-sm:h-10"
+          aria-expanded={showOlder}
+          onClick={onToggleOlder}
+        >
+          <ChevronDown aria-hidden className={cn("transition-transform", showOlder && "rotate-180")} />
+          {showOlder ? "Hide older versions" : `Show older versions (${olderCount})`}
+        </Button>
       ) : null}
     </div>
   );

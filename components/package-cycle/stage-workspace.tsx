@@ -2,7 +2,7 @@
 
 import { useCallback, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { ArrowRight, Upload } from "lucide-react";
+import { ArrowRight, Play, Upload } from "lucide-react";
 import { Alert } from "@/components/kit/alert";
 import { Dropzone } from "@/components/kit/dropzone";
 import { EmptyState } from "@/components/kit/empty-state";
@@ -21,6 +21,7 @@ import { ClipGrid, WatchClipDialog } from "@/components/package-stages/clip-grid
 import { CutVersions } from "@/components/package-stages/cut-versions";
 import { FinalCutVideo } from "@/components/package-stages/final-cut-video";
 import { RollKindDialog } from "@/components/package-stages/roll-kind-dialog";
+import { stageReviewHref } from "@/components/package-stages/stage-video";
 import { useStageDecisions, type DecisionAction } from "@/components/package-stages/stage-decision-actions";
 import { DecisionBar, StudentStageHeader } from "@/components/package-stages/stage-header";
 import { StageMessage } from "@/components/package-stages/stage-messages";
@@ -140,6 +141,7 @@ export function StageWorkspace({
     reviewStage,
     enabled: producerChrome,
     queuePrimary: primaryAction === "queue",
+    approveOutline: slug === "initial-cut",
     reload: reloadAll
   });
 
@@ -204,7 +206,12 @@ export function StageWorkspace({
     mediaBody = <ClipGrid media={media} showNew={view.isProducer} wide={embedded} onWatch={setWatching} />;
   } else if (slug === "initial-cut") {
     mediaBody = (
-      <CutVersions media={media} reviewStage={effectiveReviewStage} remainingExecutiveSignoffs={remainingExecs} />
+      <CutVersions
+        media={media}
+        reviewStage={effectiveReviewStage}
+        remainingExecutiveSignoffs={remainingExecs}
+        collapsePlayer={producerChrome}
+      />
     );
   } else {
     mediaBody = (
@@ -329,9 +336,28 @@ export function StageWorkspace({
         )
       ) : null;
     const newClips = slug === "a-roll" && view.isProducer ? media.filter((item) => item.isNew).length : 0;
-    const actions: DecisionAction[] = uploadButton
-      ? [...decisions.actions, { key: "upload", node: uploadButton }]
-      : decisions.actions;
+    // Initial Cut on Groups: opening the newest version's review is the main thing to do here.
+    const latestCut = slug === "initial-cut" ? media[0] : undefined;
+    const latestReviewHref = latestCut ? stageReviewHref(latestCut, true) : null;
+    const openReview: DecisionAction[] = latestCut && latestReviewHref
+      ? [
+          {
+            key: "open-review",
+            dock: true,
+            node: (
+              <Link href={latestReviewHref as never} className={cn(buttonVariants(), "px-5 font-semibold max-lg:px-3")}>
+                <Play aria-hidden />
+                {`Open review · v${latestCut.versionNumber}`}
+              </Link>
+            )
+          }
+        ]
+      : [];
+    const actions: DecisionAction[] = [
+      ...openReview,
+      ...decisions.actions,
+      ...(uploadButton ? [{ key: "upload", node: uploadButton }] : [])
+    ];
     // GroupStageShell's open stage cell names the status, except Locked (that cell only dims) and
     // A/B-roll (that cell only knows Approved or Locked), so the bar tags those and the new-clips count.
     const locked = stageStatus === "locked";

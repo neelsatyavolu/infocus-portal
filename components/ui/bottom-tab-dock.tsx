@@ -9,7 +9,7 @@ import { cn } from "@/src/lib/utils";
  * Desktop (lg+): floats at the bottom of the page column, as before.
  * Phones and tablets: fixed above the home indicator, clear of the ✱ assistant button
  * (bottom right), and scrolls sideways inside itself so every tab stays reachable.
- * Pages already reserve `pb-24` below `lg` (AppShell's main), which clears it.
+ * It sits above the phone tab bar (`--phone-tabbar-h`, set by AppShell); AppShell's main reserves room below `lg`.
  */
 export function BottomTabDock({
   activeKey,
@@ -35,7 +35,7 @@ export function BottomTabDock({
     <nav
       aria-label={label}
       className={cn(
-        "pointer-events-none fixed inset-x-0 bottom-[max(1.25rem,env(safe-area-inset-bottom))] z-30 flex justify-center",
+        "pointer-events-none fixed inset-x-0 bottom-[calc(var(--phone-tabbar-h,0px)+max(1.25rem,env(safe-area-inset-bottom)))] z-30 flex justify-center",
         // Room for the 48px ✱ button at right-[max(1.25rem,…)].
         "pl-[max(1rem,env(safe-area-inset-left))] pr-[calc(max(1.25rem,env(safe-area-inset-right))+3.5rem)]",
         "lg:sticky lg:inset-x-auto lg:bottom-4 lg:z-20 lg:mx-auto lg:px-2"

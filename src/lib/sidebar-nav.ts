@@ -174,6 +174,18 @@ export function buildSidebarNav(context: SidebarNavContext): SidebarNavSection[]
   return sections.filter((entry): entry is SidebarNavSection => Boolean(entry));
 }
 
+const PHONE_TAB_ORDER: SidebarNavItemId[] = ["dashboard", "my-package", "groups", "show", "calendar", "grades"];
+
+/**
+ * The phone tab bar (below 1024px): the first four of the person's own sidebar links in
+ * PHONE_TAB_ORDER; everything else is one tap away under More (the sidebar drawer).
+ */
+export function buildPhoneTabs(context: SidebarNavContext): SidebarNavItem[] {
+  if (context.sampleOnly) return [];
+  const items = buildSidebarNav(context).flatMap((navSection) => navSection.items);
+  return PHONE_TAB_ORDER.flatMap((id) => items.filter((navItem) => navItem.id === id)).slice(0, 4);
+}
+
 /** Pages that need the width: the sidebar folds to an icon rail on large screens. */
 export function isRailRoute(pathname: string) {
   const segments = pathname.split("/").filter(Boolean);

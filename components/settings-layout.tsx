@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import { PageHeader } from "@/components/page-header";
 import { AlertTriangle, CheckCircle2, X } from "lucide-react";
 import { cn } from "@/src/lib/utils";
 
@@ -113,7 +114,7 @@ export function SettingsLayout({
   );
 }
 
-/** Square nameplate header (DESIGN.md §10): eyebrow, headline, one line of text, optional meta on the right. */
+/** The page nameplate for Settings and Admin: the shared PageHeader with meta on the right. */
 export function SettingsHeader({
   eyebrow,
   title,
@@ -125,18 +126,7 @@ export function SettingsHeader({
   description?: ReactNode;
   meta?: ReactNode;
 }) {
-  return (
-    <section className="brand-hero-panel p-5 md:p-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="min-w-0">
-          <div className="eyebrow flex items-center gap-2">{eyebrow}</div>
-          <h1 className="display-md mt-2 text-foreground">{title}</h1>
-          {description ? <p className="mt-1 max-w-xl text-sm text-muted-foreground">{description}</p> : null}
-        </div>
-        {meta ? <div className="flex flex-wrap items-center gap-2">{meta}</div> : null}
-      </div>
-    </section>
-  );
+  return <PageHeader eyebrow={eyebrow} title={title} description={description} actions={meta} />;
 }
 
 export function SettingsSection({

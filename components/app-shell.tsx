@@ -74,6 +74,7 @@ import type { CycleStageStatus } from "@/src/lib/package-stage-status";
 import { folderDisplayName, folderPathSegments } from "@/src/lib/project-folders";
 import {
   buildHubTabs,
+  buildPhoneTabs,
   buildSidebarNav,
   isInHub,
   isPackageRoute,
@@ -598,6 +599,7 @@ export function AppShell({
   );
   const navSections = useMemo(() => buildSidebarNav(navContext), [navContext]);
   const hubTabs = embedded || hideChrome ? null : buildHubTabs(navContext, pathname);
+  const phoneTabs = embedded || hideChrome ? [] : buildPhoneTabs(navContext);
   const packageUnread = feedbackUnread
     ? feedbackUnread.brainstorming + feedbackUnread["a-roll"] + feedbackUnread["initial-cut"] + feedbackUnread["final-cut"]
     : 0;
@@ -1138,6 +1140,9 @@ export function AppShell({
     <div
       className={cn(
         hideChrome ? "h-dvh overflow-hidden" : "min-h-screen lg:h-screen lg:overflow-hidden",
+        // Height of the phone tab bar; fixed bottom elements (page tab pills, the ✱ button, the
+        // upload toast) sit above it. Zero on large screens and wherever the bar is hidden.
+        phoneTabs.length > 0 ? "[--phone-tabbar-h:3.75rem] lg:[--phone-tabbar-h:0px]" : "",
         hideChrome || embedded ? "" : rail ? "lg:pl-16" : "lg:pl-[240px]"
       )}
     >
@@ -1563,7 +1568,11 @@ export function AppShell({
               <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
                 <button
                   type="button"
-                  className="grid h-10 w-10 shrink-0 place-items-center rounded-md text-foreground hover:bg-accent lg:hidden"
+                  className={cn(
+                    "grid h-10 w-10 shrink-0 place-items-center rounded-md text-foreground hover:bg-accent lg:hidden",
+                    // The phone tab bar's More opens the same menu.
+                    phoneTabs.length > 0 && "hidden"
+                  )}
                   onClick={() => setNavOpen(true)}
                   aria-label="Open menu"
                   aria-expanded={navOpen}
@@ -1689,7 +1698,9 @@ export function AppShell({
             tabIndex={-1}
             className={cn(
               "min-w-0 flex-1 outline-none",
-              isClassBoard ? "flex min-h-0 flex-col overflow-hidden" : "p-4 pb-24 md:p-6 md:pb-24 lg:pb-6"
+              isClassBoard
+                ? "flex min-h-0 flex-col overflow-hidden"
+                : "p-4 pb-[calc(6rem+var(--phone-tabbar-h,0px))] md:p-6 md:pb-[calc(6rem+var(--phone-tabbar-h,0px))] lg:pb-6"
             )}
           >
             {hubTabs ? <HubTabs tabs={hubTabs} /> : null}
@@ -1749,6 +1760,43 @@ export function AppShell({
           </main>
         </div>
       </div>
+      {phoneTabs.length > 0 ? (
+        <nav
+          aria-label="Main tabs"
+          className="fixed inset-x-0 bottom-0 z-40 flex border-t border-border bg-[var(--ink)] pb-[env(safe-area-inset-bottom)] lg:hidden"
+        >
+          {phoneTabs.map((tab) => {
+            const Icon = tab.id === "dashboard" && isProducer ? Briefcase : NAV_ICONS[tab.id];
+            const active = isNavItemActive(tab, pathname, onMeetHost);
+            return (
+              <Link
+                key={tab.id}
+                href={tab.href as never}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "flex h-[3.75rem] min-w-0 flex-1 flex-col items-center justify-center gap-1 text-[11px] font-medium",
+                  active ? "text-foreground" : "text-muted-foreground"
+                )}
+              >
+                <Icon className="h-5 w-5" />
+                <span className="max-w-full truncate px-1">{tab.label}</span>
+                <span aria-hidden className={cn("h-0.5 w-4", active ? "bg-[var(--brand-green)]" : "bg-transparent")} />
+              </Link>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => setNavOpen(true)}
+            aria-controls="app-sidebar"
+            aria-expanded={navOpen}
+            className="flex h-[3.75rem] min-w-0 flex-1 flex-col items-center justify-center gap-1 text-[11px] font-medium text-muted-foreground"
+          >
+            <Menu className="h-5 w-5" />
+            More
+            <span aria-hidden className="h-0.5 w-4" />
+          </button>
+        </nav>
+      ) : null}
       {!hideChrome && !sampleOnly && !embedded ? (
         <>
           <AssistantChat

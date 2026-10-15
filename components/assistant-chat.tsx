@@ -78,7 +78,7 @@ export function AssistantChat({
           onPointerEnter={preloadAssistantPanel}
           onFocus={preloadAssistantPanel}
           aria-label={unread > 0 ? `Open Portal assistant, ${unread} unread messages` : "Open Portal assistant"}
-          className="fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-[max(1.25rem,env(safe-area-inset-right))] z-50 grid h-12 w-12 place-items-center rounded-md bg-primary text-primary-foreground transition hover:bg-[var(--brand-fill-hover)] active:scale-95"
+          className="fixed bottom-[calc(var(--phone-tabbar-h,0px)+max(1.25rem,env(safe-area-inset-bottom)))] right-[max(1.25rem,env(safe-area-inset-right))] z-50 grid h-12 w-12 place-items-center rounded-md bg-primary text-primary-foreground transition hover:bg-[var(--brand-fill-hover)] active:scale-95"
         >
           <span className="text-2xl leading-none" aria-hidden>
             ✱

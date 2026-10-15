@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildHubTabs,
+  buildPhoneTabs,
   buildSidebarNav,
   isPackageRoute,
   isRailRoute,
@@ -180,5 +181,28 @@ describe("myPackageHref", () => {
     expect(myPackageHref(null)).toBe("/brainstorming");
     expect(myPackageHref({ "a-roll": true, "initial-cut": false, "final-cut": false })).toBe("/a-roll");
     expect(myPackageHref({ "a-roll": true, "initial-cut": true, "final-cut": true })).toBe("/final-cut");
+  });
+});
+
+describe("buildPhoneTabs", () => {
+  it("gives students Home, My package, Calendar and Grades", () => {
+    expect(buildPhoneTabs(student).map((tab) => tab.id)).toEqual(["dashboard", "my-package", "calendar", "grades"]);
+  });
+
+  it("gives producers Packages, Groups, The Show and Calendar", () => {
+    expect(buildPhoneTabs(associate).map((tab) => tab.id)).toEqual(["dashboard", "groups", "show", "calendar"]);
+  });
+
+  it("puts My package first for a producer on a roster", () => {
+    expect(buildPhoneTabs({ ...associate, showCycleTabs: true }).map((tab) => tab.id)).toEqual([
+      "dashboard",
+      "my-package",
+      "groups",
+      "show"
+    ]);
+  });
+
+  it("has no tab bar for the App Review account", () => {
+    expect(buildPhoneTabs({ ...student, sampleOnly: true })).toEqual([]);
   });
 });

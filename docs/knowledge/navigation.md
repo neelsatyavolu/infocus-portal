@@ -1,6 +1,6 @@
 # Navigation
 
-Portal chrome is dark by default (Light is in Settings → Appearance). Sidebar depends on role. On phones and tablets under 1024px, the sidebar is hidden behind a menu button in the header.
+Portal chrome is dark by default (Light is in Settings → Appearance). Sidebar depends on role. On phones and tablets under 1024px, a tab bar sits at the bottom of the screen: Dashboard (or Packages), then up to three of My package, Groups, The Show, Calendar and Grades (whichever you have, in that order), and **More**, which opens the full sidebar. Page tabs and the ✱ button sit just above it. The iPhone app keeps its own navigation instead.
 
 Sidebar category headings use compact spacing, with 0.675rem above each heading.
 

@@ -22,10 +22,7 @@ import {
   FileVideo2,
   Folder,
   Grid3X3,
-  GitBranch,
-  Hand,
   ListChecks,
-  ListOrdered,
   Users,
   UsersRound,
   Layers,
@@ -50,7 +47,6 @@ import {
   Trash2,
   UserCog,
   Video,
-  Volume2,
   X
 } from "lucide-react";
 import type { WorkspaceOption } from "@/components/dashboard-workspace-selector";
@@ -77,7 +73,9 @@ import { EXTENSION_REQUESTS_CHANGED_EVENT } from "@/src/lib/package-extensions";
 import type { CycleStageStatus } from "@/src/lib/package-stage-status";
 import { folderDisplayName, folderPathSegments } from "@/src/lib/project-folders";
 import {
+  buildHubTabs,
   buildSidebarNav,
+  isInHub,
   isPackageRoute,
   isRailRoute,
   myPackageHref,
@@ -85,6 +83,7 @@ import {
   type SidebarNavItemId
 } from "@/src/lib/sidebar-nav";
 import { PackageStageNav } from "@/components/package-cycle/package-stage-nav";
+import { HubTabs } from "@/components/hub-tabs";
 import type { AssistantAudience } from "@/src/lib/assistant-access";
 import { cn } from "@/src/lib/utils";
 
@@ -325,44 +324,45 @@ function SideSection({ label, rail = false }: { label: string; rail?: boolean })
 
 const NAV_ICONS: Record<SidebarNavItemId, SideNavIcon> = {
   dashboard: LayoutDashboard,
-  grades: CheckSquare,
   "my-package": Clapperboard,
-  "master-calendar": CalendarDays,
-  "extension-requests": Hourglass,
+  grades: CheckSquare,
+  calendar: CalendarDays,
   groups: UsersRound,
   "package-progress": ListChecks,
-  members: Users,
-  participation: Hand,
+  people: Users,
   meetings: Video,
+  "extension-requests": Hourglass,
   "grade-editor": Edit3,
-  "show-roles": Mic2,
-  "publishing-queue": ListOrdered,
+  show: Mic2,
   livestreams: Radio,
   announcements: Megaphone,
-  "announcements-submitted": List,
-  "announcements-pa": Volume2,
   ideas: Newspaper,
   managers: UserCog,
-  "package-cycles": GitBranch,
   drive: Cloud,
   teleprompter: ScrollText,
   admin: Shield,
   settings: Settings
 };
 
-/** Exact-match pages: a prefix match would also light up their sub-pages' links. */
-const EXACT_MATCH_NAV: ReadonlySet<SidebarNavItemId> = new Set([
-  "announcements",
-  "announcements-submitted",
-  "announcements-pa"
-]);
-
 function isNavItemActive(item: SidebarNavItem, pathname: string, onMeetHost: boolean) {
-  if (item.id === "dashboard") return pathname.startsWith("/dashboard") || pathname.startsWith("/projects");
-  if (item.id === "my-package") return isPackageRoute(pathname);
-  if (item.id === "meetings") return pathname.startsWith("/meetings") || (onMeetHost && pathname === "/");
-  if (item.external) return false;
-  return EXACT_MATCH_NAV.has(item.id) ? pathname === item.href : pathname.startsWith(item.href);
+  switch (item.id) {
+    case "dashboard":
+      return pathname.startsWith("/dashboard") || pathname.startsWith("/projects");
+    case "my-package":
+      return isPackageRoute(pathname);
+    case "meetings":
+      return pathname.startsWith("/meetings") || (onMeetHost && pathname === "/");
+    case "show":
+      return isInHub("show", pathname);
+    case "people":
+      return isInHub("people", pathname);
+    case "calendar":
+      return isInHub("calendar", pathname);
+    case "announcements":
+      return isInHub("announcements", pathname);
+    default:
+      return !item.external && pathname.startsWith(item.href);
+  }
 }
 
 function readProjectShellStateFromDom(expectedProjectId: string) {
@@ -585,18 +585,19 @@ export function AppShell({
   const canManageAllowedEmails = hasRole(platformRole, "EXECUTIVE_PRODUCER");
   const canManageGrades = hasRole(platformRole, "EXECUTIVE_PRODUCER");
   const rail = isRailRoute(pathname);
-  const navSections = useMemo(
-    () =>
-      buildSidebarNav({
-        isProducer,
-        showCycleTabs,
-        canManageGrades,
-        canManageAdmin: canManageAllowedEmails,
-        sampleOnly,
-        myPackageHref: myPackageHref(cycleNav)
-      }),
+  const navContext = useMemo(
+    () => ({
+      isProducer,
+      showCycleTabs,
+      canManageGrades,
+      canManageAdmin: canManageAllowedEmails,
+      sampleOnly,
+      myPackageHref: myPackageHref(cycleNav)
+    }),
     [isProducer, showCycleTabs, canManageGrades, canManageAllowedEmails, sampleOnly, cycleNav]
   );
+  const navSections = useMemo(() => buildSidebarNav(navContext), [navContext]);
+  const hubTabs = embedded || hideChrome ? null : buildHubTabs(navContext, pathname);
   const packageUnread = feedbackUnread
     ? feedbackUnread.brainstorming + feedbackUnread["a-roll"] + feedbackUnread["initial-cut"] + feedbackUnread["final-cut"]
     : 0;
@@ -1691,6 +1692,7 @@ export function AppShell({
               isClassBoard ? "flex min-h-0 flex-col overflow-hidden" : "p-4 pb-24 md:p-6 md:pb-24 lg:pb-6"
             )}
           >
+            {hubTabs ? <HubTabs tabs={hubTabs} /> : null}
             {showPackageStageNav ? (
               <PackageStageNav
                 pathname={pathname}

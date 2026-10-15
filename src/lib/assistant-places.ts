@@ -63,7 +63,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "master-calendar",
     label: "Master Calendar",
     href: "/master-calendar",
-    hint: "Left sidebar, at the top",
+    hint: "Left sidebar → Calendar",
     aliases: ["calendar", "anchors", "pa", "cast"],
     audiences: ALL
   },
@@ -71,7 +71,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "package-cycles",
     label: "Cycle Dates",
     href: "/package-cycles",
-    hint: "Left sidebar, under Class",
+    hint: "Left sidebar → Calendar, then the Cycle Dates tab",
     aliases: ["package cycles", "deadlines", "due dates"],
     audiences: ALL
   },
@@ -138,7 +138,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "livestreams",
     label: "Livestream Tracker",
     href: "/livestreams",
-    hint: "Left sidebar, under Production",
+    hint: "Left sidebar, under Production (producers: The Show, then the Livestreams tab)",
     aliases: ["livestream", "live stream", "tracker"],
     audiences: ALL
   },
@@ -178,7 +178,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "members",
     label: "Members",
     href: "/members",
-    hint: "Left sidebar, under Producing",
+    hint: "Left sidebar → People (under Producing)",
     aliases: ["member notes", "people", "notes"],
     audiences: PRODUCERS
   },
@@ -194,7 +194,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "publishing-queue",
     label: "Publishing Queue",
     href: "/publishing-queue",
-    hint: "Left sidebar, under Production",
+    hint: "Left sidebar → The Show, then the Publishing Queue tab",
     aliases: ["queue", "pq", "air date", "show date"],
     audiences: PRODUCERS
   },
@@ -218,7 +218,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "participation",
     label: "Participation",
     href: "/participation",
-    hint: "Left sidebar, under Producing",
+    hint: "Left sidebar → People, then the Participation tab",
     aliases: ["class participation"],
     audiences: PRODUCERS
   },
@@ -242,7 +242,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "submitted",
     label: "Submitted",
     href: "/announcements/submitted",
-    hint: "Left sidebar, under Class",
+    hint: "Left sidebar → Announcements, then the Submitted tab",
     aliases: ["submitted announcements"],
     audiences: ALL
   },

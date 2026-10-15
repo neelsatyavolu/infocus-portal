@@ -6,9 +6,11 @@ import AssociatesDialog from "./associates-dialog";
 import ApprovePitchButton from "./approve-pitch-button";
 import GroupNotesButton from "./group-notes-button";
 import { producerMayActOnPackage } from "@/src/lib/package-producer-assignment";
-import { ChevronDown, ChevronRight, ExternalLink, LayoutGrid, RefreshCcw, Table2 } from "lucide-react";
+import { ChevronDown, ChevronRight, LayoutGrid, RefreshCcw, Table2 } from "lucide-react";
 import type { PackageCategory, PlatformRole } from "@prisma/client";
-import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/page-header";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { listShortcut, writeGroupOrder } from "@/src/lib/keyboard-nav";
 import {
   GROUP_NAV_TAB_LABELS,
   GROUP_NAV_SLUGS,
@@ -372,7 +374,7 @@ function GroupTile({
     }
   );
   const cardClassName = cn(
-    "relative block rounded-xl border bg-card px-3.5 py-3 transition-colors hover:bg-foreground/[0.02]",
+    "relative block rounded-md border bg-card px-3.5 py-3 transition-colors hover:bg-foreground/[0.02]",
     attention === "needed"
       ? "border-[var(--brand-green)]/55 hover:border-[var(--brand-green)]/80"
       : "border-border hover:border-[var(--brand-green)]/45",
@@ -384,7 +386,11 @@ function GroupTile({
         <div className="min-w-0">
           <h2 className="truncate text-sm font-semibold text-foreground">
             {href ? (
-              <Link href={href as never} className="after:absolute after:inset-0 after:rounded-xl">
+              <Link
+                href={href as never}
+                data-group-tile=""
+                className="after:absolute after:inset-0 after:rounded-md focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-[var(--brand-green)]"
+              >
                 {row.groupTopic?.trim() || "Untitled package"}
               </Link>
             ) : row.groupTopic?.trim() || "Untitled package"}
@@ -593,6 +599,45 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
     [groups, currentUserId, platformRole]
   );
 
+  const seesAttention =
+    platformRole === "ADVISER" || platformRole === "EXECUTIVE_PRODUCER" || platformRole === "SUPER_ADMIN";
+  const [needsYouOnly, setNeedsYouOnly] = useState(false);
+  const filterByAttention = (list: GroupRow[]) =>
+    needsYouOnly && seesAttention
+      ? list.filter((row) => attentionFor(platformRole, currentUserId, row) === "needed")
+      : list;
+  const shownPrimaryGroups = filterByAttention(primaryGroups);
+  const shownOtherGroups = filterByAttention(otherGroups);
+  const tilesRef = useRef<HTMLDivElement>(null);
+
+  // Save the order on screen so a group's page can step to the previous or next one.
+  const shownOrder = [...shownPrimaryGroups, ...(otherGroupsOpen ? shownOtherGroups : [])]
+    .map((row) => row.id)
+    .filter((id): id is string => Boolean(id));
+  const shownOrderKey = shownOrder.join(",");
+  useEffect(() => {
+    writeGroupOrder(window.sessionStorage, shownOrderKey ? shownOrderKey.split(",") : []);
+  }, [shownOrderKey]);
+
+  // J / K move focus between group tiles; Enter opens the focused one.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const shortcut = listShortcut(event);
+      const container = tilesRef.current;
+      if (!shortcut || !container) return;
+      const links = Array.from(container.querySelectorAll<HTMLAnchorElement>("a[data-group-tile]"));
+      if (links.length === 0) return;
+      event.preventDefault();
+      const current = links.indexOf(document.activeElement as HTMLAnchorElement);
+      const next =
+        current === -1 ? 0 : Math.min(links.length - 1, Math.max(0, current + (shortcut === "next" ? 1 : -1)));
+      links[next]?.focus();
+      links[next]?.scrollIntoView({ block: "nearest" });
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
   const executiveGroups = useMemo(() => groupRowsByExecutive(groups), [groups]);
 
   const stageTotals = useMemo(() => {
@@ -701,116 +746,106 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
   }
 
   return (
-    <div className="route-enter mx-auto w-full max-w-[80rem] space-y-3 pb-24">
-      <section className="brand-hero-panel relative overflow-hidden rounded-2xl border border-border px-4 py-4 md:px-5">
-        <div className="relative flex flex-wrap items-center justify-between gap-3">
-          <div className="min-w-0">
-            <div className="eyebrow">Producer view</div>
-            <h1 className="display-md mt-1 text-balance text-foreground">Groups</h1>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {viewMode === "cards"
-                ? "Open a group to work its current stage."
-                : "Stage track for every visible group."}
-              {isAssociateOnly && producerCategory
-                ? ` ${PACKAGE_CATEGORY_LABELS[producerCategory]}.`
-                : ""}
-              {activeCycle?.focus?.trim() ? ` ${activeCycle.focus}.` : ""}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="meta-pill">
-              {stats.total} group{stats.total === 1 ? "" : "s"}
-              {stats.needsYou > 0 ? ` · ${stats.needsYou} need you` : ""}
-              {stats.done > 0 ? ` · ${stats.done} done` : ""}
-            </span>
-            <div className="inline-flex items-center rounded-lg border border-border bg-black/40 light:bg-muted p-0.5">
-              <button
-                type="button"
-                onClick={() => setViewMode("cards")}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
-                  viewMode === "cards"
-                    ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <LayoutGrid className="h-3.5 w-3.5" />
-                Tiles
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode("chart")}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
-                  viewMode === "chart"
-                    ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <Table2 className="h-3.5 w-3.5" />
-                Progress
-              </button>
+    <div className="route-enter mx-auto w-full max-w-[80rem] space-y-4 pb-24">
+      <PageHeader
+        eyebrow={`Producer view${activeCycle ? ` · Cycle ${activeCycle.cycleNumber}` : ""}`}
+        title="Groups"
+        description={
+          <>
+            {stats.total} group{stats.total === 1 ? "" : "s"}
+            {stats.needsYou > 0 ? ` · ${stats.needsYou} need you` : ""}
+            {stats.done > 0 ? ` · ${stats.done} done` : ""}
+            {isAssociateOnly && producerCategory ? ` · ${PACKAGE_CATEGORY_LABELS[producerCategory]}` : ""}
+            {activeCycle?.focus?.trim() ? ` · ${activeCycle.focus}` : ""}
+          </>
+        }
+        actions={
+          <>
+            <div className="inline-flex items-center rounded-md border border-border p-0.5" role="group" aria-label="View">
+              {(["cards", "chart"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setViewMode(mode)}
+                  aria-pressed={viewMode === mode}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
+                    viewMode === mode ? "bg-[var(--brand-fill)] text-[var(--on-brand)]" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {mode === "cards" ? <LayoutGrid className="h-3.5 w-3.5" /> : <Table2 className="h-3.5 w-3.5" />}
+                  {mode === "cards" ? "Tiles" : "Progress"}
+                </button>
+              ))}
             </div>
-            <Button type="button" size="sm" variant="secondary" onClick={() => void refresh()}>
-              <RefreshCcw className="mr-2 h-4 w-4" />
-              Refresh
+            <Button type="button" size="sm" variant="ghost" onClick={() => void refresh()} aria-label="Refresh">
+              <RefreshCcw className="h-4 w-4" />
             </Button>
-            {(platformRole === "EXECUTIVE_PRODUCER" || platformRole === "ADVISER" || platformRole === "SUPER_ADMIN") && (
-              <AssociatesDialog cycles={cycles} activeCycleNumber={activeCycleNumber} />
-            )}
-            <Link
-              href={"/package-progress" as never}
-              className="inline-flex h-8 items-center justify-center gap-2 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90"
-            >
-              <ExternalLink className="h-4 w-4" />
+            {seesAttention ? <AssociatesDialog cycles={cycles} activeCycleNumber={activeCycleNumber} /> : null}
+            <Link href={"/package-progress" as never} className={buttonVariants({ variant: "outline", size: "sm" })}>
               Edit roster
             </Link>
-          </div>
+          </>
+        }
+      />
+
+      {seesAttention && viewMode === "cards" && stats.needsYou > 0 ? (
+        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filter groups">
+          {([false, true] as const).map((onlyNeeded) => (
+            <button
+              key={String(onlyNeeded)}
+              type="button"
+              onClick={() => setNeedsYouOnly(onlyNeeded)}
+              aria-pressed={needsYouOnly === onlyNeeded}
+              className={cn(
+                "inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-sm transition",
+                needsYouOnly === onlyNeeded
+                  ? "border-[var(--brand-fill)] bg-[var(--brand-fill)] text-[var(--on-brand)]"
+                  : "border-border text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {onlyNeeded ? "Needs you" : "All"}
+              <span className="font-mono-broadcast text-[11px] tabular-nums">{onlyNeeded ? stats.needsYou : stats.total}</span>
+            </button>
+          ))}
+          <span className="ml-auto hidden text-xs text-muted-foreground md:inline">
+            <kbd className="font-mono-broadcast">J</kbd> / <kbd className="font-mono-broadcast">K</kbd> to move between groups
+          </span>
         </div>
+      ) : null}
 
-        {viewMode === "chart" && stats.total > 0 ? (
-          <div className="relative mt-3 flex flex-wrap gap-2">
-            {stageTotals.map(({ stage, count }) => {
-              const pct = Math.round((count / stats.total) * 100);
-              return (
-                <div
-                  key={stage}
-                  className="min-w-[7.5rem] flex-1 rounded-lg border border-border/70 bg-black/35 light:bg-muted px-2.5 py-2"
-                >
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-[10px] font-medium text-muted-foreground">
-                      {STAGE_SHORT[stage]}
-                    </span>
-                    <span className="font-mono-broadcast text-[11px] font-medium tabular-nums text-foreground">
-                      {count}/{stats.total}
-                    </span>
-                  </div>
-                  <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-secondary">
-                    <div
-                      className="h-full rounded-full bg-[var(--brand-green)]"
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
+      {viewMode === "chart" && stats.total > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {stageTotals.map(({ stage, count }) => {
+            const pct = Math.round((count / stats.total) * 100);
+            return (
+              <div key={stage} className="min-w-[7.5rem] flex-1 rounded-md border border-border bg-card px-2.5 py-2">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-[10px] font-medium text-muted-foreground">{STAGE_SHORT[stage]}</span>
+                  <span className="font-mono-broadcast text-[11px] font-medium tabular-nums text-foreground">
+                    {count}/{stats.total}
+                  </span>
                 </div>
-              );
-            })}
-          </div>
-        ) : null}
+                <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-secondary">
+                  <div className="h-full rounded-full bg-[var(--brand-green)]" style={{ width: `${pct}%` }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
 
-        {saving ? (
-          <p className="relative mt-3 text-xs text-muted-foreground">Saving stage changes…</p>
-        ) : viewMode === "chart" && canEdit ? (
-          <p className="relative mt-3 text-xs text-muted-foreground">
-            Click a stage to mark complete or incomplete. Changes save automatically.
-          </p>
-        ) : null}
+      {saving ? (
+        <p className="text-xs text-muted-foreground">Saving stage changes…</p>
+      ) : viewMode === "chart" && canEdit ? (
+        <p className="text-xs text-muted-foreground">Click a stage to mark complete or incomplete. Changes save automatically.</p>
+      ) : null}
 
-        {message ? (
-          <p className="relative mt-3 rounded-lg border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">
-            {message}
-          </p>
-        ) : null}
-      </section>
+      {message ? (
+        <p role="alert" className="rounded-md border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">
+          {message}
+        </p>
+      ) : null}
 
       <section className="space-y-3">
         {loading ? (
@@ -826,10 +861,10 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
             .
           </p>
         ) : viewMode === "cards" ? (
-          <div className="space-y-3">
-            {primaryGroups.length > 0 ? (
+          <div className="space-y-3" ref={tilesRef}>
+            {shownPrimaryGroups.length > 0 ? (
               <div className="grid gap-2 md:grid-cols-2">
-                {primaryGroups.map((row, index) => (
+                {shownPrimaryGroups.map((row, index) => (
                   <GroupTile
                     key={row.id ?? `primary-${index}`}
                     row={row}
@@ -842,7 +877,7 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
                 ))}
               </div>
             ) : null}
-            {otherGroups.length > 0 ? (
+            {shownOtherGroups.length > 0 ? (
               <section className="space-y-2">
                 <button
                   type="button"
@@ -856,12 +891,12 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
                   )}
                   <span>Other groups</span>
                   <span className="rounded-md border border-border bg-muted px-2 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground">
-                    {otherGroups.length}
+                    {shownOtherGroups.length}
                   </span>
                 </button>
                 {otherGroupsOpen ? (
                   <div className="grid gap-2 md:grid-cols-2">
-                    {otherGroups.map((row, index) => (
+                    {shownOtherGroups.map((row, index) => (
                       <GroupTile
                         key={row.id ?? `other-${index}`}
                         row={row}

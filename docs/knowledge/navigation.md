@@ -19,30 +19,25 @@ Tabs with no note are shown to everyone signed in.
 - Dashboard (students) or Packages (associate producers and up)
 - My package — reporters, and any producer (associate, executive, or super admin) who is on a package roster. Opens the stage you are working on (the latest unlocked one) and shows the total unread feedback on this cycle's package.
 - Grades (`/grades`) — reporters and associate producers. Hidden for executive producers, the adviser, and super admin.
-- Master Calendar
-
-**The stage bar.** Every package page (Information, Brainstorming, A-roll/B-roll, Initial Cut, Final Cut, Extension Requests) opens with a bar across the top: one tab per stage with its status and a count of unread feedback on this cycle's package (earlier cycles never count). Later stages are visible but disabled until the previous stage unlocks. On the right: **Cycle guide** (`/information`) and, for students, **Extension requests**.
+- Calendar — Master Calendar, with **Cycle Dates** (`/package-cycles`: stage dates for each cycle) as a tab at the top
 
 **Producing** — associate producers and up.
 
-- Groups, Package Cycle (roster), Members, Participation
+- Groups, Package Cycle (roster)
+- People — Members, with **Participation** as a tab at the top
 - Meetings (opens `meet.infocuspaly.com`). Calls open full screen at `meet.infocuspaly.com/<id>` (see `meetings.md`)
 - Extension Requests — producers find it here; students find it in the stage bar on their package pages. A number shows how many requests are waiting on you.
 - Grade Editor — executive producers, the adviser, and super admin
 
 **Production**
 
-- The Show and Publishing Queue — associate producers and up
-- Livestream Tracker
+- The Show (associate producers and up), with **Publishing Queue** and **Livestreams** as tabs at the top. Everyone else sees **Livestream Tracker** here instead.
 
 **Class**
 
-- Announcements
-- Submitted — everyone can read. Associate producers and up can delete. Executive producers and super admin can invite outside viewers.
-- PA (assigned announcers and producers can edit)
+- Announcements, with **Submitted** (everyone can read; associate producers and up can delete; executive producers and super admin can invite outside viewers) and **PA** (assigned announcers and producers can edit) as tabs at the top
 - Ideas (`/ideas`: story ideas from Bay Area news and events, new every 2 days; see `ideas.md`)
 - Managers (one card per manager area: equipment, livestream, website, social media; see `managers.md`)
-- Cycle Dates (`/package-cycles`: stage dates for each cycle)
 
 **Tools**
 
@@ -51,7 +46,9 @@ Tabs with no note are shown to everyone signed in.
 
 **At the end of the list:** Admin Dashboard (executive producers, the adviser, and super admin), then Settings (everyone).
 
-On a project page (`/projects/...`) or a group's stage page (`/groups/<group>/<stage>`), the sidebar folds to icons on large screens so the video has more room. Hover an icon to see its name; a green dot means unread items.
+**Tabs at the top of a page.** Pages that share one sidebar link show tabs across the top (for example Members | Participation). The sidebar link stays lit on every tab.
+
+**The stage bar.** Every package page (Information, Brainstorming, A-roll/B-roll, Initial Cut, Final Cut, Extension Requests) opens with a bar across the top: one tab per stage with its status and a count of unread feedback on this cycle's package (earlier cycles never count). Later stages are visible but disabled until the previous stage unlocks. On the right: **Cycle guide** (`/information`) and, for students, **Extension requests**.
 
 **Bottom of the sidebar:** your name, a **Passwords** key icon (associate producers and up; see `passwords.md`), and **Sign out**. Super admin, the adviser, and anyone with a limited View as grant can click their name to View as another user (see `accounts-and-admin.md`).
 

@@ -2,29 +2,25 @@ import { meetingsHomeUrl } from "@/src/lib/meetings/links";
 
 /**
  * Which sidebar links each person sees, grouped by job (docs/superpowers/plans/2026-10-14-portal-redesign.md).
+ * Related pages share one link and a tab bar at the top of each page (a "hub", `buildHubTabs`).
  * AppShell maps each id to its icon, badge and active state; this only decides structure and order.
  */
 export type SidebarNavItemId =
   | "dashboard"
-  | "grades"
   | "my-package"
-  | "master-calendar"
-  | "extension-requests"
+  | "grades"
+  | "calendar"
   | "groups"
   | "package-progress"
-  | "members"
-  | "participation"
+  | "people"
   | "meetings"
+  | "extension-requests"
   | "grade-editor"
-  | "show-roles"
-  | "publishing-queue"
+  | "show"
   | "livestreams"
   | "announcements"
-  | "announcements-submitted"
-  | "announcements-pa"
   | "ideas"
   | "managers"
-  | "package-cycles"
   | "drive"
   | "teleprompter"
   | "admin"
@@ -40,7 +36,7 @@ export type SidebarNavItem = {
 };
 
 export type SidebarNavSection = {
-  /** null: the unlabeled top group. "footer": pinned below the scrolling list. */
+  /** null: the unlabeled top group. "footer": pinned at the end of the list. */
   label: string | null;
   items: SidebarNavItem[];
 };
@@ -59,6 +55,65 @@ export type SidebarNavContext = {
   /** Where My package opens: the stage the person is working on (`myPackageHref`). */
   myPackageHref: string;
 };
+
+export type HubTab = {
+  href: string;
+  label: string;
+  active: boolean;
+};
+
+type HubPage = {
+  href: string;
+  label: string;
+  producersOnly?: boolean;
+  /** Match the path exactly (its sub-pages are other tabs). */
+  exact?: boolean;
+};
+
+const HUBS: Record<"show" | "people" | "calendar" | "announcements", HubPage[]> = {
+  show: [
+    { href: "/show-roles", label: "The Show", producersOnly: true },
+    { href: "/publishing-queue", label: "Publishing Queue", producersOnly: true },
+    { href: "/livestreams", label: "Livestreams" }
+  ],
+  people: [
+    { href: "/members", label: "Members", producersOnly: true },
+    { href: "/participation", label: "Participation", producersOnly: true }
+  ],
+  calendar: [
+    { href: "/master-calendar", label: "Master Calendar" },
+    { href: "/package-cycles", label: "Cycle Dates" }
+  ],
+  announcements: [
+    { href: "/announcements", label: "Announcements", exact: true },
+    { href: "/announcements/submitted", label: "Submitted" },
+    { href: "/announcements/pa", label: "PA" }
+  ]
+};
+
+function pageMatches(page: HubPage, pathname: string) {
+  return page.exact ? pathname === page.href : pathname === page.href || pathname.startsWith(`${page.href}/`);
+}
+
+function visibleHubPages(context: SidebarNavContext, hub: HubPage[]) {
+  return hub.filter((page) => !page.producersOnly || context.isProducer);
+}
+
+/** The tab bar for the hub this page belongs to, or null when there is none or only one tab to show. */
+export function buildHubTabs(context: SidebarNavContext, pathname: string): HubTab[] | null {
+  if (context.sampleOnly) return null;
+  for (const hub of Object.values(HUBS)) {
+    const pages = visibleHubPages(context, hub);
+    if (pages.length < 2 || !pages.some((page) => pageMatches(page, pathname))) continue;
+    return pages.map((page) => ({ href: page.href, label: page.label, active: pageMatches(page, pathname) }));
+  }
+  return null;
+}
+
+/** True when the path is any page of the hub (the sidebar link stays lit on every tab). */
+export function isInHub(hub: keyof typeof HUBS, pathname: string) {
+  return HUBS[hub].some((page) => pageMatches(page, pathname));
+}
 
 function item(id: SidebarNavItemId, href: string, label: string, extra: Partial<SidebarNavItem> = {}): SidebarNavItem {
   return { id, href, label, ...extra };
@@ -88,30 +143,26 @@ export function buildSidebarNav(context: SidebarNavContext): SidebarNavSection[]
       // stage bar at the top of every package page (PackageStageNav).
       context.showCycleTabs && item("my-package", context.myPackageHref, "My package"),
       !context.canManageGrades && item("grades", "/grades", "Grades"),
-      item("master-calendar", "/master-calendar", "Master Calendar")
+      item("calendar", "/master-calendar", "Calendar")
     ]),
     context.isProducer &&
       section("Producing", [
         item("groups", "/groups", "Groups"),
         item("package-progress", "/package-progress", "Package Cycle"),
-        item("members", "/members", "Members"),
-        item("participation", "/participation", "Participation"),
+        item("people", "/members", "People"),
         item("meetings", meetingsHomeUrl(), "Meetings", { external: true }),
         item("extension-requests", "/extension-requests", "Extension Requests"),
         context.canManageGrades && item("grade-editor", "/grade-editor", "Grade Editor")
       ]),
     section("Production", [
-      context.isProducer && item("show-roles", "/show-roles", "The Show"),
-      context.isProducer && item("publishing-queue", "/publishing-queue", "Publishing Queue"),
-      item("livestreams", "/livestreams", "Livestream Tracker")
+      context.isProducer
+        ? item("show", "/show-roles", "The Show")
+        : item("livestreams", "/livestreams", "Livestream Tracker")
     ]),
     section("Class", [
       item("announcements", "/announcements", "Announcements"),
-      item("announcements-submitted", "/announcements/submitted", "Submitted"),
-      item("announcements-pa", "/announcements/pa", "PA"),
       item("ideas", "/ideas", "Ideas"),
-      item("managers", "/managers", "Managers"),
-      item("package-cycles", "/package-cycles", "Cycle Dates")
+      item("managers", "/managers", "Managers")
     ]),
     section("Tools", [
       item("drive", "https://drive.infocuspaly.com", "InFocus Drive", { external: true, newTab: true }),

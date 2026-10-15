@@ -72,6 +72,7 @@ import { STAGE_FEEDBACK_READ_EVENT, type StageCommentUnread } from "@/src/lib/pa
 import { EXTENSION_REQUESTS_CHANGED_EVENT } from "@/src/lib/package-extensions";
 import type { CycleStageStatus } from "@/src/lib/package-stage-status";
 import { folderDisplayName, folderPathSegments } from "@/src/lib/project-folders";
+import { setClientCacheOwner } from "@/src/lib/client-cache";
 import {
   buildHubTabs,
   buildPhoneTabs,
@@ -452,6 +453,9 @@ export function AppShell({
   const [remainingExecutiveSignoffs, setRemainingExecutiveSignoffs] = useState<number | null>(null);
   const [extensionRequestsAwaiting, setExtensionRequestsAwaiting] = useState(0);
   const [navOpen, setNavOpen] = useState(false);
+
+  // Page caches belong to one signed-in person (View as switches the person).
+  setClientCacheOwner(currentUser.email ?? null);
 
   useEffect(() => {
     if (sampleOnly) return;

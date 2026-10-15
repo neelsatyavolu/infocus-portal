@@ -1,5 +1,6 @@
 "use client";
 
+import { cachedValue, rememberValue } from "@/src/lib/client-cache";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -161,14 +162,21 @@ export function StageWorkspace({
   }
 
   const load = useCallback(async (options?: { quiet?: boolean }) => {
-    if (!options?.quiet) setLoading(true);
+    const cacheKey = `stage-view:${slug}:${rowId ?? ""}:${reviewStage ?? ""}`;
+    // Show the last copy at once and refresh it quietly (src/lib/client-cache.ts).
+    const cached = options?.quiet ? undefined : cachedValue<StageView>(cacheKey);
+    const quiet = options?.quiet || cached !== undefined;
+    if (cached) setView(cached);
+    if (!quiet) setLoading(true);
+    else setLoading(false);
     try {
       const next = await fetchView(slug, rowId, reviewStage);
+      rememberValue(cacheKey, next);
       setView(next);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to load.");
     } finally {
-      if (!options?.quiet) setLoading(false);
+      if (!quiet) setLoading(false);
     }
   }, [slug, rowId, reviewStage]);
 

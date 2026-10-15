@@ -8,9 +8,9 @@ If you ask **where** a page, tab, or package is, a card appears: **I can show wh
 
 What it can look up depends on role:
 
-- **Reporters** — how Portal works for students, their own packages (including comments and uploads on those packages), and cycle dates. Not other people’s grades, the people list, the publishing queue, producer lists, Admin, Members notes, or packages they are not on.
-- **Associate producers** — Groups they can see (assigned packages and unassigned ones), people, producers, the publishing queue, and cycle dates. Ask what packages you produce and it lists those groups with current stage and status. Ask about a package and it can read comments, clip notes, approval notes, uploads, and proof of contact. Not grades.
-- **Executives, adviser, super admin** — Groups (all packages), people, producers, queue, and a student’s letter grade, percent, per-cycle final cuts and check-ins, livestream, participation, and portfolio. Ask what packages you produce and it lists the ones assigned to you (not every group in Groups). Ask about a package and it can read comments, notes, uploads, and player comments on the cuts. Check-ins stay automatic. Participation docks still need a second producer on **Participation** (a tab under **People**).
+- **Reporters**: how Portal works for students, their own packages (including comments and uploads on those packages), and cycle dates. Not other people’s grades, the people list, the publishing queue, producer lists, Admin, Members notes, or packages they are not on.
+- **Associate producers**: Groups they can see (assigned packages and unassigned ones), people, producers, the publishing queue, and cycle dates. Ask what packages you produce and it lists those groups with current stage and status. Ask about a package and it can read comments, clip notes, approval notes, uploads, and proof of contact. Not grades.
+- **Executives, adviser, super admin**: Groups (all packages), people, producers, queue, and a student’s letter grade, percent, per-cycle final cuts and check-ins, livestream, participation, and portfolio. Ask what packages you produce and it lists the ones assigned to you (not every group in Groups). Ask about a package and it can read comments, notes, uploads, and player comments on the cuts. Check-ins stay automatic. Participation docks still need a second producer on **Participation** (a tab under **People**).
 
 It already knows who is signed in. It should not ask for a name to look up “my” packages.
 

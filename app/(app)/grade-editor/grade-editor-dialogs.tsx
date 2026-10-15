@@ -141,10 +141,10 @@ export function ExtensionExceptionDialog({
           labelWidth="7rem"
           items={[
             { label: "Final Cut", value: formatLongDate(finalCutDate) },
-            { label: "Turned In", value: formatLongDate(row.turnedInDate) },
-            { label: "Late Days", value: row.extensionDetails.calculatedDays, mono: true },
-            { label: "Free Days", value: row.extensionDetails.freeDays, mono: true },
-            { label: "Charged Days", value: row.extensionDetails.chargedDays, mono: true },
+            { label: "Turned in", value: formatLongDate(row.turnedInDate) },
+            { label: "Late days", value: row.extensionDetails.calculatedDays, mono: true },
+            { label: "Free days", value: row.extensionDetails.freeDays, mono: true },
+            { label: "Charged days", value: row.extensionDetails.chargedDays, mono: true },
             { label: "Exempt", value: row.extensionDetails.exempt ? "Yes" : "No" }
           ]}
         />

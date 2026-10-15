@@ -12,17 +12,17 @@ const points = [
   {
     icon: Lock,
     title: "Private media access",
-    description: "Media stays behind authenticated access or controlled guest links."
+    description: "Media needs a Portal sign-in or a guest link you control."
   },
   {
     icon: UserCheck,
     title: "Role-based controls",
-    description: "Workspace roles restrict who can upload, manage, or review content."
+    description: "Workspace roles decide who can upload, manage, or review media."
   },
   {
     icon: ShieldCheck,
     title: "Traceable decisions",
-    description: "Status changes and review events stay visible for auditability."
+    description: "Status changes and review decisions stay on record."
   }
 ];
 
@@ -34,8 +34,8 @@ export default function SecurityPage() {
       <div className="space-y-6">
         <PageHeader
           eyebrow="Security"
-          title="Security and control by design"
-          description="InFocus Portal helps protect your content with scoped access, guest controls, and reliable review history."
+          title="Security and access"
+          description="InFocus Portal limits who can see your media, lets you control guest links, and keeps a record of reviews."
           actions={
             <Link href="/dashboard" className={buttonVariants()}>
               Go to Dashboard
@@ -57,8 +57,8 @@ export default function SecurityPage() {
 
           {/* A setup reminder rather than a feature, so a quiet note under the cards. */}
           <InlineNote>
-            For production rollouts, make sure your Google OAuth redirect URLs and allowlisted user emails are configured
-            for your active domain before opening guest links broadly.
+            Before you share guest links widely, set the Google OAuth redirect URLs and allowed user emails for your
+            live domain.
           </InlineNote>
         </div>
       </div>

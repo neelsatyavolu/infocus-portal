@@ -2,7 +2,6 @@
 
 Private video meetings for producers, with notes written on the InFocus Drive.
 
-
 ## Where meetings live
 
 - Meetings have their own address: **meet.infocuspaly.com**. The Meetings tab is at the top (`meet.infocuspaly.com`), the InFocus Producer Meeting at **meet.infocuspaly.com/producers**, and each meeting at `meet.infocuspaly.com/<meeting id>`.
@@ -16,6 +15,7 @@ Private video meetings for producers, with notes written on the InFocus Drive.
   - In a wide window, Past and the InFocus Producer Meeting card sit beside Upcoming. On a phone, a tablet or a narrower computer window, an **Upcoming | Past** switch shows one list at a time (the browser remembers which), and the InFocus Producer Meeting card sits below it.
 - In the Portal sidebar, **Meetings** shows a **Live** tag while a meeting you can see is live.
 - Signing in from a meet link brings you back to that meeting.
+
 ## Who
 
 - **Producers only** (associate producers and up). Reporters without a producer role don't see Meetings.
@@ -59,7 +59,7 @@ Private video meetings for producers, with notes written on the InFocus Drive.
 - Changes reach Google in the background (retried if Google is briefly unavailable). **Sync now** re-checks everything.
 - **Only upcoming dates change.** Past meetings keep what they said at the time:
   - If the InFocus Producer Meeting's title, link or description changes after it has already met, the repeating event is split: the old one ends at the last past date, and a new one (with the new details and the same guests) starts at the next date. Moved or cancelled upcoming dates are applied to the new one. Guests get Google's update.
-  - Before the first date, the event is simply updated.
+  - Before the first date, the event is updated in place.
   - Adding or removing a guest updates the repeating event in place. Google lists guests for the whole series, so a new guest also shows on past dates there, but nothing else about past dates changes.
   - A meeting whose date has passed (including a one-off that has ended) is never edited or deleted.
 - If Google Calendar isn't connected, no invites go out at all.

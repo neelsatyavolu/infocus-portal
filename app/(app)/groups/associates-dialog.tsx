@@ -230,7 +230,7 @@ export default function AssociatesDialog({ cycles, activeCycleNumber, open, onOp
             <p className="eyebrow">Producer team</p>
             <DialogTitle className="text-xl">Associates</DialogTitle>
             <DialogDescription>
-              Review habits, workload, and feedback — one cycle at a time. Visible to executives &amp; adviser.
+              Review habits, workload and feedback for one cycle at a time. Only executives and the adviser see this.
             </DialogDescription>
           </DialogHeader>
           <label className="flex items-center gap-2 text-xs text-muted-foreground max-sm:w-full">

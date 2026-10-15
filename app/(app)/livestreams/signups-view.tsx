@@ -185,7 +185,7 @@ export function SignupsView({
     <section aria-label="Sign-up requests" className="space-y-3">
       {groups.length === 0 ? (
         <div className="rounded-md border border-border bg-card">
-          <EmptyState icon={CheckCircle2} title="Inbox clear — no pending sign-ups." />
+          <EmptyState icon={CheckCircle2} title="No pending sign-ups." />
         </div>
       ) : (
         <div className="space-y-4">

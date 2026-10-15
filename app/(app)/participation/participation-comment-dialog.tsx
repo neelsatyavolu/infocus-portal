@@ -38,7 +38,7 @@ export function ParticipationCommentDialog({
 }) {
   const helper =
     points === undefined
-      ? "Enter a score for this day, then Save — comments only store with a score."
+      ? "Enter a score for this day, then Save. A comment only saves with a score."
       : points < max
         ? "Docked scores need another producer to approve before students see this."
         : "Full marks post immediately. Save the week to keep this comment.";

@@ -38,7 +38,7 @@ export default async function MaintenancePage() {
           items={[
             { label: "Estimated return", value: <span className="font-semibold">{HUB_MAINTENANCE_ETA}</span> },
             { label: "What’s coming", value: "The same Portal, with everything where you left it." },
-            { label: "Access", value: "Producers retain full access during the move." }
+            { label: "Access", value: "Producers keep full access during the move." }
           ]}
         />
       </EntryPanel>

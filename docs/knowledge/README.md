@@ -12,7 +12,7 @@ When answering:
 
 1. Match the user's role (student, associate producer, executive producer, adviser, super admin).
 2. Cite the route (`/groups`, `/admin`) and the file below.
-3. If this folder and the live UI disagree, the UI plus `docs/class-rules-2026-27.md` win — then update this folder.
+3. If this folder and the live UI disagree, the UI plus `docs/class-rules-2026-27.md` win. Then update this folder.
 
 | Topic | File |
 |---|---|

@@ -43,8 +43,8 @@ export function HomeHero({ className }: { className?: string }) {
 
       <p className={HERO_TEXT}>
         InFocus is Palo Alto High School&apos;s student-run broadcast publication, covering campus news,
-        community stories, and live events. Our student journalists inform and engage the school community
-        through news reports, features, and commentary.
+        community stories, and live events. Our reporters make news, feature, and commentary stories for the
+        school community.
       </p>
 
       {/* The page's one primary, with Equipment beside it as an outline of the same size.
@@ -185,10 +185,10 @@ export function NewsroomSection() {
       <div>
         <div className="eyebrow eyebrow-ink">Inside the newsroom</div>
         <h2 id="features-title" className="display-md mt-2 text-foreground">
-          Supporting every stage of student reporting
+          Every stage of a story
         </h2>
         <p className="mt-1.5 max-w-2xl text-sm text-muted-foreground">
-          InFocus Portal brings together the tools our student newsroom uses to prepare stories for publication.
+          The InFocus Portal tools our newsroom uses to take a story from pitch to air.
         </p>
       </div>
 

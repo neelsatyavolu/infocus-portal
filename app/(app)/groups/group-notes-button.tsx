@@ -94,7 +94,7 @@ export default function GroupNotesButton({ rowId, topic, hasNotes = false, onSav
       <Dialog open={open} onOpenChange={(next) => { if (!saving) setOpen(next); }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Notes — {title}</DialogTitle>
+            <DialogTitle>Notes for {title}</DialogTitle>
             <DialogDescription>Shared with Notes in Package Cycle.</DialogDescription>
           </DialogHeader>
           {loading ? (

@@ -49,7 +49,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
     redirect(safeReturnTo as never);
   }
 
-  const errorMessage = error ? "Could not complete Google sign-in. Please sign in with email below." : null;
+  const errorMessage = error ? "Google sign-in didn't finish. Sign in with email below." : null;
   const googleConfigured = hasGoogleOAuthConfig();
   const googleSignInHref = `/api/auth/google/start?returnTo=${encodeURIComponent(safeReturnTo)}`;
 
@@ -58,7 +58,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
       <PageHeader
         eyebrow={destinationEyebrow(returnTo)}
         title="Sign in to InFocus Portal"
-        description="Use your registered email to access packages, grades, and the master calendar."
+        description="Use your registered email to open your packages, grades, and the Master Calendar."
       />
       {errorMessage ? <Alert tone="danger" className="md:px-6">{errorMessage}</Alert> : null}
       <SignInMethods

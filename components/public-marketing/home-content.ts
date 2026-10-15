@@ -85,56 +85,56 @@ export const homeApps = [
 /** The newsroom overview: the four areas of the work, each with the Portal tools behind it. */
 export const homePillars = [
   {
-    title: "Story Production",
+    title: "Story production",
     description: "Develop video reports, known as packages, from pitch to final edit.",
     tools: [
       {
         icon: Layers,
         title: "Video revision history",
-        description: "Upload revised edits and refer to earlier versions and their feedback throughout production."
+        description: "Upload each new edit and go back to earlier versions and their feedback."
       },
       {
         icon: UsersRound,
         title: "Team collaboration",
-        description: "Keep production notes, comments, and replies together so reporters and producers can coordinate revisions."
+        description: "Notes, comments and replies stay with the video, so reporters and producers can work through revisions together."
       }
     ]
   },
   {
-    title: "Editorial Feedback",
+    title: "Editorial feedback",
     description: "Work with producers to refine reporting, editing, and presentation.",
     tools: [
       {
         icon: MessageSquareText,
         title: "Editorial review",
-        description: "Share video reports with producers and receive feedback linked to specific moments in each video."
+        description: "Share a video report with producers and get feedback pinned to moments in the video."
       },
       {
         icon: CheckCircle2,
         title: "Assessment and approvals",
-        description: "Review assignment grades and follow each video report through the editorial approval process."
+        description: "See your grades and follow each video report through editorial approval."
       }
     ]
   },
   {
-    title: "Broadcast Planning",
+    title: "Broadcast planning",
     description: "Coordinate show schedules, team assignments, and production deadlines.",
     tools: [
       {
         icon: Clock3,
         title: "Production planning",
-        description: "Access schedules, story assignments, and production resources from a shared newsroom portal."
+        description: "Show schedules, story assignments and production resources in the shared newsroom portal."
       }
     ]
   },
   {
-    title: "Community Announcements",
+    title: "Community announcements",
     description: "Submit school announcements for consideration in an InFocus broadcast.",
     tools: [
       {
         icon: Sparkles,
         title: "Newsroom updates",
-        description: "Stay informed about production updates and announcements shared with the InFocus team."
+        description: "Read production updates and announcements shared with the InFocus team."
       }
     ]
   }

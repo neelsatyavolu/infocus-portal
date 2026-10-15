@@ -49,4 +49,4 @@ Spirit Week recap shows have no package. For a show named "Spirit Week Day N Rec
 
 ## Studio kiosk
 
-The studio teleprompter Mac skips Google login with a kiosk token. The first visit uses `?kiosk=TOKEN`, which saves a cookie on that machine. Kiosk access is the teleprompter host and `/teleprompter` APIs only — not the rest of Portal.
+The studio teleprompter Mac skips Google login with a kiosk token. The first visit uses `?kiosk=TOKEN`, which saves a cookie on that machine. Kiosk access is the teleprompter host and `/teleprompter` APIs only, not the rest of Portal.

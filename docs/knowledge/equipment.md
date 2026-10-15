@@ -24,7 +24,7 @@ Passcodes and passkey unlock are no longer accepted for checkout. Existing main 
 
 Anyone with the URL. No Portal login.
 
-Open `/equipment/request`. Pick one or more available items (search by name or code; **Add** marks an item **Selected**), then give your name, student ID and email under **Your request** (beside the list on a computer, below it on a phone) and select **Submit request**. On a phone the Submit button stays at the bottom of the screen. Producers and appointed equipment managers get an email. Approving a request **holds** those items for that student ID — checkout using the matching student email + code completes the hold. Nobody else can take a held item.
+Open `/equipment/request`. Pick one or more available items (search by name or code; **Add** marks an item **Selected**), then give your name, student ID and email under **Your request** (beside the list on a computer, below it on a phone) and select **Submit request**. On a phone the Submit button stays at the bottom of the screen. Producers and appointed equipment managers get an email. Approving a request **holds** those items for that student ID; checking out with the matching student email + code completes the hold. Nobody else can take a held item.
 
 Requests show **Pending**, **Approved**, **Denied**, or **Fulfilled** (approved and every held item checked out). **Approve** only appears while every item is still in, unheld, and not archived. A manager can still **Deny** an approved request while none of its items are out; that releases its holds.
 

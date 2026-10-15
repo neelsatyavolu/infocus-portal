@@ -71,7 +71,7 @@ export function SignInMethods({
       title={step === "code" ? "Check your email" : step === "password" ? "Admin password sign-in" : undefined}
       footer={
         <>
-          <span>Access is granted by your producer.</span>
+          <span>Your producer gives you access.</span>
           {step !== "password" ? (
             // Deliberately quieter than the other entry footers (ENTRY_FOOTER_CONTROL): it is for the
             // super admin only, so it reads as a link rather than inviting students to press it.

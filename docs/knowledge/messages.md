@@ -18,7 +18,7 @@ Producers (associate and up) can start a direct chat: type a name in **Search ch
 
 ## Who it is for
 
-Everyone signed in can open **Messages** and check chats they are allowed to see. Messages never send email or push — the badge on the ✱ (checked every 30 seconds) is how you notice new messages.
+Everyone signed in can open **Messages** and check chats they are allowed to see. Messages never send email or push; the badge on the ✱ (checked every 30 seconds) is how you notice new messages.
 
 ## Reporting and blocking
 

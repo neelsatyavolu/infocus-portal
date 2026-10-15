@@ -95,7 +95,7 @@ export function useStageDecisions({
       }
       setApproveKind(null);
       toast.success(
-        unapprove ? "Approval withdrawn." : approved ? "Approval recorded." : "Review submitted — needs revisions."
+        unapprove ? "Approval withdrawn." : approved ? "Approval recorded." : "Review submitted. Revisions requested."
       );
       await reload();
     } finally {

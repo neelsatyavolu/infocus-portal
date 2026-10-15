@@ -1,17 +1,17 @@
 # Overview
 
-InFocus Portal is the student broadcast production site for **InFocus News** (Palo Alto High School). It is not InFocus Drive (NAS file storage) and not a generic video-review SaaS.
+InFocus Portal is the student broadcast production site for **InFocus News** (Palo Alto High School). It is not InFocus Drive (NAS file storage), and it is not a general video-review service.
 
 **Product name:** InFocus Portal (browser tab, PWA, sign-in, emails). Do not rename the show or Drive.
 
 ## Who it is for
 
-- **Students / reporters** — package work, grades, livestreams, announcements, calendar.
-- **Associate producers** — assigned packages in Groups, Package Cycle (view), Members notes, Participation, publishing queue, The Show, shared Passwords.
-- **Executive producers** — all Groups, Grade Editor, Participation, Admin people, calendar cast.
-- **Adviser** — same platform-admin powers as super admin; stage 2 of package approval only.
-- **Super admin** — technical owner; can View as any user.
-- **Appointed managers** (equipment, livestream, website, social media) — students producers pick to run one tool. See `roles.md` and `managers.md`.
+- **Students / reporters**: package work, grades, livestreams, announcements, calendar.
+- **Associate producers**: assigned packages in Groups, Package Cycle (view), Members notes, Participation, publishing queue, The Show, shared Passwords.
+- **Executive producers**: all Groups, Grade Editor, Participation, Admin people, calendar cast.
+- **Adviser**: same platform-admin powers as super admin; stage 2 of package approval only.
+- **Super admin**: technical owner; can View as any user.
+- **Appointed managers** (equipment, livestream, website, social media): students producers pick to run one tool. See `roles.md` and `managers.md`.
 
 ## Main hosts
 

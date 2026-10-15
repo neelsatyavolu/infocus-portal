@@ -69,7 +69,7 @@ export function AccessRequestButton({ email, name, footer }: AccessRequestButton
     >
       {!email ? (
         <InlineNote>
-          We could not detect an account email for this session. Sign in again and try requesting access.
+          We couldn’t find an email for this session. Sign in again, then request access.
         </InlineNote>
       ) : (
         <>
@@ -85,7 +85,7 @@ export function AccessRequestButton({ email, name, footer }: AccessRequestButton
             <Alert tone="success" compact>
               {alreadyAllowed
                 ? "Your email is already on InFocus Portal. Ask a producer if you need this page."
-                : "Request sent. You will be sent an email once your request is approved."}
+                : "Request sent. We’ll email you once it’s approved."}
             </Alert>
           ) : (
             <Button

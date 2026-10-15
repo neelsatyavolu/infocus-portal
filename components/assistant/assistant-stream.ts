@@ -110,7 +110,7 @@ export const AUDIENCE_INTRO: Record<AssistantAudience, string> = {
 
 /** Extra line for super admin and the adviser (canMutate). */
 export const MUTATE_INTRO =
-  "I can also look up grades and propose changes — add packages, people, nicknames, or cycle dates. I’ll show a card for you to approve first.";
+  "I can also look up grades and propose changes: add packages, people, nicknames, or cycle dates. I’ll show a card for you to approve first.";
 
 export function uid() {
   return Math.random().toString(36).slice(2, 10);

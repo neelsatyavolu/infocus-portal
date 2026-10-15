@@ -11,22 +11,22 @@ const workflow = [
   {
     step: 1,
     title: "Upload",
-    body: "Upload package videos directly from the browser and track live progress with speed and percentage."
+    body: "Upload package videos from the browser and watch the upload speed and progress."
   },
   {
     step: 2,
     title: "Review",
-    body: "Invite teammates or guests to comment at exact timestamps and reply in focused threads."
+    body: "Teammates and guests comment at exact timestamps and reply in threads."
   },
   {
     step: 3,
     title: "Revise",
-    body: "Upload a new version to the same asset so historical comments remain linked and searchable."
+    body: "Upload a new version of the same video. Comments on earlier versions stay linked and searchable."
   },
   {
     step: 4,
     title: "Approve",
-    body: "Move versions through review statuses and keep a clear audit trail for final sign-off."
+    body: "Move each version through review statuses, with a record of every step up to final sign-off."
   }
 ];
 
@@ -44,8 +44,8 @@ export default function WorkflowPage() {
       <div className="space-y-6">
         <PageHeader
           eyebrow="Workflow"
-          title="A clear workflow from first cut to final"
-          description="Keep every package organized in one repeatable process that works for internal teams and external reviewers."
+          title="From first cut to final"
+          description="The same steps for every package, for class members and outside reviewers."
           actions={
             <>
               <Link href="/security" className={buttonVariants({ variant: "outline" })}>

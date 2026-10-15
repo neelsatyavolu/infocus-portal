@@ -28,4 +28,4 @@ Details: `docs/NAS-STORAGE.md`.
 
 ## Guest review
 
-People with owner access to the workspace can mint guest links (`/g/[token]`) for a project or one version, without a Portal account: View + Comment or View only, optional passcode and expiry. See `dashboard-and-review.md`.
+People with owner access to the workspace can create guest links (`/g/[token]`) for a project or one version, without a Portal account: View + Comment or View only, optional passcode and expiry. See `dashboard-and-review.md`.

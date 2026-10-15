@@ -12,11 +12,11 @@
 
 First broadcast: **Friday, September 4, 2026**. Earlier Wed/Fri are class days. Seeded PAUSD no-school days cancel activity (for example, Friday, October 2, 2026). The Show, Teleprompter, and the Publishing Queue skip no-school days when they pick the next show.
 
-**Finals weeks** — there are no shows, no PA, and no participation points in a finals week: Monday to Friday of any week that has a finals day. The Portal reads the finals days from Paly's bell schedule once a day and marks those weeks on the calendar as **Finals week**, so nobody has to enter them each year (2026–27: Dec 14–18, May 24–28, and Jun 1–4). A day set by hand in **Admin → School year → School calendar → Days off and special days** always wins over the automatic one, so set a finals-week day to **Show day** to air a show then. Two places do not skip finals weeks, summer, or hand-set days yet: the run-date count on the announcement submit form, and The Show's generator when it picks its opening date.
+**Finals weeks:** there are no shows, no PA, and no participation points in a finals week: Monday to Friday of any week that has a finals day. The Portal reads the finals days from Paly's bell schedule once a day and marks those weeks on the calendar as **Finals week**, so nobody has to enter them each year (2026–27: Dec 14–18, May 24–28, and Jun 1–4). A day set by hand in **Admin → School year → School calendar → Days off and special days** always wins over the automatic one, so set a finals-week day to **Show day** to air a show then. Two places do not skip finals weeks, summer, or hand-set days yet: the run-date count on the announcement submit form, and The Show's generator when it picks its opening date.
 
-**School years and summer** — each school year's first day, first show, and last day are set in **Admin → School year → School calendar** (see Accounts and admin). Weekdays between two school years are **Summer break**: no PA, no shows, no participation. Wednesdays and Fridays before a year's first show are not show days.
+**School years and summer:** each school year's first day, first show, and last day are set in **Admin → School year → School calendar** (see Accounts and admin). Weekdays between two school years are **Summer break**: no PA, no shows, no participation. Wednesdays and Fridays before a year's first show are not show days.
 
-**Special shows** — a calendar override can make any weekday a show day and give it a name (for example, Spirit Week: Tue–Fri Oct 6–9 are Day 1–4 recaps, and Wed Oct 14 is the Overall Recap). The name shows on the Master Calendar cell and in the Google Doc. The Publishing Queue does not auto-assign packages to named shows.
+**Special shows:** a calendar override can make any weekday a show day and give it a name (for example, Spirit Week: Tue–Fri Oct 6–9 are Day 1–4 recaps, and Wed Oct 14 is the Overall Recap). The name shows on the Master Calendar cell and in the Google Doc. The Publishing Queue does not auto-assign packages to named shows.
 
 ## Master Calendar (`/master-calendar`)
 
@@ -56,7 +56,7 @@ In a notes box, type `[package]` to search package videos and insert a package p
 
 **Wipe anchors…** (producers, same row; on a phone it is in the **⋯** menu) clears every volunteer and random anchor for the month you are viewing, on both the calendar and The Show, after you confirm. PA announcers stay.
 
-**Anchors & PA** (executives, adviser, super admin) — in the same row as Sync to Doc and Wipe anchors (on a phone, in the **⋯** menu). Roster of how many times each person is assigned as an anchor or PA announcer, including upcoming days. Summary tiles filter people with no anchors or no PA. Associates and reporters do not see it.
+**Anchors & PA** (executives, adviser, super admin) is in the same row as Sync to Doc and Wipe anchors (on a phone, in the **⋯** menu). It lists how many times each person is assigned as an anchor or PA announcer, including upcoming days. Summary tiles filter people with no anchors or no PA. Associates and reporters do not see it.
 
 **Anchors**
 
@@ -67,11 +67,11 @@ In a notes box, type `[package]` to search package videos and insert a package p
 - Someone picked by hand in the first week (days 1–7) or from day 22 on stays out of Randomize for that month, even if you remove them later. **Wipe anchors** clears this.
 - Dropping an anchor slot needs 48 hours' notice. This is a class rule; the Portal does not enforce it.
 
-**PA announcers** — Randomize picks from people who are not anchoring that month (and are not marked Non-anchor).
+**PA announcers:** Randomize picks from people who are not anchoring that month (and are not marked Non-anchor).
 
-**Show manager** — one per show day. Default rotation: first-name order through executive producers (including super admin) and associate producers. Adviser is not in the pool. Override on the calendar or The Show. **Use rotation** (on either page) clears it; the calendar's Day panel shows an **Auto** tag while the rotation is in use. After an override, later automatic days continue from the next person, so the next show is not a repeat.
+**Show manager:** one per show day. Default rotation: first-name order through executive producers (including super admin) and associate producers. Adviser is not in the pool. Override on the calendar or The Show. **Use rotation** (on either page) clears it; the calendar's Day panel shows an **Auto** tag while the rotation is in use. After an override, later automatic days continue from the next person, so the next show is not a repeat.
 
-**Confirming the roles** — a show is filmed in 1st period on the school day before it airs (Tuesday for Wednesday, Thursday for Friday). When that 1st period ends (from Paly's bell schedule, usually 10:30 AM; 10:30 AM the day before if the schedule can't be read), the show manager gets an email listing that show's anchors and crew roles, with a link to the show on The Show. There, a show that has been filmed (or is filmed today) has an **Are the show roles right?** banner at the top with a **Roles are correct** button; any producer can press it, and **Show roles** then shows who checked. Until someone does, the email repeats every 3 hours, with none sent from 9 PM to 7 AM Pacific. Only the most recent filmed show is reminded; once the next show is filmed, reminders move to that show.
+**Confirming the roles:** a show is filmed in 1st period on the school day before it airs (Tuesday for Wednesday, Thursday for Friday). When that 1st period ends (from Paly's bell schedule, usually 10:30 AM; 10:30 AM the day before if the schedule can't be read), the show manager gets an email listing that show's anchors and crew roles, with a link to the show on The Show. There, a show that has been filmed (or is filmed today) has an **Are the show roles right?** banner at the top with a **Roles are correct** button; any producer can press it, and **Show roles** then shows who checked. Until someone does, the email repeats every 3 hours, with none sent from 9 PM to 7 AM Pacific. Only the most recent filmed show is reminded; once the next show is filmed, reminders move to that show.
 
 Nicknames are what the dropdowns show. Each name dropdown (here and on The Show) has a search box: type part of a name to filter, then use the arrow keys and Enter, or click.
 

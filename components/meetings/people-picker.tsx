@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Check, Loader2, Search, X } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Check, X } from "lucide-react";
+import { Alert } from "@/components/kit/alert";
+import { SearchField } from "@/components/kit/search-field";
+import { ListSkeleton } from "@/components/kit/skeleton";
 import type { MeetingPerson } from "@/src/lib/meetings/types";
 import { errorMessage, meetingsApi } from "@/src/lib/meetings/client/api";
 import { cn } from "@/src/lib/utils";
@@ -55,12 +57,18 @@ export function PeoplePicker({
   const toggle = (id: string) =>
     onChange(selected.includes(id) ? selected.filter((s) => s !== id) : [...selected, id]);
 
-  if (error) return <p className="text-sm text-danger">{error}</p>;
+  if (error) {
+    return (
+      <Alert tone="danger" compact>
+        {error}
+      </Alert>
+    );
+  }
   if (!people) {
     return (
-      <p className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Loading {noun}…
-      </p>
+      <div role="status" aria-label={`Loading ${noun}`}>
+        <ListSkeleton rows={3} leading={false} lines={1} />
+      </div>
     );
   }
 
@@ -74,7 +82,7 @@ export function PeoplePicker({
                 type="button"
                 onClick={() => toggle(id)}
                 aria-label={`Remove ${byId.get(id)?.name ?? "person"}`}
-                className="inline-flex items-center gap-1 rounded-sm bg-[var(--brand-green)]/15 px-2 py-0.5 text-xs text-[var(--brand-green)] hover:bg-[var(--brand-green)]/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]"
+                className="inline-flex h-7 items-center gap-1 rounded-sm bg-[var(--brand-green)]/15 px-2 text-xs text-[var(--brand-green)] hover:bg-[var(--brand-green)]/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]"
               >
                 {byId.get(id)?.name ?? "Unknown"}
                 <X className="h-3 w-3" aria-hidden />
@@ -83,17 +91,8 @@ export function PeoplePicker({
           ))}
         </ul>
       ) : null}
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder={`Search ${noun}`}
-          aria-label={`Search ${noun}`}
-          className="pl-8 md:text-base"
-        />
-      </div>
-      <ul className="max-h-48 overflow-y-auto rounded-md border border-[var(--ink-4)]" role="listbox" aria-multiselectable>
+      <SearchField value={query} onChange={setQuery} placeholder={`Search ${noun}`} />
+      <ul className="max-h-48 divide-y divide-border overflow-y-auto rounded-md border border-border" role="listbox" aria-multiselectable>
         {matches.map((p) => {
           const on = selected.includes(p.id);
           return (
@@ -102,7 +101,7 @@ export function PeoplePicker({
                 type="button"
                 onClick={() => toggle(p.id)}
                 className={cn(
-                  "flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-[var(--ink-3)] focus-visible:bg-[var(--ink-3)] focus-visible:outline-none",
+                  "flex min-h-10 w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-[var(--ink-3)] focus-visible:bg-[var(--ink-3)] focus-visible:outline-none",
                   on ? "text-foreground" : "text-[var(--ink-text)]"
                 )}
               >

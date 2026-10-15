@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { InlineError } from "@/components/kit/alert";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -62,7 +63,7 @@ export function DangerZoneSection({ onReset }: { onReset: () => Promise<void> })
               setOpen(true);
             }}
           >
-            <Trash2 />
+            <Trash2 aria-hidden="true" />
             Reset all cycles…
           </Button>
         </SettingsRow>
@@ -98,10 +99,10 @@ export function DangerZoneSection({ onReset }: { onReset: () => Promise<void> })
               autoComplete="off"
               placeholder={CONFIRM_TEXT}
             />
-            {error ? <p className="text-sm text-danger">{error}</p> : null}
+            {error ? <InlineError>{error}</InlineError> : null}
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setOpen(false)} disabled={resetting}>
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={resetting}>
               Cancel
             </Button>
             <Button

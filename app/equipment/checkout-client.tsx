@@ -1,52 +1,68 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
-import { X } from "lucide-react";
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { Clock, Lock, LockOpen } from "lucide-react";
+import { MainWithRail } from "@/components/kit/layout";
+import { LoadingRegion, PanelSkeleton } from "@/components/kit/skeleton";
+import { StatusTag } from "@/components/kit/status-tag";
+import { StickyActionBar } from "@/components/kit/sticky-action-bar";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { isSubmitShortcut } from "@/components/ui/submit-shortcut";
+import { errorStatus, errorText, readJson, sendJson, type FormStatus } from "@/components/equipment/equipment-api";
+import { formatTime, itemCountLabel } from "@/components/equipment/equipment-status";
+import { StatusAlert, StatusLine } from "@/components/equipment/status-alert";
+import { ABOVE_PHONE_TABBAR } from "@/components/equipment/sticky-bar";
 import { matchingEquipmentItems, type EquipmentItemSuggestion } from "@/src/lib/equipment-item-suggestions";
-import { cn } from "@/src/lib/utils";
-
-type Status = { type: "error" | "success" | "info"; text: string } | null;
+import { CheckoutBatchPanel, submitLabel } from "./_components/checkout-batch-panel";
+import { CheckoutLockedPanel } from "./_components/checkout-locked-panel";
+import { CheckoutScanPanel } from "./_components/checkout-scan-panel";
+import { useCheckoutSession } from "./_components/use-checkout-session";
 
 type CheckoutResult = {
   action: "checkout" | "return";
   item?: { name?: string | null };
 };
 
-async function readJson<T>(res: Response): Promise<T> {
-  const body = (await res.json().catch(() => null)) as { data?: T; error?: { message?: string } } | null;
-  if (!res.ok) {
-    const error = new Error(body?.error?.message || "Request failed") as Error & { status: number };
-    error.status = res.status;
-    throw error;
-  }
-  return body?.data as T;
+const FORM_ID = "equipment-checkout-form";
+const MAX_ITEMS = 50;
+
+function signInErrorText(code: string) {
+  return code === "not_manager"
+    ? "This Google account is not an equipment manager or producer."
+    : "Google sign-in could not be completed. Please try again.";
 }
 
-function FormMessage({ status }: { status: Status }) {
-  if (!status?.text) {
-    return null;
+/** The header's session tag: Checking, Locked, Unlocked · locks 3:42 PM (amber in the last ten minutes). */
+function SessionTag({ unlocked, checking, lockSoon, lockTime }: { unlocked: boolean; checking: boolean; lockSoon: boolean; lockTime: string }) {
+  if (unlocked) {
+    return lockSoon ? (
+      <StatusTag tone="warning" icon={Clock} title={`Checkout locks at ${lockTime}`}>
+        Locks {lockTime}
+      </StatusTag>
+    ) : (
+      <StatusTag tone="success" icon={LockOpen} title={`Checkout locks at ${lockTime}`}>
+        Unlocked · locks {lockTime}
+      </StatusTag>
+    );
   }
-  const color =
-    status.type === "error"
-      ? "border-danger/40 bg-danger-tint text-danger"
-      : status.type === "success"
-        ? "border-[rgb(43,179,110,0.3)] bg-[rgb(43,179,110,0.12)] text-[var(--brand-green)]"
-        : "border-border bg-card text-muted-foreground";
-  return <p className={cn("rounded-md border px-3 py-2 text-sm", color)}>{status.text}</p>;
+  return checking ? (
+    <StatusTag tone="neutral" spinner>
+      Checking
+    </StatusTag>
+  ) : (
+    <StatusTag tone="neutral" icon={Lock}>
+      Locked
+    </StatusTag>
+  );
 }
 
 export default function EquipmentCheckoutClient() {
-  const [unlocked, setUnlocked] = useState(false);
-  const [checkingSession, setCheckingSession] = useState(true);
-  const [sessionRefresh, setSessionRefresh] = useState(0);
   const [studentName, setStudentName] = useState("");
   const [studentEmail, setStudentEmail] = useState("");
   const [barcode, setBarcode] = useState("");
   const itemCodeRef = useRef<HTMLInputElement>(null);
+  const refocusCode = useRef(false);
   const [items, setItems] = useState<EquipmentItemSuggestion[]>([]);
   const [itemsLoading, setItemsLoading] = useState(false);
   const [itemsError, setItemsError] = useState(false);
@@ -54,45 +70,33 @@ export default function EquipmentCheckoutClient() {
   const [barcodes, setBarcodes] = useState<string[]>([]);
   const [tookSdCard, setTookSdCard] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState<Status>(null);
+  const [status, setStatus] = useState<FormStatus>(null);
 
+  function clearBatch() {
+    setBarcodes([]);
+    setBarcode("");
+    setTookSdCard(false);
+  }
+
+  const session = useCheckoutSession({
+    onExpire: () => {
+      clearBatch();
+      setStatus({ type: "info", text: "Your one-hour checkout session ended. Sign in with Google again." });
+    },
+    onCheckFailed: () => setStatus({ type: "error", text: "Could not check the checkout session. Reload to try again." })
+  });
+  const { unlocked } = session;
+
+  // A Google sign-in error comes back once in the URL. Read it, then drop it, so a later Lock
+  // message is never overwritten by the stale error.
   useEffect(() => {
-    let active = true;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    async function checkSession() {
-      try {
-        const data = await readJson<{ unlocked: boolean; remainingMs?: number }>(await fetch("/api/equipment/kiosk/session", { cache: "no-store" }));
-        if (!active) return;
-        clearTimeout(timer);
-        setUnlocked(data.unlocked);
-        if (data.unlocked) {
-          timer = setTimeout(() => {
-            setUnlocked(false);
-            setBarcodes([]);
-            setBarcode("");
-            setTookSdCard(false);
-            setStatus({ type: "info", text: "Your one-hour checkout session ended. Sign in with Google again." });
-          }, data.remainingMs ?? 0);
-        }
-      } catch {
-        if (active) {
-          setUnlocked(false);
-          setStatus({ type: "error", text: "Could not check the checkout session. Reload to try again." });
-        }
-      } finally {
-        if (active) setCheckingSession(false);
-      }
-    }
-    const error = new URLSearchParams(window.location.search).get("signInError");
-    if (error) setStatus({ type: "error", text: error === "not_manager" ? "This Google account is not an equipment manager or producer." : "Google sign-in could not be completed. Please try again." });
-    void checkSession();
-    window.addEventListener("focus", checkSession);
-    return () => {
-      active = false;
-      clearTimeout(timer);
-      window.removeEventListener("focus", checkSession);
-    };
-  }, [sessionRefresh]);
+    const url = new URL(window.location.href);
+    const error = url.searchParams.get("signInError");
+    if (!error) return;
+    setStatus({ type: "error", text: signInErrorText(error) });
+    url.searchParams.delete("signInError");
+    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+  }, []);
 
   useEffect(() => {
     if (!unlocked) {
@@ -106,16 +110,34 @@ export default function EquipmentCheckoutClient() {
       .then((response) => readJson<{ items: EquipmentItemSuggestion[] }>(response))
       .then((data) => {
         if (active) setItems(data.items);
-      }).catch(() => {
+      })
+      .catch(() => {
         if (active) setItemsError(true);
-      }).finally(() => {
+      })
+      .finally(() => {
         if (active) setItemsLoading(false);
       });
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [unlocked]);
+
+  // After Add or a successful submit, put the cursor back in Item code for the next scan (once
+  // the field is enabled again).
+  useEffect(() => {
+    if (busy || !refocusCode.current) return;
+    refocusCode.current = false;
+    itemCodeRef.current?.focus();
+  }, [busy, barcodes]);
 
   const suggestions = matchingEquipmentItems(items, barcode, barcodes);
   const selectedItem = items.find((item) => item.barcode === barcode.trim());
+  const submitCount = barcodes.length + (barcode.trim() ? 1 : 0);
+
+  function editStudent(update: () => void) {
+    update();
+    setTookSdCard(false);
+  }
 
   function addItemCode() {
     const code = barcode.trim();
@@ -124,10 +146,11 @@ export default function EquipmentCheckoutClient() {
       setStatus({ type: "error", text: "That item code is already in the list." });
       return;
     }
-    if (barcodes.length >= 50) {
+    if (barcodes.length >= MAX_ITEMS) {
       setStatus({ type: "error", text: "Submit up to 50 items at a time." });
       return;
     }
+    refocusCode.current = true;
     setBarcodes((current) => [...current, code]);
     setBarcode("");
     setStatus(null);
@@ -138,32 +161,25 @@ export default function EquipmentCheckoutClient() {
     setBusy(true);
     setStatus(null);
     try {
-      const data = await readJson<{ results: CheckoutResult[] }>(
-        await fetch("/api/equipment/kiosk/checkout", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            studentName: studentName.trim(),
-            studentEmail: studentEmail.trim(),
-            barcodes: barcode.trim() ? [...barcodes, barcode.trim()] : barcodes,
-            tookSdCard
-          })
-        })
-      );
-      const summary = data.results.map((result) =>
-        `${result.action === "return" ? "Returned" : "Checked out"} ${result.item?.name?.trim() || "item"}.`
-      ).join(" ");
+      const data = await sendJson<{ results: CheckoutResult[] }>("/api/equipment/kiosk/checkout", "POST", {
+        studentName: studentName.trim(),
+        studentEmail: studentEmail.trim(),
+        barcodes: barcode.trim() ? [...barcodes, barcode.trim()] : barcodes,
+        tookSdCard
+      });
+      const summary = data.results
+        .map((result) => `${result.action === "return" ? "Returned" : "Checked out"} ${result.item?.name?.trim() || "item"}.`)
+        .join(" ");
       setStatus({ type: "success", text: `${summary}${tookSdCard ? " SD card recorded for this batch." : ""}` });
-      setBarcode("");
-      setBarcodes([]);
-      setTookSdCard(false);
+      refocusCode.current = true;
+      clearBatch();
     } catch (error) {
-      const statusCode = error && typeof error === "object" && "status" in error ? Number(error.status) : 0;
-      if (statusCode === 401 || statusCode === 403) {
-        setUnlocked(false);
+      const code = errorStatus(error);
+      if (code === 401 || code === 403) {
+        session.markLocked();
         setStatus({ type: "error", text: "Checkout locked. Sign in with your manager Google account." });
       } else {
-        setStatus({ type: "error", text: error instanceof Error ? error.message : "Checkout failed." });
+        setStatus({ type: "error", text: errorText(error, "Checkout failed.") });
       }
     } finally {
       setBusy(false);
@@ -171,191 +187,122 @@ export default function EquipmentCheckoutClient() {
   }
 
   async function lockStation() {
-    setBarcodes([]);
-    setBarcode("");
-    setTookSdCard(false);
+    clearBatch();
     setBusy(true);
     setStatus(null);
     try {
       await readJson(await fetch("/api/equipment/kiosk/lock", { method: "POST" }));
-      setUnlocked(false);
-      setSessionRefresh((value) => value + 1);
+      session.markLocked();
+      session.recheck();
       setStatus({ type: "info", text: "Checkout locked. Your main Portal session is unchanged." });
     } catch (error) {
-      setUnlocked(false);
-      setStatus({ type: "error", text: error instanceof Error ? error.message : "Could not lock." });
+      session.markLocked();
+      setStatus({ type: "error", text: errorText(error, "Could not lock.") });
     } finally {
       setBusy(false);
     }
   }
 
-  return (
-    <div className="mx-auto w-full max-w-3xl space-y-6 px-4 py-6 sm:px-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Checkout</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Enter your name and email, then add item codes to check equipment in or out together.</p>
-      </div>
+  function onFormKeyDown(event: KeyboardEvent<HTMLFormElement>) {
+    if (!isSubmitShortcut(event)) return;
+    event.preventDefault();
+    if (!busy && submitCount > 0) event.currentTarget.requestSubmit();
+  }
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Checkout station</CardTitle>
-          <CardDescription>Use the same student email and item code to return an item.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {!unlocked ? (
-            <div className="max-w-md space-y-4">
-              <p className="text-sm text-muted-foreground">An equipment manager or producer must sign in with their Portal Google account. Checkout locks automatically one hour after sign-in. This session is separate from the main Portal.</p>
-              {checkingSession ? <p role="status" className="text-sm text-muted-foreground">Checking checkout session…</p> : (
-                <a href="/api/auth/google/start?equipment=1" className="inline-flex min-h-10 items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">Sign in with Google to unlock checkout</a>
-              )}
-            </div>
-          ) : (
-            <form className="space-y-5" onSubmit={submitCheckout}>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="student-name">Student Name</Label>
-                  <Input
-                    id="student-name"
-                    value={studentName}
-                    onChange={(event) => {
-                      setStudentName(event.target.value);
-                      setTookSdCard(false);
-                    }}
-                    disabled={busy}
-                    placeholder="Full name"
-                    maxLength={200}
-                    autoComplete="off"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="student-email">Student Email</Label>
-                  <Input
-                    id="student-email"
-                    type="email"
-                    value={studentEmail}
-                    onChange={(event) => {
-                      setStudentEmail(event.target.value);
-                      setTookSdCard(false);
-                    }}
-                    disabled={busy}
-                    placeholder="student@pausd.us"
-                    autoComplete="off"
-                    maxLength={254}
-                    required
-                  />
-                </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="item-code">Item code</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="item-code"
-                      ref={itemCodeRef}
-                      value={barcode}
-                      onChange={(event) => {
-                        setBarcode(event.target.value);
-                        setSuggestionsOpen(true);
-                      }}
-                      onFocus={() => setSuggestionsOpen(true)}
-                      aria-describedby={selectedItem ? "selected-item-name item-code-help" : "item-code-help"}
-                      placeholder="Scan code or search by code/name"
-                      className="max-sm:h-11"
-                      autoComplete="off"
-                      disabled={busy}
-                      required={barcodes.length === 0}
-                      onKeyDown={(event) => {
-                        if (event.key === "Escape") setSuggestionsOpen(false);
-                        if (event.key === "Enter") {
-                          event.preventDefault();
-                          addItemCode();
-                        }
-                      }}
-                    />
-                    <Button type="button" variant="outline" className="max-sm:h-11" onClick={addItemCode} disabled={busy || !barcode.trim()}>
-                      Add
-                    </Button>
-                  </div>
-                  {selectedItem ? <p id="selected-item-name" className="text-xs text-muted-foreground">{selectedItem.name}</p> : null}
-                  <p id="item-code-help" className="text-xs text-muted-foreground">Type a code or item name, select a match, then Add.</p>
-                  {suggestionsOpen && barcode.trim() && !busy ? (
-                    <div className="rounded-md border border-border bg-card">
-                      {itemsLoading || itemsError || suggestions.length === 0 ? (
-                        <p role="status" className="px-3 py-2 text-sm text-muted-foreground">
-                          {itemsLoading ? "Loading item codes…" : itemsError ? "Suggestions unavailable. You can still scan or enter an exact code." : "No matching items. Check the code or item name; already-added items are hidden."}
-                        </p>
-                      ) : (
-                        <ul aria-label="Matching item codes" className="max-h-56 overflow-y-auto py-1">
-                          {suggestions.map((item) => (
-                            <li key={item.id}>
-                              <button type="button" className="flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left hover:bg-accent focus-visible:bg-accent focus-visible:outline-none" onClick={() => {
-                                setBarcode(item.barcode);
-                                itemCodeRef.current?.focus();
-                                setSuggestionsOpen(false);
-                              }}>
-                                <span className="break-all font-mono text-[13px] tabular-nums text-foreground">{item.barcode}</span>
-                                <span className="break-words text-xs text-muted-foreground">{item.name}</span>
-                              </button>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-              {barcodes.length > 0 ? (
-                <ul className="space-y-2" aria-label="Items to submit">
-                  {barcodes.map((code) => (
-                    <li key={code} className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2">
-                      <div className="min-w-0 space-y-0.5">
-                        <p className="break-all font-mono text-[13px] tabular-nums">{code}</p>
-                        <p className="break-words text-xs text-muted-foreground">{items.find((item) => item.barcode === code)?.name}</p>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="shrink-0 max-sm:h-10 max-sm:w-10"
-                        aria-label={`Remove ${code}`}
-                        disabled={busy}
-                        onClick={() => setBarcodes((current) => current.filter((entry) => entry !== code))}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm max-sm:min-h-10" htmlFor="took-sd-card">
-                  <input
-                    id="took-sd-card"
-                    type="checkbox"
-                    className="h-4 w-4 accent-[var(--brand-green)]"
-                    checked={tookSdCard}
-                    onChange={(event) => setTookSdCard(event.target.checked)}
-                    disabled={busy}
-                    aria-describedby="sd-card-help"
-                  />
-                  I took an SD card
-                </label>
-                <p id="sd-card-help" className="text-xs text-muted-foreground">
-                  Check only when taking an SD card with this batch. No item code needed for the card.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button type="submit" className="max-sm:h-11" disabled={busy || (barcodes.length === 0 && !barcode.trim())}>
-                  {busy ? "Submitting…" : `Submit ${barcodes.length + (barcode.trim() ? 1 : 0)} item(s)`}
-                </Button>
-                <Button type="button" variant="outline" className="max-sm:h-11" onClick={() => void lockStation()} disabled={busy}>
-                  Lock
-                </Button>
-              </div>
-            </form>
-          )}
-          <FormMessage status={status} />
-        </CardContent>
-      </Card>
+  let body;
+  if (unlocked) {
+    body = (
+      <>
+        <form id={FORM_ID} onSubmit={submitCheckout} onKeyDown={onFormKeyDown} className="min-w-0">
+          <MainWithRail
+            breakpoint="lg"
+            stickyRail
+            rail={
+              <CheckoutBatchPanel
+                listed={barcodes.length}
+                submitCount={submitCount}
+                tookSdCard={tookSdCard}
+                onTookSdCardChange={setTookSdCard}
+                status={status}
+                busy={busy}
+              />
+            }
+          >
+            <CheckoutScanPanel
+              studentName={studentName}
+              studentEmail={studentEmail}
+              onStudentNameChange={(value) => editStudent(() => setStudentName(value))}
+              onStudentEmailChange={(value) => editStudent(() => setStudentEmail(value))}
+              code={barcode}
+              onCodeChange={setBarcode}
+              codeRef={itemCodeRef}
+              suggestionsOpen={suggestionsOpen}
+              onSuggestionsOpenChange={setSuggestionsOpen}
+              suggestions={suggestions}
+              suggestionState={itemsLoading ? "loading" : itemsError ? "error" : "ready"}
+              selectedItemName={selectedItem?.name ?? null}
+              listed={barcodes}
+              items={items}
+              onAdd={addItemCode}
+              onRemove={(code) => setBarcodes((current) => current.filter((entry) => entry !== code))}
+              busy={busy}
+            />
+          </MainWithRail>
+        </form>
+        {/* Phones: the result shows beside Submit, so it is never below the fold. */}
+        <StickyActionBar
+          reserveLauncher={false}
+          className={`lg:hidden ${ABOVE_PHONE_TABBAR}`}
+          status={status ? <StatusLine status={status} /> : `${itemCountLabel(barcodes.length)} listed · up to 50`}
+        >
+          <Button type="submit" form={FORM_ID} disabled={busy || submitCount === 0}>
+            {submitLabel(busy, submitCount)}
+          </Button>
+        </StickyActionBar>
+      </>
+    );
+  } else if (session.checking) {
+    // A neutral outline of the station while the session is checked (it may already be unlocked).
+    body = (
+      <LoadingRegion label="Checking checkout session">
+        <MainWithRail breakpoint="lg" rail={<PanelSkeleton rows={3} />}>
+          <PanelSkeleton rows={4} />
+        </MainWithRail>
+      </LoadingRegion>
+    );
+  } else {
+    body = (
+      <>
+        <StatusAlert status={status} onDismiss={() => setStatus(null)} />
+        <CheckoutLockedPanel />
+      </>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      <PageHeader
+        eyebrow="Equipment"
+        status={
+          <SessionTag
+            unlocked={unlocked}
+            checking={session.checking}
+            lockSoon={session.lockSoon}
+            lockTime={formatTime(session.expiresAt)}
+          />
+        }
+        title="Checkout"
+        description="Scan items to check them out or back in. The same student email and code returns an item."
+        actions={
+          unlocked ? (
+            <Button type="button" variant="outline" onClick={() => void lockStation()} disabled={busy}>
+              <Lock aria-hidden />
+              Lock
+            </Button>
+          ) : undefined
+        }
+      />
+      {body}
     </div>
   );
 }

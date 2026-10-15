@@ -1,30 +1,18 @@
 "use client";
 
 import { pointerSafeAutoFocus } from "@/components/meetings/focus-modality";
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import * as Popover from "@radix-ui/react-popover";
 import { Clapperboard, MonitorUp, MonitorX } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { cn } from "@/src/lib/utils";
 import { CallButton } from "./call-button";
-
-const itemClass =
-  "flex min-h-11 w-full items-start gap-3 rounded-md px-3 py-2.5 text-left text-sm text-foreground hover:bg-[var(--ink-3)] focus-visible:bg-[var(--ink-3)] focus-visible:outline-none [&_svg]:mt-0.5 [&_svg]:size-4 [&_svg]:shrink-0";
-
-function Item({ icon, title, detail, onSelect }: { icon: ReactNode; title: string; detail: string; onSelect: () => void }) {
-  return (
-    <button type="button" className={itemClass} onClick={onSelect}>
-      {icon}
-      <span className="min-w-0">
-        <span className="block">{title}</span>
-        <span className="block text-xs text-muted-foreground">{detail}</span>
-      </span>
-    </button>
-  );
-}
+import { MENU_SURFACE, MenuDivider, MenuRow } from "./menu-row";
 
 /**
  * Desktop Share control: share a screen, window or tab (with or without its sound), or watch a
- * package cut together. Screen sharing is left out where the browser can't do it (iPad).
+ * package cut together. Where the browser can't share a screen (iPad), watching is the only thing
+ * left, so the button is "Watch a package cut" itself, with no menu.
  */
 export function ShareMenu(props: {
   canShare: boolean;
@@ -39,6 +27,13 @@ export function ShareMenu(props: {
     setOpen(false);
     action();
   };
+  if (!props.canShare && !props.sharing) {
+    return (
+      <CallButton label="Watch a package cut" onClick={props.onWatch}>
+        <Clapperboard />
+      </CallButton>
+    );
+  }
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger asChild>
@@ -47,18 +42,14 @@ export function ShareMenu(props: {
         </CallButton>
       </Popover.Trigger>
       <Popover.Portal>
-        <Popover.Content
-          onOpenAutoFocus={pointerSafeAutoFocus}
-          side="top"
-          sideOffset={12}
-          className="z-50 w-80 rounded-md border border-[var(--ink-4)] bg-[var(--ink-2)] p-2 text-sm outline-none"
-        >
+        <Popover.Content onOpenAutoFocus={pointerSafeAutoFocus} side="top" sideOffset={12} className={cn(MENU_SURFACE, "w-80")}>
           {props.sharing ? (
-            <Item icon={<MonitorX />} title="Stop presenting" detail="Stop sharing your screen" onSelect={run(props.onShare)} />
+            <MenuRow icon={<MonitorX />} title="Stop presenting" detail="Stop sharing your screen" onSelect={run(props.onShare)} />
           ) : props.canShare ? (
             <>
-              <Item icon={<MonitorUp />} title="Share screen, window or tab" detail="Everyone sees what you pick" onSelect={run(props.onShare)} />
-              <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-md px-3 py-2 pl-10">
+              <MenuRow icon={<MonitorUp />} title="Share screen, window or tab" detail="Everyone sees what you pick" onSelect={run(props.onShare)} />
+              {/* Indented to the row text (12px pad + 16px icon + 12px gap). */}
+              <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-md py-2 pl-10 pr-3 hover:bg-[var(--ink-3)]">
                 <span className="min-w-0">
                   <span className="block">Share sound</span>
                   <span className="block text-xs text-muted-foreground">Works best when you share a Chrome tab</span>
@@ -67,14 +58,13 @@ export function ShareMenu(props: {
               </label>
             </>
           ) : null}
-          <div className={props.canShare || props.sharing ? "mt-1 border-t border-[var(--ink-4)] pt-1" : undefined}>
-            <Item
-              icon={<Clapperboard />}
-              title="Watch a package cut"
-              detail="An Initial or Final Cut, in sync for everyone"
-              onSelect={run(props.onWatch)}
-            />
-          </div>
+          {props.canShare || props.sharing ? <MenuDivider /> : null}
+          <MenuRow
+            icon={<Clapperboard />}
+            title="Watch a package cut"
+            detail="An Initial or Final Cut, in sync for everyone"
+            onSelect={run(props.onWatch)}
+          />
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>

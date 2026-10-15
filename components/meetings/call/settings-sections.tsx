@@ -21,10 +21,11 @@ const BACKGROUNDS = [
   { value: "blur", label: "Blur" }
 ] as const satisfies ReadonlyArray<{ value: BackgroundMode; label: string }>;
 
+// Short labels so the three fit one 300px column; the detail is the hint under the field.
 const SEND = [
-  { value: "auto", label: "Auto (up to 1080p)" },
+  { value: "auto", label: "Auto" },
   { value: "720p", label: "720p" },
-  { value: "360p", label: "360p (data saver)" }
+  { value: "360p", label: "360p" }
 ] as const satisfies ReadonlyArray<{ value: SendQuality; label: string }>;
 
 const RECEIVE = [
@@ -41,20 +42,24 @@ function VoiceIsolationEngineNote() {
   );
 }
 
+/** A caps label, then the section's fields 16px apart (the same recipe in the dialog and the pre-join popover). */
 export function SettingsSection({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section aria-label={title} className="grid gap-3">
-      <h3 className="text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">{title}</h3>
+    <section aria-label={title} className="grid content-start gap-4">
+      <h3 className="border-b border-[var(--ink-4)] pb-2 text-[11px] font-medium uppercase leading-none tracking-[0.11em] text-muted-foreground">
+        {title}
+      </h3>
       {children}
     </section>
   );
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
+function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
     <div className="grid gap-1.5">
-      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <Label className="text-sm text-foreground">{label}</Label>
       {children}
+      {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
     </div>
   );
 }
@@ -78,7 +83,7 @@ export function AudioSettings({ media, showMeter = true }: { media: LocalMedia; 
       <DevicePicker label="Microphone" kind="mic" device={media.mic} />
       <SpeakerPicker value={media.speakerId} onChange={media.setSpeakerId} />
       {showMeter ? (
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        <div className="flex min-h-9 items-center gap-3 rounded-md bg-[var(--ink-3)] px-3 text-xs text-muted-foreground">
           <LevelMeter track={micTrack} />
           <span>{micTestLabel(media.audioOn)}</span>
         </div>
@@ -139,15 +144,15 @@ export function VideoSettings({
   const people = peopleCount >= 2 ? peopleCount : 6;
   return (
     <SettingsSection title="Video">
-      <DevicePicker label="Camera" kind="camera" device={media.camera} />
       {showPreview ? <CameraPreview media={media} /> : null}
+      <DevicePicker label="Camera" kind="camera" device={media.camera} />
       <Field label="Background">
         <Segmented label="Background" value={settings.background} options={BACKGROUNDS} onChange={(background) => updateSettings({ background })} />
       </Field>
       <SettingSwitch id="meet-mirror" label="Mirror my video" hint="Only your own view. Others see you normally." checked={settings.mirror} onChange={(mirror) => updateSettings({ mirror })} />
       {showQuality ? (
         <>
-          <Field label="Send quality">
+          <Field label="Send quality" hint="Auto sends up to 1080p. 360p is the data saver.">
             <Segmented label="Send quality" value={settings.sendQuality} options={SEND} onChange={(sendQuality) => updateSettings({ sendQuality })} />
           </Field>
           <Field label="Receive quality">

@@ -2,23 +2,35 @@
 
 import { pointerSafeAutoFocus } from "@/components/meetings/focus-modality";
 import { useEffect, useMemo, useState } from "react";
-import { Check, Loader2, Play, Search } from "lucide-react";
+import { Check, Clapperboard, Play, X } from "lucide-react";
+import { ActionBar } from "@/components/kit/action-bar";
+import { EmptyState, ErrorState } from "@/components/kit/empty-state";
+import { SearchField } from "@/components/kit/search-field";
+import { LoadingRegion, Skeleton } from "@/components/kit/skeleton";
+import { ViewTabs } from "@/components/kit/view-tabs";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { MeetingCutCatalog, MeetingCutGroup, MeetingCutKind, MeetingCutVersion } from "@/src/lib/meetings/types";
 import { errorMessage, meetingsApi } from "@/src/lib/meetings/client/api";
 import { formatWatchTime } from "@/src/lib/meetings/client/watch-sync";
 import { cn } from "@/src/lib/utils";
+import { IconButton } from "../call/call-button";
 import { Segmented } from "../call/segmented";
 import { filterCutGroups, type CutFilter } from "@/src/lib/meetings/client/cut-filter";
 
 type Selected = { group: MeetingCutGroup; kind: MeetingCutKind; version: MeetingCutVersion };
 
 const KIND_LABEL: Record<MeetingCutKind, string> = { initial: "Initial", final: "Final" };
+const FILTERS: ReadonlyArray<{ value: CutFilter; label: string }> = [
+  { value: "all", label: "All" },
+  { value: "initial", label: "Initial" },
+  { value: "final", label: "Final" }
+];
 const FOCUS = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]";
+/** Side padding shared by every band of the dialog, so their edges line up. */
+const BAND = "px-4 sm:px-6";
 
-function VersionButton({
+function VersionChip({
   version,
   selected,
   onSelect,
@@ -36,20 +48,21 @@ function VersionButton({
       onClick={onSelect}
       onDoubleClick={onStart}
       className={cn(
-        "flex min-h-9 items-center gap-1.5 rounded-[6px] border px-2.5 py-1 font-mono text-xs tabular-nums",
+        "inline-flex h-10 items-center gap-1.5 rounded-md border px-2.5 font-mono text-xs tabular-nums transition-colors sm:h-8",
         selected
-          ? "border-[var(--brand-green)] bg-primary text-primary-foreground"
-          : "border-[var(--ink-4)] bg-[var(--ink-2)] text-foreground hover:bg-[var(--ink-3)]",
+          ? "border-transparent bg-primary text-primary-foreground"
+          : "border-border text-foreground hover:bg-[var(--ink-3)]",
         FOCUS
       )}
     >
       <span className="font-semibold">v{version.versionNumber}</span>
-      {version.durationSeconds ? <span>{formatWatchTime(version.durationSeconds)}</span> : null}
+      {version.durationSeconds ? <span>· {formatWatchTime(version.durationSeconds)}</span> : null}
       {version.approved ? <Check className="h-3.5 w-3.5" aria-label="approved" /> : null}
     </button>
   );
 }
 
+/** One group: topic, members, then a row per kind with a fixed label column so chips line up. */
 function GroupCard({
   group,
   filter,
@@ -65,42 +78,69 @@ function GroupCard({
 }) {
   const kinds: MeetingCutKind[] = filter === "all" ? ["initial", "final"] : [filter];
   return (
-    <li className="space-y-2 rounded-md border border-[var(--ink-4)] bg-[var(--ink-2)]/40 p-3">
+    <li className="flex min-w-0 flex-col gap-3 rounded-md border border-border p-4">
       <div className="min-w-0">
-        <p className="truncate text-sm font-medium text-foreground">{group.topic}</p>
+        <p className="truncate text-sm font-semibold text-foreground">{group.topic}</p>
         {group.members.length ? <p className="truncate text-xs text-muted-foreground">{group.members.join(", ")}</p> : null}
       </div>
-      {kinds.map((kind) => {
-        const versions = group[kind];
-        return (
-          <div key={kind} className="flex flex-wrap items-center gap-1.5">
-            <span className="w-12 shrink-0 text-xs text-muted-foreground">{KIND_LABEL[kind]}</span>
-            {versions.length ? (
-              versions.map((version) => {
-                const selection = { group, kind, version };
-                return (
-                  <VersionButton
-                    key={version.versionId}
-                    version={version}
-                    selected={selected?.version.versionId === version.versionId}
-                    onSelect={() => onSelect(selection)}
-                    onStart={() => onStart(selection)}
-                  />
-                );
-              })
-            ) : (
-              <span className="text-xs text-muted-foreground">Not uploaded yet</span>
-            )}
-          </div>
-        );
-      })}
+      <div className="grid gap-2">
+        {kinds.map((kind) => {
+          const versions = group[kind];
+          return (
+            <div key={kind} className="grid grid-cols-[56px_minmax(0,1fr)] items-start gap-2">
+              <span className="flex h-10 items-center text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground sm:h-8">
+                {KIND_LABEL[kind]}
+              </span>
+              {versions.length ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {versions.map((version) => {
+                    const selection = { group, kind, version };
+                    return (
+                      <VersionChip
+                        key={version.versionId}
+                        version={version}
+                        selected={selected?.version.versionId === version.versionId}
+                        onSelect={() => onSelect(selection)}
+                        onStart={() => onStart(selection)}
+                      />
+                    );
+                  })}
+                </div>
+              ) : (
+                <span className="flex h-10 items-center text-xs text-muted-foreground sm:h-8">Not uploaded yet</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </li>
   );
 }
 
+function CardsSkeleton() {
+  return (
+    <LoadingRegion label="Loading the package cuts">
+      <div aria-hidden className="grid gap-3 md:grid-cols-2">
+        {Array.from({ length: 6 }, (_, index) => (
+          <div key={index} className="space-y-3 rounded-md border border-border p-4">
+            <Skeleton className="h-4 w-2/3" />
+            <Skeleton className="h-3 w-1/2" />
+            <div className="flex gap-1.5 pt-1">
+              <Skeleton className="h-8 w-14 rounded-md" />
+              <Skeleton className="h-8 w-20 rounded-md" />
+              <Skeleton className="h-8 w-16 rounded-md" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </LoadingRegion>
+  );
+}
+
 /**
- * Pick a group's Initial or Final Cut version to watch together: cycle tabs (newest first),
- * search by topic or member, Initial / Final filter, then Watch (or double-click a version).
+ * Pick a group's Initial or Final Cut version to watch together: cycle tabs (newest first), then
+ * search by topic or member and an Initial / Final filter on one row, cards in two columns, and a
+ * sticky footer with the choice and Watch (or double-click a version). Full screen on phones.
  */
 export function CutPickerDialog({
   open,
@@ -141,6 +181,7 @@ export function CutPickerDialog({
 
   const loading = open && !error && (!catalog || (cycle !== undefined && catalog.cycle !== cycle));
   const groups = useMemo(() => filterCutGroups(catalog?.groups ?? [], query, filter), [catalog, query, filter]);
+  const narrowed = query.trim() !== "" || filter !== "all";
 
   const start = (selection: Selected) => {
     onWatch(selection.version.mediaId, selection.version.versionId);
@@ -148,102 +189,104 @@ export function CutPickerDialog({
     setSelected(null);
   };
 
+  const body = error ? (
+    <ErrorState title={error} onRetry={() => setAttempt((n) => n + 1)} />
+  ) : loading ? (
+    <CardsSkeleton />
+  ) : groups.length === 0 ? (
+    <EmptyState
+      icon={Clapperboard}
+      title={catalog?.cycle === null ? "No cuts have been uploaded yet." : "No groups match."}
+      action={
+        narrowed && catalog?.cycle !== null ? (
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setQuery("");
+              setFilter("all");
+            }}
+          >
+            Clear filters
+          </Button>
+        ) : undefined
+      }
+    />
+  ) : (
+    <ul className="grid gap-3 md:grid-cols-2">
+      {groups.map((group) => (
+        <GroupCard key={group.rowId} group={group} filter={filter} selected={selected} onSelect={setSelected} onStart={start} />
+      ))}
+    </ul>
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent onOpenAutoFocus={pointerSafeAutoFocus} className="flex max-h-[85dvh] max-w-xl flex-col gap-3 outline-none [&>*]:min-w-0">
-        <DialogHeader className="shrink-0">
-          <DialogTitle>Watch together</DialogTitle>
-          <DialogDescription>Pick a cut. Everyone in the call watches it in sync, and anyone can pause or scrub.</DialogDescription>
-        </DialogHeader>
+      <DialogContent
+        hideClose
+        onOpenAutoFocus={pointerSafeAutoFocus}
+        className="flex h-[min(720px,85dvh)] max-w-3xl flex-col gap-0 p-0 outline-none sm:p-0 [&>*]:min-w-0 max-sm:h-dvh max-sm:max-h-dvh max-sm:w-screen max-sm:max-w-none max-sm:border-0 max-sm:pt-[env(safe-area-inset-top)]"
+      >
+        {/* Own close button in the header row, so on a full-screen phone it sits below the safe area, beside the title. */}
+        <div className={cn("flex shrink-0 items-start gap-3 pt-4 sm:pt-6", BAND)}>
+          <DialogHeader className="min-w-0 flex-1 text-left">
+            <DialogTitle>Watch together</DialogTitle>
+            <DialogDescription>Pick a cut. Everyone in the call watches it in sync, and anyone can pause or scrub.</DialogDescription>
+          </DialogHeader>
+          <IconButton label="Close" className="-mr-2 -mt-1.5 max-sm:h-10 max-sm:w-10" onClick={() => onOpenChange(false)}>
+            <X />
+          </IconButton>
+        </div>
 
         {catalog && catalog.cycles.length > 0 ? (
-          <div role="tablist" aria-label="Cycle" className="flex shrink-0 gap-1 overflow-x-auto">
-            {catalog.cycles.map((n) => {
-              const active = (cycle ?? catalog.cycle) === n;
-              return (
-                <button
-                  key={n}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => {
-                    setCycle(n);
-                    setSelected(null);
-                  }}
-                  className={cn(
-                    "min-h-9 shrink-0 rounded-[6px] px-3 text-sm",
-                    active ? "bg-[var(--ink-3)] font-medium text-foreground" : "text-muted-foreground hover:bg-[var(--ink-2)]",
-                    FOCUS
-                  )}
-                >
-                  Cycle {n}
-                </button>
-              );
-            })}
-          </div>
+          <ViewTabs
+            ariaLabel="Cycle"
+            className={cn("mt-3 shrink-0", BAND)}
+            items={catalog.cycles.map((n) => ({ value: String(n), label: `Cycle ${n}` }))}
+            value={String(cycle ?? catalog.cycle)}
+            onChange={(value) => {
+              setCycle(Number(value));
+              setSelected(null);
+            }}
+          />
         ) : null}
 
-        <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search topic or member" aria-label="Search topic or member" className="pl-8" />
-          </div>
-          <div className="sm:w-56">
-            <Segmented<CutFilter>
-              label="Show"
-              value={filter}
-              onChange={setFilter}
-              options={[
-                { value: "all", label: "All" },
-                { value: "initial", label: "Initial" },
-                { value: "final", label: "Final" }
-              ]}
-            />
+        <div className={cn("flex shrink-0 flex-col gap-2 py-3 sm:flex-row sm:items-center", BAND)}>
+          <SearchField
+            value={query}
+            onChange={setQuery}
+            placeholder="Search topic or member"
+            size="touch"
+            className="min-w-0 sm:flex-1"
+          />
+          <div className="sm:w-60">
+            <Segmented<CutFilter> label="Show" value={filter} onChange={setFilter} options={FILTERS} />
           </div>
         </div>
 
-        <div className="min-h-40 flex-1 overflow-y-auto overscroll-contain pr-1">
-          {error ? (
-            <div className="flex flex-col items-center gap-3 py-10 text-sm text-muted-foreground">
-              <span>{error}</span>
-              <Button size="sm" variant="secondary" onClick={() => setAttempt((n) => n + 1)}>
-                Try again
-              </Button>
-            </div>
-          ) : loading ? (
-            <div className="flex items-center justify-center py-10 text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin" aria-label="Loading" />
-            </div>
-          ) : groups.length === 0 ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">
-              {catalog?.cycle === null ? "No cuts have been uploaded yet." : "No groups match."}
-            </p>
-          ) : (
-            <ul className="space-y-2">
-              {groups.map((group) => (
-                <GroupCard key={group.rowId} group={group} filter={filter} selected={selected} onSelect={setSelected} onStart={start} />
-              ))}
-            </ul>
+        <div className={cn("min-h-0 flex-1 overflow-y-auto overscroll-contain pb-4", BAND)}>{body}</div>
+
+        <div
+          className={cn(
+            "flex shrink-0 flex-col gap-3 border-t border-border py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-between",
+            BAND
           )}
-        </div>
-
-        <DialogFooter className="shrink-0 items-center gap-2 border-t border-[var(--ink-4)] pt-3 sm:justify-between">
-          <p className="min-w-0 truncate text-sm text-muted-foreground">
-            {selected
-              ? `${selected.group.topic} · ${KIND_LABEL[selected.kind]} Cut v${selected.version.versionNumber}`
-              : replacing
-                ? "This replaces the video everyone is watching."
-                : "Choose a version."}
-          </p>
-          <div className="flex shrink-0 gap-2">
+        >
+          <div className="min-w-0 text-sm" aria-live="polite">
+            <p className="truncate text-muted-foreground">
+              {selected ? `${selected.group.topic} · ${KIND_LABEL[selected.kind]} Cut v${selected.version.versionNumber}` : "Choose a version."}
+            </p>
+            {/* Kept while a version is picked: that is the moment someone is about to press Watch. */}
+            {replacing ? <p className="truncate text-xs text-[var(--brand-amber)]">This replaces the video everyone is watching.</p> : null}
+          </div>
+          <ActionBar size="touch" fullWidthOnPhone className="shrink-0">
             <Button variant="ghost" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
             <Button disabled={!selected} onClick={() => selected && start(selected)}>
-              <Play className="h-4 w-4" aria-hidden /> Watch
+              <Play aria-hidden /> Watch
             </Button>
-          </div>
-        </DialogFooter>
+          </ActionBar>
+        </div>
       </DialogContent>
     </Dialog>
   );

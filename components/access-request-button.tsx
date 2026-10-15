@@ -1,15 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import { Alert, InlineNote } from "@/components/kit/alert";
+import { KeyValueList } from "@/components/kit/key-value";
+import { StatusTag } from "@/components/kit/status-tag";
+import { ENTRY_CONTROL, EntryPanel } from "@/components/public-entry/entry-panel";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/src/lib/utils";
 
 type AccessRequestButtonProps = {
   email: string | null;
   name: string | null;
+  /** The panel footer: a note and the page's way out (Sign out / Back home). */
+  footer?: ReactNode;
 };
 
-export function AccessRequestButton({ email, name }: AccessRequestButtonProps) {
+/**
+ * The Request access button, now drawn as the whole "Request access" panel on /access-denied:
+ * what will be sent, the button, and the result. (The name is kept for its one importer.)
+ */
+export function AccessRequestButton({ email, name, footer }: AccessRequestButtonProps) {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  // The API approves an email that is already on Portal at once (`alreadyAllowed`), so no email follows.
+  const [alreadyAllowed, setAlreadyAllowed] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function onRequestAccess() {
@@ -37,6 +51,7 @@ export function AccessRequestButton({ email, name }: AccessRequestButtonProps) {
         throw new Error(payload?.error?.message ?? "Failed to send request.");
       }
 
+      setAlreadyAllowed(payload?.data?.alreadyAllowed === true);
       setSubmitted(true);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Failed to send request.");
@@ -45,30 +60,46 @@ export function AccessRequestButton({ email, name }: AccessRequestButtonProps) {
     }
   }
 
-  if (!email) {
-    return (
-      <p className="mt-4 rounded-lg border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
-        We could not detect an account email for this session. Sign in again and try requesting access.
-      </p>
-    );
-  }
-
   return (
-    <div className="mt-4">
-      <button
-        type="button"
-        onClick={() => void onRequestAccess()}
-        disabled={submitting || submitted}
-        className="rounded-lg border border-border bg-accent px-4 py-2 text-sm font-semibold text-foreground hover:bg-accent disabled:opacity-60"
-      >
-        {submitted ? "Access Requested" : submitting ? "Requesting..." : "Request Access"}
-      </button>
-      {submitted ? (
-        <p className="mt-2 text-sm text-emerald-200">
-          Request sent. You will be sent an email once your request is approved.
-        </p>
-      ) : null}
-      {error ? <p className="mt-2 text-sm text-danger">{error}</p> : null}
-    </div>
+    <EntryPanel
+      id="access-request"
+      title="Request access"
+      status={submitted ? <StatusTag tone="success">{alreadyAllowed ? "Approved" : "Requested"}</StatusTag> : undefined}
+      footer={footer}
+    >
+      {!email ? (
+        <InlineNote>
+          We could not detect an account email for this session. Sign in again and try requesting access.
+        </InlineNote>
+      ) : (
+        <>
+          <KeyValueList
+            layout="stacked"
+            items={[
+              { label: "Email", value: email },
+              { label: "Name", value: name, hidden: !name }
+            ]}
+          />
+          {error ? <Alert tone="danger" compact>{error}</Alert> : null}
+          {submitted ? (
+            <Alert tone="success" compact>
+              {alreadyAllowed
+                ? "Your email is already on InFocus Portal. Ask a producer if you need this page."
+                : "Request sent. You will be sent an email once your request is approved."}
+            </Alert>
+          ) : (
+            <Button
+              type="button"
+              variant="default"
+              className={cn(ENTRY_CONTROL, "w-full")}
+              onClick={() => void onRequestAccess()}
+              disabled={submitting}
+            >
+              {submitting ? "Requesting…" : "Request access"}
+            </Button>
+          )}
+        </>
+      )}
+    </EntryPanel>
   );
 }

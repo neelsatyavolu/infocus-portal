@@ -1,508 +1,177 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
-import Link from "next/link";
-import PublishingManagers from "./publishing-managers";
-import { Download, GripVertical, History, Play, Plus, Radio, Trash2, Upload } from "lucide-react";
-import { toast } from "sonner";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { CalendarX, History, Plus, Radio, RotateCw } from "lucide-react";
+import { Alert } from "@/components/kit/alert";
+import { EmptyState } from "@/components/kit/empty-state";
+import { Panel } from "@/components/kit/panel";
+import { SectionHeader } from "@/components/kit/section";
+import { Spinner } from "@/components/kit/spinner";
+import { CountBadge, StatusTag } from "@/components/kit/status-tag";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import {
-  MAX_PACKAGES_PER_SHOW,
-  QUEUE_SHOW_FULL_MESSAGE,
-  UNASSIGNED_SHOW_KEY,
-  canManuallyPlaceOnShow,
-  groupPastQueueSections,
-  groupQueueSections,
-  queuePackageSubtitle
-} from "@/src/lib/publishing-queue";
-import { formatShowDateLabel } from "@/src/lib/show-assignment";
-import type { NasUploadFields } from "@/src/lib/nas-upload-client";
-import { cachedValue, rememberValue } from "@/src/lib/client-cache";
-import { cn } from "@/src/lib/utils";
+import { MAX_PACKAGES_PER_SHOW } from "@/src/lib/publishing-queue";
+import { AddPackageDialog } from "./add-package-dialog";
+import { MoveToShowDialog, type MoveTarget } from "./move-to-show-dialog";
+import { PastShowsDialog, pastRowAnchorId } from "./past-shows-dialog";
+import { PublishConfirmDialog, type PublishTarget } from "./publish-confirm-dialog";
+import PublishingManagers from "./publishing-managers";
+import { QueuePackageRow } from "./queue-package-row";
+import { QueueSkeleton } from "./queue-skeleton";
+import { QueueSummary } from "./queue-summary";
+import type { OccupiedOn, QueueRow } from "./queue-types";
+import { buildQueueView, countOnShow } from "./queue-view-model";
+import { RECENT_PUBLICATIONS_ID, RecentPublications } from "./recent-publications";
+import { ShowRundown, showAnchorId } from "./show-rundown";
+import { usePublishingQueue } from "./use-publishing-queue";
+import { useQueueDrag } from "./use-queue-drag";
 
-type QueueRow = {
-  id: string;
-  cycleNumber: number;
-  groupTopic: string;
-  headline?: string | null;
-  custom?: boolean;
-  queuedForAirAt: string | null;
-  queuedForShowDate: string | null;
-  members: Array<string | null>;
-  thumbnailUrl?: string | null;
-  youtubePublication?: { status: string; videoId: string | null; publishedAt: string | null; lastError: string | null } | null;
-};
+const UNASSIGNED_ID = "queue-unassigned";
 
-type UpcomingShow = {
-  date: string;
-  label: string;
-};
-
-type Candidate = {
-  id: string;
-  cycleNumber: number;
-  groupTopic: string;
-  custom?: boolean;
-  members: Array<string | null>;
-};
-
-function showDateOptionLabel(show: UpcomingShow, full: boolean, current: boolean) {
-  return `${show.label}${full && !current ? " (full)" : ""}`;
+function liveRowAnchorId(rowId: string) {
+  return `queue-row-${rowId}`;
 }
 
-function QueuePackageCard({
-  row,
-  busy,
-  canDrag,
-  readOnly = false,
-  dragging,
-  showOptions,
-  occupiedOn,
-  onDragStart,
-  onDragEnd,
-  onMove,
-  onRemove,
-  onPublish
-}: {
-  row: QueueRow;
-  busy: boolean;
-  canDrag: boolean;
-  /** Website managers: no moving, downloading, or removing, and no link into Groups. */
-  readOnly?: boolean;
-  dragging: boolean;
-  showOptions: UpcomingShow[];
-  occupiedOn: (date: string, excludeRowId?: string | null) => number;
-  onDragStart?: (event: DragEvent<HTMLElement>) => void;
-  onDragEnd?: () => void;
-  onMove: (rowId: string, showDate: string) => void;
-  onRemove: (rowId: string) => void;
-  /** Producers, when YouTube publishing is configured: upload now instead of on the air date. */
-  onPublish?: (row: QueueRow) => void;
-}) {
-  const title = (
-    <div className="min-w-0 break-words">
-      <div className="font-medium">{row.groupTopic || (row.custom ? "Untitled" : "Untitled group")}</div>
-      {row.headline && row.headline !== row.groupTopic ? (
-        <div className="text-sm text-foreground/80">{row.headline}</div>
-      ) : null}
-      <div className="text-xs text-muted-foreground">{queuePackageSubtitle(row)}</div>
-    </div>
-  );
-  const extraCurrent =
-    row.queuedForShowDate && !showOptions.some((show) => show.date === row.queuedForShowDate)
-      ? { date: row.queuedForShowDate, label: formatShowDateLabel(row.queuedForShowDate) }
-      : null;
-
-  return (
-    <div
-      className={cn(
-        "rounded-md border border-border bg-card px-3 py-2.5 transition-opacity",
-        dragging && "opacity-50"
-      )}
-    >
-      <div className="flex min-w-0 flex-col gap-3">
-        <div
-          draggable={canDrag && !busy}
-          onDragStart={canDrag ? onDragStart : undefined}
-          onDragEnd={canDrag ? onDragEnd : undefined}
-          className={cn(
-            "flex min-w-0 flex-1 items-center gap-3",
-            canDrag && "cursor-grab active:cursor-grabbing"
-          )}
-        >
-          {canDrag ? <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground/70" /> : null}
-          <QueueThumbnail url={row.thumbnailUrl ?? null} />
-          {row.custom || readOnly ? (
-            title
-          ) : (
-            <Link href={`/groups/${row.id}/final-cut` as never} draggable={false} className="min-w-0">
-              {title}
-            </Link>
-          )}
-        </div>
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <Link href={`/publishing-queue/${row.id}` as never} draggable={false} className="text-xs text-muted-foreground underline hover:text-foreground">
-            {row.youtubePublication?.status === "PUBLISHED" ? "YouTube published"
-              : row.youtubePublication?.status === "UPLOADING" ? "YouTube uploading"
-              : row.youtubePublication?.status === "PROCESSING" ? "YouTube processing"
-              : row.youtubePublication?.status === "FAILED" ? "YouTube failed"
-              : "YouTube pending"}
-          </Link>
-          {readOnly ? null : (
-            <>
-              <select
-                value={row.queuedForShowDate ?? ""}
-                disabled={busy}
-                draggable={false}
-                onChange={(event) => {
-                  const next = event.target.value || null;
-                  if (!next || next === row.queuedForShowDate) return;
-                  if (!canManuallyPlaceOnShow(occupiedOn(next, row.id))) {
-                    toast.error(QUEUE_SHOW_FULL_MESSAGE);
-                    return;
-                  }
-                  onMove(row.id, next);
-                }}
-                className="h-8 min-w-0 max-w-full rounded-md border border-border bg-background px-2 text-xs text-foreground"
-              >
-                <option value="">Next empty show</option>
-                {showOptions.map((show) => {
-                  const full = !canManuallyPlaceOnShow(occupiedOn(show.date, row.id));
-                  const current = show.date === row.queuedForShowDate;
-                  return (
-                    <option key={show.date} value={show.date} disabled={full && !current}>
-                      {showDateOptionLabel(show, full, current)}
-                    </option>
-                  );
-                })}
-                {extraCurrent ? <option value={extraCurrent.date}>{extraCurrent.label}</option> : null}
-              </select>
-              {onPublish && !row.youtubePublication ? (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={busy}
-                  draggable={false}
-                  onClick={() => onPublish(row)}
-                >
-                  <Upload className="h-3.5 w-3.5" />
-                  Publish to YouTube
-                </Button>
-              ) : null}
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                title="Download final cut"
-                draggable={false}
-                onClick={() => {
-                  const link = document.createElement("a");
-                  link.href = `/api/package-cycle/queue/${row.id}/download`;
-                  link.rel = "noopener";
-                  document.body.appendChild(link);
-                  link.click();
-                  link.remove();
-                }}
-              >
-                <Download className="h-3.5 w-3.5" />
-                Download
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={busy}
-                draggable={false}
-                onClick={() => onRemove(row.id)}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                Remove
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
-      {row.youtubePublication?.lastError ? (
-        <p className="mt-2 text-xs text-danger">{row.youtubePublication.lastError}</p>
-      ) : null}
-    </div>
-  );
+/** Scrolls to a jump target and moves focus there, so keyboard users continue from it. */
+function scrollToElement(id: string) {
+  const element = document.getElementById(id);
+  if (!element) return;
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  element.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" });
+  if (!element.hasAttribute("tabindex") && element.tabIndex < 0) element.setAttribute("tabindex", "-1");
+  element.focus({ preventScroll: true });
 }
 
-function QueueThumbnail({ url }: { url: string | null }) {
-  const [failed, setFailed] = useState(false);
-  const showImage = Boolean(url) && !failed;
-  return (
-    <div className="relative h-14 w-[5.5rem] shrink-0 overflow-hidden rounded-lg bg-black/50 outline outline-1 outline-foreground/10">
-      {showImage ? (
-        // Signed Drive / Bunny thumbs; skip next/image domain allowlists.
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={url ?? ""}
-          alt=""
-          className="h-full w-full object-cover"
-          onError={() => setFailed(true)}
-        />
-      ) : (
-        <div className="flex h-full w-full items-center justify-center text-soft-white/60">
-          <Play className="h-3.5 w-3.5 translate-x-px" />
-        </div>
-      )}
-    </div>
-  );
+/** The line under "Upcoming shows" when nothing is queued for a show. */
+function emptyQueueSentence(canEdit: boolean, hasPast: boolean) {
+  if (hasPast) return "Nothing upcoming. Open Past shows for earlier air dates.";
+  return canEdit ? "Nothing queued yet. Add a package to fill the next show." : "Nothing queued yet.";
 }
 
-type QueueData = {
-  packages: QueueRow[];
-  publishingConfigured?: boolean;
-  today?: string;
-  upcomingShows: UpcomingShow[];
-  candidates?: Candidate[];
-};
+/** Focus ring for a Panel that a summary tile jumps to. */
+const PANEL_JUMP_TARGET = "scroll-mt-24 outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
-// Only the plain queue (no ?candidates=1) is cached; it is what the page loads on arrival.
-const QUEUE_CACHE_KEY = "publishing-queue";
-
+/**
+ * Publishing Queue. Producers: is every upcoming show covered, and is YouTube OK? Then fill or
+ * move packages. Website managers (read-only): what is on YouTube, and where is the embed code?
+ */
 export default function PublishingQueueClient({ canEdit }: { canEdit: boolean }) {
-  const [rows, setRows] = useState<QueueRow[]>([]);
-  const [upcoming, setUpcoming] = useState<UpcomingShow[]>([]);
-  const [today, setToday] = useState<string | undefined>(undefined);
-  const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [publishingConfigured, setPublishingConfigured] = useState<boolean | null>(null);
+  const queue = usePublishingQueue();
+  const { rows, upcoming, today, publishingConfigured, busyId } = queue;
   const [addOpen, setAddOpen] = useState(false);
   const [pastOpen, setPastOpen] = useState(false);
-  const [busyId, setBusyId] = useState<string | null>(null);
-  const [publishTarget, setPublishTarget] = useState<QueueRow | null>(null);
-  const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [dragOverDate, setDragOverDate] = useState<string | null>(null);
-  const [customTitle, setCustomTitle] = useState("");
-  const [customFile, setCustomFile] = useState<File | null>(null);
-  const [customUploading, setCustomUploading] = useState(false);
-  const [customProgress, setCustomProgress] = useState<number | null>(null);
-  const customFileRef = useRef<HTMLInputElement | null>(null);
-
-  function resetCustomForm() {
-    setCustomTitle("");
-    setCustomFile(null);
-    setCustomUploading(false);
-    setCustomProgress(null);
-    if (customFileRef.current) {
-      customFileRef.current.value = "";
-    }
-  }
-
-  const applyQueue = useCallback((data: QueueData | undefined, withCandidates: boolean) => {
-    setRows(data?.packages ?? []);
-    setPublishingConfigured(data?.publishingConfigured ?? null);
-    setToday(data?.today);
-    setUpcoming(data?.upcomingShows ?? []);
-    if (withCandidates) {
-      setCandidates(data?.candidates ?? []);
-    }
-  }, []);
-
-  const load = useCallback(async (withCandidates = false) => {
-    const response = await fetch(
-      withCandidates ? "/api/package-cycle/queue?candidates=1" : "/api/package-cycle/queue",
-      { cache: "no-store" }
-    );
-    const body = (await response.json()) as { data?: QueueData };
-    if (!withCandidates && response.ok && body.data) rememberValue(QUEUE_CACHE_KEY, body.data);
-    applyQueue(body.data, withCandidates);
-  }, [applyQueue]);
+  const [pastFocusId, setPastFocusId] = useState<string | null>(null);
+  // Targets stay set while their dialog animates closed; `open` is what closes it.
+  const [moveDialog, setMoveDialog] = useState<{ open: boolean; target: MoveTarget | null }>({ open: false, target: null });
+  const [publishDialog, setPublishDialog] = useState<{ open: boolean; target: PublishTarget | null }>({
+    open: false,
+    target: null
+  });
+  // A show date or row id, ringed for a moment after a jump from a summary tile.
+  const [flash, setFlash] = useState<string | null>(null);
 
   useEffect(() => {
-    // On first view, show the last copy at once and refresh it quietly (src/lib/client-cache.ts).
-    // Reloads after a save call load() directly and skip it.
-    const cached = cachedValue<QueueData>(QUEUE_CACHE_KEY);
-    if (cached) {
-      applyQueue(cached, false);
-      setLoading(false);
-    }
-    void load()
-      .catch(() => toast.error("Could not load the publishing queue."))
-      .finally(() => setLoading(false));
-  }, [applyQueue, load]);
+    if (!flash) return;
+    const timer = window.setTimeout(() => setFlash(null), 1600);
+    return () => window.clearTimeout(timer);
+  }, [flash]);
 
-  async function openAdd() {
+  const view = useMemo(() => buildQueueView(rows, upcoming, today), [rows, upcoming, today]);
+  const occupiedOn = useCallback<OccupiedOn>((date, exclude) => countOnShow(rows, date, exclude), [rows]);
+  const move = (rowId: string, showDate: string) => void queue.updateQueue(rowId, true, showDate);
+  const drag = useQueueDrag({ rows, occupiedOn, onMove: move });
+  const canPublish = canEdit && publishingConfigured === true;
+  const { summary } = view;
+  const hasPast = view.past.length > 0;
+  const lastShow = view.shows[view.shows.length - 1];
+
+  function jump(elementId: string, key: string) {
+    scrollToElement(elementId);
+    setFlash(key);
+  }
+
+  function openPast(focusRowId: string | null) {
+    setPastFocusId(focusRowId);
+    setPastOpen(true);
+  }
+
+  function jumpToFailed() {
+    const failed = summary.firstFailed;
+    if (!failed) return;
+    if (failed.past) {
+      openPast(failed.id);
+      setFlash(failed.id);
+    } else {
+      jump(liveRowAnchorId(failed.id), failed.id);
+    }
+  }
+
+  function openAdd() {
     setAddOpen(true);
-    try {
-      await load(true);
-    } catch {
-      toast.error("Could not load packages to add.");
-    }
+    void queue.loadCandidates();
   }
 
-  async function updateQueue(rowId: string, queued: boolean, showDate?: string | null) {
-    const previous = rows;
-    const alreadyQueued = previous.some((row) => row.id === rowId);
-    if (queued && showDate) {
-      setRows((current) =>
-        current.map((row) => (row.id === rowId ? { ...row, queuedForShowDate: showDate } : row))
-      );
-    }
-    setBusyId(rowId);
-    try {
-      const response = await fetch("/api/package-cycle/queue", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rowId, queued, showDate })
-      });
-      const payload = (await response.json()) as { error?: { message?: string } };
-      if (!response.ok) {
-        throw new Error(payload.error?.message ?? "Could not update the queue.");
-      }
-      await load(addOpen);
-      if (!queued) {
-        toast.success("Removed from the queue.");
-      } else if (alreadyQueued) {
-        toast.success("Moved.");
-      } else {
-        toast.success("Added to the publishing queue.");
-      }
-    } catch (error) {
-      setRows(previous);
-      toast.error(error instanceof Error ? error.message : "Could not update the queue.");
-    } finally {
-      setBusyId(null);
-    }
+  function changeAddOpen(open: boolean) {
+    setAddOpen(open);
+    if (!open) queue.stopCandidates();
   }
 
-  async function publishNow(row: QueueRow) {
-    setPublishTarget(null);
-    setBusyId(row.id);
-    try {
-      const response = await fetch(`/api/package-cycle/queue/${row.id}/youtube`, { method: "POST" });
-      const payload = (await response.json()) as { error?: { message?: string } };
-      if (!response.ok) {
-        throw new Error(payload.error?.message ?? "Could not start the YouTube upload.");
-      }
-      await load(addOpen);
-      toast.success("Uploading to YouTube. Website managers get the embed code once it's ready.");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not start the YouTube upload.");
-    } finally {
-      setBusyId(null);
-    }
-  }
-
-  const onPublish = canEdit && publishingConfigured ? setPublishTarget : undefined;
-
-  async function addCustom() {
-    const title = customTitle.trim();
-    const file = customFile;
-    if (!title || !file || customUploading) {
-      return;
-    }
-    setCustomUploading(true);
-    setCustomProgress(0);
-    try {
-      const initResponse = await fetch("/api/package-cycle/queue/custom", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "init", title, fileName: file.name })
-      });
-      const initBody = (await initResponse.json()) as {
-        data?: { mediaId: string; versionId: string; upload: NasUploadFields };
-        error?: { message?: string };
-      };
-      if (!initResponse.ok || !initBody.data) {
-        throw new Error(initBody.error?.message ?? "Could not start the upload.");
-      }
-      const { uploadFileToNas } = await import("@/src/lib/nas-upload-client");
-      await uploadFileToNas(file, initBody.data.upload, (bytesUploaded, bytesTotal) => {
-        if (!bytesTotal) return;
-        setCustomProgress(Math.max(0, (bytesUploaded / bytesTotal) * 100));
-      });
-      const completeResponse = await fetch("/api/package-cycle/queue/custom", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "complete",
-          title,
-          mediaId: initBody.data.mediaId,
-          versionId: initBody.data.versionId
-        })
-      });
-      const completeBody = (await completeResponse.json()) as { error?: { message?: string } };
-      if (!completeResponse.ok) {
-        throw new Error(completeBody.error?.message ?? "Could not add the package.");
-      }
-      const { uploadNasPosterBestEffort } = await import("@/src/lib/video-thumbnail-client");
-      await uploadNasPosterBestEffort(file, initBody.data.mediaId, initBody.data.versionId);
-      resetCustomForm();
-      setAddOpen(false);
-      await load();
-      toast.success("Added to the publishing queue.");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not add the custom package.");
-      setCustomUploading(false);
-      setCustomProgress(null);
-    }
-  }
-
-  const upcomingDates = useMemo(() => upcoming.map((show) => show.date), [upcoming]);
-  const grouped = useMemo(
-    () => groupQueueSections(rows, upcomingDates, today),
-    [rows, upcomingDates, today]
-  );
-  const pastGrouped = useMemo(
-    () => groupPastQueueSections(rows, upcomingDates, today),
-    [rows, upcomingDates, today]
-  );
-  const pastShows = useMemo(
-    () => pastGrouped.map((group) => ({ date: group.date, label: formatShowDateLabel(group.date) })),
-    [pastGrouped]
-  );
-  const pastDialogShows = useMemo(() => {
-    const seen = new Set(pastShows.map((show) => show.date));
-    return [...pastShows, ...upcoming.filter((show) => !seen.has(show.date))];
-  }, [pastShows, upcoming]);
-  const liveCount = grouped.reduce((sum, group) => sum + group.rows.length, 0);
-
-  function occupiedOn(date: string, excludeRowId?: string | null) {
-    return rows.filter((row) => row.queuedForShowDate === date && row.id !== excludeRowId).length;
-  }
-
-  function canDropOn(date: string) {
-    if (date === UNASSIGNED_SHOW_KEY) return false;
-    const dragged = draggingId ? rows.find((row) => row.id === draggingId) : null;
-    if (dragged?.queuedForShowDate === date) return true;
-    return canManuallyPlaceOnShow(occupiedOn(date, draggingId));
-  }
-
-  function onDropOnShow(date: string, event: DragEvent<HTMLElement>) {
-    event.preventDefault();
-    setDragOverDate(null);
-    const rowId = event.dataTransfer.getData("text/plain");
-    setDraggingId(null);
-    if (!rowId || date === UNASSIGNED_SHOW_KEY) return;
-    const row = rows.find((item) => item.id === rowId);
-    if (!row || row.queuedForShowDate === date) return;
-    if (!canManuallyPlaceOnShow(occupiedOn(date, rowId))) {
-      toast.error(QUEUE_SHOW_FULL_MESSAGE);
-      return;
-    }
-    void updateQueue(rowId, true, date);
+  function renderRow(row: QueueRow, place: "live" | "past" | "recent") {
+    const busy = busyId === row.id;
+    const anchorId = place === "past" ? pastRowAnchorId(row.id) : place === "live" ? liveRowAnchorId(row.id) : undefined;
+    return (
+      <QueuePackageRow
+        key={row.id}
+        row={row}
+        canEdit={canEdit}
+        anchorId={anchorId}
+        busy={busy}
+        dragging={drag.draggingId === row.id}
+        highlighted={flash === row.id}
+        dragProps={canEdit && place === "live" ? drag.rowDragProps(row, busy) : undefined}
+        onMove={(target) =>
+          setMoveDialog({
+            open: true,
+            target: { row: target, options: place === "past" ? view.pastOptions : upcoming, returnFocusId: anchorId }
+          })
+        }
+        onPublish={canPublish ? (target) => setPublishDialog({ open: true, target: { row: target, returnFocusId: anchorId } }) : undefined}
+        onRemove={(rowId) => void queue.updateQueue(rowId, false)}
+      />
+    );
   }
 
   return (
-    <div className="route-enter mx-auto w-full max-w-3xl space-y-5 pb-24">
+    <div className="route-enter space-y-5">
       <PageHeader
         eyebrow={
+          // The place, like the sibling hub tabs: The Show (producers) or Managers → Website.
           <>
-            <Radio className="h-3 w-3" />
-            {canEdit ? "Producers" : "Website managers"}
+            <Radio className="h-3 w-3" aria-hidden />
+            {canEdit ? "The Show" : "Website"}
           </>
         }
+        status={canEdit ? undefined : <StatusTag>Read only</StatusTag>}
         title="Publishing Queue"
         description={
           canEdit
-            ? `New items land on the next empty show. Drag onto a date to stack — max ${MAX_PACKAGES_PER_SHOW} per show.`
-            : "Packages lined up for each show. Open a package’s YouTube status for its embed code. Producers manage the queue."
+            ? `New packages land on the next empty show; drag to stack up to ${MAX_PACKAGES_PER_SHOW} per show.`
+            : "Packages lined up for each show. Open one for its video and embed code."
         }
         actions={
+          // Managers reads its own roster, so it works while the queue loads or after a failed load.
           <>
             {canEdit ? <PublishingManagers /> : null}
-            <Button type="button" size="sm" variant="outline" onClick={() => setPastOpen(true)}>
-              <History className="h-4 w-4" />
+            <Button type="button" variant="outline" onClick={() => openPast(null)}>
+              <History aria-hidden />
               Past shows
+              {hasPast ? (
+                <span className="font-mono-broadcast text-xs tabular-nums text-muted-foreground">{view.past.length}</span>
+              ) : null}
             </Button>
             {canEdit ? (
-              <Button type="button" size="sm" onClick={() => void openAdd()}>
-                <Plus className="h-4 w-4" />
+              <Button type="button" onClick={openAdd}>
+                <Plus aria-hidden />
                 Add package
               </Button>
             ) : null}
@@ -510,254 +179,140 @@ export default function PublishingQueueClient({ canEdit }: { canEdit: boolean })
         }
       />
 
-      {publishingConfigured === false ? <p className="text-sm text-muted-foreground">YouTube publishing is not configured yet. Queue scheduling is still available.</p> : null}
-      {loading ? <p className="text-sm text-muted-foreground">Loading…</p> : null}
-      {!loading && liveCount === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          {pastGrouped.length > 0
-            ? "Nothing upcoming. Past shows are under Past shows."
-            : canEdit
-              ? "Nothing in the queue yet. Drop targets below stay open."
-              : "Nothing in the queue yet."}
-        </p>
+      {queue.phase === "loading" ? <QueueSkeleton tiles={canEdit ? 3 : 2} /> : null}
+
+      {queue.phase === "error" ? (
+        <Alert
+          tone="danger"
+          action={
+            <Button type="button" size="sm" variant="outline" disabled={queue.retrying} onClick={() => void queue.retry()}>
+              {queue.retrying ? <Spinner /> : <RotateCw aria-hidden />}
+              Try again
+            </Button>
+          }
+        >
+          Couldn&apos;t load the publishing queue.
+        </Alert>
       ) : null}
 
-      <div className="space-y-5">
-        {grouped.map((group) => {
-          const label =
-            upcoming.find((show) => show.date === group.date)?.label ??
-            (group.date === UNASSIGNED_SHOW_KEY ? "No show assigned" : group.date);
-          const count = group.rows.length;
-          const droppable = group.date !== UNASSIGNED_SHOW_KEY;
-          const accepting = canEdit && droppable && canDropOn(group.date);
-          const over = dragOverDate === group.date;
+      {queue.phase === "ready" ? (
+        <>
+          <QueueSummary
+            summary={summary}
+            canEdit={canEdit}
+            publishingConfigured={publishingConfigured}
+            onJumpToShow={(date) => jump(showAnchorId(date), date)}
+            onJumpToUnassigned={() => scrollToElement(UNASSIGNED_ID)}
+            onJumpToFailed={jumpToFailed}
+            onShowPublished={canEdit ? undefined : () => scrollToElement(RECENT_PUBLICATIONS_ID)}
+          />
 
-          return (
-            <section key={group.date} className="space-y-2">
-              <div className="flex items-baseline justify-between gap-2">
-                <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</h2>
-                {droppable ? (
-                  <span
-                    className={cn(
-                      "text-[11px] tabular-nums text-muted-foreground",
-                      count >= MAX_PACKAGES_PER_SHOW && "text-foreground"
-                    )}
-                  >
-                    {count}/{MAX_PACKAGES_PER_SHOW}
-                  </span>
-                ) : null}
-              </div>
-              <div
-                onDragOver={(event) => {
-                  if (!accepting) return;
-                  event.preventDefault();
-                  event.dataTransfer.dropEffect = "move";
-                  setDragOverDate(group.date);
-                }}
-                onDragLeave={(event) => {
-                  if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
-                  if (dragOverDate === group.date) setDragOverDate(null);
-                }}
-                onDrop={(event) => onDropOnShow(group.date, event)}
-                className={cn(
-                  "min-h-[4.75rem] space-y-2 rounded-md border border-dashed p-2 transition-[border-color,background-color] duration-150",
-                  droppable ? "border-border/80" : "border-transparent p-0",
-                  over && accepting && "border-brand-green/60 bg-primary/5",
-                  droppable && !accepting && draggingId && "opacity-60"
-                )}
-              >
-                {group.rows.map((row) => (
-                  <QueuePackageCard
-                    key={row.id}
-                    row={row}
-                    busy={busyId === row.id}
-                    canDrag={canEdit}
-                    readOnly={!canEdit}
-                    dragging={draggingId === row.id}
-                    showOptions={upcoming}
-                    occupiedOn={occupiedOn}
-                    onDragStart={(event) => {
-                      event.dataTransfer.effectAllowed = "move";
-                      event.dataTransfer.setData("text/plain", row.id);
-                      setDraggingId(row.id);
-                    }}
-                    onDragEnd={() => {
-                      setDraggingId(null);
-                      setDragOverDate(null);
-                    }}
-                    onMove={(rowId, showDate) => void updateQueue(rowId, true, showDate)}
-                    onRemove={(rowId) => void updateQueue(rowId, false)}
-                    onPublish={onPublish}
-                  />
-                ))}
-                {droppable && group.rows.length === 0 ? (
-                  <p className="px-2 py-3 text-center text-xs text-muted-foreground">
-                    {canEdit ? "Drop a package here" : "No package yet"}
-                  </p>
-                ) : null}
-              </div>
-            </section>
-          );
-        })}
-      </div>
+          {!canEdit && view.recentPublished.length > 0 ? (
+            <RecentPublications
+              rows={view.recentPublished}
+              className={PANEL_JUMP_TARGET}
+              renderRow={(row) => renderRow(row, "recent")}
+            />
+          ) : null}
 
-      <Dialog open={publishTarget !== null} onOpenChange={(open) => !open && setPublishTarget(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Publish to YouTube now?</DialogTitle>
-            <DialogDescription>
-              {`“${publishTarget?.headline || publishTarget?.groupTopic || "This package"}” uploads now as unlisted instead of on its air date. Website managers get the embed code once YouTube finishes processing.`}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setPublishTarget(null)}>
-              Cancel
-            </Button>
-            <Button type="button" onClick={() => publishTarget && void publishNow(publishTarget)}>
-              Publish now
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          {/* Packages with no show need action first, and they are not upcoming shows: their own section. */}
+          {view.unassigned.length > 0 ? (
+            <Panel
+              id={UNASSIGNED_ID}
+              title="No show assigned"
+              titleAs="h2"
+              padding="md"
+              status={
+                <CountBadge
+                  count={view.unassigned.length}
+                  tone={canEdit ? "warning" : "neutral"}
+                  srLabel={`${view.unassigned.length} without a show`}
+                />
+              }
+              description={canEdit ? "Drag each one onto a show, or use Move in its menu." : undefined}
+              className={PANEL_JUMP_TARGET}
+            >
+              <div className="grid gap-3 sm:grid-cols-2">{view.unassigned.map((row) => renderRow(row, "live"))}</div>
+            </Panel>
+          ) : null}
 
-      <Dialog open={pastOpen} onOpenChange={setPastOpen}>
-        <DialogContent className="max-h-[85dvh] max-w-2xl overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Past shows</DialogTitle>
-            <DialogDescription>
-              {canEdit
-                ? "Shows whose air date has passed. You can still move, download, or remove packages."
-                : "Shows whose air date has passed."}
-            </DialogDescription>
-          </DialogHeader>
-          {pastGrouped.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No past shows yet.</p>
-          ) : (
-            <div className="space-y-5">
-              {pastGrouped.map((group) => {
-                const label = pastShows.find((show) => show.date === group.date)?.label ?? group.date;
-                return (
-                  <section key={group.date} className="space-y-2">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                        {label}
-                      </h2>
-                      <span className="text-[11px] tabular-nums text-muted-foreground">
-                        {group.rows.length}/{MAX_PACKAGES_PER_SHOW}
-                      </span>
-                    </div>
-                    <div className="space-y-2">
-                      {group.rows.map((row) => (
-                        <QueuePackageCard
-                          key={row.id}
-                          row={row}
-                          busy={busyId === row.id}
-                          canDrag={false}
-                          readOnly={!canEdit}
-                          dragging={false}
-                          showOptions={pastDialogShows}
-                          occupiedOn={occupiedOn}
-                          onMove={(rowId, showDate) => void updateQueue(rowId, true, showDate)}
-                          onRemove={(rowId) => void updateQueue(rowId, false)}
-                          onPublish={onPublish}
-                        />
-                      ))}
-                    </div>
-                  </section>
-                );
-              })}
-            </div>
-          )}
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setPastOpen(false)}>
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={addOpen}
-        onOpenChange={(open) => {
-          if (customUploading && !open) {
-            return;
-          }
-          setAddOpen(open);
-          if (!open) {
-            resetCustomForm();
-          }
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add to publishing queue</DialogTitle>
-            <DialogDescription>Packages with a final cut that are not already queued.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2 rounded-lg border border-border p-3">
-              <div className="text-sm font-medium">Custom package</div>
-              <p className="text-xs text-muted-foreground">
-                Upload a video and give it a title. It lands on the next empty show.
-              </p>
-              <Input
-                value={customTitle}
-                onChange={(event) => setCustomTitle(event.target.value)}
-                placeholder="Title"
-                disabled={customUploading}
-                maxLength={150}
-              />
-              <input
-                ref={customFileRef}
-                type="file"
-                accept="video/*"
-                disabled={customUploading}
-                className="block w-full text-xs text-muted-foreground file:mr-2 file:rounded-md file:border file:border-border file:bg-background file:px-2 file:py-1 file:text-xs file:text-foreground"
-                onChange={(event) => {
-                  const file = event.target.files?.[0] ?? null;
-                  setCustomFile(file);
-                  if (file && !customTitle.trim()) {
-                    setCustomTitle(file.name.replace(/\.[^/.]+$/, "").trim() || file.name);
-                  }
-                }}
-              />
-              {customProgress != null ? (
-                <p className="text-xs text-muted-foreground">Uploading {Math.round(customProgress)}%</p>
-              ) : null}
-              <Button
-                type="button"
-                size="sm"
-                disabled={!customTitle.trim() || !customFile || customUploading}
-                onClick={() => void addCustom()}
-              >
-                {customUploading ? "Uploading…" : "Add custom package"}
-              </Button>
-            </div>
-            <div className="max-h-64 space-y-2 overflow-y-auto">
-              {candidates.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No other final cuts are ready to add.</p>
+          <SectionHeader
+            title="Upcoming shows"
+            description={
+              !lastShow ? undefined : summary.liveCount === 0 ? (
+                emptyQueueSentence(canEdit, hasPast)
               ) : (
-                candidates.map((row) => (
-                  <button
-                    key={row.id}
-                    type="button"
-                    disabled={busyId === row.id || customUploading}
-                    onClick={() => void updateQueue(row.id, true)}
-                    className="block w-full rounded-lg border border-border px-3 py-2 text-left hover:bg-accent"
-                  >
-                    <div className="text-sm font-medium">{row.groupTopic || "Untitled group"}</div>
-                    <div className="text-xs text-muted-foreground">{queuePackageSubtitle(row)}</div>
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" disabled={customUploading} onClick={() => setAddOpen(false)}>
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+                <>
+                  <span className="font-mono-broadcast tabular-nums">{view.shows.length}</span>
+                  {` show ${view.shows.length === 1 ? "day" : "days"} · through ${lastShow.shortLabel}`}
+                </>
+              )
+            }
+          />
+
+          {view.shows.length > 0 ? (
+            <ShowRundown
+              shows={view.shows}
+              canEdit={canEdit}
+              draggingId={drag.draggingId}
+              overDate={drag.overDate}
+              highlightDate={flash}
+              canDropOn={drag.canDropOn}
+              showDropProps={drag.showDropProps}
+              renderRow={(row) => renderRow(row, "live")}
+            />
+          ) : (
+            <EmptyState
+              icon={CalendarX}
+              title="No show days coming up"
+              description={
+                // Packages without a show are listed above; never say the queue is empty then.
+                view.unassigned.length > 0
+                  ? "Packages without a show are listed above."
+                  : emptyQueueSentence(canEdit, hasPast)
+              }
+              className="rounded-md border border-border bg-card"
+            />
+          )}
+        </>
+      ) : null}
+
+      <PastShowsDialog
+        open={pastOpen}
+        onOpenChange={setPastOpen}
+        canEdit={canEdit}
+        past={view.past}
+        focusRowId={pastFocusId}
+        renderRow={(row) => renderRow(row, "past")}
+      />
+
+      {canEdit ? (
+        <>
+          <AddPackageDialog
+            open={addOpen}
+            onOpenChange={changeAddOpen}
+            candidates={queue.candidates}
+            candidatesStatus={queue.candidatesStatus}
+            busyId={busyId}
+            onAddCandidate={(rowId) => void queue.updateQueue(rowId, true)}
+            onRetryCandidates={() => void queue.loadCandidates()}
+            onCustomAdded={queue.afterCustomAdded}
+          />
+          <MoveToShowDialog
+            open={moveDialog.open}
+            target={moveDialog.target}
+            occupiedOn={occupiedOn}
+            onMove={move}
+            onClose={() => setMoveDialog((current) => ({ ...current, open: false }))}
+          />
+          <PublishConfirmDialog
+            open={publishDialog.open}
+            target={publishDialog.target}
+            onClose={() => setPublishDialog((current) => ({ ...current, open: false }))}
+            onConfirm={(row) => void queue.publishNow(row)}
+          />
+        </>
+      ) : null}
     </div>
   );
 }

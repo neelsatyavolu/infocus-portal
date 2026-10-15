@@ -2,11 +2,19 @@
 
 Host: `teleprompter.infocuspaly.com` (also linked from the Portal sidebar). The Show's **Open script** / **Create script** opens it for that show date.
 
-Signed-in members with access to the InFocus workspace can create, edit, and run scripts. The script list is on the left: **New script**, **Refresh**, and per script **Rename** and **Delete**. In a script, use **Add section** (a label such as `A1` and the script text), **Reformat** (AI cleanup of the whole script, or one section), **Copy section**, **Edit section**, and **Delete section**. **Run** opens run mode.
+Signed-in members with access to the InFocus workspace can create, edit, and run scripts.
+
+- **Page header:** which show it is and when the scripts last synced. On a show day that has a script, it says **Today's show** with today's date; otherwise **Next show** (or **Show on** for a chosen date). **New script** and **Refresh** are here (and the workspace picker, in the Portal, for people in more than one workspace).
+- **Scripts list** (left; **Hide scripts** folds it away, **Show scripts** brings it back, and the page remembers that): each script shows its show date, section count, and one tag: **Today**, **Next show**, **To fill · n** (sections that still have an `[INSERT …]` placeholder), or **No sections**. A green dot means it changed since you last opened it in this browser; changed sections inside the script get the same mark. A script's **⋯** menu has **Rename script** and **Delete script**. **Show n more** lists older scripts. On phones and narrow windows, the open script is a card at the top; tap it to open the **Scripts** list.
+- **Script toolbar:** **Add section** (a label such as `A1` and the script text), **Reformat all** (AI cleanup of the whole script), and **Run**. On phones and narrow windows, Add section and Reformat all are in the script card's **⋯** menu.
+- **Rundown:** every section by label and beat (a column on wide screens, a row of chips above the script otherwise). Click one to jump to it. **Expand all** / **Collapse all** opens or folds every section.
+- **Sections** open by default; click a section's header to fold it. Tags show **To fill**, **Empty**, **Editing**, or **Reformatting** progress. `[INSERT …]` placeholders are highlighted in the text. Each section has **Copy section** and **Edit section**, and a **⋯** menu with **Reformat section**, **Refetch bulletin** (A2 only), and **Delete section**.
+- **Editing** happens in place: **Label** and **Script**, then **Save** (or Cmd+Enter / Ctrl+Enter). Esc or **Cancel** stops editing; with unsaved changes it asks first, and so does switching scripts or workspaces, refreshing, starting a new script, or editing another section.
+- **Run** (or the R key) opens run mode. It is unavailable while a script has no sections or a section is being edited (run mode shows saved text).
 
 ## Run mode
 
-A full-screen scroll with a playhead arrow near the top. The top bar has a show picker, a section jump menu, **Font settings** (Script Size, Cue Size, Reset), fullscreen, and exit.
+A full-screen scroll with a playhead arrow near the top. The top bar has a show picker, a section jump menu, a **Paused** tag and the scroll speed (px/s; **REV** when scrolling backward), **Font settings** (Script size, Cue size, Reset, and the list of keys), fullscreen, and exit.
 
 | Key | Action |
 |---|---|
@@ -27,9 +35,9 @@ When Teleprompter opens, it creates a script for the next show if there is none 
 
 The script has five sections: **A1** open, **A2** bulletin, **A3** package, **A4** thank-you names, and **A5** closing.
 
-A1 introductions and A5 sign-offs use anchors’ full names from the registered-user roster (including users who have not joined a workspace), even when the Master Calendar uses first names or nicknames. The coanchor signs off with “Until next time, I’m [full name].” The anchor follows with “I’m [full name] and this has been InFocus News.” Changing anchors in the Master Calendar or The Show updates those name lines in saved show scripts. Opening or refreshing Teleprompter also repairs older name lines. Other script edits are preserved. Older AI intros that merged both speakers are repaired on refresh. Reformat tidies spacing in A1/A5 without rewriting the dialogue or removing speaker cues. If Teleprompter is already open, use **Refresh** to load the updated names before running the show.
+A1 introductions and A5 sign-offs use anchors’ full names from the registered-user roster (including users who have not joined a workspace), even when the Master Calendar uses first names or nicknames. The coanchor signs off with “Until next time, I’m [full name].” The anchor follows with “I’m [full name] and this has been InFocus News.” Changing anchors in the Master Calendar or The Show updates those name lines in saved show scripts. Opening or refreshing Teleprompter also repairs older name lines. Other script edits are preserved. Older AI intros that merged both speakers are repaired on refresh. Reformat tidies spacing in A1/A5 without rewriting the dialogue or removing speaker cues. If Teleprompter is already open, use **Refresh** in the page header to load the updated names before running the show.
 
-The A2 bulletin takes up to four submitted announcements that run on that show date (not Schoology-only ones), formatted with Gemini. Dated announcements come before permanent ones, and those ending soonest come first. Use A2's **Refetch bulletin** action to update an existing show's announcements.
+The A2 bulletin takes up to four submitted announcements that run on that show date (not Schoology-only ones), formatted with Gemini. Dated announcements come before permanent ones, and those ending soonest come first. Use **Refetch bulletin** in A2's **⋯** menu to update an existing show's announcements.
 
 College visits come from every weekly tab in the college-visit sheet except Sample. Only Paly campus visits from the show date up to (but not including) the following show date are included. For 1–3 visits, the announcement includes names, days, and times. For 4 or more, it names every college grouped by day, then directs students to MaiaLearning through ClassLink under Events for visit times and RSVP. Reformat preserves the complete generated college passage; if AI drops a day or changes the passage, the original script is kept.
 

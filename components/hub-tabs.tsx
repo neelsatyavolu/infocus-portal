@@ -1,24 +1,40 @@
 import Link from "next/link";
+import { CountBadge, StatusDot, type CountBadgeTone, type StatusDotTone } from "@/components/kit/status-tag";
+import { TAB_LIST_CLASS, tabItemClass } from "@/components/kit/tab-styles";
 import type { HubTab } from "@/src/lib/sidebar-nav";
-import { cn } from "@/src/lib/utils";
 
-/** Tabs across the top of pages that share one sidebar link (DESIGN.md §10: 2px green underline). */
-export function HubTabs({ tabs }: { tabs: HubTab[] }) {
+/** A hub tab plus an optional status: a count (requests waiting on you) or a "something new" dot. */
+export type HubTabWithStatus = HubTab & {
+  count?: number;
+  /** Screen-reader meaning of the count, e.g. "3 sign-up requests waiting". */
+  countLabel?: string;
+  /** `brand` (default): waiting on you. `neutral` for a plain total. */
+  countTone?: CountBadgeTone;
+  dot?: StatusDotTone;
+  dotLabel?: string;
+};
+
+/**
+ * Tabs across the top of pages that share one sidebar link (DESIGN.md §10: 2px green underline).
+ * The shell renders them above the page, inside the same content column. In-page views use
+ * ViewTabs (components/kit/view-tabs.tsx), which looks the same.
+ */
+export function HubTabs({ tabs }: { tabs: HubTabWithStatus[] }) {
   return (
-    <nav aria-label="Section" className="-mt-1 mb-5 flex gap-6 overflow-x-auto border-b border-border">
+    <nav aria-label="Section" className={`-mt-1 mb-5 ${TAB_LIST_CLASS}`}>
       {tabs.map((tab) => (
         <Link
           key={tab.href}
           href={tab.href as never}
           aria-current={tab.active ? "page" : undefined}
-          className={cn(
-            "-mb-px inline-flex h-10 shrink-0 items-center border-b-2 px-0.5 text-sm transition",
-            tab.active
-              ? "border-[var(--brand-green)] font-medium text-foreground"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-          )}
+          className={tabItemClass(tab.active)}
         >
           {tab.label}
+          {tab.count ? (
+            <CountBadge count={tab.count} tone={tab.countTone ?? "brand"} srLabel={tab.countLabel} />
+          ) : tab.dot ? (
+            <StatusDot tone={tab.dot} size={6} label={tab.dotLabel} />
+          ) : null}
         </Link>
       ))}
     </nav>

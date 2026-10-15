@@ -4,9 +4,20 @@ import { useEffect, useState } from "react";
 import { Check, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/src/lib/utils";
 
-/** Copies a shareable link (`url`, on the Meetings host). `iconOnly` is for meeting rows; the hero shows the label. */
-export function CopyLinkButton({ url, label = "Copy link", iconOnly = false }: { url: string; label?: string; iconOnly?: boolean }) {
+/** Copies a link from a menu item: a toast says it worked (the menu closes, so no icon swap). */
+export async function copyLinkWithToast(url: string) {
+  try {
+    await navigator.clipboard.writeText(url);
+    toast.success("Link copied.");
+  } catch {
+    toast.error("Couldn't copy the link.");
+  }
+}
+
+/** Copies a shareable link (`url`, on the Meetings host) and shows "Copied" for 1.5 s. Small outline button. */
+export function CopyLinkButton({ url, label = "Copy link", className }: { url: string; label?: string; className?: string }) {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -24,18 +35,16 @@ export function CopyLinkButton({ url, label = "Copy link", iconOnly = false }: {
     }
   }
 
-  const icon = copied ? <Check aria-hidden /> : <Link2 aria-hidden />;
   return (
     <Button
       variant="outline"
-      size={iconOnly ? "sm" : "default"}
+      size="sm"
       onClick={() => void copy()}
       aria-label={copied ? "Link copied" : label}
-      title={iconOnly ? label : undefined}
-      className={iconOnly ? "w-8 px-0" : undefined}
+      className={cn(copied && "text-[var(--brand-green)]", className)}
     >
-      {icon}
-      {iconOnly ? null : copied ? "Copied" : label}
+      {copied ? <Check aria-hidden /> : <Link2 aria-hidden />}
+      {copied ? "Copied" : label}
     </Button>
   );
 }

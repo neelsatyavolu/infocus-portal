@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "Package Cycle" };
 
 export default async function PackageProgressPage() {
   try {
-    const { platformRole } = await getCurrentAppUser();
+    const { userId, platformRole } = await getCurrentAppUser();
     if (!hasPlatformRole(platformRole, "ASSOCIATE_PRODUCER")) {
       redirect("/access-denied");
     }
@@ -22,7 +22,8 @@ export default async function PackageProgressPage() {
       rows: data.rows
     };
 
-    return <PackageProgressClient initialData={initialData} />;
+    // The client's first render uses this clock too, so time-based statuses hydrate unchanged.
+    return <PackageProgressClient initialData={initialData} viewerUserId={userId} renderedAt={Date.now()} />;
   } catch (error) {
     if (error instanceof Error && error.message === "FORBIDDEN") {
       redirect("/access-denied");

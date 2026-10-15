@@ -12,16 +12,20 @@ const buttonVariants = cva(
         destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         // Quiet destructive: Danger text, no fill. Use for Delete/Remove everywhere else.
         "destructive-quiet": "border border-input bg-transparent text-danger hover:bg-danger-tint",
-        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+        // DESIGN.md §10: 1px line, transparent fill, Ink 3 on hover (so it reads the same on the
+        // page and on a card, and matches the kit's outline controls in the same row).
+        outline: "border border-input bg-transparent hover:bg-[var(--ink-3)] hover:text-foreground",
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
+        ghost: "hover:bg-[var(--ink-3)] hover:text-foreground",
         link: "text-brand-green underline-offset-4 hover:underline"
       },
       size: {
         default: "h-9 px-4 py-2",
         sm: "h-8 rounded-md px-3 text-xs",
         lg: "h-10 rounded-md px-8",
-        icon: "h-9 w-9"
+        icon: "h-9 w-9",
+        // Square 32px, for icon buttons beside size="sm" buttons.
+        "icon-sm": "h-8 w-8"
       }
     },
     defaultVariants: {

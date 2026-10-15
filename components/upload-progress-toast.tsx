@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { ProgressBar } from "@/components/kit/progress";
+import { CountBadge, StatusTag } from "@/components/kit/status-tag";
+import type { StatusToneInput } from "@/components/kit/tone";
 
 export type UploadToastStatus = "QUEUED" | "PREPARING" | "UPLOADING" | "PROCESSING" | "DONE" | "FAILED";
 
@@ -69,22 +72,10 @@ function statusLabel(status: UploadToastStatus) {
   return "Uploading";
 }
 
-function CircleProgress({ progress }: { progress: number }) {
-  const percentage = clampPercent(progress);
-  const degrees = Math.max(2, percentage * 3.6);
-
-  return (
-    <div
-      className="grid h-9 w-9 place-items-center rounded-full p-[2px]"
-      style={{
-        background: `conic-gradient(hsl(var(--primary)) ${degrees}deg, hsl(var(--secondary)) 0deg)`
-      }}
-    >
-      <div className="grid h-full w-full place-items-center rounded-full bg-background font-mono text-[10px] font-semibold tabular-nums text-foreground">
-        {percentage}
-      </div>
-    </div>
-  );
+function statusTone(status: UploadToastStatus): StatusToneInput {
+  if (status === "DONE") return "success";
+  if (status === "FAILED") return "danger";
+  return "neutral";
 }
 
 export function UploadProgressToast({ items }: UploadProgressToastProps) {
@@ -112,48 +103,72 @@ export function UploadProgressToast({ items }: UploadProgressToastProps) {
     return null;
   }
 
+  // Only the coarse counts are announced: the percentages, speeds and ETAs below change many
+  // times a second and would flood a screen reader if the whole card were a live region.
+  const announcement = `${doneCount} of ${items.length} uploaded${failedCount ? `, ${failedCount} failed` : ""}`;
+
   const toast = (
-    <div className="fixed inset-x-4 bottom-[calc(var(--phone-tabbar-h,0px)+max(1rem,env(safe-area-inset-bottom)))] z-50 rounded-md sm:left-auto sm:w-[360px] border border-border bg-card p-4 shadow-2xl">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <div>
+    <section
+      aria-label="Uploads"
+      className="fixed inset-x-4 bottom-[calc(var(--phone-tabbar-h,0px)+max(1.25rem,env(safe-area-inset-bottom))+3.5rem)] z-50 rounded-md border border-border bg-card p-4 sm:left-auto sm:right-[max(1.25rem,env(safe-area-inset-right))] sm:w-[360px]"
+    >
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div className="min-w-0">
           <p className="text-sm font-semibold text-foreground">Uploads in progress</p>
+          <p role="status" className="sr-only">
+            {announcement}
+          </p>
           <p className="text-xs text-muted-foreground">
-            {doneCount}/{items.length} uploaded
+            <span className="font-mono-broadcast tabular-nums">
+              {doneCount}/{items.length}
+            </span>{" "}
+            uploaded
             {failedCount ? ` · ${failedCount} failed` : ""}
             {activeCount ? ` · ${activeCount} active` : ""}
             {" · "}
-            {Math.round(averageProgress)}% overall
+            <span className="font-mono-broadcast tabular-nums">{Math.round(averageProgress)}%</span> overall
           </p>
         </div>
-        <span className="rounded-md border border-border bg-accent px-2 py-0.5 text-xs font-semibold text-foreground">
-          {items.length}
-        </span>
+        <CountBadge count={items.length} tone="neutral" srLabel={`${items.length} uploads`} />
       </div>
 
-      <div className="max-h-[360px] space-y-2 overflow-y-auto pr-1">
+      <ul className="max-h-[360px] space-y-2 overflow-y-auto pr-1">
         {items.map((item) => (
-          <div key={item.id} className="flex items-center gap-3 rounded-xl border border-border bg-muted p-2.5">
-            <CircleProgress progress={item.progress} />
-            <div className="min-w-0 flex-1">
-              <p className="line-clamp-1 text-xs font-medium text-foreground">{item.fileName}</p>
-              <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground">
-                <span>{statusLabel(item.status)}</span>
-                {item.status === "UPLOADING" ? <span>• {formatSpeed(item.speedBytesPerSecond ?? 0)}</span> : null}
-                {item.status === "UPLOADING" ? <span>• ETA {formatEta(item.etaSeconds)}</span> : null}
-                {item.status === "PROCESSING" ? <span>• Waiting for transcode</span> : null}
-                {item.status === "FAILED" && item.error ? <span>• {item.error}</span> : null}
-              </div>
-              <div className="mt-1.5 h-1.5 w-full rounded-full bg-secondary">
-                <div
-                  className="h-1.5 rounded-full bg-primary transition-[width] duration-150"
-                  style={{ width: `${clampPercent(item.progress)}%` }}
-                />
-              </div>
+          <li key={item.id} className="rounded-md border border-border bg-background p-3">
+            <div className="flex min-w-0 items-center gap-2">
+              <p className="min-w-0 flex-1 truncate text-xs font-medium text-foreground" title={item.fileName}>
+                {item.fileName}
+              </p>
+              <StatusTag
+                size="sm"
+                tone={statusTone(item.status)}
+                spinner={item.status === "PREPARING" || item.status === "UPLOADING" || item.status === "PROCESSING"}
+              >
+                {statusLabel(item.status)}
+              </StatusTag>
             </div>
-          </div>
+            <ProgressBar
+              value={clampPercent(item.progress)}
+              size="xs"
+              tone={item.status === "FAILED" ? "danger" : "brand"}
+              label={`${item.fileName} upload progress`}
+              className="mt-2"
+            />
+            <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground">
+              <span className="font-mono-broadcast tabular-nums">{clampPercent(item.progress)}%</span>
+              {item.status === "UPLOADING" ? (
+                <span className="font-mono-broadcast tabular-nums">· {formatSpeed(item.speedBytesPerSecond ?? 0)}</span>
+              ) : null}
+              {item.status === "UPLOADING" ? (
+                <span className="font-mono-broadcast tabular-nums">· ETA {formatEta(item.etaSeconds)}</span>
+              ) : null}
+              {item.status === "PROCESSING" ? <span>· Waiting for transcode</span> : null}
+              {item.status === "FAILED" && item.error ? <span className="text-danger">· {item.error}</span> : null}
+            </div>
+          </li>
         ))}
-      </div>
-    </div>
+      </ul>
+    </section>
   );
 
   return createPortal(toast, document.body);

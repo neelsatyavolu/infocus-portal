@@ -16,13 +16,13 @@ On campus, Finder can mount `smb://<drive-lan-ip>`. Off campus: Cloudflare WARP.
 
 To install it: **Settings → InFocus for Mac → Download for Mac** (shown on Macs; macOS 13 or later). Open the download, click **Open** if macOS asks, then **Move to Applications** (the app copies itself there, or to your own Applications folder without admin rights, and moves the download to the Trash). On first open it asks whether to allow notifications (**Allow**), then you sign in. It updates itself after that. On an iPhone, iPad or Windows computer the section just says it's available for Mac; inside the app it says you're already using it.
 
-A-roll uploads allow up to **30 GB per file**; B-roll uploads allow up to **15 GB per file** (1 GB = 1,024³ bytes). Choose A-roll or B-roll before selecting files, or right after dragging files onto the upload box. These limits apply in both student cycle tabs and Groups. Files of 8 MB or more upload in chunks to InFocus Drive, and a dropped chunk is retried. Image uploads in projects allow up to 10 MB. Proof-of-contact images can start at up to 25 MB; the browser shrinks them to 3.5 MB or less before upload.
+A-roll uploads allow up to **30 GB per file**; B-roll uploads allow up to **15 GB per file** (1 GB = 1,024³ bytes). Choose A-roll or B-roll before selecting files, or right after dragging files onto the **Footage** panel. These limits apply in both student cycle tabs and Groups. Files of 8 MB or more upload in chunks to InFocus Drive, and a dropped chunk is retried. Image uploads in projects allow up to 10 MB. Proof-of-contact images can start at up to 25 MB; the browser shrinks them to 3.5 MB or less before upload.
 
 ## Playback
 
 Many camera originals are not browser-safe (Sony XAVC 4:2:2 10-bit, ProRes). Portal plays a Drive H.264/AAC proxy (`/api/service/file?web=1`) and thumbs from `/api/service/thumbnail`. Original download stays unproxied. Drive videos play directly in the browser (no quality menu); the seek bar shows what has already downloaded. Tile posters are saved beside the video as `{name}.poster.jpg`.
 
-**Transcripts:** **Transcribe** on the review page saves each version's transcript beside the video on Drive as `{name}.transcript.json` and reuses it. Videos over 2 GB cannot be transcribed. See `groups-and-review.md`.
+**Transcripts:** **Transcribe vN** in the review page's **Transcript** tab saves each version's transcript beside the video on Drive as `{name}.transcript.json` and reuses it. Videos over 2 GB cannot be transcribed. See `groups-and-review.md`.
 
 Details: `docs/NAS-STORAGE.md`.
 

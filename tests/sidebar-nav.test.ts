@@ -1,11 +1,30 @@
 import { describe, expect, it } from "vitest";
+import { ACCESS_REQUESTS_CHANGED_EVENT } from "@/app/(app)/admin/admin-events";
+import { PARTICIPATION_REQUESTS_CHANGED_EVENT } from "@/app/(app)/participation/participation-week";
+import { isNavItemActive } from "@/components/shell/nav-items";
+import { showsBreadcrumbTrail } from "@/components/shell/shell-breadcrumbs";
+import { buildGenericBreadcrumbs, buildGroupsBreadcrumbs, buildProjectBreadcrumbs } from "@/src/lib/app-breadcrumbs";
+import { deadlineClosesAt } from "@/src/lib/deadlines";
 import {
   buildHubTabs,
+  buildNavSignals,
   buildPhoneTabs,
   buildSidebarNav,
+  currentPackageStage,
+  EMPTY_NAV_STATUS,
+  formatDueTag,
+  hubTabCounts,
   isPackageRoute,
   isRailRoute,
+  isWideRoute,
+  moreTabSignal,
   myPackageHref,
+  navStatusPartsFor,
+  navStatusRequestGroups,
+  packageStatusLine,
+  PAGE_STATUS_EVENTS,
+  type NavPackageStatus,
+  type NavStatus,
   type SidebarNavContext
 } from "@/src/lib/sidebar-nav";
 
@@ -44,8 +63,8 @@ describe("buildSidebarNav", () => {
   it("gives a student a short sidebar grouped by job", () => {
     expect(ids(student)).toEqual([
       { label: null, items: ["dashboard", "my-package", "grades", "calendar"] },
-      { label: "Production", items: ["livestreams"] },
       { label: "Class", items: ["announcements", "ideas", "managers"] },
+      { label: "Production", items: ["livestreams"] },
       { label: "Tools", items: ["drive", "teleprompter"] },
       { label: "footer", items: ["settings"] }
     ]);
@@ -55,8 +74,8 @@ describe("buildSidebarNav", () => {
     expect(ids(associate)).toEqual([
       { label: null, items: ["dashboard", "grades", "calendar"] },
       { label: "Producing", items: ["groups", "package-progress", "people", "meetings", "extension-requests"] },
-      { label: "Production", items: ["show"] },
       { label: "Class", items: ["announcements", "ideas", "managers"] },
+      { label: "Production", items: ["show"] },
       { label: "Tools", items: ["drive", "teleprompter"] },
       { label: "footer", items: ["settings"] }
     ]);
@@ -174,6 +193,40 @@ describe("isPackageRoute", () => {
     expect(isPackageRoute("/groups")).toBe(false);
     expect(isPackageRoute("/dashboard")).toBe(false);
   });
+
+  it("leaves out extension requests when asked (a producer's approval queue)", () => {
+    const producer = { includeExtensionRequests: false };
+    expect(isPackageRoute("/extension-requests", producer)).toBe(false);
+    expect(isPackageRoute("/extension-requests/r1", producer)).toBe(false);
+    expect(isPackageRoute("/initial-cut", producer)).toBe(true);
+    expect(isPackageRoute("/information", producer)).toBe(true);
+  });
+});
+
+describe("isNavItemActive", () => {
+  const myPackage = buildSidebarNav(student)[0].items.find((navItem) => navItem.id === "my-package")!;
+  const requests = buildSidebarNav(associate)
+    .flatMap((navSection) => navSection.items)
+    .find((navItem) => navItem.id === "extension-requests")!;
+
+  it("lights My package on every package page for a student, Extension Requests included", () => {
+    expect(isNavItemActive(myPackage, "/a-roll", false, false)).toBe(true);
+    expect(isNavItemActive(myPackage, "/extension-requests", false, false)).toBe(true);
+  });
+
+  it("lights only Extension Requests on a producer's approval queue", () => {
+    expect(isNavItemActive(myPackage, "/extension-requests", false, true)).toBe(false);
+    expect(isNavItemActive(requests, "/extension-requests", false, true)).toBe(true);
+    expect(isNavItemActive(myPackage, "/initial-cut", false, true)).toBe(true);
+  });
+
+  it("keeps a hub's link lit on every tab, and Meetings lit on the meet host's home", () => {
+    const people = buildSidebarNav(associate).flatMap((navSection) => navSection.items).find((navItem) => navItem.id === "people")!;
+    const meetings = buildSidebarNav(associate).flatMap((navSection) => navSection.items).find((navItem) => navItem.id === "meetings")!;
+    expect(isNavItemActive(people, "/participation", false, true)).toBe(true);
+    expect(isNavItemActive(meetings, "/", true, true)).toBe(true);
+    expect(isNavItemActive(meetings, "/", false, true)).toBe(false);
+  });
 });
 
 describe("myPackageHref", () => {
@@ -204,5 +257,333 @@ describe("buildPhoneTabs", () => {
 
   it("has no tab bar for the App Review account", () => {
     expect(buildPhoneTabs({ ...student, sampleOnly: true })).toEqual([]);
+  });
+});
+
+describe("isWideRoute", () => {
+  it("gives workspaces and tools the full width", () => {
+    for (const path of [
+      "/projects/p1",
+      "/projects/p1/review/m1",
+      "/groups/row1",
+      "/groups/row1/initial-cut",
+      "/master-calendar",
+      "/master-calendar/2026-10",
+      "/grade-editor",
+      "/package-progress",
+      "/class-board",
+      "/teleprompter",
+      "/teleprompter/run"
+    ]) {
+      expect(isWideRoute(path), path).toBe(true);
+    }
+  });
+
+  it("keeps every tab of a hub that has a wide page wide, so the tab bar never jumps", () => {
+    expect(isWideRoute("/package-cycles")).toBe(true);
+  });
+
+  it("keeps standard pages in the content column", () => {
+    for (const path of [
+      "/",
+      "/groups",
+      "/dashboard",
+      "/initial-cut",
+      "/brainstorming",
+      "/members",
+      "/participation",
+      "/show-roles",
+      "/publishing-queue",
+      "/livestreams",
+      "/announcements",
+      "/announcements/pa",
+      "/settings",
+      "/admin",
+      "/grades",
+      "/meetings"
+    ]) {
+      expect(isWideRoute(path), path).toBe(false);
+    }
+  });
+
+  it("compares whole segments, not string prefixes", () => {
+    expect(isWideRoute("/master-calendar-x")).toBe(false);
+    expect(isWideRoute("/grade-editors")).toBe(false);
+    expect(isWideRoute("/package-cycles-old")).toBe(false);
+  });
+});
+
+describe("currentPackageStage", () => {
+  it("matches My package's link", () => {
+    expect(currentPackageStage(null)).toBe("brainstorming");
+    expect(currentPackageStage({ "a-roll": true, "initial-cut": true, "final-cut": false })).toBe("initial-cut");
+    expect(myPackageHref({ "a-roll": true, "initial-cut": true, "final-cut": false })).toBe("/initial-cut");
+  });
+});
+
+describe("navStatusPartsFor", () => {
+  it("asks only for what each role's sidebar shows", () => {
+    expect(navStatusPartsFor(null)).toEqual(["package", "extensions", "livestreams", "grades"]);
+    expect(navStatusPartsFor("ASSOCIATE_PRODUCER")).toEqual([
+      "package",
+      "extensions",
+      "meetings",
+      "people",
+      "livestreams",
+      "grades"
+    ]);
+    for (const role of ["EXECUTIVE_PRODUCER", "ADVISER", "SUPER_ADMIN"] as const) {
+      expect(navStatusPartsFor(role), role).toEqual([
+        "package",
+        "extensions",
+        "groups",
+        "meetings",
+        "people",
+        "livestreams",
+        "admin"
+      ]);
+    }
+  });
+});
+
+// Initial Cut due Friday Oct 16, 2026: closes 11:59 PM Pacific (PDT) = 06:59:59.999Z Oct 17.
+const dueFriday = deadlineClosesAt(new Date("2026-10-16T00:00:00.000Z")).toISOString();
+
+describe("navStatusRequestGroups", () => {
+  it("asks for the stage bar's parts on their own, beside the rest", () => {
+    expect(navStatusRequestGroups(["package", "extensions", "groups", "meetings", "grades"])).toEqual([
+      ["package", "extensions"],
+      ["groups", "meetings", "grades"]
+    ]);
+  });
+
+  it("drops empty groups", () => {
+    expect(navStatusRequestGroups(["package"])).toEqual([["package"]]);
+    expect(navStatusRequestGroups(["people", "admin"])).toEqual([["people", "admin"]]);
+    expect(navStatusRequestGroups([])).toEqual([]);
+  });
+});
+
+describe("formatDueTag", () => {
+  it("names the Pacific day within 72 hours of the close", () => {
+    expect(formatDueTag(dueFriday, new Date("2026-10-16T17:00:00.000Z"))).toBe("Due today");
+    expect(formatDueTag(dueFriday, new Date("2026-10-15T17:00:00.000Z"))).toBe("Due tomorrow");
+    expect(formatDueTag(dueFriday, new Date("2026-10-14T17:00:00.000Z"))).toBe("Due Fri");
+  });
+
+  it("uses the deadline time zone around 11:59 PM, not UTC or the browser's day", () => {
+    // 11:59 PM Pacific on Thursday: still "tomorrow", though it is already Friday in UTC.
+    expect(formatDueTag(dueFriday, new Date("2026-10-16T06:59:00.000Z"))).toBe("Due tomorrow");
+    // Midnight Pacific: Friday has started.
+    expect(formatDueTag(dueFriday, new Date("2026-10-16T07:00:00.000Z"))).toBe("Due today");
+    // 11:59 PM Pacific on Friday: the last minute is still today.
+    expect(formatDueTag(dueFriday, new Date("2026-10-17T06:59:00.000Z"))).toBe("Due today");
+  });
+
+  it("says nothing once closed, too far out, or without a date", () => {
+    expect(formatDueTag(dueFriday, new Date("2026-10-17T07:00:00.000Z"))).toBeNull();
+    expect(formatDueTag(dueFriday, new Date("2026-10-13T17:00:00.000Z"))).toBeNull();
+    expect(formatDueTag(null, new Date("2026-10-16T17:00:00.000Z"))).toBeNull();
+    expect(formatDueTag("not a date", new Date("2026-10-16T17:00:00.000Z"))).toBeNull();
+  });
+});
+
+const noUnread = { brainstorming: 0, "a-roll": 0, "initial-cut": 0, "final-cut": 0 };
+
+function packageStatus(overrides: Partial<NavPackageStatus> = {}): NavPackageStatus {
+  return {
+    hasRow: true,
+    cycleNumber: 3,
+    unlocked: { "a-roll": true, "initial-cut": true, "final-cut": false },
+    statuses: { brainstorming: "approved", "a-roll": "approved", "initial-cut": "pending", "final-cut": "locked" },
+    unread: noUnread,
+    remainingExecutiveSignoffs: null,
+    currentStage: "initial-cut",
+    dueAt: dueFriday,
+    ...overrides
+  };
+}
+
+const thursdayNoon = new Date("2026-10-15T19:00:00.000Z");
+const studentLine = { extensionRequestsAwaiting: 0, showExtensionRequests: true, now: thursdayNoon };
+
+describe("packageStatusLine", () => {
+  it("shows the stage and a due tag when the current stage still owes work soon", () => {
+    expect(packageStatusLine(packageStatus(), studentLine)).toMatchObject({
+      stage: "initial-cut",
+      stageLabel: "Initial Cut",
+      tag: { label: "Due tomorrow", tone: "warning" }
+    });
+  });
+
+  it("puts revisions first, on whichever reachable stage asked for them", () => {
+    const line = packageStatusLine(
+      packageStatus({ statuses: { brainstorming: "approved", "a-roll": "needs-revisions", "initial-cut": "pending", "final-cut": "locked" } }),
+      { ...studentLine, extensionRequestsAwaiting: 2 }
+    );
+    expect(line).toMatchObject({ stage: "a-roll", tag: { label: "Revisions", tone: "danger" } });
+  });
+
+  it("flags an extension request waiting on a student, but not on a producer", () => {
+    expect(packageStatusLine(packageStatus(), { ...studentLine, extensionRequestsAwaiting: 1 })?.tag.label).toBe("Extension");
+    expect(
+      packageStatusLine(packageStatus(), { ...studentLine, extensionRequestsAwaiting: 1, showExtensionRequests: false })?.tag.label
+    ).toBe("Due tomorrow");
+  });
+
+  it("stays quiet when there is nothing to act on", () => {
+    const submitted = packageStatus({
+      statuses: { brainstorming: "approved", "a-roll": "approved", "initial-cut": "submitted", "final-cut": "locked" }
+    });
+    expect(packageStatusLine(submitted, studentLine)).toBeNull();
+    expect(packageStatusLine(packageStatus({ dueAt: null }), studentLine)).toBeNull();
+    expect(packageStatusLine(packageStatus({ hasRow: false }), studentLine)).toBeNull();
+    expect(packageStatusLine(null, studentLine)).toBeNull();
+  });
+});
+
+function navStatus(overrides: Partial<NavStatus> = {}): NavStatus {
+  return { ...EMPTY_NAV_STATUS, ...overrides };
+}
+
+describe("buildNavSignals", () => {
+  const options = { gradesSeenAt: Date.parse("2026-10-10T00:00:00.000Z"), now: thursdayNoon, showExtensionRequests: true };
+
+  it("has nothing to say when nothing happened", () => {
+    expect(buildNavSignals(navStatus({ package: packageStatus({ dueAt: null }) }), options)).toEqual({});
+  });
+
+  it("counts unread feedback on My package and adds the stage line", () => {
+    const signals = buildNavSignals(
+      navStatus({ package: packageStatus({ unread: { ...noUnread, "a-roll": 1, "initial-cut": 2 } }) }),
+      options
+    );
+    expect(signals["my-package"]).toMatchObject({
+      count: 3,
+      countLabel: "3 unread comments",
+      line: { tag: { label: "Due tomorrow" } },
+      dotTone: "new"
+    });
+    expect(signals["my-package"]?.label).toBe("3 unread comments · Initial Cut due tomorrow");
+  });
+
+  it("counts what waits on producers and marks a live meeting", () => {
+    const signals = buildNavSignals(
+      navStatus({
+        groupsNeedYou: 2,
+        extensionRequestsAwaiting: 1,
+        liveMeetings: 1,
+        participationApprovals: 4,
+        livestreamSignups: 3,
+        accessRequests: 5
+      }),
+      { ...options, showExtensionRequests: false }
+    );
+    expect(signals.groups).toMatchObject({ count: 2, label: "2 groups need you" });
+    expect(signals["extension-requests"]).toMatchObject({ count: 1, label: "1 extension request waiting on you" });
+    expect(signals.meetings).toMatchObject({ tag: { label: "Live", tone: "live" }, dotTone: "live" });
+    expect(signals.people?.count).toBe(4);
+    expect(signals.show?.count).toBe(3);
+    expect(signals.livestreams?.count).toBe(3);
+    expect(signals.admin).toMatchObject({ count: 5, label: "5 access requests waiting" });
+  });
+
+  it("leaves Extension Requests to the stage bar for students", () => {
+    expect(buildNavSignals(navStatus({ extensionRequestsAwaiting: 2 }), options)["extension-requests"]).toBeUndefined();
+  });
+
+  it("shows a new-grades dot only for grades published after the last visit", () => {
+    expect(buildNavSignals(navStatus({ latestGradePublishedAt: "2026-10-12T00:00:00.000Z" }), options).grades).toMatchObject({
+      dot: true,
+      label: "New grades released"
+    });
+    expect(buildNavSignals(navStatus({ latestGradePublishedAt: "2026-10-01T00:00:00.000Z" }), options).grades).toBeUndefined();
+    expect(
+      buildNavSignals(navStatus({ latestGradePublishedAt: "2026-10-12T00:00:00.000Z" }), { ...options, gradesSeenAt: null }).grades
+    ).toBeUndefined();
+  });
+});
+
+describe("moreTabSignal", () => {
+  it("counts signals on items the person can see that are not in the tab bar", () => {
+    const signals = buildNavSignals(navStatus({ groupsNeedYou: 1, liveMeetings: 1, livestreamSignups: 2 }), {
+      gradesSeenAt: null,
+      now: thursdayNoon,
+      showExtensionRequests: false
+    });
+    // Producers have The Show in the tab bar and no Livestream Tracker item.
+    expect(moreTabSignal(signals, ["dashboard", "groups", "show", "calendar"], ["dashboard", "groups", "show", "calendar", "meetings"])).toEqual({
+      count: 1,
+      live: true
+    });
+    expect(moreTabSignal({}, ["dashboard"], ["dashboard"])).toEqual({ count: 0, live: false });
+  });
+});
+
+describe("hubTabCounts", () => {
+  it("puts waiting counts on the Participation and Livestreams tabs", () => {
+    expect(hubTabCounts(navStatus({ participationApprovals: 2, livestreamSignups: 0 }))).toEqual({
+      "/participation": { count: 2, label: "2 changes waiting for approval" }
+    });
+  });
+});
+
+describe("PAGE_STATUS_EVENTS", () => {
+  it("uses the exact event names the Participation and Admin pages dispatch", () => {
+    expect(PAGE_STATUS_EVENTS.participation).toBe(PARTICIPATION_REQUESTS_CHANGED_EVENT);
+    expect(PAGE_STATUS_EVENTS.accessRequests).toBe(ACCESS_REQUESTS_CHANGED_EVENT);
+  });
+});
+
+describe("shell breadcrumbs", () => {
+  const folders = [
+    { id: "f1", name: "Interviews" },
+    { id: "f2", name: "Interviews/Sage" }
+  ];
+
+  it("builds a project asset page trail with the open folder's path, its last segment unlinked", () => {
+    expect(
+      buildProjectBreadcrumbs({
+        projectId: "p1",
+        mediaId: null,
+        workspace: { id: "w1", name: "Class" },
+        projectName: "Cycle 3",
+        folders,
+        currentAsset: null,
+        currentFolderName: "Interviews/Sage"
+      })
+    ).toEqual([
+      { label: "Class", href: "/dashboard?workspaceId=w1" },
+      { label: "Cycle 3", href: "/projects/p1" },
+      { label: "Assets", href: "/projects/p1" },
+      { label: "Interviews", href: "/projects/p1?scope=active&folderId=f1" },
+      { label: "Sage" }
+    ]);
+  });
+
+  it("shows a trail only with two or more crumbs (one would repeat the page title)", () => {
+    expect(showsBreadcrumbTrail(buildGenericBreadcrumbs(["dashboard"]))).toBe(false);
+    expect(showsBreadcrumbTrail(buildGroupsBreadcrumbs(["groups"]) ?? [])).toBe(false);
+    expect(showsBreadcrumbTrail(buildGroupsBreadcrumbs(["groups", "row1"], "Robotics") ?? [])).toBe(true);
+    expect(showsBreadcrumbTrail(buildGenericBreadcrumbs(["announcements", "pa"]))).toBe(true);
+  });
+
+  it("builds a review trail through the asset's folders to the asset", () => {
+    const crumbs = buildProjectBreadcrumbs({
+      projectId: "p1",
+      mediaId: "m1",
+      workspace: null,
+      projectName: null,
+      folders,
+      currentAsset: { title: "Robotics A-roll", folderName: "Interviews/Sage" },
+      currentFolderName: null
+    });
+    expect(crumbs).toEqual([
+      { label: "Workspace", href: "/dashboard" },
+      { label: "Project", href: "/projects/p1" },
+      { label: "Interviews", href: "/projects/p1?scope=active&folderId=f1" },
+      { label: "Sage", href: "/projects/p1?scope=active&folderId=f2" },
+      { label: "Robotics A-roll", href: "/projects/p1/review/m1" }
+    ]);
   });
 });

@@ -4,6 +4,7 @@ import { pointerSafeAutoFocus } from "@/components/meetings/focus-modality";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { ListSkeleton, LoadingRegion } from "@/components/kit/skeleton";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -89,7 +90,9 @@ export function InviteesDialog({
         {selected ? (
           <PeoplePicker people={people} error={error} selected={selected} onChange={setSelected} />
         ) : (
-          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" aria-label="Loading" />
+          <LoadingRegion label="Loading the invite list">
+            <ListSkeleton rows={4} leading={false} lines={1} />
+          </LoadingRegion>
         )}
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>

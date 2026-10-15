@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type RefObject } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Check, GripVertical, Trash2 } from "lucide-react";
@@ -8,6 +8,22 @@ import { AGENDA_TEXT_MAX, cleanAgendaText, type MeetingAgendaItemView } from "@/
 import { cn } from "@/src/lib/utils";
 
 const FOCUS = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]";
+
+/**
+ * Radix closes its sheet or dialog on Escape from a document capture listener, before the edit
+ * input sees the key. Marking the event handled from a window capture listener (which runs
+ * first) keeps the sheet open, so Escape only cancels the edit.
+ */
+function useKeepOpenOnEscape(active: boolean, input: RefObject<HTMLInputElement | null>) {
+  useEffect(() => {
+    if (!active) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && event.target === input.current) event.preventDefault();
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, [active, input]);
+}
 
 /** One sortable agenda line in the editor: drag handle, click-to-edit text, delete. */
 export function AgendaRow({
@@ -29,6 +45,8 @@ export function AgendaRow({
   });
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(item.text);
+  const inputRef = useRef<HTMLInputElement>(null);
+  useKeepOpenOnEscape(editing, inputRef);
 
   const save = (event?: FormEvent) => {
     event?.preventDefault();
@@ -43,7 +61,7 @@ export function AgendaRow({
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
-        "flex min-h-11 items-center gap-1 rounded-md bg-[var(--ink-2)] pr-1 outline outline-1 outline-[var(--ink-4)]",
+        "flex min-h-11 items-center gap-1 rounded-md bg-card pr-1 outline outline-1 outline-border",
         isDragging && "relative z-10 outline-2 outline-[var(--brand-green)]"
       )}
     >
@@ -54,6 +72,7 @@ export function AgendaRow({
         {...listeners}
         disabled={readOnly}
         aria-label={`Move item ${index + 1}: ${item.text}`}
+        title={readOnly ? undefined : "Drag to reorder"}
         className={cn(
           "flex h-11 w-9 shrink-0 cursor-grab touch-none items-center justify-center rounded-md text-muted-foreground hover:text-foreground disabled:cursor-default disabled:opacity-40",
           FOCUS
@@ -65,6 +84,7 @@ export function AgendaRow({
       {editing ? (
         <form onSubmit={save} className="min-w-0 flex-1">
           <input
+            ref={inputRef}
             autoFocus
             value={draft}
             maxLength={AGENDA_TEXT_MAX}
@@ -77,7 +97,7 @@ export function AgendaRow({
               }
             }}
             aria-label="Agenda item"
-            className={cn("h-9 w-full rounded-md border border-input bg-transparent px-2 text-base text-foreground md:text-sm", FOCUS)}
+            className={cn("h-10 w-full rounded-md border border-input bg-transparent px-2 text-base text-foreground md:h-9 md:text-sm", FOCUS)}
           />
         </form>
       ) : (
@@ -89,7 +109,7 @@ export function AgendaRow({
             setEditing(true);
           }}
           className={cn(
-            "min-w-0 flex-1 rounded-md px-2 py-2 text-left text-sm disabled:cursor-default",
+            "min-w-0 flex-1 rounded-md px-2 py-2 text-left text-sm break-words disabled:cursor-default",
             item.done ? "text-muted-foreground line-through" : "text-foreground",
             !readOnly && "hover:bg-[var(--ink-3)]",
             FOCUS

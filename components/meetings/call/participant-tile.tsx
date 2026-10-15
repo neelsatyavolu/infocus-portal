@@ -1,6 +1,6 @@
 "use client";
 
-import { Hand, MicOff, MonitorUp, Pin, PinOff, ShieldAlert } from "lucide-react";
+import { MicOff, MonitorUp, Pin, PinOff, ShieldAlert } from "lucide-react";
 import type { PartyTracks } from "partytracks/client";
 import type { MeetingParticipantView } from "@/src/lib/meetings/protocol";
 import type { ReceiveQuality } from "@/src/lib/meetings/client/meet-settings";
@@ -9,6 +9,7 @@ import type { MeetingE2ee } from "@/src/lib/meetings/client/e2ee";
 import { cn } from "@/src/lib/utils";
 import { Avatar } from "./avatar";
 import { HandBadge } from "./hand-badge";
+import { OVERLAY_CHIP } from "./overlay";
 import { VideoView, useDecryptFailing, usePulledTrack } from "./media-elements";
 import { useDebouncedValue } from "./use-debounced-value";
 
@@ -21,21 +22,29 @@ export type TileModel = {
   isScreen: boolean;
 };
 
-function CenterNote({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
+/** `onDark`: notes on a screen tile, which stays dark like a video player in both themes. */
+function CenterNote({ icon, onDark = false, children }: { icon: React.ReactNode; onDark?: boolean; children: React.ReactNode }) {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-2 p-3 text-center text-sm text-muted-foreground">
+    <div
+      className={cn(
+        "flex h-full flex-col items-center justify-center gap-2 p-3 text-center text-sm",
+        onDark ? "text-[var(--soft-white)]/75" : "text-muted-foreground"
+      )}
+    >
       {icon}
       {children}
     </div>
   );
 }
 
-/** Name pill, bottom-left: translucent dark with Soft White text, mic-off and hand icons beside it. */
-function NamePill({ label, micOff, hand }: { label: string; micOff: boolean; hand: boolean }) {
+/**
+ * Name pill, bottom-left: the call's overlay chip (fixed dark, Soft White) with the mic-off icon.
+ * A raised hand shows once, as the numbered amber badge top-left.
+ */
+function NamePill({ label, micOff }: { label: string; micOff: boolean }) {
   return (
-    <figcaption className="absolute bottom-2 left-2 flex max-w-[calc(100%-1rem)] items-center gap-1.5 rounded-[4px] bg-[#0F110F]/60 px-2.5 py-1 text-xs text-[var(--soft-white)]">
+    <figcaption className={cn("absolute bottom-2 left-2 flex max-w-[calc(100%-1rem)] items-center gap-1.5 px-2 py-1 text-xs", OVERLAY_CHIP)}>
       {micOff ? <MicOff className="h-3.5 w-3.5 shrink-0" aria-label="Microphone off" /> : null}
-      {hand ? <Hand className="h-3.5 w-3.5 shrink-0 text-[var(--brand-green)]" aria-label="Hand raised" /> : null}
       <span className="truncate">{label}</span>
     </figcaption>
   );
@@ -90,7 +99,9 @@ export function ParticipantTile({
     <figure
       aria-label={label}
       className={cn(
-        "group relative h-full w-full overflow-hidden rounded-md bg-[var(--ink-2)]",
+        // Camera tiles follow the theme; screens sit on dark like a video player (letterboxing).
+        "group relative h-full w-full overflow-hidden rounded-md",
+        isScreen ? "bg-[#0F110F]" : "bg-[var(--ink-2)]",
         // Outline, not border: the speaker ring never shifts the layout.
         // Speaking (green) wins over a raised hand (amber); the amber hand badge stays visible either way.
         speaking && !isScreen
@@ -101,11 +112,13 @@ export function ParticipantTile({
       )}
     >
       {failing ? (
-        <CenterNote icon={<ShieldAlert className="h-5 w-5 text-[var(--brand-amber)]" aria-hidden />}>
+        <CenterNote onDark={isScreen} icon={<ShieldAlert className={cn("h-5 w-5", isScreen ? "text-[#F2A516]" : "text-[var(--brand-amber)]")} aria-hidden />}>
           Can&rsquo;t decrypt this video yet
         </CenterNote>
       ) : isSelf && isScreen ? (
-        <CenterNote icon={<MonitorUp className="h-6 w-6" aria-hidden />}>You&rsquo;re presenting to everyone</CenterNote>
+        <CenterNote onDark icon={<MonitorUp className="h-6 w-6" aria-hidden />}>
+          You&rsquo;re presenting to everyone
+        </CenterNote>
       ) : wantsVideo && track ? (
         <VideoView track={track} mirror={isSelf && mirrorSelf} contain={isScreen} />
       ) : (
@@ -116,11 +129,7 @@ export function ParticipantTile({
 
       {handPosition ? <HandBadge position={handPosition} compact={small} className="absolute left-2 top-2" /> : null}
 
-      <NamePill
-        label={label}
-        micOff={!participant.audioOn && !isScreen}
-        hand={participant.handRaisedAt !== null && !isScreen}
-      />
+      <NamePill label={label} micOff={!participant.audioOn && !isScreen} />
 
       <button
         type="button"

@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { ArrowLeft, Radio } from "lucide-react";
+import { StatusTag } from "@/components/kit/status-tag";
 import { PageHeader } from "@/components/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { getCurrentAppUser } from "@/src/lib/current-app-user";
 import { prisma } from "@/src/lib/prisma";
-import { formatShowDateLabel } from "@/src/lib/show-assignment";
-import { youtubeEmbedCode, youtubeWatchUrl } from "@/src/lib/youtube-publication";
+import { formatShowDateLabel, todayDateKey } from "@/src/lib/show-assignment";
 import { requirePublishingViewer } from "@/src/server/publishing-access";
-import PublicationEmbed from "../publication-embed";
+import { formatPublishedDate, youtubeStatusSentence, youtubeStatusView } from "../queue-view-model";
+import { PublicationStatusPanel, PublishedDetails } from "./publication-details";
 
 export async function generateMetadata({ params }: { params: Promise<{ rowId: string }> }): Promise<Metadata> {
   const { rowId } = await params;
@@ -49,44 +51,48 @@ export default async function PublicationPage({ params }: { params: Promise<{ ro
   const showDate = publication?.showDate ?? row.queuedForShowDate;
   const videoId = publication?.status === "PUBLISHED" && publication.videoId && /^[A-Za-z0-9_-]{11}$/.test(publication.videoId)
     ? publication.videoId : null;
-  const status = publication?.status === "FAILED" ? "Publishing failed. Contact a producer for help."
-    : publication?.status === "UPLOADING" ? "Uploading to YouTube…"
-    : publication?.status === "PROCESSING" ? "YouTube is processing this video."
-    : publication?.status === "PUBLISHED" ? "Published on YouTube"
-    : "This package has not been published to YouTube yet.";
+  const status = youtubeStatusView(publication?.status);
+  const sentence = youtubeStatusSentence(publication?.status);
+  // Same "today" as the queue API, so a package in Past shows reads "Aired".
+  const airs = showDate ? `${showDate < todayDateKey() ? "Aired" : "Airs"} ${formatShowDateLabel(showDate)}` : null;
 
   return (
-    <div className="route-enter mx-auto w-full max-w-3xl space-y-5 pb-24">
+    <div className="route-enter space-y-5">
       <PageHeader
-        eyebrow="Publishing Queue"
-        title={publication?.title || row.groupTopic || "Untitled package"}
-        description={
+        eyebrow={
           <>
-            {showDate ? formatShowDateLabel(showDate) : "Show date not assigned"} ·{" "}
-            <span role="status">{status}</span>
+            <Radio className="h-3 w-3" aria-hidden />
+            Publishing Queue
           </>
         }
+        status={<StatusTag tone={status.tone} srLabel="YouTube: ">{status.label}</StatusTag>}
+        title={publication?.title || row.groupTopic || "Untitled package"}
+        description={airs ?? "Show date not assigned"}
         actions={
           // Everyone who can see a publication (producers and website managers) can open the queue.
-          <Link href="/publishing-queue" className={buttonVariants({ size: "sm", variant: "ghost" })}>
+          <Link href="/publishing-queue" className={buttonVariants({ variant: "outline" })}>
+            <ArrowLeft aria-hidden />
             Back to Publishing Queue
           </Link>
         }
       />
       {videoId ? (
-        <>
-          <iframe
-            src={`https://www.youtube.com/embed/${videoId}`}
-            title={publication?.title || "Published package"}
-            className="aspect-video w-full rounded-md border-0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            referrerPolicy="strict-origin-when-cross-origin"
-            allowFullScreen
-          />
-          <a href={youtubeWatchUrl(videoId)} target="_blank" rel="noopener noreferrer" className="inline-block text-sm underline">Watch on YouTube</a>
-          <PublicationEmbed code={youtubeEmbedCode(videoId)} />
-        </>
-      ) : null}
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+          <div className="overflow-hidden rounded-md border border-border bg-[var(--ink-2)]">
+            <iframe
+              src={`https://www.youtube.com/embed/${videoId}`}
+              title={publication?.title || "Published package"}
+              className="block aspect-video w-full border-0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerPolicy="strict-origin-when-cross-origin"
+              allowFullScreen
+            />
+          </div>
+          <PublishedDetails videoId={videoId} publishedOn={formatPublishedDate(publication?.publishedAt)} sentence={sentence} />
+        </div>
+      ) : (
+        <PublicationStatusPanel status={status.key} sentence={sentence} />
+      )}
     </div>
   );
 }

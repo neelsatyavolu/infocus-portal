@@ -23,11 +23,11 @@ A few tools still open the matching Portal page inside the app: Final Cut gradin
 - **Notifications.** After the first sign-in the app asks to send notifications. You then get an iPhone notification for every email Portal sends you, under the same rules as the Mac app (see `notifications.md`). Tapping one opens its page in the app. Settings → Notifications → **iPhone app notifications** shows the status and has **Send test**.
 - **Sign out** stops notifications on that iPhone.
 
-Portal pages opened inside the app show without the website's sidebar and header (the app sets the `infocus_embedded` cookie). Links outside Portal open in a browser sheet. The source is in the `infocus-drive` repo, `ios/`.
+Portal pages opened inside the app show without the website's sidebar, header, bottom tab bar, tabs at the top of a page and package stage bar (the app sets the `infocus_embedded` cookie). Links outside Portal open in a browser sheet. The source is in the `infocus-drive` repo, `ios/`.
 
 ### App Review account
 
-Apple's reviewers can't use a school account, so Portal has one demo account for them, set only in the server environment (`APP_REVIEW_EMAIL`, `APP_REVIEW_CODE`; see `docs/ENVIRONMENT.md`). It signs in with **Sign in with an email code**, using the fixed code from the App Store Connect review notes instead of a mailed one. The usual code limits still apply.
+Apple's reviewers can't use a school account, so Portal has one demo account for them, set only in the server environment (`APP_REVIEW_EMAIL`, `APP_REVIEW_CODE`; see `docs/ENVIRONMENT.md`). It signs in with **Sign in with email** on the sign-in page, entering the fixed code from the App Store Connect review notes instead of a mailed one. The usual code limits still apply.
 
 The account is walled off from the class:
 

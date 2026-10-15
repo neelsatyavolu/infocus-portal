@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback } from "react";
+import { cn } from "@/src/lib/utils";
+import { OVERLAY_CHIP } from "./overlay";
 import type { ReactionBurst } from "./use-meeting-call";
 
 function offsetFor(id: string) {
@@ -31,7 +33,7 @@ function Burst({ burst }: { burst: ReactionBurst }) {
         {burst.emoji}
       </span>
       {burst.name ? (
-        <span className="mt-1 rounded-sm bg-[var(--ink-2)] px-1.5 py-0.5 text-[11px] text-foreground">{burst.name}</span>
+        <span className={cn("mt-1 px-1.5 py-0.5 text-[11px]", OVERLAY_CHIP)}>{burst.name}</span>
       ) : null}
     </div>
   );

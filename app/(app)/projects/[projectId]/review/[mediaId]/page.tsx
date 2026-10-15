@@ -23,7 +23,7 @@ async function getReviewData(
   projectId: string,
   mediaId: string,
   requestedVersionId?: string | null
-): Promise<{ data: MediaReviewDto; canViewShareLinks: boolean; allowComment: boolean } | null> {
+): Promise<{ data: MediaReviewDto; canViewShareLinks: boolean; allowComment: boolean; isInitialCut: boolean } | null> {
   let membership: Awaited<ReturnType<typeof requireMediaAccess>>["membership"];
   let currentUserId: string | null = null;
   let canUpdateApprovalStatus = false;
@@ -160,6 +160,7 @@ async function getReviewData(
   return {
     canViewShareLinks,
     allowComment,
+    isInitialCut: Boolean(initialCutRow),
     data: {
       mediaId: media.id,
       projectId,
@@ -283,7 +284,7 @@ export default async function ReviewPage({
   return (
     <>
       <ProjectShellBridge data={shellData} />
-      <ReviewShell data={review.data} allowComment={review.allowComment} />
+      <ReviewShell data={review.data} allowComment={review.allowComment} isInitialCut={review.isInitialCut} />
     </>
   );
 }

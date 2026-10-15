@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { IconButton } from "@/components/kit/icon-button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { cn } from "@/src/lib/utils";
 
 type DeleteEntityButtonProps = {
   endpoint: string;
@@ -14,91 +15,74 @@ type DeleteEntityButtonProps = {
   className?: string;
 };
 
-export function DeleteEntityButton({
-  endpoint,
-  label,
-  description,
-  redirectTo,
-  className
-}: DeleteEntityButtonProps) {
+/**
+ * Quiet trash icon (muted at rest, Danger on hover or focus) that opens the "are you sure?"
+ * step, then DELETEs `endpoint`. Afterwards it goes to `redirectTo`, or refreshes in place.
+ * Safe inside a link or a clickable card: the trigger stops the click, and the dialog's clicks
+ * (which bubble through the React tree past the portal) never reach an ancestor's handlers.
+ */
+export function DeleteEntityButton({ endpoint, label, description, redirectTo, className }: DeleteEntityButtonProps) {
   const router = useRouter();
-  const [isDeleting, setIsDeleting] = useState(false);
   const [open, setOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   async function onDelete() {
-    setIsDeleting(true);
     setErrorMessage(null);
-
+    let response: Response;
     try {
-      const response = await fetch(endpoint, { method: "DELETE" });
-
-      if (!response.ok) {
-        throw new Error("Failed to delete");
-      }
-
-      setOpen(false);
-      if (redirectTo) {
-        router.replace(redirectTo as Parameters<typeof router.replace>[0]);
-        return;
-      }
-
-      router.refresh();
-    } catch {
+      response = await fetch(endpoint, { method: "DELETE" });
+    } catch (error) {
       setErrorMessage(`Could not delete ${label}.`);
-    } finally {
-      setIsDeleting(false);
+      throw error;
     }
+
+    if (!response.ok) {
+      setErrorMessage(`Could not delete ${label}.`);
+      // ConfirmDialog stays open when the action throws, so the error can be read and retried.
+      throw new Error("DELETE_FAILED");
+    }
+
+    if (redirectTo) {
+      router.replace(redirectTo as Parameters<typeof router.replace>[0]);
+      return;
+    }
+
+    router.refresh();
   }
 
   return (
     <>
-      <Button
-        variant="ghost"
-        size="sm"
-        className={className}
+      <IconButton
+        label={`Delete ${label}`}
+        icon={Trash2}
+        size="touch"
+        className={cn(
+          "text-muted-foreground hover:bg-danger-tint hover:text-danger focus-visible:text-danger",
+          className
+        )}
         onClick={(event) => {
           event.preventDefault();
           event.stopPropagation();
           setOpen(true);
         }}
-        disabled={isDeleting}
-        aria-label={`Delete ${label}`}
-      >
-        <Trash2 className="h-4 w-4 text-danger" />
-      </Button>
+      />
 
-      <Dialog
-        open={open}
-        onOpenChange={(isOpen) => {
-          if (!isOpen && isDeleting) return;
-          setOpen(isOpen);
-          if (!isOpen) setErrorMessage(null);
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{`Delete ${label}`}</DialogTitle>
-            <DialogDescription>{description ?? "This action cannot be undone."}</DialogDescription>
-          </DialogHeader>
-          {errorMessage ? <p className="text-sm text-danger">{errorMessage}</p> : null}
-          <DialogFooter>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setOpen(false);
-                setErrorMessage(null);
-              }}
-              disabled={isDeleting}
-            >
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={() => void onDelete()} disabled={isDeleting}>
-              {isDeleting ? "Deleting..." : "Delete"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <span className="contents" onClick={(event) => event.stopPropagation()}>
+        <ConfirmDialog
+          open={open}
+          onOpenChange={(isOpen) => {
+            setOpen(isOpen);
+            if (!isOpen) setErrorMessage(null);
+          }}
+          title={`Delete ${label}?`}
+          description={description ?? "This can't be undone."}
+          confirmLabel="Delete"
+          busyLabel="Deleting…"
+          cancelLabel="Cancel"
+          error={errorMessage}
+          onConfirm={onDelete}
+        />
+      </span>
     </>
   );
 }

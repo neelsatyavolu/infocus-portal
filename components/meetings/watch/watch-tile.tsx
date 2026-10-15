@@ -1,14 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Clapperboard, Loader2, Volume2 } from "lucide-react";
+import { Loader2, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { diagEvent, errorText } from "@/src/lib/meetings/client/diagnostics";
 import { watchCountingDown } from "@/src/lib/meetings/client/watch-sync";
-import { cn } from "@/src/lib/utils";
 import type { WatchParty } from "./use-watch-party";
 import { useWatchSync } from "./use-watch-sync";
-import { WatchControls } from "./watch-controls";
+import { WatchControls, WatchHeader } from "./watch-controls";
 
 /** Scrubbing sends one seek once the thumb rests this long (dragging would flood the room). */
 const SCRUB_COMMIT_MS = 250;
@@ -21,6 +20,7 @@ type VideoWithSink = HTMLVideoElement & {
   webkitEnterFullscreen?: () => void;
 };
 
+/** Centered over the video, between the top and bottom plates. */
 function Note({ children }: { children: ReactNode }) {
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#0F110F]/70 p-4 text-center text-sm text-[var(--soft-white)]">
@@ -130,7 +130,7 @@ export function WatchTile({
     <div
       ref={containerRef}
       aria-label={cut ? `Watching together: ${cut.topic}, ${cut.label}` : "Watching together"}
-      className="group relative h-full w-full overflow-hidden rounded-md bg-black outline outline-1 outline-[var(--ink-4)]"
+      className="@container group relative h-full w-full overflow-hidden rounded-md bg-[#0F110F] outline outline-1 outline-[var(--ink-4)]"
     >
       {src ? (
         <video
@@ -152,14 +152,6 @@ export function WatchTile({
           onError={onVideoError}
         />
       ) : null}
-
-      <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center gap-2 bg-gradient-to-b from-[#0F110F]/80 to-transparent px-3 pb-6 pt-2 text-[var(--soft-white)]">
-        <Clapperboard className="h-4 w-4 shrink-0" aria-hidden />
-        <span className={cn("truncate font-medium", small ? "text-xs" : "text-sm")}>
-          {cut ? `${cut.topic} · ${cut.label}` : "Watch together"}
-        </span>
-        {cut && !small ? <span className="shrink-0 font-mono text-xs text-[var(--soft-white)]/70">Cycle {cut.cycleNumber}</span> : null}
-      </div>
 
       {error || loadFailed ? (
         <Note>
@@ -190,8 +182,17 @@ export function WatchTile({
         </div>
       ) : null}
 
+      {/* Plates after the notes, so the shared actions stay usable over them. */}
+      <WatchHeader
+        title={cut ? `${cut.topic} · ${cut.label}` : "Watch together"}
+        cycle={cut && !small ? cut.cycleNumber : null}
+        small={small}
+        onChange={cut && !small ? onChange : undefined}
+        onStop={cut && !small ? party.stop : undefined}
+      />
+
       {needsSound && !small ? (
-        <Button size="sm" className="absolute left-1/2 top-12 -translate-x-1/2" onClick={enableSound}>
+        <Button size="sm" className="absolute left-1/2 top-14 -translate-x-1/2" onClick={enableSound}>
           <Volume2 className="h-4 w-4" aria-hidden /> Tap for sound
         </Button>
       ) : null}
@@ -212,8 +213,6 @@ export function WatchTile({
           }}
           onMute={() => setMuted(!muted)}
           onFullscreen={fullscreen}
-          onChange={onChange}
-          onStop={party.stop}
         />
       ) : null}
     </div>

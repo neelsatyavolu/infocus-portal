@@ -1,752 +1,53 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import {
-  Check,
-  ChevronDown,
-  ChevronRight,
-  Copy,
-  Edit3,
-  Expand,
-  FastForward,
-  Minimize2,
-  Minus,
-  Monitor,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Pause,
-  Play,
-  Plus,
-  RefreshCw,
-  Rewind,
-  RotateCcw,
-  ScrollText,
-  Settings2,
-  Sparkles,
-  Trash2,
-  X
-} from "lucide-react";
-import { toast } from "sonner";
+import { Plus, ScrollText } from "lucide-react";
+import { Alert } from "@/components/kit/alert";
+import { EmptyState, ErrorState } from "@/components/kit/empty-state";
+import { useHotkeys } from "@/components/kit/hotkeys";
+import { useRememberedState } from "@/components/kit/remembered-state";
+import { Sheet } from "@/components/kit/sheet";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import {
-  TELEPROMPTER_PLAYHEAD_TOP_PX,
-  advanceTeleprompterPosition,
-  teleprompterArrowState,
-  sectionIdAtPosition,
-  teleprompterContentTransform,
-  teleprompterMaxPosition,
-  teleprompterSectionJumpPosition
-} from "@/src/lib/teleprompter-motion";
-import { classifyRunScriptLine, getSectionDisplayParts } from "@/src/lib/teleprompter-run-script";
 import { cn } from "@/src/lib/utils";
+import { createTeleprompterActions } from "./teleprompter-actions";
+import { ScriptTitleDialog } from "./teleprompter-dialogs";
+import { RefreshControl, TeleprompterHeader, WorkspaceSelect } from "./teleprompter-header";
+import { useIdlePreload, useMeasuredWidth, useNow, useReformatProgress, useSeenDocs } from "./teleprompter-hooks";
+import {
+  codeColumnCh,
+  formatAge,
+  headerShowLine,
+  pluralize,
+  readData,
+  showDateKey,
+  sortDocsByRecent,
+  todayDateKey,
+  visibleRailDocs,
+  workspaceLayout,
+  type SectionDraft,
+  type TeleprompterAutofillStatus,
+  type TeleprompterDoc,
+  type TeleprompterPayload,
+  type TeleprompterSection,
+  type WorkspaceSummary
+} from "./teleprompter-model";
+import { ScriptDetail, type ScriptDetailHandlers } from "./teleprompter-script-detail";
+import { RunModeLoading, useRunModeModule } from "./teleprompter-run-mode-loader";
+import { ScriptRailList, ScriptRailPane } from "./teleprompter-script-rail";
+import { TeleprompterWorkspaceSkeleton } from "./teleprompter-skeleton";
 
-type TeleprompterSection = {
-  id: string;
-  label: string;
-  content: string;
-  orderIndex: number;
-  createdAt: string;
-  updatedAt: string;
-};
+const EMPTY_DRAFT: SectionDraft = { id: null, label: "", content: "" };
+const isBoolean = (value: unknown): value is boolean => typeof value === "boolean";
 
-type TeleprompterDoc = {
-  id: string;
-  title: string;
-  orderIndex: number;
-  showDate: string | null;
-  createdAt: string;
-  updatedAt: string;
-  sections: TeleprompterSection[];
-};
-
-type TeleprompterAutofillStatus = {
-  status: "ok" | "warning" | "unavailable";
-  message?: string;
-};
-
-type TeleprompterPayload = {
-  workspaceId: string;
-  canEdit: boolean;
-  nextShowDateIso: string;
-  docs: TeleprompterDoc[];
-  autofill: TeleprompterAutofillStatus;
-};
-
-type WorkspaceSummary = {
-  id: string;
-  name: string;
-};
-
-type SectionDraft = {
-  id: string | null;
-  label: string;
-  content: string;
-};
-
-type ReformatState = {
-  scope: "doc" | "section" | null;
-  targetId: string | null;
-  progress: number;
-};
-
-type StyledSegment = {
-  text: string;
-  tone: "default" | "red" | "yellow";
-};
-
-type RunModeSettings = {
-  bodyScale: number;
-  cueScale: number;
-};
-
-const STYLE_PATTERN = /(\[(?:RED|YELLOW)\].*?\[\/(?:RED|YELLOW)\])/gi;
-const RUN_MODE_SETTINGS_KEY = "teleprompter-run-mode-settings-v2";
-const DEFAULT_RUN_MODE_SETTINGS: RunModeSettings = {
-  bodyScale: 1,
-  cueScale: 1
-};
-
-function buildClamp(minRem: number, preferredVw: number, maxRem: number, scale: number) {
-  return `clamp(${(minRem * scale).toFixed(3)}rem, ${(preferredVw * scale).toFixed(3)}vw, ${(maxRem * scale).toFixed(3)}rem)`;
-}
-
-function readRunModeSettings(): RunModeSettings {
-  if (typeof window === "undefined") {
-    return DEFAULT_RUN_MODE_SETTINGS;
+/** Open Radix Select lists and ⋯ menus take single letters for type-ahead, so R leaves them alone. */
+function letterKeyOwnedByWidget(event: KeyboardEvent) {
+  const target = event.target instanceof Element ? event.target : null;
+  if (target?.closest('[role="combobox"], [role="listbox"], [role="menu"], [role="menuitem"]')) {
+    return true;
   }
-
-  try {
-    const raw = window.localStorage.getItem(RUN_MODE_SETTINGS_KEY);
-    if (!raw) {
-      return DEFAULT_RUN_MODE_SETTINGS;
-    }
-
-    const parsed = JSON.parse(raw) as Partial<RunModeSettings>;
-    return {
-      bodyScale:
-        typeof parsed.bodyScale === "number" && Number.isFinite(parsed.bodyScale) ? parsed.bodyScale : DEFAULT_RUN_MODE_SETTINGS.bodyScale,
-      cueScale:
-        typeof parsed.cueScale === "number" && Number.isFinite(parsed.cueScale) ? parsed.cueScale : DEFAULT_RUN_MODE_SETTINGS.cueScale
-    };
-  } catch {
-    return DEFAULT_RUN_MODE_SETTINGS;
-  }
-}
-
-function saveRunModeSettings(settings: RunModeSettings) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.setItem(RUN_MODE_SETTINGS_KEY, JSON.stringify(settings));
-}
-
-function getDocSortTimestamp(doc: TeleprompterDoc) {
-  const timestamp = Date.parse(doc.showDate ?? doc.createdAt);
-  return Number.isFinite(timestamp) ? timestamp : 0;
-}
-
-function sortDocsByRecent(docs: TeleprompterDoc[]) {
-  return [...docs].sort((left, right) => {
-    const timestampDelta = getDocSortTimestamp(right) - getDocSortTimestamp(left);
-    if (timestampDelta !== 0) {
-      return timestampDelta;
-    }
-
-    const createdAtDelta = Date.parse(right.createdAt) - Date.parse(left.createdAt);
-    if (createdAtDelta !== 0) {
-      return createdAtDelta;
-    }
-
-    return right.orderIndex - left.orderIndex;
-  });
-}
-
-function formatShowDateLabel(showDate: string | null) {
-  if (!showDate) {
-    return null;
-  }
-
-  const iso = showDate.slice(0, 10);
-  const [year, month, day] = iso.split("-").map(Number);
-  if (!year || !month || !day) {
-    return null;
-  }
-
-  return new Date(Date.UTC(year, month - 1, day)).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC"
-  });
-}
-
-function IconButton({
-  label,
-  onClick,
-  disabled,
-  destructive,
-  children
-}: {
-  label: string;
-  onClick: () => void;
-  disabled?: boolean;
-  destructive?: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={label}
-      title={label}
-      className={cn(
-        "inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-50",
-        destructive && "hover:bg-danger-tint hover:text-danger"
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
-async function readData<T>(url: string, init?: RequestInit) {
-  const response = await fetch(url, {
-    cache: "no-store",
-    ...init
-  });
-  const payload = await response.json();
-
-  if (!response.ok) {
-    throw new Error(payload?.error?.message ?? "Request failed.");
-  }
-
-  return payload.data as T;
-}
-
-function splitStyledSegments(text: string): StyledSegment[] {
-  if (!text) {
-    return [];
-  }
-
-  const chunks = text.split(STYLE_PATTERN).filter(Boolean);
-  return chunks.map((chunk) => {
-    const upper = chunk.toUpperCase();
-    if (upper.startsWith("[RED]") && upper.endsWith("[/RED]")) {
-      return {
-        text: chunk.slice(5, -6),
-        tone: "red"
-      };
-    }
-
-    if (upper.startsWith("[YELLOW]") && upper.endsWith("[/YELLOW]")) {
-      return {
-        text: chunk.slice(8, -9),
-        tone: "yellow"
-      };
-    }
-
-    return {
-      text: chunk,
-      tone: "default"
-    };
-  });
-}
-
-function CueHighlight({ text, settings }: { text: string; settings: RunModeSettings }) {
-  return (
-    <span
-      className="inline-block bg-[#fff200] px-[0.22em] py-[0.04em] font-semibold uppercase leading-[1.05] text-[#ff0000]"
-      style={{
-        fontSize: buildClamp(2.35, 5.1, 5.8, settings.cueScale)
-      }}
-    >
-      {text}
-    </span>
-  );
-}
-
-function SpokenLine({
-  text,
-  lineIndex,
-  settings
-}: {
-  text: string;
-  lineIndex: number;
-  settings: RunModeSettings;
-}) {
-  const segments = splitStyledSegments(text);
-  if (segments.length === 0) {
-    return null;
-  }
-
-  return (
-    <p
-      key={`line-${lineIndex}`}
-      className="text-soft-white"
-      style={{
-        fontSize: buildClamp(2.5, 5.4, 6.2, settings.bodyScale),
-        lineHeight: 1.12
-      }}
-    >
-      {segments.map((segment, segmentIndex) => (
-        <span
-          key={`${lineIndex}-${segmentIndex}-${segment.tone}`}
-          className={cn(
-            segment.tone === "red" ? "text-red-500" : "",
-            segment.tone === "yellow" ? "text-[oklch(90.5%_0.182_98.111)]" : ""
-          )}
-        >
-          {segment.text}
-        </span>
-      ))}
-    </p>
-  );
-}
-
-function renderScriptLine(line: string, lineIndex: number, settings: RunModeSettings) {
-  const classified = classifyRunScriptLine(line);
-
-  if (classified.kind === "gap") {
-    return <div key={`line-gap-${lineIndex}`} className="h-8 md:h-14" />;
-  }
-
-  if (classified.kind === "camera") {
-    return (
-      <p
-        key={`line-camera-${lineIndex}`}
-        className="uppercase text-soft-white"
-        style={{
-          fontSize: buildClamp(2.5, 5.4, 6.2, settings.bodyScale),
-          lineHeight: 1.08
-        }}
-      >
-        {classified.text}
-      </p>
-    );
-  }
-
-  if (classified.kind === "cue") {
-    return (
-      <div key={`line-cue-${lineIndex}`} className="space-y-3 md:space-y-5">
-        <div>
-          <CueHighlight text={classified.text} settings={settings} />
-        </div>
-        {classified.spoken ? <SpokenLine text={classified.spoken} lineIndex={lineIndex} settings={settings} /> : null}
-      </div>
-    );
-  }
-
-  return <SpokenLine text={classified.text} lineIndex={lineIndex} settings={settings} />;
-}
-
-type RunModeControl = Parameters<typeof teleprompterArrowState>[1];
-
-const RUN_MODE_KEY_CONTROLS: Record<string, RunModeControl | undefined> = {
-  " ": "space",
-  ArrowUp: "up",
-  ArrowDown: "down",
-  ArrowLeft: "left",
-  ArrowRight: "right"
-};
-
-const RUN_MODE_TOUCH_BUTTON_CLASS =
-  "inline-flex h-11 w-11 touch-manipulation items-center justify-center rounded-md text-[#0F110F] hover:bg-black/10 active:bg-black/10";
-
-function FullscreenRunMode({
-  doc,
-  docs,
-  onSelectDoc,
-  onClose
-}: {
-  doc: TeleprompterDoc;
-  docs: TeleprompterDoc[];
-  onSelectDoc: (docId: string) => void;
-  onClose: () => void;
-}) {
-  const [speed, setSpeed] = useState(72);
-  const [paused, setPaused] = useState(false);
-  const [settings, setSettings] = useState<RunModeSettings>(() => readRunModeSettings());
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [isBrowserFullscreen, setIsBrowserFullscreen] = useState(false);
-  const [activeSectionId, setActiveSectionId] = useState(doc.sections[0]?.id ?? "");
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const contentRef = useRef<HTMLDivElement | null>(null);
-  const sectionEls = useRef<Record<string, HTMLElement | null>>({});
-  const positionRef = useRef(0);
-  const pausedRef = useRef(paused);
-  const speedRef = useRef(speed);
-  const contentHeightRef = useRef(0);
-  const activeSectionIdRef = useRef(activeSectionId);
-  const sectionsRef = useRef(doc.sections);
-  pausedRef.current = paused;
-  speedRef.current = speed;
-  activeSectionIdRef.current = activeSectionId;
-  sectionsRef.current = doc.sections;
-  const sectionOptions = useMemo(
-    () =>
-      doc.sections.map((section) => ({
-        id: section.id,
-        label: getSectionDisplayParts(section).badgeLabel.toUpperCase()
-      })),
-    [doc.sections]
-  );
-
-  useEffect(() => {
-    saveRunModeSettings(settings);
-  }, [settings]);
-
-  useEffect(() => {
-    function handleFullscreenChange() {
-      setIsBrowserFullscreen(document.fullscreenElement === containerRef.current);
-    }
-
-    handleFullscreenChange();
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
-  }, []);
-
-  const firstSectionId = doc.sections[0]?.id ?? "";
-
-  const applyPosition = useCallback((next: number) => {
-    positionRef.current = next;
-    const node = contentRef.current;
-    if (node) {
-      node.style.transform = teleprompterContentTransform(next);
-    }
-  }, []);
-
-  useEffect(() => {
-    applyPosition(0);
-    setActiveSectionId(firstSectionId);
-  }, [applyPosition, doc.id, firstSectionId]);
-
-  useEffect(() => {
-    function measure() {
-      contentHeightRef.current = contentRef.current?.offsetHeight ?? 0;
-    }
-
-    measure();
-    const frame = window.requestAnimationFrame(measure);
-    window.addEventListener("resize", measure);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      window.removeEventListener("resize", measure);
-    };
-  }, [doc.id, settings.bodyScale, settings.cueScale]);
-
-  useEffect(() => {
-    let rafId = 0;
-    let lastFrame = performance.now();
-
-    function tick(now: number) {
-      const deltaMs = Math.min(now - lastFrame, 48);
-      lastFrame = now;
-      const contentHeight = contentHeightRef.current;
-
-      if (!pausedRef.current && contentHeight > 0) {
-        const maxPosition = teleprompterMaxPosition(contentHeight);
-        applyPosition(
-          advanceTeleprompterPosition(positionRef.current, speedRef.current, deltaMs, maxPosition)
-        );
-
-        const nextId = sectionIdAtPosition(
-          sectionsRef.current.map((section) => ({
-            id: section.id,
-            top: sectionEls.current[section.id]?.offsetTop ?? 0
-          })),
-          positionRef.current
-        );
-
-        if (nextId && nextId !== activeSectionIdRef.current) {
-          activeSectionIdRef.current = nextId;
-          setActiveSectionId(nextId);
-        }
-      }
-
-      rafId = window.requestAnimationFrame(tick);
-    }
-
-    rafId = window.requestAnimationFrame(tick);
-
-    return () => {
-      window.cancelAnimationFrame(rafId);
-    };
-  }, [applyPosition]);
-
-  // One path for the keys and the on-screen touch controls.
-  const applyControl = useCallback((control: RunModeControl) => {
-    const next = teleprompterArrowState({ paused: pausedRef.current, speed: speedRef.current }, control);
-    setSpeed(next.speed);
-    setPaused(next.paused);
-  }, []);
-
-  useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.target instanceof HTMLElement) {
-        const tag = event.target.tagName;
-        if (tag === "SELECT" || tag === "INPUT" || tag === "TEXTAREA") {
-          return;
-        }
-      }
-
-      const control = RUN_MODE_KEY_CONTROLS[event.key];
-      if (control) {
-        event.preventDefault();
-        applyControl(control);
-        return;
-      }
-
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onClose();
-      }
-    }
-
-    window.addEventListener("keydown", onKeyDown, { passive: false });
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [applyControl, onClose]);
-
-  function jumpToSection(sectionId: string) {
-    activeSectionIdRef.current = sectionId;
-    setActiveSectionId(sectionId);
-    applyPosition(teleprompterSectionJumpPosition(sectionEls.current[sectionId]?.offsetTop ?? 0));
-  }
-
-  async function toggleBrowserFullscreen() {
-    if (!containerRef.current) {
-      return;
-    }
-
-    if (document.fullscreenElement === containerRef.current) {
-      await document.exitFullscreen();
-      return;
-    }
-
-    await containerRef.current.requestFullscreen();
-  }
-
-  return (
-    <div
-      ref={containerRef}
-      className="fixed inset-0 z-[130] flex flex-col bg-[#0F110F] font-sans text-soft-white antialiased [color-scheme:dark]"
-    >
-      <header className="relative z-20 flex h-9 shrink-0 items-center gap-1.5 border-b border-[#c5ccc8] bg-[#DCE2DE] px-2 text-[#0F110F]">
-        <select
-          aria-label="Show"
-          className="h-[22px] min-w-0 max-w-[280px] rounded-md border border-[#b5beb8] bg-white px-1.5 text-[12px] font-medium text-[#0F110F]"
-          value={doc.id}
-          onChange={(event) => onSelectDoc(event.target.value)}
-        >
-          {docs.map((entry) => (
-            <option key={entry.id} value={entry.id}>
-              {entry.title}
-            </option>
-          ))}
-        </select>
-        <ChevronRight className="h-3.5 w-3.5 shrink-0 text-[#6b736e]" />
-        <select
-          aria-label="Section"
-          className="h-[22px] min-w-0 max-w-[220px] rounded-md border border-[#b5beb8] bg-white px-1.5 text-[12px] font-medium tracking-[0.11em] text-[#0F110F]"
-          value={activeSectionId}
-          disabled={sectionOptions.length === 0}
-          onMouseDown={(event) => {
-            event.currentTarget.value = "";
-          }}
-          onBlur={(event) => {
-            event.currentTarget.value = activeSectionId;
-          }}
-          onChange={(event) => {
-            if (event.target.value) {
-              jumpToSection(event.target.value);
-            }
-          }}
-        >
-          <option value="" disabled hidden />
-          {sectionOptions.map((section) => (
-            <option key={section.id} value={section.id}>
-              {section.label}
-            </option>
-          ))}
-        </select>
-
-        <div className="ml-auto flex shrink-0 items-center gap-0.5">
-          <button
-            type="button"
-            className={cn(
-              "inline-flex h-9 w-9 items-center justify-center rounded-md text-[#0F110F] hover:bg-black/10 lg:h-7 lg:w-7",
-              settingsOpen && "bg-black/10"
-            )}
-            onClick={() => setSettingsOpen((current) => !current)}
-            aria-label="Font settings"
-          >
-            <Settings2 className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md text-[#0F110F] hover:bg-black/10 lg:h-7 lg:w-7"
-            onClick={() => void toggleBrowserFullscreen()}
-            aria-label={isBrowserFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-          >
-            {isBrowserFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Expand className="h-3.5 w-3.5" />}
-          </button>
-          <button
-            type="button"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md text-[#0F110F] hover:bg-black/10 lg:h-7 lg:w-7"
-            onClick={onClose}
-            aria-label="Exit teleprompter"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      </header>
-
-      {settingsOpen ? (
-        <div className="absolute right-2 top-11 z-30 w-[280px] rounded-md border border-white/15 bg-[#1A1D1A] p-3 text-soft-white">
-          <div className="mb-3 flex items-center justify-between">
-            <p className="text-sm font-semibold">Font Settings</p>
-            <button type="button" className="text-xs text-[#DCE2DE] hover:text-soft-white" onClick={() => setSettings(DEFAULT_RUN_MODE_SETTINGS)}>
-              Reset
-            </button>
-          </div>
-          <div className="space-y-3">
-            <label className="block text-[11px] font-medium uppercase tracking-[0.12em] text-[#DCE2DE]">
-              Script Size <span className="font-mono text-[10px] tabular-nums">{Math.round(settings.bodyScale * 100)}%</span>
-              <input
-                type="range"
-                min="0.55"
-                max="1.3"
-                step="0.05"
-                value={settings.bodyScale}
-                onChange={(event) =>
-                  setSettings((current) => ({
-                    ...current,
-                    bodyScale: Number(event.target.value)
-                  }))
-                }
-                className="mt-2 w-full"
-              />
-            </label>
-            <label className="block text-[11px] font-medium uppercase tracking-[0.12em] text-[#DCE2DE]">
-              Cue Size <span className="font-mono text-[10px] tabular-nums">{Math.round(settings.cueScale * 100)}%</span>
-              <input
-                type="range"
-                min="0.7"
-                max="1.4"
-                step="0.05"
-                value={settings.cueScale}
-                onChange={(event) =>
-                  setSettings((current) => ({
-                    ...current,
-                    cueScale: Number(event.target.value)
-                  }))
-                }
-                className="mt-2 w-full"
-              />
-            </label>
-            <p className="text-[11px] text-[#DCE2DE]/70">
-              Space pause · ↓ through 0 reverses · <span className="font-mono text-[10px] tabular-nums">{speed} px/s</span>
-            </p>
-          </div>
-        </div>
-      ) : null}
-
-      <div className="relative min-h-0 flex-1 overflow-hidden bg-[#0F110F]">
-        <div
-          className="pointer-events-none absolute left-16 z-20 md:left-20"
-          style={{
-            top: TELEPROMPTER_PLAYHEAD_TOP_PX,
-            transform: "translateY(-50%)"
-          }}
-          aria-hidden="true"
-        >
-          <div
-            className="h-0 w-0"
-            style={{
-              borderBottom: "22px solid transparent",
-              borderLeft: "34px solid #fff",
-              borderTop: "22px solid transparent"
-            }}
-          />
-        </div>
-        <div
-          ref={contentRef}
-          className="absolute left-0 right-0 pl-28 pr-16 pt-2 md:pl-32 md:pr-20"
-          style={{
-            transform: teleprompterContentTransform(0),
-            willChange: "transform",
-            backfaceVisibility: "hidden"
-          }}
-        >
-          {doc.sections.map((section) => {
-            const display = getSectionDisplayParts(section);
-            const lines = display.content.split(/\r?\n/);
-            return (
-              <section
-                key={section.id}
-                ref={(node) => {
-                  sectionEls.current[section.id] = node;
-                }}
-                className="mb-16 space-y-3 last:mb-0 md:mb-24 md:space-y-4"
-              >
-                {lines.map((line, index) => renderScriptLine(line, index, settings))}
-              </section>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Touch devices only: a bar under the script, so nothing covers it and
-          mouse/keyboard displays look exactly as before. */}
-      <footer className="relative z-20 hidden shrink-0 items-center justify-center gap-2 border-t border-[#c5ccc8] bg-[#DCE2DE] px-2 py-1 pb-[max(0.25rem,env(safe-area-inset-bottom))] text-[#0F110F] pointer-coarse:flex">
-        <button
-          type="button"
-          className={RUN_MODE_TOUCH_BUTTON_CLASS}
-          onClick={() => applyControl("left")}
-          aria-label="Scroll backward"
-        >
-          <Rewind className="h-5 w-5" />
-        </button>
-        <button
-          type="button"
-          className={RUN_MODE_TOUCH_BUTTON_CLASS}
-          onClick={() => applyControl("down")}
-          aria-label="Slower"
-        >
-          <Minus className="h-5 w-5" />
-        </button>
-        <button
-          type="button"
-          className={RUN_MODE_TOUCH_BUTTON_CLASS}
-          onClick={() => applyControl("space")}
-          aria-label={paused ? "Resume" : "Pause"}
-        >
-          {paused ? <Play className="h-5 w-5" /> : <Pause className="h-5 w-5" />}
-        </button>
-        <button
-          type="button"
-          className={RUN_MODE_TOUCH_BUTTON_CLASS}
-          onClick={() => applyControl("up")}
-          aria-label="Faster"
-        >
-          <Plus className="h-5 w-5" />
-        </button>
-        <button
-          type="button"
-          className={RUN_MODE_TOUCH_BUTTON_CLASS}
-          onClick={() => applyControl("right")}
-          aria-label="Scroll forward"
-        >
-          <FastForward className="h-5 w-5" />
-        </button>
-      </footer>
-    </div>
-  );
+  return document.querySelector('[role="listbox"], [role="menu"][data-state="open"]') !== null;
 }
 
 export default function TeleprompterClient() {
@@ -761,10 +62,15 @@ export default function TeleprompterClient() {
   const [activeWorkspaceId, setActiveWorkspaceId] = useState("");
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
+  const [nextShowDateIso, setNextShowDateIso] = useState("");
   const [loadingWorkspaces, setLoadingWorkspaces] = useState(true);
   const [working, setWorking] = useState(false);
   const [pendingDocDelete, setPendingDocDelete] = useState<TeleprompterDoc | null>(null);
   const [pendingSectionDeleteId, setPendingSectionDeleteId] = useState<string | null>(null);
+  const [pendingDiscard, setPendingDiscard] = useState<{ run: () => void } | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [autofillStatus, setAutofillStatus] = useState<TeleprompterAutofillStatus>({
     status: "ok"
@@ -773,37 +79,35 @@ export default function TeleprompterClient() {
   const [docModalOpen, setDocModalOpen] = useState(false);
   const [editingDocId, setEditingDocId] = useState<string | null>(null);
   const [docTitleDraft, setDocTitleDraft] = useState("");
-  const [sectionModalOpen, setSectionModalOpen] = useState(false);
-  const [sectionDraft, setSectionDraft] = useState<SectionDraft>({
-    id: null,
-    label: "",
-    content: ""
-  });
+  const [sectionEditorOpen, setSectionEditorOpen] = useState(false);
+  const [sectionDraft, setSectionDraft] = useState<SectionDraft>(EMPTY_DRAFT);
+  const [sectionDraftBaseline, setSectionDraftBaseline] = useState<SectionDraft>(EMPTY_DRAFT);
   const [runModeOpen, setRunModeOpen] = useState(false);
-  const [docsSidebarCollapsed, setDocsSidebarCollapsed] = useState(false);
+  const [scriptsSheetOpen, setScriptsSheetOpen] = useState(false);
+  const [railCollapsed, setRailCollapsed] = useRememberedState("teleprompter:rail-collapsed:v1", false, isBoolean);
   /** Full-app shell on teleprompter.infocuspaly.com (no packages sidebar). */
   const [standaloneApp, setStandaloneApp] = useState(false);
   const [showAllDocs, setShowAllDocs] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
-  const [reformatState, setReformatState] = useState<ReformatState>({
-    scope: null,
-    targetId: null,
-    progress: 0
-  });
+  const progress = useReformatProgress();
   const [copiedSectionId, setCopiedSectionId] = useState<string | null>(null);
-  const reformatIntervalRef = useRef<number | null>(null);
+  const [rootRef, rootWidth] = useMeasuredWidth<HTMLDivElement>();
+  const now = useNow();
+  const runMode = useRunModeModule();
+  /** The workspace this page just wrote into the URL itself (see the refresh effect). */
+  const selfWrittenWorkspaceRef = useRef<string | null>(null);
   const orderedDocs = useMemo(() => sortDocsByRecent(docs), [docs]);
-  const RECENT_DOCS_LIMIT = 9;
-  const visibleDocs = useMemo(
-    () => (showAllDocs ? orderedDocs : orderedDocs.slice(0, RECENT_DOCS_LIMIT)),
-    [orderedDocs, showAllDocs]
-  );
-  const hiddenDocsCount = Math.max(0, orderedDocs.length - RECENT_DOCS_LIMIT);
 
   const activeDoc = useMemo(
     () => orderedDocs.find((doc) => doc.id === selectedDocId) ?? orderedDocs[0] ?? null,
     [orderedDocs, selectedDocId]
   );
+  const activeDocId = activeDoc?.id ?? null;
+  const rail = useMemo(() => visibleRailDocs(orderedDocs, showAllDocs, activeDocId), [orderedDocs, showAllDocs, activeDocId]);
+  const layout = workspaceLayout(rootWidth, railCollapsed);
+  const seen = useSeenDocs(activeDoc, hasLoaded);
+  const draftDirty =
+    sectionEditorOpen && (sectionDraft.label !== sectionDraftBaseline.label || sectionDraft.content !== sectionDraftBaseline.content);
 
   useEffect(() => {
     if (!activeDoc) {
@@ -822,22 +126,22 @@ export default function TeleprompterClient() {
       return;
     }
 
+    // Sections start open, so the rundown reads at a glance.
     setCollapsedSections((current) => {
       const next: Record<string, boolean> = {};
       for (const section of activeDoc.sections) {
-        next[section.id] = current[section.id] ?? true;
+        next[section.id] = current[section.id] ?? false;
       }
       return next;
     });
   }, [activeDoc]);
 
+  // Another script (or none) closes the inline editor, as closing the old section dialog did.
   useEffect(() => {
-    return () => {
-      if (reformatIntervalRef.current !== null) {
-        window.clearInterval(reformatIntervalRef.current);
-      }
-    };
-  }, []);
+    setSectionEditorOpen(false);
+    setSectionDraft(EMPTY_DRAFT);
+    setSectionDraftBaseline(EMPTY_DRAFT);
+  }, [activeDocId]);
 
   const setWorkspaceInUrl = useCallback(
     (workspaceId: string) => {
@@ -871,6 +175,7 @@ export default function TeleprompterClient() {
   const refresh = useCallback(async () => {
     setLoading(true);
     setMessage(null);
+    setLoadFailed(false);
     try {
       const params = new URLSearchParams();
       if (requestedWorkspaceId) {
@@ -885,6 +190,9 @@ export default function TeleprompterClient() {
       setCanEdit(data.canEdit);
       setActiveWorkspaceId(data.workspaceId);
       setAutofillStatus(data.autofill);
+      setNextShowDateIso(data.nextShowDateIso);
+      setLastSyncedAt(Date.now());
+      setHasLoaded(true);
 
       const matchedById = requestedDocId ? data.docs.find((doc) => doc.id === requestedDocId) : null;
       const matchedByDate = requestedShowDate
@@ -895,18 +203,28 @@ export default function TeleprompterClient() {
       }
 
       if (data.workspaceId !== requestedWorkspaceId) {
+        selfWrittenWorkspaceRef.current = data.workspaceId;
         setWorkspaceInUrl(data.workspaceId);
       }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Failed to load scripts.");
+      setLoadFailed(true);
     } finally {
       setLoading(false);
     }
   }, [requestedDocId, requestedShowDate, requestedWorkspaceId, setWorkspaceInUrl]);
 
   useEffect(() => {
+    // Opening without ?workspaceId loads, then writes the resolved workspace into the URL. That
+    // URL change only catches up with what is already on screen, so it doesn't load again.
+    const selfWritten = selfWrittenWorkspaceRef.current;
+    selfWrittenWorkspaceRef.current = null;
+    if (selfWritten !== null && selfWritten === requestedWorkspaceId) {
+      return;
+    }
     void refresh();
-  }, [refresh]);
+    // requestedWorkspaceId is part of refresh's identity; listed for the check above.
+  }, [refresh, requestedWorkspaceId]);
 
   useEffect(() => {
     void refreshWorkspaces();
@@ -916,6 +234,16 @@ export default function TeleprompterClient() {
     const host = window.location.hostname.toLowerCase();
     setStandaloneApp(host.startsWith("teleprompter."));
   }, []);
+
+  useIdlePreload(hasLoaded, runMode.load);
+
+  // The Scripts sheet exists only in the narrow layout; widening closes it for real, so it can't
+  // stay "open" out of sight.
+  useEffect(() => {
+    if (layout.mode !== "narrow") {
+      setScriptsSheetOpen(false);
+    }
+  }, [layout.mode]);
 
   const workspaceOptions = useMemo(
     () =>
@@ -938,10 +266,49 @@ export default function TeleprompterClient() {
     return workspaceOptions[0]?.value ?? "";
   }, [activeWorkspaceId, requestedWorkspaceId, workspaceOptions]);
 
+  function closeSectionEditor() {
+    setSectionEditorOpen(false);
+    setSectionDraft(EMPTY_DRAFT);
+    setSectionDraftBaseline(EMPTY_DRAFT);
+  }
+
+  /** Runs an action that would throw the open draft away; asks first when the draft has unsaved changes. */
+  function guardDraft(action: () => void) {
+    if (draftDirty) {
+      setPendingDiscard({ run: action });
+      return;
+    }
+    if (sectionEditorOpen) {
+      closeSectionEditor();
+    }
+    action();
+  }
+
+  function openSectionDraft(draft: SectionDraft) {
+    setSectionDraft(draft);
+    setSectionDraftBaseline(draft);
+    setSectionEditorOpen(true);
+    const sectionId = draft.id;
+    if (sectionId) {
+      setCollapsedSections((current) => ({ ...current, [sectionId]: false }));
+    }
+  }
+
+  function closeDocDialog() {
+    setDocModalOpen(false);
+    setDocTitleDraft("");
+    setEditingDocId(null);
+  }
+
   function openCreateDocModal() {
     setEditingDocId(null);
     setDocTitleDraft("");
     setDocModalOpen(true);
+  }
+
+  // Creating a script selects it, which closes an open section edit: ask first if it has changes.
+  function startNewScript() {
+    guardDraft(openCreateDocModal);
   }
 
   function openRenameDocModal(doc: TeleprompterDoc) {
@@ -950,758 +317,322 @@ export default function TeleprompterClient() {
     setDocModalOpen(true);
   }
 
-  function openCreateSectionModal() {
-    const sectionNumber = (activeDoc?.sections.length ?? 0) + 1;
-    setSectionDraft({
-      id: null,
-      label: `A${sectionNumber}`,
-      content: ""
-    });
-    setSectionModalOpen(true);
-  }
-
-  function openEditSectionModal(section: TeleprompterSection) {
-    setSectionDraft({
-      id: section.id,
-      label: section.label,
-      content: section.content
-    });
-    setSectionModalOpen(true);
-  }
-
-  async function saveDoc() {
-    const title = docTitleDraft.trim();
-
-    if (!title) {
-      return;
-    }
-
-    if (!activeWorkspaceId) {
-      setMessage("Select a workspace before creating a script.");
-      return;
-    }
-
-    setWorking(true);
-    setMessage(null);
-
-    try {
-      if (editingDocId) {
-        const updated = await readData<{ id: string; title: string }>(
-          `/api/teleprompter/docs/${editingDocId}`,
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              title
-            })
-          }
-        );
-
-        setDocs((current) =>
-          current.map((entry) =>
-            entry.id === updated.id
-              ? {
-                  ...entry,
-                  title: updated.title
-                }
-              : entry
-          )
-        );
-      } else {
-        const created = await readData<TeleprompterDoc>("/api/teleprompter", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            workspaceId: activeWorkspaceId,
-            title
-          })
-        });
-
-        setDocs((current) => [...current, created]);
-        setSelectedDocId(created.id);
-      }
-
-      setDocModalOpen(false);
-      setDocTitleDraft("");
-      setEditingDocId(null);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to save script.");
-    } finally {
-      setWorking(false);
+  function selectDoc(docId: string) {
+    if (docId !== activeDocId) {
+      guardDraft(() => setSelectedDocId(docId));
     }
   }
 
-  // Throws on failure so the confirm dialog stays open for a retry.
-  async function deleteDoc(doc: TeleprompterDoc) {
-    setWorking(true);
-    setMessage(null);
-
-    try {
-      await readData<{ id: string }>(`/api/teleprompter/docs/${doc.id}`, {
-        method: "DELETE"
-      });
-
-      setDocs((current) => current.filter((entry) => entry.id !== doc.id));
-      if (selectedDocId === doc.id) {
-        setSelectedDocId(null);
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to delete script.";
-      setMessage(errorMessage);
-      toast.error(errorMessage);
-      throw error;
-    } finally {
-      setWorking(false);
-    }
+  function requestRefresh() {
+    guardDraft(() => void refresh());
   }
 
-  async function saveSection() {
-    if (!activeDoc) {
-      return;
-    }
-
-    const label = sectionDraft.label.trim();
-    if (!label) {
-      return;
-    }
-
-    setWorking(true);
-    setMessage(null);
-
-    try {
-      if (sectionDraft.id) {
-        const updated = await readData<TeleprompterSection>(
-          `/api/teleprompter/sections/${sectionDraft.id}`,
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              label,
-              content: sectionDraft.content
-            })
-          }
-        );
-
-        setDocs((current) =>
-          current.map((doc) =>
-            doc.id === activeDoc.id
-              ? {
-                  ...doc,
-                  sections: doc.sections.map((section) =>
-                    section.id === updated.id
-                      ? {
-                          ...section,
-                          ...updated
-                        }
-                      : section
-                  )
-                }
-              : doc
-          )
-        );
-      } else {
-        const created = await readData<TeleprompterSection>(
-          `/api/teleprompter/docs/${activeDoc.id}/sections`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              label,
-              content: sectionDraft.content
-            })
-          }
-        );
-
-        setDocs((current) =>
-          current.map((doc) =>
-            doc.id === activeDoc.id
-              ? {
-                  ...doc,
-                  sections: [...doc.sections, created]
-                }
-              : doc
-          )
-        );
-      }
-
-      setSectionModalOpen(false);
-      setSectionDraft({
-        id: null,
-        label: "",
-        content: ""
-      });
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to save section.");
-    } finally {
-      setWorking(false);
-    }
-  }
-
-  // Throws on failure so the confirm dialog stays open for a retry.
-  async function deleteSection(sectionId: string) {
-    if (!activeDoc) {
-      return;
-    }
-
-    setWorking(true);
-    setMessage(null);
-
-    try {
-      await readData<{ id: string }>(`/api/teleprompter/sections/${sectionId}`, {
-        method: "DELETE"
-      });
-
-      setDocs((current) =>
-        current.map((doc) =>
-          doc.id === activeDoc.id
-            ? {
-                ...doc,
-                sections: doc.sections.filter((section) => section.id !== sectionId)
-              }
-            : doc
-        )
-      );
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to delete section.";
-      setMessage(errorMessage);
-      toast.error(errorMessage);
-      throw error;
-    } finally {
-      setWorking(false);
+  // Deleting the open script closes an open section edit: ask first if it has changes.
+  function requestDocDelete(doc: TeleprompterDoc) {
+    if (doc.id === activeDocId) {
+      guardDraft(() => setPendingDocDelete(doc));
+    } else {
+      setPendingDocDelete(doc);
     }
   }
 
   function toggleSectionCollapsed(sectionId: string) {
+    if (sectionEditorOpen && sectionDraft.id === sectionId) {
+      return;
+    }
     setCollapsedSections((current) => ({
       ...current,
       [sectionId]: !current[sectionId]
     }));
   }
 
-  function startReformatProgress(scope: "doc" | "section", targetId: string) {
-    if (reformatIntervalRef.current !== null) {
-      window.clearInterval(reformatIntervalRef.current);
+  function setAllSectionsCollapsed(collapsed: boolean) {
+    if (!activeDoc) {
+      return;
     }
-
-    setReformatState({
-      scope,
-      targetId,
-      progress: 8
-    });
-
-    reformatIntervalRef.current = window.setInterval(() => {
-      setReformatState((current) => {
-        if (current.scope !== scope || current.targetId !== targetId) {
-          return current;
-        }
-
-        return {
-          scope: current.scope,
-          targetId: current.targetId,
-          progress: Math.min(88, current.progress + 9)
-        };
-      });
-    }, 180);
+    const editingId = sectionEditorOpen ? sectionDraft.id : null;
+    setCollapsedSections(Object.fromEntries(activeDoc.sections.map((section) => [section.id, collapsed && section.id !== editingId])));
   }
 
-  function clearReformatProgress() {
-    if (reformatIntervalRef.current !== null) {
-      window.clearInterval(reformatIntervalRef.current);
-      reformatIntervalRef.current = null;
+  const actions = createTeleprompterActions({
+    activeDoc,
+    activeWorkspaceId,
+    selectedDocId,
+    editingDocId,
+    docTitleDraft,
+    sectionDraft,
+    sectionEditorOpen,
+    setDocs,
+    setWorking,
+    setMessage,
+    setSelectedDocId,
+    setCollapsedSections,
+    setCopiedSectionId,
+    closeDocDialog,
+    closeSectionEditor,
+    progress,
+    markTouched: seen.markTouched
+  });
+
+  const canRun = Boolean(activeDoc && activeDoc.sections.length > 0) && !sectionEditorOpen;
+
+  const closeRunMode = useCallback(() => setRunModeOpen(false), []);
+
+  function openRunMode() {
+    if (!canRun) {
+      return;
     }
+    if (!runMode.component) {
+      void runMode.load();
+    }
+    setRunModeOpen(true);
   }
 
-  function finishReformatProgress(scope: "doc" | "section", targetId: string) {
-    setReformatState({
-      scope,
-      targetId,
-      progress: 100
-    });
-    window.setTimeout(() => {
-      setReformatState((current) =>
-        current.scope === scope && current.targetId === targetId
-          ? {
-              scope: null,
-              targetId: null,
-              progress: 0
+  // R opens run mode from the editor page (not while typing, editing, in a dialog or sheet, or
+  // while a select or menu has focus).
+  useHotkeys(
+    {
+      r: (event) => {
+        if (!event.repeat && !letterKeyOwnedByWidget(event)) openRunMode();
+      }
+    },
+    { enabled: canRun && !runModeOpen }
+  );
+
+  const todayKey = useMemo(() => todayDateKey(new Date(now)), [now]);
+  const nextShowKey = requestedShowDate ? null : showDateKey(nextShowDateIso);
+  const statusContext = useMemo(() => ({ todayKey, nextShowKey }), [todayKey, nextShowKey]);
+  const hasDocs = orderedDocs.length > 0;
+  const refreshing = loading && hasLoaded;
+  const showWorkspaceSelect = !standaloneApp && workspaceOptions.length > 1;
+  const showHeaderNewScript = canEdit && hasDocs;
+
+  const showLine = activeWorkspaceId
+    ? headerShowLine({ requestedShowDate, nextShowDateIso, docs: orderedDocs, todayKey })
+    : null;
+
+  const refreshControl = (
+    <RefreshControl iconOnly={layout.phone} loading={loading} disabled={loading || working} onRefresh={requestRefresh} />
+  );
+  const newScriptButton = showHeaderNewScript ? (
+    <Button type="button" variant="outline" onClick={startNewScript} disabled={working}>
+      <Plus />
+      New script
+    </Button>
+  ) : null;
+
+  // Refresh stays put when New script appears after the first load: it is the row's last item
+  // where the row is right-aligned (desktop) and its first where the row is left-aligned (phone).
+  const headerActions = (
+    <>
+      {showWorkspaceSelect ? (
+        <WorkspaceSelect
+          value={selectedWorkspaceValue}
+          options={workspaceOptions}
+          disabled={loading || loadingWorkspaces || working}
+          onChange={(workspaceId) => guardDraft(() => setWorkspaceInUrl(workspaceId))}
+        />
+      ) : null}
+      {layout.phone ? refreshControl : newScriptButton}
+      {layout.phone ? newScriptButton : refreshControl}
+    </>
+  );
+
+  const railListProps = {
+    docs: rail.visible,
+    hiddenCount: rail.hiddenCount,
+    showAll: showAllDocs,
+    onToggleShowAll: () => setShowAllDocs((current) => !current),
+    activeDocId,
+    canEdit,
+    statusContext,
+    now,
+    updatedSinceVisit: seen.docUpdatedSinceVisit
+  };
+
+  const detailHandlers: ScriptDetailHandlers = {
+    onToggleSection: toggleSectionCollapsed,
+    onExpandSection: (sectionId) => setCollapsedSections((current) => ({ ...current, [sectionId]: false })),
+    onSetAllCollapsed: setAllSectionsCollapsed,
+    onAddSection: () =>
+      guardDraft(() => openSectionDraft({ id: null, label: `A${(activeDoc?.sections.length ?? 0) + 1}`, content: "" })),
+    onEditSection: (section: TeleprompterSection) =>
+      guardDraft(() => openSectionDraft({ id: section.id, label: section.label, content: section.content })),
+    onDraftChange: setSectionDraft,
+    onSaveDraft: () => void actions.saveSection(),
+    onCancelDraft: () => {
+      if (!working) closeSectionEditor();
+    },
+    onRequestDiscardDraft: () => setPendingDiscard({ run: () => undefined }),
+    onCopySection: (section) => void actions.copySectionContent(section),
+    onReformatSection: (section) => void actions.reformatSection(section),
+    onRefetchSection: (section) => void actions.refetchBulletinSection(section),
+    onDeleteSection: setPendingSectionDeleteId,
+    onReformatDoc: () => {
+      if (activeDoc) void actions.reformatDoc(activeDoc);
+    },
+    onRun: openRunMode,
+    onShowRail: () => setRailCollapsed(false),
+    onOpenScripts: () => setScriptsSheetOpen(true)
+  };
+
+  const withRundown = layout.rundownColumn && activeDoc;
+  // Three panes: the script pane stops at a 50rem reading width and the side panes share
+  // whatever is left, so wide screens get longer titles and beats instead of an empty band.
+  const gridColumns = layout.railInline
+    ? withRundown
+      ? "grid-cols-[minmax(18rem,1fr)_minmax(0,50rem)_minmax(15rem,1fr)]"
+      : "grid-cols-[18rem_minmax(0,1fr)]"
+    : withRundown
+      ? "grid-cols-[minmax(0,1fr)_15rem]"
+      : "grid-cols-[minmax(0,1fr)]";
+
+  let body: ReactNode;
+  if (loading && !hasLoaded) {
+    body = <TeleprompterWorkspaceSkeleton />;
+  } else if (!hasDocs) {
+    body = (
+      <div className="rounded-md border border-border bg-card">
+        {loadFailed ? (
+          <ErrorState title="Couldn't load scripts" message={message} onRetry={requestRefresh} busy={loading} />
+        ) : !activeWorkspaceId ? (
+          <EmptyState icon={ScrollText} title="No workspace yet" description={autofillStatus.message} />
+        ) : (
+          <EmptyState
+            icon={ScrollText}
+            title="No scripts yet"
+            description="Create a script to start a rundown."
+            action={
+              canEdit ? (
+                <Button type="button" onClick={startNewScript} disabled={working}>
+                  <Plus />
+                  New script
+                </Button>
+              ) : null
             }
-          : current
-      );
-    }, 600);
+          />
+        )}
+      </div>
+    );
+  } else {
+    // overflow-clip (not hidden) rounds the corners without breaking the sticky rail and toolbar.
+    body = (
+      <div
+        aria-busy={refreshing || undefined}
+        inert={refreshing || undefined}
+        style={{ "--tp-code-w": `${codeColumnCh(activeDoc?.sections ?? [])}ch` } as CSSProperties}
+        className={cn(
+          "grid overflow-clip rounded-md border border-border bg-card transition-opacity duration-200",
+          gridColumns,
+          refreshing && "opacity-60"
+        )}
+      >
+        {layout.railInline ? (
+          <ScriptRailPane total={orderedDocs.length} onHide={() => setRailCollapsed(true)}>
+            <ScriptRailList {...railListProps} onSelect={selectDoc} onRename={openRenameDocModal} onDelete={requestDocDelete} />
+          </ScriptRailPane>
+        ) : null}
+        {activeDoc ? (
+          <ScriptDetail
+            view={{
+              doc: activeDoc,
+              layout,
+              railCollapsed,
+              canEdit,
+              working,
+              now,
+              statusContext,
+              reformatState: progress.reformatState,
+              collapsedSections,
+              copiedSectionId,
+              editor: { open: sectionEditorOpen, draft: sectionDraft, dirty: draftDirty },
+              sectionUpdatedSinceVisit: seen.sectionUpdatedSinceVisit
+            }}
+            handlers={detailHandlers}
+          />
+        ) : (
+          <EmptyState title="Select a script to edit." />
+        )}
+      </div>
+    );
   }
 
-  function resetReformatProgress() {
-    setReformatState({
-      scope: null,
-      targetId: null,
-      progress: 0
-    });
-  }
-
-  async function reformatSection(section: TeleprompterSection) {
-    if (!activeDoc) {
-      return;
-    }
-
-    setWorking(true);
-    setMessage(null);
-    startReformatProgress("section", section.id);
-
-    try {
-      const updated = await readData<TeleprompterSection>(`/api/teleprompter/sections/${section.id}/reformat`, {
-        method: "POST"
-      });
-
-      setDocs((current) =>
-        current.map((doc) =>
-          doc.id === activeDoc.id
-            ? {
-                ...doc,
-                sections: doc.sections.map((entry) => (entry.id === updated.id ? { ...entry, ...updated } : entry))
-              }
-            : doc
-        )
-      );
-      setCollapsedSections((current) => ({
-        ...current,
-        [section.id]: false
-      }));
-      finishReformatProgress("section", section.id);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to reformat section.");
-      resetReformatProgress();
-    } finally {
-      clearReformatProgress();
-      setWorking(false);
-    }
-  }
-
-  async function refetchBulletinSection(section: TeleprompterSection) {
-    if (!activeDoc) {
-      return;
-    }
-
-    setWorking(true);
-    setMessage(null);
-    startReformatProgress("section", section.id);
-
-    try {
-      const updated = await readData<TeleprompterSection>(`/api/teleprompter/sections/${section.id}/refetch`, {
-        method: "POST"
-      });
-
-      setDocs((current) =>
-        current.map((doc) =>
-          doc.id === activeDoc.id
-            ? {
-                ...doc,
-                sections: doc.sections.map((entry) => (entry.id === updated.id ? { ...entry, ...updated } : entry))
-              }
-            : doc
-        )
-      );
-      setCollapsedSections((current) => ({
-        ...current,
-        [section.id]: false
-      }));
-      finishReformatProgress("section", section.id);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to refetch announcements.");
-      resetReformatProgress();
-    } finally {
-      clearReformatProgress();
-      setWorking(false);
-    }
-  }
-
-  async function copySectionContent(section: TeleprompterSection) {
-    const display = getSectionDisplayParts(section);
-    const text = display.content || section.content || "";
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedSectionId(section.id);
-      setMessage(null);
-      window.setTimeout(() => {
-        setCopiedSectionId((current) => (current === section.id ? null : current));
-      }, 1500);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to copy section.");
-    }
-  }
-
-  async function reformatDoc(doc: TeleprompterDoc) {
-    setWorking(true);
-    setMessage(null);
-    startReformatProgress("doc", doc.id);
-
-    try {
-      const updated = await readData<TeleprompterDoc>(`/api/teleprompter/docs/${doc.id}/reformat`, {
-        method: "POST"
-      });
-
-      setDocs((current) => current.map((entry) => (entry.id === updated.id ? { ...entry, ...updated } : entry)));
-      setCollapsedSections(
-        updated.sections.reduce<Record<string, boolean>>((next, section) => {
-          next[section.id] = false;
-          return next;
-        }, {})
-      );
-      finishReformatProgress("doc", doc.id);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to reformat script.");
-      resetReformatProgress();
-    } finally {
-      clearReformatProgress();
-      setWorking(false);
-    }
-  }
+  const messageAlert = message && !(loadFailed && !hasDocs) ? message : null;
+  const RunMode = runMode.component;
+  const autofillAlert = autofillStatus.status !== "ok" && autofillStatus.message && activeWorkspaceId ? autofillStatus.message : null;
 
   return (
     <>
-      <div
-        className={cn(
-          "route-enter mx-auto w-full max-w-[80rem] space-y-5 pb-24",
-          standaloneApp && "flex min-h-[calc(100dvh-3rem)] flex-col px-3 py-3 pb-6 sm:px-4"
-        )}
-      >
-        <section className="brand-hero-panel relative overflow-hidden rounded-2xl border border-border p-5 md:p-6">
-          <div className="relative flex flex-wrap items-end justify-between gap-4">
-            <div className="min-w-0">
-              <div className="eyebrow flex items-center gap-2">
-                <ScrollText className="h-3 w-3" />
-                Show script
-              </div>
-              <h1 className="display-md mt-2 text-balance text-foreground">Teleprompter</h1>
-              <p className="mt-1 text-sm text-muted-foreground">Edit the rundown, then run it fullscreen.</p>
-            </div>
+      <div ref={rootRef} className="space-y-5">
+        <TeleprompterHeader
+          firstLoad={loading && !hasLoaded}
+          showLine={showLine}
+          syncedAge={lastSyncedAt ? formatAge(lastSyncedAt, now) : null}
+          actions={headerActions}
+          compact={layout.phone}
+        />
 
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="meta-pill tabular-nums">
-                {orderedDocs.length} script{orderedDocs.length === 1 ? "" : "s"}
-              </span>
-              {!standaloneApp && workspaceOptions.length > 1 ? (
-                <div className="w-[220px]">
-                  <Select
-                    value={selectedWorkspaceValue}
-                    onValueChange={(workspaceId) => setWorkspaceInUrl(workspaceId)}
-                    disabled={loading || loadingWorkspaces || working}
-                  >
-                    <SelectTrigger className="h-9" aria-label="Select workspace">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {workspaceOptions.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ) : null}
-              {canEdit ? (
-                <Button type="button" variant="secondary" size="sm" onClick={openCreateDocModal} disabled={working}>
-                  <Plus className="h-4 w-4" />
-                  New script
-                </Button>
-              ) : null}
-            </div>
+        {messageAlert || autofillAlert ? (
+          <div className="space-y-2">
+            {messageAlert ? (
+              <Alert
+                tone="danger"
+                onDismiss={() => setMessage(null)}
+                action={
+                  loadFailed ? (
+                    <Button type="button" variant="outline" size="sm" onClick={requestRefresh} disabled={loading}>
+                      Try again
+                    </Button>
+                  ) : undefined
+                }
+              >
+                {messageAlert}
+              </Alert>
+            ) : null}
+            {autofillAlert ? <Alert tone="warning">{autofillAlert}</Alert> : null}
           </div>
+        ) : null}
 
-          {message ? (
-            <p className="relative mt-3 rounded-lg border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-sm text-foreground">
-              {message}
-            </p>
-          ) : null}
-          {autofillStatus.status !== "ok" && autofillStatus.message ? (
-            <p className="relative mt-2 rounded-lg border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-sm text-foreground">
-              {autofillStatus.message}
-            </p>
-          ) : null}
-        </section>
-
-        <section
-          className={cn(
-            "overflow-hidden rounded-2xl border border-border bg-card",
-            standaloneApp && "flex min-h-0 flex-1 flex-col"
-          )}
-        >
-          {loading ? (
-            <p className="px-4 py-10 text-center text-sm text-muted-foreground">Loading scripts…</p>
-          ) : orderedDocs.length === 0 ? (
-            <div className="px-4 py-10 text-center">
-              <p className="text-sm text-muted-foreground">No scripts yet.</p>
-              {canEdit ? (
-                <Button type="button" size="sm" className="mt-3" onClick={openCreateDocModal} disabled={working}>
-                  <Plus className="h-4 w-4" />
-                  New script
-                </Button>
-              ) : null}
-            </div>
-          ) : (
-            <div
-              className={cn(
-                "grid min-h-0",
-                docsSidebarCollapsed ? "lg:grid-cols-1" : "lg:grid-cols-[16.5rem_minmax(0,1fr)]",
-                standaloneApp && "h-full flex-1"
-              )}
-            >
-              {!docsSidebarCollapsed ? (
-                <aside className="flex min-h-0 flex-col border-b border-border lg:border-b-0 lg:border-r">
-                  <div className="flex items-center justify-between gap-1 px-3 py-2">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Scripts</p>
-                    <div className="flex items-center">
-                      <IconButton label="Refresh" onClick={() => void refresh()} disabled={loading || working}>
-                        <RotateCcw className="h-3.5 w-3.5" />
-                      </IconButton>
-                      <IconButton label="Hide scripts" onClick={() => setDocsSidebarCollapsed(true)}>
-                        <PanelLeftClose className="h-3.5 w-3.5" />
-                      </IconButton>
-                    </div>
-                  </div>
-                  <div className={cn("min-h-0 flex-1", standaloneApp && "overflow-y-auto")}>
-                    {visibleDocs.map((doc) => {
-                      const selected = (activeDoc?.id ?? null) === doc.id;
-                      const dateLabel = formatShowDateLabel(doc.showDate);
-                      return (
-                        <div
-                          key={doc.id}
-                          className={cn(
-                            "flex items-start gap-1 border-b border-border last:border-b-0",
-                            selected ? "bg-accent" : "hover:bg-accent/50"
-                          )}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => setSelectedDocId(doc.id)}
-                            className="flex min-w-0 flex-1 items-start gap-2 px-3 py-2.5 text-left"
-                          >
-                            <span
-                              className={cn(
-                                "mt-1 h-8 w-0.5 shrink-0 rounded-full",
-                                selected ? "bg-[var(--brand-green)]" : "bg-transparent"
-                              )}
-                            />
-                            <span className="min-w-0">
-                              <span className="block truncate text-sm font-semibold text-foreground">{doc.title}</span>
-                              <span className="mt-0.5 block text-xs tabular-nums text-muted-foreground">
-                                {dateLabel ? `${dateLabel} · ` : ""}
-                                {doc.sections.length} {doc.sections.length === 1 ? "section" : "sections"}
-                              </span>
-                            </span>
-                          </button>
-                          {canEdit ? (
-                            <div className="flex shrink-0 py-1.5 pr-1.5">
-                              <IconButton label="Rename script" onClick={() => openRenameDocModal(doc)}>
-                                <Edit3 className="h-3.5 w-3.5" />
-                              </IconButton>
-                              <IconButton label="Delete script" destructive onClick={() => setPendingDocDelete(doc)}>
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </IconButton>
-                            </div>
-                          ) : null}
-                        </div>
-                      );
-                    })}
-                    {hiddenDocsCount > 0 || showAllDocs ? (
-                      <button
-                        type="button"
-                        onClick={() => setShowAllDocs((current) => !current)}
-                        className="w-full px-3 py-2.5 text-center text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                      >
-                        {showAllDocs ? "Show less" : `Show ${hiddenDocsCount} more`}
-                      </button>
-                    ) : null}
-                  </div>
-                </aside>
-              ) : null}
-
-              <div className={cn("min-w-0", standaloneApp && "min-h-0 overflow-y-auto")}>
-                {!activeDoc ? (
-                  <p className="px-4 py-10 text-center text-sm text-muted-foreground">Select a script to edit.</p>
-                ) : (
-                  <>
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
-                      <div className="flex min-w-0 items-center gap-2">
-                        {docsSidebarCollapsed ? (
-                          <IconButton label="Show scripts" onClick={() => setDocsSidebarCollapsed(false)}>
-                            <PanelLeftOpen className="h-3.5 w-3.5" />
-                          </IconButton>
-                        ) : null}
-                        <div className="min-w-0">
-                          <h2 className="truncate text-sm font-semibold text-foreground">{activeDoc.title}</h2>
-                          <p className="text-xs tabular-nums text-muted-foreground">
-                            {activeDoc.sections.length} {activeDoc.sections.length === 1 ? "section" : "sections"}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        {canEdit ? (
-                          <Button type="button" variant="secondary" size="sm" onClick={openCreateSectionModal} disabled={working}>
-                            <Plus className="h-4 w-4" />
-                            Add section
-                          </Button>
-                        ) : null}
-                        {canEdit ? (
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => void reformatDoc(activeDoc)}
-                            disabled={working || activeDoc.sections.length === 0}
-                          >
-                            <Sparkles className="h-4 w-4" />
-                            Reformat
-                          </Button>
-                        ) : null}
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={() => setRunModeOpen(true)}
-                          disabled={activeDoc.sections.length === 0}
-                        >
-                          <Monitor className="h-4 w-4" />
-                          Run
-                        </Button>
-                      </div>
-                    </div>
-
-                    {reformatState.scope === "doc" && reformatState.targetId === activeDoc.id ? (
-                      <div className="border-b border-border px-4 py-3">
-                        <div className="mb-2 flex items-center justify-between gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                          <span>Reformatting script</span>
-                          <span className="font-mono text-[10px] tabular-nums">{Math.round(reformatState.progress)}%</span>
-                        </div>
-                        <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
-                          <div
-                            className="h-full rounded-full bg-primary transition-[width] duration-200"
-                            style={{ width: `${reformatState.progress}%` }}
-                          />
-                        </div>
-                      </div>
-                    ) : null}
-
-                    {activeDoc.sections.length === 0 ? (
-                      <div className="px-4 py-10 text-center">
-                        <p className="text-sm text-muted-foreground">No sections in this script yet.</p>
-                        {canEdit ? (
-                          <Button type="button" size="sm" className="mt-3" onClick={openCreateSectionModal} disabled={working}>
-                            <Plus className="h-4 w-4" />
-                            Add section
-                          </Button>
-                        ) : null}
-                      </div>
-                    ) : (
-                      <div>
-                        {activeDoc.sections.map((section) => {
-                          const collapsed = collapsedSections[section.id] ?? true;
-                          const isReformatting = reformatState.scope === "section" && reformatState.targetId === section.id;
-                          const display = getSectionDisplayParts(section);
-
-                          return (
-                            <article key={section.id} className="border-b border-border last:border-b-0">
-                              <div className="flex items-center gap-1 px-3 py-2">
-                                <button
-                                  type="button"
-                                  onClick={() => toggleSectionCollapsed(section.id)}
-                                  className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-1 text-left hover:bg-accent/60"
-                                  aria-expanded={!collapsed}
-                                >
-                                  {collapsed ? (
-                                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                  ) : (
-                                    <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                  )}
-                                  <span className="min-w-0 truncate text-xs font-semibold uppercase tracking-[0.11em] text-foreground">
-                                    {display.badgeLabel}
-                                  </span>
-                                </button>
-
-                                {canEdit ? (
-                                  <div className="flex shrink-0 items-center">
-                                    <IconButton
-                                      label="Reformat section"
-                                      disabled={working}
-                                      onClick={() => void reformatSection(section)}
-                                    >
-                                      <Sparkles className="h-3.5 w-3.5" />
-                                    </IconButton>
-                                    <IconButton
-                                      label={copiedSectionId === section.id ? "Copied" : "Copy section"}
-                                      onClick={() => void copySectionContent(section)}
-                                    >
-                                      {copiedSectionId === section.id ? (
-                                        <Check className="h-3.5 w-3.5" />
-                                      ) : (
-                                        <Copy className="h-3.5 w-3.5" />
-                                      )}
-                                    </IconButton>
-                                    {section.label === "A2" ? (
-                                      <IconButton
-                                        label="Refetch bulletin"
-                                        disabled={working}
-                                        onClick={() => void refetchBulletinSection(section)}
-                                      >
-                                        <RefreshCw className="h-3.5 w-3.5" />
-                                      </IconButton>
-                                    ) : null}
-                                    <IconButton label="Edit section" onClick={() => openEditSectionModal(section)}>
-                                      <Edit3 className="h-3.5 w-3.5" />
-                                    </IconButton>
-                                    <IconButton
-                                      label="Delete section"
-                                      destructive
-                                      onClick={() => setPendingSectionDeleteId(section.id)}
-                                    >
-                                      <Trash2 className="h-3.5 w-3.5" />
-                                    </IconButton>
-                                  </div>
-                                ) : null}
-                              </div>
-
-                              {isReformatting ? (
-                                <div className="px-4 pb-3 pl-11">
-                                  <div className="mb-2 flex items-center justify-between gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                                    <span>Reformatting</span>
-                                    <span className="font-mono text-[10px] tabular-nums">{Math.round(reformatState.progress)}%</span>
-                                  </div>
-                                  <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
-                                    <div
-                                      className="h-full rounded-full bg-primary transition-[width] duration-200"
-                                      style={{ width: `${reformatState.progress}%` }}
-                                    />
-                                  </div>
-                                </div>
-                              ) : null}
-
-                              {!collapsed ? (
-                                <p className="whitespace-pre-wrap px-4 pb-4 pl-11 text-[15px] leading-6 text-pretty text-foreground">
-                                  {display.content || "Empty section."}
-                                </p>
-                              ) : null}
-                            </article>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-        </section>
+        {body}
       </div>
 
-      <Dialog
+      {/* Bottom sheet on phones, a right drawer from md (a narrow workspace beside the sidebar). */}
+      <Sheet
+        open={scriptsSheetOpen && layout.mode === "narrow"}
+        onOpenChange={setScriptsSheetOpen}
+        title="Scripts"
+        side="auto"
+        width="sm"
+        className="max-md:max-h-[85dvh]"
+        bodyClassName="p-0 pb-[env(safe-area-inset-bottom,0px)] md:px-0"
+        headerExtra={
+          <span className="font-mono-broadcast text-xs tabular-nums text-muted-foreground">{pluralize(orderedDocs.length, "script")}</span>
+        }
+      >
+        <ScriptRailList
+          {...railListProps}
+          inset="sheet"
+          onSelect={(docId) => {
+            setScriptsSheetOpen(false);
+            selectDoc(docId);
+          }}
+          onRename={(doc) => {
+            setScriptsSheetOpen(false);
+            openRenameDocModal(doc);
+          }}
+          onDelete={(doc) => {
+            setScriptsSheetOpen(false);
+            requestDocDelete(doc);
+          }}
+        />
+      </Sheet>
+
+      <ScriptTitleDialog
         open={docModalOpen}
+        renaming={editingDocId !== null}
+        title={docTitleDraft}
+        working={working}
+        onTitleChange={setDocTitleDraft}
         onOpenChange={(isOpen) => {
           if (!isOpen && working) return;
           setDocModalOpen(isOpen);
@@ -1710,106 +641,9 @@ export default function TeleprompterClient() {
             setDocTitleDraft("");
           }
         }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingDocId ? "Rename script" : "New script"}</DialogTitle>
-            <DialogDescription>Name this show script.</DialogDescription>
-          </DialogHeader>
-          <Input
-            value={docTitleDraft}
-            onChange={(event) => setDocTitleDraft(event.target.value)}
-            placeholder="Friday show"
-          />
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => {
-                setDocModalOpen(false);
-                setEditingDocId(null);
-                setDocTitleDraft("");
-              }}
-              disabled={working}
-            >
-              Cancel
-            </Button>
-            <Button type="button" onClick={() => void saveDoc()} disabled={working || !docTitleDraft.trim()}>
-              {working ? "Saving..." : editingDocId ? "Save" : "Create"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={sectionModalOpen}
-        onOpenChange={(isOpen) => {
-          if (!isOpen && working) return;
-          setSectionModalOpen(isOpen);
-          if (!isOpen) {
-            setSectionDraft({ id: null, label: "", content: "" });
-          }
-        }}
-      >
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>{sectionDraft.id ? "Edit section" : "Add section"}</DialogTitle>
-            <DialogDescription>Labels like A1, A2, B1. Write the spoken copy below.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <label className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                Label
-              </label>
-              <Input
-                value={sectionDraft.label}
-                onChange={(event) =>
-                  setSectionDraft((current) => ({
-                    ...current,
-                    label: event.target.value
-                  }))
-                }
-                placeholder="A1"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                Script
-              </label>
-              <textarea
-                value={sectionDraft.content}
-                onChange={(event) =>
-                  setSectionDraft((current) => ({
-                    ...current,
-                    content: event.target.value
-                  }))
-                }
-                rows={14}
-                placeholder="ANCHOR: Good morning everyone..."
-                className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring"
-              />
-              <p className="mt-2 text-xs text-muted-foreground">Optional run-mode color: [RED]text[/RED] and [YELLOW]text[/YELLOW].</p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => {
-                setSectionModalOpen(false);
-                setSectionDraft({ id: null, label: "", content: "" });
-              }}
-              disabled={working}
-            >
-              Cancel
-            </Button>
-            <Button type="button" onClick={() => void saveSection()} disabled={working || !sectionDraft.label.trim()}>
-              {working ? "Saving..." : sectionDraft.id ? "Save" : "Add section"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        onCancel={closeDocDialog}
+        onSave={() => void actions.saveDoc()}
+      />
 
       <ConfirmDialog
         open={pendingDocDelete !== null}
@@ -1819,7 +653,7 @@ export default function TeleprompterClient() {
         title={`Delete "${pendingDocDelete?.title ?? "this script"}"?`}
         description="The script and all of its sections are deleted."
         confirmLabel="Delete script"
-        onConfirm={() => (pendingDocDelete ? deleteDoc(pendingDocDelete) : undefined)}
+        onConfirm={() => (pendingDocDelete ? actions.deleteDoc(pendingDocDelete) : undefined)}
       />
       <ConfirmDialog
         open={pendingSectionDeleteId !== null}
@@ -1829,16 +663,30 @@ export default function TeleprompterClient() {
         title="Delete this section?"
         description="Its script text is deleted too."
         confirmLabel="Delete section"
-        onConfirm={() => (pendingSectionDeleteId ? deleteSection(pendingSectionDeleteId) : undefined)}
+        onConfirm={() => (pendingSectionDeleteId ? actions.deleteSection(pendingSectionDeleteId) : undefined)}
+      />
+      <ConfirmDialog
+        open={pendingDiscard !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingDiscard(null);
+        }}
+        title="Discard changes?"
+        description="Your edits to this section aren't saved yet."
+        confirmLabel="Discard changes"
+        cancelLabel="Keep editing"
+        onConfirm={() => {
+          const action = pendingDiscard?.run;
+          closeSectionEditor();
+          action?.();
+        }}
       />
 
       {runModeOpen && activeDoc ? (
-        <FullscreenRunMode
-          doc={activeDoc}
-          docs={orderedDocs}
-          onSelectDoc={setSelectedDocId}
-          onClose={() => setRunModeOpen(false)}
-        />
+        RunMode ? (
+          <RunMode doc={activeDoc} docs={orderedDocs} onSelectDoc={setSelectedDocId} onClose={closeRunMode} />
+        ) : (
+          <RunModeLoading failed={runMode.failed} onRetry={() => void runMode.load()} onClose={closeRunMode} />
+        )
       ) : null}
     </>
   );

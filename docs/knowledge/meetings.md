@@ -8,7 +8,13 @@ Private video meetings for producers, with notes written on the InFocus Drive.
 - Meetings have their own address: **meet.infocuspaly.com**. The Meetings tab is at the top (`meet.infocuspaly.com`), the InFocus Producer Meeting at **meet.infocuspaly.com/producers**, and each meeting at `meet.infocuspaly.com/<meeting id>`.
 - Copy link, calendar invites and link previews all use these addresses. Old `infocuspaly.com/meet/…` and `/meetings` links still work: they move to the meet address.
 - The InFocus Portal iPhone app keeps opening meetings inside the app, as before.
-- **Past** on the Meetings tab is grouped by day, newest first, and shows the 5 most recent meetings. **Show older meetings** opens 10 more at a time (up to the last 30), and **Show fewer** collapses it again.
+- **The Meetings tab:** **Schedule** and **Start now** sit in the header (execs also get **Start private meeting…** from the arrow next to Start now).
+  - **Join now** (at the top) lists meetings you can join right now: live ones (with a **Live** tag), and scheduled ones that have opened to join (from 5 minutes before the start, with a **Starting** tag), which move up out of Upcoming. An open Agenda panel stays open when its meeting moves up.
+  - **Upcoming** lists the next 3 weeks, oldest first. Each row shows its day ("Today", "Tomorrow", "Sun 18") and time, how long it is, when it opens to join ("Opens 9:10 PM"), and its **Agenda** button. **⋯** on a meeting has **Copy link** (one-off meetings), and for hosts **Move…** and **Cancel meeting…**.
+  - **Past** lists the most recent meetings, newest first, each with its day and time, how long it was and how many attended; click one for its notes. It shows the 5 most recent. **Show older** (with how many are left) opens 10 more at a time (up to the last 30), and **Show fewer** collapses it again.
+  - The **InFocus Producer Meeting** card shows when it meets, the next date and its stable link, with **Copy link** and **Calendar invites**. It says **On now** while one is on.
+  - In a wide window, Past and the InFocus Producer Meeting card sit beside Upcoming. On a phone, a tablet or a narrower computer window, an **Upcoming | Past** switch shows one list at a time (the browser remembers which), and the InFocus Producer Meeting card sits below it.
+- In the Portal sidebar, **Meetings** shows a **Live** tag while a meeting you can see is live.
 - Signing in from a meet link brings you back to that meeting.
 ## Who
 
@@ -36,7 +42,7 @@ Private video meetings for producers, with notes written on the InFocus Drive.
 ## Schedule
 
 - The **InFocus Producer Meeting** repeats every Sunday, Monday and Wednesday at 9:15 PM Pacific for 60 minutes. The next 21 days are always listed.
-- A host can **move** or **cancel** one occurrence. A moved occurrence stays moved; a cancelled one stays cancelled.
+- A host can **move** or **cancel** one occurrence (**⋯** on the meeting → **Move…** or **Cancel meeting…**). A moved occurrence stays moved; a cancelled one stays cancelled.
 - A live meeting can't be moved or cancelled. Use **End for everyone**.
 - **Stable link:** `meet.infocuspaly.com/producers` always opens the current InFocus Producer Meeting (the live one, otherwise the next one). Before it opens, the page says when it opens.
 - **Reminders:** a push 15 minutes before and again 5 minutes before a meeting starts ("… starts in 15 minutes", "… starts in 5 minutes. Join now."). Tapping it opens the call, in the iPhone and Mac apps too. Everyone gets them for open meetings (or only the picked people, when some were picked); invite-only meetings remind only the people on them. A meeting scheduled less than 15 minutes ahead skips the 15-minute reminder. Moving a meeting sends the reminders again at the new time.
@@ -44,7 +50,7 @@ Private video meetings for producers, with notes written on the InFocus Drive.
 ## Calendar invites
 
 - Invites are **Google Calendar events** sent from the InFocus Google account. Guests get Google's own invite email, and Google keeps their calendars up to date when something changes. The Portal sends no `.ics` files.
-- Executive producers, the adviser, and super admin keep the list of email addresses (Meetings → calendar invites). Every producer can see the list and whether invites are working ("Invites are sent from … via Google Calendar", or "Last sync failed: …").
+- Executive producers, the adviser, and super admin keep the list of email addresses (Meetings → **Calendar invites** on the InFocus Producer Meeting card). Every producer can open it to see how many addresses get invites and whether invites are working ("Invites are sent from … via Google Calendar", or "Last sync failed: …").
 - An address can be **linked to a producer**. Invite-only meetings only invite addresses linked to the people on them.
 - **InFocus Producer Meeting:** one repeating event (Sunday, Monday and Wednesday, 9:15 PM Pacific), linking to `meet.infocuspaly.com/producers`. Every address on the list is a guest.
 - Adding an address makes it a guest of the repeating event and of every upcoming meeting it qualifies for. Removing it takes it off them, and Google sends that person a cancellation.
@@ -61,10 +67,10 @@ Private video meetings for producers, with notes written on the InFocus Drive.
 ### One-time setup (super admin or adviser)
 
 1. In the Google Cloud project that has the Portal's Google sign-in (the one used for YouTube), enable the **Google Calendar API**.
-2. Admin → **Google Calendar** → **Connect Google Calendar**, and sign in as the InFocus Google account. Allow calendar access.
-3. In Meetings → calendar invites, press **Sync now** once to create the repeating event for everyone already on the list. **Sync now** also updates existing events whose title or link changed (for example after the move to meet.infocuspaly.com).
+2. Admin → **System** → **Integrations** → **Google Calendar** → **Connect Google Calendar**, and sign in as the InFocus Google account. Allow calendar access.
+3. In Meetings → **Calendar invites** (on the InFocus Producer Meeting card), press **Sync now** once to create the repeating event for everyone already on the list. **Sync now** also updates existing events whose title or link changed (for example after the move to meet.infocuspaly.com).
 
-This is separate from Admin → Reconnect YouTube and doesn't change it.
+This is separate from Admin → System → Integrations → **YouTube channel** (**Reconnect YouTube**) and doesn't change it.
 
 ## Joining
 
@@ -77,9 +83,17 @@ This is separate from Admin → Reconnect YouTube and doesn't change it.
 - If the speaker you picked is unplugged (USB or Bluetooth), sound switches to the computer's default output.
 - **Voice isolation** (on by default; each device remembers if you turn it off, and every device was reset to on on Oct 6, 2026) switches to the noise filter only once it has fully loaded, so the first words after unmuting aren't cut off. On a slow device that can't load it within 5 seconds, the browser's own noise suppression keeps working.
 
+## In the call
+
+- **Top bar:** the meeting title (click it for **Meeting details**), a lock (the call is encrypted; not on a narrow phone, where it's in Meeting details), the time (computer only) and how long you've been in the call. On the right, small status tags show what's going on: **Reconnecting**, how many people are **waiting** to join (hosts), your hand's place in line or how many hands are up, **Presenting**, **Notes on** (the Drive Scribe is taking notes) and the connection (a signal icon; **Unstable**, **Poor** or **Checking** when it isn't good). Waiting and hand tags open People. A long meeting title shortens before any tag is hidden. Phones show fewer tags, but Notes and the connection always show, and **Reconnecting** appears in words over the top of the video.
+- **Bottom bar (computer):** mic, camera, **Share**, hand, react, **More** and **Leave** in the middle; **People**, **Chat** and **Agenda** on the right, with counts (people in the call and, for hosts, how many are waiting; unread messages; agenda items left). Hover a button to see its keyboard shortcut; **More** lists them all (⌘D mic, ⌘E camera, ⌘⌥H hand, ⌘⌥C chat; Ctrl and Alt on Windows).
+- **Phones:** six buttons at the bottom: mic, camera, hand, **Chat**, **More** and leave. More has reactions, People, Agenda, Share screen (where the phone can), Watch a package cut, Meeting details, Host settings (hosts), Audio and video settings, self view and the layout. With the phone on its side there's no top bar: the six buttons, the time in call and the status tags run down the right edge.
+- **People, Chat and Agenda** are tabs in one panel (a full-screen sheet on phones), so you can switch between them without closing it. People lists who's **waiting to join** (hosts), **raised hands** in order, and everyone else **in the call**.
+- **Meeting details** has the link (**Copy link**), who can join, the encryption note and **Copy debug info**. For hosts it also has **Host settings** (see Host controls).
+
 ## Sharing
 
-- On a computer, **Share** opens a menu: **Share screen, window or tab**, or **Watch a package cut**. On a phone, **Watch a package cut** is in the More menu (iPhones can't share their screen, but they can watch along).
+- On a computer, **Share** opens a menu: **Share screen, window or tab**, or **Watch a package cut**. Where the browser can't share a screen (an iPad), the button is **Watch a package cut** itself. On a phone, **Watch a package cut** is in the More menu (iPhones can't share their screen, but they can watch along).
 - **Share sound** (on by default, remembered on this device) sends the tab's or screen's sound with your share. Your browser's own picker then has a "share audio" checkbox. Sound works best when you share a Chrome tab. Sharing the whole screen carries sound on Windows. A single window carries no sound, and Safari and Firefox don't share sound at all.
 
 ### Watch together
@@ -95,6 +109,7 @@ This is separate from Admin → Reconnect YouTube and doesn't change it.
 ## Host controls
 
 - Admit, deny, admit all, mute, remove, lower hands, quick access, notes on/off, End for everyone.
+- **Where:** letting people in, muting, removing and lowering hands are in the **People** tab (**Admit all**, **Lower all** and **Mute all** sit on their lists). **Quick access**, **Notes** and **End for everyone** are under **Host settings** in **Meeting details** (More → Host settings goes straight there). **Leave** also offers **End meeting for everyone**.
 - If someone is still in the lobby after you let them in, press **Admit** again: it re-sends the "come in". If the call can't be reached, Admit says so instead of looking like it worked.
 - **Remove** takes the person out and changes the meeting's encryption key, so they can't read or hear anything after that. They can ask to join again.
 - When the last person leaves, the meeting ends by itself after a minute (the minute covers a refresh or a dropped connection). Notes start processing then.
@@ -123,8 +138,8 @@ This is separate from Admin → Reconnect YouTube and doesn't change it.
 ## Agenda
 
 - Every meeting has its own agenda, including each producer meeting (Sunday, Monday and Wednesday each get a fresh one). Any producer who can see the meeting can add, edit, reorder and check off items; invite-only and execs-only agendas stay hidden from everyone else.
-- **Meetings tab:** the **Agenda** button on a meeting opens the editor. Drag the handle to reorder (or focus a handle, press Space, move with the arrow keys, press Space again). Click an item to edit it; delete has an Undo.
-- **In the call:** the **Agenda** button (next to Chat and People) shows how many items are left and opens the agenda panel: "3 of 7 done", a progress bar, and checkboxes. Checking an item off updates everyone's panel right away and shows who checked it. Anyone can add a quick item at the end; **Edit agenda** opens the full editor in a new tab.
+- **Meetings tab:** the **Agenda** button on a meeting (it shows how many items there are) opens the editor in a side panel (a bottom sheet on phones), with the add box pinned at the bottom. Drag the handle to reorder (or focus a handle, press Space, move with the arrow keys, press Space again). Click an item to edit it; delete has an Undo.
+- **In the call:** the **Agenda** button (next to Chat and People; in More on phones) shows how many items are left and opens the Agenda tab: "3 of 7 done", a progress bar, and checkboxes. Checking an item off updates everyone's panel right away and shows who checked it. Anyone can add a quick item at the end; **Edit agenda** opens the Meetings tab's agenda panel in a new tab.
 - Once a meeting ends or is cancelled, its agenda is read-only.
 - Agenda text is stored in the Portal like the meeting title. Unlike call audio, video and chat, it is **not** end-to-end encrypted.
 
@@ -158,5 +173,5 @@ When a call goes wrong ("we couldn't hear each other"), there is a record to loo
 - **What's logged:** the meeting room writes one line per event to Cloudflare Workers Logs: people connecting and leaving (with the close reason), who is host, tracks being shared, every audio/video connection request to Cloudflare (status and timing), limits being hit, rekeys and the meeting ending. Each browser in the call also reports a short connection summary every 10 seconds (connection state, network path, packets sent and received per person, audio level, decryption problems) and reports problems the moment they happen (connection failed, audio blocked, a retry, Leave pressed).
 - **What's never logged:** names, emails, chat, the meeting key, room tickets, audio or video. People appear only by their internal id.
 - **Reading the logs:** `npm run meetings:logs -- <meeting id or latest> [--since 2h] [--uid <id>] [--json]` prints a timeline and marks problems with `!!`. It needs `CLOUDFLARE_ACCOUNT_ID` and a Cloudflare API token with **Workers Observability: Edit** (see the top of `scripts/meetings-logs.ts`). For a live view: `npx wrangler tail infocus-meeting-room --format json`.
-- **Copy debug info:** in a call, open the meeting info (the **i** in the menu) and press **Copy debug info**. It copies the meeting id, your internal id, your browser, the app version and the last ~200 diagnostic entries, with no names or content, for pasting into a bug report.
+- **Copy debug info:** in a call, open **Meeting details** (click the meeting title, or More → Meeting details) and press **Copy debug info**. It copies the meeting id, your internal id, your browser, the app version and the last ~200 diagnostic entries, with no names or content, for pasting into a bug report.
 

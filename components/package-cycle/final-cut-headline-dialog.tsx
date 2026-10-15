@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { InlineError } from "@/components/kit/alert";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -47,6 +48,8 @@ export function FinalCutHeadlineDialog({
 
   const headlineProblem = askHeadline ? headlineError(headline) : null;
   const tossProblem = tossError(toss);
+  const showHeadlineError = submitted && Boolean(headlineProblem);
+  const showTossError = submitted && Boolean(tossProblem);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -78,12 +81,17 @@ export function FinalCutHeadlineDialog({
                 onChange={(event) => setHeadline(event.target.value)}
                 maxLength={HEADLINE_MAX_LENGTH}
                 placeholder="Palo Alto Airport Day brings the community together"
-                aria-invalid={submitted && Boolean(headlineProblem)}
+                aria-invalid={showHeadlineError}
+                aria-describedby={showHeadlineError ? "final-cut-headline-error" : undefined}
                 autoFocus
               />
-              <div className="flex justify-between gap-3 text-xs">
-                <span className="text-danger">{submitted ? headlineProblem : null}</span>
-                <span className="tabular-nums text-muted-foreground">
+              <div className="flex items-start justify-between gap-3 text-xs">
+                {showHeadlineError ? (
+                  <InlineError id="final-cut-headline-error">{headlineProblem}</InlineError>
+                ) : (
+                  <span />
+                )}
+                <span className="shrink-0 tabular-nums text-muted-foreground">
                   {headline.trim().length}/{HEADLINE_MAX_LENGTH}
                 </span>
               </div>
@@ -100,21 +108,22 @@ export function FinalCutHeadlineDialog({
               maxLength={TOSS_MAX_LENGTH}
               rows={4}
               placeholder={TOSS_EXAMPLE}
-              aria-invalid={submitted && Boolean(tossProblem)}
+              aria-invalid={showTossError}
+              aria-describedby={showTossError ? "final-cut-toss-hint final-cut-toss-error" : "final-cut-toss-hint"}
               autoFocus={!askHeadline}
             />
-            <p className="text-xs text-muted-foreground">
+            <p id="final-cut-toss-hint" className="text-xs text-muted-foreground">
               One or two sentences that set up the story and name the reporters.
             </p>
-            <div className="flex justify-between gap-3 text-xs">
-              <span className="text-danger">{submitted ? tossProblem : null}</span>
-              <span className="tabular-nums text-muted-foreground">
+            <div className="flex items-start justify-between gap-3 text-xs">
+              {showTossError ? <InlineError id="final-cut-toss-error">{tossProblem}</InlineError> : <span />}
+              <span className="shrink-0 tabular-nums text-muted-foreground">
                 {toss.trim().length}/{TOSS_MAX_LENGTH}
               </span>
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
             <Button type="submit" disabled={saving}>

@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { Chrome, Lock } from "lucide-react";
+import { Alert } from "@/components/kit/alert";
+import { PageHeader } from "@/components/page-header";
+import { PublicFrame } from "@/components/public-entry/public-frame";
+import { ASSISTANT_PLACES } from "@/src/lib/assistant-places";
 import { getSessionUser, hasGoogleOAuthConfig, sanitizeReturnTo } from "@/src/lib/auth";
-import { EquipmentPasskeyButton } from "@/components/equipment-passkeys";
-import { EmailSignInForm } from "./email-sign-in-form";
-import { PasswordSignInForm } from "./password-sign-in-form";
 import {
   canBypassHubMaintenance,
   HUB_MAINTENANCE_MODE
 } from "@/src/lib/maintenance";
 import { getPlatformRoleForEmail } from "@/src/lib/platform-admin";
 import { signInPageTitle } from "@/src/lib/sign-in-title";
+import { SignInMethods } from "./sign-in-methods";
 
 type SignInPageProps = {
   searchParams: Promise<{ returnTo?: string; error?: string }>;
@@ -20,6 +21,18 @@ export async function generateMetadata({ searchParams }: SignInPageProps): Promi
   const { returnTo } = await searchParams;
   const title = signInPageTitle(returnTo);
   return { title: { absolute: title }, openGraph: { title } };
+}
+
+/**
+ * "Continue to Grades" when the link opens a known Portal place, otherwise "Sign in". Only labels
+ * from ASSISTANT_PLACES are shown, never words taken from the URL.
+ */
+function destinationEyebrow(returnTo?: string) {
+  const value = (returnTo ?? "").trim();
+  if (!value.startsWith("/") || value.startsWith("//")) return "Sign in";
+  const segment = value.slice(1).split(/[/?#]/)[0].toLowerCase();
+  const place = ASSISTANT_PLACES.find((entry) => !entry.external && entry.href === `/${segment}`);
+  return place ? `Continue to ${place.label}` : "Sign in";
 }
 
 export default async function SignInPage({ searchParams }: SignInPageProps) {
@@ -41,49 +54,18 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
   const googleSignInHref = `/api/auth/google/start?returnTo=${encodeURIComponent(safeReturnTo)}`;
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-md items-center px-6 py-10">
-      <section className="brand-hero-panel relative w-full overflow-hidden p-6 sm:p-8">
-        <div className="relative">
-          <div className="mb-5 grid h-12 w-12 place-items-center rounded-xl border border-[var(--brand-green)]/40 bg-[var(--brand-green)]/15 text-[var(--brand-green)]">
-            <Lock className="h-5 w-5" aria-hidden="true" />
-          </div>
-          <div className="eyebrow flex items-center gap-2">
-            <span className="rec-dot rec-dot-red" aria-hidden="true" />
-            Authenticated access
-          </div>
-          <h1 className="display-md mt-2 text-foreground">Sign in to InFocus Portal</h1>
-          <p className="mt-3 text-sm text-muted-foreground">
-            Use your registered email to access packages, grades, and the master calendar.
-          </p>
-
-          {errorMessage ? (
-            <p className="mt-4 rounded-lg border border-danger/30 bg-danger-tint px-3 py-2 text-sm text-danger">
-              {errorMessage}
-            </p>
-          ) : null}
-
-          <div className="mt-6 flex flex-col gap-3">
-            {googleConfigured ? (
-              <>
-                <a
-                  href={googleSignInHref}
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-foreground text-background text-sm font-semibold transition hover:bg-foreground/90"
-                >
-                  <Chrome className="h-4 w-4 text-[#4285F4]" aria-hidden="true" />
-                  Continue with Google
-                </a>
-                <p className="text-center text-sm text-muted-foreground">or sign in with email</p>
-              </>
-            ) : null}
-            {safeReturnTo === "/equipment/manage" ? <EquipmentPasskeyButton purpose="login" /> : null}
-            <EmailSignInForm returnTo={safeReturnTo} />
-            <PasswordSignInForm returnTo={safeReturnTo} />
-            <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-              Workspace access granted by your producer.
-            </p>
-          </div>
-        </div>
-      </section>
-    </main>
+    <PublicFrame width="narrow">
+      <PageHeader
+        eyebrow={destinationEyebrow(returnTo)}
+        title="Sign in to InFocus Portal"
+        description="Use your registered email to access packages, grades, and the master calendar."
+      />
+      {errorMessage ? <Alert tone="danger" className="md:px-6">{errorMessage}</Alert> : null}
+      <SignInMethods
+        googleHref={googleConfigured ? googleSignInHref : null}
+        showPasskey={safeReturnTo === "/equipment/manage"}
+        returnTo={safeReturnTo}
+      />
+    </PublicFrame>
   );
 }

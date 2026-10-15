@@ -1,2110 +1,742 @@
 "use client";
 
-import type { GradeScoreState } from "@prisma/client";
-import { parseGradeScore, gradeScoreInput, gradeScoreLabel, numericGradeScore } from "@/src/lib/grade-score";
-import { cycleCheckInSummary, packageSubtotal } from "@/src/lib/grade-editor-summary";
-
-import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  AlertTriangle,
-  ChevronDown,
-  ClipboardList,
-  Download,
-  MessageSquare,
-  RefreshCcw,
-  Save,
-  Search,
-  UserMinus,
-  UserRound,
-  X
-} from "lucide-react";
-import { PageHeader } from "@/components/page-header";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import {
-  buildCycleGradesCsv,
-  buildTotalGradesCsv,
-  defaultTotalsAdjustments,
-  type TotalsAdjustments
-} from "@/src/lib/grade-editor-csv";
-import { CHECK_IN_STAGES, type CheckInScores, type CheckInStage } from "@/src/lib/package-stages";
-import { BottomTabDock, BottomTabDockButton, CycleTabLabel } from "@/components/ui/bottom-tab-dock";
+import dynamic from "next/dynamic";
+import Link from "next/link";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { CheckCircle2, SearchX, Users } from "lucide-react";
+import { Alert } from "@/components/kit/alert";
+import { EmptyState, ErrorState } from "@/components/kit/empty-state";
+import { useMediaQuery } from "@/components/kit/remembered-state";
+import { rovingIndex } from "@/components/kit/roving";
+import { ListDetailSkeleton } from "@/components/kit/skeleton";
+import type { SaveStateValue } from "@/components/kit/status-tag";
+import { ViewTabPanel, ViewTabs } from "@/components/kit/view-tabs";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { pacificDateKey } from "@/src/lib/deadlines";
+import { buildCycleGradesCsv, buildTotalGradesCsv, defaultTotalsAdjustments } from "@/src/lib/grade-editor-csv";
+import { neighborIds } from "@/src/lib/keyboard-nav";
 import { cn } from "@/src/lib/utils";
-import { REQUIRED_LIVESTREAM_HOURS } from "@/src/lib/livestream";
-import { StudentGradebookPanel } from "./student-gradebook-panel";
-import { useExcludedPeople } from "./use-excluded-people";
+import type { CycleFilter, CycleTab, ViewMode } from "./grade-editor-types";
 import {
-  CELL,
-  GROUP_START,
-  GradeTableHead,
-  type HeaderGroup,
-  PointsReadout,
-  ReporterCell,
-  ScoreInput,
-  TABLE_CLASS,
-  checkInTone,
-  gradeBadgeTone,
-  tableMinWidth
-} from "./grade-editor-table";
+  cycleFilterCounts,
+  cycleFilterMatches,
+  hasTemporaryEdits,
+  latestPassedCycle,
+  matchesSearch,
+  missingCountsByCycle,
+  notEnteredIdsForCycle,
+  parseViewKey,
+  sortByName,
+  totalsRowSummary,
+  viewKey
+} from "./grade-editor-utils";
+import { readStoredView, useGradeEditorPrefs, writeStoredView } from "./use-grade-editor-prefs";
+import { useCycleGrades } from "./use-cycle-grades";
+import { useGradeTotals } from "./use-grade-totals";
+import { useMissingReport } from "./use-missing-report";
+import { useExcludedPeople } from "./use-excluded-people";
+import { GradeEditorHeader, type CycleStats } from "./grade-editor-header";
+import { CycleFilterRow, GradeEditorToolbar, Legend } from "./grade-editor-toolbar";
+import { CycleGradesTable, type CycleRowHandlers, type CycleRowState } from "./cycle-grades-table";
+import { CycleGradesList } from "./cycle-grades-list";
+import { TotalsGradesTable, type TotalsRowHandlers, type TotalsRowView } from "./totals-grades-table";
+import { TotalsGradesList } from "./totals-grades-list";
+import GradeEditorLoading from "./loading";
 
-type CycleTab = {
-  cycleNumber: number;
-  focus: string;
-  finalCutDate: string | null;
+const StudentGradebookPanel = dynamic(() => import("./student-gradebook-panel").then((m) => m.StudentGradebookPanel), {
+  ssr: false,
+  loading: () => <ListDetailSkeleton />
+});
+const MissingGradesSheet = dynamic(() => import("./missing-grades-sheet").then((m) => m.MissingGradesSheet), { ssr: false });
+const CycleRowSheet = dynamic(() => import("./cycle-row-sheet").then((m) => m.CycleRowSheet), { ssr: false });
+const TotalsRowSheet = dynamic(() => import("./totals-row-sheet").then((m) => m.TotalsRowSheet), { ssr: false });
+const FeedbackDialog = dynamic(() => import("./grade-editor-dialogs").then((m) => m.FeedbackDialog), { ssr: false });
+const PublishHistoryDialog = dynamic(() => import("./grade-editor-dialogs").then((m) => m.PublishHistoryDialog), { ssr: false });
+const ExtensionExceptionDialog = dynamic(() => import("./grade-editor-dialogs").then((m) => m.ExtensionExceptionDialog), { ssr: false });
+const TotalNotesDialog = dynamic(() => import("./grade-editor-dialogs").then((m) => m.TotalNotesDialog), { ssr: false });
+const ExtensionDepletedDialog = dynamic(() => import("./grade-editor-dialogs").then((m) => m.ExtensionDepletedDialog), { ssr: false });
+
+const TAB_ID_PREFIX = "grade-editor";
+
+const FILTER_EMPTY: Record<Exclude<CycleFilter, "all">, string> = {
+  "to-publish": "Nothing unpublished. All caught up.",
+  "not-entered": "Every reporter has a score.",
+  missed: "No missed Final Cuts.",
+  republish: "No revised grades waiting to be published again.",
+  "over-extensions": "No one is over their extensions."
 };
 
-type CycleAverage = {
-  cycleNumber: number;
-  averageTotal: number | null;
-  averagePercentage: number | null;
-  publishedCount: number;
-};
-
-const CHECK_IN_LABELS = { pitching: "Pitching", proofOfContact: "PoC", aRollBRoll: "A-roll/B-roll", initialCut: "Initial Cut" } as const;
-
-type GradeRow = {
-  finalCutState: GradeScoreState | null;
-  /** Deadline passed with no approved Final Cut: counts as 0 until a score is entered. */
-  finalCutMissing: boolean;
-  checkInScores: CheckInScores;
-  checkInOverrides: CheckInScores;
-  userId: string;
-  name: string | null;
-  email: string | null;
-  effortPoints: number | null;
-  teamworkPoints: number | null;
-  previousEffortPoints: number | null;
-  previousTeamworkPoints: number | null;
-  totalPoints: number | null;
-  percentage: number | null;
-  revised: boolean;
-  revisedAt: string | null;
-  feedback: string;
-  turnedInDate: string | null;
-  freeExtensionDays: number;
-  extensionDetails: {
-    calculatedDays: number;
-    freeDays: number;
-    chargedDays: number;
-    exempt: boolean;
-  };
-  published: boolean;
-  publishedAt: string | null;
-  publicationHistory: Array<{
-    eventType: "PUBLISHED" | "REVISED";
-    occurredAt: string | null;
-  }>;
-  extensionsRemaining: number;
-};
-
-type AdminGradesPayload = {
-  activeCycleNumber: number;
-  cycles: CycleTab[];
-  cycleAverages: CycleAverage[];
-  activeCycleAverage: CycleAverage | null;
-  rows: GradeRow[];
-};
-
-type TotalsCycleEntry = {
-  finalCutState: GradeScoreState | null;
-  cycleNumber: number;
-  totalPoints: number | null;
-  /** totalPoints is the automatic 0 for a missed Final Cut, not an entered score. */
-  missing: boolean;
-};
-
-type TotalsRow = {
-  participationEarned: number;
-  participationPossible: number;
-  userId: string;
-  name: string | null;
-  email: string | null;
-  notes: string;
-  cycleTotals: TotalsCycleEntry[];
-  checkInPoints: number | null;
-  checkInPossible: number | null;
-  livestreamPoints: number | null;
-  livestreamHours: number;
-  portfolioPoints: number | null;
-};
-
-type TotalsPayload = {
-  cycles: CycleTab[];
-  checkInPossible: number;
-  totalsRows: TotalsRow[];
-};
-
-type MissingStatus = "not_entered" | "unpublished";
-
-type MissingEntry = {
-  cycleNumber: number;
-  status: MissingStatus;
-};
-
-type MissingPerson = {
-  userId: string;
-  name: string | null;
-  email: string | null;
-  missing: MissingEntry[];
-};
-
-type MissingPayload = {
-  cycles: { cycleNumber: number; focus: string }[];
-  consideredCycleNumbers: number[];
-  people: { userId: string; name: string | null; email: string | null }[];
-  missingReport: MissingPerson[];
-};
-
-const TOTAL_VIEW = "total" as const;
-const STUDENT_VIEW = "student" as const;
-const MAX_PACKAGE_PER_CYCLE = 50;
-const MAX_CHECK_INS_PER_CYCLE = 20;
-const MAX_LIVESTREAM = 40;
-const MAX_FINAL = 100;
-const CHECK_IN_SHORT_LABELS = { pitching: "Pitch", proofOfContact: "PoC", aRollBRoll: "A/B-roll", initialCut: "Initial" } as const;
-
-const CYCLE_GROUPS: HeaderGroup[] = [
-  { label: "", columns: [{ label: "Reporter" }] },
-  {
-    label: "Check-ins",
-    hint: "5 pts each",
-    columns: [
-      ...CHECK_IN_STAGES.map((stage) => ({ label: CHECK_IN_SHORT_LABELS[stage], title: CHECK_IN_LABELS[stage], width: 86 })),
-      { label: "Total", sub: `/${MAX_CHECK_INS_PER_CYCLE}`, title: "Released check-ins this cycle", width: 82 }
-    ]
-  },
-  {
-    label: "Final cut",
-    columns: [
-      { label: "Score", sub: `/${MAX_PACKAGE_PER_CYCLE}`, width: 76 },
-      { label: "Official", title: "After the late penalty", width: 84 },
-      { label: "Turned in", width: 132 }
-    ]
-  },
-  { label: "Semester", columns: [{ label: "Participation", title: "Graded days in weeks that have ended", width: 112 }] },
-  { label: "Publishing", columns: [{ label: "Feedback · Status", width: 164 }] }
-];
-
-const FINAL_CUT_REQUIRED_HINT = "Set this cycle's Final Cut date in Cycle Dates first";
-const SORT_STORAGE_KEY = "grade-editor:sort-by:v1";
-
-function adjustmentsFromTotalsRow(row: TotalsRow): TotalsAdjustments {
-  return {
-    ...defaultTotalsAdjustments(),
-    checkIns: row.checkInPoints ?? null,
-    livestream: row.livestreamPoints ?? null,
-    final: row.portfolioPoints ?? null,
-    notes: row.notes
-  };
+function downloadFile(fileName: string, csv: string) {
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
 
-function clampNonNegative(input: string) {
-  if (!input.trim()) return 0;
-  const parsed = Number(input);
-  if (!Number.isFinite(parsed)) return 0;
-  return Math.max(0, Math.round(parsed));
-}
-
-function letterGrade(percentage: number) {
-  if (percentage >= 90) return "A";
-  if (percentage >= 80) return "B";
-  if (percentage >= 70) return "C";
-  if (percentage >= 60) return "D";
-  return "F";
-}
-
-async function fetchTotals() {
-  const response = await fetch(`/api/grades/admin?view=totals`, { cache: "no-store" });
-  const payload = (await response.json()) as { data?: TotalsPayload; error?: { message?: string } };
-  if (!response.ok || !payload.data) {
-    throw new Error(payload.error?.message ?? "Failed to load totals.");
-  }
-  return payload.data;
-}
-
-type GradeMutationPayload = Pick<
-  GradeRow,
-  | "finalCutState"
-  | "effortPoints"
-  | "teamworkPoints"
-  | "previousEffortPoints"
-  | "previousTeamworkPoints"
-  | "totalPoints"
-  | "percentage"
-  | "revised"
-  | "revisedAt"
-  | "feedback"
-  | "turnedInDate"
-  | "freeExtensionDays"
-  | "extensionDetails"
-  | "published"
-  | "publishedAt"
-  | "extensionsRemaining"
->;
-
-async function fetchGrades(cycleNumber: number) {
-  const response = await fetch(`/api/grades/admin?cycle=${cycleNumber}`, { cache: "no-store" });
-  const payload = (await response.json()) as { data?: AdminGradesPayload; error?: { message?: string } };
-
-  if (!response.ok || !payload.data) {
-    throw new Error(payload.error?.message ?? "Failed to load grades.");
-  }
-
-  return payload.data;
-}
-
-async function fetchMissing() {
-  const response = await fetch(`/api/grades/admin?view=missing`, { cache: "no-store" });
-  const payload = (await response.json()) as { data?: MissingPayload; error?: { message?: string } };
-  if (!response.ok || !payload.data) {
-    throw new Error(payload.error?.message ?? "Failed to load missing grades.");
-  }
-  return payload.data;
-}
-
-function scoreTotal(row: Pick<GradeRow, "effortPoints" | "teamworkPoints">) {
-  return row.effortPoints ?? 0;
-}
-
-function rowLabel(row: GradeRow) {
-  return row.name?.trim() || "Unnamed user";
-}
-
-function isRowFilledIn(row: Pick<GradeRow, "effortPoints" | "teamworkPoints">) {
-  return row.effortPoints !== null;
-}
-
-function rowHasUnsavedChanges(row: GradeRow, baseline?: GradeRow) {
-  if (!baseline) return true;
-
-  return (
-    row.finalCutState !== baseline.finalCutState ||
-    (row.effortPoints ?? null) !== (baseline.effortPoints ?? null) ||
-    (row.teamworkPoints ?? null) !== (baseline.teamworkPoints ?? null) ||
-    row.feedback !== baseline.feedback ||
-    (row.turnedInDate ?? null) !== (baseline.turnedInDate ?? null)
-  );
-}
-
-function getDaySuffix(day: number) {
-  if (day >= 11 && day <= 13) return "th";
-  const lastDigit = day % 10;
-  if (lastDigit === 1) return "st";
-  if (lastDigit === 2) return "nd";
-  if (lastDigit === 3) return "rd";
-  return "th";
-}
-
-function formatLongDate(value: string | null) {
-  if (!value) {
-    return "Not set yet";
-  }
-
-  const parts = value.split("-").map((part) => Number(part));
-  if (parts.length !== 3 || parts.some((part) => !Number.isFinite(part))) {
-    return value;
-  }
-
-  const [year, month, day] = parts;
-  const monthName = new Date(Date.UTC(year, month - 1, day)).toLocaleDateString("en-US", {
-    month: "long",
-    timeZone: "UTC"
-  });
-  return `${monthName} ${day}${getDaySuffix(day)}, ${year}`;
-}
-
-function extensionExceptionSummary(row: Pick<GradeRow, "extensionDetails">) {
-  if (row.extensionDetails.freeDays <= 0) {
-    return null;
-  }
-
-  return `${row.extensionDetails.calculatedDays} late day${row.extensionDetails.calculatedDays === 1 ? "" : "s"}, ${row.extensionDetails.freeDays} free, ${row.extensionDetails.chargedDays} charged`;
-}
-
-function formatHistoryTimestamp(value: string | null) {
-  if (!value) {
-    return "Unknown time";
-  }
-
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return value;
-  }
-
-  return parsed.toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit"
-  });
-}
-
-function historyEventLabel(eventType: "PUBLISHED" | "REVISED") {
-  return eventType === "PUBLISHED" ? "Published" : "Revised";
-}
-
-function applyMutationToRow(row: GradeRow, payload: GradeMutationPayload) {
-  return {
-    ...row,
-    ...payload
-  };
+/**
+ * Manual activation for the view tabs: ←/→/Home/End only move focus and Enter or Space opens the
+ * focused tab, as the old buttons did. Opening a cycle loads its rows (and may ask to discard
+ * unsaved edits), so arrowing across the strip must not open every cycle on the way. This capture
+ * handler runs before ViewTabs' own key handler and stops it.
+ */
+function moveViewTabFocus(event: KeyboardEvent<HTMLDivElement>) {
+  const tabs = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
+  const index = tabs.indexOf(event.target as HTMLButtonElement);
+  if (index < 0) return;
+  const next = rovingIndex(index, event.key, tabs.map((tab) => tab.disabled));
+  if (next === null) return;
+  event.preventDefault();
+  event.stopPropagation();
+  tabs[next]?.focus();
 }
 
 export default function GradeEditorClient() {
   const [cycles, setCycles] = useState<CycleTab[]>([]);
-  const [activeCycleNumber, setActiveCycleNumber] = useState(1);
-  const [rows, setRows] = useState<GradeRow[]>([]);
-  const [savedRows, setSavedRows] = useState<GradeRow[]>([]);
-  const [cycleAverages, setCycleAverages] = useState<CycleAverage[]>([]);
-  const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [savingUserId, setSavingUserId] = useState<string | null>(null);
-  const [publishingUserId, setPublishingUserId] = useState<string | null>(null);
-  const [savingAll, setSavingAll] = useState(false);
-  const [publishingAll, setPublishingAll] = useState(false);
-  const [feedbackModalUserId, setFeedbackModalUserId] = useState<string | null>(null);
-  const [extensionNoteUserId, setExtensionNoteUserId] = useState<string | null>(null);
-  const [publicationHistoryUserId, setPublicationHistoryUserId] = useState<string | null>(null);
-  const [extensionDepletedWarning, setExtensionDepletedWarning] = useState<{ userName: string; remaining: number } | null>(null);
-  const autosaveTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
-  const pendingAutosaveUserIdsRef = useRef<Set<string>>(new Set());
-  const autosaveRunningRef = useRef(false);
-  const rowsRef = useRef<GradeRow[]>([]);
-  const savedRowMapRef = useRef<Map<string, GradeRow>>(new Map());
-  const activeCycleNumberRef = useRef(1);
-  const autosaveBlockedRef = useRef({ savingAll: false, publishingAll: false, publishingUserId: null as string | null });
-  const loadCycleRef = useRef<(cycleNumber: number, options?: { silent?: boolean }) => Promise<void>>(async () => {});
-  const flushAutosavesRef = useRef<() => Promise<void>>(async () => {});
-  const loadCycleSequenceRef = useRef(0);
-  const [sortBy, setSortBy] = useState<"firstName" | "lastName">("firstName");
-  const [viewMode, setViewMode] = useState<"cycle" | typeof TOTAL_VIEW | typeof STUDENT_VIEW>(TOTAL_VIEW);
+  const [viewMode, setViewMode] = useState<ViewMode>("total");
+  /** Mounted and the remembered view read (the server render can't read it). */
+  const [viewReady, setViewReady] = useState(false);
+  /**
+   * First visit (no remembered view): the page opens on Total grade at once, then moves to the
+   * cycle being graded when the first totals (and so the cycles) arrive, unless a view was picked.
+   */
+  const [autoOpen, setAutoOpen] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [studentRefreshToken, setStudentRefreshToken] = useState(0);
-  const [totalsRows, setTotalsRows] = useState<TotalsRow[]>([]);
-  const [savingCheckIn, setSavingCheckIn] = useState(false);
-  const checkInSaveRef = useRef(false);
-  const staleCheckInTotalsRef = useRef(new Set<string>());
-  const [checkInPossible, setCheckInPossible] = useState(0);
-  const [totalsLoading, setTotalsLoading] = useState(false);
-  const [totalsAdjustments, setTotalsAdjustments] = useState<Map<string, TotalsAdjustments>>(new Map());
+  const [search, setSearch] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+  const [feedbackModalUserId, setFeedbackModalUserId] = useState<string | null>(null);
+  // Kept from before the redesign: nothing sets an id yet, so the dialog stays closed.
+  const [extensionNoteUserId, setExtensionNoteUserId] = useState<string | null>(null);
+  const [publicationHistoryUserId, setPublicationHistoryUserId] = useState<string | null>(null);
   const [totalsNotesUserId, setTotalsNotesUserId] = useState<string | null>(null);
+  const [sheetUserId, setSheetUserId] = useState<string | null>(null);
   const [missingOpen, setMissingOpen] = useState(false);
-  const [missingData, setMissingData] = useState<MissingPayload | null>(null);
-  const [missingLoading, setMissingLoading] = useState(false);
-  const [missingError, setMissingError] = useState<string | null>(null);
-  const [showExcludePanel, setShowExcludePanel] = useState(false);
-  const { excludedIds, toggleExcluded, isExcluded } = useExcludedPeople();
-  const [sortLoaded, setSortLoaded] = useState(false);
+  const [snapshotNonce, setSnapshotNonce] = useState(0);
+  const [filterSnapshot, setFilterSnapshot] = useState<{ filter: CycleFilter; ids: ReadonlySet<string> } | null>(null);
+  /** The tables need a laptop-wide window; phones and tablets get the row lists and sheets (40px controls). */
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
 
+  const { sortBy, setSortBy, cycleFilter, setCycleFilter } = useGradeEditorPrefs();
+  const { excludedIds, toggleExcluded, isExcluded } = useExcludedPeople();
+  const missing = useMissingReport();
+  const totals = useGradeTotals({ setMessage, onCycles: setCycles });
+  const grades = useCycleGrades({
+    setMessage,
+    onCycles: setCycles,
+    onCheckInSaved: totals.markCheckInStale,
+    onRowChanged: missing.patchMissing
+  });
+
+  // First load: last-seen data at once, then the remembered view (Total grade on a first visit,
+  // see autoOpen). The missing report loads in the background: it powers the counts on the
+  // Missing grades button, the cycle tabs and the Not entered chip.
   useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem(SORT_STORAGE_KEY);
-      if (stored === "firstName" || stored === "lastName") {
-        setSortBy(stored);
-      }
-    } catch {
-      // Storage unavailable (private mode); keep the default sort.
+    const hadCache = totals.hydrateFromCache();
+    missing.hydrateFromCache();
+    void missing.loadMissing();
+    const stored = readStoredView();
+    if (stored) {
+      setViewMode(stored.viewMode);
+      if (stored.viewMode === "cycle" && stored.cycleNumber !== null) void grades.loadCycle(stored.cycleNumber);
+    } else {
+      setAutoOpen(true);
     }
-    setSortLoaded(true);
+    setViewReady(true);
+    void totals.loadTotals(hadCache ? { silent: true } : undefined);
+    // Runs once on mount, like the original first load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    if (!sortLoaded) {
-      return;
+    if (!autoOpen || !totals.totalsSettled) return;
+    setAutoOpen(false);
+    const gradingCycle = latestPassedCycle(cycles, pacificDateKey(new Date()));
+    if (gradingCycle !== null) {
+      setViewMode("cycle");
+      void grades.loadCycle(gradingCycle);
     }
-    try {
-      window.localStorage.setItem(SORT_STORAGE_KEY, sortBy);
-    } catch {
-      // Storage may be unavailable (private mode / quota); skip persistence.
-    }
-  }, [sortBy, sortLoaded]);
+    // Decides once, when the first totals (and cycles) arrive.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoOpen, totals.totalsSettled, cycles]);
 
-  const visibleMissing = useMemo(
-    () =>
-      missingData
-        ? missingData.missingReport.filter((person) => !excludedIds.includes(person.userId))
-        : [],
-    [missingData, excludedIds]
+  useEffect(() => {
+    if (viewReady && !autoOpen && grades.pendingCycleNumber === null) writeStoredView(viewKey(viewMode, grades.activeCycleNumber));
+  }, [viewReady, autoOpen, viewMode, grades.activeCycleNumber, grades.pendingCycleNumber]);
+
+  // Fresh cycle rows (a cycle opened, or Refresh): fetch the missing report again, so the Not
+  // entered chip and the counts match the rows (another producer may have changed grades).
+  useEffect(() => {
+    if (grades.loadVersion > 0) void missing.loadMissing({ reuseInFlight: true });
+    // Only when fresh rows land.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [grades.loadVersion]);
+
+  // The loaded cycle (its rows are on screen) and the one the tab shows: a different cycle while
+  // its rows load. The header and the locked notice follow the tab; row controls follow the rows.
+  const activeCycle = useMemo(
+    () => cycles.find((cycle) => cycle.cycleNumber === grades.activeCycleNumber) ?? null,
+    [cycles, grades.activeCycleNumber]
+  );
+  const activeCycleHasFinalCut = Boolean(activeCycle?.finalCutDate);
+  const activeCycleAverage = grades.cycleAverages.find((entry) => entry.cycleNumber === grades.activeCycleNumber) ?? null;
+  const shownCycleNumber = grades.pendingCycleNumber ?? grades.activeCycleNumber;
+  const shownCycle = cycles.find((cycle) => cycle.cycleNumber === shownCycleNumber) ?? null;
+  /** Another cycle's rows are loading: the rows on screen are the old cycle's. */
+  const switchingCycle = grades.pendingCycleNumber !== null && grades.pendingCycleNumber !== grades.activeCycleNumber;
+
+  const sortedRows = useMemo(() => sortByName(grades.rows, sortBy), [grades.rows, sortBy]);
+  const sortedTotalsRows = useMemo(() => sortByName(totals.totalsRows, sortBy), [totals.totalsRows, sortBy]);
+  const totalsByUserId = useMemo(() => new Map(totals.totalsRows.map((row) => [row.userId, row] as const)), [totals.totalsRows]);
+  // The Student list sorts itself (its own name order, unchanged from before).
+  const studentPeople = useMemo(
+    () => totals.totalsRows.map((row) => ({ userId: row.userId, name: row.name, email: row.email })),
+    [totals.totalsRows]
   );
 
-  async function loadTotals(options?: { silent?: boolean }) {
-    try {
-      if (!options?.silent) setTotalsLoading(true);
-      setMessage(null);
-      const data = await fetchTotals();
-      setCycles(data.cycles);
-      setCheckInPossible(data.checkInPossible ?? 0);
-      setTotalsRows(data.totalsRows);
-      const staleCheckIns = new Set(staleCheckInTotalsRef.current);
-      staleCheckInTotalsRef.current.clear();
-      setTotalsAdjustments((current) => {
-        const next = new Map(current);
-        for (const row of data.totalsRows) {
-          const existing = next.get(row.userId);
-          next.set(
-            row.userId,
-            existing ? {
-              ...existing,
-              notes: row.notes,
-              ...(staleCheckIns.has(row.userId) ? { checkIns: row.checkInPoints } : {})
-            } : adjustmentsFromTotalsRow(row)
-          );
-        }
-        return next;
-      });
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to load totals.");
-    } finally {
-      if (!options?.silent) setTotalsLoading(false);
-    }
-  }
+  const notEnteredIds = useMemo(() => {
+    const report = missing.missingData;
+    if (!report || !report.consideredCycleNumbers.includes(grades.activeCycleNumber)) return null;
+    return notEnteredIdsForCycle(report, grades.activeCycleNumber);
+  }, [missing.missingData, grades.activeCycleNumber]);
+  const notEnteredReady = notEnteredIds !== null;
+  const filterCounts = useMemo(() => cycleFilterCounts(grades.rows, notEnteredIds), [grades.rows, notEnteredIds]);
+  // Published, scored grades: exempt and ungraded are left out, as the server's count does.
+  const publishedCount = useMemo(() => grades.rows.filter((row) => row.published && !row.finalCutState).length, [grades.rows]);
 
-  async function openMissing() {
-    setMissingOpen(true);
-    setShowExcludePanel(false);
-    setMissingLoading(true);
-    setMissingError(null);
-    try {
-      const data = await fetchMissing();
-      setMissingData(data);
-    } catch (error) {
-      setMissingError(error instanceof Error ? error.message : "Failed to load missing grades.");
-    } finally {
-      setMissingLoading(false);
-    }
-  }
-
-  function getAdjustments(userId: string): TotalsAdjustments {
-    return totalsAdjustments.get(userId) ?? defaultTotalsAdjustments();
-  }
-
-  function updateAdjustment(userId: string, patch: Partial<TotalsAdjustments>) {
-    setTotalsAdjustments((current) => {
-      const next = new Map(current);
-      const existing = next.get(userId) ?? defaultTotalsAdjustments();
-      next.set(userId, { ...existing, ...patch });
-      return next;
-    });
-  }
-
-  const notesSaveTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
-
-  function scheduleNotesSave(userId: string, notes: string) {
-    const existing = notesSaveTimersRef.current.get(userId);
-    if (existing) clearTimeout(existing);
-    const timer = setTimeout(async () => {
-      notesSaveTimersRef.current.delete(userId);
-      try {
-        const response = await fetch(`/api/grades/admin`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "setTotalNotes", userId, notes })
-        });
-        if (!response.ok) {
-          const payload = (await response.json().catch(() => ({}))) as { error?: { message?: string } };
-          throw new Error(payload.error?.message ?? "Failed to save notes.");
-        }
-        setTotalsRows((rows) =>
-          rows.map((row) => (row.userId === userId ? { ...row, notes } : row))
-        );
-      } catch (error) {
-        setMessage(error instanceof Error ? error.message : "Failed to save notes.");
-      }
-    }, 600);
-    notesSaveTimersRef.current.set(userId, timer);
-  }
-
-  function updateNotes(userId: string, notes: string) {
-    updateAdjustment(userId, { notes });
-    scheduleNotesSave(userId, notes);
-  }
-
-  async function loadCycle(cycleNumber: number, options?: { silent?: boolean }) {
-    const sequence = ++loadCycleSequenceRef.current;
-    try {
-      clearAllAutosaves();
-      if (!options?.silent) {
-        setLoading(true);
-      }
-      setMessage(null);
-      const data = await fetchGrades(cycleNumber);
-      if (loadCycleSequenceRef.current !== sequence) return;
-      setCycles(data.cycles);
-      setActiveCycleNumber(data.activeCycleNumber);
-      setRows(data.rows);
-      setSavedRows(data.rows);
-      setCycleAverages(data.cycleAverages);
-    } catch (error) {
-      if (loadCycleSequenceRef.current !== sequence) return;
-      setMessage(error instanceof Error ? error.message : "Failed to load grades.");
-    } finally {
-      if (loadCycleSequenceRef.current === sequence && !options?.silent) {
-        setLoading(false);
-      }
-    }
-  }
-
-  function goToCycle(cycleNumber: number) {
-    const inCycleViewWithRows = viewMode === "cycle" && rows.length > 0;
-
-    if (inCycleViewWithRows && cycleNumber === activeCycleNumber) {
+  // A chip snapshots which rows match, so a row doesn't vanish while someone works on it.
+  // It is re-taken when the chip is clicked again, fresh rows load, or the missing report
+  // (which narrows Not entered to people on this cycle) arrives.
+  useEffect(() => {
+    if (cycleFilter === "all") {
+      setFilterSnapshot(null);
       return;
     }
+    setFilterSnapshot({
+      filter: cycleFilter,
+      ids: new Set(grades.rows.filter((row) => cycleFilterMatches(row, cycleFilter, notEnteredIds)).map((row) => row.userId))
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cycleFilter, grades.loadVersion, snapshotNonce, notEnteredReady]);
 
-    if (inCycleViewWithRows && cycleNumber !== activeCycleNumber && hasUnsavedChanges) {
+  const visibleRows = useMemo(() => {
+    // Until the snapshot for this chip is taken (the first render after a click), match live.
+    const snapshot = filterSnapshot?.filter === cycleFilter ? filterSnapshot.ids : null;
+    return sortedRows.filter(
+      (row) =>
+        matchesSearch(row, search) &&
+        (cycleFilter === "all" || (snapshot ? snapshot.has(row.userId) : cycleFilterMatches(row, cycleFilter, notEnteredIds)))
+    );
+  }, [sortedRows, search, cycleFilter, filterSnapshot, notEnteredIds]);
+
+  const allTotalsViews = useMemo<TotalsRowView[]>(
+    () =>
+      sortedTotalsRows.map((row) => {
+        const stored = totals.totalsAdjustments.get(row.userId);
+        const adjustments = stored ?? defaultTotalsAdjustments();
+        return {
+          row,
+          adjustments,
+          summary: totalsRowSummary(row, adjustments, totals.checkInPossible, cycles.length),
+          edited: hasTemporaryEdits(row, stored)
+        };
+      }),
+    [sortedTotalsRows, totals.totalsAdjustments, totals.checkInPossible, cycles.length]
+  );
+  const visibleTotalsViews = useMemo(() => allTotalsViews.filter((view) => matchesSearch(view.row, search)), [allTotalsViews, search]);
+  const temporaryEdits = useMemo(() => allTotalsViews.filter((view) => view.edited).length, [allTotalsViews]);
+
+  const missingByCycle = useMemo(() => missingCountsByCycle(missing.missingData, excludedIds), [missing.missingData, excludedIds]);
+  const missingPeople = useMemo(
+    () => (missing.missingData ? missing.missingData.missingReport.filter((person) => !excludedIds.includes(person.userId)).length : null),
+    [missing.missingData, excludedIds]
+  );
+
+  function selectFilter(next: CycleFilter) {
+    setCycleFilter(next);
+    setSnapshotNonce((value) => value + 1);
+  }
+
+  /**
+   * Save all and Publish all work through the loaded cycle's rows one request at a time, so no
+   * other cycle opens until they finish (its tab and Open cycle are disabled with this reason).
+   */
+  function cycleSwitchBlockedReason(cycleNumber: number): string | null {
+    if (!(grades.savingAll || grades.publishingAll) || cycleNumber === grades.activeCycleNumber) return null;
+    return `Wait for ${grades.publishingAll ? "Publish all" : "Save all"} to finish`;
+  }
+
+  function goToCycle(cycleNumber: number, filter?: CycleFilter) {
+    if (cycleSwitchBlockedReason(cycleNumber)) return;
+    const inCycleViewWithRows = viewMode === "cycle" && grades.rows.length > 0;
+    const sameCycle = cycleNumber === grades.activeCycleNumber && grades.rows.length > 0;
+    if (inCycleViewWithRows && sameCycle && grades.pendingCycleNumber === null) {
+      if (filter) selectFilter(filter);
+      return;
+    }
+    if (grades.rows.length > 0 && !sameCycle && grades.hasUnsavedChanges) {
       const proceed = window.confirm("You have unsaved changes. Switch cycle and discard them?");
       if (!proceed) return;
     }
-
+    if (filter) selectFilter(filter);
+    setAutoOpen(false);
     setViewMode("cycle");
-    void loadCycle(cycleNumber, inCycleViewWithRows ? { silent: true } : undefined);
+    setSheetUserId(null);
+    // Coming back to the same cycle with edits still saving, or while Save all / Publish all runs
+    // on it: keep the rows instead of reloading. If another cycle is loading meanwhile (its switch
+    // already confirmed), reload this one instead, which also stops the other from landing.
+    const keepRows = grades.hasUnsavedChanges || grades.savingAll || grades.publishingAll;
+    if (sameCycle && keepRows && grades.pendingCycleNumber === null) return;
+    void grades.loadCycle(cycleNumber, inCycleViewWithRows || sameCycle ? { silent: true } : undefined);
+  }
+
+  function goToTotal() {
+    setAutoOpen(false);
+    setViewMode("total");
+    setSheetUserId(null);
+    void totals.loadTotals({ silent: true });
   }
 
   function goToStudentView(userId?: string) {
-    const inCycleViewWithRows = viewMode === "cycle" && rows.length > 0;
-    if (inCycleViewWithRows && hasUnsavedChanges) {
+    const inCycleViewWithRows = viewMode === "cycle" && grades.rows.length > 0;
+    if (inCycleViewWithRows && grades.hasUnsavedChanges) {
       const proceed = window.confirm("You have unsaved changes. Switch view and discard them?");
       if (!proceed) return;
     }
-
-    setViewMode(STUDENT_VIEW);
+    setAutoOpen(false);
+    setViewMode("student");
+    setSheetUserId(null);
     if (userId) setSelectedStudentId(userId);
-    if (totalsRows.length === 0) {
-      void loadTotals({ silent: true });
+    if (totals.totalsRows.length === 0) {
+      void totals.loadTotals({ silent: true });
     }
   }
 
-  loadCycleRef.current = loadCycle;
-  flushAutosavesRef.current = flushAutosaves;
-
-  useEffect(() => {
-    void loadTotals();
-  }, []);
-
-  const activeCycle = useMemo(
-    () => cycles.find((cycle) => cycle.cycleNumber === activeCycleNumber) ?? null,
-    [cycles, activeCycleNumber]
-  );
-
-  const activeCycleAverage = useMemo(
-    () => cycleAverages.find((entry) => entry.cycleNumber === activeCycleNumber) ?? null,
-    [cycleAverages, activeCycleNumber]
-  );
-  const activeCycleHasFinalCut = Boolean(activeCycle?.finalCutDate);
-  const feedbackModalRow = useMemo(
-    () => rows.find((row) => row.userId === feedbackModalUserId) ?? null,
-    [rows, feedbackModalUserId]
-  );
-  const extensionNoteRow = useMemo(
-    () => rows.find((row) => row.userId === extensionNoteUserId) ?? null,
-    [rows, extensionNoteUserId]
-  );
-  const publicationHistoryRow = useMemo(
-    () => rows.find((row) => row.userId === publicationHistoryUserId) ?? null,
-    [rows, publicationHistoryUserId]
-  );
-  const totalsNotesRow = useMemo(
-    () => totalsRows.find((row) => row.userId === totalsNotesUserId) ?? null,
-    [totalsRows, totalsNotesUserId]
-  );
-
-  const savedRowMap = useMemo(() => {
-    return new Map(savedRows.map((row) => [row.userId, row]));
-  }, [savedRows]);
-
-  useEffect(() => {
-    rowsRef.current = rows;
-  }, [rows]);
-
-  useEffect(() => {
-    savedRowMapRef.current = savedRowMap;
-  }, [savedRowMap]);
-
-  useEffect(() => {
-    activeCycleNumberRef.current = activeCycleNumber;
-  }, [activeCycleNumber]);
-
-  useEffect(() => {
-    autosaveBlockedRef.current = { savingAll, publishingAll, publishingUserId };
-  }, [savingAll, publishingAll, publishingUserId]);
-
-  const hasUnsavedChanges = useMemo(
-    () =>
-      rows.some((row) => rowHasUnsavedChanges(row, savedRowMap.get(row.userId))),
-    [rows, savedRowMap]
-  );
-
-  const sortedRows = useMemo(() => {
-    return [...rows].sort((a, b) => {
-      const aName = a.name?.trim() ?? "";
-      const bName = b.name?.trim() ?? "";
-      const aPart = sortBy === "lastName" ? (aName.split(" ").pop() ?? aName) : (aName.split(" ")[0] ?? aName);
-      const bPart = sortBy === "lastName" ? (bName.split(" ").pop() ?? bName) : (bName.split(" ")[0] ?? bName);
-      return aPart.localeCompare(bPart);
-    });
-  }, [rows, sortBy]);
-
-  const sortedTotalsRows = useMemo(() => {
-    return [...totalsRows].sort((a, b) => {
-      const aName = a.name?.trim() ?? "";
-      const bName = b.name?.trim() ?? "";
-      const aPart = sortBy === "lastName" ? (aName.split(" ").pop() ?? aName) : (aName.split(" ")[0] ?? aName);
-      const bPart = sortBy === "lastName" ? (bName.split(" ").pop() ?? bName) : (bName.split(" ")[0] ?? bName);
-      return aPart.localeCompare(bPart);
-    });
-  }, [totalsRows, sortBy]);
-
-  const totalsByUserId = useMemo(
-    () => new Map(totalsRows.map((row) => [row.userId, row] as const)),
-    [totalsRows]
-  );
-
-  const selectedStudent = useMemo(
-    () => totalsRows.find((row) => row.userId === selectedStudentId) ?? null,
-    [totalsRows, selectedStudentId]
-  );
-
-  const busy = savingAll || publishingAll || savingUserId !== null || publishingUserId !== null;
-  const csvDownloadDisabled = viewMode === TOTAL_VIEW ? totalsLoading : loading;
-
-  function autosaveBlocked() {
-    return (
-      autosaveBlockedRef.current.savingAll ||
-      autosaveBlockedRef.current.publishingAll ||
-      autosaveBlockedRef.current.publishingUserId !== null
-    );
+  function selectView(key: string) {
+    const parsed = parseViewKey(key);
+    if (!parsed) return;
+    if (parsed.viewMode === "cycle" && parsed.cycleNumber !== null) goToCycle(parsed.cycleNumber);
+    else if (parsed.viewMode === "total") goToTotal();
+    else goToStudentView();
   }
 
-  function clearAllAutosaves() {
-    for (const timer of autosaveTimersRef.current.values()) {
-      clearTimeout(timer);
-    }
-    autosaveTimersRef.current.clear();
-    pendingAutosaveUserIdsRef.current.clear();
-  }
-
-  function clearRowAutosaveTimer(userId: string) {
-    const existing = autosaveTimersRef.current.get(userId);
-    if (!existing) return;
-    clearTimeout(existing);
-    autosaveTimersRef.current.delete(userId);
-  }
-
-  async function flushAutosaves() {
-    if (autosaveRunningRef.current) return;
-    if (autosaveBlocked()) return;
-
-    autosaveRunningRef.current = true;
-
-    try {
-      while (pendingAutosaveUserIdsRef.current.size > 0) {
-        if (autosaveBlocked()) {
-          return;
-        }
-
-        const nextUserId = pendingAutosaveUserIdsRef.current.values().next().value as string | undefined;
-        if (!nextUserId) {
-          return;
-        }
-
-        pendingAutosaveUserIdsRef.current.delete(nextUserId);
-
-        const latestRow = rowsRef.current.find((entry) => entry.userId === nextUserId);
-        const latestBaseline = savedRowMapRef.current.get(nextUserId);
-        if (!latestRow || !rowHasUnsavedChanges(latestRow, latestBaseline)) {
-          continue;
-        }
-
-        await saveRow(nextUserId);
-      }
-    } finally {
-      autosaveRunningRef.current = false;
-
-      if (
-        pendingAutosaveUserIdsRef.current.size > 0 &&
-        !autosaveBlocked()
-      ) {
-        void flushAutosaves();
-      }
+  function refresh() {
+    if (viewMode === "cycle") {
+      if (grades.hasUnsavedChanges && !window.confirm("You have unsaved changes. Refresh and discard them?")) return;
+      void grades.reloadCycle({ silent: true });
+    } else {
+      void totals.loadTotals({ silent: true });
+      void missing.loadMissing();
+      if (viewMode === "student") setStudentRefreshToken((value) => value + 1);
     }
   }
 
-  function scheduleRowAutosave(userId: string) {
-    clearRowAutosaveTimer(userId);
-
-    const timer = setTimeout(() => {
-      autosaveTimersRef.current.delete(userId);
-      pendingAutosaveUserIdsRef.current.add(userId);
-      void flushAutosaves();
-    }, 700);
-
-    autosaveTimersRef.current.set(userId, timer);
+  function openMissing() {
+    setMissingOpen(true);
+    void missing.loadMissing({ reuseInFlight: true });
   }
 
-  function updateRow(userId: string, patch: Partial<GradeRow>) {
-    setRows((current) =>
-      current.map((row) =>
-        row.userId === userId
-          ? {
-              ...row,
-              ...patch
-            }
-          : row
-      )
-    );
-  }
-
-  function updateRowAndAutosave(userId: string, patch: Partial<GradeRow>) {
-    updateRow(userId, patch);
-    scheduleRowAutosave(userId);
-  }
-
-  async function saveCheckIn(userId: string, stage: CheckInStage, value: string) {
-    if (checkInSaveRef.current) return;
-    const cycleNumber = activeCycleNumberRef.current;
-    checkInSaveRef.current = true;
-    setSavingCheckIn(true);
-    try {
-      const response = await fetch("/api/grades/admin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "setCheckIn", userId, cycleNumber, stage, points: value === "auto" ? null : value === "UNGRADED" || value === "EXEMPT" ? value : Number(value) })
-      });
-      const payload = await response.json() as {
-        data?: Pick<GradeRow, "checkInScores" | "checkInOverrides">;
-        error?: { message?: string };
-      };
-      if (!response.ok || !payload.data) throw new Error(payload.error?.message ?? "Failed to save check-in.");
-      if (activeCycleNumberRef.current === cycleNumber) {
-        const patch = payload.data;
-        setRows((current) => current.map((row) => row.userId === userId ? { ...row, ...patch } : row));
-        setSavedRows((current) => current.map((row) => row.userId === userId ? { ...row, ...patch } : row));
-      }
-      staleCheckInTotalsRef.current.add(userId);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to save check-in.");
-    } finally {
-      checkInSaveRef.current = false;
-      setSavingCheckIn(false);
-    }
-  }
-
-  async function saveRow(userId: string) {
-    const row = rowsRef.current.find((entry) => entry.userId === userId);
-    if (!row) return false;
-
-    try {
-      setSavingUserId(userId);
-
-      const response = await fetch("/api/grades/admin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "save",
-          cycleNumber: activeCycleNumberRef.current,
-          userId,
-          effortPoints: row.effortPoints,
-          finalCutState: row.finalCutState,
-          teamworkPoints: row.teamworkPoints ?? 0,
-          feedback: row.feedback,
-          turnedInDate: row.turnedInDate
-        })
-      });
-
-      const payload = (await response.json()) as {
-        data?: GradeMutationPayload;
-        error?: { message?: string };
-      };
-
-      if (!response.ok || !payload.data) {
-        throw new Error(payload.error?.message ?? "Failed to save grade.");
-      }
-
-      clearRowAutosaveTimer(userId);
-      pendingAutosaveUserIdsRef.current.delete(userId);
-
-      const previousSaved = savedRowMapRef.current.get(userId);
-      const turnedInDateChanged = (previousSaved?.turnedInDate ?? null) !== (payload.data!.turnedInDate ?? null);
-      if (turnedInDateChanged && payload.data!.extensionsRemaining < 0) {
-        const rowEntry = rowsRef.current.find((r) => r.userId === userId);
-        setExtensionDepletedWarning({
-          userName: rowEntry?.name?.trim() || "Unnamed user",
-          remaining: payload.data!.extensionsRemaining
-        });
-      }
-
-      setRows((current) =>
-        current.map((entry) => (entry.userId === userId ? applyMutationToRow(entry, payload.data!) : entry))
-      );
-      setSavedRows((current) =>
-        current.map((entry) => (entry.userId === userId ? applyMutationToRow(entry, payload.data!) : entry))
-      );
-      return true;
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to save grade.");
-      return false;
-    } finally {
-      setSavingUserId(null);
-    }
-  }
-
-  async function togglePublish(userId: string) {
-    const row = rowsRef.current.find((entry) => entry.userId === userId);
-    if (!row) return false;
-
-    try {
-      setPublishingUserId(userId);
-
-      const response = await fetch("/api/grades/admin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "setPublish",
-          cycleNumber: activeCycleNumberRef.current,
-          userId,
-          published: !row.published
-        })
-      });
-
-      const payload = (await response.json()) as {
-        data?: GradeMutationPayload;
-        error?: { message?: string };
-      };
-
-      if (!response.ok || !payload.data) {
-        throw new Error(payload.error?.message ?? "Failed to update publish state.");
-      }
-
-      setRows((current) =>
-        current.map((entry) => (entry.userId === userId ? applyMutationToRow(entry, payload.data!) : entry))
-      );
-      setSavedRows((current) =>
-        current.map((entry) => (entry.userId === userId ? applyMutationToRow(entry, payload.data!) : entry))
-      );
-      return true;
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to update publish state.");
-      return false;
-    } finally {
-      setPublishingUserId(null);
-    }
-  }
-
-  async function saveAllRows() {
-    clearAllAutosaves();
-
-    const dirtyRows = rows.filter((row) => rowHasUnsavedChanges(row, savedRowMap.get(row.userId)));
-
-    if (dirtyRows.length === 0) {
-      return;
-    }
-
-    try {
-      setSavingAll(true);
-      for (const row of dirtyRows) {
-        const success = await saveRow(row.userId);
-        if (!success) {
-          return;
-        }
-      }
-    } finally {
-      setSavingAll(false);
-    }
-  }
-
-  async function publishAllFilledRows() {
-    const filledRows = rows.filter(isRowFilledIn);
-
-    if (filledRows.length === 0) {
-      return;
-    }
-
-    const dirtyFilledRows = filledRows.filter((row) => rowHasUnsavedChanges(row, savedRowMap.get(row.userId)));
-    const unpublishedFilledRows = filledRows.filter((row) => !row.published);
-
-    if (dirtyFilledRows.length === 0 && unpublishedFilledRows.length === 0) {
-      return;
-    }
-
-    try {
-      setPublishingAll(true);
-
-      for (const row of dirtyFilledRows) {
-        const success = await saveRow(row.userId);
-        if (!success) {
-          return;
-        }
-      }
-
-      for (const row of unpublishedFilledRows) {
-        const success = await togglePublish(row.userId);
-        if (!success) {
-          return;
-        }
-      }
-    } finally {
-      setPublishingAll(false);
-    }
+  async function publishAll() {
+    await grades.publishAllFilledRows();
+    void missing.loadMissing();
   }
 
   function downloadCsv() {
-    const csv =
-      viewMode === TOTAL_VIEW
-        ? buildTotalGradesCsv({
-            cycles,
-            checkInPossible,
-            rows: sortedTotalsRows.map((row) => ({
-              name: row.name,
-              email: row.email,
-              participationEarned: row.participationEarned,
-              participationPossible: row.participationPossible,
-              cycleTotals: row.cycleTotals,
-              checkInPossible: row.checkInPossible,
-              adjustments: getAdjustments(row.userId)
-            }))
-          })
-        : buildCycleGradesCsv({
-            cycleNumber: activeCycleNumber,
-            rows: sortedRows
-          });
-    const fileName =
-      viewMode === TOTAL_VIEW
-        ? "total-grades.csv"
-        : `package-cycle-${activeCycleNumber}-grades.csv`;
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-
-    link.href = url;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
+    if (viewMode === "total") {
+      downloadFile(
+        "total-grades.csv",
+        buildTotalGradesCsv({
+          cycles,
+          checkInPossible: totals.checkInPossible,
+          rows: sortedTotalsRows.map((row) => ({
+            name: row.name,
+            email: row.email,
+            participationEarned: row.participationEarned,
+            participationPossible: row.participationPossible,
+            cycleTotals: row.cycleTotals,
+            checkInPossible: row.checkInPossible,
+            adjustments: totals.getAdjustments(row.userId)
+          }))
+        })
+      );
+      return;
+    }
+    downloadFile(
+      `package-cycle-${grades.activeCycleNumber}-grades.csv`,
+      buildCycleGradesCsv({ cycleNumber: grades.activeCycleNumber, rows: sortedRows })
+    );
   }
 
-  useEffect(() => {
-    if (!savingAll && !publishingAll && publishingUserId === null && pendingAutosaveUserIdsRef.current.size > 0) {
-      void flushAutosavesRef.current();
+  function rowSaveState(userId: string): SaveStateValue {
+    if (grades.savingUserId === userId) return "saving";
+    const dirty = grades.dirtyUserIds.has(userId);
+    if (dirty && grades.failedUserId === userId) return "error";
+    return dirty ? "dirty" : "saved";
+  }
+
+  const pageSaveState: SaveStateValue =
+    grades.savingAll || grades.savingUserId !== null
+      ? "saving"
+      : grades.failedUserId !== null && grades.dirtyUserIds.has(grades.failedUserId)
+        ? "error"
+        : grades.hasUnsavedChanges
+          ? "dirty"
+          : "saved";
+
+  const rowState: CycleRowState = {
+    dirtyUserIds: grades.dirtyUserIds,
+    savingUserId: grades.savingUserId,
+    failedUserId: grades.failedUserId,
+    publishingUserId: grades.publishingUserId,
+    savingAll: grades.savingAll,
+    publishingAll: grades.publishingAll,
+    savingCheckIn: grades.savingCheckIn,
+    locked: !activeCycleHasFinalCut
+  };
+  const cycleHandlers: CycleRowHandlers = {
+    onOpenStudent: (userId) => goToStudentView(userId),
+    onUpdateRow: grades.updateRowAndAutosave,
+    onSaveCheckIn: (userId, stage, value) => void grades.saveCheckIn(userId, stage, value),
+    onTogglePublish: (userId) => void grades.togglePublish(userId),
+    onOpenFeedback: setFeedbackModalUserId,
+    onOpenHistory: setPublicationHistoryUserId
+  };
+  const totalsHandlers: TotalsRowHandlers = {
+    onOpenStudent: (userId) => goToStudentView(userId),
+    onUpdateAdjustment: totals.updateAdjustment,
+    onOpenNotes: setTotalsNotesUserId
+  };
+
+  // Switching cycles keeps the old rows on screen but not editable; a Refresh of the same cycle
+  // leaves them editable, as before. Both show the progress line.
+  const rowsInert = switchingCycle && grades.rows.length > 0;
+  const panelBusy = viewMode === "cycle" ? grades.pendingCycleNumber !== null && grades.rows.length > 0 : totals.totalsRefreshing;
+  const cycleLoading = grades.pendingCycleNumber !== null;
+  // While a first visit decides its view, the Total table stays a skeleton, so its rows don't
+  // flash before the page moves to the cycle being graded.
+  const totalsTableLoading = totals.totalsLoading || autoOpen;
+
+  const cycleStats: CycleStats | null =
+    viewMode === "cycle" && !switchingCycle && grades.rows.length > 0
+      ? {
+          reporterCount: grades.rows.length,
+          publishedCount,
+          averageTotal: activeCycleAverage?.averageTotal ?? null,
+          averagePercentage: activeCycleAverage?.averagePercentage ?? null,
+          overExtensions: filterCounts["over-extensions"]
+        }
+      : null;
+
+  function emptyNode() {
+    const all = viewMode === "cycle" ? grades.rows.length : totals.totalsRows.length;
+    if (all === 0 && message) {
+      return <ErrorState title="Couldn't load grades" message="The reason is shown above." onRetry={refresh} busy={panelBusy} />;
     }
-  }, [savingAll, publishingAll, publishingUserId]);
-
-  useEffect(() => {
-    return () => {
-      clearAllAutosaves();
-    };
-  }, []);
-
-  const totalsGroups: HeaderGroup[] = [
-    { label: "", columns: [{ label: "Reporter" }] },
-    {
-      label: "Packages",
-      hint: `/${MAX_PACKAGE_PER_CYCLE} each`,
-      columns: [
-        ...cycles.map((cycle) => ({ label: `Cycle ${cycle.cycleNumber}`, width: 76 })),
-        { label: "Subtotal", width: 84 }
-      ]
-    },
-    {
-      label: "Semester credits",
-      columns: [
-        { label: "Check-ins", width: 96 },
-        { label: "Livestream", sub: `/${MAX_LIVESTREAM}`, width: 108 },
-        { label: "Participation", title: "Graded days in weeks that have ended", width: 112 },
-        { label: "Final", sub: `/${MAX_FINAL}`, width: 84 },
-        { label: "Extra", title: "Earned / possible", width: 112 }
-      ]
-    },
-    { label: "Total grade", columns: [{ label: "Grade", width: 136 }] },
-    { label: "", columns: [{ label: "Notes", width: 56 }] }
-  ];
-
-  return (
-    <div className="route-enter mx-auto w-full max-w-[1760px] space-y-5 pb-24">
-      <PageHeader
-        eyebrow="Grade Editor · Producer view"
-        title={
-          viewMode === TOTAL_VIEW
-            ? "Total Grade"
-            : viewMode === STUDENT_VIEW
-              ? "Student Gradebook"
-              : `Package Cycle ${activeCycle?.cycleNumber ?? "—"}`
-        }
-        description={
-          <>
-            {viewMode === TOTAL_VIEW
-              ? "Aggregate package scores, check-ins, livestream, completed-week participation, and final credits."
-              : viewMode === STUDENT_VIEW
-                ? "Open one reporter's grades in the same Schoology-style table students see."
-                : "Score each reporter's final cut out of 50. Late 20%/30% applies automatically. A second revision after a grade below 75% is capped at 37/50."}
-            <span className="mt-1 block text-xs">
-              {viewMode === TOTAL_VIEW ? (
-                <>
-                  <strong className="font-semibold text-foreground">{totalsRows.length}</strong> reporters · max{" "}
-                  <strong className="font-semibold text-foreground">
-                    {cycles.length * MAX_PACKAGE_PER_CYCLE +
-                      cycles.length * MAX_CHECK_INS_PER_CYCLE +
-                      MAX_LIVESTREAM +
-                      MAX_FINAL}
-                  </strong>{" "}
-                  pts (50×cycles + 20×cycles + 40 livestream + 100 portfolio)
-                </>
-              ) : viewMode === STUDENT_VIEW ? (
-                selectedStudent
-                  ? selectedStudent.name?.trim() || selectedStudent.email || "Unnamed user"
-                  : "Pick a reporter from the list"
-              ) : (
-                <>
-                  Final Cut:{" "}
-                  <strong className="font-semibold text-foreground">
-                    {formatLongDate(activeCycle?.finalCutDate ?? null)}
-                  </strong>
-                  {" · Auto-saving · "}
-                  <strong className="font-semibold text-foreground">{rows.length}</strong> reporters
-                </>
-              )}
-            </span>
-          </>
-        }
-        actions={
-          viewMode === "cycle" ? (
-            <div
-              className={cn(
-                "inline-flex items-center gap-2 rounded-md px-3.5 py-2 text-xs font-semibold whitespace-nowrap border",
-                hasUnsavedChanges
-                  ? "border-[rgb(242,165,22,0.4)] bg-[rgb(242,165,22,0.15)] text-[var(--brand-amber)]"
-                  : "border-[rgb(43,179,110,0.35)] bg-[rgb(43,179,110,0.12)] text-[var(--brand-green)]"
-              )}
-            >
-              <span
-                className={cn(
-                  "h-1.5 w-1.5 rounded-full",
-                  hasUnsavedChanges ? "bg-[var(--brand-amber)]" : "bg-[var(--brand-green)]"
-                )}
-                style={
-                  hasUnsavedChanges
-                    ? { animation: "rec-pulse 1.4s infinite" }
-                    : undefined
-                }
-              />
-              <span>
-                {hasUnsavedChanges
-                  ? `${rows.filter((r) => rowHasUnsavedChanges(r, savedRowMap.get(r.userId))).length} unsaved changes`
-                  : "All changes saved"}
-              </span>
-            </div>
-          ) : null
+    if (all === 0) {
+      return (
+        <EmptyState icon={Users} title="No reporters to grade yet" description="Executives, the adviser and the super admin are not graded." />
+      );
+    }
+    if (search.trim()) {
+      return (
+        <EmptyState
+          size="inline"
+          icon={SearchX}
+          title={`No reporters match "${search.trim()}"`}
+          action={
+            <Button type="button" variant="outline" size="sm" onClick={() => setSearch("")}>
+              Clear search
+            </Button>
+          }
+        />
+      );
+    }
+    return (
+      <EmptyState
+        size="inline"
+        icon={CheckCircle2}
+        title={cycleFilter === "all" ? "No reporters to show." : FILTER_EMPTY[cycleFilter]}
+        action={
+          <Button type="button" variant="outline" size="sm" onClick={() => selectFilter("all")}>
+            Show all
+          </Button>
         }
       />
+    );
+  }
 
-      {/* Cycle tabs row */}
-      {cycles.length > 0 ? (
-        <div className="flex w-fit items-center gap-1 rounded-md border border-foreground/[0.08] bg-background p-1 max-lg:max-w-full max-lg:flex-wrap">
-          {cycles.map((cycle) => {
-            const isActive = viewMode === "cycle" && activeCycleNumber === cycle.cycleNumber;
-            return (
-              <button
-                key={cycle.cycleNumber}
-                type="button"
-                onClick={() => goToCycle(cycle.cycleNumber)}
-                className={cn(
-                  "inline-flex items-center gap-2 rounded-md px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.11em] transition",
-                  isActive
-                    ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
-                    : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
-                )}
-              >
-                Cycle{" "}
-                <span
-                  className={cn(
-                    "rounded px-1.5 py-0.5 font-mono-broadcast text-[10px] font-medium tabular-nums",
-                    isActive
-                      ? "bg-black/25 text-[var(--on-brand)]"
-                      : "bg-foreground/10 text-[var(--ink-text)]"
-                  )}
-                >
-                  {String(cycle.cycleNumber).padStart(2, "0")}
-                </span>
-              </button>
-            );
-          })}
-          <button
-            type="button"
-            onClick={() => {
-              setViewMode(TOTAL_VIEW);
-              void loadTotals({ silent: true });
-            }}
-            className={cn(
-              "inline-flex items-center gap-2 rounded-md px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.11em] transition",
-              viewMode === TOTAL_VIEW
-                ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
-                : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
-            )}
-          >
-            Total Grade
-          </button>
-          <button
-            type="button"
-            onClick={() => goToStudentView()}
-            className={cn(
-              "inline-flex items-center gap-2 rounded-md px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.11em] transition",
-              viewMode === STUDENT_VIEW
-                ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
-                : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
-            )}
-          >
-            <UserRound className="h-3.5 w-3.5" />
-            Student
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              void openMissing();
-            }}
-            className={cn(
-              "inline-flex items-center gap-2 rounded-md px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.11em] transition",
-              "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
-            )}
-          >
-            <AlertTriangle className="h-3.5 w-3.5" />
-            Missing Grades
-          </button>
-        </div>
-      ) : null}
+  const tabValue = viewMode === "cycle" ? `cycle:${shownCycleNumber}` : viewMode;
+  const tabItems = [
+    ...cycles.map((cycle) => {
+      const count = missingByCycle.get(cycle.cycleNumber) ?? 0;
+      const blockedReason = cycleSwitchBlockedReason(cycle.cycleNumber);
+      return {
+        value: `cycle:${cycle.cycleNumber}`,
+        label: `Cycle ${cycle.cycleNumber}`,
+        title: blockedReason ?? (cycle.focus?.trim() || undefined),
+        disabled: blockedReason !== null,
+        count,
+        countTone: "warning" as const,
+        countLabel: `${count} ${count === 1 ? "person" : "people"} missing or unpublished`
+      };
+    }),
+    { value: "total", label: "Total grade" },
+    { value: "student", label: "Student" }
+  ];
 
-      {/* 4-up stats with mini bars */}
-      {viewMode === TOTAL_VIEW || viewMode === STUDENT_VIEW ? null : (
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <div className="rounded-md border border-border bg-card p-4">
-          <div className="flex items-center justify-between text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--ink-text)]">
-            <span>Cycle Average</span>
-          </div>
-          <div className="mt-1.5 inline-flex items-baseline gap-1.5 text-[28px] font-semibold leading-none tracking-tight text-foreground">
-            {activeCycleAverage?.averageTotal !== null && activeCycleAverage?.averageTotal !== undefined
-              ? activeCycleAverage.averageTotal.toFixed(1)
-              : "—"}
-            <span className="text-sm font-medium text-muted-foreground">/ {MAX_PACKAGE_PER_CYCLE}</span>
-          </div>
-          <div className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--ink-2)]">
-            <div
-              className="h-full rounded-full"
-              style={{
-                width: `${Math.min(100, ((activeCycleAverage?.averageTotal ?? 0) / MAX_PACKAGE_PER_CYCLE) * 100)}%`,
-                background: "var(--brand-green)"
-              }}
-            />
-          </div>
-        </div>
-        <div className="rounded-md border border-border bg-card p-4">
-          <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--ink-text)]">
-            Cycle Percentage
-          </div>
-          <div className="mt-1.5 inline-flex items-baseline gap-1.5 text-[28px] font-semibold leading-none tracking-tight text-foreground">
-            {activeCycleAverage?.averagePercentage !== null && activeCycleAverage?.averagePercentage !== undefined
-              ? activeCycleAverage.averagePercentage.toFixed(1)
-              : "—"}
-            <span className="text-sm font-medium text-muted-foreground">%</span>
-          </div>
-          <div className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--ink-2)]">
-            <div
-              className="h-full rounded-full"
-              style={{
-                width: `${Math.min(100, activeCycleAverage?.averagePercentage ?? 0)}%`,
-                background: "var(--brand-green)"
-              }}
-            />
-          </div>
-        </div>
-        <div className="rounded-md border border-border bg-card p-4">
-          <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--ink-text)]">
-            Published
-          </div>
-          <div className="mt-1.5 inline-flex items-baseline gap-1.5 text-[28px] font-semibold leading-none tracking-tight text-foreground">
-            {activeCycleAverage?.publishedCount ?? 0}
-            <span className="text-sm font-medium text-muted-foreground">/ {rows.length}</span>
-          </div>
-          <div className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--ink-2)]">
-            <div
-              className="h-full rounded-full"
-              style={{
-                width: rows.length > 0
-                  ? `${Math.min(100, ((activeCycleAverage?.publishedCount ?? 0) / rows.length) * 100)}%`
-                  : "0%",
-                background: "var(--brand-green)"
-              }}
-            />
-          </div>
-        </div>
-        <div className="rounded-md border border-border bg-card p-4">
-          <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--ink-text)]">
-            Late Submissions
-          </div>
-          <div className="mt-1.5 inline-flex items-baseline gap-1.5 text-[28px] font-semibold leading-none tracking-tight text-[var(--brand-amber)]">
-            {rows.filter((r) => r.extensionsRemaining < 0).length}
-            <span className="text-sm font-medium text-muted-foreground">flagged</span>
-          </div>
-          <div className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--ink-2)]">
-            <div
-              className="h-full rounded-full"
-              style={{
-                width: rows.length > 0
-                  ? `${Math.min(100, (rows.filter((r) => r.extensionsRemaining < 0).length / rows.length) * 100)}%`
-                  : "0%",
-                background: "var(--brand-amber)"
-              }}
-            />
-          </div>
-        </div>
+  const feedbackRow = grades.rows.find((row) => row.userId === feedbackModalUserId) ?? null;
+  const historyRow = grades.rows.find((row) => row.userId === publicationHistoryUserId) ?? null;
+  const extensionNoteRow = grades.rows.find((row) => row.userId === extensionNoteUserId) ?? null;
+  const notesView = allTotalsViews.find((view) => view.row.userId === totalsNotesUserId) ?? null;
+  const sheetRow = viewMode === "cycle" ? (grades.rows.find((row) => row.userId === sheetUserId) ?? null) : null;
+  const sheetTotalsView = viewMode === "total" ? (allTotalsViews.find((view) => view.row.userId === sheetUserId) ?? null) : null;
+  const sheetOrder = viewMode === "cycle" ? visibleRows.map((row) => row.userId) : visibleTotalsViews.map((view) => view.row.userId);
+  const sheetNeighbors = sheetUserId ? neighborIds(sheetOrder, sheetUserId) : { previous: null, next: null };
+  const stepSheet = (id: string | null) => (id ? () => setSheetUserId(id) : null);
+  const selectedStudent = totalsByUserId.get(selectedStudentId ?? "") ?? null;
+
+  if (!viewReady) return <GradeEditorLoading />;
+
+  const tableView = viewMode !== "student";
+
+  return (
+    <div
+      className={cn(
+        "route-enter flex min-w-0 flex-col gap-5",
+        tableView && "lg:h-[calc(100dvh-var(--app-header-h,4rem)-3rem)] lg:min-h-[36rem]"
+      )}
+    >
+      <div className="shrink-0" onKeyDownCapture={moveViewTabFocus}>
+        <ViewTabs ariaLabel="Grade Editor views" idPrefix={TAB_ID_PREFIX} value={tabValue} onChange={selectView} items={tabItems} />
       </div>
-      )}
 
-      {message ? (
-        <p className="rounded-md border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">
-          {message}
-        </p>
-      ) : null}
-      {/* Toolbar */}
-      <section className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          {viewMode === STUDENT_VIEW ? null : (
-          <div className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-[var(--ink)] px-3 focus-within:ring-1 focus-within:ring-ring">
-            <Search className="h-3.5 w-3.5 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search reporters…"
-              aria-label="Search reporters"
-              className="w-[180px] bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground md:text-sm"
-            />
-          </div>
-          )}
-          <button
-            type="button"
-            onClick={() => setSortBy((prev) => (prev === "firstName" ? "lastName" : "firstName"))}
-            className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-[var(--ink)] px-3 text-xs font-semibold text-foreground transition hover:border-[var(--ink-4)]"
-          >
-            Sort: {sortBy === "firstName" ? "First name" : "Last name"}
-            <ChevronDown className="h-3 w-3 text-muted-foreground" />
-          </button>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            size="sm"
-            variant="secondary"
-            className="h-9"
-            onClick={() => {
-              if (viewMode === TOTAL_VIEW) {
-                void loadTotals({ silent: true });
-                return;
-              }
-              if (viewMode === STUDENT_VIEW) {
-                void loadTotals({ silent: true });
-                setStudentRefreshToken((value) => value + 1);
-                return;
-              }
-              void loadCycle(activeCycleNumber, { silent: true });
-            }}
-            disabled={busy}
-          >
-            <RefreshCcw className="mr-1.5 h-3.5 w-3.5" />
-            Refresh
-          </Button>
-          {viewMode === STUDENT_VIEW ? null : (
-          <Button
-            type="button"
-            size="sm"
-            variant="secondary"
-            className="h-9"
-            onClick={downloadCsv}
-            disabled={csvDownloadDisabled}
-          >
-            <Download className="mr-1.5 h-3.5 w-3.5" />
-            Download CSV
-          </Button>
-          )}
-          {viewMode === "cycle" ? (
-            <>
-              <Button
-                type="button"
-                size="sm"
-                className="h-9 bg-[var(--brand-fill)] font-bold text-[var(--on-brand)] hover:bg-[var(--brand-fill-hover)]"
-                onClick={() => void saveAllRows()}
-                disabled={loading || busy}
-              >
-                <Save className="mr-1.5 h-3.5 w-3.5" />
-                Save All
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                className="h-9 bg-[var(--brand-amber)] font-bold text-[var(--ink)] hover:bg-[var(--brand-amber)]/85"
-                onClick={() => void publishAllFilledRows()}
-                disabled={loading || busy}
-              >
-                Publish All
-              </Button>
-            </>
-          ) : null}
-        </div>
-      </section>
-
-      {viewMode === STUDENT_VIEW ? (
-        <StudentGradebookPanel
-          people={sortedTotalsRows.map((row) => ({
-            userId: row.userId,
-            name: row.name,
-            email: row.email
-          }))}
-          selectedUserId={selectedStudentId}
-          onSelectUserId={setSelectedStudentId}
-          sortBy={sortBy}
-          refreshToken={studentRefreshToken}
-        />
-      ) : (
-      <>
-      {viewMode === "cycle" && activeCycle && !activeCycleHasFinalCut ? (
-        <p className="text-xs text-[var(--brand-amber)]">
-          Turned In dates unlock once this cycle has a Final Cut date. Set it in Cycle Dates.
-        </p>
-      ) : null}
-      <p className="text-xs text-muted-foreground">
-        Scores: — ungraded · \ exempt. Both are excluded from totals. Total tab adjustments are temporary; cycle scores save automatically.
-      </p>
-      <section className="overflow-hidden rounded-md border border-border bg-card">
-        {viewMode === TOTAL_VIEW ? (
-          totalsLoading ? (
-            <p className="px-4 py-6 text-sm text-muted-foreground">Loading totals...</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className={TABLE_CLASS} style={{ minWidth: tableMinWidth(totalsGroups) }}>
-                <GradeTableHead groups={totalsGroups} />
-                <tbody>
-                  {sortedTotalsRows.map((row, rowIdx) => {
-                    const adjustments = getAdjustments(row.userId);
-                    const checkInMax =
-                      row.checkInPossible && row.checkInPossible > 0
-                        ? row.checkInPossible
-                        : checkInPossible > 0
-                          ? checkInPossible
-                          : cycles.length * MAX_CHECK_INS_PER_CYCLE;
-                    const packages = packageSubtotal(row.cycleTotals, adjustments.cycleOverrides, MAX_PACKAGE_PER_CYCLE);
-                    const totalGrade =
-                      packages.earned +
-                      (numericGradeScore(adjustments.checkIns) ?? 0) +
-                      (numericGradeScore(adjustments.livestream) ?? 0) +
-                      row.participationEarned +
-                      (numericGradeScore(adjustments.final) ?? 0) +
-                      (numericGradeScore(adjustments.extraPoints) ?? 0);
-                    const totalMax =
-                      packages.possible +
-                      (typeof adjustments.checkIns !== "number" ? 0 : checkInMax) +
-                      (typeof adjustments.livestream !== "number" ? 0 : MAX_LIVESTREAM) +
-                      row.participationPossible +
-                      (typeof adjustments.final !== "number" ? 0 : MAX_FINAL) +
-                      (typeof adjustments.extraPoints === "number" ? adjustments.extraMax : 0);
-                    const totalPct = totalMax > 0 ? (totalGrade / totalMax) * 100 : null;
-
-                    return (
-                      <tr
-                        key={row.userId}
-                        className="border-b border-[hsl(var(--border))]/60 transition hover:bg-[hsl(var(--background))]"
-                      >
-                        <ReporterCell
-                          name={row.name?.trim() || "Unnamed user"}
-                          email={row.email}
-                          rowIndex={rowIdx}
-                          onOpen={() => goToStudentView(row.userId)}
-                        />
-                        {row.cycleTotals.map((entry, entryIdx) => {
-                          const override = adjustments.cycleOverrides[entry.cycleNumber];
-                          const isEditable = entry.totalPoints === null;
-                          return (
-                            <td key={entry.cycleNumber} className={cn(CELL, entryIdx === 0 && GROUP_START)}>
-                              {isEditable ? (
-                                <ScoreInput
-                                  label={`${row.name ?? "Student"} Cycle ${entry.cycleNumber} score`}
-                                  value={override ?? gradeScoreInput(entry.finalCutState ?? null)}
-                                  max={null}
-                                  dashed
-                                  onChange={(raw) => {
-                                    const nextOverrides = { ...adjustments.cycleOverrides };
-                                    if (raw === "") {
-                                      delete nextOverrides[entry.cycleNumber];
-                                    } else if (raw === "-" || raw === "—" || raw === "\\") {
-                                      nextOverrides[entry.cycleNumber] = raw;
-                                    } else if (/^\d*$/.test(raw)) {
-                                      const numeric = Math.min(MAX_PACKAGE_PER_CYCLE, Number(raw));
-                                      nextOverrides[entry.cycleNumber] = String(numeric);
-                                    } else {
-                                      return;
-                                    }
-                                    updateAdjustment(row.userId, { cycleOverrides: nextOverrides });
-                                  }}
-                                />
-                              ) : (
-                                <span
-                                  className={cn(
-                                    "grid h-9 w-12 place-items-center font-mono-broadcast text-sm font-semibold tabular-nums",
-                                    entry.missing ? "text-danger" : "text-foreground"
-                                  )}
-                                  title={entry.missing ? "No approved Final Cut by the deadline" : undefined}
-                                >
-                                  {entry.totalPoints}
-                                </span>
-                              )}
-                            </td>
-                          );
-                        })}
-                        <td className={CELL}>
-                          <PointsReadout
-                            earned={packages.possible > 0 ? packages.earned : null}
-                            possible={packages.possible > 0 ? packages.possible : null}
-                            meter={false}
-                          />
-                        </td>
-                        <td className={cn(CELL, GROUP_START)}>
-                          <ScoreInput
-                            label={`${row.name ?? "Student"} checkIns score`}
-                            value={gradeScoreInput(adjustments.checkIns)}
-                            max={checkInMax}
-                            onChange={(raw) => {
-                              const score = parseGradeScore(raw, checkInMax);
-                              if (score !== undefined) updateAdjustment(row.userId, { checkIns: score });
-                            }}
-                          />
-                        </td>
-                        <td className={CELL}>
-                          <ScoreInput
-                            label={`${row.name ?? "Student"} livestream score`}
-                            value={gradeScoreInput(adjustments.livestream)}
-                            max={null}
-                            onChange={(raw) => {
-                              const score = parseGradeScore(raw, MAX_LIVESTREAM);
-                              if (score !== undefined) updateAdjustment(row.userId, { livestream: score });
-                            }}
-                          />
-                          <p
-                            className="mt-1 whitespace-nowrap text-[11px] leading-none text-muted-foreground"
-                            title={`${row.livestreamHours}/${REQUIRED_LIVESTREAM_HOURS} hours completed`}
-                          >
-                            {row.livestreamHours}/{REQUIRED_LIVESTREAM_HOURS} hrs
-                          </p>
-                        </td>
-                        <td className={CELL}>
-                          <PointsReadout
-                            earned={row.participationEarned}
-                            possible={row.participationPossible}
-                            meter={false}
-                            title="Graded participation from weeks ending before this Monday, Pacific time. Ungraded days are excluded."
-                          />
-                        </td>
-                        <td className={CELL}>
-                          <ScoreInput
-                            label={`${row.name ?? "Student"} final score`}
-                            value={gradeScoreInput(adjustments.final)}
-                            max={null}
-                            onChange={(raw) => {
-                              const score = parseGradeScore(raw, MAX_FINAL);
-                              if (score !== undefined) updateAdjustment(row.userId, { final: score });
-                            }}
-                          />
-                        </td>
-                        <td className={CELL}>
-                          <div className="flex items-center gap-1">
-                            <ScoreInput
-                              label={`${row.name ?? "Student"} extraPoints score`}
-                              value={gradeScoreInput(adjustments.extraPoints)}
-                              max={null}
-                              width="w-10"
-                              placeholder="0"
-                              onChange={(raw) => {
-                                const score = parseGradeScore(raw, Number.MAX_SAFE_INTEGER);
-                                if (score !== undefined) updateAdjustment(row.userId, { extraPoints: score });
-                              }}
-                            />
-                            <span className="font-mono-broadcast text-xs text-muted-foreground">/</span>
-                            <input
-                              aria-label={`${row.name ?? "Student"} extra points possible`}
-                              value={adjustments.extraMax}
-                              inputMode="numeric"
-                              onChange={(event) =>
-                                updateAdjustment(row.userId, {
-                                  extraMax: clampNonNegative(event.target.value)
-                                })
-                              }
-                              className="h-9 w-10 shrink-0 rounded-md border border-border bg-[var(--ink)] px-1 text-center font-mono-broadcast text-sm font-semibold tabular-nums text-foreground outline-none transition focus:border-[var(--brand-green)] focus:ring-1 focus:ring-[var(--brand-green)]"
-                              placeholder="0"
-                            />
-                          </div>
-                        </td>
-                        <td className={cn(CELL, GROUP_START)}>
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={cn(
-                                "grid h-9 w-9 shrink-0 place-items-center rounded-md border text-lg font-semibold leading-none",
-                                gradeBadgeTone(totalPct)
-                              )}
-                              aria-label={totalPct === null ? "No letter grade yet" : `Letter grade ${letterGrade(totalPct)}`}
-                            >
-                              {totalPct === null ? "—" : letterGrade(totalPct)}
-                            </span>
-                            <PointsReadout
-                              earned={totalMax > 0 ? totalGrade : null}
-                              possible={totalMax > 0 ? totalMax : null}
-                              meter={false}
-                            />
-                          </div>
-                        </td>
-                        <td className={CELL}>
-                          <button
-                            type="button"
-                            onClick={() => setTotalsNotesUserId(row.userId)}
-                            title={row.notes.trim() ? "View notes" : "Add notes"}
-                            aria-label={`${row.notes.trim() ? "View" : "Add"} notes for ${row.name ?? "student"}`}
-                            className={cn(
-                              "grid h-9 w-9 place-items-center rounded-md border transition",
-                              row.notes.trim()
-                                ? "border-[rgb(43,179,110,0.35)] bg-[rgb(43,179,110,0.10)] text-[var(--brand-green)] hover:bg-[rgb(43,179,110,0.18)]"
-                                : "border-border bg-[var(--ink)] text-muted-foreground hover:border-[var(--brand-green)] hover:text-foreground"
-                            )}
-                          >
-                            <MessageSquare className="h-4 w-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {totalsRows.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={cycles.length + 9}
-                        className="px-4 py-6 text-center text-sm text-muted-foreground"
-                      >
-                        No gradable users found.
-                      </td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
-            </div>
-          )
-        ) : loading ? (
-          <p className="px-4 py-6 text-sm text-muted-foreground">Loading grade editor...</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className={TABLE_CLASS} style={{ minWidth: tableMinWidth(CYCLE_GROUPS) }}>
-              <GradeTableHead groups={CYCLE_GROUPS} />
-              <tbody>
-                {sortedRows.map((row, rowIdx) => {
-                  const total = scoreTotal(row);
-                  const baseline = savedRowMap.get(row.userId);
-                  const dirty = rowHasUnsavedChanges(row, baseline);
-                  const canPublishRow = isRowFilledIn(row);
-                  const checkIns = cycleCheckInSummary(row.checkInScores);
-                  const checkInsCounted = checkIns.possible > 0;
-                  const participation = totalsByUserId.get(row.userId);
-                  const missedFinalCut = row.finalCutMissing && row.effortPoints === null && !row.finalCutState;
-                  const hasFeedback = Boolean(row.feedback.trim());
-
-                  return (
-                    <tr
-                      key={row.userId}
-                      className={cn(
-                        "border-b border-[hsl(var(--border))]/60 transition hover:bg-[hsl(var(--background))]",
-                        dirty && "bg-[rgb(242,165,22,0.04)]"
-                      )}
-                    >
-                      <ReporterCell
-                        name={rowLabel(row)}
-                        email={row.email}
-                        rowIndex={rowIdx}
-                        onOpen={() => goToStudentView(row.userId)}
-                      >
-                        {dirty ? (
-                          <span className="inline-flex shrink-0 items-center gap-1 text-[var(--brand-amber)]">
-                            <span className="h-1.5 w-1.5 rounded-full bg-[var(--brand-amber)]" />
-                            unsaved
-                          </span>
-                        ) : null}
-                      </ReporterCell>
-                      {CHECK_IN_STAGES.map((stage, stageIdx) => {
-                        const score = row.checkInScores[stage];
-                        const override = row.checkInOverrides[stage];
-                        return (
-                          <td key={stage} className={cn("px-1 py-2.5 align-middle", stageIdx === 0 && GROUP_START, stageIdx === 0 && "pl-2")}>
-                            {score === null ? (
-                              <span className="inline-flex h-9 items-center px-2 text-xs text-muted-foreground">N/A</span>
-                            ) : (
-                              <select
-                                aria-label={`${rowLabel(row)} ${CHECK_IN_LABELS[stage]} score`}
-                                title={override === null ? "Automatic from the stage deadline" : "Manual override"}
-                                value={override ?? "auto"}
-                                disabled={savingCheckIn}
-                                onChange={(event) => void saveCheckIn(row.userId, stage, event.target.value)}
-                                className={cn(
-                                  "h-9 w-full appearance-none rounded-md border bg-[var(--ink)] px-2 text-xs font-semibold tabular-nums outline-none transition focus:border-[var(--brand-green)] disabled:opacity-50",
-                                  override === null ? "border-border" : "border-[rgb(43,179,110,0.45)]",
-                                  checkInTone(score)
-                                )}
-                              >
-                                <option value="auto">{override === null ? `Auto ${gradeScoreLabel(score)}` : "Auto"}</option>
-                                {[5, 4, 3, 2, 1, 0].map((points) => (
-                                  <option key={points} value={points}>{points}</option>
-                                ))}
-                                <option value="UNGRADED">Ungraded</option>
-                                <option value="EXEMPT">Exempt</option>
-                              </select>
-                            )}
-                          </td>
-                        );
-                      })}
-                      <td className={CELL}>
-                        <PointsReadout
-                          earned={checkInsCounted ? checkIns.earned : null}
-                          possible={checkInsCounted ? checkIns.possible : null}
-                          title={
-                            checkIns.released === 0
-                              ? "No check-in is due yet"
-                              : !checkInsCounted
-                                ? "Every due check-in is ungraded or exempt"
-                                : `${checkIns.released} of ${CHECK_IN_STAGES.length} check-ins due so far`
-                          }
-                        />
-                      </td>
-                      <td className={cn(CELL, GROUP_START)}>
-                        <ScoreInput
-                          label={`${rowLabel(row)} Final Cut score`}
-                          value={gradeScoreInput(row.finalCutState ?? row.effortPoints)}
-                          max={null}
-                          placeholder={missedFinalCut ? "0" : "—"}
-                          onChange={(raw) => {
-                            const score = parseGradeScore(raw, MAX_PACKAGE_PER_CYCLE);
-                            if (score === undefined) return;
-                            updateRowAndAutosave(row.userId, {
-                              effortPoints: numericGradeScore(score),
-                              finalCutState: typeof score === "string" ? score : null,
-                              teamworkPoints: 0
-                            });
-                          }}
-                        />
-                      </td>
-                      <td className={CELL}>
-                        <PointsReadout
-                          earned={
-                            row.finalCutState === "EXEMPT"
-                              ? "Exempt"
-                              : row.effortPoints !== null
-                                ? total
-                                : missedFinalCut
-                                  ? 0
-                                  : null
-                          }
-                          possible={row.finalCutState === "EXEMPT" ? null : MAX_PACKAGE_PER_CYCLE}
-                          title={missedFinalCut ? "No approved Final Cut by the deadline" : undefined}
-                        />
-                      </td>
-                      <td className={CELL}>
-                        <input
-                          type="date"
-                          value={row.turnedInDate ?? ""}
-                          disabled={!activeCycleHasFinalCut}
-                          title={activeCycleHasFinalCut ? undefined : FINAL_CUT_REQUIRED_HINT}
-                          aria-label={`Turned In date for ${rowLabel(row)}`}
-                          onChange={(event) => {
-                            updateRowAndAutosave(row.userId, {
-                              turnedInDate: event.target.value || null
-                            });
-                          }}
-                          className={cn(
-                            "h-9 w-full rounded-md border px-1.5 font-mono-broadcast text-xs tabular-nums text-foreground outline-none [color-scheme:dark] light:[color-scheme:light]",
-                            activeCycleHasFinalCut
-                              ? "border-border bg-[var(--ink)] focus:border-[var(--brand-green)]"
-                              : "cursor-not-allowed border-[rgb(242,165,22,0.4)] bg-[rgb(242,165,22,0.08)] text-[var(--brand-amber)]"
-                          )}
-                        />
-                      </td>
-                      <td className={cn(CELL, GROUP_START)}>
-                        {participation ? (
-                          <PointsReadout
-                            earned={participation.participationEarned}
-                            possible={participation.participationPossible}
-                            meter={false}
-                            title="Graded participation from weeks ending before this Monday, Pacific time. Ungraded days are excluded."
-                          />
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
-                      </td>
-                      <td className={cn(CELL, GROUP_START)}>
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => setFeedbackModalUserId(row.userId)}
-                            title={hasFeedback ? "View feedback" : "Add feedback"}
-                            aria-label={`${hasFeedback ? "View" : "Add"} feedback for ${rowLabel(row)}`}
-                            className={cn(
-                              "grid h-9 w-9 shrink-0 place-items-center rounded-md border transition",
-                              hasFeedback
-                                ? "border-[rgb(43,179,110,0.35)] bg-[rgb(43,179,110,0.10)] text-[var(--brand-green)] hover:bg-[rgb(43,179,110,0.18)]"
-                                : "border-border bg-[var(--ink)] text-muted-foreground hover:border-[var(--brand-green)] hover:text-foreground"
-                            )}
-                          >
-                            <MessageSquare className="h-4 w-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => void togglePublish(row.userId)}
-                            disabled={
-                              savingAll ||
-                              publishingAll ||
-                              savingUserId === row.userId ||
-                              publishingUserId === row.userId ||
-                              (!row.published && !canPublishRow)
-                            }
-                            className={cn(
-                              "h-9 min-w-0 flex-1 rounded-md px-2 text-[11px] font-bold transition",
-                              row.published
-                                ? "border border-[rgb(242,165,22,0.30)] bg-[rgb(242,165,22,0.10)] text-[var(--brand-amber)] hover:bg-[rgb(242,165,22,0.20)]"
-                                : "bg-[var(--brand-fill)] text-[var(--on-brand)] hover:bg-[var(--brand-fill-hover)]",
-                              (!row.published && !canPublishRow) && "opacity-40",
-                              dirty && !row.published && "ring-2 ring-[rgb(43,179,110,0.30)]"
-                            )}
-                          >
-                            {publishingUserId === row.userId
-                              ? "..."
-                              : row.published
-                                ? "Unpublish"
-                                : "Publish"}
-                          </button>
-                          {row.publicationHistory.length > 0 ? (
-                            <button
-                              type="button"
-                              onClick={() => setPublicationHistoryUserId(row.userId)}
-                              className="grid h-9 w-7 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-[var(--ink-2)] hover:text-foreground"
-                              title="View publish history"
-                              aria-label="View publish history"
-                            >
-                              <AlertTriangle className="h-3.5 w-3.5" />
-                            </button>
-                          ) : null}
-                        </div>
-                        <div
-                          className={cn(
-                            "mt-1 text-[11px] leading-none",
-                            row.revised
-                              ? "text-[var(--brand-amber)]"
-                              : row.published
-                                ? "text-[var(--brand-green)]"
-                                : "text-muted-foreground"
-                          )}
-                        >
-                          {row.revised ? "Revised" : row.published ? "Published" : "Not published"}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {rows.length === 0 ? (
-                  <tr>
-                    <td colSpan={11} className="px-4 py-6 text-center text-sm text-muted-foreground">
-                      No gradable users found.
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-      </>
-      )}
-
-      <Dialog open={Boolean(feedbackModalRow)} onOpenChange={(isOpen) => { if (!isOpen) setFeedbackModalUserId(null); }}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Edit Feedback</DialogTitle>
-            {feedbackModalRow ? (
-              <DialogDescription>{`${rowLabel(feedbackModalRow)} • Cycle ${activeCycleNumber}`}</DialogDescription>
-            ) : null}
-          </DialogHeader>
-          {feedbackModalRow ? (
-            <textarea
-              value={feedbackModalRow.feedback}
-              onChange={(event) => updateRowAndAutosave(feedbackModalRow.userId, { feedback: event.target.value })}
-              rows={8}
-              placeholder="Feedback for this user in this cycle..."
-              className="w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-ring"
-              autoFocus
-            />
-          ) : null}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={Boolean(publicationHistoryRow)} onOpenChange={(isOpen) => { if (!isOpen) setPublicationHistoryUserId(null); }}>
-        <DialogContent className="max-w-xl">
-          <DialogHeader>
-            <DialogTitle>Publish History</DialogTitle>
-            {publicationHistoryRow ? (
-              <DialogDescription>{`${rowLabel(publicationHistoryRow)} • Cycle ${activeCycleNumber}`}</DialogDescription>
-            ) : null}
-          </DialogHeader>
-          {publicationHistoryRow ? (
-            publicationHistoryRow.publicationHistory.length > 0 ? (
-              <div className="space-y-2">
-                {publicationHistoryRow.publicationHistory.map((event, index) => (
-                  <div
-                    key={`${event.eventType}-${event.occurredAt ?? index}`}
-                    className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted px-3 py-2 text-sm"
-                  >
-                    <span
-                      className={cn(
-                        "inline-flex rounded-md border px-2 py-1 text-xs font-semibold",
-                        event.eventType === "PUBLISHED"
-                          ? "border-[var(--brand-green)]/35 bg-[var(--brand-green)]/10 text-[var(--brand-green)]"
-                          : "border-amber-300/40 bg-amber-300/10 text-amber-100"
-                      )}
-                    >
-                      {historyEventLabel(event.eventType)}
-                    </span>
-                    <span className="text-right text-foreground">{formatHistoryTimestamp(event.occurredAt)}</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">No publish history recorded yet.</p>
-            )
-          ) : null}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={Boolean(extensionNoteRow)} onOpenChange={(isOpen) => { if (!isOpen) setExtensionNoteUserId(null); }}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Extension Exception</DialogTitle>
-            {extensionNoteRow ? (
-              <DialogDescription>{`${rowLabel(extensionNoteRow)} • Cycle ${activeCycleNumber}`}</DialogDescription>
-            ) : null}
-          </DialogHeader>
-          {extensionNoteRow ? (
-            <div className="space-y-3 text-sm text-foreground">
-              <div className="rounded-lg border border-amber-300/35 bg-amber-300/10 px-3 py-2 text-amber-100">
-                {extensionExceptionSummary(extensionNoteRow) ?? "No free extension-day exception is applied."}
-              </div>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="rounded-lg border border-border bg-muted px-3 py-2">
-                  <p className="text-xs font-medium uppercase tracking-[0.11em] text-muted-foreground">Final Cut</p>
-                  <p className="mt-1 font-semibold text-foreground">{formatLongDate(activeCycle?.finalCutDate ?? null)}</p>
-                </div>
-                <div className="rounded-lg border border-border bg-muted px-3 py-2">
-                  <p className="text-xs font-medium uppercase tracking-[0.11em] text-muted-foreground">Turned In</p>
-                  <p className="mt-1 font-semibold text-foreground">{formatLongDate(extensionNoteRow.turnedInDate)}</p>
-                </div>
-                <div className="rounded-lg border border-border bg-muted px-3 py-2">
-                  <p className="text-xs font-medium uppercase tracking-[0.11em] text-muted-foreground">Late Days</p>
-                  <p className="mt-1 font-semibold text-foreground">{extensionNoteRow.extensionDetails.calculatedDays}</p>
-                </div>
-                <div className="rounded-lg border border-border bg-muted px-3 py-2">
-                  <p className="text-xs font-medium uppercase tracking-[0.11em] text-muted-foreground">Free Days</p>
-                  <p className="mt-1 font-semibold text-amber-100">{extensionNoteRow.extensionDetails.freeDays}</p>
-                </div>
-                <div className="rounded-lg border border-border bg-muted px-3 py-2">
-                  <p className="text-xs font-medium uppercase tracking-[0.11em] text-muted-foreground">Charged Days</p>
-                  <p className="mt-1 font-semibold text-[var(--brand-green)]">{extensionNoteRow.extensionDetails.chargedDays}</p>
-                </div>
-                <div className="rounded-lg border border-border bg-muted px-3 py-2">
-                  <p className="text-xs font-medium uppercase tracking-[0.11em] text-muted-foreground">Exempt</p>
-                  <p className="mt-1 font-semibold text-foreground">{extensionNoteRow.extensionDetails.exempt ? "Yes" : "No"}</p>
-                </div>
-              </div>
-            </div>
-          ) : null}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={Boolean(totalsNotesRow)} onOpenChange={(isOpen) => { if (!isOpen) setTotalsNotesUserId(null); }}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Total Grade Notes</DialogTitle>
-            {totalsNotesRow ? (
-              <DialogDescription>{totalsNotesRow.name?.trim() || "Unnamed user"}</DialogDescription>
-            ) : null}
-          </DialogHeader>
-          {totalsNotesRow ? (
-            <textarea
-              value={getAdjustments(totalsNotesRow.userId).notes}
-              onChange={(event) => updateNotes(totalsNotesRow.userId, event.target.value)}
-              rows={8}
-              placeholder="Notes for this reporter's total grade..."
-              className="w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-ring"
-              autoFocus
-            />
-          ) : null}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={Boolean(extensionDepletedWarning)} onOpenChange={(isOpen) => { if (!isOpen) setExtensionDepletedWarning(null); }}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>No Extensions Remaining</DialogTitle>
-          </DialogHeader>
-          {extensionDepletedWarning ? (
-            <div className="space-y-3 text-sm text-foreground">
-              <div className="rounded-lg border border-danger/40 bg-danger-tint px-3 py-2 text-danger">
-                <p className="font-semibold">{extensionDepletedWarning.userName}</p>
-                <p className="mt-1">
-                  This student has exhausted their extension days ({extensionDepletedWarning.remaining} remaining).
-                  The updated turn-in date caused their available extensions to be fully used.
-                </p>
-              </div>
-            </div>
-          ) : null}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={missingOpen}
-        onOpenChange={(isOpen) => {
-          setMissingOpen(isOpen);
-          if (!isOpen) setShowExcludePanel(false);
-        }}
+      <ViewTabPanel
+        idPrefix={TAB_ID_PREFIX}
+        value={tabValue}
+        active
+        className={cn("flex min-w-0 flex-col gap-5", tableView && "lg:min-h-0 lg:flex-1")}
       >
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>{showExcludePanel ? "Exclude People" : "Missing Grades"}</DialogTitle>
-            <DialogDescription>
-              {showExcludePanel
-                ? "Excluded people are hidden from the missing list. Toggle to exclude or restore. Saved in this browser."
-                : "People who have no grade entered, or a grade that is not yet published, for a started cycle."}
-            </DialogDescription>
-          </DialogHeader>
+        <GradeEditorHeader
+          viewMode={viewMode}
+          cycleNumber={shownCycleNumber}
+          cycle={shownCycle}
+          stats={cycleStats}
+          totalsReporterCount={totals.totalsRows.length}
+          totalsLoading={totalsTableLoading && totals.totalsRows.length === 0}
+          cycleCount={cycles.length}
+          saveState={pageSaveState}
+          dirtyCount={grades.dirtyUserIds.size}
+          temporaryEdits={temporaryEdits}
+          student={selectedStudent}
+          missingPeople={missingPeople}
+          onOpenMissing={openMissing}
+          publishAllCount={filterCounts["to-publish"]}
+          publishingAll={grades.publishingAll}
+          publishAllDisabled={filterCounts["to-publish"] === 0 || grades.loading || grades.busy || cycleLoading}
+          onPublishAll={() => void publishAll()}
+        />
 
-          <div className="flex items-center justify-between gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setShowExcludePanel((value) => !value)}
-            >
-              {showExcludePanel ? (
-                <>
-                  <X className="mr-1.5 h-3.5 w-3.5" /> Back to missing
-                </>
-              ) : (
-                <>
-                  <UserMinus className="mr-1.5 h-3.5 w-3.5" /> Exclude People
-                </>
-              )}
-            </Button>
-            {excludedIds.length > 0 ? (
-              <span className="text-xs text-[var(--ink-text)]">{excludedIds.length} excluded</span>
+        {viewMode === "student" ? (
+          <>
+            {message ? (
+              <Alert tone="danger" onDismiss={() => setMessage(null)}>
+                {message}
+              </Alert>
             ) : null}
-          </div>
+            <StudentGradebookPanel
+              people={studentPeople}
+              selectedUserId={selectedStudentId}
+              onSelectUserId={setSelectedStudentId}
+              sortBy={sortBy}
+              onSortChange={setSortBy}
+              refreshToken={studentRefreshToken}
+              onRefresh={refresh}
+              refreshing={totals.totalsRefreshing}
+              loading={(totals.totalsLoading || !totals.totalsSettled) && studentPeople.length === 0}
+            />
+          </>
+        ) : (
+          <section
+            aria-label={viewMode === "cycle" ? "Cycle grades" : "Total grades"}
+            className="relative flex min-w-0 flex-col overflow-hidden rounded-md border border-border bg-card lg:min-h-0 lg:flex-1"
+          >
+            {panelBusy ? (
+              <span aria-hidden className="absolute inset-x-0 top-0 z-40 h-0.5 overflow-hidden bg-[var(--ink-3)]">
+                <span className="block h-full w-1/3 bg-[var(--brand-fill)] motion-safe:animate-[loading-bar_1s_ease-in-out_infinite]" />
+              </span>
+            ) : null}
+            <div className="shrink-0 space-y-3 border-b border-border p-4">
+              <GradeEditorToolbar
+                viewMode={viewMode}
+                search={search}
+                onSearchChange={setSearch}
+                searchRef={searchRef}
+                sortBy={sortBy}
+                onSortChange={setSortBy}
+                onRefresh={refresh}
+                refreshing={panelBusy}
+                refreshDisabled={grades.busy}
+                onDownloadCsv={downloadCsv}
+                csvDisabled={viewMode === "total" ? totals.totalsLoading : grades.loading}
+                dirtyCount={grades.dirtyUserIds.size}
+                savingAll={grades.savingAll}
+                saveAllDisabled={grades.dirtyUserIds.size === 0 || grades.loading || grades.busy || cycleLoading}
+                onSaveAll={() => void grades.saveAllRows()}
+              />
+              {viewMode === "cycle" ? (
+                <CycleFilterRow value={cycleFilter} onChange={selectFilter} counts={filterCounts} size={isDesktop ? "sm" : "touch"} />
+              ) : null}
+              {message ? (
+                <Alert tone="danger" compact onDismiss={() => setMessage(null)}>
+                  {message}
+                </Alert>
+              ) : null}
+              {viewMode === "cycle" && shownCycle && !shownCycle.finalCutDate ? (
+                <Alert
+                  tone="warning"
+                  compact
+                  action={
+                    <Link href="/package-cycles" className={buttonVariants({ variant: "outline", size: "sm" })}>
+                      Open Cycle Dates
+                    </Link>
+                  }
+                >
+                  Turned in dates unlock once this cycle has a Final Cut date.
+                </Alert>
+              ) : null}
+            </div>
 
-          <div className="mt-3 max-h-[60vh] overflow-y-auto pr-1">
-            {missingLoading ? (
-              <p className="py-8 text-center text-sm text-[var(--ink-text)]">Loading…</p>
-            ) : missingError ? (
-              <p className="py-8 text-center text-sm text-danger">{missingError}</p>
-            ) : !missingData ? null : showExcludePanel ? (
-              missingData.people.length === 0 ? (
-                <p className="py-8 text-center text-sm text-[var(--ink-text)]">No people to show.</p>
+            {/* The table's scroll box: from lg the page is held to the window and this box is the
+                only thing that scrolls. Phones and tablets show the row lists, so only the page scrolls. */}
+            <div className="min-h-0 min-w-0 flex-1 overflow-auto lg:overscroll-contain">
+              {viewMode === "cycle" ? (
+                isDesktop ? (
+                  <CycleGradesTable
+                    rows={visibleRows}
+                    state={rowState}
+                    handlers={cycleHandlers}
+                    participationByUserId={totalsByUserId}
+                    loading={grades.loading}
+                    inert={rowsInert}
+                    empty={emptyNode()}
+                  />
+                ) : (
+                  <CycleGradesList
+                    rows={visibleRows}
+                    dirtyUserIds={grades.dirtyUserIds}
+                    savingUserId={grades.savingUserId}
+                    failedUserId={grades.failedUserId}
+                    participationByUserId={totalsByUserId}
+                    loading={grades.loading}
+                    inert={rowsInert}
+                    empty={emptyNode()}
+                    onOpenRow={setSheetUserId}
+                  />
+                )
+              ) : isDesktop ? (
+                <TotalsGradesTable
+                  views={visibleTotalsViews}
+                  cycles={cycles}
+                  handlers={totalsHandlers}
+                  loading={totalsTableLoading}
+                  empty={emptyNode()}
+                />
               ) : (
-                <ul className="space-y-1">
-                  {missingData.people.map((person) => (
-                    <li key={person.userId}>
-                      <label className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 hover:bg-foreground/5">
-                        <input
-                          type="checkbox"
-                          checked={isExcluded(person.userId)}
-                          onChange={() => toggleExcluded(person.userId)}
-                          className="h-4 w-4 accent-[var(--brand-green)]"
-                        />
-                        <span className="min-w-0">
-                          <span className="block truncate text-sm text-foreground">
-                            {person.name?.trim() || "Unnamed user"}
-                          </span>
-                          {person.email ? (
-                            <span className="block truncate text-xs text-[var(--ink-text)]">{person.email}</span>
-                          ) : null}
-                        </span>
-                      </label>
-                    </li>
-                  ))}
-                </ul>
-              )
-            ) : visibleMissing.length === 0 ? (
-              <p className="py-8 text-center text-sm text-[var(--ink-text)]">
-                <ClipboardList className="mx-auto mb-2 h-5 w-5 opacity-70" />
-                No missing grades. All caught up.
-              </p>
-            ) : (
-              <ul className="space-y-2">
-                {visibleMissing.map((person) => (
-                  <li
-                    key={person.userId}
-                    className="flex items-start justify-between gap-3 rounded-md border border-foreground/[0.08] bg-background px-3 py-2"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-foreground">
-                        {person.name?.trim() || "Unnamed user"}
-                      </p>
-                      <div className="mt-1 flex flex-wrap gap-1.5">
-                        {person.missing.map((entry) => (
-                          <span
-                            key={entry.cycleNumber}
-                            className={cn(
-                              "inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold",
-                              entry.status === "not_entered"
-                                ? "bg-danger-tint text-danger"
-                                : "bg-[rgb(242,165,22,0.15)] text-[var(--brand-amber)]"
-                            )}
-                          >
-                            Cycle {entry.cycleNumber} · {entry.status === "not_entered" ? "Not entered" : "Unpublished"}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="shrink-0"
-                      onClick={() => toggleExcluded(person.userId)}
-                    >
-                      <UserMinus className="mr-1.5 h-3.5 w-3.5" /> Exclude
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+                <TotalsGradesList views={visibleTotalsViews} loading={totalsTableLoading} empty={emptyNode()} onOpenRow={setSheetUserId} />
+              )}
+            </div>
+            {isDesktop ? <Legend viewMode={viewMode} /> : null}
+          </section>
+        )}
+      </ViewTabPanel>
 
-      <BottomTabDock activeKey={`${viewMode}:${activeCycleNumber}`} label="Grade Editor views">
-        {cycles.map((cycle) => {
-          const isActive = viewMode === "cycle" && cycle.cycleNumber === activeCycleNumber;
-          return (
-            <BottomTabDockButton key={cycle.cycleNumber} active={isActive} onClick={() => goToCycle(cycle.cycleNumber)}>
-              <CycleTabLabel cycleNumber={cycle.cycleNumber} active={isActive} />
-            </BottomTabDockButton>
-          );
-        })}
-        <BottomTabDockButton
-          active={viewMode === TOTAL_VIEW}
-          onClick={() => {
-            setViewMode(TOTAL_VIEW);
-            void loadTotals({ silent: true });
+      {missingOpen ? (
+        <MissingGradesSheet
+          open
+          onOpenChange={setMissingOpen}
+          data={missing.missingData}
+          loading={missing.missingLoading}
+          error={missing.missingError}
+          excludedIds={excludedIds}
+          isExcluded={isExcluded}
+          toggleExcluded={toggleExcluded}
+          openCycleBlockedReason={cycleSwitchBlockedReason}
+          onOpenCycle={(cycleNumber, hasNotEntered) => {
+            setMissingOpen(false);
+            goToCycle(cycleNumber, hasNotEntered ? "not-entered" : "to-publish");
           }}
-        >
-          Total Grade
-        </BottomTabDockButton>
-        <BottomTabDockButton active={viewMode === STUDENT_VIEW} onClick={() => goToStudentView()}>
-          <UserRound className="h-3.5 w-3.5" />
-          Student
-        </BottomTabDockButton>
-      </BottomTabDock>
+        />
+      ) : null}
+
+      {sheetRow ? (
+        <CycleRowSheet
+          row={sheetRow}
+          cycleNumber={grades.activeCycleNumber}
+          state={rowState}
+          handlers={cycleHandlers}
+          participation={totalsByUserId.get(sheetRow.userId) ?? null}
+          feedbackState={rowSaveState(sheetRow.userId)}
+          onClose={() => setSheetUserId(null)}
+          onPrevious={stepSheet(sheetNeighbors.previous)}
+          onNext={stepSheet(sheetNeighbors.next)}
+          onOpenGradebook={() => goToStudentView(sheetRow.userId)}
+        />
+      ) : null}
+
+      {sheetTotalsView ? (
+        <TotalsRowSheet
+          view={sheetTotalsView}
+          notesState={totals.notesState[sheetTotalsView.row.userId] ?? "idle"}
+          onUpdateAdjustment={totals.updateAdjustment}
+          onUpdateNotes={totals.updateNotes}
+          onClose={() => setSheetUserId(null)}
+          onPrevious={stepSheet(sheetNeighbors.previous)}
+          onNext={stepSheet(sheetNeighbors.next)}
+          onOpenGradebook={() => goToStudentView(sheetTotalsView.row.userId)}
+        />
+      ) : null}
+
+      {feedbackRow ? (
+        <FeedbackDialog
+          row={feedbackRow}
+          cycleNumber={grades.activeCycleNumber}
+          saveState={rowSaveState(feedbackRow.userId)}
+          onChange={(feedback) => grades.updateRowAndAutosave(feedbackRow.userId, { feedback })}
+          onClose={() => setFeedbackModalUserId(null)}
+        />
+      ) : null}
+
+      {historyRow ? (
+        <PublishHistoryDialog row={historyRow} cycleNumber={grades.activeCycleNumber} onClose={() => setPublicationHistoryUserId(null)} />
+      ) : null}
+
+      {extensionNoteRow ? (
+        <ExtensionExceptionDialog
+          row={extensionNoteRow}
+          cycleNumber={grades.activeCycleNumber}
+          finalCutDate={activeCycle?.finalCutDate ?? null}
+          onClose={() => setExtensionNoteUserId(null)}
+        />
+      ) : null}
+
+      {notesView ? (
+        <TotalNotesDialog
+          row={notesView.row}
+          notes={notesView.adjustments.notes}
+          saveState={totals.notesState[notesView.row.userId] ?? "idle"}
+          onChange={(notes) => totals.updateNotes(notesView.row.userId, notes)}
+          onClose={() => setTotalsNotesUserId(null)}
+        />
+      ) : null}
+
+      {grades.extensionDepletedWarning ? (
+        <ExtensionDepletedDialog warning={grades.extensionDepletedWarning} onClose={grades.dismissExtensionDepletedWarning} />
+      ) : null}
     </div>
   );
 }

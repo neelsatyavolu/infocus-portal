@@ -1,539 +1,224 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CalendarClock, Check, ChevronRight, Loader2, Mail, Plus, X } from "lucide-react";
-import { toast } from "sonner";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { CalendarPlus, Hourglass, Plus } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
-import { clampExtensionDays, EXTENSION_REQUESTS_CHANGED_EVENT } from "@/src/lib/package-extensions";
-import { ApproveExtensionDialog, type GrantTerms } from "./approve-extension-dialog";
+import { ApproveExtensionDialog } from "./approve-extension-dialog";
 import { DenyExtensionDialog } from "./deny-extension-dialog";
-import { ExtensionDaysInput } from "./extension-days-input";
 import { GrantExtensionDialog } from "./grant-extension-dialog";
-import { cachedValue, rememberValue } from "@/src/lib/client-cache";
+import { HowItWorks } from "./how-it-works";
+import type { RequestActions } from "./request-actions";
+import { RequestExtensionDialog } from "./request-extension-dialog";
+import { RequestList, RequestListError, RequestListSkeleton } from "./request-list";
+import { RequestToolbar } from "./request-toolbar";
+import {
+  anyRowPrimary,
+  buildRequestView,
+  grantedTerms,
+  hasLiveRequestFor,
+  sortViews,
+  type Payload,
+  type RequestView,
+  type Viewer
+} from "./request-view";
+import { useExtensionRequests } from "./use-extension-requests";
+import { useRequestQueue } from "./use-request-queue";
 
-type Approval = {
-  userId: string;
-  approved: boolean;
-  /** Why this producer denied; empty on approvals. */
-  reason: string;
-  name: string | null;
-  createdAt: string;
-};
-
-type MemberConsent = {
-  userId: string;
-  agreed: boolean;
-  name: string | null;
-  createdAt: string;
-};
-
-type GroupMember = {
-  userId: string;
-  name: string | null;
-  email: string | null;
-};
-
-type ExtensionRequest = {
-  id: string;
-  cycleNumber: number;
-  requestedDays: number;
-  grantedDays: number | null;
-  /** Empty means the whole group. */
-  grantedUserIds: string[];
-  /** An exec granted it directly: no member agreement, one more exec approves. */
-  producerGranted: boolean;
-  reason: string;
-  status: "PENDING" | "APPROVED" | "DENIED";
-  createdAt: string;
-  groupTopic: string;
-  student: { id: string; name: string | null; email: string | null };
-  groupMembers: GroupMember[];
-  memberConsents: MemberConsent[];
-  memberConsentComplete: boolean;
-  canDecide?: boolean;
-  /** Exec outside the group may grant it before every member agrees. */
-  canGrantPending?: boolean;
-  approvalsRequired: number;
-  approvals: Approval[];
-};
-
-type Payload = {
-  canDecide: boolean;
-  canGrant: boolean;
-  currentUserId: string;
-  approvalsRequired: number;
-  /** The cycle the viewer is working on; seeds the Cycle pickers. */
-  activeCycleNumber: number;
-  /** Real cycle numbers this semester. */
-  cycleNumbers: number[];
-  requests: ExtensionRequest[];
-};
-
-const fieldClass =
-  "h-10 w-full rounded-lg border border-border bg-muted px-3 text-base text-foreground outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm";
-
-const STATUS_STYLES: Record<ExtensionRequest["status"], string> = {
-  PENDING: "bg-[var(--brand-amber)]/15 text-[var(--brand-amber)] border-[var(--brand-amber)]/40",
-  APPROVED: "bg-[var(--brand-green)]/15 text-[var(--brand-green)] border-[var(--brand-green)]/30",
-  DENIED: "bg-danger-tint text-danger border-danger/40"
-};
-
-function memberLabel(member: { name: string | null; email: string | null }) {
-  return member.name ?? member.email ?? "Unknown";
+function viewsOf(payload: Payload) {
+  return sortViews(payload.requests.map((entry) => buildRequestView(entry, payload.currentUserId)));
 }
 
-/** Granted terms once a producer has approved, with "whole group" expanded to member ids. */
-function grantedTerms(entry: ExtensionRequest): GrantTerms {
-  return {
-    grantedDays: entry.grantedDays ?? entry.requestedDays,
-    grantedUserIds:
-      entry.grantedUserIds.length > 0
-        ? entry.grantedUserIds
-        : entry.groupMembers.map((member) => member.userId)
-  };
+function contextOf(view: RequestView) {
+  return `${view.title} · Cycle ${view.entry.cycleNumber}`;
 }
 
-const EXTENSIONS_CACHE_KEY = "extension-requests";
+export default function ExtensionRequestsClient({ viewer }: { viewer: Viewer }) {
+  const data = useExtensionRequests();
+  const { payload } = data;
+  const views = useMemo(() => (payload ? viewsOf(payload) : null), [payload]);
+  const queue = useRequestQueue(views);
+  const howId = useId();
 
-export default function ExtensionRequestsClient() {
-  const [payload, setPayload] = useState<Payload | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [cycleNumber, setCycleNumber] = useState<number | null>(null);
-  // Seed the Cycle picker once; later reloads keep whatever the student picked.
-  const cycleSeededRef = useRef(false);
+  const [approving, setApproving] = useState<{ view: RequestView; grant: boolean } | null>(null);
+  const [denying, setDenying] = useState<RequestView | null>(null);
+  const [granting, setGranting] = useState(false);
+  const [announcement, setAnnouncement] = useState("");
+  const announceTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(announceTimer.current), []);
+
+  /** Clear, then set: the live region reads a repeated message ("Approved.") again. */
+  function announce(message: string) {
+    setAnnouncement("");
+    window.clearTimeout(announceTimer.current);
+    announceTimer.current = window.setTimeout(() => setAnnouncement(message), 100);
+  }
+
+  // The request draft lives here, so closing the dialog keeps it. The cycle follows the
+  // viewer's active cycle until they pick one.
+  const [requesting, setRequesting] = useState(false);
+  const [cyclePick, setCyclePick] = useState<number | null>(null);
   const [requestedDays, setRequestedDays] = useState(2);
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [approving, setApproving] = useState<{ entry: ExtensionRequest; grant: boolean } | null>(null);
-  const [denyingId, setDenyingId] = useState<string | null>(null);
-  const [granting, setGranting] = useState(false);
-  const [emailingId, setEmailingId] = useState<string | null>(null);
-
-  const load = useCallback(async (options?: { cached?: boolean }) => {
-    function apply(data: Payload) {
-      setPayload(data);
-      if (!cycleSeededRef.current) {
-        cycleSeededRef.current = true;
-        setCycleNumber(data.activeCycleNumber);
-      }
-    }
-    // On first view, show the last copy at once and refresh it quietly (src/lib/client-cache.ts).
-    const cached = options?.cached ? cachedValue<Payload>(EXTENSIONS_CACHE_KEY) : undefined;
-    if (cached) apply(cached);
-    else setLoading(true);
-
-    try {
-      const response = await fetch("/api/extensions/requests", { cache: "no-store" });
-      const body = await response.json();
-
-      if (!response.ok) {
-        throw new Error(body?.error?.message ?? "Failed to load extension requests.");
-      }
-
-      const data = body.data as Payload;
-      rememberValue(EXTENSIONS_CACHE_KEY, data);
-      apply(data);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to load extension requests.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void load({ cached: true });
-  }, [load]);
-
-  async function submitRequest() {
-    if (submitting || cycleNumber === null) return;
-    setSubmitting(true);
-
-    try {
-      const response = await fetch("/api/extensions/requests", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cycleNumber, requestedDays: clampExtensionDays(requestedDays), reason })
-      });
-      const body = await response.json();
-
-      if (!response.ok) {
-        throw new Error(body?.error?.message ?? "Failed to submit request.");
-      }
-
-      setReason("");
-      toast.success("Extension request submitted for your group. Teammates must agree next.");
-      await load();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to submit request.");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function decideProducer(
-    requestId: string,
-    approved: boolean,
-    terms?: GrantTerms | null,
-    reason?: string,
-    grantWithoutAgreement?: true
-  ) {
-    try {
-      const response = await fetch("/api/extensions/requests", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          kind: "producer",
-          requestId,
-          approved,
-          reason,
-          grantWithoutAgreement,
-          ...(terms ?? {})
-        })
-      });
-      const body = await response.json();
-
-      if (!response.ok) {
-        throw new Error(body?.error?.message ?? "Failed to record decision.");
-      }
-
-      setApproving(null);
-      setDenyingId(null);
-      window.dispatchEvent(new Event(EXTENSION_REQUESTS_CHANGED_EVENT));
-      await load();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to record decision.");
-    }
-  }
-
-  async function decideMember(requestId: string, agreed: boolean) {
-    try {
-      const response = await fetch("/api/extensions/requests", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind: "member", requestId, agreed })
-      });
-      const body = await response.json();
-
-      if (!response.ok) {
-        throw new Error(body?.error?.message ?? "Failed to record agreement.");
-      }
-
-      toast.success(agreed ? "You agreed to the extension request." : "You declined the extension request.");
-      window.dispatchEvent(new Event(EXTENSION_REQUESTS_CHANGED_EVENT));
-      await load();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to record agreement.");
-    }
-  }
-
-  async function emailGroup(requestId: string) {
-    setEmailingId(requestId);
-    try {
-      const response = await fetch("/api/extensions/requests/notify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ requestId })
-      });
-      const body = await response.json();
-
-      if (!response.ok) {
-        throw new Error(body?.error?.message ?? "Failed to email the group.");
-      }
-
-      const sent = body.data.sent as number;
-      toast.success(`Emailed ${sent} ${sent === 1 ? "student" : "students"}.`);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to email the group.");
-    } finally {
-      setEmailingId(null);
-    }
-  }
-
-  const requestCounts = useMemo(() => {
-    const requests = payload?.requests ?? [];
-    return {
-      pending: requests.filter((request) => request.status === "PENDING").length,
-      approved: requests.filter((request) => request.status === "APPROVED").length,
-      denied: requests.filter((request) => request.status === "DENIED").length
-    };
-  }, [payload]);
-
-  const { openRequests, deniedRequests } = useMemo(() => {
-    const requests = payload?.requests ?? [];
-    return {
-      openRequests: requests.filter((request) => request.status !== "DENIED"),
-      deniedRequests: requests.filter((request) => request.status === "DENIED")
-    };
-  }, [payload]);
-
+  const requestCycle = cyclePick ?? payload?.activeCycleNumber ?? null;
   const cycleOptions = useMemo(() => {
     const numbers = payload?.cycleNumbers ?? [];
-    if (cycleNumber === null || numbers.includes(cycleNumber)) return numbers;
-    return [...numbers, cycleNumber].sort((a, b) => a - b);
-  }, [payload, cycleNumber]);
+    if (requestCycle === null || numbers.includes(requestCycle)) return numbers;
+    return [...numbers, requestCycle].sort((a, b) => a - b);
+  }, [payload, requestCycle]);
 
-  function renderRequest(entry: ExtensionRequest) {
-    const approvedCount = entry.approvals.filter((approval) => approval.approved).length;
-    const consentByUser = new Map(entry.memberConsents.map((consent) => [consent.userId, consent]));
-    const agreedCount = entry.groupMembers.filter(
-      (member) => consentByUser.get(member.userId)?.agreed === true
-    ).length;
-    const myConsent = payload?.currentUserId ? consentByUser.get(payload.currentUserId) : undefined;
-    const iAmMember = entry.groupMembers.some((member) => member.userId === payload?.currentUserId);
-    const needsMyConsent =
-      !entry.producerGranted && entry.status === "PENDING" && iAmMember && myConsent?.agreed !== true;
-    const termsSet = entry.approvals.some((approval) => approval.approved);
-    const terms = grantedTerms(entry);
-    const labelById = new Map(entry.groupMembers.map((member) => [member.userId, memberLabel(member)]));
-    const groupLabel =
-      entry.groupMembers.map(memberLabel).join(", ") ||
-      entry.student.name ||
-      entry.student.email ||
-      "Group";
-    const days = entry.producerGranted ? terms.grantedDays : entry.requestedDays;
-    // A granted student request keeps its student requester; direct grants were filed by an exec.
-    const filedByMember = entry.groupMembers.some((member) => member.userId === entry.student.id);
+  const me = payload?.currentUserId ?? "";
+  const canGrant = payload?.canGrant ?? viewer.canGrant;
 
-    return (
-      <article key={entry.id} className="rounded-md border border-border bg-card p-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="font-medium text-foreground">
-              {groupLabel}
-              {entry.groupTopic ? ` · “${entry.groupTopic}”` : ""} · Cycle {entry.cycleNumber} · +{days}{" "}
-              {days === 1 ? "day" : "days"}
-            </p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              {entry.producerGranted && !filedByMember ? "Granted by" : "Requested by"}{" "}
-              {entry.student.name ?? entry.student.email}
-            </p>
-            {termsSet ? (
-              <p className="mt-0.5 text-xs text-foreground">
-                Granted +{terms.grantedDays} {terms.grantedDays === 1 ? "day" : "days"} to{" "}
-                {entry.grantedUserIds.length === 0
-                  ? "the whole group"
-                  : terms.grantedUserIds.map((userId) => labelById.get(userId) ?? "Unknown").join(", ")}
-              </p>
-            ) : null}
-            {entry.reason ? (
-              <p className="mt-1 text-sm text-muted-foreground">&ldquo;{entry.reason}&rdquo;</p>
-            ) : null}
-            {entry.producerGranted ? null : (
-              <p className="mt-2 text-xs text-muted-foreground">
-                Group agreement: {agreedCount}/{Math.max(entry.groupMembers.length, 1)}
-                {entry.groupMembers.length > 0
-                  ? ` — ${entry.groupMembers
-                      .map((member) => {
-                        const consent = consentByUser.get(member.userId);
-                        const mark = consent == null ? "…" : consent.agreed ? " ✓" : " ✗";
-                        return `${memberLabel(member)}${mark}`;
-                      })
-                      .join(", ")}`
-                  : ""}
-              </p>
-            )}
-            <p className="mt-1 text-xs text-muted-foreground">
-              {entry.producerGranted ? "Exec approvals" : "Producer approvals"}: {approvedCount}/
-              {entry.approvalsRequired}
-              {entry.approvals.length > 0
-                ? ` — ${entry.approvals
-                    .map((approval) => `${approval.name}${approval.approved ? " ✓" : " ✗"}`)
-                    .join(", ")}`
-                : entry.memberConsentComplete
-                  ? " — waiting for producers"
-                  : " — waiting for full group agreement first"}
-            </p>
-            {entry.approvals
-              .filter((approval) => !approval.approved && approval.reason)
-              .map((approval) => (
-                <p key={approval.userId} className="mt-1 text-sm text-danger">
-                  Denied by {approval.name}: &ldquo;{approval.reason}&rdquo;
-                </p>
-              ))}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <span className={`rounded-md border px-2 py-1 text-xs font-medium tracking-[0.11em] ${STATUS_STYLES[entry.status]}`}>
-              {entry.status}
-            </span>
-
-            {needsMyConsent ? (
-              <>
-                <Button size="sm" variant="secondary" onClick={() => void decideMember(entry.id, true)}>
-                  <Check className="mr-1 h-3.5 w-3.5" />
-                  I agree
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => void decideMember(entry.id, false)}>
-                  <X className="mr-1 h-3.5 w-3.5" />
-                  Decline
-                </Button>
-              </>
-            ) : null}
-
-            {entry.canDecide && entry.status === "PENDING" ? (
-              <>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  disabled={!entry.producerGranted && !entry.memberConsentComplete}
-                  title={
-                    entry.producerGranted || entry.memberConsentComplete
-                      ? undefined
-                      : "All group members must agree first"
-                  }
-                  onClick={() => setApproving({ entry, grant: false })}
-                >
-                  <Check className="mr-1 h-3.5 w-3.5" />
-                  Approve
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => setDenyingId(entry.id)}>
-                  <X className="mr-1 h-3.5 w-3.5" />
-                  Deny
-                </Button>
-              </>
-            ) : null}
-
-            {entry.canGrantPending && !entry.memberConsentComplete ? (
-              <Button
-                size="sm"
-                variant="secondary"
-                title="Grant it now without waiting for every member to agree"
-                onClick={() => setApproving({ entry, grant: true })}
-              >
-                <Plus className="mr-1 h-3.5 w-3.5" />
-                Grant
-              </Button>
-            ) : null}
-
-            {payload?.canGrant && entry.status !== "PENDING" ? (
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={emailingId === entry.id}
-                title={
-                  entry.status === "APPROVED"
-                    ? "Email the decision to the students this extension covers"
-                    : "Email the decision to the group"
-                }
-                onClick={() => void emailGroup(entry.id)}
-              >
-                {emailingId === entry.id ? (
-                  <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Mail className="mr-1 h-3.5 w-3.5" />
-                )}
-                Email group
-              </Button>
-            ) : null}
-          </div>
-        </div>
-      </article>
-    );
+  async function submitRequest() {
+    if (submitting || requestCycle === null) return;
+    setSubmitting(true);
+    const ok = await data.submitRequest({ cycleNumber: requestCycle, requestedDays, reason });
+    setSubmitting(false);
+    if (ok) {
+      setReason("");
+      setRequesting(false);
+    }
   }
 
+  /**
+   * After a decision, open the next request that waits on the viewer and say so. With none left,
+   * keep the decided request open (showing its new state) and focused, so focus never drops to
+   * the page when its buttons unmount.
+   */
+  function advance(decidedId: string, verb: string, next: Payload | null) {
+    const following = next ? viewsOf(next).find((view) => view.awaitsMe && view.entry.id !== decidedId) : undefined;
+    announce(following ? `${verb}. Next: ${following.title}` : `${verb}.`);
+    queue.openAndFocus(following ? following.entry.id : decidedId);
+  }
+
+  const actions: RequestActions = {
+    canEmail: canGrant,
+    memberBusy: data.memberBusy,
+    emailingId: data.emailingId,
+    onMemberDecision: async (view, agreed) => {
+      const result = await data.decideMember(view.entry.id, agreed);
+      if (result.ok) advance(view.entry.id, agreed ? "Agreed" : "Declined", result.data);
+    },
+    onApprove: (view, grant) => setApproving({ view, grant }),
+    onDeny: (view) => setDenying(view),
+    onEmail: (view) => void data.emailGroup(view.entry.id)
+  };
+
+  const studentHasLive =
+    !viewer.isProducer && hasLiveRequestFor(views ?? [], payload?.activeCycleNumber ?? null, ["PENDING", "APPROVED"]);
+  // One primary per view, from the data only (it never flips as rows open): a request that
+  // carries a decision button wins; otherwise the header's main job is filled.
+  const rowHasPrimary = anyRowPrimary(views ?? []);
+  const requestVariant = viewer.isProducer || rowHasPrimary || studentHasLive ? "outline" : "default";
+  const grantVariant = rowHasPrimary ? "outline" : "default";
+  // With no requests the rules panel stays open and there is nothing to filter, so no toolbar.
+  const showToolbar = views === null ? !data.loadError : views.length > 0;
+  const openRequest = () => setRequesting(true);
+  const closeDecisionDialogs = () => {
+    setApproving(null);
+    setDenying(null);
+  };
+
   return (
-    <div className="route-enter mx-auto w-full max-w-4xl space-y-5">
+    <div className="route-enter space-y-5">
       <PageHeader
         eyebrow={
           <>
-            <CalendarClock className="h-3 w-3" />
-            Deadlines · Group consent
+            <Hourglass aria-hidden className="h-3 w-3" />
+            Package deadlines
           </>
         }
         title="Extension Requests"
         description={
-          <>
-            An extension request covers your entire package group. Every member must agree before
-            producers can approve. Two producer approvals are required; the first approving producer
-            sets how many days are granted and which members get them. Executive producers can also
-            grant an extension directly; one more exec approves it and each student gets an email.{" "}
-            <span className="tabular-nums">
-              {requestCounts.pending} pending · {requestCounts.approved} approved · {requestCounts.denied} denied
-            </span>
-          </>
+          viewer.isProducer
+            ? "Every member agrees first, then two producer approvals. The first approver sets the days and who gets them."
+            : "Ask for more time for your whole package group. Every member agrees, then two producers approve."
         }
         actions={
-          payload?.canGrant ? (
-            <Button size="sm" onClick={() => setGranting(true)}>
-              <Plus className="mr-1 h-3.5 w-3.5" />
-              Grant an extension
+          <>
+            <Button type="button" variant={requestVariant} onClick={openRequest}>
+              <CalendarPlus aria-hidden />
+              Request extension
             </Button>
-          ) : null
+            {viewer.isProducer && canGrant ? (
+              // The dialog starts on the payload's active cycle, so it waits for the list.
+              <Button type="button" variant={grantVariant} disabled={payload === null} onClick={() => setGranting(true)}>
+                <Plus aria-hidden />
+                Grant an extension
+              </Button>
+            ) : null}
+          </>
         }
       />
 
-      <section className="rounded-md border border-border bg-card p-4">
-        <h2 className="text-lg font-semibold text-foreground">Request an extension</h2>
-        <p className="mt-1 text-xs text-muted-foreground">
-          You must be assigned to a package group for the selected cycle. Your teammates will be asked
-          to agree before producers review it.
-        </p>
-        <form
-          noValidate
-          className="mt-3 grid gap-2 sm:grid-cols-[110px_110px_1fr_auto]"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void submitRequest();
-          }}
-        >
-          <label className="text-sm">
-            <span className="mb-1 block text-xs text-muted-foreground">Cycle</span>
-            <select
-              value={cycleNumber ?? ""}
-              onChange={(event) => setCycleNumber(Number(event.target.value))}
-              disabled={cycleNumber === null}
-              className={fieldClass}
-            >
-              {cycleNumber === null ? <option value="">…</option> : null}
-              {cycleOptions.map((value) => (
-                <option key={value} value={value}>
-                  Cycle {value}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="text-sm">
-            <span className="mb-1 block text-xs text-muted-foreground">Days</span>
-            <ExtensionDaysInput value={requestedDays} onChange={setRequestedDays} className={fieldClass} />
-          </label>
-          <label className="text-sm">
-            <span className="mb-1 block text-xs text-muted-foreground">Reason</span>
-            <input
-              value={reason}
-              onChange={(event) => setReason(event.target.value)}
-              placeholder="Family emergency, unresolvable technical issue, …"
-              className={fieldClass}
-            />
-          </label>
-          <Button type="submit" className="self-end" disabled={submitting || cycleNumber === null}>
-            {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Submit
-          </Button>
-        </form>
-      </section>
+      {showToolbar ? (
+        <RequestToolbar
+          counts={views === null ? null : queue.counts}
+          filter={queue.filter}
+          onFilterChange={queue.setFilter}
+          showKeyHint={queue.visible.length > 1}
+          busy={data.refreshing && payload !== null}
+          howOpen={queue.howOpen}
+          howId={howId}
+          onToggleHow={queue.toggleHow}
+        />
+      ) : null}
 
-      <section className="space-y-3">
-        {loading ? <p className="text-sm text-muted-foreground">Loading requests…</p> : null}
+      {queue.howOpen ? <HowItWorks id={howId} /> : null}
 
-        {!loading && (payload?.requests.length ?? 0) === 0 ? (
-          <p className="rounded-md border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
-            No extension requests yet.
-          </p>
-        ) : null}
+      {payload === null ? (
+        data.loadError ? (
+          <RequestListError message={data.loadError} retrying={data.refreshing} onRetry={() => void data.load()} />
+        ) : (
+          <RequestListSkeleton />
+        )
+      ) : (
+        <RequestList
+          total={views?.length ?? 0}
+          matchingCount={queue.matchingCount}
+          shown={queue.shown}
+          denied={queue.denied}
+          deniedOpen={queue.deniedOpen}
+          onToggleDenied={queue.toggleDenied}
+          filter={queue.filter}
+          emptyDescription={
+            viewer.isProducer
+              ? "Requests from package groups show up here."
+              : "Requests show up here with each teammate's agreement and the producer votes."
+          }
+          onShowAll={() => queue.setFilter("all")}
+          openId={queue.openId}
+          isNew={queue.isNew}
+          onToggle={queue.toggle}
+          registerButton={queue.registerButton}
+          actions={actions}
+        />
+      )}
 
-        {openRequests.map(renderRequest)}
+      <p aria-live="polite" className="sr-only">
+        {announcement}
+      </p>
 
-        {deniedRequests.length > 0 ? (
-          <details className="group">
-            <summary className="flex cursor-pointer list-none items-center gap-1.5 py-1 text-sm text-muted-foreground hover:text-foreground">
-              <ChevronRight className="h-4 w-4 transition-transform group-open:rotate-90" />
-              Denied ({deniedRequests.length})
-            </summary>
-            <div className="mt-2 space-y-3">{deniedRequests.map(renderRequest)}</div>
-          </details>
-        ) : null}
-      </section>
+      <RequestExtensionDialog
+        open={requesting}
+        onOpenChange={setRequesting}
+        cycleNumber={requestCycle}
+        cycleOptions={cycleOptions}
+        onCycleChange={setCyclePick}
+        days={requestedDays}
+        onDaysChange={setRequestedDays}
+        reason={reason}
+        onReasonChange={setReason}
+        submitting={submitting}
+        pendingWarning={
+          hasLiveRequestFor(views ?? [], requestCycle, ["PENDING"])
+            ? `Your group already has a pending request for Cycle ${requestCycle}.`
+            : null
+        }
+        onSubmit={() => void submitRequest()}
+      />
 
       {granting ? (
         <GrantExtensionDialog
@@ -544,18 +229,24 @@ export default function ExtensionRequestsClient() {
           }}
           onGranted={async () => {
             setGranting(false);
-            window.dispatchEvent(new Event(EXTENSION_REQUESTS_CHANGED_EVENT));
-            await load();
+            await data.afterGrant();
           }}
         />
       ) : null}
 
-      {denyingId ? (
+      {denying ? (
         <DenyExtensionDialog
+          context={contextOf(denying)}
           onOpenChange={(open) => {
-            if (!open) setDenyingId(null);
+            if (!open) setDenying(null);
           }}
-          onConfirm={(reason) => decideProducer(denyingId, false, null, reason)}
+          onConfirm={async (denyReason) => {
+            const result = await data.decideProducer(
+              { requestId: denying.entry.id, approved: false, reason: denyReason },
+              closeDecisionDialogs
+            );
+            if (result.ok) advance(denying.entry.id, "Denied", result.data);
+          }}
         />
       ) : null}
 
@@ -565,30 +256,33 @@ export default function ExtensionRequestsClient() {
           onOpenChange={(open) => {
             if (!open) setApproving(null);
           }}
-          requestedDays={approving.entry.requestedDays}
-          members={approving.entry.groupMembers.map((member) => ({
-            userId: member.userId,
-            label: memberLabel(member)
-          }))}
+          context={contextOf(approving.view)}
+          requestedDays={approving.view.entry.requestedDays}
+          members={approving.view.members.map((member) => ({ userId: member.userId, label: member.label }))}
           lockedTerms={
-            approving.entry.approvals.some(
-              (approval) => approval.approved && approval.userId !== payload?.currentUserId
-            )
-              ? grantedTerms(approving.entry)
+            approving.view.entry.approvals.some((approval) => approval.approved && approval.userId !== me)
+              ? grantedTerms(approving.view.entry)
               : null
           }
           initialTerms={
-            approving.entry.approvals.some((approval) => approval.approved)
-              ? grantedTerms(approving.entry)
+            approving.view.termsSet
+              ? grantedTerms(approving.view.entry)
               : {
-                  grantedDays: approving.entry.requestedDays,
-                  grantedUserIds: approving.entry.groupMembers.map((member) => member.userId)
+                  grantedDays: approving.view.entry.requestedDays,
+                  grantedUserIds: approving.view.entry.groupMembers.map((member) => member.userId)
                 }
           }
           grantWithoutAgreement={approving.grant}
-          onConfirm={(terms) =>
-            decideProducer(approving.entry.id, true, terms, undefined, approving.grant || undefined)
-          }
+          onConfirm={async (terms) => {
+            const { view, grant } = approving;
+            const result = await data.decideProducer(
+              { requestId: view.entry.id, approved: true, terms, grantWithoutAgreement: grant || undefined },
+              closeDecisionDialogs
+            );
+            if (result.ok) {
+              advance(view.entry.id, grant ? "Granted" : "Approved", result.data);
+            }
+          }}
         />
       ) : null}
     </div>

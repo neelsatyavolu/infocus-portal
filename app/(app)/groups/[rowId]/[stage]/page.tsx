@@ -21,10 +21,16 @@ import { prisma } from "@/src/lib/prisma";
 import { userDisplayName } from "@/src/lib/user-display";
 import { BrainstormingPanel, PitchingPanel } from "../early-stage-panel";
 import { GroupStageShell } from "../group-stage-shell";
+import type { GroupStageFacts } from "../stage-bar-model";
 
 function producerName(person: { name: string | null; nickname?: string | null; email: string | null } | null) {
   if (!person) return null;
   return userDisplayName(person) || null;
+}
+
+function latestIso(dates: Date[]) {
+  const latest = dates.reduce<Date | null>((max, date) => (!max || date > max ? date : max), null);
+  return latest ? latest.toISOString() : null;
 }
 
 export async function generateMetadata({
@@ -115,6 +121,37 @@ export default async function GroupStagePage({
     .join(", ");
   const workSlug = workspaceSlugFromNav(stage);
   const canEdit = producerMayActOnPackage(platformRole, userId, row);
+  const needsChanges = brainstormNeedsChanges(row);
+  const proofsUpdatedAt = latestIso(row.proofOfContacts.map((proof) => proof.updatedAt));
+  const brainstormFeedbackAt = row.stageComments[0]?.createdAt.toISOString() ?? null;
+
+  // Stage bar statuses, from data this page already loads (no extra queries).
+  const facts: GroupStageFacts = {
+    pitching: row.pitching,
+    proofOfContact: row.proofOfContact,
+    aRollBRoll: row.aRollBRoll,
+    finalCut: row.finalCut,
+    approvalStage: nav.approvalStage,
+    rawApprovalStage: row.approval?.stage ?? "DRAFT",
+    proofCount: row.proofOfContacts.length,
+    brainstormDocUrl: row.brainstormDocUrl,
+    brainstormNeedsChanges: needsChanges,
+    initialCut: row.initialCut,
+    initialCutHasMedia: Boolean(row.initialCutMediaItemId),
+    awaitingRevisedInitialCut: row.awaitingRevisedInitialCut,
+    initialCutNeedsRevisions: row.initialCutMediaItem?.currentVersion?.approvalStatus === "NEEDS_CHANGES",
+    finalCutHasMedia: Boolean(row.finalCutMediaItemId),
+    queuedForAir: Boolean(row.queuedForAirAt),
+    queuedForShowDate: row.queuedForShowDate,
+    proofsUpdatedAt,
+    brainstormFeedbackAt,
+    latestCutAt: row.initialCutMediaItem?.currentVersion?.createdAt.toISOString() ?? null,
+    signoffs: (row.approval?.signoffs ?? []).map((signoff) => ({
+      stage: signoff.stage,
+      approved: signoff.approved,
+      createdAt: signoff.createdAt.toISOString()
+    }))
+  };
 
   return (
     <GroupStageShell
@@ -125,7 +162,7 @@ export default async function GroupStagePage({
       members={members}
       assignedProducer={producerName(row.assignedProducer)}
       assignedExecutive={producerName(row.assignedExecutiveProducer)}
-      nav={nav}
+      facts={facts}
     >
       {isCycleStageSlug(workSlug) ? (
         <StageWorkspace
@@ -143,8 +180,10 @@ export default async function GroupStagePage({
           proofs={serializeProofs(row.proofOfContacts)}
           docUrl={row.brainstormDocUrl}
           approved={row.proofOfContact}
-          needsChanges={brainstormNeedsChanges(row)}
+          needsChanges={needsChanges}
           canEdit={canEdit}
+          proofsUpdatedAt={proofsUpdatedAt}
+          feedbackAt={brainstormFeedbackAt}
         />
       )}
     </GroupStageShell>

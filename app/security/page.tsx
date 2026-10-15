@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Lock, ShieldCheck, UserCheck } from "lucide-react";
-import { MarketingHeader } from "@/components/marketing-header";
+import { InlineNote } from "@/components/kit/alert";
+import { IconTile } from "@/components/kit/avatar";
+import { Panel } from "@/components/kit/panel";
+import { PageHeader } from "@/components/page-header";
+import { MarketingPage } from "@/components/public-marketing/marketing-page";
+import { buttonVariants } from "@/components/ui/button";
 
 const points = [
   {
@@ -25,46 +30,38 @@ export const metadata: Metadata = { title: "Security" };
 
 export default function SecurityPage() {
   return (
-    <>
-      <MarketingHeader active="security" />
-      <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 md:py-10">
+    <MarketingPage active="security">
+      <div className="space-y-6">
+        <PageHeader
+          eyebrow="Security"
+          title="Security and control by design"
+          description="InFocus Portal helps protect your content with scoped access, guest controls, and reliable review history."
+          actions={
+            <Link href="/dashboard" className={buttonVariants()}>
+              Go to Dashboard
+              <ArrowRight className="h-4 w-4" aria-hidden />
+            </Link>
+          }
+        />
 
-      <section className="rounded-3xl border border-border bg-card p-7 md:p-10">
-        <h1 className="text-4xl font-semibold text-foreground md:text-5xl">Security and control by design</h1>
-        <p className="mt-3 max-w-3xl text-muted-foreground">
-          InFocus Portal helps protect your content with scoped access, guest controls, and reliable review history.
-        </p>
-      </section>
+        <div className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-3">
+            {points.map((point) => (
+              <Panel key={point.title} as="article">
+                <IconTile icon={point.icon} tone="brand" size={36} />
+                <h2 className="mt-3 text-lg font-semibold leading-snug text-foreground">{point.title}</h2>
+                <p className="mt-1 text-sm text-muted-foreground">{point.description}</p>
+              </Panel>
+            ))}
+          </div>
 
-      <section className="mt-8 grid gap-4 md:grid-cols-3">
-        {points.map((point) => {
-          const Icon = point.icon;
-
-          return (
-            <article key={point.title} className="rounded-2xl border border-border bg-card p-5">
-              <div className="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-muted text-foreground">
-                <Icon className="h-4 w-4" />
-              </div>
-              <h2 className="text-lg font-semibold text-foreground">{point.title}</h2>
-              <p className="mt-1 text-sm text-muted-foreground">{point.description}</p>
-            </article>
-          );
-        })}
-      </section>
-
-      <section className="mt-8 rounded-2xl border border-border bg-card p-6">
-        <p className="text-sm text-muted-foreground">
-          For production rollouts, make sure your Google OAuth redirect URLs and allowlisted user emails are configured
-          for your active domain before opening guest links broadly.
-        </p>
-        <div className="mt-4 flex flex-wrap gap-3">
-          <Link href="/dashboard" className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 font-semibold text-primary-foreground">
-            Go to Dashboard
-            <ArrowRight className="h-4 w-4" />
-          </Link>
+          {/* A setup reminder rather than a feature, so a quiet note under the cards. */}
+          <InlineNote>
+            For production rollouts, make sure your Google OAuth redirect URLs and allowlisted user emails are configured
+            for your active domain before opening guest links broadly.
+          </InlineNote>
         </div>
-      </section>
-      </main>
-    </>
+      </div>
+    </MarketingPage>
   );
 }

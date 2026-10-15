@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { Eye, EyeOff, Settings, ShieldCheck, Volume2 } from "lucide-react";
+import { Volume2 } from "lucide-react";
 import { NEVER } from "rxjs";
 import { toast } from "sonner";
 import { WATCH_TILE_ID, type LayoutMode } from "@/src/lib/meetings/client/layout";
@@ -11,19 +11,23 @@ import { handQueue } from "@/src/lib/meetings/client/hands";
 import { shouldMonitorMic } from "@/src/lib/meetings/client/mic-monitor";
 import { resumeAudio } from "@/src/lib/meetings/client/audio-level";
 import { holdUploadWakeLock as holdScreenWakeLock } from "@/src/lib/upload-wake-lock";
-import { MeetingInfoDialog, DevicesDialog, HostControlsDialog } from "./call-dialogs";
+import { cn } from "@/src/lib/utils";
+import { DevicesDialog, MeetingDialog } from "./call-dialogs";
 import { SelfLevel, buildTiles } from "./call-room-parts";
+import { CallRailStatus, CallStatusBar, ReconnectingNotice } from "./call-status";
+import { callStatusItems, phoneStatusItems } from "./call-status-model";
+import { CallToastOffset, callToastOffsets } from "./call-toast-offset";
 import { ChatPanel } from "./chat-panel";
 import { LeaveDialog } from "./leave-dialog";
-import { ControlsBar } from "./controls-bar";
+import { ControlsBar, type ControlsForm, type ControlsProps } from "./controls-bar";
 import { RemoteAudio, unblockAllAudio, useObservableTrack } from "./media-elements";
-import type { MoreAction } from "./more-menu";
+import { PanelTabsProvider } from "./panel-tabs";
 import { PeoplePanel } from "./people-panel";
 import { AgendaPanel, useCallAgenda } from "../agenda/agenda-panel";
 import { agendaProgress } from "@/src/lib/meetings/agenda";
 import { ReactionsOverlay } from "./reactions-overlay";
+import { WaitingBanner } from "./waiting-banner";
 import { Stage } from "./stage";
-import { TopBar } from "./top-bar";
 import { SelfPip } from "./self-pip";
 import {
   canShareScreen,
@@ -181,43 +185,126 @@ export function CallRoom({
 
   const onAudioBlocked = useCallback(() => setAudioBlocked(true), []);
 
-  const moreActions: MoreAction[] = [
-    { id: "self", label: hideSelf ? "Show self view" : "Hide self view", icon: hideSelf ? <Eye /> : <EyeOff />, onSelect: () => setHideSelf((v) => !v) },
-    { id: "devices", label: "Audio and video settings", icon: <Settings />, onSelect: () => setDialog("devices") },
-    ...(room.isHost
-      ? [{ id: "host", label: "Host controls", icon: <ShieldCheck />, onSelect: () => setDialog("host") }]
-      : [])
-  ];
-
   const remotes = people.filter((p) => p.uid !== selfUid && !p.isScribe);
   const meeting = call.joinInfo?.meeting;
+
+  // Layout and status: plain values from state the call already has (no new hooks here).
+  const form: ControlsForm = !mobile ? "desktop" : landscape ? "rail" : "phone";
+  const peopleCount = people.filter((p) => !p.isScribe).length;
+  const waitingCount = room.isHost ? room.waiting.length : 0;
+  const agendaRemaining = agenda.items ? agendaProgress(agenda.items).remaining : 0;
+  const selfHand = selfUid ? hands[selfUid] : undefined;
+  const reconnecting = call.socketStatus === "reconnecting";
+  const statusItems = callStatusItems({
+    reconnecting,
+    waitingCount,
+    selfHand,
+    handsTotal: Object.keys(hands).length,
+    presenting: Boolean(media.screen),
+    notesOn: scribePresent(room),
+    quality
+  });
+  const openPeople = () => setPanel("people");
+  const toastOffsets = callToastOffsets(form, !mobile && panel !== null);
+  const title = meeting?.title ?? "Meeting";
+
+  // The one primary area in the view; on a phone on its side it sits over the top of the stage.
+  const audioBanner = audioBlocked ? (
+    <button
+      type="button"
+      onClick={() => {
+        resumeAudio();
+        unblockAllAudio();
+        setAudioBlocked(false);
+      }}
+      className={cn(
+        "flex min-h-11 shrink-0 items-center justify-center gap-2 bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-[var(--brand-fill-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--on-brand)]",
+      )}
+    >
+      <Volume2 className="h-4 w-4" aria-hidden /> Tap to start audio
+    </button>
+  ) : null;
+
+  // Hosts: someone is waiting and People isn't open (the panel lists them itself).
+  const waitingBanner =
+    room.isHost && room.waiting.length > 0 && panel !== "people" ? (
+      <WaitingBanner meetingId={meetingId} waiting={room.waiting} mobile={mobile} onView={openPeople} />
+    ) : null;
+
+  const controls: ControlsProps = {
+    form,
+    audioOn: media.audioOn,
+    videoOn: media.videoOn,
+    sharing: Boolean(media.screen),
+    canShare: shareSupported,
+    shareSound: media.settings.shareSound,
+    handRaised: hand,
+    handPosition: selfHand,
+    panel,
+    agendaRemaining,
+    unread,
+    peopleCount,
+    waitingCount,
+    isHost: room.isHost,
+    selfHidden: hideSelf,
+    layout,
+    layoutAlone: stageTiles.length + (room.watch ? 1 : 0) <= 1,
+    onLayout: setLayout,
+    onMic: media.toggleAudio,
+    onMicIntent,
+    onCamera: media.toggleVideo,
+    onShare: toggleShare,
+    onShareSound: (on) => media.updateSettings({ shareSound: on }),
+    onWatch: () => setDialog("watch"),
+    onHand: toggleHand,
+    onReact: (emoji) => {
+      if (!call.sendReaction(emoji)) toast.error("You're offline. Try again in a moment.");
+    },
+    onChat: () => togglePanel("chat"),
+    onPeople: () => togglePanel("people"),
+    onAgenda: () => togglePanel("agenda"),
+    onDetails: () => setDialog("info"),
+    onHostSettings: () => setDialog("host"),
+    onDevices: () => setDialog("devices"),
+    onToggleSelf: () => setHideSelf((v) => !v),
+    onLeave: () => setDialog("leave")
+  };
 
   // Portaled to <body>: the page-entrance wrapper (app/template.tsx) keeps a transform animation in
   // effect, which makes it the containing block for `fixed` children and collapsed the call to 0px.
   return createPortal(
     <div className="fixed inset-0 flex touch-manipulation flex-col overflow-hidden overscroll-none bg-[var(--ink)]">
-      <TopBar
-        title={meeting?.title ?? "Meeting"}
-        since={joinedAt}
-        notesOn={scribePresent(room)}
-        quality={quality}
-        reconnecting={call.socketStatus === "reconnecting"}
-      />
-      {audioBlocked ? (
-        <button
-          type="button"
-          onClick={() => {
-            resumeAudio();
-            unblockAllAudio();
-            setAudioBlocked(false);
-          }}
-          className="flex min-h-11 items-center justify-center gap-2 bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
-        >
-          <Volume2 className="h-4 w-4" aria-hidden /> Tap to start audio
-        </button>
+      <CallToastOffset bottom={toastOffsets.bottom} right={toastOffsets.right} />
+      {form !== "rail" ? (
+        <>
+          <CallStatusBar
+            title={title}
+            since={joinedAt}
+            items={form === "phone" ? phoneStatusItems(statusItems, 2) : statusItems}
+            mobile={mobile}
+            onOpenDetails={() => setDialog("info")}
+            onOpenPeople={openPeople}
+          />
+          {audioBanner}
+          {waitingBanner}
+        </>
       ) : null}
       <div className="relative flex min-h-0 flex-1">
-        <div className="relative min-w-0 flex-1">
+        {/* On a phone on its side the stage runs edge to edge: keep tiles clear of the notch. */}
+        <div className={cn("relative min-w-0 flex-1", form === "rail" && "ml-[env(safe-area-inset-left)]")}>
+          {form === "rail" && (audioBanner || waitingBanner) ? (
+            // Stacked over the top of the stage; Reconnecting sits just below the stack.
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-col">
+              <div className="pointer-events-auto flex flex-col">
+                {audioBanner}
+                {waitingBanner}
+              </div>
+              {mobile ? <ReconnectingNotice on={reconnecting} className="relative mt-2" /> : null}
+            </div>
+          ) : mobile ? (
+            // Phones say "Reconnecting" in words here (desktop keeps it in the status bar).
+            <ReconnectingNotice on={reconnecting} className="top-2" />
+          ) : null}
           <Stage
             tiles={stageTiles}
             mode={layout}
@@ -233,7 +320,7 @@ export function CallRoom({
             hands={hands}
             receive={media.settings.receiveQuality}
             mirrorSelf={media.settings.mirror}
-            onOpenPeople={() => setPanel("people")}
+            onOpenPeople={openPeople}
             watch={
               room.watch
                 ? (placement) => (
@@ -241,77 +328,60 @@ export function CallRoom({
                   )
                 : undefined
             }
+            selfPip={
+              selfInPip
+                ? (strip) => (
+                    <SelfPip
+                      track={selfCamera}
+                      videoOn={media.videoOn}
+                      audioOn={media.audioOn}
+                      name={self?.name ?? "You"}
+                      landscape={landscape}
+                      handPosition={selfHand}
+                      mirror={media.settings.mirror}
+                      strip={strip}
+                    />
+                  )
+                : undefined
+            }
           />
-          {selfInPip ? (
-            <SelfPip
-              track={selfCamera}
-              videoOn={media.videoOn}
-              audioOn={media.audioOn}
-              name={self?.name ?? "You"}
-              landscape={landscape}
-              handPosition={selfUid ? hands[selfUid] : undefined}
-              mirror={media.settings.mirror}
-            />
-          ) : null}
           <ReactionsOverlay reactions={call.reactions} />
         </div>
-        {panel === "chat" ? (
-          <ChatPanel messages={call.chat} onSend={call.sendChat} onClose={() => setPanel(null)} mobile={mobile} />
-        ) : null}
-        {panel === "agenda" ? (
-          <AgendaPanel meetingId={meetingId} agenda={agenda} selfName={self?.name ?? null} onClose={() => setPanel(null)} mobile={mobile} />
-        ) : null}
-        {panel === "people" ? (
-          <PeoplePanel
-            meetingId={meetingId}
-            selfUid={selfUid}
-            isHost={room.isHost}
-            participants={merged}
-            hands={hands}
-            waiting={room.waiting}
-            send={send}
-            onClose={() => setPanel(null)}
-            mobile={mobile}
-          />
+        <PanelTabsProvider
+          active={panel}
+          onSelect={setPanel}
+          counts={{ people: peopleCount, waiting: waitingCount, unread, agendaLeft: agendaRemaining }}
+        >
+          {panel === "chat" ? (
+            <ChatPanel messages={call.chat} onSend={call.sendChat} onClose={() => setPanel(null)} mobile={mobile} />
+          ) : null}
+          {panel === "agenda" ? (
+            <AgendaPanel meetingId={meetingId} agenda={agenda} selfName={self?.name ?? null} onClose={() => setPanel(null)} mobile={mobile} />
+          ) : null}
+          {panel === "people" ? (
+            <PeoplePanel
+              meetingId={meetingId}
+              selfUid={selfUid}
+              isHost={room.isHost}
+              participants={merged}
+              hands={hands}
+              waiting={room.waiting}
+              send={send}
+              onClose={() => setPanel(null)}
+              mobile={mobile}
+            />
+          ) : null}
+        </PanelTabsProvider>
+        {form === "rail" ? (
+          // Phone on its side: no top bar. Time, lock and status lead the rail; the six controls
+          // never shrink, so Leave stays on screen however short the viewport is.
+          <div className="flex w-[calc(72px+env(safe-area-inset-right))] shrink-0 flex-col items-center gap-2 border-l border-[var(--ink-4)] bg-[var(--ink)] pb-[max(0.5rem,env(safe-area-inset-bottom))] pr-[env(safe-area-inset-right)] pt-[max(0.5rem,env(safe-area-inset-top))]">
+            <CallRailStatus title={title} since={joinedAt} items={phoneStatusItems(statusItems, 1)} onOpenPeople={openPeople} />
+            <ControlsBar {...controls} />
+          </div>
         ) : null}
       </div>
-      <ControlsBar
-        mobile={mobile}
-        title={meeting?.title ?? "Meeting"}
-        audioOn={media.audioOn}
-        videoOn={media.videoOn}
-        sharing={Boolean(media.screen)}
-        canShare={shareSupported}
-        shareSound={media.settings.shareSound}
-        handRaised={hand}
-        handPosition={selfUid ? hands[selfUid] : undefined}
-        chatOpen={panel === "chat"}
-        peopleOpen={panel === "people"}
-        agendaOpen={panel === "agenda"}
-        agendaRemaining={agenda.items ? agendaProgress(agenda.items).remaining : 0}
-        unread={unread}
-        peopleCount={people.filter((p) => !p.isScribe).length}
-        waitingCount={room.isHost ? room.waiting.length : 0}
-        layout={layout}
-        layoutAlone={stageTiles.length + (room.watch ? 1 : 0) <= 1}
-        moreActions={moreActions}
-        onLayout={setLayout}
-        onMic={media.toggleAudio}
-        onMicIntent={onMicIntent}
-        onCamera={media.toggleVideo}
-        onShare={toggleShare}
-        onShareSound={(on) => media.updateSettings({ shareSound: on })}
-        onWatch={() => setDialog("watch")}
-        onHand={toggleHand}
-        onReact={(emoji) => {
-          if (!call.sendReaction(emoji)) toast.error("You're offline. Try again in a moment.");
-        }}
-        onChat={() => togglePanel("chat")}
-        onPeople={() => togglePanel("people")}
-        onAgenda={() => togglePanel("agenda")}
-        onInfo={() => setDialog("info")}
-        onLeave={() => setDialog("leave")}
-      />
+      {form !== "rail" ? <ControlsBar {...controls} /> : null}
 
       {remotes.map((p) => (
         <RemoteAudio
@@ -339,20 +409,21 @@ export function CallRoom({
         ))}
       {selfUid && media.audioOn ? <SelfLevel track={selfMic} uid={selfUid} onLevel={onLevel} onSelfLevel={onSelfLevel} /> : null}
 
-      {meeting ? (
-        <MeetingInfoDialog
-          open={dialog === "info"}
-          onOpenChange={(o) => setDialog(o ? "info" : null)}
-          meeting={meeting}
-          isHost={room.isHost}
-          selfUid={selfUid}
-        />
-      ) : null}
+      <MeetingDialog
+        open={dialog === "info" || dialog === "host"}
+        onOpenChange={(o) => setDialog(o ? (dialog === "host" ? "host" : "info") : null)}
+        focus={dialog === "host" ? "host" : "info"}
+        meetingId={meetingId}
+        meeting={meeting}
+        isHost={room.isHost}
+        settings={room.settings}
+        selfUid={selfUid}
+      />
       <DevicesDialog
         open={dialog === "devices"}
         onOpenChange={(o) => setDialog(o ? "devices" : null)}
         media={media}
-        peopleCount={people.filter((p) => !p.isScribe).length}
+        peopleCount={peopleCount}
       />
       <CutPickerDialog
         open={dialog === "watch"}
@@ -369,14 +440,6 @@ export function CallRoom({
         participants={people}
         onLeave={onLeave}
       />
-      {room.isHost ? (
-        <HostControlsDialog
-          open={dialog === "host"}
-          onOpenChange={(o) => setDialog(o ? "host" : null)}
-          meetingId={meetingId}
-          settings={room.settings}
-        />
-      ) : null}
     </div>,
     document.body
   );

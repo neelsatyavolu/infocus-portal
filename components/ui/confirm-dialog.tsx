@@ -1,8 +1,9 @@
 "use client";
 
 import { pointerSafeAutoFocus } from "@/components/meetings/focus-modality";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Loader2 } from "lucide-react";
+import { InlineError } from "@/components/kit/alert";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,6 +18,8 @@ import {
  * "Are you sure?" step. For destructive actions the confirm button is the only solid Danger
  * fill (DESIGN.md §10); `tone="default"` is for confirmations that aren't destructive.
  * If `onConfirm` throws, the dialog stays open so the caller's error can be read and retried.
+ * `children` shows extra content (a preview of what will be deleted); `error` shows the failure
+ * inside the dialog.
  */
 export function ConfirmDialog({
   open,
@@ -26,6 +29,9 @@ export function ConfirmDialog({
   confirmLabel,
   cancelLabel = "Keep it",
   tone = "destructive",
+  busyLabel,
+  error,
+  children,
   onConfirm
 }: {
   open: boolean;
@@ -35,6 +41,11 @@ export function ConfirmDialog({
   confirmLabel: string;
   cancelLabel?: string;
   tone?: "destructive" | "default";
+  /** Confirm label while it runs ("Deleting…"). */
+  busyLabel?: string;
+  /** Error from the last attempt, shown above the buttons. */
+  error?: string | null;
+  children?: ReactNode;
   onConfirm: () => Promise<unknown> | void;
 }) {
   const [busy, setBusy] = useState(false);
@@ -58,6 +69,8 @@ export function ConfirmDialog({
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
+        {children ? <div className="min-w-0">{children}</div> : null}
+        {error ? <InlineError>{error}</InlineError> : null}
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
             {cancelLabel}
@@ -67,8 +80,8 @@ export function ConfirmDialog({
             onClick={() => void confirm()}
             disabled={busy}
           >
-            {busy ? <Loader2 className="animate-spin" aria-hidden /> : null}
-            {confirmLabel}
+            {busy ? <Loader2 className="motion-safe:animate-spin" aria-hidden /> : null}
+            {busy && busyLabel ? busyLabel : confirmLabel}
           </Button>
         </DialogFooter>
       </DialogContent>

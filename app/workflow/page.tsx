@@ -1,65 +1,89 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
-import { MarketingHeader } from "@/components/marketing-header";
+import { Panel } from "@/components/kit/panel";
+import { StatusTag } from "@/components/kit/status-tag";
+import { PageHeader } from "@/components/page-header";
+import { MarketingPage } from "@/components/public-marketing/marketing-page";
+import { buttonVariants } from "@/components/ui/button";
 
 const workflow = [
   {
-    title: "1. Upload",
+    step: 1,
+    title: "Upload",
     body: "Upload package videos directly from the browser and track live progress with speed and percentage."
   },
   {
-    title: "2. Review",
+    step: 2,
+    title: "Review",
     body: "Invite teammates or guests to comment at exact timestamps and reply in focused threads."
   },
   {
-    title: "3. Revise",
+    step: 3,
+    title: "Revise",
     body: "Upload a new version to the same asset so historical comments remain linked and searchable."
   },
   {
-    title: "4. Approve",
+    step: 4,
+    title: "Approve",
     body: "Move versions through review statuses and keep a clear audit trail for final sign-off."
   }
 ];
 
 export const metadata: Metadata = { title: "Workflow" };
 
+/**
+ * Each step card keeps its "Production-ready step" marker, as a neutral tag in a status slot
+ * pinned to the card's bottom, so the tags line up across a row. Four cards to a row only from
+ * xl, where the tag fits on one line. The page's own action (Start reviewing, into the Portal) is
+ * the primary, last, as on /security; View security is the outline beside it.
+ */
 export default function WorkflowPage() {
   return (
-    <>
-      <MarketingHeader active="workflow" />
-      <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 md:py-10">
+    <MarketingPage active="workflow">
+      <div className="space-y-6">
+        <PageHeader
+          eyebrow="Workflow"
+          title="A clear workflow from first cut to final"
+          description="Keep every package organized in one repeatable process that works for internal teams and external reviewers."
+          actions={
+            <>
+              <Link href="/security" className={buttonVariants({ variant: "outline" })}>
+                View security
+              </Link>
+              <Link href="/dashboard" className={buttonVariants()}>
+                Start reviewing
+                <ArrowRight className="h-4 w-4" aria-hidden />
+              </Link>
+            </>
+          }
+        />
 
-      <section className="rounded-3xl border border-border bg-card p-7 md:p-10">
-        <h1 className="text-4xl font-semibold text-foreground md:text-5xl">A clear workflow from first cut to final</h1>
-        <p className="mt-3 max-w-3xl text-muted-foreground">
-          Keep every package organized in one repeatable process that works for internal teams and external reviewers.
-        </p>
-      </section>
-
-      <section className="mt-8 grid gap-4 md:grid-cols-2">
-        {workflow.map((step) => (
-          <article key={step.title} className="rounded-2xl border border-border bg-card p-5">
-            <h2 className="text-lg font-semibold text-foreground">{step.title}</h2>
-            <p className="mt-2 text-sm text-muted-foreground">{step.body}</p>
-            <div className="mt-3 inline-flex items-center gap-1 text-xs text-foreground">
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              Production-ready step
-            </div>
-          </article>
-        ))}
-      </section>
-
-      <section className="mt-8 flex flex-wrap gap-3">
-        <Link href="/security" className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 font-semibold text-primary-foreground">
-          View Security
-          <ArrowRight className="h-4 w-4" />
-        </Link>
-        <Link href="/dashboard" className="inline-flex items-center gap-2 rounded-xl border border-border bg-secondary px-4 py-2.5 text-sm font-semibold text-foreground">
-          Start Reviewing
-        </Link>
-      </section>
-      </main>
-    </>
+        <ol className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {workflow.map((step) => (
+            <li key={step.step} className="min-w-0">
+              <Panel as="div" bodyClassName="flex flex-col">
+                <div className="flex items-center gap-3">
+                  <span
+                    aria-hidden
+                    className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-[var(--ink-3)] text-sm font-semibold text-foreground"
+                  >
+                    {step.step}
+                  </span>
+                  <h2 className="min-w-0 text-lg font-semibold leading-snug text-foreground">
+                    <span className="sr-only">{step.step}. </span>
+                    {step.title}
+                  </h2>
+                </div>
+                <p className="mt-3 text-sm text-muted-foreground">{step.body}</p>
+                <div className="mt-auto pt-4">
+                  <StatusTag icon={CheckCircle2}>Production-ready step</StatusTag>
+                </div>
+              </Panel>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </MarketingPage>
   );
 }

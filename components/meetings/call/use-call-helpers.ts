@@ -7,6 +7,7 @@ import { watchTrackLevel } from "@/src/lib/meetings/client/audio-level";
 import { onTick } from "@/src/lib/meetings/client/ticker";
 import { INITIAL_VAD, nextVad, type VadState } from "@/src/lib/meetings/client/voice-activity";
 import type { PartyTracks } from "partytracks/client";
+import { matchCallShortcut } from "./shortcut";
 
 function withoutKey<T>(record: Readonly<Record<string, T>>, key: string): Record<string, T> {
   return Object.fromEntries(Object.entries(record).filter(([k]) => k !== key));
@@ -172,21 +173,11 @@ export function useCallShortcuts(actions: { mic: () => void; camera: () => void;
   }, [actions]);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (!(event.metaKey || event.ctrlKey) || event.shiftKey) return;
-      const action = event.altKey
-        ? event.code === "KeyH"
-          ? ref.current.hand
-          : event.code === "KeyC"
-            ? ref.current.chat
-            : null
-        : event.code === "KeyD"
-          ? ref.current.mic
-          : event.code === "KeyE"
-            ? ref.current.camera
-            : null;
-      if (!action) return;
+      // The bindings come from CALL_SHORTCUTS, the same list the tooltips and legend show.
+      const shortcut = matchCallShortcut(event);
+      if (!shortcut) return;
       event.preventDefault();
-      action();
+      ref.current[shortcut]();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);

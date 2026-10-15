@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { useId, useState } from "react";
+import { Field } from "@/components/kit/field";
+import { Spinner } from "@/components/kit/spinner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,11 +16,15 @@ import { Textarea } from "@/components/ui/textarea";
 /** Deny step for a producer. A reason is required and shown on the request. */
 export function DenyExtensionDialog({
   onOpenChange,
+  context,
   onConfirm
 }: {
   onOpenChange: (open: boolean) => void;
+  /** Which request this is ("Lunch line wait times · Cycle 3"). */
+  context?: string;
   onConfirm: (reason: string) => Promise<void>;
 }) {
+  const reasonId = useId();
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
   const trimmed = reason.trim();
@@ -38,12 +43,13 @@ export function DenyExtensionDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Deny extension</DialogTitle>
+          {context ? <p className="min-w-0 truncate text-sm text-foreground">{context}</p> : null}
           <DialogDescription>Say why. The group sees this reason on the request.</DialogDescription>
         </DialogHeader>
 
-        <label className="block text-sm">
-          <span className="mb-1 block text-xs text-muted-foreground">Reason</span>
+        <Field label="Reason" htmlFor={reasonId} required>
           <Textarea
+            id={reasonId}
             value={reason}
             onChange={(event) => setReason(event.target.value)}
             onKeyDown={(event) => {
@@ -55,15 +61,15 @@ export function DenyExtensionDialog({
             rows={4}
             autoFocus
           />
-          <SubmitShortcutHint action="deny" className="mt-1 block" />
-        </label>
+          <SubmitShortcutHint action="deny" />
+        </Field>
 
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
             Cancel
           </Button>
-          <Button variant="destructive" onClick={() => void confirm()} disabled={saving || !trimmed}>
-            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+          <Button type="button" variant="destructive" onClick={() => void confirm()} disabled={saving || !trimmed}>
+            {saving ? <Spinner /> : null}
             Deny
           </Button>
         </DialogFooter>

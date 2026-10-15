@@ -1,131 +1,92 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUpDown, Loader2, Search } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select";
-import {
-  MEMBER_GENERAL_CYCLE_NUMBER,
-  MEMBER_NOTE_MAX,
-  isGeneralMemberNoteCycle,
-  memberNoteKey
-} from "@/src/lib/member-notes";
-import { type NameSortKey, sortNamedPeople } from "@/src/lib/name-sort";
-import { cn } from "@/src/lib/utils";
-import { cachedValue, rememberValue } from "@/src/lib/client-cache";
+import { ArrowLeft, Lock, RotateCw, Users } from "lucide-react";
+import { Alert } from "@/components/kit/alert";
+import { EmptyState } from "@/components/kit/empty-state";
+import { useListHotkeys } from "@/components/kit/hotkeys";
+import { ListDetail } from "@/components/kit/layout";
+import { CyclePicker } from "@/components/kit/pickers";
+import { useMediaQuery, useRememberedState } from "@/components/kit/remembered-state";
+import { SegmentedControl } from "@/components/kit/segmented-control";
+import { Spinner } from "@/components/kit/spinner";
+import { StatusTag } from "@/components/kit/status-tag";
 import { PageHeader } from "@/components/page-header";
-import { BottomTabDock, BottomTabDockButton, CycleTabLabel } from "@/components/ui/bottom-tab-dock";
+import { isNameSortKey, useMounted } from "@/components/people/people-ui";
+import { Button } from "@/components/ui/button";
+import { neighborIds } from "@/src/lib/keyboard-nav";
+import { MEMBER_GENERAL_CYCLE_NUMBER, isGeneralMemberNoteCycle, memberNoteKey } from "@/src/lib/member-notes";
+import { type NameSortKey, sortNamedPeople } from "@/src/lib/name-sort";
+import { MemberDetail, MemberStepper } from "./member-detail";
+import { MemberList, RosterEmpty, RosterHeader } from "./member-list";
+import {
+  type MembersLayout,
+  type NoteFilter,
+  isCycleTabValue,
+  isMembersLayout,
+  isNoteFilter,
+  isString,
+  parseNoteKey,
+  tabDescription,
+  tabTitle,
+  tabsWithNotes
+} from "./member-notes-model";
+import { MemberSheet } from "./member-sheet";
+import { MembersBodySkeleton } from "./members-skeleton";
+import { useMemberNotes } from "./use-member-notes";
+import { usePhoneDetail } from "./use-phone-detail";
 
-type CycleTab = {
-  cycleNumber: number;
-  focus: string;
-};
-
-type MemberRow = {
-  id: string;
-  name: string | null;
-  email: string | null;
-  notesByCycle: Record<string, string>;
-};
-
-type MembersPayload = {
-  cycles: CycleTab[];
-  members: MemberRow[];
-};
-
-const MEMBERS_CACHE_KEY = "members";
-
-function personLabel(person: { name: string | null; email: string | null }) {
-  return person.name?.trim() || person.email || "Unnamed member";
-}
-
+/**
+ * Members (People hub): producer notes on each class member. "Person": the roster on the left
+ * and the selected person on the right (the active tab's note, their General note and every other
+ * cycle). "Class": every member's note for the active tab on one page. Notes autosave.
+ */
 export default function MembersClient() {
-  const [cycles, setCycles] = useState<CycleTab[]>([]);
-  const [members, setMembers] = useState<MemberRow[]>([]);
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
-  const [activeCycleNumber, setActiveCycleNumber] = useState(MEMBER_GENERAL_CYCLE_NUMBER);
-  const [sortBy, setSortBy] = useState<NameSortKey>("lastName");
+  const notes = useMemberNotes();
+  const mounted = useMounted();
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const [tab, setTab, tabLoaded] = useRememberedState<number>(
+    "people:members:tab:v1",
+    MEMBER_GENERAL_CYCLE_NUMBER,
+    isCycleTabValue
+  );
+  const [sortBy, setSortBy, sortLoaded] = useRememberedState<NameSortKey>("people:members:sort:v1", "lastName", isNameSortKey);
+  const [filter, setFilter, filterLoaded] = useRememberedState<NoteFilter>("people:members:filter:v1", "all", isNoteFilter);
+  const [selectedId, setSelectedId, selectedLoaded] = useRememberedState<string>("people:members:selected:v1", "", isString);
+  const [layout, setLayout, layoutLoaded] = useRememberedState<MembersLayout>(
+    "people:members:layout:v1",
+    "person",
+    isMembersLayout
+  );
+  // The remembered choices land right after mount. Until then the body stays a skeleton (one
+  // frame), so a return visit never flashes the default layout, tab or person first.
+  const prefsLoaded = tabLoaded && sortLoaded && filterLoaded && selectedLoaded && layoutLoaded;
+  // The person being worked on stays in a filtered list even after their note stops matching it.
+  const [pinnedId, setPinnedId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState<string | null>(null);
-  const [savingKeys, setSavingKeys] = useState<Set<string>>(new Set());
-  const saveTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
-  const draftsRef = useRef<Record<string, string>>({});
-  const membersRef = useRef<MemberRow[]>([]);
+  const primaryRef = useRef<HTMLTextAreaElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+  const focusEditorRef = useRef(false);
+  const revealRowRef = useRef(false);
+  const { flushAll, flushNote, setNote, drafts } = notes;
+  const phone = usePhoneDetail({ isDesktop, mounted, onLeave: flushAll });
 
-  useEffect(() => {
-    draftsRef.current = drafts;
-  }, [drafts]);
+  const cycles = useMemo(() => notes.data?.cycles ?? [], [notes.data]);
+  const members = useMemo(() => notes.data?.members ?? [], [notes.data]);
+  const tabs = useMemo(() => [MEMBER_GENERAL_CYCLE_NUMBER, ...cycles.map((cycle) => cycle.cycleNumber)], [cycles]);
+  const activeTab =
+    isGeneralMemberNoteCycle(tab) || cycles.some((cycle) => cycle.cycleNumber === tab) ? tab : MEMBER_GENERAL_CYCLE_NUMBER;
+  const isGeneral = isGeneralMemberNoteCycle(activeTab);
+  const activeCycle = cycles.find((cycle) => cycle.cycleNumber === activeTab) ?? null;
+  const tabName = tabTitle(activeTab);
+  const personLayout = layout === "person";
 
-  useEffect(() => {
-    membersRef.current = members;
-  }, [members]);
+  const hasNote = useCallback(
+    (memberId: string) => (drafts[memberNoteKey(memberId, activeTab)] ?? "").trim().length > 0,
+    [drafts, activeTab]
+  );
 
-  const load = useCallback(async () => {
-    const response = await fetch("/api/members", { cache: "no-store" });
-    const payload = (await response.json()) as { data?: MembersPayload; error?: { message?: string } };
-    if (!response.ok || !payload.data) {
-      throw new Error(payload.error?.message ?? "Failed to load members.");
-    }
-    return payload.data;
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    function apply(data: MembersPayload) {
-      setCycles(data.cycles);
-      setMembers(data.members);
-      const nextDrafts: Record<string, string> = {};
-      for (const member of data.members) {
-        for (const [cycle, notes] of Object.entries(member.notesByCycle)) {
-          nextDrafts[memberNoteKey(member.id, Number(cycle))] = notes;
-        }
-      }
-      setDrafts(nextDrafts);
-    }
-    void (async () => {
-      try {
-        // Show the last copy at once and refresh it quietly (src/lib/client-cache.ts).
-        const cached = cachedValue<MembersPayload>(MEMBERS_CACHE_KEY);
-        if (cached) apply(cached);
-        else setLoading(true);
-        setMessage(null);
-        const data = await load();
-        rememberValue(MEMBERS_CACHE_KEY, data);
-        if (cancelled) return;
-        apply(data);
-      } catch (error) {
-        if (!cancelled) {
-          setMessage(error instanceof Error ? error.message : "Failed to load members.");
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [load]);
-
-  useEffect(() => {
-    const timers = saveTimersRef.current;
-    return () => {
-      for (const timer of timers.values()) {
-        clearTimeout(timer);
-      }
-      timers.clear();
-    };
-  }, []);
-
-  const activeCycle = cycles.find((cycle) => cycle.cycleNumber === activeCycleNumber) ?? null;
-  const isGeneral = isGeneralMemberNoteCycle(activeCycleNumber);
-
-  const visibleMembers = useMemo(() => {
+  const searched = useMemo(() => {
     const q = query.trim().toLowerCase();
     const filtered = q
       ? members.filter((member) => {
@@ -137,235 +98,293 @@ export default function MembersClient() {
     return sortNamedPeople(filtered, sortBy);
   }, [members, query, sortBy]);
 
-  const notesOnTab = useMemo(() => {
-    return members.filter((member) => {
-      const key = memberNoteKey(member.id, activeCycleNumber);
-      return (drafts[key] ?? member.notesByCycle[String(activeCycleNumber)] ?? "").trim().length > 0;
-    }).length;
-  }, [members, drafts, activeCycleNumber]);
+  const counts = useMemo(() => {
+    const withNote = searched.filter((member) => hasNote(member.id)).length;
+    return { all: searched.length, with: withNote, without: searched.length - withNote };
+  }, [searched, hasNote]);
 
-  async function persist(userId: string, cycleNumber: number) {
-    const key = memberNoteKey(userId, cycleNumber);
-    const notes = (draftsRef.current[key] ?? "").slice(0, MEMBER_NOTE_MAX);
-    const current = membersRef.current.find((member) => member.id === userId);
-    const saved = current?.notesByCycle[String(cycleNumber)] ?? "";
-    if (notes === saved) return;
+  const visible = useMemo(
+    () =>
+      filter === "all"
+        ? searched
+        : searched.filter((member) => member.id === pinnedId || hasNote(member.id) === (filter === "with")),
+    [searched, filter, pinnedId, hasNote]
+  );
 
-    setSavingKeys((prev) => {
-      const next = new Set(prev);
-      next.add(key);
-      return next;
-    });
+  const selected = visible.find((member) => member.id === selectedId) ?? visible[0] ?? null;
+  const neighbors = useMemo(
+    () => (selected ? neighborIds(visible.map((member) => member.id), selected.id) : { previous: null, next: null }),
+    [visible, selected]
+  );
 
-    try {
-      const response = await fetch("/api/members/notes", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, cycleNumber, notes })
-      });
-      const payload = (await response.json()) as {
-        data?: { userId: string; cycleNumber: number; notes: string };
-        error?: { message?: string };
-      };
-      if (!response.ok || !payload.data) {
-        throw new Error(payload.error?.message ?? "Failed to save note.");
-      }
-      setMembers((prev) =>
-        prev.map((member) =>
-          member.id === payload.data!.userId
-            ? {
-                ...member,
-                notesByCycle: {
-                  ...member.notesByCycle,
-                  [String(payload.data!.cycleNumber)]: payload.data!.notes
-                }
-              }
-            : member
-        )
-      );
-      setMessage(null);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to save note.");
-    } finally {
-      setSavingKeys((prev) => {
-        const next = new Set(prev);
-        next.delete(key);
-        return next;
-      });
+  const savingMembers = useMemo(() => {
+    const ids = new Set<string>();
+    for (const key of notes.savingKeys) {
+      const parsed = parseNoteKey(key);
+      if (parsed) ids.add(parsed.userId);
     }
-  }
+    return ids;
+  }, [notes.savingKeys]);
 
-  function queueSave(userId: string, cycleNumber: number) {
-    const key = memberNoteKey(userId, cycleNumber);
-    const existing = saveTimersRef.current.get(key);
-    if (existing) clearTimeout(existing);
-    saveTimersRef.current.set(
-      key,
-      setTimeout(() => {
-        saveTimersRef.current.delete(key);
-        void persist(userId, cycleNumber);
-      }, 700)
-    );
-  }
-
-  function setNote(userId: string, value: string) {
-    const key = memberNoteKey(userId, activeCycleNumber);
-    setDrafts((current) => ({ ...current, [key]: value.slice(0, MEMBER_NOTE_MAX) }));
-    queueSave(userId, activeCycleNumber);
-  }
-
-  function flushNote(userId: string, cycleNumber: number) {
-    const key = memberNoteKey(userId, cycleNumber);
-    const timer = saveTimersRef.current.get(key);
-    if (timer) {
-      clearTimeout(timer);
-      saveTimersRef.current.delete(key);
+  const errorMembers = useMemo(() => {
+    const byMember = new Map<string, string>();
+    for (const [key, message] of Object.entries(notes.errorKeys)) {
+      const parsed = parseNoteKey(key);
+      if (parsed && !byMember.has(parsed.userId)) byMember.set(parsed.userId, message);
     }
-    void persist(userId, cycleNumber);
+    return byMember;
+  }, [notes.errorKeys]);
+
+  function selectMember(memberId: string, options: { focusEditor?: boolean; openOnPhone?: boolean; reveal?: boolean } = {}) {
+    const changing = memberId !== selected?.id;
+    // A field that disappears never blurs, so send what was typed before switching.
+    if (changing) flushAll();
+    setSelectedId(memberId);
+    setPinnedId(memberId);
+    if (options.reveal) revealRowRef.current = true;
+    if (options.focusEditor) {
+      if (changing) focusEditorRef.current = true;
+      else primaryRef.current?.focus();
+    }
+    if (options.openOnPhone && !isDesktop && !phone.open) phone.openDetail();
   }
 
-  function flushAllPending() {
-    const pending = [...saveTimersRef.current.entries()];
-    saveTimersRef.current.clear();
-    for (const [key, timer] of pending) {
-      clearTimeout(timer);
-      const separator = key.lastIndexOf(":");
-      const userId = key.slice(0, separator);
-      const cycleNumber = Number(key.slice(separator + 1));
-      if (userId && Number.isInteger(cycleNumber)) {
-        void persist(userId, cycleNumber);
+  useEffect(() => {
+    if (revealRowRef.current && selected) {
+      revealRowRef.current = false;
+      if (isDesktop) {
+        const index = visible.findIndex((member) => member.id === selected.id);
+        const row = listRef.current?.children[index];
+        if (row instanceof HTMLElement) row.scrollIntoView({ block: "nearest" });
       }
     }
+    if (focusEditorRef.current) {
+      focusEditorRef.current = false;
+      primaryRef.current?.focus();
+    }
+  }, [selected, visible, activeTab, isDesktop, phone.open]);
+
+  function step(direction: "previous" | "next", focusEditor = false) {
+    const target = neighbors[direction];
+    if (target) selectMember(target, { reveal: true, focusEditor });
   }
 
-  function onTabClick(cycleNumber: number) {
-    if (cycleNumber === activeCycleNumber) return;
-    flushAllPending();
-    setActiveCycleNumber(cycleNumber);
+  useListHotkeys({
+    enabled: personLayout && visible.length > 0,
+    onNext: () => step("next"),
+    onPrevious: () => step("previous")
+  });
+
+  function saveAndNext() {
+    if (!selected) return;
+    flushNote(memberNoteKey(selected.id, activeTab));
+    step("next", true);
   }
 
-  const saving = savingKeys.size > 0;
+  function changeTab(next: number) {
+    if (next === activeTab) return;
+    flushAll();
+    if (selected) setPinnedId(selected.id);
+    setTab(next);
+  }
+
+  function openCycle(cycleNumber: number) {
+    changeTab(cycleNumber);
+    // Desktop: straight into that cycle's note. Phones: back to the top of the person, no keyboard.
+    if (isDesktop) focusEditorRef.current = true;
+    else phone.detailRef.current?.scrollIntoView({ block: "start" });
+  }
+
+  function changeFilter(next: NoteFilter) {
+    setPinnedId(null);
+    setFilter(next);
+  }
+
+  function changeLayout(next: MembersLayout) {
+    if (next === layout) return;
+    flushAll();
+    if (phone.open) phone.closeDetail();
+    setLayout(next);
+  }
+
+  const handlers = useMemo(
+    () => ({
+      noteState: notes.noteState,
+      errorFor: (key: string) => notes.errorKeys[key],
+      onChange: (key: string, value: string) => {
+        const parsed = parseNoteKey(key);
+        if (parsed) setPinnedId(parsed.userId);
+        setNote(key, value);
+      },
+      onFlush: (key: string) => flushNote(key)
+    }),
+    [notes.noteState, notes.errorKeys, setNote, flushNote]
+  );
+
+  const stepper = {
+    onPrevious: () => step("previous"),
+    onNext: () => step("next"),
+    hasPrevious: Boolean(neighbors.previous),
+    hasNext: Boolean(neighbors.next)
+  };
+
+  const rosterHeader = (wide: boolean) => (
+    <RosterHeader
+      wide={wide}
+      query={query}
+      onQueryChange={setQuery}
+      sortBy={sortBy}
+      onSortChange={setSortBy}
+      filter={filter}
+      counts={counts}
+      onFilterChange={changeFilter}
+      tabName={tabName}
+    />
+  );
+  const rosterEmpty =
+    visible.length === 0 ? (
+      <RosterEmpty
+        query={query}
+        filter={filter}
+        tabName={tabName}
+        onClearSearch={() => setQuery("")}
+        onShowAll={() => changeFilter("all")}
+      />
+    ) : null;
 
   return (
-    <div className="route-enter mx-auto w-full max-w-[80rem] space-y-5 pb-24">
+    <div className="route-enter space-y-5">
       <PageHeader
-        eyebrow="Producer view"
-        title="Members"
-        description={
-          <>
-            {isGeneral
-              ? "Standing notes on each reporter. Switch cycles for notes that stay with that package."
-              : activeCycle?.focus?.trim()
-                ? `Cycle ${activeCycle.cycleNumber} · ${activeCycle.focus}`
-                : `Notes for package cycle ${activeCycleNumber}.`}
-            {` · ${members.length} member${members.length === 1 ? "" : "s"}`}
-            {notesOnTab > 0 ? ` · ${notesOnTab} with notes` : ""}
-          </>
+        eyebrow="Producer notes"
+        status={
+          <StatusTag
+            tone="neutral"
+            icon={Lock}
+            title="Shared by every producer who can open Members. Students never see these notes."
+          >
+            Producers only
+          </StatusTag>
         }
+        title="Members"
+        description={prefsLoaded ? tabDescription(isGeneral, activeTab, activeCycle) : "\u00a0"}
         actions={
-          <>
-            {saving ? (
-              <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Saving
-              </span>
-            ) : null}
-            <label className="relative w-full sm:w-56">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search members…"
-                className="h-9 w-full rounded-md border border-border bg-muted pl-8 pr-3 text-base text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring md:text-sm"
+          notes.data && prefsLoaded ? (
+            <>
+              <SegmentedControl<MembersLayout>
+                ariaLabel="Notes layout"
+                value={layout}
+                onChange={changeLayout}
+                // The header row holds its controls at h-9; below md they match the 40px roster controls.
+                className="max-sm:*:flex-1 max-md:h-10!"
+                options={[
+                  { value: "person", label: "Person", title: "One member at a time, with all their notes" },
+                  { value: "class", label: "Class", title: `Everyone's ${tabName} note on one page` }
+                ]}
               />
-            </label>
-            <div className="inline-flex min-w-[10.5rem] items-center rounded-md border border-border bg-muted">
-              <div className="pointer-events-none pl-2 text-muted-foreground">
-                <ArrowUpDown className="h-3.5 w-3.5" />
-              </div>
-              <Select value={sortBy} onValueChange={(value) => setSortBy(value as NameSortKey)}>
-                <SelectTrigger className="h-9 w-[9.5rem] border-0 bg-transparent shadow-none" aria-label="Sort members">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="lastName">Last name</SelectItem>
-                  <SelectItem value="firstName">First name</SelectItem>
-                  <SelectItem value="email">Email</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </>
+              <CyclePicker
+                cycles={cycles}
+                value={activeTab}
+                onChange={changeTab}
+                leadingOptions={[{ value: MEMBER_GENERAL_CYCLE_NUMBER, label: "General" }]}
+                ariaLabel="Cycles"
+                className="max-sm:min-w-0 max-sm:max-w-none max-md:h-10!"
+              />
+            </>
+          ) : null
         }
       />
 
-      {message ? (
-        <p className="rounded-md border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">
-          {message}
-        </p>
+      {notes.loadError ? (
+        <Alert
+          tone={notes.data ? "warning" : "danger"}
+          action={
+            <Button type="button" variant="outline" size="sm" onClick={() => void notes.reload()} disabled={notes.fetching}>
+              {notes.fetching ? <Spinner /> : <RotateCw aria-hidden />}
+              Try again
+            </Button>
+          }
+        >
+          {notes.loadError}
+        </Alert>
+      ) : null}
+      {notes.saveError ? (
+        <Alert
+          tone="danger"
+          onDismiss={notes.dismissSaveError}
+          action={
+            <Button type="button" variant="outline" size="sm" onClick={notes.retryFailed} disabled={notes.savingKeys.size > 0}>
+              {notes.savingKeys.size > 0 ? <Spinner /> : <RotateCw aria-hidden />}
+              Try again
+            </Button>
+          }
+        >
+          {notes.saveError}
+        </Alert>
       ) : null}
 
-      <section className="overflow-hidden rounded-md border border-border bg-card">
-        {loading ? (
-          <p className="px-4 py-8 text-center text-sm text-muted-foreground">Loading members…</p>
-        ) : visibleMembers.length === 0 ? (
-          <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-            {query.trim() ? "No members match that search." : "No class members to show."}
-          </p>
-        ) : (
-          <ul>
-            {visibleMembers.map((member) => {
-              const key = memberNoteKey(member.id, activeCycleNumber);
-              const value = drafts[key] ?? "";
-              const hasNote = value.trim().length > 0;
-              return (
-                <li key={member.id} className="border-b border-border last:border-b-0">
-                  <div className="grid gap-3 px-4 py-3 md:grid-cols-[minmax(12rem,18rem)_1fr] md:items-start">
-                    <div className="min-w-0 pt-1">
-                      <p className="truncate text-sm font-semibold text-foreground">{personLabel(member)}</p>
-                      {member.email ? (
-                        <p className="truncate font-mono-broadcast text-[11px] text-muted-foreground">{member.email}</p>
-                      ) : null}
-                    </div>
-                    <label className="block">
-                      <span className="sr-only">
-                        {isGeneral ? "General notes" : `Cycle ${activeCycleNumber} notes`} for {personLabel(member)}
-                      </span>
-                      <textarea
-                        value={value}
-                        maxLength={MEMBER_NOTE_MAX}
-                        rows={3}
-                        placeholder={
-                          isGeneral ? "General notes…" : `Notes for cycle ${String(activeCycleNumber).padStart(2, "0")}…`
-                        }
-                        onChange={(event) => setNote(member.id, event.target.value)}
-                        onBlur={() => flushNote(member.id, activeCycleNumber)}
-                        className={cn(
-                          "min-h-[4.5rem] w-full resize-y rounded-lg border bg-background px-3 py-2 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-[var(--brand-green)]/50 focus:ring-1 focus:ring-[var(--brand-green)]/30",
-                          hasNote ? "border-border" : "border-border/70"
-                        )}
-                      />
-                    </label>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
-
-      <BottomTabDock activeKey={activeCycleNumber} label="Cycles">
-        <BottomTabDockButton active={isGeneral} onClick={() => onTabClick(MEMBER_GENERAL_CYCLE_NUMBER)}>
-          General
-        </BottomTabDockButton>
-        {cycles.map((cycle) => {
-          const active = cycle.cycleNumber === activeCycleNumber;
-          return (
-            <BottomTabDockButton key={cycle.cycleNumber} active={active} onClick={() => onTabClick(cycle.cycleNumber)}>
-              <CycleTabLabel cycleNumber={cycle.cycleNumber} active={active} />
-            </BottomTabDockButton>
-          );
-        })}
-      </BottomTabDock>
+      {notes.loading || (notes.data && !prefsLoaded) ? (
+        <MembersBodySkeleton />
+      ) : !notes.data ? null : members.length === 0 ? (
+        <div className="rounded-md border border-border bg-card">
+          <EmptyState icon={Users} title="No class members to show." description="Executives, the adviser and super admin aren't listed." />
+        </div>
+      ) : !personLayout ? (
+        <MemberSheet
+          header={rosterHeader(true)}
+          empty={rosterEmpty}
+          members={visible}
+          activeTab={activeTab}
+          drafts={drafts}
+          handlers={handlers}
+        />
+      ) : (
+        <ListDetail
+          listWidth="20rem"
+          showDetailOnPhone={phone.open && Boolean(selected)}
+          list={
+            <MemberList
+              header={rosterHeader(false)}
+              empty={rosterEmpty}
+              members={visible}
+              tabs={tabs}
+              activeTab={activeTab}
+              selectedId={selected?.id ?? null}
+              onSelect={(memberId, { viaKeyboard }) =>
+                selectMember(memberId, { focusEditor: viaKeyboard, openOnPhone: true })
+              }
+              filledTabs={(memberId) => tabsWithNotes(drafts, memberId, tabs)}
+              savingFor={(memberId) => savingMembers.has(memberId)}
+              errorFor={(memberId) => errorMembers.get(memberId) ?? null}
+              listRef={listRef}
+            />
+          }
+          detail={
+            // Nobody listed: the roster's own empty row says why, so this side stays empty.
+            selected ? (
+              <div ref={phone.detailRef} className="min-w-0 scroll-mt-24 space-y-3">
+                <div className="flex items-center justify-between gap-2 lg:hidden">
+                  <Button type="button" variant="ghost" className="-ml-2 h-10 px-2" onClick={phone.closeDetail}>
+                    <ArrowLeft aria-hidden />
+                    Members
+                  </Button>
+                  <MemberStepper {...stepper} className="h-10" />
+                </div>
+                <MemberDetail
+                  member={selected}
+                  cycles={cycles}
+                  activeTab={activeTab}
+                  drafts={drafts}
+                  handlers={handlers}
+                  primaryRef={primaryRef}
+                  onSaveAndNext={saveAndNext}
+                  onOpenCycle={openCycle}
+                  stepper={stepper}
+                />
+              </div>
+            ) : null
+          }
+        />
+      )}
     </div>
   );
 }

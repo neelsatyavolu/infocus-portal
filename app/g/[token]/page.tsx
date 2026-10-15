@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import { GuestPermission } from "@prisma/client";
+import { Alert } from "@/components/kit/alert";
 import { ReviewShell } from "@/components/review-shell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { resolvePlaybackUrl, resolveThumbnailUrl } from "@/src/lib/media-playback";
 import { isGuestLinkActive, verifyPasscode } from "@/src/lib/guest-links";
 import { buildMediaVersionImageUrl } from "@/src/lib/media-assets";
@@ -14,10 +16,14 @@ type GuestPageProps = {
   searchParams: Promise<{ passcode?: string }>;
 };
 
-async function getGuestReviewData(token: string, passcode?: string): Promise<{
-  mediaData: MediaReviewDto;
-  permission: GuestPermission;
-} | null> {
+/**
+ * Either the review, or `blocked`: unknown, revoked or expired link, missing or wrong passcode, or
+ * nothing to review. These are deliberately not told apart, so the page never confirms that a
+ * token exists, is active or has a passcode.
+ */
+type GuestReviewLookup = { status: "ok"; mediaData: MediaReviewDto; permission: GuestPermission } | { status: "blocked" };
+
+async function getGuestReviewData(token: string, passcode?: string): Promise<GuestReviewLookup> {
   const link = await prisma.guestLink.findUnique({
     where: { token },
     include: {
@@ -102,18 +108,18 @@ async function getGuestReviewData(token: string, passcode?: string): Promise<{
   });
 
   if (!link || !isGuestLinkActive(link)) {
-    return null;
+    return { status: "blocked" };
   }
 
   if (link.passcodeHash) {
     if (!passcode || !verifyPasscode(passcode, link.passcodeHash)) {
-      return null;
+      return { status: "blocked" };
     }
   }
 
   const mediaItem = link.mediaVersion?.mediaItem ?? link.project?.mediaItems[0];
   if (!mediaItem) {
-    return null;
+    return { status: "blocked" };
   }
 
   const currentVersion = link.mediaVersion ?? mediaItem.currentVersion ?? mediaItem.versions[0];
@@ -173,6 +179,7 @@ async function getGuestReviewData(token: string, passcode?: string): Promise<{
   };
 
   return {
+    status: "ok",
     mediaData,
     permission: link.permission
   };
@@ -180,45 +187,75 @@ async function getGuestReviewData(token: string, passcode?: string): Promise<{
 
 export const metadata: Metadata = { title: "Guest review" };
 
+/** A slim brand line for guests (no app shell): the wordmark and what this page is. */
+function GuestBrandRow() {
+  return (
+    <div className="mb-4 flex h-10 items-center gap-3">
+      <span className="wordmark text-foreground">InFocus Portal</span>
+      <span aria-hidden className="h-4 w-px bg-border" />
+      <span className="text-sm text-muted-foreground">Guest review</span>
+    </div>
+  );
+}
+
+/**
+ * The one page every blocked link gets (same GET form and ?passcode= as before). After a passcode
+ * was tried, an alert covers every reason it can fail, since the page doesn't say which.
+ */
+function GuestGate({ passcodeTried }: { passcodeTried: boolean }) {
+  return (
+    <main className="flex min-h-dvh items-center justify-center p-4 md:p-6">
+      <div className="w-full max-w-sm space-y-5 rounded-md border border-border bg-card p-6">
+        <div className="space-y-1.5">
+          <p className="eyebrow">Guest review</p>
+          <h1 className="display-sm text-foreground">Protected review link</h1>
+          <p className="text-sm text-[var(--ink-text)]">This link may be revoked or expired, or it needs a valid passcode.</p>
+        </div>
+        {passcodeTried ? (
+          <Alert tone="danger" compact>
+            That passcode didn&apos;t work, or this link has expired or been revoked.
+          </Alert>
+        ) : null}
+        <form method="GET" className="space-y-3">
+          <label htmlFor="guest-passcode" className="sr-only">
+            Passcode
+          </label>
+          <Input
+            id="guest-passcode"
+            name="passcode"
+            type="password"
+            placeholder="Enter passcode"
+            autoComplete="off"
+            autoFocus
+            aria-invalid={passcodeTried || undefined}
+          />
+          <Button type="submit" className="w-full">
+            Open link
+          </Button>
+        </form>
+      </div>
+    </main>
+  );
+}
+
 export default async function GuestReviewPage({ params, searchParams }: GuestPageProps) {
   const { token } = await params;
   const { passcode } = await searchParams;
 
-  const payload = await getGuestReviewData(token, passcode);
+  const lookup = await getGuestReviewData(token, passcode);
 
-  if (!payload) {
-    return (
-      <main className="mx-auto flex min-h-screen w-full max-w-lg items-center justify-center px-6">
-        <form className="w-full space-y-4 rounded-2xl border border-border bg-card p-6" method="GET">
-          <h1 className="text-xl font-semibold text-foreground">Protected Review Link</h1>
-          <p className="text-sm text-muted-foreground">This link may be revoked/expired, or requires a valid passcode.</p>
-          <input
-            name="passcode"
-            type="password"
-            placeholder="Enter passcode"
-            className="h-10 w-full rounded-lg border border-border bg-muted px-3 text-sm text-foreground"
-          />
-          <button className="h-10 w-full rounded-lg bg-primary font-semibold text-primary-foreground">Open Link</button>
-        </form>
-      </main>
-    );
-  }
-
-  if (!payload.mediaData) {
-    notFound();
+  if (lookup.status !== "ok") {
+    return <GuestGate passcodeTried={Boolean(passcode)} />;
   }
 
   return (
-    <main className="min-h-screen px-4 py-6 md:px-8">
-      <header className="mb-4">
-        <h1 className="text-2xl font-semibold text-foreground">Guest Review</h1>
-        <p className="text-sm text-muted-foreground">You are viewing with {payload.permission.toLowerCase()} permissions.</p>
-      </header>
+    <main className="min-h-dvh p-4 md:p-6">
+      <GuestBrandRow />
       <ReviewShell
-        data={payload.mediaData}
+        data={lookup.mediaData}
         guestToken={token}
-        isGuest={payload.permission === GuestPermission.VIEW}
-        allowComment={payload.permission === GuestPermission.COMMENT}
+        isGuest={lookup.permission === GuestPermission.VIEW}
+        allowComment={lookup.permission === GuestPermission.COMMENT}
       />
     </main>
   );

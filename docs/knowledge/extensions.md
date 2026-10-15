@@ -4,16 +4,19 @@ Route: `/extension-requests`. `/extensions` redirects here.
 
 The old 14-day allowance pool is gone.
 
-1. A student requests for the **whole package group**: pick the cycle, how many days (0.1–30, one
-   decimal place allowed, e.g. 1.5), and an optional reason, then **Submit** (or press Enter). You must be on a package group for that cycle. A group can
-   have only one pending request at a time. The **Cycle** dropdown lists this semester's cycles and
-   starts on the cycle you're working on: the current cycle, or last cycle if your group still owes
-   its Final Cut.
+1. A student requests for the **whole package group** with **Request extension** at the top of the
+   page: pick the cycle, how many days (0.1–30, one decimal place allowed, e.g. 1.5), and an
+   optional reason, then **Submit request** (or press Enter). Closing the dialog keeps what you
+   typed until you leave the page. You must be on a package group for that cycle. A group can have
+   only one pending request at a time; the dialog warns when your group already has one for the
+   chosen cycle. The **Cycle** dropdown lists this semester's cycles and starts on the cycle you're
+   working on: the current cycle, or last cycle if your group still owes its Final Cut.
 2. Every group member must agree (**I agree** / **Decline**). The student who filed it counts as
    agreeing. Any disagreement denies it.
 3. Then **two distinct producer approvals**. Any one denial blocks it. Executives, the adviser, and
    super admin can decide any request; an associate producer only decides requests for groups they
-   are assigned to and not a member of. **Approve** stays disabled until every member has agreed.
+   are assigned to and not a member of. **Approve** stays disabled until every member has agreed;
+   the note beside it shows how many have (for example 1/3).
    - The **first** producer to approve picks how many days to grant (0.1–30 with one decimal place,
      not just what was requested) and which group members get it (default: everyone).
    - The second producer sees those terms read-only and approves or denies them as-is.
@@ -33,11 +36,12 @@ Once a request is decided, the group gets one email with every member in To:
 - **Denied:** the whole group, including each producer's denial reason, or a note that a member
   declined. If the first producer had picked only some members, only those members get it.
 
-Pending steps (member agreement, the first producer vote) send no email. Watch the list and the
-sidebar count below.
+Pending steps (member agreement, the first producer vote) send no email. Watch the **Needs you**
+filter and the count on the Extension Requests link (both below).
 
 Who sees what: producers (associate and up) see every request. Students see requests for their
-own package groups, except an extension granted to other members only. Each request shows the group agreement tally and each producer's vote.
+own package groups, except an extension granted to other members only. Open a request to see each
+member's agreement and each producer's vote.
 
 ## Producer grants
 
@@ -56,20 +60,47 @@ An exec outside the group can also **Grant** a pending student request before ev
 agreed. It opens the same days-and-members picker as Approve. The request becomes a producer grant
 in place, so no second entry appears. It still shows who requested it, member agreement is no
 longer needed, and steps 2–4 above apply. **Grant** is hidden once every member agrees (use
-**Approve**) or after a producer has voted.
+**Approve**) or after a producer has voted. While you can grant it, the request's next step reads
+"You can grant · waiting on …".
 
-Execs see **Email group** on every approved or denied request. It resends that decision email.
+Execs see **Email group** in the details of every approved or denied request. It resends that decision email.
 Use it for requests decided before decision emails existed, or when a student says they never
 got one.
 
 A producer who denies a request or grant must write a reason (⌘↵ / Ctrl+Enter sends it). It shows on the request as
 "Denied by <name>" for the group and producers. A member's Decline needs no reason.
 
-The header counts pending, approved, and denied requests. Denied requests and grants are
-collapsed under **Denied** at the bottom of the list.
+## Finding your way around the page
+
+- **Filter chips** under the header count the requests: **Needs you** (only when something waits
+  on you; the same number as the count on the Extension Requests link), **Pending**, **Approved**,
+  **Denied** and **All**. The chips show once there is at least one request. The page opens on
+  Needs you when anything waits on you, otherwise on the chip you picked last time (if it still
+  has requests), otherwise All.
+- **The list** has one row per request: the group's topic and members, the cycle, the days asked
+  for (granted days on an exec grant), the next step ("Waiting on Otto", "Needs your vote · 1/2",
+  "Granted +1.5 days → whole group", "Denied by Sage") and a status tag (**Needs you**,
+  **Pending**, **Approved** or **Denied**). An **Exec grant** tag sits beside the topic of a
+  producer grant. On a phone each row has two lines: the topic and status tag, then the cycle,
+  days and next step. Click a row to open its details: who filed it and when, the reason, the
+  granted terms, each member's agreement, each producer's vote with any denial reason, and your
+  buttons. If you are both a member and a voter, your buttons come in two labeled groups, **Your
+  agreement** and **Your vote**. One row is open at a time. The first request opens by itself when
+  it waits on you (or is the only one), and after you decide, the next one that waits on you
+  opens.
+- **J / K** move to the next or previous request on a keyboard.
+- In **All**, denied requests and grants are folded under **Denied** at the bottom of the list;
+  click it to show them. The Denied chip shows them all.
+- **How it works** (at the end of the chip row; an **i** button on phones) shows these rules in
+  four steps. It remembers whether you left it open, and stays open while you have no requests.
+- A small **green dot** on a request means someone else changed it since your last visit. Your own
+  agreement, votes and decisions don't count.
 
 Late penalties still apply after each student's own extended deadline (20%, then 30% after 14 more days).
 
-The **Extension Requests** sidebar link shows a count of pending requests waiting on you:
-members who have not agreed yet, and producers who can decide (after full group agreement) and
-have not voted.
+Producers reach this page from **Extension Requests** in the sidebar (under Producing). Students
+reach it from **Extension requests** in the stage bar at the top of their package pages. That link
+shows a count of pending requests waiting on you: members who have not agreed yet, and producers
+who can decide (after full group agreement, or right away on an exec grant) and have not voted.
+Students also see an **Extension** tag under **My package** in the sidebar while a request needs
+their answer (unless that line already shows **Revisions**).

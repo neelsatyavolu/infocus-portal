@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { MarketingHeader } from "@/components/marketing-header";
+import type { Route } from "next";
+import { LifeBuoy } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
+import { InfoPage, type InfoGroup } from "@/components/public-marketing/info-page";
+import { MarketingPage } from "@/components/public-marketing/marketing-page";
+import { INLINE_LINK_CLASS } from "@/components/public-marketing/shared";
+import { buttonVariants } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   title: "Support",
@@ -45,64 +51,51 @@ const portalApp: Question[] = [
   }
 ];
 
-function Questions({ items }: { items: Question[] }) {
-  return (
-    <div className="mt-4 grid gap-4">
-      {items.map((item) => (
-        <article key={item.question} className="rounded-md border border-border bg-card p-5">
-          <h3 className="text-base font-semibold text-foreground">{item.question}</h3>
-          <p className="mt-1.5 text-sm text-muted-foreground">{item.answer}</p>
-        </article>
-      ))}
-    </div>
-  );
+function toGroup(id: string, title: string, questions: Question[]): InfoGroup {
+  return {
+    id,
+    title,
+    entries: questions.map((item) => ({ title: item.question, body: <p>{item.answer}</p> }))
+  };
 }
 
 /** Public support page for InFocus Portal and the InFocus apps (App Store "Support URL"). */
 export default function SupportPage() {
   return (
-    <>
-      <MarketingHeader />
-      <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 md:py-10">
-        <section className="border-b-4 border-[var(--brand-green)] bg-card p-6 md:p-8">
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--brand-green)]">Support</p>
-          <h1 className="mt-2 text-3xl font-semibold text-foreground md:text-4xl">How can we help?</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Help with the InFocus app, InFocus Portal, and InFocus for Mac, made by InFocus at Palo Alto High School.
-          </p>
-          <a
-            href={CONTACT_URL}
-            className="mt-5 inline-flex min-h-10 items-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
-          >
-            Contact InFocus
-          </a>
-        </section>
-
-        <section className="mt-8">
-          <h2 className="text-2xl font-semibold text-foreground">The InFocus app</h2>
-          <Questions items={newsApp} />
-        </section>
-
-        <section className="mt-10">
-          <h2 className="text-2xl font-semibold text-foreground">InFocus Portal</h2>
-          <Questions items={portalApp} />
-        </section>
-
-        <section className="mt-10 rounded-md border border-border bg-card p-5 text-sm text-muted-foreground">
-          <h2 className="text-lg font-semibold text-foreground">Still need help?</h2>
-          <p className="mt-2">
-            Reach InFocus through{" "}
-            <a className="font-medium text-[var(--brand-green)] underline-offset-2 hover:underline" href={CONTACT_URL}>
-              infocusnews.tv/contact-us
-            </a>
-            . We usually reply within a few school days. Read how we handle your information in our{" "}
-            <Link className="font-medium text-[var(--brand-green)] underline-offset-2 hover:underline" href={"/privacy" as never}>
-              privacy policy
-            </Link>
-            .
-          </p>
-        </section>
-      </main>
-    </>
+    <MarketingPage active="support">
+      <InfoPage
+        header={
+          <PageHeader
+            eyebrow="Support"
+            title="How can we help?"
+            description="Help with the InFocus app, InFocus Portal, and InFocus for Mac, made by InFocus at Palo Alto High School."
+            actions={
+              <a href={CONTACT_URL} className={buttonVariants()}>
+                Contact InFocus
+              </a>
+            }
+          />
+        }
+        groups={[toGroup("app", "The InFocus app", newsApp), toGroup("portal", "InFocus Portal", portalApp)]}
+        contact={{
+          id: "contact",
+          title: "Still need help?",
+          icon: LifeBuoy,
+          body: (
+            <p>
+              Reach InFocus through{" "}
+              <a className={INLINE_LINK_CLASS} href={CONTACT_URL}>
+                infocusnews.tv/contact-us
+              </a>
+              . We usually reply within a few school days. Read how we handle your information in our{" "}
+              <Link className={INLINE_LINK_CLASS} href={"/privacy" as Route}>
+                privacy policy
+              </Link>
+              .
+            </p>
+          )
+        }}
+      />
+    </MarketingPage>
   );
 }

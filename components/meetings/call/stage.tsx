@@ -20,6 +20,8 @@ import { OverflowTile, ParticipantTile, type TileModel } from "./participant-til
 import { useElementSize } from "./use-element-size";
 
 const STRIP_MAX = 6;
+/** Watch tile on a portrait phone: 16:9 picture plus room for its 44px top and 80px bottom plates. */
+const WATCH_PORTRAIT_ASPECT = 1;
 /** 8px gutters everywhere (Tailwind gap-2 / inset-2). */
 const GAP = 8;
 
@@ -56,7 +58,8 @@ export function Stage({
   receive,
   mirrorSelf,
   onOpenPeople,
-  watch
+  watch,
+  selfPip
 }: {
   tiles: TileModel[];
   mode: LayoutMode;
@@ -76,6 +79,8 @@ export function Stage({
   onOpenPeople: () => void;
   /** Watch together in progress: renders the shared player for its placement. */
   watch?: (placement: "main" | "grid" | "strip") => ReactNode;
+  /** Phone self view, told whether a participant strip is showing so it can sit clear of it. */
+  selfPip?: (strip: boolean) => ReactNode;
 }) {
   const peopleTiles: StageTile[] = tiles.map((t) => ({
     id: t.id,
@@ -128,18 +133,21 @@ export function Stage({
     const { visible, overflow } = selectVisibleTiles(stageTiles, max, activeSpeakerUid);
     const count = visible.length + (overflow > 0 ? 1 : 0);
     return (
-      <FittedGrid count={count} aspect={portraitPhone ? 3 / 4 : 16 / 9} maxCols={portraitPhone ? 2 : undefined}>
-        {(size) => (
-          <>
-            {visible.map((t) => renderTile(t.id, "grid", size))}
-            {overflow > 0 ? (
-              <div style={size}>
-                <OverflowTile count={overflow} onClick={onOpenPeople} />
-              </div>
-            ) : null}
-          </>
-        )}
-      </FittedGrid>
+      <>
+        <FittedGrid count={count} aspect={portraitPhone ? 3 / 4 : 16 / 9} maxCols={portraitPhone ? 2 : undefined}>
+          {(size) => (
+            <>
+              {visible.map((t) => renderTile(t.id, "grid", size))}
+              {overflow > 0 ? (
+                <div style={size}>
+                  <OverflowTile count={overflow} onClick={onOpenPeople} />
+                </div>
+              ) : null}
+            </>
+          )}
+        </FittedGrid>
+        {selfPip?.(false)}
+      </>
     );
   }
 
@@ -148,36 +156,45 @@ export function Stage({
   const stripMax = mobile ? MOBILE_MAX_TILES - 1 : STRIP_MAX;
   const { visible, overflow } = selectVisibleTiles(others, stripMax, activeSpeakerUid);
   const showStrip = stage.kind === "sidebar" && others.length > 0;
+  // A portrait phone has spare height around a 16:9 tile. The watch-together tile takes a square
+  // there, so its top and bottom plates sit in the letterbox above and below the picture instead of
+  // covering two thirds of it (the video is object-contain, centered).
+  const mainAspect = portraitPhone && mainId === WATCH_TILE_ID ? WATCH_PORTRAIT_ASPECT : 16 / 9;
 
   return (
-    <div className={cn("flex h-full w-full", portraitPhone ? "flex-col" : "flex-row")}>
-      <div className="min-h-0 min-w-0 flex-1">
-        <FittedGrid count={1} aspect={16 / 9}>
-          {(size) => renderTile(mainId, "main", size)}
-        </FittedGrid>
-      </div>
-      {showStrip ? (
-        <div
-          aria-label="Other participants"
-          className={cn(
-            "flex shrink-0 gap-2 overscroll-contain p-2",
-            portraitPhone
-              ? "h-28 flex-row overflow-x-auto pt-0"
-              : cn("flex-col justify-center overflow-y-auto pl-0", mobile ? "w-40" : "w-60")
-          )}
-        >
-          {visible.map((t) => (
-            <div key={t.id} className={cn("aspect-video shrink-0", portraitPhone ? "h-full" : "w-full")}>
-              {renderTile(t.id, "strip")}
-            </div>
-          ))}
-          {overflow > 0 ? (
-            <div className={cn("aspect-video shrink-0", portraitPhone ? "h-full" : "w-full")}>
-              <OverflowTile count={overflow} onClick={onOpenPeople} />
-            </div>
-          ) : null}
+    <>
+      <div className={cn("flex h-full w-full", portraitPhone ? "flex-col" : "flex-row")}>
+        <div className="min-h-0 min-w-0 flex-1">
+          <FittedGrid count={1} aspect={mainAspect}>
+            {(size) => renderTile(mainId, "main", size)}
+          </FittedGrid>
         </div>
-      ) : null}
-    </div>
+        {showStrip ? (
+          <div
+            aria-label="Other participants"
+            className={cn(
+              "flex shrink-0 gap-2 overscroll-contain p-2",
+              portraitPhone
+                ? "h-28 flex-row overflow-x-auto pt-0"
+                : // Safe centering: a strip taller than the stage starts at the top and scrolls (plain
+                  // justify-center pushed the first tiles above the scroll origin, out of reach).
+                  cn("flex-col justify-center-safe overflow-y-auto pl-0", mobile ? "w-40" : "w-60")
+            )}
+          >
+            {visible.map((t) => (
+              <div key={t.id} className={cn("aspect-video shrink-0", portraitPhone ? "h-full" : "w-full")}>
+                {renderTile(t.id, "strip")}
+              </div>
+            ))}
+            {overflow > 0 ? (
+              <div className={cn("aspect-video shrink-0", portraitPhone ? "h-full" : "w-full")}>
+                <OverflowTile count={overflow} onClick={onOpenPeople} />
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+      {selfPip?.(showStrip)}
+    </>
   );
 }

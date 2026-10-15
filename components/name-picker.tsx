@@ -6,8 +6,9 @@ import { Check, ChevronDown, Search } from "lucide-react";
 import { filterNames } from "@/src/lib/name-search";
 import { cn } from "@/src/lib/utils";
 
+/** Same box as Input and SelectTrigger (h-9, 3:1 control border, transparent fill, 2px focus ring). */
 const TRIGGER_CLASS =
-  "flex h-9 w-full items-center justify-between gap-2 whitespace-nowrap rounded-md border border-border bg-background px-2 text-left text-sm text-foreground focus:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
+  "flex h-9 w-full items-center justify-between gap-2 whitespace-nowrap rounded-md border border-input bg-transparent px-3 text-left text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
 
 type Choice = { name: string; label: string; disabled: boolean };
 
@@ -114,7 +115,7 @@ export function NamePicker({
         {trigger ?? (
           <button type="button" className={TRIGGER_CLASS}>
             <span className={cn("truncate", !value && "text-muted-foreground")}>{value || placeholder}</span>
-            <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+            <ChevronDown className="h-4 w-4 shrink-0 opacity-50" aria-hidden />
           </button>
         )}
       </Popover.Trigger>
@@ -122,10 +123,11 @@ export function NamePicker({
         <Popover.Content
           align="start"
           sideOffset={4}
-          className="z-50 w-[var(--radix-popover-trigger-width)] min-w-[12rem] rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md"
+          collisionPadding={8}
+          className="z-50 w-[var(--radix-popover-trigger-width)] min-w-[12rem] max-w-[calc(100vw-1rem)] rounded-md border border-border bg-popover p-1 text-popover-foreground"
         >
           <div className="flex items-center gap-2 border-b border-border px-2 pb-1 focus-within:border-ring">
-            <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
             <input
               autoFocus
               type="text"
@@ -138,7 +140,7 @@ export function NamePicker({
               value={query}
               onChange={(event) => handleQueryChange(event.target.value)}
               onKeyDown={handleKeyDown}
-              className="h-7 min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+              className="h-8 min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
             />
           </div>
           <div id={listId} role="listbox" className="relative mt-1 max-h-64 overflow-y-auto">
@@ -158,13 +160,13 @@ export function NamePicker({
                   }}
                   onClick={() => pick(choice)}
                   className={cn(
-                    "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm",
-                    index === activeIndex && "bg-accent text-accent-foreground",
+                    "relative flex min-h-9 w-full cursor-default select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm",
+                    index === activeIndex && "bg-[var(--ink-3)] text-foreground",
                     choice.disabled && "pointer-events-none opacity-50"
                   )}
                 >
                   <span className="truncate">{choice.label}</span>
-                  {choice.name === value ? <Check className="absolute right-2 h-4 w-4" /> : null}
+                  {choice.name === value ? <Check className="absolute right-2 h-4 w-4 text-[var(--brand-green)]" aria-hidden /> : null}
                 </div>
               ))
             )}

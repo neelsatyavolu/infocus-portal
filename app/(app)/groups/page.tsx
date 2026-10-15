@@ -9,6 +9,14 @@ import GroupsClient, { type GroupsPayload } from "./groups-client";
 
 export const metadata: Metadata = { title: "Groups" };
 
+async function associateCategory(email: string | null): Promise<PackageCategory | null> {
+  const assignment = await prisma.platformRoleAssignment.findUnique({
+    where: { email: normalizeEmail(email) },
+    select: { category: true }
+  });
+  return assignment?.category ?? null;
+}
+
 export default async function GroupsPage() {
   try {
     const { platformRole, user } = await getCurrentAppUser();
@@ -16,16 +24,11 @@ export default async function GroupsPage() {
       redirect("/access-denied");
     }
 
-    const data = await loadPackageProgressData();
-
-    let producerCategory: PackageCategory | null = null;
-    if (platformRole === "ASSOCIATE_PRODUCER") {
-      const assignment = await prisma.platformRoleAssignment.findUnique({
-        where: { email: normalizeEmail(user.email) },
-        select: { category: true }
-      });
-      producerCategory = assignment?.category ?? null;
-    }
+    // The roster and the associate's category don't depend on each other: load them together.
+    const [data, producerCategory] = await Promise.all([
+      loadPackageProgressData(),
+      platformRole === "ASSOCIATE_PRODUCER" ? associateCategory(user.email) : Promise.resolve(null)
+    ]);
 
     const initialData: GroupsPayload = {
       canEdit: canEditPackageCycle(platformRole),

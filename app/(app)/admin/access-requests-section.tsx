@@ -1,32 +1,39 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { CheckCircle2, ChevronDown, Clock3, XCircle } from "lucide-react";
+import { useId, useMemo, useState, type ReactNode } from "react";
+import { Check, CheckCircle2, Clock3, XCircle } from "lucide-react";
 import { toast } from "sonner";
+import { DisclosureToggle } from "@/components/kit/disclosure";
+import { StatusTag } from "@/components/kit/status-tag";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { SettingsPanel, SettingsPanelBody, SettingsRow, SettingsSection } from "@/components/settings-layout";
+import { SettingsPanel, SettingsSection } from "@/components/settings-layout";
 import { cn } from "@/src/lib/utils";
-import type { PlatformAccessRequest, PlatformAccessRequestStatus, ReportMessage } from "./admin-types";
+import { COLUMN_LABEL_CLASS, ROW_ACTION_CLASS, When } from "./admin-ui";
+import { errorText, type PlatformAccessRequest, type PlatformAccessRequestStatus, type ReportMessage } from "./admin-types";
 
-const STATUS_STYLE: Record<PlatformAccessRequestStatus, { label: string; className: string; Icon: typeof Clock3 }> = {
-  PENDING: { label: "Pending", className: "border-amber-300/35 bg-amber-400/10 text-amber-200 light:text-amber-700", Icon: Clock3 },
-  APPROVED: { label: "Approved", className: "border-[var(--brand-green)]/30 bg-[var(--brand-green)]/10 text-brand-green", Icon: CheckCircle2 },
-  DENIED: { label: "Denied", className: "border-danger/35 bg-danger-tint text-danger", Icon: XCircle }
+const STATUS_TAG: Record<PlatformAccessRequestStatus, { label: string; tone: "warning" | "success" | "danger"; icon: typeof Clock3 }> = {
+  PENDING: { label: "Pending", tone: "warning", icon: Clock3 },
+  APPROVED: { label: "Approved", tone: "success", icon: CheckCircle2 },
+  DENIED: { label: "Denied", tone: "danger", icon: XCircle }
 };
 
-function StatusBadge({ status }: { status: PlatformAccessRequestStatus }) {
-  const { label, className, Icon } = STATUS_STYLE[status];
-  return (
-    <span className={cn("inline-flex items-center gap-1 rounded-sm border px-2 py-0.5 text-[11px] font-medium uppercase tracking-[0.11em]", className)}>
-      <Icon className="h-3 w-3" aria-hidden="true" />
-      {label}
-    </span>
-  );
-}
+/** Name | time | actions (or status). Pending and reviewed rows share it, so times line up. */
+const ROW_GRID = "grid gap-x-4 gap-y-2 px-4 py-3 md:px-5 @3xl:grid-cols-[minmax(0,1fr)_minmax(9rem,15rem)_10.5rem] @3xl:items-center";
 
-function when(iso: string) {
-  return new Date(iso).toLocaleString();
+function Who({ entry, extra }: { entry: PlatformAccessRequest; extra?: ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <p className="truncate text-sm font-medium text-foreground">{entry.name ?? entry.email}</p>
+      {entry.name || extra ? (
+        <p className="truncate text-[13px] text-muted-foreground">
+          {entry.name ? entry.email : null}
+          {entry.name && extra ? " · " : null}
+          {extra}
+        </p>
+      ) : null}
+    </div>
+  );
 }
 
 /** Admin → Access requests: people who tried to sign in before they were added. */
@@ -43,6 +50,7 @@ export function AccessRequestsSection({
   const [approvingAll, setApprovingAll] = useState(false);
   const [confirmApproveAll, setConfirmApproveAll] = useState(false);
   const [showReviewed, setShowReviewed] = useState(false);
+  const reviewedId = useId();
 
   const pending = useMemo(
     () =>
@@ -66,22 +74,31 @@ export function AccessRequestsSection({
     setDecidingId(requestId);
     onMessage(null);
 
-    const response = await fetch("/api/platform/access-requests", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: requestId, status })
-    });
-    const payload = await response.json();
+    try {
+      const response = await fetch("/api/platform/access-requests", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: requestId, status })
+      });
+      const payload = await response.json().catch(() => null);
 
-    if (!response.ok) {
-      onMessage(payload?.error?.message ?? "Failed to update access request.");
+      if (!response.ok) {
+        throw new Error(payload?.error?.message ?? "Failed to update access request.");
+      }
+
+      await onChanged();
+      toast.success(
+        status === "APPROVED"
+          ? "Access request approved and user notified by email."
+          : "Access request denied and user notified by email."
+      );
+    } catch (error) {
+      const errorMessage = errorText(error, "Failed to update access request.");
+      onMessage(errorMessage);
+      toast.error(errorMessage);
+    } finally {
       setDecidingId(null);
-      return;
     }
-
-    await onChanged();
-    setDecidingId(null);
-    toast.success(status === "APPROVED" ? "Access request approved and user notified by email." : "Access request denied and user notified by email.");
   }
 
   // Throws on failure so the confirm dialog stays open for a retry.
@@ -107,9 +124,13 @@ export function AccessRequestsSection({
 
       const approvedCount = Number(payload?.data?.approvedCount ?? 0);
       await onChanged();
-      toast.success(approvedCount > 0 ? `Approved ${approvedCount} pending access requests and sent email notifications.` : "No pending access requests to approve.");
+      toast.success(
+        approvedCount > 0
+          ? `Approved ${approvedCount} pending access requests and sent email notifications.`
+          : "No pending access requests to approve."
+      );
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to approve all pending access requests.";
+      const errorMessage = errorText(error, "Failed to approve all pending access requests.");
       onMessage(errorMessage);
       toast.error(errorMessage);
       throw error;
@@ -122,10 +143,24 @@ export function AccessRequestsSection({
     <SettingsSection
       id="access-requests"
       title="Access requests"
-      description="People who tried to sign in before they were added. Approve to let them in and email them a sign-in link."
+      status={
+        pending.length > 0 ? (
+          <StatusTag tone="warning" srLabel="Access requests: ">
+            {`${pending.length} waiting`}
+          </StatusTag>
+        ) : null
+      }
+      description="People who tried to sign in before they were added. Approving lets them in and emails them a sign-in link."
       actions={
         pending.length > 1 ? (
-          <Button type="button" variant="outline" size="sm" onClick={() => setConfirmApproveAll(true)} disabled={approvingAll || decidingId !== null}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className={ROW_ACTION_CLASS}
+            onClick={() => setConfirmApproveAll(true)}
+            disabled={approvingAll || decidingId !== null}
+          >
             {approvingAll ? "Approving…" : `Approve all ${pending.length}`}
           </Button>
         ) : null
@@ -133,65 +168,118 @@ export function AccessRequestsSection({
     >
       <SettingsPanel>
         {pending.length === 0 ? (
-          <SettingsPanelBody className="text-sm text-muted-foreground">No one is waiting for access.</SettingsPanelBody>
+          <p className="flex items-center gap-2 px-4 py-3 text-sm text-muted-foreground md:px-5">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--brand-green)]" aria-hidden="true" />
+            No one is waiting for access.
+          </p>
         ) : (
-          pending.map((entry) => (
-            <SettingsRow
-              key={entry.id}
-              title={entry.name ?? entry.email}
-              description={entry.name ? `${entry.email} · requested ${when(entry.requestedAt)}` : `Requested ${when(entry.requestedAt)}`}
-            >
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => void decide(entry.id, "APPROVED")}
-                disabled={decidingId === entry.id || approvingAll}
-              >
-                {decidingId === entry.id ? "Saving…" : "Approve"}
-              </Button>
-              <Button
-                type="button"
-                variant="destructive-quiet"
-                size="sm"
-                onClick={() => void decide(entry.id, "DENIED")}
-                disabled={decidingId === entry.id || approvingAll}
-              >
-                Deny
-              </Button>
-            </SettingsRow>
-          ))
+          <>
+            {/* Column names from @3xl (phones stack each row). The panel's hairlines separate it from the rows. */}
+            <div aria-hidden="true" className={cn(ROW_GRID, "hidden py-2 @3xl:grid")}>
+              <span className={COLUMN_LABEL_CLASS}>Person</span>
+              <span className={cn(COLUMN_LABEL_CLASS, "text-right")}>Requested</span>
+              <span />
+            </div>
+            <ul aria-label="Waiting for access" className="divide-y divide-border">
+              {pending.map((entry) => {
+                const deciding = decidingId === entry.id;
+                const who = entry.name ?? entry.email;
+                return (
+                  <li key={entry.id} className={ROW_GRID}>
+                    <Who entry={entry} />
+                    <p className="text-[13px] text-muted-foreground @3xl:text-right">
+                      <span className="@3xl:sr-only">Requested </span>
+                      <When iso={entry.requestedAt} />
+                    </p>
+                    {/* Two full-width buttons only on phones; from sm they keep their own width. */}
+                    <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-start @3xl:justify-end">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className={ROW_ACTION_CLASS}
+                        onClick={() => void decide(entry.id, "APPROVED")}
+                        disabled={deciding || approvingAll}
+                      >
+                        <Check aria-hidden="true" />
+                        {deciding ? "Saving…" : "Approve"}
+                        {/* Screen readers hear "Approve Abby", so each row's buttons can be told apart. */}
+                        <span className="sr-only"> {who}</span>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="destructive-quiet"
+                        size="sm"
+                        className={ROW_ACTION_CLASS}
+                        onClick={() => void decide(entry.id, "DENIED")}
+                        disabled={deciding || approvingAll}
+                      >
+                        Deny
+                        <span className="sr-only"> {who}</span>
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </>
         )}
 
         {reviewed.length > 0 ? (
-          <button
-            type="button"
-            onClick={() => setShowReviewed((open) => !open)}
-            aria-expanded={showReviewed}
-            className="flex w-full items-center justify-between px-4 py-3 text-left text-sm text-muted-foreground transition-colors hover:bg-secondary/60 hover:text-foreground md:px-5"
-          >
-            {showReviewed ? "Hide reviewed requests" : `Show ${reviewed.length} reviewed`}
-            <ChevronDown className={cn("h-4 w-4 transition-transform", showReviewed && "rotate-180")} aria-hidden="true" />
-          </button>
+          <DisclosureToggle
+            open={showReviewed}
+            onToggle={() => setShowReviewed((open) => !open)}
+            controls={reviewedId}
+            closedLabel={`Show ${reviewed.length} reviewed`}
+            openLabel="Hide reviewed"
+          />
         ) : null}
 
-        {showReviewed ? (
-          <div className="max-h-[360px] divide-y divide-border overflow-auto">
-            {reviewed.map((entry) => (
-              <SettingsRow
-                key={entry.id}
-                title={entry.name ?? entry.email}
-                description={
-                  <>
-                    {entry.name ? `${entry.email} · ` : ""}requested {when(entry.requestedAt)}
-                    {entry.decidedAt
-                      ? ` · reviewed ${when(entry.decidedAt)}${entry.decidedByEmail ? ` by ${entry.decidedByEmail}` : ""}`
-                      : ""}
-                  </>
-                }
-              >
-                <StatusBadge status={entry.status} />
-              </SettingsRow>
-            ))}
+        {/* Rendered only while open: divide-y lines every child but the last, and a hidden last child would leave a double edge. */}
+        {reviewed.length > 0 && showReviewed ? (
+          <div id={reviewedId} className="max-h-[360px] overflow-auto">
+            {/* Sticky inside the scroll box, so the columns stay named while the list scrolls. */}
+            <div
+              aria-hidden="true"
+              className={cn(ROW_GRID, "sticky top-0 z-[1] hidden border-b border-border bg-card py-2 @3xl:grid")}
+            >
+              <span className={COLUMN_LABEL_CLASS}>Person</span>
+              <span className={cn(COLUMN_LABEL_CLASS, "text-right")}>Reviewed</span>
+              <span className={cn(COLUMN_LABEL_CLASS, "text-right")}>Decision</span>
+            </div>
+            <ul aria-label="Reviewed access requests" className="divide-y divide-border">
+              {reviewed.map((entry) => {
+                const tag = STATUS_TAG[entry.status];
+                return (
+                  <li key={entry.id} className={ROW_GRID}>
+                    <Who
+                      entry={entry}
+                      extra={
+                        <>
+                          requested <When iso={entry.requestedAt} />
+                        </>
+                      }
+                    />
+                    <div className="min-w-0 text-[13px] text-muted-foreground @3xl:text-right">
+                      {entry.decidedAt ? (
+                        <>
+                          <p>
+                            <span className="@3xl:sr-only">Reviewed </span>
+                            <When iso={entry.decidedAt} />
+                          </p>
+                          {entry.decidedByEmail ? <p className="truncate">by {entry.decidedByEmail}</p> : null}
+                        </>
+                      ) : null}
+                    </div>
+                    <div className="flex @3xl:justify-end">
+                      <StatusTag tone={tag.tone} icon={tag.icon}>
+                        {tag.label}
+                      </StatusTag>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
         ) : null}
       </SettingsPanel>

@@ -31,7 +31,7 @@ Page views are counted without cookies by Vercel Analytics and by n3el analytics
 
 ## What Portal is not
 
-- Adding a person in Admin does not put them on a package roster. Use Package Cycle for that.
+- Adding a person in Admin (**Add person** at the top of Admin → Overview or People) does not put them on a package roster. Use Package Cycle for that.
 - Uploading a Final Cut does not put the package on air. A producer must **Send to queue**.
-- Members (`/members`) is producer notes, not the account list. Accounts live in Admin → People.
+- Members (`/members`, the first tab under **People** in the sidebar) is producer notes, not the account list. Accounts live in Admin → People.
 - The bottom-right Portal assistant is for everyone signed in. It reads `docs/knowledge/`. Reporters do not get producer lookups; associates do not get grades.

@@ -1,7 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Plus, Search, X } from "lucide-react";
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode, type SyntheticEvent } from "react";
+import { AlertTriangle, Plus, Search, X } from "lucide-react";
+import { Sheet } from "@/components/kit/sheet";
+import { useMediaQuery } from "@/components/kit/remembered-state";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { lastCycleGroupmatesAmong } from "@/src/lib/consecutive-groupmates";
 import { serializeGroupMembers, type GroupMemberToken } from "@/src/lib/group-members";
 import { cn } from "@/src/lib/utils";
@@ -20,10 +24,20 @@ type Props = {
   previousTeammatesByUser?: Record<string, string[]>;
   className?: string;
   disabled?: boolean;
+  /** Accessible name of the "+ Add" button (name the group, so rows can be told apart). */
+  addLabel?: string;
+  /** Shown before "+ Add" while nobody is linked (e.g. a "No members" warning tag). */
+  emptyHint?: ReactNode;
 };
 
-const CHIP_CLASS =
-  "mention-chip inline-flex items-center gap-1 rounded-md bg-secondary text-foreground align-baseline text-[12px] font-medium leading-none px-2 py-[3px]";
+const MAX_MATCHES = 8;
+
+/**
+ * A member chip: 24px, first name, full name on hover. Ink 3, stepping up to Ink 4 while its row
+ * is hovered or has its menu open (the row itself turns Ink 3 then).
+ */
+export const MEMBER_CHIP_CLASS =
+  "inline-flex h-6 max-w-full items-center gap-0.5 rounded-sm bg-[var(--ink-3)] px-2 text-xs font-medium text-foreground group-hover/row:bg-[var(--ink-4)] group-data-[menu-open=true]/row:bg-[var(--ink-4)]";
 
 function pickFirstName(user: MembersEditorUser): string {
   const source = user.name?.trim() || user.email?.split("@")[0]?.trim() || "User";
@@ -32,6 +46,12 @@ function pickFirstName(user: MembersEditorUser): string {
 
 function displayName(user: MembersEditorUser): string {
   return user.name?.trim() || user.email || "User";
+}
+
+// The picker portals out of the row; React events still bubble through it, so keep the row's
+// click and right-click out of it.
+function stop(event: SyntheticEvent) {
+  event.stopPropagation();
 }
 
 /** Keep the legacy groupMembers string in sync so cut-status matching still works. */
@@ -51,16 +71,27 @@ export function buildGroupMembersString(
   return serializeGroupMembers(tokens);
 }
 
+/**
+ * Linked members as a tag input: chips with a remove button, and "+ Add" opening a people picker
+ * (a popover under the field on desktop, a bottom sheet on phones so the keyboard and the tab
+ * bar never cover it). The picker stays open for several adds; ↑/↓ move, Enter adds, Esc closes.
+ */
 export function MembersEditor({
   memberUserIds,
   users,
   onChangeAction,
   previousTeammatesByUser = {},
   className,
-  disabled = false
+  disabled = false,
+  addLabel = "Add members",
+  emptyHint
 }: Props) {
-  const rootRef = useRef<HTMLDivElement | null>(null);
+  const fieldRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const addButtonRef = useRef<HTMLButtonElement | null>(null);
+  const escapedRef = useRef(false);
+  const listId = useId();
+  const wide = useMediaQuery("(min-width: 768px)");
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
@@ -80,44 +111,32 @@ export function MembersEditor({
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
     const pool = users.filter((user) => !selectedIds.has(user.id));
-    if (!q) return pool.slice(0, 8);
+    if (!q) return pool.slice(0, MAX_MATCHES);
     return pool
       .filter((user) => {
         const name = user.name?.toLowerCase() ?? "";
         const email = user.email?.toLowerCase() ?? "";
         return name.includes(q) || email.includes(q);
       })
-      .slice(0, 8);
+      .slice(0, MAX_MATCHES);
   }, [users, selectedIds, query]);
 
   useEffect(() => {
     setActiveIndex(0);
   }, [query, open]);
 
+  // Opening the picker puts the cursor in its search box. The desktop popover does it in
+  // onOpenAutoFocus; the phone sheet focuses its panel after a tap, so move focus once it has.
   useEffect(() => {
-    if (!open) return;
+    if (!open || wide) return;
+    const id = window.setTimeout(() => inputRef.current?.focus(), 0);
+    return () => window.clearTimeout(id);
+  }, [open, wide]);
 
-    function onPointerDown(event: MouseEvent) {
-      if (!rootRef.current) return;
-      if (event.target instanceof Node && rootRef.current.contains(event.target)) return;
-      setOpen(false);
-      setQuery("");
-    }
-
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setOpen(false);
-        setQuery("");
-      }
-    }
-
-    window.addEventListener("mousedown", onPointerDown);
-    window.addEventListener("keydown", onKeyDown);
-    return () => {
-      window.removeEventListener("mousedown", onPointerDown);
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open]);
+  function close() {
+    setOpen(false);
+    setQuery("");
+  }
 
   function commit(nextIds: string[]) {
     const unique = [...new Set(nextIds)];
@@ -132,125 +151,190 @@ export function MembersEditor({
     commit([...memberUserIds, userId]);
     setQuery("");
     setActiveIndex(0);
-    inputRef.current?.focus();
+    // Phones: don't pop the keyboard back up after a tap on a name.
+    if (wide) inputRef.current?.focus();
   }
 
   function removeMember(userId: string) {
     commit(memberUserIds.filter((id) => id !== userId));
   }
 
-  return (
-    <div ref={rootRef} className={cn("relative", className)}>
-      <div className="flex flex-wrap items-center justify-end gap-1.5">
-        {selected.map((user) => (
-          <span key={user.id} className={CHIP_CLASS} title={displayName(user)}>
-            {pickFirstName(user)}
-            {!disabled ? (
-              <button
-                type="button"
-                aria-label={`Remove ${pickFirstName(user)}`}
-                onClick={() => removeMember(user.id)}
-                className="rounded-sm p-0.5 text-muted-foreground hover:bg-black/20 light:hover:bg-foreground/5 hover:text-foreground max-lg:-m-2 max-lg:p-2.5"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            ) : null}
-          </span>
-        ))}
-        {selected.length === 0 && disabled ? (
-          <span className="text-xs text-muted-foreground">No members linked</span>
-        ) : null}
+  const activeOptionId = matches[activeIndex] ? `${listId}-option-${activeIndex}` : undefined;
 
-        {!disabled ? (
-          <div className="relative">
+  const picker = (
+    <div onClick={stop} onPointerDown={stop} onContextMenu={stop} className="min-w-0">
+      <div className="flex h-10 items-center gap-2 border-b border-border px-3 focus-within:ring-2 focus-within:ring-inset focus-within:ring-ring md:h-9">
+        <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+        <input
+          ref={inputRef}
+          value={query}
+          role="combobox"
+          aria-expanded={open}
+          aria-controls={listId}
+          aria-autocomplete="list"
+          aria-activedescendant={activeOptionId}
+          onChange={(event) => setQuery(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              if (matches.length === 0) return;
+              setActiveIndex((i) => (i + 1) % matches.length);
+              return;
+            }
+            if (event.key === "ArrowUp") {
+              event.preventDefault();
+              if (matches.length === 0) return;
+              setActiveIndex((i) => (i - 1 + matches.length) % matches.length);
+              return;
+            }
+            if (event.key === "Enter") {
+              event.preventDefault();
+              const pick = matches[activeIndex];
+              if (pick) addMember(pick.id);
+            }
+          }}
+          placeholder="Search by name or email…"
+          aria-label="Search people to add"
+          className="h-full w-full min-w-0 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground md:text-sm"
+        />
+      </div>
+      {matches.length === 0 ? (
+        <p className="px-3 py-3 text-[13px] text-muted-foreground">
+          {query.trim() ? "No matching people." : "Everyone is already linked."}
+        </p>
+      ) : null}
+      <div id={listId} role="listbox" aria-label="People" className={cn("max-h-64 overflow-y-auto p-1", matches.length === 0 && "hidden")}>
+        {matches.map((user, index) => {
+          const repeats = lastCycleGroupmatesAmong(user.id, memberUserIds, previousTeammatesByUser)
+            .map((id) => usersById.get(id))
+            .filter((other): other is MembersEditorUser => Boolean(other))
+            .map(pickFirstName);
+          const active = index === activeIndex;
+          return (
+            <div
+              key={user.id}
+              id={`${listId}-option-${index}`}
+              role="option"
+              aria-selected={active}
+              // Keep focus in the search box so typing and Enter keep working after a click.
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => addMember(user.id)}
+              className={cn(
+                "flex min-h-10 cursor-pointer flex-col justify-center gap-0.5 rounded-sm px-2 py-1.5",
+                active ? "bg-[var(--ink-3)]" : "hover:bg-[var(--ink-3)]"
+              )}
+            >
+              <span className="text-[13px] font-medium text-foreground">{displayName(user)}</span>
+              {user.email ? <span className="truncate text-xs text-muted-foreground">{user.email}</span> : null}
+              {repeats.length > 0 ? (
+                <span className="flex items-center gap-1 text-xs font-medium text-[var(--brand-amber)]">
+                  <AlertTriangle className="h-3 w-3 shrink-0" aria-hidden />
+                  Same group last cycle as {repeats.join(", ")}
+                </span>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  const field = (
+    <div
+      ref={fieldRef}
+      className={cn(
+        // 40px in card mode (touch), 32px in table mode: the same line height as the other cells.
+        "flex min-h-10 min-w-0 flex-wrap items-center gap-1 rounded-md @4xl:min-h-8",
+        disabled
+          ? "py-1"
+          : "-mx-1 border border-transparent p-[3px] group-hover/row:border-input focus-within:border-input pointer-coarse:border-input"
+      )}
+    >
+      {selected.map((user) => (
+        <span key={user.id} className={cn(MEMBER_CHIP_CLASS, !disabled && "pr-0.5")} title={displayName(user)}>
+          <span className="truncate">{pickFirstName(user)}</span>
+          {!disabled ? (
             <button
               type="button"
-              onClick={() => {
-                setOpen((prev) => !prev);
-                setTimeout(() => inputRef.current?.focus(), 0);
-              }}
-              className="inline-flex items-center gap-1 rounded-md border border-border bg-secondary/40 px-2.5 py-[3px] text-[12px] font-medium leading-none text-foreground transition hover:bg-secondary"
+              aria-label={`Remove ${pickFirstName(user)}`}
+              onClick={() => removeMember(user.id)}
+              className="relative grid h-5 w-5 shrink-0 place-items-center rounded-sm text-muted-foreground transition-colors hover:bg-[var(--ink-3)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring max-lg:after:absolute max-lg:after:-inset-2.5"
             >
-              <Plus className="h-3 w-3" />
-              Add members
+              <X className="h-3 w-3" aria-hidden />
             </button>
+          ) : null}
+        </span>
+      ))}
+      {selected.length === 0 && disabled ? (
+        <span className="text-xs text-muted-foreground">No members linked</span>
+      ) : null}
+      {selected.length === 0 && !disabled ? emptyHint : null}
+      {!disabled ? (
+        <button
+          ref={addButtonRef}
+          type="button"
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          aria-label={addLabel}
+          onClick={() => (open ? close() : setOpen(true))}
+          // 24px to sit with the chips; the hit area grows to 40px tall on touch-size screens.
+          className="relative inline-flex h-6 items-center gap-1 rounded-sm px-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-[var(--ink-4)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring max-lg:after:absolute max-lg:after:-inset-x-1 max-lg:after:-inset-y-2"
+        >
+          <Plus className="h-4 w-4" aria-hidden />
+          Add
+        </button>
+      ) : null}
+    </div>
+  );
 
-            {open ? (
-              <div className="absolute right-0 top-full z-40 mt-1 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-lg border border-border bg-card">
-                <div className="flex items-center gap-2 border-b border-border px-2.5 py-2 focus-within:ring-1 focus-within:ring-inset focus-within:ring-ring">
-                  <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  <input
-                    ref={inputRef}
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "ArrowDown") {
-                        event.preventDefault();
-                        if (matches.length === 0) return;
-                        setActiveIndex((i) => (i + 1) % matches.length);
-                        return;
-                      }
-                      if (event.key === "ArrowUp") {
-                        event.preventDefault();
-                        if (matches.length === 0) return;
-                        setActiveIndex((i) => (i - 1 + matches.length) % matches.length);
-                        return;
-                      }
-                      if (event.key === "Enter") {
-                        event.preventDefault();
-                        const pick = matches[activeIndex];
-                        if (pick) addMember(pick.id);
-                      }
-                    }}
-                    placeholder="Search by name or email…"
-                    aria-label="Search people to add"
-                    className="w-full bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground md:text-xs"
-                  />
-                </div>
-                <div className="max-h-56 overflow-y-auto py-1">
-                  {matches.length === 0 ? (
-                    <p className="px-3 py-2 text-xs text-muted-foreground">
-                      {query.trim() ? "No matching people." : "Everyone is already linked."}
-                    </p>
-                  ) : (
-                    matches.map((user, index) => {
-                      const repeats = lastCycleGroupmatesAmong(user.id, memberUserIds, previousTeammatesByUser)
-                        .map((id) => usersById.get(id))
-                        .filter((other): other is MembersEditorUser => Boolean(other))
-                        .map(pickFirstName);
-                      return (
-                        <button
-                          key={user.id}
-                          type="button"
-                          onClick={() => addMember(user.id)}
-                          className={cn(
-                            "flex w-full flex-col gap-0.5 px-3 py-2 text-left",
-                            index === activeIndex
-                              ? "bg-accent text-accent-foreground"
-                              : "text-foreground hover:bg-accent/60"
-                          )}
-                        >
-                          <span className="text-xs font-medium">{displayName(user)}</span>
-                          {user.email ? (
-                            <span className="truncate text-[10px] text-muted-foreground">
-                              {user.email}
-                            </span>
-                          ) : null}
-                          {repeats.length > 0 ? (
-                            <span className="text-[10px] font-medium text-amber-300">
-                              Same group last cycle as {repeats.join(", ")}
-                            </span>
-                          ) : null}
-                        </button>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            ) : null}
-          </div>
+  return (
+    <div className={cn("relative min-w-0", className)}>
+      <Popover open={open && wide} onOpenChange={(next) => (next ? setOpen(true) : close())}>
+        <PopoverAnchor asChild>{field}</PopoverAnchor>
+        {wide ? (
+          <PopoverContent
+            className="w-80 overflow-hidden p-0"
+            onOpenAutoFocus={(event) => {
+              event.preventDefault();
+              inputRef.current?.focus();
+            }}
+            onEscapeKeyDown={() => {
+              escapedRef.current = true;
+            }}
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              if (escapedRef.current) addButtonRef.current?.focus();
+              escapedRef.current = false;
+            }}
+            onInteractOutside={(event) => {
+              // Clicks on the field itself (chips, "+ Add") are handled there.
+              const target = event.detail.originalEvent.target;
+              if (target instanceof Node && fieldRef.current?.contains(target)) event.preventDefault();
+            }}
+          >
+            {picker}
+          </PopoverContent>
         ) : null}
-      </div>
+      </Popover>
+      {!wide ? (
+        // The sheet (and its scrim) portal out, but React events still bubble to the row.
+        <div className="contents" onClick={stop} onContextMenu={stop}>
+          <Sheet
+            open={open}
+            onOpenChange={(next) => (next ? setOpen(true) : close())}
+            side="bottom"
+            title="Add members"
+            bodyClassName="p-0 md:p-0"
+            footer={
+              <Button type="button" onClick={close}>
+                Done
+              </Button>
+            }
+          >
+            {picker}
+          </Sheet>
+        </div>
+      ) : null}
     </div>
   );
 }

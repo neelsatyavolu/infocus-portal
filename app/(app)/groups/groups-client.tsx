@@ -1,233 +1,55 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
-import AssociatesDialog from "./associates-dialog";
-import ApprovePitchButton from "./approve-pitch-button";
-import GroupNotesButton from "./group-notes-button";
-import { producerMayActOnPackage } from "@/src/lib/package-producer-assignment";
-import { ChevronDown, ChevronRight, LayoutGrid, RefreshCcw, Table2 } from "lucide-react";
-import type { PackageCategory, PlatformRole } from "@prisma/client";
+import { ListChecks, Users } from "lucide-react";
+import type { PlatformRole } from "@prisma/client";
+import { Alert } from "@/components/kit/alert";
+import { cycleLabel } from "@/components/kit/format";
+import { useListHotkeys } from "@/components/kit/hotkeys";
+import type { MenuEntry } from "@/components/kit/menu";
+import { SaveState, StatusTag } from "@/components/kit/status-tag";
+import { visibleGroupRows } from "@/components/groups/group-attention";
 import { PageHeader } from "@/components/page-header";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { listShortcut, writeGroupOrder } from "@/src/lib/keyboard-nav";
-import {
-  GROUP_NAV_TAB_LABELS,
-  GROUP_NAV_SLUGS,
-  groupNavTabDone,
-  MAX_CHECK_IN_POINTS_PER_CYCLE,
-  PACKAGE_CATEGORY_LABELS,
-  PACKAGE_STAGE_LABELS,
-  PACKAGE_STAGES,
-  checkInPointsForCycle,
-  effectiveGroupApprovalStage,
-  pendingGroupNavSlug,
-  type PackageStage,
-  type StageCompletion
-} from "@/src/lib/package-stages";
+import { cachedValue, rememberValue } from "@/src/lib/client-cache";
+import { isPrimaryGroupForViewer } from "@/src/lib/groups-visibility";
+import { writeGroupOrder } from "@/src/lib/keyboard-nav";
+import { PACKAGE_CATEGORY_LABELS, PACKAGE_STAGES, type PackageStage } from "@/src/lib/package-stages";
+import { requestNavStatusRefresh } from "@/src/lib/sidebar-nav";
 import { cn } from "@/src/lib/utils";
-import type { BrainstormProofView } from "@/src/lib/package-brainstorm";
-import { filterGroupsForViewer, isPrimaryGroupForViewer } from "@/src/lib/groups-visibility";
+import AssociatesDialog from "./associates-dialog";
+import { GroupProgressSkeleton, GroupProgressView } from "./group-progress-view";
 import {
-  canApprovePitchFromTile,
-  finalCutGradePendingFromViewer,
-  finalCutGradesPill,
-  groupTileStatus,
-  groupTileStatusClass,
-  groupViewerAttention
-} from "@/src/lib/group-tile-status";
-import { extensionBadgeLabel, extensionDueIn } from "@/src/lib/package-extensions";
-import { groupScheduleStatus, type GroupScheduleInput } from "@/src/lib/group-schedule";
-import { BottomTabDock, BottomTabDockButton, CycleTabLabel } from "@/components/ui/bottom-tab-dock";
+  buildGroupRowView,
+  cycleHasDeadlines,
+  groupViewsByExecutive,
+  hasQueuedSave,
+  STAGE_SHORT,
+  toggleRowStage,
+  toSavePayload,
+  withQueuedSave,
+  type CycleTab,
+  type GroupRow,
+  type GroupRowView,
+  type GroupsPayload,
+  type QueuedSave
+} from "./group-row-model";
+import { GroupsTilesSkeleton, GroupsTilesView, NoGroupsState, type TileSections } from "./groups-tiles-view";
+import { GroupsToolbar, type GroupsFilter } from "./groups-toolbar";
+import { useGroupsPrefs } from "./use-groups-prefs";
 
-type CycleDates = Record<keyof GroupScheduleInput["dates"], string | null>;
+export type { GroupsPayload } from "./group-row-model";
 
-type CycleTab = {
-  cycleNumber: number;
-  focus: string;
-  dates?: CycleDates;
-};
+type CycleSnapshot = { cycles: CycleTab[]; rows: GroupRow[] };
+type PageMessage = { text: string; retry: boolean };
 
-type GroupMember = {
-  userId: string;
-  name: string | null;
-  email: string | null;
-};
+const EXECUTIVE_ROLES = new Set<PlatformRole>(["ADVISER", "EXECUTIVE_PRODUCER", "SUPER_ADMIN"]);
+/** How often time-based tags ("Behind by 2d", "Due in 5H") are recomputed while the page is open. */
+const CLOCK_TICK_MS = 60_000;
 
-type AssignedProducer = {
-  userId: string;
-  name: string | null;
-  email: string | null;
-};
-
-type GroupRow = {
-  reviewReadyAt?: Partial<Record<"brainstorming" | "a-roll" | "initial-cut", string | null>>;
-  id?: string;
-  groupMembers: string;
-  groupTopic: string;
-  groupType: string;
-  category?: PackageCategory | null;
-  assignedProducerUserId?: string | null;
-  assignedProducer?: AssignedProducer | null;
-  assignedExecutiveProducerUserId?: string | null;
-  assignedExecutiveProducer?: AssignedProducer | null;
-  memberUserIds?: string[];
-  members?: GroupMember[];
-  projectId?: string | null;
-  initialCutMediaItemId?: string | null;
-  finalCutMediaItemId?: string | null;
-  pitching: boolean;
-  proofOfContact: boolean;
-  aRollBRoll: boolean;
-  initialCut: boolean;
-  initialCutManual?: boolean;
-  finalCut: boolean;
-  finalCutManual?: boolean;
-  extension: boolean;
-  extensionDays?: number;
-  possibleInterviews?: string;
-  possibleIdeas?: string;
-  notes?: string;
-  stageNotes?: Record<string, string> | null;
-  revisedInitialCut?: boolean;
-  brainstormDocUrl?: string;
-  brainstormNeedsChanges?: boolean;
-  proofs?: BrainstormProofView[];
-  approvalStage?: string | null;
-  remainingExecutiveSignoffs?: number | null;
-  awaitingRevisedInitialCut?: boolean;
-  initialCutVersionNumber?: number | null;
-  initialCutNeedsRevisions?: boolean;
-  initialCutReviewStage?: string | null;
-  aRollHasMedia?: boolean;
-  aRollNeedsChanges?: boolean;
-  queuedForAir?: boolean;
-  finalCutGraded?: boolean;
-  finalCutGradesPublished?: boolean;
-  finalCutScoredByUserIds?: string[];
-};
-
-export type GroupsPayload = {
-  canEdit: boolean;
-  activeCycleNumber: number;
-  cycles: CycleTab[];
-  rows: GroupRow[];
-  producerCategory: PackageCategory | null;
-  platformRole: PlatformRole | null;
-  currentUserId: string;
-};
-
-type ViewMode = "cards" | "chart";
-const VIEW_MODE_STORAGE_KEY = "groups:view-mode:v1";
-
-const STAGE_SHORT: Record<PackageStage, string> = {
-  pitching: "Pitch",
-  proofOfContact: "Contact",
-  aRollBRoll: "A/B-roll",
-  initialCut: "Initial",
-  finalCut: "Final"
-};
-
-function memberLabel(member: GroupMember) {
-  return member.name?.trim() || member.email || "Member";
-}
-
-function firstName(member: GroupMember) {
-  const full = memberLabel(member);
-  return full.split(/\s+/)[0] ?? full;
-}
-
-function rowHasContent(row: GroupRow) {
-  return Boolean(
-    row.groupTopic?.trim() ||
-      row.groupMembers?.trim() ||
-      (row.memberUserIds && row.memberUserIds.length > 0) ||
-      (row.members && row.members.length > 0) ||
-      row.assignedProducerUserId ||
-      row.assignedExecutiveProducerUserId ||
-      row.pitching ||
-      row.proofOfContact ||
-      row.aRollBRoll ||
-      row.initialCut ||
-      row.finalCut ||
-      Boolean(row.brainstormDocUrl?.trim()) ||
-      Boolean(row.proofs && row.proofs.length > 0)
-  );
-}
-
-function dateOrNull(value: string | null) {
-  return value ? new Date(value) : null;
-}
-
-function producerDisplayName(producer: AssignedProducer | null | undefined) {
-  if (!producer) return null;
-  return producer.name?.trim() || producer.email || null;
-}
-
-function groupRowsByExecutive(rows: GroupRow[]) {
-  const buckets = new Map<string, { executive: AssignedProducer | null; rows: GroupRow[] }>();
-
-  for (const row of rows) {
-    const key = row.assignedExecutiveProducerUserId ?? "unassigned";
-    const existing = buckets.get(key);
-    if (existing) {
-      existing.rows.push(row);
-      continue;
-    }
-    buckets.set(key, {
-      executive: row.assignedExecutiveProducer ?? null,
-      rows: [row]
-    });
-  }
-
-  return [...buckets.values()].sort((a, b) => {
-    if (!a.executive) return 1;
-    if (!b.executive) return -1;
-    return (producerDisplayName(a.executive) ?? "").localeCompare(producerDisplayName(b.executive) ?? "");
-  });
-}
-
-function stageDone(row: GroupRow, stage: PackageStage) {
-  return Boolean(row[stage]);
-}
-
-function rowCompletion(row: GroupRow): StageCompletion {
-  return {
-    pitching: row.pitching,
-    proofOfContact: row.proofOfContact,
-    aRollBRoll: row.aRollBRoll,
-    initialCut: row.initialCut,
-    finalCut: row.finalCut
-  };
-}
-
-function toSavePayload(row: GroupRow) {
-  return {
-    id: row.id,
-    groupMembers: row.groupMembers ?? "",
-    groupTopic: row.groupTopic ?? "",
-    groupType: (row.groupType ?? "") as GroupRow["groupType"],
-    category: row.category ?? null,
-    assignedProducerUserId: row.assignedProducerUserId ?? null,
-    assignedExecutiveProducerUserId: row.assignedExecutiveProducerUserId ?? null,
-    memberUserIds: row.memberUserIds ?? [],
-    projectId: row.projectId ?? null,
-    initialCutMediaItemId: row.initialCutMediaItemId ?? null,
-    finalCutMediaItemId: row.finalCutMediaItemId ?? null,
-    pitching: row.pitching,
-    proofOfContact: row.proofOfContact,
-    aRollBRoll: row.aRollBRoll,
-    initialCut: row.initialCut,
-    initialCutManual: row.initialCutManual ?? false,
-    revisedInitialCut: row.revisedInitialCut ?? false,
-    finalCut: row.finalCut,
-    finalCutManual: row.finalCutManual ?? false,
-    extension: row.extension,
-    possibleInterviews: row.possibleInterviews ?? "",
-    possibleIdeas: row.possibleIdeas ?? "",
-    notes: row.notes ?? "",
-    stageNotes: row.stageNotes ?? null
-  };
+function cycleCacheKey(cycleNumber: number) {
+  return `groups:cycle:${cycleNumber}`;
 }
 
 async function fetchCycle(cycleNumber?: number) {
@@ -243,421 +65,132 @@ async function fetchCycle(cycleNumber?: number) {
   return payload.data;
 }
 
-function attentionFor(
-  role: PlatformRole | null,
-  currentUserId: string,
-  row: Pick<
-    GroupRow,
-    | "approvalStage"
-    | "finalCutMediaItemId"
-    | "queuedForAir"
-    | "finalCutGraded"
-    | "finalCutScoredByUserIds"
-    | "assignedProducerUserId"
-    | "assignedExecutiveProducerUserId"
-    | "proofOfContact"
-    | "proofs"
-    | "brainstormDocUrl"
-    | "aRollBRoll"
-    | "aRollHasMedia"
-    | "initialCutNeedsRevisions"
-  >
-) {
-  return groupViewerAttention(role, row.approvalStage, {
-    finalCutHasMedia: Boolean(row.finalCutMediaItemId),
-    queuedForAir: Boolean(row.queuedForAir),
-    finalCutGraded: Boolean(row.finalCutGraded),
-    currentUserId,
-    scoredByUserIds: row.finalCutScoredByUserIds,
-    assignedProducerUserId: row.assignedProducerUserId,
-    assignedExecutiveProducerUserId: row.assignedExecutiveProducerUserId,
-    proofOfContact: row.proofOfContact,
-    proofCount: row.proofs?.length ?? 0,
-    brainstormDocUrl: row.brainstormDocUrl ?? "",
-    aRollBRoll: row.aRollBRoll,
-    aRollHasMedia: Boolean(row.aRollHasMedia),
-    initialCutNeedsRevisions: Boolean(row.initialCutNeedsRevisions)
-  });
+/** The sidebar's Groups count (Needs you) is server-side; ask it to refetch after a change here. */
+function refreshSidebarCount() {
+  requestNavStatusRefresh(["groups"]);
 }
 
-function GroupTile({
-  row,
-  platformRole,
-  currentUserId,
-  cycleDates,
-  onNotesSaved,
-  onPitchApproved
-}: {
-  row: GroupRow;
-  platformRole: PlatformRole | null;
-  currentUserId: string;
-  cycleDates: CycleDates | null;
-  onNotesSaved: (rowId: string, value: string) => void;
-  onPitchApproved: (rowId: string) => void;
-}) {
-  const completion = rowCompletion(row);
-  const approvalStage = effectiveGroupApprovalStage(
-    row.approvalStage,
-    Boolean(row.initialCutNeedsRevisions),
-    row.initialCutReviewStage
+/** Group links on screen (hidden duplicates, such as the other Progress layout, are skipped). */
+function visibleGroupLinks(container: HTMLElement | null) {
+  return Array.from(container?.querySelectorAll<HTMLAnchorElement>("a[data-group-tile]") ?? []).filter(
+    (link) => link.getClientRects().length > 0
   );
-  const pendingSlug = pendingGroupNavSlug({
-    pitching: row.pitching,
-    proofOfContact: row.proofOfContact,
-    aRollBRoll: row.aRollBRoll,
-    finalCut: row.finalCut,
-    approvalStage
-  });
-  const checkIns = checkInPointsForCycle(completion);
-  const members =
-    row.members && row.members.length > 0
-      ? row.members
-      : (row.memberUserIds ?? []).map((userId) => ({
-          userId,
-          name: null,
-          email: null
-        }));
-  const tileStatus = groupTileStatus({
-    reviewReadyAt: row.reviewReadyAt,
-    pitching: row.pitching,
-    proofOfContact: row.proofOfContact,
-    proofCount: row.proofs?.length ?? 0,
-    brainstormDocUrl: row.brainstormDocUrl ?? "",
-    brainstormNeedsChanges: Boolean(row.brainstormNeedsChanges),
-    aRollBRoll: row.aRollBRoll,
-    aRollHasMedia: Boolean(row.aRollHasMedia),
-    aRollNeedsChanges: Boolean(row.aRollNeedsChanges),
-    initialCutHasMedia: Boolean(row.initialCutMediaItemId),
-    initialCutVersionNumber: row.initialCutVersionNumber ?? null,
-    initialCutNeedsRevisions: Boolean(row.initialCutNeedsRevisions),
-    awaitingRevisedInitialCut: Boolean(row.awaitingRevisedInitialCut),
-    approvalStage: row.approvalStage ?? null,
-    remainingExecutiveSignoffs: row.remainingExecutiveSignoffs,
-    finalCutHasMedia: Boolean(row.finalCutMediaItemId),
-    queuedForAir: Boolean(row.queuedForAir),
-    finalCutGraded: Boolean(row.finalCutGraded)
-  });
-  const schedule = cycleDates
-    ? groupScheduleStatus({
-        dates: {
-          pitching: dateOrNull(cycleDates.pitching),
-          proofOfContact: dateOrNull(cycleDates.proofOfContact),
-          aRollBRoll: dateOrNull(cycleDates.aRollBRoll),
-          initialCut: dateOrNull(cycleDates.initialCut),
-          finalCut: dateOrNull(cycleDates.finalCut)
-        },
-        done: {
-          pitching: row.pitching,
-          proofOfContact: row.proofOfContact,
-          aRollBRoll: row.aRollBRoll,
-          initialStage1: groupNavTabDone("initial-stage-1", { ...row, approvalStage }),
-          initialStage2: groupNavTabDone("initial-stage-2", { ...row, approvalStage }),
-          initialStage3: groupNavTabDone("initial-stage-3", { ...row, approvalStage }),
-          finalCut: row.finalCut
-        },
-        extensionDays: row.extensionDays ?? 0,
-        now: new Date()
-      })
-    : null;
-  const href = row.id ? (`/groups/${row.id}/${pendingSlug}` as const) : null;
-  const attention = attentionFor(platformRole, currentUserId, row);
-  const gradesPill = finalCutGradesPill(
-    finalCutGradePendingFromViewer(platformRole, {
-      finalCutHasMedia: Boolean(row.finalCutMediaItemId),
-      finalCutGraded: Boolean(row.finalCutGraded),
-      currentUserId,
-      scoredByUserIds: row.finalCutScoredByUserIds
-    }),
-    {
-      finalCutHasMedia: Boolean(row.finalCutMediaItemId),
-      gradesPublished: Boolean(row.finalCutGradesPublished)
-    }
-  );
-  const cardClassName = cn(
-    "relative block rounded-md border bg-card px-3.5 py-3 transition-colors hover:bg-foreground/[0.02]",
-    attention === "needed"
-      ? "border-[var(--brand-green)]/55 hover:border-[var(--brand-green)]/80"
-      : "border-border hover:border-[var(--brand-green)]/45",
-    attention === "waiting" && "opacity-80"
-  );
-  const body = (
-    <>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="truncate text-sm font-semibold text-foreground">
-            {href ? (
-              <Link
-                href={href as never}
-                data-group-tile=""
-                className="after:absolute after:inset-0 after:rounded-md focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-[var(--brand-green)]"
-              >
-                {row.groupTopic?.trim() || "Untitled package"}
-              </Link>
-            ) : row.groupTopic?.trim() || "Untitled package"}
-          </h2>
-          <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
-            {members.length === 0
-              ? "No members"
-              : members.map((member) => firstName(member)).join(", ")}
-            <span className="mx-1.5 text-border">·</span>
-            AP {producerDisplayName(row.assignedProducer) ?? "—"}
-            <span className="mx-1.5 text-border">·</span>
-            EP {producerDisplayName(row.assignedExecutiveProducer) ?? "—"}
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-3">
-          {row.id && producerMayActOnPackage(platformRole, currentUserId, {
-            ...row,
-            members
-          }) ? (
-            <GroupNotesButton rowId={row.id} topic={row.groupTopic} onSaved={(value) => onNotesSaved(row.id!, value)} />
-          ) : null}
-          <div className="shrink-0 text-right">
-            <div className="text-[11px] font-semibold text-foreground">
-              {GROUP_NAV_TAB_LABELS[pendingSlug]}
-            </div>
-            <div className="text-[10px] tabular-nums text-muted-foreground">
-              {checkIns}/{MAX_CHECK_IN_POINTS_PER_CYCLE}
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="mt-2.5 flex items-center gap-1">
-        {GROUP_NAV_SLUGS.map((stage) => {
-          const done = groupNavTabDone(stage, { ...row, approvalStage });
-          const pending = stage === pendingSlug && !done;
-          return (
-            <span
-              key={stage}
-              title={GROUP_NAV_TAB_LABELS[stage]}
-              className={cn(
-                "h-1.5 flex-1 rounded-full",
-                done
-                  ? "bg-[var(--brand-green)]"
-                  : pending
-                    ? "bg-[var(--brand-green)]/40"
-                    : "bg-secondary"
-              )}
-            />
-          );
-        })}
-      </div>
-      <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        {gradesPill ? (
-          <span className={cn("status-pill status-pill-sm", groupTileStatusClass(gradesPill.tone))}>
-            {gradesPill.label}
-          </span>
-        ) : null}
-        <span className={cn("status-pill status-pill-sm", groupTileStatusClass(tileStatus.tone))}>
-          {tileStatus.label}
-        </span>
-        {schedule ? (
-          <span className={cn("status-pill status-pill-sm", groupTileStatusClass(schedule.tone))}>
-            {schedule.label}
-          </span>
-        ) : null}
-        {row.extension ? (
-          <span className="rounded-md bg-amber-500/20 px-1.5 py-px text-[10px] font-medium text-amber-100">
-            {extensionBadgeLabel(
-              row.extensionDays,
-              cycleDates && !row.finalCut
-                ? extensionDueIn(dateOrNull(cycleDates.finalCut), row.extensionDays ?? 0, new Date())
-                : null
-            )}
-          </span>
-        ) : null}
-        {row.id && canApprovePitchFromTile(platformRole, row) ? (
-          <ApprovePitchButton rowId={row.id} onApproved={() => onPitchApproved(row.id!)} />
-        ) : null}
-      </div>
-    </>
-  );
+}
 
-  return (
-    <article className={cardClassName}>
-      {body}
-    </article>
-  );
+function rememberGroupOrder(ids: string[]) {
+  try {
+    writeGroupOrder(window.sessionStorage, ids);
+  } catch {
+    // sessionStorage blocked: Previous/Next on group pages just won't show.
+  }
 }
 
 export default function GroupsClient({ initialData }: { initialData: GroupsPayload }) {
+  const { producerCategory, platformRole, currentUserId, canEdit } = initialData;
+  const currentCycle = initialData.activeCycleNumber;
+  const isAssociate = platformRole === "ASSOCIATE_PRODUCER";
+  const isExecutiveRole = platformRole !== null && EXECUTIVE_ROLES.has(platformRole);
+
   const [cycles, setCycles] = useState(initialData.cycles);
   const [activeCycleNumber, setActiveCycleNumber] = useState(initialData.activeCycleNumber);
   const [rows, setRows] = useState(initialData.rows);
-  const [loading, setLoading] = useState(false);
+  // The cycle `rows` belong to. It trails activeCycleNumber while a cycle that isn't cached loads.
+  const [rowsCycle, setRowsCycle] = useState(initialData.activeCycleNumber);
+  const [fetching, setFetching] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [hasHydrated, setHasHydrated] = useState(true);
-  const [viewMode, setViewMode] = useState<ViewMode>("cards");
-  const [viewModeLoaded, setViewModeLoaded] = useState(false);
-  const [otherGroupsOpen, setOtherGroupsOpen] = useState(false);
-
-  // Read the saved Cards/Chart choice after mount so server and first client render match.
-  useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem(VIEW_MODE_STORAGE_KEY);
-      if (stored === "cards" || stored === "chart") setViewMode(stored);
-    } catch {
-      // Storage unavailable (private mode); keep the default view.
-    }
-    setViewModeLoaded(true);
-  }, []);
-
-  useEffect(() => {
-    if (!viewModeLoaded) return;
-    try {
-      window.localStorage.setItem(VIEW_MODE_STORAGE_KEY, viewMode);
-    } catch {
-      // Storage may be unavailable (private mode / quota); skip persistence.
-    }
-  }, [viewMode, viewModeLoaded]);
+  const [message, setMessage] = useState<PageMessage | null>(null);
+  const [filter, setFilter] = useState<GroupsFilter>("all");
+  const [associatesOpen, setAssociatesOpen] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+  const { viewMode, setViewMode, otherOpen, setOtherOpen } = useGroupsPrefs();
 
   const rowsRef = useRef(rows);
-  const saveInFlightRef = useRef(false);
-  const queuedRowsRef = useRef<GroupRow[] | null>(null);
   const activeCycleNumberRef = useRef(activeCycleNumber);
-
-  const producerCategory = initialData.producerCategory;
-  const platformRole = initialData.platformRole;
-  const isAssociateOnly = platformRole === "ASSOCIATE_PRODUCER";
-  const currentUserId = initialData.currentUserId;
-  const canEdit = initialData.canEdit;
+  const saveInFlightRef = useRef(false);
+  // The cycle of the save being sent right now (null when none).
+  const sendingCycleRef = useRef<number | null>(null);
+  // Saves waiting to be sent, at most one per cycle, oldest first.
+  const queuedSavesRef = useRef<QueuedSave[]>([]);
+  const loadSeqRef = useRef(0);
+  const boardRef = useRef<HTMLDivElement>(null);
+  // The phone ⋯ trigger, and whichever control opened Associates (focus goes back there on close).
+  const phoneMenuTriggerRef = useRef<HTMLButtonElement>(null);
+  const associatesOpenerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     rowsRef.current = rows;
   }, [rows]);
 
   useEffect(() => {
-    activeCycleNumberRef.current = activeCycleNumber;
-  }, [activeCycleNumber]);
-
-  useEffect(() => {
-    if (hasHydrated) {
-      setHasHydrated(false);
-      return;
-    }
-
-    let active = true;
-    async function load() {
-      try {
-        setLoading(true);
-        setMessage(null);
-        const data = await fetchCycle(activeCycleNumber);
-        if (!active) return;
-        setCycles(data.cycles);
-        setActiveCycleNumber(data.activeCycleNumber);
-        setRows(data.rows);
-      } catch (error) {
-        if (!active) return;
-        setMessage(error instanceof Error ? error.message : "Failed to load groups.");
-      } finally {
-        if (active) setLoading(false);
-      }
-    }
-    void load();
-    return () => {
-      active = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only refetch on cycle change
-  }, [activeCycleNumber]);
-
-  const groups = useMemo(() => {
-    const visible = filterGroupsForViewer(rows.filter(rowHasContent), {
-      platformRole,
-      currentUserId,
-      producerCategory
-    });
-    if (platformRole !== "ADVISER" && platformRole !== "EXECUTIVE_PRODUCER" && platformRole !== "SUPER_ADMIN") {
-      return visible;
-    }
-    return [...visible].sort((left, right) => {
-      const leftNeeded = attentionFor(platformRole, currentUserId, left) === "needed" ? 0 : 1;
-      const rightNeeded = attentionFor(platformRole, currentUserId, right) === "needed" ? 0 : 1;
-      return leftNeeded - rightNeeded;
-    });
-  }, [rows, platformRole, producerCategory, currentUserId]);
-
-  const stats = useMemo(() => {
-    const total = groups.length;
-    const done = groups.filter((g) => PACKAGE_STAGES.every((s) => stageDone(g, s))).length;
-    const needsYou = groups.filter((g) => attentionFor(platformRole, currentUserId, g) === "needed").length;
-    return { total, done, needsYou };
-  }, [groups, platformRole, currentUserId]);
-
-  const primaryGroups = useMemo(
-    () =>
-      groups.filter((row) =>
-        isPrimaryGroupForViewer(row, { currentUserId, platformRole })
-      ),
-    [groups, currentUserId, platformRole]
-  );
-  const otherGroups = useMemo(
-    () =>
-      groups.filter(
-        (row) => !isPrimaryGroupForViewer(row, { currentUserId, platformRole })
-      ),
-    [groups, currentUserId, platformRole]
-  );
-
-  const seesAttention =
-    platformRole === "ADVISER" || platformRole === "EXECUTIVE_PRODUCER" || platformRole === "SUPER_ADMIN";
-  const [needsYouOnly, setNeedsYouOnly] = useState(false);
-  const filterByAttention = (list: GroupRow[]) =>
-    needsYouOnly && seesAttention
-      ? list.filter((row) => attentionFor(platformRole, currentUserId, row) === "needed")
-      : list;
-  const shownPrimaryGroups = filterByAttention(primaryGroups);
-  const shownOtherGroups = filterByAttention(otherGroups);
-  const tilesRef = useRef<HTMLDivElement>(null);
-
-  // Save the order on screen so a group's page can step to the previous or next one.
-  const shownOrder = [...shownPrimaryGroups, ...(otherGroupsOpen ? shownOtherGroups : [])]
-    .map((row) => row.id)
-    .filter((id): id is string => Boolean(id));
-  const shownOrderKey = shownOrder.join(",");
-  useEffect(() => {
-    writeGroupOrder(window.sessionStorage, shownOrderKey ? shownOrderKey.split(",") : []);
-  }, [shownOrderKey]);
-
-  // J / K move focus between group tiles; Enter opens the focused one.
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      const shortcut = listShortcut(event);
-      const container = tilesRef.current;
-      if (!shortcut || !container) return;
-      const links = Array.from(container.querySelectorAll<HTMLAnchorElement>("a[data-group-tile]"));
-      if (links.length === 0) return;
-      event.preventDefault();
-      const current = links.indexOf(document.activeElement as HTMLAnchorElement);
-      const next =
-        current === -1 ? 0 : Math.min(links.length - 1, Math.max(0, current + (shortcut === "next" ? 1 : -1)));
-      links[next]?.focus();
-      links[next]?.scrollIntoView({ block: "nearest" });
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    const timer = window.setInterval(() => setNow(Date.now()), CLOCK_TICK_MS);
+    return () => window.clearInterval(timer);
   }, []);
 
-  const executiveGroups = useMemo(() => groupRowsByExecutive(groups), [groups]);
+  // Keep a copy per cycle for this tab, so switching back to a cycle shows it at once.
+  useEffect(() => {
+    rememberValue<CycleSnapshot>(cycleCacheKey(rowsCycle), { cycles, rows });
+  }, [cycles, rows, rowsCycle]);
 
-  const stageTotals = useMemo(() => {
-    return PACKAGE_STAGES.map((stage) => ({
-      stage,
-      count: groups.filter((g) => stageDone(g, stage)).length
-    }));
-  }, [groups]);
+  const loadCycle = useCallback(async (cycleNumber: number, mode: "switch" | "refresh") => {
+    const seq = loadSeqRef.current + 1;
+    loadSeqRef.current = seq;
+    setFetching(true);
+    setMessage(null);
+    try {
+      const data = await fetchCycle(cycleNumber);
+      if (seq !== loadSeqRef.current) return;
+      // A cycle switch adopts the cycle the server answered with; Refresh keeps the current one.
+      const resolved = mode === "switch" ? data.activeCycleNumber : cycleNumber;
+      activeCycleNumberRef.current = resolved;
+      setActiveCycleNumber(resolved);
+      setCycles(data.cycles);
+      // A stage save for this cycle is still on its way: its response brings newer rows than this
+      // read. (The rows on screen are that cycle's: a save implies they were shown, and switching
+      // back restores them from the tab cache before this load starts.)
+      const savePending = sendingCycleRef.current === resolved || hasQueuedSave(queuedSavesRef.current, resolved);
+      if (!savePending) setRows(data.rows);
+      setRowsCycle(resolved);
+      if (mode === "refresh") refreshSidebarCount();
+    } catch (error) {
+      if (seq !== loadSeqRef.current) return;
+      const fallback = mode === "switch" ? "Failed to load groups." : "Failed to refresh.";
+      setMessage({ text: error instanceof Error ? error.message : fallback, retry: true });
+    } finally {
+      if (seq === loadSeqRef.current) setFetching(false);
+    }
+  }, []);
 
-  const activeCycle = cycles.find((c) => c.cycleNumber === activeCycleNumber) ?? null;
+  function selectCycle(next: number) {
+    if (next === activeCycleNumberRef.current) return;
+    activeCycleNumberRef.current = next;
+    setActiveCycleNumber(next);
+    const cached = cachedValue<CycleSnapshot>(cycleCacheKey(next));
+    if (cached) {
+      setCycles(cached.cycles);
+      setRows(cached.rows);
+      setRowsCycle(next);
+    }
+    void loadCycle(next, "switch");
+  }
+
+  function refresh() {
+    void loadCycle(activeCycleNumberRef.current, "refresh");
+  }
+
+  function openAssociates(opener: HTMLElement | null) {
+    associatesOpenerRef.current = opener;
+    setAssociatesOpen(true);
+  }
 
   async function flushSaves() {
     if (saveInFlightRef.current) return;
     saveInFlightRef.current = true;
     setSaving(true);
 
-    while (queuedRowsRef.current) {
-      const nextRows = queuedRowsRef.current;
-      queuedRowsRef.current = null;
-      const cycleNumber = activeCycleNumberRef.current;
+    while (queuedSavesRef.current.length > 0) {
+      const [{ cycleNumber, rows: nextRows }, ...rest] = queuedSavesRef.current;
+      queuedSavesRef.current = rest;
+      sendingCycleRef.current = cycleNumber;
 
       try {
         setMessage(null);
@@ -677,407 +210,305 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
         if (!response.ok || !payload.data) {
           throw new Error(payload.error?.message ?? "Failed to save stage progress.");
         }
-        if (activeCycleNumberRef.current === cycleNumber) {
+        // A newer change to this cycle is already queued: its response will bring the rows, so don't flash back.
+        if (activeCycleNumberRef.current === cycleNumber && !hasQueuedSave(queuedSavesRef.current, cycleNumber)) {
           setRows(payload.data.rows);
+          setRowsCycle(cycleNumber);
         }
+        refreshSidebarCount();
       } catch (error) {
-        setMessage(error instanceof Error ? error.message : "Failed to save stage progress.");
+        setMessage({ text: error instanceof Error ? error.message : "Failed to save stage progress.", retry: false });
       }
     }
 
+    sendingCycleRef.current = null;
     saveInFlightRef.current = false;
-    if (queuedRowsRef.current) {
+    if (queuedSavesRef.current.length > 0) {
       void flushSaves();
       return;
     }
     setSaving(false);
   }
 
-  function queueSave(nextRows: GroupRow[]) {
-    queuedRowsRef.current = nextRows;
+  function toggleStage(rowId: string | undefined, stage: PackageStage) {
+    // While fresh rows load (a cycle switch can show a cached copy), a save would send a stale roster.
+    if (!canEdit || !rowId || fetching) return;
+    const nextRows = rowsRef.current.map((row) => (row.id === rowId ? toggleRowStage(row, stage) : row));
+    rowsRef.current = nextRows;
+    setRows(nextRows);
+    queuedSavesRef.current = withQueuedSave(queuedSavesRef.current, {
+      cycleNumber: activeCycleNumberRef.current,
+      rows: nextRows
+    });
     void flushSaves();
   }
 
-  function toggleStage(rowId: string | undefined, stage: PackageStage) {
-    if (!canEdit || !rowId) return;
+  /** Local edits from Notes and Approve pitch, kept in any queued save too (row ids are unique across cycles). */
+  const patchRow = useCallback((rowId: string, patch: Partial<GroupRow>) => {
+    const update = (items: GroupRow[]) => items.map((row) => (row.id === rowId ? { ...row, ...patch } : row));
+    rowsRef.current = update(rowsRef.current);
+    setRows((current) => update(current));
+    queuedSavesRef.current = queuedSavesRef.current.map((save) => ({ ...save, rows: update(save.rows) }));
+  }, []);
 
-    const nextRows = rowsRef.current.map((row) => {
-      if (row.id !== rowId) return row;
-      const done = Boolean(row[stage]);
-      const patch: Partial<GroupRow> = { [stage]: !done };
-      if (stage === "initialCut") {
-        patch.initialCutManual = true;
-      } else if (stage === "finalCut") {
-        patch.finalCutManual = true;
+  const tileHandlers = useMemo(
+    () => ({
+      onNotesSaved: (rowId: string, possibleIdeas: string) => patchRow(rowId, { possibleIdeas }),
+      onPitchApproved: (rowId: string) => {
+        patchRow(rowId, { pitching: true });
+        refreshSidebarCount();
       }
-      return { ...row, ...patch };
-    });
+    }),
+    [patchRow]
+  );
 
-    setRows(nextRows);
-    queueSave(nextRows);
+  const awaitingRows = rowsCycle !== activeCycleNumber;
+  const activeCycle = cycles.find((cycle) => cycle.cycleNumber === activeCycleNumber) ?? null;
+  const rowsCycleDates = cycles.find((cycle) => cycle.cycleNumber === rowsCycle)?.dates ?? null;
+
+  const views = useMemo(() => {
+    const context = { platformRole, currentUserId, cycleDates: rowsCycleDates, now: new Date(now) };
+    const built = visibleGroupRows(rows, { platformRole, currentUserId, producerCategory }).map((row, index) =>
+      buildGroupRowView(row, index, context)
+    );
+    // Executives and the adviser see their queue first everywhere (Progress buckets too).
+    if (!isExecutiveRole) return built;
+    return [...built].sort((a, b) => (a.attention === "needed" ? 0 : 1) - (b.attention === "needed" ? 0 : 1));
+  }, [rows, rowsCycleDates, now, platformRole, currentUserId, producerCategory, isExecutiveRole]);
+
+  const stats = useMemo(
+    () => ({
+      total: views.length,
+      done: views.filter((view) => view.complete).length,
+      needsYou: views.filter((view) => view.attention === "needed").length,
+      behind: views.filter((view) => (view.schedule?.daysBehind ?? 0) > 0).length
+    }),
+    [views]
+  );
+
+  const sections = useMemo<TileSections>(() => {
+    const viewer = { currentUserId, platformRole };
+    const matches = (view: GroupRowView) =>
+      filter === "all" ||
+      (filter === "needs-you" ? view.attention === "needed" : (view.schedule?.daysBehind ?? 0) > 0);
+    const primary = views.filter((view) => isPrimaryGroupForViewer(view.row, viewer));
+    return {
+      needsYou: primary.filter((view) => view.attention === "needed" && matches(view)),
+      assigned: primary.filter((view) => view.attention !== "needed" && matches(view)),
+      other: views.filter((view) => !isPrimaryGroupForViewer(view.row, viewer) && matches(view))
+    };
+  }, [views, filter, currentUserId, platformRole]);
+
+  const buckets = useMemo(() => groupViewsByExecutive(views), [views]);
+  const stageTotals = useMemo(
+    () =>
+      PACKAGE_STAGES.map((stage) => ({
+        key: stage,
+        label: STAGE_SHORT[stage],
+        count: views.filter((view) => view.row[stage]).length
+      })),
+    [views]
+  );
+
+  // Save the order on screen so a group's page can step to the previous or next one.
+  const orderKey = useMemo(() => {
+    if (awaitingRows) return null;
+    // A filter shows Other expanded (see GroupsTilesView), whatever the remembered fold.
+    const otherShown = otherOpen || filter !== "all";
+    const shown =
+      viewMode === "chart"
+        ? buckets.flatMap((bucket) => bucket.views)
+        : [...sections.needsYou, ...sections.assigned, ...(otherShown ? sections.other : [])];
+    return shown
+      .map((view) => view.row.id)
+      .filter((id): id is string => Boolean(id))
+      .join(",");
+  }, [awaitingRows, viewMode, buckets, sections, otherOpen, filter]);
+
+  useEffect(() => {
+    if (orderKey === null) return;
+    rememberGroupOrder(orderKey ? orderKey.split(",") : []);
+  }, [orderKey]);
+
+  // J / K move focus between groups (tiles or Progress rows); Enter opens the focused one.
+  function moveFocus(delta: 1 | -1) {
+    // An open select or menu list keeps its own typing (J/K typeahead).
+    if (document.activeElement?.closest('[role="listbox"], [role="menu"]')) return;
+    const links = visibleGroupLinks(boardRef.current);
+    if (links.length === 0) return;
+    const current = links.indexOf(document.activeElement as HTMLAnchorElement);
+    const next = current === -1 ? 0 : Math.min(links.length - 1, Math.max(0, current + delta));
+    links[next]?.focus();
+    links[next]?.scrollIntoView({ block: "nearest" });
   }
+  useListHotkeys({ onNext: () => moveFocus(1), onPrevious: () => moveFocus(-1) });
 
-  function updateNotes(rowId: string, possibleIdeas: string) {
-    const update = (items: GroupRow[]) => items.map((row) => row.id === rowId ? { ...row, possibleIdeas } : row);
-    rowsRef.current = update(rowsRef.current);
-    setRows((current) => update(current));
-    if (queuedRowsRef.current) queuedRowsRef.current = update(queuedRowsRef.current);
-  }
-
-  function markPitchApproved(rowId: string) {
-    const update = (items: GroupRow[]) => items.map((row) => row.id === rowId ? { ...row, pitching: true } : row);
-    rowsRef.current = update(rowsRef.current);
-    setRows((current) => update(current));
-    if (queuedRowsRef.current) queuedRowsRef.current = update(queuedRowsRef.current);
-  }
-
-  async function refresh() {
-    try {
-      setMessage(null);
-      setLoading(true);
-      const data = await fetchCycle(activeCycleNumber);
-      setCycles(data.cycles);
-      setRows(data.rows);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to refresh.");
-    } finally {
-      setLoading(false);
+  const hasDeadlines = cycleHasDeadlines(rowsCycleDates);
+  // Needs you is for executives, the adviser and super admin (associates are never "needed").
+  const filterOptions = [
+    { value: "all" as const, label: "All", count: stats.total },
+    {
+      value: "needs-you" as const,
+      label: "Needs you",
+      count: stats.needsYou,
+      tone: stats.needsYou > 0 ? ("warning" as const) : undefined,
+      hidden: !isExecutiveRole
+    },
+    {
+      value: "behind" as const,
+      label: "Behind",
+      count: stats.behind,
+      tone: stats.behind > 0 ? ("danger" as const) : undefined,
+      hidden: !hasDeadlines
     }
+  ];
+
+  const showFilters =
+    viewMode === "cards" && !awaitingRows && stats.total > 0 && filterOptions.filter((option) => !option.hidden).length > 1;
+  const noGroups = !awaitingRows && stats.total === 0;
+
+  const focus = activeCycle?.focus?.trim();
+  const description = (
+    awaitingRows
+      ? [focus]
+      : [
+          focus,
+          `${stats.total} group${stats.total === 1 ? "" : "s"}`,
+          stats.done > 0 ? `${stats.done} done` : null,
+          isAssociate && producerCategory ? PACKAGE_CATEGORY_LABELS[producerCategory] : null
+        ]
+  )
+    .filter(Boolean)
+    .join(" · ");
+
+  // The empty state has its own "Open Package Cycle" button, so the header drops its copy then.
+  const phoneMenu: MenuEntry[] = [
+    {
+      key: "associates",
+      label: "Associates",
+      icon: Users,
+      onSelect: () => openAssociates(phoneMenuTriggerRef.current),
+      hidden: !isExecutiveRole
+    },
+    { key: "roster", label: "Open Package Cycle", icon: ListChecks, href: "/package-progress", hidden: noGroups }
+  ];
+
+  // Phones get these from the toolbar's ⋯ menu instead.
+  const headerActions =
+    isExecutiveRole || !noGroups ? (
+      <>
+        {isExecutiveRole ? (
+          <Button
+            type="button"
+            variant="outline"
+            className="max-sm:hidden"
+            onClick={(event) => openAssociates(event.currentTarget)}
+          >
+            <Users aria-hidden />
+            Associates
+          </Button>
+        ) : null}
+        {noGroups ? null : (
+          <Link href={"/package-progress" as never} className={cn(buttonVariants({ variant: "outline" }), "max-sm:hidden")}>
+            <ListChecks aria-hidden />
+            Open Package Cycle
+          </Link>
+        )}
+      </>
+    ) : undefined;
+
+  let content: ReactNode = null;
+  if (awaitingRows) {
+    if (fetching) content = viewMode === "chart" ? <GroupProgressSkeleton canEdit={canEdit} /> : <GroupsTilesSkeleton />;
+  } else if (noGroups) {
+    content = <NoGroupsState cycleNumber={activeCycleNumber} />;
+  } else if (viewMode === "chart") {
+    content = (
+      <GroupProgressView
+        buckets={buckets}
+        totals={stageTotals}
+        total={stats.total}
+        canEdit={canEdit}
+        locked={fetching}
+        onToggle={toggleStage}
+      />
+    );
+  } else {
+    content = (
+      <GroupsTilesView
+        sections={sections}
+        cycleNumber={activeCycleNumber}
+        isAssociate={isAssociate}
+        filter={filter}
+        onShowAll={() => setFilter("all")}
+        otherOpen={otherOpen}
+        onToggleOther={() => setOtherOpen((open) => !open)}
+        handlers={tileHandlers}
+      />
+    );
   }
 
   return (
-    <div className="route-enter mx-auto w-full max-w-[80rem] space-y-4 pb-24">
+    <div ref={boardRef} className="route-enter space-y-5">
       <PageHeader
-        eyebrow={`Producer view${activeCycle ? ` · Cycle ${activeCycle.cycleNumber}` : ""}`}
+        eyebrow={`Producer view · ${cycleLabel(activeCycleNumber)}`}
+        status={
+          <>
+            {isExecutiveRole && !awaitingRows && stats.needsYou > 0 ? (
+              <StatusTag tone="warning">{`${stats.needsYou} need${stats.needsYou === 1 ? "s" : ""} you`}</StatusTag>
+            ) : null}
+            <SaveState state={saving ? "saving" : "idle"} />
+          </>
+        }
         title="Groups"
-        description={
-          <>
-            {stats.total} group{stats.total === 1 ? "" : "s"}
-            {stats.needsYou > 0 ? ` · ${stats.needsYou} need you` : ""}
-            {stats.done > 0 ? ` · ${stats.done} done` : ""}
-            {isAssociateOnly && producerCategory ? ` · ${PACKAGE_CATEGORY_LABELS[producerCategory]}` : ""}
-            {activeCycle?.focus?.trim() ? ` · ${activeCycle.focus}` : ""}
-          </>
-        }
-        actions={
-          <>
-            <div className="inline-flex items-center rounded-md border border-border p-0.5" role="group" aria-label="View">
-              {(["cards", "chart"] as const).map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => setViewMode(mode)}
-                  aria-pressed={viewMode === mode}
-                  className={cn(
-                    "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
-                    viewMode === mode ? "bg-[var(--brand-fill)] text-[var(--on-brand)]" : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {mode === "cards" ? <LayoutGrid className="h-3.5 w-3.5" /> : <Table2 className="h-3.5 w-3.5" />}
-                  {mode === "cards" ? "Tiles" : "Progress"}
-                </button>
-              ))}
-            </div>
-            <Button type="button" size="sm" variant="ghost" onClick={() => void refresh()} aria-label="Refresh">
-              <RefreshCcw className="h-4 w-4" />
-            </Button>
-            {seesAttention ? <AssociatesDialog cycles={cycles} activeCycleNumber={activeCycleNumber} /> : null}
-            <Link href={"/package-progress" as never} className={buttonVariants({ variant: "outline", size: "sm" })}>
-              Edit roster
-            </Link>
-          </>
-        }
+        description={description || undefined}
+        className="max-sm:gap-y-0"
+        actions={headerActions}
       />
 
-      {seesAttention && viewMode === "cards" && stats.needsYou > 0 ? (
-        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filter groups">
-          {([false, true] as const).map((onlyNeeded) => (
-            <button
-              key={String(onlyNeeded)}
-              type="button"
-              onClick={() => setNeedsYouOnly(onlyNeeded)}
-              aria-pressed={needsYouOnly === onlyNeeded}
-              className={cn(
-                "inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-sm transition",
-                needsYouOnly === onlyNeeded
-                  ? "border-[var(--brand-fill)] bg-[var(--brand-fill)] text-[var(--on-brand)]"
-                  : "border-border text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {onlyNeeded ? "Needs you" : "All"}
-              <span className="font-mono-broadcast text-[11px] tabular-nums">{onlyNeeded ? stats.needsYou : stats.total}</span>
-            </button>
-          ))}
-          <span className="ml-auto hidden text-xs text-muted-foreground md:inline">
-            <kbd className="font-mono-broadcast">J</kbd> / <kbd className="font-mono-broadcast">K</kbd> to move between groups
-          </span>
-        </div>
-      ) : null}
-
-      {viewMode === "chart" && stats.total > 0 ? (
-        <div className="flex flex-wrap gap-2">
-          {stageTotals.map(({ stage, count }) => {
-            const pct = Math.round((count / stats.total) * 100);
-            return (
-              <div key={stage} className="min-w-[7.5rem] flex-1 rounded-md border border-border bg-card px-2.5 py-2">
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="text-[10px] font-medium text-muted-foreground">{STAGE_SHORT[stage]}</span>
-                  <span className="font-mono-broadcast text-[11px] font-medium tabular-nums text-foreground">
-                    {count}/{stats.total}
-                  </span>
-                </div>
-                <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-secondary">
-                  <div className="h-full rounded-full bg-[var(--brand-green)]" style={{ width: `${pct}%` }} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : null}
-
-      {saving ? (
-        <p className="text-xs text-muted-foreground">Saving stage changes…</p>
-      ) : viewMode === "chart" && canEdit ? (
-        <p className="text-xs text-muted-foreground">Click a stage to mark complete or incomplete. Changes save automatically.</p>
-      ) : null}
+      <GroupsToolbar
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        filter={filter}
+        onFilterChange={setFilter}
+        filterOptions={filterOptions}
+        showFilters={showFilters}
+        cycles={cycles}
+        activeCycleNumber={activeCycleNumber}
+        currentCycle={currentCycle}
+        onCycleChange={selectCycle}
+        refreshing={fetching}
+        onRefresh={refresh}
+        phoneMenu={phoneMenu}
+        phoneMenuTriggerRef={phoneMenuTriggerRef}
+      />
 
       {message ? (
-        <p role="alert" className="rounded-md border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">
-          {message}
-        </p>
+        <Alert
+          tone="danger"
+          action={
+            message.retry ? (
+              <Button type="button" variant="outline" size="sm" disabled={fetching} onClick={refresh}>
+                Try again
+              </Button>
+            ) : undefined
+          }
+        >
+          {message.text}
+        </Alert>
       ) : null}
 
-      <section className="space-y-3">
-        {loading ? (
-          <p className="rounded-2xl border border-border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
-            Loading groups…
-          </p>
-        ) : groups.length === 0 ? (
-          <p className="rounded-2xl border border-border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
-            No groups with content in this cycle yet. Assign members, topics, and producers in{" "}
-            <Link href={"/package-progress" as never} className="text-foreground underline">
-              Package Cycle
-            </Link>
-            .
-          </p>
-        ) : viewMode === "cards" ? (
-          <div className="space-y-3" ref={tilesRef}>
-            {shownPrimaryGroups.length > 0 ? (
-              <div className="grid gap-2 md:grid-cols-2">
-                {shownPrimaryGroups.map((row, index) => (
-                  <GroupTile
-                    key={row.id ?? `primary-${index}`}
-                    row={row}
-                    platformRole={platformRole}
-                    currentUserId={currentUserId}
-                    cycleDates={activeCycle?.dates ?? null}
-                    onNotesSaved={updateNotes}
-                    onPitchApproved={markPitchApproved}
-                  />
-                ))}
-              </div>
-            ) : null}
-            {shownOtherGroups.length > 0 ? (
-              <section className="space-y-2">
-                <button
-                  type="button"
-                  onClick={() => setOtherGroupsOpen((open) => !open)}
-                  className="flex w-full items-center gap-2 rounded-xl border border-border bg-card px-3.5 py-2.5 text-left text-sm font-medium text-foreground transition-colors hover:bg-foreground/[0.02]"
-                >
-                  {otherGroupsOpen ? (
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  )}
-                  <span>Other groups</span>
-                  <span className="rounded-md border border-border bg-muted px-2 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground">
-                    {shownOtherGroups.length}
-                  </span>
-                </button>
-                {otherGroupsOpen ? (
-                  <div className="grid gap-2 md:grid-cols-2">
-                    {shownOtherGroups.map((row, index) => (
-                      <GroupTile
-                        key={row.id ?? `other-${index}`}
-                        row={row}
-                        platformRole={platformRole}
-                        currentUserId={currentUserId}
-                        cycleDates={activeCycle?.dates ?? null}
-                        onNotesSaved={updateNotes}
-                        onPitchApproved={markPitchApproved}
-                      />
-                    ))}
-                  </div>
-                ) : null}
-              </section>
-            ) : null}
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {executiveGroups.map((bucket) => {
-              const completeCount = bucket.rows.filter((row) =>
-                PACKAGE_STAGES.every((stage) => stageDone(row, stage))
-              ).length;
-              const executiveName = producerDisplayName(bucket.executive);
+      {content}
 
-              return (
-                <section
-                  key={bucket.executive?.userId ?? "unassigned"}
-                  className="overflow-hidden rounded-2xl border border-border bg-card"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 bg-[hsl(var(--background))] px-4 py-2.5">
-                    <div className="min-w-0">
-                      <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                        Executive producer
-                      </div>
-                      <h2 className="truncate text-sm font-semibold text-foreground">
-                        {executiveName ?? "Unassigned"}
-                      </h2>
-                    </div>
-                    <div className="text-[11px] text-muted-foreground">
-                      {bucket.rows.length} package{bucket.rows.length === 1 ? "" : "s"}
-                      {completeCount > 0 ? ` · ${completeCount} complete` : ""}
-                    </div>
-                  </div>
-
-                  <div className="overflow-x-auto">
-                    <table className="w-full min-w-[720px] border-collapse">
-                      <thead>
-                        <tr>
-                          {["Package", "Associate", "Stages", "Check-ins"].map((label) => (
-                            <th
-                              key={label}
-                              className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
-                            >
-                              {label}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {bucket.rows.map((row, index) => {
-                          const members =
-                            row.members && row.members.length > 0
-                              ? row.members
-                              : (row.memberUserIds ?? []).map((userId) => ({
-                                  userId,
-                                  name: null,
-                                  email: null
-                                }));
-                          const checkIns = checkInPointsForCycle({
-                            pitching: row.pitching,
-                            proofOfContact: row.proofOfContact,
-                            aRollBRoll: row.aRollBRoll,
-                            initialCut: row.initialCut
-                          });
-
-                          return (
-                            <tr
-                              key={row.id ?? `chart-${bucket.executive?.userId ?? "unassigned"}-${index}`}
-                              className="border-t border-[hsl(var(--border))]/40 bg-[var(--ink)] transition-colors hover:bg-[var(--ink-2)]"
-                            >
-                              <td className="min-w-[200px] px-3 py-2.5 align-middle">
-                                <div className="text-sm font-semibold text-foreground">
-                                  {row.id ? (
-                                    <Link
-                                      href={`/groups/${row.id}/${pendingGroupNavSlug({
-                                        pitching: row.pitching,
-                                        proofOfContact: row.proofOfContact,
-                                        aRollBRoll: row.aRollBRoll,
-                                        finalCut: row.finalCut,
-                                        approvalStage: row.approvalStage ?? "DRAFT"
-                                      })}` as never}
-                                      className="hover:text-[var(--brand-green)]"
-                                    >
-                                      {row.groupTopic?.trim() || "Untitled package"}
-                                    </Link>
-                                  ) : (
-                                    row.groupTopic?.trim() || "Untitled package"
-                                  )}
-                                </div>
-                                <div className="mt-1 flex flex-wrap gap-1">
-                                  {members.length === 0 ? (
-                                    <span className="text-[11px] text-muted-foreground">No members</span>
-                                  ) : (
-                                    members.map((member) => (
-                                      <span
-                                        key={member.userId}
-                                        className="rounded-md bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-foreground"
-                                      >
-                                        {firstName(member)}
-                                      </span>
-                                    ))
-                                  )}
-                                </div>
-                              </td>
-                              <td className="w-[140px] px-3 py-2.5 align-middle text-xs text-muted-foreground">
-                                {producerDisplayName(row.assignedProducer) ?? "—"}
-                              </td>
-                              <td className="min-w-[280px] px-3 py-2.5 align-middle">
-                                <div className="space-y-2">
-                                  <div className="flex overflow-hidden rounded-md border border-border">
-                                    {PACKAGE_STAGES.map((stage) => {
-                                      const done = stageDone(row, stage);
-                                      const mediaHint =
-                                        stage === "initialCut" && row.initialCutMediaItemId
-                                          ? " · media linked"
-                                          : stage === "finalCut" && row.finalCutMediaItemId
-                                            ? " · media linked"
-                                            : "";
-                                      return (
-                                        <button
-                                          key={stage}
-                                          type="button"
-                                          disabled={!canEdit || !row.id}
-                                          title={`${PACKAGE_STAGE_LABELS[stage]}${mediaHint}`}
-                                          onClick={() => toggleStage(row.id, stage)}
-                                          className={cn(
-                                            "flex-1 px-1 py-1.5 text-center text-[10px] font-semibold uppercase tracking-[0.11em] transition",
-                                            done
-                                              ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
-                                              : "bg-transparent text-muted-foreground hover:bg-foreground/5",
-                                            canEdit && row.id ? "cursor-pointer" : "cursor-default"
-                                          )}
-                                        >
-                                          {STAGE_SHORT[stage]}
-                                        </button>
-                                      );
-                                    })}
-                                  </div>
-                                  <div className="text-[10px] text-muted-foreground">
-                                    Contact {row.proofs?.length ?? 0}/3
-                                    {row.brainstormDocUrl ? " · doc" : " · no doc"}
-                                    {row.proofOfContact ? " · approved" : ""}
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="w-[88px] px-3 py-2.5 align-middle text-xs font-semibold tabular-nums text-foreground">
-                                {checkIns}
-                                <span className="text-muted-foreground">/{MAX_CHECK_IN_POINTS_PER_CYCLE}</span>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </section>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
-      <BottomTabDock activeKey={activeCycleNumber} label="Cycles">
-        {cycles.map((cycle) => {
-          const active = cycle.cycleNumber === activeCycleNumber;
-          return (
-            <BottomTabDockButton key={cycle.cycleNumber} active={active} onClick={() => setActiveCycleNumber(cycle.cycleNumber)}>
-              <CycleTabLabel cycleNumber={cycle.cycleNumber} active={active} />
-            </BottomTabDockButton>
-          );
-        })}
-      </BottomTabDock>
+      {isExecutiveRole ? (
+        <AssociatesDialog
+          cycles={cycles}
+          activeCycleNumber={activeCycleNumber}
+          open={associatesOpen}
+          onOpenChange={setAssociatesOpen}
+          returnFocusRef={associatesOpenerRef}
+        />
+      ) : null}
     </div>
   );
 }

@@ -1,12 +1,17 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
+import { Field } from "@/components/kit/field";
+import { StatusTag } from "@/components/kit/status-tag";
+import { SettingsPanelHeader } from "@/components/settings-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SettingsPanel, SettingsPanelBody } from "@/components/settings-layout";
+import { NativeSelect } from "@/components/ui/native-select";
 import { groupCalendarDays, type CalendarDayGroup, type CalendarDayRow } from "@/src/lib/calendar-day-groups";
-import { selectClass } from "./admin-types";
+import { cn } from "@/src/lib/utils";
+import { COLUMN_LABEL_CLASS, RemoveButton, RowsSkeleton } from "./admin-ui";
 import { KIND_OPTIONS, formatDay, kindLabel, sourceLabel, type DayKind } from "./configuration-format";
 
 function todayKey() {
@@ -27,15 +32,29 @@ async function send(input: RequestInfo, init: RequestInit, fallback: string) {
 }
 
 /**
- * Admin → Configuration: days that differ from the usual week (no school, finals, summer,
+ * Date(s) | what happens | name | source | action. The add form uses the same tracks (Date, What
+ * happens, Name across name + source, then Save day), so its fields sit over the list's columns.
+ * The action column keeps its width on rows that can't be removed.
+ */
+const DAY_COLUMNS = "@4xl:grid-cols-[13rem_11rem_minmax(0,1fr)_9rem_7.5rem]";
+const DAY_GRID = cn("grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1", DAY_COLUMNS);
+
+function dateRange(group: CalendarDayGroup) {
+  return group.from === group.to ? formatDay(group.from) : `${formatDay(group.from)} to ${formatDay(group.to)}`;
+}
+
+/**
+ * Admin → School calendar: days that differ from the usual week (no school, finals, summer,
  * special shows). A day set here always wins over the automatic ones.
  */
 export function CalendarDaysPanel({
   days,
+  loading,
   onChanged,
   onResync
 }: {
   days: CalendarDayRow[];
+  loading: boolean;
   onChanged: () => Promise<void>;
   /** Restores an automatic day after its hand-set replacement is removed. */
   onResync: () => Promise<void>;
@@ -88,77 +107,106 @@ export function CalendarDaysPanel({
   }
 
   return (
-    <SettingsPanel>
-      <SettingsPanelBody className="space-y-4">
-        <div>
-          <h3 className="text-sm font-medium text-foreground">Days off and special days</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Add each no-school day for the year here. A day you set always wins over the automatic calendar, so this is also
-            how to air a show in a finals week or on another weekday.
-          </p>
-        </div>
+    <div className="flex flex-col">
+      <SettingsPanelHeader
+        title="Days off and special days"
+        description="Add each no-school day for the year here. A day you set always wins over the automatic calendar, so this is also how to air a show in a finals week or on another weekday."
+      />
 
-        <form onSubmit={add} className="flex flex-wrap items-end gap-3">
-          <label className="space-y-1 text-xs text-muted-foreground">
-            <span className="block">Date</span>
-            <Input
-              type="date"
-              required
-              value={date}
-              onChange={(event) => setDate(event.target.value)}
-              className="w-40 font-mono tabular-nums"
-            />
-          </label>
-          <label className="space-y-1 text-xs text-muted-foreground">
-            <span className="block">What happens</span>
-            <select value={kind} onChange={(event) => setKind(event.target.value as DayKind)} className={selectClass}>
-              {KIND_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="min-w-48 flex-1 space-y-1 text-xs text-muted-foreground">
-            <span className="block">Name (optional)</span>
-            <Input value={label} maxLength={80} onChange={(event) => setLabel(event.target.value)} placeholder="Labor Day" />
-          </label>
-          <Button type="submit" variant="outline" disabled={busy || !date}>
-            Save day
-          </Button>
-        </form>
+      <form
+        onSubmit={add}
+        className={cn("grid gap-3 border-t border-border px-4 py-4 md:px-5 @xl:grid-cols-2 @xl:items-end", DAY_COLUMNS)}
+      >
+        <Field label="Date" htmlFor="calendar-day-date">
+          <Input
+            id="calendar-day-date"
+            type="date"
+            required
+            value={date}
+            onChange={(event) => setDate(event.target.value)}
+            className="font-mono tabular-nums"
+          />
+        </Field>
+        <Field label="What happens" htmlFor="calendar-day-kind">
+          <NativeSelect id="calendar-day-kind" value={kind} onChange={(event) => setKind(event.target.value as DayKind)}>
+            {KIND_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </NativeSelect>
+        </Field>
+        <Field label="Name (optional)" htmlFor="calendar-day-label" className="@4xl:col-span-2">
+          <Input
+            id="calendar-day-label"
+            value={label}
+            maxLength={80}
+            onChange={(event) => setLabel(event.target.value)}
+            placeholder="Labor Day"
+          />
+        </Field>
+        {/* Full width when stacked and in its own last column; beside Name (two columns) it keeps its
+            own width, so it doesn't read as another field. */}
+        <Button
+          type="submit"
+          variant="outline"
+          disabled={busy || !date}
+          className="w-full @xl:w-auto @xl:justify-self-start @4xl:w-full"
+        >
+          <Plus aria-hidden="true" />
+          Save day
+        </Button>
+      </form>
 
-        {groups.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No upcoming days off or special days.</p>
-        ) : (
-          <ul className="divide-y divide-border border-t border-border">
+      {loading ? (
+        <RowsSkeleton className="border-t border-border" />
+      ) : groups.length === 0 ? (
+        <p className="border-t border-border px-4 py-4 text-sm text-muted-foreground md:px-5">
+          No upcoming days off or special days.
+        </p>
+      ) : (
+        <>
+          <div aria-hidden="true" className={cn(DAY_GRID, "hidden border-t border-border px-4 py-2 @4xl:grid md:px-5")}>
+            <span className={COLUMN_LABEL_CLASS}>Date</span>
+            <span className={COLUMN_LABEL_CLASS}>What happens</span>
+            <span className={COLUMN_LABEL_CLASS}>Name</span>
+            <span className={COLUMN_LABEL_CLASS}>Source</span>
+            <span />
+          </div>
+          <ul aria-label="Upcoming days off and special days" className="divide-y divide-border border-t border-border">
             {groups.map((group) => (
-              <li key={`${group.from}-${group.source}`} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2 text-sm">
-                <span className="font-mono tabular-nums text-foreground">
-                  {group.from === group.to ? formatDay(group.from) : `${formatDay(group.from)} to ${formatDay(group.to)}`}
+              <li key={`${group.from}-${group.source}`} className={cn(DAY_GRID, "px-4 py-2.5 text-sm md:px-5")}>
+                <span className="col-start-1 row-start-1 min-w-0 font-mono text-[13px] tabular-nums text-foreground">
+                  {dateRange(group)}
                 </span>
-                <span className="text-foreground">{group.label || kindLabel(group.kind)}</span>
-                <span className="text-xs text-muted-foreground">
-                  {group.label ? `${kindLabel(group.kind)} · ` : ""}
-                  {sourceLabel(group.source)}
+                {/* Phones: what happens, the name (when it has one) and source share the second line. From @4xl each is its own column. */}
+                <span className="col-start-1 row-start-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 @4xl:contents">
+                  <span className="flex @4xl:col-start-2 @4xl:row-start-1">
+                    <StatusTag size="sm" tone="neutral">
+                      {kindLabel(group.kind)}
+                    </StatusTag>
+                  </span>
+                  {group.label ? (
+                    <span className="min-w-0 truncate text-foreground @4xl:col-start-3 @4xl:row-start-1">{group.label}</span>
+                  ) : (
+                    <span aria-hidden="true" className="hidden text-muted-foreground @4xl:col-start-3 @4xl:row-start-1 @4xl:block">
+                      —
+                    </span>
+                  )}
+                  <span className="min-w-0 truncate text-[13px] text-muted-foreground @4xl:col-start-4 @4xl:row-start-1">
+                    {sourceLabel(group.source)}
+                  </span>
                 </span>
-                {group.source === "manual" ? (
-                  <Button
-                    type="button"
-                    variant="destructive-quiet"
-                    size="sm"
-                    className="ml-auto"
-                    disabled={busy}
-                    onClick={() => void remove(group)}
-                  >
-                    Remove
-                  </Button>
-                ) : null}
+                <span className="col-start-2 row-span-2 row-start-1 flex justify-end @4xl:col-start-5 @4xl:row-span-1">
+                  {group.source === "manual" ? (
+                    <RemoveButton label={`Remove ${dateRange(group)}`} disabled={busy} onClick={() => void remove(group)} />
+                  ) : null}
+                </span>
               </li>
             ))}
           </ul>
-        )}
-      </SettingsPanelBody>
-    </SettingsPanel>
+        </>
+      )}
+    </div>
   );
 }

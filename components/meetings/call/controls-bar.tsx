@@ -1,10 +1,12 @@
 "use client";
 
 import { pointerSafeAutoFocus } from "@/components/meetings/focus-modality";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import * as Popover from "@radix-ui/react-popover";
 import {
   Clapperboard,
+  Eye,
+  EyeOff,
   Hand,
   Info,
   ListChecks,
@@ -12,24 +14,34 @@ import {
   Mic,
   MicOff,
   MonitorUp,
+  MonitorX,
   MoreVertical,
   PhoneOff,
+  Settings,
+  ShieldCheck,
   SmilePlus,
   Users,
   Video,
   VideoOff
 } from "lucide-react";
+import { StatusTag } from "@/components/kit/status-tag";
 import { MEETING_REACTIONS, type MeetingReaction } from "@/src/lib/meetings/protocol";
 import type { LayoutMode } from "@/src/lib/meetings/client/layout";
 import { ordinal } from "@/src/lib/meetings/client/hands";
-import { pacificTimeLabel } from "@/src/lib/meetings/client/time";
-import { CallButton, IconButton, LeaveButton } from "./call-button";
-import { MoreMenu, type MoreAction } from "./more-menu";
+import { cn } from "@/src/lib/utils";
+import { CallButton, LeaveButton, PanelToggle } from "./call-button";
+import { CallCount } from "./call-count";
+import { MENU_SURFACE } from "./menu-row";
+import { MoreMenu, type MoreRowItem, type MoreTile } from "./more-menu";
+import type { CallPanelId } from "./panel-tabs";
 import { ShareMenu } from "./share-menu";
+import { CALL_SHORTCUTS, shortcutLabel } from "./shortcut";
+
+/** desktop: one 72px bar. phone: a 64px bar of six. rail: phone on its side, the six in the 72px right-hand column. */
+export type ControlsForm = "desktop" | "phone" | "rail";
 
 export type ControlsProps = {
-  mobile: boolean;
-  title: string;
+  form: ControlsForm;
   audioOn: boolean;
   videoOn: boolean;
   sharing: boolean;
@@ -40,17 +52,17 @@ export type ControlsProps = {
   handRaised: boolean;
   /** Our own raised-hand queue position, once the room has it. */
   handPosition?: number;
-  chatOpen: boolean;
-  peopleOpen: boolean;
-  agendaOpen: boolean;
-  /** Agenda items not yet checked off (badge). */
+  panel: CallPanelId | null;
+  /** Agenda items not yet checked off. */
   agendaRemaining: number;
   unread: number;
   peopleCount: number;
+  /** People in the lobby; 0 for non-hosts. */
   waitingCount: number;
+  isHost: boolean;
+  selfHidden: boolean;
   layout: LayoutMode;
   layoutAlone: boolean;
-  moreActions: MoreAction[];
   onLayout: (mode: LayoutMode) => void;
   onMic: () => void;
   /** Hover/focus on the mic button: pre-warm the mic before an unmute. */
@@ -65,10 +77,14 @@ export type ControlsProps = {
   onChat: () => void;
   onPeople: () => void;
   onAgenda: () => void;
-  onInfo: () => void;
+  onDetails: () => void;
+  onHostSettings: () => void;
+  onDevices: () => void;
+  onToggleSelf: () => void;
   onLeave: () => void;
 };
 
+/** Desktop React: stays open after a pick, so several reactions go out quickly. */
 function ReactionPicker({ onReact }: { onReact: (emoji: MeetingReaction) => void }) {
   return (
     <Popover.Root>
@@ -78,7 +94,7 @@ function ReactionPicker({ onReact }: { onReact: (emoji: MeetingReaction) => void
         </CallButton>
       </Popover.Trigger>
       <Popover.Portal>
-        <Popover.Content onOpenAutoFocus={pointerSafeAutoFocus} side="top" sideOffset={12} className="z-50 outline-none flex gap-1 rounded-md border border-[var(--ink-4)] bg-[var(--ink-2)] p-1">
+        <Popover.Content onOpenAutoFocus={pointerSafeAutoFocus} side="top" sideOffset={12} className={cn(MENU_SURFACE, "flex gap-1 p-1")}>
           {MEETING_REACTIONS.map((emoji) => (
             <button
               key={emoji}
@@ -101,118 +117,273 @@ function handLabel(raised: boolean, position: number | undefined) {
   return position ? `Hand raised · ${ordinal(position)}. Lower hand` : "Lower hand";
 }
 
-/** Desktop left group: wall-clock time | meeting title. */
-function ClockAndTitle({ title }: { title: string }) {
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 15_000);
-    return () => clearInterval(timer);
-  }, []);
+/** Badge words; buttons add them to their accessible name (srDetail). */
+function waitingText(count: number) {
+  return count > 0 ? `${count} waiting to join` : undefined;
+}
+
+function unreadText(count: number) {
+  return count > 0 ? `${count} unread` : undefined;
+}
+
+function waitingBadge(count: number) {
+  return count > 0 ? <CallCount count={count} tone="warn" srLabel={waitingText(count)} /> : undefined;
+}
+
+function unreadBadge(count: number) {
+  return count > 0 ? <CallCount count={count} tone="brand" srLabel={unreadText(count)} /> : undefined;
+}
+
+/** Mic, camera and hand: the same three plates in every form. */
+function MediaButtons({ props, compact, side }: { props: ControlsProps; compact: boolean; side: "top" | "left" }) {
   return (
-    <div className="flex min-w-0 items-center gap-3 text-sm">
-      <span className="font-mono text-[13px] tabular-nums text-foreground">{pacificTimeLabel(now)}</span>
-      <span className="h-4 w-px bg-[var(--ink-4)]" aria-hidden />
-      <span className="truncate text-[var(--ink-text)]">{title}</span>
-    </div>
+    <>
+      <CallButton
+        compact={compact}
+        tooltipSide={side}
+        label={props.audioOn ? "Turn off microphone" : "Turn on microphone"}
+        shortcut={shortcutLabel(CALL_SHORTCUTS.mic)}
+        state={props.audioOn ? "on" : "off"}
+        onClick={props.onMic}
+        onPointerEnter={props.onMicIntent}
+        onFocus={props.onMicIntent}
+      >
+        {props.audioOn ? <Mic /> : <MicOff />}
+      </CallButton>
+      <CallButton
+        compact={compact}
+        tooltipSide={side}
+        label={props.videoOn ? "Turn off camera" : "Turn on camera"}
+        shortcut={shortcutLabel(CALL_SHORTCUTS.camera)}
+        state={props.videoOn ? "on" : "off"}
+        onClick={props.onCamera}
+      >
+        {props.videoOn ? <Video /> : <VideoOff />}
+      </CallButton>
+    </>
+  );
+}
+
+function HandButton({ props, compact, side }: { props: ControlsProps; compact: boolean; side: "top" | "left" }) {
+  return (
+    <CallButton
+      compact={compact}
+      tooltipSide={side}
+      label={handLabel(props.handRaised, props.handPosition)}
+      shortcut={shortcutLabel(CALL_SHORTCUTS.hand)}
+      state={props.handRaised ? "active" : "on"}
+      onClick={props.onHand}
+    >
+      <Hand />
+    </CallButton>
+  );
+}
+
+function phoneTiles(props: ControlsProps): MoreTile[] {
+  const tiles: Array<MoreTile | null> = [
+    {
+      id: "people",
+      label: "People",
+      icon: <Users />,
+      onSelect: props.onPeople,
+      badge: (
+        <>
+          <CallCount count={props.peopleCount} tone="neutral" srLabel={`${props.peopleCount} in the call`} />
+          {waitingBadge(props.waitingCount)}
+        </>
+      )
+    },
+    {
+      id: "agenda",
+      label: "Agenda",
+      icon: <ListChecks />,
+      onSelect: props.onAgenda,
+      badge: props.agendaRemaining ? <CallCount count={props.agendaRemaining} tone="neutral" srLabel={`${props.agendaRemaining} left`} /> : undefined
+    },
+    props.canShare
+      ? {
+          id: "share",
+          label: props.sharing ? "Stop presenting" : "Share screen",
+          icon: props.sharing ? <MonitorX /> : <MonitorUp />,
+          onSelect: props.onShare,
+          badge: props.sharing ? (
+            <StatusTag tone="success" size="sm">
+              On
+            </StatusTag>
+          ) : undefined
+        }
+      : null,
+    { id: "watch", label: "Watch a package cut", icon: <Clapperboard />, onSelect: props.onWatch },
+    { id: "details", label: "Meeting details", icon: <Info />, onSelect: props.onDetails },
+    props.isHost ? { id: "host", label: "Host settings", icon: <ShieldCheck />, onSelect: props.onHostSettings } : null,
+    { id: "devices", label: "Audio and video settings", icon: <Settings />, onSelect: props.onDevices },
+    {
+      id: "self",
+      label: props.selfHidden ? "Show self view" : "Hide self view",
+      icon: props.selfHidden ? <Eye /> : <EyeOff />,
+      onSelect: props.onToggleSelf
+    }
+  ];
+  return tiles.filter((tile): tile is MoreTile => tile !== null);
+}
+
+/** Desktop More, under Layout: one short group of rows (no labels for single rows). */
+function desktopRows(props: ControlsProps): MoreRowItem[] {
+  return [
+    {
+      id: "self",
+      label: props.selfHidden ? "Show self view" : "Hide self view",
+      icon: props.selfHidden ? <Eye /> : <EyeOff />,
+      onSelect: props.onToggleSelf
+    },
+    { id: "devices", label: "Audio and video settings", icon: <Settings />, onSelect: props.onDevices },
+    { id: "details", label: "Meeting details", icon: <Info />, onSelect: props.onDetails },
+    ...(props.isHost ? [{ id: "host", label: "Host settings", icon: <ShieldCheck />, onSelect: props.onHostSettings }] : [])
+  ];
+}
+
+function PhoneControls({ props, side, moreOpen, setMoreOpen }: { props: ControlsProps; side: "top" | "left"; moreOpen: boolean; setMoreOpen: (open: boolean) => void }) {
+  return (
+    <>
+      <MediaButtons props={props} compact side={side} />
+      <HandButton props={props} compact side={side} />
+      <CallButton
+        compact
+        tooltipSide={side}
+        label="Chat"
+        badge={unreadBadge(props.unread)}
+        srDetail={unreadText(props.unread)}
+        onClick={props.onChat}
+      >
+        <MessageSquare />
+      </CallButton>
+      <MoreMenu
+        open={moreOpen}
+        onOpenChange={setMoreOpen}
+        mobile
+        tiles={phoneTiles(props)}
+        layout={props.layout}
+        onLayout={props.onLayout}
+        layoutAlone={props.layoutAlone}
+        onReact={props.onReact}
+        trigger={
+          <CallButton
+            compact
+            tooltipSide={side}
+            label="More options"
+            badge={waitingBadge(props.waitingCount)}
+            srDetail={waitingText(props.waitingCount)}
+          >
+            <MoreVertical />
+          </CallButton>
+        }
+      />
+      <LeaveButton compact tooltipSide={side} label="Leave call" onClick={props.onLeave}>
+        <PhoneOff />
+      </LeaveButton>
+    </>
   );
 }
 
 /**
- * 72px bar. Desktop: three groups on one line (grid 1fr | auto | 1fr) so the center group is
- * truly centered: clock + title | mic cam share hand react more leave | chat people info.
- * Phones: only mic, camera, hand, more and leave; the rest is in the more sheet.
+ * Desktop (72px, grid-like): an empty left cell so the media controls are truly centered from
+ * 1024px | mic cam share hand react more · leave | the People / Chat / Agenda panel toggles.
+ * Phones: six equal 44px plates (mic, camera, hand, chat, more, leave); on their side, the same
+ * six in CallRoom's right-hand rail column, under the time and status tags.
  */
 export function ControlsBar(props: ControlsProps) {
   const [moreOpen, setMoreOpen] = useState(false);
-  const { mobile } = props;
-  const hostBadge = props.waitingCount > 0 ? props.waitingCount : undefined;
 
-  const shareAction: MoreAction[] = props.canShare
-    ? [{ id: "share", label: props.sharing ? "Stop presenting" : "Share screen", icon: <MonitorUp />, onSelect: props.onShare }]
-    : [];
-  const mobileExtras: MoreAction[] = mobile
-    ? [
-        { id: "chat", label: "Chat", icon: <MessageSquare />, onSelect: props.onChat, badge: props.unread },
-        { id: "people", label: `People (${props.peopleCount})`, icon: <Users />, onSelect: props.onPeople, badge: hostBadge },
-        { id: "agenda", label: "Agenda", icon: <ListChecks />, onSelect: props.onAgenda, badge: props.agendaRemaining },
-        ...shareAction,
-        { id: "watch", label: "Watch a package cut", icon: <Clapperboard />, onSelect: props.onWatch },
-        { id: "info", label: "Meeting info", icon: <Info />, onSelect: props.onInfo }
-      ]
-    : [];
+  if (props.form === "rail") {
+    // Never shrinks: the status above it gives way first, so Leave is always on screen.
+    return (
+      <nav aria-label="Call controls" className="flex flex-1 shrink-0 flex-col items-center justify-center gap-1">
+        <PhoneControls props={props} side="left" moreOpen={moreOpen} setMoreOpen={setMoreOpen} />
+      </nav>
+    );
+  }
 
+  if (props.form === "phone") {
+    return (
+      <nav
+        aria-label="Call controls"
+        className="shrink-0 border-t border-[var(--ink-4)] bg-[var(--ink)] pb-[env(safe-area-inset-bottom)] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]"
+      >
+        <div className="mx-auto grid h-16 max-w-sm grid-cols-6 place-items-center">
+          <PhoneControls props={props} side="top" moreOpen={moreOpen} setMoreOpen={setMoreOpen} />
+        </div>
+      </nav>
+    );
+  }
+
+  const open = props.panel;
   return (
     <nav
       aria-label="Call controls"
-      className="shrink-0 border-t border-[var(--ink-4)] bg-[var(--ink)] pb-[env(safe-area-inset-bottom)] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] md:pl-6 md:pr-6"
+      className="shrink-0 border-t border-[var(--ink-4)] bg-[var(--ink)] pb-[env(safe-area-inset-bottom)] pl-[max(1.5rem,env(safe-area-inset-left))] pr-[max(1.5rem,env(safe-area-inset-right))]"
     >
-      <div className="grid h-[72px] grid-cols-[1fr_auto_1fr] items-center gap-2 md:gap-4">
-        <div className="min-w-0">{!mobile ? <ClockAndTitle title={props.title} /> : null}</div>
-
-        <div className="flex items-center gap-2 sm:gap-3">
-          <CallButton label={props.audioOn ? "Turn off microphone" : "Turn on microphone"} shortcut="⌘D" state={props.audioOn ? "on" : "off"} onClick={props.onMic} onPointerEnter={props.onMicIntent} onFocus={props.onMicIntent}>
-            {props.audioOn ? <Mic /> : <MicOff />}
-          </CallButton>
-          <CallButton label={props.videoOn ? "Turn off camera" : "Turn on camera"} shortcut="⌘E" state={props.videoOn ? "on" : "off"} onClick={props.onCamera}>
-            {props.videoOn ? <Video /> : <VideoOff />}
-          </CallButton>
-          {!mobile ? (
-            <ShareMenu
-              canShare={props.canShare}
-              sharing={props.sharing}
-              shareSound={props.shareSound}
-              onShareSound={props.onShareSound}
-              onShare={props.onShare}
-              onWatch={props.onWatch}
-            />
-          ) : null}
-          <CallButton label={handLabel(props.handRaised, props.handPosition)} shortcut="⌘⌥H" state={props.handRaised ? "active" : "on"} onClick={props.onHand}>
-            <Hand />
-          </CallButton>
-          {!mobile ? <ReactionPicker onReact={props.onReact} /> : null}
+      <div className="flex h-[72px] items-center gap-4">
+        <div aria-hidden className="hidden min-w-0 flex-1 lg:block" />
+        <div className="flex flex-1 items-center justify-center gap-2 lg:flex-none">
+          <MediaButtons props={props} compact={false} side="top" />
+          <ShareMenu
+            canShare={props.canShare}
+            sharing={props.sharing}
+            shareSound={props.shareSound}
+            onShareSound={props.onShareSound}
+            onShare={props.onShare}
+            onWatch={props.onWatch}
+          />
+          <HandButton props={props} compact={false} side="top" />
+          <ReactionPicker onReact={props.onReact} />
           <MoreMenu
             open={moreOpen}
             onOpenChange={setMoreOpen}
-            mobile={mobile}
-            actions={[...mobileExtras, ...props.moreActions]}
+            mobile={false}
+            rows={desktopRows(props)}
             layout={props.layout}
             onLayout={props.onLayout}
             layoutAlone={props.layoutAlone}
-            onReact={mobile ? props.onReact : undefined}
             trigger={
-              <CallButton label="More options" badge={mobile ? props.unread || hostBadge : undefined}>
+              <CallButton label="More options">
                 <MoreVertical />
               </CallButton>
             }
           />
-          <LeaveButton label="Leave call" compact={mobile} onClick={props.onLeave}>
+          <LeaveButton label="Leave call" className="ml-1" onClick={props.onLeave}>
             <PhoneOff />
-            {!mobile ? <span>Leave</span> : null}
+            <span>Leave</span>
           </LeaveButton>
         </div>
-
-        <div className="flex items-center justify-end gap-1">
-          {!mobile ? (
-            <>
-              <IconButton label="Chat" shortcut="⌘⌥C" badge={props.unread || undefined} onClick={props.onChat} className={props.chatOpen ? "bg-[var(--ink-3)] text-foreground" : undefined}>
-                <MessageSquare />
-              </IconButton>
-              <IconButton label={`People (${props.peopleCount})`} badge={hostBadge ?? props.peopleCount} onClick={props.onPeople} className={props.peopleOpen ? "bg-[var(--ink-3)] text-foreground" : undefined}>
-                <Users />
-              </IconButton>
-              <IconButton
-                label={props.agendaRemaining ? `Agenda (${props.agendaRemaining} left)` : "Agenda"}
-                badge={props.agendaRemaining || undefined}
-                onClick={props.onAgenda}
-                className={props.agendaOpen ? "bg-[var(--ink-3)] text-foreground" : undefined}
-              >
-                <ListChecks />
-              </IconButton>
-              <IconButton label="Meeting info" onClick={props.onInfo}>
-                <Info />
-              </IconButton>
-            </>
-          ) : null}
+        <div role="group" aria-label="Panels" className="flex items-center justify-end gap-1.5 lg:flex-1">
+          <PanelToggle
+            label={`People (${props.peopleCount})`}
+            open={open === "people"}
+            count={props.peopleCount}
+            badge={waitingBadge(props.waitingCount)}
+            srDetail={waitingText(props.waitingCount)}
+            onClick={props.onPeople}
+          >
+            <Users />
+          </PanelToggle>
+          <PanelToggle
+            label="Chat"
+            shortcut={shortcutLabel(CALL_SHORTCUTS.chat)}
+            open={open === "chat"}
+            badge={unreadBadge(props.unread)}
+            srDetail={unreadText(props.unread)}
+            onClick={props.onChat}
+          >
+            <MessageSquare />
+          </PanelToggle>
+          <PanelToggle
+            label={props.agendaRemaining ? `Agenda (${props.agendaRemaining} left)` : "Agenda"}
+            open={open === "agenda"}
+            count={props.agendaRemaining || undefined}
+            onClick={props.onAgenda}
+          >
+            <ListChecks />
+          </PanelToggle>
         </div>
       </div>
     </nav>

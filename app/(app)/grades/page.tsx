@@ -40,5 +40,12 @@ export default async function GradesPage({
     new Date().toISOString().slice(0, 10)
   );
 
-  return <GradesClient initialData={initialData} initialTab={parseGradeTab(tab)} initialWeekIndex={initialWeekIndex} />;
+  return (
+    <GradesClient
+      initialData={initialData}
+      initialTab={parseGradeTab(tab)}
+      initialWeekIndex={initialWeekIndex}
+      seenKey={userId}
+    />
+  );
 }

@@ -47,7 +47,7 @@ export function LeaveDialog({
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent onOpenAutoFocus={pointerSafeAutoFocus} className="max-w-sm outline-none [&>*]:min-w-0">
-          <DialogHeader>
+          <DialogHeader className="pr-8 text-left">
             <DialogTitle>{choices.title}</DialogTitle>
             {choices.description ? <DialogDescription>{choices.description}</DialogDescription> : null}
           </DialogHeader>
@@ -56,7 +56,8 @@ export function LeaveDialog({
             <div className="flex flex-col gap-2">
               <Button
                 variant="outline"
-                className="w-full"
+                size="lg"
+                className="w-full px-4"
                 onClick={() => {
                   onOpenChange(false);
                   onLeave();
@@ -66,7 +67,8 @@ export function LeaveDialog({
               </Button>
               <Button
                 variant="destructive-quiet"
-                className="w-full"
+                size="lg"
+                className="w-full px-4"
                 onClick={() => {
                   onOpenChange(false);
                   setConfirmEnd(true);
@@ -74,12 +76,12 @@ export function LeaveDialog({
               >
                 End meeting for everyone
               </Button>
-              <Button variant="ghost" className="w-full" onClick={() => onOpenChange(false)}>
+              <Button variant="ghost" size="lg" className="w-full px-4" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
             </div>
           ) : (
-            <DialogFooter className="gap-2 sm:space-x-0">
+            <DialogFooter className="gap-2 sm:justify-end sm:space-x-0">
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>

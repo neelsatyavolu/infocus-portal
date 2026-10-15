@@ -1,20 +1,26 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useState, type ReactNode } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useLayoutEffect, type ReactNode } from "react";
+import { PageHeader } from "@/components/page-header";
 import { publishGroupBreadcrumbTopic } from "@/src/lib/app-breadcrumbs";
-import { listShortcut, neighborIds, readGroupOrder } from "@/src/lib/keyboard-nav";
+import type { GroupNavSlug } from "@/src/lib/package-stages";
+import { ApprovalPath, GroupStageBar } from "./group-stage-bar";
 import {
-  GROUP_NAV_SLUGS,
-  GROUP_NAV_TAB_LABELS,
-  groupNavTabDone,
-  pendingGroupNavSlug,
-  type GroupNavSlug,
-  type GroupNavState
-} from "@/src/lib/package-stages";
-import { cn } from "@/src/lib/utils";
+  GroupStageStateContext,
+  useGroupStageChanges,
+  useGroupStageOverrides,
+  useRefreshAfterStageWrites
+} from "./group-stage-state";
+import { GroupStepper, useGroupOrder } from "./group-stepper";
+import {
+  applyFlagOverrides,
+  approvalPathSteps,
+  groupStageCells,
+  isInitialSlug,
+  isWorkspaceSlug,
+  type GroupStageFacts
+} from "./stage-bar-model";
+import { cellSignatures } from "./stage-changes";
 
 type GroupStageShellProps = {
   rowId: string;
@@ -24,10 +30,25 @@ type GroupStageShellProps = {
   members: string;
   assignedProducer: string | null;
   assignedExecutive: string | null;
-  nav: GroupNavState;
+  facts: GroupStageFacts;
   children: ReactNode;
 };
 
+/**
+ * "Abby, Otto · AP Sage · EP unassigned". Unassigned is a plain word, not a warning: assigning an
+ * EP clears the AP, and an unassigned group falls back to its category's associate.
+ */
+function peopleLine(members: string, assignedProducer: string | null, assignedExecutive: string | null) {
+  return [members, `AP ${assignedProducer ?? "unassigned"}`, `EP ${assignedExecutive ?? "unassigned"}`]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+/**
+ * A group's stage pages: the compact header plate (cycle, topic, people, Previous/Next with the
+ * queue position), the five-stage bar with statuses, Initial Cut's approval stages on its
+ * routes, then the stage itself. A wide route: the app shell gives it the full width.
+ */
 export function GroupStageShell({
   rowId,
   stage,
@@ -36,32 +57,12 @@ export function GroupStageShell({
   members,
   assignedProducer,
   assignedExecutive,
-  nav,
+  facts,
   children
 }: GroupStageShellProps) {
-  const pendingSlug = pendingGroupNavSlug(nav);
-  const router = useRouter();
-  const [neighbors, setNeighbors] = useState<{ previous: string | null; next: string | null }>({
-    previous: null,
-    next: null
-  });
-
-  // The Groups page saves the order it shows; step through it with Previous/Next or J/K.
-  useEffect(() => {
-    setNeighbors(neighborIds(readGroupOrder(window.sessionStorage), rowId));
-  }, [rowId]);
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      const shortcut = listShortcut(event);
-      const target = shortcut === "next" ? neighbors.next : shortcut === "previous" ? neighbors.previous : null;
-      if (!target) return;
-      event.preventDefault();
-      router.push(`/groups/${target}` as never);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [neighbors, router]);
+  const stageState = useGroupStageOverrides(facts);
+  const order = useGroupOrder(rowId);
+  useRefreshAfterStageWrites(rowId, isWorkspaceSlug(stage));
 
   useLayoutEffect(() => {
     publishGroupBreadcrumbTopic(rowId, groupTopic);
@@ -70,74 +71,37 @@ export function GroupStageShell({
     };
   }, [rowId, groupTopic]);
 
-  const stepLink = (id: string | null, label: string, Icon: typeof ChevronLeft, keyHint: string) =>
-    id ? (
-      <Link
-        href={`/groups/${id}` as never}
-        className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border px-3 text-sm text-muted-foreground transition hover:bg-card hover:text-foreground"
-        aria-keyshortcuts={keyHint}
-        title={`${label} (${keyHint})`}
-      >
-        {Icon === ChevronLeft ? <Icon className="h-4 w-4" aria-hidden /> : null}
-        {label}
-        {Icon === ChevronRight ? <Icon className="h-4 w-4" aria-hidden /> : null}
-      </Link>
-    ) : null;
+  const current = applyFlagOverrides(facts, stageState.overrides);
+  const cells = groupStageCells(rowId, stage, current);
+  const steps = isInitialSlug(stage) ? approvalPathSteps(rowId, stage, current) : null;
+  const activeKey = cells.find((cell) => cell.active)?.key ?? null;
+  const changed = useGroupStageChanges(rowId, cellSignatures(cells, current), activeKey);
+  // Hidden only when this group isn't in the saved list (opened from an email or push link).
+  const showStepper = !order.ready || order.index > 0;
 
   return (
-    <div className="route-enter mx-auto flex min-h-[calc(100dvh-6rem)] w-full max-w-[80rem] flex-col gap-4 pb-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="min-w-0">
-          <Link href={"/groups" as never} className="text-xs text-muted-foreground hover:text-foreground">
-            ← Groups
-          </Link>
-          <h1 className="display-md mt-2 text-balance text-foreground">{groupTopic || "Untitled group"}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Cycle {cycleNumber}
-            {members ? ` · ${members}` : ""}
-            <span className="mx-2 text-border">·</span>
-            AP {assignedProducer ?? "Unassigned"}
-            <span className="mx-2 text-border">·</span>
-            EP {assignedExecutive ?? "Unassigned"}
-          </p>
+    <GroupStageStateContext.Provider value={stageState}>
+      {/* No entrance transform here: it would pin the phone decision dock to this div (template.tsx fades the page). */}
+      <div className="flex min-w-0 flex-col gap-5">
+        <PageHeader
+          size="compact"
+          eyebrow={`Cycle ${cycleNumber}`}
+          title={groupTopic || "Untitled group"}
+          description={peopleLine(members, assignedProducer, assignedExecutive)}
+          actions={showStepper ? <GroupStepper order={order} /> : undefined}
+        />
+        {/* Initial Cut's approval steps sit close under the bar: its sub-steps, not more stages. */}
+        <div className="space-y-3">
+          <GroupStageBar cells={cells} changed={changed} />
+          {steps ? <ApprovalPath steps={steps} /> : null}
         </div>
-        <div className="flex items-center gap-2">
-          {stepLink(neighbors.previous, "Previous group", ChevronLeft, "K")}
-          {stepLink(neighbors.next, "Next group", ChevronRight, "J")}
-        </div>
+        {/*
+          The hosted StageWorkspace also draws a read-only approval path under the newest cut.
+          The linked one above replaces it on these routes, so hide that copy (two paths built
+          from different data could disagree). Cross-screen request: skip it when `embedded`.
+        */}
+        <div className="min-w-0 [&_ol[aria-label^=Approval]]:hidden">{children}</div>
       </div>
-
-      <nav aria-label="Stages" className="flex gap-2 overflow-x-auto">
-        {GROUP_NAV_SLUGS.map((slug) => {
-          const active = slug === stage;
-          const done = groupNavTabDone(slug, nav);
-          const pending = slug === pendingSlug;
-          return (
-            <Link
-              key={slug}
-              href={`/groups/${rowId}/${slug}` as never}
-              aria-current={active ? "page" : undefined}
-              className={cn(
-                "inline-flex h-10 shrink-0 items-center gap-2 rounded-md border px-3 text-sm transition",
-                active
-                  ? "border-[var(--brand-green)] bg-[rgb(43,179,110,0.08)] font-semibold text-foreground"
-                  : "border-border text-muted-foreground hover:bg-card hover:text-foreground"
-              )}
-            >
-              {GROUP_NAV_TAB_LABELS[slug]}
-              {done ? (
-                <span className="text-[11px] text-[var(--brand-green)]" aria-label="done">
-                  ✓
-                </span>
-              ) : pending ? (
-                <span className="h-1.5 w-1.5 rounded-full bg-[var(--brand-green)]" aria-label="current" />
-              ) : null}
-            </Link>
-          );
-        })}
-      </nav>
-
-      <div className="flex min-h-0 flex-1 flex-col">{children}</div>
-    </div>
+    </GroupStageStateContext.Provider>
   );
 }

@@ -1,55 +1,35 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { CalendarDays, Check, Mic2, ScrollText, Sparkles, Upload, Wand2 } from "lucide-react";
+import { CalendarX2, Mic2, RotateCw, ScrollText, Upload } from "lucide-react";
 import { toast } from "sonner";
-import { NamePicker } from "@/components/name-picker";
+import { Alert } from "@/components/kit/alert";
+import { BackLink } from "@/components/kit/button-group";
+import { EmptyState, ErrorState } from "@/components/kit/empty-state";
+import { StatusTag } from "@/components/kit/status-tag";
 import { PageHeader } from "@/components/page-header";
 import { Button, buttonVariants } from "@/components/ui/button";
-import App from "@/src/show-roles/App";
 import { cachedValue, rememberValue } from "@/src/lib/client-cache";
-import { queuePackageSubtitle } from "@/src/lib/publishing-queue";
 import { cn } from "@/src/lib/utils";
-
-type Overview = {
-  date: string;
-  label: string;
-  kind: string;
-  mode: "VOLUNTEER" | "RANDOM";
-  weekOfMonth: number;
-  members: string[];
-  roles: string[];
-  anchors: string[];
-  paAnnouncers: string[];
-  assignments: Record<string, string>;
-  confirmed: Record<string, boolean>;
-  showManager?: { name: string; source: "rotation" | "manual" };
-  showManagerPool?: string[];
-  rolesConfirmation?: { confirmedAt: string | null; confirmedBy: string | null };
-  monthAnchors: string[];
-  suggestedAnchors: string[];
-  suggestedPa: string[];
-  packages: Array<{
-    id: string;
-    cycleNumber: number;
-    groupTopic: string;
-    custom?: boolean;
-    queuedForShowDate: string | null;
-    members: Array<string | null>;
-  }>;
-  upcomingShows: Array<{
-    date: string;
-    label: string;
-    mode: "VOLUNTEER" | "RANDOM";
-    packageCount: number;
-    showManager?: string;
-  }>;
-  teleprompterDocId: string | null;
-  teleprompterHref: string;
-};
+import { ShowConfirmBanner } from "./show-confirm-banner";
+import { ShowDateStrip } from "./show-date-strip";
+import {
+  daysOutFrom,
+  fallbackTitle,
+  generatorHref,
+  isShowDay,
+  needsRolesConfirmation,
+  overviewCacheKey,
+  showHref,
+  stripItems,
+  whenLabel,
+  type Overview
+} from "./show-overview";
+import { CastPanel, PackagesPanel, ShowRolesPanel, type SavingTarget } from "./show-panels";
+import { GeneratorAppSkeleton, ShowSkeleton } from "./show-skeleton";
 
 // Loaded only when a producer opens it; keeps upload/thumbnail code off the page.
 const ShowUploadDialog = dynamic(
@@ -57,344 +37,296 @@ const ShowUploadDialog = dynamic(
   { ssr: false }
 );
 
-function overviewCacheKey(date?: string) {
-  return `show-roles-overview:${date ?? ""}`;
+// The Show Roles Generator (src/show-roles) loads only in generator mode.
+const ShowRolesGenerator = dynamic(() => import("@/src/show-roles/App"), {
+  ssr: false,
+  loading: () => <GeneratorAppSkeleton />
+});
+
+const LOAD_FALLBACK = "Could not load the show.";
+
+const EYEBROW = (
+  <>
+    <Mic2 className="h-3 w-3" aria-hidden />
+    The Show
+  </>
+);
+
+type View = { key: string; overview: Overview };
+/** A failed load and the address it was for, so it only shows while that show is the one asked for. */
+type LoadError = { key: string; message: string };
+
+function errorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
+async function readData<T>(response: Response, fallback: string): Promise<T> {
+  const payload = (await response.json().catch(() => ({}))) as { data?: T; error?: { message?: string } };
+  if (!response.ok || payload.data === undefined) throw new Error(payload.error?.message ?? fallback);
+  return payload.data;
+}
+
+async function postJson(url: string, body: unknown, fallback: string) {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  const payload = (await response.json().catch(() => ({}))) as { error?: { message?: string } };
+  if (!response.ok) throw new Error(payload.error?.message ?? fallback);
+}
+
+async function randomizeAnchorsFor(date: string) {
+  const response = await fetch(`/api/show-roles/anchors?date=${encodeURIComponent(date)}`, { cache: "no-store" });
+  const payload = (await response.json().catch(() => ({}))) as {
+    data?: { suggested?: string[] };
+    error?: { message?: string };
+  };
+  if (!response.ok) throw new Error(payload.error?.message ?? "Could not suggest anchors.");
+  const suggested = payload.data?.suggested ?? [];
+  if (suggested.length === 0) throw new Error("No eligible anchors left this month.");
+  await postJson("/api/show-roles/anchors", { date, names: suggested, source: "random" }, "Could not save anchors.");
 }
 
 function OverviewBody() {
-  // Reminder emails link to a filmed show with ?date=.
+  // Reminder emails link to a filmed show with ?date=; the show strip writes it too.
   const requestedDate = useSearchParams().get("date") ?? undefined;
-  const [data, setData] = useState<Overview | null>(null);
+  const viewKey = requestedDate ?? "";
+  const [view, setView] = useState<View | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState<LoadError | null>(null);
+  const [retrying, setRetrying] = useState(false);
+  const [saving, setSaving] = useState<SavingTarget>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const requestRef = useRef(0);
+  // The address on screen now, for saves that finish after someone picked another show.
+  const viewKeyRef = useRef(viewKey);
+  useEffect(() => {
+    viewKeyRef.current = viewKey;
+  }, [viewKey]);
 
-  const load = useCallback(async (date?: string, options?: { cached?: boolean }) => {
+  /**
+   * `key` is the address the answer belongs to ("" = the next show). Only the newest request may
+   * update the screen, so quick switches and a save's reload can't land out of order.
+   */
+  const load = useCallback(async ({ key, date, cached }: { key: string; date?: string; cached?: boolean }) => {
+    const request = ++requestRef.current;
     // On first view of a show, show the last copy at once and refresh it quietly (src/lib/client-cache.ts).
     // Reloads after a save skip it so the pre-save copy never flashes back.
-    const cached = options?.cached ? cachedValue<Overview>(overviewCacheKey(date)) : undefined;
-    if (cached) {
-      setData(cached);
+    const copy = cached ? cachedValue<Overview>(overviewCacheKey(date)) : undefined;
+    if (copy) {
+      setView({ key, overview: copy });
       setLoading(false);
     }
-    const query = date ? `?date=${encodeURIComponent(date)}` : "";
-    const response = await fetch(`/api/show-roles/overview${query}`, { cache: "no-store" });
-    const payload = (await response.json()) as { data?: Overview; error?: { message?: string } };
-    if (!response.ok || !payload.data) {
-      throw new Error(payload.error?.message ?? "Could not load the show.");
+    try {
+      const query = date ? `?date=${encodeURIComponent(date)}` : "";
+      const next = await readData<Overview>(
+        await fetch(`/api/show-roles/overview${query}`, { cache: "no-store" }),
+        LOAD_FALLBACK
+      );
+      if (request !== requestRef.current) return;
+      rememberValue(overviewCacheKey(next.date), next);
+      // Keep the next-show copy current too, whichever address the save came from.
+      if (key === "" || cachedValue<Overview>(overviewCacheKey())?.date === next.date) {
+        rememberValue(overviewCacheKey(), next);
+      }
+      setView({ key, overview: next });
+      setLoadError(null);
+    } catch (error) {
+      if (request === requestRef.current) throw error;
     }
-    rememberValue(overviewCacheKey(date), payload.data);
-    setData(payload.data);
   }, []);
 
   useEffect(() => {
-    void load(requestedDate, { cached: true })
-      .catch((error: unknown) => toast.error(error instanceof Error ? error.message : "Could not load the show."))
-      .finally(() => setLoading(false));
+    let current = true;
+    load({ key: requestedDate ?? "", date: requestedDate, cached: true })
+      .catch((error: unknown) => {
+        if (!current) return;
+        const message = errorMessage(error, LOAD_FALLBACK);
+        setLoadError({ key: requestedDate ?? "", message });
+        toast.error(message);
+      })
+      .finally(() => {
+        if (current) setLoading(false);
+      });
+    return () => {
+      current = false;
+    };
   }, [load, requestedDate]);
 
-  async function saveAnchors(names: string[], source: "manual" | "random") {
-    if (!data) return;
-    setSaving(true);
+  async function retry() {
+    setRetrying(true);
     try {
-      const response = await fetch("/api/show-roles/anchors", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date: data.date, names, source })
-      });
-      const payload = (await response.json()) as { error?: { message?: string } };
-      if (!response.ok) {
-        throw new Error(payload.error?.message ?? "Could not save anchors.");
-      }
-      await load(data.date);
+      await load({ key: viewKey, date: requestedDate });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not save anchors.");
+      const message = errorMessage(error, LOAD_FALLBACK);
+      setLoadError({ key: viewKey, message });
+      toast.error(message);
     } finally {
-      setSaving(false);
+      setRetrying(false);
+      setLoading(false);
     }
   }
 
-  async function saveShowManager(name: string) {
-    if (!data) return;
-    setSaving(true);
+  async function runSave(target: SavingTarget, work: (date: string) => Promise<void>, fallback: string, success?: string) {
+    if (!view) return;
+    const date = view.overview.date;
+    setSaving(target);
     try {
-      const response = await fetch("/api/show-roles/show-manager", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date: data.date, name })
-      });
-      const payload = (await response.json()) as { error?: { message?: string } };
-      if (!response.ok) {
-        throw new Error(payload.error?.message ?? "Could not save show manager.");
-      }
-      await load(data.date);
+      await work(date);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not save show manager.");
+      toast.error(errorMessage(error, fallback));
+      setSaving(null);
+      return;
+    }
+    if (success) toast.success(success);
+    try {
+      // If another show was picked meanwhile, its own load owns the screen.
+      if (viewKeyRef.current === viewKey) await load({ key: viewKey, date });
+    } catch (error) {
+      toast.error(errorMessage(error, LOAD_FALLBACK));
     } finally {
-      setSaving(false);
+      setSaving(null);
     }
   }
 
-  async function confirmRoles() {
-    if (!data) return;
-    setSaving(true);
-    try {
-      const response = await fetch("/api/show-roles/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date: data.date })
-      });
-      const payload = (await response.json()) as { error?: { message?: string } };
-      if (!response.ok) {
-        throw new Error(payload.error?.message ?? "Could not confirm the roles.");
-      }
-      await load(data.date);
-      toast.success("Roles confirmed.");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not confirm the roles.");
-    } finally {
-      setSaving(false);
-    }
+  if (!view) {
+    if (loading) return <ShowSkeleton />;
+    return (
+      <div className="route-enter space-y-5">
+        <PageHeader
+          eyebrow={EYEBROW}
+          title={fallbackTitle(requestedDate)}
+        />
+        {loadError ? (
+          <ErrorState
+            size="page"
+            title="Couldn't load the show"
+            message={loadError.message}
+            busy={retrying}
+            onRetry={() => void retry()}
+          />
+        ) : (
+          <EmptyState
+            size="page"
+            icon={CalendarX2}
+            title="No upcoming show found."
+            description="Shows appear here once they're on the school calendar."
+          />
+        )}
+      </div>
+    );
   }
 
-  async function randomizeAnchors() {
-    if (!data) return;
-    setSaving(true);
-    try {
-      const response = await fetch(`/api/show-roles/anchors?date=${encodeURIComponent(data.date)}`, {
-        cache: "no-store"
-      });
-      const payload = (await response.json()) as {
-        data?: { suggested?: string[] };
-        error?: { message?: string };
-      };
-      if (!response.ok) {
-        throw new Error(payload.error?.message ?? "Could not suggest anchors.");
-      }
-      const suggested = payload.data?.suggested ?? [];
-      if (suggested.length === 0) {
-        throw new Error("No eligible anchors left this month.");
-      }
-      await saveAnchors(suggested, "random");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not randomize anchors.");
-      setSaving(false);
-    }
-  }
-
-  const daysOut = useMemo(() => {
-    if (!data) return null;
-    const [year, month, day] = data.date.split("-").map(Number);
-    const target = new Date(year, month - 1, day);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    target.setHours(0, 0, 0, 0);
-    return Math.round((target.getTime() - today.getTime()) / 86_400_000);
-  }, [data]);
-
-  if (loading) {
-    return <p className="text-sm text-muted-foreground">Loading the next show…</p>;
-  }
-  if (!data) {
-    return <p className="text-sm text-muted-foreground">No upcoming show found.</p>;
-  }
-
-  const anchor1 = data.anchors[0] ?? "";
-  const anchor2 = data.anchors[1] ?? "";
-  const showManager = data.showManager ?? { name: "", source: "rotation" as const };
-  const showManagerPool = data.showManagerPool ?? [];
-  const liveLabel =
-    daysOut === 0 ? "Live today" : daysOut && daysOut > 0 ? `Live in ${daysOut} day${daysOut === 1 ? "" : "s"}` : data.label;
+  const overview = view.overview;
+  const switching = view.key !== viewKey;
+  // Only the error for the show being opened now; an older one (another show, a quiet refresh) stays a toast.
+  const switchError = switching && loadError?.key === viewKey ? loadError.message : null;
+  const daysOut = daysOutFrom(overview.date, new Date());
+  const showDay = isShowDay(overview, daysOut);
+  const confirmDue = needsRolesConfirmation(overview, daysOut);
+  const generatorLink = generatorHref(requestedDate);
+  const strip = stripItems(overview, requestedDate ?? overview.date, new Date());
+  // While another show loads, the old one dims and can't be edited.
+  const dimmed = cn("transition-opacity", switching && "opacity-60");
 
   return (
-    <div className="route-enter mx-auto w-full max-w-4xl space-y-5 pb-24">
-      <PageHeader
-        eyebrow={
-          <>
-            <Mic2 className="h-3 w-3" />
-            The Show
-          </>
-        }
-        title={data.label}
-        description={`${liveLabel} · Week ${data.weekOfMonth} · ${
-          data.mode === "VOLUNTEER" ? "volunteer anchors" : "random anchors"
-        }`}
-        actions={
-          <>
-            <Button type="button" variant="outline" onClick={() => setUploadOpen(true)}>
-              <Upload className="h-4 w-4" />
-              Upload show
+    <div className="@container route-enter space-y-5">
+      <div className={dimmed} inert={switching} aria-busy={switching || undefined}>
+        <PageHeader
+          eyebrow={EYEBROW}
+          status={showDay ? undefined : <StatusTag tone="warning">No show this day</StatusTag>}
+          title={overview.label}
+          description={whenLabel(daysOut, showDay)}
+          actions={
+            <>
+              <Button type="button" variant="outline" onClick={() => setUploadOpen(true)}>
+                <Upload aria-hidden />
+                Upload show
+              </Button>
+              {/* The one filled button, unless the roles check below is due. */}
+              <Link
+                href={overview.teleprompterHref as never}
+                className={buttonVariants({ variant: confirmDue ? "outline" : "default" })}
+              >
+                <ScrollText aria-hidden />
+                {overview.teleprompterDocId ? "Open script" : "Create script"}
+              </Link>
+            </>
+          }
+        />
+      </div>
+
+      {/* Locked while a save runs: the saving state and its reload belong to the show on screen. */}
+      {strip.length > 1 ? <ShowDateStrip items={strip} disabled={saving !== null} /> : null}
+
+      {switchError ? (
+        <Alert
+          tone="danger"
+          title="Couldn't load that show"
+          action={
+            <Button type="button" size="sm" variant="outline" disabled={retrying} onClick={() => void retry()}>
+              <RotateCw aria-hidden />
+              Try again
             </Button>
-            <Link href={data.teleprompterHref as never} className={buttonVariants({ variant: "outline" })}>
-              <ScrollText className="h-4 w-4" />
-              {data.teleprompterDocId ? "Open script" : "Create script"}
-            </Link>
-            <Link href={"/show-roles?generator=1" as never} className={buttonVariants()}>
-              <Wand2 className="h-4 w-4" />
-              Open generator
-            </Link>
-          </>
-        }
-      />
-      {data.upcomingShows.length > 1 ? (
-        <div className="flex flex-wrap gap-1">
-          {data.upcomingShows.map((show) => (
-            <button
-              key={show.date}
-              type="button"
-              onClick={() => void load(show.date, { cached: true })}
-              className={cn(
-                "rounded-md border px-2.5 py-1 text-xs font-semibold",
-                show.date === data.date
-                  ? "border-border bg-card text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {show.label.replace(/, \d{4}$/, "")}
-              {show.packageCount > 0 ? ` · ${show.packageCount}` : ""}
-            </button>
-          ))}
-        </div>
+          }
+        >
+          {switchError}
+        </Alert>
       ) : null}
 
-      <section className="rounded-md border border-border bg-card p-5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold tracking-tight">Show manager</h2>
-          {showManager.source === "manual" ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              disabled={saving}
-              onClick={() => void saveShowManager("")}
-            >
-              Use rotation
-            </Button>
-          ) : (
-            <span className="text-xs text-muted-foreground">Rotates across EPs and APs</span>
-          )}
-        </div>
-        <div className="mt-3">
-          <NamePicker
-            value={showManager.name}
-            options={
-              showManager.name && !showManagerPool.includes(showManager.name)
-                ? [showManager.name, ...showManagerPool]
-                : showManagerPool
+      <div className={cn("space-y-5", dimmed)} inert={switching} aria-busy={switching || undefined}>
+        {confirmDue ? (
+          <ShowConfirmBanner
+            busy={saving !== null}
+            onConfirm={() =>
+              void runSave(
+                "confirm",
+                (date) => postJson("/api/show-roles/confirm", { date }, "Could not confirm the roles."),
+                "Could not confirm the roles.",
+                "Roles confirmed."
+              )
             }
-            placeholder="Show manager"
-            onChange={(value) => void saveShowManager(value)}
           />
-        </div>
-      </section>
-
-      <section className="rounded-md border border-border bg-card p-5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold tracking-tight">Anchors</h2>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={saving}
-            onClick={() => void randomizeAnchors()}
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            Randomize
-          </Button>
-        </div>
-        <div className="mt-3 grid gap-3 md:grid-cols-2">
-          <NamePicker
-            value={anchor1}
-            options={data.members}
-            disabledOptions={[anchor2, ...data.monthAnchors]}
-            placeholder="Anchor 1"
-            onChange={(value) => void saveAnchors([value, anchor2], "manual")}
-          />
-          <NamePicker
-            value={anchor2}
-            options={data.members}
-            disabledOptions={[anchor1, ...data.monthAnchors]}
-            placeholder="Anchor 2"
-            onChange={(value) => void saveAnchors([anchor1, value], "manual")}
-          />
-        </div>
-      </section>
-
-      <section className="rounded-md border border-border bg-card p-5">
-        <h2 className="text-lg font-semibold tracking-tight">Packages</h2>
-        {data.packages.length === 0 ? (
-          <p className="mt-2 text-sm text-muted-foreground">
-            Nothing from the publishing queue is assigned to this show yet.
-          </p>
-        ) : (
-          <div className="mt-3 space-y-2">
-            {data.packages.map((row) => {
-              const body = (
-                <>
-                  <div className="font-medium">{row.groupTopic || "Untitled group"}</div>
-                  <div className="text-xs text-muted-foreground">{queuePackageSubtitle(row)}</div>
-                </>
-              );
-              return row.custom ? (
-                <div key={row.id} className="rounded-md border border-border px-4 py-3">
-                  {body}
-                </div>
-              ) : (
-                <Link
-                  key={row.id}
-                  href={`/groups/${row.id}/final-cut` as never}
-                  className="block rounded-md border border-border px-4 py-3"
-                >
-                  {body}
-                </Link>
-              );
-            })}
-          </div>
-        )}
-        <Link href={"/publishing-queue" as never} className="mt-3 inline-block text-xs text-muted-foreground underline">
-          Open publishing queue
-        </Link>
-      </section>
-
-      <section className="rounded-md border border-border bg-card p-5">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold tracking-tight">Show roles</h2>
-          <Link href={"/show-roles?generator=1" as never} className={buttonVariants({ size: "sm", variant: "outline" })}>
-            Generate
-          </Link>
-        </div>
-        <div className="mt-3 grid gap-2 md:grid-cols-2">
-          {data.roles.map((role) => (
-            <div key={role} className="rounded-md border border-border px-3 py-2">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{role}</div>
-              <div className="mt-0.5 text-sm font-medium">{data.assignments[role] || "—"}</div>
-            </div>
-          ))}
-        </div>
-        {/* Filmed in 1st period the day before it airs. */}
-        {daysOut !== null && daysOut <= 1 ? (
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-            {data.rolesConfirmation?.confirmedAt ? (
-              <p className="text-xs text-muted-foreground">
-                Confirmed{data.rolesConfirmation.confirmedBy ? ` by ${data.rolesConfirmation.confirmedBy}` : ""}.
-              </p>
-            ) : (
-              <>
-                <p className="text-xs text-muted-foreground">
-                  After filming, the show manager is emailed every 3 hours until the roles are confirmed.
-                </p>
-                <Button type="button" size="sm" disabled={saving} onClick={() => void confirmRoles()}>
-                  <Check className="h-3.5 w-3.5" />
-                  Roles are correct
-                </Button>
-              </>
-            )}
-          </div>
         ) : null}
-      </section>
+
+        {/* Two columns from a 768px column; Packages spans both, its rows side by side. */}
+        <div className="grid gap-5 @3xl:grid-cols-2">
+          <CastPanel
+            overview={overview}
+            saving={saving}
+            onShowManagerChange={(name) =>
+              void runSave(
+                "manager",
+                (date) => postJson("/api/show-roles/show-manager", { date, name }, "Could not save show manager."),
+                "Could not save show manager."
+              )
+            }
+            onAnchorsChange={(names) =>
+              void runSave(
+                "anchors",
+                (date) => postJson("/api/show-roles/anchors", { date, names, source: "manual" }, "Could not save anchors."),
+                "Could not save anchors."
+              )
+            }
+            onRandomize={() => void runSave("anchors", randomizeAnchorsFor, "Could not randomize anchors.")}
+          />
+          <ShowRolesPanel overview={overview} daysOut={daysOut} generatorLink={generatorLink} />
+          <PackagesPanel
+            packages={overview.packages}
+            showSlots={daysOut >= 0 && showDay}
+            className="@3xl:col-span-2"
+          />
+        </div>
+      </div>
 
       {uploadOpen ? (
-        <ShowUploadDialog open={uploadOpen} onOpenChange={setUploadOpen} showDate={data.date} showLabel={data.label} />
+        <ShowUploadDialog
+          open={uploadOpen}
+          onOpenChange={setUploadOpen}
+          showDate={overview.date}
+          showLabel={overview.label}
+        />
       ) : null}
     </div>
   );
@@ -404,15 +336,9 @@ export default function TheShowClient() {
   const params = useSearchParams();
   if (params.get("generator") === "1") {
     return (
-      <div className="space-y-3 pb-24">
-        <Link
-          href={"/show-roles" as never}
-          className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground hover:text-foreground"
-        >
-          <CalendarDays className="h-3 w-3" />
-          Back to The Show
-        </Link>
-        <App />
+      <div className="space-y-4">
+        <BackLink href={showHref(params.get("date"))}>Back to The Show</BackLink>
+        <ShowRolesGenerator />
       </div>
     );
   }

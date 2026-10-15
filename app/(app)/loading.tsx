@@ -1,23 +1,19 @@
-/** Shaped like a redesigned page: the header plate, then a row of cards. */
+import { CardGridSkeleton, LoadingRegion, PageHeaderSkeleton, Skeleton } from "@/components/kit/skeleton";
+
+/**
+ * Shaped like a redesigned page: a 2px progress line at the top of the column (every navigation
+ * that waits on the server shows it, whatever link started it), the header plate, a row of equal
+ * cards and one wide block.
+ */
 export default function AppLoading() {
   return (
-    <div className="space-y-5" aria-busy="true" aria-label="Loading">
-      <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
-        <div className="h-full w-1/3 animate-[loading-bar_1s_ease-in-out_infinite] rounded-full bg-primary" />
-      </div>
-      <div className="brand-hero-panel space-y-3 px-5 py-5 md:px-6">
-        <div className="h-3 w-28 animate-pulse rounded-sm bg-muted" />
-        <div className="h-7 w-64 max-w-full animate-pulse rounded-sm bg-muted" />
-        <div className="h-4 w-96 max-w-full animate-pulse rounded-sm bg-muted" />
-      </div>
-      <div className="grid gap-5 lg:grid-cols-3">
-        <div className="h-56 animate-pulse rounded-md border border-border bg-card lg:col-span-2" />
-        <div className="h-56 animate-pulse rounded-md border border-border bg-card" />
-      </div>
-      <div className="grid gap-5 md:grid-cols-2">
-        <div className="h-40 animate-pulse rounded-md border border-border bg-card" />
-        <div className="h-40 animate-pulse rounded-md border border-border bg-card" />
-      </div>
-    </div>
+    <LoadingRegion label="Loading" className="space-y-5">
+      <span aria-hidden className="block h-0.5 w-full overflow-hidden rounded-full bg-[var(--ink-3)]">
+        <span className="block h-full w-1/3 rounded-full bg-[var(--brand-green)] motion-safe:animate-[loading-bar_1s_ease-in-out_infinite]" />
+      </span>
+      <PageHeaderSkeleton actions={1} />
+      <CardGridSkeleton count={3} className="grid gap-5 md:grid-cols-2 xl:grid-cols-3" itemClassName="h-40" />
+      <Skeleton className="h-56 w-full rounded-md" />
+    </LoadingRegion>
   );
 }

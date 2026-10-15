@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
+import { buttonVariants } from "@/components/ui/button";
+import { CallPlate } from "@/components/meetings/call/status-plate";
 import { mainAppOrigin } from "@/src/lib/hosts";
 import { meetingUrl, producersMeetingUrl } from "@/src/lib/meetings/links";
 import { loadMeetingPreview } from "@/src/server/meetings-preview";
 
 /**
  * Link-preview page for meeting links. Middleware rewrites `/meet/<id>` here only for preview
- * crawlers (iMessage, Slack, …); it carries metadata and nothing else (title, time and the image's agenda).
+ * crawlers (iMessage, Slack, …). Its metadata carries the card (title, time and the image's
+ * agenda); the page itself is the call's plate with the same title and time and a link in.
  */
 
 export const dynamic = "force-dynamic";
@@ -31,11 +34,15 @@ export default async function MeetingPreviewPage({ params }: Props) {
   const { id } = await params;
   const preview = await loadMeetingPreview(id);
   return (
-    <main style={{ padding: 24, fontFamily: "system-ui, sans-serif" }}>
-      <h1>{preview.title}</h1>
-      <p>
-        <a href={id === "producers" ? producersMeetingUrl() : meetingUrl(id)}>Open in InFocus Portal</a>
-      </p>
-    </main>
+    <CallPlate
+      eyebrow="Meeting"
+      title={preview.title}
+      body={preview.description}
+      actions={
+        <a href={id === "producers" ? producersMeetingUrl() : meetingUrl(id)} className={buttonVariants()}>
+          Open in InFocus Portal
+        </a>
+      }
+    />
   );
 }

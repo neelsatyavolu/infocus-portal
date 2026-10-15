@@ -1,66 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { useEffect, useState, type FormEvent, type KeyboardEvent } from "react";
+import { Eye, EyeOff, Sparkles, Trash2 } from "lucide-react";
+import { Alert } from "@/components/kit/alert";
+import { Field } from "@/components/kit/field";
+import { Spinner } from "@/components/kit/spinner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { SubmitShortcutHint, isSubmitShortcut } from "@/components/ui/submit-shortcut";
+import { Textarea } from "@/components/ui/textarea";
 import {
-  VAULT_ACTION_LABELS,
   VAULT_NAME_MAX,
   VAULT_NOTES_MAX,
   VAULT_PASSWORD_MAX,
   VAULT_TOTP_MAX,
   VAULT_URL_MAX,
   VAULT_USERNAME_MAX,
-  type VaultActivityRow,
   type VaultEntrySummary
 } from "@/src/lib/password-vault";
 import { generateStrongPassword } from "@/src/lib/password-strength";
-import { cn } from "@/src/lib/utils";
 import { PasswordStrengthMeter } from "./password-strength-meter";
+import { SavedNotes, SavedSecret, type SecretMode } from "./saved-secret";
 import { revealVaultValue, vaultRequest } from "./vault-api";
 
-const inputClass =
-  "h-9 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-[var(--brand-green)]/50 focus:ring-1 focus:ring-[var(--brand-green)]/30";
+/** What a save did, so the page can select the new login or move on from a deleted one. */
+export type VaultEntryChange = { kind: "created" | "updated" | "deleted"; id: string };
 
-/** Saved secret in edit mode: keep it, replace it, or remove it. */
-type SecretMode = "keep" | "replace" | "remove";
-
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
-  return (
-    <label className="block space-y-1.5">
-      <span className="eyebrow">{label}</span>
-      {children}
-      {hint ? <span className="block text-[11px] text-muted-foreground">{hint}</span> : null}
-    </label>
-  );
-}
-
-function SavedSecret({ label, mode, onMode }: { label: string; mode: SecretMode; onMode: (mode: SecretMode) => void }) {
-  return (
-    <div className="flex h-9 items-center justify-between gap-2 rounded-md border border-dashed border-border px-3 text-sm">
-      <span className={cn(mode === "remove" ? "text-brand-amber" : "text-muted-foreground")}>
-        {mode === "remove" ? `${label} will be removed` : `${label} saved (encrypted)`}
-      </span>
-      <span className="flex gap-3 text-xs font-semibold">
-        {mode === "remove" ? (
-          <button type="button" className="text-foreground hover:underline" onClick={() => onMode("keep")}>
-            Undo
-          </button>
-        ) : (
-          <>
-            <button type="button" className="text-foreground hover:underline" onClick={() => onMode("replace")}>
-              Replace
-            </button>
-            <button type="button" className="text-muted-foreground hover:text-foreground hover:underline" onClick={() => onMode("remove")}>
-              Remove
-            </button>
-          </>
-        )}
-      </span>
-    </div>
-  );
-}
+const MONO = "font-mono-broadcast tabular-nums";
 
 export function VaultEntryDialog({
   open,
@@ -71,7 +38,7 @@ export function VaultEntryDialog({
   open: boolean;
   entry: VaultEntrySummary | null;
   onOpenChange: (open: boolean) => void;
-  onSaved: () => void;
+  onSaved: (change: VaultEntryChange) => void;
 }) {
   const editing = Boolean(entry);
   const [name, setName] = useState("");
@@ -84,9 +51,9 @@ export function VaultEntryDialog({
   const [notesLoaded, setNotesLoaded] = useState(false);
   const [passwordMode, setPasswordMode] = useState<SecretMode>("replace");
   const [totpMode, setTotpMode] = useState<SecretMode>("replace");
-  const [activity, setActivity] = useState<VaultActivityRow[]>([]);
   const [busy, setBusy] = useState<"save" | "delete" | "notes" | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [nameError, setNameError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -101,14 +68,9 @@ export function VaultEntryDialog({
     setNotesLoaded(!entry?.hasNotes);
     setPasswordMode(entry?.hasPassword ? "keep" : "replace");
     setTotpMode(entry?.hasTotp ? "keep" : "replace");
-    setActivity([]);
     setConfirmDelete(false);
+    setNameError(null);
     setError(null);
-    if (entry) {
-      vaultRequest<VaultActivityRow[]>(`/api/vault/${entry.id}/activity`)
-        .then(setActivity)
-        .catch(() => setActivity([]));
-    }
   }, [open, entry]);
 
   async function loadNotes() {
@@ -130,10 +92,12 @@ export function VaultEntryDialog({
     return value;
   }
 
-  async function save(event: React.FormEvent) {
+  async function save(event: FormEvent) {
     event.preventDefault();
+    // Matches the disabled Save button: no second write while a save, delete or notes load runs.
+    if (busy !== null) return;
     if (!name.trim()) {
-      setError("Name is required.");
+      setNameError("Name is required.");
       return;
     }
     setBusy("save");
@@ -147,11 +111,13 @@ export function VaultEntryDialog({
       notes: notesLoaded ? notes : undefined
     };
     try {
-      await vaultRequest(entry ? `/api/vault/${entry.id}` : "/api/vault", {
-        method: entry ? "PATCH" : "POST",
-        body
-      });
-      onSaved();
+      if (entry) {
+        await vaultRequest(`/api/vault/${entry.id}`, { method: "PATCH", body });
+        onSaved({ kind: "updated", id: entry.id });
+      } else {
+        const created = await vaultRequest<{ id: string; name: string }>("/api/vault", { method: "POST", body });
+        onSaved({ kind: "created", id: created.id });
+      }
       onOpenChange(false);
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Could not save.");
@@ -169,7 +135,7 @@ export function VaultEntryDialog({
     setBusy("delete");
     try {
       await vaultRequest(`/api/vault/${entry.id}`, { method: "DELETE" });
-      onSaved();
+      onSaved({ kind: "deleted", id: entry.id });
       onOpenChange(false);
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : "Could not delete.");
@@ -178,9 +144,22 @@ export function VaultEntryDialog({
     }
   }
 
+  function onFormKeyDown(event: KeyboardEvent<HTMLFormElement>) {
+    if (!isSubmitShortcut(event)) return;
+    event.preventDefault();
+    // requestSubmit() ignores the disabled Save button, so skip key repeat and busy states here.
+    if (event.repeat || busy !== null) return;
+    event.currentTarget.requestSubmit();
+  }
+
+  function suggestPassword() {
+    setPassword(generateStrongPassword());
+    setShowPassword(true);
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90dvh] max-w-lg overflow-y-auto">
+      <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle>{editing ? `Edit ${entry?.name}` : "Add password"}</DialogTitle>
           <DialogDescription>
@@ -188,127 +167,167 @@ export function VaultEntryDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={(event) => void save(event)} className="space-y-3" autoComplete="off">
-          <Field label="Name">
-            <input value={name} onChange={(e) => setName(e.target.value)} maxLength={VAULT_NAME_MAX} placeholder="InFocus YouTube" className={inputClass} autoFocus />
-          </Field>
-          <Field label="Website">
-            <input value={url} onChange={(e) => setUrl(e.target.value)} maxLength={VAULT_URL_MAX} placeholder="youtube.com" className={inputClass} inputMode="url" />
-          </Field>
-          <Field label="Username or email">
-            <input value={username} onChange={(e) => setUsername(e.target.value)} maxLength={VAULT_USERNAME_MAX} className={inputClass} autoComplete="off" />
-          </Field>
-
-          <Field label="Password">
-            {passwordMode === "replace" ? (
-              <div className="space-y-2">
-                <div className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    maxLength={VAULT_PASSWORD_MAX}
-                    placeholder={entry?.hasPassword ? "New password" : ""}
-                    className={cn(inputClass, "pr-9 font-mono-broadcast tabular-nums")}
-                    autoComplete="new-password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((value) => !value)}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                    className="absolute right-1 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded text-muted-foreground hover:text-foreground"
-                  >
-                    {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                  </button>
-                </div>
-                <PasswordStrengthMeter
-                  password={password}
-                  onSuggest={() => {
-                    setPassword(generateStrongPassword());
-                    setShowPassword(true);
-                  }}
-                />
-              </div>
-            ) : (
-              <SavedSecret label="Password" mode={passwordMode} onMode={setPasswordMode} />
-            )}
-          </Field>
-
-          <Field label="2FA setup key" hint={totpMode === "replace" ? "Paste the setup key or otpauth:// link from the site’s authenticator setup. It can’t be viewed again, only its codes." : undefined}>
-            {totpMode === "replace" ? (
-              <input
-                value={totp}
-                onChange={(e) => setTotp(e.target.value)}
-                maxLength={VAULT_TOTP_MAX}
-                placeholder="JBSW Y3DP EHPK 3PXP"
-                className={cn(inputClass, "font-mono-broadcast tabular-nums")}
+        <form onSubmit={(event) => void save(event)} onKeyDown={onFormKeyDown} className="grid gap-4" autoComplete="off">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Name" htmlFor="vault-name" error={nameError} required>
+              <Input
+                id="vault-name"
+                value={name}
+                onChange={(event) => {
+                  setName(event.target.value);
+                  setNameError(null);
+                }}
+                maxLength={VAULT_NAME_MAX}
+                placeholder="InFocus YouTube"
+                aria-invalid={nameError ? true : undefined}
+                aria-describedby={nameError ? "vault-name-error" : undefined}
+                autoFocus
+              />
+            </Field>
+            <Field label="Website" htmlFor="vault-url">
+              <Input
+                id="vault-url"
+                value={url}
+                onChange={(event) => setUrl(event.target.value)}
+                maxLength={VAULT_URL_MAX}
+                placeholder="youtube.com"
+                inputMode="url"
+              />
+            </Field>
+            <Field label="Username or email" htmlFor="vault-username" span={2}>
+              <Input
+                id="vault-username"
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                maxLength={VAULT_USERNAME_MAX}
                 autoComplete="off"
-                spellCheck={false}
               />
-            ) : (
-              <SavedSecret label="2FA key" mode={totpMode} onMode={setTotpMode} />
-            )}
-          </Field>
+            </Field>
 
-          <Field label="Notes" hint={notesLoaded ? "Recovery codes, security answers, who owns the account." : undefined}>
-            {notesLoaded ? (
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                maxLength={VAULT_NOTES_MAX}
-                rows={3}
-                className={cn(inputClass, "h-auto min-h-[4.5rem] resize-y py-2")}
-              />
-            ) : (
-              <button
-                type="button"
-                onClick={() => void loadNotes()}
-                disabled={busy === "notes"}
-                className="flex h-9 w-full items-center gap-2 rounded-md border border-dashed border-border px-3 text-sm text-muted-foreground hover:text-foreground"
-              >
-                {busy === "notes" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                Notes saved (encrypted) · Edit notes
-              </button>
-            )}
-          </Field>
+            <Field label="Password" htmlFor={passwordMode === "replace" ? "vault-password" : undefined} span={2}>
+              {passwordMode === "replace" ? (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <div className="relative min-w-0 flex-1">
+                      <Input
+                        id="vault-password"
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(event) => setPassword(event.target.value)}
+                        maxLength={VAULT_PASSWORD_MAX}
+                        placeholder={entry?.hasPassword ? "New password" : ""}
+                        className={`h-10 pr-11 md:h-9 ${MONO}`}
+                        autoComplete="new-password"
+                        aria-describedby="vault-password-strength"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((value) => !value)}
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        title={showPassword ? "Hide password" : "Show password"}
+                        className="absolute right-0.5 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center md:h-8 md:w-8 rounded-sm text-muted-foreground transition-colors hover:bg-[var(--ink-3)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" aria-hidden /> : <Eye className="h-4 w-4" aria-hidden />}
+                      </button>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={suggestPassword}
+                      aria-label="Suggest strong password"
+                      className="h-10 md:h-9"
+                    >
+                      <Sparkles aria-hidden />
+                      <span className="sm:hidden">Suggest</span>
+                      <span className="max-sm:hidden">Suggest strong password</span>
+                    </Button>
+                  </div>
+                  <PasswordStrengthMeter password={password} id="vault-password-strength" />
+                </div>
+              ) : (
+                <SavedSecret label="password" mode={passwordMode} onMode={setPasswordMode} />
+              )}
+            </Field>
+
+            <Field
+              label="2FA setup key"
+              htmlFor={totpMode === "replace" ? "vault-totp" : undefined}
+              hint={
+                totpMode === "replace"
+                  ? "Paste the setup key or otpauth:// link from the site’s authenticator setup. It can’t be viewed again, only its codes."
+                  : undefined
+              }
+              span={2}
+            >
+              {totpMode === "replace" ? (
+                <Input
+                  id="vault-totp"
+                  value={totp}
+                  onChange={(event) => setTotp(event.target.value)}
+                  maxLength={VAULT_TOTP_MAX}
+                  placeholder="JBSW Y3DP EHPK 3PXP"
+                  className={MONO}
+                  autoComplete="off"
+                  spellCheck={false}
+                  aria-describedby="vault-totp-hint"
+                />
+              ) : (
+                <SavedSecret label="2FA key" mode={totpMode} onMode={setTotpMode} />
+              )}
+            </Field>
+
+            <Field
+              label="Notes"
+              htmlFor={notesLoaded ? "vault-notes" : undefined}
+              hint={notesLoaded ? "Recovery codes, security answers, who owns the account." : undefined}
+              span={2}
+            >
+              {notesLoaded ? (
+                <Textarea
+                  id="vault-notes"
+                  value={notes}
+                  onChange={(event) => setNotes(event.target.value)}
+                  maxLength={VAULT_NOTES_MAX}
+                  rows={3}
+                  className="min-h-[4.5rem] resize-y"
+                  aria-describedby="vault-notes-hint"
+                />
+              ) : (
+                <SavedNotes busy={busy === "notes"} onEdit={() => void loadNotes()} />
+              )}
+            </Field>
+          </div>
 
           {error ? (
-            <p className="rounded-lg border border-danger/40 bg-danger-tint px-3 py-2 text-sm text-danger">{error}</p>
+            <Alert tone="danger" compact>
+              {error}
+            </Alert>
           ) : null}
 
-          {editing && activity.length ? (
-            <div className="space-y-1.5 border-t border-border pt-3">
-              <span className="eyebrow">Recent activity</span>
-              <ul className="max-h-32 space-y-1 overflow-y-auto text-xs text-muted-foreground">
-                {activity.map((row) => (
-                  <li key={row.id} className="flex justify-between gap-3">
-                    <span className="truncate">
-                      <span className="text-foreground">{row.actor}</span> · {VAULT_ACTION_LABELS[row.action] ?? row.action}
-                    </span>
-                    <span className="shrink-0 font-mono-broadcast tabular-nums">
-                      {new Date(row.createdAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+          <DialogFooter
+            sticky
+            className="flex-row flex-wrap items-center justify-between gap-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:justify-between sm:space-x-0"
+          >
+            <div>
+              {entry?.canDelete ? (
+                <Button
+                  type="button"
+                  variant={confirmDelete ? "destructive" : "destructive-quiet"}
+                  onClick={() => void remove()}
+                  disabled={busy !== null}
+                >
+                  {busy === "delete" ? <Spinner /> : <Trash2 aria-hidden />}
+                  {confirmDelete ? "Delete permanently" : "Delete"}
+                </Button>
+              ) : null}
             </div>
-          ) : null}
-
-          <DialogFooter className="gap-2 pt-1 sm:justify-between">
-            {entry?.canDelete ? (
-              <Button type="button" variant={confirmDelete ? "destructive" : "destructive-quiet"} size="sm" onClick={() => void remove()} disabled={busy !== null}>
-                {busy === "delete" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                {confirmDelete ? "Delete permanently" : "Delete"}
-              </Button>
-            ) : (
-              <span />
-            )}
-            <div className="flex gap-2">
-              <Button type="button" variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
+            <div className="ml-auto flex items-center gap-2">
+              <SubmitShortcutHint action="save" className="mr-1 max-sm:hidden" />
+              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit" size="sm" disabled={busy !== null}>
-                {busy === "save" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+              <Button type="submit" disabled={busy !== null}>
+                {busy === "save" ? <Spinner /> : null}
                 {editing ? "Save" : "Add password"}
               </Button>
             </div>

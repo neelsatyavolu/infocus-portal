@@ -1,3318 +1,621 @@
 "use client";
 
-import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { toast } from "sonner";
-import Image from "next/image";
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  Check,
-  CheckCircle2,
-  ChevronDown,
-  Clock3,
-  Download,
-  GraduationCap,
-  ListFilter,
-  Loader2,
-  MessageCircleReply,
-  MapPin,
-  MoreHorizontal,
-  Pause,
-  Pencil,
-  Play,
-  RefreshCw,
-  Trash2,
-  Send,
-  Save,
-  Volume2,
-  VolumeX
-} from "lucide-react";
-import { ApproveFeedbackDialog } from "@/components/package-cycle/approve-feedback-dialog";
-import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { MediaRange } from "@/components/media-range";
+import { toast } from "sonner";
+import { Eye, MessageSquare } from "lucide-react";
+import { isTypingTarget } from "@/components/kit/hotkeys";
+import { useMediaQuery, useRememberedState } from "@/components/kit/remembered-state";
+import { StatusTag } from "@/components/kit/status-tag";
+import type { StatusToneInput } from "@/components/kit/tone";
 import { RelativeAge } from "@/components/relative-age";
-import { PlayheadSeekRange, PlayheadTimecode, createValueStore } from "@/components/review-playhead";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { ReviewTranscriptButton } from "@/components/review-transcript-button";
-import { Textarea } from "@/components/ui/textarea";
-import { MAX_EFFORT_POINTS, MAX_TEAMWORK_POINTS } from "@/src/lib/package-grades";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { CommentComposer, ComposerClosed } from "@/components/review/comment-composer";
+import type { ThreadPermissions } from "@/components/review/comment-thread";
+import {
+  buildThreads,
+  clampToDuration,
+  commentSeekTimeSeconds,
+  commentsExportBaseName,
+  filterThreads,
+  formatAiredLabel,
+  generalThreads,
+  isCommentFilter,
+  mergeRefreshedVersions,
+  newThreadIds,
+  threadNumbers,
+  timelineThreads,
+  type CommentFilter,
+  type CommentThread,
+  type CommentsTab,
+  type ReviewComment,
+  type ReviewVersion
+} from "@/components/review/comment-utils";
+import { CommentsPanel } from "@/components/review/comments-panel";
+import { canShowQuickGradesForFolder, parseCycleFromProjectName } from "@/components/review/quick-grades";
+import { QuickGradesPanel, QuickGradesSheet } from "@/components/review/quick-grades-panel";
+import {
+  ApprovalStrip,
+  hasPackageDecision,
+  packageApprovalSteps,
+  packageHelperText,
+  reviewDecisionButtons
+} from "@/components/review/review-decisions";
+import { ReviewDialogs, type DeleteRequest } from "@/components/review/review-dialogs";
+import { ReviewDecisionCard, ReviewHeader, ReviewPhoneToolbar, reviewToolButtons } from "@/components/review/review-header";
+import { ReviewPlayer } from "@/components/review/review-player";
+import { ReviewSplitter } from "@/components/review/review-splitter";
+import { ReviewTranscript } from "@/components/review/review-transcript";
+import { GoToLatestButton, ReviewVersionSelect, type VersionActivity } from "@/components/review/review-version-select";
+import { useHlsPlayer } from "@/components/review/use-hls-player";
+import { useQuickGrades } from "@/components/review/use-quick-grades";
+import { useReviewComments } from "@/components/review/use-review-comments";
+import { useReviewDecisions } from "@/components/review/use-review-decisions";
+import { useReviewPlayback } from "@/components/review/use-review-playback";
+import { isVersionNewSince, useReviewSeen, versionBaseline, type ReviewSeenRecord } from "@/components/review/use-review-seen";
+import { useReviewShortcuts } from "@/components/review/use-review-shortcuts";
+import { useReviewSplitLayout } from "@/components/review/use-review-split-layout";
+import { useTranscripts } from "@/components/review/use-transcripts";
 import { buildCommentsCsv } from "@/src/lib/comment-export-csv";
-import { isCoarsePointer, shouldEnterSend } from "@/src/lib/enter-to-send";
-import {
-  DEFAULT_REVIEW_FPS,
-  formatFrameAccurateTimecode,
-  formatTimecode,
-  frameNumberFromSeconds,
-  timeSecondsFromFrameNumber
-} from "@/src/lib/timecode";
-import {
-  APPROVE_ANYWAY_CONFIRM,
-  approvalProgressLabel,
-  approvalStageHandoff,
-  approvalStagePillLabel,
-  executiveWaitPill
-} from "@/src/lib/package-approval";
 import { approvalStageToReviewStage, cutTileReviewStatus } from "@/src/lib/group-tile-status";
-import { ApprovalStatusValue, MediaReviewDto } from "@/src/lib/types";
+import { initialCutVersionTitle } from "@/src/lib/package-cut-transitions";
+import { canResolveComment, canUploadVersion } from "@/src/lib/rbac";
+import { DEFAULT_REVIEW_FPS, frameNumberFromSeconds } from "@/src/lib/timecode";
+import type { MediaReviewDto } from "@/src/lib/types";
 import { cn } from "@/src/lib/utils";
-import { bufferedSpans, isHlsPlaylistUrl, sameBufferedSpans, type BufferedSpan } from "@/src/lib/video-buffer";
 
 type ReviewShellProps = {
   data: MediaReviewDto;
   guestToken?: string;
+  /** A view-only guest link. */
   isGuest?: boolean;
   allowComment?: boolean;
+  /** An Initial Cut: the title follows the selected version ("Initial Cut Version N"). */
+  isInitialCut?: boolean;
 };
 
-type CommentThread = {
-  root: MediaReviewDto["comments"][number];
-  replies: MediaReviewDto["comments"];
-};
+const PANEL_ID = "review-comments-panel";
+const GRADES_PANEL_ID = "review-quick-grades-panel";
 
-
-const PLAYBACK_RATES = [0.5, 1, 1.25, 1.5, 2];
-const PLAYER_SELECT_TRIGGER_CLASS = "h-8 w-auto gap-1 border-0 bg-transparent px-2 text-xs shadow-none hover:bg-muted";
-const REVIEW_LAYOUT_MIN_HEIGHT_PX = 560;
-// Below the split layout, in portrait, the page scrolls: the player pins to the top and the
-// new-comment composer docks to the bottom. Both sit under dialogs and popovers (z-50 and up).
-const PINNED_PLAYER_CLASS =
-  "max-xl:portrait:sticky max-xl:portrait:top-[calc(var(--review-vv-top,0px)_+_env(safe-area-inset-top))] max-xl:portrait:z-[45] max-xl:portrait:bg-card";
-const DOCKED_COMPOSER_CLASS =
-  "max-xl:portrait:sticky max-xl:portrait:bottom-[var(--review-vv-bottom,0px)] max-xl:portrait:z-[46] max-xl:portrait:rounded-b-2xl max-xl:portrait:pb-[calc(0.75rem_+_env(safe-area-inset-bottom))]";
-// Keeps the docked composer clear of the floating Assistant button (bottom right of the app shell).
-const DOCKED_COMPOSER_LAUNCHER_GUTTER_CLASS = "max-xl:portrait:pr-[3.75rem]";
-// A marker tap scrolls its comment into the gap between the pinned player and the docked composer.
-const COMMENT_CARD_SCROLL_MARGIN_CLASS = "max-xl:portrait:scroll-mt-[calc(56.25vw_+_9rem)] max-xl:portrait:scroll-mb-52";
-
-type HlsInstance = {
-  destroy: () => void;
-  loadSource: (src: string) => void;
-};
-
-type QuickGradeApiRow = {
-  userId: string;
-  name: string | null;
-  email: string | null;
-  effortPoints: number | null;
-  teamworkPoints: number | null;
-  feedback: string;
-  turnedInDate: string | null;
-  freeExtensionDays: number;
-  extensionDetails: {
-    calculatedDays: number;
-    freeDays: number;
-    chargedDays: number;
-    exempt: boolean;
-  };
-  published: boolean;
-  publishedAt: string | null;
-  totalPoints: number | null;
-  percentage: number | null;
-  extensionsRemaining: number;
-};
-
-type QuickGradeRow = QuickGradeApiRow & {
-  disabled: boolean;
-  disabledReason: string | null;
-};
-
-type QuickGradesApiPayload = {
-  activeCycleNumber: number;
-  rows: QuickGradeApiRow[];
-};
-
-function useHlsPlayer(
-  videoRef: React.RefObject<HTMLVideoElement | null>,
-  playbackUrl: string | null | undefined
-) {
-  const hlsRef = useRef<HlsInstance | null>(null);
-  const playbackUrlRef = useRef(playbackUrl);
-  playbackUrlRef.current = playbackUrl;
-
-  const attachHls = useCallback(async (video: HTMLVideoElement, url: string) => {
-    if (hlsRef.current) {
-      hlsRef.current.destroy();
-      hlsRef.current = null;
-    }
-
-    // Drive MP4s play natively (Range requests); only HLS playlists need hls.js.
-    if (!isHlsPlaylistUrl(url) || video.canPlayType("application/vnd.apple.mpegurl")) {
-      video.src = url;
-      return;
-    }
-
-    try {
-      const { default: Hls } = await import("hls.js");
-
-      if (playbackUrlRef.current !== url) {
-        return;
-      }
-
-      if (!Hls.isSupported()) {
-        video.src = url;
-        return;
-      }
-
-      const hls = new Hls({
-        startLevel: -1,
-        capLevelToPlayerSize: true,
-        abrEwmaDefaultEstimate: 2_000_000,
-        maxBufferLength: 60,
-        backBufferLength: 90,
-        enableWorker: true,
-        startFragPrefetch: true,
-        fragLoadingMaxRetry: 6,
-        manifestLoadingMaxRetry: 4,
-        levelLoadingMaxRetry: 4,
-        nudgeMaxRetry: 10,
-      });
-      hls.loadSource(url);
-      hls.attachMedia(video);
-
-      hls.on(Hls.Events.ERROR, (_event, data) => {
-        if (!data.fatal) {
-          return;
-        }
-        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-          hls.startLoad();
-        } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-          hls.recoverMediaError();
-        } else {
-          hls.destroy();
-          if (hlsRef.current === (hls as unknown as HlsInstance)) {
-            hlsRef.current = null;
-          }
-        }
-      });
-
-      hlsRef.current = hls as unknown as HlsInstance;
-    } catch {
-      video.src = url;
-    }
-  }, []);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !playbackUrl) {
-      return;
-    }
-
-    void attachHls(video, playbackUrl);
-
-    return () => {
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
-      }
-    };
-  }, [videoRef, playbackUrl, attachHls]);
-}
-
-function initialsFromName(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) {
-    return "?";
+/** The version's status in the same words as the Groups stage tiles (cutTileReviewStatus). */
+function primaryStatus(version: ReviewVersion | undefined, packageReview: MediaReviewDto["packageReview"]): { label: string; tone: StatusToneInput } {
+  if (version?.approvalStatus === "AIRED") {
+    return { label: `Aired${version.airedAt ? ` · ${formatAiredLabel(version.airedAt)}` : ""}`, tone: "success" };
   }
-
-  return (parts[0][0] + (parts[1]?.[0] ?? "")).toUpperCase();
-}
-
-const AVATAR_PALETTE = ["av-green", "av-red", "av-blue", "av-purple", "av-gray"] as const;
-
-function avatarToneForName(name: string) {
-  let hash = 0;
-  for (let i = 0; i < name.length; i += 1) {
-    hash = (hash * 31 + name.charCodeAt(i)) | 0;
-  }
-  return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length];
-}
-
-function clampToDuration(timeSeconds: number, durationSeconds: number) {
-  if (!Number.isFinite(timeSeconds)) {
-    return 0;
-  }
-
-  if (durationSeconds <= 0) {
-    return Math.max(0, timeSeconds);
-  }
-
-  return Math.min(Math.max(0, timeSeconds), durationSeconds);
-}
-
-function formatPinLabel(xPct: number | null, yPct: number | null) {
-  if (xPct === null || yPct === null || !Number.isFinite(xPct) || !Number.isFinite(yPct)) {
-    return "Image comment";
-  }
-
-  return `Point ${Math.round(xPct)}%, ${Math.round(yPct)}%`;
-}
-
-function commentSeekTimeSeconds(comment: MediaReviewDto["comments"][number]) {
-  if (comment.frameNumber !== null && comment.frameNumber !== undefined) {
-    return timeSecondsFromFrameNumber(comment.frameNumber, DEFAULT_REVIEW_FPS);
-  }
-
-  return comment.timeSeconds;
-}
-
-function collectCommentThreadIds(comments: MediaReviewDto["comments"], rootId: string) {
-  const ids = new Set<string>([rootId]);
-  let added = true;
-
-  while (added) {
-    added = false;
-    for (const comment of comments) {
-      if (comment.parentCommentId !== null && ids.has(comment.parentCommentId) && !ids.has(comment.id)) {
-        ids.add(comment.id);
-        added = true;
-      }
-    }
-  }
-
-  return ids;
-}
-
-function parseCycleFromProjectName(projectName: string) {
-  const match = projectName.match(/package\s+cycle\s+(\d+)/i);
-  if (!match) {
-    return null;
-  }
-
-  const parsed = Number(match[1]);
-  if (!Number.isInteger(parsed) || parsed < 1 || parsed > 4) {
-    return null;
-  }
-
-  return parsed;
-}
-
-function canShowQuickGradesForFolder(folderName: string | null) {
-  if (folderName === null) {
-    return true;
-  }
-
-  return folderName.trim().toLowerCase() === "final cut";
-}
-
-function normalizeQuickGradePoints(input: string, maxValue: number) {
-  if (!input.trim()) {
-    return null;
-  }
-
-  const parsed = Number(input);
-  if (!Number.isFinite(parsed)) {
-    return null;
-  }
-
-  return Math.max(0, Math.min(maxValue, Math.round(parsed)));
-}
-
-function quickGradePersonLabel(row: Pick<QuickGradeRow, "name" | "email">) {
-  return row.name?.trim() || row.email || "Unnamed user";
-}
-
-function quickGradeRowsEqual(current: QuickGradeRow, baseline?: QuickGradeRow) {
-  if (!baseline) {
-    return false;
-  }
-
-  return (
-    (current.effortPoints ?? null) === (baseline.effortPoints ?? null) &&
-    (current.teamworkPoints ?? null) === (baseline.teamworkPoints ?? null) &&
-    current.feedback === baseline.feedback &&
-    (current.turnedInDate ?? null) === (baseline.turnedInDate ?? null) &&
-    current.freeExtensionDays === baseline.freeExtensionDays
-  );
-}
-
-function commonQuickGradeTurnedInDate(rows: QuickGradeRow[]) {
-  const gradableRows = rows.filter((row) => !row.disabled);
-  if (gradableRows.length === 0) {
-    return "";
-  }
-
-  const firstValue = gradableRows[0].turnedInDate ?? "";
-  return gradableRows.every((row) => (row.turnedInDate ?? "") === firstValue) ? firstValue : "";
-}
-
-function formatQuickGradeRevisionDeadline(isoDate: string) {
-  const publishedAt = new Date(isoDate);
-  if (Number.isNaN(publishedAt.getTime())) {
-    return null;
-  }
-
-  const deadline = new Date(publishedAt);
-  deadline.setDate(deadline.getDate() + 14);
-  return deadline.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric"
+  return cutTileReviewStatus({
+    approvalStatus: version?.approvalStatus,
+    reviewStage: approvalStageToReviewStage(packageReview?.stage),
+    approvedInStage: version?.approvedInStage,
+    remainingExecutiveSignoffs: packageReview?.remainingExecutiveSignoffs
   });
 }
 
-export function ReviewShell({ data, guestToken, isGuest = false, allowComment = true }: ReviewShellProps) {
-  const reviewSplitterWidthPx = 14;
-  const minSidebarWidthPx = 320;
-  const maxSidebarWidthPx = 560;
-  const minLeftPaneWidthPx = 360;
+/** Per version: its threads, and how many threads have something new since the last visit. */
+function buildVersionActivity(
+  versions: ReviewVersion[],
+  comments: ReviewComment[],
+  seen: ReviewSeenRecord | null,
+  rule: { localIds: ReadonlySet<string>; currentUserId: string | null }
+): VersionActivity {
+  const threadCounts = new Map<string, number>();
+  const newCounts = new Map<string, number>();
+  for (const version of versions) {
+    const threads = buildThreads(comments.filter((comment) => comment.mediaVersionId === version.id));
+    threadCounts.set(version.id, threads.length);
+    newCounts.set(version.id, newThreadIds(threads, { ...rule, baseline: versionBaseline(seen, version.id) }).size);
+  }
+  const newVersionIds = new Set(versions.filter((version) => isVersionNewSince(seen, version)).map((version) => version.id));
+  return { threadCounts, newCounts, newVersionIds };
+}
+
+/**
+ * The video/image review page (and guest links). Header plate on top; below it the player and
+ * the comments panel side by side from 1024px, or stacked on phones and tablets with the player
+ * pinned and the composer docked. See components/review/* for the parts.
+ */
+export function ReviewShell({ data, guestToken, isGuest = false, allowComment = true, isInitialCut = false }: ReviewShellProps) {
   const router = useRouter();
   // The app shell drops its floating Assistant button on bare reviews; guest links have no shell.
   const isBareReview = useSearchParams().get("bare") === "1";
   const hasAssistantLauncher = !guestToken && !isBareReview;
-  const reviewLayoutRef = useRef<HTMLDivElement | null>(null);
-  const reviewHeroRef = useRef<HTMLElement | null>(null);
-  const reviewMainCardRef = useRef<HTMLDivElement | null>(null);
-  const mediaStageRef = useRef<HTMLDivElement | null>(null);
-  const mediaControlsRef = useRef<HTMLDivElement | null>(null);
+  const signedIn = !guestToken;
+  const touch = useMediaQuery("(pointer: coarse)", false);
+
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const splitRef = useRef<HTMLDivElement | null>(null);
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const controlsRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const pendingSeekRef = useRef<number | null>(null);
-  const imageCanvasRef = useRef<HTMLDivElement | null>(null);
-  const commentsMenuRef = useRef<HTMLDivElement | null>(null);
-  const quickGradesRef = useRef<HTMLDivElement | null>(null);
-  const importFileInputRef = useRef<HTMLInputElement | null>(null);
-  const commentCardRefs = useRef<Record<string, HTMLElement | null>>({});
-  const sidebarResizeDragRef = useRef<{ startX: number; startWidth: number } | null>(null);
+  const canvasRef = useRef<HTMLDivElement | null>(null);
+  const composerRef = useRef<HTMLTextAreaElement | null>(null);
 
   const [versions, setVersions] = useState(data.versions);
-  const [comments, setComments] = useState(data.comments);
   const [currentVersionId, setCurrentVersionId] = useState(data.currentVersionId);
-  const [selectedCommentId, setSelectedCommentId] = useState<string | null>(null);
+  const comments = useReviewComments({ initialComments: data.comments, guestToken });
+  const [syncedData, setSyncedData] = useState(data);
+  // Refresh / Check again re-render the page with new data: take it. The selection stays unless the
+  // page asked for another version (a ?version link) or the selected one is gone. Only the version
+  // still on screen keeps its playback URL; the others take the fresh (re-signed) links.
+  if (syncedData !== data) {
+    const keepSelection =
+      data.currentVersionId === syncedData.currentVersionId && data.versions.some((version) => version.id === currentVersionId);
+    const nextVersionId = keepSelection ? currentVersionId : data.currentVersionId;
+    setSyncedData(data);
+    setVersions(mergeRefreshedVersions(versions, data.versions, nextVersionId === currentVersionId ? currentVersionId : null));
+    comments.replaceAll(data.comments);
+    if (nextVersionId !== currentVersionId) {
+      setCurrentVersionId(nextVersionId);
+    }
+  }
+
+  const [tab, setTab] = useState<CommentsTab>("TIMELINE");
+  const [filter, setFilter] = useRememberedState<CommentFilter>("review:filter:v1", "ALL", isCommentFilter);
   const [composerBody, setComposerBody] = useState("");
-  const [statusUpdating, setStatusUpdating] = useState(false);
-  const [packageActionMessage, setPackageActionMessage] = useState<string | null>(null);
-  const [approveFeedbackOpen, setApproveFeedbackOpen] = useState(false);
-  const [approveAnywayOpen, setApproveAnywayOpen] = useState(false);
-  const [submittingPackageReview, setSubmittingPackageReview] = useState(false);
-  const packageReview = data.packageReview;
-  const [airedDialogOpen, setAiredDialogOpen] = useState(false);
-  const [airedDateInput, setAiredDateInput] = useState("");
+  const [generalBody, setGeneralBody] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
-  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
-  // Kept after close so the dialog text doesn't change while it fades out.
-  const [confirmDeleteThread, setConfirmDeleteThread] = useState<{ id: string; replyCount: number } | null>(null);
-  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
-  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
-  const [editDraft, setEditDraft] = useState("");
-  const [savingEditCommentId, setSavingEditCommentId] = useState<string | null>(null);
-  const [submittingReplyFor, setSubmittingReplyFor] = useState<string | null>(null);
-  const [commentsTab, setCommentsTab] = useState<"COMMENTS" | "REVIEW">("COMMENTS");
-  const [filterMode, setFilterMode] = useState<"ALL" | "OPEN" | "RESOLVED">("ALL");
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [duration, setDuration] = useState(0);
-  // Playhead + buffered ranges change several times a second; keep them out of React state here so
-  // only the scrubber and timecodes re-render during playback (components/review-playhead.tsx).
-  const [playheadStore] = useState(() => createValueStore(0));
-  const [bufferedStore] = useState(() => createValueStore<BufferedSpan[]>([]));
-  const [isBuffering, setIsBuffering] = useState(false);
-  const [volume, setVolume] = useState(1);
-  const [playbackRate, setPlaybackRate] = useState(1);
-  const [replyingTo, setReplyingTo] = useState<string | null>(null);
-  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
+  const [submittingGeneral, setSubmittingGeneral] = useState(false);
   const [composerPin, setComposerPin] = useState<{ xPct: number; yPct: number } | null>(null);
+  const [deleteRequest, setDeleteRequest] = useState<DeleteRequest | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [transcriptReadyFor, setTranscriptReadyFor] = useState<string | null>(null);
   const [isMacDesktopApp, setIsMacDesktopApp] = useState(false);
-  const [commentsMenuOpen, setCommentsMenuOpen] = useState(false);
-  const [reviewComposerBody, setReviewComposerBody] = useState("");
-  const [submittingReviewComment, setSubmittingReviewComment] = useState(false);
-  const [importingComments, setImportingComments] = useState(false);
-  const [pendingSidebarFocusCommentId, setPendingSidebarFocusCommentId] = useState<string | null>(null);
-  const [sidebarHighlightedCommentId, setSidebarHighlightedCommentId] = useState<string | null>(null);
-  const [quickGradesOpen, setQuickGradesOpen] = useState(false);
-  const [quickGradesLoading, setQuickGradesLoading] = useState(false);
-  const [quickGradesSaving, setQuickGradesSaving] = useState(false);
-  const [quickGradesMessage, setQuickGradesMessage] = useState<string | null>(null);
-  const [quickGradeRows, setQuickGradeRows] = useState<QuickGradeRow[]>([]);
-  const [savedQuickGradeRows, setSavedQuickGradeRows] = useState<QuickGradeRow[]>([]);
-  const [quickGradesLoadedCycle, setQuickGradesLoadedCycle] = useState<number | null>(null);
-  const [quickGradesSharedTurnedInDate, setQuickGradesSharedTurnedInDate] = useState("");
-  const [quickGradesSharedTurnedInDirty, setQuickGradesSharedTurnedInDirty] = useState(false);
-  const [quickGradesFeedbackEditorUserId, setQuickGradesFeedbackEditorUserId] = useState<string | null>(null);
-  const [isDesktopSplitLayout, setIsDesktopSplitLayout] = useState(false);
-  const [autoSidebarWidthPx, setAutoSidebarWidthPx] = useState<number | null>(null);
-  const [manualSidebarWidthPx, setManualSidebarWidthPx] = useState<number | null>(null);
-  const [computedMediaStageMaxWidthPx, setComputedMediaStageMaxWidthPx] = useState<number | null>(null);
-  const [isResizingSidebar, setIsResizingSidebar] = useState(false);
-  const [fitLayoutHeightPx, setFitLayoutHeightPx] = useState<number | null>(null);
 
   useEffect(() => {
     setIsMacDesktopApp(/InFocusMacApp/i.test(window.navigator.userAgent));
   }, []);
 
-  useEffect(() => {
-    const syncLayoutMode = () => setIsDesktopSplitLayout(window.innerWidth >= 1280);
-    syncLayoutMode();
-    window.addEventListener("resize", syncLayoutMode);
-    return () => window.removeEventListener("resize", syncLayoutMode);
-  }, []);
-
-  // An on-screen keyboard shrinks and pans the visual viewport without resizing the layout that
-  // `sticky` measures against. Publish both offsets so the pinned player and docked composer follow.
-  useEffect(() => {
-    const viewport = window.visualViewport;
-    const node = reviewLayoutRef.current;
-    if (!viewport || !node) {
-      return;
-    }
-    const sync = () => {
-      const isZoomed = viewport.scale > 1.01;
-      const top = isZoomed ? 0 : Math.max(0, viewport.offsetTop);
-      const bottom = isZoomed
-        ? 0
-        : Math.max(0, document.documentElement.clientHeight - viewport.offsetTop - viewport.height);
-      node.style.setProperty("--review-vv-top", `${Math.round(top)}px`);
-      node.style.setProperty("--review-vv-bottom", `${Math.round(bottom)}px`);
-    };
-    sync();
-    viewport.addEventListener("resize", sync);
-    viewport.addEventListener("scroll", sync);
-    return () => {
-      viewport.removeEventListener("resize", sync);
-      viewport.removeEventListener("scroll", sync);
-    };
-  }, []);
-
-  // Fill the viewport below the app header exactly; the CSS calc fallback guesses the header height.
-  useEffect(() => {
-    if (!isDesktopSplitLayout || isMacDesktopApp) {
-      setFitLayoutHeightPx(null);
-      return;
-    }
-    const measure = () => {
-      const node = reviewLayoutRef.current;
-      if (!node) {
-        return;
-      }
-      const main = node.closest("main");
-      const bottomPadding = main ? Number.parseFloat(window.getComputedStyle(main).paddingBottom) || 0 : 0;
-      const top = node.getBoundingClientRect().top + window.scrollY;
-      setFitLayoutHeightPx(Math.max(REVIEW_LAYOUT_MIN_HEIGHT_PX, Math.floor(window.innerHeight - top - bottomPadding)));
-    };
-    measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, [isDesktopSplitLayout, isMacDesktopApp]);
-
   const currentVersion = useMemo(
     () => versions.find((version) => version.id === currentVersionId) ?? versions[0],
     [versions, currentVersionId]
   );
-  const cutReviewStatus = cutTileReviewStatus({
-    approvalStatus: currentVersion?.approvalStatus,
-    reviewStage: approvalStageToReviewStage(packageReview?.stage),
-    approvedInStage: currentVersion?.approvedInStage,
-    remainingExecutiveSignoffs: packageReview?.remainingExecutiveSignoffs
-  });
-
+  const latestVersion = versions[0];
+  const isLatest = !currentVersion || currentVersion.id === latestVersion?.id;
   const isImageReview = currentVersion?.sourceType === "IMAGE";
-  const canImportComments = allowComment && !isImageReview && !guestToken;
-  const quickGradeCycleNumber = useMemo(() => parseCycleFromProjectName(data.projectName), [data.projectName]);
-  const canManageQuickGrades =
-    !isGuest && !isImageReview && data.canManageQuickGrades && canShowQuickGradesForFolder(data.folderName);
+  const hasVideo = !isImageReview && Boolean(currentVersion?.playbackUrl);
+  const title = isInitialCut && currentVersion ? initialCutVersionTitle(currentVersion.versionNumber) : data.title;
+  const packageReview = data.packageReview;
+  const canUseFile = signedIn && !isImageReview && currentVersion?.status === "READY";
+  const downloadHref = canUseFile && currentVersion ? `/api/media/${data.mediaId}/download?mediaVersionId=${currentVersion.id}` : null;
 
   useHlsPlayer(videoRef, isImageReview ? null : currentVersion?.playbackUrl);
+  const playback = useReviewPlayback({ videoRef, versionId: currentVersionId, isImageReview, hasVideo });
+  const layout = useReviewSplitLayout({
+    refs: { root: rootRef, split: splitRef, card: cardRef, stage: stageRef, controls: controlsRef },
+    isImageReview,
+    layoutKey: `${currentVersionId}:${hasVideo}`,
+    isMacDesktopApp
+  });
 
-  const versionComments = useMemo(
-    () => comments.filter((comment) => comment.mediaVersionId === currentVersionId),
-    [currentVersionId, comments]
-  );
-
-  const allThreads = useMemo<CommentThread[]>(() => {
-    const roots = versionComments.filter((comment) => comment.parentCommentId === null);
-
-    return roots.map((root) => ({
-      root,
-      replies: versionComments
-        .filter((candidate) => candidate.parentCommentId === root.id)
-        .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
-    }));
-  }, [versionComments]);
-
-  const commentThreads = useMemo<CommentThread[]>(
-    () =>
-      allThreads
-        .filter((thread) => thread.root.targetType !== "GENERAL")
-        .sort((a, b) => {
-          if (isImageReview) {
-            return a.root.createdAt.localeCompare(b.root.createdAt);
-          }
-          return a.root.timeSeconds - b.root.timeSeconds;
-        }),
-    [allThreads, isImageReview]
-  );
-
-  const reviewThreads = useMemo<CommentThread[]>(
-    () =>
-      allThreads
-        .filter((thread) => thread.root.targetType === "GENERAL")
-        .sort((a, b) => a.root.createdAt.localeCompare(b.root.createdAt)),
-    [allThreads]
-  );
-
-  const deferredFilterMode = useDeferredValue(filterMode);
-
-  const visibleThreads = useMemo(() => {
-    if (deferredFilterMode === "ALL") {
-      return commentThreads;
-    }
-
-    const shouldShowResolved = deferredFilterMode === "RESOLVED";
-    return commentThreads.filter((thread) => (thread.root.resolvedAt !== null) === shouldShowResolved);
-  }, [commentThreads, deferredFilterMode]);
-
-  const visibleReviewThreads = useMemo(() => {
-    if (deferredFilterMode === "ALL") {
-      return reviewThreads;
-    }
-
-    const shouldShowResolved = deferredFilterMode === "RESOLVED";
-    return reviewThreads.filter((thread) => (thread.root.resolvedAt !== null) === shouldShowResolved);
-  }, [reviewThreads, deferredFilterMode]);
-
-  const savedQuickGradeRowMap = useMemo(
-    () => new Map(savedQuickGradeRows.map((row) => [row.userId, row])),
-    [savedQuickGradeRows]
-  );
-  const quickGradesRevisionDeadlineLabel = useMemo(() => {
-    let earliestPublishedAt: string | null = null;
-
-    for (const row of quickGradeRows) {
-      if (row.disabled || !row.published || !row.publishedAt) {
-        continue;
-      }
-
-      if (earliestPublishedAt === null || row.publishedAt < earliestPublishedAt) {
-        earliestPublishedAt = row.publishedAt;
-      }
-    }
-
-    return earliestPublishedAt ? formatQuickGradeRevisionDeadline(earliestPublishedAt) : null;
-  }, [quickGradeRows]);
-
+  const quickGradeCycle = useMemo(() => parseCycleFromProjectName(data.projectName), [data.projectName]);
+  const quickGrades = useQuickGrades({
+    enabled: signedIn && !isGuest && !isImageReview && data.canManageQuickGrades && canShowQuickGradesForFolder(data.folderName),
+    cycleNumber: quickGradeCycle,
+    assignedPeople: data.assignedPeople
+  });
+  const closeQuickGrades = quickGrades.close;
   useEffect(() => {
-    if (isImageReview) {
-      playheadStore.set(0);
-      setDuration(0);
-      return;
-    }
+    closeQuickGrades();
+  }, [currentVersionId, closeQuickGrades]);
 
-    const video = videoRef.current;
-
-    if (!video) {
-      return;
-    }
-
-    pendingSeekRef.current = null;
-    bufferedStore.set([]);
-    setIsBuffering(false);
-
-    const syncBuffered = () => {
-      const next = bufferedSpans(video.buffered, video.duration);
-      if (!sameBufferedSpans(bufferedStore.get(), next)) {
-        bufferedStore.set(next);
-      }
-    };
-
-    const syncState = () => {
-      // Keep the scrubber where the user dropped it while a queued seek is still waiting.
-      if (pendingSeekRef.current === null) {
-        playheadStore.set(video.currentTime || 0);
-      }
-      setDuration(video.duration || 0);
-      syncBuffered();
-    };
-
-    // Short delay so quick in-buffer seeks don't flash the spinner.
-    let bufferingTimer: number | undefined;
-    const startBuffering = () => {
-      window.clearTimeout(bufferingTimer);
-      bufferingTimer = window.setTimeout(() => setIsBuffering(true), 200);
-    };
-    const stopBuffering = () => {
-      window.clearTimeout(bufferingTimer);
-      setIsBuffering(false);
-    };
-
-    // One seek in flight at a time: while the browser fetches, keep only the latest scrub target.
-    const onSeeked = () => {
-      const pending = pendingSeekRef.current;
-      if (pending !== null) {
-        pendingSeekRef.current = null;
-        video.currentTime = pending;
-        return;
-      }
-      if (video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA || video.paused) {
-        stopBuffering();
-      }
-      syncState();
-    };
-
-    const onPlay = () => setIsPlaying(true);
-    const onPause = () => setIsPlaying(false);
-
-    const listeners: Array<[keyof HTMLMediaElementEventMap, () => void]> = [
-      ["loadedmetadata", syncState],
-      ["durationchange", syncState],
-      ["timeupdate", syncState],
-      ["progress", syncBuffered],
-      ["play", onPlay],
-      ["pause", onPause],
-      ["waiting", startBuffering],
-      ["seeking", startBuffering],
-      ["seeked", onSeeked],
-      ["playing", stopBuffering],
-      ["canplay", stopBuffering],
-      ["error", stopBuffering],
-      ["emptied", stopBuffering]
-    ];
-    listeners.forEach(([type, handler]) => video.addEventListener(type, handler));
-
-    return () => {
-      window.clearTimeout(bufferingTimer);
-      listeners.forEach(([type, handler]) => video.removeEventListener(type, handler));
-    };
-  }, [currentVersionId, isImageReview, playheadStore, bufferedStore]);
-
-  useEffect(() => {
-    if (isImageReview) {
-      return;
-    }
-
-    const video = videoRef.current;
-
-    if (!video) {
-      return;
-    }
-
-    video.playbackRate = playbackRate;
-    video.volume = volume;
-    if (volume === 0) {
-      video.muted = true;
-    } else if (video.muted) {
-      video.muted = false;
-    }
-  }, [isImageReview, volume, playbackRate]);
-
-  useEffect(() => {
-    if (isImageReview) {
-      return;
-    }
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.code !== "Space" && event.key !== " ") {
-        return;
-      }
-
-      if (event.ctrlKey || event.metaKey || event.altKey) {
-        return;
-      }
-
-      const target = event.target;
-      if (target instanceof HTMLElement) {
-        const tag = target.tagName;
-        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable) {
-          return;
-        }
-        if (target.getAttribute("role") === "textbox") {
-          return;
-        }
-      }
-
-      const video = videoRef.current;
-      if (!video) {
-        return;
-      }
-
-      event.preventDefault();
-      if (video.paused) {
-        void video.play();
+  // A finished transcript opens its tab, unless the viewer is writing: then the tab gets a dot.
+  const transcripts = useTranscripts({
+    mediaId: data.mediaId,
+    activeVersionId: currentVersionId,
+    onReady: (versionId) => {
+      const writing = isTypingTarget(document.activeElement) || composerBody.trim() !== "" || generalBody.trim() !== "";
+      if (writing) {
+        setTranscriptReadyFor(versionId);
+        toast.success("Transcript ready", { description: "It's in the Transcript tab." });
       } else {
-        video.pause();
+        setTab("TRANSCRIPT");
       }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isImageReview]);
-
-  useEffect(() => {
-    if (!commentsMenuOpen) {
-      return;
     }
-
-    const handlePointerDown = (event: PointerEvent) => {
-      if (!(event.target instanceof Node)) {
-        return;
-      }
-
-      if (commentsMenuRef.current?.contains(event.target)) {
-        return;
-      }
-
-      setCommentsMenuOpen(false);
-    };
-
-    window.addEventListener("pointerdown", handlePointerDown);
-    return () => window.removeEventListener("pointerdown", handlePointerDown);
-  }, [commentsMenuOpen]);
-
-  useEffect(() => {
-    if (!quickGradesOpen) {
-      return;
+  });
+  const activeTab: CommentsTab = tab === "TRANSCRIPT" && !canUseFile ? "TIMELINE" : tab;
+  function changeTab(next: CommentsTab) {
+    setTab(next);
+    if (next === "TRANSCRIPT") {
+      setTranscriptReadyFor(null);
     }
-
-    const handlePointerDown = (event: PointerEvent) => {
-      if (!(event.target instanceof Node)) {
-        return;
-      }
-
-      if (quickGradesRef.current?.contains(event.target)) {
-        return;
-      }
-
-      setQuickGradesOpen(false);
-    };
-
-    window.addEventListener("pointerdown", handlePointerDown);
-    return () => window.removeEventListener("pointerdown", handlePointerDown);
-  }, [quickGradesOpen]);
-
-  useEffect(() => {
-    if (!pendingSidebarFocusCommentId || commentsTab !== "COMMENTS") {
-      return;
-    }
-
-    const card = commentCardRefs.current[pendingSidebarFocusCommentId];
-
-    if (!card) {
-      setPendingSidebarFocusCommentId(null);
-      return;
-    }
-
-    card.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    setPendingSidebarFocusCommentId(null);
-  }, [commentsTab, pendingSidebarFocusCommentId, visibleThreads]);
-
-  useEffect(() => {
-    if (!sidebarHighlightedCommentId) {
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      setSidebarHighlightedCommentId((current) => (current === sidebarHighlightedCommentId ? null : current));
-    }, 1400);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [sidebarHighlightedCommentId]);
-
-  useEffect(() => {
-    setQuickGradesOpen(false);
-  }, [currentVersionId]);
-
-  function seekTo(timeSeconds: number) {
-    const video = videoRef.current;
-
-    if (!video) {
-      return;
-    }
-
-    const nextTime = clampToDuration(timeSeconds, video.duration || duration);
-    playheadStore.set(nextTime);
-    if (video.seeking) {
-      pendingSeekRef.current = nextTime;
-      return;
-    }
-    video.currentTime = nextTime;
   }
 
-  function focusCommentThread(thread: CommentThread, options?: { scrollSidebar?: boolean }) {
-    setSelectedCommentId(thread.root.id);
-    setSidebarHighlightedCommentId(thread.root.id);
+  const decisions = useReviewDecisions({ mediaId: data.mediaId, packageReview, currentVersion, isGuest, setVersions });
 
+  // Comments for this version, as threads with stable numbers, and what's new since the last visit.
+  const seen = useReviewSeen(data.mediaId, currentVersionId);
+  const versionComments = useMemo(
+    () => comments.comments.filter((comment) => comment.mediaVersionId === currentVersionId),
+    [comments.comments, currentVersionId]
+  );
+  const threads = useMemo(() => buildThreads(versionComments), [versionComments]);
+  const timeline = useMemo(() => timelineThreads(threads, isImageReview), [threads, isImageReview]);
+  const general = useMemo(() => generalThreads(threads), [threads]);
+  const timelineNumbers = useMemo(() => threadNumbers(timeline), [timeline]);
+  const generalNumbers = useMemo(() => threadNumbers(general), [general]);
+  const newIds = useMemo(
+    () =>
+      newThreadIds(threads, {
+        baseline: versionBaseline(seen, currentVersionId),
+        localIds: comments.localIds,
+        currentUserId: data.currentUserId
+      }),
+    [comments.localIds, currentVersionId, data.currentUserId, seen, threads]
+  );
+  const versionActivity = useMemo(
+    () => buildVersionActivity(versions, comments.comments, seen, { localIds: comments.localIds, currentUserId: data.currentUserId }),
+    [comments.comments, comments.localIds, data.currentUserId, seen, versions]
+  );
+
+  const timelineDuration =
+    playback.duration > 0 ? playback.duration : Math.max(1, ...timeline.map((thread) => thread.root.timeSeconds));
+
+  function changeVersion(versionId: string) {
+    setCurrentVersionId(versionId);
+    comments.setSelectedCommentId(null);
+    setComposerPin(null);
+  }
+
+  /** Shows the "All" filter when the current one would hide this thread. */
+  function revealInFilter(thread: CommentThread) {
+    if (filterThreads([thread], filter).length === 0) {
+      setFilter("ALL");
+    }
+  }
+
+  /** Select a thread: seek to it (video) or show its pin (image); optionally scroll the list to it. */
+  function focusThread(thread: CommentThread, options?: { scroll?: boolean }) {
+    comments.focusThread(thread.root.id, { scroll: options?.scroll });
     if (isImageReview) {
       if (thread.root.xPct !== null && thread.root.yPct !== null) {
         setComposerPin({ xPct: thread.root.xPct, yPct: thread.root.yPct });
       }
     } else {
-      seekTo(commentSeekTimeSeconds(thread.root));
+      playback.seekTo(commentSeekTimeSeconds(thread.root));
     }
-
-    if (options?.scrollSidebar) {
-      setCommentsTab("COMMENTS");
-      setPendingSidebarFocusCommentId(thread.root.id);
+    if (options?.scroll) {
+      changeTab("TIMELINE");
+      revealInFilter(thread);
     }
   }
 
-  function handleImageCanvasClick(event: React.MouseEvent<HTMLDivElement>) {
-    if (!allowComment || !isImageReview) {
+  function jumpToNew() {
+    const target = timeline.find((thread) => newIds.has(thread.root.id)) ?? general.find((thread) => newIds.has(thread.root.id));
+    if (!target) {
       return;
     }
+    changeTab(target.root.targetType === "GENERAL" ? "GENERAL" : "TIMELINE");
+    revealInFilter(target);
+    comments.setPendingScrollId(target.root.id);
+  }
 
-    const canvas = imageCanvasRef.current;
-    if (!canvas) {
+  function onCanvasClick(event: MouseEvent<HTMLDivElement>) {
+    const canvas = canvasRef.current;
+    if (!allowComment || !isImageReview || !canvas) {
       return;
     }
-
     const rect = canvas.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) {
       return;
     }
-
-    const xPct = Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100));
-    const yPct = Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100));
-
     setComposerPin({
-      xPct,
-      yPct
+      xPct: Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100)),
+      yPct: Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100))
     });
-    setSelectedCommentId(null);
+    comments.setSelectedCommentId(null);
   }
 
-  async function loadQuickGrades(cycleNumber: number) {
-    if (!canManageQuickGrades) {
+  async function submitTimelineComment() {
+    if (!allowComment || !composerBody.trim() || !currentVersion || (isImageReview && !composerPin)) {
       return;
     }
-
-    setQuickGradesLoading(true);
-    setQuickGradesMessage(null);
-
-    try {
-      const response = await fetch(`/api/grades/admin?cycle=${cycleNumber}`, { cache: "no-store" });
-      const payload = (await response.json()) as {
-        data?: QuickGradesApiPayload;
-        error?: { message?: string };
-      };
-
-      if (!response.ok || !payload.data) {
-        throw new Error(payload.error?.message ?? "Failed to load grades.");
-      }
-
-      const apiRowByUser = new Map(payload.data.rows.map((row) => [row.userId, row]));
-      const rows: QuickGradeRow[] = data.assignedPeople.map((person) => {
-        const apiRow = apiRowByUser.get(person.userId);
-        if (apiRow) {
-          return {
-            ...apiRow,
-            name: apiRow.name ?? person.name,
-            email: apiRow.email ?? person.email,
-            disabled: false,
-            disabledReason: null
-          };
-        }
-
-        return {
-          userId: person.userId,
-          name: person.name,
-          email: person.email,
-          effortPoints: null,
-          teamworkPoints: null,
-          feedback: "",
-          turnedInDate: null,
-          freeExtensionDays: 0,
-          extensionDetails: {
-            calculatedDays: 0,
-            freeDays: 0,
-            chargedDays: 0,
-            exempt: false
-          },
-          published: false,
-          publishedAt: null,
-          totalPoints: null,
-          percentage: null,
-          extensionsRemaining: 14,
-          disabled: true,
-          disabledReason: "Admin users are not gradable here."
-        };
-      });
-
-      setQuickGradeRows(rows);
-      setSavedQuickGradeRows(rows);
-      setQuickGradesLoadedCycle(cycleNumber);
-      setQuickGradesSharedTurnedInDate(commonQuickGradeTurnedInDate(rows));
-      setQuickGradesSharedTurnedInDirty(false);
-    } catch (error) {
-      setQuickGradesMessage(error instanceof Error ? error.message : "Failed to load grades.");
-    } finally {
-      setQuickGradesLoading(false);
-    }
-  }
-
-  async function saveAllQuickGrades(options?: { suppressSuccessMessage?: boolean }) {
-    if (!canManageQuickGrades || !quickGradeCycleNumber) {
-      return { ok: false as const, rows: quickGradeRows };
-    }
-
-    setQuickGradesSaving(true);
-    setQuickGradesMessage(null);
-
-    try {
-      const nextRows = quickGradeRows.map((row) => ({ ...row }));
-      const nextSavedRows = savedQuickGradeRows.map((row) => ({ ...row }));
-      const rowIndexByUser = new Map(nextRows.map((row, index) => [row.userId, index]));
-      const savedRowIndexByUser = new Map(nextSavedRows.map((row, index) => [row.userId, index]));
-      const applySharedTurnedInDate = quickGradesSharedTurnedInDirty;
-      const sharedTurnedInDate = quickGradesSharedTurnedInDate || null;
-      let savedCount = 0;
-      let turnedInOnlyCount = 0;
-      let skippedIncompleteCount = 0;
-
-      for (const row of quickGradeRows) {
-        if (row.disabled) {
-          continue;
-        }
-
-        const effectiveTurnedInDate = applySharedTurnedInDate ? sharedTurnedInDate : row.turnedInDate;
-        const turnedInDateChanged = (row.turnedInDate ?? null) !== (effectiveTurnedInDate ?? null);
-        const savedBaseline = savedQuickGradeRowMap.get(row.userId);
-        const freeExtensionDaysChanged = row.freeExtensionDays !== (savedBaseline?.freeExtensionDays ?? 0);
-
-        if (row.effortPoints === null || row.teamworkPoints === null) {
-          if (!turnedInDateChanged && !freeExtensionDaysChanged) {
-            skippedIncompleteCount += 1;
-            continue;
-          }
-
-          const response = await fetch("/api/grades/admin", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              action: "setTurnedInDate",
-              cycleNumber: quickGradeCycleNumber,
-              userId: row.userId,
-              turnedInDate: effectiveTurnedInDate,
-              freeExtensionDays: row.freeExtensionDays
-            })
-          });
-
-          const payload = (await response.json()) as {
-            data?: Pick<
-              QuickGradeApiRow,
-              | "effortPoints"
-              | "teamworkPoints"
-              | "feedback"
-              | "turnedInDate"
-              | "freeExtensionDays"
-              | "extensionDetails"
-              | "published"
-              | "publishedAt"
-              | "totalPoints"
-              | "percentage"
-              | "extensionsRemaining"
-            >;
-            error?: { message?: string };
-          };
-
-          if (!response.ok || !payload.data) {
-            throw new Error(payload.error?.message ?? `Failed to save ${quickGradePersonLabel(row)}.`);
-          }
-
-          const rowIndex = rowIndexByUser.get(row.userId);
-          if (rowIndex !== undefined) {
-            nextRows[rowIndex] = {
-              ...nextRows[rowIndex],
-              ...payload.data
-            };
-          }
-
-          const savedRowIndex = savedRowIndexByUser.get(row.userId);
-          if (savedRowIndex !== undefined) {
-            nextSavedRows[savedRowIndex] = {
-              ...nextSavedRows[savedRowIndex],
-              ...payload.data
-            };
-          }
-
-          turnedInOnlyCount += 1;
-          continue;
-        }
-
-        const rowToSave = {
-          ...row,
-          turnedInDate: effectiveTurnedInDate
-        };
-
-        if (quickGradeRowsEqual(rowToSave, savedQuickGradeRowMap.get(row.userId))) {
-          continue;
-        }
-
-        const response = await fetch("/api/grades/admin", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "save",
-            cycleNumber: quickGradeCycleNumber,
-            userId: row.userId,
-            effortPoints: row.effortPoints,
-            teamworkPoints: row.teamworkPoints,
-            feedback: row.feedback,
-            turnedInDate: effectiveTurnedInDate,
-            freeExtensionDays: row.freeExtensionDays
-          })
-        });
-
-        const payload = (await response.json()) as {
-          data?: Pick<
-            QuickGradeApiRow,
-            | "effortPoints"
-            | "teamworkPoints"
-            | "feedback"
-            | "turnedInDate"
-            | "freeExtensionDays"
-            | "extensionDetails"
-            | "published"
-            | "publishedAt"
-            | "totalPoints"
-            | "percentage"
-            | "extensionsRemaining"
-          >;
-          error?: { message?: string };
-        };
-
-        if (!response.ok || !payload.data) {
-          throw new Error(payload.error?.message ?? `Failed to save ${quickGradePersonLabel(row)}.`);
-        }
-
-        const rowIndex = rowIndexByUser.get(row.userId);
-        if (rowIndex !== undefined) {
-          nextRows[rowIndex] = {
-            ...nextRows[rowIndex],
-            ...payload.data
-          };
-        }
-
-        const savedRowIndex = savedRowIndexByUser.get(row.userId);
-        if (savedRowIndex !== undefined) {
-          nextSavedRows[savedRowIndex] = {
-            ...nextSavedRows[savedRowIndex],
-            ...payload.data
-          };
-        }
-
-        savedCount += 1;
-      }
-
-      setQuickGradeRows(nextRows);
-      setSavedQuickGradeRows(nextSavedRows);
-      if (applySharedTurnedInDate) {
-        setQuickGradesSharedTurnedInDirty(false);
-      }
-      setQuickGradesSharedTurnedInDate(commonQuickGradeTurnedInDate(nextRows));
-
-      if (!options?.suppressSuccessMessage && savedCount === 0 && turnedInOnlyCount === 0 && skippedIncompleteCount > 0) {
-        setQuickGradesMessage("Enter both grades for each person before saving.");
-        return { ok: true as const, rows: nextRows };
-      }
-
-      if (!options?.suppressSuccessMessage && savedCount === 0 && turnedInOnlyCount === 0) {
-        setQuickGradesMessage("No grade changes to save.");
-        return { ok: true as const, rows: nextRows };
-      }
-
-      if (!options?.suppressSuccessMessage) {
-        const savedParts = [];
-        if (savedCount > 0) {
-          savedParts.push(`Saved ${savedCount} grade${savedCount === 1 ? "" : "s"}`);
-        }
-        if (turnedInOnlyCount > 0) {
-          savedParts.push(`updated turned-in date for ${turnedInOnlyCount} row${turnedInOnlyCount === 1 ? "" : "s"}`);
-        }
-        const summary = savedParts.length > 0 ? savedParts.join("; ") : "No changes saved";
-        setQuickGradesMessage(
-          skippedIncompleteCount > 0
-            ? `${summary} (${skippedIncompleteCount} incomplete row${skippedIncompleteCount === 1 ? "" : "s"} skipped).`
-            : `${summary}.`
-        );
-      }
-
-      return { ok: true as const, rows: nextRows };
-    } catch (error) {
-      setQuickGradesMessage(error instanceof Error ? error.message : "Failed to save grades.");
-      return { ok: false as const, rows: quickGradeRows };
-    } finally {
-      setQuickGradesSaving(false);
-    }
-  }
-
-  async function publishAllQuickGrades() {
-    if (!canManageQuickGrades || !quickGradeCycleNumber) {
-      return;
-    }
-
-    const saveResult = await saveAllQuickGrades({ suppressSuccessMessage: true });
-    if (!saveResult.ok) {
-      return;
-    }
-
-    setQuickGradesSaving(true);
-    setQuickGradesMessage(null);
-
-    try {
-      const sourceRows = saveResult.rows;
-      const nextRows = sourceRows.map((row) => ({ ...row }));
-      const nextSavedRows = sourceRows.map((row) => ({ ...row }));
-      const rowIndexByUser = new Map(nextRows.map((row, index) => [row.userId, index]));
-      const savedRowIndexByUser = new Map(nextSavedRows.map((row, index) => [row.userId, index]));
-      let publishedCount = 0;
-      let alreadyPublishedCount = 0;
-      let skippedIncompleteCount = 0;
-
-      for (const row of sourceRows) {
-        if (row.disabled) {
-          continue;
-        }
-
-        if (row.effortPoints === null || row.teamworkPoints === null) {
-          skippedIncompleteCount += 1;
-          continue;
-        }
-
-        if (row.published) {
-          alreadyPublishedCount += 1;
-          continue;
-        }
-
-        const response = await fetch("/api/grades/admin", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "setPublish",
-            cycleNumber: quickGradeCycleNumber,
-            userId: row.userId,
-            published: true
-          })
-        });
-
-        const payload = (await response.json()) as {
-          data?: Pick<
-            QuickGradeApiRow,
-            "effortPoints" | "teamworkPoints" | "feedback" | "turnedInDate" | "published" | "publishedAt" | "totalPoints" | "percentage" | "extensionsRemaining"
-          >;
-          error?: { message?: string };
-        };
-
-        if (!response.ok || !payload.data) {
-          throw new Error(payload.error?.message ?? `Failed to publish ${quickGradePersonLabel(row)}.`);
-        }
-
-        const rowIndex = rowIndexByUser.get(row.userId);
-        if (rowIndex !== undefined) {
-          nextRows[rowIndex] = {
-            ...nextRows[rowIndex],
-            ...payload.data
-          };
-        }
-
-        const savedRowIndex = savedRowIndexByUser.get(row.userId);
-        if (savedRowIndex !== undefined) {
-          nextSavedRows[savedRowIndex] = {
-            ...nextSavedRows[savedRowIndex],
-            ...payload.data
-          };
-        }
-
-        publishedCount += 1;
-      }
-
-      setQuickGradeRows(nextRows);
-      setSavedQuickGradeRows(nextSavedRows);
-      setQuickGradesSharedTurnedInDate(commonQuickGradeTurnedInDate(nextRows));
-
-      const parts = [];
-      if (publishedCount > 0) {
-        parts.push(`Published ${publishedCount} grade${publishedCount === 1 ? "" : "s"}`);
-      }
-      if (alreadyPublishedCount > 0) {
-        parts.push(`${alreadyPublishedCount} already published`);
-      }
-      if (skippedIncompleteCount > 0) {
-        parts.push(`${skippedIncompleteCount} incomplete skipped`);
-      }
-      setQuickGradesMessage(parts.length > 0 ? `${parts.join("; ")}.` : "No grades to publish.");
-    } catch (error) {
-      setQuickGradesMessage(error instanceof Error ? error.message : "Failed to publish grades.");
-    } finally {
-      setQuickGradesSaving(false);
-    }
-  }
-
-  function toggleQuickGradesPanel() {
-    if (!canManageQuickGrades) {
-      return;
-    }
-
-    setQuickGradesOpen((open) => {
-      const nextOpen = !open;
-      if (nextOpen) {
-        setQuickGradesMessage(null);
-        if (quickGradeCycleNumber && quickGradesLoadedCycle !== quickGradeCycleNumber) {
-          void loadQuickGrades(quickGradeCycleNumber);
-        }
-      } else {
-        setQuickGradesSharedTurnedInDirty(false);
-        setQuickGradesFeedbackEditorUserId(null);
-      }
-      return nextOpen;
-    });
-  }
-
-  async function submitComment() {
-    if (!allowComment || !composerBody.trim() || !currentVersion) {
-      return;
-    }
-
-    if (isImageReview && !composerPin) {
-      return;
-    }
-
-    const clampedTime = isImageReview ? 0 : clampToDuration(playheadStore.get(), duration);
-
+    const time = isImageReview ? 0 : clampToDuration(playback.playheadStore.get(), playback.duration);
     setSubmittingComment(true);
-
-    try {
-      const response = await fetch("/api/comments", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          mediaVersionId: currentVersion.id,
-          targetType: isImageReview ? "FRAME_PIN" : "TIMECODE",
-          timeSeconds: clampedTime,
-          frameNumber: isImageReview ? 0 : frameNumberFromSeconds(clampedTime, DEFAULT_REVIEW_FPS),
-          xPct: isImageReview ? composerPin?.xPct : undefined,
-          yPct: isImageReview ? composerPin?.yPct : undefined,
-          body: composerBody,
-          guestToken
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed");
-      }
-
-      const payload = await response.json();
-      const created = payload.data as {
-        id: string;
-        mediaVersionId: string;
-        body: string;
-        authorId: string | null;
-        timeSeconds: number;
-        frameNumber: number | null;
-        xPct: number | null;
-        yPct: number | null;
-        targetType: "TIMECODE" | "FRAME_PIN" | "GENERAL";
-        createdAt: string;
-        resolvedAt: string | null;
-        parentCommentId: string | null;
-      };
-
-      setComments((current) => [
-        ...current,
-        {
-          id: created.id,
-          mediaVersionId: created.mediaVersionId,
-          body: created.body,
-          authorId: created.authorId,
-          authorName: "You",
-          timeSeconds: created.timeSeconds,
-          frameNumber: created.frameNumber,
-          xPct: created.xPct,
-          yPct: created.yPct,
-          targetType: created.targetType,
-          createdAt: created.createdAt,
-          resolvedAt: created.resolvedAt,
-          parentCommentId: created.parentCommentId
-        }
-      ]);
-      setCommentsTab("COMMENTS");
-      setSelectedCommentId(created.id);
-      setSidebarHighlightedCommentId(created.id);
-      setPendingSidebarFocusCommentId(created.id);
+    const created = await comments.createComment({
+      mediaVersionId: currentVersion.id,
+      targetType: isImageReview ? "FRAME_PIN" : "TIMECODE",
+      timeSeconds: time,
+      frameNumber: isImageReview ? 0 : frameNumberFromSeconds(time, DEFAULT_REVIEW_FPS),
+      xPct: isImageReview ? composerPin?.xPct : undefined,
+      yPct: isImageReview ? composerPin?.yPct : undefined,
+      body: composerBody
+    });
+    setSubmittingComment(false);
+    if (created) {
+      changeTab("TIMELINE");
+      // A remembered "Resolved" filter would hide the new comment; show it.
+      revealInFilter({ root: created, replies: [] });
+      comments.focusThread(created.id, { scroll: true });
       setComposerBody("");
       if (isImageReview) {
         setComposerPin(null);
       }
-    } catch {
-      toast.error("Could not send comment.");
-    } finally {
-      setSubmittingComment(false);
     }
   }
 
-  async function submitReviewComment() {
-    if (!allowComment || !reviewComposerBody.trim() || !currentVersion) {
+  async function submitGeneralComment() {
+    if (!allowComment || !generalBody.trim() || !currentVersion) {
       return;
     }
-
-    setSubmittingReviewComment(true);
-
-    try {
-      const response = await fetch("/api/comments", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mediaVersionId: currentVersion.id,
-          targetType: "GENERAL",
-          body: reviewComposerBody,
-          guestToken
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed");
-      }
-
-      const payload = await response.json();
-      const created = payload.data as {
-        id: string;
-        mediaVersionId: string;
-        body: string;
-        authorId: string | null;
-        timeSeconds: number;
-        frameNumber: number | null;
-        xPct: number | null;
-        yPct: number | null;
-        targetType: "TIMECODE" | "FRAME_PIN" | "GENERAL";
-        createdAt: string;
-        resolvedAt: string | null;
-        parentCommentId: string | null;
-      };
-
-      setComments((current) => [
-        ...current,
-        {
-          id: created.id,
-          mediaVersionId: created.mediaVersionId,
-          body: created.body,
-          authorId: created.authorId,
-          authorName: "You",
-          timeSeconds: created.timeSeconds,
-          frameNumber: created.frameNumber,
-          xPct: created.xPct,
-          yPct: created.yPct,
-          targetType: created.targetType,
-          createdAt: created.createdAt,
-          resolvedAt: created.resolvedAt,
-          parentCommentId: created.parentCommentId
-        }
-      ]);
-      setReviewComposerBody("");
-    } catch {
-      toast.error("Could not send comment.");
-    } finally {
-      setSubmittingReviewComment(false);
+    setSubmittingGeneral(true);
+    const created = await comments.createComment({ mediaVersionId: currentVersion.id, targetType: "GENERAL", body: generalBody });
+    setSubmittingGeneral(false);
+    if (created) {
+      revealInFilter({ root: created, replies: [] });
+      setGeneralBody("");
     }
   }
 
-  async function submitReply(parentId: string) {
-    const draft = (replyDrafts[parentId] ?? "").trim();
-
-    if (!allowComment || draft.length === 0) {
-      return;
-    }
-
-    setSubmittingReplyFor(parentId);
-
-    try {
-      const response = await fetch(`/api/comments/${parentId}/replies`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          body: draft,
-          guestToken
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed");
-      }
-
-      const payload = await response.json();
-      const created = payload.data as {
-        id: string;
-        mediaVersionId: string;
-        body: string;
-        authorId: string | null;
-        timeSeconds: number;
-        frameNumber: number | null;
-        xPct: number | null;
-        yPct: number | null;
-        targetType: "TIMECODE" | "FRAME_PIN" | "GENERAL";
-        createdAt: string;
-        resolvedAt: string | null;
-        parentCommentId: string | null;
-      };
-
-      setComments((current) => [
-        ...current,
-        {
-          id: created.id,
-          mediaVersionId: created.mediaVersionId,
-          body: created.body,
-          authorId: created.authorId,
-          authorName: "You",
-          timeSeconds: created.timeSeconds,
-          frameNumber: created.frameNumber,
-          xPct: created.xPct,
-          yPct: created.yPct,
-          targetType: created.targetType,
-          createdAt: created.createdAt,
-          resolvedAt: created.resolvedAt,
-          parentCommentId: created.parentCommentId
-        }
-      ]);
-
-      setReplyDrafts((drafts) => ({
-        ...drafts,
-        [parentId]: ""
-      }));
-      setReplyingTo(null);
-    } catch {
-      toast.error("Could not send reply.");
-    } finally {
-      setSubmittingReplyFor(null);
-    }
-  }
-
-  async function deleteComment(commentId: string) {
-    if (isGuest) {
-      return;
-    }
-
-    setDeletingCommentId(commentId);
-
-    try {
-      const response = await fetch(`/api/comments/${commentId}`, {
-        method: "DELETE"
-      });
-
-      if (!response.ok && response.status !== 404) {
-        throw new Error("Failed");
-      }
-
-      let removedIds = new Set<string>([commentId]);
-      setComments((current) => {
-        removedIds = collectCommentThreadIds(current, commentId);
-        return current.filter((comment) => !removedIds.has(comment.id));
-      });
-      setSelectedCommentId((current) => (current !== null && removedIds.has(current) ? null : current));
-      setReplyingTo((current) => (current !== null && removedIds.has(current) ? null : current));
-      setPendingSidebarFocusCommentId((current) => (current !== null && removedIds.has(current) ? null : current));
-      setSidebarHighlightedCommentId((current) => (current !== null && removedIds.has(current) ? null : current));
-      setReplyDrafts((drafts) => {
-        const next = { ...drafts };
-        for (const removedId of removedIds) {
-          delete next[removedId];
-        }
-        return next;
-      });
-    } catch {
-      toast.error("Could not delete comment.");
-      throw new Error("Could not delete comment.");
-    } finally {
-      setDeletingCommentId((current) => (current === commentId ? null : current));
-    }
-  }
-
-  function startEditingComment(commentId: string, currentBody: string) {
-    setEditingCommentId(commentId);
-    setEditDraft(currentBody);
-  }
-
-  function cancelEditingComment() {
-    setEditingCommentId(null);
-    setEditDraft("");
-  }
-
-  async function saveEditComment(commentId: string) {
-    if (isGuest || !editDraft.trim()) {
-      return;
-    }
-
-    setSavingEditCommentId(commentId);
-
-    try {
-      const response = await fetch(`/api/comments/${commentId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: editDraft.trim() })
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed");
-      }
-
-      setComments((current) =>
-        current.map((comment) =>
-          comment.id === commentId ? { ...comment, body: editDraft.trim() } : comment
-        )
-      );
-      setEditingCommentId(null);
-      setEditDraft("");
-    } catch {
-      toast.error("Could not save comment.");
-    } finally {
-      setSavingEditCommentId(null);
-    }
-  }
-
-  function exportCommentsToCsv() {
+  function exportCsv() {
     const csv = buildCommentsCsv(versionComments);
     const url = URL.createObjectURL(new Blob(["﻿", csv], { type: "text/csv;charset=utf-8" }));
     const link = document.createElement("a");
-    const baseName = `${data.title} v${currentVersion?.versionNumber ?? ""} comments`.replace(/[\\/:*?"<>|]+/g, "-").trim();
     link.href = url;
-    link.download = `${baseName}.csv`;
+    link.download = `${commentsExportBaseName(title, currentVersion?.versionNumber)}.csv`;
     document.body.appendChild(link);
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
   }
 
-  async function importCommentsFromFile(file: File) {
+  function importCsv(file: File) {
     if (!currentVersion || currentVersion.sourceType !== "VIDEO") {
       toast.error("CSV import is only available for video reviews.");
       return;
     }
-
-    setImportingComments(true);
-
-    try {
-      const csvText = await file.text();
-      const response = await fetch("/api/comments/import", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          mediaVersionId: currentVersion.id,
-          csvText
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed");
-      }
-
-      const payload = await response.json();
-      const imported = (payload.data.comments ?? []) as Array<{
-        id: string;
-        mediaVersionId: string;
-        body: string;
-        authorId: string | null;
-        timeSeconds: number;
-        frameNumber: number | null;
-        xPct: number | null;
-        yPct: number | null;
-        targetType: "TIMECODE" | "FRAME_PIN" | "GENERAL";
-        createdAt: string;
-        resolvedAt: string | null;
-        parentCommentId: string | null;
-      }>;
-
-      setComments((current) => [
-        ...current,
-        ...imported.map((comment) => ({
-          ...comment,
-          authorName: "You"
-        }))
-      ]);
-      toast.success(`Imported ${payload.data.importedCount} comments${payload.data.skippedCount ? ` (${payload.data.skippedCount} skipped)` : ""}.`);
-    } catch {
-      toast.error("Could not import comments from CSV.");
-    } finally {
-      setImportingComments(false);
-    }
+    void comments.importCsv(currentVersion.id, file);
   }
 
-  function toAiredDateInput(iso: string | null): string {
-    const source = iso ? new Date(iso) : new Date();
-    if (Number.isNaN(source.getTime())) {
-      return "";
-    }
-    const year = source.getUTCFullYear();
-    const month = String(source.getUTCMonth() + 1).padStart(2, "0");
-    const day = String(source.getUTCDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  }
-
-  function formatAiredLabel(iso: string): string {
-    const date = new Date(iso);
-    if (Number.isNaN(date.getTime())) {
-      return "";
-    }
-    return new Intl.DateTimeFormat(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      timeZone: "UTC"
-    }).format(date);
-  }
-
-  function openAiredDialog() {
-    setAiredDateInput(toAiredDateInput(currentVersion?.airedAt ?? null));
-    setAiredDialogOpen(true);
-  }
-
-  async function submitAiredDate() {
-    if (!airedDateInput) {
-      return;
-    }
-    const iso = `${airedDateInput}T00:00:00.000Z`;
-    setAiredDialogOpen(false);
-    await changeApproval("AIRED", iso);
-  }
-
-  async function submitPackageReview() {
-    if (!packageReview?.canSubmitReview || !currentVersion) {
-      return;
-    }
-
-    setSubmittingPackageReview(true);
-    setPackageActionMessage(null);
-
-    try {
-      const response = await fetch(`/api/media/${data.mediaId}/package-approval`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "SUBMIT_REVIEW",
-          mediaVersionId: currentVersion.id
-        })
-      });
-
-      if (!response.ok) {
-        const body = (await response.json()) as { error?: { message?: string } };
-        throw new Error(body.error?.message ?? "Could not submit review.");
-      }
-
-      setVersions((current) =>
-        current.map((version) =>
-          version.id === currentVersion.id ? { ...version, approvalStatus: "NEEDS_CHANGES" } : version
-        )
-      );
-      window.location.reload();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not submit review.");
-    } finally {
-      setSubmittingPackageReview(false);
-    }
-  }
-
-  async function approvePackageCut(feedback?: string, unapprove = false) {
-    if (!(unapprove ? packageReview?.canUnapprove : packageReview?.canApprove)) {
-      return;
-    }
-
-    setStatusUpdating(true);
-    setPackageActionMessage(null);
-
-    try {
-      const response = await fetch(`/api/media/${data.mediaId}/package-approval`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: unapprove ? "UNAPPROVE" : "DECIDE", approved: true, note: feedback, mediaVersionId: currentVersion?.id })
-      });
-
-      if (!response.ok) {
-        const body = (await response.json()) as { error?: { message?: string } };
-        throw new Error(body.error?.message ?? "Could not approve this cut.");
-      }
-
-      window.location.reload();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not approve this cut.");
-    } finally {
-      setStatusUpdating(false);
-    }
-  }
-
-  // Runs from the confirm dialog; rethrows so the dialog stays open when the request fails.
-  async function approvePackageCutAnyway() {
-    if (!packageReview?.canApproveAnyway) {
-      return;
-    }
-
-    setStatusUpdating(true);
-    setPackageActionMessage(null);
-
-    try {
-      const response = await fetch(`/api/media/${data.mediaId}/package-approval`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "APPROVE_ANYWAY" })
-      });
-
-      if (!response.ok) {
-        const body = (await response.json()) as { error?: { message?: string } };
-        throw new Error(body.error?.message ?? "Could not send the package to Stage 2.");
-      }
-
-      window.location.reload();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not send the package to Stage 2.");
-      throw error;
-    } finally {
-      setStatusUpdating(false);
-    }
-  }
-
-  async function changeApproval(nextStatus: ApprovalStatusValue, airedAtIso?: string) {
-    if (!currentVersion || isGuest) {
-      return;
-    }
-
-    setStatusUpdating(true);
-
-    try {
-      const response = await fetch(`/api/media/${data.mediaId}/approval-status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mediaVersionId: currentVersion.id,
-          status: nextStatus,
-          ...(nextStatus === "AIRED" && airedAtIso ? { airedAt: airedAtIso } : {})
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed");
-      }
-
-      const nextAiredAt = nextStatus === "AIRED" ? airedAtIso ?? null : null;
-
-      setVersions((current) =>
-        current.map((version) =>
-          version.id === currentVersion.id
-            ? { ...version, approvalStatus: nextStatus, airedAt: nextAiredAt }
-            : version
-        )
-      );
-    } catch {
-      toast.error("Could not update approval state.");
-    } finally {
-      setStatusUpdating(false);
-    }
-  }
-
-  async function togglePlayback() {
-    const video = videoRef.current;
-
-    if (!video) {
-      return;
-    }
-
-    if (video.paused) {
-      await video.play();
-      return;
-    }
-
-    video.pause();
-  }
-
-  const timelineDuration = duration > 0 ? duration : Math.max(1, ...commentThreads.map((thread) => thread.root.timeSeconds));
-  const commentCount = commentThreads.length;
-  const reviewPaneMaxHeightClass = isMacDesktopApp ? "lg:max-xl:landscape:max-h-[calc(100dvh-11.5rem)]" : "lg:max-xl:landscape:max-h-[calc(100dvh-7.5rem)]";
-  const reviewLayoutHeightClass = isMacDesktopApp ? "xl:h-[calc(100dvh-11.5rem)]" : "xl:h-[calc(100dvh-7.5rem)]";
-  const effectiveSidebarWidthPx = manualSidebarWidthPx ?? autoSidebarWidthPx ?? 420;
-
-  const clampSidebarWidth = useCallback(
-    (requestedWidth: number) => {
-      const layoutWidth = reviewLayoutRef.current?.clientWidth ?? 0;
-      const layoutDrivenMax = Math.max(minSidebarWidthPx, layoutWidth - reviewSplitterWidthPx - minLeftPaneWidthPx);
-      const ceiling = Math.min(maxSidebarWidthPx, layoutDrivenMax);
-      return Math.max(minSidebarWidthPx, Math.min(ceiling, requestedWidth));
-    },
-    [maxSidebarWidthPx, minLeftPaneWidthPx, minSidebarWidthPx, reviewSplitterWidthPx]
-  );
-
-  const recalculateReviewSplitLayout = useCallback(() => {
-    if (!isDesktopSplitLayout) {
-      setComputedMediaStageMaxWidthPx((current) => (current === null ? current : null));
-      if (manualSidebarWidthPx === null) {
-        setAutoSidebarWidthPx((current) => (current === null ? current : null));
-      }
-      return;
-    }
-
-    const layoutNode = reviewLayoutRef.current;
-    const cardNode = reviewMainCardRef.current;
-    const mediaNode = mediaStageRef.current;
-    if (!layoutNode || !cardNode || !mediaNode) {
-      return;
-    }
-
-    const layoutRect = layoutNode.getBoundingClientRect();
-    const cardRect = cardNode.getBoundingClientRect();
-    const mediaRect = mediaNode.getBoundingClientRect();
-    const layoutBottom = layoutRect.top + layoutNode.clientHeight;
-    const availableHeight = Math.max(0, layoutBottom - cardRect.top);
-    const controlsHeight = isImageReview ? 0 : (mediaControlsRef.current?.getBoundingClientRect().height ?? 0);
-    const mediaGap = isImageReview ? 0 : 12;
-    const leftChromeHeight = Math.max(0, cardRect.height - mediaRect.height);
-    const stageAvailableHeight = Math.max(0, availableHeight - leftChromeHeight);
-    const targetVideoHeight = isImageReview ? stageAvailableHeight : Math.max(0, stageAvailableHeight - controlsHeight - mediaGap);
-    const targetMediaWidth = Math.max(260, targetVideoHeight * (16 / 9));
-
-    if (manualSidebarWidthPx === null) {
-      const layoutWidth = layoutNode.clientWidth;
-      const autoSidebarCandidate = layoutWidth - reviewSplitterWidthPx - targetMediaWidth;
-      const clampedAutoSidebarWidth = clampSidebarWidth(autoSidebarCandidate);
-      setAutoSidebarWidthPx((current) =>
-        current !== null && Math.abs(current - clampedAutoSidebarWidth) < 1 ? current : clampedAutoSidebarWidth
-      );
-    }
-
-    const activeSidebarWidth = manualSidebarWidthPx ?? autoSidebarWidthPx ?? clampSidebarWidth(420);
-    const availableLeftWidth = Math.max(260, layoutNode.clientWidth - reviewSplitterWidthPx - activeSidebarWidth);
-    const clampedMediaWidth = Math.max(260, Math.min(availableLeftWidth, targetMediaWidth));
-    setComputedMediaStageMaxWidthPx((current) =>
-      current !== null && Math.abs(current - clampedMediaWidth) < 1 ? current : clampedMediaWidth
-    );
-  }, [
-    autoSidebarWidthPx,
-    clampSidebarWidth,
-    isDesktopSplitLayout,
+  useReviewShortcuts({
+    rootRef,
     isImageReview,
-    manualSidebarWidthPx,
-    reviewSplitterWidthPx
-  ]);
+    hasVideo,
+    allowComment,
+    transcriptOpen: activeTab === "TRANSCRIPT",
+    onOpenTimeline: () => changeTab("TIMELINE"),
+    composerRef,
+    comments,
+    playback
+  });
 
-  useEffect(() => {
-    recalculateReviewSplitLayout();
-
-    const layoutNode = reviewLayoutRef.current;
-    const cardNode = reviewMainCardRef.current;
-    const mediaNode = mediaStageRef.current;
-    const controlsNode = mediaControlsRef.current;
-    const heroNode = reviewHeroRef.current;
-    const resizeObserver = typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => recalculateReviewSplitLayout()) : null;
-
-    if (resizeObserver && layoutNode) {
-      resizeObserver.observe(layoutNode);
-    }
-    if (resizeObserver && heroNode) {
-      resizeObserver.observe(heroNode);
-    }
-    if (resizeObserver && cardNode) {
-      resizeObserver.observe(cardNode);
-    }
-    if (resizeObserver && mediaNode) {
-      resizeObserver.observe(mediaNode);
-    }
-    if (resizeObserver && controlsNode) {
-      resizeObserver.observe(controlsNode);
-    }
-
-    window.addEventListener("resize", recalculateReviewSplitLayout);
-    return () => {
-      window.removeEventListener("resize", recalculateReviewSplitLayout);
-      resizeObserver?.disconnect();
-    };
-  }, [currentVersionId, recalculateReviewSplitLayout]);
-
-  useEffect(() => {
-    if (!isResizingSidebar) {
-      return;
-    }
-
-    const handlePointerMove = (event: PointerEvent) => {
-      const drag = sidebarResizeDragRef.current;
-      if (!drag) {
-        return;
-      }
-
-      const nextWidth = clampSidebarWidth(drag.startWidth - (event.clientX - drag.startX));
-      setManualSidebarWidthPx(nextWidth);
-    };
-
-    const endResize = () => {
-      sidebarResizeDragRef.current = null;
-      setIsResizingSidebar(false);
-    };
-
-    window.addEventListener("pointermove", handlePointerMove);
-    window.addEventListener("pointerup", endResize);
-    window.addEventListener("pointercancel", endResize);
-    return () => {
-      window.removeEventListener("pointermove", handlePointerMove);
-      window.removeEventListener("pointerup", endResize);
-      window.removeEventListener("pointercancel", endResize);
-    };
-  }, [clampSidebarWidth, isResizingSidebar]);
-
-  const startSidebarResize = useCallback(
-    (event: ReactPointerEvent<HTMLButtonElement>) => {
-      if (!isDesktopSplitLayout || event.button !== 0) {
-        return;
-      }
-
-      event.preventDefault();
-      sidebarResizeDragRef.current = {
-        startX: event.clientX,
-        startWidth: effectiveSidebarWidthPx
-      };
-      setManualSidebarWidthPx(effectiveSidebarWidthPx);
-      setIsResizingSidebar(true);
-    },
-    [effectiveSidebarWidthPx, isDesktopSplitLayout]
+  // Header: status says it once (tag), the strip shows the path, the line says what to do (on a
+  // desktop the strip takes the line's place and the instruction sits under the decision buttons).
+  const status = primaryStatus(currentVersion, packageReview);
+  const eyebrow = guestToken ? data.projectName : `Review · ${data.projectName}${data.folderName ? ` / ${data.folderName}` : ""}`;
+  const approvalStrip = packageReview ? (
+    <ApprovalStrip
+      steps={packageApprovalSteps(packageReview, latestVersion)}
+      youCanDecide={hasPackageDecision(packageReview)}
+      statusLabel={status.label}
+    />
+  ) : null;
+  const helper = packageReview ? packageHelperText(packageReview) : null;
+  const uploadedLine = currentVersion ? <RelativeAge iso={currentVersion.createdAt} prefix="Uploaded " suffix=" ago" /> : null;
+  const decisionButtons = signedIn
+    ? reviewDecisionButtons({
+        packageReview,
+        canUpdateApprovalStatus: data.canUpdateApprovalStatus,
+        version: currentVersion,
+        handlers: {
+          isLatest,
+          submittingReview: decisions.submittingReview,
+          statusUpdating: decisions.statusUpdating,
+          onSubmitReview: () => void decisions.submitReview(),
+          onUnapprove: () => void decisions.approve(undefined, true),
+          onApprove: () => decisions.setApproveFeedbackOpen(true),
+          onApproveAnyway: () => decisions.setApproveAnywayOpen(true),
+          onChangeStatus: (next) => void decisions.changeStatus(next),
+          onMarkAired: decisions.openAiredDialog
+        }
+      })
+    : null;
+  // One filled button per view: the decision if there is one, otherwise the desktop grades panel's
+  // Save while it's open, otherwise the composer's Send.
+  const headerHasPrimary =
+    signedIn &&
+    (packageReview
+      ? Boolean(packageReview.canApprove || packageReview.canApproveAnyway)
+      : data.canUpdateApprovalStatus && currentVersion?.approvalStatus !== "AIRED");
+  const toolProps = {
+    downloadHref,
+    showGrades: quickGrades.enabled,
+    gradesOpen: quickGrades.open,
+    onToggleGrades: quickGrades.toggle,
+    onRefresh: () => router.refresh()
+  };
+  const goToLatest = (size: "md" | "touch") =>
+    !isLatest && latestVersion ? (
+      <GoToLatestButton latestVersionNumber={latestVersion.versionNumber} onGoToLatest={() => changeVersion(latestVersion.id)} size={size} />
+    ) : null;
+  const versionSelect = (size: "md" | "touch") => (
+    <ReviewVersionSelect versions={versions} value={currentVersionId} onChange={changeVersion} activity={versionActivity} size={size} />
   );
+
+  const permissions: ThreadPermissions = {
+    currentUserId: data.currentUserId,
+    canReply: allowComment,
+    canEditOwn: signedIn && allowComment,
+    canEditOwnReplies: signedIn,
+    canDelete: signedIn && allowComment,
+    canResolveAny: signedIn && allowComment && canResolveComment(data.workspaceRole, false),
+    canResolveOwn: signedIn && allowComment && canResolveComment(data.workspaceRole, true)
+  };
+  // On a desktop, Quick grades takes the comments panel's place, beside the picture.
+  const gradesInPanel = quickGrades.open && layout.isDesktopSplitLayout;
+  const generalTab = activeTab === "GENERAL";
+  const composer = allowComment ? (
+    <CommentComposer
+      ref={composerRef}
+      kind={generalTab ? "general" : "timeline"}
+      isImageReview={isImageReview}
+      pin={composerPin}
+      playhead={playback.playheadStore}
+      value={generalTab ? generalBody : composerBody}
+      onChange={generalTab ? setGeneralBody : setComposerBody}
+      onSend={() => void (generalTab ? submitGeneralComment() : submitTimelineComment())}
+      sending={generalTab ? submittingGeneral : submittingComment}
+      primary={!headerHasPrimary && !gradesInPanel}
+      touch={touch}
+      avoidLauncher={hasAssistantLauncher}
+    />
+  ) : (
+    <ComposerClosed isGuest={isGuest} />
+  );
+  const importDisabledReason = !signedIn
+    ? "Signed-in reviewers only"
+    : isImageReview
+      ? "Video reviews only"
+      : !allowComment
+        ? "Commenting is closed"
+        : null;
+  const paneClass = "overflow-hidden max-lg:portrait:overflow-visible lg:ml-2 lg:min-h-0";
 
   return (
-    <div
-      ref={reviewLayoutRef}
-      className={cn(
-        "group/review grid gap-5 max-xl:flex max-xl:flex-col xl:gap-0",
-        reviewLayoutHeightClass,
-        isMacDesktopApp ? "xl:place-content-center" : ""
-      )}
-      style={
-        isDesktopSplitLayout
-          ? {
-              gridTemplateColumns: `minmax(0,1fr) ${reviewSplitterWidthPx}px minmax(${minSidebarWidthPx}px, ${Math.round(effectiveSidebarWidthPx)}px)`,
-              ...(fitLayoutHeightPx !== null ? { height: `${fitLayoutHeightPx}px` } : {})
-            }
-          : undefined
-      }
-    >
-      {/* Below xl this wrapper dissolves so the player can stay pinned past the end of it. */}
-      <section className="min-w-0 max-xl:contents xl:min-h-0 xl:space-y-4 xl:overflow-hidden xl:pr-2">
-        {/* Hero strip */}
-        <section ref={reviewHeroRef} className="relative border border-border bg-card px-4 py-3">
-          <div className="relative flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="eyebrow flex items-center gap-1.5">
-                <span className="rec-dot" />
-                Review · {data.projectName} · v{currentVersion?.versionNumber ?? "—"}
-              </div>
-              <h1 className="display-md mt-2 font-semibold tracking-tight text-foreground">
-                {data.title}
-              </h1>
-            </div>
-            <div
-              className={cn(
-                "inline-flex max-w-full items-center gap-2 rounded-md border px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.16em]",
-                currentVersion?.approvalStatus === "AIRED"
-                  ? "border-transparent bg-[var(--brand-fill)] text-[var(--on-brand)]"
-                  : cutReviewStatus.tone === "approved"
-                    ? "border-[rgb(43,179,110,0.35)] bg-[rgb(43,179,110,0.12)] text-[var(--brand-green)]"
-                    : cutReviewStatus.tone === "warn"
-                      ? "border-danger/40 bg-danger-tint text-danger"
-                      : "border-[rgb(242,165,22,0.4)] bg-[rgb(242,165,22,0.12)] text-[var(--brand-amber)]"
-              )}
-            >
-              <span
-                className={cn(
-                  "h-1.5 w-1.5 shrink-0 rounded-full",
-                  currentVersion?.approvalStatus === "AIRED"
-                    ? "bg-[var(--on-brand)]"
-                    : cutReviewStatus.tone === "approved"
-                      ? "bg-[var(--brand-green)]"
-                      : cutReviewStatus.tone === "warn"
-                        ? "bg-danger"
-                        : "bg-[var(--brand-amber)]"
-                )}
-              />
-              <span className="truncate">
-                {currentVersion?.approvalStatus === "AIRED"
-                  ? `Aired${currentVersion.airedAt ? ` · ${formatAiredLabel(currentVersion.airedAt)}` : ""}`
-                  : cutReviewStatus.label}
-              </span>
-            </div>
-          </div>
-          <div className="relative mt-3 space-y-2">
-            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-            <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
-              {!isGuest && !isImageReview && currentVersion?.status === "READY" ? (
-                <ReviewTranscriptButton
-                  mediaId={data.mediaId}
-                  versionId={currentVersion.id}
-                  versionNumber={currentVersion.versionNumber}
-                  onSeek={seekTo}
-                />
-              ) : null}
-              {!isGuest && !isImageReview && currentVersion?.status === "READY" ? (
-                <a
-                  href={`/api/media/${data.mediaId}/download?mediaVersionId=${currentVersion.id}`}
-                  download
-                  className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "h-9 gap-1.5 px-3")}
-                  title="Download the original file of this version"
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  Download
-                </a>
-              ) : null}
-              <label className="relative inline-flex">
-                <select
-                  aria-label="Review version"
-                  value={currentVersionId}
-                  onChange={(event) => {
-                    setCurrentVersionId(event.target.value);
-                    setSelectedCommentId(null);
-                    setComposerPin(null);
-                  }}
-                  className="h-9 appearance-none rounded-lg border border-border bg-muted px-3 pr-8 text-sm text-foreground transition hover:border-border"
-                >
-                  {versions.map((version) => (
-                    <option key={version.id} value={version.id}>
-                      v{version.versionNumber} ({version.status})
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              </label>
-              {canManageQuickGrades ? (
-                <div ref={quickGradesRef} className="lg:relative">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      "h-9 px-3",
-                      quickGradesOpen ? "bg-foreground/10 text-foreground" : ""
-                    )}
-                    onClick={toggleQuickGradesPanel}
-                    title="Quick grades"
-                    aria-label="Open quick grades"
-                  >
-                    <GraduationCap className="h-3.5 w-3.5" />
-                  </Button>
-
-                  {quickGradesOpen ? (
-                    <div className="absolute left-0 top-[calc(100%+0.55rem)] z-[140] w-full overflow-x-auto rounded-2xl border border-border bg-card p-3 shadow-2xl lg:w-[min(96vw,40rem)] lg:overflow-x-visible">
-                      <div className="mb-3 flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Quick Grades</p>
-                          <p className="truncate text-sm font-semibold text-foreground">
-                            {quickGradeCycleNumber ? `Cycle ${quickGradeCycleNumber}` : "Cycle unavailable"}
-                          </p>
-                          <p className="truncate text-xs text-muted-foreground">{data.projectName}</p>
-                        </div>
-                        {quickGradesLoading ? <Loader2 className="mt-0.5 h-4 w-4 animate-spin text-muted-foreground" /> : null}
-                      </div>
-
-                      {!quickGradeCycleNumber ? (
-                        <div className="rounded-xl border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
-                          Project name must match <span className="font-medium">Package Cycle X</span> to load grades.
-                        </div>
-                      ) : quickGradesLoading ? (
-                        <div className="rounded-xl border border-border bg-muted px-3 py-6 text-center text-xs text-muted-foreground">
-                          Loading grades…
-                        </div>
-                      ) : data.assignedPeople.length === 0 ? (
-                        <div className="rounded-xl border border-border bg-muted px-3 py-6 text-center text-xs text-muted-foreground">
-                          No people are assigned to this video.
-                        </div>
-                      ) : (
-                        <>
-                          <div className="mb-2 grid min-w-[36rem] grid-cols-[minmax(0,1fr)_6rem_6rem_8rem_8.5rem] items-center gap-2 px-1 lg:min-w-0 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                            <span>Name</span>
-                            <span className="text-center">Effort /25</span>
-                            <span className="text-center">Teamwork /15</span>
-                            <span className="text-center">Free Ext</span>
-                            <span className="text-center">Feedback</span>
-                          </div>
-
-                          <div className="max-h-[18.5rem] min-w-[36rem] space-y-1.5 overflow-y-auto pr-1 lg:min-w-0">
-                            {quickGradeRows.map((row) => (
-                              <div
-                                key={row.userId}
-                                className={cn(
-                                  "grid grid-cols-[minmax(0,1fr)_6rem_6rem_8rem_8.5rem] items-center gap-2 rounded-xl border px-2 py-2",
-                                  row.disabled ? "border-foreground/8 bg-foreground/[0.03]" : "border-foreground/10 bg-foreground/[0.04]"
-                                )}
-                              >
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-1.5">
-                                    <p className={cn("truncate text-sm", row.disabled ? "text-muted-foreground" : "text-foreground")}>
-                                      {quickGradePersonLabel(row)}
-                                    </p>
-                                    {!row.disabled && !row.extensionDetails.exempt ? (
-                                      <span
-                                        title={`Extension days remaining (out of 14)`}
-                                        className={cn(
-                                          "shrink-0 rounded-md px-1.5 py-0.5 font-mono text-[10px] font-semibold leading-none tabular-nums",
-                                          row.extensionsRemaining < 0
-                                            ? "bg-danger-tint text-danger ring-1 ring-inset ring-danger/35"
-                                            : row.extensionsRemaining <= 2
-                                              ? "bg-[rgb(242,165,22,0.12)] text-[var(--brand-amber)] ring-1 ring-inset ring-[rgb(242,165,22,0.30)]"
-                                              : "bg-[rgb(43,179,110,0.10)] text-[var(--brand-green)] ring-1 ring-inset ring-[rgb(43,179,110,0.25)]"
-                                        )}
-                                      >
-                                        {row.extensionsRemaining}d
-                                      </span>
-                                    ) : null}
-                                  </div>
-                                  {row.disabled ? (
-                                    <p className="truncate text-[11px] text-muted-foreground">{row.disabledReason}</p>
-                                  ) : null}
-                                </div>
-
-                                <label className="relative">
-                                  <input
-                                    type="number"
-                                    min={0}
-                                    max={MAX_EFFORT_POINTS}
-                                    step={1}
-                                    inputMode="numeric"
-                                    value={row.effortPoints ?? ""}
-                                    disabled={row.disabled || quickGradesSaving}
-                                    onChange={(event) => {
-                                      const nextValue = normalizeQuickGradePoints(event.target.value, MAX_EFFORT_POINTS);
-                                      setQuickGradeRows((current) =>
-                                        current.map((candidate) =>
-                                          candidate.userId === row.userId
-                                            ? {
-                                                ...candidate,
-                                                effortPoints: nextValue
-                                              }
-                                            : candidate
-                                        )
-                                      );
-                                    }}
-                                    className={cn(
-                                      "h-9 w-full rounded-lg border bg-background px-2 pr-6 text-center text-sm text-foreground outline-none transition",
-                                      row.disabled
-                                        ? "cursor-not-allowed border-border text-muted-foreground"
-                                        : "border-border hover:border-border focus:ring-1 focus:ring-ring"
-                                    )}
-                                  />
-                                  <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">
-                                    /{MAX_EFFORT_POINTS}
-                                  </span>
-                                </label>
-
-                                <label className="relative">
-                                  <input
-                                    type="number"
-                                    min={0}
-                                    max={MAX_TEAMWORK_POINTS}
-                                    step={1}
-                                    inputMode="numeric"
-                                    value={row.teamworkPoints ?? ""}
-                                    disabled={row.disabled || quickGradesSaving}
-                                    onChange={(event) => {
-                                      const nextValue = normalizeQuickGradePoints(event.target.value, MAX_TEAMWORK_POINTS);
-                                      setQuickGradeRows((current) =>
-                                        current.map((candidate) =>
-                                          candidate.userId === row.userId
-                                            ? {
-                                                ...candidate,
-                                                teamworkPoints: nextValue
-                                              }
-                                            : candidate
-                                        )
-                                      );
-                                    }}
-                                    className={cn(
-                                      "h-9 w-full rounded-lg border bg-background px-2 pr-6 text-center text-sm text-foreground outline-none transition",
-                                      row.disabled
-                                        ? "cursor-not-allowed border-border text-muted-foreground"
-                                        : "border-border hover:border-border focus:ring-1 focus:ring-ring"
-                                    )}
-                                  />
-                                  <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">
-                                    /{MAX_TEAMWORK_POINTS}
-                                  </span>
-                                </label>
-
-                                <label className="relative">
-                                  <input
-                                    type="number"
-                                    min={0}
-                                    max={14}
-                                    step={1}
-                                    inputMode="numeric"
-                                    value={row.freeExtensionDays}
-                                    disabled={row.disabled || quickGradesSaving}
-                                    onChange={(event) => {
-                                      const parsed = Number(event.target.value);
-                                      const nextValue = Number.isFinite(parsed) ? Math.max(0, Math.min(14, Math.round(parsed))) : 0;
-                                      setQuickGradeRows((current) =>
-                                        current.map((candidate) =>
-                                          candidate.userId === row.userId
-                                            ? {
-                                                ...candidate,
-                                                freeExtensionDays: nextValue
-                                              }
-                                            : candidate
-                                        )
-                                      );
-                                    }}
-                                    className={cn(
-                                      "h-9 w-full rounded-lg border bg-background px-2 text-center text-sm text-foreground outline-none transition",
-                                      row.disabled
-                                        ? "cursor-not-allowed border-border text-muted-foreground"
-                                        : "border-border hover:border-border focus:ring-1 focus:ring-ring"
-                                    )}
-                                  />
-                                </label>
-
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="secondary"
-                                  className="h-9 px-2 text-xs"
-                                  disabled={row.disabled || quickGradesSaving}
-                                  onClick={() =>
-                                    setQuickGradesFeedbackEditorUserId((current) => (current === row.userId ? null : row.userId))
-                                  }
-                                >
-                                  {row.feedback.trim() ? "Edit Feedback" : "Add Feedback"}
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-
-                          {quickGradesFeedbackEditorUserId ? (
-                            (() => {
-                              const activeRow =
-                                quickGradeRows.find((row) => row.userId === quickGradesFeedbackEditorUserId) ?? null;
-                              if (!activeRow || activeRow.disabled) {
-                                return null;
-                              }
-
-                              return (
-                                <div className="mt-3 rounded-xl border border-border bg-muted p-3">
-                                  <div className="mb-2 flex items-center justify-between gap-2">
-                                    <p className="truncate text-sm font-medium text-foreground">
-                                      Feedback: {quickGradePersonLabel(activeRow)}
-                                    </p>
-                                    <div className="flex items-center gap-2">
-                                      <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="ghost"
-                                        className="h-8 px-2 text-xs"
-                                        disabled={quickGradesSaving}
-                                        onClick={() => {
-                                          setQuickGradeRows((current) =>
-                                            current.map((candidate) =>
-                                              candidate.userId === activeRow.userId ? { ...candidate, feedback: "" } : candidate
-                                            )
-                                          );
-                                        }}
-                                      >
-                                        Clear
-                                      </Button>
-                                      <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="ghost"
-                                        className="h-8 px-2 text-xs"
-                                        onClick={() => setQuickGradesFeedbackEditorUserId(null)}
-                                      >
-                                        Done
-                                      </Button>
-                                    </div>
-                                  </div>
-                                  <Textarea
-                                    value={activeRow.feedback}
-                                    onChange={(event) => {
-                                      const nextValue = event.target.value.slice(0, 2000);
-                                      setQuickGradeRows((current) =>
-                                        current.map((candidate) =>
-                                          candidate.userId === activeRow.userId ? { ...candidate, feedback: nextValue } : candidate
-                                        )
-                                      );
-                                    }}
-                                    disabled={quickGradesSaving}
-                                    rows={4}
-                                    className="min-h-[7rem] resize-y border-border bg-background text-sm text-foreground placeholder:text-muted-foreground"
-                                    placeholder="Add feedback for this student..."
-                                  />
-                                  <p className="mt-2 text-right text-[11px] text-muted-foreground">
-                                    {activeRow.feedback.length}/2000
-                                  </p>
-                                </div>
-                              );
-                            })()
-                          ) : null}
-
-                          <div className="mt-3 space-y-2">
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                              <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <span className="font-medium uppercase tracking-[0.12em] text-muted-foreground">Turned In</span>
-                                <input
-                                  type="date"
-                                  value={quickGradesSharedTurnedInDate}
-                                  disabled={quickGradesSaving || quickGradesLoading || !quickGradeCycleNumber}
-                                  onChange={(event) => {
-                                    setQuickGradesSharedTurnedInDate(event.target.value);
-                                    setQuickGradesSharedTurnedInDirty(true);
-                                  }}
-                                  className="h-9 rounded-lg border border-border bg-background px-2 text-sm text-foreground outline-none transition hover:border-border focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
-                                />
-                              </label>
-
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="secondary"
-                                  className="h-9 gap-1.5"
-                                  disabled={quickGradesSaving || quickGradesLoading || !quickGradeCycleNumber}
-                                  onClick={() => void publishAllQuickGrades()}
-                                >
-                                  {quickGradesSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                                  Publish All
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  className="h-9 gap-1.5"
-                                  disabled={quickGradesSaving || quickGradesLoading || !quickGradeCycleNumber}
-                                  onClick={() => void saveAllQuickGrades()}
-                                >
-                                  {quickGradesSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                                  Save Assigned
-                                </Button>
-                              </div>
-                            </div>
-                            {quickGradesRevisionDeadlineLabel ? (
-                              <p className="text-xs text-muted-foreground">Latest revision by: {quickGradesRevisionDeadlineLabel}</p>
-                            ) : null}
-                            <p className="min-h-4 text-xs text-muted-foreground">
-                              {quickGradesMessage ?? "Use one Turned In date to apply to everyone here, then set any free extension days per person before saving or publishing."}
-                            </p>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-              <Button variant="ghost" size="sm" className="h-9 px-3" aria-label="Refresh review" onClick={() => router.refresh()}>
-                <RefreshCw className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              {packageReview && !isGuest && (packageReview.canSubmitReview || packageReview.canApprove || packageReview.canUnapprove || packageReview.canApproveAnyway) ? (
-                <>
-                  {packageReview.canSubmitReview ? (
-                    <Button
-                      type="button"
-                      className="h-9"
-                      variant="secondary"
-                      disabled={submittingPackageReview || statusUpdating || currentVersion?.id !== versions[0]?.id}
-                      onClick={() => void submitPackageReview()}
-                    >
-                      {submittingPackageReview ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                      Submit review (needs revisions)
-                    </Button>
-                  ) : null}
-                  {packageReview.canUnapprove ? (
-                    <Button type="button" variant="secondary" className="h-9"
-                      disabled={statusUpdating || submittingPackageReview}
-                      onClick={() => void approvePackageCut(undefined, true)}>
-                      Unapprove
-                    </Button>
-                  ) : null}
-                  {packageReview.canApprove ? (
-                    <Button
-                      type="button"
-                      className="h-9"
-                      disabled={statusUpdating || submittingPackageReview || currentVersion?.id !== versions[0]?.id}
-                      onClick={() => setApproveFeedbackOpen(true)}
-                    >
-                      {currentVersion?.approvalStatus === "NEEDS_CHANGES" ? "Approve anyway" : "Approve"}
-                    </Button>
-                  ) : null}
-                  {packageReview.canApproveAnyway ? (
-                    <Button type="button" className="h-9"
-                      disabled={statusUpdating || submittingPackageReview}
-                      onClick={() => setApproveAnywayOpen(true)}>
-                      Approve anyway
-                    </Button>
-                  ) : null}
-                </>
-              ) : packageReview && !isGuest ? (
-                <span className="status-pill status-neutral">
-                  {packageReview.stage === "EXECUTIVE_REVIEW" &&
-                  packageReview.remainingExecutiveSignoffs != null &&
-                  packageReview.remainingExecutiveSignoffs > 0
-                    ? executiveWaitPill(packageReview.remainingExecutiveSignoffs)
-                    : (approvalStagePillLabel(packageReview.stage) ?? "Not your stage")}
-                </span>
-              ) : !isGuest && data.canUpdateApprovalStatus ? (
-                <div className="flex flex-wrap items-center justify-center gap-2">
-                  <button
-                    type="button"
-                    disabled={statusUpdating}
-                    onClick={() => changeApproval("IN_REVIEW")}
-                    className={`h-8 rounded-md border px-3 text-xs font-semibold transition disabled:opacity-50 ${
-                      currentVersion?.approvalStatus === "IN_REVIEW"
-                        ? "border-[var(--ink-3)] bg-[var(--ink-2)] text-foreground"
-                        : "border-[var(--ink-3)] bg-transparent text-muted-foreground hover:bg-[var(--ink-2)] hover:text-foreground"
-                    }`}
-                  >
-                    In Review
-                  </button>
-                  <button
-                    type="button"
-                    disabled={statusUpdating}
-                    onClick={() => changeApproval("NEEDS_CHANGES")}
-                    className={`inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs font-semibold transition disabled:opacity-50 ${
-                      currentVersion?.approvalStatus === "NEEDS_CHANGES"
-                        ? "border-danger/40 bg-danger-tint text-danger"
-                        : "border-danger/40 bg-transparent text-muted-foreground hover:bg-danger-tint hover:text-danger"
-                    }`}
-                  >
-                    Needs Changes
-                  </button>
-                  <button
-                    type="button"
-                    disabled={statusUpdating}
-                    onClick={() => changeApproval("APPROVED")}
-                    className={`inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs font-bold transition disabled:opacity-50 ${
-                      currentVersion?.approvalStatus === "APPROVED"
-                        ? "border-[var(--brand-green)] bg-[var(--brand-fill)] text-[var(--on-brand)]"
-                        : "border-[var(--brand-green)] bg-transparent text-[var(--brand-green)] hover:bg-[var(--brand-fill)] hover:text-[var(--on-brand)]"
-                    }`}
-                  >
-                    <Check className="h-3.5 w-3.5" strokeWidth={3} />
-                    Approve v{currentVersion?.versionNumber ?? "—"}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={
-                      statusUpdating ||
-                      (currentVersion?.approvalStatus !== "APPROVED" &&
-                        currentVersion?.approvalStatus !== "AIRED")
-                    }
-                    onClick={openAiredDialog}
-                    className={`inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs font-bold transition disabled:opacity-50 ${
-                      currentVersion?.approvalStatus === "AIRED"
-                        ? "border-[var(--brand-fill)] bg-[var(--brand-fill)] text-[var(--on-brand)]"
-                        : "border-[var(--ink-3)] bg-transparent text-muted-foreground hover:bg-[var(--ink-2)] hover:text-foreground"
-                    }`}
-                    title={
-                      currentVersion?.approvalStatus === "APPROVED" ||
-                      currentVersion?.approvalStatus === "AIRED"
-                        ? undefined
-                        : "Approve this version before marking aired"
-                    }
-                  >
-                    {currentVersion?.approvalStatus === "AIRED" && currentVersion.airedAt
-                      ? `Aired · ${formatAiredLabel(currentVersion.airedAt)}`
-                      : "Aired"}
-                  </button>
-                </div>
-              ) : (
-                <Badge>{currentVersion?.approvalStatus.replace("_", " ") ?? "IN REVIEW"}</Badge>
-              )}
-            </div>
-            </div>
-            {packageReview && !isGuest ? (
-              <p className="text-right text-xs text-muted-foreground">
-                {packageActionMessage ??
-                  (packageReview.awaitingRevisedInitialCut ? "Approved in Stage 1 · Awaiting revised upload" : null) ??
-                  (packageReview.stage === "EXECUTIVE_REVIEW"
-                    ? approvalProgressLabel(packageReview.stage, packageReview.remainingExecutiveSignoffs)
-                    : null) ??
-                  (packageReview.canApprove
-                    ? "Leave comments, then submit review to request revisions, or approve this stage."
-                    : (approvalStageHandoff(packageReview.stage) ?? "Not your stage."))}
-              </p>
-            ) : null}
-
-          </div>
-        </section>
-
-        <div ref={reviewMainCardRef} className={cn("rounded-2xl border border-border bg-card/80 p-2 sm:p-3", PINNED_PLAYER_CLASS)}>
-          <div
-            ref={mediaStageRef}
-            className="mx-auto w-full max-lg:landscape:max-w-[calc((100dvh_-_9rem)_*_16_/_9)]"
-            style={computedMediaStageMaxWidthPx ? { maxWidth: `${Math.round(computedMediaStageMaxWidthPx)}px` } : undefined}
-          >
-            {isImageReview && currentVersion?.imageUrl ? (
-              <div
-                ref={imageCanvasRef}
-                className="relative overflow-hidden rounded-2xl border border-border bg-black"
-                onClick={handleImageCanvasClick}
-              >
-                <Image
-                  src={currentVersion.imageUrl}
-                  alt={data.title}
-                  width={1920}
-                  height={1080}
-                  className="aspect-video w-full object-contain"
-                  draggable={false}
-                  unoptimized
-                />
-
-                <div className="pointer-events-none absolute inset-0 z-20">
-                  {commentThreads.map((thread, index) => {
-                    if (thread.root.xPct === null || thread.root.yPct === null) {
-                      return null;
-                    }
-
-                    return (
-                      <button
-                        key={thread.root.id}
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          focusCommentThread(thread, { scrollSidebar: true });
-                        }}
-                        title={`Comment #${index + 1}`}
-                        className="pointer-events-auto absolute grid h-6 w-6 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-black/60 text-[10px] font-semibold text-black transition hover:scale-110"
-                        style={{
-                          left: `${thread.root.xPct}%`,
-                          top: `${thread.root.yPct}%`,
-                          backgroundColor: selectedCommentId === thread.root.id ? "var(--brand-green)" : "var(--brand-amber)"
-                        }}
-                      >
-                        {initialsFromName(thread.root.authorName).slice(0, 2)}
-                      </button>
-                    );
-                  })}
-
-                  {allowComment && composerPin ? (
-                    <div
-                      className="absolute h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[var(--brand-green)] bg-[var(--brand-green)]/60"
-                      style={{
-                        left: `${composerPin.xPct}%`,
-                        top: `${composerPin.yPct}%`
-                      }}
-                    />
-                  ) : null}
-                </div>
-              </div>
-            ) : currentVersion?.playbackUrl ? (
-              <>
-                <div className="relative overflow-hidden rounded-2xl border border-border bg-black">
-                  <video
-                    key={currentVersion?.id ?? "version"}
-                    ref={videoRef}
-                    className="aspect-video w-full cursor-pointer bg-black"
-                    onClick={togglePlayback}
-                    playsInline
-                    preload="auto"
-                    poster={currentVersion?.thumbnailUrl ?? undefined}
-                  />
-                  {isBuffering ? (
-                    <div
-                      role="status"
-                      aria-label="Loading video"
-                      className="pointer-events-none absolute left-1/2 top-1/2 grid h-16 w-16 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-black/60 text-white"
-                    >
-                      <Loader2 className="h-7 w-7 animate-spin" />
-                    </div>
-                  ) : !isPlaying ? (
-                    <button
-                      type="button"
-                      aria-label="Play"
-                      onClick={togglePlayback}
-                      className="absolute left-1/2 top-1/2 grid h-16 w-16 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white/95 text-black shadow-2xl transition hover:scale-105"
-                    >
-                      <Play className="ml-1 h-7 w-7 fill-current" />
-                    </button>
-                  ) : null}
-                </div>
-
-                {/* On a phone the controls step aside while the composer has focus, so the frame and the keyboard both fit. */}
-                <div
-                  ref={mediaControlsRef}
-                  className="mt-2 px-1 sm:px-2 [@media(pointer:coarse)]:max-xl:portrait:group-has-[[data-review-composer]:focus]/review:hidden"
-                >
-                  {/* Comment markers sit in their own lane above the track so they never block scrubbing. */}
-                  <div className="relative h-6 lg:h-4">
-                    {commentThreads.map((thread, index) => {
-                      const left = `${Math.max(0, Math.min(100, (thread.root.timeSeconds / Math.max(timelineDuration, 1)) * 100))}%`;
-                      const isSelected = selectedCommentId === thread.root.id;
-                      return (
-                        <button
-                          key={thread.root.id}
-                          type="button"
-                          onClick={() => focusCommentThread(thread, { scrollSidebar: true })}
-                          title={`#${index + 1} · ${thread.root.authorName} · ${formatTimecode(thread.root.timeSeconds)}`}
-                          aria-label={`Comment ${index + 1} by ${thread.root.authorName} at ${formatTimecode(thread.root.timeSeconds)}`}
-                          className="group/marker absolute top-1/2 grid h-6 w-6 -translate-x-1/2 lg:h-4 lg:w-4 -translate-y-1/2 place-items-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                          style={{ left, zIndex: isSelected ? 2 : 1 }}
-                        >
-                          <span
-                            className={cn(
-                              "block rounded-full transition-transform group-hover/marker:scale-150",
-                              isSelected ? "h-2.5 w-2.5 ring-2 ring-foreground/80" : "h-2 w-2"
-                            )}
-                            style={{
-                              backgroundColor: isSelected
-                                ? "var(--brand-green)"
-                                : thread.root.resolvedAt !== null
-                                  ? "var(--brand-amber)"
-                                  : "var(--ink-text)"
-                            }}
-                          />
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <PlayheadSeekRange playhead={playheadStore} buffered={bufferedStore} max={timelineDuration} onSeek={seekTo} />
-
-                  <div className="mt-1 flex items-center gap-1 sm:gap-2">
-                    <Button variant="ghost" size="sm" className="h-10 w-10 shrink-0 p-0 lg:h-8 lg:w-8" onClick={togglePlayback} aria-label={isPlaying ? "Pause" : "Play"}>
-                      {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                    </Button>
-                    <div className="hidden items-center gap-2 sm:flex">
-                      {volume === 0 ? <VolumeX className="h-4 w-4 shrink-0 text-muted-foreground" /> : <Volume2 className="h-4 w-4 shrink-0 text-muted-foreground" />}
-                      <MediaRange value={volume} max={1} step={0.01} label="Volume" onChange={setVolume} className="w-16 md:w-20" />
-                    </div>
-                    <span className="ml-1 whitespace-nowrap font-mono text-[11px] tabular-nums text-muted-foreground">
-                      <span className="text-foreground"><PlayheadTimecode playhead={playheadStore} /></span> / {formatTimecode(timelineDuration)}
-                    </span>
-
-                    <div className="ml-auto flex items-center gap-1">
-                      <span className="mr-1 hidden whitespace-nowrap text-xs text-muted-foreground md:inline">
-                        {commentCount} {commentCount === 1 ? "comment" : "comments"}
-                      </span>
-                      <Select value={String(playbackRate)} onValueChange={(v) => setPlaybackRate(Number(v))}>
-                        <SelectTrigger aria-label="Playback speed" className={PLAYER_SELECT_TRIGGER_CLASS}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent side="top" align="end">
-                          {PLAYBACK_RATES.map((rate) => (
-                            <SelectItem key={rate} value={String(rate)}>{rate}x</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="grid h-[58vh] min-h-[340px] place-items-center rounded-2xl border border-dashed border-border bg-muted text-sm text-muted-foreground">
-                {isImageReview ? "Image preview is not available yet." : "Video is still processing."}
-              </div>
-            )}
-          </div>
-
-        </div>
-      </section>
-
-      <div className="relative hidden xl:flex xl:items-stretch xl:justify-center">
-        <button
-          type="button"
-          onPointerDown={startSidebarResize}
-          onDoubleClick={() => setManualSidebarWidthPx(null)}
-          aria-label="Resize comments panel"
-          title="Drag to resize comments panel"
-          className={cn(
-            "group relative h-full w-full cursor-col-resize touch-none bg-transparent outline-none",
-            isResizingSidebar ? "bg-primary/5" : ""
-          )}
-        >
-          <span
-            className={cn(
-              "pointer-events-none absolute left-1/2 top-2 bottom-2 w-px -translate-x-1/2 rounded-full bg-border transition",
-              isResizingSidebar ? "bg-primary" : "group-hover:bg-muted-foreground"
-            )}
-          />
-          <span
-            className={cn(
-              "pointer-events-none absolute left-1/2 top-1/2 h-12 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full transition",
-              isResizingSidebar ? "bg-primary/70" : "bg-secondary group-hover:bg-muted-foreground"
-            )}
-          />
-        </button>
-      </div>
-
-      <aside
+    <TooltipProvider delayDuration={300}>
+      <div
+        ref={rootRef}
         className={cn(
-          "flex min-h-[620px] flex-col overflow-hidden rounded-2xl border border-border bg-card/95 max-xl:portrait:min-h-0 max-xl:portrait:overflow-visible xl:ml-2 xl:min-h-0 xl:max-h-none",
-          reviewPaneMaxHeightClass
+          "group/review flex min-w-0 flex-col gap-4",
+          isMacDesktopApp ? "lg:h-[calc(100dvh-11.5rem)]" : "lg:h-[calc(100dvh-7.5rem)]"
         )}
+        style={layout.rootStyle}
       >
-        <div className="border-b border-border">
-          <div className="grid grid-cols-2">
-            <button
-              onClick={() => setCommentsTab("COMMENTS")}
-              className={`relative h-11 px-3 text-[13px] font-semibold transition ${
-                commentsTab === "COMMENTS"
-                  ? "text-foreground after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-[var(--brand-green)]"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Comments · {commentThreads.length}
-            </button>
-            <button
-              onClick={() => setCommentsTab("REVIEW")}
-              className={`relative h-11 px-3 text-[13px] font-semibold transition ${
-                commentsTab === "REVIEW"
-                  ? "text-foreground after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-[var(--brand-green)]"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Review · {visibleReviewThreads.length}
-            </button>
-          </div>
-          <div className="p-3 pt-3">
+        <ReviewHeader
+          eyebrow={eyebrow}
+          status={
+            <>
+              <StatusTag tone={status.tone}>{status.label}</StatusTag>
+              {!isLatest ? <StatusTag tone="warning">Older version</StatusTag> : null}
+              {guestToken ? (
+                <StatusTag tone="neutral" icon={isGuest ? Eye : MessageSquare}>
+                  {isGuest ? "View only" : "Can comment"}
+                </StatusTag>
+              ) : null}
+            </>
+          }
+          title={title}
+          versionControls={
+            <>
+              {versionSelect("md")}
+              {goToLatest("md")}
+            </>
+          }
+          description={helper ?? uploadedLine}
+          descriptionOnPhone={!helper}
+          approval={approvalStrip}
+          tools={reviewToolButtons(toolProps)}
+          decisions={decisionButtons}
+          decisionsHint={helper}
+        />
 
-          <div className="mt-3 flex items-center justify-between">
-            <div className="inline-flex items-center gap-1 text-base font-medium text-foreground">
-              <span>All comments</span>
-            </div>
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <button
-                type="button"
-                onClick={() => setFilterMode("ALL")}
-                title="All"
-                aria-label="Show all comments"
-                aria-pressed={filterMode === "ALL"}
-                className={`rounded-md p-2.5 transition lg:p-1.5 ${filterMode === "ALL" ? "bg-secondary text-foreground" : "hover:text-foreground"}`}
-              >
-                <ListFilter className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setFilterMode("OPEN")}
-                title="Open"
-                aria-label="Show open comments"
-                aria-pressed={filterMode === "OPEN"}
-                className={`rounded-md p-2.5 transition lg:p-1.5 ${filterMode === "OPEN" ? "bg-secondary text-foreground" : "hover:text-foreground"}`}
-              >
-                <Clock3 className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setFilterMode("RESOLVED")}
-                title="Resolved"
-                aria-label="Show resolved comments"
-                aria-pressed={filterMode === "RESOLVED"}
-                className={`rounded-md p-2.5 transition lg:p-1.5 ${filterMode === "RESOLVED" ? "bg-secondary text-foreground" : "hover:text-foreground"}`}
-              >
-                <CheckCircle2 className="h-4 w-4" />
-              </button>
-              <div ref={commentsMenuRef} className="relative">
-                <button
-                  type="button"
-                  title="More"
-                  aria-label="More comment actions"
-                  aria-expanded={commentsMenuOpen}
-                  onClick={() => setCommentsMenuOpen((open) => !open)}
-                  className={`rounded-md p-2.5 transition lg:p-1.5 ${commentsMenuOpen ? "bg-secondary text-foreground" : "hover:text-foreground"}`}
-                >
-                  <MoreHorizontal className="h-4 w-4" />
-                </button>
-                {commentsMenuOpen ? (
-                  <div className="absolute right-0 top-9 z-40 min-w-[220px] rounded-lg border border-border bg-popover p-1 shadow-2xl">
-                    <button
-                      type="button"
-                      disabled={!canImportComments || importingComments}
-                      onClick={() => {
-                        setCommentsMenuOpen(false);
-                        importFileInputRef.current?.click();
-                      }}
-                      className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm text-foreground transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <span>{importingComments ? "Importing comments..." : "Import comments (CSV)"}</span>
-                      <span className="font-mono text-[11px] text-muted-foreground">.csv</span>
-                    </button>
-                    <button
-                      type="button"
-                      disabled={versionComments.length === 0}
-                      onClick={() => {
-                        setCommentsMenuOpen(false);
-                        exportCommentsToCsv();
-                      }}
-                      className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm text-foreground transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <span>Export comments (CSV)</span>
-                      <span className="font-mono text-[11px] text-muted-foreground">.csv</span>
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-              <input
-                ref={importFileInputRef}
-                type="file"
-                accept=".csv,text/csv"
-                className="hidden"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  event.target.value = "";
-                  if (!file) {
-                    return;
-                  }
-                  void importCommentsFromFile(file);
-                }}
+        {/* The static columns match the loading skeleton until the measured ones (splitStyle) arrive. */}
+        <div
+          ref={splitRef}
+          className={cn(
+            "flex min-w-0 flex-col gap-4 lg:grid lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_14px_minmax(320px,420px)] lg:gap-0",
+            isMacDesktopApp && "lg:place-content-center"
+          )}
+          style={layout.splitStyle}
+        >
+          {/* Below 1024px this column dissolves so the player stays pinned past the end of it. */}
+          <section aria-label="Player" className="min-w-0 max-lg:contents lg:min-h-0 lg:overflow-hidden lg:pr-2">
+            <ReviewPlayer
+              version={currentVersion}
+              title={title}
+              isImageReview={isImageReview}
+              playback={playback}
+              timelineDuration={timelineDuration}
+              timeline={timeline}
+              numbers={timelineNumbers}
+              selectedCommentId={comments.selectedCommentId}
+              allowComment={allowComment}
+              composerPin={composerPin}
+              mediaStageMaxWidthPx={layout.mediaStageMaxWidthPx}
+              canUploadVersion={signedIn && canUploadVersion(data.workspaceRole)}
+              refs={{ card: cardRef, stage: stageRef, controls: controlsRef, video: videoRef, canvas: canvasRef }}
+              onCanvasClick={onCanvasClick}
+              onFocusThread={(thread) => focusThread(thread, { scroll: true })}
+              onCheckAgain={() => router.refresh()}
+            />
+            <ReviewPhoneToolbar versionSelect={versionSelect("touch")} goToLatest={goToLatest("touch")} tools={toolProps} />
+            <ReviewDecisionCard approval={approvalStrip} helper={helper} decisions={decisionButtons} />
+          </section>
+
+          <ReviewSplitter
+            controlsId={gradesInPanel ? GRADES_PANEL_ID : PANEL_ID}
+            panelWidthPx={layout.panelWidthPx}
+            isResizing={layout.isResizing}
+            onPointerDown={layout.onSplitterPointerDown}
+            onDoubleClick={layout.resetPanelWidth}
+            onKeyDown={layout.onSplitterKeyDown}
+          />
+
+          <CommentsPanel
+            id={PANEL_ID}
+            className={cn(paneClass, gradesInPanel && "lg:hidden")}
+            tab={activeTab}
+            onTabChange={changeTab}
+            showTranscriptTab={canUseFile}
+            transcribing={transcripts.isTranscribing(currentVersionId)}
+            transcriptReady={transcriptReadyFor === currentVersionId && activeTab !== "TRANSCRIPT"}
+            filter={filter}
+            onFilterChange={setFilter}
+            timeline={timeline}
+            general={general}
+            timelineNumbers={timelineNumbers}
+            generalNumbers={generalNumbers}
+            newIds={newIds}
+            newCount={newIds.size}
+            onJumpToNew={jumpToNew}
+            isImageReview={isImageReview}
+            versionNumber={currentVersion?.versionNumber}
+            allowComment={allowComment}
+            state={comments}
+            permissions={permissions}
+            onFocusThread={(thread) => focusThread(thread)}
+            onRequestDelete={(thread) => {
+              setDeleteRequest({ id: thread.root.id, replyCount: thread.replies.length });
+              setDeleteOpen(true);
+            }}
+            menu={{
+              importDisabledReason,
+              canExport: versionComments.length > 0,
+              onImportFile: importCsv,
+              onExport: exportCsv
+            }}
+            transcript={
+              <ReviewTranscript
+                versionId={currentVersionId}
+                versionNumber={currentVersion?.versionNumber}
+                transcripts={transcripts}
+                onSeek={playback.seekTo}
               />
-            </div>
-          </div>
-          </div>
+            }
+            composer={composer}
+          />
+          {gradesInPanel ? (
+            <QuickGradesPanel
+              id={GRADES_PANEL_ID}
+              state={quickGrades}
+              projectName={data.projectName}
+              peopleCount={data.assignedPeople.length}
+              primary={!headerHasPrimary}
+              className={cn(paneClass, "lg:col-start-3 lg:row-start-1")}
+            />
+          ) : null}
         </div>
 
-        {commentsTab === "REVIEW" ? (
-          <div className="flex min-h-0 flex-1 flex-col">
-            <div className="flex-1 space-y-3 overflow-y-auto p-3">
-              {visibleReviewThreads.length === 0 ? (
-                <div className="rounded-xl border border-border bg-muted/80 p-4 text-sm text-muted-foreground">No review comments yet.</div>
-              ) : (
-                visibleReviewThreads.map((thread, index) => {
-                  const initials = initialsFromName(thread.root.authorName);
-
-                  return (
-                    <article
-                      key={thread.root.id}
-                      className="cursor-default rounded-2xl border border-border bg-muted/85 p-2.5 transition"
-                    >
-                      <div className="flex items-start gap-2">
-                        <div className={cn(
-                          "grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-bold",
-                          avatarToneForName(thread.root.authorName)
-                        )}>
-                          {initials}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center justify-between gap-2 text-xs">
-                            <p className="truncate font-semibold text-foreground">{thread.root.authorName}</p>
-                            <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                              <span><RelativeAge iso={thread.root.createdAt} /></span>
-                              <span>#{index + 1}</span>
-                            </div>
-                          </div>
-                          <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">{thread.root.body}</p>
-                        </div>
-                      </div>
-                      {thread.replies.length > 0 && (
-                        <div className="ml-10 mt-2 space-y-2 border-l border-border pl-3">
-                          {thread.replies.map((reply) => (
-                            <div key={reply.id} className="text-sm">
-                              <span className="font-semibold text-foreground">{reply.authorName}</span>
-                              <span className="ml-2 text-[11px] text-muted-foreground"><RelativeAge iso={reply.createdAt} /></span>
-                              <p className="mt-0.5 whitespace-pre-wrap text-foreground">{reply.body}</p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </article>
-                  );
-                })
-              )}
-            </div>
-
-            <div
-              className={cn(
-                "border-t border-border bg-card p-3",
-                allowComment && DOCKED_COMPOSER_CLASS,
-                allowComment && hasAssistantLauncher && DOCKED_COMPOSER_LAUNCHER_GUTTER_CLASS
-              )}
-            >
-              {!allowComment ? (
-                <p className="text-sm text-muted-foreground">
-                  {isGuest ? "This link is view-only." : "Associate review closes after Stage 1."}
-                </p>
-              ) : (
-                <>
-                  <Textarea
-                    value={reviewComposerBody}
-                    onChange={(event) => setReviewComposerBody(event.target.value)}
-                    data-review-composer
-                    onKeyDown={(event) => {
-                      if (
-                        !shouldEnterSend(
-                          { key: event.key, shiftKey: event.shiftKey, isComposing: event.nativeEvent.isComposing },
-                          isCoarsePointer()
-                        )
-                      ) {
-                        return;
-                      }
-                      event.preventDefault();
-                      if (!submittingReviewComment && reviewComposerBody.trim()) {
-                        void submitReviewComment();
-                      }
-                    }}
-                    placeholder="Leave a general review comment..."
-                    className="min-h-[56px]"
-                  />
-                  <div className="mt-2 flex items-center justify-between gap-2">
-                    <p className="text-xs text-muted-foreground">General feedback about this video.</p>
-                    <Button
-                      className="h-9 gap-1 px-3"
-                      onClick={submitReviewComment}
-                      disabled={submittingReviewComment || !reviewComposerBody.trim()}
-                    >
-                      <Send className="h-4 w-4" />
-                      Send
-                    </Button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="flex min-h-0 flex-1 flex-col">
-            <div className="flex-1 space-y-3 overflow-y-auto p-3">
-              {visibleThreads.length === 0 ? (
-                <div className="rounded-xl border border-border bg-muted/80 p-4 text-sm text-muted-foreground">No comments yet.</div>
-              ) : (
-                visibleThreads.map((thread, index) => {
-                  const isSelected = selectedCommentId === thread.root.id;
-                  const initials = initialsFromName(thread.root.authorName);
-
-                  return (
-                    <article
-                      key={thread.root.id}
-                      ref={(node) => {
-                        commentCardRefs.current[thread.root.id] = node;
-                      }}
-                      onClick={() => focusCommentThread(thread)}
-                      className={`cursor-pointer rounded-2xl border p-2.5 transition ${COMMENT_CARD_SCROLL_MARGIN_CLASS} ${
-                        isSelected
-                          ? "border-brand-green/70 bg-secondary"
-                          : sidebarHighlightedCommentId === thread.root.id
-                            ? "border-brand-green bg-secondary/95"
-                            : "border-border bg-muted/85"
-                      }`}
-                    >
-                      <div className="flex items-start gap-2">
-                        <div className={cn(
-                          "grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-bold",
-                          avatarToneForName(thread.root.authorName)
-                        )}>
-                          {initials}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center justify-between gap-2 text-xs">
-                            <p className="truncate font-semibold text-foreground">{thread.root.authorName}</p>
-                            <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                              <span><RelativeAge iso={thread.root.createdAt} /></span>
-                              <span>#{index + 1}</span>
-                            </div>
-                          </div>
-                          {editingCommentId === thread.root.id ? (
-                            <div
-                              className="mt-1 flex flex-col gap-2"
-                              onClick={(event) => event.stopPropagation()}
-                            >
-                              <Textarea
-                                value={editDraft}
-                                onChange={(event) => setEditDraft(event.target.value)}
-                                className="min-h-[60px] text-sm"
-                                autoFocus
-                              />
-                              <div className="flex gap-2">
-                                <Button
-                                  size="sm"
-                                  onClick={() => saveEditComment(thread.root.id)}
-                                  disabled={savingEditCommentId === thread.root.id || !editDraft.trim()}
-                                >
-                                  {savingEditCommentId === thread.root.id ? (
-                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                  ) : (
-                                    "Save"
-                                  )}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={cancelEditingComment}
-                                  disabled={savingEditCommentId === thread.root.id}
-                                >
-                                  Cancel
-                                </Button>
-                              </div>
-                            </div>
-                          ) : (
-                            <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-foreground">{thread.root.body}</p>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="mt-2 flex items-center justify-between gap-2">
-                        <div className="inline-flex items-center gap-2">
-                          <button
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              focusCommentThread(thread);
-                            }}
-                            className="inline-flex rounded-md bg-[var(--brand-amber)]/15 px-1.5 py-0.5 font-mono text-[11px] font-semibold tabular-nums text-[var(--brand-amber)] transition hover:bg-[var(--brand-amber)]/25"
-                          >
-                            {isImageReview
-                              ? formatPinLabel(thread.root.xPct, thread.root.yPct)
-                              : formatFrameAccurateTimecode(thread.root.timeSeconds, thread.root.frameNumber, DEFAULT_REVIEW_FPS)}
-                          </button>
-                          {allowComment ? (
-                            <button
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                setReplyingTo((current) => (current === thread.root.id ? null : thread.root.id));
-                              }}
-                              className="inline-flex items-center gap-1 text-xs text-muted-foreground transition hover:text-foreground"
-                            >
-                              <MessageCircleReply className="h-3.5 w-3.5" />
-                              Reply
-                            </button>
-                          ) : null}
-                        </div>
-
-                        {allowComment && !isGuest ? (
-                          <div className="flex items-center gap-1">
-                            {data.currentUserId && thread.root.authorId === data.currentUserId && editingCommentId !== thread.root.id ? (
-                              <button
-                                type="button"
-                                aria-label="Edit comment"
-                                title="Edit comment"
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  startEditingComment(thread.root.id, thread.root.body);
-                                }}
-                                className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground lg:h-7 lg:w-7"
-                              >
-                                <Pencil className="h-3.5 w-3.5" />
-                              </button>
-                            ) : null}
-                            <button
-                              type="button"
-                              aria-label="Delete comment"
-                              title="Delete comment"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                setConfirmDeleteThread({ id: thread.root.id, replyCount: thread.replies.length });
-                                setConfirmDeleteOpen(true);
-                              }}
-                              disabled={deletingCommentId === thread.root.id}
-                              className="inline-flex h-9 w-9 items-center justify-center rounded-md text-danger transition hover:bg-danger-tint disabled:cursor-not-allowed disabled:opacity-50 lg:h-7 lg:w-7"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        ) : null}
-                      </div>
-
-                      {thread.replies.length > 0 ? (
-                        <div className="mt-2 space-y-1.5 border-t border-border pt-2">
-                          {thread.replies.map((reply) => (
-                            <div key={reply.id} className="group rounded-lg bg-background px-2 py-1.5 text-xs text-foreground">
-                              {editingCommentId === reply.id ? (
-                                <div
-                                  className="flex flex-col gap-2"
-                                  onClick={(event) => event.stopPropagation()}
-                                >
-                                  <Textarea
-                                    value={editDraft}
-                                    onChange={(event) => setEditDraft(event.target.value)}
-                                    className="min-h-[50px] text-xs"
-                                    autoFocus
-                                  />
-                                  <div className="flex gap-2">
-                                    <Button
-                                      size="sm"
-                                      className="h-6 px-2 text-xs"
-                                      onClick={() => saveEditComment(reply.id)}
-                                      disabled={savingEditCommentId === reply.id || !editDraft.trim()}
-                                    >
-                                      {savingEditCommentId === reply.id ? (
-                                        <Loader2 className="h-3 w-3 animate-spin" />
-                                      ) : (
-                                        "Save"
-                                      )}
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-6 px-2 text-xs"
-                                      onClick={cancelEditingComment}
-                                      disabled={savingEditCommentId === reply.id}
-                                    >
-                                      Cancel
-                                    </Button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="whitespace-pre-wrap">
-                                    <span className="font-semibold text-foreground">{reply.authorName}:</span> {reply.body}
-                                  </div>
-                                  {data.currentUserId && reply.authorId === data.currentUserId && !isGuest ? (
-                                    <button
-                                      type="button"
-                                      aria-label="Edit reply"
-                                      title="Edit reply"
-                                      onClick={(event) => {
-                                        event.stopPropagation();
-                                        startEditingComment(reply.id, reply.body);
-                                      }}
-                                      className="shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 inline-flex h-7 w-7 items-center justify-center rounded text-muted-foreground transition hover:bg-muted hover:text-foreground lg:h-5 lg:w-5"
-                                    >
-                                      <Pencil className="h-3 w-3" />
-                                    </button>
-                                  ) : null}
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      ) : null}
-
-                      {allowComment ? (
-                        <div className="mt-2 border-t border-border pt-2">
-                          {replyingTo === thread.root.id ? (
-                            <div
-                              className="mt-2 flex gap-2"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                              }}
-                            >
-                              <Input
-                                value={replyDrafts[thread.root.id] ?? ""}
-                                onChange={(event) =>
-                                  setReplyDrafts((drafts) => ({
-                                    ...drafts,
-                                    [thread.root.id]: event.target.value
-                                  }))
-                                }
-                                placeholder="Write a reply"
-                                className="h-8"
-                              />
-                              <Button
-                                size="sm"
-                                onClick={() => submitReply(thread.root.id)}
-                                disabled={submittingReplyFor === thread.root.id || !(replyDrafts[thread.root.id] ?? "").trim()}
-                              >
-                                Send
-                              </Button>
-                            </div>
-                          ) : null}
-                        </div>
-                      ) : null}
-                    </article>
-                  );
-                })
-              )}
-            </div>
-
-            <div
-              className={cn(
-                "border-t border-border bg-card p-3",
-                allowComment && DOCKED_COMPOSER_CLASS,
-                allowComment && hasAssistantLauncher && DOCKED_COMPOSER_LAUNCHER_GUTTER_CLASS
-              )}
-            >
-              {!allowComment ? (
-                <p className="text-sm text-muted-foreground">
-                  {isGuest ? "This link is view-only." : "Associate review closes after Stage 1."}
-                </p>
-              ) : (
-                <>
-                  <div className="mb-2 flex items-center gap-2">
-                    {isImageReview ? (
-                      <span className="inline-flex items-center gap-1 rounded-md bg-primary/20 px-2 py-1 text-sm font-semibold text-foreground">
-                        <MapPin className="h-3.5 w-3.5" />
-                        {composerPin ? formatPinLabel(composerPin.xPct, composerPin.yPct) : "Click image to place a pin"}
-                      </span>
-                    ) : (
-                      <span className="rounded-md border border-[var(--brand-green)]/30 bg-[var(--brand-green)]/15 px-2 py-1 font-mono-broadcast text-xs font-semibold tabular-nums text-[var(--brand-green)]">
-                        @ <PlayheadTimecode playhead={playheadStore} frameAccurate />
-                      </span>
-                    )}
-                  </div>
-                  <Textarea
-                    value={composerBody}
-                    onChange={(event) => setComposerBody(event.target.value)}
-                    data-review-composer
-                    onKeyDown={(event) => {
-                      if (
-                        !shouldEnterSend(
-                          { key: event.key, shiftKey: event.shiftKey, isComposing: event.nativeEvent.isComposing },
-                          isCoarsePointer()
-                        )
-                      ) {
-                        return;
-                      }
-
-                      event.preventDefault();
-
-                      if (!submittingComment && composerBody.trim() && (!isImageReview || composerPin)) {
-                        void submitComment();
-                      }
-                    }}
-                    placeholder="Drop a comment at this timestamp…"
-                    className="min-h-[60px] border-[var(--brand-green)]/60 focus-visible:border-[var(--brand-green)] focus-visible:ring-2 focus-visible:ring-[rgb(43,179,110,0.3)]"
-                  />
-                  <div className="mt-2 flex items-center justify-between gap-2">
-                    <p className="text-xs text-muted-foreground">
-                      {isImageReview
-                        ? "Pin a point on the image, then press send to add your comment."
-                        : "Press send to add this comment to the timeline."}
-                    </p>
-                    <Button
-                      className="h-9 gap-1 px-3"
-                      onClick={submitComment}
-                      disabled={submittingComment || !composerBody.trim() || (isImageReview && !composerPin)}
-                    >
-                      <Send className="h-4 w-4" />
-                      Send
-                    </Button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-      </aside>
-      <ConfirmDialog
-        open={approveAnywayOpen}
-        onOpenChange={setApproveAnywayOpen}
-        title="Approve anyway?"
-        description={APPROVE_ANYWAY_CONFIRM}
-        confirmLabel="Send to Stage 2"
-        cancelLabel="Cancel"
-        tone="default"
-        onConfirm={approvePackageCutAnyway}
-      />
-      <ConfirmDialog
-        open={confirmDeleteOpen}
-        onOpenChange={setConfirmDeleteOpen}
-        title="Delete comment?"
-        description={
-          confirmDeleteThread && confirmDeleteThread.replyCount > 0
-            ? `This also deletes ${confirmDeleteThread.replyCount} ${confirmDeleteThread.replyCount === 1 ? "reply" : "replies"}.`
-            : "This can't be undone."
-        }
-        confirmLabel="Delete"
-        onConfirm={() => (confirmDeleteThread ? deleteComment(confirmDeleteThread.id) : undefined)}
-      />
-      <ApproveFeedbackDialog
-        open={approveFeedbackOpen}
-        saving={statusUpdating}
-        onOpenChange={setApproveFeedbackOpen}
-        onConfirm={(feedback) => void approvePackageCut(feedback)}
-      />
-      <Dialog open={airedDialogOpen} onOpenChange={setAiredDialogOpen}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Mark as Aired</DialogTitle>
-            <DialogDescription>Pick the date this video aired.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2">
-            <label htmlFor="aired-date" className="text-xs font-medium uppercase tracking-[0.11em] text-muted-foreground">
-              Air date
-            </label>
-            <Input
-              id="aired-date"
-              type="date"
-              value={airedDateInput}
-              onChange={(event) => setAiredDateInput(event.target.value)}
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setAiredDialogOpen(false)} disabled={statusUpdating}>
-              Cancel
-            </Button>
-            <Button onClick={submitAiredDate} disabled={!airedDateInput || statusUpdating}>
-              Mark as Aired
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+        {quickGrades.enabled && !layout.isDesktopSplitLayout ? (
+          <QuickGradesSheet state={quickGrades} projectName={data.projectName} peopleCount={data.assignedPeople.length} />
+        ) : null}
+        <ReviewDialogs
+          decisions={decisions}
+          deleteRequest={deleteRequest}
+          deleteOpen={deleteOpen}
+          onDeleteOpenChange={setDeleteOpen}
+          onConfirmDelete={() => (deleteRequest ? comments.deleteThread(deleteRequest.id) : undefined)}
+        />
+      </div>
+    </TooltipProvider>
   );
 }

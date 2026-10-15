@@ -1,5 +1,7 @@
-import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { useId, useState } from "react";
+import { Alert } from "@/components/kit/alert";
+import { KeyValueList } from "@/components/kit/key-value";
+import { Spinner } from "@/components/kit/spinner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,9 +12,9 @@ import {
   DialogTitle
 } from "@/components/ui/dialog";
 import { clampExtensionDays } from "@/src/lib/package-extensions";
-import { ExtensionDaysInput } from "./extension-days-input";
-
-export type GrantTerms = { grantedDays: number; grantedUserIds: string[] };
+import { DaysField } from "./extension-days-input";
+import { MemberChecklist } from "./member-checklist";
+import { daysLabel, type GrantTerms } from "./request-view";
 
 type Member = { userId: string; label: string };
 
@@ -30,6 +32,7 @@ export function ApproveExtensionDialog({
   lockedTerms,
   initialTerms,
   grantWithoutAgreement = false,
+  context,
   onConfirm
 }: {
   open: boolean;
@@ -41,17 +44,14 @@ export function ApproveExtensionDialog({
   /** Starting values when this producer sets the terms. */
   initialTerms: GrantTerms;
   grantWithoutAgreement?: boolean;
+  /** Which request this is ("Lunch line wait times · Cycle 3"). */
+  context?: string;
   onConfirm: (terms: GrantTerms | null) => Promise<void>;
 }) {
+  const daysId = useId();
   const [days, setDays] = useState(initialTerms.grantedDays);
   const [selected, setSelected] = useState<string[]>(initialTerms.grantedUserIds);
   const [saving, setSaving] = useState(false);
-
-  function toggle(userId: string, checked: boolean) {
-    setSelected((current) =>
-      checked ? [...current.filter((id) => id !== userId), userId] : current.filter((id) => id !== userId)
-    );
-  }
 
   const canConfirm = !saving && (Boolean(lockedTerms) || selected.length > 0);
 
@@ -66,19 +66,18 @@ export function ApproveExtensionDialog({
   }
 
   const labelFor = (userId: string) => members.find((member) => member.userId === userId)?.label ?? "Unknown";
+  const actionLabel = grantWithoutAgreement ? "Grant" : "Approve";
 
   return (
     <Dialog open={open} onOpenChange={(next) => !saving && onOpenChange(next)}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{grantWithoutAgreement ? "Grant extension" : "Approve extension"}</DialogTitle>
+          {context ? <p className="min-w-0 truncate text-sm text-foreground">{context}</p> : null}
           <DialogDescription>
             {lockedTerms
               ? "Another producer already set these terms. Approving agrees to them as-is."
-              : `The group asked for ${requestedDays} ${requestedDays === 1 ? "day" : "days"}. Choose how many days to grant and who gets them.`}
-            {grantWithoutAgreement
-              ? " Not every member has agreed yet; granting skips their agreement. One more exec must approve."
-              : null}
+              : `The group asked for ${daysLabel(requestedDays)}. Choose how many days to grant and who gets them.`}
           </DialogDescription>
         </DialogHeader>
 
@@ -90,48 +89,37 @@ export function ApproveExtensionDialog({
             void confirm();
           }}
         >
-        {lockedTerms ? (
-          <div className="space-y-1 text-sm">
-            <p className="text-foreground">
-              +{lockedTerms.grantedDays} {lockedTerms.grantedDays === 1 ? "day" : "days"}
-            </p>
-            <p className="text-muted-foreground">{lockedTerms.grantedUserIds.map(labelFor).join(", ")}</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <label className="block text-sm">
-              <span className="mb-1 block text-xs text-muted-foreground">Days</span>
-              <ExtensionDaysInput
-                value={days}
-                onChange={setDays}
-                className="h-10 w-28 rounded-lg border border-border bg-muted px-3 text-base text-foreground outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm"
-              />
-            </label>
-            <fieldset className="space-y-2">
-              <legend className="mb-1 text-xs text-muted-foreground">Students</legend>
-              {members.map((member) => (
-                <label key={member.userId} className="flex items-center gap-2 text-sm text-foreground">
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(member.userId)}
-                    onChange={(event) => toggle(member.userId, event.target.checked)}
-                  />
-                  {member.label}
-                </label>
-              ))}
-            </fieldset>
-          </div>
-        )}
+          {grantWithoutAgreement ? (
+            <Alert tone="warning" compact>
+              Not every member has agreed yet; granting skips their agreement. One more exec must approve.
+            </Alert>
+          ) : null}
 
-        <DialogFooter>
-          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={!canConfirm}>
-            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            {grantWithoutAgreement ? "Grant" : "Approve"}
-          </Button>
-        </DialogFooter>
+          {lockedTerms ? (
+            <KeyValueList
+              labelWidth="6rem"
+              className="rounded-md border border-border px-3"
+              items={[
+                { label: "Days", value: `+${daysLabel(lockedTerms.grantedDays)}`, mono: true },
+                { label: "Students", value: lockedTerms.grantedUserIds.map(labelFor).join(", ") }
+              ]}
+            />
+          ) : (
+            <>
+              <DaysField id={daysId} value={days} onChange={setDays} className="w-32" />
+              <MemberChecklist members={members} selected={selected} onChange={setSelected} />
+            </>
+          )}
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={!canConfirm}>
+              {saving ? <Spinner /> : null}
+              {actionLabel}
+            </Button>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

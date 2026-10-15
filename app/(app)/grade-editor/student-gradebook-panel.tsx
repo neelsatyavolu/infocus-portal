@@ -1,12 +1,26 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { RotateCw, SearchX, UserRound, Users } from "lucide-react";
 import { AllGradesView, type AllGradesEstimated } from "@/components/grades/all-grades-view";
+import { Alert } from "@/components/kit/alert";
+import { EmptyState } from "@/components/kit/empty-state";
+import { useListHotkeys } from "@/components/kit/hotkeys";
+import { IconButton } from "@/components/kit/icon-button";
+import { ListDetail } from "@/components/kit/layout";
+import { SearchField } from "@/components/kit/search-field";
+import { Skeleton } from "@/components/kit/skeleton";
+import { Button } from "@/components/ui/button";
+import { cachedValue, rememberValue } from "@/src/lib/client-cache";
+import { neighborIds } from "@/src/lib/keyboard-nav";
 import { REQUIRED_LIVESTREAM_HOURS } from "@/src/lib/livestream";
 import { sortNamedPeople } from "@/src/lib/name-sort";
 import type { GradebookWeek } from "@/src/lib/student-gradebook";
 import { cn } from "@/src/lib/utils";
+import { studentCacheKey } from "./grade-editor-api";
+import { SortSelect } from "./grade-editor-toolbar";
+import type { SortBy } from "./grade-editor-types";
+import { emailLocalPart } from "./grade-editor-utils";
 
 export type StudentPickerPerson = {
   userId: string;
@@ -26,18 +40,32 @@ type StudentGradebookPayload = {
   };
 };
 
+/**
+ * The Student view: a reporter list on the left (search, sort, J/K) and that reporter's
+ * Schoology-style gradebook on the right, the same one they see. What-if edits never save.
+ * Phones show one pane at a time with a back button.
+ */
 export function StudentGradebookPanel({
   people,
   selectedUserId,
   onSelectUserId,
   sortBy,
-  refreshToken = 0
+  onSortChange,
+  refreshToken = 0,
+  onRefresh,
+  refreshing = false,
+  loading: listLoading = false
 }: {
   people: StudentPickerPerson[];
   selectedUserId: string | null;
-  onSelectUserId: (userId: string) => void;
-  sortBy: "firstName" | "lastName";
+  onSelectUserId: (userId: string | null) => void;
+  sortBy: SortBy;
+  onSortChange: (sortBy: SortBy) => void;
   refreshToken?: number;
+  onRefresh: () => void;
+  refreshing?: boolean;
+  /** The reporter list is still loading (nothing to show yet). */
+  loading?: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [payload, setPayload] = useState<StudentGradebookPayload | null>(null);
@@ -55,6 +83,20 @@ export function StudentGradebookPanel({
     });
   }, [people, query, sortBy]);
 
+  const order = useMemo(() => filteredPeople.map((person) => person.userId), [filteredPeople]);
+
+  useListHotkeys({
+    onNext: () => {
+      const next = selectedUserId ? neighborIds(order, selectedUserId).next : order[0];
+      if (next) onSelectUserId(next);
+    },
+    onPrevious: () => {
+      const previous = selectedUserId ? neighborIds(order, selectedUserId).previous : null;
+      if (previous) onSelectUserId(previous);
+    },
+    enabled: order.length > 0
+  });
+
   useEffect(() => {
     if (!selectedUserId) {
       setPayload(null);
@@ -64,10 +106,15 @@ export function StudentGradebookPanel({
     }
 
     const userId = selectedUserId;
+    const cached = cachedValue<StudentGradebookPayload>(studentCacheKey(userId));
     let active = true;
     async function load() {
       try {
-        setLoading(true);
+        if (cached) {
+          setPayload(cached);
+        } else {
+          setLoading(true);
+        }
         setMessage(null);
         const response = await fetch(`/api/grades/admin?view=student&userId=${encodeURIComponent(userId)}`, {
           cache: "no-store"
@@ -79,6 +126,7 @@ export function StudentGradebookPanel({
         if (!response.ok || !body.data) {
           throw new Error(body.error?.message ?? "Failed to load student gradebook.");
         }
+        rememberValue(studentCacheKey(userId), body.data);
         if (!active) return;
         setPayload(body.data);
       } catch (error) {
@@ -96,76 +144,111 @@ export function StudentGradebookPanel({
     };
   }, [selectedUserId, refreshToken]);
 
-  return (
-    <div className="grid gap-4 lg:grid-cols-[16.5rem_minmax(0,1fr)] lg:items-stretch">
-      <aside className="flex max-h-[28rem] flex-col overflow-hidden rounded-2xl border border-border bg-card lg:max-h-none lg:min-h-0">
-        <div className="shrink-0 border-b border-border px-3 py-3">
-          <div className="inline-flex h-9 w-full items-center gap-2 rounded-md border border-border bg-[var(--ink)] px-3 focus-within:ring-1 focus-within:ring-ring">
-            <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            <input
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Find a reporter…"
-              aria-label="Find a reporter"
-              className="w-full bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground md:text-sm"
-            />
-          </div>
+  const list = (
+    <div className="flex min-h-0 flex-col overflow-hidden rounded-md border border-border bg-card lg:max-h-[calc(100dvh-var(--app-header-h,4rem)-2rem)]">
+      <div className="shrink-0 space-y-2 border-b border-border p-3">
+        <SearchField value={query} onChange={setQuery} placeholder="Find a reporter" size="touch" />
+        <div className="flex items-center gap-2">
+          <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+            {listLoading ? (
+              "Loading reporters…"
+            ) : (
+              <>
+                <span className="font-mono-broadcast tabular-nums">{filteredPeople.length}</span> reporters
+              </>
+            )}
+          </span>
+          <SortSelect value={sortBy} onChange={onSortChange} size="touch" className="w-32 shrink-0" />
+          <IconButton label="Refresh" icon={RotateCw} variant="outline" size="touch" busy={refreshing} onClick={onRefresh} />
         </div>
-        <ul className="min-h-0 flex-1 overflow-y-auto">
-          {filteredPeople.length === 0 ? (
-            <li className="px-4 py-6 text-sm text-muted-foreground">No reporters match that search.</li>
-          ) : (
-            filteredPeople.map((person) => {
-              const active = person.userId === selectedUserId;
-              return (
-                <li key={person.userId}>
-                  <button
-                    type="button"
-                    onClick={() => onSelectUserId(person.userId)}
-                    className={cn(
-                      "flex w-full flex-col items-start gap-0.5 px-4 py-2 text-left transition",
-                      active ? "bg-[rgb(43,179,110,0.12)]" : "hover:bg-[hsl(var(--background))]"
-                    )}
-                  >
-                    <span className="text-sm font-semibold text-foreground">
-                      {person.name?.trim() || "Unnamed user"}
-                    </span>
-                    <span className="font-mono-broadcast text-[10px] text-muted-foreground">
-                      {person.email ?? "—"}
-                    </span>
-                  </button>
-                </li>
-              );
-            })
-          )}
-        </ul>
-      </aside>
-
-      <div className="min-w-0">
-        {message ? (
-          <p className="mb-3 rounded-lg border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">
-            {message}
-          </p>
-        ) : null}
-        {!selectedUserId ? (
-          <div className="rounded-2xl border border-border bg-card px-4 py-10 text-sm text-muted-foreground">
-            Choose a reporter to see their Schoology-style gradebook.
-          </div>
-        ) : (
-          <AllGradesView
-            key={selectedUserId}
-            loading={loading}
-            semesterLabel={payload?.gradebook.semester.label ?? "26-27 S1"}
-            cycles={payload?.cycles ?? []}
-            estimated={payload?.estimated}
-            weeks={payload?.gradebook.weeks ?? []}
-            livestreamHours={payload?.gradebook.livestreamHours ?? 0}
-            requiredHours={payload?.gradebook.requiredLivestreamHours ?? REQUIRED_LIVESTREAM_HOURS}
-            description="Same grouped gradebook the student sees. Edit a score to try a what-if — nothing is saved."
-          />
-        )}
       </div>
+      <ul aria-label="Reporters" aria-busy={listLoading || undefined} className="min-h-0 flex-1 divide-y divide-border overflow-y-auto">
+        {listLoading ? (
+          Array.from({ length: 8 }, (_, index) => (
+            <li key={index} aria-hidden className="flex min-h-12 flex-col justify-center gap-1.5 px-4 py-2">
+              <Skeleton className={cn("h-3.5", index % 3 === 1 ? "w-1/2" : "w-2/3")} />
+              <Skeleton className="h-2.5 w-1/3" />
+            </li>
+          ))
+        ) : people.length === 0 ? (
+          <li>
+            <EmptyState size="inline" icon={Users} title="No reporters to grade yet" />
+          </li>
+        ) : filteredPeople.length === 0 ? (
+          <li>
+            <EmptyState
+              size="inline"
+              icon={SearchX}
+              title={`No reporters match "${query.trim()}"`}
+              action={
+                <Button type="button" variant="outline" size="sm" onClick={() => setQuery("")}>
+                  Clear search
+                </Button>
+              }
+            />
+          </li>
+        ) : (
+          filteredPeople.map((person) => {
+            const active = person.userId === selectedUserId;
+            return (
+              <li key={person.userId}>
+                <button
+                  type="button"
+                  aria-current={active ? "true" : undefined}
+                  onClick={() => onSelectUserId(person.userId)}
+                  className={cn(
+                    "relative flex min-h-12 w-full flex-col items-start justify-center gap-0.5 px-4 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+                    active
+                      ? "bg-[var(--brand-green)]/[0.12] before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:bg-[var(--brand-green)]"
+                      : "hover:bg-[var(--ink-3)]"
+                  )}
+                >
+                  <span className="max-w-full truncate text-sm font-semibold text-foreground">
+                    {person.name?.trim() || "Unnamed user"}
+                  </span>
+                  <span className="max-w-full truncate font-mono-broadcast text-[11px] text-muted-foreground" title={person.email ?? undefined}>
+                    {emailLocalPart(person.email)}
+                  </span>
+                </button>
+              </li>
+            );
+          })
+        )}
+      </ul>
     </div>
+  );
+
+  const detail = (
+    <div className="min-w-0 space-y-4">
+      {message ? <Alert tone="danger">{message}</Alert> : null}
+      {!selectedUserId ? (
+        <div className="rounded-md border border-border bg-card">
+          <EmptyState icon={UserRound} title="Choose a reporter" description="Their gradebook appears here, the same one they see." />
+        </div>
+      ) : (
+        <AllGradesView
+          key={selectedUserId}
+          loading={loading}
+          semesterLabel={payload?.gradebook.semester.label ?? "26-27 S1"}
+          cycles={payload?.cycles ?? []}
+          estimated={payload?.estimated}
+          weeks={payload?.gradebook.weeks ?? []}
+          livestreamHours={payload?.gradebook.livestreamHours ?? 0}
+          requiredHours={payload?.gradebook.requiredLivestreamHours ?? REQUIRED_LIVESTREAM_HOURS}
+          intro={false}
+        />
+      )}
+    </div>
+  );
+
+  return (
+    <ListDetail
+      list={list}
+      detail={detail}
+      showDetailOnPhone={selectedUserId !== null}
+      onBack={() => onSelectUserId(null)}
+      backLabel="All reporters"
+      listWidth="17rem"
+    />
   );
 }

@@ -1,8 +1,14 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { FileUp, Loader2, Search, ShieldCheck } from "lucide-react";
+import { FileUp, ShieldCheck } from "lucide-react";
+import { ActionBar } from "@/components/kit/action-bar";
+import { Alert } from "@/components/kit/alert";
+import { SearchField } from "@/components/kit/search-field";
+import { Spinner } from "@/components/kit/spinner";
+import { StatusTag } from "@/components/kit/status-tag";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { VaultEntrySummary, VaultImportResult } from "@/src/lib/password-vault";
 import type { ImportCandidate } from "@/src/lib/vault-import";
@@ -13,6 +19,32 @@ const IMPORT_BATCH = 100;
 
 function duplicateKey(name: string, username: string | null | undefined) {
   return `${name.trim().toLowerCase()}\u0000${(username ?? "").trim().toLowerCase()}`;
+}
+
+function Steps() {
+  const steps = [
+    <>In 1Password, choose File → Export.</>,
+    <>
+      Pick the account and save it as <span className="text-foreground">.1pux</span> or{" "}
+      <span className="text-foreground">CSV</span>.
+    </>,
+    <>Choose that file below.</>
+  ];
+  return (
+    <ol className="space-y-2 text-sm text-[var(--ink-text)]">
+      {steps.map((step, index) => (
+        <li key={index} className="flex items-start gap-3">
+          <span
+            aria-hidden
+            className="grid h-5 w-5 shrink-0 place-items-center rounded-sm bg-[var(--ink-3)] text-[11px] tabular-nums text-foreground"
+          >
+            {index + 1}
+          </span>
+          <span className="min-w-0">{step}</span>
+        </li>
+      ))}
+    </ol>
+  );
 }
 
 export function VaultImportDialog({
@@ -46,13 +78,17 @@ export function VaultImportDialog({
     );
   }, [candidates, query]);
 
+  function clearFileInput() {
+    if (inputRef.current) inputRef.current.value = "";
+  }
+
   // Parsed secrets live only in this dialog's memory; closing wipes them.
   function reset() {
     setCandidates(null);
     setSelected(new Set());
     setQuery("");
     setError(null);
-    if (inputRef.current) inputRef.current.value = "";
+    clearFileInput();
   }
 
   function handleOpenChange(next: boolean) {
@@ -73,6 +109,8 @@ export function VaultImportDialog({
       setSelected(new Set(items.filter((item) => !existingKeys.has(duplicateKey(item.name, item.username))).map((item) => item.key)));
     } catch (parseError) {
       setError(parseError instanceof Error ? parseError.message : "Could not read that file.");
+      // Let the same (fixed) file be chosen again.
+      clearFileInput();
     } finally {
       setBusy(null);
     }
@@ -103,10 +141,13 @@ export function VaultImportDialog({
     if (!chosen.length) return;
     setBusy("import");
     setError(null);
-    const total: VaultImportResult = { imported: 0, warnings: [] };
+    let total: VaultImportResult = { imported: 0, warnings: [] };
+    // Keys of batches the server already took, so a retry after an error doesn't add them twice.
+    let doneKeys: string[] = [];
     try {
       for (let start = 0; start < chosen.length; start += IMPORT_BATCH) {
-        const entries = chosen.slice(start, start + IMPORT_BATCH).map(({ name, url, username, password, totp, notes }) => ({
+        const batch = chosen.slice(start, start + IMPORT_BATCH);
+        const entries = batch.map(({ name, url, username, password, totp, notes }) => ({
           name,
           url,
           username,
@@ -115,14 +156,18 @@ export function VaultImportDialog({
           notes
         }));
         const result = await vaultRequest<VaultImportResult>("/api/vault/import", { method: "POST", body: { entries } });
-        total.imported += result.imported;
-        total.warnings.push(...result.warnings);
+        total = { imported: total.imported + result.imported, warnings: [...total.warnings, ...result.warnings] };
+        doneKeys = [...doneKeys, ...batch.map((item) => item.key)];
       }
       onImported(total);
       handleOpenChange(false);
     } catch (importError) {
       const done = total.imported ? ` ${total.imported} were imported before the error.` : "";
       setError(`${importError instanceof Error ? importError.message : "Import failed."}${done}`);
+      if (doneKeys.length) {
+        const imported = new Set(doneKeys);
+        setSelected((current) => new Set(Array.from(current).filter((key) => !imported.has(key))));
+      }
       if (total.imported) onImported(total);
     } finally {
       setBusy(null);
@@ -137,9 +182,7 @@ export function VaultImportDialog({
         <DialogHeader>
           <DialogTitle>Import from 1Password</DialogTitle>
           <DialogDescription>
-            In 1Password, choose File → Export, pick the account, and save as <span className="text-foreground">.1pux</span> or{" "}
-            <span className="text-foreground">CSV</span>. The file is read in this browser; only the items you tick are uploaded,
-            then encrypted.
+            The file is read in this browser; only the items you tick are uploaded, then encrypted.
           </DialogDescription>
         </DialogHeader>
 
@@ -152,60 +195,64 @@ export function VaultImportDialog({
         />
 
         {!candidates ? (
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            disabled={busy === "parse"}
-            className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border px-4 py-10 text-sm text-muted-foreground transition hover:border-[var(--brand-green)]/50 hover:text-foreground"
-          >
-            {busy === "parse" ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileUp className="h-5 w-5" />}
-            Choose a .1pux or .csv export
-          </button>
+          <div className="space-y-4">
+            <Steps />
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              disabled={busy === "parse"}
+              className="flex w-full flex-col items-center gap-2 rounded-md border border-dashed border-input px-4 py-10 text-sm text-muted-foreground transition-colors hover:border-[var(--brand-green)]/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
+            >
+              {busy === "parse" ? <Spinner label="Reading the file" /> : <FileUp className="h-6 w-6" aria-hidden />}
+              Choose a .1pux or .csv export
+            </button>
+          </div>
         ) : (
-          <div className="flex min-h-0 flex-1 flex-col gap-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <label className="relative min-w-[12rem] flex-1">
-                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Filter items…"
-                  className="h-9 w-full rounded-md border border-border bg-muted pl-8 pr-3 text-base text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring md:text-sm"
-                />
-              </label>
-              <Button type="button" variant="outline" size="sm" onClick={() => setVisible(!allVisibleSelected)}>
+          <div className="flex min-h-0 flex-1 flex-col gap-3">
+            <ActionBar>
+              <SearchField
+                value={query}
+                onChange={setQuery}
+                placeholder="Filter items…"
+                ariaLabel="Filter items"
+                className="min-w-[12rem] flex-1"
+              />
+              <Button type="button" variant="outline" onClick={() => setVisible(!allVisibleSelected)}>
                 {allVisibleSelected ? "Select none" : "Select all"}
               </Button>
-              <span className="meta-pill">
-                {selected.size} of {candidates.length} selected
+              <span aria-live="polite" className="flex items-center whitespace-nowrap text-sm text-muted-foreground">
+                <span className="font-mono-broadcast tabular-nums text-foreground">{selected.size}</span>
+                &nbsp;of&nbsp;
+                <span className="font-mono-broadcast tabular-nums text-foreground">{candidates.length}</span>
+                &nbsp;selected
               </span>
-            </div>
+            </ActionBar>
 
-            <ul className="min-h-0 flex-1 overflow-y-auto rounded-lg border border-border">
+            <ul className="min-h-0 flex-1 divide-y divide-border overflow-y-auto rounded-md border border-border">
               {visible.map((item) => {
                 const duplicate = existingKeys.has(duplicateKey(item.name, item.username));
                 return (
-                  <li key={item.key} className="border-b border-border last:border-b-0">
-                    <label className="flex cursor-pointer items-center gap-3 px-3 py-2 hover:bg-foreground/[0.03]">
-                      <input
-                        type="checkbox"
-                        checked={selected.has(item.key)}
-                        onChange={() => toggle(item.key)}
-                        className="h-4 w-4 shrink-0 accent-[var(--brand-green)]"
-                      />
-                      <span className="min-w-0 flex-1">
+                  <li key={item.key}>
+                    <label className="grid cursor-pointer grid-cols-[1rem_minmax(0,1fr)_auto] items-center gap-3 px-3 py-2 transition-colors hover:bg-[var(--ink-3)]">
+                      <Checkbox checked={selected.has(item.key)} onCheckedChange={() => toggle(item.key)} />
+                      <span className="min-w-0">
                         <span className="block truncate text-sm font-semibold text-foreground">{item.name}</span>
-                        <span className="block truncate text-[11px] text-muted-foreground">
+                        <span className="block truncate text-xs text-muted-foreground">
                           {[item.username, item.url, item.folder].filter(Boolean).join(" · ") || "No username"}
                         </span>
                       </span>
-                      {item.totp ? (
-                        <span className="meta-pill inline-flex items-center gap-1" title="Has 2FA">
-                          <ShieldCheck className="h-3 w-3" />
-                          2FA
-                        </span>
-                      ) : null}
-                      {duplicate ? <span className="meta-pill text-brand-amber">Already saved</span> : null}
+                      <span className="flex items-center gap-1.5">
+                        {item.totp ? (
+                          <StatusTag size="sm" icon={ShieldCheck} title="Has 2FA">
+                            2FA
+                          </StatusTag>
+                        ) : null}
+                        {duplicate ? (
+                          <StatusTag size="sm" tone="warning">
+                            Already saved
+                          </StatusTag>
+                        ) : null}
+                      </span>
                     </label>
                   </li>
                 );
@@ -216,23 +263,25 @@ export function VaultImportDialog({
         )}
 
         {error ? (
-          <p className="rounded-lg border border-danger/40 bg-danger-tint px-3 py-2 text-sm text-danger">{error}</p>
+          <Alert tone="danger" compact>
+            {error}
+          </Alert>
         ) : null}
 
-        <DialogFooter className="gap-2 sm:justify-between">
-          {candidates ? (
-            <Button type="button" variant="ghost" size="sm" onClick={reset} disabled={busy !== null}>
-              Choose another file
-            </Button>
-          ) : (
-            <span />
-          )}
-          <div className="flex gap-2">
-            <Button type="button" variant="ghost" size="sm" onClick={() => handleOpenChange(false)}>
+        <DialogFooter className="flex-row flex-wrap items-center justify-between gap-2 sm:justify-between sm:space-x-0">
+          <div>
+            {candidates ? (
+              <Button type="button" variant="ghost" onClick={reset} disabled={busy !== null}>
+                Choose another file
+              </Button>
+            ) : null}
+          </div>
+          <div className="ml-auto flex gap-2">
+            <Button type="button" variant="ghost" onClick={() => handleOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="button" size="sm" onClick={() => void runImport()} disabled={!selected.size || busy !== null}>
-              {busy === "import" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+            <Button type="button" onClick={() => void runImport()} disabled={!selected.size || busy !== null}>
+              {busy === "import" ? <Spinner /> : null}
               Import {selected.size || ""}
             </Button>
           </div>

@@ -1,15 +1,17 @@
 # Ideas
 
-Route: `/ideas` (sidebar → Class → **Ideas**). Everyone signed in sees the same page: reporters, associate producers, executive producers, the adviser, and super admin.
+Route: `/ideas` (sidebar → Class → **Ideas**; on phones and tablets, under **More**). Everyone signed in sees the same page: reporters, associate producers, executive producers, the adviser, and super admin.
 
 Ideas is a list of suggested story ideas to help a group decide what to pitch. It does not replace pitching, and nothing on it is assigned to anyone. Pitching and approval still happen in class and on Groups (see `groups-and-review.md` and `student-work.md`).
 
 ## What you see
 
-- A new set of about 12 ideas every 2 days. The top of the page shows the date and how many local stories the set came from.
-- Ideas are grouped the same way packages are pitched: **News**, **Feature**, and **Commentary**.
+- A new set of about 12 ideas every 2 days. The page header shows the set's date, how many ideas it has, and how many local stories they came from, with a tag: **Latest** on the newest set or **Past set** on an older one. On your first visit after a new set arrives, the tag reads **New** instead of **Latest**. Portal remembers which sets you have seen separately on each browser, so the same set can show **New** again on another device.
+- The header also says how often sets arrive. A short note under it, above the ideas, says each idea is a starting point for your pitch and that the ideas are written by AI.
+- Ideas are grouped the same way packages are pitched: **News**, **Feature**, and **Commentary**, each with its number of ideas. On a phone, buttons above the ideas jump to each group.
 - Each idea has a title, a short pitch, a **Paly angle** (how it connects to students and who you might interview), and **Based on** links to the news stories or event listings it came from. Links open the original site in a new tab.
-- **Past ideas** lists every earlier set by date, grouped by month. Click a date to read that set. The newest is marked **Latest**. On a phone the list sits below the ideas.
+- **Past ideas** is a menu in the page header that lists every set by date, grouped by month. Pick a date to read that set. The newest is marked **Latest**. The ‹ and › arrows beside it step to the older or newer set. On a phone the menu and arrows sit at the top of the page, above the ideas.
+- A link to a date with no set shows **No ideas for that date**, with a **Show latest ideas** button.
 
 ## Where the ideas come from
 
@@ -18,7 +20,7 @@ Portal reads public news and event feeds from around the Bay Area: Palo Alto and
 - The ideas are written by AI, so details can be wrong. Open the linked stories and check the facts before you pitch.
 - The links always point to real stories Portal read. The AI cannot add its own links.
 - The AI is told to skip graphic violence, sexual content, and crime stories about private people or minors.
-- Nobody can edit, hide, or request ideas from the page, and no one is notified when a new set arrives.
+- Nobody can edit, hide, or request ideas from the page, and no one is notified when a new set arrives. The **New** tag on the page is the only sign.
 
 ## When new ideas arrive
 

@@ -1,287 +1,229 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
-import { FileVideo2, FolderKanban, HardDrive, Link2, MessageCircle, Shield, Users } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { AlertTriangle, Shield, UserPlus } from "lucide-react";
+import { EmptyState, ErrorState } from "@/components/kit/empty-state";
+import { ViewTabPanel, ViewTabs, type ViewTabItem } from "@/components/kit/view-tabs";
+import { Button } from "@/components/ui/button";
+import { SettingsNotice } from "@/components/settings-layout";
+import { AddPersonDialog } from "./add-person-dialog";
+import { AdminHeader } from "./admin-header";
+import { AdminSkeleton } from "./admin-skeleton";
 import {
-  SettingsHeader,
-  SettingsLayout,
-  SettingsNotice,
-  SettingsPanel,
-  SettingsSection,
-  type SettingsNavItem
-} from "@/components/settings-layout";
-import { AccessRequestsSection } from "./access-requests-section";
-import {
-  formatRoleLabel,
-  formatStorage,
-  getData,
-  type BackupStatus,
-  type PlatformAccessRequest,
-  type PlatformMe,
-  type PlatformStats,
-  type PlatformUser,
-  type RoleAssignment
-} from "./admin-types";
-import { BackupsSection } from "./backups-section";
-import { ConfigurationSection } from "./configuration-section";
-import { DangerZoneSection } from "./danger-zone-section";
-import { GoogleCalendarRow } from "./google-calendar-card";
-import { PackageCyclesSection } from "./package-cycles-section";
-import { PeopleSection } from "./people-section";
-import { ProducerTeamSection } from "./producer-team-section";
-import { YoutubeChannelRow } from "./youtube-channel-card";
+  backupHealth,
+  calendarSyncHealth,
+  googleCalendarHealth,
+  headerContextItems,
+  needsAttention,
+  systemNeedsAttention,
+  youtubeHealth,
+  type AdminHealth
+} from "./admin-status";
+import type { BackupStatus, Remote } from "./admin-types";
+import type { AdminView } from "./admin-views";
+import { OverviewView } from "./overview-view";
+import { PeopleView } from "./people-view";
+import { SchoolYearView } from "./school-year-view";
+import { SystemView } from "./system-view";
+import { useAdminConfiguration } from "./use-admin-configuration";
+import { useAdminData } from "./use-admin-data";
+import { useAdminIntegrations } from "./use-admin-integrations";
+import { useAdminNavigation } from "./use-admin-navigation";
 
-function AdminHeader({ description, meta }: { description: string; meta?: ReactNode }) {
+const TABS_ID = "admin";
+const ROOT_CLASS = "route-enter @container space-y-5";
+/** The views whose work is people, where the header offers Add person. */
+const PEOPLE_VIEWS: ReadonlySet<AdminView> = new Set(["overview", "people"]);
+
+/**
+ * A tab label with a Danger warning icon when its view has something broken. The icon's shape, not
+ * only its colour, carries the warning, and screen readers hear "needs attention". Tab marks only
+ * ever mean "needs you".
+ */
+function tabLabel(label: string, alert: boolean): ReactNode {
+  if (!alert) return label;
   return (
-    <SettingsHeader
-      eyebrow={
-        <>
-          <Shield className="h-3 w-3" aria-hidden="true" />
-          Platform
-        </>
-      }
-      title="Admin Dashboard"
-      description={description}
-      meta={meta}
-    />
+    <>
+      {label}
+      <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-danger" aria-hidden="true" />
+      <span className="sr-only">, needs attention</span>
+    </>
   );
 }
 
-function StatCell({
-  Icon,
-  label,
-  value,
-  detail
-}: {
-  Icon: typeof Users;
-  label: string;
-  value: string | number | null;
-  detail: string | null;
-}) {
-  return (
-    <div className="bg-card px-4 py-4 md:px-5">
-      <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">
-        <Icon className="h-3.5 w-3.5" aria-hidden="true" />
-        {label}
-      </p>
-      {value === null ? (
-        <div className="mt-2 h-6 w-16 animate-pulse rounded-sm bg-secondary" aria-hidden="true" />
-      ) : (
-        <p className="mt-1.5 font-mono text-2xl leading-none tabular-nums text-foreground">{value}</p>
-      )}
-      <p className="mt-1.5 min-h-4 text-xs text-muted-foreground">{detail}</p>
-    </div>
-  );
+function Shell({ children }: { children: ReactNode }) {
+  return <div className={ROOT_CLASS}>{children}</div>;
 }
 
-function OverviewSection({ stats }: { stats: PlatformStats | null }) {
-  const totals = stats?.totals;
-  const cells = [
-    { Icon: Users, label: "Users", value: totals?.users, detail: totals ? `${totals.roleAssignments} elevated roles` : null },
-    { Icon: FolderKanban, label: "Workspaces", value: totals?.workspaces, detail: totals ? `${totals.projects} projects` : null },
-    { Icon: FileVideo2, label: "Media", value: totals?.activeMedia, detail: totals ? `${totals.versions} versions tracked` : null },
-    {
-      Icon: HardDrive,
-      label: "Storage",
-      value: stats ? formatStorage(stats.storage.estimatedBytes) : undefined,
-      detail: stats ? (stats.storage.isEstimated ? "Estimated usage" : "Synced usage") : null
-    },
-    { Icon: MessageCircle, label: "Comments", value: totals?.comments, detail: totals ? "Review conversations" : null },
-    { Icon: Link2, label: "Share links", value: totals?.activeShareLinks, detail: totals ? "Active guest links" : null }
-  ];
-
-  return (
-    <SettingsSection id="overview" title="Overview">
-      <SettingsPanel className="grid grid-cols-2 gap-px divide-y-0 bg-border sm:grid-cols-3 xl:grid-cols-6">
-        {cells.map((cell) => (
-          <StatCell key={cell.label} Icon={cell.Icon} label={cell.label} value={cell.value ?? null} detail={cell.detail} />
-        ))}
-      </SettingsPanel>
-    </SettingsSection>
-  );
-}
-
+/**
+ * Admin Dashboard: four views (Overview, People, School year, System) under tabs in the same
+ * place as hub tabs, then the nameplate. Every view stays mounted (hidden when inactive), so all
+ * loads start at once and the tab warnings are live.
+ */
 export default function AdminPage() {
-  const [me, setMe] = useState<PlatformMe | null>(null);
-  const [roleAssignments, setRoleAssignments] = useState<RoleAssignment[]>([]);
-  const [platformUsers, setPlatformUsers] = useState<PlatformUser[]>([]);
-  const [accessRequests, setAccessRequests] = useState<PlatformAccessRequest[]>([]);
-  const [cyclesPerSemester, setCyclesPerSemester] = useState(3);
-  const [stats, setStats] = useState<PlatformStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState<string | null>(null);
-  const [backups, setBackups] = useState<BackupStatus | null>(null);
+  const data = useAdminData();
+  const canAdmin = Boolean(data.me?.permissions.canManageAllowedEmails);
+  const canSystem = Boolean(data.me?.permissions.canManagePlatformRoles);
+  const ready = canAdmin && data.listsLoaded;
 
-  const canManageAllowedEmails = Boolean(me?.permissions.canManageAllowedEmails);
-  const canManagePlatformRoles = Boolean(me?.permissions.canManagePlatformRoles);
-  const pendingAccessRequestCount = accessRequests.filter((entry) => entry.status === "PENDING").length;
+  const configuration = useAdminConfiguration(ready);
+  const integrations = useAdminIntegrations(ready && canSystem);
+  const navigation = useAdminNavigation({ enabled: ready, canSystem });
+  const [addOpen, setAddOpen] = useState(false);
 
-  async function refresh(options?: { pageLoader?: boolean; includeStats?: boolean }) {
-    const pageLoader = options?.pageLoader ?? true;
-    const includeStats = options?.includeStats ?? true;
-    if (pageLoader) {
-      setLoading(true);
-    }
+  const backupsRemote: Remote<BackupStatus> = data.backups
+    ? { state: "ready", data: data.backups }
+    : { state: data.backupsError ? "error" : "loading" };
 
-    try {
-      const nextMe = await getData<PlatformMe>("/api/platform/me");
-      setMe(nextMe);
+  const health: AdminHealth = {
+    youtube: canSystem ? youtubeHealth(integrations.youtube) : null,
+    googleCalendar: canSystem ? googleCalendarHealth(integrations.googleCalendar) : null,
+    backups: canSystem ? backupHealth(backupsRemote) : null,
+    calendarSync: calendarSyncHealth(configuration.calendarSync)
+  };
 
-      if (nextMe.permissions.canManageAllowedEmails) {
-        const statsPromise = includeStats
-          ? getData<PlatformStats>("/api/platform/stats").then((nextStats) => {
-              setStats(nextStats);
-            })
-          : null;
-
-        const [roles, users, requests, program] = await Promise.all([
-          getData<RoleAssignment[]>("/api/platform/roles"),
-          getData<PlatformUser[]>("/api/platform/users"),
-          getData<PlatformAccessRequest[]>("/api/platform/access-requests"),
-          getData<{ cyclesPerSemester: number }>("/api/platform/program-settings")
-        ]);
-
-        setCyclesPerSemester(program.cyclesPerSemester);
-        setRoleAssignments(roles);
-        setPlatformUsers(users);
-        setAccessRequests(requests);
-
-        if (statsPromise) {
-          void statsPromise.catch((error) => {
-            setMessage(error instanceof Error ? error.message : "Failed to load admin stats.");
-          });
-        }
-      }
-
-      if (nextMe.permissions.canManagePlatformRoles) {
-        try {
-          setBackups(await getData<BackupStatus>("/api/platform/backups"));
-        } catch (error) {
-          setMessage(error instanceof Error ? error.message : "Failed to load backups.");
-        }
-      } else {
-        setBackups(null);
-      }
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to load admin data.");
-    } finally {
-      if (pageLoader) {
-        setLoading(false);
-      }
-    }
-  }
-
-  useEffect(() => {
-    void refresh({ pageLoader: true, includeStats: true });
-  }, []);
-
-  const refreshLists = () => refresh({ pageLoader: false, includeStats: false });
-
-  if (loading || !canManageAllowedEmails) {
+  if (data.loading && !ready) {
     return (
-      <div className="route-enter mx-auto w-full max-w-6xl space-y-6">
-        <AdminHeader
-          description={loading ? "Loading admin controls…" : "You do not have permission to manage platform settings."}
-        />
-        {!loading && message ? <SettingsNotice tone="error">{message}</SettingsNotice> : null}
-      </div>
+      <Shell>
+        <AdminSkeleton />
+      </Shell>
     );
   }
 
-  const nav: SettingsNavItem[] = [
-    { id: "overview", label: "Overview" },
-    { id: "access-requests", label: "Access requests", badge: pendingAccessRequestCount },
-    { id: "people", label: "People", badge: platformUsers.length },
-    { id: "producer-team", label: "Producer Team" },
-    { id: "package-cycles", label: "Package Cycles" },
-    { id: "configuration", label: "Configuration" },
-    ...(canManagePlatformRoles
-      ? [
-          { id: "integrations", label: "Integrations" },
-          { id: "backups", label: "Backups" },
-          { id: "danger-zone", label: "Danger zone", tone: "danger" as const }
-        ]
-      : [])
+  if (data.loadError && (!data.me || (canAdmin && !data.listsLoaded))) {
+    return (
+      <Shell>
+        <AdminHeader />
+        <ErrorState
+          size="page"
+          title="Couldn't load Admin"
+          message={data.loadError}
+          onRetry={() => void data.refresh({ pageLoader: true, includeStats: true })}
+        />
+      </Shell>
+    );
+  }
+
+  if (!canAdmin) {
+    return (
+      <Shell>
+        <AdminHeader />
+        <EmptyState
+          size="page"
+          icon={Shield}
+          title="Admin is for executive producers, the adviser, and super admin."
+          description="You do not have permission to manage platform settings."
+        />
+      </Shell>
+    );
+  }
+
+  const view = navigation.view;
+  const refreshLists = () => data.refresh({ pageLoader: false, includeStats: false });
+  const tabs: Array<ViewTabItem<AdminView>> = [
+    {
+      value: "overview",
+      label: "Overview",
+      count: data.pendingRequests,
+      countTone: "warning",
+      countLabel: `${data.pendingRequests} access request${data.pendingRequests === 1 ? "" : "s"} waiting`
+    },
+    // No count on People: the panel header already shows it, and a tab mark means "needs you".
+    { value: "people", label: "People" },
+    { value: "school-year", label: tabLabel("School year", needsAttention(health.calendarSync)) },
+    ...(canSystem ? [{ value: "system" as const, label: tabLabel("System", systemNeedsAttention(health)) }] : [])
   ];
 
   return (
-    <SettingsLayout
-      nav={nav}
-      header={
-        <AdminHeader
-          description="People, access, producer roles, and how Portal is set up."
-          meta={
-            <>
-              <span className="meta-pill">
-                <Shield className="h-3.5 w-3.5" aria-hidden="true" />
-                {formatRoleLabel(me?.role ?? null)}
-              </span>
-              {pendingAccessRequestCount > 0 ? (
-                <a href="#access-requests" className="meta-pill tabular-nums hover:bg-accent">
-                  {pendingAccessRequestCount} pending access
-                </a>
-              ) : null}
-            </>
-          }
-        />
-      }
-    >
-      {message ? (
-        <SettingsNotice tone="error" onDismiss={() => setMessage(null)}>
-          {message}
+    <Shell>
+      <ViewTabs
+        items={tabs}
+        value={view}
+        onChange={navigation.selectView}
+        ariaLabel="Admin views"
+        idPrefix={TABS_ID}
+        // 13px labels and 16px gaps on phones, so all four tabs fit a 360px screen.
+        className="-mt-1 gap-4 sm:gap-6 max-sm:[&>[role=tab]]:text-[13px]"
+      />
+
+      {/* Overview already shows every status and the queue, so its header just says what Admin is for.
+          Add person belongs to the views about people (access requests, People); School year and
+          System have no header action, so their main control is their own work. */}
+      <AdminHeader
+        role={data.me?.role ?? null}
+        context={view === "overview" ? undefined : headerContextItems(data.pendingRequests, health)}
+        onNavigate={(target) => navigation.goTo(target)}
+        actions={
+          PEOPLE_VIEWS.has(view) ? (
+            <Button type="button" onClick={() => setAddOpen(true)}>
+              <UserPlus aria-hidden="true" />
+              Add person
+            </Button>
+          ) : undefined
+        }
+      />
+
+      {data.message ? (
+        <SettingsNotice tone="error" onDismiss={() => data.setMessage(null)}>
+          {data.message}
         </SettingsNotice>
       ) : null}
 
-      <OverviewSection stats={stats} />
+      {/* One wrapper, so the hidden views never add spacing after the visible one. */}
+      <div>
+        <ViewTabPanel idPrefix={TABS_ID} value="overview" active={view === "overview"}>
+          <OverviewView
+            health={health}
+            onNavigate={(target) => navigation.goTo(target)}
+            requests={data.requests}
+            onChanged={refreshLists}
+            onMessage={data.setMessage}
+            stats={data.stats}
+            statsError={data.statsError}
+          />
+        </ViewTabPanel>
 
-      <AccessRequestsSection requests={accessRequests} onChanged={refreshLists} onMessage={setMessage} />
+        <ViewTabPanel idPrefix={TABS_ID} value="people" active={view === "people"}>
+          <PeopleView
+            active={view === "people"}
+            users={data.users}
+            roles={data.roles}
+            canManageRoles={canSystem}
+            onChanged={refreshLists}
+            onMessage={data.setMessage}
+            onUserUpdated={data.updateUser}
+            onUserRemoved={data.removeUser}
+          />
+        </ViewTabPanel>
 
-      <PeopleSection
-        users={platformUsers}
-        roles={roleAssignments}
-        onChanged={refreshLists}
-        onMessage={setMessage}
-        onUserUpdated={(updated) =>
-          setPlatformUsers((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)))
-        }
-        onUserRemoved={(userId) => {
-          setPlatformUsers((current) => current.filter((entry) => entry.id !== userId));
-          setStats((current) =>
-            current ? { ...current, totals: { ...current.totals, users: Math.max(0, current.totals.users - 1) } } : current
-          );
-        }}
-      />
+        <ViewTabPanel idPrefix={TABS_ID} value="school-year" active={view === "school-year"}>
+          <SchoolYearView
+            cyclesPerSemester={data.cyclesPerSemester}
+            onCyclesPerSemesterChange={data.setCyclesPerSemester}
+            configuration={configuration}
+            calendarHealth={health.calendarSync}
+          />
+        </ViewTabPanel>
 
-      <ProducerTeamSection
-        roles={roleAssignments}
-        users={platformUsers}
-        canManage={canManagePlatformRoles}
-        onChanged={refreshLists}
-        onMessage={setMessage}
-      />
+        {canSystem ? (
+          <ViewTabPanel idPrefix={TABS_ID} value="system" active={view === "system"}>
+            <SystemView
+              youtube={integrations.youtube}
+              googleCalendar={integrations.googleCalendar}
+              oauth={navigation.oauth}
+              onDismissOauth={navigation.dismissOauth}
+              health={health}
+              backups={data.backups}
+              backupsError={data.backupsError}
+              onRetryBackups={() => void data.loadBackups()}
+              onMessage={data.setMessage}
+              onReset={() => data.refresh({ pageLoader: false, includeStats: true })}
+            />
+          </ViewTabPanel>
+        ) : null}
+      </div>
 
-      <PackageCyclesSection cyclesPerSemester={cyclesPerSemester} onCyclesPerSemesterChange={setCyclesPerSemester} />
-
-      <ConfigurationSection />
-
-      {canManagePlatformRoles ? (
-        <>
-          <SettingsSection
-            id="integrations"
-            title="Integrations"
-            description="Google accounts Portal acts as. Reconnect when a status turns red."
-          >
-            <SettingsPanel>
-              <YoutubeChannelRow />
-              <GoogleCalendarRow />
-            </SettingsPanel>
-          </SettingsSection>
-
-          <BackupsSection backups={backups} onMessage={setMessage} />
-
-          <DangerZoneSection onReset={() => refresh({ pageLoader: false, includeStats: true })} />
-        </>
-      ) : null}
-    </SettingsLayout>
+      <AddPersonDialog open={addOpen} onOpenChange={setAddOpen} onChanged={refreshLists} onMessage={data.setMessage} />
+    </Shell>
   );
 }

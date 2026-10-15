@@ -1,120 +1,49 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { CalendarClock, Edit3, RefreshCcw, Save } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { CalendarClock, Check, Pencil, RefreshCcw } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { Alert } from "@/components/kit/alert";
+import { ErrorState } from "@/components/kit/empty-state";
+import { IconButton } from "@/components/kit/icon-button";
+import { SectionHeader } from "@/components/kit/section";
+import { Skeleton } from "@/components/kit/skeleton";
+import { SaveState, StatusTag } from "@/components/kit/status-tag";
+import { relativeDaysLabel } from "@/components/kit/tone";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/src/lib/utils";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { cachedValue, rememberValue } from "@/src/lib/client-cache";
-import { PackageOfCycleWinners } from "./package-of-cycle-winners";
-
-type PackageCycle = {
-  cycleNumber: number;
-  focus: string;
-  pitchingDate: string | null;
-  proofOfContactDate: string | null;
-  aRollBRollDate: string | null;
-  initialCutDate: string | null;
-  finalCutDate: string | null;
-};
-
-type PackageCyclesResponse = {
-  canEdit: boolean;
-  canEditCycleCount: boolean;
-  cyclesPerSemester: number;
-  cycles: PackageCycle[];
-};
-
-const BUTTON_PRIMARY =
-  "bg-primary text-primary-foreground hover:bg-primary/90";
-const BUTTON_WARNING =
-  "bg-amber-500/20 border border-amber-300/40 text-amber-100 hover:bg-amber-500/30";
-
-const MIN_CYCLES = 1;
-const MAX_CYCLES = 8;
-
-const DEFAULT_CYCLES: PackageCycle[] = [
-  { cycleNumber: 1, focus: "", pitchingDate: null, proofOfContactDate: null, aRollBRollDate: null, initialCutDate: null, finalCutDate: null },
-  { cycleNumber: 2, focus: "", pitchingDate: null, proofOfContactDate: null, aRollBRollDate: null, initialCutDate: null, finalCutDate: null },
-  { cycleNumber: 3, focus: "", pitchingDate: null, proofOfContactDate: null, aRollBRollDate: null, initialCutDate: null, finalCutDate: null }
-];
-
-const STAGE_FIELDS = [
-  { key: "pitchingDate", label: "Package Pitching" },
-  { key: "proofOfContactDate", label: "Brainstorming & Proof of Contact" },
-  { key: "aRollBRollDate", label: "A-roll/B-roll" },
-  { key: "initialCutDate", label: "Initial Cut" },
-  { key: "finalCutDate", label: "Final Cut" }
-] as const;
-
-function startOfToday() {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
-}
-
-function parseDateKey(dateKey: string | null) {
-  if (!dateKey) return null;
-  const date = new Date(`${dateKey}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return null;
-  return date;
-}
-
-function formatDate(dateKey: string | null) {
-  const date = parseDateKey(dateKey);
-  if (!date) return "TBD";
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric"
-  });
-}
-
-function cycleName(cycleNumber: number, anchorDate?: string | null) {
-  if (!anchorDate) return `Cycle ${cycleNumber}`;
-  const parsed = parseDateKey(anchorDate);
-  if (!parsed) return `Cycle ${cycleNumber}`;
-  const month = parsed.toLocaleDateString("en-US", { month: "long" });
-  return `Cycle ${cycleNumber} · ${month}`;
-}
-
-function daysUntil(dateKey: string | null) {
-  const date = parseDateKey(dateKey);
-  if (!date) return null;
-  const today = startOfToday();
-  const diffMs = date.getTime() - today.getTime();
-  return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-}
-
-function getNextStage(cycle: PackageCycle) {
-  const today = startOfToday();
-
-  const candidates = STAGE_FIELDS.map((stage) => {
-    const parsed = parseDateKey(cycle[stage.key]);
-    return {
-      stage: stage.label,
-      date: parsed
-    };
-  }).filter((candidate) => candidate.date && candidate.date.getTime() >= today.getTime()) as Array<{
-    stage: string;
-    date: Date;
-  }>;
-
-  if (candidates.length === 0) {
-    return null;
-  }
-
-  candidates.sort((a, b) => a.date.getTime() - b.date.getTime());
-  return candidates[0];
-}
-
-function isCyclePassed(cycle: PackageCycle) {
-  const finalCut = parseDateKey(cycle.finalCutDate);
-  if (!finalCut) return false;
-  const today = startOfToday();
-  return finalCut.getTime() < today.getTime();
-}
+import {
+  dirtyCycleNumbers,
+  editLayoutFrom,
+  editRows,
+  errorMessage,
+  formatDateShort,
+  hasAnyDate,
+  isCycleClosed,
+  orderCycles,
+  pluralCycles,
+  soonestDeadline,
+  startOfToday,
+  withSavedCycle,
+  withServerCycles,
+  withStageDate,
+  type Deadline,
+  type EditLayout,
+  type PackageCycle,
+  type PackageCyclesResponse,
+  type Schedule,
+  type StageKey
+} from "./cycle-dates-utils";
+import { CycleDatesColumns } from "./cycle-dates-columns";
+import { CycleScheduleSkeleton } from "./cycle-dates-skeleton";
+import { CycleEditor } from "./cycle-editor";
+import { CycleSchedule } from "./cycle-schedule";
+import { CycleWinners, hasWinners, useCycleWinners } from "./cycle-winners";
+import { SemesterStrip } from "./semester-strip";
 
 const CYCLES_CACHE_KEY = "package-cycles";
+const CLOSE_NOTE = "Dates close at 11:59 PM Pacific.";
 
 async function loadCycles() {
   const response = await fetch("/api/package-cycles", { cache: "no-store" });
@@ -131,444 +60,260 @@ async function loadCycles() {
   return payload.data;
 }
 
-function applyLoadedCycles(data: PackageCyclesResponse) {
-  const sorted = [...data.cycles].sort((a, b) => a.cycleNumber - b.cycleNumber);
-  return {
-    sorted,
-    canEdit: data.canEdit,
-    canEditCycleCount: data.canEditCycleCount,
-    cyclesPerSemester: data.cyclesPerSemester
-  };
+/** "Cycle 2", "Cycles 1 and 2", "Cycles 1, 2 and 3". */
+function cycleList(numbers: number[]) {
+  if (numbers.length === 1) return `Cycle ${numbers[0]}`;
+  return `Cycles ${numbers.slice(0, -1).join(", ")} and ${numbers[numbers.length - 1]}`;
+}
+
+/** The header's one line: the soonest deadline across every open cycle. */
+function summaryLine(cycles: PackageCycle[], today: Date, soonest: Deadline | null) {
+  if (soonest) {
+    return (
+      <>
+        Next: Cycle {soonest.cycleNumber} {soonest.stage.short} ·{" "}
+        <span className="font-mono-broadcast text-[13px] tabular-nums">{formatDateShort(soonest.date, today)}</span> ·{" "}
+        <span className="font-mono-broadcast text-[13px] tabular-nums">{relativeDaysLabel(soonest.days)}</span>
+      </>
+    );
+  }
+  if (cycles.length > 0 && cycles.every((cycle) => isCycleClosed(cycle, today))) return "All cycles have closed.";
+  if (!hasAnyDate(cycles)) return "No dates set yet.";
+  return "No upcoming dates set yet.";
 }
 
 export default function PackageCyclesPage() {
-  const [cycles, setCycles] = useState<PackageCycle[]>(DEFAULT_CYCLES);
-  const [formCycles, setFormCycles] = useState<PackageCycle[]>(DEFAULT_CYCLES);
-  const [canEdit, setCanEdit] = useState(false);
-  const [canEditCycleCount, setCanEditCycleCount] = useState(false);
-  const [cyclesPerSemester, setCyclesPerSemester] = useState(3);
-  const [cycleCountDraft, setCycleCountDraft] = useState(3);
+  // Show the last copy on the first frame and refresh it quietly (src/lib/client-cache.ts).
+  const [initial] = useState(() => cachedValue<PackageCyclesResponse>(CYCLES_CACHE_KEY));
+  const [schedule, setSchedule] = useState<Schedule | null>(() => (initial ? withServerCycles(null, initial.cycles) : null));
+  const [canEdit, setCanEdit] = useState(initial?.canEdit ?? false);
+  const [canEditCycleCount, setCanEditCycleCount] = useState(initial?.canEditCycleCount ?? false);
+  const [cyclesPerSemester, setCyclesPerSemester] = useState(initial?.cyclesPerSemester ?? 3);
+  const [loading, setLoading] = useState(!initial);
+  const [refreshing, setRefreshing] = useState(false);
+  const [pageError, setPageError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [savingCycle, setSavingCycle] = useState<number | null>(null);
-  const [savingCycleCount, setSavingCycleCount] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const [editLayout, setEditLayout] = useState<EditLayout>({ open: [], closed: [] });
+  const [savingCycles, setSavingCycles] = useState<number[]>([]);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const winners = useCycleWinners();
 
-  function applyData(data: PackageCyclesResponse) {
-    const loaded = applyLoadedCycles(data);
-    setCycles(loaded.sorted);
-    setFormCycles(loaded.sorted);
-    setCanEdit(loaded.canEdit);
-    setCanEditCycleCount(loaded.canEditCycleCount);
-    setCyclesPerSemester(loaded.cyclesPerSemester);
-    setCycleCountDraft(loaded.cyclesPerSemester);
-  }
+  const applyData = useCallback((data: PackageCyclesResponse) => {
+    setSchedule((previous) => withServerCycles(previous, data.cycles));
+    setCanEdit(data.canEdit);
+    setCanEditCycleCount(data.canEditCycleCount);
+    setCyclesPerSemester(data.cyclesPerSemester);
+  }, []);
 
   useEffect(() => {
     let active = true;
-
-    async function hydrate() {
-      try {
-        // Show the last copy at once and refresh it quietly (src/lib/client-cache.ts).
-        const cached = cachedValue<PackageCyclesResponse>(CYCLES_CACHE_KEY);
-        if (cached) applyData(cached);
-        else setLoading(true);
-        setMessage(null);
-        const data = await loadCycles();
-        if (!active) return;
-        applyData(data);
-      } catch (error) {
-        if (!active) return;
-        setMessage(error instanceof Error ? error.message : "Failed to load package cycles.");
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
-      }
-    }
-
-    void hydrate();
-
+    loadCycles()
+      .then((data) => {
+        if (active) applyData(data);
+      })
+      .catch((error: unknown) => {
+        if (active) setPageError(errorMessage(error, "Failed to load package cycles."));
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
     return () => {
       active = false;
     };
-  }, []);
+  }, [applyData]);
 
-  const orderedCycles = useMemo(() => {
-    const passed = cycles.filter(isCyclePassed).sort((a, b) => a.cycleNumber - b.cycleNumber);
-    const nonPassed = cycles.filter((cycle) => !isCyclePassed(cycle)).sort((a, b) => a.cycleNumber - b.cycleNumber);
-    const current = nonPassed[0] ?? null;
-    const upcoming = current ? nonPassed.slice(1) : nonPassed;
-    const output: Array<PackageCycle & { section: "current" | "upcoming" | "passed" }> = [];
-
-    if (current) {
-      output.push({ ...current, section: "current" });
+  async function refresh() {
+    setRefreshing(true);
+    try {
+      applyData(await loadCycles());
+      setPageError(null);
+    } catch (error) {
+      setPageError(errorMessage(error, "Failed to refresh package cycles."));
+    } finally {
+      setRefreshing(false);
     }
+  }
 
-    for (const cycle of upcoming) {
-      output.push({ ...cycle, section: "upcoming" });
-    }
+  async function handleCountSaved(count: number) {
+    setCyclesPerSemester(count);
+    await refresh();
+  }
 
-    for (const cycle of passed) {
-      output.push({ ...cycle, section: "passed" });
-    }
-
-    return output;
-  }, [cycles]);
-
-  function updateFormCycle(cycleNumber: number, field: keyof PackageCycle, value: string | null) {
-    setFormCycles((current) =>
-      current.map((cycle) =>
-        cycle.cycleNumber === cycleNumber
-          ? {
-              ...cycle,
-              [field]: value
-            }
-          : cycle
-      )
+  function updateDraft(cycleNumber: number, key: StageKey, value: string | null) {
+    setSchedule((current) =>
+      current
+        ? {
+            ...current,
+            drafts: current.drafts.map((cycle) => (cycle.cycleNumber === cycleNumber ? withStageDate(cycle, key, value) : cycle))
+          }
+        : current
     );
   }
 
-  async function saveCycleCount() {
-    const next = Math.min(MAX_CYCLES, Math.max(MIN_CYCLES, Math.trunc(cycleCountDraft) || MIN_CYCLES));
-    if (next === cyclesPerSemester) {
-      setCycleCountDraft(next);
-      return;
-    }
-
-    try {
-      setSavingCycleCount(true);
-      setMessage(null);
-
-      const response = await fetch("/api/platform/program-settings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cyclesPerSemester: next })
-      });
-
-      const payload = (await response.json()) as {
-        data?: { cyclesPerSemester: number };
-        error?: { message?: string };
-      };
-
-      if (!response.ok || !payload.data) {
-        throw new Error(payload.error?.message ?? "Failed to update cycle count.");
-      }
-
-      const data = await loadCycles();
-      applyData(data);
-      setMessage(`Semester now has ${payload.data.cyclesPerSemester} package cycle${payload.data.cyclesPerSemester === 1 ? "" : "s"}.`);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to update cycle count.");
-      setCycleCountDraft(cyclesPerSemester);
-    } finally {
-      setSavingCycleCount(false);
-    }
+  function handleCycleSaved(result: PackageCycle, sent: PackageCycle) {
+    setSchedule((current) => (current ? withSavedCycle(current, result, sent) : current));
   }
 
-  async function saveCycle(cycleNumber: number) {
-    const cycle = formCycles.find((entry) => entry.cycleNumber === cycleNumber);
-    if (!cycle) return;
+  function markSaving(cycleNumber: number, saving: boolean) {
+    setSavingCycles((current) => {
+      const others = current.filter((entry) => entry !== cycleNumber);
+      return saving ? [...others, cycleNumber] : others;
+    });
+  }
 
-    try {
-      setSavingCycle(cycleNumber);
-      setMessage(null);
+  const todayTime = startOfToday().getTime();
+  const today = useMemo(() => new Date(todayTime), [todayTime]);
+  const saved = useMemo(() => schedule?.saved ?? [], [schedule]);
+  const ordered = useMemo(() => orderCycles(saved, today), [saved, today]);
+  const soonest = useMemo(() => soonestDeadline(saved, today), [saved, today]);
+  const sections = useMemo(() => new Map(ordered.map((entry) => [entry.cycle.cycleNumber, entry.section])), [ordered]);
+  const unsaved = schedule ? dirtyCycleNumbers(schedule.drafts, schedule.saved) : [];
+  const stripShown = editing && canEditCycleCount && schedule !== null;
 
-      const response = await fetch("/api/package-cycles", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(cycle)
-      });
+  function startEditing() {
+    setEditLayout(editLayoutFrom(ordered));
+    setEditing(true);
+  }
 
-      const payload = (await response.json()) as {
-        data?: PackageCycle;
-        error?: { message?: string };
-      };
+  /** Waits for running saves (the button is disabled meanwhile), then asks before dropping drafts. */
+  function finishEditing() {
+    if (savingCycles.length > 0) return;
+    if (unsaved.length > 0) setConfirmDiscard(true);
+    else setEditing(false);
+  }
 
-      if (!response.ok || !payload.data) {
-        throw new Error(payload.error?.message ?? "Failed to save cycle.");
-      }
+  function discardDrafts() {
+    setSchedule((current) => (current ? { ...current, drafts: current.saved } : current));
+    setEditing(false);
+  }
 
-      setCycles((current) =>
-        current
-          .map((entry) => (entry.cycleNumber === cycleNumber ? payload.data! : entry))
-          .sort((a, b) => a.cycleNumber - b.cycleNumber)
-      );
-      setFormCycles((current) =>
-        current
-          .map((entry) => (entry.cycleNumber === cycleNumber ? payload.data! : entry))
-          .sort((a, b) => a.cycleNumber - b.cycleNumber)
-      );
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to save cycle.");
-    } finally {
-      setSavingCycle(null);
-    }
+  let body;
+  if (!schedule) {
+    body = loading ? (
+      <CycleScheduleSkeleton />
+    ) : (
+      <div className="rounded-md border border-border bg-card">
+        <ErrorState
+          size="page"
+          title="Couldn't load cycle dates"
+          message={pageError ?? undefined}
+          onRetry={() => void refresh()}
+          busy={refreshing}
+        />
+      </div>
+    );
+  } else if (editing && canEdit) {
+    body = (
+      <CycleEditor
+        saved={schedule.saved}
+        rows={editRows(editLayout, schedule.drafts)}
+        sections={sections}
+        today={today}
+        savingCycles={savingCycles}
+        onSavingChange={markSaving}
+        onChange={updateDraft}
+        onSaved={handleCycleSaved}
+      />
+    );
+  } else {
+    body = <CycleSchedule ordered={ordered} today={today} soonest={soonest} />;
   }
 
   return (
-    <div className="route-enter mx-auto w-full max-w-6xl space-y-5">
+    <div className="route-enter space-y-5">
       <PageHeader
         eyebrow={
           <>
-            <CalendarClock className="h-3 w-3" />
-            Production · Run-of-Show
+            <CalendarClock className="h-3 w-3" aria-hidden />
+            Run of show
           </>
+        }
+        status={
+          editing || unsaved.length > 0 ? (
+            <>
+              {editing ? <StatusTag tone="neutral">Editing</StatusTag> : null}
+              {unsaved.length > 0 ? <SaveState state="dirty" count={unsaved.length} /> : null}
+            </>
+          ) : null
         }
         title="Cycle Dates"
         description={
-          <>
-            Ordered by current cycle, upcoming cycles, then passed cycles.
-            {!loading ? ` · ${cyclesPerSemester} cycle${cyclesPerSemester === 1 ? "" : "s"} this semester` : null}
-          </>
+          schedule ? (
+            summaryLine(saved, today, soonest)
+          ) : loading ? (
+            <Skeleton className="inline-block h-3.5 w-72 max-w-full align-middle" />
+          ) : undefined
         }
         actions={
           <>
-            <Button
-              type="button"
-              size="sm"
+            <IconButton
+              label="Refresh"
+              icon={RefreshCcw}
               variant="outline"
-              onClick={() => {
-                void loadCycles()
-                  .then((data) => {
-                    applyData(data);
-                  })
-                  .catch((error) => {
-                    setMessage(error instanceof Error ? error.message : "Failed to refresh package cycles.");
-                  });
-              }}
-            >
-              <RefreshCcw className="mr-2 h-4 w-4" />
-              Refresh
-            </Button>
+              busy={refreshing || loading}
+              onClick={() => void refresh()}
+            />
             {canEdit || canEditCycleCount ? (
-              <Button
-                type="button"
-                size="sm"
-                className={editing ? BUTTON_WARNING : BUTTON_PRIMARY}
-                onClick={() => {
-                  setEditing((current) => {
-                    if (current) {
-                      setCycleCountDraft(cyclesPerSemester);
-                    }
-                    return !current;
-                  });
-                }}
-              >
-                <Edit3 className="mr-2 h-4 w-4" />
-                {editing ? "Done Editing" : "Edit Cycles"}
-              </Button>
+              editing ? (
+                <Button type="button" variant="outline" onClick={finishEditing} disabled={savingCycles.length > 0}>
+                  <Check aria-hidden />
+                  Done editing
+                </Button>
+              ) : (
+                <Button type="button" onClick={startEditing}>
+                  <Pencil aria-hidden />
+                  Edit cycles
+                </Button>
+              )
             ) : null}
           </>
         }
       />
 
-      {editing && canEditCycleCount ? (
-        <div className="flex flex-wrap items-end gap-3 rounded-md border border-border bg-card px-4 py-3">
-          <div className="min-w-0">
-            <label htmlFor="cycles-per-semester" className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              Cycles this semester
-            </label>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Changes how many cycle cards appear here and in grades. Extra cycle data is kept if you lower the count.
-            </p>
-          </div>
-          <div className="ml-auto flex flex-wrap items-center gap-2">
-            <input
-              id="cycles-per-semester"
-              type="number"
-              min={MIN_CYCLES}
-              max={MAX_CYCLES}
-              value={cycleCountDraft}
-              onChange={(event) => {
-                const value = Number(event.target.value);
-                if (!Number.isFinite(value)) {
-                  setCycleCountDraft(MIN_CYCLES);
-                  return;
-                }
-                setCycleCountDraft(Math.min(MAX_CYCLES, Math.max(MIN_CYCLES, Math.trunc(value))));
-              }}
-              className="h-10 w-20 rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none focus:ring-ring"
-            />
-            <span className="text-sm text-muted-foreground">cycles</span>
-            <Button
-              type="button"
-              size="sm"
-              className={BUTTON_PRIMARY}
-              disabled={savingCycleCount || cycleCountDraft === cyclesPerSemester}
-              onClick={() => void saveCycleCount()}
-            >
-              <Save className="mr-2 h-4 w-4" />
-              {savingCycleCount ? "Saving..." : "Save count"}
+      {schedule && pageError ? (
+        <Alert
+          tone="danger"
+          title="Couldn't refresh cycle dates."
+          action={
+            <Button type="button" variant="outline" size="sm" onClick={() => void refresh()} disabled={refreshing}>
+              Try again
             </Button>
-          </div>
-        </div>
+          }
+        >
+          {pageError}
+        </Alert>
       ) : null}
 
-      {message ? (
-        <p className="rounded-md border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">{message}</p>
-      ) : null}
+      <CycleDatesColumns
+        strip={stripShown ? <SemesterStrip savedCount={cyclesPerSemester} onSaved={handleCountSaved} /> : null}
+        dates={
+          <section aria-labelledby="stage-dates-title" className="space-y-3">
+            <SectionHeader
+              as="h2"
+              id="stage-dates-title"
+              title="Stage dates"
+              // While the semester strip shows the count, the line doesn't repeat it.
+              description={schedule && !stripShown ? `${pluralCycles(cyclesPerSemester)} this semester · ${CLOSE_NOTE}` : CLOSE_NOTE}
+            />
+            {body}
+          </section>
+        }
+        winners={hasWinners(winners) ? <CycleWinners data={winners} /> : null}
+      />
 
-      <PackageOfCycleWinners />
-
-      {loading ? (
-        <section className="rounded-md border border-border bg-card p-4 text-sm text-muted-foreground">
-          Loading package cycles...
-        </section>
-      ) : (
-        <section className="grid gap-4 lg:grid-cols-2">
-          {orderedCycles.map((cycle) => {
-            const formCycle = formCycles.find((entry) => entry.cycleNumber === cycle.cycleNumber) ?? cycle;
-            const sectionPillCls =
-              cycle.section === "current"
-                ? "status-approved"
-                : cycle.section === "upcoming"
-                  ? "status-warn"
-                  : "status-neutral";
-            const sectionLabel =
-              cycle.section === "current" ? "Active" : cycle.section === "upcoming" ? "Planned" : "Closed";
-            const cycleAnchor = cycle.proofOfContactDate ?? cycle.finalCutDate;
-
-            // Find the next not-yet-complete stage with a date ahead of today
-            const nextStage = STAGE_FIELDS.find((stage) => {
-              const dateKey = formCycle[stage.key];
-              const parsed = parseDateKey(dateKey);
-              if (!parsed) return false;
-              const today = new Date();
-              today.setHours(0, 0, 0, 0);
-              return parsed.getTime() >= today.getTime();
-            });
-
-            return (
-              <article
-                key={cycle.cycleNumber}
-                className={cn(
-                  "rounded-md border bg-card p-5 md:p-6",
-                  cycle.section === "current"
-                    ? "border-[rgb(43,179,110,0.30)]"
-                    : cycle.section === "upcoming"
-                      ? "border-border"
-                      : "border-border opacity-90"
-                )}
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h2 className="display-sm text-foreground">
-                      {cycleName(cycle.cycleNumber, cycleAnchor)}
-                    </h2>
-                  </div>
-                  <span className={`status-pill ${sectionPillCls}`}>{sectionLabel}</span>
-                </div>
-
-                <div className="mt-5 flex flex-col gap-2">
-                  {STAGE_FIELDS.map((stage) => {
-                    const stageDate = formCycle[stage.key];
-                    const parsed = parseDateKey(stageDate);
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    const isPast = parsed ? parsed.getTime() < today.getTime() : false;
-                    const dotCls = !parsed
-                      ? "bg-[var(--ink-4)]"
-                      : isPast
-                        ? "bg-[var(--brand-green)]"
-                        : "bg-[var(--brand-amber)]";
-                    const statusLabel = !parsed
-                      ? "TBD"
-                      : isPast
-                        ? "Completed"
-                        : (() => {
-                            const diff = Math.round(
-                              (parsed.getTime() - today.getTime()) / 86_400_000
-                            );
-                            return `in ${diff}d`;
-                          })();
-                    const statusCls = !parsed
-                      ? "status-neutral"
-                      : isPast
-                        ? "status-approved"
-                        : "status-warn";
-
-                    return (
-                      <div
-                        key={`${cycle.cycleNumber}-${stage.key}`}
-                        className="flex items-center justify-between gap-3 rounded-md border border-border bg-[hsl(var(--background))] px-3 py-2.5"
-                      >
-                        <div className="flex min-w-0 items-center gap-2.5">
-                          <span className={cn("h-2 w-2 flex-shrink-0 rounded-full", dotCls)} />
-                          <div className="min-w-0">
-                            <div className="text-sm font-semibold text-foreground">{stage.label}</div>
-                            {editing && canEdit ? (
-                              <input
-                                type="date"
-                                value={stageDate ?? ""}
-                                onChange={(event) =>
-                                  updateFormCycle(
-                                    cycle.cycleNumber,
-                                    stage.key as keyof PackageCycle,
-                                    event.target.value ? event.target.value : null
-                                  )
-                                }
-                                className="mt-1 h-7 w-full rounded-md border border-border bg-secondary px-2 text-xs text-foreground outline-none focus:ring-ring"
-                              />
-                            ) : (
-                              <div className="font-mono-broadcast text-[11px] tabular-nums text-muted-foreground">
-                                {formatDate(stageDate) || "—"}
-                                {parsed
-                                  ? ` · ${parsed.toLocaleDateString("en-US", { weekday: "short" })}`
-                                  : ""}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        {!editing ? (
-                          <span className={`status-pill ${statusCls}`}>{statusLabel}</span>
-                        ) : null}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {!editing && nextStage && cycle.section !== "passed" ? (
-                  <div className="mt-4 flex items-center justify-between gap-3 rounded-md border border-[rgb(43,179,110,0.30)] bg-[rgb(43,179,110,0.06)] px-4 py-3">
-                    <div>
-                      <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--brand-green)]">
-                        Next Stage
-                      </div>
-                      <div className="mt-1 text-sm font-semibold text-foreground">
-                        {nextStage.label} · {formatDate(formCycle[nextStage.key])}
-                      </div>
-                    </div>
-                    <span className="status-pill status-warn">
-                      {(() => {
-                        const parsed = parseDateKey(formCycle[nextStage.key]);
-                        if (!parsed) return "TBD";
-                        const diff = Math.round(
-                          (parsed.getTime() - new Date().setHours(0, 0, 0, 0)) / 86_400_000
-                        );
-                        return diff === 0 ? "today" : `in ${diff}d`;
-                      })()}
-                    </span>
-                  </div>
-                ) : null}
-
-                {editing && canEdit ? (
-                  <div className="mt-4 flex justify-end">
-                    <Button
-                      type="button"
-                      className={BUTTON_PRIMARY}
-                      disabled={savingCycle === cycle.cycleNumber}
-                      onClick={() => void saveCycle(cycle.cycleNumber)}
-                    >
-                      <Save className="mr-2 h-4 w-4" />
-                      {savingCycle === cycle.cycleNumber ? "Saving..." : "Save Cycle"}
-                    </Button>
-                  </div>
-                ) : null}
-              </article>
-            );
-          })}
-        </section>
-      )}
+      <ConfirmDialog
+        open={confirmDiscard}
+        onOpenChange={setConfirmDiscard}
+        title="Discard unsaved changes?"
+        description={
+          unsaved.length > 0
+            ? `${cycleList(unsaved)} ${unsaved.length === 1 ? "has" : "have"} dates you haven't saved.`
+            : "Some dates haven't been saved."
+        }
+        confirmLabel="Discard changes"
+        cancelLabel="Keep editing"
+        onConfirm={discardDrafts}
+      />
     </div>
   );
 }

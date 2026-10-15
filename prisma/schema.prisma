@@ -1055,6 +1055,9 @@ model PackageStageComment {
   stage     String
   authorId  String
   body      String
+  /// Set when a group member or the package's producer marks the note handled; null = open.
+  resolvedAt   DateTime?
+  resolvedById String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   row       PackageProgressRow @relation(fields: [rowId], references: [id], onDelete: Cascade)

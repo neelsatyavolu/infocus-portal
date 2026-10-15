@@ -57,13 +57,13 @@ export function MoveDialog({
         </DialogHeader>
         <div className="space-y-1.5">
           <Label htmlFor="move-when">New date and time</Label>
-          <Input id="move-when" type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} />
+          <Input id="move-when" type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} className="max-md:h-10" />
         </div>
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="max-md:h-10">
             Cancel
           </Button>
-          <Button onClick={() => void save()} disabled={saving}>
+          <Button onClick={() => void save()} disabled={saving} className="max-md:h-10">
             {saving ? <Loader2 className="animate-spin" aria-hidden /> : null}
             Move
           </Button>

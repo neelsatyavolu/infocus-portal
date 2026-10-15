@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
 import { PeoplePicker } from "@/components/meetings/people-picker";
+import { Alert } from "@/components/kit/alert";
+import { Spinner } from "@/components/kit/spinner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { VaultEntrySummary, VaultPerson } from "@/src/lib/password-vault";
@@ -80,15 +81,17 @@ export function VaultShareDialog({
         <PeoplePicker people={people} error={loadError} selected={selected} onChange={setSelected} noun="people" />
 
         {error ? (
-          <p className="rounded-lg border border-danger/40 bg-danger-tint px-3 py-2 text-sm text-danger">{error}</p>
+          <Alert tone="danger" compact>
+            {error}
+          </Alert>
         ) : null}
 
-        <DialogFooter className="gap-2">
-          <Button type="button" variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="flex-row justify-end gap-2 sm:space-x-0">
+          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button type="button" size="sm" onClick={() => void save()} disabled={saving || !people}>
-            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+          <Button type="button" onClick={() => void save()} disabled={saving || !people}>
+            {saving ? <Spinner /> : null}
             Save
           </Button>
         </DialogFooter>

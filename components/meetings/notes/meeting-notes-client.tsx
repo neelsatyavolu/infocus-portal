@@ -2,15 +2,24 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Loader2, Lock } from "lucide-react";
+import { Loader2, Lock } from "lucide-react";
 import { toast } from "sonner";
+import { Alert, InlineNote } from "@/components/kit/alert";
+import { BackLink } from "@/components/kit/button-group";
+import { Panel } from "@/components/kit/panel";
+import { PageHeader } from "@/components/page-header";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { cachedValue, rememberValue } from "@/src/lib/client-cache";
 import type { MeetingDetail } from "@/src/lib/meetings/types";
 import { errorMessage, meetingsApi } from "@/src/lib/meetings/client/api";
 import { formatDuration, pacificDayLabel, pacificTimeLabel } from "@/src/lib/meetings/client/time";
+import { cn } from "@/src/lib/utils";
 import { InviteesDialog } from "../invitees-dialog";
-import { AccessTag, NotesTag } from "../tab/meeting-rows";
+import { BoardColumns } from "../tab/board-columns";
+import { AccessTag, LiveTag, NotesTag } from "../tab/meeting-rows";
+import { MeetingDetailsPanel, MeetingInvitedPanel } from "./meeting-details-panel";
 import { MeetingMarkdown } from "./meeting-markdown";
+import { NotesSkeleton } from "./notes-skeleton";
 
 const NOTES_COPY: Record<MeetingDetail["notesStatus"], string> = {
   NONE: "No notes were taken for this meeting.",
@@ -20,8 +29,35 @@ const NOTES_COPY: Record<MeetingDetail["notesStatus"], string> = {
   FAILED: "Notes couldn't be made for this meeting."
 };
 
+const cacheKey = (id: string) => `meetings:detail:${id}`;
+
+/** The summary, or why there isn't one (a failure is an Alert with its reason). */
+function SummaryBody({ meeting }: { meeting: MeetingDetail }) {
+  if (meeting.notesSummary) {
+    // The reading column itself is the line length (BoardColumns "reading").
+    return <MeetingMarkdown markdown={meeting.notesSummary} />;
+  }
+  const copy = NOTES_COPY[meeting.notesStatus] || "No summary yet.";
+  const reason = meeting.notesError ? <p className="mt-1">Reason: {meeting.notesError}</p> : null;
+  if (meeting.notesStatus === "FAILED") {
+    return (
+      <Alert tone="danger" compact>
+        {copy}
+        {reason}
+      </Alert>
+    );
+  }
+  return (
+    <div className="text-sm text-muted-foreground">
+      <p>{copy}</p>
+      {reason}
+    </div>
+  );
+}
+
 export default function MeetingNotesClient({ meetingId }: { meetingId: string }) {
-  const [meeting, setMeeting] = useState<MeetingDetail | null>(null);
+  // In-memory cache (empty on a full page load), so this never differs from the server render.
+  const [meeting, setMeeting] = useState<MeetingDetail | null>(() => cachedValue<MeetingDetail>(cacheKey(meetingId)) ?? null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<string | null>(null);
   const [loadingTranscript, setLoadingTranscript] = useState(false);
@@ -29,7 +65,10 @@ export default function MeetingNotesClient({ meetingId }: { meetingId: string })
 
   const load = useCallback(async () => {
     try {
-      setMeeting((await meetingsApi.get(meetingId)).meeting);
+      const next = (await meetingsApi.get(meetingId)).meeting;
+      rememberValue(cacheKey(meetingId), next);
+      setMeeting(next);
+      setLoadError(null);
     } catch (err) {
       setLoadError(errorMessage(err, "Couldn't load this meeting."));
     }
@@ -50,77 +89,120 @@ export default function MeetingNotesClient({ meetingId }: { meetingId: string })
     }
   }
 
-  return (
-    <div className="route-enter mx-auto w-full max-w-[45rem] space-y-6 pb-24">
-      <Link href={"/meetings" as never} className="inline-flex items-center gap-1.5 text-sm text-[var(--brand-green)] hover:underline">
-        <ArrowLeft className="h-4 w-4" aria-hidden /> Meetings
-      </Link>
+  const canEditInvitees = Boolean(meeting?.isHost && meeting.canEdit);
 
-      {loadError ? <p className="text-sm text-danger" role="alert">{loadError}</p> : null}
-      {!meeting && !loadError ? <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" aria-label="Loading" /> : null}
+  return (
+    <div className="route-enter space-y-5">
+      {/* Block-level and closer to the plate than the page rhythm: it belongs to the header. */}
+      <BackLink href="/meetings" className="mb-2 flex w-fit">
+        Meetings
+      </BackLink>
+
+      {meeting ? (
+        <PageHeader
+          eyebrow="Meeting notes"
+          status={
+            <>
+              {meeting.status === "LIVE" ? <LiveTag /> : null}
+              <AccessTag meeting={meeting} />
+              <NotesTag status={meeting.notesStatus} />
+            </>
+          }
+          title={meeting.title}
+          description={
+            <>
+              {pacificDayLabel(meeting.startsAt)} · {pacificTimeLabel(meeting.startsAt)} Pacific · {formatDuration(meeting.durationMinutes)} ·{" "}
+              <span className="font-mono tabular-nums">{meeting.participantCount}</span> attended
+            </>
+          }
+          actions={
+            canEditInvitees || meeting.status === "LIVE" ? (
+              <>
+                {canEditInvitees ? (
+                  <Button variant="outline" onClick={() => setEditInvitees(true)} className="max-md:h-10!">
+                    Edit invited people
+                  </Button>
+                ) : null}
+                {meeting.status === "LIVE" ? (
+                  <Link
+                    href={`/meet/${encodeURIComponent(meeting.id)}` as never}
+                    aria-label={`Join ${meeting.title}`}
+                    className={cn(buttonVariants(), "max-md:h-10!")}
+                  >
+                    Join
+                  </Link>
+                ) : null}
+              </>
+            ) : null
+          }
+        />
+      ) : null}
+
+      {loadError ? (
+        <Alert
+          tone="danger"
+          action={
+            <Button size="sm" variant="outline" onClick={() => void load()} className="max-md:h-10!">
+              Try again
+            </Button>
+          }
+        >
+          {loadError}
+        </Alert>
+      ) : null}
+      {!meeting && !loadError ? <NotesSkeleton /> : null}
 
       {meeting ? (
         <>
-          <header className="space-y-2">
-            <div className="eyebrow">Meeting notes</div>
-            <h1 className="display-md text-foreground">{meeting.title}</h1>
-            <p className="text-sm text-muted-foreground">
-              {pacificDayLabel(meeting.startsAt)} · {pacificTimeLabel(meeting.startsAt)} · {formatDuration(meeting.durationMinutes)} ·{" "}
-              <span className="font-mono tabular-nums">{meeting.participantCount}</span> attended
-            </p>
-            <div className="flex flex-wrap items-center gap-2">
-              <AccessTag meeting={meeting} />
-              <NotesTag status={meeting.notesStatus} />
-              {meeting.isHost && meeting.canEdit ? (
-                <Button size="sm" variant="outline" onClick={() => setEditInvitees(true)}>
-                  Edit invited people
-                </Button>
-              ) : null}
-              {meeting.status === "LIVE" ? (
-                <Link href={`/meet/${encodeURIComponent(meeting.id)}` as never} className={buttonVariants({ size: "sm" })}>
-                  Join
-                </Link>
-              ) : null}
-            </div>
-            {meeting.invitees.length > 0 ? (
-              <p className="text-xs text-muted-foreground">Invited: {meeting.invitees.map((p) => p.name).join(", ")}</p>
-            ) : null}
-          </header>
-
-          <section aria-labelledby="summary-heading" className="space-y-3 rounded-md border border-[var(--ink-4)] bg-card p-4 md:p-6">
-            <h2 id="summary-heading" className="text-lg font-semibold text-foreground">Summary</h2>
-            {meeting.notesSummary ? (
-              <MeetingMarkdown markdown={meeting.notesSummary} />
-            ) : (
+          <BoardColumns
+            variant="reading"
+            main={
               <>
-                <p className="text-sm text-muted-foreground">{NOTES_COPY[meeting.notesStatus] || "No summary yet."}</p>
-                {meeting.notesError ? <p className="text-sm text-muted-foreground">Reason: {meeting.notesError}</p> : null}
-              </>
-            )}
-          </section>
-
-          {meeting.hasTranscript ? (
-            <section aria-labelledby="transcript-heading" className="space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <h2 id="transcript-heading" className="text-lg font-semibold text-foreground">Transcript</h2>
-                {transcript === null ? (
-                  <Button size="sm" variant="outline" onClick={() => void showTranscript()} disabled={loadingTranscript}>
-                    {loadingTranscript ? <Loader2 className="animate-spin" aria-hidden /> : null}
-                    Load transcript
-                  </Button>
+                <Panel id="meeting-summary" title="Summary" titleAs="h2">
+                  <SummaryBody meeting={meeting} />
+                </Panel>
+                {meeting.hasTranscript ? (
+                  <Panel
+                    id="meeting-transcript"
+                    title="Transcript"
+                    titleAs="h2"
+                    padding="none"
+                    actions={
+                      transcript === null ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => void showTranscript()}
+                          disabled={loadingTranscript}
+                          className="max-md:h-10!"
+                        >
+                          {loadingTranscript ? <Loader2 className="animate-spin" aria-hidden /> : null}
+                          Load transcript
+                        </Button>
+                      ) : null
+                    }
+                  >
+                    {transcript !== null ? (
+                      // Flush in the card (no box in a box); it scrolls inside its own height.
+                      <pre className="max-h-[60dvh] overflow-auto whitespace-pre-wrap break-words px-4 py-4 font-sans text-sm leading-relaxed text-[var(--ink-text)] md:px-5">
+                        {transcript}
+                      </pre>
+                    ) : (
+                      <InlineNote icon={Lock} className="px-4 py-3 md:px-5">
+                        Stored on the InFocus Drive. Loaded only when you ask.
+                      </InlineNote>
+                    )}
+                  </Panel>
                 ) : null}
-              </div>
-              {transcript !== null ? (
-                <pre className="max-h-[60dvh] overflow-auto whitespace-pre-wrap break-words rounded-md border border-[var(--ink-4)] bg-card p-4 font-sans text-sm leading-relaxed text-[var(--ink-text)]">
-                  {transcript}
-                </pre>
-              ) : (
-                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Lock className="h-3.5 w-3.5" aria-hidden /> Stored on the InFocus Drive. Loaded only when you ask.
-                </p>
-              )}
-            </section>
-          ) : null}
+              </>
+            }
+            rail={
+              <>
+                <MeetingDetailsPanel meeting={meeting} />
+                <MeetingInvitedPanel meeting={meeting} canEdit={canEditInvitees} />
+              </>
+            }
+          />
 
           <InviteesDialog
             open={editInvitees}

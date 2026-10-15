@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { useEffect, useId, useState } from "react";
 import { toast } from "sonner";
+import { Field } from "@/components/kit/field";
+import { Spinner } from "@/components/kit/spinner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,22 +11,20 @@ import {
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/native-select";
 import { clampExtensionDays } from "@/src/lib/package-extensions";
-import { ExtensionDaysInput } from "./extension-days-input";
+import { DaysField } from "./extension-days-input";
+import { MemberChecklist } from "./member-checklist";
+import { memberLabel } from "./request-view";
 
 type GroupMember = { userId: string; name: string | null; email: string | null };
 type Group = { id: string; groupTopic: string; members: GroupMember[] };
 
-const inputClass =
-  "h-10 w-full rounded-lg border border-border bg-muted px-3 text-base text-foreground outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm";
-
-function memberLabel(member: GroupMember) {
-  return member.name ?? member.email ?? "Unknown";
-}
-
+/** Topic first, like the request rows: "Lunch line wait times · Abby, Otto". */
 function groupLabel(group: Group) {
   const names = group.members.map(memberLabel).join(", ");
-  return group.groupTopic ? `${names} · “${group.groupTopic}”` : names;
+  return group.groupTopic ? `${group.groupTopic} · ${names}` : names;
 }
 
 /**
@@ -45,6 +44,7 @@ export function GrantExtensionDialog({
   onOpenChange: (open: boolean) => void;
   onGranted: () => Promise<void>;
 }) {
+  const ids = useId();
   const [cycleNumber, setCycleNumber] = useState(initialCycleNumber);
   const [groups, setGroups] = useState<Group[]>([]);
   const [loadingGroups, setLoadingGroups] = useState(false);
@@ -62,11 +62,11 @@ export function GrantExtensionDialog({
 
     fetch(`/api/extensions/grants?cycleNumber=${cycleNumber}`, { cache: "no-store" })
       .then(async (response) => {
-        const body = await response.json();
+        const body = await response.json().catch(() => null);
         if (!response.ok) {
           throw new Error(body?.error?.message ?? "Failed to load package groups.");
         }
-        if (!cancelled) setGroups(body.data.groups as Group[]);
+        if (!cancelled) setGroups((body?.data?.groups ?? []) as Group[]);
       })
       .catch((error) => {
         if (!cancelled) {
@@ -84,16 +84,11 @@ export function GrantExtensionDialog({
   }, [cycleNumber]);
 
   const group = groups.find((entry) => entry.id === groupId) ?? null;
+  const cycleOptions = cycleNumbers.includes(cycleNumber) ? cycleNumbers : [...cycleNumbers, cycleNumber];
 
   function pickGroup(id: string) {
     setGroupId(id);
     setSelected(groups.find((entry) => entry.id === id)?.members.map((member) => member.userId) ?? []);
-  }
-
-  function toggle(userId: string, checked: boolean) {
-    setSelected((current) =>
-      checked ? [...current.filter((id) => id !== userId), userId] : current.filter((id) => id !== userId)
-    );
   }
 
   const canGrant = !saving && Boolean(group) && selected.length > 0;
@@ -107,7 +102,7 @@ export function GrantExtensionDialog({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ progressRowId: groupId, days: clampExtensionDays(days), grantedUserIds: selected, reason })
       });
-      const body = await response.json();
+      const body = await response.json().catch(() => null);
       if (!response.ok) {
         throw new Error(body?.error?.message ?? "Failed to grant extension.");
       }
@@ -139,78 +134,62 @@ export function GrantExtensionDialog({
             void grant();
           }}
         >
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-2">
-            <label className="block text-sm">
-              <span className="mb-1 block text-xs text-muted-foreground">Cycle</span>
-              <select
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Cycle" htmlFor={`${ids}-cycle`}>
+              <NativeSelect
+                id={`${ids}-cycle`}
                 value={cycleNumber}
                 onChange={(event) => setCycleNumber(Number(event.target.value))}
-                className={inputClass}
               >
-                {(cycleNumbers.includes(cycleNumber) ? cycleNumbers : [...cycleNumbers, cycleNumber]).map((value) => (
+                {cycleOptions.map((value) => (
                   <option key={value} value={value}>
                     Cycle {value}
                   </option>
                 ))}
-              </select>
-            </label>
-            <label className="block text-sm">
-              <span className="mb-1 block text-xs text-muted-foreground">Days</span>
-              <ExtensionDaysInput value={days} onChange={setDays} className={inputClass} />
-            </label>
+              </NativeSelect>
+            </Field>
+            <DaysField id={`${ids}-days`} value={days} onChange={setDays} />
           </div>
 
-          <label className="block text-sm">
-            <span className="mb-1 block text-xs text-muted-foreground">Group</span>
-            <select
+          <Field label="Group" htmlFor={`${ids}-group`}>
+            <NativeSelect
+              id={`${ids}-group`}
               value={groupId}
               onChange={(event) => pickGroup(event.target.value)}
               disabled={loadingGroups || groups.length === 0}
-              className={inputClass}
+              placeholderOption={
+                loadingGroups ? "Loading groups…" : groups.length === 0 ? "No groups in this cycle" : "Pick a group"
+              }
             >
-              <option value="">
-                {loadingGroups ? "Loading groups…" : groups.length === 0 ? "No groups in this cycle" : "Pick a group"}
-              </option>
               {groups.map((entry) => (
                 <option key={entry.id} value={entry.id}>
                   {groupLabel(entry)}
                 </option>
               ))}
-            </select>
-          </label>
+            </NativeSelect>
+          </Field>
 
           {group ? (
-            <fieldset className="space-y-2">
-              <legend className="mb-1 text-xs text-muted-foreground">Students</legend>
-              {group.members.map((member) => (
-                <label key={member.userId} className="flex items-center gap-2 text-sm text-foreground">
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(member.userId)}
-                    onChange={(event) => toggle(member.userId, event.target.checked)}
-                  />
-                  {memberLabel(member)}
-                </label>
-              ))}
-            </fieldset>
+            <MemberChecklist
+              members={group.members.map((member) => ({ userId: member.userId, label: memberLabel(member) }))}
+              selected={selected}
+              onChange={setSelected}
+            />
           ) : null}
 
-          <label className="block text-sm">
-            <span className="mb-1 block text-xs text-muted-foreground">Reason (optional)</span>
-            <input value={reason} onChange={(event) => setReason(event.target.value)} className={inputClass} />
-          </label>
-        </div>
+          <Field label="Reason (optional)" htmlFor={`${ids}-reason`}>
+            <Input id={`${ids}-reason`} value={reason} onChange={(event) => setReason(event.target.value)} />
+          </Field>
 
-        <DialogFooter>
-          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={!canGrant}>
-            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Grant
-          </Button>
-        </DialogFooter>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={!canGrant}>
+              {saving ? <Spinner /> : null}
+              Grant
+            </Button>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
+import { Alert } from "@/components/kit/alert";
+import { JumpLinks } from "@/components/kit/layout";
+import { Panel } from "@/components/kit/panel";
 import { PageHeader } from "@/components/page-header";
 
+// The copy on this page was supplied word for word; change grouping and styling only.
 const STAGES = [
   {
     title: "Package Pitching",
@@ -47,81 +52,154 @@ const APPROVAL_STAGES = [
   }
 ] as const;
 
-function StageItem({ title, body }: { title: string; body: string }) {
+const [PITCHING, BRAINSTORMING, A_ROLL, STAGE_1, STAGE_2, STAGE_3, FINAL_CUT] = STAGES;
+
+const LINK = "text-[var(--brand-green)] underline-offset-2 hover:underline";
+/**
+ * Prose spans its panel, so text, callouts and rows share the card's right edge. Lines stay
+ * readable because the panels sit two across only from xl (where each column still holds a
+ * comfortable line beside the sidebar), and between md and xl (one column) the step rows put
+ * their titles in a side column.
+ */
+const PROSE = "text-pretty text-sm leading-6 text-[var(--ink-text)]";
+/** A rule called out from the prose: recessed box, 1px line, Info icon, the full width of the card. */
+const CALLOUT = "bg-background";
+/** Panels clear the sticky top bar when a jump link scrolls to them. */
+const ANCHOR = "scroll-mt-20";
+
+/** `text` with its `phrase` turned into an in-page link (the copy itself stays as supplied). */
+function withLink(text: string, phrase: string, href: string): ReactNode {
+  const at = text.indexOf(phrase);
+  if (at < 0) return text;
   return (
-    <div className="space-y-1.5">
-      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-      <p className="text-sm leading-6 text-muted-foreground text-pretty">{body}</p>
-    </div>
+    <>
+      {text.slice(0, at)}
+      <a href={href} className={LINK}>
+        {phrase}
+      </a>
+      {text.slice(at + phrase.length)}
+    </>
   );
 }
 
-export const metadata: Metadata = { title: "Information" };
+type GuideRow = { key: string; marker?: string; title: string; body: ReactNode };
+
+/** Numbered like the stage bar above the page: 1 Brainstorming, 2 A-roll/B-roll, 3 Initial Cut (3.1–3.3), 4 Final Cut. */
+const GUIDE: GuideRow[] = [
+  { key: "pitching", marker: "", title: PITCHING.title, body: withLink(PITCHING.body, "package pitching section", "#package-pitching") },
+  { key: "brainstorming", marker: "1", title: BRAINSTORMING.title, body: BRAINSTORMING.body },
+  { key: "a-roll", marker: "2", title: A_ROLL.title, body: A_ROLL.body },
+  { key: "stage-1", marker: "3.1", title: STAGE_1.title, body: STAGE_1.body },
+  { key: "stage-2", marker: "3.2", title: STAGE_2.title, body: STAGE_2.body },
+  { key: "stage-3", marker: "3.3", title: STAGE_3.title, body: STAGE_3.body },
+  { key: "final-cut", marker: "4", title: FINAL_CUT.title, body: FINAL_CUT.body }
+];
+
+const APPROVAL: GuideRow[] = APPROVAL_STAGES.map((stage) => ({ key: stage.title, title: stage.title, body: stage.body }));
+
+/**
+ * Step rows. Numbered rows: number gutter, title, text. Between md and xl (one full-width column)
+ * the title gets its own 12rem column so the text keeps a readable width; from xl (two columns)
+ * it stacks again. Plain rows (approval stages) get a title column in the same range, as wide as
+ * the number gutter plus title column, so their text starts on the same line as the stage text.
+ */
+const NUMBERED_ROW =
+  "grid-cols-[2rem_minmax(0,1fr)] md:grid-cols-[2rem_12rem_minmax(0,1fr)] md:gap-x-5 xl:grid-cols-[2rem_minmax(0,1fr)] xl:gap-x-3";
+const NUMBERED_TEXT = "col-start-2 md:col-start-3 xl:col-start-2";
+const PLAIN_ROW = "grid-cols-1 md:grid-cols-[calc(14rem+1.25rem)_minmax(0,1fr)] md:gap-x-5 xl:grid-cols-1";
+
+/**
+ * The one step-row treatment on this page (cycle stages and approval stages): hairline-divided
+ * rows, an H3 title and the text in the prose style. The stage numbers are read out with the title.
+ */
+function GuideList({ rows, numbered = false }: { rows: GuideRow[]; numbered?: boolean }) {
+  return (
+    <ol className="divide-y divide-border">
+      {rows.map((row) => (
+        <li key={row.key} className={`grid gap-x-3 gap-y-1 py-4 first:pt-0 last:pb-0 ${numbered ? NUMBERED_ROW : PLAIN_ROW}`}>
+          {numbered ? (
+            <span className="font-mono-broadcast text-xs leading-6 tabular-nums text-muted-foreground">{row.marker}</span>
+          ) : null}
+          <h3 className="text-sm font-semibold leading-6 text-foreground">{row.title}</h3>
+          <div className={numbered ? `${NUMBERED_TEXT} ${PROSE}` : PROSE}>
+            {row.body}
+          </div>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+export const metadata: Metadata = { title: "Cycle guide" };
 
 export default function CycleInformationPage() {
   return (
-    <div className="route-enter mx-auto w-full max-w-3xl space-y-5 pb-24">
+    <div className="route-enter space-y-5">
       <PageHeader
-        eyebrow="The Cycle"
-        title="Information"
+        eyebrow="My package"
+        title="Cycle guide"
         description="Stages of a cycle, package pitching, and the approval process."
       />
 
-      <section className="space-y-5 rounded-md border border-border bg-card p-5 md:p-6">
-        <h2 className="text-pretty text-lg font-semibold text-foreground">Stages of a Cycle</h2>
-        <div className="space-y-5">
-          {STAGES.map((stage) =>
-            stage.title === "Package Pitching" ? (
-              <div key={stage.title} className="space-y-1.5">
-                <h3 className="text-sm font-semibold text-foreground">{stage.title}</h3>
-                <p className="text-sm leading-6 text-muted-foreground text-pretty">
-                  Where students will pitch ideas to the producer for the upcoming package cycle. See the{" "}
-                  <a href="#package-pitching" className="underline underline-offset-2 hover:text-foreground">
-                    package pitching section
-                  </a>{" "}
-                  for more information.
-                </p>
-              </div>
-            ) : (
-              <StageItem key={stage.title} title={stage.title} body={stage.body} />
-            )
-          )}
-        </div>
-      </section>
+      {/* Hidden from xl, where both columns show every section at once. */}
+      <JumpLinks
+        className="xl:hidden [&_a]:max-md:h-10"
+        links={[
+          { href: "#stages", label: "Stages of a Cycle" },
+          { href: "#package-pitching", label: "Package Pitching" },
+          { href: "#approval", label: "Package Approval & Feedback Process" }
+        ]}
+      />
 
-      <section id="package-pitching" className="space-y-4 rounded-md border border-border bg-card p-5 md:p-6">
-        <h2 className="text-pretty text-lg font-semibold text-foreground">Package Pitching</h2>
-        <p className="text-sm leading-6 text-muted-foreground text-pretty">
-          At the start of every package cycle, we will have package pitching. This is when groups will present at least one idea from each category (news, feature, commentary) to the producers. Producers will assign a group to each topic to balance categories. Each group will also be assigned an associate producer to help them throughout the process.
-        </p>
-        <p className="text-sm leading-6 text-muted-foreground text-pretty">
-          Each group will rank their 3 or more topics, and while it is likely that a group will receive their number 1 topic, this is not guaranteed. Additionally, groups and topics may be shuffled around at the producer&apos;s discretion.
-        </p>
-        <p className="text-sm leading-6 text-muted-foreground text-pretty">
-          You are not permitted to repeat group members consecutively. This means that every cycle, your group members should not have been part of your last cycle’s package group.
-        </p>
-      </section>
+      <div className="grid gap-5 xl:grid-cols-2">
+        <Panel id="stages" titleAs="h2" title="Stages of a Cycle" className={ANCHOR}>
+          <GuideList rows={GUIDE} numbered />
+        </Panel>
 
-      <section className="space-y-5 rounded-md border border-border bg-card p-5 md:p-6">
-        <h2 className="text-pretty text-lg font-semibold text-foreground">Package Approval & Feedback Process</h2>
-        <p className="text-sm leading-6 text-muted-foreground text-pretty">
-          Every package moves through a set review chain before it can publish, and each stage must sign off before it advances to the next. You cannot skip a stage.
-        </p>
-        <p className="text-sm leading-6 text-muted-foreground text-pretty">
-          Man-on-the-street packages are prohibited from being your primary package for a cycle. If you would like to produce one, please contact a producer first.
-        </p>
-        <div className="space-y-5">
-          {APPROVAL_STAGES.map((stage) => (
-            <StageItem key={stage.title} title={stage.title} body={stage.body} />
-          ))}
+        <div className="flex min-w-0 flex-col gap-5">
+          <Panel
+            id="package-pitching"
+            titleAs="h2"
+            title="Package Pitching"
+            className={`h-auto ${ANCHOR}`}
+            bodyClassName="space-y-4"
+          >
+            <p className={PROSE}>
+              At the start of every package cycle, we will have package pitching. This is when groups will present at least one idea from each category (news, feature, commentary) to the producers. Producers will assign a group to each topic to balance categories. Each group will also be assigned an associate producer to help them throughout the process.
+            </p>
+            <p className={PROSE}>
+              Each group will rank their 3 or more topics, and while it is likely that a group will receive their number 1 topic, this is not guaranteed. Additionally, groups and topics may be shuffled around at the producer&apos;s discretion.
+            </p>
+            <Alert tone="neutral" role="note" className={CALLOUT}>
+              You are not permitted to repeat group members consecutively. This means that every cycle, your group members should not have been part of your last cycle’s package group.
+            </Alert>
+          </Panel>
+
+          <Panel
+            id="approval"
+            titleAs="h2"
+            title="Package Approval & Feedback Process"
+            className={`h-auto flex-1 ${ANCHOR}`}
+            bodyClassName="space-y-5"
+          >
+            <p className={PROSE}>
+              Every package moves through a set review chain before it can publish, and each stage must sign off before it advances to the next. You cannot skip a stage.
+            </p>
+            <GuideList rows={APPROVAL} />
+            <div className="space-y-3">
+              <Alert tone="neutral" role="note" className={CALLOUT}>
+                Man-on-the-street packages are prohibited from being your primary package for a cycle. If you would like to produce one, please contact a producer first.
+              </Alert>
+              <Alert tone="neutral" role="note" className={CALLOUT}>
+                For any packages with content that may be controversial, all executive producers must also approve before the package can move forward.
+              </Alert>
+            </div>
+            <p className={PROSE}>
+              Nothing is permitted to be published under the InFocus name until it has cleared all the above stages. There are exceptions for social media content, which must be directly approved by the Head of Creative & Content.
+            </p>
+          </Panel>
         </div>
-        <p className="text-sm leading-6 text-muted-foreground text-pretty">
-          For any packages with content that may be controversial, all executive producers must also approve before the package can move forward.
-        </p>
-        <p className="text-sm leading-6 text-muted-foreground text-pretty">
-          Nothing is permitted to be published under the InFocus name until it has cleared all the above stages. There are exceptions for social media content, which must be directly approved by the Head of Creative & Content.
-        </p>
-      </section>
+      </div>
     </div>
   );
 }

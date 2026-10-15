@@ -2,14 +2,24 @@
 
 import { useEffect, useState } from "react";
 import { StickyNote } from "lucide-react";
+import { Alert } from "@/components/kit/alert";
+import { Skeleton } from "@/components/kit/skeleton";
+import { StatusDot } from "@/components/kit/status-tag";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { isSubmitShortcut, SubmitShortcutHint } from "@/components/ui/submit-shortcut";
+import { Textarea } from "@/components/ui/textarea";
 import { PACKAGE_ROSTER_NOTE_MAX } from "@/src/lib/package-roster-notes";
 
-export default function GroupNotesButton({ rowId, topic, onSaved }: {
+/**
+ * Notes for one group, shared with Notes in Package Cycle. The trigger is a 40px icon button on
+ * phones and an h-8 "Notes" button from md, above the tile's link layer. A small green dot on
+ * the trigger says the group already has notes.
+ */
+export default function GroupNotesButton({ rowId, topic, hasNotes = false, onSaved }: {
   rowId: string;
   topic: string;
+  hasNotes?: boolean;
   onSaved: (value: string) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -18,6 +28,8 @@ export default function GroupNotesButton({ rowId, topic, onSaved }: {
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const title = topic.trim() || "Untitled package";
 
   useEffect(() => {
     if (!open) return;
@@ -41,7 +53,7 @@ export default function GroupNotesButton({ rowId, topic, onSaved }: {
       }
     })();
     return () => { active = false; };
-  }, [open, rowId]);
+  }, [open, rowId, attempt]);
 
   async function save() {
     setSaving(true);
@@ -63,36 +75,68 @@ export default function GroupNotesButton({ rowId, topic, onSaved }: {
     }
   }
 
+  const loadFailed = Boolean(error) && !loaded && !loading;
+
   return (
     <>
-      <Button type="button" variant="outline" size="sm" className="relative z-10 h-7 gap-1.5 px-2 text-xs" onClick={() => setOpen(true)}>
-        <StickyNote className="h-3 w-3" />Notes
+      <Button
+        type="button"
+        variant="outline"
+        aria-label={`Notes for ${title}${hasNotes ? " (has notes)" : ""}`}
+        title={hasNotes ? "Notes (has notes)" : "Notes"}
+        className="relative z-10 h-10 w-10 shrink-0 px-0 md:h-8 md:w-auto md:px-3"
+        onClick={() => setOpen(true)}
+      >
+        <StickyNote aria-hidden />
+        <span className="max-md:sr-only">Notes</span>
+        {hasNotes ? <StatusDot tone="new" size={6} className="absolute right-1 top-1" /> : null}
       </Button>
       <Dialog open={open} onOpenChange={(next) => { if (!saving) setOpen(next); }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Notes — {topic.trim() || "Untitled package"}</DialogTitle>
+            <DialogTitle>Notes — {title}</DialogTitle>
             <DialogDescription>Shared with Notes in Package Cycle.</DialogDescription>
           </DialogHeader>
-          {loading ? <p className="text-sm text-muted-foreground">Loading notes…</p> : loaded ? (
-            <textarea
-              aria-label="Package notes"
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              onKeyDown={(event) => {
-                if (!isSubmitShortcut(event)) return;
-                event.preventDefault();
-                if (!saving) void save();
-              }}
-              maxLength={PACKAGE_ROSTER_NOTE_MAX}
-              disabled={saving}
-              rows={10}
-              placeholder="Notes…"
-              className="min-h-[12rem] w-full resize-y rounded-md border border-border bg-black/40 light:bg-muted px-3 py-2 text-base leading-6 text-foreground outline-none placeholder:text-muted-foreground focus:border-[var(--brand-green)]/50 md:text-sm"
-            />
+          {loading ? (
+            <div role="status" className="space-y-2">
+              <span className="sr-only">Loading notes…</span>
+              <Skeleton className="h-48 w-full rounded-md" />
+            </div>
+          ) : loaded ? (
+            <div className="space-y-2">
+              <Textarea
+                aria-label="Package notes"
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (!isSubmitShortcut(event)) return;
+                  event.preventDefault();
+                  if (!saving) void save();
+                }}
+                maxLength={PACKAGE_ROSTER_NOTE_MAX}
+                disabled={saving}
+                rows={10}
+                placeholder="Notes…"
+                className="min-h-[12rem] resize-y leading-6"
+              />
+              <SubmitShortcutHint action="save" />
+            </div>
           ) : null}
-          {loaded ? <SubmitShortcutHint action="save" className="-mt-2" /> : null}
-          {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
+          {error ? (
+            <Alert
+              tone="danger"
+              compact
+              action={
+                loadFailed ? (
+                  <Button type="button" variant="outline" size="sm" onClick={() => setAttempt((count) => count + 1)}>
+                    Try again
+                  </Button>
+                ) : undefined
+              }
+            >
+              {error}
+            </Alert>
+          ) : null}
           <DialogFooter>
             <Button type="button" variant="outline" disabled={saving} onClick={() => setOpen(false)}>Cancel</Button>
             <Button type="button" disabled={!loaded || loading || saving} onClick={() => void save()}>{saving ? "Saving…" : "Save"}</Button>

@@ -1,29 +1,25 @@
 import type { Metadata } from "next";
 import { Megaphone } from "lucide-react";
 import { AnnouncementSubmitForm } from "@/components/announcement-submit-form";
+import { PageHeader } from "@/components/page-header";
+import { PublicFrame } from "@/components/public-entry/public-frame";
 
 export const metadata: Metadata = { title: "Submit an announcement" };
 
 export default function SubmitAnnouncementPage() {
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 md:py-10">
-        <section className="brand-hero-panel relative overflow-hidden p-6 md:p-8">
-          <div className="relative">
-            <div className="eyebrow flex items-center gap-2">
-              <Megaphone className="h-3 w-3" />
-              InFocus · Schoology
-            </div>
-            <h1 className="display-md mt-2 text-foreground">Submit an announcement</h1>
-            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-              Anyone can send a request for InFocus and the Friday Schoology update. InFocus members review every
-              submission before it airs.
-            </p>
-          </div>
-        </section>
-
-        <section className="mt-5 rounded-3xl border border-border bg-card p-6 md:p-8">
-          <AnnouncementSubmitForm />
-        </section>
-    </main>
+    <PublicFrame width="wide">
+      <PageHeader
+        eyebrow={
+          <>
+            <Megaphone className="h-3.5 w-3.5" aria-hidden />
+            InFocus · Schoology
+          </>
+        }
+        title="Submit an announcement"
+        description="Anyone can request an announcement for InFocus and the Friday Schoology update. InFocus reviews every request before it airs."
+      />
+      <AnnouncementSubmitForm />
+    </PublicFrame>
   );
 }

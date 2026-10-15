@@ -96,17 +96,17 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
   },
   {
     id: "information",
-    label: "Information",
+    label: "Cycle guide",
     href: "/information",
-    hint: "Left sidebar → My package, then Cycle guide at the top",
-    aliases: ["the cycle", "cycle rules", "info"],
+    hint: "Left sidebar → My package, then Cycle guide in the stage bar",
+    aliases: ["information", "the cycle", "cycle rules", "info"],
     audiences: CYCLE_TABS
   },
   {
     id: "brainstorming",
     label: "Brainstorming",
     href: "/brainstorming",
-    hint: "Left sidebar → My package, then the stage bar at the top",
+    hint: "Left sidebar → My package, then pick the stage in the stage bar",
     aliases: ["brainstorm", "proof of contact", "contact"],
     audiences: CYCLE_TABS
   },
@@ -114,7 +114,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "a-roll",
     label: "A-roll/B-roll",
     href: "/a-roll",
-    hint: "Left sidebar → My package, then the stage bar at the top",
+    hint: "Left sidebar → My package, then pick the stage in the stage bar",
     aliases: ["a roll", "b roll", "aroll", "broll", "a-roll", "b-roll"],
     audiences: CYCLE_TABS
   },
@@ -122,7 +122,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "initial-cut",
     label: "Initial Cut",
     href: "/initial-cut",
-    hint: "Left sidebar → My package, then the stage bar at the top",
+    hint: "Left sidebar → My package, then pick the stage in the stage bar",
     aliases: ["initial", "rough cut"],
     audiences: CYCLE_TABS
   },
@@ -130,7 +130,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "final-cut",
     label: "Final Cut",
     href: "/final-cut",
-    hint: "Left sidebar → My package, then the stage bar at the top",
+    hint: "Left sidebar → My package, then pick the stage in the stage bar",
     aliases: ["final"],
     audiences: CYCLE_TABS
   },
@@ -170,7 +170,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "groups",
     label: "Groups",
     href: "/groups",
-    hint: "Left sidebar, under Producing",
+    hint: "Left sidebar, under Producing. Open a package for its stage bar: Pitch, Contact, A-roll/B-roll, Initial Cut, Final Cut",
     aliases: ["group", "tiles", "pitch", "review"],
     audiences: PRODUCERS
   },
@@ -234,7 +234,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "extension-requests",
     label: "Extension Requests",
     href: "/extension-requests",
-    hint: "Students: My package → Extension requests at the top. Producers: left sidebar, under Producing",
+    hint: "Students: My package, then Extension requests in the stage bar. Producers: left sidebar, under Producing",
     aliases: ["extension", "extensions"],
     audiences: ALL
   },
@@ -247,10 +247,18 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     audiences: ALL
   },
   {
+    id: "pa-script",
+    label: "PA script",
+    href: "/announcements/pa",
+    hint: "Left sidebar → Announcements, then the PA tab",
+    aliases: ["next pa", "pa announcement", "pa announcements"],
+    audiences: ALL
+  },
+  {
     id: "admin",
     label: "Admin Dashboard",
     href: "/admin",
-    hint: "Left sidebar, at the bottom",
+    hint: "Left sidebar, at the bottom. Tabs: Overview (access requests), People, School year, System",
     aliases: ["admin", "accounts", "access requests"],
     audiences: EXECS
   },
@@ -258,15 +266,23 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "settings",
     label: "Settings",
     href: "/settings",
-    hint: "Left sidebar, at the bottom",
-    aliases: ["notifications", "account"],
+    hint: "Left sidebar, at the bottom (Notifications, Appearance & playback, Profile, Apps & links)",
+    aliases: ["notifications", "account", "appearance", "playback", "theme", "light mode", "profile"],
+    audiences: ALL
+  },
+  {
+    id: "passwords",
+    label: "Passwords",
+    href: "/passwords",
+    hint: "Account menu (your picture, top right) → Passwords. Producers, and anyone a login was shared with",
+    aliases: ["password", "logins", "shared logins"],
     audiences: ALL
   },
   {
     id: "equipment",
     label: "Equipment",
     href: "/equipment",
-    hint: "Equipment checkout",
+    hint: "Not in the sidebar. Open /equipment (equipment managers: Managers → Equipment)",
     aliases: ["checkout", "camera", "gear"],
     audiences: ALL
   }

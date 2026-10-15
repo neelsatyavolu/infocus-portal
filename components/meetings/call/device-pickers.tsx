@@ -17,8 +17,8 @@ export function DevicePicker({ label, kind, device }: { label: string; kind: "mi
   const options = devices.filter((d) => d.deviceId);
   if (options.length === 0) return null;
   return (
-    <div className="space-y-1.5">
-      <Label className="text-xs text-muted-foreground">{label}</Label>
+    <div className="grid gap-1.5">
+      <Label className="text-sm text-foreground">{label}</Label>
       <Select
         value={active?.deviceId ?? ""}
         onValueChange={(id) => {
@@ -63,8 +63,8 @@ export function SpeakerPicker({ value, onChange }: { value: string; onChange: (i
     if (chosen) saveDevicePref("speaker", chosen);
   };
   return (
-    <div className="space-y-1.5">
-      <Label className="text-xs text-muted-foreground">Speaker</Label>
+    <div className="grid gap-1.5">
+      <Label className="text-sm text-foreground">Speaker</Label>
       <Select value={value || outputs[0].deviceId} onValueChange={choose}>
         <SelectTrigger aria-label="Speaker" className={TRIGGER_FOCUS}>
           <SelectValue />
@@ -96,7 +96,7 @@ export function SettingSwitch({
   onChange: (on: boolean) => void;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4">
+    <div className="flex min-h-9 items-center justify-between gap-4">
       <div className="min-w-0">
         <Label htmlFor={id} className="text-sm text-foreground">
           {label}

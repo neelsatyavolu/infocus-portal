@@ -1,35 +1,105 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { ArrowUpRight, Clock3, MessageSquareText, Users } from "lucide-react";
+import { useEffect, useState, type ReactNode, type RefObject } from "react";
+import { Users } from "lucide-react";
+import { Alert } from "@/components/kit/alert";
+import { EmptyState } from "@/components/kit/empty-state";
+import { cycleLabel } from "@/components/kit/format";
+import { ListDetailSkeleton } from "@/components/kit/skeleton";
+import { StatTile } from "@/components/kit/stat-tile";
+import { ViewTabPanel, ViewTabs } from "@/components/kit/view-tabs";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ASSOCIATE_STAGE_LABELS, type AssociatesPayload, type AssociatePerformance } from "@/src/lib/associate-performance";
-import AssociatesFeedback from "./associates-feedback";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { NativeSelect } from "@/components/ui/native-select";
+import type { AssociatesPayload, AssociatePerformance } from "@/src/lib/associate-performance";
 import { cn } from "@/src/lib/utils";
+import AssociatesFeedback from "./associates-feedback";
+import { AssociatesOverview } from "./associates-overview";
 
-function duration(hours: number | null) {
-  if (hours === null) return "—";
-  if (hours < 1) return `${Math.max(0, Math.round(hours * 60))}m`;
-  return hours < 48 ? `${Math.round(hours * 10) / 10}h` : `${Math.round(hours / 24 * 10) / 10}d`;
+type DetailTab = "overview" | "feedback";
+const TAB_PREFIX = "associate-detail";
+const TAB_ITEMS: Array<{ value: DetailTab; label: string }> = [
+  { value: "overview", label: "Overview" },
+  { value: "feedback", label: "Feedback" }
+];
+
+function scoreCaption(metrics: AssociatePerformance["metrics"]) {
+  if (metrics.score === null) return "Not enough data";
+  return metrics.provisional ? "Provisional score" : "Overall score";
 }
 
-function groupHref(rowId: string, stage: string) {
-  return `/groups/${rowId}/${stage === "initial-cut" ? "initial-stage-1" : stage}`;
+function TeamList({
+  associates,
+  selectedId,
+  onSelect
+}: {
+  associates: AssociatePerformance[];
+  selectedId: string;
+  onSelect: (userId: string) => void;
+}) {
+  return (
+    <nav aria-label="Associates" className="hidden w-60 shrink-0 flex-col overflow-y-auto border-r border-border md:flex">
+      <p className="px-4 pb-2 pt-4 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">
+        Team · <span className="font-mono-broadcast tabular-nums">{associates.length}</span>
+      </p>
+      <ul className="pb-2">
+        {associates.map((associate) => {
+          const selected = associate.userId === selectedId;
+          return (
+            <li key={associate.userId}>
+              <button
+                type="button"
+                aria-pressed={selected}
+                onClick={() => onSelect(associate.userId)}
+                className={cn(
+                  "relative flex h-14 w-full items-center justify-between gap-3 px-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+                  selected
+                    ? "bg-[var(--ink-3)] before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-[var(--brand-green)]"
+                    : "hover:bg-[var(--ink-3)]"
+                )}
+              >
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-medium text-foreground">{associate.name}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {associate.assignedGroups} assigned {associate.assignedGroups === 1 ? "group" : "groups"}
+                  </span>
+                </span>
+                <span className="shrink-0 font-mono-broadcast text-sm tabular-nums text-foreground">{associate.metrics.score ?? "—"}</span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
 }
 
-export default function AssociatesDialog({ cycles, activeCycleNumber }: {
+/**
+ * Associate producer performance, one cycle at a time (executives, the adviser and super admin;
+ * the API enforces it too). Controlled by the Groups page, so both the header button and the
+ * phone ⋯ menu can open it. The chosen associate and tab survive cycle switches and reopening.
+ * With no DialogTrigger, closing focuses `returnFocusRef` (the control that opened it) instead.
+ */
+export default function AssociatesDialog({ cycles, activeCycleNumber, open, onOpenChange, returnFocusRef }: {
   cycles: Array<{ cycleNumber: number; focus: string }>;
   activeCycleNumber: number;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  returnFocusRef: RefObject<HTMLElement | null>;
 }) {
-  const [tab, setTab] = useState<"overview" | "feedback">("overview");
-  const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState<DetailTab>("overview");
   const [cycle, setCycle] = useState(activeCycleNumber);
+  const [wasOpen, setWasOpen] = useState(open);
   const [data, setData] = useState<AssociatesPayload | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [retry, setRetry] = useState(0);
+
+  // Opening starts on the page's cycle (adjusted during render, so the load below uses it).
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setCycle(activeCycleNumber);
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -52,6 +122,7 @@ export default function AssociatesDialog({ cycles, activeCycleNumber }: {
 
   const associate = data?.associates.find((a) => a.userId === selected) ?? data?.associates[0];
   const metrics = associate?.metrics;
+
   async function evaluateQuality() {
     if (!associate) return;
     const response = await fetch("/api/groups/associates", {
@@ -62,104 +133,124 @@ export default function AssociatesDialog({ cycles, activeCycleNumber }: {
     const updated = payload.data.associate;
     setData((previous) => previous?.cycleNumber === cycle ? { ...previous, associates: previous.associates.map((a) => a.userId === updated.userId ? updated : a) } : previous);
   }
-  return (
-    <Dialog open={open} onOpenChange={(value) => { if (value) setCycle(activeCycleNumber); setOpen(value); }}>
-      <DialogTrigger asChild>
-        <Button type="button" size="sm" variant="secondary"><Users className="mr-2 h-4 w-4" />Associates</Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-5xl grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden p-0 sm:rounded-2xl sm:p-0">
-        <div className="border-b border-border bg-muted/20 px-5 py-5 sm:px-7">
-          <DialogHeader className="pr-8 text-left">
-            <p className="mb-1 text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--brand-green)]">Producer team</p>
-            <DialogTitle className="text-2xl">Associates</DialogTitle>
-            <DialogDescription>Review habits, workload, and feedback — one cycle at a time.</DialogDescription>
-          </DialogHeader>
-          <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-            <label className="flex items-center gap-3 text-xs text-muted-foreground">
-              Package cycle
-              <select aria-label="Associate performance cycle" value={cycle} onChange={(e) => setCycle(Number(e.target.value))}
-                className="h-9 max-w-60 rounded-lg border border-border bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                {cycles.map((c) => <option key={c.cycleNumber} value={c.cycleNumber}>Cycle {c.cycleNumber}{c.focus ? ` · ${c.focus}` : ""}</option>)}
-              </select>
-            </label>
-            <span className="text-xs text-muted-foreground">Visible to executives & adviser</span>
+
+  let body: ReactNode;
+  if (error) {
+    body = (
+      <div className="flex-1 overflow-y-auto p-5">
+        <Alert
+          tone="danger"
+          action={
+            <Button type="button" variant="outline" size="sm" onClick={() => setRetry((n) => n + 1)}>
+              Try again
+            </Button>
+          }
+        >
+          {error}
+        </Alert>
+      </div>
+    );
+  } else if (!data) {
+    body = (
+      <div role="status" className="flex-1 space-y-4 overflow-y-auto p-5">
+        <p className="text-sm text-muted-foreground">Loading associate performance…</p>
+        <ListDetailSkeleton rows={5} />
+      </div>
+    );
+  } else if (!associate || !metrics) {
+    body = (
+      <div className="flex-1 overflow-y-auto">
+        <EmptyState icon={Users} title="No associate producers are registered yet." />
+      </div>
+    );
+  } else {
+    body = (
+      <>
+        <TeamList associates={data.associates} selectedId={associate.userId} onSelect={setSelected} />
+        <div className="min-w-0 flex-1 overflow-y-auto">
+          <div className="space-y-6 p-5">
+            <NativeSelect
+              aria-label="Associate"
+              value={associate.userId}
+              onChange={(event) => setSelected(event.target.value)}
+              wrapperClassName="md:hidden"
+              className="h-10"
+            >
+              {data.associates.map((a) => (
+                <option key={a.userId} value={a.userId}>
+                  {a.name} — {a.metrics.score ?? "—"}
+                </option>
+              ))}
+            </NativeSelect>
+
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h3 className="text-lg font-semibold tracking-[-0.01em] text-foreground">{associate.name}</h3>
+                <p className="mt-1 text-[13px] text-muted-foreground">
+                  {metrics.eligible} eligible stage {metrics.eligible === 1 ? "review" : "reviews"} · {associate.assignedGroups} assigned groups
+                </p>
+              </div>
+              <StatTile label={scoreCaption(metrics)} value={metrics.score ?? "—"} unit="/100" className="w-44 shrink-0 p-3" />
+            </div>
+
+            <div className="flex items-end justify-between gap-3 border-b border-border">
+              <ViewTabs
+                ariaLabel="Associate detail views"
+                idPrefix={TAB_PREFIX}
+                items={TAB_ITEMS}
+                value={tab}
+                onChange={setTab}
+                className="border-b-0"
+              />
+              <span className="pb-3 text-xs text-muted-foreground">{metrics.availableWeight}% of score weight available</span>
+            </div>
+
+            <ViewTabPanel idPrefix={TAB_PREFIX} value="overview" active={tab === "overview"}>
+              <AssociatesOverview associate={associate} />
+            </ViewTabPanel>
+            <ViewTabPanel idPrefix={TAB_PREFIX} value="feedback" active={tab === "feedback"}>
+              <AssociatesFeedback key={`${cycle}:${associate.userId}`} associate={associate} evaluate={evaluateQuality} />
+            </ViewTabPanel>
           </div>
         </div>
-        <div className="max-h-[65dvh] min-h-0 overflow-y-auto">
-          {error ? <div role="alert" className="space-y-3 p-8 text-center"><p className="text-sm text-danger">{error}</p><Button variant="secondary" onClick={() => setRetry((n) => n + 1)}>Try again</Button></div>
-            : !data ? <div role="status" className="space-y-4 p-7"><p className="text-sm text-muted-foreground">Loading associate performance…</p><div className="h-48 animate-pulse rounded-xl bg-muted/40 motion-reduce:animate-none" /></div>
-            : !associate || !metrics ? <p className="p-10 text-center text-sm text-muted-foreground">No associate producers are registered yet.</p>
-            : <div className="grid md:grid-cols-[235px_minmax(0,1fr)]">
-              <nav aria-label="Associates" className="border-b border-border bg-muted/10 p-3 md:border-b-0 md:border-r">
-                <p className="px-3 pb-3 pt-1 text-[10px] font-medium uppercase tracking-[0.11em] text-muted-foreground">Team · {data.associates.length}</p>
-                <div className="flex gap-2 overflow-x-auto md:block md:space-y-1">
-                  {data.associates.map((a) => <button key={a.userId} type="button" onClick={() => setSelected(a.userId)} aria-pressed={a.userId === associate.userId}
-                    className={cn("flex min-w-44 items-center justify-between gap-3 rounded-xl border px-3 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:w-full", a.userId === associate.userId ? "border-[var(--brand-green)]/30 bg-[var(--brand-green)]/10" : "border-transparent hover:bg-muted/50")}>
-                    <span className="min-w-0"><span className="block truncate text-sm font-medium">{a.name}</span><span className="text-[11px] text-muted-foreground">{a.assignedGroups} assigned {a.assignedGroups === 1 ? "group" : "groups"}</span></span>
-                    <span className="text-lg font-semibold tabular-nums">{a.metrics.score ?? "—"}</span>
-                  </button>)}
-                </div>
-              </nav>
-              <div className="min-w-0 space-y-6 p-5 sm:p-7">
-                <div className="flex items-center justify-between gap-4">
-                  <div><h3 className="text-xl font-semibold tracking-tight">{associate.name}</h3><p className="mt-1 text-xs text-muted-foreground">{metrics.eligible} eligible stage {metrics.eligible === 1 ? "review" : "reviews"} · {associate.assignedGroups} assigned groups</p></div>
-                  <div className="shrink-0 rounded-2xl border border-[var(--brand-green)]/25 bg-[var(--brand-green)]/5 px-5 py-3 text-center">
-                    <div className="text-3xl font-semibold tabular-nums text-[var(--brand-green)]">{metrics.score ?? "—"}<span className="ml-1 text-xs font-normal text-muted-foreground">/100</span></div>
-                    <p className="mt-1 text-[10px] text-muted-foreground">{metrics.score === null ? "Not enough data" : metrics.provisional ? "Provisional score" : "Overall score"}</p>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between gap-3 border-b border-border">
-                  <div className="flex gap-4" aria-label="Associate detail views">{(["overview", "feedback"] as const).map((value) => <button key={value} type="button" aria-pressed={tab === value} onClick={() => setTab(value)} className={cn("border-b-2 px-1 pb-3 text-sm capitalize focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", tab === value ? "border-[var(--brand-green)] text-foreground" : "border-transparent text-muted-foreground")}>{value}</button>)}</div>
-                  <span className="pb-3 text-[10px] text-muted-foreground">{metrics.availableWeight}% of score weight available</span>
-                </div>
-                {tab === "feedback" ? <AssociatesFeedback key={`${cycle}:${associate.userId}`} associate={associate} evaluate={evaluateQuality} /> : <div className="space-y-6">
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { label: "Median response", value: duration(metrics.medianHours), icon: Clock3 },
-                    { label: "Verified reviews", value: metrics.reviewed === 0 && metrics.unknown > 0 ? "—" : String(metrics.reviewed), icon: MessageSquareText },
-                    { label: "Known awaiting review", value: metrics.pending === 0 && metrics.unknown > 0 ? "—" : String(metrics.pending), icon: Users }
-                  ].map(({ label, value, icon: Icon }) => <div key={label} className="rounded-xl border border-border px-3 py-3"><Icon className="mb-3 h-4 w-4 text-muted-foreground" /><p className="text-xl font-medium tabular-nums">{value}</p><p className="mt-1 text-[10px] text-muted-foreground sm:text-xs">{label}</p></div>)}
-                </div>
-                {(metrics.unknown > 0 || metrics.missingTiming > 0) && <p className="rounded-lg bg-muted/40 px-3 py-2 text-xs text-muted-foreground">{metrics.reviewed} verified reviews. {metrics.missingTiming} lack submission timing; {metrics.unknown} other stages lack review history. Missing records do not mean no work was done.</p>}
-                {metrics.overdue > 0 && <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-300">{metrics.overdue} stage {metrics.overdue === 1 ? "review has" : "reviews have"} waited at least 48 hours.</p>}
-                <section aria-label="Score breakdown" className="space-y-3">
-                  {[
-                    { label: "AI feedback quality", weight: 25, value: associate.quality.score, detail: "Specific, actionable, reasoned, constructive feedback" },
-                    { label: "Group progress", weight: 25, value: associate.progress.score, detail: "Completed milestones that are due, averaged across groups" },
-                    { label: "Responsiveness", weight: 25, value: metrics.responsiveness, detail: "First response within 48 hours" },
-                    { label: "Review coverage", weight: 10, value: metrics.reviewCoverage, detail: "Submitted stages with an attributed response" },
-                    { label: "Group feedback", weight: 10, value: associate.groupFeedback.score, detail: "Anonymous group ratings of helpfulness, communication and support" },
-                    { label: "Feedback coverage", weight: 5, value: metrics.feedbackCoverage, detail: "Eligible groups with written feedback" }
-                  ].map((item) => <div key={item.label}>
-                    <div className="mb-1.5 flex justify-between gap-3 text-xs"><span>{item.label} <span className="ml-1 text-muted-foreground">{item.weight}% weight</span></span><span className="tabular-nums">{item.value === null ? "—" : `${Math.round(item.value)}%`}</span></div>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-[var(--brand-green)]/70" style={{ width: `${item.value ?? 0}%` }} /></div>
-                    <p className="mt-1 text-[10px] text-muted-foreground">{item.detail}</p>
-                  </div>)}
-                </section>
-                <details className="rounded-xl border border-border p-3 text-xs text-muted-foreground">
-                  <summary className="cursor-pointer font-medium text-foreground">How this score works</summary>
-                  <p className="mt-3 leading-relaxed">The first response to brainstorming, A-roll/B-roll, and initial cut v1 counts once per group and stage. A response is a comment, submitted review, or approval by this associate. Unanswered work has a 48-hour grace period. Hours include nights and weekends.</p>
-                  <p className="mt-2 leading-relaxed">The score combines the six components above. Missing components are excluded and the available weights are rescaled to 100; the result is labeled provisional. No feedback on eligible reviews gives quality zero; no eligible work is unscored. More comments do not earn extra points. Current assignments determine the groups shown; past reassignments are not reconstructed.</p>
-                  <p className="mt-2 leading-relaxed">Older upload times are estimates. Approvals without attribution are excluded. Verified comments and approvals still count toward coverage when submission timing is missing; only response speed is unavailable. Missing timing is excluded from responsiveness. {metrics.unknown} {metrics.unknown === 1 ? "stage has" : "stages have"} incomplete history.</p>
-                </details>
-                <section>
-                  <h4 className="mb-3 text-sm font-medium">Review evidence</h4>
-                  {!associate.samples.length ? <p className="text-xs text-muted-foreground">No reviewable work in this cycle yet.</p> : <div className="divide-y divide-border">
-                    {associate.samples.map((s) => <div key={`${s.rowId}:${s.stage}`} className="flex items-center justify-between gap-3 py-3 text-xs">
-                      <div className="min-w-0"><Link href={groupHref(s.rowId, s.stage) as never} className="inline-flex max-w-full items-center gap-1 font-medium hover:underline"><span className="truncate">{s.topic}</span><ArrowUpRight className="h-3 w-3 shrink-0" /></Link><p className="mt-1 text-[11px] text-muted-foreground">{ASSOCIATE_STAGE_LABELS[s.stage]}{s.estimated ? " · estimated timing" : ""}</p></div>
-                      <span className="shrink-0 tabular-nums text-muted-foreground">{s.respondedAt && !s.submittedAt ? "Reviewed · timing unknown" : s.historicalUnknown ? "Reviewer unknown" : s.respondedAt && s.submittedAt ? duration((Date.parse(s.respondedAt) - Date.parse(s.submittedAt)) / 3_600_000) : "Awaiting review"}</span>
-                    </div>)}
-                  </div>}
-                </section>
-                <section>
-                  <h4 className="mb-3 text-sm font-medium">Group progress</h4>
-                  <p className="mb-3 text-xs leading-relaxed text-muted-foreground">Current milestone completion, not proof of individual impact. Future and undated milestones are excluded. Approved extensions move the final-cut deadline. Student effort and later reviewer decisions also affect progress.</p>
-                  <div className="space-y-3">{associate.progress.groups.map((group) => <div key={group.rowId} className="rounded-xl border border-border p-3"><div className="flex justify-between gap-3 text-sm"><span>{group.topic}</span><span className="tabular-nums">{group.completed}/{group.due} due milestones</span></div><div className="mt-2 flex flex-wrap gap-2">{group.milestones.map((m) => <span key={m.label} className={cn("rounded-md px-2 py-1 text-[10px]", m.complete ? "bg-[var(--brand-green)]/10 text-[var(--brand-green)]" : m.dueAt && Date.parse(m.dueAt) <= Date.now() ? "bg-amber-500/10 text-amber-300" : "bg-muted text-muted-foreground")}>{m.label} · {m.complete ? "Complete" : !m.dueAt ? "Unscheduled" : Date.parse(m.dueAt) > Date.now() ? "Not due" : "Pending"}</span>)}</div></div>)}</div>
-                </section>
-                </div>}
-              </div>
-            </div>}
+      </>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          returnFocusRef.current?.focus();
+        }}
+        className="flex max-w-5xl flex-col gap-0 overflow-hidden p-0 sm:h-[85dvh] sm:max-h-[85dvh] sm:p-0 max-sm:h-[100dvh] max-sm:max-h-[100dvh] max-sm:w-screen max-sm:max-w-none max-sm:border-0">
+        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-b border-border px-5 py-4 pr-12">
+          <DialogHeader className="space-y-1 text-left">
+            <p className="eyebrow">Producer team</p>
+            <DialogTitle className="text-xl">Associates</DialogTitle>
+            <DialogDescription>
+              Review habits, workload, and feedback — one cycle at a time. Visible to executives &amp; adviser.
+            </DialogDescription>
+          </DialogHeader>
+          <label className="flex items-center gap-2 text-xs text-muted-foreground max-sm:w-full">
+            Package cycle
+            <NativeSelect
+              aria-label="Associate performance cycle"
+              value={cycle}
+              onChange={(event) => setCycle(Number(event.target.value))}
+              wrapperClassName="w-56 max-w-[60vw] max-sm:flex-1 max-sm:max-w-none"
+              className="h-10 md:h-9"
+            >
+              {cycles.map((c) => (
+                <option key={c.cycleNumber} value={c.cycleNumber}>
+                  {cycleLabel(c.cycleNumber, c.focus)}
+                </option>
+              ))}
+            </NativeSelect>
+          </label>
         </div>
+        <div className="flex min-h-0 flex-1">{body}</div>
       </DialogContent>
     </Dialog>
   );

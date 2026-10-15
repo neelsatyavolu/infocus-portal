@@ -1,23 +1,38 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { BrandWordmark } from "@/components/brand-wordmark";
-import { Button } from "@/components/ui/button";
-import type { LiveImageState } from "@/src/lib/live/graphics";
+import Link from "next/link";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { AlertTriangle, Check, ImageDown, MonitorPlay, Radio, RotateCw, Timer } from "lucide-react";
+import { Alert } from "@/components/kit/alert";
+import { EmptyState } from "@/components/kit/empty-state";
+import { PHONE_TABBAR_ROOT_CLASS } from "@/components/kit/phone-tab-bar";
+import { StatusDot, StatusTag, type StatusDotTone } from "@/components/kit/status-tag";
+import { ViewTabPanel, ViewTabs } from "@/components/kit/view-tabs";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { graphicDefinition, type LiveImageState } from "@/src/lib/live/graphics";
 import { applyScoreboardAction, type ScoreboardAction, type ScoreboardState } from "@/src/lib/live/scoreboard";
+import { cn } from "@/src/lib/utils";
 import type { LiveEventSummary, LiveGraphicsPayload } from "@/src/server/live-graphics";
 import { useServerOffset } from "@/components/live/live-stage";
+import { LiveHeader } from "./live-header";
+import { useRememberedTab, useSaveView } from "./live-hooks";
 import { LiveImagePanel } from "./live-image-panel";
-import { Seg } from "./live-controls";
+import { LivePhoneTabs } from "./live-phone-tabs";
+import { LiveTabSkeleton } from "./live-skeletons";
+import {
+  DASH_TABS,
+  NOT_SYNCING_AFTER,
+  findEvent,
+  isPastEvent,
+  scoreboardAlertTone,
+  type DashTab,
+  type SaveView
+} from "./live-status";
 import { ScoreboardPanel } from "./scoreboard-panel";
 import { ThumbnailPanel } from "./thumbnail-panel";
 
-type Tab = "thumbnail" | "scoreboard" | "image";
-const TABS = [
-  { value: "thumbnail", label: "Thumbnail" },
-  { value: "scoreboard", label: "Scoreboard" },
-  { value: "image", label: "Live image" }
-] as const;
+const TAB_ICONS = { thumbnail: ImageDown, scoreboard: Timer, image: MonitorPlay } as const;
+const TAB_ID_PREFIX = "live";
 
 const REFRESH_MS = 4000;
 const MAX_BATCH = 50;
@@ -43,16 +58,62 @@ function isRetryable(error: unknown) {
 
 type QueuedAction = { eventId: string; action: ScoreboardAction };
 
-function formatEventOption(event: LiveEventSummary) {
-  const when = new Date(event.startsAt).toLocaleString("en-US", {
-    timeZone: "America/Los_Angeles",
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit"
-  });
-  return `${when} · ${event.title}`;
+/**
+ * What went wrong, so load errors can offer Try again and clear themselves once a load works.
+ * `retrying` marks a scoreboard save that will be tried again (amber, not red).
+ */
+type DashError = { kind: "events" | "event" | "save" | "image" | "rotate"; message: string; retrying?: boolean };
+
+/** `detail` is the save error's full message, shown on hover (the tag itself stays short). */
+function SaveTag({ view, detail }: { view: SaveView; detail?: string }) {
+  if (view === "saving") return <StatusTag spinner>Saving</StatusTag>;
+  if (view === "retrying")
+    return (
+      <StatusTag tone="warning" icon={RotateCw} title={detail ?? "OBS shows the last saved score until this saves."}>
+        Retrying
+      </StatusTag>
+    );
+  if (view === "failed")
+    return (
+      <StatusTag tone="danger" icon={AlertTriangle} title={detail}>
+        Not saved
+      </StatusTag>
+    );
+  if (view === "saved") return <StatusTag icon={Check}>Saved</StatusTag>;
+  return null;
+}
+
+/**
+ * A scoreboard save problem in full words: why it failed, when it retries, and that OBS still
+ * shows the last saved score. It sits in the clock (or set) card's hint line, so the keypads
+ * below don't move mid-game.
+ */
+function SaveNotice({ message, retrying }: { message: string; retrying: boolean }) {
+  const Icon = retrying ? RotateCw : AlertTriangle;
+  return (
+    <p
+      role="alert"
+      className={cn("flex min-w-0 items-start gap-1.5 text-[13px] leading-snug", retrying ? "text-[var(--brand-amber)]" : "text-danger")}
+    >
+      <Icon aria-hidden className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+      <span className="min-w-0">{message}</span>
+    </p>
+  );
+}
+
+function NotSyncingTag() {
+  return (
+    <StatusTag tone="warning" icon={AlertTriangle} title="Changes from other devices aren't arriving. Check your connection.">
+      Not syncing
+    </StatusTag>
+  );
+}
+
+/** Screen-reader words for the Scoreboard tab's alert dot. */
+function alertLabel(save: SaveView) {
+  if (save === "failed") return "A change wasn't saved";
+  if (save === "retrying") return "Retrying a save";
+  return "Not syncing";
 }
 
 export function LiveDashboard({ canRotateKey, signedIn }: { canRotateKey: boolean; signedIn: boolean }) {
@@ -62,9 +123,11 @@ export function LiveDashboard({ canRotateKey, signedIn }: { canRotateKey: boolea
   const [data, setData] = useState<LiveGraphicsPayload | null>(null);
   const [scoreboard, setScoreboard] = useState<ScoreboardState | null>(null);
   const { offset, sample } = useServerOffset();
-  const [tab, setTab] = useState<Tab>("scoreboard");
-  const [error, setError] = useState<string | null>(null);
+  const [tab, selectTab] = useRememberedTab("scoreboard");
+  const [error, setError] = useState<DashError | null>(null);
   const [origin, setOrigin] = useState("");
+  // Presentation only: failed polls in a row, for the NOT SYNCING tag.
+  const [pollFailures, setPollFailures] = useState(0);
 
   // The board on screen is always the last server board plus the actions not yet saved.
   const serverBoardRef = useRef<ScoreboardState | null>(null);
@@ -75,10 +138,13 @@ export function LiveDashboard({ canRotateKey, signedIn }: { canRotateKey: boolea
   const eventIdRef = useRef<string | null>(null);
   const offsetRef = useRef(0);
   offsetRef.current = offset;
+  // Presentation only: what the save tag reads. Set in flush; never steers the queue.
+  const savedOnceRef = useRef(false);
+  const saveFailedRef = useRef(false);
 
   useEffect(() => setOrigin(window.location.origin), []);
 
-  useEffect(() => {
+  const loadEvents = useCallback(() => {
     let cancelled = false;
     fetch("/api/live/events", { cache: "no-store" })
       .then((response) => readJson<{ events: LiveEventSummary[]; pastEvents: LiveEventSummary[] }>(response))
@@ -87,12 +153,15 @@ export function LiveDashboard({ canRotateKey, signedIn }: { canRotateKey: boolea
         setEvents(list);
         setPastEvents(past);
         setEventId((current) => current ?? list[0]?.id ?? null);
+        setError((current) => (current?.kind === "events" ? null : current));
       })
-      .catch((caught: Error) => !cancelled && setError(`Couldn't load livestreams: ${caught.message}`));
+      .catch((caught: Error) => !cancelled && setError({ kind: "events", message: `Couldn't load livestreams: ${caught.message}` }));
     return () => {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => loadEvents(), [loadEvents]);
 
   /** Shows a server board for the current event, replaying any actions still waiting to save. */
   const showServerBoard = useCallback((board: ScoreboardState) => {
@@ -123,23 +192,50 @@ export function LiveDashboard({ canRotateKey, signedIn }: { canRotateKey: boolea
     [applyPayload]
   );
 
+  /** Loads one livestream; a success clears a stale load error, a failure shows one (with Try again). */
+  const openEvent = useCallback(
+    (id: string) => {
+      loadEvent(id)
+        .then(() => {
+          if (eventIdRef.current !== id) return;
+          setPollFailures(0);
+          setError((current) => (current?.kind === "event" ? null : current));
+        })
+        .catch((caught: Error) => {
+          if (eventIdRef.current === id) setError({ kind: "event", message: `Couldn't load this livestream: ${caught.message}` });
+        });
+    },
+    [loadEvent]
+  );
+
   useEffect(() => {
     eventIdRef.current = eventId;
     serverBoardRef.current = null;
     setData(null);
     setScoreboard(null);
+    // Status that belonged to the previous livestream.
+    savedOnceRef.current = false;
+    saveFailedRef.current = false;
+    setPollFailures(0);
+    setError((current) => (current && current.kind !== "save" && current.kind !== "events" ? null : current));
     if (!eventId) return;
-    loadEvent(eventId).catch((caught: Error) => {
-      if (eventIdRef.current === eventId) setError(`Couldn't load this livestream: ${caught.message}`);
-    });
-  }, [eventId, loadEvent]);
+    openEvent(eventId);
+  }, [eventId, openEvent]);
 
   // Pick up changes from another device (a second operator) whenever nothing is waiting to save.
   useEffect(() => {
     if (!eventId) return;
     const id = window.setInterval(() => {
       if (document.hidden || inFlightRef.current || queueRef.current.length) return;
-      loadEvent(eventId).catch(() => undefined);
+      loadEvent(eventId)
+        .then(() => {
+          if (eventIdRef.current !== eventId) return;
+          setPollFailures(0);
+          setError((current) => (current?.kind === "event" ? null : current));
+        })
+        .catch(() => {
+          if (eventIdRef.current === eventId) setPollFailures((count) => count + 1);
+        });
     }, REFRESH_MS);
     return () => window.clearInterval(id);
   }, [eventId, loadEvent]);
@@ -164,6 +260,8 @@ export function LiveDashboard({ canRotateKey, signedIn }: { canRotateKey: boolea
       const payload = await readJson<LiveGraphicsPayload>(response);
       queueRef.current = queueRef.current.filter((entry) => !batch.includes(entry));
       retryCountRef.current = 0;
+      savedOnceRef.current = true;
+      saveFailedRef.current = false;
       setError(null);
       applyPayload(payload, sentAt);
     } catch (caught) {
@@ -171,14 +269,19 @@ export function LiveDashboard({ canRotateKey, signedIn }: { canRotateKey: boolea
       if (isRetryable(caught)) {
         const wait = RETRY_MS[Math.min(retryCountRef.current, RETRY_MS.length - 1)];
         retryCountRef.current += 1;
-        setError(`Couldn't save the scoreboard (${message}). Retrying in ${wait / 1000}s. OBS shows the last saved score until then.`);
+        setError({
+          kind: "save",
+          message: `Couldn't save the scoreboard (${message}). Retrying in ${wait / 1000}s. OBS shows the last saved score until then.`,
+          retrying: true
+        });
         retryTimerRef.current = window.setTimeout(() => {
           retryTimerRef.current = undefined;
           void flush();
         }, wait);
       } else {
         queueRef.current = queueRef.current.filter((entry) => !batch.includes(entry));
-        setError(`That change wasn't saved: ${message}`);
+        saveFailedRef.current = true;
+        setError({ kind: "save", message: `That change wasn't saved: ${message}` });
         if (batchEvent === eventIdRef.current) loadEvent(batchEvent).catch(() => undefined);
       }
     } finally {
@@ -188,6 +291,17 @@ export function LiveDashboard({ canRotateKey, signedIn }: { canRotateKey: boolea
   }, [applyPayload, loadEvent]);
 
   useEffect(() => () => window.clearTimeout(retryTimerRef.current), []);
+
+  const readSaveState = useCallback(
+    () => ({
+      pending: queueRef.current.length > 0 || inFlightRef.current,
+      retrying: retryTimerRef.current !== undefined,
+      failed: saveFailedRef.current,
+      savedOnce: savedOnceRef.current
+    }),
+    []
+  );
+  const save = useSaveView(readSaveState, Boolean(eventId));
 
   const dispatch = useCallback(
     (action: ScoreboardAction) => {
@@ -215,144 +329,220 @@ export function LiveDashboard({ canRotateKey, signedIn }: { canRotateKey: boolea
         setData((current) => (current && current.event.id === payload.event.id ? { ...current, liveImage: payload.liveImage } : current));
         setError(null);
       } catch (caught) {
-        setError(`Couldn't update the live image: ${caught instanceof Error ? caught.message : "unknown error"}. Try again.`);
+        setError({
+          kind: "image",
+          message: `Couldn't update the live image: ${caught instanceof Error ? caught.message : "unknown error"}. Try again.`
+        });
       }
     },
     [eventId, sample]
   );
 
-  async function rotateKey() {
+  const rotateKey = useCallback(async () => {
     if (!eventId || !window.confirm("Make new OBS links for this livestream? The old links stop working right away.")) return;
     const sentAt = Date.now();
     try {
       applyPayload(await readJson<LiveGraphicsPayload>(await fetch(`/api/live/events/${eventId}/key`, { method: "POST" })), sentAt);
     } catch (caught) {
-      setError(`Couldn't make new links: ${caught instanceof Error ? caught.message : "unknown error"}.`);
+      setError({ kind: "rotate", message: `Couldn't make new links: ${caught instanceof Error ? caught.message : "unknown error"}.` });
     }
-  }
+  }, [eventId, applyPayload]);
+  const onRotateKey = useCallback(() => void rotateKey(), [rotateKey]);
 
   const overlayBase = data ? `${origin}/live/${data.overlayKey}` : "";
+  const selectedEvent = findEvent(eventId, events, pastEvents) ?? data?.event ?? null;
+  const onAirName = data?.liveImage ? graphicDefinition(data.liveImage.graphic).name : null;
+  const ready = Boolean(data && scoreboard);
+  const eventsLoading = events === null && error?.kind !== "events";
+  // Tabs only while there is a livestream to work on, or one may still arrive.
+  const showTabs = Boolean(eventId) || eventsLoading;
+  const clockDock = ready && scoreboard?.sport !== "volleyball";
+  const hasDock = ready && (tab !== "scoreboard" || clockDock);
+  const showSkeleton = !ready && (eventsLoading || (Boolean(eventId) && error?.kind !== "event"));
+  const tabLabel = DASH_TABS.find((item) => item.value === tab)?.label ?? "";
+
+  // "Something happened" marks that stay on screen after the header scrolls away.
+  const notSyncing = pollFailures >= NOT_SYNCING_AFTER;
+  const alertTone = scoreboardAlertTone(save, notSyncing);
+  const liveDotOnTab = Boolean(onAirName) && tab !== "image";
+  // On the Scoreboard tab the phone clock bar carries the alert (volleyball has no bar).
+  const alertDotOnTab = Boolean(alertTone) && (tab !== "scoreboard" || !clockDock);
+  // Save problems show as tags (header, tab dot, phone clock bar) and, on the Scoreboard tab, in
+  // full words in the clock card's hint line rather than a banner that would push the keypad down
+  // mid-game. On the other tabs (no keypad) the banner carries the words, as before.
+  const saveDetail = error?.kind === "save" ? error.message : undefined;
+  const saveInCard = error?.kind === "save" && tab === "scoreboard" && ready;
+  const bannerError = error && !saveInCard ? error : null;
+  const saveNotice = saveInCard && error ? <SaveNotice message={error.message} retrying={Boolean(error.retrying)} /> : undefined;
+  const dockStatus = alertTone ? (
+    <span className="flex min-w-0 flex-wrap items-center gap-1.5">
+      {save === "retrying" || save === "failed" ? <SaveTag view={save} detail={saveDetail} /> : null}
+      {notSyncing ? <NotSyncingTag /> : null}
+    </span>
+  ) : undefined;
+
+  function tabDot(value: DashTab): { tone: StatusDotTone; label: string } | null {
+    if (value === "image" && liveDotOnTab) return { tone: "live", label: "On air" };
+    if (value === "scoreboard" && alertDotOnTab && alertTone) return { tone: alertTone, label: alertLabel(save) };
+    return null;
+  }
+
+  function retry() {
+    if (error?.kind === "events") loadEvents();
+    else if (error?.kind === "event" && eventId) openEvent(eventId);
+  }
+
+  const loadError = bannerError?.kind === "events" || bannerError?.kind === "event";
+  // Only errors from your own tap (live image, new links) can be dismissed; save errors clear on the next save.
+  const dismissable = bannerError?.kind === "image" || bannerError?.kind === "rotate";
+
+  const status = (
+    <>
+      {isPastEvent(eventId, pastEvents) ? (
+        <StatusTag tone="warning" title="A past livestream. Changes still save to it.">
+          Past
+        </StatusTag>
+      ) : null}
+      {onAirName ? (
+        <StatusTag tone="live" title={`Live image on air: ${onAirName}`}>
+          On air · {onAirName}
+        </StatusTag>
+      ) : null}
+      {/* Always mounted, so screen readers hear the save state change. */}
+      <span aria-live="polite" className="inline-flex">
+        <SaveTag view={save} detail={saveDetail} />
+      </span>
+      {notSyncing ? <NotSyncingTag /> : null}
+    </>
+  );
 
   return (
-    <main className="min-h-dvh touch-manipulation bg-background text-foreground">
-      <header className="border-b-4 border-[var(--brand-fill)] bg-card">
-        <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 md:gap-6 md:px-6 md:py-4">
-          <BrandWordmark className="h-6 w-auto shrink-0 object-contain md:h-8" priority />
-          <div className="min-w-0 flex-1">
-            <p className="hidden text-[11px] font-medium uppercase tracking-[0.18em] text-brand-green sm:block">InFocus Live</p>
-            <h1 className="truncate text-lg font-semibold tracking-tight md:text-2xl">Livestream dashboard</h1>
-          </div>
-          {signedIn ? (
-            <a href="/livestreams" className="shrink-0 text-sm text-muted-foreground hover:text-foreground">
-              <span className="sm:hidden">Back</span>
-              <span className="hidden sm:inline">Back to Livestreams</span>
-            </a>
-          ) : null}
-        </div>
-      </header>
+    <main
+      style={{ "--live-dock-h": hasDock ? "3.875rem" : "0px" } as CSSProperties}
+      className={cn("group/live min-h-dvh touch-manipulation bg-background text-foreground", showTabs && PHONE_TABBAR_ROOT_CLASS.md)}
+    >
+      <div className="mx-auto flex w-full max-w-[80rem] flex-col gap-4 px-4 pb-[calc(var(--phone-tabbar-h,0px)+var(--live-dock-h,0px)+env(safe-area-inset-bottom)+1rem)] pt-3 md:px-6 md:pb-10 md:pt-5">
+        <LiveHeader
+          event={selectedEvent}
+          loading={eventsLoading}
+          status={status}
+          signedIn={signedIn}
+          eventId={eventId}
+          events={events}
+          pastEvents={pastEvents}
+          onEventChange={setEventId}
+        />
 
-      <div className="mx-auto grid max-w-7xl gap-4 px-3 pb-28 pt-4 sm:px-4 md:gap-6 md:px-6 md:pb-10 md:pt-6">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <label className="grid w-full min-w-0 gap-1.5 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground md:w-auto md:flex-1 md:max-w-xl">
-            Livestream
-            <select
-              id="live-event"
-              value={eventId ?? ""}
-              onChange={(event) => setEventId(event.target.value || null)}
-              className="h-11 w-full rounded-md border border-input bg-background px-3 text-base normal-case tracking-normal text-foreground md:h-9 md:text-sm"
-            >
-              {events === null ? <option value="">Loading…</option> : null}
-              {events?.length === 0 ? <option value="">No upcoming livestreams</option> : null}
-              {events?.map((event) => (
-                <option key={event.id} value={event.id}>
-                  {formatEventOption(event)}
-                </option>
-              ))}
-              {pastEvents.length ? (
-                <optgroup label="Past livestreams">
-                  {pastEvents.map((event) => (
-                    <option key={event.id} value={event.id}>
-                      {formatEventOption(event)}
-                    </option>
-                  ))}
-                </optgroup>
-              ) : null}
-            </select>
-          </label>
+        {showTabs ? (
           <div className="hidden md:block">
-            <Seg label="Dashboard tab" value={tab} options={TABS} onChange={setTab} />
+            <ViewTabs
+              ariaLabel="Dashboard tab"
+              idPrefix={TAB_ID_PREFIX}
+              value={tab}
+              onChange={selectTab}
+              items={DASH_TABS.map((item) => {
+                const dot = tabDot(item.value);
+                return { value: item.value, label: item.label, dot: dot?.tone, dotLabel: dot?.label };
+              })}
+            />
           </div>
-        </div>
+        ) : null}
 
-        {error ? (
-          <p role="alert" className="rounded-md border border-[var(--danger)] bg-danger-tint px-3 py-2 text-sm text-danger">
-            {error}
-          </p>
+        {/* Load errors offer Try again; image and new-link errors (after your own tap) can be dismissed. */}
+        {bannerError ? (
+          <Alert
+            tone={bannerError.retrying ? "warning" : "danger"}
+            role="alert"
+            onDismiss={dismissable ? () => setError(null) : undefined}
+            action={
+              loadError ? (
+                <Button type="button" variant="outline" size="sm" className="max-md:h-11!" onClick={retry}>
+                  <RotateCw aria-hidden />
+                  Try again
+                </Button>
+              ) : null
+            }
+          >
+            {bannerError.message}
+          </Alert>
         ) : null}
 
         {events?.length === 0 && !eventId ? (
-          <p className="text-muted-foreground">
-            There are no livestreams from the last 12 hours or the next 45 days. Add one on the Livestreams page
-            {pastEvents.length ? ", or pick a past livestream above" : ""}.
-          </p>
+          <div className="rounded-md border border-border bg-card">
+            <EmptyState
+              size="page"
+              icon={Radio}
+              title="No livestreams to run"
+              description={`There are no livestreams from the last 12 hours or the next 45 days. Add one on the Livestreams page${
+                pastEvents.length ? ", or pick a past livestream with Switch" : ""
+              }.`}
+              action={
+                signedIn ? (
+                  <Link href="/livestreams" className={buttonVariants()}>
+                    Open Livestreams
+                  </Link>
+                ) : null
+              }
+            />
+          </div>
         ) : null}
 
-        {data && scoreboard ? (
-          <>
-            {tab === "thumbnail" ? <ThumbnailPanel key={data.event.id} event={data.event} scoreboard={scoreboard} /> : null}
-            {tab === "scoreboard" ? (
-              <ScoreboardPanel
-                scoreboard={scoreboard}
-                dispatch={dispatch}
-                offset={offset}
-                overlayUrl={`${overlayBase}/scoreboard`}
-              />
+        {showTabs ? (
+          <ViewTabPanel idPrefix={TAB_ID_PREFIX} value={tab} active className="min-w-0">
+            <h2 className="sr-only">{tabLabel}</h2>
+            {data && scoreboard ? (
+              <>
+                {tab === "thumbnail" ? <ThumbnailPanel key={data.event.id} event={data.event} scoreboard={scoreboard} /> : null}
+                {tab === "scoreboard" ? (
+                  <ScoreboardPanel
+                    scoreboard={scoreboard}
+                    dispatch={dispatch}
+                    offset={offset}
+                    overlayUrl={`${overlayBase}/scoreboard`}
+                    onRotateKey={canRotateKey ? onRotateKey : undefined}
+                    dockStatus={dockStatus}
+                    notice={saveNotice}
+                  />
+                ) : null}
+                {tab === "image" ? (
+                  <LiveImagePanel
+                    event={data.event}
+                    scoreboard={scoreboard}
+                    liveImage={data.liveImage}
+                    offset={offset}
+                    overlayUrl={`${overlayBase}/image`}
+                    onSave={saveLiveImage}
+                    onRotateKey={canRotateKey ? onRotateKey : undefined}
+                  />
+                ) : null}
+              </>
+            ) : showSkeleton ? (
+              <LiveTabSkeleton tab={tab} />
             ) : null}
-            {tab === "image" ? (
-              <LiveImagePanel
-                event={data.event}
-                scoreboard={scoreboard}
-                liveImage={data.liveImage}
-                offset={offset}
-                overlayUrl={`${overlayBase}/image`}
-                onSave={saveLiveImage}
-              />
-            ) : null}
-            {canRotateKey && tab !== "thumbnail" ? (
-              <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                <span>Link shared somewhere it shouldn&apos;t be?</span>
-                <Button type="button" size="sm" variant="outline" onClick={() => void rotateKey()}>
-                  Make new OBS links
-                </Button>
-              </div>
-            ) : null}
-          </>
-        ) : eventId && !error ? (
-          <p className="text-muted-foreground">Loading…</p>
+          </ViewTabPanel>
         ) : null}
       </div>
 
       {/* Phones: tabs sit at the bottom, within thumb reach. */}
-      <nav
-        aria-label="Dashboard tab"
-        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-3 border-t border-border bg-card pb-[env(safe-area-inset-bottom)] md:hidden"
-      >
-        {TABS.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            aria-pressed={tab === option.value}
-            onClick={() => {
-              setTab(option.value);
-              window.scrollTo({ top: 0 });
-            }}
-            className="relative h-14 text-sm font-medium text-muted-foreground aria-pressed:text-foreground"
-          >
-            {tab === option.value ? <span className="absolute inset-x-6 top-0 h-0.5 bg-[var(--brand-green)]" aria-hidden="true" /> : null}
-            {option.label}
-          </button>
-        ))}
-      </nav>
+      {showTabs ? (
+        <LivePhoneTabs
+          ariaLabel="Dashboard tab"
+          items={DASH_TABS.map((item) => {
+            const dot = tabDot(item.value);
+            return {
+              key: item.value,
+              label: item.label,
+              icon: TAB_ICONS[item.value],
+              active: tab === item.value,
+              badge: dot ? <StatusDot tone={dot.tone} size={6} label={dot.label} /> : undefined,
+              onSelect: () => {
+                selectTab(item.value);
+                window.scrollTo({ top: 0 });
+              }
+            };
+          })}
+        />
+      ) : null}
     </main>
   );
 }

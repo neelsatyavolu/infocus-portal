@@ -142,9 +142,9 @@ Existing Bunny rows stay `BUNNY` and keep playing via Bunny.
 
 | Component | Role |
 |-----------|------|
-| `components/project-media-tiles.tsx` | Main project grid upload + version re-upload |
-| `components/simple-video-upload.tsx` | Simple upload control |
-| `components/upload-panel.tsx` | Panel upload |
+| `components/project-assets/use-project-uploads.ts` | Project page upload + version re-upload (used by `components/project-media-tiles.tsx`) |
+| `components/simple-video-upload.tsx` | Simple upload control (not used by any page right now) |
+| `components/upload-panel.tsx` | Panel upload (not used by any page right now) |
 | `src/lib/nas-upload-client.ts` | XHR multipart to Drive |
 | `src/lib/video-thumbnail-client.ts` | Capture frame → poster API |
 

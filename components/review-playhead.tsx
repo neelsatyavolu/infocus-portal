@@ -44,16 +44,18 @@ export function PlayheadSeekRange({
   playhead,
   buffered,
   max,
-  onSeek
+  onSeek,
+  className
 }: {
   playhead: ValueStore<number>;
   buffered: ValueStore<BufferedSpan[]>;
   max: number;
   onSeek: (timeSeconds: number) => void;
+  className?: string;
 }) {
   const value = useStoreValue(playhead);
   const spans = useStoreValue(buffered);
-  return <MediaRange value={value} max={max} step={0.01} label="Seek" onChange={onSeek} buffered={spans} />;
+  return <MediaRange value={value} max={max} step={0.01} label="Seek" onChange={onSeek} buffered={spans} className={className} />;
 }
 
 export function PlayheadTimecode({ playhead, frameAccurate = false }: { playhead: ValueStore<number>; frameAccurate?: boolean }) {

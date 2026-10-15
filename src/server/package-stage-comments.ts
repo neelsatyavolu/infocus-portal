@@ -21,6 +21,8 @@ export type StageCommentView = {
   stage: GroupStageSlug;
   body: string;
   createdAt: string;
+  /** When a group member or the producer marked the note handled; null while open. */
+  resolvedAt: string | null;
   reviewHref: string | null;
   author: { userId: string; name: string | null; email: string | null };
 };
@@ -67,6 +69,7 @@ export function serializeStageComment(comment: {
   stage: string;
   body: string;
   createdAt: Date;
+  resolvedAt?: Date | null;
   author: { id: string; name: string | null; nickname?: string | null; email: string | null };
 }): StageCommentView {
   const notice = parseReviewNotice(parseApprovalComment(comment.body).text);
@@ -76,6 +79,7 @@ export function serializeStageComment(comment: {
     stage: comment.stage as GroupStageSlug,
     body: notice.text,
     createdAt: comment.createdAt.toISOString(),
+    resolvedAt: comment.resolvedAt?.toISOString() ?? null,
     reviewHref: reviewNoticeHref({
       body: comment.body,
       authorId: comment.author.id,
@@ -245,6 +249,37 @@ export async function loadStageCommentUnread(userId: string, cycleNumber: number
   ]);
 
   return countUnreadComments(comments, reads, userId);
+}
+
+/**
+ * Marks one note resolved or open again. The group's members (the note is for them) and the
+ * producers who may act on the package can do it; other readers cannot.
+ */
+export async function setStageCommentResolved(input: {
+  commentId: string;
+  userId: string;
+  role: Parameters<typeof hasPlatformRole>[0];
+  resolved: boolean;
+}) {
+  const comment = await prisma.packageStageComment.findUnique({
+    where: { id: input.commentId },
+    select: { id: true, rowId: true }
+  });
+  if (!comment) {
+    throw new Error("NOT_FOUND");
+  }
+  const { isProducer, isMember } = await requireStageCommentAccess(comment.rowId, input.userId, input.role);
+  if (!isProducer && !isMember) {
+    throw new Error("FORBIDDEN");
+  }
+  const updated = await prisma.packageStageComment.update({
+    where: { id: comment.id },
+    data: input.resolved
+      ? { resolvedAt: new Date(), resolvedById: input.userId }
+      : { resolvedAt: null, resolvedById: null },
+    select: { id: true, resolvedAt: true }
+  });
+  return { id: updated.id, resolvedAt: updated.resolvedAt?.toISOString() ?? null };
 }
 
 export function assertFeedbackStage(value: string): GroupStageSlug {

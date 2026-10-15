@@ -2,25 +2,25 @@
 
 ## Onboarding (`/onboarding`)
 
-First sign-in sends you here before any other page. Set a nickname (required, up to 60 characters; the name Portal shows, Google keeps your account name) and notification channels: email on/off, an optional notification email address, browser on/off, and Announcements / Comments / Grades for each. **View as** skips onboarding. The browser switch here only saves your choice; turn on **Browser notifications** in Settings to register a device.
+First sign-in sends you here before any other page. It is laid out like Settings: **Profile** → **Nickname** (required, up to 60 characters; the name Portal shows, Google keeps your account name), then **Notifications** with an **Email** card (on/off and an optional **Send to** address) and a **Browser** card (on/off), each with its own **Send me** switches for Announcements, Comments, and Grades. A channel's Send me switches can be changed only while it is on. **View as** skips onboarding. The browser switch here only saves your choice; turn on **Browser** in Settings → Notifications on each device you want notified. While **Finish onboarding** can't be pressed, the reason shows beside it (no nickname yet, or Email on with no address to send to). If your saved choices fail to load, an error shows with **Try again** (until you change something), and you can still finish with the choices on screen.
 
 ## Settings (`/settings`)
 
-Sections are listed down the left on wide screens (a strip across the top on phones); each one is a panel of rows with the setting on the left and its control on the right.
+Sections are listed down the left on wide screens (a strip across the top on phones), in the order below. Most changes save at once; only the nickname and the notification address have a **Save** button.
 
-- **Profile**: **Nickname**, how you appear in Portal. Signing in with Google does not overwrite it. Below it, the Google account you sign in with.
-- **Signature** (executive producers and the super admin only, signed in as themselves; hidden while using View as): draw your signature with a mouse, trackpad, pen, or finger, then **Save signature**. It prints above your name on Package of the Cycle certificates. **Redraw** replaces it; **Remove** takes it off, leaving a blank line for you. See `package-cycles.md`.
-- **Appearance**: **Theme**, Dark (default) or Light. Saved in that browser and shared across the Portal subdomains (grades, teleprompter, equipment). The teleprompter run mode and video players stay dark. Also **Default view** (Grid or List).
-- **Playback**: autoplay videos on open, start with sound on.
-- **Notifications**:
-  - **Email** on/off and **Send test**. **Send email to another address** is optional (blank uses your account email). New accounts start with email on and Grades off.
-  - **Browser** on/off and **Send test**. Turning it on asks the browser for permission and registers that device; do it on each device you want notified. The test only shows a notification on this device.
-  - **Mac app notifications** / **iPhone app notifications** (only inside the InFocus Mac app or the InFocus Portal iPhone app, which replace the Browser row): status, **Turn on** (asks macOS or iOS), **Open Mac/iPhone settings**, and **Send test** (sent through Apple to every Mac and iPhone you're signed in on). There are no per-category switches here; see below.
-  - A **Send me** grid: Announcements, Comments, and Grades switches for each channel (Email and Browser).
+The list shows a tag beside a section when something needs a look. **Notifications** shows one once your settings load: **On**, **Off** (every channel is off), **Blocked**, **Not set up** or **Not registered** (this browser or the InFocus app can't show them yet), or **Error**. **PINs** and **Signature** show **Not set** or **Error**, and **Profile** shows **Error**, only when that applies. On phones, where the strip can hide a tag, the page header lists the warnings and errors as links to their sections.
+
+- **Notifications**: one card per channel, each with its own **Send me** list (Announcements, Comments, Grades).
+  - **Email**: on/off, **Send to** (optional; blank uses your account email) with **Save**, the Send me switches, and **Send test** (only while Email is on). New accounts start with email on and Grades off.
+  - **Browser** (on the web): on/off, the Send me switches, and **Send test**. Turning it on asks the browser for permission and registers that device; do it on each device you want notified. The switch is for your whole account: turning it off stops browser notifications on every device. The test only shows a notification on this device. **Blocked** means this browser blocks Portal's notifications (allow them in its site settings); **Unsupported** means it can't show them.
+  - **Mac app notifications** / **iPhone app notifications** (only inside the InFocus Mac app or the InFocus Portal iPhone app, in place of the Browser card): status, **Turn on** (asks macOS or iOS; shown until you answer), **Open Mac/iPhone settings**, and **Send test** (sent through Apple to every Mac and iPhone you're signed in on). It has no switches of its own: its Send me list shows the Email settings it follows; see below.
+- **Appearance & playback** (saved in that browser): **Theme**, Dark (default) or Light, also shared across the Portal subdomains (grades, teleprompter, equipment); the teleprompter run mode and video players stay dark. **Default view** (Grid or List), **Autoplay videos on open**, and **Start with sound on**.
+- **Profile**: **Nickname**, how you appear in Portal. Signing in with Google does not overwrite it. Beside it, the Google account you sign in with.
 - **PINs** (only shown to people who can see a PIN):
   - **Class Board PIN** (super admins and the adviser only). It opens `/class-board` only. See `class-board.md`.
   - **Livestream dashboard PIN** (producers and appointed livestream managers only). Six digits, **Create PIN** / **New PIN**. It opens `/live` without signing in, until midnight, and is separate from the Class Board PIN. See `livestreams.md`.
-- **InFocus for Mac**: what the Mac app does (Mac notifications, Portal in its own window, Drive in Finder) and **Download for Mac** with three install steps. See `drive-and-media.md`.
+- **Signature** (executive producers and the super admin only, signed in as themselves; hidden while using View as): draw your signature with a mouse, trackpad, pen, or finger, then **Save signature**. It prints above your name on Package of the Cycle certificates. **Redraw** replaces it; **Remove** takes it off, leaving a blank line for you. See `package-cycles.md`.
+- **InFocus for Mac**: depends on the device. In a Mac browser: what the Mac app does (Mac notifications, Portal in its own window, Drive in Finder) and **Download for Mac** with three install steps. Inside the app: a note that you're already using it. On other devices: what it does, and to open Settings on a Mac to download it. See `drive-and-media.md`.
 - **Apps & links**: links to the grades dashboard, teleprompter, and InFocus Drive, plus the weekly schedule.
 
 ## Mac and iPhone notifications
@@ -29,7 +29,7 @@ The InFocus Mac app and the InFocus Portal iPhone app get a notification for **e
 
 ## What Portal emails and pushes
 
-Browser push goes only to devices with **Browser notifications** on. Every email here except sign-in codes, invites, and access decisions also reaches the InFocus Mac app (see **Mac notifications** above). Only announcements, grades, and the legacy video-uploaded email follow your email switches; the other emails below are sent to whoever needs to act, whatever those switches say.
+Browser push goes only to devices registered with **Browser** on in Settings → Notifications. Every email here except sign-in codes, invites, and access decisions also reaches the InFocus Mac app (see **Mac and iPhone notifications** above). Only announcements, grades, and the legacy video-uploaded email follow your email switches; the other emails below are sent to whoever needs to act, whatever those switches say.
 
 | Event | Who gets it | How |
 |---|---|---|
@@ -73,7 +73,7 @@ If an Initial Cut stage sits unreviewed for 12 hours, its reviewers get an email
 
 ## Scheduled jobs you might notice
 
-- **Hourly**: review reminders (above) and a database backup (Admin → Backups, kept 7 days).
+- **Hourly**: review reminders (above) and a database backup (Admin → System → Backups, kept 7 days).
 - **Every minute**: meeting reminders, 15 and 5 minutes before the start (see `meetings.md`). Meeting calendar changes reach Google Calendar in the background.
 - **Every 10 minutes**: alerts for the public InFocus iPhone app (new show, new story, a stream going live; see `iphone-apps.md`).
 - **Every 15 minutes**: Portal checks for queued packages and shows due to upload to YouTube on their air date. While an upload is in progress it checks every minute until it finishes. Starting a show upload begins right away.

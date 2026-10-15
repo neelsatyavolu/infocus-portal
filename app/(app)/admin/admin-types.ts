@@ -73,6 +73,28 @@ export type PlatformStats = {
   };
 };
 
+/** GET /api/admin/youtube/status. */
+export type YoutubeStatus = {
+  connected: boolean;
+  source: "admin" | "env" | "none";
+  channelTitle: string | null;
+  connectedAt: string | null;
+  lastCheckOk: boolean | null;
+  message: string | null;
+};
+
+/** GET /api/admin/google-calendar/status. */
+export type GoogleCalendarStatus = {
+  connected: boolean;
+  accountEmail: string | null;
+  connectedAt: string | null;
+  lastSyncedAt: string | null;
+  lastSyncError: string | null;
+};
+
+/** A value loaded in the background: still loading, failed, or here. */
+export type Remote<T> = { state: "loading" } | { state: "error" } | { state: "ready"; data: T };
+
 /** Shown for errors that should stay on screen; sections also toast. */
 export type ReportMessage = (message: string | null) => void;
 
@@ -104,6 +126,34 @@ export function formatStorage(bytes: number) {
   return `${Math.round(bytes / 1_000)} KB`;
 }
 
+/**
+ * The one short timestamp on Admin: "Oct 14, 3:05 PM", with the year when it isn't this year
+ * ("Dec 30, 2025, 9:00 AM"). `now` and `timeZone` are for tests.
+ */
+export function formatWhen(iso: string, options: { now?: Date; timeZone?: string } = {}) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
+  const yearOf = (value: Date) =>
+    new Intl.DateTimeFormat("en-US", { year: "numeric", timeZone: options.timeZone }).format(value);
+  const sameYear = yearOf(date) === yearOf(options.now ?? new Date());
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    ...(sameYear ? {} : { year: "numeric" }),
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: options.timeZone
+  });
+}
+
+/** The full local timestamp, for hover text. */
+export function formatWhenFull(iso: string) {
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? "" : date.toLocaleString();
+}
+
 export async function getData<T>(url: string): Promise<T> {
   const response = await fetch(url, { cache: "no-store" });
   const payload = await response.json();
@@ -119,6 +169,6 @@ export function personLabel(user: Pick<PlatformUser, "nickname" | "name" | "emai
   return user.nickname || user.name || user.email || "Unnamed";
 }
 
-/** Shared field styling for native selects (matches components/ui/input). */
-export const selectClass =
-  "h-9 rounded-md border border-input bg-background px-3 text-base text-foreground outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 md:text-sm";
+export function errorText(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}

@@ -1,17 +1,28 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import { AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Alert } from "@/components/kit/alert";
+import { PanelHeader } from "@/components/kit/panel";
+import { SegmentedControl as KitSegmentedControl } from "@/components/kit/segmented-control";
+import { CountBadge, StatusTag } from "@/components/kit/status-tag";
 import { PageHeader } from "@/components/page-header";
-import { AlertTriangle, CheckCircle2, X } from "lucide-react";
 import { cn } from "@/src/lib/utils";
 
-/** Shared layout for Settings and Admin: a section nav, titled sections, and bordered panels of rows. */
+/**
+ * Shared layout for Settings and Admin: a section nav, titled sections, and bordered panels of rows.
+ * The app shell owns the page width, so this fills the content column (no outer max-width).
+ */
+
+export type SettingsNavStatus = { label: string; tone: "ok" | "warn" | "danger" | "neutral" };
 
 export type SettingsNavItem = {
   id: string;
   label: string;
   badge?: number | null;
   tone?: "danger";
+  /** A tag beside the item (OFF, NOT SET, FAILED). On the phone strip warn/danger show as an icon. */
+  status?: SettingsNavStatus | null;
 };
 
 /** Below the sticky app header: a section counts as current once its top passes this line. */
@@ -60,6 +71,26 @@ function useActiveSection(key: string) {
   return [active, select] as const;
 }
 
+function NavStatus({ status }: { status: SettingsNavStatus }) {
+  const alert = status.tone === "warn" || status.tone === "danger";
+  return (
+    <>
+      <span className="hidden lg:inline-flex">
+        <StatusTag size="sm" tone={status.tone}>
+          {status.label}
+        </StatusTag>
+      </span>
+      {alert ? (
+        <AlertTriangle
+          aria-hidden
+          className={cn("h-3 w-3 shrink-0 lg:hidden", status.tone === "danger" ? "text-danger" : "text-[var(--brand-amber)]")}
+        />
+      ) : null}
+      <span className="sr-only lg:hidden">{status.label}</span>
+    </>
+  );
+}
+
 export function SettingsLayout({
   header,
   nav,
@@ -72,12 +103,12 @@ export function SettingsLayout({
   const [active, setActive] = useActiveSection(nav.map((item) => item.id).join("|"));
 
   return (
-    <div className="route-enter mx-auto w-full max-w-6xl space-y-6 lg:space-y-8">
+    <div className="route-enter w-full space-y-6 lg:space-y-8">
       {header}
-      <div className="lg:grid lg:grid-cols-[188px_minmax(0,1fr)] lg:gap-10">
+      <div className="lg:grid lg:grid-cols-[200px_minmax(0,1fr)] lg:gap-8">
         <nav
           aria-label="Sections"
-          className="-mx-4 mb-8 overflow-x-auto border-b border-border px-4 [scrollbar-width:none] md:-mx-6 md:px-6 lg:sticky lg:top-24 lg:mx-0 lg:mb-0 lg:self-start lg:overflow-visible lg:border-b-0 lg:px-0 [&::-webkit-scrollbar]:hidden"
+          className="sticky top-[var(--app-header-h,0px)] z-30 mb-6 overflow-x-auto border-b border-border bg-background [scrollbar-width:none] lg:top-24 lg:z-auto lg:mb-0 lg:self-start lg:overflow-visible lg:border-b-0 lg:bg-transparent [&::-webkit-scrollbar]:hidden"
         >
           <ul className="flex lg:flex-col lg:gap-0.5">
             {nav.map((item) => {
@@ -89,50 +120,66 @@ export function SettingsLayout({
                     onClick={() => setActive(item.id)}
                     aria-current={current ? "location" : undefined}
                     className={cn(
-                      "flex h-10 items-center justify-between gap-3 whitespace-nowrap border-b-2 px-3 text-sm transition-colors lg:h-9 lg:border-b-0 lg:border-l-2",
+                      "flex h-10 items-center gap-2 whitespace-nowrap border-b-2 px-3 text-sm transition-colors lg:h-9 lg:border-b-0 lg:border-l-2",
                       current
                         ? "border-[var(--brand-green)] font-medium text-foreground"
-                        : "border-transparent text-muted-foreground hover:text-foreground lg:hover:bg-secondary/60",
+                        : "border-transparent text-muted-foreground hover:text-foreground lg:hover:bg-[var(--ink-3)]",
                       item.tone === "danger" && "text-danger hover:text-danger"
                     )}
                   >
-                    {item.label}
-                    {item.badge ? (
-                      <span className="rounded-sm bg-secondary px-1.5 py-px font-mono text-[11px] tabular-nums text-foreground">
-                        {item.badge}
-                      </span>
-                    ) : null}
+                    <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                    {item.status ? <NavStatus status={item.status} /> : null}
+                    {item.badge ? <CountBadge count={item.badge} tone="neutral" /> : null}
                   </a>
                 </li>
               );
             })}
           </ul>
         </nav>
-        <div className="min-w-0 space-y-12">{children}</div>
+        <div className="@container min-w-0 space-y-10">{children}</div>
       </div>
     </div>
   );
 }
 
-/** The page nameplate for Settings and Admin: the shared PageHeader with meta on the right. */
+/**
+ * The page nameplate for Settings and Admin: the shared PageHeader. `status` holds tags (role,
+ * "3 pending") in the eyebrow row; `actions` holds controls. `meta` is the older name for status
+ * and goes to the same place, so tags are never stretched into button-sized blocks.
+ */
 export function SettingsHeader({
   eyebrow,
   title,
   description,
-  meta
+  status,
+  meta,
+  actions
 }: {
   eyebrow: ReactNode;
   title: string;
   description?: ReactNode;
+  status?: ReactNode;
+  /** @deprecated Use `status`. */
   meta?: ReactNode;
+  actions?: ReactNode;
 }) {
-  return <PageHeader eyebrow={eyebrow} title={title} description={description} actions={meta} />;
+  const tags =
+    status && meta ? (
+      <>
+        {status}
+        {meta}
+      </>
+    ) : (
+      status ?? meta
+    );
+  return <PageHeader eyebrow={eyebrow} status={tags} title={title} description={description} actions={actions} />;
 }
 
 export function SettingsSection({
   id,
   title,
   description,
+  status,
   actions,
   tone,
   children
@@ -140,6 +187,9 @@ export function SettingsSection({
   id: string;
   title: string;
   description?: ReactNode;
+  /** StatusTags right after the title (OK, WAITING 2, FAILED). Never in `actions`. */
+  status?: ReactNode;
+  /** h-8 controls or a SaveStatus, on the right. */
   actions?: ReactNode;
   tone?: "danger";
   children: ReactNode;
@@ -148,15 +198,18 @@ export function SettingsSection({
     <section id={id} aria-labelledby={`${id}-title`} className="scroll-mt-24 space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
         <div className="min-w-0">
-          <h2
-            id={`${id}-title`}
-            className={cn("text-lg font-semibold tracking-[-0.01em] text-foreground", tone === "danger" && "text-danger")}
-          >
-            {title}
-          </h2>
-          {description ? <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{description}</p> : null}
+          <div className="flex min-h-8 flex-wrap items-center gap-2">
+            <h2
+              id={`${id}-title`}
+              className={cn("text-lg font-semibold tracking-[-0.01em] text-foreground", tone === "danger" && "text-danger")}
+            >
+              {title}
+            </h2>
+            {status}
+          </div>
+          {description ? <p className="mt-0.5 max-w-2xl text-sm text-muted-foreground">{description}</p> : null}
         </div>
-        {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
+        {actions ? <div className="flex min-h-8 flex-wrap items-center gap-2">{actions}</div> : null}
       </div>
       {children}
     </section>
@@ -191,17 +244,27 @@ export function SettingsPanelBody({ className, children }: { className?: string;
   return <div className={cn("px-4 py-4 md:px-5", className)}>{children}</div>;
 }
 
-/** One setting: label and help text on the left, its control on the right (stacked on phones). */
+/** A panel's header row (title, status tags, h-8 actions) with the row padding. */
+export function SettingsPanelHeader(props: Omit<Parameters<typeof PanelHeader>[0], "className">) {
+  return <PanelHeader {...props} className="px-4 py-3 md:px-5" />;
+}
+
+/**
+ * One setting: label and help text on the left, its control on the right (stacked on phones).
+ * `inline` keeps a compact control (switch, segmented) on the right at every width.
+ */
 export function SettingsRow({
   title,
   description,
   htmlFor,
+  inline = false,
   className,
   children
 }: {
   title: ReactNode;
   description?: ReactNode;
   htmlFor?: string;
+  inline?: boolean;
   className?: string;
   children?: ReactNode;
 }) {
@@ -210,7 +273,10 @@ export function SettingsRow({
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 md:px-5",
+        "flex px-4 py-4 md:px-5",
+        inline
+          ? "flex-row items-center justify-between gap-4 sm:gap-6"
+          : "flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6",
         className
       )}
     >
@@ -224,49 +290,107 @@ export function SettingsRow({
         )}
         {description ? <div className="mt-0.5 text-[13px] leading-snug text-muted-foreground">{description}</div> : null}
       </div>
-      {children ? <div className="flex min-w-0 flex-wrap items-center gap-2 sm:shrink-0 sm:justify-end">{children}</div> : null}
+      {children ? (
+        <div className={cn("flex min-w-0 flex-wrap items-center gap-2 sm:shrink-0 sm:justify-end", inline && "shrink-0 justify-end")}>
+          {children}
+        </div>
+      ) : null}
     </div>
   );
 }
 
-/** A small set of mutually exclusive options. The active option uses the brand fill (DESIGN.md §10 tabs). */
+/**
+ * Equal-height cells with hairlines in both directions, inside a SettingsPanel (Appearance 2×2,
+ * link cells, benefit lists). Columns follow the content column's width (container queries).
+ */
+export function SettingsGrid({ columns = 2, className, children }: { columns?: 2 | 3; className?: string; children: ReactNode }) {
+  return (
+    <div className="overflow-hidden">
+      <div
+        className={cn(
+          "-mb-px -mr-px grid *:border-b *:border-r *:border-border",
+          columns === 3 ? "@2xl:grid-cols-2 @4xl:grid-cols-3" : "@2xl:grid-cols-2",
+          className
+        )}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/** One SettingsGrid cell: title and help, then the control (or beside it with `inline`). */
+export function SettingsCell({
+  id,
+  title,
+  description,
+  htmlFor,
+  inline = false,
+  className,
+  children
+}: {
+  id?: string;
+  title: ReactNode;
+  description?: ReactNode;
+  htmlFor?: string;
+  inline?: boolean;
+  className?: string;
+  children?: ReactNode;
+}) {
+  const titleClass = "block text-sm font-medium text-foreground";
+  return (
+    <div
+      id={id}
+      className={cn(
+        "flex h-full min-w-0 gap-3 px-4 py-4 md:px-5",
+        inline ? "flex-row items-center justify-between" : "flex-col",
+        className
+      )}
+    >
+      <div className="min-w-0">
+        {htmlFor ? (
+          <label htmlFor={htmlFor} className={titleClass}>
+            {title}
+          </label>
+        ) : (
+          <div className={titleClass}>{title}</div>
+        )}
+        {description ? <div className="mt-0.5 text-[13px] leading-snug text-muted-foreground">{description}</div> : null}
+      </div>
+      {children ? <div className={cn("flex min-w-0 flex-wrap items-center gap-2", inline ? "shrink-0" : "mt-auto")}>{children}</div> : null}
+    </div>
+  );
+}
+
+/**
+ * A small set of mutually exclusive options (the kit SegmentedControl with this file's older
+ * props). The outer box is exactly h-9 (h-8 with size="sm"), so it lines up with buttons.
+ */
 export function SegmentedControl<T extends string>({
   label,
   value,
   options,
-  onChange
+  onChange,
+  size = "default"
 }: {
   label: string;
   value: T;
   options: Array<{ value: T; label: string; icon?: ReactNode }>;
   onChange: (value: T) => void;
+  size?: "default" | "sm";
 }) {
   return (
-    <div role="radiogroup" aria-label={label} className="inline-flex rounded-md border border-border bg-background p-0.5">
-      {options.map((option) => {
-        const checked = option.value === value;
-        return (
-          <button
-            key={option.value}
-            type="button"
-            role="radio"
-            aria-checked={checked}
-            onClick={() => onChange(option.value)}
-            className={cn(
-              "inline-flex h-8 items-center gap-1.5 rounded-sm px-3 text-sm transition-colors [&_svg]:size-3.5",
-              checked ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            {option.icon}
-            {option.label}
-          </button>
-        );
-      })}
-    </div>
+    <KitSegmentedControl
+      ariaLabel={label}
+      value={value}
+      options={options}
+      onChange={onChange}
+      size={size === "sm" ? "sm" : "md"}
+    />
   );
 }
 
-/** Banner for a save result: tint, matching line, icon, and words (DESIGN.md §10 alerts). */
+/** Banner for a save result: tint, matching line, icon, and words (the kit Alert). */
 export function SettingsNotice({
   tone,
   onDismiss,
@@ -276,32 +400,10 @@ export function SettingsNotice({
   onDismiss?: () => void;
   children: ReactNode;
 }) {
-  const error = tone === "error";
-  const Icon = error ? AlertTriangle : CheckCircle2;
-
   return (
-    <div
-      role={error ? "alert" : "status"}
-      className={cn(
-        "flex items-start gap-2 rounded-md border px-3 py-2 text-sm",
-        error
-          ? "border-danger/40 bg-danger-tint text-danger"
-          : "border-[var(--brand-green)]/30 bg-[var(--brand-green)]/10 text-foreground"
-      )}
-    >
-      <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", !error && "text-[var(--brand-green)]")} aria-hidden="true" />
-      <div className="min-w-0 flex-1">{children}</div>
-      {onDismiss ? (
-        <button
-          type="button"
-          onClick={onDismiss}
-          aria-label="Dismiss"
-          className="-m-1 rounded-sm p-1 opacity-70 transition-opacity hover:opacity-100"
-        >
-          <X className="h-3.5 w-3.5" />
-        </button>
-      ) : null}
-    </div>
+    <Alert tone={tone === "error" ? "danger" : "success"} compact onDismiss={onDismiss}>
+      {children}
+    </Alert>
   );
 }
 

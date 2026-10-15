@@ -1,121 +1,51 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { ChevronLeft, Send } from "lucide-react";
-import { cn } from "@/src/lib/utils";
+import { useEffect, useRef, useState } from "react";
+import { InboxList } from "@/components/assistant/inbox-list";
+import {
+  chatKey,
+  INBOX_FULL_REFRESH_MS,
+  INBOX_POLL_MS,
+  mergeLiteInbox,
+  readData,
+  THREAD_POLL_MS,
+  type InboxChat,
+  type InboxPayload,
+  type ThreadMessage,
+  type ThreadPayload
+} from "@/components/assistant/hub-chat-client";
+import { ThreadView } from "@/components/assistant/thread-view";
+import { useStickToBottom } from "@/components/assistant/use-stick-to-bottom";
 
-type Person = { id: string; name: string };
+function withoutKey(record: Record<string, string>, key: string) {
+  return Object.fromEntries(Object.entries(record).filter(([entryKey]) => entryKey !== key));
+}
 
-type InboxChat = {
-  id: string | null;
-  kind: "GROUP" | "DIRECT";
-  title: string;
-  subtitle: string;
-  preview: string | null;
-  updatedAt: string | null;
-  unreadCount: number;
-  packageRowId?: string;
-  peer?: Person | null;
-};
-
-type InboxPayload = {
-  me: Person;
-  canStartDirect: boolean;
-  unreadCount: number;
-  chats: InboxChat[];
-  members: Person[];
-  /** Lite polls list only chats you belong to and no class roster. */
-  lite?: boolean;
-};
-
-type ThreadMessage = {
-  id: string;
-  body: string;
-  createdAt: string;
-  authorId: string;
-  author: Person;
-};
-
-type ThreadPayload = {
-  me: Person;
-  chat: {
-    id: string;
-    kind: "GROUP" | "DIRECT";
-    title: string;
-    subtitle: string;
-    packageRowId: string | null;
-    peer: Person | null;
-  };
-  messages: ThreadMessage[];
-};
-
-const NEAR_BOTTOM_PX = 100;
-const INBOX_POLL_MS = 5000;
-const THREAD_POLL_MS = 4000;
-/** Interval polls fetch the lite inbox; the full lists refresh on open and at least this often. */
-const INBOX_FULL_REFRESH_MS = 60_000;
-
-/** Same order as sortHubInbox (src/lib/hub-chat.ts, which is server-only via its imports). */
-function sortInbox(chats: InboxChat[]) {
-  return [...chats].sort((a, b) => {
-    if (a.updatedAt && b.updatedAt) {
-      return b.updatedAt.localeCompare(a.updatedAt);
-    }
-    if (a.updatedAt) {
-      return -1;
-    }
-    if (b.updatedAt) {
-      return 1;
-    }
-    return a.title.localeCompare(b.title, undefined, { sensitivity: "base" });
-  });
+function prefersFinePointer() {
+  return window.matchMedia("(pointer: fine)").matches;
 }
 
 /**
- * A lite poll returns every chat you belong to (with current unread and preview) but not
- * never-opened groups or the class roster, so keep those from the last full load.
+ * Messages in the ✱ panel: the inbox (one recency list of group and direct chats) and an open
+ * conversation. Polls only while it is on screen and the browser tab is visible.
  */
-function mergeLiteInbox(previous: InboxPayload | null, lite: InboxPayload): InboxPayload {
-  if (!previous) {
-    return lite;
-  }
-  const openedRowIds = new Set(lite.chats.map((chat) => chat.packageRowId).filter(Boolean));
-  const neverOpened = previous.chats.filter(
-    (chat) => chat.id === null && !(chat.packageRowId && openedRowIds.has(chat.packageRowId))
-  );
-  const dmPeerIds = new Set(lite.chats.map((chat) => chat.peer?.id).filter(Boolean));
-  return {
-    ...lite,
-    lite: undefined,
-    chats: sortInbox([...lite.chats, ...neverOpened]),
-    members: previous.members.filter((person) => !dmPeerIds.has(person.id))
-  };
-}
-
-async function readData<T>(response: Response): Promise<T> {
-  const payload = (await response.json()) as { data?: T; error?: { message?: string } };
-  if (!response.ok) {
-    throw new Error(payload.error?.message ?? "Could not load messages.");
-  }
-  if (!payload.data) {
-    throw new Error("Could not load messages.");
-  }
-  return payload.data;
-}
-
-function formatStamp(iso: string) {
-  const date = new Date(iso);
-  return date.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-}
-
 export function HubMessages({
   onUnread,
   visible = true,
-  keyboardOpen = false
+  focusSearchOnShow = true,
+  keyboardOpen = false,
+  touch = false,
+  sheet = false
 }: {
   onUnread?: (count: number) => void;
   visible?: boolean;
+  /** False when Messages was shown from the keyboard on the panel's tabs: focus stays there. */
+  focusSearchOnShow?: boolean;
   keyboardOpen?: boolean;
+  /** 44px controls and 16px text (phones and touch tablets). */
+  touch?: boolean;
+  /** Shown as the phone's full-screen sheet. */
+  sheet?: boolean;
 }) {
   const [inbox, setInbox] = useState<InboxPayload | null>(null);
   const [search, setSearch] = useState("");
@@ -123,14 +53,19 @@ export function HubMessages({
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [openingKey, setOpeningKey] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const pinnedRef = useRef(true);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  // After Back on a touch screen: the chat whose inbox row should get focus.
+  const returnFocusIdRef = useRef<string | null>(null);
   const activeIdRef = useRef<string | null>(null);
   const draftsRef = useRef<Record<string, string>>({});
-
   const navigationRef = useRef(0);
   const lastFullInboxRef = useRef(0);
+  const pinnedRef = useStickToBottom(scrollRef, visible ? (active?.chat.id ?? null) : null);
 
   async function loadInbox(mode: "full" | "auto" = "full") {
     const lite = mode === "auto" && Date.now() - lastFullInboxRef.current < INBOX_FULL_REFRESH_MS;
@@ -146,8 +81,7 @@ export function HubMessages({
   }
 
   async function loadThread(chatId: string) {
-    const data = await readData<ThreadPayload>(await fetch(`/api/hub-chat/${chatId}`));
-    return data;
+    return readData<ThreadPayload>(await fetch(`/api/hub-chat/${chatId}`));
   }
 
   useEffect(() => {
@@ -167,6 +101,7 @@ export function HubMessages({
         if (cancelled || navigation !== navigationRef.current) {
           return;
         }
+        // A good poll clears an earlier error.
         setError(null);
         if (chatId && data && activeIdRef.current === chatId) {
           setActive(data);
@@ -195,56 +130,50 @@ export function HubMessages({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- load helpers close over onUnread
   }, [visible, active?.chat.id]);
 
+  // Showing Messages on a mouse/trackpad puts the cursor in search (as Assistant does its composer).
   useEffect(() => {
-    if (!active?.chat.id) {
-      return;
+    if (visible && focusSearchOnShow && !activeIdRef.current && prefersFinePointer()) {
+      searchRef.current?.focus();
     }
-    inputRef.current?.focus();
-    autosize();
+  }, [visible, focusSearchOnShow]);
+
+  // Opening a chat focuses the composer on a mouse/trackpad; on touch screens the thread title,
+  // so no keyboard covers the conversation.
+  useEffect(() => {
+    if (active?.chat.id) {
+      (prefersFinePointer() ? inputRef.current : titleRef.current)?.focus();
+    }
   }, [active?.chat.id]);
 
+  // Back: a mouse/trackpad goes to search; touch screens to the row of the chat just left.
   useEffect(() => {
-    const el = scrollRef.current;
-    if (!el || !active) {
+    if (active) {
       return;
     }
-    const atBottom = () => el.scrollHeight - el.scrollTop - el.clientHeight < NEAR_BOTTOM_PX;
-    const onScroll = () => {
-      pinnedRef.current = atBottom();
-    };
-    const stick = () => {
-      if (pinnedRef.current) {
-        el.scrollTop = el.scrollHeight;
+    const chatId = returnFocusIdRef.current;
+    returnFocusIdRef.current = null;
+    if (prefersFinePointer()) {
+      if (chatId) {
+        searchRef.current?.focus();
       }
-    };
-    const observer = new MutationObserver(stick);
-    observer.observe(el, { childList: true, subtree: true, characterData: true });
-    el.addEventListener("scroll", onScroll, { passive: true });
-    stick();
-    return () => {
-      observer.disconnect();
-      el.removeEventListener("scroll", onScroll);
-    };
-  }, [active]);
-
-  function autosize() {
-    const el = inputRef.current;
-    if (!el) {
       return;
     }
-    el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 128)}px`;
-  }
+    if (chatId) {
+      listRef.current?.querySelector<HTMLElement>(`[data-chat-id="${CSS.escape(chatId)}"]`)?.focus();
+    }
+  }, [active]);
 
   async function openChat(item: InboxChat) {
     const navigation = ++navigationRef.current;
     setError(null);
+    setOpeningKey(chatKey(item));
     pinnedRef.current = true;
     try {
       let data: ThreadPayload | undefined;
       if (item.id) {
         data = await loadThread(item.id);
       } else if (item.kind === "GROUP" && item.packageRowId) {
+        // First open of a package's group chat creates it.
         data = await readData<ThreadPayload>(
           await fetch("/api/hub-chat", {
             method: "POST",
@@ -272,7 +201,26 @@ export function HubMessages({
       if (navigation === navigationRef.current) {
         setError(caught instanceof Error ? caught.message : "Could not open that chat.");
       }
+    } finally {
+      if (navigation === navigationRef.current) {
+        setOpeningKey(null);
+      }
     }
+  }
+
+  function backToInbox() {
+    navigationRef.current += 1;
+    returnFocusIdRef.current = activeIdRef.current;
+    activeIdRef.current = null;
+    setActive(null);
+    setOpeningKey(null);
+  }
+
+  function onInput(value: string) {
+    if (active) {
+      draftsRef.current = { ...draftsRef.current, [active.chat.id]: value };
+    }
+    setInput(value);
   }
 
   async function send() {
@@ -293,8 +241,9 @@ export function HubMessages({
           body: JSON.stringify({ body: content })
         })
       );
+      // Clear the draft only if it is still the text that was sent.
       if (draftsRef.current[chatId] === input) {
-        delete draftsRef.current[chatId];
+        draftsRef.current = withoutKey(draftsRef.current, chatId);
         if (activeIdRef.current === chatId) {
           setInput("");
         }
@@ -302,11 +251,6 @@ export function HubMessages({
       if (navigation !== navigationRef.current) {
         return;
       }
-      requestAnimationFrame(() => {
-        if (inputRef.current) {
-          inputRef.current.style.height = "auto";
-        }
-      });
       const data = await loadThread(chatId);
       if (navigation === navigationRef.current) {
         setActive(data);
@@ -321,207 +265,37 @@ export function HubMessages({
     }
   }
 
-  function onSubmit(event: FormEvent) {
-    event.preventDefault();
-    void send();
-  }
-
-  function onKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
-    if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
-      event.preventDefault();
-      void send();
-    }
-  }
-
-  const query = search.trim().toLowerCase();
-  const matches = (title: string, extra = "") =>
-    !query || title.toLowerCase().includes(query) || extra.toLowerCase().includes(query);
-  const chatKey = (chat: InboxChat) => chat.id ?? chat.packageRowId ?? chat.peer?.id ?? chat.title;
-  const listedChats = (inbox?.chats ?? []).filter((chat) => matches(chat.title, chat.subtitle));
-  const startPeople = query
-    ? (inbox?.members ?? []).filter((person) => matches(person.name))
-    : [];
-
   if (active) {
-    const meId = active.me.id;
-    const showNames = active.chat.kind === "GROUP";
     return (
-      <div className="flex min-h-0 flex-1 flex-col">
-        <div className="flex items-center gap-1 border-b border-border px-2 py-1.5">
-          <button
-            type="button"
-            onClick={() => {
-              navigationRef.current += 1;
-              activeIdRef.current = null;
-              setActive(null);
-            }}
-            className="grid h-10 w-10 place-items-center rounded text-muted-foreground hover:bg-accent hover:text-foreground sm:h-7 sm:w-7"
-            aria-label="Back to messages"
-          >
-            <ChevronLeft className="h-5 w-5 sm:h-4 sm:w-4" />
-          </button>
-          <div className="min-w-0">
-            <p className="truncate text-[13.5px] font-medium text-foreground">{active.chat.title}</p>
-            <p className="truncate text-[11px] text-muted-foreground">{active.chat.subtitle}</p>
-          </div>
-        </div>
-        <div ref={scrollRef} className="min-h-0 flex-1 space-y-2.5 overflow-y-auto px-3.5 py-3 text-[13.5px] leading-relaxed">
-          {active.messages.length === 0 ? (
-            <p className="text-muted-foreground">No messages yet. Say hi.</p>
-          ) : null}
-          {active.messages.map((message) => {
-            const mine = message.authorId === meId;
-            return (
-              <article key={message.id} className={cn("flex", mine ? "justify-end" : "justify-start")}>
-                <div
-                  className={cn(
-                    "max-w-[85%] break-words rounded-lg px-3 py-2 text-[13.5px] leading-relaxed",
-                    mine
-                      ? "whitespace-pre-wrap bg-primary text-primary-foreground"
-                      : "border border-border bg-card text-foreground"
-                  )}
-                >
-                  {showNames && !mine ? (
-                    <p className={cn("mb-0.5 text-[11px] font-medium", mine ? "text-primary-foreground/80" : "text-muted-foreground")}>
-                      {message.author.name}
-                    </p>
-                  ) : null}
-                  <p className="whitespace-pre-wrap">{message.body}</p>
-                  <p className={cn("mt-1 text-[10px]", mine ? "text-primary-foreground/70" : "text-muted-foreground")}>
-                    {formatStamp(message.createdAt)}
-                  </p>
-                </div>
-              </article>
-            );
-          })}
-          {error ? (
-            <div className="rounded-md border border-danger/30 bg-danger-tint px-3 py-2 text-[12.5px] text-danger">
-              {error}
-            </div>
-          ) : null}
-        </div>
-        <form
-          onSubmit={onSubmit}
-          className={cn(
-            "border-t border-border bg-background p-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] sm:pb-2.5",
-            keyboardOpen && "pb-2.5"
-          )}
-        >
-          <div className="flex items-end gap-2">
-            <textarea
-              ref={inputRef}
-              value={input}
-              onChange={(event) => {
-                draftsRef.current[active.chat.id] = event.target.value;
-                setInput(event.target.value);
-                requestAnimationFrame(autosize);
-              }}
-              onKeyDown={onKeyDown}
-              rows={1}
-              placeholder="Message…"
-              disabled={busy}
-              className="max-h-32 flex-1 resize-none rounded-md border border-border bg-card px-3 py-2 text-base text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 sm:text-[13.5px]"
-            />
-            <button
-              type="submit"
-              disabled={busy || !input.trim()}
-              className="inline-flex h-11 items-center gap-1.5 rounded-md bg-primary px-3 text-[13px] font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50 sm:h-[38px]"
-            >
-              {busy ? "…" : "Send"}
-              {busy ? null : <Send className="h-3.5 w-3.5" />}
-            </button>
-          </div>
-        </form>
-      </div>
+      <ThreadView
+        thread={active}
+        scrollRef={scrollRef}
+        inputRef={inputRef}
+        titleRef={titleRef}
+        input={input}
+        onInput={onInput}
+        onSend={() => void send()}
+        busy={busy}
+        error={error}
+        onBack={backToInbox}
+        keyboardOpen={keyboardOpen}
+        touch={touch}
+        sheet={sheet}
+      />
     );
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="border-b border-border px-3 py-2">
-        <input
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder={inbox?.canStartDirect ? "Search chats or people…" : "Search chats…"}
-          className="h-11 w-full rounded-md border border-border bg-card px-3 py-2 text-base text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring sm:h-auto sm:py-1.5 sm:text-[13px]"
-        />
-      </div>
-      <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
-        {error ? (
-          <p className="px-2 py-2 text-[12.5px] text-danger">{error}</p>
-        ) : null}
-        {listedChats.length === 0 && startPeople.length === 0 ? (
-          <p className="px-2 py-1.5 text-[12.5px] text-muted-foreground">
-            {query
-              ? "No matching chats."
-              : inbox?.canStartDirect
-                ? "No chats yet. Search for a person to start one."
-                : "No chats yet."}
-          </p>
-        ) : (
-          <>
-            {listedChats.map((chat) => (
-              <InboxRow
-                key={chatKey(chat)}
-                title={chat.title}
-                subtitle={chat.kind === "GROUP" ? chat.subtitle : chat.preview || "Direct"}
-                unread={chat.unreadCount}
-                onClick={() => void openChat(chat)}
-              />
-            ))}
-            {startPeople.map((person) => (
-              <InboxRow
-                key={person.id}
-                title={person.name}
-                subtitle="Message"
-                unread={0}
-                onClick={() =>
-                  void openChat({
-                    id: null,
-                    kind: "DIRECT",
-                    title: person.name,
-                    subtitle: "Direct",
-                    preview: null,
-                    updatedAt: null,
-                    unreadCount: 0,
-                    peer: person
-                  })
-                }
-              />
-            ))}
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function InboxRow({
-  title,
-  subtitle,
-  unread,
-  onClick
-}: {
-  title: string;
-  subtitle: string;
-  unread: number;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex min-h-11 w-full items-center gap-2 rounded-md px-2 py-2.5 text-left hover:bg-accent sm:min-h-0 sm:py-1.5"
-    >
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-[13.5px] font-medium text-foreground">{title}</span>
-        <span className="block truncate text-[12px] text-muted-foreground">{subtitle}</span>
-      </span>
-      {unread > 0 ? (
-        <span className="grid min-w-5 shrink-0 place-items-center rounded-md bg-destructive px-1.5 py-0.5 text-[10px] font-bold text-destructive-foreground">
-          {unread > 99 ? "99+" : unread}
-        </span>
-      ) : null}
-    </button>
+    <InboxList
+      inbox={inbox}
+      error={error}
+      search={search}
+      onSearch={setSearch}
+      searchRef={searchRef}
+      listRef={listRef}
+      openingKey={openingKey}
+      onOpen={(chat) => void openChat(chat)}
+      touch={touch}
+    />
   );
 }

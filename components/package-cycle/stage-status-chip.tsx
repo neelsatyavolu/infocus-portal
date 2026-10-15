@@ -1,35 +1,19 @@
+import { StatusTag } from "@/components/kit/status-tag";
+import { toneFromStatusClass } from "@/components/kit/tone";
 import {
   CYCLE_STAGE_STATUS_CLASS,
   CYCLE_STAGE_STATUS_LABELS,
   type CycleStageStatus
 } from "@/src/lib/package-stage-status";
-import { cn } from "@/src/lib/utils";
 
-export function StageStatusChip({
-  status,
-  size = "md",
-  label
-}: {
-  status: CycleStageStatus;
-  size?: "sm" | "md" | "lg";
-  label?: string;
-}) {
-  const showDot = status === "approved" || status === "queued";
+/** A package stage's status as a tag (APPROVED, REVISIONS, STAGE 2…). Status is never button-sized. */
+export function StageStatusChip({ status, label }: { status: CycleStageStatus; label?: string }) {
   return (
-    <span
-      className={cn(
-        "status-pill",
-        size === "sm" && "status-pill-sm",
-        size === "lg" && "status-pill-lg max-sm:whitespace-normal!",
-        CYCLE_STAGE_STATUS_CLASS[status]
-      )}
+    <StatusTag
+      tone={toneFromStatusClass(CYCLE_STAGE_STATUS_CLASS[status])}
+      dot={status === "approved" || status === "queued"}
     >
-      {showDot ? (
-        <span
-          className={cn("shrink-0 rounded-full bg-current", size === "lg" ? "h-2 w-2" : "h-1.5 w-1.5")}
-        />
-      ) : null}
       {label ?? CYCLE_STAGE_STATUS_LABELS[status]}
-    </span>
+    </StatusTag>
   );
 }

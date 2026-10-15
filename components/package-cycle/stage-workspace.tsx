@@ -1,122 +1,102 @@
 "use client";
 
-import { cachedValue, rememberValue } from "@/src/lib/client-cache";
-import { useCallback, useEffect, useRef, useState } from "react";
-import Image from "next/image";
+import { useCallback, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { ArrowRight, Loader2, MessageSquare, Play, RefreshCcw, Upload } from "lucide-react";
-import { toast } from "sonner";
-import { PageHeader } from "@/components/page-header";
+import { ArrowRight, Upload } from "lucide-react";
+import { Alert } from "@/components/kit/alert";
+import { Dropzone } from "@/components/kit/dropzone";
+import { EmptyState } from "@/components/kit/empty-state";
+import { cycleLabel } from "@/components/kit/format";
+import { Panel, PanelLink } from "@/components/kit/panel";
+import { Spinner } from "@/components/kit/spinner";
+import { StatusTag } from "@/components/kit/status-tag";
+import { FinalCutHeadlineDialog } from "@/components/package-cycle/final-cut-headline-dialog";
+import { finalCutPrimaryAction, FinalCutProducerView } from "@/components/package-cycle/final-cut-producer-view";
+import { FinalCutShowCard } from "@/components/package-cycle/final-cut-show-card";
+import { PackageOfCycleBanner } from "@/components/package-cycle/package-of-cycle-card";
+import ProducerFeedbackDialog from "@/components/package-cycle/producer-feedback-dialog";
+import { A_ROLL_COMPOSER_HINT, A_ROLL_COMPOSER_LABEL, StageComments } from "@/components/package-cycle/stage-comments";
+import { StageStatusChip } from "@/components/package-cycle/stage-status-chip";
+import { ClipGrid, WatchClipDialog } from "@/components/package-stages/clip-grid";
+import { CutVersions } from "@/components/package-stages/cut-versions";
+import { FinalCutVideo } from "@/components/package-stages/final-cut-video";
+import { RollKindDialog } from "@/components/package-stages/roll-kind-dialog";
+import { useStageDecisions, type DecisionAction } from "@/components/package-stages/stage-decision-actions";
+import { DecisionBar, StudentStageHeader } from "@/components/package-stages/stage-header";
+import { StageMessage } from "@/components/package-stages/stage-messages";
+import { StageWorkspaceSkeleton } from "@/components/package-stages/stage-states";
+import {
+  approvalPathSteps,
+  initialCutProgressLabel,
+  producerProgressLine,
+  stageStatusFor,
+  stageStatusLabel,
+  studentNextStep
+} from "@/components/package-stages/stage-status";
+import { personLabel, STAGE_TITLES, type StageMediaCard, type StageView } from "@/components/package-stages/types";
+import { useFinalCutSaves } from "@/components/package-stages/use-final-cut-saves";
+import { useStageUpload } from "@/components/package-stages/use-stage-upload";
+import { useStageView } from "@/components/package-stages/use-stage-view";
+import { WhereItStands } from "@/components/package-stages/where-it-stands";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import type { FinalCutGradeCardData, FinalCutScoreInput } from "@/components/package-cycle/final-cut-grade-card";
-import { FinalCutHeadlineDialog } from "@/components/package-cycle/final-cut-headline-dialog";
-import { FinalCutProducerView } from "@/components/package-cycle/final-cut-producer-view";
-import { FinalCutShowCard } from "@/components/package-cycle/final-cut-show-card";
-import {
-  PackageOfCycleBanner,
-  type PackageOfCyclePanelData
-} from "@/components/package-cycle/package-of-cycle-card";
-import { ApproveFeedbackDialog } from "@/components/package-cycle/approve-feedback-dialog";
-import ProducerFeedbackDialog from "@/components/package-cycle/producer-feedback-dialog";
-import { StageComments } from "@/components/package-cycle/stage-comments";
-import { StageStatusChip } from "@/components/package-cycle/stage-status-chip";
-import { UploadProgressToast, type UploadProgressToastItem } from "@/components/upload-progress-toast";
-import { uploadFileToNas } from "@/src/lib/nas-upload-client";
-import { holdUploadWakeLock } from "@/src/lib/upload-wake-lock";
-import { createUploadSpeedTracker } from "@/src/lib/upload-speed";
-import { useFileDrop } from "@/src/lib/use-file-drop";
-import {
-  APPROVE_ANYWAY_CONFIRM,
-  approvalProgressLabel,
-  approvalStagePillLabel,
-  executiveWaitLabel
-} from "@/src/lib/package-approval";
-import {
-  approvalStageToReviewStage,
-  cutTileReviewStatus,
-  groupTileStatusClass
-} from "@/src/lib/group-tile-status";
-import { STAGE_FEEDBACK_READ_EVENT } from "@/src/lib/package-stage-comments";
+import { UploadProgressToast } from "@/components/upload-progress-toast";
+import { approvalStageToReviewStage } from "@/src/lib/group-tile-status";
 import type { CycleStageSlug } from "@/src/lib/package-cycle-gates";
-import { initialCutVersionTitle } from "@/src/lib/package-cut-transitions";
-import { cycleStageStatus, type CycleStageStatus } from "@/src/lib/package-stage-status";
-import { rollKindLabel, rollUploadSizeError, type RollKind } from "@/src/lib/package-roll-kind";
+import { PRODUCER_FEEDBACK_ENABLED } from "@/src/lib/producer-feedback";
 import { cn } from "@/src/lib/utils";
 
-type MediaCard = {
-  id: string;
-  title: string;
-  rollKind: RollKind | null;
-  projectId: string | null;
-  versionId: string | null;
-  versionNumber: number;
-  status: string;
-  approvalStatus?: string;
-  approvedInStage?: 1 | 2 | 3 | null;
-  thumbnailUrl: string | null;
-  playbackUrl: string | null;
-  commentCount: number;
-  isNew?: boolean;
-};
-
-type FinalCutGradePanel = FinalCutGradeCardData;
-
-type StageView = {
-  empty: boolean;
-  slug: CycleStageSlug;
-  isProducer: boolean;
-  unlocked?: boolean;
-  canUpload?: boolean;
-  allowSecondFinalCut?: boolean;
-  canComment?: boolean;
-  canApproveAroll?: boolean;
-  cutApproval?: { canAct: boolean; canUnapprove: boolean; canApproveAnyway?: boolean; stage: string } | null;
-  canGradeFinalCut?: boolean;
-  finalCutGrade?: FinalCutGradePanel | null;
-  packageOfCycle?: PackageOfCyclePanelData | null;
-  canEditToss?: boolean;
-  row?: {
-    id: string;
-    cycleNumber: number;
-    groupTopic: string;
-    headline?: string | null;
-    toss?: string;
-    packageOfCycleAt?: string | null;
-    finalCut?: boolean;
-    proofOfContact: boolean;
-    aRollBRoll: boolean;
-    aRollNeedsChanges?: boolean;
-    initialCut: boolean;
-    awaitingRevisedInitialCut: boolean;
-    initialCutNeedsRevisions?: boolean;
-    queuedForAirAt: string | null;
-    approvalStage: string;
-    remainingExecutiveSignoffs?: number;
-    members: Array<{ userId: string; name: string | null; email: string | null }>;
-  };
-  media?: MediaCard[];
-};
-
-const TITLES: Record<CycleStageSlug, string> = {
-  "a-roll": "A-roll/B-roll",
-  "initial-cut": "Initial Cut",
-  "final-cut": "Final Cut"
-};
-
-async function fetchView(slug: CycleStageSlug, rowId?: string, reviewStage?: 1 | 2 | 3) {
-  const query = new URLSearchParams({ stage: slug });
-  if (rowId) query.set("rowId", rowId);
-  if (reviewStage) query.set("reviewStage", String(reviewStage));
-  const response = await fetch(`/api/package-cycle/stage?${query}`, { cache: "no-store" });
-  const body = (await response.json()) as { data?: StageView; error?: { message?: string } };
-  if (!response.ok || !body.data) {
-    throw new Error(body.error?.message ?? "Failed to load stage.");
-  }
-  return body.data;
+function uploadLabel(slug: CycleStageSlug, view: StageView) {
+  if (slug === "a-roll") return "Upload videos";
+  if (slug === "initial-cut") return (view.media ?? []).length > 0 ? "Upload new version" : "Upload Initial Cut";
+  return view.allowSecondFinalCut ? "Upload revised Final Cut" : "Upload Final Cut";
 }
 
+/** The upload rule for a stage (students read it in Where it stands; Groups in the media hint). */
+function uploadRule(slug: CycleStageSlug, hasMedia: boolean) {
+  if (slug === "a-roll") return "Pick A-roll or B-roll, then one or more clips. Up to 30 GB per A-roll file, 15 GB per B-roll file.";
+  if (slug === "initial-cut" && hasMedia) return "Each upload is a new version of the same Initial Cut.";
+  return null;
+}
+
+function dropHint(slug: CycleStageSlug, hasMedia: boolean, withRule: boolean) {
+  const hint = slug === "a-roll" ? "Drag clips here to upload." : "Drag a video here to upload.";
+  const rule = withRule ? uploadRule(slug, hasMedia) : null;
+  return rule ? `${rule} ${hint}` : hint;
+}
+
+function finalCutRule(allowSecondFinalCut: boolean | undefined) {
+  return allowSecondFinalCut
+    ? "Second revision: you can replace this Final Cut. The quality score is capped at 75%. Late turn-in is a separate 20%/30% penalty."
+    : "You can only upload Final Cut once unless the first grade is below 75%.";
+}
+
+function emptyMediaTitle(slug: CycleStageSlug, reviewStage: 1 | 2 | 3 | undefined) {
+  if (reviewStage === 2) return "No Stage 2 cut yet. Approve Stage 1 first.";
+  if (reviewStage === 3) return "No Stage 3 cut yet. Approve Stage 2 first.";
+  return slug === "final-cut" ? "No Final Cut uploaded yet." : "No videos uploaded yet.";
+}
+
+/** One 40px row on phones: each header action carries it (PageHeader holds children to h-9). */
+const TOUCH = "max-sm:h-10";
+
+/**
+ * One package stage (A-roll/B-roll, Initial Cut or Final Cut), shared by the student pages
+ * (/a-roll, /initial-cut, /final-cut) and Groups → group → stage (`rowId`, `producerChrome`,
+ * `embedded`, and `reviewStage` for the Initial 1/2/3 tabs).
+ * - Students: header plate ("Cycle 03 · <stage>" with the status tag, the topic as title, the
+ *   group and producer, Refresh, one primary: Upload, or Go to Final Cut once the Initial Cut is
+ *   approved), callouts, then the media panel (also the drop target) beside the rail from xl:
+ *   Where it stands (next step, Initial Cut approval path, upload rule), what airs, feedback.
+ *   Below xl it is one column: Where it stands, feedback when it has notes, media, what airs,
+ *   then an empty (or still loading) feedback panel, so nothing jumps when the thread loads.
+ * - Producers: a decision bar under the group's tabs (progress, decisions; only when there is
+ *   something to read or decide, since the stage bar above names the status), the media
+ *   panel beside feedback with a composer, and on Final Cut what airs, Package of the Cycle and
+ *   grading. GroupStageShell draws the Initial Cut approval path, so it is skipped here.
+ * Every reload after the first is quiet, so saves never swap the page for a spinner; each one
+ * also re-fetches the feedback thread (as the old full reload did by remounting it).
+ */
 export function StageWorkspace({
   slug,
   rowId,
@@ -130,958 +110,362 @@ export function StageWorkspace({
   embedded?: boolean;
   reviewStage?: 1 | 2 | 3;
 }) {
-  const [view, setView] = useState<StageView | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
-  const [uploadItems, setUploadItems] = useState<UploadProgressToastItem[]>([]);
-  const [gradePreview, setGradePreview] = useState<string | null>(null);
-  const [savingFeedback, setSavingFeedback] = useState(false);
-  const [publishingGrades, setPublishingGrades] = useState(false);
-  const [pickRollOpen, setPickRollOpen] = useState(false);
-  const [headlineOpen, setHeadlineOpen] = useState(false);
-  const [tossOpen, setTossOpen] = useState(false);
-  const [savingToss, setSavingToss] = useState(false);
-  const [approveKind, setApproveKind] = useState<"aroll" | "cut" | null>(null);
-  const [approving, setApproving] = useState(false);
-  const [watching, setWatching] = useState<MediaCard | null>(null);
-  const [showOlderCuts, setShowOlderCuts] = useState(false);
-  // Files dropped on the upload card, held while the A-roll/B-roll or headline dialog is open.
-  const [droppedFiles, setDroppedFiles] = useState<File[] | null>(null);
-  // Final Cut file waiting on the "you can't replace it" confirm.
-  const [finalCutConfirmFiles, setFinalCutConfirmFiles] = useState<File[] | null>(null);
-  const [approveAnywayOpen, setApproveAnywayOpen] = useState(false);
-  const fileInput = useRef<HTMLInputElement | null>(null);
-  const pendingRollKind = useRef<RollKind | null>(null);
-  const pendingHeadline = useRef("");
-  const pendingToss = useRef("");
-  const speedTrackingRef = useRef(createUploadSpeedTracker());
-  const progressFloorRef = useRef(0);
+  const { view, loading, refreshing, error, reload } = useStageView(slug, rowId, reviewStage);
+  // Bumped on every page reload so the feedback panel fetches its thread again too.
+  const [feedbackSignal, setFeedbackSignal] = useState(0);
+  const reloadAll = useCallback(() => {
+    setFeedbackSignal((signal) => signal + 1);
+    return reload();
+  }, [reload]);
+  const upload = useStageUpload({ slug, view, reload: reloadAll });
+  const saves = useFinalCutSaves({ rowId: view?.row?.id ?? null, reload: reloadAll });
+  const [watching, setWatching] = useState<StageMediaCard | null>(null);
 
-  function patchUploadItem(id: string, patch: Partial<UploadProgressToastItem>) {
-    setUploadItems((current) => current.map((item) => (item.id === id ? { ...item, ...patch } : item)));
-  }
-
-  const load = useCallback(async (options?: { quiet?: boolean; cached?: boolean }) => {
-    const cacheKey = `stage-view:${slug}:${rowId ?? ""}:${reviewStage ?? ""}`;
-    // On first view, show the last copy at once and refresh it quietly (src/lib/client-cache.ts).
-    // Reloads after a save skip it so the pre-save copy never flashes back.
-    const cached = options?.cached ? cachedValue<StageView>(cacheKey) : undefined;
-    const quiet = options?.quiet || cached !== undefined;
-    if (cached) setView(cached);
-    if (!quiet) setLoading(true);
-    else setLoading(false);
-    try {
-      const next = await fetchView(slug, rowId, reviewStage);
-      rememberValue(cacheKey, next);
-      setView(next);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to load.");
-    } finally {
-      if (!quiet) setLoading(false);
-    }
-  }, [slug, rowId, reviewStage]);
-
-  useEffect(() => {
-    void load({ cached: true });
-  }, [load]);
-
-  async function uploadOne(file: File, itemId: string) {
-    if (slug === "a-roll" && pendingRollKind.current) {
-      const sizeError = rollUploadSizeError(pendingRollKind.current, file.size);
-      if (sizeError) throw new Error(sizeError);
-    }
-    if (!view?.row) {
-      throw new Error("No package group.");
-    }
-    patchUploadItem(itemId, { status: "PREPARING", progress: 0, speedBytesPerSecond: 0, etaSeconds: null, error: undefined });
-    speedTrackingRef.current.reset(performance.now());
-    progressFloorRef.current = 0;
-    const init = await fetch("/api/package-cycle/upload", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      keepalive: true,
-      body: JSON.stringify({
-        action: "init",
-        rowId: view.row.id,
-        stage: slug,
-        title:
-          slug === "initial-cut"
-            ? initialCutVersionTitle(((view.media ?? [])[0]?.versionNumber ?? 0) + 1)
-            : slug === "final-cut"
-              ? pendingHeadline.current
-              : file.name.replace(/\.[^/.]+$/, "") || TITLES[slug],
-        fileName: file.name,
-        rollKind: pendingRollKind.current ?? undefined,
-        toss: slug === "final-cut" ? pendingToss.current : undefined
+  const media = view?.media ?? [];
+  const row = view?.row;
+  const grade = view?.finalCutGrade ?? null;
+  const finalCutProducer = producerChrome && slug === "final-cut";
+  const primaryAction = finalCutProducer
+    ? finalCutPrimaryAction({
+        canGrade: Boolean(grade?.canGrade),
+        canSaveScores: Boolean(grade?.canGrade && grade.members.some((member) => !member.locked)),
+        hasFinalCut: media.length > 0,
+        queued: Boolean(row?.queuedForAirAt),
+        gradesReadyToPublish: Boolean(grade && grade.complete && !grade.published)
       })
-    });
-    const initBody = (await init.json()) as {
-      data?: { mediaId: string; versionId: string; upload: Parameters<typeof uploadFileToNas>[1] };
-      error?: { message?: string };
-    };
-    if (!init.ok || !initBody.data) {
-      throw new Error(initBody.error?.message ?? "Could not start upload.");
-    }
-    patchUploadItem(itemId, { status: "UPLOADING" });
-    await uploadFileToNas(file, initBody.data.upload, (bytesUploaded, bytesTotal) => {
-      if (!bytesTotal) return;
-      const { speedBytesPerSecond, etaSeconds } = speedTrackingRef.current.sample(
-        bytesUploaded,
-        bytesTotal,
-        performance.now()
-      );
-      const progress = Math.max(progressFloorRef.current, (bytesUploaded / bytesTotal) * 100);
-      progressFloorRef.current = progress;
-      patchUploadItem(itemId, {
-        status: "UPLOADING",
-        progress,
-        speedBytesPerSecond,
-        etaSeconds
-      });
-    });
-    const complete = await fetch("/api/package-cycle/upload", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      keepalive: true,
-      body: JSON.stringify({
-        action: "complete",
-        rowId: view.row.id,
-        stage: slug,
-        mediaId: initBody.data.mediaId,
-        versionId: initBody.data.versionId,
-        toss: slug === "final-cut" ? pendingToss.current : undefined
-      })
-    });
-    if (!complete.ok) {
-      const body = (await complete.json()) as { error?: { message?: string } };
-      throw new Error(body.error?.message ?? "Could not finish upload.");
-    }
-    const { uploadNasPosterBestEffort } = await import("@/src/lib/video-thumbnail-client");
-    void uploadNasPosterBestEffort(file, initBody.data.mediaId, initBody.data.versionId);
-    patchUploadItem(itemId, { status: "DONE", progress: 100, speedBytesPerSecond: 0, etaSeconds: null });
-  }
-
-  async function uploadFiles(files: File[]) {
-    if (!view?.row || files.length === 0) return;
-    const items: UploadProgressToastItem[] = files.map((file, index) => ({
-      id: `${file.name}-${file.size}-${index}`,
-      fileName: file.name,
-      status: "QUEUED",
-      progress: 0
-    }));
-    setUploadItems(items);
-    setUploading(true);
-    let succeeded = 0;
-    const failures: string[] = [];
-    const releaseWakeLock = await holdUploadWakeLock();
-    try {
-      for (const [index, file] of files.entries()) {
-        const itemId = items[index].id;
-        try {
-          await uploadOne(file, itemId);
-          succeeded += 1;
-        } catch (error) {
-          const message = error instanceof Error ? error.message : "Upload failed.";
-          failures.push(`${file.name}: ${message}`);
-          patchUploadItem(itemId, { status: "FAILED", error: message });
-        }
-      }
-      if (failures.length === 0) {
-        toast.success(succeeded === 1 ? "Uploaded." : `Uploaded ${succeeded} videos.`);
-        setUploadItems([]);
-      } else if (succeeded === 0) {
-        toast.error(failures[0] ?? "Upload failed.");
-      } else {
-        toast.error(`${succeeded} uploaded, ${failures.length} failed. ${failures[0]}`);
-      }
-      await load();
-      window.dispatchEvent(new Event(STAGE_FEEDBACK_READ_EVENT));
-    } finally {
-      releaseWakeLock();
-      setUploading(false);
-    }
-  }
-
-  function startUpload(files: File[]) {
-    if (files.length === 0) return;
-    if (slug === "final-cut" && !view?.allowSecondFinalCut) {
-      setFinalCutConfirmFiles(files.slice(0, 1));
-      return;
-    }
-    void uploadFiles(slug === "a-roll" ? files : files.slice(0, 1));
-  }
-
-  /** Uploads files dropped before a dialog opened; returns false when the file picker should open instead. */
-  function uploadDroppedFiles() {
-    if (!droppedFiles) return false;
-    setDroppedFiles(null);
-    startUpload(droppedFiles);
-    return true;
-  }
-
-  const fileDrop = useFileDrop({
-    accept: "video/*",
-    disabled: uploading || !view?.canUpload,
-    onDrop: ({ accepted, rejected }) => {
-      if (accepted.length === 0) {
-        toast.error("Only video files can be uploaded here.");
-        return;
-      }
-      if (slug !== "a-roll" && accepted.length > 1) {
-        toast.error("Drop one video at a time.");
-        return;
-      }
-      if (rejected.length > 0) {
-        toast.error(`Skipped ${rejected.length} file${rejected.length === 1 ? " that isn't a video" : "s that aren't videos"}.`);
-      }
-      if (slug === "a-roll") {
-        setDroppedFiles(accepted);
-        setPickRollOpen(true);
-        return;
-      }
-      if (slug === "final-cut") {
-        setDroppedFiles(accepted);
-        setHeadlineOpen(true);
-        return;
-      }
-      pendingRollKind.current = null;
-      startUpload(accepted);
-    }
+    : null;
+  const decisions = useStageDecisions({
+    slug,
+    view,
+    reviewStage,
+    enabled: producerChrome,
+    queuePrimary: primaryAction === "queue",
+    reload: reloadAll
   });
 
-  async function approveAroll(approved: boolean, feedback?: string) {
-    if (!view?.row) return;
-    setApproving(true);
-    try {
-      const response = await fetch("/api/package-cycle/stage", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          kind: "approve-aroll",
-          rowId: view.row.id,
-          approved,
-          feedback: approved ? feedback : undefined
-        })
-      });
-      if (!response.ok) {
-        toast.error("Could not update A-roll/B-roll.");
-        return;
-      }
-      setApproveKind(null);
-      toast.success(approved ? "A-roll/B-roll approved." : "A-roll/B-roll unmarked.");
-      await load({ quiet: true });
-    } finally {
-      setApproving(false);
-    }
-  }
-
-  async function approveCut(approved: boolean, feedback?: string, unapprove = false) {
-    if (!view?.row) return;
-    setApproving(true);
-    try {
-      const response = await fetch(`/api/package-progress/${view.row.id}/approval`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: unapprove ? "UNAPPROVE" : approved ? "DECIDE" : "SUBMIT_REVIEW",
-          approved,
-          note: approved ? feedback : undefined
-        })
-      });
-      if (!response.ok) {
-        toast.error("Could not update the review.");
-        return;
-      }
-      setApproveKind(null);
-      toast.success(unapprove ? "Approval withdrawn." : approved ? "Approval recorded." : "Review submitted — needs revisions.");
-      await load({ quiet: true });
-    } finally {
-      setApproving(false);
-    }
-  }
-
-  async function approveCutAnyway() {
-    if (!view?.row) return;
-    setApproving(true);
-    try {
-      const response = await fetch(`/api/package-progress/${view.row.id}/approval`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "APPROVE_ANYWAY" })
-      });
-      if (!response.ok) {
-        toast.error("Could not send the package to Stage 2.");
-        return;
-      }
-      toast.success("Sent to Stage 2.");
-      await load({ quiet: true });
-    } finally {
-      setApproving(false);
-    }
-  }
-
-  async function saveGrade(scores: FinalCutScoreInput[]) {
-    if (!view?.row) return;
-    const response = await fetch("/api/package-cycle/grade", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ rowId: view.row.id, scores })
-    });
-    const body = (await response.json()) as {
-      data?: { savedCount: number; gradedCount: number; complete: boolean };
-      error?: { message?: string };
-    };
-    if (!response.ok || !body.data) {
-      toast.error(body.error?.message ?? "Could not save scores.");
-      return;
-    }
-    if (body.data.savedCount === 0) {
-      toast.error("Nothing saved. Those members keep their earlier grade.");
-      await load();
-      return;
-    }
-    setGradePreview(
-      body.data.complete
-        ? "Saved. Every member has an official grade."
-        : body.data.gradedCount > 0
-          ? `Saved. ${body.data.gradedCount} member${body.data.gradedCount === 1 ? "" : "s"} now have an official grade.`
-          : "Saved. Waiting on other executive producers."
-    );
-    toast.success("Scores saved.");
-    await load();
-  }
-
-  async function saveToss(toss: string) {
-    if (!view?.row) return;
-    setSavingToss(true);
-    try {
-      const response = await fetch("/api/package-cycle/toss", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rowId: view.row.id, toss })
-      });
-      const body = (await response.json().catch(() => ({}))) as { error?: { message?: string } };
-      if (!response.ok) {
-        toast.error(body.error?.message ?? "Could not save the toss.");
-        return;
-      }
-      setTossOpen(false);
-      toast.success("Toss saved.");
-      await load({ quiet: true });
-    } finally {
-      setSavingToss(false);
-    }
-  }
-
-  async function queue(queued: boolean) {
-    if (!view?.row) return;
-    const response = await fetch("/api/package-cycle/queue", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ rowId: view.row.id, queued })
-    });
-    const payload = (await response.json()) as { error?: { message?: string } };
-    if (!response.ok) {
-      toast.error(payload.error?.message ?? "Could not update the publishing queue.");
-      return;
-    }
-    toast.success(queued ? "Sent to publishing queue." : "Removed from queue.");
-    // Quiet reload keeps any scores an executive producer has typed but not saved.
-    await load({ quiet: true });
-  }
-
-  async function saveCycleFeedback(feedback: string) {
-    if (!view?.row) return;
-    setSavingFeedback(true);
-    try {
-      const response = await fetch("/api/package-cycle/grade/feedback", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rowId: view.row.id, feedback })
-      });
-      const body = (await response.json()) as { error?: { message?: string } };
-      if (!response.ok) {
-        toast.error(body.error?.message ?? "Could not save feedback.");
-        return;
-      }
-      toast.success("Cycle grade feedback saved.");
-      await load();
-    } finally {
-      setSavingFeedback(false);
-    }
-  }
-
-  async function publishCycleGrades(feedback: string) {
-    if (!view?.row) return;
-    setPublishingGrades(true);
-    try {
-      const response = await fetch("/api/package-cycle/grade/publish", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rowId: view.row.id, feedback })
-      });
-      const body = (await response.json()) as { error?: { message?: string } };
-      if (!response.ok) {
-        toast.error(body.error?.message ?? "Could not publish grades.");
-        return;
-      }
-      toast.success("Grades published. Students can see them on Grades.");
-      await load();
-    } finally {
-      setPublishingGrades(false);
-    }
-  }
-
+  const title = STAGE_TITLES[slug];
   if (loading) {
+    return <StageWorkspaceSkeleton slug={slug} embedded={embedded} className={embedded ? undefined : "route-enter"} />;
+  }
+  if (!view || view.empty || !row || (!view.unlocked && !view.isProducer)) {
     return (
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" />
-        Loading…
+      <StageMessage
+        kind={!view ? "error" : view.empty || !row ? "empty" : "locked"}
+        slug={slug}
+        title={title}
+        embedded={embedded}
+        producerChrome={producerChrome}
+        cycleNumber={row?.cycleNumber}
+        error={error}
+        topic={row?.groupTopic}
+        refreshing={refreshing}
+        onRetry={() => void reloadAll()}
+      />
+    );
+  }
+
+  const remainingExecs = row.remainingExecutiveSignoffs;
+  const effectiveReviewStage = reviewStage ?? approvalStageToReviewStage(row.approvalStage);
+  const progressLabel = initialCutProgressLabel(view);
+  const stageStatus = stageStatusFor(slug, view);
+  const statusTag = stageStatus ? (
+    <StageStatusChip status={stageStatus} label={stageStatusLabel(stageStatus, remainingExecs)} />
+  ) : null;
+  const canUpload = Boolean(view.canUpload);
+  const label = uploadLabel(slug, view);
+  const uploadButton = canUpload ? (
+    <Button
+      type="button"
+      variant={embedded ? "outline" : "default"}
+      disabled={upload.uploading}
+      onClick={upload.openUpload}
+      className={TOUCH}
+    >
+      {upload.uploading ? <Spinner /> : <Upload aria-hidden />}
+      {upload.uploading ? "Uploading…" : label}
+    </Button>
+  ) : null;
+
+  const studentPage = !(embedded || producerChrome);
+
+  let mediaBody: ReactNode;
+  if (media.length === 0) {
+    mediaBody = (
+      <EmptyState
+        icon={Upload}
+        title={emptyMediaTitle(slug, reviewStage)}
+        description={
+          canUpload ? `Drag ${slug === "a-roll" ? "clips" : "a video"} here or use ${label} above.` : undefined
+        }
+        className="py-6"
+      />
+    );
+  } else if (slug === "a-roll") {
+    mediaBody = <ClipGrid media={media} showNew={view.isProducer} wide={embedded} onWatch={setWatching} />;
+  } else if (slug === "initial-cut") {
+    mediaBody = (
+      <CutVersions media={media} reviewStage={effectiveReviewStage} remainingExecutiveSignoffs={remainingExecs} />
+    );
+  } else {
+    mediaBody = (
+      <FinalCutVideo media={media} reviewStage={effectiveReviewStage} remainingExecutiveSignoffs={remainingExecs} />
+    );
+  }
+
+  const mediaPanel = (
+    <Dropzone bind={upload.fileDrop.bind} dragging={upload.fileDrop.dragging} disabled={!canUpload || upload.uploading}>
+      <Panel
+        titleAs="h2"
+        title={
+          slug === "a-roll"
+            ? "Footage"
+            : slug === "initial-cut"
+              ? "Versions"
+              : producerChrome
+                ? "Final Cut"
+                : "Your Final Cut"
+        }
+        count={media.length > 0 ? media.length : null}
+        description={canUpload && !upload.uploading ? dropHint(slug, media.length > 0, !studentPage) : undefined}
+        padding="md"
+      >
+        {mediaBody}
+      </Panel>
+    </Dropzone>
+  );
+
+  const feedbackPanel = (
+    <StageComments
+      key={`${row.id}:${slug}`}
+      variant="panel"
+      rowId={row.id}
+      stage={slug}
+      canWrite={Boolean(view.canComment)}
+      onPosted={slug === "a-roll" ? () => void reload() : undefined}
+      composerLabel={slug === "a-roll" ? A_ROLL_COMPOSER_LABEL : "Add feedback"}
+      composerHint={slug === "a-roll" ? A_ROLL_COMPOSER_HINT : undefined}
+      highlightNew={!view.isProducer}
+      refreshSignal={feedbackSignal}
+      // The student rail scrolls as one. Below xl, feedback with notes goes right after Where it
+      // stands; while loading or empty it waits at the end, so the media never jumps.
+      scrollNotes={!studentPage}
+      className={studentPage ? "max-xl:order-2" : undefined}
+      emptyClassName={studentPage ? "max-xl:order-5" : undefined}
+    />
+  );
+
+  const callouts: ReactNode[] = [];
+  if (slug === "final-cut" && !producerChrome && row.packageOfCycleAt) {
+    callouts.push(<PackageOfCycleBanner key="potc" rowId={row.id} />);
+  }
+  // Students read the Final Cut rule in Where it stands; on Groups it stays a callout.
+  if (slug === "final-cut" && canUpload && !studentPage) {
+    callouts.push(
+      <Alert key="rule" tone="warning">
+        {finalCutRule(view.allowSecondFinalCut)}
+      </Alert>
+    );
+  }
+
+  const dialogs = (
+    <>
+      {canUpload ? <input {...upload.fileInputProps} /> : null}
+      <RollKindDialog {...upload.rollDialog} />
+      <FinalCutHeadlineDialog
+        {...upload.headlineDialog}
+        initialHeadline={row.headline ?? ""}
+        initialToss={row.toss ?? ""}
+      />
+      <FinalCutHeadlineDialog
+        open={saves.tossOpen}
+        mode="toss"
+        initialHeadline=""
+        initialToss={row.toss ?? ""}
+        saving={saves.savingToss}
+        onOpenChange={saves.setTossOpen}
+        onContinue={({ toss }) => void saves.saveToss(toss)}
+      />
+      <WatchClipDialog
+        clip={watching}
+        rowId={row.id}
+        canComment={Boolean(view.canComment)}
+        onClose={() => {
+          setWatching(null);
+          void reloadAll();
+        }}
+        onPosted={() => void reload()}
+      />
+      <ConfirmDialog
+        open={upload.finalCutConfirm.open}
+        onOpenChange={upload.finalCutConfirm.onOpenChange}
+        title="Upload this Final Cut?"
+        description={`Headline: "${upload.finalCutConfirm.headline}". You cannot replace it later unless the first grade is below 75%.`}
+        confirmLabel="Upload Final Cut"
+        cancelLabel="Not yet"
+        tone="default"
+        onConfirm={upload.finalCutConfirm.onConfirm}
+      />
+      {decisions.dialogs}
+      <UploadProgressToast items={upload.uploadItems} />
+    </>
+  );
+
+  if (embedded || producerChrome) {
+    const currentReview = approvalStageToReviewStage(row.approvalStage);
+    const otherStageNote =
+      slug === "initial-cut" && reviewStage && currentReview && reviewStage !== currentReview && rowId ? (
+        row.approvalStage === "APPROVED" ? (
+          <>
+            <span>Approved for Final Cut.</span>
+            <PanelLink href={`/groups/${rowId}/final-cut`}>Go to Final</PanelLink>
+          </>
+        ) : (
+          <>
+            <span>This package is in Stage {currentReview}.</span>
+            <PanelLink href={`/groups/${rowId}/initial-stage-${currentReview}`}>
+              Go to Initial {currentReview}
+            </PanelLink>
+          </>
+        )
+      ) : null;
+    const newClips = slug === "a-roll" && view.isProducer ? media.filter((item) => item.isNew).length : 0;
+    const actions: DecisionAction[] = uploadButton
+      ? [...decisions.actions, { key: "upload", node: uploadButton }]
+      : decisions.actions;
+    // GroupStageShell's open stage cell names the status, except Locked (that cell only dims) and
+    // A/B-roll (that cell only knows Approved or Locked), so the bar tags those and the new-clips count.
+    const locked = stageStatus === "locked";
+    const tagHere = locked || slug === "a-roll";
+    const barStatus =
+      tagHere || newClips > 0 ? (
+        <>
+          {tagHere ? statusTag : null}
+          {newClips > 0 ? <StatusTag tone="success">{`${newClips} new since your request`}</StatusTag> : null}
+        </>
+      ) : null;
+    // On an Initial tab that is not the package's current stage, the note (with its link) replaces
+    // the current stage's progress line, which the approval path above already shows.
+    const progress = otherStageNote ? null : producerProgressLine(slug, stageStatus, view, progressLabel);
+    // Only when there is something to read or decide: no bar repeating the stage bar's status.
+    const showDecisionBar = actions.length > 0 || Boolean(otherStageNote || barStatus || progress);
+
+    return (
+      // A flex column so the decision bar's phone-dock spacer (its aria-hidden child) moves to the
+      // end: the docked buttons then never cover the feedback composer, and no gap opens under the bar.
+      <div className="flex min-w-0 flex-col gap-5 [&>[aria-hidden]]:order-last">
+        {showDecisionBar ? (
+          <DecisionBar
+            heading={`${title}${reviewStage ? ` · Stage ${reviewStage}` : ""}`}
+            status={barStatus}
+            progress={progress}
+            note={otherStageNote}
+            actions={actions}
+          />
+        ) : null}
+        {callouts}
+        {finalCutProducer ? (
+          <FinalCutProducerView
+            rowId={row.id}
+            media={mediaPanel}
+            feedback={feedbackPanel}
+            hasFinalCut={media.length > 0}
+            headline={row.headline ?? null}
+            toss={row.toss ?? ""}
+            canEditToss={Boolean(view.canEditToss)}
+            onEditToss={() => saves.setTossOpen(true)}
+            packageOfCycle={view.packageOfCycle ?? null}
+            members={row.members}
+            onReload={() => void reloadAll()}
+            grade={grade}
+            onSaveGrade={saves.saveGrade}
+            gradeMessage={saves.gradePreview}
+            savingFeedback={saves.savingFeedback}
+            publishingGrades={saves.publishingGrades}
+            onSaveFeedback={(next) => void saves.saveCycleFeedback(next)}
+            onPublishGrades={(next) => void saves.publishCycleGrades(next)}
+            primaryAction={primaryAction}
+          />
+        ) : (
+          <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_24rem]">
+            <div className="min-w-0">{mediaPanel}</div>
+            <div className="min-w-0 space-y-5">{feedbackPanel}</div>
+          </div>
+        )}
+        {dialogs}
       </div>
     );
   }
 
-  if (!view || view.empty) {
-    return <div className="space-y-4">
-      {!producerChrome && <div className="flex justify-end gap-2"><Button type="button" size="sm" variant="outline" onClick={() => void load()}><RefreshCcw className="mr-1.5 h-3.5 w-3.5" />Refresh</Button><ProducerFeedbackDialog /></div>}
-      <p className="text-sm text-muted-foreground">You are not on a package group this cycle.</p>
-    </div>;
-  }
-
-  if (!view.unlocked && !view.isProducer) {
-    return <p className="text-sm text-muted-foreground">This stage is locked until the previous one is approved.</p>;
-  }
-
-  const confirmFinal = slug === "final-cut";
-  const finalCutProducer = producerChrome && slug === "final-cut";
-  const finalCutStudent = slug === "final-cut" && !producerChrome;
-  const mediaCount = (view.media ?? []).length;
-  const remainingExecs = view.row?.remainingExecutiveSignoffs;
-  const effectiveReviewStage = reviewStage ?? approvalStageToReviewStage(view.row?.approvalStage);
-  const progressLabel =
-    slug === "initial-cut"
-      ? view.row?.awaitingRevisedInitialCut && !view.row.initialCutNeedsRevisions
-        ? "Approved in Stage 1 · Awaiting revised upload"
-        : approvalProgressLabel(view.row?.initialCutNeedsRevisions ? "DRAFT" : view.row?.approvalStage, remainingExecs)
-      : null;
-  const approvalPill = slug === "initial-cut" ? approvalStagePillLabel(view.row?.approvalStage) : null;
-  const stageStatus: CycleStageStatus | null = view.row
-    ? cycleStageStatus(
-        slug,
-        {
-          proofOfContact: view.row.proofOfContact,
-          proofCount: 0,
-          brainstormDocUrl: "",
-          brainstormNeedsChanges: false,
-          aRollBRoll: view.row.aRollBRoll,
-          aRollHasMedia: slug === "a-roll" && mediaCount > 0,
-          aRollNeedsChanges: Boolean(view.row.aRollNeedsChanges),
-          initialCut: view.row.initialCut,
-          initialCutHasMedia: slug === "initial-cut" && mediaCount > 0,
-          awaitingRevisedInitialCut: view.row.awaitingRevisedInitialCut,
-          initialCutNeedsRevisions: Boolean(view.row.initialCutNeedsRevisions),
-          approvalStage: view.row.approvalStage,
-          finalCutHasMedia: slug === "final-cut" && mediaCount > 0,
-          queuedForAir: Boolean(view.row.queuedForAirAt)
-        },
-        { showQueued: view.isProducer }
-      )
-    : null;
-
-  const mediaItems = view.media ?? [];
-  const visibleMedia = slug === "initial-cut" && !showOlderCuts ? mediaItems.slice(0, 2) : mediaItems;
-  const olderCount = slug === "initial-cut" ? Math.max(0, mediaItems.length - 2) : 0;
-
-  const headerPills = (
-    <div className="flex flex-wrap items-center justify-end gap-2">
-      {!producerChrome && <>
-        <Button type="button" size="sm" variant="outline" onClick={() => void load()}><RefreshCcw className="mr-1.5 h-3.5 w-3.5" />Refresh</Button>
-        <ProducerFeedbackDialog initialCycle={view.row?.cycleNumber} />
-      </>}
-      {view.row ? (
-        <StageComments
-          rowId={view.row.id}
-          stage={slug}
-          canWrite={Boolean(view.canComment)}
-          onPosted={slug === "a-roll" ? () => void load({ quiet: true }) : undefined}
-        />
-      ) : null}
-      {approvalPill && stageStatus !== "stage-2" && stageStatus !== "stage-3" && stageStatus !== "approved" ? (
-        <span className="status-pill status-pill-lg status-neutral">{approvalPill}</span>
-      ) : null}
-      {stageStatus ? (
-        <StageStatusChip
-          status={stageStatus}
-          size="lg"
-          label={
-            stageStatus === "stage-3" && remainingExecs != null
-              ? (executiveWaitLabel(remainingExecs) ?? undefined)
-              : undefined
-          }
-        />
-      ) : null}
-      {view.canApproveAroll ? (
-        <Button type="button" onClick={() => setApproveKind("aroll")}>
-          Approve A-roll/B-roll
-        </Button>
-      ) : null}
-    </div>
-  );
-
-  const mediaGrid = (
-    <div
-      className={cn(
-        "grid gap-3",
-        slug === "a-roll"
-          ? "grid-cols-2 md:grid-cols-3 xl:grid-cols-4"
-          : finalCutProducer
-            ? "grid-cols-1"
-            : "grid-cols-1 sm:grid-cols-2"
-      )}
-    >
-      {visibleMedia.map((item) => {
-        const reviewPath = item.projectId ? `/projects/${item.projectId}/review/${item.id}` : null;
-        const isNew = slug === "a-roll" && view.isProducer && item.isNew;
-        const reviewHref = reviewPath ? `${reviewPath}?bare=1` : null;
-        const cutStatus = cutTileReviewStatus({
-          approvalStatus: item.approvalStatus,
-          reviewStage: effectiveReviewStage,
-          approvedInStage: item.approvedInStage,
-          remainingExecutiveSignoffs: remainingExecs
-        });
-        const tile = (
-          <>
-            <div className="relative aspect-video w-full overflow-hidden bg-muted">
-              {item.thumbnailUrl ? (
-                <Image
-                  src={item.thumbnailUrl}
-                  alt=""
-                  fill
-                  unoptimized
-                  className="object-cover"
-                  sizes="(max-width: 768px) 50vw, 25vw"
-                />
-              ) : (
-                <div className="grid h-full w-full place-items-center text-muted-foreground">
-                  <Play className="h-8 w-8" />
-                </div>
-              )}
-              {item.rollKind ? (
-                <span className="absolute left-2 top-2 rounded-md bg-black/70 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.11em] text-soft-white">
-                  {rollKindLabel(item.rollKind)}
-                </span>
-              ) : null}
-              {item.commentCount > 0 ? (
-                <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-md bg-black/70 px-1.5 py-0.5 text-[10px] text-soft-white">
-                  <MessageSquare className="h-3 w-3" />
-                  {item.commentCount}
-                </span>
-              ) : null}
-              {isNew ? (
-                <span
-                  className="absolute bottom-2 left-2 rounded-md bg-amber-300 px-2 py-0.5 text-[11px] font-semibold tracking-[0.11em] text-black light:text-soft-white"
-                  title="Uploaded after the latest revision request"
-                >
-                  NEW
-                </span>
-              ) : null}
-            </div>
-            <div className="space-y-2 px-3 py-2">
-              <div className="space-y-1">
-                <div className="line-clamp-2 text-sm font-medium text-foreground">{item.title}</div>
-                {slug === "initial-cut" || slug === "final-cut" ? (
-                  <span className={cn("status-pill status-pill-sm", groupTileStatusClass(cutStatus.tone))}>
-                    {cutStatus.label}
-                  </span>
-                ) : slug === "a-roll" && view.row?.aRollNeedsChanges ? (
-                  <span className="status-pill status-pill-sm status-danger">Needs Changes</span>
-                ) : (
-                  <div className="text-[11px] text-muted-foreground">{item.status}</div>
-                )}
-              </div>
-              {slug === "initial-cut" && reviewHref ? (
-                <Link
-                  href={reviewHref as never}
-                  className={cn(buttonVariants({ variant: "secondary", size: "sm" }), "w-full")}
-                >
-                  Review
-                </Link>
-              ) : null}
-            </div>
-          </>
-        );
-        const className = cn(
-          "overflow-hidden rounded-xl border bg-card text-left",
-          isNew ? "border-amber-300/70 ring-1 ring-amber-300/30 hover:border-amber-300" : "border-border hover:border-foreground/20"
-        );
-        const cardKey = item.versionId ?? item.id;
-        if (slug === "a-roll") {
-          return (
-            <button key={cardKey} type="button" className={className} onClick={() => setWatching(item)}>
-              {tile}
-            </button>
-          );
-        }
-        if (slug === "initial-cut") {
-          return (
-            <div key={cardKey} className={className}>
-              {tile}
-            </div>
-          );
-        }
-        return reviewPath ? (
-          <Link key={cardKey} href={reviewPath as never} className={className}>
-            {tile}
-          </Link>
-        ) : (
-          <div key={cardKey} className={className}>
-            {tile}
-          </div>
-        );
-      })}
-    </div>
-  );
+  // Initial Cut approved and no Final Cut yet: the next step is the Final Cut page (no upload here).
+  const goToFinalCut =
+    slug === "initial-cut" && !view.isProducer && !canUpload && row.approvalStage === "APPROVED" && !row.finalCut ? (
+      <Link href="/final-cut" className={cn(buttonVariants(), TOUCH)}>
+        Go to Final Cut
+        <ArrowRight aria-hidden />
+      </Link>
+    ) : null;
+  const memberNames = row.members.map((member) => personLabel(member)).join(", ");
+  const producerName = row.assignedProducer ? personLabel(row.assignedProducer, "") : "";
+  // FinalCutShowCard hides itself when there is nothing to show and no toss to add; skip its slot too.
+  const showWhatAirs = slug === "final-cut" && Boolean(row.headline || (row.toss ?? "").trim() || view.canEditToss);
+  const whatAirs = showWhatAirs ? (
+    <FinalCutShowCard
+      headline={row.headline ?? null}
+      toss={row.toss ?? ""}
+      canEdit={Boolean(view.canEditToss)}
+      onEdit={() => saves.setTossOpen(true)}
+    />
+  ) : null;
 
   return (
-    <div className="space-y-5">
-      {embedded ? (
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-              Current stage
-            </div>
-            <h2 className="mt-1 text-lg font-semibold text-foreground">
-              {TITLES[slug]}
-              {reviewStage ? ` · Stage ${reviewStage}` : ""}
-            </h2>
-            {progressLabel ? <p className="mt-1 text-sm text-muted-foreground">{progressLabel}</p> : null}
-          </div>
-          {headerPills}
-        </div>
-      ) : (
-        <PageHeader
-          eyebrow={[producerChrome ? "Groups" : null, `Cycle ${view.row?.cycleNumber ?? ""}`.trim()]
-            .filter(Boolean)
-            .join(" · ")}
-          title={TITLES[slug]}
-          description={[view.row?.groupTopic, progressLabel].filter(Boolean).join(" · ") || undefined}
-          actions={headerPills}
-        />
-      )}
-
-      {slug === "initial-cut" && !view.isProducer && view.row?.approvalStage === "APPROVED" && !view.row.finalCut ? (
-        <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--brand-green)]/50 bg-card p-4">
-          <div>
-            <h3 className="text-sm font-semibold text-foreground">Approved for Final Cut</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Next, upload your Final Cut with a headline and a toss for the anchors.
-            </p>
-          </div>
-          <Link href="/final-cut" className={buttonVariants({ size: "sm" })}>
-            Upload Final Cut
-            <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-          </Link>
-        </section>
-      ) : null}
-
-      {finalCutStudent && view.row?.packageOfCycleAt ? <PackageOfCycleBanner rowId={view.row.id} /> : null}
-
-      {finalCutStudent && view.row ? (
-        <FinalCutShowCard
-          headline={view.row.headline ?? null}
-          toss={view.row.toss ?? ""}
-          canEdit={Boolean(view.canEditToss)}
-          onEdit={() => setTossOpen(true)}
-        />
-      ) : null}
-
-      {view.canUpload ? (
-        <div
-          {...fileDrop.bind}
-          className={cn(
-            "rounded-xl border bg-card p-4 transition-colors",
-            fileDrop.dragging ? "border-dashed border-[var(--brand-green)] bg-[var(--brand-green)]/5" : "border-border"
-          )}
-        >
-          {confirmFinal && view.allowSecondFinalCut ? (
-            <p className="mb-3 text-sm text-amber-200">
-              Second revision: you can replace this Final Cut. The quality score is capped at 75%. Late turn-in is a
-              separate 20%/30% penalty.
-            </p>
-          ) : confirmFinal ? (
-            <p className="mb-3 text-sm text-amber-200">You can only upload Final Cut once unless the first grade is below 75%.</p>
-          ) : null}
-          {slug === "initial-cut" && (view.media ?? []).length > 0 ? (
-            <p className="mb-3 text-sm text-muted-foreground">Upload a new version of the same Initial Cut.</p>
-          ) : null}
-          <input
-            ref={fileInput}
-            type="file"
-            accept="video/*"
-            multiple={slug === "a-roll"}
-            className="hidden"
-            onChange={(event) => {
-              const files = Array.from(event.target.files ?? []);
-              event.target.value = "";
-              startUpload(files);
-            }}
-          />
-          <div className="flex flex-wrap items-center gap-3">
-            <Button
-              type="button"
-              disabled={uploading}
-              onClick={() => {
-                if (slug === "a-roll") {
-                  setPickRollOpen(true);
-                  return;
-                }
-                if (slug === "final-cut") {
-                  setHeadlineOpen(true);
-                  return;
-                }
-                pendingRollKind.current = null;
-                fileInput.current?.click();
-              }}
-            >
-              {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-              {slug === "initial-cut" && (view.media ?? []).length > 0
-                ? "Upload new version"
-                : slug === "a-roll"
-                  ? "Upload videos"
-                  : "Upload"}
-            </Button>
-            {!uploading ? (
-              <span className={cn("text-sm", fileDrop.dragging ? "text-foreground" : "text-muted-foreground")}>
-                {fileDrop.dragging ? "Drop to upload" : slug === "a-roll" ? "or drag clips here" : "or drag a video here"}
-              </span>
+    // lg:pb-18 keeps the last card clear of the ✱ launcher and the upload progress card.
+    <div className="route-enter space-y-5 lg:pb-18">
+      <StudentStageHeader
+        eyebrow={`${cycleLabel(row.cycleNumber)} · ${title}`}
+        status={statusTag}
+        title={row.groupTopic || "My package"}
+        description={[memberNames, `Producer: ${producerName || "not assigned yet"}`].filter(Boolean).join(" · ")}
+        refreshing={refreshing}
+        onRefresh={() => void reloadAll()}
+        actions={
+          <>
+            {PRODUCER_FEEDBACK_ENABLED ? (
+              <ProducerFeedbackDialog initialCycle={row.cycleNumber} triggerClassName={TOUCH} />
             ) : null}
-          </div>
-          {slug === "a-roll" ? (
-            <p className="mt-2 text-xs text-muted-foreground">Choose A-roll or B-roll, then pick one or more clips. Maximum per file: A-roll 30 GB; B-roll 15 GB.</p>
-          ) : null}
+            {uploadButton ?? goToFinalCut}
+          </>
+        }
+      />
+      {callouts}
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="min-w-0 max-xl:order-3">{mediaPanel}</div>
+        {/*
+          Below xl `contents` lets the rail's cards take their own order (see the doc above).
+          From xl the rail sticks and scrolls as one area.
+        */}
+        <div className="min-w-0 max-xl:contents xl:sticky xl:top-[calc(var(--app-header-h,0px)+1rem)] xl:max-h-[calc(100dvh-var(--app-header-h,0px)-2rem)] xl:space-y-5 xl:overflow-y-auto">
+          <WhereItStands
+            className="max-xl:order-1"
+            nextStep={studentNextStep(slug, stageStatus, { hasFinalCut: Boolean(row.finalCut) })}
+            approvalSteps={
+              slug === "initial-cut"
+                ? approvalPathSteps({
+                    approvalStage: row.approvalStage,
+                    hasMedia: media.length > 0,
+                    needsRevisions: Boolean(row.initialCutNeedsRevisions),
+                    awaitingRevisedInitialCut: row.awaitingRevisedInitialCut,
+                    remainingExecutiveSignoffs: remainingExecs
+                  })
+                : null
+            }
+            rule={canUpload ? uploadRule(slug, media.length > 0) : null}
+            warning={slug === "final-cut" && canUpload ? finalCutRule(view.allowSecondFinalCut) : null}
+          />
+          {whatAirs ? <div className="min-w-0 max-xl:order-4">{whatAirs}</div> : null}
+          {feedbackPanel}
         </div>
-      ) : null}
-
-      {finalCutProducer && view.row ? (
-        <FinalCutProducerView
-          rowId={view.row.id}
-          media={
-            mediaItems.length > 0 ? (
-              mediaGrid
-            ) : (
-              <p className="text-sm text-muted-foreground">No Final Cut uploaded yet.</p>
-            )
-          }
-          hasFinalCut={mediaItems.length > 0}
-          headline={view.row.headline ?? null}
-          toss={view.row.toss ?? ""}
-          canEditToss={Boolean(view.canEditToss)}
-          onEditToss={() => setTossOpen(true)}
-          queued={Boolean(view.row.queuedForAirAt)}
-          onQueue={() => void queue(!view.row?.queuedForAirAt)}
-          packageOfCycle={view.packageOfCycle ?? null}
-          members={view.row.members}
-          onReload={() => void load({ quiet: true })}
-          grade={view.finalCutGrade ?? null}
-          onSaveGrade={saveGrade}
-          gradeMessage={gradePreview}
-          savingFeedback={savingFeedback}
-          publishingGrades={publishingGrades}
-          onSaveFeedback={(next) => void saveCycleFeedback(next)}
-          onPublishGrades={(next) => void publishCycleGrades(next)}
-        />
-      ) : (
-        mediaGrid
-      )}
-      {olderCount > 0 ? (
-        <Button type="button" variant="secondary" onClick={() => setShowOlderCuts((open) => !open)}>
-          {showOlderCuts ? "Hide older versions" : `See older versions (${olderCount})`}
-        </Button>
-      ) : null}
-      {mediaItems.length === 0 && !finalCutProducer ? (
-        <p className="text-sm text-muted-foreground">
-          {reviewStage === 2
-            ? "No Stage 2 cut yet. Approve Stage 1 first."
-            : reviewStage === 3
-              ? "No Stage 3 cut yet. Approve Stage 2 first."
-              : "No videos uploaded yet."}
-        </p>
-      ) : null}
-
-      <Dialog
-        open={pickRollOpen}
-        onOpenChange={(open) => {
-          setPickRollOpen(open);
-          if (!open) setDroppedFiles(null);
-        }}
-      >
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>A-roll or B-roll?</DialogTitle>
-            <DialogDescription>
-              {droppedFiles
-                ? `This applies to the ${droppedFiles.length === 1 ? "file" : `${droppedFiles.length} files`} you dropped.`
-                : "This applies to every file you pick next."}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid grid-cols-2 gap-2">
-            {(["a-roll", "b-roll"] as const).map((kind) => (
-              <Button
-                key={kind}
-                type="button"
-                variant="secondary"
-                onClick={() => {
-                  pendingRollKind.current = kind;
-                  setPickRollOpen(false);
-                  if (uploadDroppedFiles()) return;
-                  window.setTimeout(() => fileInput.current?.click(), 0);
-                }}
-              >
-                {rollKindLabel(kind)}
-              </Button>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <FinalCutHeadlineDialog
-        open={headlineOpen}
-        initialHeadline={view.row?.headline ?? ""}
-        initialToss={view.row?.toss ?? ""}
-        hasVideo={Boolean(droppedFiles)}
-        onOpenChange={(open) => {
-          setHeadlineOpen(open);
-          if (!open) setDroppedFiles(null);
-        }}
-        onContinue={({ headline, toss }) => {
-          pendingHeadline.current = headline;
-          pendingToss.current = toss;
-          pendingRollKind.current = null;
-          setHeadlineOpen(false);
-          if (uploadDroppedFiles()) return;
-          window.setTimeout(() => fileInput.current?.click(), 0);
-        }}
-      />
-
-      <FinalCutHeadlineDialog
-        open={tossOpen}
-        mode="toss"
-        initialHeadline=""
-        initialToss={view.row?.toss ?? ""}
-        saving={savingToss}
-        onOpenChange={setTossOpen}
-        onContinue={({ toss }) => void saveToss(toss)}
-      />
-
-      <Dialog
-        open={Boolean(watching)}
-        onOpenChange={(open) => {
-          if (!open) {
-            setWatching(null);
-            void load();
-          }
-        }}
-      >
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>{watching?.title ?? "Clip"}</DialogTitle>
-            <DialogDescription>
-              {watching?.rollKind ? rollKindLabel(watching.rollKind) : "A-roll/B-roll"}
-            </DialogDescription>
-          </DialogHeader>
-          {watching?.playbackUrl ? (
-            <video
-              key={watching.id}
-              src={watching.playbackUrl}
-              controls
-              playsInline
-              className="aspect-video w-full rounded-lg bg-black"
-            />
-          ) : (
-            <p className="text-sm text-muted-foreground">This clip is not ready to play yet.</p>
-          )}
-          {view.row && watching ? (
-            <StageComments
-              rowId={view.row.id}
-              stage={slug}
-              canWrite={Boolean(view.canComment)}
-              mediaItemId={watching.id}
-              className="border-0 bg-transparent p-0"
-              onPosted={slug === "a-roll" ? () => void load({ quiet: true }) : undefined}
-            />
-          ) : null}
-        </DialogContent>
-      </Dialog>
-
-      {producerChrome && slug === "initial-cut" && view.row ? (
-        <div className="space-y-2">
-          {progressLabel ? <p className="text-sm text-muted-foreground">{progressLabel}</p> : null}
-        <div className="flex flex-wrap gap-2">
-          {view.cutApproval?.canAct && (!reviewStage || reviewStage === approvalStageToReviewStage(view.cutApproval.stage)) ? (
-            <>
-              <Button type="button" variant="secondary" disabled={approving} onClick={() => void approveCut(false)}>
-                Submit review (needs revisions)
-              </Button>
-              <Button type="button" disabled={approving} onClick={() => setApproveKind("cut")}>
-                {view.row.initialCutNeedsRevisions ? "Approve anyway" : "Approve"}
-              </Button>
-            </>
-          ) : null}
-          {view.cutApproval?.canUnapprove ? (
-            <Button type="button" variant="secondary" disabled={approving} onClick={() => void approveCut(false, undefined, true)}>
-              Unapprove
-            </Button>
-          ) : null}
-          {view.cutApproval?.canApproveAnyway ? (
-            <Button type="button" disabled={approving} onClick={() => setApproveAnywayOpen(true)}>
-              Approve anyway
-            </Button>
-          ) : null}
-        </div>
-        </div>
-      ) : null}
-
-      <ApproveFeedbackDialog
-        open={Boolean(approveKind)}
-        saving={approving}
-        onOpenChange={(open) => {
-          if (!open) setApproveKind(null);
-        }}
-        onConfirm={(feedback) => {
-          if (approveKind === "aroll") {
-            void approveAroll(true, feedback);
-            return;
-          }
-          if (approveKind === "cut") {
-            void approveCut(true, feedback);
-          }
-        }}
-      />
-      <ConfirmDialog
-        open={finalCutConfirmFiles !== null}
-        onOpenChange={(open) => {
-          if (!open) setFinalCutConfirmFiles(null);
-        }}
-        title="Upload this Final Cut?"
-        description={`Headline: "${pendingHeadline.current}". You cannot replace it later unless the first grade is below 75%.`}
-        confirmLabel="Upload Final Cut"
-        cancelLabel="Not yet"
-        tone="default"
-        onConfirm={() => {
-          if (finalCutConfirmFiles) void uploadFiles(finalCutConfirmFiles);
-        }}
-      />
-      <ConfirmDialog
-        open={approveAnywayOpen}
-        onOpenChange={setApproveAnywayOpen}
-        title="Approve anyway?"
-        description={APPROVE_ANYWAY_CONFIRM}
-        confirmLabel="Send to Stage 2"
-        cancelLabel="Not yet"
-        tone="default"
-        onConfirm={() => approveCutAnyway()}
-      />
-      <UploadProgressToast items={uploadItems} />
+      </div>
+      {dialogs}
     </div>
   );
 }

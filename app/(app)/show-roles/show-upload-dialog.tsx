@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Camera, ExternalLink, Loader2, Upload } from "lucide-react";
+import { ExternalLink, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -12,23 +12,20 @@ import {
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import type { NasUploadFields } from "@/src/lib/nas-upload-client";
-import { SHOW_DESCRIPTION_MAX, SHOW_THUMBNAIL_SECONDS, SHOW_TITLE_MAX } from "@/src/lib/show-publication";
-
-type Publication = {
-  status: string;
-  title: string;
-  description: string;
-  publishAt: string;
-  seasonNumber: number | null;
-  uploadedBytes: number | null;
-  totalBytes: number | null;
-  watchUrl: string | null;
-  lastError: string | null;
-};
+import { SHOW_THUMBNAIL_SECONDS } from "@/src/lib/show-publication";
+import {
+  ACTIVE,
+  LoadingView,
+  PickView,
+  PublicationTag,
+  ReviewForm,
+  StatusView,
+  ThumbnailPreview,
+  UploadingView,
+  type Form,
+  type Publication
+} from "./show-upload-parts";
 
 type Defaults = {
   title: string;
@@ -40,27 +37,9 @@ type Defaults = {
 };
 
 type State = { showDate: string; configured: boolean; publication: Publication | null; defaults: Defaults | null };
-type Form = { title: string; description: string; publishDate: string; publishTime: string; seasonNumber: string };
 type Phase = "loading" | "pick" | "uploading" | "review" | "status";
 
-const ACTIVE = new Set(["UPLOADING", "PROCESSING", "FINALIZING"]);
-const STATUS_LABELS: Record<string, string> = {
-  UPLOADING: "Uploading to YouTube…",
-  PROCESSING: "YouTube is processing the video…",
-  FINALIZING: "Setting the thumbnail and playlist…",
-  SCHEDULED: "Scheduled",
-  FAILED: "Needs attention"
-};
 const THUMBNAIL_MAX_WIDTH = 1280;
-
-const pacificDateTime = new Intl.DateTimeFormat("en-US", {
-  timeZone: "America/Los_Angeles",
-  weekday: "short",
-  month: "short",
-  day: "numeric",
-  hour: "numeric",
-  minute: "2-digit"
-});
 
 async function readJson<T>(response: Response, fallback: string): Promise<T> {
   const body = (await response.json().catch(() => ({}))) as { data?: T; error?: { message?: string } };
@@ -83,46 +62,12 @@ function formFromDefaults(defaults: Defaults): Form {
   };
 }
 
-function formatBytes(bytes: number) {
-  return bytes >= 1e9 ? `${(bytes / 1e9).toFixed(2)} GB` : `${Math.round(bytes / 1e6)} MB`;
-}
-
-function StatusView({ publication }: { publication: Publication }) {
-  const { uploadedBytes, totalBytes } = publication;
-  const showProgress = publication.status === "UPLOADING" && uploadedBytes !== null && totalBytes;
-  const percent = showProgress ? Math.min(100, (uploadedBytes / totalBytes) * 100) : 0;
-  return (
-    <div className="space-y-3 text-sm">
-      <div className="flex items-center gap-2 font-semibold">
-        {ACTIVE.has(publication.status) ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-        {STATUS_LABELS[publication.status] ?? publication.status}
-      </div>
-      {showProgress ? (
-        <div className="space-y-1">
-          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-            <div className="h-full bg-primary transition-[width]" style={{ width: `${percent}%` }} />
-          </div>
-          <p className="text-xs tabular-nums text-muted-foreground">
-            {Math.floor(percent)}% · {formatBytes(uploadedBytes)} of {formatBytes(totalBytes)}. You can close this window.
-          </p>
-        </div>
-      ) : null}
-      <div className="space-y-1 rounded-lg border border-border p-3">
-        <div className="font-medium">{publication.title}</div>
-        <div className="text-xs text-muted-foreground">
-          Goes public {pacificDateTime.format(new Date(publication.publishAt))} Pacific
-          {publication.seasonNumber ? ` · InFocus News | Season ${publication.seasonNumber}` : ""}
-        </div>
-      </div>
-      {publication.lastError ? <p className="text-xs text-danger">{publication.lastError}</p> : null}
-      {publication.watchUrl ? (
-        <a href={publication.watchUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs underline">
-          Open on YouTube <ExternalLink className="h-3 w-3" />
-        </a>
-      ) : null}
-      <p className="text-xs text-muted-foreground">To change anything now, use YouTube Studio.</p>
-    </div>
-  );
+function seasonHintFor(existingSeasons: number[] | null, season: string | undefined) {
+  const seasonNumber = Number(season);
+  if (!existingSeasons) return "Couldn't read playlists from YouTube. Check the number.";
+  return Number.isInteger(seasonNumber) && seasonNumber > 0 && !existingSeasons.includes(seasonNumber)
+    ? `New playlist: "InFocus News | Season ${seasonNumber}" will be created.`
+    : "Adds to the existing playlist.";
 }
 
 export function ShowUploadDialog({
@@ -262,171 +207,90 @@ export function ShowUploadDialog({
     }
   }
 
-  const existingSeasons = state?.defaults?.existingSeasons ?? null;
-  const seasonNumber = Number(form?.seasonNumber);
-  const seasonHint = !existingSeasons
-    ? "Couldn't read playlists from YouTube. Check the number."
-    : Number.isInteger(seasonNumber) && seasonNumber > 0 && !existingSeasons.includes(seasonNumber)
-      ? `New playlist: "InFocus News | Season ${seasonNumber}" will be created.`
-      : "Adds to the existing playlist.";
+  const publication = state?.publication ?? null;
+  // Widens when a file is picked (thumbnail beside progress, then beside the form), never mid-step.
+  const wide = phase === "uploading" || phase === "review";
+  const preview = <ThumbnailPreview url={thumbnailUrl} capturing={capturing} />;
 
   return (
     <Dialog open={open} onOpenChange={(next) => (phase === "uploading" && !next ? undefined : onOpenChange(next))}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
+      {/* The upload can't be interrupted, so there is no close button while it runs. */}
+      <DialogContent hideClose={phase === "uploading"} className={wide ? "sm:max-w-3xl" : "sm:max-w-xl"}>
         <DialogHeader>
-          <DialogTitle>Upload show</DialogTitle>
+          <div className="flex flex-wrap items-center justify-center gap-2 pr-8 sm:justify-start">
+            <DialogTitle>Upload show</DialogTitle>
+            {phase === "status" && publication ? (
+              <span aria-live="polite" className="inline-flex">
+                <PublicationTag status={publication.status} />
+              </span>
+            ) : null}
+          </div>
           <DialogDescription>{showLabel}</DialogDescription>
         </DialogHeader>
 
-        {phase === "loading" ? <p className="text-sm text-muted-foreground">Loading…</p> : null}
+        {phase === "loading" ? <LoadingView /> : null}
 
         {phase === "pick" ? (
-          <div className="space-y-3">
-            {state && !state.configured ? (
-              <p className="text-sm text-danger">YouTube publishing is not configured on this server.</p>
-            ) : null}
-            <input
-              ref={inputRef}
-              type="file"
-              accept="video/*"
-              className="hidden"
-              onChange={(event) => {
-                const picked = event.target.files?.[0];
-                event.target.value = "";
-                if (picked) void startUpload(picked);
-              }}
-            />
-            <Button type="button" onClick={() => inputRef.current?.click()} disabled={!state?.configured}>
-              <Upload className="h-4 w-4" />
-              Choose show video
-            </Button>
-            <p className="text-xs text-muted-foreground">
-              Uploads to InFocus Drive first. You can review everything before it goes to YouTube.
-            </p>
-          </div>
+          <PickView
+            configured={Boolean(state?.configured)}
+            onChoose={() => inputRef.current?.click()}
+            input={
+              <input
+                ref={inputRef}
+                type="file"
+                accept="video/*"
+                className="hidden"
+                onChange={(event) => {
+                  const picked = event.target.files?.[0];
+                  event.target.value = "";
+                  if (picked) void startUpload(picked);
+                }}
+              />
+            }
+          />
         ) : null}
 
-        {phase === "uploading" ? (
-          <div className="space-y-2">
-            <p className="text-sm">Uploading {file?.name}…</p>
-            <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-              <div className="h-full bg-primary transition-[width]" style={{ width: `${progress}%` }} />
-            </div>
-            <p className="text-xs tabular-nums text-muted-foreground">
-              {Math.round(progress)}% · keep this window open until it finishes
-            </p>
-          </div>
-        ) : null}
+        {phase === "uploading" ? <UploadingView fileName={file?.name ?? ""} progress={progress} thumbnail={preview} /> : null}
 
         {phase === "review" && form ? (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Thumbnail</Label>
-              <div className="aspect-video w-full overflow-hidden rounded-lg border border-border bg-muted">
-                {thumbnailUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- local blob preview
-                  <img src={thumbnailUrl} alt="Thumbnail preview" className="h-full w-full object-cover" />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-                    {capturing ? "Grabbing frame…" : "No frame. YouTube will pick one."}
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  min={0}
-                  step={0.5}
-                  value={thumbnailSeconds}
-                  onChange={(event) => setThumbnailSeconds(event.target.value)}
-                  className="w-24"
-                  aria-label="Thumbnail time in seconds"
-                />
-                <span className="text-xs text-muted-foreground">seconds</span>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={!file || capturing}
-                  onClick={() => file && void retakeThumbnail(file, Math.max(0, Number(thumbnailSeconds) || 0))}
-                >
-                  <Camera className="h-3.5 w-3.5" />
-                  Retake
-                </Button>
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="show-title">Title</Label>
-              <Input
-                id="show-title"
-                value={form.title}
-                maxLength={SHOW_TITLE_MAX}
-                onChange={(event) => setForm({ ...form, title: event.target.value })}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="show-date">Goes public</Label>
-                <Input
-                  id="show-date"
-                  type="date"
-                  value={form.publishDate}
-                  onChange={(event) => setForm({ ...form, publishDate: event.target.value })}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="show-time">Time (Pacific)</Label>
-                <Input
-                  id="show-time"
-                  type="time"
-                  value={form.publishTime}
-                  onChange={(event) => setForm({ ...form, publishTime: event.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="show-season">Playlist</Label>
-              <div className="flex items-center gap-2 text-sm">
-                <span className="shrink-0 text-muted-foreground">InFocus News | Season</span>
-                <Input
-                  id="show-season"
-                  type="number"
-                  min={1}
-                  value={form.seasonNumber}
-                  onChange={(event) => setForm({ ...form, seasonNumber: event.target.value })}
-                  className="w-24"
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">{seasonHint}</p>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="show-description">Description</Label>
-              <Textarea
-                id="show-description"
-                rows={5}
-                value={form.description}
-                maxLength={SHOW_DESCRIPTION_MAX}
-                onChange={(event) => setForm({ ...form, description: event.target.value })}
-              />
-            </div>
-          </div>
+          <ReviewForm
+            form={form}
+            setForm={setForm}
+            seasonHint={seasonHintFor(state?.defaults?.existingSeasons ?? null, form.seasonNumber)}
+            thumbnail={preview}
+            thumbnailSeconds={thumbnailSeconds}
+            onThumbnailSecondsChange={setThumbnailSeconds}
+            canRetake={Boolean(file) && !capturing}
+            onRetake={() => file && void retakeThumbnail(file, Math.max(0, Number(thumbnailSeconds) || 0))}
+          />
         ) : null}
 
-        {phase === "status" && state?.publication ? <StatusView publication={state.publication} /> : null}
+        {phase === "status" && publication ? <StatusView publication={publication} /> : null}
 
         {phase === "review" ? (
-          <DialogFooter>
+          <DialogFooter sticky>
             <Button type="button" variant="outline" disabled={submitting} onClick={() => setPhase("pick")}>
               Choose a different file
             </Button>
             <Button type="button" disabled={submitting || capturing || !form?.title.trim()} onClick={() => void schedule()}>
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {submitting ? <Loader2 className="animate-spin" aria-hidden /> : null}
               Schedule on YouTube
             </Button>
+          </DialogFooter>
+        ) : null}
+
+        {phase === "status" && publication?.watchUrl ? (
+          <DialogFooter>
+            <a
+              href={publication.watchUrl}
+              target="_blank"
+              rel="noreferrer"
+              className={buttonVariants({ variant: "outline" })}
+            >
+              <ExternalLink aria-hidden />
+              Open on YouTube
+              <span className="sr-only"> (opens in a new tab)</span>
+            </a>
           </DialogFooter>
         ) : null}
       </DialogContent>

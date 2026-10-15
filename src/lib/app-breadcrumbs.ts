@@ -1,3 +1,5 @@
+import { FOLDER_PATH_SEP, folderPathSegments } from "@/src/lib/project-folders";
+
 export type AppBreadcrumb = {
   label: string;
   href?: string;
@@ -97,6 +99,62 @@ export function buildGenericBreadcrumbs(segments: string[]): AppBreadcrumb[] {
       ? { label: segmentLabel(segment), href: path }
       : { label: segmentLabel(segment) };
   });
+}
+
+type ProjectCrumbFolder = { id: string; name: string };
+
+function folderCrumbs(
+  projectId: string,
+  folderName: string,
+  folders: ProjectCrumbFolder[],
+  linkLast: boolean
+): AppBreadcrumb[] {
+  const parts = folderPathSegments(folderName);
+  return parts.map((segment, index) => {
+    const path = parts.slice(0, index + 1).join(FOLDER_PATH_SEP);
+    const folder = folders.find((entry) => entry.name === path);
+    const linkable = folder && (linkLast || index < parts.length - 1);
+    return linkable
+      ? { label: segment, href: `/projects/${projectId}?scope=active&folderId=${folder.id}` }
+      : { label: segment };
+  });
+}
+
+/**
+ * Project pages: workspace / project, then on review the asset's folder path and the asset, or on
+ * asset pages "Assets" and the open folder's path (its last segment unlinked).
+ */
+export function buildProjectBreadcrumbs(input: {
+  projectId: string;
+  /** Set on review routes (/projects/:id/review/:mediaId). */
+  mediaId: string | null;
+  workspace: { id: string; name: string } | null;
+  projectName: string | null;
+  folders: ProjectCrumbFolder[];
+  currentAsset: { title: string; folderName: string | null } | null;
+  /** The folder open on an asset page (scope=active&folderId=…), if any. */
+  currentFolderName: string | null;
+}): AppBreadcrumb[] {
+  const { projectId, mediaId, folders } = input;
+  const crumbs: AppBreadcrumb[] = [
+    {
+      label: input.workspace?.name ?? "Workspace",
+      href: input.workspace ? `/dashboard?workspaceId=${input.workspace.id}` : "/dashboard"
+    },
+    { label: input.projectName ?? "Project", href: `/projects/${projectId}` }
+  ];
+  if (mediaId) {
+    const assetFolders = input.currentAsset?.folderName
+      ? folderCrumbs(projectId, input.currentAsset.folderName, folders, true)
+      : [];
+    return [
+      ...crumbs,
+      ...assetFolders,
+      { label: input.currentAsset?.title ?? "Asset", href: `/projects/${projectId}/review/${mediaId}` }
+    ];
+  }
+  const openFolder = input.currentFolderName ? folderCrumbs(projectId, input.currentFolderName, folders, false) : [];
+  return [...crumbs, { label: "Assets", href: `/projects/${projectId}` }, ...openFolder];
 }
 
 export function buildGroupsBreadcrumbs(segments: string[], groupTopic?: string | null): AppBreadcrumb[] | null {

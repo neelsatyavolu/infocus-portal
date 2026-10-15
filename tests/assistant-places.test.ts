@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  ASSISTANT_PLACES,
   findGatedAssistantPlace,
   isMyPackageQuery,
   matchAssistantPlace,
@@ -52,6 +53,33 @@ describe("matchAssistantPlace", () => {
       external: true,
       newTab: true
     });
+  });
+});
+
+describe("hints match the redesigned shell", () => {
+  it("points account items at the account menu and keeps Settings in the sidebar", () => {
+    expect(matchAssistantPlace("passwords", "associate")).toMatchObject({
+      href: "/passwords",
+      hint: expect.stringContaining("Account menu")
+    });
+    expect(matchAssistantPlace("appearance", "member")).toMatchObject({ title: "Settings", href: "/settings" });
+  });
+
+  it("names the Cycle guide and the hub tabs", () => {
+    expect(matchAssistantPlace("information", "member")).toMatchObject({
+      title: "Cycle guide",
+      href: "/information",
+      hint: expect.stringContaining("stage bar")
+    });
+    expect(matchAssistantPlace("pa script", "member")).toMatchObject({ href: "/announcements/pa" });
+    expect(matchAssistantPlace("pa", "member")).toMatchObject({ href: "/master-calendar" });
+    expect(matchAssistantPlace("admin", "executive")?.hint).toContain("Overview");
+  });
+
+  it("keeps every in-app href a root path", () => {
+    for (const place of ASSISTANT_PLACES) {
+      expect(place.external ? place.href.startsWith("https://") : place.href.startsWith("/")).toBe(true);
+    }
   });
 });
 

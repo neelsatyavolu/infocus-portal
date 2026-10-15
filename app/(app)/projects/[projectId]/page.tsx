@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Video } from "lucide-react";
-import { ProjectAssetsToolbar } from "@/components/project-assets-toolbar";
 import { ProjectMediaTiles } from "@/components/project-media-tiles";
 import { ProjectShellBridge } from "@/components/project-shell-bridge";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { resolveThumbnailUrl } from "@/src/lib/media-playback";
 import { syncUserProfile } from "@/src/lib/auth";
 import { buildMediaVersionImageUrl } from "@/src/lib/media-assets";
@@ -20,7 +17,7 @@ import {
   type ProjectMediaSort
 } from "@/src/server/project-media";
 import { getProjectShellData } from "@/src/server/project-shell";
-import { isDirectChildFolder, isFinalCutFolderName } from "@/src/lib/project-folders";
+import { isFinalCutFolderName } from "@/src/lib/project-folders";
 import { labeledUser, userDisplayName } from "@/src/lib/user-display";
 
 type ProjectPageProps = {
@@ -35,33 +32,6 @@ type ProjectPageProps = {
     page?: string;
   }>;
 };
-
-function StatTile({
-  label,
-  value,
-  compact = false,
-  dim = false
-}: {
-  label: string;
-  value: string;
-  compact?: boolean;
-  dim?: boolean;
-}) {
-  return (
-    <div className="rounded-xl border border-foreground/[0.08] bg-[var(--ink-2)] px-4 py-3.5">
-      <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--ink-text)]">
-        {label}
-      </div>
-      <div
-        className={`mt-1.5 font-semibold tracking-tight ${
-          dim ? "text-[var(--ink-5)]" : "text-foreground"
-        } ${compact ? "text-lg leading-tight" : "text-[28px] leading-none"}`}
-      >
-        {value || "—"}
-      </div>
-    </div>
-  );
-}
 
 function normalize<T extends string>(value: string | undefined, allowed: readonly T[], fallback: T): T {
   if (!value) {
@@ -82,6 +52,7 @@ async function getProjectRouteData(params: {
   let membership: Awaited<ReturnType<typeof requireProjectRole>>["membership"];
   let canSyncTurnedInDates = false;
   let canManageProjectMedia = false;
+  let canChangeStatus = false;
   let isDirectMember = false;
 
   try {
@@ -94,6 +65,8 @@ async function getProjectRouteData(params: {
     const user = await syncUserProfile(access.userId);
     const platformAccess = await getPlatformAccess(user.email);
     canSyncTurnedInDates = hasPlatformRole(platformAccess.role, "EXECUTIVE_PRODUCER");
+    // Same rule as PATCH /api/media/[id]/approval-status.
+    canChangeStatus = platformAccess.canManageWorkspaces;
     canManageProjectMedia = membership.role !== "REVIEWER" || hasPlatformRole(platformAccess.role, "ASSOCIATE_PRODUCER");
   } catch (error) {
     if (error instanceof Error && (error.message === "FORBIDDEN" || error.message === "NOT_FOUND")) {
@@ -127,6 +100,7 @@ async function getProjectRouteData(params: {
     membership,
     canManageProjectMedia,
     canSyncTurnedInDates,
+    canChangeStatus,
     shellData,
     mediaPage
   };
@@ -167,7 +141,7 @@ export default async function ProjectPage({ params, searchParams }: ProjectPageP
     notFound();
   }
 
-  const { membership, canManageProjectMedia, canSyncTurnedInDates, shellData, mediaPage } = data;
+  const { membership, canManageProjectMedia, canSyncTurnedInDates, canChangeStatus, shellData, mediaPage } = data;
   const collectionMeta = collectionValue
     ? {
         videos: {
@@ -181,104 +155,25 @@ export default async function ProjectPage({ params, searchParams }: ProjectPageP
   const canManageVersionMeta = membership.role !== "REVIEWER";
   const selectedFolder = shellData.folders.find((folder) => folder.id === folderIdValue) ?? null;
   const isFinalCutFolderSelected = Boolean(selectedFolder && isFinalCutFolderName(selectedFolder.name));
-  const showSyncTurnedInButton = canSyncTurnedInDates && scopeValue === "active" && isFinalCutFolderSelected;
-  const visibleMediaCount = mediaPage.items.length;
-  const hasVisibleFolders =
-    scopeValue === "active" &&
-    shellData.folders.some((folder) => isDirectChildFolder(selectedFolder?.name ?? null, folder.name));
-  const shouldShowEmptyState = visibleMediaCount === 0 && !hasVisibleFolders;
-
-  const totalAssets = shellData.assetCount;
-  const totalVersions = mediaPage.items.reduce((sum, item) => sum + item.versions.length, 0);
-  const totalComments = mediaPage.items.reduce(
-    (sum, item) => sum + item.versions.reduce((vSum, v) => vSum + v._count.comments, 0),
-    0
-  );
-  const stageLabel = isFinalCutFolderSelected ? "Final Cut" : "Initial Cut";
-  const initials = shellData.projectName
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("") || "PR";
 
   return (
-    <div className="space-y-5">
+    <>
       <ProjectShellBridge data={shellData} />
-
-      {/* Project hero — slim broadcast bar with eyebrow, title, comments + stage */}
-      <section
-        className="brand-hero-gradient relative overflow-hidden rounded-2xl border border-border px-5 py-4"
-      >
-        <div className="relative flex flex-wrap items-center justify-between gap-4">
-          <div className="min-w-0">
-            <div className="eyebrow flex items-center gap-2">
-              <span className="rec-dot rec-dot-red" />
-              {shellData.workspace.name} · Cycle
-            </div>
-            <h1 className="display-md mt-1 break-words text-foreground">
-              {shellData.projectName}
-            </h1>
-          </div>
-          <div className="grid grid-cols-2 gap-2.5">
-            <StatTile label="Comments" value={`${totalComments}`} compact />
-            <StatTile label="Stage" value={stageLabel} compact />
-          </div>
-        </div>
-      </section>
-
-      {collectionMeta ? (
-        <section className="rounded-2xl border border-border bg-card p-5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-muted text-foreground">
-                {collectionValue === "videos" ? <Video className="h-5 w-5" /> : null}
-              </p>
-              <h2 className="mt-3 text-3xl font-semibold text-foreground">{collectionMeta.title}</h2>
-              <p className="mt-1 text-sm text-muted-foreground">{collectionMeta.description}</p>
-            </div>
-            <p className="rounded-md border border-border bg-muted px-3 py-1 text-xs text-muted-foreground">
-              {mediaPage.totalCount} {mediaPage.totalCount === 1 ? "asset" : "assets"} in view
-            </p>
-          </div>
-        </section>
-      ) : null}
-
-      <ProjectAssetsToolbar
-        projectId={projectId}
-        projectName={shellData.projectName}
-        canUpload={canUpload}
-        filterValue={filterValue}
-        sortValue={sortValue}
-        viewValue={viewValue}
-        showSyncTurnedInButton={showSyncTurnedInButton}
-        syncTurnedInFolderId={isFinalCutFolderSelected ? selectedFolder?.id ?? null : null}
-      />
-
-      {shouldShowEmptyState ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              {scopeValue === "deleted"
-                ? `No deleted ${(collectionMeta?.title ?? "Videos").toLowerCase()} yet`
-                : `No ${(collectionMeta?.title ?? "Videos").toLowerCase()} match this view`}
-            </CardTitle>
-            <CardDescription>
-              {scopeValue === "deleted"
-                ? "Deleted assets appear here for 7 days before permanent cleanup."
-                : "Try changing filters, switching folders, or upload new media to continue."}
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      ) : null}
-
       <ProjectMediaTiles
         projectId={projectId}
+        projectName={shellData.projectName}
+        workspaceName={shellData.workspace.name}
+        projectAssetCount={shellData.assetCount}
+        collection={collectionValue}
+        collectionDescription={collectionMeta?.description ?? null}
         viewMode={viewValue}
+        filterValue={filterValue}
+        sortValue={sortValue}
         canUpload={canUpload}
         canManageProjectMedia={canManageProjectMedia}
         canManageVersionMeta={canManageVersionMeta && canManageProjectMedia}
         canSyncTurnedInDates={canSyncTurnedInDates}
+        canChangeStatus={canChangeStatus}
         scope={scopeValue}
         selectedFolderId={folderIdValue}
         finalCutFolderId={isFinalCutFolderSelected ? selectedFolder?.id ?? null : null}
@@ -331,6 +226,6 @@ export default async function ProjectPage({ params, searchParams }: ProjectPageP
           }))
         )}
       />
-    </div>
+    </>
   );
 }

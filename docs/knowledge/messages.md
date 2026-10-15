@@ -1,24 +1,24 @@
 # Messages
 
-The green ✱ in the bottom-right opens a popup (full screen on phones). Switch from **Assistant** to **Messages** to chat with people in Portal. Hidden on bare video review and the Class Board. Unread counts show on the ✱ and on the **Messages** tab.
+The green ✱ in the bottom-right opens a popup (full screen on phones). Switch from **Assistant** to **Messages** to chat with people in Portal; when you have new unread messages the popup opens on **Messages** by itself (unless an assistant reply or approval is still pending). Hidden on bare video review and the Class Board. Unread counts show on the ✱ and on the **Messages** tab.
 
 ## Groups
 
-Each package with a topic or roster has a group chat: the students on it plus the assigned associate and executive producer. Custom videos added only to the Publishing Queue are not group chats. One list mixes group chats and direct messages, newest activity first (a chat you just wrote in jumps to the top). Unread counts stay on the row. Group rows show the members’ names, with the package topic underneath; direct rows show the latest message. **Search chats…** filters the list. Same visibility as Groups: reporters see packages they are on; associates see their assigned packages, unassigned packages Groups shows them, and any package they are on; executives, the adviser, and super admin see every package.
+Each package with a topic or roster has a group chat: the students on it plus the assigned associate and executive producer. Custom videos added only to the Publishing Queue are not group chats. One list mixes group chats and direct messages, newest activity first (a chat you just wrote in jumps to the top). Unread chats show a count on the row and a bolder name. Group rows show the members’ names, with the package topic and the latest message underneath; direct rows show the person, with the latest message underneath. Each row shows when its latest message arrived: the time today, the weekday within the past week, otherwise the date. **Search chats…** filters the list by those names and topics. Same visibility as Groups: reporters see packages they are on; associates see their assigned packages, unassigned packages Groups shows them, and any package they are on; executives, the adviser, and super admin see every package.
 
 Anyone who can see a group chat can read and write in it.
 
-Conversations show the latest 200 messages in chronological order. A message can be up to 2,000 characters. An open conversation refreshes every few seconds, and the inbox every 5 seconds while Messages is open (both pause in background tabs). New messages remain visible when the conversation refreshes. Background refreshes keep your current conversation and keyboard focus; Back returns to the inbox even if a refresh is still pending.
+Conversations show the latest 200 messages in chronological order, under day headings (Today, Yesterday, then dates). Messages one person sends within five minutes are grouped, with their name once (in group chats). Each message shows its time underneath; messages sent in the same minute share one time. Point at a message to see its full date and time. A message can be up to 2,000 characters. An open conversation refreshes every few seconds, and the inbox every 5 seconds while Messages is open (both pause in background tabs). New messages remain visible when the conversation refreshes. Background refreshes keep your current conversation and keyboard focus; Back returns to the inbox even if a refresh is still pending.
 
-Unread badges count only conversations you can currently access. Switching chats preserves each conversation’s unsent draft without carrying text into another chat. Enter sends a message, Shift+Enter adds a line break, and Enter used to confirm IME composition does not send. If opening a chat fails, the inbox shows the error.
+Unread badges count only conversations you can currently access. Switching chats preserves each conversation’s unsent draft without carrying text into another chat. Enter sends a message, Shift+Enter adds a line break, and Enter used to confirm IME composition does not send. The inbox shows placeholder rows while it first loads, and a row shows a spinner while its chat opens. If opening a chat fails, the inbox shows the error.
 
 ## Direct
 
-Producers (associate and up) can start a direct chat: type a name in **Search chats or people…** and pick the person (marked **Message**). Only class members (students and associate producers) are listed, not executives, the adviser, or super admin. That person can write back. Reporters cannot start a new direct chat; they see ones they are already in.
+Producers (associate and up) can start a direct chat: type a name in **Search chats or people…** and pick the person under **Start a chat**. Only class members (students and associate producers) are listed, not executives, the adviser, or super admin. That person can write back. Reporters cannot start a new direct chat; they see ones they are already in.
 
 ## Who it is for
 
-Everyone signed in can open **Messages** and check chats they are allowed to see. Messages never send email or push — the badge on the ✱ (checked every 15 seconds) is how you notice new messages.
+Everyone signed in can open **Messages** and check chats they are allowed to see. Messages never send email or push — the badge on the ✱ (checked every 30 seconds) is how you notice new messages.
 
 ## Reporting and blocking
 

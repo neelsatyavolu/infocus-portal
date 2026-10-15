@@ -17,7 +17,8 @@ export function MediaRange({ value, max, step, label, onChange, className, buffe
   const pct = max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0;
 
   return (
-    <div className={cn("group/range relative h-7 lg:h-4", className)}>
+    // A 40px hit area on touch (the track itself stays 4px), 16px with a mouse on desktop.
+    <div className={cn("group/range relative h-7 pointer-coarse:h-10 lg:pointer-fine:h-4", className)}>
       <input
         type="range"
         min={0}
@@ -39,7 +40,7 @@ export function MediaRange({ value, max, step, label, onChange, className, buffe
         <div className="absolute inset-y-0 left-0 bg-primary" style={{ width: `${pct}%` }} />
       </div>
       <div
-        className="pointer-events-none absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground shadow transition-transform group-hover/range:scale-125 peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background"
+        className="pointer-events-none absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground transition-transform group-hover/range:scale-125 peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background"
         style={{ left: `${pct}%` }}
       />
     </div>

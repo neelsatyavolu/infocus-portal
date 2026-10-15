@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { ApproveFeedbackDialog } from "@/components/package-cycle/approve-feedback-dialog";
 import { Button } from "@/components/ui/button";
 
+/** Approve a pending pitch from its Groups tile (outline, tile-footer size, green check). */
 export default function ApprovePitchButton({ rowId, onApproved }: {
   rowId: string;
   onApproved: () => void;
@@ -35,8 +36,15 @@ export default function ApprovePitchButton({ rowId, onApproved }: {
 
   return (
     <>
-      <Button type="button" size="sm" className="relative z-10 ml-auto h-7 gap-1.5 px-2 text-xs" disabled={saving} onClick={() => setOpen(true)}>
-        <Check className="h-3 w-3" />Approve pitch
+      <Button
+        type="button"
+        variant="outline"
+        className="relative z-10 h-10 md:h-8 md:px-3"
+        disabled={saving}
+        onClick={() => setOpen(true)}
+      >
+        <Check aria-hidden className="text-[var(--brand-green)]" />
+        Approve pitch
       </Button>
       <ApproveFeedbackDialog
         open={open}

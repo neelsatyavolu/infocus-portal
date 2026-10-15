@@ -3,6 +3,7 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import { CornerDownLeft, ExternalLink, Search } from "lucide-react";
+import { KeyHints } from "@/components/kit/kbd";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import type { AssistantAudience } from "@/src/lib/assistant-access";
 import { ASSISTANT_PLACES } from "@/src/lib/assistant-places";
@@ -30,7 +31,10 @@ function filterPlaces(places: readonly Place[], query: string) {
   return [...byLabel, ...byAlias];
 }
 
-/** ⌘K / Ctrl+K jump-to-page list built from the same places the assistant can point to. */
+/**
+ * ⌘K / Ctrl+K jump-to-page list built from the same places the assistant can point to: 48px
+ * two-line rows (page and hint), ↗ for pages outside the Portal, and key hints on keyboards.
+ */
 export function CommandPalette({
   open,
   onOpenChange,
@@ -117,7 +121,7 @@ export function CommandPalette({
         <DialogDescription className="sr-only">
           Type to filter pages, use the arrow keys to choose one, and press Enter to open it.
         </DialogDescription>
-        <div className="flex items-center gap-2 border-b border-border px-4 pr-12">
+        <div className="flex h-12 items-center gap-2.5 border-b border-border px-4 pr-12">
           <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
           <input
             autoFocus
@@ -133,12 +137,12 @@ export function CommandPalette({
             aria-controls={listId}
             aria-activedescendant={activeId}
             aria-autocomplete="list"
-            className="h-12 min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground md:text-sm"
+            className="h-full min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground md:text-sm"
           />
         </div>
-        <ul ref={listRef} id={listId} role="listbox" aria-label="Pages" className="max-h-[min(360px,60dvh)] overflow-y-auto p-2">
+        <ul ref={listRef} id={listId} role="listbox" aria-label="Pages" className="max-h-[min(360px,60dvh)] overflow-y-auto p-1.5">
           {results.length === 0 ? (
-            <li className="px-3 py-6 text-center text-sm text-muted-foreground">No pages match “{query.trim()}”.</li>
+            <li className="px-3 py-8 text-center text-sm text-muted-foreground">No pages match “{query.trim()}”.</li>
           ) : (
             results.map((place, index) => {
               const active = index === Math.min(activeIndex, results.length - 1);
@@ -152,21 +156,33 @@ export function CommandPalette({
                   onMouseMove={() => setActiveIndex(index)}
                   onClick={() => go(place)}
                   className={cn(
-                    "flex cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm",
-                    active ? "bg-accent text-foreground" : "text-muted-foreground"
+                    "flex min-h-12 cursor-pointer items-center gap-3 rounded-md px-3 py-1.5",
+                    active ? "bg-[var(--ink-3)]" : ""
                   )}
                 >
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium text-foreground">{place.label}</span>
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <span className="truncate text-sm font-medium text-foreground">{place.label}</span>
+                      {place.external ? <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" aria-hidden /> : null}
+                    </span>
                     <span className="block truncate text-xs text-muted-foreground">{place.hint}</span>
                   </span>
-                  {place.external ? <ExternalLink className="h-3.5 w-3.5 shrink-0" aria-hidden /> : null}
-                  {active ? <CornerDownLeft className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden /> : null}
+                  {active ? <CornerDownLeft className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden /> : null}
                 </li>
               );
             })
           )}
         </ul>
+        <div className="hidden border-t border-border px-4 py-2 md:block">
+          <KeyHints
+            showOnTouch
+            items={[
+              { keys: ["↑", "↓"], label: "Move" },
+              { keys: ["↵"], label: "Open" },
+              { keys: ["Esc"], label: "Close" }
+            ]}
+          />
+        </div>
       </DialogContent>
     </Dialog>
   );

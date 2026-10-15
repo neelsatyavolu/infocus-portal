@@ -25,13 +25,13 @@ Stages, in order — no stage may be skipped:
 4. Initial Cut (approving a stage sends the latest cut to the next stage. Needs revisions keeps the package at that stage: the group uploads a new version and the same stage reviews it again. After sending it back, the reviewer can still use **Approve anyway** to send the latest version on)
 5. Final Cut
 
-Cycle count is configurable in `/admin` or via **Edit Cycles** on `/package-cycles` (default 3, `ProgramSetting.cyclesPerSemester`). Stage dates live on `/package-cycles`.
+Cycle count is configurable in `/admin` or via **Edit cycles** on `/package-cycles` (default 3, `ProgramSetting.cyclesPerSemester`). Stage dates live on `/package-cycles` (the **Cycle Dates** tab under Calendar).
 
 Regular reporters complete **3 packages in semester 1** and **4 in semester 2**. Associate producers complete **2 in semester 1** and **3 in semester 2**. Requirements cap at how many cycles exist that semester. An AP who skips a cycle is not zeroed unless they still cannot meet the quota after remaining finals have passed. Extra packages they join can replace a weaker counted cycle.
 
-When an associate is a **member** of a package group, they get the student cycle tabs (Brainstorming, A-roll/B-roll, Initial Cut, Final Cut) and work that package as a student. Producer review stays on Groups.
+When an associate is a **member** of a package group, they get the student package pages (the stage bar: Brainstorming, A-roll/B-roll, Initial Cut, Final Cut) and work that package as a student. Producer review stays on Groups.
 
-Cycles **1–3** are semester 1. **Cycle 4+ is semester 2 only** — S1 gradebooks (student All Grades and the Grade Editor Student tab) do not list Cycle 4.
+Cycles **1–3** are semester 1. **Cycle 4+ is semester 2 only** — S1 gradebooks (the student Gradebook view and the Grade Editor Student tab) do not list Cycle 4.
 
 Seeded dates (`prisma/seed-cycles-2026-27.ts`): Cycle 1 and Cycle 3 only. **Cycle 2 is deliberately unseeded** — the master document lists its A-roll (Sep 16) and initial cut (Sep 21) before its own pitching date (Oct 2), which appears to be a typo for October. Enter those by hand.
 
@@ -87,7 +87,7 @@ Sign-offs record `mediaItemId` so it is clear which cut each reviewer saw.
 | Category | Weight | Composition |
 |---|---|---|
 | Packages | 55% | 50 pts per cycle final cut + 20 pts per cycle check-ins + 40 pts livestream credit (5 per hour × 8 hours) |
-| Participation | 35% | 50 pts/week — 10 on Mondays (PA), 20 on Tue/Thu class days; Wed/Fri shows none; holidays 0; Mondays with no class (no Monday schedule that week) 0. First gradeable day is **Tuesday, August 18, 2026** (`FIRST_PARTICIPATION_DATE`). Earlier class days stay on the master calendar but do not count. Full marks on Classroom Participation (`/participation`) post immediately. A score below that day’s max needs another producer (not the person who entered it) to approve — the adviser can approve. Pending docked scores stay off the student gradebook. The adviser and other executive producers are emailed when a request is waiting. |
+| Participation | 35% | 50 pts/week — 10 on Mondays (PA), 20 on Tue/Thu class days; Wed/Fri shows none; holidays 0; Mondays with no class (no Monday schedule that week) 0. First gradeable day is **Tuesday, August 18, 2026** (`FIRST_PARTICIPATION_DATE`). Earlier class days stay on the master calendar but do not count. Full marks on Participation (`/participation`, a tab under People) post immediately. A score below that day’s max needs another producer (not the person who entered it) to approve — the adviser can approve. Pending docked scores stay off the student gradebook. The adviser and other executive producers are emailed when a request is waiting. |
 | Portfolio | 10% | Final portfolio out of 100 |
 
 **Null means ungraded and is excluded from both sides of the ratio; `0` means
@@ -176,8 +176,8 @@ class days, not air dates. Participation is scored on Tuesday and Thursday class
 
 Subdomains:
 
-- `grades.infocuspaly.com` — student grade dashboard (Home, Packages, Participation, Other, All Grades with what-if)
-- Grade Editor **Student** tab — producers open one reporter's Schoology-style All Grades table (same grouping as the student tab; what-if does not save)
+- `grades.infocuspaly.com` — student grade dashboard (Overview: packages, participation, livestream and portfolio; Gradebook with what-if)
+- Grade Editor **Student** tab — producers open one reporter's Schoology-style All Grades table (same grouping as the student Gradebook; what-if does not save)
 - `teleprompter.infocuspaly.com` — teleprompter app
 - `infocuspaly.com` — main packages app
 

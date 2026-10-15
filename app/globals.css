@@ -346,17 +346,14 @@ video {
   padding: 2px 6px;
   gap: 3px;
 }
+/* Deprecated: status is a tag, never a button-sized block (the user flagged the old 40px "lg"
+   blocks in page headers). Kept as a slightly larger tag so old markup still lines up; new code
+   uses <StatusTag> from components/kit/status-tag.tsx. */
 .status-pill-lg {
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   letter-spacing: 0.11em;
-  padding: 8px 18px;
-  gap: 8px;
-}
-@media (min-width: 640px) {
-  .status-pill-lg {
-    font-size: 0.9375rem;
-    padding: 10px 22px;
-  }
+  padding: 3px 8px;
+  gap: 5px;
 }
 /* LIVE: an Ink tag with the one red dot, not a red fill. */
 .status-live      { background: hsl(var(--card)); color: hsl(var(--foreground)); border-color: hsl(var(--border)); }
@@ -372,6 +369,8 @@ video {
 .status-warn      { background: rgb(242 165 22 / 0.16); color: var(--brand-amber); border-color: rgb(242 165 22 / 0.40); }
 .status-danger    { background: var(--danger-tint); color: var(--danger-text); border-color: color-mix(in srgb, var(--danger-text) 40%, transparent); }
 .status-neutral   { background: hsl(var(--card)); color: var(--ink-text); border-color: hsl(var(--border)); }
+/* Past, closed, later: quieter than neutral (no fill). */
+.status-muted     { background: transparent; color: hsl(var(--muted-foreground)); border-color: hsl(var(--border)); }
 
 /* REC / live dot — the one touch of Record Red */
 .rec-dot {
@@ -515,6 +514,40 @@ video {
   }
   to {
     opacity: 1;
+  }
+}
+
+/* Indeterminate progress: a third-width bar sliding across its track (`animate-[loading-bar_…]`). */
+@keyframes loading-bar {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+
+/* Kit Sheet entrances (components/kit/sheet.tsx): an 8–16px move plus a fade, ending on
+   `transform: none` so fixed descendants are not trapped. */
+@keyframes sheet-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes sheet-in-bottom {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 

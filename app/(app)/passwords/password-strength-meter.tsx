@@ -1,13 +1,16 @@
-import { Sparkles } from "lucide-react";
 import { scorePassword } from "@/src/lib/password-strength";
 import { cn } from "@/src/lib/utils";
 
 const SEGMENTS = 4;
-const SCORE_COLORS = ["bg-danger-fill", "bg-danger-fill", "bg-brand-amber", "bg-yellow-300", "bg-[var(--brand-green)]"];
-const LABEL_COLORS = ["text-danger", "text-danger", "text-brand-amber", "text-brand-amber", "text-[var(--brand-green)]"];
+/** Very weak, Weak, Fair, Good, Strong. Brand tokens only. */
+const SCORE_BARS = ["bg-danger-fill", "bg-danger-fill", "bg-brand-amber", "bg-[var(--brand-green)]/60", "bg-[var(--brand-green)]"];
+const SCORE_TEXT = ["text-danger", "text-danger", "text-brand-amber", "text-[var(--brand-green)]", "text-[var(--brand-green)]"];
 
-/** Four-segment strength bar with a button that fills in a generated password. */
-export function PasswordStrengthMeter({ password, onSuggest }: { password: string; onSuggest: () => void }) {
+/**
+ * Four-segment strength bar and its label. Any non-empty password lights at least one segment;
+ * the label (not the bar) is what screen readers hear.
+ */
+export function PasswordStrengthMeter({ password, id }: { password: string; id?: string }) {
   const strength = scorePassword(password);
   const filled = strength ? Math.max(1, strength.score) : 0;
 
@@ -19,24 +22,14 @@ export function PasswordStrengthMeter({ password, onSuggest }: { password: strin
             key={index}
             className={cn(
               "h-1 flex-1 rounded-full transition-colors",
-              strength && index < filled ? SCORE_COLORS[strength.score] : "bg-foreground/10"
+              strength && index < filled ? SCORE_BARS[strength.score] : "bg-foreground/10"
             )}
           />
         ))}
       </div>
-      <div className="flex items-center justify-between gap-2 text-[11px]">
-        <span className={cn(strength ? LABEL_COLORS[strength.score] : "text-muted-foreground")} aria-live="polite">
-          {strength ? `Strength: ${strength.label}` : "Use 16+ characters, or let Portal make one."}
-        </span>
-        <button
-          type="button"
-          onClick={onSuggest}
-          className="inline-flex shrink-0 items-center gap-1 font-semibold text-foreground hover:text-[var(--brand-green)]"
-        >
-          <Sparkles className="h-3 w-3" />
-          Suggest strong password
-        </button>
-      </div>
+      <p id={id} className={cn("text-xs", strength ? SCORE_TEXT[strength.score] : "text-muted-foreground")} aria-live="polite">
+        {strength ? `Strength: ${strength.label}` : "Use 16+ characters, or let Portal make one."}
+      </p>
     </div>
   );
 }

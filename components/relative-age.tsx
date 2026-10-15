@@ -49,8 +49,12 @@ export function ageLabelFromDate(isoDate: string, now: number) {
   return `${Math.max(1, Math.floor(diffMs / MINUTE_MS))}m`;
 }
 
-/** Compact "3d" / "5h" / "2m" age that refreshes itself every minute. */
-export function RelativeAge({ iso }: { iso: string }) {
+/**
+ * Compact "3d" / "5h" / "2m" age that refreshes itself every minute. `prefix` / `suffix`
+ * ("uploaded ", " ago") show only once there is an age, so the server render stays empty.
+ */
+export function RelativeAge({ iso, prefix = "", suffix = "" }: { iso: string; prefix?: string; suffix?: string }) {
   const now = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-  return <>{ageLabelFromDate(iso, now)}</>;
+  const label = ageLabelFromDate(iso, now);
+  return <>{label ? `${prefix}${label}${suffix}` : ""}</>;
 }

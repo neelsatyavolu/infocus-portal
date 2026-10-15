@@ -1,47 +1,43 @@
-import { BrandWordmark } from "@/components/brand-wordmark";
 import { ArrowLeft } from "lucide-react";
+import { BrandWordmark } from "@/components/brand-wordmark";
+import { buttonVariants } from "@/components/ui/button";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { mainAppOrigin } from "@/src/lib/hosts";
+import { cn } from "@/src/lib/utils";
 
 type TeleprompterShellProps = {
   children: React.ReactNode;
 };
 
 /**
- * Minimal chrome for teleprompter.infocuspaly.com — full-bleed editor with a
- * single way back to the packages dashboard. No main app sidebar.
+ * Minimal chrome for teleprompter.infocuspaly.com: the wordmark, the app's name and one way back
+ * to the Portal, no main app sidebar. The header and the page share one gutter (16px, 24px from
+ * md), so the wordmark, the page plate and the workspace line up. The header clears the top
+ * safe area (home-screen and iPad use), and `--app-header-h` matches its height so the page's
+ * sticky rail and toolbar sit right under it. Works with no session (studio kiosk).
  */
 export function TeleprompterShell({ children }: TeleprompterShellProps) {
   const dashboardUrl = `${mainAppOrigin().replace(/\/$/, "")}/dashboard`;
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
-      <header className="sticky top-0 z-40 flex h-12 shrink-0 items-center gap-3 border-b border-border bg-[var(--ink)] px-3 sm:px-4">
-        <a
-          href={dashboardUrl}
-          className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[13px] font-medium text-muted-foreground transition hover:bg-card hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          <span className="hidden sm:inline">Dashboard</span>
-        </a>
-
-        <div className="h-5 w-px bg-border" />
-
-        <div className="flex min-w-0 flex-1 items-center gap-2">
+    <TooltipProvider delayDuration={300}>
+      <div className="flex min-h-screen flex-col bg-background text-foreground [--app-header-h:calc(3rem+env(safe-area-inset-top,0px))]">
+        <header className="sticky top-0 z-40 flex h-[var(--app-header-h)] shrink-0 items-center gap-3 border-b border-border bg-[var(--ink)] px-4 pt-[env(safe-area-inset-top,0px)] md:px-6">
           <BrandWordmark className="h-6 w-auto object-contain" width={140} height={48} priority />
-          <span className="hidden truncate text-[13px] font-semibold text-foreground sm:inline">
-            Teleprompter
-          </span>
-        </div>
+          <span aria-hidden className="h-5 w-px shrink-0 bg-border" />
+          <span className="min-w-0 truncate text-[13px] font-semibold text-foreground">Teleprompter</span>
+          <a
+            href={dashboardUrl}
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }), "ml-auto shrink-0 max-sm:size-10 max-sm:px-0")}
+          >
+            <ArrowLeft aria-hidden />
+            <span className="max-sm:hidden">Back to Portal</span>
+            <span className="sr-only sm:hidden">Back to InFocus Portal</span>
+          </a>
+        </header>
 
-        <a
-          href={dashboardUrl}
-          className="rounded-md border border-border bg-secondary px-2.5 py-1 text-xs font-semibold text-foreground transition hover:bg-accent"
-        >
-          Back to InFocus Portal
-        </a>
-      </header>
-
-      <main className="flex min-h-0 flex-1 flex-col">{children}</main>
-    </div>
+        <main className="flex min-h-0 flex-1 flex-col px-4 py-4 md:px-6 md:py-6">{children}</main>
+      </div>
+    </TooltipProvider>
   );
 }

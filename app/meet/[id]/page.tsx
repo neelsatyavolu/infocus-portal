@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { StatusTag } from "@/components/kit/status-tag";
 import { buttonVariants } from "@/components/ui/button";
 import { MeetCallLoader } from "@/components/meetings/call/meet-call-loader";
+import { CallPlate } from "@/components/meetings/call/status-plate";
 import { EMBEDDED_APP_COOKIE } from "@/src/lib/embedded-app";
 import { requireMeetingViewer } from "@/src/server/meetings-access";
 import { resolveProducerSeriesMeetingId } from "@/src/server/meetings-schedule";
@@ -27,18 +29,19 @@ async function viewerOrRedirect() {
 
 function NoProducerMeeting({ embedded }: { embedded: boolean }) {
   return (
-    <main className="flex min-h-dvh items-center justify-center px-4 pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)]">
-      <section className="w-full max-w-md space-y-3 border border-[var(--ink-4)] bg-[var(--ink-2)] p-6">
-        <div className="eyebrow">InFocus Producer Meeting</div>
-        <h1 className="display-sm text-foreground">No InFocus Producer Meeting scheduled</h1>
-        <p className="text-sm text-[var(--ink-text)]">There isn&rsquo;t a live or upcoming one right now.</p>
-        {!embedded ? (
+    <CallPlate
+      eyebrow="InFocus Producer Meeting"
+      tag={<StatusTag tone="neutral">None scheduled</StatusTag>}
+      title="No InFocus Producer Meeting scheduled"
+      body="There isn't a live or upcoming one right now."
+      actions={
+        !embedded ? (
           <Link href={"/meetings" as never} className={buttonVariants({ variant: "outline" })}>
             Go to Meetings
           </Link>
-        ) : null}
-      </section>
-    </main>
+        ) : undefined
+      }
+    />
   );
 }
 

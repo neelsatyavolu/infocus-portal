@@ -1,1416 +1,318 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { createPortal } from "react-dom";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { RotateCw } from "lucide-react";
+import { Alert } from "@/components/kit/alert";
+import { ErrorState } from "@/components/kit/empty-state";
+import { useHotkeys } from "@/components/kit/hotkeys";
+import { useRememberedState } from "@/components/kit/remembered-state";
+import { Spinner } from "@/components/kit/spinner";
+import { ViewTabPanel, ViewTabs } from "@/components/kit/view-tabs";
+import { Button } from "@/components/ui/button";
+import type { EventContext } from "./event-parts";
+import { EventEditor, type EditorTarget } from "./event-editor";
+import { CompletionView } from "./completion-view";
+import { LivestreamsHeader } from "./livestreams-header";
 import {
-  Check,
-  CheckCircle2,
-  Loader2,
-  Plus,
-  Radio,
-  RefreshCcw,
-  Trash2,
-  UserPlus,
-  Users,
-  X
-} from "lucide-react";
-import { toast } from "sonner";
-import { PageHeader } from "@/components/page-header";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from "@/components/ui/dialog";
-import {
-  LIVESTREAM_AVAILABILITY_LABELS,
-  LIVESTREAM_STATUS_LABELS,
-  REQUIRED_LIVESTREAM_HOURS,
-  REQUIRED_MANAGED_LIVESTREAMS,
-  upcomingLivestreamsFirst
-} from "@/src/lib/livestream";
-import { cachedValue, rememberValue } from "@/src/lib/client-cache";
-import { cn } from "@/src/lib/utils";
+  allowedViews,
+  needsCompletion,
+  scheduleFilterOptions,
+  VIEW_TITLES,
+  type EventRow,
+  type ScheduleFilter,
+  type View
+} from "./livestreams-model";
+import { LivestreamsSkeleton } from "./livestreams-skeleton";
+import { ManagersDialog } from "./managers-dialog";
+import { RequestDialog } from "./request-dialog";
+import { ScheduleStrip } from "./schedule-strip";
+import { ScheduleView } from "./schedule-view";
+import { newSince } from "./since-last-visit";
+import { signupGroupId, SignupsView } from "./signups-view";
+import { useLivestreamsData } from "./use-livestreams-data";
+import { useSinceLastVisit } from "./use-since-last-visit";
 
-type Person = { id: string; name: string | null; email: string | null };
+const VIEWS: View[] = ["schedule", "signups", "completion"];
+const FILTERS: ScheduleFilter[] = ["all", "open", "mine", "action"];
+const TABS_ID = "livestreams";
 
-type EventRow = {
-  id: string;
-  title: string;
-  startsAt: string;
-  arrivesAt: string | null;
-  location: string;
-  status: "SCHEDULED" | "COMPLETED" | "CANCELLED";
-  availability: "PUBLIC" | "UNLISTED" | "UNCONFIRMED";
-  hours: number | null;
-  capacity: number;
-  notes: string;
-  manager: Person | null;
-  attendees: (Person & { creditHours: number | null })[];
-  attendeeCount: number;
-  openSlots: number;
-  capacityTone: "full" | "one" | "open";
-  mySignup: { id: string; status: string; availableFullEvent: boolean } | null;
-  pendingSignupCount: number;
-};
-
-type PendingSignup = {
-  id: string;
-  eventId: string;
-  status: string;
-  availableFullEvent: boolean;
-  note: string;
-  createdAt: string;
-  user: Person | null;
-  event: { id: string; title: string; startsAt: string } | null;
-};
-
-type CompletionRow = {
-  userId: string;
-  name: string | null;
-  email: string | null;
-  completedHours: number;
-  completedEvents: number;
-  requiredHours: number;
-  isManager: boolean;
-  managedEvents: number;
-  requiredManagedEvents: number;
-  creditPercent: number;
-  points: number;
-};
-
-type Payload = {
-  semester: { label: string; start: string; end: string };
-  requiredHours: number;
-  canManage: boolean;
-  canSignup: boolean;
-  canAppointManagers: boolean;
-  canViewCompletion: boolean;
-  currentUserId: string;
-  managers: Person[];
-  events: EventRow[];
-  pendingSignups: PendingSignup[];
-  mySignups: Array<{ id: string; eventId: string; status: string }>;
-};
-
-type Tab = "schedule" | "completion" | "signups";
-
-type EventFormState = {
-  title: string;
-  startsAt: string;
-  arrivalTime: string;
-  location: string;
-  status: EventRow["status"];
-  availability: EventRow["availability"];
-  hours: string;
-  capacity: string;
-  notes: string;
-  managerUserId: string;
-  attendeeUserIds: string[];
-  attendeeCredits: Record<string, string>;
-};
-
-function personLabel(p: { name?: string | null; email?: string | null } | null | undefined) {
-  if (!p) return "—";
-  return p.name?.trim() || p.email || "Member";
+function isView(value: unknown): value is View {
+  return VIEWS.includes(value as View);
 }
 
-function formatWhen(iso: string) {
-  const d = new Date(iso);
-  return d.toLocaleString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit"
-  });
+function isScheduleFilter(value: unknown): value is ScheduleFilter {
+  return FILTERS.includes(value as ScheduleFilter);
 }
 
-function formatDay(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+function isBooleanOrNull(value: unknown): value is boolean | null {
+  return value === null || typeof value === "boolean";
 }
 
-function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+function prefersReducedMotion() {
+  return typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 }
 
-function toLocalInputValue(iso?: string) {
-  const d = iso ? new Date(iso) : new Date();
-  if (Number.isNaN(d.getTime())) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+/** One request dialog per opening (`key`); `open` turns false while the event stays for the exit animation. */
+type RequestTarget = { key: number; event: EventRow; open: boolean };
+
+/** The payload failed to refresh but an older copy is on screen. */
+function StaleDataAlert({ message, busy, onRetry }: { message: string; busy: boolean; onRetry: () => void }) {
+  return (
+    <Alert
+      tone="danger"
+      action={
+        <Button type="button" variant="outline" size="sm" disabled={busy} onClick={onRetry}>
+          {busy ? <Spinner /> : <RotateCw aria-hidden />}
+          Try again
+        </Button>
+      }
+    >
+      Couldn&apos;t load livestreams: {message}
+    </Alert>
+  );
 }
-
-function capacityClass(tone: EventRow["capacityTone"]) {
-  if (tone === "full") return "bg-amber-500/[0.07]";
-  if (tone === "one") return "bg-orange-500/[0.07]";
-  return "bg-danger/[0.05]";
-}
-
-function capacityDot(tone: EventRow["capacityTone"]) {
-  if (tone === "full") return "bg-amber-400";
-  if (tone === "one") return "bg-orange-400";
-  return "bg-danger";
-}
-
-function statusPill(status: EventRow["status"]) {
-  if (status === "COMPLETED") {
-    return "border-[rgb(43,179,110,0.35)] bg-[rgb(43,179,110,0.12)] text-[var(--brand-green)]";
-  }
-  if (status === "CANCELLED") {
-    return "border-foreground/10 bg-foreground/[0.04] text-[var(--ink-text)] line-through decoration-foreground/30";
-  }
-  return "border-sky-400/30 bg-sky-500/10 text-sky-300";
-}
-
-async function readJson<T>(res: Response): Promise<T> {
-  const body = await res.json();
-  if (!res.ok) {
-    throw new Error(body?.error?.message || "Request failed");
-  }
-  return body.data as T;
-}
-
-const emptyForm = (): EventFormState => ({
-  title: "",
-  startsAt: toLocalInputValue(),
-  arrivalTime: "",
-  location: "",
-  status: "SCHEDULED",
-  availability: "UNCONFIRMED",
-  hours: "",
-  capacity: "4",
-  notes: "",
-  managerUserId: "",
-  attendeeCredits: {},
-  attendeeUserIds: []
-});
-
-const fieldClass =
-  "mt-1.5 h-10 w-full rounded-lg border border-foreground/[0.08] bg-black/40 light:bg-muted px-3 text-base text-foreground outline-none transition placeholder:text-muted-foreground focus:border-[var(--brand-green)]/50 md:text-sm focus:ring-1 focus:ring-[var(--brand-green)]/30";
-
-const labelClass = "block text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-text)]";
-
-const LIVESTREAMS_CACHE_KEY = "livestreams";
 
 export default function LivestreamsClient() {
-  const [tab, setTab] = useState<Tab>("schedule");
-  const [data, setData] = useState<Payload | null>(null);
-  const [completion, setCompletion] = useState<CompletionRow[] | null>(null);
-  const [members, setMembers] = useState<Person[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [editing, setEditing] = useState<EventRow | null>(null);
-  const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState<EventFormState>(emptyForm);
-  const [managerPick, setManagerPick] = useState("");
-  const [signupNote, setSignupNote] = useState<Record<string, string>>({});
-  const [memberQuery, setMemberQuery] = useState("");
-  const [mounted, setMounted] = useState(false);
-  const [pendingDeleteEventId, setPendingDeleteEventId] = useState<string | null>(null);
-  const [pendingManagerRemoval, setPendingManagerRemoval] = useState<Person | null>(null);
+  const live = useLivestreamsData();
+  const { data, showCompletion, ensureMembers } = live;
+  const visit = useSinceLastVisit(live.fresh);
 
+  const [storedView, setStoredView] = useRememberedState<View>("livestreams:view:v1", "schedule", isView);
+  const views = allowedViews(data);
+  const view: View = views.includes(storedView) ? storedView : "schedule";
+  const { reload } = live;
+  /** A tab switch also refreshes the schedule quietly, so a queue left open doesn't go stale. */
+  const setView = useCallback(
+    (next: View) => {
+      setStoredView(next);
+      if (next !== view) void reload();
+    },
+    [setStoredView, view, reload]
+  );
+  const [storedFilter, setFilter] = useRememberedState<ScheduleFilter>("livestreams:schedule-filter:v1", "all", isScheduleFilter);
+  const filter = data && scheduleFilterOptions(data).includes(storedFilter) ? storedFilter : "all";
+  // null = never toggled: open for managers (past livestreams are their close-out work), folded for everyone else.
+  const [earlierPref, setEarlierPref] = useRememberedState<boolean | null>("livestreams:earlier-open:v1", null, isBooleanOrNull);
+
+  const [editor, setEditor] = useState<EditorTarget | null>(null);
+  const [request, setRequest] = useState<RequestTarget | null>(null);
+  const session = useRef(0);
+  const [signupNotes, setSignupNotes] = useState<Record<string, string>>({});
+  const [managersOpen, setManagersOpen] = useState(false);
+  const [scrollTarget, setScrollTarget] = useState<{ id: string; nonce: number } | null>(null);
+  const [changesDismissed, setChangesDismissed] = useState(false);
+  const [now, setNow] = useState(() => new Date());
+
+  // "Today", upcoming and "to mark completed" follow the clock and every fresh payload.
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const load = useCallback(async () => {
-    setError(null);
-    const payload = await readJson<Payload>(await fetch("/api/livestreams"));
-    rememberValue(LIVESTREAMS_CACHE_KEY, payload);
-    setData(payload);
-
-    if (payload.canManage) {
-      const memberPayload = await readJson<{ members: Person[] }>(
-        await fetch("/api/livestreams/members")
-      );
-      setMembers(memberPayload.members);
-    }
-
-    if (payload.canViewCompletion && tab === "completion") {
-      const c = await readJson<{ rows: CompletionRow[] }>(
-        await fetch("/api/livestreams/completion")
-      );
-      setCompletion(c.rows);
-    }
-  }, [tab]);
-
-  useEffect(() => {
-    let cancelled = false;
-    // On first view (mount or tab switch), show the last copy at once and refresh it quietly
-    // (src/lib/client-cache.ts). Reloads after a save call load() directly and skip it.
-    const cached = cachedValue<Payload>(LIVESTREAMS_CACHE_KEY);
-    if (cached) setData(cached);
-    (async () => {
-      try {
-        setLoading(!cached);
-        await load();
-      } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [load]);
-
-  useEffect(() => {
-    if (!data?.canViewCompletion || tab !== "completion") return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const c = await readJson<{ rows: CompletionRow[] }>(
-          await fetch("/api/livestreams/completion")
-        );
-        if (!cancelled) setCompletion(c.rows);
-      } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load completion");
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [data?.canViewCompletion, tab]);
-
-  const formOpen = creating || Boolean(editing);
-
-  const openCreate = () => {
-    setEditing(null);
-    setForm(emptyForm());
-    setMemberQuery("");
-    setCreating(true);
-  };
-
-  const openEdit = (event: EventRow) => {
-    setCreating(false);
-    setEditing(event);
-    setMemberQuery("");
-    setForm({
-      title: event.title,
-      startsAt: toLocalInputValue(event.startsAt),
-      arrivalTime: event.arrivesAt ? toLocalInputValue(event.arrivesAt).slice(11) : "",
-      location: event.location,
-      status: event.status,
-      availability: event.availability,
-      hours: event.hours == null ? "" : String(event.hours),
-      capacity: String(event.capacity),
-      notes: event.notes,
-      managerUserId: event.manager?.id ?? "",
-      attendeeCredits: Object.fromEntries(event.attendees.map((a) => [a.id, a.creditHours == null ? "" : String(a.creditHours)])),
-      attendeeUserIds: event.attendees.map((a) => a.id)
-    });
-  };
-
-  const closeForm = () => {
-    setCreating(false);
-    setEditing(null);
-  };
-
-  const saveEvent = async () => {
-    if (!form.title.trim()) {
-      setError("Title is required.");
-      return;
-    }
-    if (!form.startsAt) {
-      setError("Event start time is required.");
-      return;
-    }
-    if (!form.arrivalTime) {
-      setError("Arrival time is required.");
-      return;
-    }
-    setBusy(true);
-    setError(null);
-    try {
-      const payload = {
-        title: form.title.trim(),
-        startsAt: new Date(form.startsAt).toISOString(),
-        arrivesAt: new Date(`${form.startsAt.slice(0, 10)}T${form.arrivalTime}`).toISOString(),
-        location: form.location.trim(),
-        status: form.status,
-        availability: form.availability,
-        hours: form.hours === "" ? null : Number(form.hours),
-        capacity: Number(form.capacity) || 4,
-        notes: form.notes,
-        managerUserId: form.managerUserId || null,
-        attendeeCredits: form.attendeeUserIds.map((userId) => ({
-          userId,
-          creditHours: form.attendeeCredits[userId]?.trim() ? Number(form.attendeeCredits[userId]) : null
-        })),
-        attendeeUserIds: form.attendeeUserIds
-      };
-
-      if (editing) {
-        await readJson(
-          await fetch(`/api/livestreams/events/${editing.id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-          })
-        );
-      } else {
-        await readJson(
-          await fetch("/api/livestreams/events", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-          })
-        );
-      }
-      closeForm();
-      await load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Save failed");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  // Throws on failure so the confirm dialog stays open for a retry.
-  const deleteEvent = async (id: string) => {
-    setBusy(true);
-    try {
-      await readJson(await fetch(`/api/livestreams/events/${id}`, { method: "DELETE" }));
-      closeForm();
-      toast.success("Livestream deleted");
-      await load();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Delete failed");
-      throw e;
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const requestSignup = async (eventId: string) => {
-    setBusy(true);
-    setError(null);
-    try {
-      await readJson(
-        await fetch("/api/livestreams/signups", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            eventId,
-            availableFullEvent: true,
-            note: signupNote[eventId] ?? ""
-          })
-        })
-      );
-      await load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Signup failed");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const reviewSignup = async (signupId: string, status: "APPROVED" | "DENIED") => {
-    setBusy(true);
-    setError(null);
-    try {
-      await readJson(
-        await fetch(`/api/livestreams/signups/${signupId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status })
-        })
-      );
-      await load();
-      if (tab === "completion" && data?.canViewCompletion) {
-        const c = await readJson<{ rows: CompletionRow[] }>(
-          await fetch("/api/livestreams/completion")
-        );
-        setCompletion(c.rows);
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Review failed");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const addManager = async () => {
-    if (!managerPick) return;
-    setBusy(true);
-    try {
-      await readJson(
-        await fetch("/api/livestreams/managers", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: managerPick })
-        })
-      );
-      setManagerPick("");
-      await load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not add manager");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  // Throws on failure so the confirm dialog stays open for a retry.
-  const removeManager = async (userId: string) => {
-    setBusy(true);
-    try {
-      await readJson(
-        await fetch(`/api/livestreams/managers?userId=${encodeURIComponent(userId)}`, {
-          method: "DELETE"
-        })
-      );
-      await load();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not remove manager");
-      throw e;
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const toggleAttendee = (userId: string) => {
-    setForm((prev) => {
-      const has = prev.attendeeUserIds.includes(userId);
-      return {
-        ...prev,
-        attendeeUserIds: has
-          ? prev.attendeeUserIds.filter((id) => id !== userId)
-          : [...prev.attendeeUserIds, userId]
-      };
-    });
-  };
-
-  const scheduleEvents = useMemo(() => (data ? upcomingLivestreamsFirst(data.events) : []), [data]);
-
-  const signupEvents = useMemo(() => {
-    if (!data) return [];
-    return data.events.filter((e) => e.status === "SCHEDULED");
+    setNow(new Date());
+    const timer = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(timer);
   }, [data]);
 
-  const stats = useMemo(() => {
-    if (!data) {
-      return { total: 0, scheduled: 0, completed: 0, cancelled: 0, pending: 0 };
-    }
-    return {
-      total: data.events.length,
-      scheduled: data.events.filter((e) => e.status === "SCHEDULED").length,
-      completed: data.events.filter((e) => e.status === "COMPLETED").length,
-      cancelled: data.events.filter((e) => e.status === "CANCELLED").length,
-      pending: data.pendingSignups.length
-    };
-  }, [data]);
+  useEffect(() => {
+    if (view === "completion" && data?.canViewCompletion) showCompletion();
+  }, [view, data?.canViewCompletion, showCompletion]);
 
-  const filteredMembers = useMemo(() => {
-    const q = memberQuery.trim().toLowerCase();
-    if (!q) return members;
-    return members.filter((m) => {
-      const label = personLabel(m).toLowerCase();
-      return label.includes(q) || (m.email ?? "").toLowerCase().includes(q);
+  // After switching to Sign ups from a row's "+N requests", bring that livestream's panel into view.
+  useEffect(() => {
+    if (!scrollTarget) return;
+    const frame = window.requestAnimationFrame(() => {
+      document
+        .getElementById(scrollTarget.id)
+        ?.scrollIntoView({ block: "start", behavior: prefersReducedMotion() ? "auto" : "smooth" });
     });
-  }, [members, memberQuery]);
+    return () => window.cancelAnimationFrame(frame);
+  }, [scrollTarget]);
 
-  const tabs = useMemo(() => {
-    const list: Array<{ id: Tab; label: string; badge?: number }> = [
-      { id: "schedule", label: "Schedule" }
-    ];
-    if (data?.canViewCompletion) {
-      list.push({ id: "completion", label: "Completion" });
-    }
-    list.push({
-      id: "signups",
-      label: "Sign ups",
-      badge: data?.canManage ? data.pendingSignups.length : undefined
-    });
-    return list;
-  }, [data]);
+  const toComplete = useMemo(() => (data ? data.events.filter((event) => needsCompletion(event, now)).length : 0), [data, now]);
+  const earlierOpen = earlierPref ?? Boolean(data?.canManage);
+  const newEventIds = useMemo(() => new Set(visit?.changes?.eventIds ?? []), [visit]);
+  const newRequestIds = useMemo(
+    () => new Set(newSince(data?.pendingSignups ?? [], visit?.lastSeenAt ?? null).map((pending) => pending.id)),
+    [data, visit]
+  );
 
-  if (loading && !data) {
+  const openEditor = useCallback(
+    (event: EventRow | null, complete: boolean) => {
+      session.current += 1;
+      setEditor({ key: session.current, event, complete });
+      void ensureMembers();
+    },
+    [ensureMembers]
+  );
+  const openCreate = useCallback(() => openEditor(null, false), [openEditor]);
+
+  /** Closes only the editor that asked: a save that finishes late never closes a newer one. */
+  const closeEditor = (key: number) => setEditor((current) => (current?.key === key ? null : current));
+
+  const openRequest = (event: EventRow) => {
+    session.current += 1;
+    setRequest({ key: session.current, event, open: true });
+  };
+  const closeRequest = (key: number) =>
+    setRequest((current) => (current?.key === key ? { ...current, open: false } : current));
+
+  const openManagers = () => {
+    setManagersOpen(true);
+    void ensureMembers();
+  };
+
+  const refresh = () => {
+    void live.reload();
+    live.refreshMembers();
+    if (view === "completion") void live.loadCompletion();
+  };
+
+  const openRequests = (event: EventRow) => {
+    setView("signups");
+    setScrollTarget({ id: signupGroupId(event.id), nonce: Date.now() });
+  };
+
+  useHotkeys({ n: openCreate }, { enabled: Boolean(data?.canManage) });
+
+  if (!data) {
+    if (live.initialLoading) return <LivestreamsSkeleton />;
     return (
-      <div className="flex min-h-[50vh] items-center justify-center text-[var(--ink-text)]">
-        <Loader2 className="mr-2 h-4 w-4 animate-spin text-[var(--brand-green)]" />
-        Loading livestreams…
+      <div className="space-y-5">
+        <LivestreamsHeader data={null} view="schedule" refreshing={live.refreshing} onRefresh={refresh} onManagers={openManagers} onAddEvent={openCreate} />
+        <div className="rounded-md border border-border bg-card">
+          <ErrorState
+            title="Couldn't load livestreams"
+            message={live.loadError ?? "Failed to load"}
+            onRetry={() => void live.reload()}
+            busy={live.refreshing}
+          />
+        </div>
       </div>
     );
   }
 
+  const ctx: EventContext = {
+    payload: data,
+    now,
+    newIds: newEventIds,
+    onRequest: openRequest,
+    onEdit: (event) => openEditor(event, false),
+    onComplete: (event) => openEditor(event, true),
+    onOpenRequests: openRequests
+  };
+
+  const schedule = (
+    <div className="space-y-5">
+      <ScheduleStrip
+        payload={data}
+        now={now}
+        toComplete={toComplete}
+        visit={visit}
+        changesDismissed={changesDismissed}
+        onDismissChanges={() => setChangesDismissed(true)}
+      />
+      <ScheduleView
+        ctx={ctx}
+        filter={filter}
+        onFilterChange={setFilter}
+        toComplete={toComplete}
+        earlierOpen={earlierOpen}
+        onEarlierOpenChange={setEarlierPref}
+        onAddEvent={openCreate}
+      />
+    </div>
+  );
+
+  const panels: Record<View, ReactNode> = {
+    schedule,
+    signups: <SignupsView payload={data} now={now} newIds={newRequestIds} onReview={live.reviewSignup} />,
+    completion: (
+      <CompletionView rows={live.completion} loading={live.completionLoading} error={live.completionError} onRetry={() => void live.loadCompletion()} />
+    )
+  };
+  const pendingCount = data.pendingSignups.length;
+
   return (
-    <div className="route-enter mx-auto w-full max-w-[1760px] space-y-5 pb-28">
-      <PageHeader
-        eyebrow={`Livestreams · ${data?.semester.label ?? "—"}`}
-        title={tab === "schedule" ? "Schedule" : tab === "completion" ? "Completion" : "Sign ups"}
-        description={`${
-          tab === "schedule"
-            ? "Every livestream this semester — arrival times, crew, managers, and hours."
-            : tab === "completion"
-              ? `${REQUIRED_LIVESTREAM_HOURS} hours for full credit. Partial credit scales linearly (4h = 50%). Livestream managers need ${REQUIRED_MANAGED_LIVESTREAMS} managed livestreams (10 points each).`
-              : data?.canManage
-                ? "Review member requests. Approving adds them to the crew and keeps completion in sync."
-                : "Request a slot on an open livestream. Managers approve and the schedule updates."
-        } · ${data?.requiredHours ?? REQUIRED_LIVESTREAM_HOURS}h required · ${stats.total} events`}
-        actions={
-          <>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => load().catch((e) => setError(e.message))}
-              disabled={busy}
-            >
-              <RefreshCcw className="mr-1.5 h-3.5 w-3.5" />
-              Refresh
-            </Button>
-            {data ? (
-              <Link href="/live" className={buttonVariants({ variant: "outline", size: "sm" })}>
-                <Radio className="mr-1.5 h-3.5 w-3.5" />
-                Dashboard
-              </Link>
-            ) : null}
-            {data?.canManage ? (
-              <Button type="button" size="sm" onClick={openCreate} disabled={busy}>
-                <Plus className="mr-1.5 h-3.5 w-3.5" />
-                Add event
-              </Button>
-            ) : null}
-          </>
-        }
+    <div className="space-y-5">
+      <LivestreamsHeader
+        data={data}
+        view={view}
+        refreshing={live.refreshing}
+        onRefresh={refresh}
+        onManagers={openManagers}
+        onAddEvent={openCreate}
       />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {[
-          { label: "Scheduled", value: stats.scheduled, tone: "text-sky-300" },
-          { label: "Completed", value: stats.completed, tone: "text-[var(--brand-green)]" },
-          { label: "Cancelled", value: stats.cancelled, tone: "text-[var(--ink-text)]" },
-          {
-            label: data?.canManage ? "Pending sign-ups" : "Open slots",
-            value: data?.canManage
-              ? stats.pending
-              : data?.events.reduce((n, e) => n + (e.status === "SCHEDULED" ? e.openSlots : 0), 0) ??
-                0,
-            tone: "text-amber-300"
-          }
-        ].map((card) => (
-          <div key={card.label} className="rounded-md border border-border bg-card px-4 py-3">
-            <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--ink-text)]">
-              {card.label}
-            </p>
-            <p className={cn("mt-1 text-3xl font-semibold tabular-nums", card.tone)}>
-              {card.value}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      {error ? (
-        <div className="rounded-md border border-danger/40 bg-danger-tint px-4 py-3 text-sm text-danger">
-          {error}
-        </div>
+      {views.length > 1 ? (
+        <ViewTabs
+          idPrefix={TABS_ID}
+          ariaLabel="Livestream views"
+          value={view}
+          onChange={setView}
+          items={views.map((item) => ({
+            value: item,
+            label: VIEW_TITLES[item],
+            ...(item === "signups"
+              ? {
+                  count: pendingCount,
+                  countTone: "brand" as const,
+                  countLabel: `${pendingCount} pending sign-up ${pendingCount === 1 ? "request" : "requests"}${
+                    newRequestIds.size ? `, ${newRequestIds.size} new since your last visit` : ""
+                  }`
+                }
+              : {})
+          }))}
+        />
       ) : null}
 
-      {/* Schedule */}
-      {tab === "schedule" ? (
-        <section className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--ink-text)]">
-            <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-400/30 bg-amber-500/10 px-2.5 py-1">
-              <span className={cn("h-1.5 w-1.5 rounded-full", capacityDot("full"))} />
-              Full
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-md border border-orange-400/30 bg-orange-500/10 px-2.5 py-1">
-              <span className={cn("h-1.5 w-1.5 rounded-full", capacityDot("one"))} />
-              1 open
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-md border border-danger/30 bg-danger-tint px-2.5 py-1">
-              <span className={cn("h-1.5 w-1.5 rounded-full", capacityDot("open"))} />
-              2+ open
-            </span>
-          </div>
+      {live.loadError ? <StaleDataAlert message={live.loadError} busy={live.refreshing} onRetry={() => void live.reload()} /> : null}
 
-          {!data?.events.length ? (
-            <div className="flex min-h-[280px] flex-col items-center justify-center rounded-md border border-dashed border-border bg-card px-6 py-16 text-center">
-              <div className="mb-3 grid h-12 w-12 place-items-center rounded-md border border-foreground/[0.08] bg-black/40 light:bg-muted">
-                <Radio className="h-5 w-5 text-[var(--brand-green)]" />
-              </div>
-              <p className="text-lg font-semibold tracking-tight text-foreground">
-                No livestreams yet
-              </p>
-              <p className="mt-1 max-w-md text-sm text-[var(--ink-text)]">
-                {data?.canManage
-                  ? "Add the first event to start the semester schedule."
-                  : "Check back once producers post the schedule."}
-              </p>
-              {data?.canManage ? (
-                <Button
-                  type="button"
-                  size="sm"
-                  className="mt-4 bg-[var(--brand-fill)] text-[var(--on-brand)]"
-                  onClick={openCreate}
-                >
-                  <Plus className="mr-1.5 h-3.5 w-3.5" />
-                  Add event
-                </Button>
-              ) : null}
-            </div>
-          ) : (
-            <div className="overflow-hidden rounded-md border border-border bg-card">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[980px] border-collapse text-sm">
-                  <thead>
-                    <tr className="border-b border-foreground/[0.06] bg-black/40 light:bg-muted text-left">
-                      {[
-                        "Event",
-                        "When",
-                        "Location",
-                        "Status",
-                        "Crew",
-                        "Manager",
-                        "Hours",
-                        ...(data.canManage ? [""] : [])
-                      ].map((h) => (
-                        <th
-                          key={h || "actions"}
-                          className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--ink-text)]"
-                        >
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {scheduleEvents.map((event) => (
-                      <tr
-                        key={event.id}
-                        className={cn(
-                          "border-b border-foreground/[0.04] transition hover:bg-foreground/[0.02]",
-                          capacityClass(event.capacityTone)
-                        )}
-                      >
-                        <td className="px-4 py-3.5">
-                          <div className="flex items-start gap-2.5">
-                            <span
-                              className={cn(
-                                "mt-1.5 h-2 w-2 shrink-0 rounded-full",
-                                capacityDot(event.capacityTone)
-                              )}
-                            />
-                            <div>
-                              <div className="font-medium text-foreground">{event.title}</div>
-                              <div className="mt-0.5 text-[11px] text-[var(--ink-text)]">
-                                {LIVESTREAM_AVAILABILITY_LABELS[event.availability]}
-                                {event.pendingSignupCount
-                                  ? ` · ${event.pendingSignupCount} pending`
-                                  : ""}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3.5 whitespace-nowrap text-[var(--ink-text)]">
-                          <div>
-                            {formatDay(event.startsAt)} ·{" "}
-                            {event.arrivesAt ? `Arrive ${formatTime(event.arrivesAt)}` : "Arrival TBD"}
-                          </div>
-                          <div className="mt-0.5 text-[11px]">Starts {formatTime(event.startsAt)}</div>
-                        </td>
-                        <td className="px-4 py-3.5 text-[var(--ink-text)]">
-                          {event.location || "—"}
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <span
-                            className={cn(
-                              "inline-flex rounded-md border px-2 py-0.5 text-[11px] font-semibold",
-                              statusPill(event.status)
-                            )}
-                          >
-                            {LIVESTREAM_STATUS_LABELS[event.status]}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <div className="font-medium tabular-nums text-foreground">
-                            {event.attendeeCount}
-                            <span className="text-[var(--ink-text)]">/{event.capacity}</span>
-                          </div>
-                          <div className="mt-0.5 max-w-[220px] truncate text-[11px] text-[var(--ink-text)]">
-                            {event.attendees
-                              .map((person) => person.name?.trim().split(/\s+/)[0] || personLabel(person))
-                              .join(", ") || "No crew yet"}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3.5 text-[var(--ink-text)]">
-                          {personLabel(event.manager)}
-                        </td>
-                        <td className="px-4 py-3.5 font-mono-broadcast tabular-nums text-foreground">
-                          {event.hours ?? "—"}
-                        </td>
-                        {data.canManage ? (
-                          <td className="px-4 py-3.5 text-right">
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="ghost"
-                              className="text-[var(--ink-text)] hover:text-foreground"
-                              onClick={() => openEdit(event)}
-                            >
-                              Edit
-                            </Button>
-                          </td>
-                        ) : null}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+      {views.length > 1
+        ? views.map((item) => (
+            <ViewTabPanel key={item} idPrefix={TABS_ID} value={item} active={view === item}>
+              {view === item ? panels[item] : null}
+            </ViewTabPanel>
+          ))
+        : schedule}
 
-          {data?.canAppointManagers ? (
-            <div className="rounded-md border border-border bg-card p-5">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <h2 className="text-base font-semibold tracking-tight text-foreground">
-                    Livestream managers
-                  </h2>
-                  <p className="mt-1 max-w-xl text-xs text-[var(--ink-text)]">
-                    Producers appoint managers. Managers can edit the schedule, approve sign-ups, and
-                    view completion.
-                  </p>
-                </div>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {data.managers.map((m) => (
-                  <span
-                    key={m.id}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-foreground/[0.08] bg-black/35 light:bg-muted px-3 py-1.5 text-xs text-foreground"
-                  >
-                    <Users className="h-3 w-3 text-[var(--brand-green)]" />
-                    {personLabel(m)}
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="-my-1 -mr-2 h-7 w-7 text-[var(--ink-text)] hover:text-danger"
-                      onClick={() => setPendingManagerRemoval(m)}
-                      disabled={busy}
-                      aria-label={`Remove ${personLabel(m)} as livestream manager`}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </span>
-                ))}
-                {!data.managers.length ? (
-                  <span className="text-xs text-[var(--ink-text)]">No managers yet.</span>
-                ) : null}
-              </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <select
-                  aria-label="Add livestream manager"
-                  className="h-10 min-w-[240px] rounded-lg border border-foreground/[0.08] bg-black/40 light:bg-muted px-3 text-base text-foreground outline-none focus:border-[var(--brand-green)]/50 md:text-sm"
-                  value={managerPick}
-                  onChange={(e) => setManagerPick(e.target.value)}
-                >
-                  <option value="">Add manager…</option>
-                  {members
-                    .filter((m) => !data.managers.some((x) => x.id === m.id))
-                    .map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {personLabel(m)}
-                      </option>
-                    ))}
-                </select>
-                <Button
-                  type="button"
-                  size="sm"
-                  className="h-10 bg-[var(--brand-fill)] text-[var(--on-brand)]"
-                  onClick={addManager}
-                  disabled={!managerPick || busy}
-                >
-                  <UserPlus className="mr-1.5 h-3.5 w-3.5" />
-                  Add
-                </Button>
-              </div>
-            </div>
-          ) : null}
-        </section>
+      {editor ? (
+        <EventEditor
+          key={editor.key}
+          target={editor}
+          managers={data.managers}
+          members={live.members}
+          membersError={live.membersError}
+          onRetryMembers={() => void ensureMembers()}
+          onSave={live.saveEvent}
+          onDelete={live.deleteEvent}
+          onClose={() => closeEditor(editor.key)}
+        />
       ) : null}
 
-      {/* Completion */}
-      {tab === "completion" && data?.canViewCompletion ? (
-        <section className="space-y-4">
-          {!completion ? (
-            <div className="flex min-h-[200px] items-center justify-center gap-2 text-sm text-[var(--ink-text)]">
-              <Loader2 className="h-4 w-4 animate-spin text-[var(--brand-green)]" />
-              Loading completion…
-            </div>
-          ) : (
-            <div className="overflow-hidden rounded-md border border-border bg-card">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[720px] border-collapse text-sm">
-                  <thead>
-                    <tr className="border-b border-foreground/[0.06] bg-black/40 light:bg-muted text-left">
-                      {["Name", "Events", "Hours", "Credit", "Points"].map((h) => (
-                        <th
-                          key={h}
-                          className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--ink-text)]"
-                        >
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {completion.map((row) => (
-                      <tr
-                        key={row.userId}
-                        className="border-b border-foreground/[0.04] transition hover:bg-foreground/[0.02]"
-                      >
-                        <td className="px-4 py-3.5">
-                          <div className="flex items-center gap-2 font-medium text-foreground">
-                            {personLabel(row)}
-                            {row.isManager ? (
-                              <span className="rounded-md border border-[rgb(43,179,110,0.4)] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.11em] text-[var(--brand-green)]">
-                                Manager
-                              </span>
-                            ) : null}
-                          </div>
-                          <div className="text-[11px] text-[var(--ink-text)]">{row.email}</div>
-                        </td>
-                        <td className="px-4 py-3.5 tabular-nums text-foreground">
-                          {row.isManager ? (
-                            <>
-                              {row.managedEvents}
-                              <span className="text-[var(--ink-text)]">
-                                {" "}/ {row.requiredManagedEvents} managed
-                              </span>
-                            </>
-                          ) : (
-                            row.completedEvents
-                          )}
-                        </td>
-                        <td className="px-4 py-3.5 tabular-nums text-foreground">
-                          {row.isManager ? (
-                            <span className="text-[var(--ink-text)]">—</span>
-                          ) : (
-                            <>
-                              {row.completedHours}
-                              <span className="text-[var(--ink-text)]"> / {row.requiredHours}</span>
-                            </>
-                          )}
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <div className="flex items-center gap-2.5">
-                            <div className="h-1.5 w-28 overflow-hidden rounded-full bg-foreground/10">
-                              <div
-                                className="h-full rounded-full bg-[var(--brand-green)]"
-                                style={{ width: `${Math.min(100, row.creditPercent)}%` }}
-                              />
-                            </div>
-                            <span className="tabular-nums text-[var(--ink-text)]">
-                              {row.creditPercent}%
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3.5 font-mono-broadcast tabular-nums text-foreground">
-                          {row.points}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </section>
+      {request ? (
+        <RequestDialog
+          key={request.key}
+          event={request.event}
+          open={request.open}
+          note={signupNotes[request.event.id] ?? ""}
+          onNoteChange={(eventId, note) => setSignupNotes((current) => ({ ...current, [eventId]: note }))}
+          onClose={() => closeRequest(request.key)}
+          onSubmit={async (event, note) => {
+            await live.requestSignup(event.id, note);
+            setSignupNotes((current) => Object.fromEntries(Object.entries(current).filter(([id]) => id !== event.id)));
+          }}
+        />
       ) : null}
 
-      {/* Sign ups */}
-      {tab === "signups" ? (
-        <section className="space-y-4">
-          {data?.canManage ? (
-            <div className="rounded-md border border-border bg-card p-5">
-              <div className="flex items-center gap-2">
-                <h2 className="text-base font-semibold tracking-tight text-foreground">
-                  Pending requests
-                </h2>
-                {data.pendingSignups.length ? (
-                  <span className="rounded-md bg-[var(--brand-fill)] px-2 py-0.5 font-mono-broadcast text-[10px] font-medium tabular-nums text-[var(--on-brand)]">
-                    {data.pendingSignups.length}
-                  </span>
-                ) : null}
-              </div>
-              <p className="mt-1 text-xs text-[var(--ink-text)]">
-                Approving adds the member to the schedule crew. Completion updates when the event is
-                marked completed.
-              </p>
-              {!data.pendingSignups.length ? (
-                <div className="mt-6 flex flex-col items-center rounded-md border border-dashed border-foreground/[0.08] px-4 py-10 text-center">
-                  <CheckCircle2 className="mb-2 h-5 w-5 text-[var(--brand-green)]" />
-                  <p className="text-sm text-[var(--ink-text)]">Inbox clear — no pending sign-ups.</p>
-                </div>
-              ) : (
-                <ul className="mt-4 space-y-2">
-                  {data.pendingSignups.map((s) => (
-                    <li
-                      key={s.id}
-                      className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-foreground/[0.06] bg-black/30 light:bg-muted px-4 py-3"
-                    >
-                      <div className="min-w-0">
-                        <div className="font-medium text-foreground">{personLabel(s.user)}</div>
-                        <div className="mt-0.5 text-xs text-[var(--ink-text)]">
-                          {s.event?.title ?? "Event"} ·{" "}
-                          {s.event ? formatWhen(s.event.startsAt) : "—"}
-                          {!s.availableFullEvent ? " · partial availability" : ""}
-                          {s.note ? ` · ${s.note}` : ""}
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          type="button"
-                          size="sm"
-                          className="bg-[var(--brand-fill)] text-[var(--on-brand)]"
-                          onClick={() => reviewSignup(s.id, "APPROVED")}
-                          disabled={busy}
-                        >
-                          <Check className="mr-1 h-3.5 w-3.5" />
-                          Approve
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className="border-foreground/15"
-                          onClick={() => reviewSignup(s.id, "DENIED")}
-                          disabled={busy}
-                        >
-                          Deny
-                        </Button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          ) : null}
-
-          <div className="rounded-md border border-border bg-card p-5">
-            <h2 className="text-base font-semibold tracking-tight text-foreground">
-              {data?.canSignup ? "Request a slot" : "Open livestreams"}
-            </h2>
-            <p className="mt-1 text-xs text-[var(--ink-text)]">
-              {data?.canSignup
-                ? "Pick an open event. Managers approve requests and the schedule updates."
-                : "Livestream managers cannot request slots. You can assign crew while editing an event."}
-            </p>
-            {!signupEvents.length ? (
-              <p className="mt-6 text-center text-sm text-[var(--ink-text)]">
-                No open livestreams right now.
-              </p>
-            ) : (
-              <ul className="mt-4 grid gap-3 md:grid-cols-2">
-                {signupEvents.map((event) => {
-                  const attending = event.attendees.some((a) => a.id === data?.currentUserId);
-                  const my = event.mySignup;
-                  const full = event.openSlots <= 0;
-                  return (
-                    <li
-                      key={event.id}
-                      className={cn(
-                        "rounded-md border border-foreground/[0.06] px-4 py-3.5",
-                        capacityClass(event.capacityTone)
-                      )}
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={cn("h-2 w-2 rounded-full", capacityDot(event.capacityTone))}
-                            />
-                            <div className="font-medium text-foreground">{event.title}</div>
-                          </div>
-                          <div className="mt-1 text-xs text-[var(--ink-text)]">
-                            {formatWhen(event.startsAt)} · {event.location || "TBD"} ·{" "}
-                            {event.attendeeCount}/{event.capacity}
-                          </div>
-                        </div>
-                        {attending ? (
-                          <span className="rounded-md border border-[rgb(43,179,110,0.35)] bg-[rgb(43,179,110,0.12)] px-2 py-0.5 text-[11px] font-semibold text-[var(--brand-green)]">
-                            On crew
-                          </span>
-                        ) : my?.status === "PENDING" ? (
-                          <span className="rounded-md border border-amber-400/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-300">
-                            Pending
-                          </span>
-                        ) : null}
-                      </div>
-                      {!attending && my?.status !== "PENDING" && data?.canSignup ? (
-                        <div className="mt-3 flex flex-wrap items-center gap-2">
-                          <input
-                            className="h-9 min-w-[160px] flex-1 rounded-lg border border-foreground/[0.08] bg-black/40 light:bg-muted px-3 text-xs text-foreground outline-none focus:border-[var(--brand-green)]/50"
-                            placeholder="Optional note"
-                            aria-label={`Optional note for ${event.title}`}
-                            value={signupNote[event.id] ?? ""}
-                            onChange={(e) =>
-                              setSignupNote((prev) => ({ ...prev, [event.id]: e.target.value }))
-                            }
-                          />
-                          <Button
-                            type="button"
-                            size="sm"
-                            className="bg-[var(--brand-fill)] text-[var(--on-brand)]"
-                            disabled={busy || full}
-                            onClick={() => requestSignup(event.id)}
-                          >
-                            {full ? "Full" : "Request sign-up"}
-                          </Button>
-                        </div>
-                      ) : null}
-                      {!attending && my?.status === "DENIED" && data?.canSignup ? (
-                        <Button
-                          type="button"
-                          size="sm"
-                          className="mt-3 bg-[var(--brand-fill)] text-[var(--on-brand)]"
-                          disabled={busy || full}
-                          onClick={() => requestSignup(event.id)}
-                        >
-                          Request again
-                        </Button>
-                      ) : null}
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-        </section>
+      {data.canAppointManagers ? (
+        <ManagersDialog
+          open={managersOpen}
+          onOpenChange={setManagersOpen}
+          managers={data.managers}
+          members={live.members}
+          membersError={live.membersError}
+          onRetryMembers={() => void ensureMembers()}
+          onAdd={live.addManager}
+          onRemove={live.removeManager}
+        />
       ) : null}
-
-      {/* Edit / create dialog */}
-      <Dialog
-        open={formOpen}
-        onOpenChange={(open) => {
-          if (!open) closeForm();
-        }}
-      >
-        <DialogContent className="max-h-[90dvh] max-w-xl overflow-y-auto border-foreground/[0.08] bg-card p-0 sm:rounded-2xl">
-          <div className="border-b border-foreground/[0.06] px-6 py-5">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-semibold tracking-tight text-foreground">
-                {editing ? "Edit livestream" : "New livestream"}
-              </DialogTitle>
-              <DialogDescription className="text-[var(--ink-text)]">
-                {editing
-                  ? "Update schedule details, crew, and hours."
-                  : "Add an event to the semester schedule."}
-              </DialogDescription>
-            </DialogHeader>
-          </div>
-
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (!busy) void saveEvent();
-            }}
-          >
-          <div className="space-y-4 px-6 py-5">
-            <label className={labelClass}>
-              Event name
-              <input
-                className={fieldClass}
-                value={form.title}
-                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                placeholder="e.g. Choir Pops Concert"
-              />
-            </label>
-            <label className={labelClass}>
-              Date & event start time
-              <input
-                type="datetime-local"
-                className={fieldClass}
-                required
-                value={form.startsAt}
-                onChange={(e) => setForm((f) => ({ ...f, startsAt: e.target.value }))}
-              />
-            </label>
-            <label className={labelClass}>
-              Crew arrival time
-              <input
-                type="time"
-                className={fieldClass}
-                required
-                value={form.arrivalTime}
-                onChange={(e) => setForm((f) => ({ ...f, arrivalTime: e.target.value }))}
-              />
-            </label>
-            <label className={labelClass}>
-              Location
-              <input
-                className={fieldClass}
-                value={form.location}
-                onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
-                placeholder="PAC, Gym, LAX Field…"
-              />
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <label className={labelClass}>
-                Status
-                <select
-                  className={fieldClass}
-                  value={form.status}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, status: e.target.value as EventRow["status"] }))
-                  }
-                >
-                  <option value="SCHEDULED">Scheduled</option>
-                  <option value="COMPLETED">Completed</option>
-                  <option value="CANCELLED">Cancelled</option>
-                </select>
-              </label>
-              <label className={labelClass}>
-                Availability
-                <select
-                  className={fieldClass}
-                  value={form.availability}
-                  onChange={(e) =>
-                    setForm((f) => ({
-                      ...f,
-                      availability: e.target.value as EventRow["availability"]
-                    }))
-                  }
-                >
-                  <option value="PUBLIC">Public</option>
-                  <option value="UNLISTED">Unlisted</option>
-                  <option value="UNCONFIRMED">Unconfirmed</option>
-                </select>
-              </label>
-              <label className={labelClass}>
-                Default credit hours {form.status === "COMPLETED" ? "(required)" : ""}
-                <input
-                  type="number"
-                  min={0}
-                  max={24}
-                  step={0.25}
-                  className={fieldClass}
-                  value={form.hours}
-                  onChange={(e) => setForm((f) => ({ ...f, hours: e.target.value }))}
-                  placeholder="e.g. 3"
-                />
-              </label>
-              <label className={labelClass}>
-                Capacity
-                <input
-                  type="number"
-                  min={1}
-                  max={50}
-                  className={fieldClass}
-                  value={form.capacity}
-                  onChange={(e) => setForm((f) => ({ ...f, capacity: e.target.value }))}
-                />
-              </label>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-xs text-[var(--ink-text)]">
-                Credit applies only to completed events. Set default hours to 0 to cancel all credit,
-                including individual overrides. Attendance is retained.
-              </p>
-              <Button type="button" variant="destructive-quiet" size="sm"
-                onClick={() => setForm((f) => ({ ...f, hours: "0" }))}>
-                Cancel credit
-              </Button>
-            </div>
-            <label className={labelClass}>
-              Event manager
-              <select
-                className={fieldClass}
-                value={form.managerUserId}
-                onChange={(e) => setForm((f) => ({ ...f, managerUserId: e.target.value }))}
-              >
-                <option value="">None</option>
-                {members.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {personLabel(m)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div>
-              <div className="flex items-center justify-between gap-2">
-                <span className={labelClass}>Crew / attendees</span>
-                <span className="text-[11px] tabular-nums text-[var(--ink-text)]">
-                  {form.attendeeUserIds.length} selected
-                </span>
-              </div>
-              <input
-                className={cn(fieldClass, "mb-2")}
-                placeholder="Search members…"
-                aria-label="Search members"
-                value={memberQuery}
-                onChange={(e) => setMemberQuery(e.target.value)}
-              />
-              <div className="max-h-40 space-y-0.5 overflow-y-auto rounded-lg border border-foreground/[0.08] bg-black/30 light:bg-muted p-2">
-                {filteredMembers.map((m) => {
-                  const checked = form.attendeeUserIds.includes(m.id);
-                  return (
-                    <label
-                      key={m.id}
-                      className={cn(
-                        "flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-xs transition",
-                        checked ? "bg-[rgb(43,179,110,0.12)] text-foreground" : "text-[var(--ink-text)] hover:bg-foreground/[0.04] hover:text-foreground"
-                      )}
-                    >
-                      <input
-                        type="checkbox"
-                        className="accent-[var(--brand-green)]"
-                        checked={checked}
-                        onChange={() => toggleAttendee(m.id)}
-                      />
-                      {personLabel(m)}
-                    </label>
-                  );
-                })}
-                {!filteredMembers.length ? (
-                  <p className="px-2 py-3 text-center text-xs text-[var(--ink-text)]">No matches.</p>
-                ) : null}
-              </div>
-            </div>
-            {form.attendeeUserIds.length > 0 ? (
-              <div className="space-y-2">
-                <p className={labelClass}>Individual credit hours</p>
-                <p className="text-xs text-[var(--ink-text)]">
-                  Leave blank for the event default. Enter 0 for no credit.
-                  Individual values are ignored when default credit is 0.
-                </p>
-                {form.attendeeUserIds.map((userId) => (
-                  <label key={userId} className="flex items-center justify-between gap-3 text-xs text-foreground">
-                    <span>{personLabel(members.find((member) => member.id === userId)
-                      ?? editing?.attendees.find((attendee) => attendee.id === userId))}</span>
-                    <input
-                      type="number"
-                      min={0}
-                      max={24}
-                      step={0.25}
-                      className={cn(fieldClass, "!mt-0 !w-32")}
-                      value={form.attendeeCredits[userId] ?? ""}
-                      placeholder={`Default (${form.hours || "0"})`}
-                      onChange={(e) => setForm((f) => ({
-                        ...f, attendeeCredits: { ...f.attendeeCredits, [userId]: e.target.value }
-                      }))}
-                    />
-                  </label>
-                ))}
-              </div>
-            ) : null}
-            <label className={labelClass}>
-              Notes
-              <textarea
-                className="mt-1.5 min-h-[72px] w-full rounded-lg border border-foreground/[0.08] bg-black/40 light:bg-muted px-3 py-2 text-base text-foreground outline-none focus:border-[var(--brand-green)]/50 md:text-sm focus:ring-1 focus:ring-[var(--brand-green)]/30"
-                value={form.notes}
-                onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-              />
-            </label>
-          </div>
-
-          <DialogFooter className="gap-2 border-t border-foreground/[0.06] px-6 py-4 sm:justify-between">
-            {editing ? (
-              <Button
-                type="button"
-                variant="destructive-quiet"
-                size="sm"
-                disabled={busy}
-                onClick={() => setPendingDeleteEventId(editing.id)}
-              >
-                <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-                Delete
-              </Button>
-            ) : (
-              <span />
-            )}
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" size="sm" className="border-foreground/15" onClick={closeForm}>
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                size="sm"
-                className="bg-[var(--brand-fill)] text-[var(--on-brand)]"
-                disabled={busy}
-              >
-                {busy ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
-                Save
-              </Button>
-            </div>
-          </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      <ConfirmDialog
-        open={pendingDeleteEventId !== null}
-        onOpenChange={(open) => {
-          if (!open) setPendingDeleteEventId(null);
-        }}
-        title="Delete this livestream event?"
-        description="This removes it from the semester schedule. This can't be undone."
-        confirmLabel="Delete"
-        onConfirm={() => (pendingDeleteEventId ? deleteEvent(pendingDeleteEventId) : undefined)}
-      />
-      <ConfirmDialog
-        open={pendingManagerRemoval !== null}
-        onOpenChange={(open) => {
-          if (!open) setPendingManagerRemoval(null);
-        }}
-        title={`Remove ${personLabel(pendingManagerRemoval)} as a livestream manager?`}
-        description="They can no longer edit the schedule, approve sign-ups, or view completion."
-        confirmLabel="Remove"
-        onConfirm={() => (pendingManagerRemoval ? removeManager(pendingManagerRemoval.id) : undefined)}
-      />
-
-      {/* Floating tab bar — portaled so fixed isn't trapped by route-enter transform / scroll shell */}
-      {mounted
-        ? createPortal(
-            <nav
-              aria-label="Livestream sections"
-              className="pointer-events-none fixed bottom-[calc(var(--phone-tabbar-h,0px)+max(1rem,env(safe-area-inset-bottom)))] left-0 right-0 z-[60] flex justify-center px-4 lg:left-[240px]"
-            >
-              <div className="pointer-events-auto inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-xl border border-foreground/[0.08] bg-card p-1">
-                {tabs.map((item) => {
-                  const isActive = tab === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => setTab(item.id)}
-                      className={cn(
-                        "inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2.5 text-[12px] font-medium uppercase tracking-[0.11em] transition max-sm:px-2.5 max-sm:text-[11px] max-sm:tracking-[0.08em]",
-                        isActive
-                          ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
-                          : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
-                      )}
-                    >
-                      {item.label}
-                      {item.badge ? (
-                        <span
-                          className={cn(
-                            "rounded px-1.5 py-0.5 font-mono-broadcast text-[10px] font-medium tabular-nums",
-                            isActive
-                              ? "bg-black/25 text-[var(--on-brand)]"
-                              : "bg-black/40 light:bg-foreground/10 text-[var(--ink-text)]"
-                          )}
-                        >
-                          {item.badge}
-                        </span>
-                      ) : null}
-                    </button>
-                  );
-                })}
-              </div>
-            </nav>,
-            document.body
-          )
-        : null}
     </div>
   );
 }

@@ -1,459 +1,261 @@
 "use client";
 
-import ProducerFeedbackDialog from "@/components/package-cycle/producer-feedback-dialog";
-import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ExternalLink, Loader2, RefreshCcw, Upload, X } from "lucide-react";
-import { toast } from "sonner";
+import { useSearchParams } from "next/navigation";
+import { useState, type ReactNode } from "react";
+import { ClipboardList, RotateCw, UsersRound } from "lucide-react";
+import { Alert } from "@/components/kit/alert";
+import { EmptyState } from "@/components/kit/empty-state";
+import { cycleLabel } from "@/components/kit/format";
+import { IconButton } from "@/components/kit/icon-button";
+import { CyclePicker } from "@/components/kit/pickers";
+import { useRememberedState } from "@/components/kit/remembered-state";
+import { LoadingRegion, Skeleton } from "@/components/kit/skeleton";
+import { ViewTabPanel } from "@/components/kit/view-tabs";
+import ProducerFeedbackDialog from "@/components/package-cycle/producer-feedback-dialog";
 import { PageHeader } from "@/components/page-header";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import {
-  proofUploadFailureMessage,
-  PROOF_OF_CONTACT_SLOTS,
-  type BrainstormProofView
-} from "@/src/lib/package-brainstorm";
-import { compressProofImage } from "@/src/lib/proof-image-client";
-import { StageComments } from "@/components/package-cycle/stage-comments";
-import { StageStatusChip } from "@/components/package-cycle/stage-status-chip";
-import { cycleStageStatus, emptyCycleStageStatusInput, type CycleStageStatus } from "@/src/lib/package-stage-status";
-import { useFileDrop } from "@/src/lib/use-file-drop";
+import { requestNavStatusRefresh } from "@/src/lib/sidebar-nav";
 import { cn } from "@/src/lib/utils";
-import { cachedValue, rememberValue } from "@/src/lib/client-cache";
-import { BottomTabDock, BottomTabDockButton, CycleTabLabel } from "@/components/ui/bottom-tab-dock";
+import {
+  BRAINSTORM_INSTRUCTIONS,
+  cycleSearch,
+  metaLine,
+  packageStatus,
+  packageTitle,
+  parseCycleParam,
+  type BrainstormPackage
+} from "./brainstorm-view";
+import { BrainstormingBodySkeleton, LOADING_LABEL } from "./brainstorming-skeleton";
+import { BrainstormStatusTag, PackageWorkspace, type MaterialsProps } from "./package-panel";
+import { isPackageId, PACKAGE_CHOICE_KEY, PACKAGE_TABS_ID, PackageTabs } from "./package-tabs";
+import { useBrainstormEdits } from "./use-brainstorm-edits";
+import { cachedPayload, useBrainstorming } from "./use-brainstorming";
 
-type Member = {
-  userId: string;
-  name: string | null;
-  email: string | null;
-};
+/** One 40px row on phones: each header action carries it (PageHeader holds children to h-9). */
+const TOUCH = "max-sm:h-10";
 
-type PackageCard = {
-  id: string;
-  cycleNumber: number;
-  groupTopic: string;
-  brainstormDocUrl: string;
-  proofOfContact: boolean;
-  needsChanges: boolean;
-  canEdit: boolean;
-  assignedProducer: { userId: string; name: string | null; email: string | null } | null;
-  members: Member[];
-  proofs: BrainstormProofView[];
-};
-
-type Payload = {
-  currentUserId: string;
-  canApprove: boolean;
-  activeCycleNumber: number;
-  cycles: Array<{ cycleNumber: number; focus: string }>;
-  packages: PackageCard[];
-};
-
-function personLabel(person: { name: string | null; email: string | null } | null | undefined) {
-  if (!person) return null;
-  return person.name?.trim() || person.email || null;
-}
-
-function packageStatus(pkg: PackageCard): CycleStageStatus {
-  return cycleStageStatus("brainstorming", {
-    ...emptyCycleStageStatusInput(),
-    proofOfContact: pkg.proofOfContact,
-    proofCount: pkg.proofs.length,
-    brainstormDocUrl: pkg.brainstormDocUrl,
-    brainstormNeedsChanges: pkg.needsChanges
-  });
-}
-
-async function fetchPayload(cycleNumber?: number) {
-  const query = typeof cycleNumber === "number" ? `?cycle=${cycleNumber}` : "";
-  const response = await fetch(`/api/brainstorming${query}`, { cache: "no-store" });
-  const body = (await response.json()) as { data?: Payload; error?: { message?: string } };
-  if (!response.ok || !body.data) {
-    throw new Error(body.error?.message ?? "Failed to load brainstorming.");
-  }
-  return body.data;
-}
-
-function ProofUploadButton({
-  uploading,
-  busy,
-  onPick,
-  onFile
-}: {
-  uploading: boolean;
-  /** Another proof is uploading; one at a time so their results don't overwrite each other. */
-  busy: boolean;
-  onPick: () => void;
-  onFile: (file: File) => void;
-}) {
-  const drop = useFileDrop({
-    accept: "image/*",
-    disabled: busy,
-    onDrop: ({ accepted, rejected }) => {
-      if (accepted.length !== 1) {
-        toast.error(accepted.length === 0 ? "Proofs of contact must be images." : "Drop one image per proof.");
-        return;
-      }
-      if (rejected.length > 0) {
-        toast.error(`Skipped ${rejected.length} file${rejected.length === 1 ? " that isn't an image" : "s that aren't images"}.`);
-      }
-      onFile(accepted[0]);
-    }
-  });
-  return (
-    <button
-      type="button"
-      disabled={busy}
-      onClick={onPick}
-      {...drop.bind}
-      className={cn(
-        "flex h-36 w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed text-xs text-muted-foreground hover:border-[var(--brand-green)]/50 hover:text-foreground",
-        drop.dragging ? "border-[var(--brand-green)] bg-[var(--brand-green)]/5 text-foreground" : "border-border"
-      )}
-    >
-      {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-      {uploading ? "Uploading…" : drop.dragging ? "Drop image" : "Upload or drop image"}
-    </button>
-  );
-}
-
+/**
+ * /brainstorming: a student package's turn-in (three proofs of contact and the brainstorm Google
+ * Doc), under the shell's stage bar. It reads like the other stage pages: the header plate
+ * ("Cycle 03 · Brainstorming" with the status tag, the topic, members and producer, Refresh),
+ * then the materials beside the rail (Where it stands, Feedback). Without a package the header
+ * names the cycle and the page and keeps the instruction line. A viewer on several packages
+ * picks one with tabs (remembered); the header follows the chosen one. Review stays on Groups.
+ */
 export default function BrainstormingClient() {
-  const [payload, setPayload] = useState<Payload | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [savingDocId, setSavingDocId] = useState<string | null>(null);
-  const [uploadingKey, setUploadingKey] = useState<string | null>(null);
-  const [pendingProofRemoval, setPendingProofRemoval] = useState<{ packageId: string; slot: number } | null>(null);
-  const [docDrafts, setDocDrafts] = useState<Record<string, string>>({});
-  const fileInputs = useRef<Record<string, HTMLInputElement | null>>({});
-
-  const load = useCallback(async (cycleNumber?: number, options?: { cached?: boolean }) => {
-    const cacheKey = `brainstorming:${cycleNumber ?? ""}`;
-    function apply(data: Payload) {
-      setPayload(data);
-      setDocDrafts(Object.fromEntries(data.packages.map((pkg) => [pkg.id, pkg.brainstormDocUrl])));
-    }
-    // On first view, show the last copy at once and refresh it quietly (src/lib/client-cache.ts).
-    const cached = options?.cached ? cachedValue<Payload>(cacheKey) : undefined;
-    if (cached) apply(cached);
-    else setLoading(true);
-    try {
-      const data = await fetchPayload(cycleNumber);
-      rememberValue(cacheKey, data);
-      apply(data);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to load brainstorming.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    const cycle = Number(new URLSearchParams(window.location.search).get("cycle"));
-    void load(Number.isInteger(cycle) && cycle > 0 ? cycle : undefined, { cached: true });
-  }, [load]);
-
-  function replacePackage(next: PackageCard) {
-    setPayload((current) => {
-      if (!current) return current;
-      return {
-        ...current,
-        packages: current.packages.map((pkg) =>
-          pkg.id === next.id ? { ...next, canEdit: next.canEdit ?? pkg.canEdit } : pkg
-        )
-      };
-    });
-    setDocDrafts((current) => ({ ...current, [next.id]: next.brainstormDocUrl }));
-  }
-
-  async function saveDoc(pkg: PackageCard) {
-    const url = (docDrafts[pkg.id] ?? "").trim();
-    setSavingDocId(pkg.id);
-    try {
-      const response = await fetch("/api/brainstorming", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind: "doc", rowId: pkg.id, url })
-      });
-      const body = (await response.json()) as {
-        data?: { package: PackageCard };
-        error?: { message?: string };
-      };
-      if (!response.ok || !body.data) {
-        throw new Error(body.error?.message ?? "Could not save the Google Doc link.");
-      }
-      replacePackage(body.data.package);
-      toast.success("Google Doc saved.");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not save the Google Doc link.");
-    } finally {
-      setSavingDocId(null);
-    }
-  }
-
-  async function uploadProof(pkg: PackageCard, slot: number, file: File) {
-    const key = `${pkg.id}-${slot}`;
-    setUploadingKey(key);
-    try {
-      const compressed = await compressProofImage(file);
-      const form = new FormData();
-      form.set("rowId", pkg.id);
-      form.set("slot", String(slot));
-      form.set("file", compressed);
-      const response = await fetch("/api/brainstorming/proofs", { method: "POST", body: form });
-      const text = await response.text();
-      let body: { data?: { proof: BrainstormProofView }; error?: { message?: string } } = {};
-      try {
-        body = JSON.parse(text) as typeof body;
-      } catch {
-        throw new Error(proofUploadFailureMessage(response.status, text));
-      }
-      if (!response.ok || !body.data) {
-        throw new Error(body.error?.message ?? proofUploadFailureMessage(response.status, text));
-      }
-      const nextProofs = [...pkg.proofs.filter((proof) => proof.slot !== slot), body.data.proof].sort(
-        (a, b) => a.slot - b.slot
-      );
-      // A new proof after producer feedback sends brainstorming back for review.
-      replacePackage({ ...pkg, proofs: nextProofs, needsChanges: false });
-      toast.success(`Proof ${slot} uploaded.`);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not upload proof.");
-    } finally {
-      setUploadingKey(null);
-    }
-  }
-
-  // Throws on failure so the confirm dialog stays open for a retry.
-  async function removeProof(packageId: string, slot: number) {
-    try {
-      const response = await fetch(`/api/brainstorming/proofs?rowId=${packageId}&slot=${slot}`, {
-        method: "DELETE"
-      });
-      const body = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
-      if (!response.ok) {
-        throw new Error(body?.error?.message ?? "Could not remove proof.");
-      }
-      setPayload((current) =>
-        current
-          ? {
-              ...current,
-              packages: current.packages.map((pkg) =>
-                pkg.id === packageId ? { ...pkg, proofs: pkg.proofs.filter((proof) => proof.slot !== slot) } : pkg
-              )
-            }
-          : current
-      );
-      toast.success("Proof removed");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not remove proof.");
-      throw error;
-    }
-  }
-
+  const searchParams = useSearchParams();
+  const urlCycle = parseCycleParam(searchParams.get("cycle"));
+  const data = useBrainstorming(urlCycle);
+  const edits = useBrainstormEdits(data.updatePackage);
+  const { payload, currentCycle, state, displayCycle, packages } = data;
+  const [chosenId, setChosenId] = useRememberedState<string>(PACKAGE_CHOICE_KEY, "", isPackageId);
+  const active = packages.find((pkg) => pkg.id === chosenId) ?? packages[0] ?? null;
   const cycles = payload?.cycles ?? [];
-  const activeCycleNumber = payload?.activeCycleNumber ?? 1;
-  const packages = payload?.packages ?? [];
+  const canApprove = Boolean(payload?.canApprove);
+  const focus = cycles.find((cycle) => cycle.cycleNumber === displayCycle)?.focus?.trim();
+  // Bumped on every reload so the feedback panels and the tabs' unread counts fetch again too.
+  const [feedbackSignal, setFeedbackSignal] = useState(0);
+
+  /** Reloads this cycle (skipping the cached copy) and its feedback. */
+  function reload() {
+    edits.resetDrafts();
+    setFeedbackSignal((signal) => signal + 1);
+    void data.load(urlCycle);
+  }
+
+  /** Refresh: the reload, plus the shell's package statuses. */
+  function refresh() {
+    reload();
+    requestNavStatusRefresh(["package"]);
+  }
+
+  function switchCycle(cycle: number) {
+    edits.resetDrafts();
+    // Native history keeps the server page from re-running; useSearchParams picks it up and loads.
+    const search = cycleSearch(window.location.search, cycle, currentCycle);
+    window.history.replaceState(null, "", `${window.location.pathname}${search}${window.location.hash}`);
+  }
+
+  function materialsProps(pkg: BrainstormPackage): MaterialsProps {
+    return {
+      pkg,
+      uploadingKey: edits.uploadingKey,
+      removalPending: edits.pendingRemoval !== null,
+      draft: edits.docDrafts[pkg.id],
+      docError: edits.docErrors[pkg.id] ?? null,
+      savingDoc: edits.savingDocId === pkg.id,
+      onUpload: (slot, file) => void edits.uploadProof(pkg.id, slot, file),
+      onRemove: (slot) => edits.setPendingRemoval({ packageId: pkg.id, slot }),
+      onDraftChange: (value) => edits.editDraft(pkg.id, value),
+      onSaveDoc: () => void edits.saveDoc(pkg)
+    };
+  }
+
+  const showARollLink = (pkg: BrainstormPackage) =>
+    pkg.proofOfContact && currentCycle !== null && pkg.cycleNumber === currentCycle;
+
+  const workspace = (pkg: BrainstormPackage) => (
+    <PackageWorkspace
+      key={pkg.id}
+      {...materialsProps(pkg)}
+      canApprove={canApprove}
+      showARollLink={showARollLink(pkg)}
+      feedbackRefreshSignal={feedbackSignal}
+    />
+  );
+
+  const loading = state === "loading";
+  // Like the sibling stage pages: "Cycle 03 · Brainstorming" over the topic, then the people.
+  let eyebrow: ReactNode;
+  let description: ReactNode;
+  if (active) {
+    eyebrow = `${cycleLabel(active.cycleNumber)} · Brainstorming`;
+    description = metaLine(active);
+  } else {
+    eyebrow = displayCycle !== null ? cycleLabel(displayCycle, focus) : "My package";
+    description = BRAINSTORM_INSTRUCTIONS;
+  }
+
+  let body: ReactNode;
+  if (loading) {
+    body = (
+      <LoadingRegion label={LOADING_LABEL}>
+        <BrainstormingBodySkeleton />
+      </LoadingRegion>
+    );
+  } else if (state === "error") {
+    body = (
+      <Alert
+        tone="danger"
+        title="Couldn't load brainstorming"
+        action={
+          <Button type="button" variant="outline" size="sm" onClick={reload}>
+            <RotateCw aria-hidden />
+            Try again
+          </Button>
+        }
+      >
+        {data.error}
+      </Alert>
+    );
+  } else if (packages.length === 0) {
+    body = (
+      <div className="rounded-md border border-border bg-card">
+        {canApprove ? (
+          <EmptyState
+            size="page"
+            icon={ClipboardList}
+            title="No packages to review in this cycle."
+            description="Open Groups to review brainstorming for a package."
+            action={
+              <Link href={"/groups" as never} className={buttonVariants({ variant: "outline" })}>
+                Open Groups
+              </Link>
+            }
+          />
+        ) : (
+          <EmptyState
+            size="page"
+            icon={UsersRound}
+            title="You are not on a package group for this cycle yet."
+            description="Once a producer adds you on Package Cycle, this page will open for that package."
+          />
+        )}
+      </div>
+    );
+  } else if (packages.length === 1 || !active) {
+    body = workspace(packages[0]);
+  } else {
+    // Only the chosen package's workspace is mounted: its rail (Where it stands, Feedback) uses
+    // page-wide ids, so a second copy would duplicate them. Its feedback thread marks read once
+    // its tab is open and on screen; drafts, uploads and errors live in the page's hooks, so
+    // switching tabs keeps them. Every tab keeps a (hidden, empty) panel for aria-controls.
+    body = (
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-5">
+        <PackageTabs packages={packages} value={active.id} onChange={setChosenId} refreshSignal={feedbackSignal} />
+        {packages.map((pkg) => (
+          <ViewTabPanel key={pkg.id} idPrefix={PACKAGE_TABS_ID} value={pkg.id} active={pkg.id === active.id}>
+            {pkg.id === active.id ? workspace(pkg) : null}
+          </ViewTabPanel>
+        ))}
+      </div>
+    );
+  }
+
+  // The picker while this cycle loads: the live one during a cycle switch (it keeps focus), else
+  // a placeholder unless this tab's copy shows there is only one cycle (the picker then hides).
+  const knownCycles = (payload ?? cachedPayload(urlCycle))?.cycles;
+  const picker = payload ? (
+    <CyclePicker
+      cycles={cycles}
+      value={displayCycle ?? payload.activeCycleNumber}
+      currentCycle={currentCycle}
+      onChange={switchCycle}
+      className={TOUCH}
+    />
+  ) : loading && (!knownCycles || knownCycles.length > 1) ? (
+    <Skeleton className={cn("w-36 rounded-md", TOUCH)} />
+  ) : null;
 
   return (
-    <div className="route-enter mx-auto w-full max-w-[80rem] space-y-5 pb-24">
+    // lg:pb-18 keeps the last card clear of the ✱ launcher, as on the other stage pages.
+    <div className="route-enter space-y-5 lg:pb-18">
+      {/*
+        The StudentStageHeader plate of the other stage pages, as one PageHeader in every state,
+        so the picker is never remounted (it keeps focus through a cycle switch). While this
+        cycle loads it is all placeholder, so no stand-in title shows before the topic.
+      */}
       <PageHeader
-        eyebrow={`Cycle ${activeCycleNumber}`}
-        title="Brainstorming"
-        description="Upload three proofs of contact and link the group Google Doc. Your producer reviews this on Groups and approves the check-in."
+        eyebrow={loading ? <Skeleton className="h-3 w-40" /> : <span className="min-w-0 truncate">{eyebrow}</span>}
+        status={active ? <BrainstormStatusTag status={packageStatus(active)} /> : undefined}
+        title={
+          loading ? (
+            <>
+              <span className="sr-only">Brainstorming</span>
+              <Skeleton className="h-7 w-64 max-w-full" />
+            </>
+          ) : active ? (
+            packageTitle(active)
+          ) : (
+            "Brainstorming"
+          )
+        }
+        description={loading ? <Skeleton className="my-0.5 h-4 w-96 max-w-full" /> : description}
         actions={
           <>
-            {payload?.canApprove ? (
-              <Link href={"/groups" as never} className={buttonVariants({ variant: "outline", size: "sm" })}>
+            <IconButton
+              label="Refresh"
+              icon={RotateCw}
+              variant="outline"
+              busy={data.loading}
+              onClick={refresh}
+              className={TOUCH}
+            />
+            {picker}
+            <ProducerFeedbackDialog initialCycle={displayCycle ?? undefined} triggerClassName={TOUCH} />
+            {canApprove ? (
+              <Link href={"/groups" as never} className={cn(buttonVariants({ variant: "outline" }), TOUCH)}>
                 Review on Groups
               </Link>
             ) : null}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => void load(activeCycleNumber)}
-              disabled={loading}
-            >
-              <RefreshCcw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
-              Refresh
-            </Button>
-            <ProducerFeedbackDialog initialCycle={activeCycleNumber} />
           </>
         }
       />
 
-      {loading && !payload ? (
-        <p className="rounded-md border border-border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
-          Loading your packages…
-        </p>
-      ) : packages.length === 0 ? (
-        <p className="rounded-md border border-border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
-          {payload?.canApprove
-            ? "No packages to review in this cycle. Open Groups to review brainstorming for a package."
-            : "You are not on a package group for this cycle yet. Once a producer adds you on Package Cycle, this page will open for that package."}
-        </p>
-      ) : (
-        <div className="space-y-5">
-          {packages.map((pkg) => {
-            const status = packageStatus(pkg);
-            const producerName = personLabel(pkg.assignedProducer);
-            return (
-              <article key={pkg.id} className="space-y-4 rounded-md border border-border bg-card p-4 md:p-5">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h2 className="text-base font-semibold text-foreground">
-                      {pkg.groupTopic.trim() || "Untitled package"}
-                    </h2>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {pkg.members.map((member) => personLabel(member) ?? "Member").join(", ") || "No members"}
-                      {producerName ? ` · Producer ${producerName}` : ""}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center justify-end gap-2">
-                    <StageComments
-                      rowId={pkg.id}
-                      stage="brainstorming"
-                      canWrite={Boolean(payload?.canApprove)}
-                    />
-                    <StageStatusChip status={status} size="lg" />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.11em] text-muted-foreground">
-                    Proofs of contact
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    {PROOF_OF_CONTACT_SLOTS.map((slot) => {
-                      const proof = pkg.proofs.find((item) => item.slot === slot);
-                      const key = `${pkg.id}-${slot}`;
-                      const uploading = uploadingKey === key;
-                      return (
-                        <div key={slot} className="rounded-md border border-border bg-black/30 light:bg-muted p-2">
-                          <div className="mb-1.5 flex items-center justify-between text-[11px] text-muted-foreground">
-                            <span>Proof {slot}</span>
-                            {proof && pkg.canEdit ? (
-                              <button
-                                type="button"
-                                className="-m-2.5 rounded p-3 hover:bg-secondary lg:m-0 lg:p-0.5 hover:text-foreground disabled:opacity-50"
-                                onClick={() => setPendingProofRemoval({ packageId: pkg.id, slot })}
-                                disabled={pendingProofRemoval !== null}
-                                aria-label={`Remove proof ${slot}`}
-                              >
-                                <X className="h-3.5 w-3.5" />
-                              </button>
-                            ) : null}
-                          </div>
-                          {proof ? (
-                            <a href={proof.imageUrl} target="_blank" rel="noreferrer" className="block">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={proof.imageUrl}
-                                alt={proof.fileName}
-                                className="h-36 w-full rounded-lg object-cover"
-                                loading="lazy"
-                                decoding="async"
-                              />
-                            </a>
-                          ) : pkg.canEdit ? (
-                            <ProofUploadButton
-                              uploading={uploading}
-                              busy={uploadingKey !== null}
-                              onPick={() => fileInputs.current[key]?.click()}
-                              onFile={(file) => void uploadProof(pkg, slot, file)}
-                            />
-                          ) : (
-                            <div className="flex h-36 w-full items-center justify-center rounded-lg border border-dashed border-border text-xs text-muted-foreground">
-                              No proof yet
-                            </div>
-                          )}
-                          <input
-                            ref={(node) => {
-                              fileInputs.current[key] = node;
-                            }}
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(event) => {
-                              const file = event.target.files?.[0];
-                              event.target.value = "";
-                              if (file) void uploadProof(pkg, slot, file);
-                            }}
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.11em] text-muted-foreground">
-                    Brainstorm Google Doc
-                  </label>
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <input
-                      value={docDrafts[pkg.id] ?? ""}
-                      onChange={(event) =>
-                        setDocDrafts((current) => ({ ...current, [pkg.id]: event.target.value }))
-                      }
-                      placeholder="https://docs.google.com/document/d/…"
-                      disabled={!pkg.canEdit}
-                      className="min-w-0 flex-1 rounded-lg border border-border bg-black/40 light:bg-muted px-3 py-2 text-sm text-foreground outline-none focus:border-[var(--brand-green)]/50 disabled:opacity-70"
-                    />
-                    <div className="flex gap-2">
-                      {pkg.brainstormDocUrl ? (
-                        <a
-                          href={pkg.brainstormDocUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className={buttonVariants({ variant: "outline", size: "sm" })}
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" />
-                          Open
-                        </a>
-                      ) : null}
-                      {pkg.canEdit ? (
-                        <Button
-                          type="button"
-                          size="sm"
-                          disabled={savingDocId === pkg.id}
-                          onClick={() => void saveDoc(pkg)}
-                        >
-                          {savingDocId === pkg.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                          Save link
-                        </Button>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-
-              </article>
-            );
-          })}
-        </div>
-      )}
-
-      <BottomTabDock activeKey={activeCycleNumber} label="Cycles">
-        {cycles.map((cycle) => {
-          const active = cycle.cycleNumber === activeCycleNumber;
-          return (
-            <BottomTabDockButton key={cycle.cycleNumber} active={active} onClick={() => void load(cycle.cycleNumber, { cached: true })}>
-              <CycleTabLabel cycleNumber={cycle.cycleNumber} active={active} />
-            </BottomTabDockButton>
-          );
-        })}
-      </BottomTabDock>
+      {body}
 
       <ConfirmDialog
-        open={pendingProofRemoval !== null}
+        open={edits.pendingRemoval !== null}
         onOpenChange={(open) => {
-          if (!open) setPendingProofRemoval(null);
+          if (!open) edits.setPendingRemoval(null);
         }}
-        title={`Remove proof ${pendingProofRemoval?.slot ?? ""}?`}
+        title={`Remove proof ${edits.pendingRemoval?.slot ?? ""}?`}
         description="The image is deleted. You can upload a new one afterward."
         confirmLabel="Remove"
         onConfirm={() =>
-          pendingProofRemoval ? removeProof(pendingProofRemoval.packageId, pendingProofRemoval.slot) : undefined
+          edits.pendingRemoval ? edits.removeProof(edits.pendingRemoval.packageId, edits.pendingRemoval.slot) : undefined
         }
       />
     </div>

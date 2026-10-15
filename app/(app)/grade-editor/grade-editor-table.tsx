@@ -1,6 +1,8 @@
-import type { ReactNode } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
 import type { GradeScoreState } from "@prisma/client";
 import { cn } from "@/src/lib/utils";
+import { SCORE_GRAMMAR_HINT } from "./grade-editor-types";
+import { formatPercent } from "./grade-editor-utils";
 
 /** Presentational pieces for the Grade Editor tables. No data fetching or state. */
 
@@ -9,155 +11,175 @@ export type HeaderColumn = {
   sub?: string | null;
   /** Full name shown on hover when the label is abbreviated. */
   title?: string;
+  /** Numbers are right-aligned (header and cells); text is left-aligned. */
   align?: "left" | "center" | "right";
-  /** Pixel width at the table's natural size. Omit for the reporter column. */
+  /** Pixel width at the table's narrowest. Omit for the reporter column (REPORTER_WIDTH). */
   width?: number;
+  /** Small 16px icon after the label (a lock on a locked column). */
+  icon?: ReactNode;
+  /** Extra classes on the header cell (a second pinned column). */
+  className?: string;
 };
 
 export type HeaderGroup = {
   label: string;
   hint?: string;
   columns: HeaderColumn[];
+  /** Extra classes on the group's header cell (a second pinned column). */
+  className?: string;
 };
 
 const ALIGN = { left: "text-left", center: "text-center", right: "text-right" } as const;
 
-/** Left border on the first cell of every group after the first, in both header rows and body rows. */
-export const GROUP_START = "border-l border-[hsl(var(--border))]";
+/** Left hairline on the first cell of every group after the first, in header and body rows. */
+export const GROUP_START = "border-l border-border";
 
 /**
- * Fixed layout: every column has a set width so the table fits the page without
- * sideways scrolling on a laptop. On narrow screens it scrolls and the reporter
- * column stays put.
+ * The reporter column's width at the table's narrowest. Every <col> has a width, so on wide
+ * screens the fixed layout spreads the spare room over all the columns in proportion (no empty
+ * band after the names); whenever the table scrolls sideways every column is back at exactly its
+ * width, so a second pinned column starts here.
+ */
+export const REPORTER_WIDTH = 176;
+/**
+ * The reporter column's inset, header and body alike: 16px, the work panel's toolbar edge, so the
+ * search field, the REPORTER label and the names start on one line. Every other cell uses px-2.
+ */
+export const REPORTER_INSET = "pl-4 pr-2";
+/** Pins a body cell beside the reporter column from lg (Total grade on the Total view). */
+export const SECOND_PINNED = "lg:sticky lg:left-[176px] lg:z-10";
+/** The same for its header cells (already sticky to the top). */
+export const SECOND_PINNED_HEAD = "lg:left-[176px] lg:z-30";
+
+/**
+ * Fixed layout, separate borders (so sticky header rows keep their lines), every cell on the
+ * card surface so pinned cells stay opaque while the table scrolls under them. The first column
+ * is pinned; the header rows are pinned by GradeTableHead. Hover is Ink 3 across the row; a row
+ * with `data-dirty` keeps a faint amber tint.
  */
 export const TABLE_CLASS = cn(
-  "w-full table-fixed border-collapse text-sm text-foreground",
-  "[&_tr>*:first-child]:sticky [&_tr>*:first-child]:left-0 [&_tr>*:first-child]:z-10",
-  "[&_td:first-child]:bg-card [&_th:first-child]:bg-[hsl(var(--background))]"
+  "w-full table-fixed border-separate border-spacing-0 text-sm text-foreground",
+  "[&_td]:border-b [&_td]:border-border [&_td]:bg-card [&_tbody_tr:last-child>td]:border-b-0",
+  "[&_tbody_tr:hover>td]:bg-[var(--ink-3)]",
+  "[&_tbody_tr[data-dirty]>td]:bg-[color-mix(in_srgb,var(--brand-amber)_7%,hsl(var(--card)))]",
+  "[&_tbody_tr[data-dirty]:hover>td]:bg-[color-mix(in_srgb,var(--brand-amber)_7%,var(--ink-3))]",
+  "[&_td:first-child]:sticky [&_td:first-child]:left-0 [&_td:first-child]:z-10"
 );
 
-/** Body cell padding shared by both tables. */
-export const CELL = "px-2 py-2.5 align-middle";
-
-const REPORTER_MIN_WIDTH = 168;
-/**
- * The reporter column gets a width like every other column, so spare room on a
- * wide window spreads across all columns in proportion instead of pooling beside the names.
- */
-const REPORTER_WIDTH = 210;
+/** Body cell: 48px rows, h-8 controls centred. */
+export const CELL = "h-12 px-2 align-middle";
+export const NUM_CELL = cn(CELL, "text-right");
+/** A narrow dropdown column (check-ins): 4px insets, header and body alike, so the box gets the room. */
+export const TIGHT_INSET = "px-1";
 
 /** Narrowest the table can get before it scrolls: every fixed column plus the reporter column. */
 export function tableMinWidth(groups: HeaderGroup[]) {
   return groups.reduce(
-    (total, group) => total + group.columns.reduce((sum, col) => sum + (col.width ?? REPORTER_MIN_WIDTH), 0),
+    (total, group) => total + group.columns.reduce((sum, col) => sum + (col.width ?? REPORTER_WIDTH), 0),
     0
   );
 }
 
+/** How many columns the groups add up to (colSpans, skeleton cells). */
+export function columnCount(groups: HeaderGroup[]) {
+  return groups.reduce((total, group) => total + group.columns.length, 0);
+}
+
+/**
+ * Empty, error and no-match states under the header rows. Outside the table and pinned to the
+ * left, so it is centred in the visible box even when the table is wider and scrolls sideways.
+ */
+export function TableEmpty({ children }: { children: ReactNode }) {
+  return <div className="sticky left-0 w-full">{children}</div>;
+}
+
+/** Two pinned header rows: the group labels (32px) and the column labels (36px) under them. */
 export function GradeTableHead({ groups }: { groups: HeaderGroup[] }) {
   return (
     <>
-    <colgroup>
-      {groups.flatMap((group, groupIndex) =>
-        group.columns.map((col, colIndex) => (
-          <col key={`${groupIndex}-${colIndex}`} style={{ width: col.width ?? REPORTER_WIDTH }} />
-        ))
-      )}
-    </colgroup>
-    <thead>
-      <tr>
-        {groups.map((group, index) => (
-          <th
-            key={`${group.label}-${index}`}
-            colSpan={group.columns.length}
-            scope="colgroup"
-            className={cn(
-              "truncate bg-[hsl(var(--background))] px-2 pt-3 pb-1 text-left text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--brand-green)]",
-              index > 0 && GROUP_START
-            )}
-          >
-            {group.label}
-            {group.hint ? (
-              <span className="ml-2 normal-case tracking-normal text-[var(--ink-text)]">{group.hint}</span>
-            ) : null}
-          </th>
-        ))}
-      </tr>
-      <tr className="border-b border-[hsl(var(--border))]">
+      <colgroup>
         {groups.flatMap((group, groupIndex) =>
           group.columns.map((col, colIndex) => (
-            <th
-              key={`${group.label}-${col.label}-${colIndex}`}
-              scope="col"
-              title={col.title}
-              className={cn(
-                "truncate whitespace-nowrap bg-[hsl(var(--background))] px-2 pb-3 pt-1 text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground",
-                ALIGN[col.align ?? "left"],
-                groupIndex > 0 && colIndex === 0 && GROUP_START
-              )}
-            >
-              {col.label}
-              {col.sub ? <span className="ml-1 normal-case tracking-normal text-[var(--ink-4)]">{col.sub}</span> : null}
-            </th>
+            <col key={`${groupIndex}-${colIndex}`} style={{ width: col.width ?? REPORTER_WIDTH }} />
           ))
         )}
-      </tr>
-    </thead>
+      </colgroup>
+      <thead>
+        <tr>
+          {groups.map((group, index) => (
+            <th
+              key={`${group.label}-${index}`}
+              colSpan={group.columns.length}
+              scope="colgroup"
+              className={cn(
+                "sticky top-0 z-20 h-8 truncate bg-card px-2 text-left align-bottom text-[11px] font-medium uppercase tracking-[0.11em] text-[var(--ink-text)]",
+                index === 0 && cn("left-0 z-30", REPORTER_INSET),
+                index > 0 && GROUP_START,
+                group.className
+              )}
+            >
+              {group.label}
+              {group.hint ? (
+                <span className="ml-2 font-normal normal-case tracking-normal text-muted-foreground">{group.hint}</span>
+              ) : null}
+            </th>
+          ))}
+        </tr>
+        <tr>
+          {groups.flatMap((group, groupIndex) =>
+            group.columns.map((col, colIndex) => (
+              <th
+                key={`${group.label}-${col.label}-${colIndex}`}
+                scope="col"
+                title={col.title}
+                className={cn(
+                  "sticky top-8 z-20 h-9 truncate whitespace-nowrap border-b border-border bg-card px-2 align-middle text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground",
+                  ALIGN[col.align ?? "left"],
+                  groupIndex === 0 && colIndex === 0 && cn("left-0 z-30", REPORTER_INSET),
+                  groupIndex > 0 && colIndex === 0 && GROUP_START,
+                  col.className
+                )}
+              >
+                <span className="inline-flex max-w-full items-center gap-1 align-middle">
+                  <span className="truncate">{col.label}</span>
+                  {col.sub ? <span className="font-normal normal-case tracking-normal text-muted-foreground/80">{col.sub}</span> : null}
+                  {col.icon}
+                </span>
+              </th>
+            ))
+          )}
+        </tr>
+      </thead>
     </>
   );
 }
 
-const AVATAR_PALETTE = ["av-green", "av-red", "av-blue", "av-purple", "av-gray"] as const;
-
-export function initialsFor(name: string) {
-  return (
-    name
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase() ?? "")
-      .join("") || "??"
-  );
-}
-
+/** Reporter name (opens their gradebook) over the email's local part and any per-person marks. */
 export function ReporterCell({
   name,
   email,
-  rowIndex,
   onOpen,
   children
 }: {
   name: string;
   email: string | null;
-  rowIndex: number;
   onOpen: () => void;
+  /** Marks after the email on line 2 (Unsaved, Saving, Over extensions). */
   children?: ReactNode;
 }) {
   return (
-    <td className="px-3 py-2.5 align-middle">
-      <div className="flex items-center gap-2.5">
-        <div
-          className={cn(
-            "grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 border-[var(--ink-3)] text-[11px] font-bold max-2xl:hidden",
-            AVATAR_PALETTE[rowIndex % AVATAR_PALETTE.length]
-          )}
-        >
-          {initialsFor(name)}
-        </div>
-        <div className="min-w-0">
-          <button
-            type="button"
-            onClick={onOpen}
-            title={name}
-            className="block max-w-full truncate text-left text-sm font-semibold leading-tight text-foreground hover:text-[var(--brand-green)] hover:underline"
-          >
-            {name}
-          </button>
-          <div className="mt-0.5 flex items-center gap-2 font-mono-broadcast text-[11px] tabular-nums text-muted-foreground">
-            <span className="truncate">{email?.split("@")[0] ?? "—"}</span>
-            {children}
-          </div>
-        </div>
+    <td className={cn("h-12 align-middle", REPORTER_INSET)}>
+      <button
+        type="button"
+        onClick={onOpen}
+        title={`${name}: open gradebook`}
+        className="block max-w-full truncate rounded-sm text-left text-sm font-semibold leading-tight text-foreground hover:text-[var(--brand-green)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        {name}
+      </button>
+      <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[11px] leading-tight text-muted-foreground">
+        <span className="truncate font-mono-broadcast tabular-nums">{email?.split("@")[0] ?? "—"}</span>
+        {children}
       </div>
     </td>
   );
@@ -171,12 +193,12 @@ export function percentTone(percent: number | null) {
   return "text-danger";
 }
 
-/** Letter-grade badge: tinted border and text in the same tone as the percentage. */
+/** Letter-grade tag tint, in the same tone as the percentage (theme tokens). */
 export function gradeBadgeTone(percent: number | null) {
-  if (percent === null) return "border-border text-muted-foreground";
-  if (percent >= 80) return "border-[rgb(43,179,110,0.35)] bg-[rgb(43,179,110,0.10)] text-[var(--brand-green)]";
-  if (percent >= 60) return "border-[rgb(242,165,22,0.40)] bg-[rgb(242,165,22,0.12)] text-[var(--brand-amber)]";
-  return "border-danger/40 bg-danger-tint text-danger";
+  if (percent === null) return "bg-[var(--ink-3)] text-muted-foreground";
+  if (percent >= 80) return "bg-[var(--brand-green)]/[0.14] text-[var(--brand-green)]";
+  if (percent >= 60) return "bg-[var(--brand-amber)]/[0.14] text-[var(--brand-amber)]";
+  return "bg-danger-tint text-danger";
 }
 
 /** Text tone for one check-in dropdown: full credit plain, partial amber, zero red. */
@@ -187,66 +209,84 @@ export function checkInTone(score: number | GradeScoreState) {
   return "text-danger";
 }
 
-export function Meter({ percent, className }: { percent: number | null; className?: string }) {
-  const value = percent === null ? 0 : Math.max(0, Math.min(100, percent));
-  const fill =
-    percent === null
-      ? "bg-[var(--ink-4)]"
-      : percent >= 80
-        ? "bg-[var(--brand-green)]"
-        : percent >= 60
-          ? "bg-[var(--brand-amber)]"
-          : "bg-danger-fill";
+/** A 24px letter tag (A–F) in the percentage's tone. A tag, not a button. */
+export function LetterGradeTag({ percent, letter }: { percent: number | null; letter: string | null }) {
   return (
-    <div className={cn("h-1 w-full overflow-hidden rounded-full bg-[var(--ink-2)]", className)}>
-      <div className={cn("h-full rounded-full", fill)} style={{ width: `${value}%` }} />
-    </div>
+    <span
+      role="img"
+      aria-label={letter === null ? "No letter grade yet" : `Letter grade ${letter}`}
+      className={cn("grid h-6 w-6 shrink-0 place-items-center rounded-sm text-xs font-semibold leading-none", gradeBadgeTone(percent))}
+    >
+      {letter ?? "—"}
+    </span>
   );
 }
 
 /**
- * "13 / 20" readout with the percentage underneath and a thin meter.
- * `earned` as a string shows a state label (Exempt, —) instead of a number.
+ * "13/20 65.0%" readout in Geist Mono (one decimal, as before the redesign, so it agrees with
+ * the letter grade beside it). `earned` as a string shows a state word (Exempt) instead of a
+ * number. Right-aligned by default so numbers line up down a column. `stacked` puts the
+ * percentage under the points (as before the redesign), for narrow table columns.
  */
 export function PointsReadout({
   earned,
   possible,
-  caption,
   title,
-  emphasis = false,
-  meter = true
+  stacked = false,
+  align = "right",
+  className
 }: {
   earned: number | string | null;
   possible: number | null;
-  caption?: string;
   title?: string;
-  emphasis?: boolean;
-  meter?: boolean;
+  stacked?: boolean;
+  align?: "left" | "right";
+  className?: string;
 }) {
   const numeric = typeof earned === "number" ? earned : null;
   const percent = numeric !== null && possible && possible > 0 ? (numeric / possible) * 100 : null;
   return (
-    <div className="min-w-0" title={title}>
-      <div className={cn("whitespace-nowrap font-mono-broadcast tabular-nums leading-none", emphasis ? "text-base font-semibold" : "text-sm font-semibold")}>
-        <span className={numeric === null ? "text-muted-foreground" : "text-foreground"}>
+    <span
+      title={title}
+      className={cn(
+        "inline-flex min-w-0 whitespace-nowrap font-mono-broadcast text-[13px] tabular-nums leading-none",
+        stacked ? "flex-col gap-1" : "items-baseline gap-1.5",
+        stacked ? (align === "right" ? "items-end" : "items-start") : align === "right" && "justify-end",
+        className
+      )}
+    >
+      <span>
+        <span className={cn("font-medium", numeric === null ? "text-muted-foreground" : "text-foreground")}>
           {earned === null ? "—" : earned}
         </span>
-        {possible !== null ? (
-          <span className="ml-0.5 text-xs font-normal text-muted-foreground">/{possible}</span>
-        ) : null}
-      </div>
+        {possible !== null ? <span className="text-muted-foreground">/{possible}</span> : null}
+      </span>
       {possible !== null ? (
-        <div className={cn("mt-1 font-mono-broadcast text-[11px] font-semibold leading-none tabular-nums", percentTone(percent))}>
-          {percent === null ? "—" : `${percent.toFixed(1)}%`}
-        </div>
+        <span className={cn("text-[11px]", !stacked && "w-11 text-right", percentTone(percent))}>{formatPercent(percent)}</span>
       ) : null}
-      {caption ? <div className="mt-1 text-[11px] leading-none text-muted-foreground">{caption}</div> : null}
-      {meter && possible !== null ? <Meter percent={percent} className="mt-1.5 max-w-[64px]" /> : null}
-    </div>
+    </span>
   );
 }
 
-/** Typed score box: digits, `-` for ungraded, `\` for exempt. */
+/** Moves focus to the same score box in the next or previous row (Enter / Shift+Enter). */
+function moveInColumn(input: HTMLInputElement, direction: 1 | -1) {
+  const key = input.dataset.gradeNav;
+  if (!key) return;
+  const all = Array.from(document.querySelectorAll<HTMLInputElement>(`input[data-grade-nav="${CSS.escape(key)}"]`));
+  const next = all[all.indexOf(input) + direction];
+  if (next) {
+    next.focus();
+    next.select();
+  }
+}
+
+/** A table field: 3:1 field border, transparent fill, focus ring (DESIGN.md §10). */
+export const FIELD_BOX =
+  "rounded-md border border-input bg-transparent font-medium tabular-nums text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
+/** The same in Geist Mono, for numbers and dates. */
+export const MONO_FIELD = cn(FIELD_BOX, "font-mono-broadcast text-[13px]");
+
+/** Typed score box: digits, `-` for ungraded, `\` for exempt. Fixed width so boxes line up. */
 export function ScoreInput({
   value,
   onChange,
@@ -254,34 +294,57 @@ export function ScoreInput({
   label,
   placeholder = "—",
   dashed = false,
-  width = "w-12"
+  width = "w-12",
+  size = "sm",
+  navKey,
+  title = SCORE_GRAMMAR_HINT,
+  inputMode = "decimal",
+  disabled
 }: {
   value: string;
   onChange: (raw: string) => void;
+  /** Shown after the box ("/60"); null for none. */
   max: number | string | null;
   label: string;
   placeholder?: string;
+  /** Dashed border: a temporary, unsaved override. */
   dashed?: boolean;
   width?: string;
+  /** sm: 32px (tables). touch: 40px (phone sheets). */
+  size?: "sm" | "touch";
+  /** Enter / Shift+Enter move between boxes that share this key (one column). */
+  navKey?: string;
+  title?: string;
+  inputMode?: "decimal" | "numeric";
+  disabled?: boolean;
 }) {
+  function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key !== "Enter" || !navKey) return;
+    event.preventDefault();
+    moveInColumn(event.currentTarget, event.shiftKey ? -1 : 1);
+  }
+
   return (
-    <div className="flex items-center gap-1">
+    <span className="inline-flex items-center gap-1">
       <input
         aria-label={label}
-        title="Enter points, - for ungraded, or \ for exempt"
+        title={title}
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        onKeyDown={onKeyDown}
         placeholder={placeholder}
-        inputMode="decimal"
+        inputMode={inputMode}
+        disabled={disabled}
+        data-grade-nav={navKey}
         className={cn(
-          "h-9 shrink-0 rounded-md border bg-[var(--ink)] px-1 text-center font-mono-broadcast text-sm font-semibold tabular-nums text-foreground outline-none transition focus:border-[var(--brand-green)] focus:ring-1 focus:ring-[var(--brand-green)]",
-          dashed ? "border-dashed border-[var(--ink-4)]" : "border-border",
+          MONO_FIELD,
+          "shrink-0 px-1 text-center",
+          size === "touch" ? "h-10 text-base md:text-[13px]" : "h-8",
+          dashed && "border-dashed",
           width
         )}
       />
-      {max !== null ? (
-        <span className="font-mono-broadcast text-xs tabular-nums text-muted-foreground">/{max}</span>
-      ) : null}
-    </div>
+      {max !== null ? <span className="font-mono-broadcast text-xs tabular-nums text-muted-foreground">/{max}</span> : null}
+    </span>
   );
 }

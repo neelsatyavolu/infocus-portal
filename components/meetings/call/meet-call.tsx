@@ -12,6 +12,7 @@ import { CallRoom } from "./call-room";
 import { MeetEmbedProvider, useExitCall } from "./embed-context";
 import { OpensAtScreen } from "./opens-at-screen";
 import { PreJoin } from "./prejoin";
+import { PreJoinSkeleton } from "./prejoin-skeleton";
 import { DeniedScreen, EndScreen, JoiningScreen, WaitingScreen } from "./status-screens";
 import { useLocalMedia } from "./use-local-media";
 import { useMeetingCall, type CallStage } from "./use-meeting-call";
@@ -82,7 +83,7 @@ function SupportedCall({
     case "joining":
       return <JoiningScreen />;
     case "waiting":
-      return <WaitingScreen onLeave={() => void leave()} />;
+      return <WaitingScreen onLeave={() => void leave()} meetingTitle={meeting.title} />;
     case "denied":
       return <DeniedScreen onAskAgain={call.askAgain} />;
     case "incall":
@@ -125,7 +126,7 @@ function MeetingGate({ meetingId, userName }: { meetingId: string; userName: str
   }, [load]);
 
   if (loadError) return <EndScreen kind="error" message={loadError} />;
-  if (!meeting) return <JoiningScreen />;
+  if (!meeting) return <PreJoinSkeleton userName={userName} />;
   if (waitUntil !== null) {
     return <OpensAtScreen meeting={meeting} opensAt={waitUntil} onOpen={() => setWaitUntil(null)} />;
   }

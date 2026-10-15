@@ -2,22 +2,30 @@
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { MeetingPerson } from "@/src/lib/meetings/types";
+import { cn } from "@/src/lib/utils";
 
 const NONE = "__none__";
 
 /** Links a calendar-invite address to a producer (private meetings only invite linked people). */
 export function LinkedPersonSelect({
+  id,
   people,
   value,
   onChange,
   disabled,
-  label
+  label,
+  className
 }: {
+  /** For a visible `<Label htmlFor>`, which then names the select (leave out `label`). */
+  id?: string;
   people: MeetingPerson[] | null;
   value: string | null;
   onChange: (userId: string | null) => void;
   disabled?: boolean;
-  label: string;
+  /** Accessible name when there's no visible label (the invite list rows). */
+  label?: string;
+  /** Height and width; the trigger is h-9 and full width by default. */
+  className?: string;
 }) {
   return (
     <Select
@@ -25,7 +33,11 @@ export function LinkedPersonSelect({
       onValueChange={(next) => onChange(next === NONE ? null : next)}
       disabled={disabled || !people}
     >
-      <SelectTrigger aria-label={label} className="h-9 w-full focus:ring-0 focus-visible:ring-2 focus-visible:ring-[var(--brand-green)] sm:w-48">
+      <SelectTrigger
+        id={id}
+        aria-label={label}
+        className={cn("h-9 w-full focus:ring-0 focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]", className)}
+      >
         <SelectValue placeholder={people ? "Not linked" : "Loading…"} />
       </SelectTrigger>
       <SelectContent>

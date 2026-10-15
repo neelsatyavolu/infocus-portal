@@ -1,79 +1,53 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Badge } from "@/components/ui/badge";
+import { MainWithRail } from "@/components/kit/layout";
+import { StickyActionBar } from "@/components/kit/sticky-action-bar";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { cn } from "@/src/lib/utils";
+import { errorText, readJson, sendJson, type FormStatus } from "@/components/equipment/equipment-api";
+import { StatusLine } from "@/components/equipment/status-alert";
+import { ABOVE_PHONE_TABBAR } from "@/components/equipment/sticky-bar";
+import { RequestCatalog, type PublicItem } from "./_components/request-catalog";
+import { REQUEST_FORM_ID, RequestPanel, type RequestFields } from "./_components/request-panel";
 
-type Status = { type: "error" | "success" | "info"; text: string } | null;
-
-type PublicItem = {
-  id: string;
-  name: string;
-  barcode: string;
-};
-
-async function readJson<T>(res: Response): Promise<T> {
-  const body = (await res.json().catch(() => null)) as { data?: T; error?: { message?: string } } | null;
-  if (!res.ok) {
-    throw new Error(body?.error?.message || "Request failed");
-  }
-  return body?.data as T;
-}
-
-function FormMessage({ status }: { status: Status }) {
-  if (!status?.text) {
-    return null;
-  }
-  const color =
-    status.type === "error"
-      ? "border-danger/40 bg-danger-tint text-danger"
-      : status.type === "success"
-        ? "border-[rgb(43,179,110,0.3)] bg-[rgb(43,179,110,0.12)] text-[var(--brand-green)]"
-        : "border-border bg-card text-muted-foreground";
-  return <p className={cn("rounded-md border px-3 py-2 text-sm", color)}>{status.text}</p>;
-}
+const EMPTY_FORM: RequestFields = { studentName: "", studentId: "", email: "" };
 
 export default function EquipmentRequestClient() {
   const [items, setItems] = useState<PublicItem[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [selectedBarcodes, setSelectedBarcodes] = useState<string[]>([]);
   const [search, setSearch] = useState("");
-  const [form, setForm] = useState({ studentName: "", studentId: "", email: "" });
+  const [form, setForm] = useState<RequestFields>(EMPTY_FORM);
   const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState<Status>(null);
+  const [status, setStatus] = useState<FormStatus>(null);
 
   useEffect(() => {
     let mounted = true;
     async function load() {
+      setLoadError(null);
       try {
         const data = await readJson<{ items: PublicItem[] }>(await fetch("/api/equipment/public/items"));
         if (mounted) {
           setItems(data.items ?? []);
+          setLoaded(true);
         }
       } catch (error) {
-        if (mounted) {
-          setStatus({ type: "error", text: error instanceof Error ? error.message : "Could not load items." });
-        }
+        if (mounted) setLoadError(errorText(error, "Could not load items."));
       }
     }
     void load();
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [reloadKey]);
 
   const filteredItems = useMemo(() => {
     const query = search.trim().toLowerCase();
-    if (!query) {
-      return items;
-    }
-    return items.filter(
-      (item) => item.name.toLowerCase().includes(query) || item.barcode.toLowerCase().includes(query)
-    );
+    if (!query) return items;
+    return items.filter((item) => item.name.toLowerCase().includes(query) || item.barcode.toLowerCase().includes(query));
   }, [items, search]);
 
   function toggleBarcode(barcode: string) {
@@ -90,162 +64,70 @@ export default function EquipmentRequestClient() {
     setBusy(true);
     setStatus(null);
     try {
-      await readJson(
-        await fetch("/api/equipment/public/requests", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            studentName: form.studentName.trim(),
-            studentId: form.studentId.trim(),
-            email: form.email.trim(),
-            barcodes: selectedBarcodes
-          })
-        })
-      );
+      await sendJson("/api/equipment/public/requests", "POST", {
+        studentName: form.studentName.trim(),
+        studentId: form.studentId.trim(),
+        email: form.email.trim(),
+        barcodes: selectedBarcodes
+      });
       setStatus({ type: "success", text: "Request submitted." });
       setSelectedBarcodes([]);
-      setForm({ studentName: "", studentId: "", email: "" });
+      setForm(EMPTY_FORM);
     } catch (error) {
-      setStatus({ type: "error", text: error instanceof Error ? error.message : "Could not submit request." });
+      setStatus({ type: "error", text: errorText(error, "Could not submit request.") });
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 sm:px-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Request</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Ask for available equipment. A manager will approve or deny.</p>
-      </div>
+    <div className="space-y-5">
+      <PageHeader
+        eyebrow="Equipment"
+        title="Request equipment"
+        description="Pick available gear and send it to a manager. Approved items are held for you."
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Equipment request</CardTitle>
-          <CardDescription>Name, student ID, email, and one or more items.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <form className="grid gap-4 sm:grid-cols-3" onSubmit={submitRequest}>
-            <div className="space-y-2">
-              <Label htmlFor="request-name">Name</Label>
-              <Input
-                id="request-name"
-                value={form.studentName}
-                onChange={(event) => setForm((prev) => ({ ...prev, studentName: event.target.value }))}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="request-student">Student ID</Label>
-              <Input
-                id="request-student"
-                value={form.studentId}
-                onChange={(event) => setForm((prev) => ({ ...prev, studentId: event.target.value }))}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="request-email">Email</Label>
-              <Input
-                id="request-email"
-                type="email"
-                value={form.email}
-                onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))}
-                required
-              />
-            </div>
+      <MainWithRail
+        breakpoint="lg"
+        stickyRail
+        rail={
+          <RequestPanel
+            items={items}
+            selected={selectedBarcodes}
+            onRemove={toggleBarcode}
+            onClear={() => setSelectedBarcodes([])}
+            form={form}
+            onFormChange={(field, value) => setForm((prev) => ({ ...prev, [field]: value }))}
+            onSubmit={submitRequest}
+            status={status}
+            busy={busy}
+          />
+        }
+      >
+        <RequestCatalog
+          items={items}
+          filteredItems={filteredItems}
+          loaded={loaded}
+          loadError={loadError}
+          onRetry={() => setReloadKey((value) => value + 1)}
+          search={search}
+          onSearchChange={setSearch}
+          selected={selectedBarcodes}
+          onToggle={toggleBarcode}
+        />
+      </MainWithRail>
 
-            <div className="space-y-2 sm:col-span-3">
-              <Label htmlFor="request-search">Find equipment</Label>
-              <Input
-                id="request-search"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search by name or code"
-              />
-            </div>
-
-            <div className="space-y-2 sm:col-span-3">
-              <Label>Selected items</Label>
-              <div className="flex min-h-14 flex-wrap gap-2 rounded-lg border border-border bg-card p-3">
-                {selectedBarcodes.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No items selected.</p>
-                ) : (
-                  selectedBarcodes.map((barcode) => {
-                    const item = items.find((entry) => entry.barcode === barcode);
-                    return (
-                      <Badge key={barcode} variant="secondary" className="gap-2">
-                        {item ? `${item.name} · ${item.barcode}` : barcode}
-                        <button type="button" className="text-xs max-sm:-my-1.5 max-sm:-mr-2 max-sm:inline-flex max-sm:h-9 max-sm:w-9 max-sm:items-center max-sm:justify-center max-sm:text-base" onClick={() => toggleBarcode(barcode)}>
-                          ×
-                        </button>
-                      </Badge>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2 sm:col-span-3">
-              <Button type="submit" className="max-sm:h-11" disabled={busy}>
-                {busy ? "Submitting…" : "Submit request"}
-              </Button>
-              <Button type="button" variant="outline" className="max-sm:h-11" onClick={() => setSelectedBarcodes([])}>
-                Clear items
-              </Button>
-            </div>
-          </form>
-
-          <Separator />
-
-          <div className="space-y-3">
-            <h3 className="text-sm font-medium text-muted-foreground">Available equipment</h3>
-            <div className="max-h-[420px] overflow-auto rounded-lg border border-border">
-              <table className="w-full text-left text-sm">
-                <thead className="sticky top-0 bg-card">
-                  <tr className="border-b border-border">
-                    <th className="px-3 py-2 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                      Item
-                    </th>
-                    <th className="px-3 py-2 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                      Code
-                    </th>
-                    <th className="px-3 py-2 text-right text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                      Action
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredItems.length === 0 ? (
-                    <tr>
-                      <td colSpan={3} className="px-3 py-6 text-center text-sm text-muted-foreground">
-                        No available items.
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredItems.map((item) => {
-                      const selected = selectedBarcodes.includes(item.barcode);
-                      return (
-                        <tr key={item.id} className="border-b border-border last:border-0">
-                          <td className="px-3 py-2 text-foreground">{item.name}</td>
-                          <td className="px-3 py-2 font-mono text-[11px] tabular-nums text-muted-foreground">{item.barcode}</td>
-                          <td className="px-3 py-2 text-right">
-                            <Button size="sm" className="max-sm:h-10" variant={selected ? "secondary" : "outline"} type="button" onClick={() => toggleBarcode(item.barcode)}>
-                              {selected ? "Selected" : "Add"}
-                            </Button>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <FormMessage status={status} />
-        </CardContent>
-      </Card>
+      {/* Phones: the result shows beside Submit, so it is never below the fold. */}
+      <StickyActionBar
+        reserveLauncher={false}
+        className={`lg:hidden ${ABOVE_PHONE_TABBAR}`}
+        status={status ? <StatusLine status={status} /> : `${selectedBarcodes.length} selected`}
+      >
+        <Button type="submit" form={REQUEST_FORM_ID} disabled={busy}>
+          {busy ? "Submitting…" : "Submit request"}
+        </Button>
+      </StickyActionBar>
     </div>
   );
 }

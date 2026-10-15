@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
-import { MarketingHeader } from "@/components/marketing-header";
+import { Mail } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
+import { InfoPage, type InfoGroup } from "@/components/public-marketing/info-page";
+import { MarketingPage } from "@/components/public-marketing/marketing-page";
+import { INLINE_LINK_CLASS } from "@/components/public-marketing/shared";
 
 export const metadata: Metadata = {
   title: "Privacy policy",
@@ -92,59 +96,52 @@ const publicApp: Section[] = [
   }
 ];
 
-function Sections({ sections }: { sections: Section[] }) {
-  return (
-    <div className="mt-4 grid gap-4">
-      {sections.map((section) => (
-        <article key={section.title} className="rounded-md border border-border bg-card p-5">
-          <h3 className="text-lg font-semibold text-foreground">{section.title}</h3>
-          <ul className="mt-2 list-disc space-y-1.5 pl-5 text-sm text-muted-foreground">
-            {section.points.map((point) => (
-              <li key={point}>{point}</li>
-            ))}
-          </ul>
-        </article>
-      ))}
-    </div>
-  );
+function toGroup(id: string, title: string, sections: Section[]): InfoGroup {
+  return {
+    id,
+    title,
+    entries: sections.map((section) => ({
+      title: section.title,
+      body: (
+        <ul className="list-disc space-y-1.5 pl-5 marker:text-muted-foreground">
+          {section.points.map((point) => (
+            <li key={point}>{point}</li>
+          ))}
+        </ul>
+      )
+    }))
+  };
 }
 
 /** Public privacy policy for InFocus Portal and the InFocus iPhone apps (App Store listing link). */
 export default function PrivacyPage() {
   return (
-    <>
-      <MarketingHeader />
-      <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 md:py-10">
-        <section className="border-b-4 border-[var(--brand-green)] bg-card p-6 md:p-8">
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--brand-green)]">Privacy</p>
-          <h1 className="mt-2 text-3xl font-semibold text-foreground md:text-4xl">Privacy policy</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            InFocus Portal and the InFocus apps, made by InFocus at Palo Alto High School. Updated {UPDATED}.
-          </p>
-        </section>
-
-        <section className="mt-8">
-          <h2 className="text-2xl font-semibold text-foreground">InFocus Portal</h2>
-          <Sections sections={portal} />
-        </section>
-
-        <section className="mt-10">
-          <h2 className="text-2xl font-semibold text-foreground">The InFocus app</h2>
-          <Sections sections={publicApp} />
-        </section>
-
-        <section className="mt-10 rounded-md border border-border bg-card p-5 text-sm text-muted-foreground">
-          <h2 className="text-lg font-semibold text-foreground">Questions or deletion</h2>
-          <p className="mt-2">
-            Class members can ask the InFocus adviser to correct or delete their information. Anyone can reach InFocus
-            through{" "}
-            <a className="font-medium text-[var(--brand-green)] underline-offset-2 hover:underline" href="https://infocusnews.tv/contact-us/">
-              infocusnews.tv/contact-us
-            </a>
-            . Website analytics are cookieless page counts with no names or IP addresses.
-          </p>
-        </section>
-      </main>
-    </>
+    <MarketingPage active="privacy">
+      <InfoPage
+        header={
+          <PageHeader
+            eyebrow="Privacy"
+            title="Privacy policy"
+            description={`InFocus Portal and the InFocus apps, made by InFocus at Palo Alto High School. Updated ${UPDATED}.`}
+          />
+        }
+        groups={[toGroup("portal", "InFocus Portal", portal), toGroup("app", "The InFocus app", publicApp)]}
+        contact={{
+          id: "contact",
+          title: "Questions or deletion",
+          icon: Mail,
+          body: (
+            <p>
+              Class members can ask the InFocus adviser to correct or delete their information. Anyone can reach InFocus
+              through{" "}
+              <a className={INLINE_LINK_CLASS} href="https://infocusnews.tv/contact-us/">
+                infocusnews.tv/contact-us
+              </a>
+              . Website analytics are cookieless page counts with no names or IP addresses.
+            </p>
+          )
+        }}
+      />
+    </MarketingPage>
   );
 }

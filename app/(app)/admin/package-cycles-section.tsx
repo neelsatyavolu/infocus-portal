@@ -4,10 +4,10 @@ import { FormEvent, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SettingsPanel, SettingsRow, SettingsSection } from "@/components/settings-layout";
+import { SettingsCell, SettingsGrid, SettingsPanel, SettingsSection } from "@/components/settings-layout";
 import { ClassBoardCycleSetting } from "./class-board-cycle-setting";
 
-/** Admin → Package Cycles: cycles per semester and the Class Board's cycle. */
+/** Admin → Package Cycles: cycles per semester and the Class Board's cycle, side by side. */
 export function PackageCyclesSection({
   cyclesPerSemester,
   onCyclesPerSemesterChange
@@ -44,27 +44,29 @@ export function PackageCyclesSection({
   return (
     <SettingsSection id="package-cycles" title="Package Cycles">
       <SettingsPanel>
-        <SettingsRow
-          title="Cycles per semester"
-          description="Drives the progress sheet, cycle tabs, and the maximum points in the packages grade category."
-          htmlFor="cycles-per-semester"
-        >
-          <form onSubmit={save} className="flex items-center gap-2">
-            <Input
-              id="cycles-per-semester"
-              type="number"
-              min={1}
-              max={8}
-              value={cyclesPerSemester}
-              onChange={(event) => onCyclesPerSemesterChange(Math.max(1, Number(event.target.value) || 1))}
-              className="w-20 font-mono tabular-nums"
-            />
-            <Button type="submit" variant="outline" disabled={saving}>
-              {saving ? "Saving…" : "Save"}
-            </Button>
-          </form>
-        </SettingsRow>
-        <ClassBoardCycleSetting />
+        <SettingsGrid>
+          <SettingsCell
+            title="Cycles per semester"
+            description="Drives the progress sheet, cycle tabs, and the maximum points in the packages grade category."
+            htmlFor="cycles-per-semester"
+          >
+            <form onSubmit={save} className="flex items-center gap-2">
+              <Input
+                id="cycles-per-semester"
+                type="number"
+                min={1}
+                max={8}
+                value={cyclesPerSemester}
+                onChange={(event) => onCyclesPerSemesterChange(Math.max(1, Number(event.target.value) || 1))}
+                className="w-20 font-mono tabular-nums"
+              />
+              <Button type="submit" variant="outline" disabled={saving}>
+                {saving ? "Saving…" : "Save"}
+              </Button>
+            </form>
+          </SettingsCell>
+          <ClassBoardCycleSetting />
+        </SettingsGrid>
       </SettingsPanel>
     </SettingsSection>
   );

@@ -1,12 +1,16 @@
 "use client";
 
 import { Pencil } from "lucide-react";
+import { KeyValueList } from "@/components/kit/key-value";
+import { Panel } from "@/components/kit/panel";
+import { StatusTag } from "@/components/kit/status-tag";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/src/lib/utils";
 
-const LABEL = "text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground";
-
-/** Headline and anchor toss for a Final Cut, with an add/edit button for the toss. */
+/**
+ * "What airs": the Final Cut's headline and the anchors' toss, with one Edit toss / Add a toss
+ * action. A missing toss is a NO TOSS tag beside the title plus one line saying why it matters.
+ * Hidden when there is nothing to show and the viewer can't add a toss.
+ */
 export function FinalCutShowCard({
   headline,
   toss,
@@ -24,38 +28,43 @@ export function FinalCutShowCard({
   if (!headline && missingToss && !canEdit) return null;
 
   return (
-    <section className={cn("space-y-4 rounded-xl border border-border bg-card p-4", className)}>
-      {headline ? (
-        <div>
-          <div className={LABEL}>Headline</div>
-          <p className="mt-1 text-base font-medium text-foreground">{headline}</p>
-        </div>
-      ) : null}
-      <div>
-        <div className="flex items-center justify-between gap-2">
-          <div className={LABEL}>Toss</div>
-          {canEdit && !missingToss ? (
-            <Button type="button" size="sm" variant="ghost" onClick={onEdit}>
-              <Pencil className="mr-1.5 h-3.5 w-3.5" />
-              Edit
-            </Button>
-          ) : null}
-        </div>
-        {missingToss ? (
-          <div className="mt-1 space-y-2">
-            <p className="text-sm text-muted-foreground">
-              No toss yet. The anchors read it right before this package airs.
-            </p>
-            {canEdit ? (
-              <Button type="button" size="sm" onClick={onEdit}>
-                Add a toss
-              </Button>
-            ) : null}
-          </div>
-        ) : (
-          <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-foreground">{toss}</p>
-        )}
-      </div>
-    </section>
+    <Panel
+      title="What airs"
+      titleAs="h2"
+      status={missingToss ? <StatusTag tone="warning">No toss</StatusTag> : null}
+      padding="md"
+      className={className}
+      actions={
+        canEdit ? (
+          <Button type="button" size="sm" variant="outline" className="max-sm:h-10" onClick={onEdit}>
+            <Pencil aria-hidden />
+            {missingToss ? "Add a toss" : "Edit toss"}
+          </Button>
+        ) : null
+      }
+    >
+      <KeyValueList
+        layout="stacked"
+        items={[
+          {
+            key: "headline",
+            label: "Headline",
+            value: <span className="text-base font-medium text-foreground">{headline}</span>,
+            hidden: !headline
+          },
+          {
+            key: "toss",
+            label: "Toss",
+            value: missingToss ? (
+              <span className="text-muted-foreground">
+                No toss yet. The anchors read it right before this package airs.
+              </span>
+            ) : (
+              <span className="whitespace-pre-line leading-relaxed">{toss}</span>
+            )
+          }
+        ]}
+      />
+    </Panel>
   );
 }

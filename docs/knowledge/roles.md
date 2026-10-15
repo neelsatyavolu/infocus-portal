@@ -10,7 +10,7 @@
 | Associate producer | Assigned packages in Groups | Stage 1 on assigned packages. Required packages: 2 in semester 1, 3 in semester 2. |
 | (no role) | Reporters | Student cycle tabs for packages they are on. Required packages: 3 S1 / 4 S2. |
 
-Super admin and the adviser give out Associate Producer, Executive Producer, and Adviser in Admin → Producer Team. The env accounts above always keep their role, whatever Producer Team says. View as belongs to the env super admin and adviser accounts (plus limited grants), not to everyone given the Adviser role.
+Super admin and the adviser give out Associate Producer, Executive Producer, and Adviser in Admin → People → Producer Team. The env accounts above always keep their role, whatever Producer Team says. View as belongs to the env super admin and adviser accounts (plus limited grants), not to everyone given the Adviser role.
 
 ## Rules that confuse people
 
@@ -29,7 +29,7 @@ Separate from `PlatformRole`. Any producer (associate and up) appoints or remove
 | Manager | Unlocks |
 |---|---|
 | Equipment | Equipment Dashboard (`/equipment/manage`) and every Manage tab, plus checkout |
-| Livestream | Edit the livestream schedule, approve sign-ups, the **Completion** tab and credit edits, the livestream dashboard PIN in Settings, and new OBS links. Earns manager credit for completed livestreams they manage |
+| Livestream | Edit the livestream schedule, approve sign-ups, the **Completion** view (in the view switcher on Livestreams) and credit edits, the livestream dashboard PIN in Settings, and new OBS links. Earns manager credit for completed livestreams they manage |
 | Website | Read-only Publishing Queue (`/publishing-queue`). No queue or group editing |
 | Social media | Instagram Post Maker (`/managers/social-media`) |
 

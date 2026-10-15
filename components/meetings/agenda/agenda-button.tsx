@@ -3,12 +3,11 @@
 import { useEffect, useState } from "react";
 import { ListChecks } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { MeetingSummary } from "@/src/lib/meetings/types";
 import { agendaProgress } from "@/src/lib/meetings/agenda";
 import { meetingsApi } from "@/src/lib/meetings/client/api";
-import { pointerSafeAutoFocus } from "../focus-modality";
-import { AgendaEditor } from "./agenda-editor";
+import { cn } from "@/src/lib/utils";
+import { AgendaSheet } from "./agenda-sheet";
 import { useAgenda } from "./use-agenda";
 
 /** `/meetings?agenda=<meetingId>` opens that meeting's editor (the in-call "Edit agenda" link). */
@@ -18,52 +17,79 @@ export function agendaEditorHref(meetingId: string) {
   return `/meetings?${AGENDA_QUERY_PARAM}=${encodeURIComponent(meetingId)}`;
 }
 
-function AgendaDialog({
-  open,
-  onOpenChange,
-  meetingId,
-  title,
-  agenda
+/**
+ * Meetings tab: the "Agenda n" button in a meeting row. It only asks to open; the tab owns the
+ * one MeetingAgendaSheet, so the sheet (and a half-typed item) stays open when the row moves
+ * from Upcoming to Join now. The count sits at the right edge, so buttons of one width line up
+ * down a list. `compactOnPhone`: below md only the icon and count show (the name stays in the
+ * label), in a fixed 56px (room for a two-digit count), so every row's actions column has the
+ * same width and titles and buttons start at the same x down the list.
+ */
+export function AgendaButton({
+  meeting,
+  count,
+  onOpen,
+  compactOnPhone = false,
+  className
 }: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  meetingId: string;
-  title: string;
-  agenda: ReturnType<typeof useAgenda>;
+  meeting: Pick<MeetingSummary, "id" | "title">;
+  /** The agenda's item count: the list's agendaCount, or the sheet's live count once it loaded. */
+  count: number;
+  onOpen: () => void;
+  compactOnPhone?: boolean;
+  className?: string;
 }) {
+  const countLabel = count ? `, ${count} ${count === 1 ? "item" : "items"}` : "";
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent onOpenAutoFocus={pointerSafeAutoFocus} className="max-h-[85dvh] max-w-lg overflow-y-auto outline-none [&>*]:min-w-0">
-        <DialogHeader>
-          <DialogTitle>Agenda</DialogTitle>
-          <DialogDescription>
-            {title || "Meeting"}. Any producer can add, edit and reorder items.
-          </DialogDescription>
-        </DialogHeader>
-        {meetingId ? <AgendaEditor agenda={agenda} /> : null}
-      </DialogContent>
-    </Dialog>
+    <Button
+      size="sm"
+      variant="outline"
+      onClick={onOpen}
+      aria-label={`Agenda for ${meeting.title}${countLabel}`}
+      className={cn("justify-start", compactOnPhone && "max-md:w-14 max-md:justify-center max-md:gap-1.5 max-md:px-2", className)}
+    >
+      <ListChecks aria-hidden />
+      <span className={cn(compactOnPhone && "max-md:hidden")}>Agenda</span>
+      {count ? (
+        <span className={cn("ml-auto font-mono text-xs tabular-nums text-muted-foreground", compactOnPhone && "max-md:ml-0")}>{count}</span>
+      ) : null}
+    </Button>
   );
 }
 
 /**
- * Meetings tab: "Agenda n" button + editor dialog for one meeting. Self-contained; drop it into
- * a meeting row. Any producer who can see the meeting can edit; over meetings are read-only.
+ * The agenda sheet for one meeting on the Meetings tab. Mount it once, keyed by the meeting id,
+ * outside the rows. Any producer who can see the meeting can edit; over meetings are read-only.
+ * It loads only while open, and reports the live item count (`onCount`) so the row's button
+ * keeps up with edits.
  */
-export function AgendaButton({ meeting }: { meeting: Pick<MeetingSummary, "id" | "title" | "agendaCount"> }) {
-  const [open, setOpen] = useState(false);
-  // Loads only once opened; the list's agendaCount covers the badge until then.
+export function MeetingAgendaSheet({
+  meeting,
+  open,
+  onOpenChange,
+  onCount
+}: {
+  meeting: Pick<MeetingSummary, "id" | "title" | "startsAt">;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCount: (meetingId: string, count: number) => void;
+}) {
   const agenda = useAgenda(meeting.id, open);
-  const count = agenda.items ? agendaProgress(agenda.items).total : meeting.agendaCount;
+  const count = agenda.items ? agendaProgress(agenda.items).total : null;
+
+  useEffect(() => {
+    if (count !== null) onCount(meeting.id, count);
+  }, [count, meeting.id, onCount]);
+
   return (
-    <>
-      <Button size="sm" variant="outline" onClick={() => setOpen(true)} aria-label={`Agenda for ${meeting.title}`}>
-        <ListChecks aria-hidden />
-        Agenda
-        {count ? <span className="font-mono text-xs tabular-nums text-muted-foreground">{count}</span> : null}
-      </Button>
-      <AgendaDialog open={open} onOpenChange={setOpen} meetingId={meeting.id} title={meeting.title} agenda={agenda} />
-    </>
+    <AgendaSheet
+      open={open}
+      onOpenChange={onOpenChange}
+      meetingId={meeting.id}
+      title={meeting.title}
+      startsAt={meeting.startsAt}
+      agenda={agenda}
+    />
   );
 }
 
@@ -71,6 +97,7 @@ export function AgendaButton({ meeting }: { meeting: Pick<MeetingSummary, "id" |
 export function AgendaFromQuery() {
   const [meetingId, setMeetingId] = useState("");
   const [title, setTitle] = useState("");
+  const [startsAt, setStartsAt] = useState<string | undefined>(undefined);
   const agenda = useAgenda(meetingId, Boolean(meetingId));
 
   useEffect(() => {
@@ -79,7 +106,10 @@ export function AgendaFromQuery() {
     setMeetingId(wanted);
     meetingsApi
       .get(wanted)
-      .then(({ meeting }) => setTitle(meeting.title))
+      .then(({ meeting }) => {
+        setTitle(meeting.title);
+        setStartsAt(meeting.startsAt);
+      })
       .catch(() => setTitle(""));
   }, []);
 
@@ -91,6 +121,13 @@ export function AgendaFromQuery() {
   };
 
   return (
-    <AgendaDialog open={Boolean(meetingId)} onOpenChange={(open) => !open && close()} meetingId={meetingId} title={title} agenda={agenda} />
+    <AgendaSheet
+      open={Boolean(meetingId)}
+      onOpenChange={(open) => !open && close()}
+      meetingId={meetingId}
+      title={title}
+      startsAt={startsAt}
+      agenda={agenda}
+    />
   );
 }

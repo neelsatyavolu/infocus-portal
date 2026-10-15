@@ -4,16 +4,24 @@ import { Subject } from "rxjs";
 let transceivers = new Subject<RTCRtpTransceiver>();
 let sessions = new Subject<{ peerConnection: RTCPeerConnection; sessionId: string | undefined }>();
 let constructed: Array<Record<string, unknown>> = [];
+let pullError: Error | null = null;
 
-vi.mock("partytracks/client", () => ({
-  PartyTracks: class {
-    transceiver$ = transceivers.asObservable();
-    session$ = sessions.asObservable();
-    constructor(config: Record<string, unknown>) {
-      constructed.push(config);
+vi.mock("partytracks/client", async () => {
+  const { NEVER, throwError } = await import("rxjs");
+  return {
+    PartyTracks: class {
+      transceiver$ = transceivers.asObservable();
+      session$ = sessions.asObservable();
+      constructor(config: Record<string, unknown>) {
+        constructed.push(config);
+      }
+      pull() {
+        const error = pullError;
+        return error ? throwError(() => error) : NEVER;
+      }
     }
-  }
-}));
+  };
+});
 
 import { CLOSE_GUARD_MS, ZOMBIE_AFTER_MS, createMediaSession, fetchIceServers } from "@/src/lib/meetings/client/media-session";
 import type { MeetingE2ee } from "@/src/lib/meetings/client/e2ee";
@@ -54,6 +62,7 @@ describe("createMediaSession", () => {
     transceivers = new Subject<RTCRtpTransceiver>();
     sessions = new Subject();
     constructed = [];
+    pullError = null;
     vi.useFakeTimers();
     vi.stubGlobal(
       "fetch",
@@ -137,6 +146,36 @@ describe("createMediaSession", () => {
     expect(onZombie).toHaveBeenCalledTimes(1);
     vi.advanceTimersByTime(ZOMBIE_AFTER_MS * 3);
     expect(onZombie).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports a zombie as soon as the SFU says the session is disconnected, once", async () => {
+    const onZombie = vi.fn();
+    const media = await session(vi.fn(), { onZombie });
+    const pc = new FakePc();
+    sessions.next({ peerConnection: pc as unknown as RTCPeerConnection, sessionId: "s1" });
+    pc.set("connected");
+    pullError = new Error("Session appears to be disconnected. Please check if the PeerConnection is connected.");
+    const sub = media.pulls.acquire("s2/audio", false).track$.subscribe();
+    expect(onZombie).toHaveBeenCalledWith("session_gone");
+    pc.set("disconnected");
+    vi.advanceTimersByTime(ZOMBIE_AFTER_MS * 2);
+    expect(onZombie).toHaveBeenCalledTimes(1);
+    sub.unsubscribe();
+    media.close();
+  });
+
+  it("keeps retrying other pull errors without a zombie", async () => {
+    const onZombie = vi.fn();
+    const media = await session(vi.fn(), { onZombie });
+    const pc = new FakePc();
+    sessions.next({ peerConnection: pc as unknown as RTCPeerConnection, sessionId: "s1" });
+    pc.set("connected");
+    pullError = new Error("Too many requests");
+    const sub = media.pulls.acquire("s2/audio", false).track$.subscribe();
+    vi.advanceTimersByTime(30_000);
+    expect(onZombie).not.toHaveBeenCalled();
+    sub.unsubscribe();
+    media.close();
   });
 
   it("is happy once connected (and tolerates a short blip)", async () => {

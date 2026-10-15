@@ -1,5 +1,5 @@
 import { PartyTracks } from "partytracks/client";
-import { EMPTY, catchError, of, retry, timer, type MonoTypeOperatorFunction, type Subscription } from "rxjs";
+import { EMPTY, catchError, of, retry, tap, timer, type MonoTypeOperatorFunction, type Subscription } from "rxjs";
 import { backoffDelay } from "./room-socket";
 import { diagEvent, errorText } from "./diagnostics";
 import type { MeetingE2ee } from "./e2ee";
@@ -67,7 +67,12 @@ const STUN_FALLBACK: RTCIceServer[] = [{ urls: "stun:stun.cloudflare.com:3478" }
 /** A media session whose peer connection hasn't connected for this long is dead: rebuild it. */
 export const ZOMBIE_AFTER_MS = 15_000;
 
-export type ZombieReason = "no_session_id" | "not_connected";
+export type ZombieReason = "no_session_id" | "not_connected" | "session_gone";
+
+/** Cloudflare Realtime's tracks/new answer (410 session_error) when this session's peer connection is down. */
+export function isSessionGoneError(error: unknown) {
+  return /session appears to be disconnected/i.test(errorText(error));
+}
 
 export type MeetingMediaSession = {
   partyTracks: PartyTracks;
@@ -169,12 +174,16 @@ export async function createMediaSession(input: {
     }
   });
   let pc: RTCPeerConnection | null = null;
+  let zombieReported = false;
+  const reportZombie = (reason: ZombieReason) => {
+    if (zombieReported || closed) return;
+    zombieReported = true;
+    diagEvent("media_zombie", { reason });
+    input.onZombie?.(reason);
+  };
   const watch = watchSession(
     partyTracks,
-    (reason) => {
-      diagEvent("media_zombie", { reason });
-      input.onZombie?.(reason);
-    },
+    reportZombie,
     (next) => {
       pc = next;
       input.onPeerConnection?.(next);
@@ -183,6 +192,9 @@ export async function createMediaSession(input: {
   const pulls = new PullRegistry(
     (meta, rid$) =>
       (rid$ ? partyTracks.pull(of(meta), { simulcast: { preferredRid$: rid$ } }) : partyTracks.pull(of(meta))).pipe(
+        // The SFU says our own session is gone: retrying on it can't work, so rebuild now instead
+        // of after the 15 s watchdog (the Scribe lost ~20 s of a meeting that way).
+        tap({ error: (error: unknown) => isSessionGoneError(error) && reportZombie("session_gone") }),
         // Until released: the registry only re-acquires when the track's id changes.
         withBackoff("pull", Infinity),
         catchError((error) => {

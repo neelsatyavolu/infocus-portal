@@ -500,7 +500,7 @@ describe("class board deadlines", () => {
     );
 
     expect(rows.map((row) => [row.label, row.cycleNumber, row.when])).toEqual([
-      ["A-roll & b-roll", 3, "Today"],
+      ["A-roll/B-roll", 3, "Today"],
       ["Initial Cut · Stage 2", 3, "1d"],
       ["Initial Cut · Stage 3", 3, "5d"],
       ["Initial Cut", 3, "8d"],

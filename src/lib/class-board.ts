@@ -80,7 +80,7 @@ export const CLASS_BOARD_DEADLINE_LIMIT = 7;
 const DEADLINE_FIELDS = [
   { key: "pitching", label: "Pitching", focus: "Develop your pitch and confirm your group" },
   { key: "proofOfContact", label: "Proof of Contact & Brainstorming", focus: "Confirm interviews and finish your brainstorm" },
-  { key: "aRollBRoll", label: "A-roll & b-roll", focus: "Film interviews and gather supporting B-roll" },
+  { key: "aRollBRoll", label: "A-roll/B-roll", focus: "Film interviews and gather supporting B-roll" },
   { key: "initialCut", label: "Initial Cut", focus: "Build your story and submit your Initial Cut" },
   { key: "initialCutStage2", label: "Initial Cut · Stage 2", focus: "Revise your Initial Cut for adviser review" },
   { key: "initialCutStage3", label: "Initial Cut · Stage 3", focus: "Polish your Initial Cut for executive review" },

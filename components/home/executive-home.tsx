@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { MainWithRail } from "@/components/kit/layout";
 import { StatusTag } from "@/components/kit/status-tag";
 import { PageHeader } from "@/components/page-header";
 import { ExecutiveNeedsPanel } from "@/components/home/executive-needs-panel";
@@ -17,9 +16,9 @@ function nextDeadlineLine(deadlines: WeekDeadline[] | null) {
 
 /**
  * Home for executives, the adviser and super admin (/dashboard). The header says the cycle, how
- * many things wait on the viewer and how many groups are behind. Below: Needs you (the list,
- * first on phones) with Class overview and This week in a rail from lg, then the producer
- * Projects view (`projects`) under its own heading.
+ * many things wait on the viewer and how many groups are behind. Below: Needs you beside This
+ * week (the list first on phones), Class overview across the page, then the producer Projects
+ * view (`projects`) under its own heading.
  */
 export function ExecutiveHome({
   firstName,
@@ -56,18 +55,12 @@ export function ExecutiveHome({
         description={nextDeadlineLine(dashboard.deadlines)}
       />
 
-      <MainWithRail
-        breakpoint="lg"
-        railWidth="22rem"
-        rail={
-          <>
-            <ExecutiveOverviewPanel overview={dashboard.overview} />
-            <ExecutiveWeekPanel deadlines={dashboard.deadlines} events={dashboard.events} />
-          </>
-        }
-      >
+      {/* Two short lists side by side (the list first on phones), then the class across the page. */}
+      <div className="grid items-start gap-4 sm:gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <ExecutiveNeedsPanel needs={dashboard.needs} failed={dashboard.failed} now={now} />
-      </MainWithRail>
+        <ExecutiveWeekPanel deadlines={dashboard.deadlines} events={dashboard.events} />
+      </div>
+      <ExecutiveOverviewPanel overview={dashboard.overview} />
 
       <section aria-labelledby="home-projects-heading" className="pt-2">
         {projects}

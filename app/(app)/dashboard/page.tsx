@@ -124,10 +124,15 @@ async function loadSnapshotOrNull(
   }
 }
 
-/** The tab says what the sidebar says: "Packages" for producers, "Dashboard" for everyone else. */
+/** The tab says what the sidebar says: "Home" for executives, "Packages" for associates, "Dashboard" for students. */
 export async function generateMetadata(): Promise<Metadata> {
   const { platformRole } = await getCurrentAppUser();
-  return { title: buildPlatformAccess(platformRole).canManageWorkspaces ? "Packages" : "Dashboard" };
+  const title = hasPlatformRole(platformRole, "EXECUTIVE_PRODUCER")
+    ? "Home"
+    : buildPlatformAccess(platformRole).canManageWorkspaces
+      ? "Packages"
+      : "Dashboard";
+  return { title };
 }
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {

@@ -136,10 +136,11 @@ describe("buildSidebarNav", () => {
     ]);
   });
 
-  it("labels the dashboard Packages for producers", () => {
+  it("labels the dashboard Home for executives and Packages for associates", () => {
     const first = (context: SidebarNavContext) => buildSidebarNav(context)[0].items[0].label;
     expect(first(student)).toBe("Dashboard");
     expect(first(associate)).toBe("Packages");
+    expect(first({ ...associate, canManageGrades: true, canManageAdmin: true })).toBe("Home");
   });
 });
 

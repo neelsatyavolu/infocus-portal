@@ -132,7 +132,12 @@ function section(label: string | null, items: Array<SidebarNavItem | false>): Si
 const settings = item("settings", "/settings", "Settings");
 
 export function buildSidebarNav(context: SidebarNavContext): SidebarNavSection[] {
-  const dashboard = item("dashboard", "/dashboard", context.isProducer ? "Packages" : "Dashboard");
+  // Executives' /dashboard is the class Home; associates' is their packages; students' their own.
+  const dashboard = item(
+    "dashboard",
+    "/dashboard",
+    context.canManageGrades ? "Home" : context.isProducer ? "Packages" : "Dashboard"
+  );
 
   if (context.sampleOnly) {
     return [

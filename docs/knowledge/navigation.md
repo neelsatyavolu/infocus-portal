@@ -1,6 +1,6 @@
 # Navigation
 
-Portal chrome is dark by default (Light is in Settings → Appearance & playback → Theme). Sidebar depends on role. On phones and tablets under 1024px, a tab bar sits at the bottom of the screen: Dashboard (or Packages), then up to three of My package, Groups, The Show, Calendar and Grades (whichever you have, in that order), and **More**, which opens the full sidebar. The ✱ button sits just above it. The iPhone app keeps its own navigation instead.
+Portal chrome is dark by default (Light is in Settings → Appearance & playback → Theme). Sidebar depends on role. On phones and tablets under 1024px, a tab bar sits at the bottom of the screen: Dashboard (or Packages, or Home for executives), then up to three of My package, Groups, The Show, Calendar and Grades (whichever you have, in that order), and **More**, which opens the full sidebar. The ✱ button sits just above it. The iPhone app keeps its own navigation instead.
 
 Sidebar category headings use compact spacing, with 0.675rem above each heading.
 
@@ -18,7 +18,7 @@ Tabs with no note are shown to everyone signed in.
 
 **Top**
 
-- Dashboard (students) or Packages (associate producers and up)
+- Dashboard (students), Packages (associate producers) or Home (executive producers, the adviser and super admin; see dashboard-and-review.md)
 - My package: reporters, and any producer (associate, executive, or super admin) who is on a package roster. Opens the stage you are working on (the latest unlocked one) and shows the total unread feedback on this cycle's package.
 - Grades (`/grades`): reporters and associate producers. Hidden for executive producers, the adviser, and super admin.
 - Calendar: Master Calendar, with **Cycle Dates** (`/package-cycles`: stage dates for each cycle) as a tab at the top

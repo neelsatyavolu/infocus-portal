@@ -47,8 +47,8 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "packages",
     label: "Packages",
     href: "/dashboard",
-    hint: "Left sidebar, at the top",
-    aliases: ["dashboard", "projects", "workspace"],
+    hint: "Left sidebar, at the top (called Home for executives)",
+    aliases: ["dashboard", "home", "projects", "workspace"],
     audiences: PRODUCERS
   },
   {

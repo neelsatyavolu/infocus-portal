@@ -5,6 +5,7 @@ import Link from "next/link";
 import PublishingManagers from "./publishing-managers";
 import { Download, GripVertical, History, Play, Plus, Radio, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -104,7 +105,7 @@ function QueuePackageCard({
   return (
     <div
       className={cn(
-        "rounded-xl border border-border bg-card px-3 py-2.5 transition-opacity",
+        "rounded-md border border-border bg-card px-3 py-2.5 transition-opacity",
         dragging && "opacity-50"
       )}
     >
@@ -463,21 +464,21 @@ export default function PublishingQueueClient({ canEdit }: { canEdit: boolean })
 
   return (
     <div className="route-enter mx-auto w-full max-w-3xl space-y-5 pb-24">
-      <section className="brand-hero-panel relative overflow-hidden p-5">
-        <div className="relative flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <div className="eyebrow flex items-center gap-2">
-              <Radio className="h-3 w-3" />
-              {canEdit ? "Producers" : "Website managers"}
-            </div>
-            <h1 className="display-md mt-2 text-foreground">Publishing Queue</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {canEdit
-                ? `New items land on the next empty show. Drag onto a date to stack — max ${MAX_PACKAGES_PER_SHOW} per show.`
-                : "Packages lined up for each show. Open a package’s YouTube status for its embed code. Producers manage the queue."}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
+      <PageHeader
+        eyebrow={
+          <>
+            <Radio className="h-3 w-3" />
+            {canEdit ? "Producers" : "Website managers"}
+          </>
+        }
+        title="Publishing Queue"
+        description={
+          canEdit
+            ? `New items land on the next empty show. Drag onto a date to stack — max ${MAX_PACKAGES_PER_SHOW} per show.`
+            : "Packages lined up for each show. Open a package’s YouTube status for its embed code. Producers manage the queue."
+        }
+        actions={
+          <>
             {canEdit ? <PublishingManagers /> : null}
             <Button type="button" size="sm" variant="outline" onClick={() => setPastOpen(true)}>
               <History className="h-4 w-4" />
@@ -489,9 +490,9 @@ export default function PublishingQueueClient({ canEdit }: { canEdit: boolean })
                 Add package
               </Button>
             ) : null}
-          </div>
-        </div>
-      </section>
+          </>
+        }
+      />
 
       {publishingConfigured === false ? <p className="text-sm text-muted-foreground">YouTube publishing is not configured yet. Queue scheduling is still available.</p> : null}
       {loading ? <p className="text-sm text-muted-foreground">Loading…</p> : null}
@@ -543,7 +544,7 @@ export default function PublishingQueueClient({ canEdit }: { canEdit: boolean })
                 }}
                 onDrop={(event) => onDropOnShow(group.date, event)}
                 className={cn(
-                  "min-h-[4.75rem] space-y-2 rounded-2xl border border-dashed p-2 transition-[border-color,background-color] duration-150",
+                  "min-h-[4.75rem] space-y-2 rounded-md border border-dashed p-2 transition-[border-color,background-color] duration-150",
                   droppable ? "border-border/80" : "border-transparent p-0",
                   over && accepting && "border-brand-green/60 bg-primary/5",
                   droppable && !accepting && draggingId && "opacity-60"

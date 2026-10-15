@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Camera, Globe, KeyRound, Lock, Radio, ShieldCheck, UserPlus } from "lucide-react";
 import type { ComponentType } from "react";
+import { PageHeader } from "@/components/page-header";
 import { SocialIcon } from "@/components/story-maker/social-icons";
 import { requireUserId, syncUserProfile } from "@/src/lib/auth";
 import {
@@ -144,16 +145,18 @@ export default async function ManagersPage() {
 
   return (
     <div className="route-enter mx-auto w-full max-w-[1760px] space-y-5 pb-28">
-      <section className="brand-hero-panel relative overflow-hidden p-6 md:p-8">
-        <p className="eyebrow">Managers</p>
-        <h1 className="display-md mt-3 text-balance text-foreground">Pick your area</h1>
-        <p className="mt-2 max-w-2xl text-sm text-[var(--ink-text)]">
-          Each manager role has its own tool. Choose yours to open it.
-        </p>
-        <p className="mt-4 text-sm text-foreground">
-          <RoleSummary isProducer={isProducer} roles={roles} />
-        </p>
-      </section>
+      <PageHeader
+        eyebrow="Managers"
+        title="Pick your area"
+        description={
+          <>
+            Each manager role has its own tool. Choose yours to open it.{" · "}
+            <span className="text-foreground">
+              <RoleSummary isProducer={isProducer} roles={roles} />
+            </span>
+          </>
+        }
+      />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {areas.map((area) => (

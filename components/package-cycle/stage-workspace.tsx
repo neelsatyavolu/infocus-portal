@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Loader2, MessageSquare, Play, RefreshCcw, Upload } from "lucide-react";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/page-header";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -749,18 +750,14 @@ export function StageWorkspace({
           {headerPills}
         </div>
       ) : (
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <div className="eyebrow">{producerChrome ? "Groups" : "Production"}</div>
-            <h1 className="display-md mt-2 text-foreground">{TITLES[slug]}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Cycle {view.row?.cycleNumber}
-              {view.row?.groupTopic ? ` · ${view.row.groupTopic}` : ""}
-              {progressLabel ? ` · ${progressLabel}` : ""}
-            </p>
-          </div>
-          {headerPills}
-        </div>
+        <PageHeader
+          eyebrow={[producerChrome ? "Groups" : null, `Cycle ${view.row?.cycleNumber ?? ""}`.trim()]
+            .filter(Boolean)
+            .join(" · ")}
+          title={TITLES[slug]}
+          description={[view.row?.groupTopic, progressLabel].filter(Boolean).join(" · ") || undefined}
+          actions={headerPills}
+        />
       )}
 
       {slug === "initial-cut" && !view.isProducer && view.row?.approvalStage === "APPROVED" && !view.row.finalCut ? (

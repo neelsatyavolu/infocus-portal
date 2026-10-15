@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AlertCircle, CalendarDays, ChevronLeft, ChevronRight, Eraser, FileUp, MoreHorizontal, Search, Users } from "lucide-react";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { CastCountsDialog } from "@/components/master-calendar/cast-counts-dialog";
@@ -105,9 +106,6 @@ const HEADER_SURFACES = [
   "bg-[var(--ink-2)] font-display tracking-[0.18em] text-foreground",
   "bg-[var(--ink-3)] font-display tracking-[0.18em] text-foreground"
 ] as const;
-
-const BUTTON_SECONDARY =
-  "bg-secondary text-foreground hover:bg-accent";
 
 const AUTO_SYNC_IDLE_MS = 60_000;
 const PACKAGE_TRIGGER = "[package]";
@@ -1313,119 +1311,115 @@ export default function MasterCalendarClient({ initialData }: { initialData: Cal
 
   return (
     <div className="route-enter mx-auto w-full max-w-7xl space-y-5">
-      <section className="brand-hero-panel relative overflow-hidden rounded-2xl border border-border p-5 md:p-6">
-        <div className="relative flex flex-col gap-4">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <div className="eyebrow flex items-center gap-2">
-                <CalendarDays className="h-3 w-3" />
-                Production · Run-of-Show
-              </div>
-              <h1 className="display-md mt-2 text-foreground">Master Calendar</h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Monday PA · Tue/Thu royalty-free images · Wed/Fri shows. Holidays stay off.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex items-center rounded-lg border border-border bg-secondary/60 p-1">
-                <button
-                  type="button"
-                  onClick={() => shiftMonth(-1)}
-                  disabled={atCalendarStart || loading}
-                  aria-label="Previous month"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground lg:h-7 lg:w-7 transition hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-30"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <span className="min-w-[110px] px-2 text-center text-sm font-semibold text-foreground tabular-nums">
-                  {formatMonthTitle(monthCursor)}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => shiftMonth(1)}
-                  disabled={loading}
-                  aria-label="Next month"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground lg:h-7 lg:w-7 transition hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-30"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
+      <PageHeader
+        eyebrow={
+          <>
+            <CalendarDays className="h-3 w-3" />
+            Production · Run-of-Show
+          </>
+        }
+        title="Master Calendar"
+        description="Monday PA · Tue/Thu royalty-free images · Wed/Fri shows. Holidays stay off."
+        actions={
+          <>
+            <div className="inline-flex items-center rounded-md border border-border bg-secondary/60 p-1">
               <button
                 type="button"
-                onClick={resetToCurrentMonth}
-                disabled={loading}
-                className="inline-flex h-9 items-center rounded-lg px-3 text-sm font-medium text-muted-foreground transition hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-30"
+                onClick={() => shiftMonth(-1)}
+                disabled={atCalendarStart || loading}
+                aria-label="Previous month"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground lg:h-7 lg:w-7 transition hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-30"
               >
-                Today
+                <ChevronLeft className="h-4 w-4" />
               </button>
-              {canViewCastCounts ? (
+              <span className="min-w-[110px] px-2 text-center text-sm font-semibold text-foreground tabular-nums">
+                {formatMonthTitle(monthCursor)}
+              </span>
+              <button
+                type="button"
+                onClick={() => shiftMonth(1)}
+                disabled={loading}
+                aria-label="Next month"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground lg:h-7 lg:w-7 transition hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-30"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={resetToCurrentMonth}
+              disabled={loading}
+              className="inline-flex h-9 items-center rounded-md px-3 text-sm font-medium text-muted-foreground transition hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-30"
+            >
+              Today
+            </button>
+            {canViewCastCounts ? (
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => setCastCountsOpen(true)}
+                variant="outline"
+              >
+                <Users className="mr-2 h-4 w-4" />
+                Anchors & PA
+              </Button>
+            ) : null}
+            {canEdit ? (
+              <>
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => setCastCountsOpen(true)}
-                  className={BUTTON_SECONDARY}
+                  variant="destructive-quiet"
+                  onClick={() => setConfirmingWipe(true)}
+                  disabled={wipingAnchors || syncing}
                 >
-                  <Users className="mr-2 h-4 w-4" />
-                  Anchors & PA
+                  <Eraser className="mr-2 h-4 w-4" />
+                  {wipingAnchors ? "Wiping..." : "Wipe anchors"}
                 </Button>
-              ) : null}
-              {canEdit ? (
-                <>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="destructive-quiet"
-                    onClick={() => setConfirmingWipe(true)}
-                    disabled={wipingAnchors || syncing}
-                  >
-                    <Eraser className="mr-2 h-4 w-4" />
-                    {wipingAnchors ? "Wiping..." : "Wipe anchors"}
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={() => void syncToGoogleDoc(monthKey)}
-                    disabled={syncing || wipingAnchors}
-                    className={BUTTON_SECONDARY}
-                  >
-                    <FileUp className="mr-2 h-4 w-4" />
-                    {syncing ? "Syncing..." : "Sync to Doc"}
-                  </Button>
-                </>
-              ) : null}
-            </div>
-          </div>
-        </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => void syncToGoogleDoc(monthKey)}
+                  disabled={syncing || wipingAnchors}
+                  variant="outline"
+                >
+                  <FileUp className="mr-2 h-4 w-4" />
+                  {syncing ? "Syncing..." : "Sync to Doc"}
+                </Button>
+              </>
+            ) : null}
+          </>
+        }
+      />
 
-        {canEdit ? (
-          <p className="mt-2 text-xs text-muted-foreground">
-            Tip: type <code className="rounded bg-secondary/60 px-1">[package]</code> to insert a package pill; click a pill to rename it.
-          </p>
-        ) : null}
+      {canEdit ? (
+        <p className="text-xs text-muted-foreground">
+          Tip: type <code className="rounded bg-secondary/60 px-1">[package]</code> to insert a package pill; click a pill to rename it.
+        </p>
+      ) : null}
 
-        {message ? (
-          <p
-            role="alert"
-            className="mt-3 flex items-start gap-2 rounded-lg border border-danger/40 bg-danger-tint px-3 py-2 text-sm text-danger"
-          >
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-            {message}
-          </p>
-        ) : null}
+      {message ? (
+        <p
+          role="alert"
+          className="flex items-start gap-2 rounded-md border border-danger/40 bg-danger-tint px-3 py-2 text-sm text-danger"
+        >
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+          {message}
+        </p>
+      ) : null}
 
-        {syncMessage ? (
-          <p
-            className={cn(
-              "mt-3 rounded-lg border px-3 py-2 text-sm",
-              syncMessage.isError
-                ? "border-danger/40 bg-danger-tint text-danger"
-                : "border-[var(--brand-green)]/40 bg-[var(--brand-green)]/10 text-foreground"
-            )}
-          >
-            {syncMessage.text}
-          </p>
-        ) : null}
-      </section>
+      {syncMessage ? (
+        <p
+          className={cn(
+            "rounded-md border px-3 py-2 text-sm",
+            syncMessage.isError
+              ? "border-danger/40 bg-danger-tint text-danger"
+              : "border-[var(--brand-green)]/40 bg-[var(--brand-green)]/10 text-foreground"
+          )}
+        >
+          {syncMessage.text}
+        </p>
+      ) : null}
 
       <section className="rounded-2xl border border-border bg-card p-3 md:p-4">
         <div className="overflow-x-auto">

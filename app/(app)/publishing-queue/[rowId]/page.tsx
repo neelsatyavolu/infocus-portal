@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { PageHeader } from "@/components/page-header";
+import { buttonVariants } from "@/components/ui/button";
 import { getCurrentAppUser } from "@/src/lib/current-app-user";
 import { prisma } from "@/src/lib/prisma";
 import { formatShowDateLabel } from "@/src/lib/show-assignment";
@@ -55,19 +57,28 @@ export default async function PublicationPage({ params }: { params: Promise<{ ro
 
   return (
     <div className="route-enter mx-auto w-full max-w-3xl space-y-5 pb-24">
-      {/* Everyone who can see a publication (producers and website managers) can open the queue. */}
-      <Link href="/publishing-queue" className="text-sm text-muted-foreground hover:text-foreground">Back to Publishing Queue</Link>
-      <header className="space-y-2">
-        <h1 className="display-md">{publication?.title || row.groupTopic || "Untitled package"}</h1>
-        <p className="text-sm text-muted-foreground">{showDate ? formatShowDateLabel(showDate) : "Show date not assigned"}</p>
-        <p className="text-sm" role="status">{status}</p>
-      </header>
+      <PageHeader
+        eyebrow="Publishing Queue"
+        title={publication?.title || row.groupTopic || "Untitled package"}
+        description={
+          <>
+            {showDate ? formatShowDateLabel(showDate) : "Show date not assigned"} ·{" "}
+            <span role="status">{status}</span>
+          </>
+        }
+        actions={
+          // Everyone who can see a publication (producers and website managers) can open the queue.
+          <Link href="/publishing-queue" className={buttonVariants({ size: "sm", variant: "ghost" })}>
+            Back to Publishing Queue
+          </Link>
+        }
+      />
       {videoId ? (
         <>
           <iframe
             src={`https://www.youtube.com/embed/${videoId}`}
             title={publication?.title || "Published package"}
-            className="aspect-video w-full rounded-xl border-0"
+            className="aspect-video w-full rounded-md border-0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             referrerPolicy="strict-origin-when-cross-origin"
             allowFullScreen

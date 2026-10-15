@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AlertCircle, ExternalLink, FileText, Megaphone } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
 import { requireUserId } from "@/src/lib/auth";
 import { groupSlackAnnouncements, type SlackAnnouncementItem } from "@/src/lib/slack-announcements";
 import { loadSlackAnnouncements } from "@/src/server/slack-announcements";
@@ -36,7 +37,7 @@ function AnnouncementBody({ item }: { item: SlackAnnouncementItem }) {
               href={`/api/slack/files/${file.id}`}
               target="_blank"
               rel="noreferrer"
-              className="flex items-center gap-3 rounded-xl border border-border bg-muted/40 px-3 py-2.5 text-sm text-foreground transition hover:bg-accent"
+              className="flex items-center gap-3 rounded-md border border-border bg-muted/40 px-3 py-2.5 text-sm text-foreground transition hover:bg-accent"
             >
               <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
               <span className="min-w-0 flex-1 truncate font-medium">{file.title}</span>
@@ -71,28 +72,28 @@ export default async function AnnouncementsPage() {
 
   return (
     <div className="route-enter mx-auto w-full max-w-3xl space-y-5 pb-24">
-      <section className="brand-hero-panel relative overflow-hidden p-5 md:p-6">
-        <div className="relative min-w-0">
-          <div className="eyebrow flex items-center gap-2">
+      <PageHeader
+        eyebrow={
+          <>
             <Megaphone className="h-3 w-3" />
             Slack
-          </div>
-          <h1 className="display-md mt-2 text-pretty text-foreground">Announcements</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Posts from #announcements.</p>
-        </div>
-      </section>
+          </>
+        }
+        title="Announcements"
+        description="Posts from #announcements."
+      />
 
       {error ? (
-        <article role="alert" className="flex items-start gap-2 rounded-2xl border border-danger/40 bg-danger-tint p-5 text-sm text-danger">
+        <article role="alert" className="flex items-start gap-2 rounded-md border border-danger/40 bg-danger-tint p-5 text-sm text-danger">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
           {error}
         </article>
       ) : !configured ? (
-        <article className="rounded-2xl border border-dashed border-border bg-muted/50 p-6 text-sm text-muted-foreground">
+        <article className="rounded-md border border-dashed border-border bg-muted/50 p-6 text-sm text-muted-foreground">
           Slack announcements are not connected yet.
         </article>
       ) : groups.length === 0 ? (
-        <article className="rounded-2xl border border-dashed border-border bg-muted/50 p-6 text-sm text-muted-foreground">
+        <article className="rounded-md border border-dashed border-border bg-muted/50 p-6 text-sm text-muted-foreground">
           No announcements yet.
         </article>
       ) : (
@@ -102,7 +103,7 @@ export default async function AnnouncementsPage() {
               {group.dateLabel}
             </h2>
             {group.items.map((item) => (
-              <article key={item.id} className="rounded-2xl border border-border bg-card p-4 sm:p-5">
+              <article key={item.id} className="rounded-md border border-border bg-card p-4 sm:p-5">
                 <div className="flex items-start gap-3">
                   {item.authorImageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowUpRight, Newspaper } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
 import { requireUserId } from "@/src/lib/auth";
 import {
   IDEA_CATEGORIES,
@@ -121,26 +122,22 @@ export default async function IdeasPage({ searchParams }: { searchParams: Promis
   })).filter((section) => section.ideas.length > 0);
 
   return (
-    <div className="route-enter mx-auto w-full max-w-[1280px] space-y-6 pb-28">
-      <section className="brand-hero-panel relative overflow-hidden p-6 md:p-8">
-        <p className="eyebrow">Ideas</p>
-        <h1 className="display-md mt-3 text-balance text-foreground">Story ideas from around the Bay</h1>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--ink-text)]">
-          Fresh suggestions every {IDEA_INTERVAL_DAYS} days, drawn from Bay Area news and events. Use them as a starting point for your pitch,
-          then make the story your own.
-        </p>
-        {batch ? (
-          <p className="mt-4 text-sm text-foreground">
-            {formatIdeaRunDate(batch.runDate, "long")}
-            <span className="text-muted-foreground">
-              {" "}
-              · {batch.ideas.length} {batch.ideas.length === 1 ? "idea" : "ideas"} from {batch.itemCount} local stories
-            </span>
-          </p>
-        ) : null}
-      </section>
+    <div className="route-enter mx-auto w-full max-w-[1280px] space-y-5 pb-28">
+      <PageHeader
+        eyebrow="Ideas"
+        title="Story ideas from around the Bay"
+        description={
+          <>
+            Fresh suggestions every {IDEA_INTERVAL_DAYS} days, drawn from Bay Area news and events. Use them as a starting point for your pitch,
+            then make the story your own.
+            {batch
+              ? ` · ${formatIdeaRunDate(batch.runDate, "long")} · ${batch.ideas.length} ${batch.ideas.length === 1 ? "idea" : "ideas"} from ${batch.itemCount} local stories`
+              : null}
+          </>
+        }
+      />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_240px] lg:items-start">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_240px] lg:items-start">
         <div className="space-y-10">
           {!batch ? (
             requested ? (

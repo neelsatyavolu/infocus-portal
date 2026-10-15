@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { GraduationCap, Megaphone, Plus, RefreshCcw, UserPlus } from "lucide-react";
 import { SubmittedAnnouncementList } from "@/components/submitted-announcement-list";
-import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/page-header";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { windowFor, type SubmittedAnnouncement } from "@/components/submitted-announcement-card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { COLLEGE_VISITS_SPREADSHEET_ID } from "@/src/lib/college-visits";
@@ -177,73 +178,69 @@ export default function SubmittedAnnouncementsClient({ canInvite }: { canInvite:
 
   return (
     <div className="route-enter space-y-5">
-      <section className="brand-hero-panel relative overflow-hidden p-5 md:p-6">
-        <div className="relative flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="eyebrow flex items-center gap-2">
-              <Megaphone className="h-3 w-3" />
-              InFocus submissions
-            </div>
-            <h1 className="display-md mt-2 text-foreground">Submitted</h1>
-            <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-              Grouped by when they air. Copy one, or copy a whole section.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
+      <PageHeader
+        eyebrow={
+          <>
+            <Megaphone className="h-3 w-3" />
+            InFocus submissions
+          </>
+        }
+        title="Submitted"
+        description={
+          <>
+            Grouped by when they air. Copy one, or copy a whole section.
+            <span className="tabular-nums">
+              {` · ${announcements.length} total · ${airingToday.length} air today · ${airingTomorrow.length} air tomorrow`}
+            </span>
+            {retrievedAt ? ` · Updated ${retrievedAt}` : null}
+          </>
+        }
+        actions={
+          <>
             <a
               href={COLLEGE_VISITS_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-xl border border-border bg-secondary px-4 py-2 text-sm font-semibold text-foreground hover:bg-accent"
+              className={buttonVariants({ variant: "outline" })}
             >
               <GraduationCap className="h-4 w-4" />
               College Visits
             </a>
             {canInvite ? (
-              <button
+              <Button
                 type="button"
+                variant="outline"
                 onClick={() => {
                   setInviteOpen(true);
                   setInviteNote(null);
                 }}
-                className="inline-flex items-center gap-2 rounded-xl border border-border bg-secondary px-4 py-2 text-sm font-semibold text-foreground hover:bg-accent"
               >
                 <UserPlus className="h-4 w-4" />
                 Invite
-              </button>
+              </Button>
             ) : null}
-            <Link
-              href={"/submit-announcement" as never}
-              className="inline-flex items-center gap-2 rounded-xl bg-[var(--brand-fill)] px-4 py-2 text-sm font-semibold text-[var(--on-brand)] hover:bg-[var(--brand-fill-hover)]"
-            >
-              <Plus className="h-4 w-4" />
-              Submit
-            </Link>
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={() => void loadData(true)}
               disabled={refreshing || Boolean(deletingId)}
-              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
             >
               <RefreshCcw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
               {refreshing ? "Refreshing..." : "Refresh"}
-            </button>
-          </div>
-        </div>
+            </Button>
+            <Link href={"/submit-announcement" as never} className={buttonVariants()}>
+              <Plus className="h-4 w-4" />
+              Submit
+            </Link>
+          </>
+        }
+      />
 
-        {message ? <p className="relative mt-3 text-sm text-amber-300">{message}</p> : null}
-
-        <div className="relative mt-4 flex flex-wrap items-center gap-2">
-          <span className="meta-pill tabular-nums">{announcements.length} total</span>
-          <span className="meta-pill tabular-nums">{airingToday.length} air today</span>
-          <span className="meta-pill tabular-nums">{airingTomorrow.length} air tomorrow</span>
-          {retrievedAt ? <span className="meta-pill">Updated {retrievedAt}</span> : null}
-        </div>
-      </section>
+      {message ? <p className="text-sm text-amber-300">{message}</p> : null}
 
       <section className="space-y-2">
         {loading ? (
-          <article className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
+          <article className="rounded-md border border-border bg-card p-4 text-sm text-muted-foreground">
             Loading submitted announcements...
           </article>
         ) : (
@@ -255,7 +252,7 @@ export default function SubmittedAnnouncementsClient({ canInvite }: { canInvite:
             } : undefined}
             deletingId={deletingId}
             empty={
-              <article className="rounded-2xl border border-dashed border-border bg-muted/50 p-6 text-sm text-muted-foreground">
+              <article className="rounded-md border border-dashed border-border bg-muted/50 p-6 text-sm text-muted-foreground">
                 No announcements have been submitted yet.{" "}
                 <Link href={"/submit-announcement" as never} className="underline underline-offset-2">
                   Open the form
@@ -277,7 +274,7 @@ export default function SubmittedAnnouncementsClient({ canInvite }: { canInvite:
               This announcement will be removed from submissions and future scripts. This cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <p className="max-h-60 overflow-y-auto whitespace-pre-wrap break-words rounded-xl border border-border bg-muted/40 p-3 text-sm">
+          <p className="max-h-60 overflow-y-auto whitespace-pre-wrap break-words rounded-md border border-border bg-muted/40 p-3 text-sm">
             {deleteEntry?.announcement}
           </p>
           {deleteError ? <p role="alert" className="text-sm text-danger">{deleteError}</p> : null}
@@ -308,7 +305,7 @@ export default function SubmittedAnnouncementsClient({ canInvite }: { canInvite:
                 return (
                   <label
                     key={option.value}
-                    className={`cursor-pointer rounded-xl border px-3 py-2 text-sm font-medium ${
+                    className={`cursor-pointer rounded-md border px-3 py-2 text-sm font-medium ${
                       selected
                         ? "border-[var(--brand-green)] bg-[var(--brand-green)]/10 text-foreground"
                         : "border-border bg-secondary text-muted-foreground"
@@ -334,12 +331,12 @@ export default function SubmittedAnnouncementsClient({ canInvite }: { canInvite:
               value={inviteEmails}
               onChange={(event) => setInviteEmails(event.target.value)}
               rows={4}
-              className="w-full rounded-xl border border-border bg-secondary px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
               placeholder="name@pausd.org, another@pausd.org"
             />
           </label>
           {inviteUrl ? (
-            <p className="break-all rounded-xl border border-border bg-muted/40 px-3 py-2 text-xs text-foreground">{inviteUrl}</p>
+            <p className="break-all rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-foreground">{inviteUrl}</p>
           ) : null}
           {inviteNote ? <p className="text-sm text-amber-200">{inviteNote}</p> : null}
           <DialogFooter>
@@ -359,7 +356,7 @@ export default function SubmittedAnnouncementsClient({ canInvite }: { canInvite:
                   }
                 });
               }}
-              className="rounded-lg border border-border bg-secondary px-4 py-2 text-sm font-semibold text-foreground"
+              className="rounded-md border border-border bg-secondary px-4 py-2 text-sm font-semibold text-foreground"
             >
               {inviteBusy ? "Working..." : "Copy link"}
             </button>
@@ -367,7 +364,7 @@ export default function SubmittedAnnouncementsClient({ canInvite }: { canInvite:
               type="button"
               disabled={inviteBusy || !inviteEmails.trim()}
               onClick={() => void createInvite(true)}
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+              className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
             >
               Send invites
             </button>

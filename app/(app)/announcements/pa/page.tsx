@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { AlertCircle, CalendarDays, Check, Clock3, List, Mic2, RefreshCcw, Save } from "lucide-react";
+import { AlertCircle, CalendarDays, Check, List, Mic2, RefreshCcw, Save } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -114,43 +115,38 @@ export default function PaAnnouncementsPage() {
 
   return (
     <div className="route-enter space-y-5">
-      <section className="brand-hero-panel relative overflow-hidden p-5 md:p-6">
-        <div className="relative flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <div className="eyebrow flex items-center gap-2"><Mic2 className="h-3 w-3" />InFocus announcements</div>
-            <h1 className="display-md mt-2 text-foreground">PA</h1>
-            <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-              Your script for the next PA. Read at the start of second period on school Mondays unless the bell schedule changes.
-            </p>
-          </div>
-          <Button variant="outline" className="rounded-xl" onClick={() => void loadData()} disabled={loading || saving || regenerating || dirty}
+      <PageHeader
+        eyebrow={<><Mic2 className="h-3 w-3" />InFocus announcements</>}
+        title="PA"
+        description={
+          <>
+            Your script for the next PA. Read at the start of second period on school Mondays unless the bell schedule changes.
+            {data?.date ? ` · ${data.dateLabel} · ${paTimeLabel(data.date)}` : null}
+          </>
+        }
+        actions={
+          <Button variant="outline" onClick={() => void loadData()} disabled={loading || saving || regenerating || dirty}
             title={dirty ? "Save or discard your changes before refreshing." : "Refresh the script and assignments"}>
             <RefreshCcw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             {loading ? "Loading..." : "Refresh"}
           </Button>
-        </div>
-        {data?.date ? (
-          <div className="relative mt-5 flex flex-wrap items-center gap-2">
-            <span className="meta-pill"><CalendarDays className="mr-1.5 h-3.5 w-3.5" />{data.dateLabel}</span>
-            <span className="meta-pill"><Clock3 className="mr-1.5 h-3.5 w-3.5" />{paTimeLabel(data.date)}</span>
-          </div>
-        ) : null}
-      </section>
+        }
+      />
 
       {error ? (
-        <p role="alert" className="flex items-start gap-2 rounded-xl border border-danger/40 bg-danger-tint px-4 py-3 text-sm text-danger">
+        <p role="alert" className="flex items-start gap-2 rounded-md border border-danger/40 bg-danger-tint px-4 py-3 text-sm text-danger">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
           {error}
         </p>
       ) : null}
 
-      {data?.autofill?.message ? <p role="status" className="rounded-xl border border-amber-400/20 bg-amber-400/5 px-4 py-3 text-sm text-amber-200">{data.autofill.message}</p> : null}
+      {data?.autofill?.message ? <p role="status" className="rounded-md border border-amber-400/20 bg-amber-400/5 px-4 py-3 text-sm text-amber-200">{data.autofill.message}</p> : null}
 
       {loading && !data ? (
-        <div role="status" className="rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">Loading the PA script...</div>
+        <div role="status" className="rounded-md border border-border bg-card p-6 text-sm text-muted-foreground">Loading the PA script...</div>
       ) : data?.date && data.script ? (
         <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_260px]">
-          <section className="overflow-hidden rounded-2xl border border-border bg-card">
+          <section className="overflow-hidden rounded-md border border-border bg-card">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
               <div>
                 <h2 className="text-base font-semibold text-foreground">PA script</h2>
@@ -167,17 +163,17 @@ export default function PaAnnouncementsPage() {
               <Textarea id="pa-script" aria-describedby="pa-script-help" value={content} readOnly={!data.canEdit}
                 disabled={saving || loading || regenerating} rows={26} maxLength={100000}
                 onChange={(event) => { setContent(event.target.value); setSaved(false); }}
-                className="min-h-[560px] resize-y rounded-xl border-border bg-background/40 p-4 text-sm leading-7 md:p-5 md:text-sm" />
+                className="min-h-[560px] resize-y rounded-md border-border bg-background/40 p-4 text-sm leading-7 md:p-5 md:text-sm" />
             </div>
             {data.canEdit ? (
               <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-4">
                 <p className="text-xs text-muted-foreground">Changes are shared with your PA team.</p>
                 <div className="flex flex-wrap items-center gap-2">
-                  <Button variant="outline" className="rounded-xl" disabled={saving || loading || regenerating} onClick={() => setRegenerateOpen(true)}>
+                  <Button variant="outline" disabled={saving || loading || regenerating} onClick={() => setRegenerateOpen(true)}>
                     <RefreshCcw className={`mr-2 h-4 w-4 ${regenerating ? "animate-spin" : ""}`} />{regenerating ? "Regenerating..." : "Regenerate"}
                   </Button>
                   {dirty ? <Button variant="ghost" disabled={saving || loading || regenerating} onClick={() => setDiscardOpen(true)}>Discard changes</Button> : null}
-                  <Button className="rounded-xl" disabled={!dirty || saving || loading || regenerating || !content.trim()} onClick={() => void saveScript()}>
+                  <Button disabled={!dirty || saving || loading || regenerating || !content.trim()} onClick={() => void saveScript()}>
                     <Save className="mr-2 h-4 w-4" />{saving ? "Saving..." : "Save script"}
                   </Button>
                 </div>
@@ -185,12 +181,12 @@ export default function PaAnnouncementsPage() {
             ) : null}
           </section>
           <aside className="space-y-4">
-            <section className="rounded-2xl border border-border bg-card p-5">
+            <section className="rounded-md border border-border bg-card p-5">
               <h2 className="text-sm font-semibold text-foreground">On the mic</h2>
               <p className="mt-1 text-xs text-muted-foreground">Assigned in the Master Calendar.</p>
               <div className="mt-4 space-y-3">
                 {[0, 1].map((index) => (
-                  <div key={index} className="rounded-xl border border-border bg-secondary/40 px-3 py-3">
+                  <div key={index} className="rounded-md border border-border bg-secondary/40 px-3 py-3">
                     <p className="eyebrow">Announcer {index + 1}</p>
                     <p className="mt-1 text-sm font-medium text-foreground">{data.announcers[index] || "Not assigned yet"}</p>
                   </div>
@@ -200,7 +196,7 @@ export default function PaAnnouncementsPage() {
                 <CalendarDays className="h-4 w-4" />Master Calendar<span className="sr-only"> in a new tab</span>
               </Link>
             </section>
-            <section className="rounded-2xl border border-border bg-card p-5">
+            <section className="rounded-md border border-border bg-card p-5">
               <h2 className="text-sm font-semibold text-foreground">Announcements to read</h2>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">Untouched scripts auto-fill with announcements for the PA date, formatted with Gemini. Review the wording before reading. Saved edits are preserved.</p>
               <Link href={"/announcements/submitted" as never} target="_blank" rel="noopener noreferrer"
@@ -211,7 +207,7 @@ export default function PaAnnouncementsPage() {
           </aside>
         </div>
       ) : data ? (
-        <section className="rounded-2xl border border-dashed border-border bg-muted/30 p-8 text-center">
+        <section className="rounded-md border border-dashed border-border bg-muted/30 p-8 text-center">
           <Mic2 className="mx-auto h-6 w-6 text-muted-foreground" />
           <h2 className="mt-3 text-base font-semibold">No upcoming PA</h2>
           <p className="mt-2 text-sm text-muted-foreground">There are no remaining PA dates on the school calendar.</p>

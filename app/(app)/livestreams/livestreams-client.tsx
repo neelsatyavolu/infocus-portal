@@ -4,10 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import {
-  CalendarDays,
   Check,
   CheckCircle2,
-  Clock,
   Loader2,
   Plus,
   Radio,
@@ -18,7 +16,8 @@ import {
   X
 } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/page-header";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   Dialog,
@@ -536,67 +535,24 @@ export default function LivestreamsClient() {
 
   return (
     <div className="route-enter mx-auto w-full max-w-[1760px] space-y-5 pb-28">
-      {/* Hero */}
-      <section
-        className="brand-hero-panel relative overflow-hidden border border-border p-6 md:p-8"
-      >
-        <div className="relative flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
-            <div className="inline-flex items-center gap-1.5 rounded-md border border-brand-green/40 bg-black/40 light:bg-muted px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--brand-green)]">
-              <span
-                className="h-1.5 w-1.5 rounded-full bg-[var(--brand-green)]"
-              />
-              Livestreams · {data?.semester.label ?? "—"}
-            </div>
-            <h1 className="display-md mt-3 text-balance text-foreground">
-              {tab === "schedule"
-                ? "Schedule"
-                : tab === "completion"
-                  ? "Completion"
-                  : "Sign ups"}
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm text-[var(--ink-text)]">
-              {tab === "schedule"
-                ? "Every livestream this semester — arrival times, crew, managers, and hours."
-                : tab === "completion"
-                  ? `${REQUIRED_LIVESTREAM_HOURS} hours for full credit. Partial credit scales linearly (4h = 50%). Livestream managers need ${REQUIRED_MANAGED_LIVESTREAMS} managed livestreams (10 points each).`
-                  : data?.canManage
-                    ? "Review member requests. Approving adds them to the crew and keeps completion in sync."
-                    : "Request a slot on an open livestream. Managers approve and the schedule updates."}
-            </p>
-            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-[var(--ink-text)]">
-              <div className="inline-flex items-center gap-1.5">
-                <CalendarDays className="h-3 w-3" />
-                <span>
-                  Semester <strong className="font-semibold text-foreground">{data?.semester.label}</strong>
-                </span>
-              </div>
-              <span className="h-3 w-px bg-[var(--ink-4)]" />
-              <div className="inline-flex items-center gap-1.5">
-                <Clock className="h-3 w-3" />
-                <span>
-                  <strong className="font-semibold text-foreground">
-                    {data?.requiredHours ?? REQUIRED_LIVESTREAM_HOURS}h
-                  </strong>{" "}
-                  required
-                </span>
-              </div>
-              <span className="h-3 w-px bg-[var(--ink-4)]" />
-              <div className="inline-flex items-center gap-1.5">
-                <Radio className="h-3 w-3" />
-                <span>
-                  <strong className="font-semibold text-foreground">{stats.total}</strong> events
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
+      <PageHeader
+        eyebrow={`Livestreams · ${data?.semester.label ?? "—"}`}
+        title={tab === "schedule" ? "Schedule" : tab === "completion" ? "Completion" : "Sign ups"}
+        description={`${
+          tab === "schedule"
+            ? "Every livestream this semester — arrival times, crew, managers, and hours."
+            : tab === "completion"
+              ? `${REQUIRED_LIVESTREAM_HOURS} hours for full credit. Partial credit scales linearly (4h = 50%). Livestream managers need ${REQUIRED_MANAGED_LIVESTREAMS} managed livestreams (10 points each).`
+              : data?.canManage
+                ? "Review member requests. Approving adds them to the crew and keeps completion in sync."
+                : "Request a slot on an open livestream. Managers approve and the schedule updates."
+        } · ${data?.requiredHours ?? REQUIRED_LIVESTREAM_HOURS}h required · ${stats.total} events`}
+        actions={
+          <>
             <Button
               type="button"
               variant="outline"
               size="sm"
-              className="border-foreground/15 bg-black/30 light:bg-muted text-foreground hover:bg-foreground/10 light:hover:bg-foreground/10"
               onClick={() => load().catch((e) => setError(e.message))}
               disabled={busy}
             >
@@ -604,61 +560,48 @@ export default function LivestreamsClient() {
               Refresh
             </Button>
             {data ? (
-              <Link
-                href="/live"
-                className="inline-flex h-8 items-center rounded-md border border-foreground/15 bg-black/30 px-3 text-xs font-medium text-foreground hover:bg-foreground/10 light:bg-muted light:hover:bg-foreground/10"
-              >
+              <Link href="/live" className={buttonVariants({ variant: "outline", size: "sm" })}>
                 <Radio className="mr-1.5 h-3.5 w-3.5" />
                 Dashboard
               </Link>
             ) : null}
             {data?.canManage ? (
-              <Button
-                type="button"
-                size="sm"
-                className="bg-[var(--brand-fill)] text-[var(--on-brand)] hover:bg-[var(--brand-fill-hover)]"
-                onClick={openCreate}
-                disabled={busy}
-              >
+              <Button type="button" size="sm" onClick={openCreate} disabled={busy}>
                 <Plus className="mr-1.5 h-3.5 w-3.5" />
                 Add event
               </Button>
             ) : null}
-          </div>
-        </div>
+          </>
+        }
+      />
 
-        {/* Stats */}
-        <div className="relative mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {[
-            { label: "Scheduled", value: stats.scheduled, tone: "text-sky-300" },
-            { label: "Completed", value: stats.completed, tone: "text-[var(--brand-green)]" },
-            { label: "Cancelled", value: stats.cancelled, tone: "text-[var(--ink-text)]" },
-            {
-              label: data?.canManage ? "Pending sign-ups" : "Open slots",
-              value: data?.canManage
-                ? stats.pending
-                : data?.events.reduce((n, e) => n + (e.status === "SCHEDULED" ? e.openSlots : 0), 0) ??
-                  0,
-              tone: "text-amber-300"
-            }
-          ].map((card) => (
-            <div
-              key={card.label}
-              className="rounded-xl border border-foreground/[0.08] bg-black/35 light:bg-muted px-4 py-3"
-            >
-              <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--ink-text)]">
-                {card.label}
-              </p>
-              <p className={cn("mt-1 text-3xl font-semibold tabular-nums", card.tone)}>
-                {card.value}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[
+          { label: "Scheduled", value: stats.scheduled, tone: "text-sky-300" },
+          { label: "Completed", value: stats.completed, tone: "text-[var(--brand-green)]" },
+          { label: "Cancelled", value: stats.cancelled, tone: "text-[var(--ink-text)]" },
+          {
+            label: data?.canManage ? "Pending sign-ups" : "Open slots",
+            value: data?.canManage
+              ? stats.pending
+              : data?.events.reduce((n, e) => n + (e.status === "SCHEDULED" ? e.openSlots : 0), 0) ??
+                0,
+            tone: "text-amber-300"
+          }
+        ].map((card) => (
+          <div key={card.label} className="rounded-md border border-border bg-card px-4 py-3">
+            <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--ink-text)]">
+              {card.label}
+            </p>
+            <p className={cn("mt-1 text-3xl font-semibold tabular-nums", card.tone)}>
+              {card.value}
+            </p>
+          </div>
+        ))}
+      </div>
 
       {error ? (
-        <div className="rounded-xl border border-danger/40 bg-danger-tint px-4 py-3 text-sm text-danger">
+        <div className="rounded-md border border-danger/40 bg-danger-tint px-4 py-3 text-sm text-danger">
           {error}
         </div>
       ) : null}
@@ -682,8 +625,8 @@ export default function LivestreamsClient() {
           </div>
 
           {!data?.events.length ? (
-            <div className="flex min-h-[280px] flex-col items-center justify-center rounded-2xl border border-dashed border-foreground/[0.1] bg-card/40 px-6 py-16 text-center">
-              <div className="mb-3 grid h-12 w-12 place-items-center rounded-2xl border border-foreground/[0.08] bg-black/40 light:bg-muted">
+            <div className="flex min-h-[280px] flex-col items-center justify-center rounded-md border border-dashed border-border bg-card px-6 py-16 text-center">
+              <div className="mb-3 grid h-12 w-12 place-items-center rounded-md border border-foreground/[0.08] bg-black/40 light:bg-muted">
                 <Radio className="h-5 w-5 text-[var(--brand-green)]" />
               </div>
               <p className="text-lg font-semibold tracking-tight text-foreground">
@@ -707,7 +650,7 @@ export default function LivestreamsClient() {
               ) : null}
             </div>
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-border bg-card/60">
+            <div className="overflow-hidden rounded-md border border-border bg-card">
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[980px] border-collapse text-sm">
                   <thead>
@@ -818,7 +761,7 @@ export default function LivestreamsClient() {
           )}
 
           {data?.canAppointManagers ? (
-            <div className="rounded-2xl border border-border bg-card/60 p-5">
+            <div className="rounded-md border border-border bg-card p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h2 className="text-base font-semibold tracking-tight text-foreground">
@@ -896,7 +839,7 @@ export default function LivestreamsClient() {
               Loading completion…
             </div>
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-border bg-card/60">
+            <div className="overflow-hidden rounded-md border border-border bg-card">
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[720px] border-collapse text-sm">
                   <thead>
@@ -980,7 +923,7 @@ export default function LivestreamsClient() {
       {tab === "signups" ? (
         <section className="space-y-4">
           {data?.canManage ? (
-            <div className="rounded-2xl border border-border bg-card/60 p-5">
+            <div className="rounded-md border border-border bg-card p-5">
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-semibold tracking-tight text-foreground">
                   Pending requests
@@ -996,7 +939,7 @@ export default function LivestreamsClient() {
                 marked completed.
               </p>
               {!data.pendingSignups.length ? (
-                <div className="mt-6 flex flex-col items-center rounded-xl border border-dashed border-foreground/[0.08] px-4 py-10 text-center">
+                <div className="mt-6 flex flex-col items-center rounded-md border border-dashed border-foreground/[0.08] px-4 py-10 text-center">
                   <CheckCircle2 className="mb-2 h-5 w-5 text-[var(--brand-green)]" />
                   <p className="text-sm text-[var(--ink-text)]">Inbox clear — no pending sign-ups.</p>
                 </div>
@@ -1005,7 +948,7 @@ export default function LivestreamsClient() {
                   {data.pendingSignups.map((s) => (
                     <li
                       key={s.id}
-                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-foreground/[0.06] bg-black/30 light:bg-muted px-4 py-3"
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-foreground/[0.06] bg-black/30 light:bg-muted px-4 py-3"
                     >
                       <div className="min-w-0">
                         <div className="font-medium text-foreground">{personLabel(s.user)}</div>
@@ -1045,7 +988,7 @@ export default function LivestreamsClient() {
             </div>
           ) : null}
 
-          <div className="rounded-2xl border border-border bg-card/60 p-5">
+          <div className="rounded-md border border-border bg-card p-5">
             <h2 className="text-base font-semibold tracking-tight text-foreground">
               {data?.canSignup ? "Request a slot" : "Open livestreams"}
             </h2>
@@ -1068,7 +1011,7 @@ export default function LivestreamsClient() {
                     <li
                       key={event.id}
                       className={cn(
-                        "rounded-xl border border-foreground/[0.06] px-4 py-3.5",
+                        "rounded-md border border-foreground/[0.06] px-4 py-3.5",
                         capacityClass(event.capacityTone)
                       )}
                     >
@@ -1422,7 +1365,7 @@ export default function LivestreamsClient() {
         ? createPortal(
             <nav
               aria-label="Livestream sections"
-              className="pointer-events-none fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-0 right-0 z-[60] flex justify-center px-4 lg:left-[240px]"
+              className="pointer-events-none fixed bottom-[calc(var(--phone-tabbar-h,0px)+max(1rem,env(safe-area-inset-bottom)))] left-0 right-0 z-[60] flex justify-center px-4 lg:left-[240px]"
             >
               <div className="pointer-events-auto inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-xl border border-foreground/[0.08] bg-card p-1">
                 {tabs.map((item) => {

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { CalendarClock, Edit3, RefreshCcw, Save } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/src/lib/utils";
 import { PackageOfCycleWinners } from "./package-of-cycle-winners";
@@ -25,8 +26,6 @@ type PackageCyclesResponse = {
 
 const BUTTON_PRIMARY =
   "bg-primary text-primary-foreground hover:bg-primary/90";
-const BUTTON_SECONDARY =
-  "bg-secondary text-foreground hover:bg-accent";
 const BUTTON_WARNING =
   "bg-amber-500/20 border border-amber-300/40 text-amber-100 hover:bg-amber-500/30";
 
@@ -302,25 +301,26 @@ export default function PackageCyclesPage() {
 
   return (
     <div className="route-enter mx-auto w-full max-w-6xl space-y-5">
-      <section className="brand-hero-panel relative overflow-hidden rounded-2xl border border-border p-5 md:p-6">
-        <div className="relative flex flex-wrap items-center justify-between gap-3">
-          <div className="min-w-0">
-            <div className="eyebrow flex items-center gap-2">
-              <CalendarClock className="h-3 w-3" />
-              Production · Run-of-Show
-            </div>
-            <h1 className="display-md mt-2 text-foreground">Cycle Dates</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Ordered by current cycle, upcoming cycles, then passed cycles.
-              {!loading ? ` · ${cyclesPerSemester} cycle${cyclesPerSemester === 1 ? "" : "s"} this semester` : null}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
+      <PageHeader
+        eyebrow={
+          <>
+            <CalendarClock className="h-3 w-3" />
+            Production · Run-of-Show
+          </>
+        }
+        title="Cycle Dates"
+        description={
+          <>
+            Ordered by current cycle, upcoming cycles, then passed cycles.
+            {!loading ? ` · ${cyclesPerSemester} cycle${cyclesPerSemester === 1 ? "" : "s"} this semester` : null}
+          </>
+        }
+        actions={
+          <>
             <Button
               type="button"
               size="sm"
-              className={BUTTON_SECONDARY}
+              variant="outline"
               onClick={() => {
                 void loadCycles()
                   .then((data) => {
@@ -352,60 +352,60 @@ export default function PackageCyclesPage() {
                 {editing ? "Done Editing" : "Edit Cycles"}
               </Button>
             ) : null}
+          </>
+        }
+      />
+
+      {editing && canEditCycleCount ? (
+        <div className="flex flex-wrap items-end gap-3 rounded-md border border-border bg-card px-4 py-3">
+          <div className="min-w-0">
+            <label htmlFor="cycles-per-semester" className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Cycles this semester
+            </label>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Changes how many cycle cards appear here and in grades. Extra cycle data is kept if you lower the count.
+            </p>
+          </div>
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <input
+              id="cycles-per-semester"
+              type="number"
+              min={MIN_CYCLES}
+              max={MAX_CYCLES}
+              value={cycleCountDraft}
+              onChange={(event) => {
+                const value = Number(event.target.value);
+                if (!Number.isFinite(value)) {
+                  setCycleCountDraft(MIN_CYCLES);
+                  return;
+                }
+                setCycleCountDraft(Math.min(MAX_CYCLES, Math.max(MIN_CYCLES, Math.trunc(value))));
+              }}
+              className="h-10 w-20 rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none focus:ring-ring"
+            />
+            <span className="text-sm text-muted-foreground">cycles</span>
+            <Button
+              type="button"
+              size="sm"
+              className={BUTTON_PRIMARY}
+              disabled={savingCycleCount || cycleCountDraft === cyclesPerSemester}
+              onClick={() => void saveCycleCount()}
+            >
+              <Save className="mr-2 h-4 w-4" />
+              {savingCycleCount ? "Saving..." : "Save count"}
+            </Button>
           </div>
         </div>
+      ) : null}
 
-        {editing && canEditCycleCount ? (
-          <div className="relative mt-4 flex flex-wrap items-end gap-3 rounded-xl border border-border bg-secondary/40 px-4 py-3">
-            <div className="min-w-0">
-              <label htmlFor="cycles-per-semester" className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                Cycles this semester
-              </label>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Changes how many cycle cards appear here and in grades. Extra cycle data is kept if you lower the count.
-              </p>
-            </div>
-            <div className="ml-auto flex flex-wrap items-center gap-2">
-              <input
-                id="cycles-per-semester"
-                type="number"
-                min={MIN_CYCLES}
-                max={MAX_CYCLES}
-                value={cycleCountDraft}
-                onChange={(event) => {
-                  const value = Number(event.target.value);
-                  if (!Number.isFinite(value)) {
-                    setCycleCountDraft(MIN_CYCLES);
-                    return;
-                  }
-                  setCycleCountDraft(Math.min(MAX_CYCLES, Math.max(MIN_CYCLES, Math.trunc(value))));
-                }}
-                className="h-10 w-20 rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus:ring-ring"
-              />
-              <span className="text-sm text-muted-foreground">cycles</span>
-              <Button
-                type="button"
-                size="sm"
-                className={BUTTON_PRIMARY}
-                disabled={savingCycleCount || cycleCountDraft === cyclesPerSemester}
-                onClick={() => void saveCycleCount()}
-              >
-                <Save className="mr-2 h-4 w-4" />
-                {savingCycleCount ? "Saving..." : "Save count"}
-              </Button>
-            </div>
-          </div>
-        ) : null}
-
-        {message ? (
-          <p className="relative mt-3 rounded-lg border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">{message}</p>
-        ) : null}
-      </section>
+      {message ? (
+        <p className="rounded-md border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">{message}</p>
+      ) : null}
 
       <PackageOfCycleWinners />
 
       {loading ? (
-        <section className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
+        <section className="rounded-md border border-border bg-card p-4 text-sm text-muted-foreground">
           Loading package cycles...
         </section>
       ) : (
@@ -436,7 +436,7 @@ export default function PackageCyclesPage() {
               <article
                 key={cycle.cycleNumber}
                 className={cn(
-                  "rounded-2xl border bg-card p-5 md:p-6",
+                  "rounded-md border bg-card p-5 md:p-6",
                   cycle.section === "current"
                     ? "border-[rgb(43,179,110,0.30)]"
                     : cycle.section === "upcoming"
@@ -484,7 +484,7 @@ export default function PackageCyclesPage() {
                     return (
                       <div
                         key={`${cycle.cycleNumber}-${stage.key}`}
-                        className="flex items-center justify-between gap-3 rounded-lg border border-border bg-[hsl(var(--background))] px-3 py-2.5"
+                        className="flex items-center justify-between gap-3 rounded-md border border-border bg-[hsl(var(--background))] px-3 py-2.5"
                       >
                         <div className="flex min-w-0 items-center gap-2.5">
                           <span className={cn("h-2 w-2 flex-shrink-0 rounded-full", dotCls)} />
@@ -522,7 +522,7 @@ export default function PackageCyclesPage() {
                 </div>
 
                 {!editing && nextStage && cycle.section !== "passed" ? (
-                  <div className="mt-4 flex items-center justify-between gap-3 rounded-lg border border-[rgb(43,179,110,0.30)] bg-[rgb(43,179,110,0.06)] px-4 py-3">
+                  <div className="mt-4 flex items-center justify-between gap-3 rounded-md border border-[rgb(43,179,110,0.30)] bg-[rgb(43,179,110,0.06)] px-4 py-3">
                     <div>
                       <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--brand-green)]">
                         Next Stage

@@ -7,6 +7,7 @@ import { useSearchParams } from "next/navigation";
 import { CalendarDays, Check, Mic2, ScrollText, Sparkles, Upload, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { NamePicker } from "@/components/name-picker";
+import { PageHeader } from "@/components/page-header";
 import { Button, buttonVariants } from "@/components/ui/button";
 import App from "@/src/show-roles/App";
 import { queuePackageSubtitle } from "@/src/lib/publishing-queue";
@@ -194,20 +195,19 @@ function OverviewBody() {
 
   return (
     <div className="route-enter mx-auto w-full max-w-4xl space-y-5 pb-24">
-      <section className="brand-hero-panel relative overflow-hidden rounded-2xl border border-border p-5 md:p-6">
-        <div className="relative flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <div className="eyebrow flex items-center gap-2">
-              <Mic2 className="h-3 w-3" />
-              The Show
-            </div>
-            <h1 className="display-md mt-2 text-foreground">{data.label}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {liveLabel}. Week {data.weekOfMonth} ·{" "}
-              {data.mode === "VOLUNTEER" ? "volunteer anchors" : "random anchors"}.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
+      <PageHeader
+        eyebrow={
+          <>
+            <Mic2 className="h-3 w-3" />
+            The Show
+          </>
+        }
+        title={data.label}
+        description={`${liveLabel} · Week ${data.weekOfMonth} · ${
+          data.mode === "VOLUNTEER" ? "volunteer anchors" : "random anchors"
+        }`}
+        actions={
+          <>
             <Button type="button" variant="outline" onClick={() => setUploadOpen(true)}>
               <Upload className="h-4 w-4" />
               Upload show
@@ -220,31 +220,31 @@ function OverviewBody() {
               <Wand2 className="h-4 w-4" />
               Open generator
             </Link>
-          </div>
+          </>
+        }
+      />
+      {data.upcomingShows.length > 1 ? (
+        <div className="flex flex-wrap gap-1">
+          {data.upcomingShows.map((show) => (
+            <button
+              key={show.date}
+              type="button"
+              onClick={() => void load(show.date)}
+              className={cn(
+                "rounded-md border px-2.5 py-1 text-xs font-semibold",
+                show.date === data.date
+                  ? "border-border bg-card text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {show.label.replace(/, \d{4}$/, "")}
+              {show.packageCount > 0 ? ` · ${show.packageCount}` : ""}
+            </button>
+          ))}
         </div>
-        {data.upcomingShows.length > 1 ? (
-          <div className="relative mt-4 flex flex-wrap gap-1">
-            {data.upcomingShows.map((show) => (
-              <button
-                key={show.date}
-                type="button"
-                onClick={() => void load(show.date)}
-                className={cn(
-                  "rounded-md border px-2.5 py-1 text-xs font-semibold",
-                  show.date === data.date
-                    ? "border-border bg-background text-foreground"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {show.label.replace(/, \d{4}$/, "")}
-                {show.packageCount > 0 ? ` · ${show.packageCount}` : ""}
-              </button>
-            ))}
-          </div>
-        ) : null}
-      </section>
+      ) : null}
 
-      <section className="rounded-2xl border border-border bg-card p-5">
+      <section className="rounded-md border border-border bg-card p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-semibold tracking-tight">Show manager</h2>
           {showManager.source === "manual" ? (
@@ -275,7 +275,7 @@ function OverviewBody() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-border bg-card p-5">
+      <section className="rounded-md border border-border bg-card p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-semibold tracking-tight">Anchors</h2>
           <Button
@@ -307,7 +307,7 @@ function OverviewBody() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-border bg-card p-5">
+      <section className="rounded-md border border-border bg-card p-5">
         <h2 className="text-lg font-semibold tracking-tight">Packages</h2>
         {data.packages.length === 0 ? (
           <p className="mt-2 text-sm text-muted-foreground">
@@ -323,14 +323,14 @@ function OverviewBody() {
                 </>
               );
               return row.custom ? (
-                <div key={row.id} className="rounded-xl border border-border px-4 py-3">
+                <div key={row.id} className="rounded-md border border-border px-4 py-3">
                   {body}
                 </div>
               ) : (
                 <Link
                   key={row.id}
                   href={`/groups/${row.id}/final-cut` as never}
-                  className="block rounded-xl border border-border px-4 py-3"
+                  className="block rounded-md border border-border px-4 py-3"
                 >
                   {body}
                 </Link>
@@ -343,7 +343,7 @@ function OverviewBody() {
         </Link>
       </section>
 
-      <section className="rounded-2xl border border-border bg-card p-5">
+      <section className="rounded-md border border-border bg-card p-5">
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-lg font-semibold tracking-tight">Show roles</h2>
           <Link href={"/show-roles?generator=1" as never} className={buttonVariants({ size: "sm", variant: "outline" })}>
@@ -352,7 +352,7 @@ function OverviewBody() {
         </div>
         <div className="mt-3 grid gap-2 md:grid-cols-2">
           {data.roles.map((role) => (
-            <div key={role} className="rounded-lg border border-border px-3 py-2">
+            <div key={role} className="rounded-md border border-border px-3 py-2">
               <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{role}</div>
               <div className="mt-0.5 text-sm font-medium">{data.assignments[role] || "—"}</div>
             </div>

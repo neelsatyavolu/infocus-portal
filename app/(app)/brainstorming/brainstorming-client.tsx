@@ -5,7 +5,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ExternalLink, Loader2, RefreshCcw, Upload, X } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/page-header";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   proofUploadFailureMessage,
@@ -246,22 +247,14 @@ export default function BrainstormingClient() {
 
   return (
     <div className="route-enter mx-auto w-full max-w-[80rem] space-y-5 pb-24">
-      <section className="brand-hero-panel relative overflow-hidden p-5 md:p-6">
-        <div className="relative flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
-            <div className="eyebrow">Production</div>
-            <h1 className="display-md mt-2 text-foreground">Brainstorming</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Upload three proofs of contact and link the group Google Doc. Your producer reviews this on
-              Groups and approves the check-in.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
+      <PageHeader
+        eyebrow={`Cycle ${activeCycleNumber}`}
+        title="Brainstorming"
+        description="Upload three proofs of contact and link the group Google Doc. Your producer reviews this on Groups and approves the check-in."
+        actions={
+          <>
             {payload?.canApprove ? (
-              <Link
-                href={"/groups" as never}
-                className="inline-flex h-8 items-center rounded-md border border-input bg-background px-3 text-xs font-medium shadow-sm hover:bg-accent hover:text-accent-foreground"
-              >
+              <Link href={"/groups" as never} className={buttonVariants({ variant: "outline", size: "sm" })}>
                 Review on Groups
               </Link>
             ) : null}
@@ -276,27 +269,27 @@ export default function BrainstormingClient() {
               Refresh
             </Button>
             <ProducerFeedbackDialog initialCycle={activeCycleNumber} />
-          </div>
-        </div>
-      </section>
+          </>
+        }
+      />
 
       {loading && !payload ? (
-        <p className="rounded-2xl border border-border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
+        <p className="rounded-md border border-border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
           Loading your packages…
         </p>
       ) : packages.length === 0 ? (
-        <p className="rounded-2xl border border-border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
+        <p className="rounded-md border border-border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
           {payload?.canApprove
             ? "No packages to review in this cycle. Open Groups to review brainstorming for a package."
             : "You are not on a package group for this cycle yet. Once a producer adds you on Package Cycle, this page will open for that package."}
         </p>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-5">
           {packages.map((pkg) => {
             const status = packageStatus(pkg);
             const producerName = personLabel(pkg.assignedProducer);
             return (
-              <article key={pkg.id} className="space-y-4 rounded-2xl border border-border bg-card p-4 md:p-5">
+              <article key={pkg.id} className="space-y-4 rounded-md border border-border bg-card p-4 md:p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h2 className="text-base font-semibold text-foreground">
@@ -327,7 +320,7 @@ export default function BrainstormingClient() {
                       const key = `${pkg.id}-${slot}`;
                       const uploading = uploadingKey === key;
                       return (
-                        <div key={slot} className="rounded-xl border border-border bg-black/30 light:bg-muted p-2">
+                        <div key={slot} className="rounded-md border border-border bg-black/30 light:bg-muted p-2">
                           <div className="mb-1.5 flex items-center justify-between text-[11px] text-muted-foreground">
                             <span>Proof {slot}</span>
                             {proof && pkg.canEdit ? (
@@ -404,7 +397,7 @@ export default function BrainstormingClient() {
                           href={pkg.brainstormDocUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-input bg-background px-3 text-xs font-medium shadow-sm hover:bg-accent hover:text-accent-foreground"
+                          className={buttonVariants({ variant: "outline", size: "sm" })}
                         >
                           <ExternalLink className="h-3.5 w-3.5" />
                           Open

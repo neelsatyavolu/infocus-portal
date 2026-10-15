@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { PageHeader } from "@/components/page-header";
+
 const STAGES = [
   {
     title: "Package Pitching",
@@ -59,14 +61,13 @@ export const metadata: Metadata = { title: "Information" };
 export default function CycleInformationPage() {
   return (
     <div className="route-enter mx-auto w-full max-w-3xl space-y-5 pb-24">
-      <section className="brand-hero-panel relative overflow-hidden p-5 md:p-6">
-        <div className="relative min-w-0">
-          <div className="eyebrow">The Cycle</div>
-          <h1 className="display-md mt-2 text-pretty text-foreground">Information</h1>
-        </div>
-      </section>
+      <PageHeader
+        eyebrow="The Cycle"
+        title="Information"
+        description="Stages of a cycle, package pitching, and the approval process."
+      />
 
-      <section className="space-y-5 rounded-2xl border border-border bg-card p-5 md:p-6">
+      <section className="space-y-5 rounded-md border border-border bg-card p-5 md:p-6">
         <h2 className="text-pretty text-lg font-semibold text-foreground">Stages of a Cycle</h2>
         <div className="space-y-5">
           {STAGES.map((stage) =>
@@ -88,7 +89,7 @@ export default function CycleInformationPage() {
         </div>
       </section>
 
-      <section id="package-pitching" className="space-y-4 rounded-2xl border border-border bg-card p-5 md:p-6">
+      <section id="package-pitching" className="space-y-4 rounded-md border border-border bg-card p-5 md:p-6">
         <h2 className="text-pretty text-lg font-semibold text-foreground">Package Pitching</h2>
         <p className="text-sm leading-6 text-muted-foreground text-pretty">
           At the start of every package cycle, we will have package pitching. This is when groups will present at least one idea from each category (news, feature, commentary) to the producers. Producers will assign a group to each topic to balance categories. Each group will also be assigned an associate producer to help them throughout the process.
@@ -101,7 +102,7 @@ export default function CycleInformationPage() {
         </p>
       </section>
 
-      <section className="space-y-5 rounded-2xl border border-border bg-card p-5 md:p-6">
+      <section className="space-y-5 rounded-md border border-border bg-card p-5 md:p-6">
         <h2 className="text-pretty text-lg font-semibold text-foreground">Package Approval & Feedback Process</h2>
         <p className="text-sm leading-6 text-muted-foreground text-pretty">
           Every package moves through a set review chain before it can publish, and each stage must sign off before it advances to the next. You cannot skip a stage.

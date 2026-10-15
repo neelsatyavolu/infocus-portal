@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -33,9 +33,7 @@ const MarkAiredDialog = dynamic(() => import("@/components/project-assets/asset-
 /** Mounts a lazily loaded dialog the first time it opens and keeps it (state and exit animation). */
 function useMountOnce(open: boolean) {
   const [mounted, setMounted] = useState(open);
-  useEffect(() => {
-    if (open) setMounted(true);
-  }, [open]);
+  if (open && !mounted) setMounted(true);
   return mounted || open;
 }
 

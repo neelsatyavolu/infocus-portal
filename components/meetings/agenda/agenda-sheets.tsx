@@ -49,15 +49,15 @@ export function MeetingAgendaSheet({
 
 /** Mount once on the Meetings tab: opens the editor named by `?agenda=<meetingId>`. */
 export function AgendaFromQuery() {
-  const [meetingId, setMeetingId] = useState("");
+  // Client-only (the Meetings tab loads this with ssr: false), so the first render can read the URL.
+  const [wanted] = useState(() => new URLSearchParams(window.location.search).get(AGENDA_QUERY_PARAM));
+  const [meetingId, setMeetingId] = useState(wanted ?? "");
   const [title, setTitle] = useState("");
   const [startsAt, setStartsAt] = useState<string | undefined>(undefined);
   const agenda = useAgenda(meetingId, Boolean(meetingId));
 
   useEffect(() => {
-    const wanted = new URLSearchParams(window.location.search).get(AGENDA_QUERY_PARAM);
     if (!wanted) return;
-    setMeetingId(wanted);
     meetingsApi
       .get(wanted)
       .then(({ meeting }) => {
@@ -65,7 +65,7 @@ export function AgendaFromQuery() {
         setStartsAt(meeting.startsAt);
       })
       .catch(() => setTitle(""));
-  }, []);
+  }, [wanted]);
 
   const close = () => {
     setMeetingId("");

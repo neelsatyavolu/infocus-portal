@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { StatusTag } from "@/components/kit/status-tag";
 import { readRemembered, writeRemembered } from "@/components/kit/remembered-state";
 
@@ -16,6 +16,10 @@ export function ideasSeenKey(viewerId: string) {
 
 function isRunDate(value: unknown): value is string {
   return typeof value === "string" && RUN_DATE.test(value);
+}
+
+function subscribeNever() {
+  return () => undefined;
 }
 
 function storage() {
@@ -40,18 +44,33 @@ export function newSetState(seen: string | null, latest: string): { isNew: boole
  * last visit. The server renders "Latest", so the page is complete without storage.
  */
 export function NewSetTag({ latestRunDate, viewerId }: { latestRunDate: string; viewerId: string }) {
-  const [isNew, setIsNew] = useState(false);
+  // False on the server and while hydrating, so the first render matches the server's.
+  const hydrated = useSyncExternalStore(subscribeNever, () => true, () => false);
+  const inputKey = `${viewerId}\n${latestRunDate}`;
+  const [state, setState] = useState<{
+    inputKey: string | null;
+    isNew: boolean;
+    write: { key: string; value: string } | null;
+  }>({ inputKey: null, isNew: false, write: null });
 
-  useEffect(() => {
-    const store = storage();
+  // Read while rendering when the inputs change; storage is only written after commit, so a
+  // repeated render reads the same stored value.
+  if (hydrated && state.inputKey !== inputKey) {
     const key = ideasSeenKey(viewerId);
-    const next = newSetState(readRemembered<string | null>(store, key, null, isRunDate), latestRunDate);
-    if (!next.record) return;
-    setIsNew(next.isNew);
-    writeRemembered(store, key, latestRunDate);
-  }, [latestRunDate, viewerId]);
+    const next = newSetState(readRemembered<string | null>(storage(), key, null, isRunDate), latestRunDate);
+    setState({
+      inputKey,
+      isNew: next.record ? next.isNew : state.isNew,
+      write: next.record ? { key, value: latestRunDate } : null
+    });
+  }
 
-  return isNew ? (
+  const { write } = state;
+  useEffect(() => {
+    if (write) writeRemembered(storage(), write.key, write.value);
+  }, [write]);
+
+  return state.isNew ? (
     <StatusTag tone="success" dot title="New since your last visit">
       New
     </StatusTag>

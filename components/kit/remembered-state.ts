@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useCallback, useState, useSyncExternalStore } from "react";
 
 type StorageLike = Pick<Storage, "getItem" | "setItem">;
 
@@ -37,6 +37,10 @@ export function writeRemembered(storage: StorageLike | null | undefined, key: st
   }
 }
 
+function subscribeNever() {
+  return () => undefined;
+}
+
 function browserStorage(): StorageLike | null {
   try {
     return typeof window === "undefined" ? null : window.localStorage;
@@ -48,7 +52,7 @@ function browserStorage(): StorageLike | null {
 /**
  * useState that remembers its value per browser (remembered tabs, filters, views, collapsed
  * sections). The first render uses `initial` (same on server and client, so no hydration
- * mismatch); the stored value is applied right after mount, and `loaded` turns true then.
+ * mismatch); the stored value is applied once hydrated, and `loaded` turns true then.
  * Version the key ("groups:filter:v1") when the shape of the value changes. An empty key turns
  * storage off (plain useState), for components where remembering is optional.
  */
@@ -57,21 +61,24 @@ export function useRememberedState<T>(
   initial: T,
   validate?: (value: unknown) => value is T
 ): [T, (next: T | ((previous: T) => T)) => void, boolean] {
-  const [state, setState] = useState<{ value: T; loaded: boolean }>({ value: initial, loaded: false });
+  const hydrated = useSyncExternalStore(subscribeNever, () => true, () => false);
+  // `readKey`: the key whose stored value has been applied. Re-read only when the key changes.
+  const [state, setState] = useState<{ value: T; loaded: boolean; readKey: string }>({
+    value: initial,
+    loaded: false,
+    readKey: ""
+  });
 
-  useEffect(() => {
-    if (!key) return;
-    setState({ value: readRemembered(browserStorage(), key, initial, validate), loaded: true });
-    // Re-read only when the key changes; `initial` and `validate` are usually inline values.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
+  if (hydrated && key && state.readKey !== key) {
+    setState({ value: readRemembered(browserStorage(), key, initial, validate), loaded: true, readKey: key });
+  }
 
   const setValue = useCallback(
     (next: T | ((previous: T) => T)) => {
       setState((previous) => {
         const value = typeof next === "function" ? (next as (previous: T) => T)(previous.value) : next;
         if (key) writeRemembered(browserStorage(), key, value);
-        return { value, loaded: true };
+        return { ...previous, value, loaded: true };
       });
     },
     [key]

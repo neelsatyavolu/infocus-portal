@@ -1,7 +1,7 @@
 "use client";
 
 import { pointerSafeAutoFocus } from "@/components/meetings/focus-modality";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -24,9 +24,11 @@ export function MoveDialog({
   const [when, setWhen] = useState("");
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
+  const [prevMeeting, setPrevMeeting] = useState<MeetingSummary | null>(null);
+  if (meeting !== prevMeeting) {
+    setPrevMeeting(meeting);
     if (meeting) setWhen(isoToPacificWallTime(meeting.startsAt));
-  }, [meeting]);
+  }
 
   async function save() {
     if (!meeting) return;

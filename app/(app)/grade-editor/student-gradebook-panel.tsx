@@ -97,28 +97,34 @@ export function StudentGradebookPanel({
     enabled: order.length > 0
   });
 
-  useEffect(() => {
+  // A new reporter (or Refresh) starts over while rendering: the last copy at once, else the loader.
+  const [shown, setShown] = useState<{ userId: string | null; refreshToken: number | undefined } | null>(null);
+  if (shown === null || shown.userId !== selectedUserId || shown.refreshToken !== refreshToken) {
+    setShown({ userId: selectedUserId, refreshToken });
     if (!selectedUserId) {
       setPayload(null);
       setMessage(null);
       setLoading(false);
-      return;
+    } else {
+      const cached = cachedValue<StudentGradebookPayload>(studentCacheKey(selectedUserId));
+      if (cached) {
+        setPayload(cached);
+      } else {
+        setLoading(true);
+      }
+      setMessage(null);
     }
+  }
+
+  useEffect(() => {
+    if (!selectedUserId) return;
 
     const userId = selectedUserId;
-    const cached = cachedValue<StudentGradebookPayload>(studentCacheKey(userId));
     let active = true;
-    async function load() {
-      try {
-        if (cached) {
-          setPayload(cached);
-        } else {
-          setLoading(true);
-        }
-        setMessage(null);
-        const response = await fetch(`/api/grades/admin?view=student&userId=${encodeURIComponent(userId)}`, {
-          cache: "no-store"
-        });
+    fetch(`/api/grades/admin?view=student&userId=${encodeURIComponent(userId)}`, {
+      cache: "no-store"
+    })
+      .then(async (response) => {
         const body = (await response.json()) as {
           data?: StudentGradebookPayload;
           error?: { message?: string };
@@ -129,16 +135,15 @@ export function StudentGradebookPanel({
         rememberValue(studentCacheKey(userId), body.data);
         if (!active) return;
         setPayload(body.data);
-      } catch (error) {
+      })
+      .catch((error) => {
         if (!active) return;
         setPayload(null);
         setMessage(error instanceof Error ? error.message : "Failed to load student gradebook.");
-      } finally {
+      })
+      .finally(() => {
         if (active) setLoading(false);
-      }
-    }
-
-    void load();
+      });
     return () => {
       active = false;
     };

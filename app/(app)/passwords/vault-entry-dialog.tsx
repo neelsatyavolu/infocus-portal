@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useState, type FormEvent, type KeyboardEvent } from "react";
 import { Eye, EyeOff, Sparkles, Trash2 } from "lucide-react";
 import { Alert } from "@/components/kit/alert";
 import { Field } from "@/components/kit/field";
@@ -56,22 +56,26 @@ export function VaultEntryDialog({
   const [nameError, setNameError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!open) return;
-    setName(entry?.name ?? "");
-    setUrl(entry?.url ?? "");
-    setUsername(entry?.username ?? "");
-    setPassword("");
-    setShowPassword(false);
-    setTotp("");
-    setNotes("");
-    setNotesLoaded(!entry?.hasNotes);
-    setPasswordMode(entry?.hasPassword ? "keep" : "replace");
-    setTotpMode(entry?.hasTotp ? "keep" : "replace");
-    setConfirmDelete(false);
-    setNameError(null);
-    setError(null);
-  }, [open, entry]);
+  // Opening (or another entry) starts the form over (adjusted during render).
+  const [formFor, setFormFor] = useState<{ open: boolean; entry: VaultEntrySummary | null }>({ open: false, entry: null });
+  if (formFor.open !== open || formFor.entry !== entry) {
+    setFormFor({ open, entry });
+    if (open) {
+      setName(entry?.name ?? "");
+      setUrl(entry?.url ?? "");
+      setUsername(entry?.username ?? "");
+      setPassword("");
+      setShowPassword(false);
+      setTotp("");
+      setNotes("");
+      setNotesLoaded(!entry?.hasNotes);
+      setPasswordMode(entry?.hasPassword ? "keep" : "replace");
+      setTotpMode(entry?.hasTotp ? "keep" : "replace");
+      setConfirmDelete(false);
+      setNameError(null);
+      setError(null);
+    }
+  }
 
   async function loadNotes() {
     if (!entry) return;

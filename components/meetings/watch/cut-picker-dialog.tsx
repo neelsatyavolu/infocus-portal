@@ -162,10 +162,16 @@ export function CutPickerDialog({
   const [filter, setFilter] = useState<CutFilter>("all");
   const [selected, setSelected] = useState<Selected | null>(null);
 
+  // Clear the last error whenever a new load starts (below).
+  const [prevLoad, setPrevLoad] = useState({ open: false, cycle, attempt });
+  if (prevLoad.open !== open || prevLoad.cycle !== cycle || prevLoad.attempt !== attempt) {
+    setPrevLoad({ open, cycle, attempt });
+    if (open) setError(null);
+  }
+
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-    setError(null);
     meetingsApi
       .cuts(cycle)
       .then((next) => {

@@ -99,10 +99,8 @@ export function useLocalMedia(): LocalMedia {
 
   const screenEnabled$ = useMemo(() => screen?.isSourceEnabled$ ?? NEVER, [screen]);
   const screenEnabled = useObservableAsValue(screenEnabled$, true);
-  useEffect(() => {
-    // The browser's "Stop sharing" bar disables the source; drop the share with it.
-    if (screen && !screenEnabled) setScreen(null);
-  }, [screen, screenEnabled]);
+  // The browser's "Stop sharing" bar disables the source; drop the share with it.
+  if (screen && !screenEnabled) setScreen(null);
 
   return useMemo<LocalMedia>(
     () => ({

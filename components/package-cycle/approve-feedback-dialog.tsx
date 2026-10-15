@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Spinner } from "@/components/kit/spinner";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,10 +27,11 @@ export function ApproveFeedbackDialog({
   onConfirm: (feedback: string) => void;
 }) {
   const [draft, setDraft] = useState("");
-
-  useEffect(() => {
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
     if (open) setDraft("");
-  }, [open]);
+  }
 
   const feedback = draft.trim();
 

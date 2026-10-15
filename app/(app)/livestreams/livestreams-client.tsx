@@ -103,10 +103,15 @@ export default function LivestreamsClient({ initialData }: { initialData: Payloa
   const [scrollTarget, setScrollTarget] = useState<{ id: string; nonce: number } | null>(null);
   const [changesDismissed, setChangesDismissed] = useState(false);
   const [now, setNow] = useState(() => new Date());
+  const [nowFor, setNowFor] = useState(data);
 
-  // "Today", upcoming and "to mark completed" follow the clock and every fresh payload.
-  useEffect(() => {
+  // "Today", upcoming and "to mark completed" follow the clock and every fresh payload (the
+  // clock is re-read while rendering when the payload changes).
+  if (nowFor !== data) {
+    setNowFor(data);
     setNow(new Date());
+  }
+  useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 60_000);
     return () => window.clearInterval(timer);
   }, [data]);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { InlineError } from "@/components/kit/alert";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -33,18 +33,24 @@ export function FinalCutHeadlineDialog({
   onOpenChange: (open: boolean) => void;
   onContinue: (input: { headline: string; toss: string }) => void;
 }) {
-  const [headline, setHeadline] = useState("");
-  const [toss, setToss] = useState("");
+  const [headline, setHeadline] = useState(() => (open ? initialHeadline : ""));
+  const [toss, setToss] = useState(() => (open ? initialToss : ""));
   const [submitted, setSubmitted] = useState(false);
+  const [prevInputs, setPrevInputs] = useState({ open, initialHeadline, initialToss });
   const askHeadline = mode === "upload";
 
-  useEffect(() => {
+  if (
+    open !== prevInputs.open ||
+    initialHeadline !== prevInputs.initialHeadline ||
+    initialToss !== prevInputs.initialToss
+  ) {
+    setPrevInputs({ open, initialHeadline, initialToss });
     if (open) {
       setHeadline(initialHeadline);
       setToss(initialToss);
       setSubmitted(false);
     }
-  }, [open, initialHeadline, initialToss]);
+  }
 
   const headlineProblem = askHeadline ? headlineError(headline) : null;
   const tossProblem = tossError(toss);

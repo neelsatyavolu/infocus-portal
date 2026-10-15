@@ -1,33 +1,42 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState, useSyncExternalStore } from "react";
+
+function subscribeNever() {
+  return () => undefined;
+}
+
+function readStored<T extends string>(key: string, validate: (value: string) => value is T): T | null {
+  try {
+    const stored = window.sessionStorage.getItem(key);
+    return stored !== null && validate(stored) ? stored : null;
+  } catch {
+    // Storage blocked: keep the current value.
+    return null;
+  }
+}
 
 /**
  * A choice remembered for this browser tab only (sessionStorage), for filters that depend on
  * today's date: a new visit starts fresh. The first render uses `initial` (no hydration
- * mismatch); the stored value is applied after mount. Storage errors fall back silently.
+ * mismatch); the stored value is applied once hydrated. Storage errors fall back silently.
  */
 export function useSessionChoice<T extends string>(
   key: string,
   initial: T,
   validate: (value: string) => value is T
 ): [T, (next: T) => void] {
-  const [value, setValue] = useState<T>(initial);
+  const hydrated = useSyncExternalStore(subscribeNever, () => true, () => false);
+  // `readKey`: the key whose stored value has been applied (read once per key).
+  const [state, setState] = useState<{ value: T; readKey: string | null }>({ value: initial, readKey: null });
 
-  useEffect(() => {
-    try {
-      const stored = window.sessionStorage.getItem(key);
-      if (stored !== null && validate(stored)) setValue(stored);
-    } catch {
-      // Storage blocked: start from `initial`.
-    }
-    // Read once per key; `validate` is usually an inline function.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
+  if (hydrated && state.readKey !== key) {
+    setState({ value: readStored(key, validate) ?? state.value, readKey: key });
+  }
 
   const choose = useCallback(
     (next: T) => {
-      setValue(next);
+      setState((previous) => ({ ...previous, value: next }));
       try {
         window.sessionStorage.setItem(key, next);
       } catch {
@@ -37,5 +46,5 @@ export function useSessionChoice<T extends string>(
     [key]
   );
 
-  return [value, choose];
+  return [state.value, choose];
 }

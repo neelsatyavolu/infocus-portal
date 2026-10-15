@@ -86,7 +86,7 @@ export function BackupsSection({
   async function download(key: string) {
     try {
       const payload = await getData<{ url: string }>(`/api/platform/backups/download?key=${encodeURIComponent(key)}`);
-      window.location.href = payload.url;
+      window.location.assign(payload.url);
     } catch (caught) {
       const errorMessage = errorText(caught, "Failed to download backup.");
       onMessage(errorMessage);

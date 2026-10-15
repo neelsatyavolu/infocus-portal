@@ -1,7 +1,7 @@
 "use client";
 
 import { pointerSafeAutoFocus } from "@/components/meetings/focus-modality";
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -125,14 +125,18 @@ export function ScheduleDialog({
   const inviteOnly = mode === "private-now" || access === "INVITE_ONLY";
   const { people, error } = useMeetingPeople(open && inviteOnly);
 
-  useEffect(() => {
-    if (!open) return;
-    setTitle(mode === "private-now" ? "Private meeting" : "");
-    setWhen(defaultStart());
-    setDuration("60");
-    setAccess(mode === "private-now" ? "INVITE_ONLY" : "OPEN");
-    setInvitees([]);
-  }, [open, mode]);
+  // Reset the form each time it opens (or switches mode while open).
+  const [prev, setPrev] = useState({ open: false, mode });
+  if (prev.open !== open || prev.mode !== mode) {
+    setPrev({ open, mode });
+    if (open) {
+      setTitle(mode === "private-now" ? "Private meeting" : "");
+      setWhen(defaultStart());
+      setDuration("60");
+      setAccess(mode === "private-now" ? "INVITE_ONLY" : "OPEN");
+      setInvitees([]);
+    }
+  }
 
   async function submit(event: FormEvent) {
     event.preventDefault();

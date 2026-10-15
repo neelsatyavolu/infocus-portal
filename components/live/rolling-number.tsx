@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 /** Reel timing: long enough to read as a roll, with a visible ease in and out (DESIGN.md §5 ease in-out). */
 const ROLL_MS = 700;
@@ -99,12 +99,13 @@ function Reel({ digit, direction, rollIn }: { digit: number; direction: 1 | -1; 
 
 /** A score drawn as slot-machine reels, one per digit, keyed by place so each reel rolls in place. */
 export function RollingNumber({ value }: { value: number }) {
-  const last = useRef(value);
-  const direction: 1 | -1 = value >= last.current ? 1 : -1;
-  const previousLength = String(last.current).length;
-  useLayoutEffect(() => {
-    last.current = value;
-  }, [value]);
+  // The score before this one, so a change knows which way to roll.
+  const [scores, setScores] = useState({ current: value, previous: value });
+  if (scores.current !== value) {
+    setScores({ current: value, previous: scores.current });
+  }
+  const direction: 1 | -1 = value >= scores.previous ? 1 : -1;
+  const previousLength = String(scores.previous).length;
 
   const digits = String(value).split("").map(Number);
   return (

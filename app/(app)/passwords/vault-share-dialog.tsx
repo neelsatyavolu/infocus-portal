@@ -28,13 +28,21 @@ export function VaultShareDialog({
   const [saving, setSaving] = useState(false);
   const entryId = entry?.id ?? null;
 
+  // Another entry starts over (adjusted during render).
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  if (loadedFor !== entryId) {
+    setLoadedFor(entryId);
+    if (entryId) {
+      setPeople(null);
+      setSelected([]);
+      setLoadError(null);
+      setError(null);
+    }
+  }
+
   useEffect(() => {
     if (!entryId) return;
     let cancelled = false;
-    setPeople(null);
-    setSelected([]);
-    setLoadError(null);
-    setError(null);
     Promise.all([
       vaultRequest<PeopleResponse>("/api/vault/people"),
       vaultRequest<PeopleResponse>(`/api/vault/${entryId}/shares`)

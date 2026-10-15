@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   compareSlackTs,
   isSlackTs,
@@ -18,19 +18,20 @@ export function NewPostsMarker({ newestTs }: { newestTs: string | null }) {
   // Read once, before this visit records itself. A lazy initializer keeps the same value when
   // Strict Mode re-runs the effect below.
   const [previous] = useState(() => (typeof window === "undefined" ? null : readLastSeenTs()));
-  const [newTs, setNewTs] = useState<string[]>([]);
+  // The rule depends on the posts in the DOM, so the effect writes it straight into the element.
+  const styleRef = useRef<HTMLStyleElement>(null);
 
   useEffect(() => {
-    if (previous) {
+    if (previous && styleRef.current) {
       const found = Array.from(document.querySelectorAll<HTMLElement>("[data-post-ts]"))
         .map((element) => element.dataset.postTs ?? "")
         .filter((ts) => isSlackTs(ts) && compareSlackTs(ts, previous) > 0);
-      setNewTs(found);
+      styleRef.current.textContent = found
+        .map((ts) => `[data-post-ts="${ts}"] .${NEW_POST_TAG_CLASS}{display:inline-flex}`)
+        .join("");
     }
     markAnnouncementsSeen(newestTs);
   }, [previous, newestTs]);
 
-  if (newTs.length === 0) return null;
-  const css = newTs.map((ts) => `[data-post-ts="${ts}"] .${NEW_POST_TAG_CLASS}{display:inline-flex}`).join("");
-  return <style>{css}</style>;
+  return <style ref={styleRef} />;
 }

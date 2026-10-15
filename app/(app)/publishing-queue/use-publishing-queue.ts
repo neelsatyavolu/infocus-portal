@@ -66,13 +66,15 @@ export async function uploadCustomPackage(
  * refresh runs. Only the plain queue is cached.
  */
 export function usePublishingQueue(initialData: QueueData | null) {
-  const [rows, setRows] = useState<QueueRow[]>(initialData?.packages ?? []);
-  const [upcoming, setUpcoming] = useState<UpcomingShow[]>(initialData?.upcomingShows ?? []);
-  const [today, setToday] = useState<string | undefined>(initialData?.today);
-  const [publishingConfigured, setPublishingConfigured] = useState<boolean | null>(initialData?.publishingConfigured ?? null);
+  // The server's copy, else the last copy (shown at once while the first load refreshes it).
+  const [initial] = useState(() => initialData ?? cachedValue<QueueData>(QUEUE_CACHE_KEY) ?? null);
+  const [rows, setRows] = useState<QueueRow[]>(initial?.packages ?? []);
+  const [upcoming, setUpcoming] = useState<UpcomingShow[]>(initial?.upcomingShows ?? []);
+  const [today, setToday] = useState<string | undefined>(initial?.today);
+  const [publishingConfigured, setPublishingConfigured] = useState<boolean | null>(initial?.publishingConfigured ?? null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [candidatesStatus, setCandidatesStatus] = useState<CandidatesStatus>("idle");
-  const [phase, setPhase] = useState<"loading" | "ready" | "error">(initialData ? "ready" : "loading");
+  const [phase, setPhase] = useState<"loading" | "ready" | "error">(initial ? "ready" : "loading");
   const [retrying, setRetrying] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   // While the Add dialog is open, reloads also refresh the candidate list.
@@ -87,16 +89,16 @@ export function usePublishingQueue(initialData: QueueData | null) {
   }, []);
 
   const load = useCallback(
-    async (withCandidates = false) => {
-      const response = await fetch(withCandidates ? `${QUEUE_URL}?candidates=1` : QUEUE_URL, { cache: "no-store" });
-      const body = await readBody<QueueData>(response);
-      // Never apply a failed reply: it would blank the queue (and the cached copy on screen).
-      if (!response.ok || !body.data) throw new Error(body.error?.message ?? LOAD_ERROR);
-      if (!withCandidates) rememberValue(QUEUE_CACHE_KEY, body.data);
-      applyQueue(body.data, withCandidates);
-      // Any good load (retry, opening Add package, a reload after a change) clears the error view.
-      setPhase("ready");
-    },
+    (withCandidates = false) =>
+      fetch(withCandidates ? `${QUEUE_URL}?candidates=1` : QUEUE_URL, { cache: "no-store" }).then(async (response) => {
+        const body = await readBody<QueueData>(response);
+        // Never apply a failed reply: it would blank the queue (and the cached copy on screen).
+        if (!response.ok || !body.data) throw new Error(body.error?.message ?? LOAD_ERROR);
+        if (!withCandidates) rememberValue(QUEUE_CACHE_KEY, body.data);
+        applyQueue(body.data, withCandidates);
+        // Any good load (retry, opening Add package, a reload after a change) clears the error view.
+        setPhase("ready");
+      }),
     [applyQueue]
   );
 
@@ -106,17 +108,13 @@ export function usePublishingQueue(initialData: QueueData | null) {
       rememberValue(QUEUE_CACHE_KEY, initialData);
       return;
     }
-    const cached = cachedValue<QueueData>(QUEUE_CACHE_KEY);
-    if (cached) {
-      applyQueue(cached, false);
-      setPhase("ready");
-    }
+    // Any last copy is already on screen (`initial`).
     load().catch(() => {
       // With nothing on screen the inline alert says it; over a cached copy only a toast does.
-      if (cached) toast.error(LOAD_ERROR);
+      if (initial) toast.error(LOAD_ERROR);
       else setPhase("error");
     });
-  }, [initialData, applyQueue, load]);
+  }, [initialData, initial, load]);
 
   async function retry() {
     setRetrying(true);

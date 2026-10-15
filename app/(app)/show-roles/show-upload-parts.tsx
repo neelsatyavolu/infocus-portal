@@ -1,6 +1,6 @@
 "use client";
 
-import type { Dispatch, ReactNode, SetStateAction } from "react";
+import { useEffect, useRef, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { Camera, Film, Upload } from "lucide-react";
 import { Alert } from "@/components/kit/alert";
 import { Field, fieldLabelClass } from "@/components/kit/field";
@@ -82,12 +82,11 @@ export function PublicationTag({ status }: { status: string }) {
 }
 
 /** 16:9 preview of the grabbed frame (local blob), or why there isn't one. */
-export function ThumbnailPreview({ url, capturing }: { url: string | null; capturing: boolean }) {
+export function ThumbnailPreview({ file, capturing }: { file: Blob | null; capturing: boolean }) {
   return (
     <div className="aspect-video w-full overflow-hidden rounded-md border border-border bg-[var(--ink-3)]">
-      {url ? (
-        // eslint-disable-next-line @next/next/no-img-element -- local blob preview
-        <img src={url} alt="Thumbnail preview" className="h-full w-full object-cover" />
+      {file ? (
+        <BlobImage file={file} />
       ) : (
         <div className="flex h-full items-center justify-center px-4 text-center text-xs text-muted-foreground">
           {capturing ? "Grabbing frame…" : "No frame. YouTube will pick one."}
@@ -95,6 +94,18 @@ export function ThumbnailPreview({ url, capturing }: { url: string | null; captu
       )}
     </div>
   );
+}
+
+/** Shows a local Blob; the object URL lives exactly as long as this file is shown. */
+function BlobImage({ file }: { file: Blob }) {
+  const imgRef = useRef<HTMLImageElement>(null);
+  useEffect(() => {
+    const url = URL.createObjectURL(file);
+    if (imgRef.current) imgRef.current.src = url;
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+  // eslint-disable-next-line @next/next/no-img-element -- local blob preview
+  return <img ref={imgRef} alt="Thumbnail preview" className="h-full w-full object-cover" />;
 }
 
 export function LoadingView() {

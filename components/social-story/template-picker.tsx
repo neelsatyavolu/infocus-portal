@@ -1,6 +1,6 @@
 "use client";
 
-import type { KeyboardEvent, ReactNode } from "react";
+import { createElement, type KeyboardEvent, type ReactNode } from "react";
 import { Skeleton } from "@/components/kit/skeleton";
 import {
   Select,
@@ -40,6 +40,11 @@ function keepTriggerKeys(event: KeyboardEvent) {
 /** While the list is open, every key belongs to it (arrows browse, Esc closes, letters search). */
 function keepListKeys(event: KeyboardEvent) {
   event.stopPropagation();
+}
+
+/** A template's icon. The icons come from a fixed map, so no component is created per render. */
+function TemplateIcon({ id, className }: { id: string; className?: string }) {
+  return createElement(templateIcon(id), { "aria-hidden": true, className });
 }
 
 /**
@@ -91,7 +96,6 @@ export function TemplateRail({ templates, currentId, onSelect, disabled = false,
  */
 function TemplateSelect({ templates, currentId, onSelect, disabled = false, className }: PickerProps & { className?: string }) {
   const current = templates.find((template) => template.id === currentId);
-  const CurrentIcon = templateIcon(current?.id ?? "");
   const groups = groupTemplates(templates);
   return (
     <Select value={currentId ?? undefined} onValueChange={onSelect} disabled={disabled}>
@@ -99,7 +103,7 @@ function TemplateSelect({ templates, currentId, onSelect, disabled = false, clas
         <SelectValue placeholder="Pick a template">
           {current ? (
             <span className="flex min-w-0 items-center gap-2">
-              <CurrentIcon aria-hidden className="h-4 w-4 shrink-0 text-[var(--brand-green)]" />
+              <TemplateIcon id={current.id} className="h-4 w-4 shrink-0 text-[var(--brand-green)]" />
               <span className="truncate font-medium">{current.name}</span>
             </span>
           ) : null}
@@ -164,13 +168,12 @@ export function TemplateBar({
       </div>
     );
   }
-  const Icon = templateIcon(template.id);
   return (
     <div className={cn("grid min-w-0 content-start gap-1.5 md:gap-3", className)}>
       <div className="flex min-h-10 min-w-0 items-center gap-2 md:min-h-9">
         <TemplateSelect templates={templates} currentId={template.id} onSelect={onSelect} disabled={disabled} className="min-w-0 flex-1 @min-[74rem]/story:hidden" />
         <h2 className="sr-only @min-[74rem]/story:not-sr-only @min-[74rem]/story:flex @min-[74rem]/story:min-w-0 @min-[74rem]/story:flex-1 @min-[74rem]/story:items-center @min-[74rem]/story:gap-2 @min-[74rem]/story:text-base @min-[74rem]/story:font-semibold @min-[74rem]/story:text-foreground">
-          <Icon aria-hidden className="h-4 w-4 shrink-0 text-[var(--brand-green)]" />
+          <TemplateIcon id={template.id} className="h-4 w-4 shrink-0 text-[var(--brand-green)]" />
           <span className="truncate">{template.name}</span>
         </h2>
         {action}

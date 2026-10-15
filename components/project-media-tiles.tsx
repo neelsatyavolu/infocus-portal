@@ -150,7 +150,8 @@ export function ProjectMediaTiles({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   /** Version-menu picks only; a card without one shows its newest version. */
   const [selectedVersionByMedia, setSelectedVersionByMedia] = useState<Record<string, string>>({});
-  const [uploadAction, setUploadAction] = useState<UploadAction>(null);
+  // Read only by the file input's change handler, so it never needs a render.
+  const uploadActionRef = useRef<UploadAction>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [sections, setSections] = useRememberedState<SectionsState>(SECTIONS_KEY, { folders: true, assets: true }, isSectionsState);
   const [notice, setNotice] = useState<PageNotice>(null);
@@ -272,20 +273,27 @@ export function ProjectMediaTiles({
 
   // New server data (navigation, the 4s processing poll, any refresh): keep what is still there
   // selected, and keep Version-menu picks whose version still exists.
-  useEffect(() => {
+  const [syncedItems, setSyncedItems] = useState(initialItems);
+  if (initialItems !== syncedItems) {
+    setSyncedItems(initialItems);
     setItems(initialItems);
     setSelectedIds((current) => keepExistingSelection(current, initialItems));
     setSelectedVersionByMedia((current) => reconcileVersionOverrides(current, initialItems));
-  }, [initialItems]);
+  }
 
   // Another folder, scope, page, filter or sort is a new set of assets: start a fresh selection.
-  useEffect(() => {
+  const assetSetKey = JSON.stringify([scope, selectedFolderId, pagination.page, filterValue, sortValue]);
+  const [selectionAssetSetKey, setSelectionAssetSetKey] = useState(assetSetKey);
+  if (assetSetKey !== selectionAssetSetKey) {
+    setSelectionAssetSetKey(assetSetKey);
     setSelectedIds([]);
-  }, [scope, selectedFolderId, pagination.page, filterValue, sortValue]);
+  }
 
-  useEffect(() => {
+  const [syncedFolders, setSyncedFolders] = useState(folders);
+  if (folders !== syncedFolders) {
+    setSyncedFolders(folders);
     setFoldersState(folders);
-  }, [folders]);
+  }
 
   useEffect(() => {
     return () => {
@@ -390,7 +398,7 @@ export function ProjectMediaTiles({
         return;
       }
 
-      setUploadAction({ kind: "new" });
+      uploadActionRef.current = { kind: "new" };
       fileInputRef.current?.click();
       updateQuery({ new: null }, { replace: true });
       return;
@@ -425,7 +433,7 @@ export function ProjectMediaTiles({
       return;
     }
 
-    setUploadAction({ kind: "version", mediaId: selectedIds[0] });
+    uploadActionRef.current = { kind: "version", mediaId: selectedIds[0] };
     fileInputRef.current?.click();
   }
 
@@ -434,7 +442,7 @@ export function ProjectMediaTiles({
       return;
     }
 
-    setUploadAction({ kind: "version", mediaId });
+    uploadActionRef.current = { kind: "version", mediaId };
     fileInputRef.current?.click();
   }
 
@@ -443,17 +451,18 @@ export function ProjectMediaTiles({
       return;
     }
 
-    setUploadAction({ kind: "new" });
+    uploadActionRef.current = { kind: "new" };
     fileInputRef.current?.click();
   }
 
   async function onFileSelected(event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? []);
+    const uploadAction = uploadActionRef.current;
     if (files.length === 0 || !uploadAction) return;
 
     await uploads.uploadFiles(files, uploadAction);
 
-    setUploadAction(null);
+    uploadActionRef.current = null;
     event.target.value = "";
   }
 

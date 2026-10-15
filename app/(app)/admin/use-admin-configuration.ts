@@ -28,35 +28,41 @@ export function useAdminConfiguration(enabled: boolean) {
   const [error, setError] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
 
-  const loadDays = useCallback(async () => {
-    const data = await readJson<{ days: CalendarDayRow[] }>(
-      await fetch("/api/platform/calendar", { cache: "no-store" }),
-      "Could not load the calendar."
-    );
-    setDays(data.days);
-  }, []);
+  const loadDays = useCallback(
+    () =>
+      fetch("/api/platform/calendar", { cache: "no-store" })
+        .then((response) => readJson<{ days: CalendarDayRow[] }>(response, "Could not load the calendar."))
+        .then((data) => setDays(data.days)),
+    []
+  );
+
+  // Fetch only; state starts as "loading", so the first load needs no reset.
+  const fetchConfig = useCallback(
+    () =>
+      fetch("/api/platform/program-config", { cache: "no-store" })
+        .then((response) => Promise.all([readJson<ProgramConfig>(response, LOAD_ERROR), loadDays()]))
+        .then(([nextConfig]) => {
+          setConfig(nextConfig);
+          setState("ready");
+        })
+        .catch((caught) => {
+          const text = errorText(caught, LOAD_ERROR);
+          setError(text);
+          setState("error");
+          toast.error(text);
+        }),
+    [loadDays]
+  );
 
   const load = useCallback(async () => {
     setState("loading");
     setError(null);
-    try {
-      const [nextConfig] = await Promise.all([
-        readJson<ProgramConfig>(await fetch("/api/platform/program-config", { cache: "no-store" }), LOAD_ERROR),
-        loadDays()
-      ]);
-      setConfig(nextConfig);
-      setState("ready");
-    } catch (caught) {
-      const text = errorText(caught, LOAD_ERROR);
-      setError(text);
-      setState("error");
-      toast.error(text);
-    }
-  }, [loadDays]);
+    await fetchConfig();
+  }, [fetchConfig]);
 
   useEffect(() => {
-    if (enabled) void load();
-  }, [enabled, load]);
+    if (enabled) void fetchConfig();
+  }, [enabled, fetchConfig]);
 
   const syncNow = useCallback(
     async (quiet = false) => {

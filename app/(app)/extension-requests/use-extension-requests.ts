@@ -54,44 +54,51 @@ export function useExtensionRequests() {
   );
   const payloadRef = useRef(payload);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
+  const [refreshing, setRefreshing] = useState(true);
   const [memberBusy, setMemberBusy] = useState<{ id: string; agreed: boolean } | null>(null);
   const [emailingId, setEmailingId] = useState<string | null>(null);
   // Only the newest load may write: an older response (the mount refresh) that lands after the
   // reload following a vote would otherwise bring back the pre-vote list.
   const latestLoad = useRef(0);
 
-  const load = useCallback(async (): Promise<Payload | null> => {
-    const ticket = ++latestLoad.current;
+  /** One load under `ticket`; the caller has already shown `refreshing`. */
+  const fetchList = useCallback((ticket: number): Promise<Payload | null> => {
     const isLatest = () => ticket === latestLoad.current;
-    setRefreshing(true);
-    try {
-      const response = await fetch("/api/extensions/requests", { cache: "no-store" });
-      const body = await response.json().catch(() => null);
-      if (!response.ok || !body?.data) {
-        throw new Error(body?.error?.message ?? LOAD_ERROR);
-      }
-      const data = body.data as Payload;
-      if (!isLatest()) return null;
-      rememberValue(CACHE_KEY, data);
-      payloadRef.current = data;
-      setPayload(data);
-      setLoadError(null);
-      return data;
-    } catch (error) {
-      if (!isLatest()) return null;
-      const message = errorMessage(error, LOAD_ERROR);
-      if (payloadRef.current) toast.error(message);
-      else setLoadError(message);
-      return null;
-    } finally {
-      if (isLatest()) setRefreshing(false);
-    }
+    return fetch("/api/extensions/requests", { cache: "no-store" })
+      .then(async (response) => {
+        const body = await response.json().catch(() => null);
+        if (!response.ok || !body?.data) {
+          throw new Error(body?.error?.message ?? LOAD_ERROR);
+        }
+        const data = body.data as Payload;
+        if (!isLatest()) return null;
+        rememberValue(CACHE_KEY, data);
+        payloadRef.current = data;
+        setPayload(data);
+        setLoadError(null);
+        return data;
+      })
+      .catch((error) => {
+        if (!isLatest()) return null;
+        const message = errorMessage(error, LOAD_ERROR);
+        if (payloadRef.current) toast.error(message);
+        else setLoadError(message);
+        return null;
+      })
+      .finally(() => {
+        if (isLatest()) setRefreshing(false);
+      });
   }, []);
 
+  const load = useCallback((): Promise<Payload | null> => {
+    setRefreshing(true);
+    return fetchList(++latestLoad.current);
+  }, [fetchList]);
+
+  // `refreshing` starts true for this first load.
   useEffect(() => {
-    void load();
-  }, [load]);
+    void fetchList(++latestLoad.current);
+  }, [fetchList]);
 
   /**
    * Shows a saved vote at once and reloads in the background. Without a list or a status to

@@ -24,11 +24,16 @@ export default function TerminalScriptDialog({
   const [scriptError, setScriptError] = useState<string | null>(null);
   const [scriptCopied, setScriptCopied] = useState(false);
 
+  const [openedFor, setOpenedFor] = useState({ open, projectId });
+  if (open !== openedFor.open || projectId !== openedFor.projectId) {
+    setOpenedFor({ open, projectId });
+    if (open) setScriptCopied(false);
+  }
+
   useEffect(() => {
     if (!open) {
       return;
     }
-    setScriptCopied(false);
 
     if (scriptText) {
       // Already fetched in this session; reuse to avoid re-issuing tokens.

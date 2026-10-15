@@ -59,7 +59,12 @@ export function LivestreamPreview({ query }: { query: string }) {
     const id = window.setTimeout(() => setShown(query), PREVIEW_DEBOUNCE_MS);
     return () => window.clearTimeout(id);
   }, [query]);
-  useEffect(() => setStatus("loading"), [shown]);
+  // A new preview shows "Rendering…" until its image loads or fails.
+  const [statusFor, setStatusFor] = useState(shown);
+  if (shown !== statusFor) {
+    setStatusFor(shown);
+    setStatus("loading");
+  }
 
   const src = useMemo(() => `/api/live/thumbnail?${shown}`, [shown]);
 

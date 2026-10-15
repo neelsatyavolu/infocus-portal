@@ -289,13 +289,14 @@ export function useMasterCalendar(initialData: CalendarResponse) {
     }
   }
 
-  async function runAutoSyncCheck() {
+  /** Runs from the idle timer; `now` is read there, when the timer fires. */
+  async function runAutoSyncCheck(now: number) {
     autoSyncTimeoutRef.current = null;
     const lastEditAt = lastEditAtRef.current;
     if (!lastEditAt) return;
 
-    if (Date.now() - lastEditAt < AUTO_SYNC_IDLE_MS || syncingRef.current || !canEditRef.current) {
-      autoSyncTimeoutRef.current = window.setTimeout(() => void runAutoSyncCheck(), AUTO_SYNC_IDLE_MS);
+    if (now - lastEditAt < AUTO_SYNC_IDLE_MS || syncingRef.current || !canEditRef.current) {
+      autoSyncTimeoutRef.current = window.setTimeout(() => void runAutoSyncCheck(Date.now()), AUTO_SYNC_IDLE_MS);
       return;
     }
 
@@ -308,13 +309,13 @@ export function useMasterCalendar(initialData: CalendarResponse) {
     }
 
     if (dirtyMonthsRef.current.size > 0) {
-      autoSyncTimeoutRef.current = window.setTimeout(() => void runAutoSyncCheck(), AUTO_SYNC_IDLE_MS);
+      autoSyncTimeoutRef.current = window.setTimeout(() => void runAutoSyncCheck(Date.now()), AUTO_SYNC_IDLE_MS);
     }
   }
 
   function scheduleAutoSyncCheck() {
     if (autoSyncTimeoutRef.current) clearTimeout(autoSyncTimeoutRef.current);
-    autoSyncTimeoutRef.current = window.setTimeout(() => void runAutoSyncCheck(), AUTO_SYNC_IDLE_MS);
+    autoSyncTimeoutRef.current = window.setTimeout(() => void runAutoSyncCheck(Date.now()), AUTO_SYNC_IDLE_MS);
   }
 
   // ------------------------------------------------------------------------------------------

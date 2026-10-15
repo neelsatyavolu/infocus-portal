@@ -12,14 +12,20 @@ export const metadata: Metadata = {
 };
 
 export default async function ClassBoardPage() {
+  const result = await loadClassBoardPage();
+  if (result.kind === "pin") return <ClassBoardPinGate />;
+  return <ClassBoardView board={result.board} />;
+}
+
+async function loadClassBoardPage() {
   try {
     const session = await getSessionUser();
     if (!session && !(await classBoardPinAllowsAccess())) {
-      return <ClassBoardPinGate />;
+      return { kind: "pin" } as const;
     }
     const platformRole = session?.email ? await getPlatformRoleForEmail(session.email) : null;
     const board = await loadClassBoard(platformRole);
-    return <ClassBoardView board={board} />;
+    return { kind: "board", board } as const;
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") {
       redirect("/sign-in");

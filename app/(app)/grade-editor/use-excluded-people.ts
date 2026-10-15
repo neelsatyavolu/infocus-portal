@@ -1,8 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 const STORAGE_KEY = "grade-editor:missing-excluded:v1";
+
+function subscribeNever() {
+  return () => undefined;
+}
 
 function readStored(): string[] {
   if (typeof window === "undefined") {
@@ -30,13 +34,15 @@ function readStored(): string[] {
  * and restoring a person.
  */
 export function useExcludedPeople() {
+  // False on the server and while hydrating, so the first render matches the server's.
+  const hydrated = useSyncExternalStore(subscribeNever, () => true, () => false);
   const [loaded, setLoaded] = useState(false);
   const [excludedIds, setExcludedIds] = useState<string[]>([]);
 
-  useEffect(() => {
+  if (hydrated && !loaded) {
     setExcludedIds(readStored());
     setLoaded(true);
-  }, []);
+  }
 
   useEffect(() => {
     if (!loaded || typeof window === "undefined") {

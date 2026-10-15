@@ -15,8 +15,6 @@ export default async function GradeEditorPage() {
     if (!hasPlatformRole(access.role, "EXECUTIVE_PRODUCER")) {
       redirect("/access-denied");
     }
-
-    return <GradeEditorClient />;
   } catch (error) {
     if (error instanceof Error && error.message === "FORBIDDEN") {
       redirect("/access-denied");
@@ -24,4 +22,6 @@ export default async function GradeEditorPage() {
 
     throw error;
   }
+
+  return <GradeEditorClient />;
 }

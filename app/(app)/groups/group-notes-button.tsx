@@ -31,12 +31,21 @@ export default function GroupNotesButton({ rowId, topic, hasNotes = false, onSav
   const [attempt, setAttempt] = useState(0);
   const title = topic.trim() || "Untitled package";
 
+  // Each load (opening, Try again) starts over (adjusted during render).
+  const loadKey = open ? `${rowId}:${attempt}` : null;
+  const [startedKey, setStartedKey] = useState<string | null>(null);
+  if (loadKey !== startedKey) {
+    setStartedKey(loadKey);
+    if (loadKey !== null) {
+      setLoading(true);
+      setLoaded(false);
+      setError(null);
+    }
+  }
+
   useEffect(() => {
     if (!open) return;
     let active = true;
-    setLoading(true);
-    setLoaded(false);
-    setError(null);
     void (async () => {
       try {
         const response = await fetch(`/api/package-progress/${rowId}/notes`, { cache: "no-store" });

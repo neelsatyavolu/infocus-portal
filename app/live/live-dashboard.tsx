@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 import { AlertTriangle, Check, ImageDown, MonitorPlay, Radio, RotateCw, Timer } from "lucide-react";
 import { Alert } from "@/components/kit/alert";
 import { EmptyState } from "@/components/kit/empty-state";
@@ -116,6 +116,9 @@ function alertLabel(save: SaveView) {
   return "Not syncing";
 }
 
+const subscribeToNothing = () => () => {};
+const readOrigin = () => window.location.origin;
+
 export function LiveDashboard({ canRotateKey, signedIn }: { canRotateKey: boolean; signedIn: boolean }) {
   const [events, setEvents] = useState<LiveEventSummary[] | null>(null);
   const [pastEvents, setPastEvents] = useState<LiveEventSummary[]>([]);
@@ -125,7 +128,7 @@ export function LiveDashboard({ canRotateKey, signedIn }: { canRotateKey: boolea
   const { offset, sample } = useServerOffset();
   const [tab, selectTab] = useRememberedTab("scoreboard");
   const [error, setError] = useState<DashError | null>(null);
-  const [origin, setOrigin] = useState("");
+  const origin = useSyncExternalStore(subscribeToNothing, readOrigin, () => "");
   // Presentation only: failed polls in a row, for the NOT SYNCING tag.
   const [pollFailures, setPollFailures] = useState(0);
 
@@ -137,12 +140,12 @@ export function LiveDashboard({ canRotateKey, signedIn }: { canRotateKey: boolea
   const retryCountRef = useRef(0);
   const eventIdRef = useRef<string | null>(null);
   const offsetRef = useRef(0);
-  offsetRef.current = offset;
+  useEffect(() => {
+    offsetRef.current = offset;
+  }, [offset]);
   // Presentation only: what the save tag reads. Set in flush; never steers the queue.
   const savedOnceRef = useRef(false);
   const saveFailedRef = useRef(false);
-
-  useEffect(() => setOrigin(window.location.origin), []);
 
   const loadEvents = useCallback(() => {
     let cancelled = false;
@@ -208,16 +211,22 @@ export function LiveDashboard({ canRotateKey, signedIn }: { canRotateKey: boolea
     [loadEvent]
   );
 
+  // Switching livestreams drops the previous one's board and status.
+  const [shownEventId, setShownEventId] = useState(eventId);
+  if (shownEventId !== eventId) {
+    setShownEventId(eventId);
+    setData(null);
+    setScoreboard(null);
+    setPollFailures(0);
+    setError((current) => (current && current.kind !== "save" && current.kind !== "events" ? null : current));
+  }
+
   useEffect(() => {
     eventIdRef.current = eventId;
     serverBoardRef.current = null;
-    setData(null);
-    setScoreboard(null);
     // Status that belonged to the previous livestream.
     savedOnceRef.current = false;
     saveFailedRef.current = false;
-    setPollFailures(0);
-    setError((current) => (current && current.kind !== "save" && current.kind !== "events" ? null : current));
     if (!eventId) return;
     openEvent(eventId);
   }, [eventId, openEvent]);
@@ -240,7 +249,7 @@ export function LiveDashboard({ canRotateKey, signedIn }: { canRotateKey: boolea
     return () => window.clearInterval(id);
   }, [eventId, loadEvent]);
 
-  const flush = useCallback(async () => {
+  const flush = useCallback(async function flushQueue(): Promise<void> {
     const queue = queueRef.current;
     if (inFlightRef.current || retryTimerRef.current !== undefined || !queue.length) return;
     const batchEvent = queue[0].eventId;
@@ -276,7 +285,7 @@ export function LiveDashboard({ canRotateKey, signedIn }: { canRotateKey: boolea
         });
         retryTimerRef.current = window.setTimeout(() => {
           retryTimerRef.current = undefined;
-          void flush();
+          void flushQueue();
         }, wait);
       } else {
         queueRef.current = queueRef.current.filter((entry) => !batch.includes(entry));
@@ -286,7 +295,7 @@ export function LiveDashboard({ canRotateKey, signedIn }: { canRotateKey: boolea
       }
     } finally {
       inFlightRef.current = false;
-      if (queueRef.current.length && retryTimerRef.current === undefined) void flush();
+      if (queueRef.current.length && retryTimerRef.current === undefined) void flushQueue();
     }
   }, [applyPayload, loadEvent]);
 

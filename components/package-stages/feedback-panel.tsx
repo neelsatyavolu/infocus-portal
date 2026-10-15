@@ -77,13 +77,17 @@ export function StageFeedbackPanel({
   const freshRef = useRef<NewNotes>(NO_NEW);
   const readBase = useRef<NewNotes>(NO_NEW);
   const lastSignal = useRef(refreshSignal);
+  const [loadedWith, setLoadedWith] = useState(() => load);
+  if (load !== loadedWith) {
+    setLoadedWith(() => load);
+    setFresh(NO_NEW);
+    setMarkPending(false);
+  }
 
   useEffect(() => {
     let cancelled = false;
     freshRef.current = NO_NEW;
     readBase.current = NO_NEW;
-    setFresh(NO_NEW);
-    setMarkPending(false);
     void load(false).then((result) => {
       if (cancelled || !result) return;
       freshRef.current = addNew(NO_NEW, result);

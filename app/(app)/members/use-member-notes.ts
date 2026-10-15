@@ -47,7 +47,8 @@ export function useMemberNotes(initialData: MembersPayload | null) {
   const [data, setData] = useState<MembersPayload | null>(initial);
   const [drafts, setDrafts] = useState<NoteMap>(() => (initial ? notesFromMembers(initial.members) : {}));
   const [saved, setSaved] = useState<NoteMap>(() => (initial ? notesFromMembers(initial.members) : {}));
-  const [fetching, setFetching] = useState(false);
+  // Without the server's copy, the first load starts on mount.
+  const [fetching, setFetching] = useState(initialData === null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [savingKeys, setSavingKeys] = useState<ReadonlySet<string>>(() => new Set());
@@ -96,33 +97,42 @@ export function useMemberNotes(initialData: MembersPayload | null) {
     if (dataRef.current) rememberValue(MEMBERS_CACHE_KEY, withSavedNotes(dataRef.current, next));
   }, []);
 
+  /** One load under `seq`; the caller has already shown `fetching`. */
+  const fetchMembers = useCallback(
+    (seq: number) =>
+      fetch("/api/members", { cache: "no-store" })
+        .then(async (response) => {
+          const payload = (await response.json()) as { data?: MembersPayload; error?: { message?: string } };
+          if (!response.ok || !payload.data) {
+            throw new Error(payload.error?.message ?? "Failed to load members.");
+          }
+          if (!mountedRef.current || seq !== loadSeqRef.current) return;
+          const next = rebaseNotes(
+            notesFromMembers(payload.data.members),
+            { drafts: draftsRef.current, saved: savedRef.current },
+            touchedRef.current
+          );
+          dataRef.current = payload.data;
+          setData(payload.data);
+          writeDrafts(next.drafts);
+          writeSaved(next.saved);
+          setLoadError(null);
+        })
+        .catch((error) => {
+          if (!mountedRef.current || seq !== loadSeqRef.current) return;
+          setLoadError(error instanceof Error ? error.message : "Failed to load members.");
+        })
+        .finally(() => {
+          if (mountedRef.current && seq === loadSeqRef.current) setFetching(false);
+        }),
+    [writeDrafts, writeSaved]
+  );
+
   const load = useCallback(async () => {
     const seq = ++loadSeqRef.current;
     setFetching(true);
-    try {
-      const response = await fetch("/api/members", { cache: "no-store" });
-      const payload = (await response.json()) as { data?: MembersPayload; error?: { message?: string } };
-      if (!response.ok || !payload.data) {
-        throw new Error(payload.error?.message ?? "Failed to load members.");
-      }
-      if (!mountedRef.current || seq !== loadSeqRef.current) return;
-      const next = rebaseNotes(
-        notesFromMembers(payload.data.members),
-        { drafts: draftsRef.current, saved: savedRef.current },
-        touchedRef.current
-      );
-      dataRef.current = payload.data;
-      setData(payload.data);
-      writeDrafts(next.drafts);
-      writeSaved(next.saved);
-      setLoadError(null);
-    } catch (error) {
-      if (!mountedRef.current || seq !== loadSeqRef.current) return;
-      setLoadError(error instanceof Error ? error.message : "Failed to load members.");
-    } finally {
-      if (mountedRef.current && seq === loadSeqRef.current) setFetching(false);
-    }
-  }, [writeDrafts, writeSaved]);
+    await fetchMembers(seq);
+  }, [fetchMembers]);
 
   const persist = useCallback(
     async function persistNote(key: string, options: SaveOptions = {}): Promise<void> {
@@ -224,8 +234,9 @@ export function useMemberNotes(initialData: MembersPayload | null) {
       rememberValue(MEMBERS_CACHE_KEY, initialData);
       return;
     }
-    void load();
-  }, [initialData, load]);
+    // `fetching` starts true for this first load.
+    void fetchMembers(++loadSeqRef.current);
+  }, [initialData, fetchMembers]);
 
   // Leaving the page (route change, tab close, app switch) sends unsaved notes instead of dropping them.
   const flushAllRef = useRef(flushAll);

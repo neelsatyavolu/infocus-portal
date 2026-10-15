@@ -42,13 +42,13 @@ export function LiveStage({
 
 /** Keeps a server-aligned clock ticking for anything that shows time. */
 export function useLiveNow(offsetMs: number, intervalMs = 100) {
-  const [now, setNow] = useState(() => Date.now() + offsetMs);
+  // The local clock ticks; the offset applies at render, so a new offset shows at once.
+  const [localNow, setLocalNow] = useState(() => Date.now());
   useEffect(() => {
-    setNow(Date.now() + offsetMs);
-    const id = window.setInterval(() => setNow(Date.now() + offsetMs), intervalMs);
+    const id = window.setInterval(() => setLocalNow(Date.now()), intervalMs);
     return () => window.clearInterval(id);
-  }, [offsetMs, intervalMs]);
-  return now;
+  }, [intervalMs]);
+  return localNow + offsetMs;
 }
 
 /**

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useListHotkeys } from "@/components/kit/hotkeys";
 import { readRemembered, writeRemembered } from "@/components/kit/remembered-state";
 import { neighborIds } from "@/src/lib/keyboard-nav";
@@ -39,26 +39,31 @@ function localStore() {
   }
 }
 
+function subscribeNever() {
+  return () => undefined;
+}
+
 /**
- * A remembered choice read in a layout effect, so a list painted from the cache never shows the
- * default filter or panel for a frame first (the kit's useRememberedState applies it after paint).
- * The first render still uses `initial`, so server and client markup match.
+ * A remembered choice, read as soon as the page is hydrated (during render, before paint), so a
+ * list painted from the cache never shows the default filter or panel for a frame first. The
+ * server and hydration renders still use `initial`, so server and client markup match.
  */
 function useStoredChoice<T>(key: string, initial: T, validate: (value: unknown) => value is T) {
-  const [value, setValue] = useState(initial);
-  useLayoutEffect(() => {
-    setValue(readRemembered(localStore(), key, initial, validate));
-    // Read once per key; `initial` and `validate` are fixed for each call site.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
+  const hydrated = useSyncExternalStore(subscribeNever, () => true, () => false);
+  // `readKey`: the key whose stored value has been applied. Read once per key; `initial` and
+  // `validate` are fixed for each call site.
+  const [state, setState] = useState<{ value: T; readKey: string | null }>({ value: initial, readKey: null });
+  if (hydrated && state.readKey !== key) {
+    setState({ value: readRemembered(localStore(), key, initial, validate), readKey: key });
+  }
   const remember = useCallback(
     (next: T) => {
-      setValue(next);
+      setState({ value: next, readKey: key });
       writeRemembered(localStore(), key, next);
     },
     [key]
   );
-  return [value, remember] as const;
+  return [state.value, remember] as const;
 }
 
 /**

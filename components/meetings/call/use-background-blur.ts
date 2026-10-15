@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { MediaDevice } from "partytracks/client";
 import { toast } from "sonner";
 import { BLUR_PX, createBlurTransform } from "@/src/lib/meetings/client/background-blur";
@@ -29,14 +29,10 @@ function once(fn: () => void) {
  * if processing can't run at all, the camera is turned off.
  */
 export function useBackgroundBlur(camera: MediaDevice, mode: BackgroundMode) {
-  const radius = useRef(mode === "off" ? BLUR_PX.blur : BLUR_PX[mode]);
-  useEffect(() => {
-    if (mode !== "off") radius.current = BLUR_PX[mode];
-  }, [mode]);
-
-  const [transform] = useState(() => {
+  const [{ transform, setRadius }] = useState(() => {
+    let radius: number = mode === "off" ? BLUR_PX.blur : BLUR_PX[mode];
     const warnUnavailable = once(() => toast.error(UNAVAILABLE));
-    return createBlurTransform(mediapipeBlurEngine, () => radius.current, {
+    const created = createBlurTransform(mediapipeBlurEngine, () => radius, {
       onUnavailable: () => {
         diagEvent("blur_failed", { what: "unavailable" });
         camera.stopBroadcasting();
@@ -51,7 +47,16 @@ export function useBackgroundBlur(camera: MediaDevice, mode: BackgroundMode) {
         toast(REDUCED);
       })
     });
+    return {
+      transform: created,
+      setRadius: (px: number) => {
+        radius = px;
+      }
+    };
   });
+  useEffect(() => {
+    if (mode !== "off") setRadius(BLUR_PX[mode]);
+  }, [mode, setRadius]);
 
   const on = mode !== "off";
   useEffect(() => {

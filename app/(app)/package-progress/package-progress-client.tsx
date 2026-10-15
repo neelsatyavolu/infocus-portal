@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Plus } from "lucide-react";
 import { Alert } from "@/components/kit/alert";
 import { useHotkeys } from "@/components/kit/hotkeys";
@@ -53,6 +53,10 @@ function menuTarget(entry: RosterEntry): RowMenuTarget {
   };
 }
 
+function subscribeNever() {
+  return () => undefined;
+}
+
 export default function PackageProgressClient({
   initialData,
   viewerUserId,
@@ -70,7 +74,8 @@ export default function PackageProgressClient({
   const [deleteDialog, setDeleteDialog] = useState<{ target: DeleteTarget; open: boolean } | null>(null);
   const [cycleDialog, setCycleDialog] = useState<{ cycleNumber: number; open: boolean } | null>(null);
   const [refreshDialogOpen, setRefreshDialogOpen] = useState(false);
-  const [focusKey, setFocusKey] = useState<string | null>(null);
+  /** The new row whose topic field takes focus once it is on screen (read after commit only). */
+  const focusKeyRef = useRef<string | null>(null);
   const [storedFilter, setStoredFilter, filterLoaded] = useRememberedState<RosterFilter>(
     FILTER_STORAGE_KEY,
     "all",
@@ -83,14 +88,18 @@ export default function PackageProgressClient({
   const [pinned, setPinned] = useState<PinnedFilter | null>(null);
 
   // One clock per load, so time-based statuses ("Pending Review for 3h") hold still between refreshes.
-  // The first render uses the server's time, then this device's once mounted.
-  const [clock, setClock] = useState(() => ({ version: roster.dataVersion, now: new Date(renderedAt ?? Date.now()) }));
+  // The first render uses the server's time, then this device's once hydrated.
+  const hydrated = useSyncExternalStore(subscribeNever, () => true, () => false);
+  const [clock, setClock] = useState(() => ({
+    version: roster.dataVersion,
+    now: new Date(renderedAt ?? Date.now()),
+    local: false
+  }));
   if (clock.version !== roster.dataVersion) {
-    setClock({ version: roster.dataVersion, now: new Date() });
+    setClock({ version: roster.dataVersion, now: new Date(), local: true });
+  } else if (hydrated && !clock.local) {
+    setClock({ ...clock, now: new Date(), local: true });
   }
-  useEffect(() => {
-    setClock((current) => ({ ...current, now: new Date() }));
-  }, []);
   const now = clock.now;
 
   const activeCycle = cycles.find((cycle) => cycle.cycleNumber === activeCycleNumber) ?? null;
@@ -138,14 +147,16 @@ export default function PackageProgressClient({
 
   const emptyRoster = !locked && list.length === 0;
 
+  // After each commit until the new row's field is on screen.
   useEffect(() => {
+    const focusKey = focusKeyRef.current;
     if (!focusKey) return;
     const field = document.querySelector<HTMLElement>(`[data-row-key="${focusKey}"] [data-topic-field]`);
     if (!field) return;
-    setFocusKey(null);
+    focusKeyRef.current = null;
     field.scrollIntoView({ block: "center", behavior: "smooth" });
     field.focus({ preventScroll: true });
-  }, [focusKey, visibleEntries.length]);
+  });
 
   function changeFilter(next: RosterFilter) {
     setPinned(null);
@@ -194,7 +205,7 @@ export default function PackageProgressClient({
       setSessionFilter("all");
     }
     const key = roster.addDraftRow();
-    if (key) setFocusKey(key);
+    if (key) focusKeyRef.current = key;
   }
 
   const moveTargets = cycles.filter((cycle) => cycle.cycleNumber !== activeCycleNumber).map((cycle) => cycle.cycleNumber);

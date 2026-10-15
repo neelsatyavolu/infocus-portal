@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { readRemembered, writeRemembered } from "@/components/kit/remembered-state";
 
 /**
@@ -33,6 +33,23 @@ function writeGradesSeen(email: string, at: number) {
   writeRemembered(storage(), seenKey(email), at);
 }
 
+// The seen time each load settled on, per email (kept in memory too, so private mode still works).
+const seenByEmail = new Map<string, number>();
+const seenListeners = new Set<() => void>();
+
+function subscribeSeen(listener: () => void) {
+  seenListeners.add(listener);
+  return () => {
+    seenListeners.delete(listener);
+  };
+}
+
+function publishSeen(email: string, at: number) {
+  if (seenByEmail.get(email) === at) return;
+  seenByEmail.set(email, at);
+  for (const listener of seenListeners) listener();
+}
+
 /**
  * The seen time after a load: on /grades, or on the first run (nothing stored yet), it moves to
  * now (and past the newest grade), and `write` says to store it; otherwise the stored time stays.
@@ -60,8 +77,12 @@ export function useGradesSeen({
   gradesLoaded: boolean;
   onGradesPage: boolean;
 }) {
-  const [seenAt, setSeenAt] = useState<number | null>(null);
   const latest = latestPublishedAt ? Date.parse(latestPublishedAt) : NaN;
+  const seenAt = useSyncExternalStore(
+    subscribeSeen,
+    useCallback(() => (email ? (seenByEmail.get(email) ?? null) : null), [email]),
+    () => null
+  );
 
   useEffect(() => {
     if (!gradesLoaded || !email) return;
@@ -72,7 +93,7 @@ export function useGradesSeen({
       onGradesPage
     });
     if (next.write) writeGradesSeen(email, next.seenAt);
-    setSeenAt(next.seenAt);
+    publishSeen(email, next.seenAt);
   }, [email, gradesLoaded, latest, onGradesPage]);
 
   return seenAt;

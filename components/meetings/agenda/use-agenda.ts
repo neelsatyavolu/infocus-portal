@@ -36,16 +36,20 @@ export function useAgenda(meetingId: string, enabled = true) {
     setItems(next);
   }, []);
 
-  const refresh = useCallback(async () => {
-    try {
-      const data = await agendaApi.get(meetingId);
-      // Don't clobber an optimistic change that's still in flight; its response will land.
-      if (pending.current === 0) adopt(data);
-      setLoadError(null);
-    } catch (err) {
-      setLoadError(errorMessage(err, "Couldn't load the agenda."));
-    }
-  }, [adopt, meetingId]);
+  const refresh = useCallback(
+    () =>
+      agendaApi
+        .get(meetingId)
+        .then((data) => {
+          // Don't clobber an optimistic change that's still in flight; its response will land.
+          if (pending.current === 0) adopt(data);
+          setLoadError(null);
+        })
+        .catch((err: unknown) => {
+          setLoadError(errorMessage(err, "Couldn't load the agenda."));
+        }),
+    [adopt, meetingId]
+  );
 
   useEffect(() => {
     if (enabled) void refresh();

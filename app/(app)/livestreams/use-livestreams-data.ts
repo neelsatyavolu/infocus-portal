@@ -33,11 +33,14 @@ export function errorMessage(error: unknown, fallback: string) {
  * show its own error and pending state.
  */
 export function useLivestreamsData(initialData: Payload | null) {
-  const [data, setData] = useState<Payload | null>(initialData);
+  // Without the server's copy, show the last copy at once (src/lib/client-cache.ts) while the
+  // first load refreshes it quietly.
+  const [data, setData] = useState<Payload | null>(() => initialData ?? cachedValue<Payload>(PAYLOAD_KEY) ?? null);
   /** The latest payload that came from the server or the network (not the cache). */
   const [fresh, setFresh] = useState<Payload | null>(initialData);
-  const [initialLoading, setInitialLoading] = useState(initialData === null);
-  const [refreshing, setRefreshing] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(data === null);
+  // Without the server's copy, the first load starts on mount.
+  const [refreshing, setRefreshing] = useState(initialData === null);
   const [loadError, setLoadError] = useState<string | null>(null);
   /** Only the newest payload request may write state; `inFlight` keeps the spinner up until all settle. */
   const payloadSeq = useRef(0);
@@ -54,25 +57,35 @@ export function useLivestreamsData(initialData: Payload | null) {
   const completionLoaded = useRef(false);
   const completionSeq = useRef(0);
 
+  /** One payload request; the caller has counted it in `inFlight` and shown `refreshing`. */
+  const fetchPayload = useCallback(
+    (seq: number) =>
+      fetch("/api/livestreams")
+        .then((response) => readJson<Payload>(response))
+        .then((payload) => {
+          if (seq !== payloadSeq.current) return;
+          rememberValue(PAYLOAD_KEY, payload);
+          setData(payload);
+          setFresh(payload);
+          setLoadError(null);
+        })
+        .catch((e) => {
+          if (seq === payloadSeq.current) setLoadError(errorMessage(e, "Failed to load"));
+        })
+        .finally(() => {
+          inFlight.current -= 1;
+          if (inFlight.current === 0) setRefreshing(false);
+          setInitialLoading(false);
+        }),
+    []
+  );
+
   const reload = useCallback(async () => {
     const seq = ++payloadSeq.current;
     inFlight.current += 1;
     setRefreshing(true);
-    try {
-      const payload = await readJson<Payload>(await fetch("/api/livestreams"));
-      if (seq !== payloadSeq.current) return;
-      rememberValue(PAYLOAD_KEY, payload);
-      setData(payload);
-      setFresh(payload);
-      setLoadError(null);
-    } catch (e) {
-      if (seq === payloadSeq.current) setLoadError(errorMessage(e, "Failed to load"));
-    } finally {
-      inFlight.current -= 1;
-      if (inFlight.current === 0) setRefreshing(false);
-      setInitialLoading(false);
-    }
-  }, []);
+    await fetchPayload(seq);
+  }, [fetchPayload]);
 
   useEffect(() => {
     if (initialData) {
@@ -80,14 +93,11 @@ export function useLivestreamsData(initialData: Payload | null) {
       rememberValue(PAYLOAD_KEY, initialData);
       return;
     }
-    // Show the last copy at once and refresh it quietly (src/lib/client-cache.ts).
-    const cached = cachedValue<Payload>(PAYLOAD_KEY);
-    if (cached) {
-      setData(cached);
-      setInitialLoading(false);
-    }
-    void reload();
-  }, [initialData, reload]);
+    // The last copy (if any) is already showing and `refreshing` starts true: refresh it quietly.
+    const seq = ++payloadSeq.current;
+    inFlight.current += 1;
+    void fetchPayload(seq);
+  }, [initialData, fetchPayload]);
 
   const loadCompletion = useCallback(async () => {
     const seq = ++completionSeq.current;

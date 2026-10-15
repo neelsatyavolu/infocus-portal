@@ -212,17 +212,20 @@ export default function GradeEditorClient() {
   // A chip snapshots which rows match, so a row doesn't vanish while someone works on it.
   // It is re-taken when the chip is clicked again, fresh rows load, or the missing report
   // (which narrows Not entered to people on this cycle) arrives.
-  useEffect(() => {
-    if (cycleFilter === "all") {
-      setFilterSnapshot(null);
-      return;
-    }
-    setFilterSnapshot({
-      filter: cycleFilter,
-      ids: new Set(grades.rows.filter((row) => cycleFilterMatches(row, cycleFilter, notEnteredIds)).map((row) => row.userId))
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cycleFilter, grades.loadVersion, snapshotNonce, notEnteredReady]);
+  // Taken while rendering, whenever one of those changes (adjusting state when its inputs change).
+  const snapshotKey = `${cycleFilter}|${grades.loadVersion}|${snapshotNonce}|${notEnteredReady}`;
+  const [snapshotTakenFor, setSnapshotTakenFor] = useState<string | null>(null);
+  if (snapshotTakenFor !== snapshotKey) {
+    setSnapshotTakenFor(snapshotKey);
+    setFilterSnapshot(
+      cycleFilter === "all"
+        ? null
+        : {
+            filter: cycleFilter,
+            ids: new Set(grades.rows.filter((row) => cycleFilterMatches(row, cycleFilter, notEnteredIds)).map((row) => row.userId))
+          }
+    );
+  }
 
   const visibleRows = useMemo(() => {
     // Until the snapshot for this chip is taken (the first render after a click), match live.

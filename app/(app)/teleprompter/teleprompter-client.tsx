@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Plus, ScrollText } from "lucide-react";
 import { Alert } from "@/components/kit/alert";
@@ -50,6 +50,9 @@ function letterKeyOwnedByWidget(event: KeyboardEvent) {
   return document.querySelector('[role="listbox"], [role="menu"][data-state="open"]') !== null;
 }
 
+const subscribeToNothing = () => () => {};
+const isTeleprompterHost = () => window.location.hostname.toLowerCase().startsWith("teleprompter.");
+
 export default function TeleprompterClient() {
   const router = useRouter();
   const pathname = usePathname();
@@ -86,9 +89,11 @@ export default function TeleprompterClient() {
   const [scriptsSheetOpen, setScriptsSheetOpen] = useState(false);
   const [railCollapsed, setRailCollapsed] = useRememberedState("teleprompter:rail-collapsed:v1", false, isBoolean);
   /** Full-app shell on teleprompter.infocuspaly.com (no packages sidebar). */
-  const [standaloneApp, setStandaloneApp] = useState(false);
+  const standaloneApp = useSyncExternalStore(subscribeToNothing, isTeleprompterHost, () => false);
   const [showAllDocs, setShowAllDocs] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
+  /** The doc collapsedSections and the inline editor were last matched to. */
+  const [sectionsSyncedDoc, setSectionsSyncedDoc] = useState<TeleprompterDoc | null>(null);
   const progress = useReformatProgress();
   const [copiedSectionId, setCopiedSectionId] = useState<string | null>(null);
   const [rootRef, rootWidth] = useMeasuredWidth<HTMLDivElement>();
@@ -109,39 +114,32 @@ export default function TeleprompterClient() {
   const draftDirty =
     sectionEditorOpen && (sectionDraft.label !== sectionDraftBaseline.label || sectionDraft.content !== sectionDraftBaseline.content);
 
-  useEffect(() => {
-    if (!activeDoc) {
-      setSelectedDocId(null);
-      return;
-    }
+  // The selection follows the doc on screen (none, or the first one when it is gone).
+  if (selectedDocId !== activeDocId) {
+    setSelectedDocId(activeDocId);
+  }
 
-    if (!selectedDocId || !orderedDocs.some((doc) => doc.id === selectedDocId)) {
-      setSelectedDocId(activeDoc.id);
-    }
-  }, [activeDoc, selectedDocId, orderedDocs]);
-
-  useEffect(() => {
+  if (sectionsSyncedDoc !== activeDoc) {
+    setSectionsSyncedDoc(activeDoc);
     if (!activeDoc) {
       setCollapsedSections({});
-      return;
+    } else {
+      // Sections start open, so the rundown reads at a glance.
+      setCollapsedSections((current) => {
+        const next: Record<string, boolean> = {};
+        for (const section of activeDoc.sections) {
+          next[section.id] = current[section.id] ?? false;
+        }
+        return next;
+      });
     }
-
-    // Sections start open, so the rundown reads at a glance.
-    setCollapsedSections((current) => {
-      const next: Record<string, boolean> = {};
-      for (const section of activeDoc.sections) {
-        next[section.id] = current[section.id] ?? false;
-      }
-      return next;
-    });
-  }, [activeDoc]);
-
-  // Another script (or none) closes the inline editor, as closing the old section dialog did.
-  useEffect(() => {
-    setSectionEditorOpen(false);
-    setSectionDraft(EMPTY_DRAFT);
-    setSectionDraftBaseline(EMPTY_DRAFT);
-  }, [activeDocId]);
+    // Another script (or none) closes the inline editor, as closing the old section dialog did.
+    if ((sectionsSyncedDoc?.id ?? null) !== activeDocId) {
+      setSectionEditorOpen(false);
+      setSectionDraft(EMPTY_DRAFT);
+      setSectionDraftBaseline(EMPTY_DRAFT);
+    }
+  }
 
   const setWorkspaceInUrl = useCallback(
     (workspaceId: string) => {
@@ -159,18 +157,6 @@ export default function TeleprompterClient() {
     },
     [pathname, router, searchParams]
   );
-
-  const refreshWorkspaces = useCallback(async () => {
-    setLoadingWorkspaces(true);
-    try {
-      const data = await readData<WorkspaceSummary[]>("/api/workspaces");
-      setWorkspaces(data);
-    } catch {
-      setWorkspaces([]);
-    } finally {
-      setLoadingWorkspaces(false);
-    }
-  }, []);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -226,24 +212,28 @@ export default function TeleprompterClient() {
     // requestedWorkspaceId is part of refresh's identity; listed for the check above.
   }, [refresh, requestedWorkspaceId]);
 
+  // Loads once on mount; loadingWorkspaces starts true.
   useEffect(() => {
-    void refreshWorkspaces();
-  }, [refreshWorkspaces]);
-
-  useEffect(() => {
-    const host = window.location.hostname.toLowerCase();
-    setStandaloneApp(host.startsWith("teleprompter."));
+    const loadWorkspaces = async () => {
+      try {
+        const data = await readData<WorkspaceSummary[]>("/api/workspaces");
+        setWorkspaces(data);
+      } catch {
+        setWorkspaces([]);
+      } finally {
+        setLoadingWorkspaces(false);
+      }
+    };
+    void loadWorkspaces();
   }, []);
 
   useIdlePreload(hasLoaded, runMode.load);
 
   // The Scripts sheet exists only in the narrow layout; widening closes it for real, so it can't
   // stay "open" out of sight.
-  useEffect(() => {
-    if (layout.mode !== "narrow") {
-      setScriptsSheetOpen(false);
-    }
-  }, [layout.mode]);
+  if (layout.mode !== "narrow" && scriptsSheetOpen) {
+    setScriptsSheetOpen(false);
+  }
 
   const workspaceOptions = useMemo(
     () =>

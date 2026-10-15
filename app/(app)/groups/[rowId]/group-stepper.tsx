@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -14,6 +14,10 @@ import { cn } from "@/src/lib/utils";
 export type GroupOrder =
   | { ready: false }
   | { ready: true; previous: string | null; next: string | null; index: number; total: number };
+
+function subscribeNever() {
+  return () => undefined;
+}
 
 function readSavedOrder() {
   try {
@@ -33,10 +37,12 @@ export function useGroupOrder(rowId: string): GroupOrder {
   const router = useRouter();
   const [order, setOrder] = useState<string[] | null>(null);
 
-  // Before paint, so arriving from Groups never shows the header without its stepper first.
-  useLayoutEffect(() => {
+  // False on the server and while hydrating, so the first render matches the server's.
+  const hydrated = useSyncExternalStore(subscribeNever, () => true, () => false);
+  // Read while rendering, so arriving from Groups never shows the header without its stepper first.
+  if (hydrated && order === null) {
     setOrder(readSavedOrder());
-  }, []);
+  }
 
   const { previous, next } = order ? neighborIds(order, rowId) : { previous: null, next: null };
 

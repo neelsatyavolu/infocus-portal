@@ -52,17 +52,18 @@ export default function PasswordsClient({ access }: { access: VaultAccess }) {
   const filters = useVaultFilters(entries, canShare);
 
   // Only the first load shows the skeleton; reloads after a change refresh in place.
-  const load = useCallback(async () => {
-    try {
-      setEntries(await vaultRequest<VaultEntrySummary[]>("/api/vault"));
-      setMessage(null);
-      setVersion((current) => current + 1);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to load passwords.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const load = useCallback(
+    () =>
+      vaultRequest<VaultEntrySummary[]>("/api/vault")
+        .then((next) => {
+          setEntries(next);
+          setMessage(null);
+          setVersion((current) => current + 1);
+        })
+        .catch((error) => setMessage(error instanceof Error ? error.message : "Failed to load passwords."))
+        .finally(() => setLoading(false)),
+    []
+  );
 
   useEffect(() => {
     void load();

@@ -36,11 +36,10 @@ export function InviteesDialog({
   const [selected, setSelected] = useState<string[] | null>(null);
   const [saving, setSaving] = useState(false);
 
+  if (!open && selected !== null) setSelected(null);
+
   useEffect(() => {
-    if (!open) {
-      setSelected(null);
-      return;
-    }
+    if (!open) return;
     let cancelled = false;
     meetingsApi
       .get(meetingId)

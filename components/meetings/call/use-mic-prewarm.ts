@@ -22,9 +22,7 @@ export function useMicPrewarm(audioOn: boolean) {
     timer.current = setTimeout(() => setPrewarm(false), PREWARM_MS);
   }, [audioOn]);
 
-  useEffect(() => {
-    if (audioOn) setPrewarm(false);
-  }, [audioOn]);
+  if (audioOn && prewarm) setPrewarm(false);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {

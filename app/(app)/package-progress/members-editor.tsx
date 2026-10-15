@@ -121,9 +121,12 @@ export function MembersEditor({
       .slice(0, MAX_MATCHES);
   }, [users, selectedIds, query]);
 
-  useEffect(() => {
+  // A new search or a reopened picker starts at the first match (adjusted during render).
+  const [indexFor, setIndexFor] = useState({ query, open });
+  if (indexFor.query !== query || indexFor.open !== open) {
+    setIndexFor({ query, open });
     setActiveIndex(0);
-  }, [query, open]);
+  }
 
   // Opening the picker puts the cursor in its search box. The desktop popover does it in
   // onOpenAutoFocus; the phone sheet focuses its panel after a tap, so move focus once it has.

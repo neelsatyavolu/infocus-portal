@@ -18,6 +18,7 @@ async function associateCategory(email: string | null): Promise<PackageCategory 
 }
 
 export default async function GroupsPage() {
+  let initialData: GroupsPayload;
   try {
     const { platformRole, user } = await getCurrentAppUser();
     if (!hasPlatformRole(platformRole, "ASSOCIATE_PRODUCER")) {
@@ -30,19 +31,19 @@ export default async function GroupsPage() {
       platformRole === "ASSOCIATE_PRODUCER" ? associateCategory(user.email) : Promise.resolve(null)
     ]);
 
-    const initialData: GroupsPayload = {
+    initialData = {
       canEdit: canEditPackageCycle(platformRole),
       producerCategory,
       platformRole,
       currentUserId: user.id,
       ...data
     };
-
-    return <GroupsClient initialData={initialData} />;
   } catch (error) {
     if (error instanceof Error && error.message === "FORBIDDEN") {
       redirect("/access-denied");
     }
     throw error;
   }
+
+  return <GroupsClient initialData={initialData} />;
 }

@@ -290,10 +290,12 @@ export default function FullscreenRunMode({
   const contentHeightRef = useRef(0);
   const activeSectionIdRef = useRef(activeSectionId);
   const sectionsRef = useRef(doc.sections);
-  pausedRef.current = paused;
-  speedRef.current = speed;
-  activeSectionIdRef.current = activeSectionId;
-  sectionsRef.current = doc.sections;
+  useEffect(() => {
+    pausedRef.current = paused;
+    speedRef.current = speed;
+    activeSectionIdRef.current = activeSectionId;
+    sectionsRef.current = doc.sections;
+  });
   const sectionOptions = useMemo(
     () =>
       doc.sections.map((section) => ({
@@ -318,6 +320,11 @@ export default function FullscreenRunMode({
   }, []);
 
   const firstSectionId = doc.sections[0]?.id ?? "";
+  const [sectionStart, setSectionStart] = useState({ docId: doc.id, firstSectionId });
+  if (sectionStart.docId !== doc.id || sectionStart.firstSectionId !== firstSectionId) {
+    setSectionStart({ docId: doc.id, firstSectionId });
+    setActiveSectionId(firstSectionId);
+  }
 
   const applyPosition = useCallback((next: number) => {
     positionRef.current = next;
@@ -329,7 +336,6 @@ export default function FullscreenRunMode({
 
   useEffect(() => {
     applyPosition(0);
-    setActiveSectionId(firstSectionId);
   }, [applyPosition, doc.id, firstSectionId]);
 
   useEffect(() => {

@@ -41,6 +41,8 @@ export function useStageUpload({
   const [droppedFiles, setDroppedFiles] = useState<File[] | null>(null);
   // Final Cut file waiting on the "you can't replace it" confirm.
   const [finalCutConfirmFiles, setFinalCutConfirmFiles] = useState<File[] | null>(null);
+  // The headline that confirm shows, as it was when the file arrived.
+  const [finalCutConfirmHeadline, setFinalCutConfirmHeadline] = useState("");
   const fileInput = useRef<HTMLInputElement | null>(null);
   const pendingRollKind = useRef<RollKind | null>(null);
   const pendingHeadline = useRef("");
@@ -172,6 +174,7 @@ export function useStageUpload({
   function startUpload(files: File[]) {
     if (files.length === 0) return;
     if (slug === "final-cut" && !view?.allowSecondFinalCut) {
+      setFinalCutConfirmHeadline(pendingHeadline.current);
       setFinalCutConfirmFiles(files.slice(0, 1));
       return;
     }
@@ -286,7 +289,7 @@ export function useStageUpload({
     },
     finalCutConfirm: {
       open: finalCutConfirmFiles !== null,
-      headline: pendingHeadline.current,
+      headline: finalCutConfirmHeadline,
       onOpenChange: (open: boolean) => {
         if (!open) setFinalCutConfirmFiles(null);
       },

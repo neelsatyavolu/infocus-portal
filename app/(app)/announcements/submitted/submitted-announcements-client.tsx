@@ -74,8 +74,11 @@ function formatRetrievedAt(value: string | undefined) {
 
 /** `canInvite` comes from the server page (executive producers can invite guest submitters). */
 export default function SubmittedAnnouncementsClient({ canInvite }: { canInvite: boolean }) {
-  const [data, setData] = useState<SubmittedAnnouncementsResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  // On first view, show the last copy at once and refresh it quietly (src/lib/client-cache.ts).
+  const [data, setData] = useState<SubmittedAnnouncementsResponse | null>(
+    () => cachedValue<SubmittedAnnouncementsResponse>(SUBMITTED_CACHE_KEY) ?? null
+  );
+  const [loading, setLoading] = useState(data === null);
   const [refreshing, setRefreshing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -85,37 +88,34 @@ export default function SubmittedAnnouncementsClient({ canInvite }: { canInvite:
   const [bucketChoice, setBucketChoice] = useSessionChoice<BucketChoice>(BUCKET_CHOICE_KEY, "all", isBucketChoice);
   const deletedIds = useRef<ReadonlySet<string>>(new Set());
 
-  async function loadData(isRefresh = false, options?: { cached?: boolean }) {
-    // On first view, show the last copy at once and refresh it quietly (src/lib/client-cache.ts).
-    // The Refresh button skips it.
-    const cached = options?.cached ? cachedValue<SubmittedAnnouncementsResponse>(SUBMITTED_CACHE_KEY) : undefined;
-    if (cached) setData(cached);
+  function fetchData(isRefresh: boolean) {
+    return readData<SubmittedAnnouncementsResponse>("/api/announcements/submitted")
+      .then((fresh) => setData(withoutDeleted(fresh, deletedIds.current)))
+      .catch((error) => setMessage(error instanceof Error ? error.message : "Failed to load submitted announcements."))
+      .finally(() => {
+        if (isRefresh) {
+          setRefreshing(false);
+        } else {
+          setLoading(false);
+        }
+      });
+  }
+
+  async function loadData(isRefresh = false) {
     if (isRefresh) {
       setRefreshing(true);
     } else {
-      setLoading(!cached);
+      setLoading(true);
     }
 
     setMessage(null);
-
-    try {
-      const fresh = await readData<SubmittedAnnouncementsResponse>("/api/announcements/submitted");
-      setData(withoutDeleted(fresh, deletedIds.current));
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Failed to load submitted announcements.");
-    } finally {
-      if (isRefresh) {
-        setRefreshing(false);
-      } else {
-        setLoading(false);
-      }
-    }
+    await fetchData(isRefresh);
   }
 
   useEffect(() => {
-    void loadData(false, { cached: true });
+    // `loading` and `message` already start where a first load would set them.
+    void fetchData(false);
     // First view only; later loads come from Refresh.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Keep the tab cache in step with what's on screen (fresh loads and local deletes), so coming

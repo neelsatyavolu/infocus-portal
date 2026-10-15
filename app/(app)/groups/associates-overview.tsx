@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, Clock3, MessageSquareText, Users } from "lucide-react";
 import { Alert } from "@/components/kit/alert";
@@ -81,7 +82,8 @@ function ScoreBreakdown({ associate }: { associate: AssociatePerformance }) {
 /** Overview tab of the Associates dialog: review habits, score parts, evidence and due milestones. */
 export function AssociatesOverview({ associate }: { associate: AssociatePerformance }) {
   const metrics = associate.metrics;
-  const now = Date.now();
+  // When the overview opened: milestones due after it say Not due.
+  const [now] = useState(() => Date.now());
   return (
     <div className="space-y-6">
       <MetricStrip

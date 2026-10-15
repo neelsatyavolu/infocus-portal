@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { readRemembered, useRememberedState, writeRemembered } from "@/components/kit/remembered-state";
 import type { CycleFilter, SortBy } from "./grade-editor-types";
 import { isCycleFilter, parseViewKey, type ViewKey } from "./grade-editor-utils";
@@ -16,6 +16,10 @@ function browserStorage(): Storage | null {
   } catch {
     return null;
   }
+}
+
+function subscribeNever() {
+  return () => undefined;
 }
 
 function isViewKey(value: unknown): value is ViewKey {
@@ -36,8 +40,10 @@ export function useGradeEditorPrefs() {
   const [sortBy, setSortBy] = useState<SortBy>("firstName");
   const [sortLoaded, setSortLoaded] = useState(false);
   const [cycleFilter, setCycleFilter] = useRememberedState<CycleFilter>(FILTER_STORAGE_KEY, "all", isCycleFilter);
+  // False on the server and while hydrating, so the first render matches the server's.
+  const hydrated = useSyncExternalStore(subscribeNever, () => true, () => false);
 
-  useEffect(() => {
+  if (hydrated && !sortLoaded) {
     try {
       const stored = window.localStorage.getItem(SORT_STORAGE_KEY);
       if (stored === "firstName" || stored === "lastName") {
@@ -47,7 +53,7 @@ export function useGradeEditorPrefs() {
       // Storage unavailable (private mode); keep the default sort.
     }
     setSortLoaded(true);
-  }, []);
+  }
 
   useEffect(() => {
     if (!sortLoaded) {

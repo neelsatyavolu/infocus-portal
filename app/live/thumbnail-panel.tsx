@@ -98,10 +98,12 @@ export function ThumbnailPanel({ event, scoreboard }: { event: LiveEventSummary;
     const id = window.setTimeout(() => setPreviewParams(params), PREVIEW_DEBOUNCE_MS);
     return () => window.clearTimeout(id);
   }, [params]);
-  useEffect(() => {
+  const [loadingParams, setLoadingParams] = useState(previewParams);
+  if (loadingParams !== previewParams) {
+    setLoadingParams(previewParams);
     setLoading(true);
     setFailed(false);
-  }, [previewParams]);
+  }
 
   const size = THUMBNAIL_SIZES[format];
   const sizeText = `${size.width} × ${size.height}`;

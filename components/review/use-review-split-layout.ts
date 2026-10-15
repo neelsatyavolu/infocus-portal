@@ -58,7 +58,7 @@ export function useReviewSplitLayout({
   layoutKey: string;
   isMacDesktopApp: boolean;
 }) {
-  const { root, split, card, stage, controls } = refs;
+  const { root: rootRef, split: splitRef, card: cardRef, stage: stageRef, controls: controlsRef } = refs;
   const dragRef = useRef<{ startX: number; startWidth: number; width: number } | null>(null);
   const [isDesktopSplitLayout, setIsDesktopSplitLayout] = useState(false);
   const [autoPanelWidthPx, setAutoPanelWidthPx] = useState<number | null>(null);
@@ -84,7 +84,7 @@ export function useReviewSplitLayout({
   // `sticky` measures against. Publish both offsets so the pinned player and docked composer follow.
   useEffect(() => {
     const viewport = window.visualViewport;
-    const node = root.current;
+    const node = rootRef.current;
     if (!viewport || !node) {
       return;
     }
@@ -102,16 +102,20 @@ export function useReviewSplitLayout({
       viewport.removeEventListener("resize", sync);
       viewport.removeEventListener("scroll", sync);
     };
-  }, [root]);
+  }, [rootRef]);
 
   // Fill the viewport below the app header exactly; the CSS calc fallback guesses the header height.
+  // No fitted height below the split or in the Mac app (the effect below measures it otherwise).
+  if ((!isDesktopSplitLayout || isMacDesktopApp) && fitHeightPx !== null) {
+    setFitHeightPx(null);
+  }
+
   useEffect(() => {
     if (!isDesktopSplitLayout || isMacDesktopApp) {
-      setFitHeightPx(null);
       return;
     }
     const measure = () => {
-      const node = root.current;
+      const node = rootRef.current;
       if (!node) {
         return;
       }
@@ -123,33 +127,39 @@ export function useReviewSplitLayout({
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
-  }, [isDesktopSplitLayout, isMacDesktopApp, root]);
+  }, [isDesktopSplitLayout, isMacDesktopApp, rootRef]);
 
   const clampPanelWidth = useCallback(
     (requested: number) => {
-      const layoutWidth = split.current?.clientWidth ?? 0;
+      const layoutWidth = splitRef.current?.clientWidth ?? 0;
       const layoutDrivenMax = Math.max(MIN_PANEL_WIDTH_PX, layoutWidth - SPLITTER_WIDTH_PX - MIN_PLAYER_WIDTH_PX);
       const ceiling = Math.min(MAX_PANEL_WIDTH_PX, layoutDrivenMax);
       return Math.max(MIN_PANEL_WIDTH_PX, Math.min(ceiling, requested));
     },
-    [split]
+    [splitRef]
   );
 
   const userPanelWidthPx = dragPanelWidthPx ?? manualPanelWidthPx;
   const effectivePanelWidthPx = userPanelWidthPx ?? autoPanelWidthPx ?? DEFAULT_PANEL_WIDTH_PX;
 
+  // Below the split nothing is measured: no stage cap, and no auto width unless one was chosen.
+  if (!isDesktopSplitLayout) {
+    if (mediaStageMaxWidthPx !== null) {
+      setMediaStageMaxWidthPx(null);
+    }
+    if (userPanelWidthPx === null && autoPanelWidthPx !== null) {
+      setAutoPanelWidthPx(null);
+    }
+  }
+
   const recalculate = useCallback(() => {
     if (!isDesktopSplitLayout) {
-      setMediaStageMaxWidthPx((current) => (current === null ? current : null));
-      if (userPanelWidthPx === null) {
-        setAutoPanelWidthPx((current) => (current === null ? current : null));
-      }
       return;
     }
 
-    const layoutNode = split.current;
-    const cardNode = card.current;
-    const mediaNode = stage.current;
+    const layoutNode = splitRef.current;
+    const cardNode = cardRef.current;
+    const mediaNode = stageRef.current;
     if (!layoutNode || !cardNode || !mediaNode) {
       return;
     }
@@ -158,7 +168,7 @@ export function useReviewSplitLayout({
     const cardRect = cardNode.getBoundingClientRect();
     const layoutBottom = layoutRect.top + layoutNode.clientHeight;
     const availableHeight = Math.max(0, layoutBottom - cardRect.top);
-    const controlsHeight = isImageReview ? 0 : (controls.current?.getBoundingClientRect().height ?? 0);
+    const controlsHeight = isImageReview ? 0 : (controlsRef.current?.getBoundingClientRect().height ?? 0);
     const mediaGap = isImageReview ? 0 : 12;
     // The card's own padding and border (it fills the column, so its height can't be used).
     const cardStyle = window.getComputedStyle(cardNode);
@@ -180,12 +190,12 @@ export function useReviewSplitLayout({
     setMediaStageMaxWidthPx((current) =>
       current !== null && Math.abs(current - clampedMediaWidth) < 1 ? current : clampedMediaWidth
     );
-  }, [autoPanelWidthPx, card, clampPanelWidth, controls, isDesktopSplitLayout, isImageReview, userPanelWidthPx, split, stage]);
+  }, [autoPanelWidthPx, cardRef, clampPanelWidth, controlsRef, isDesktopSplitLayout, isImageReview, userPanelWidthPx, splitRef, stageRef]);
 
   useEffect(() => {
     recalculate();
     const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => recalculate()) : null;
-    for (const node of [split.current, card.current, stage.current, controls.current]) {
+    for (const node of [splitRef.current, cardRef.current, stageRef.current, controlsRef.current]) {
       if (observer && node) {
         observer.observe(node);
       }
@@ -195,7 +205,7 @@ export function useReviewSplitLayout({
       window.removeEventListener("resize", recalculate);
       observer?.disconnect();
     };
-  }, [layoutKey, recalculate, split, card, stage, controls]);
+  }, [layoutKey, recalculate, splitRef, cardRef, stageRef, controlsRef]);
 
   useEffect(() => {
     if (!isResizing) {

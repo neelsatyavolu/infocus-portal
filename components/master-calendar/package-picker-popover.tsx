@@ -45,20 +45,29 @@ export function PackagePickerPopover({
 
   useEffect(() => dismissListeners(() => containerRef.current, onCancel), [onCancel]);
 
+  // A new search clears the last error and shows loading until the fetch below lands (or clears
+  // the list when the box is empty).
+  const [searchedQuery, setSearchedQuery] = useState(debouncedQuery);
+  if (debouncedQuery !== searchedQuery) {
+    setSearchedQuery(debouncedQuery);
+    setError(null);
+    if (debouncedQuery.trim().length === 0) {
+      setResults([]);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+  }
+
   useEffect(() => {
     let active = true;
     const trimmed = debouncedQuery.trim();
     if (trimmed.length === 0) {
-      setResults([]);
-      setError(null);
-      setLoading(false);
       return () => {
         active = false;
       };
     }
 
-    setLoading(true);
-    setError(null);
     fetch(`/api/master-calendar/packages?q=${encodeURIComponent(trimmed)}`, { cache: "no-store" })
       .then(async (response) => {
         const payload = (await response.json()) as { data?: { results: PackageOption[] }; error?: { message?: string } };

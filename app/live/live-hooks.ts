@@ -1,28 +1,33 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { isDashTab, saveView, type DashTab, type SaveView } from "./live-status";
 
 /** Per browser tab: a reload mid-game keeps the tab; a new game day opens on Scoreboard. */
 const TAB_STORAGE_KEY = "live-dashboard:tab";
 const SAVE_VIEW_TICK_MS = 250;
 
+const subscribeToNothing = () => () => {};
+
+function readSavedTab(): DashTab | null {
+  try {
+    const saved = window.sessionStorage.getItem(TAB_STORAGE_KEY);
+    return isDashTab(saved) ? saved : null;
+  } catch {
+    // Storage blocked: the tab just isn't remembered.
+    return null;
+  }
+}
+
 /**
  * The dashboard tab, remembered in sessionStorage. Read after mount, so the first render matches
  * the server; blocked storage just means the tab isn't remembered.
  */
 export function useRememberedTab(initial: DashTab) {
-  const [tab, setTab] = useState<DashTab>(initial);
-
-  useEffect(() => {
-    try {
-      const saved = window.sessionStorage.getItem(TAB_STORAGE_KEY);
-      if (isDashTab(saved)) setTab(saved);
-    } catch {
-      // Storage blocked: the tab just isn't remembered.
-    }
-  }, []);
+  const saved = useSyncExternalStore(subscribeToNothing, readSavedTab, () => null);
+  const [picked, setPicked] = useState<DashTab | null>(null);
+  const tab = picked ?? saved ?? initial;
 
   const selectTab = useCallback((next: DashTab) => {
-    setTab(next);
+    setPicked(next);
     try {
       window.sessionStorage.setItem(TAB_STORAGE_KEY, next);
     } catch {

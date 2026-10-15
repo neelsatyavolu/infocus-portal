@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type KeyboardEvent } from "react";
 import { Clock, Lock, LockOpen } from "lucide-react";
 import { MainWithRail } from "@/components/kit/layout";
 import { LoadingRegion, PanelSkeleton } from "@/components/kit/skeleton";
@@ -26,6 +26,9 @@ type CheckoutResult = {
 
 const FORM_ID = "equipment-checkout-form";
 const MAX_ITEMS = 50;
+
+const subscribeToNothing = () => () => {};
+const readSignInError = () => new URL(window.location.href).searchParams.get("signInError");
 
 function signInErrorText(code: string) {
   return code === "not_manager"
@@ -89,23 +92,34 @@ export default function EquipmentCheckoutClient() {
 
   // A Google sign-in error comes back once in the URL. Read it, then drop it, so a later Lock
   // message is never overwritten by the stale error.
+  const urlSignInError = useSyncExternalStore(subscribeToNothing, readSignInError, () => null);
+  const [shownSignInError, setShownSignInError] = useState<string | null>(null);
+  if (urlSignInError && urlSignInError !== shownSignInError) {
+    setShownSignInError(urlSignInError);
+    setStatus({ type: "error", text: signInErrorText(urlSignInError) });
+  }
   useEffect(() => {
+    if (!urlSignInError) return;
     const url = new URL(window.location.href);
-    const error = url.searchParams.get("signInError");
-    if (!error) return;
-    setStatus({ type: "error", text: signInErrorText(error) });
     url.searchParams.delete("signInError");
     window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
-  }, []);
+  }, [urlSignInError]);
+
+  // Locking empties the list; unlocking starts a fresh load.
+  const [itemsUnlocked, setItemsUnlocked] = useState(false);
+  if (itemsUnlocked !== unlocked) {
+    setItemsUnlocked(unlocked);
+    if (unlocked) {
+      setItemsLoading(true);
+      setItemsError(false);
+    } else {
+      setItems([]);
+    }
+  }
 
   useEffect(() => {
-    if (!unlocked) {
-      setItems([]);
-      return;
-    }
+    if (!unlocked) return;
     let active = true;
-    setItemsLoading(true);
-    setItemsError(false);
     fetch("/api/equipment/kiosk/items", { cache: "no-store" })
       .then((response) => readJson<{ items: EquipmentItemSuggestion[] }>(response))
       .then((data) => {

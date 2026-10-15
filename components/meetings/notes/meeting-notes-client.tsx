@@ -63,16 +63,20 @@ export default function MeetingNotesClient({ meetingId }: { meetingId: string })
   const [loadingTranscript, setLoadingTranscript] = useState(false);
   const [editInvitees, setEditInvitees] = useState(false);
 
-  const load = useCallback(async () => {
-    try {
-      const next = (await meetingsApi.get(meetingId)).meeting;
-      rememberValue(cacheKey(meetingId), next);
-      setMeeting(next);
-      setLoadError(null);
-    } catch (err) {
-      setLoadError(errorMessage(err, "Couldn't load this meeting."));
-    }
-  }, [meetingId]);
+  const load = useCallback(
+    () =>
+      meetingsApi
+        .get(meetingId)
+        .then(({ meeting: next }) => {
+          rememberValue(cacheKey(meetingId), next);
+          setMeeting(next);
+          setLoadError(null);
+        })
+        .catch((err: unknown) => {
+          setLoadError(errorMessage(err, "Couldn't load this meeting."));
+        }),
+    [meetingId]
+  );
 
   useEffect(() => {
     void load();

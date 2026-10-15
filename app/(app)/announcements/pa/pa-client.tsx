@@ -50,8 +50,10 @@ async function readResponse(response: Response): Promise<PaResponse> {
 export default function PaClient({ initialData }: { initialData: PaResponse | null }) {
   const router = useRouter();
   // The server's copy (page.tsx) is fresh, so the editor opens unlocked on the first frame.
-  const [data, setData] = useState<PaResponse | null>(initialData);
-  const [content, setContent] = useState(initialData?.script?.content ?? "");
+  // Without the server's copy, the first view shows the last copy at once (src/lib/client-cache.ts)
+  // and refreshes it quietly.
+  const [data, setData] = useState<PaResponse | null>(() => initialData ?? cachedValue<PaResponse>(PA_CACHE_KEY) ?? null);
+  const [content, setContent] = useState(data?.script?.content ?? "");
   const [loading, setLoading] = useState(initialData === null);
   const [saving, setSaving] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
@@ -73,27 +75,27 @@ export default function PaClient({ initialData }: { initialData: PaResponse | nu
     setContent(next.script?.content ?? "");
   }
 
-  /** `cached` (first view only) shows the last copy at once and refreshes it quietly (src/lib/client-cache.ts). */
-  async function loadData(options?: { cached?: boolean }) {
-    const cached = options?.cached ? cachedValue<PaResponse>(PA_CACHE_KEY) : undefined;
-    // The page renders the cached copy while `loading`; the editor stays locked until fresh data lands.
-    if (cached) applyData(cached);
+  function fetchData() {
+    return fetch("/api/announcements/pa", { cache: "no-store" })
+      .then((response) => readResponse(response))
+      .then((next) => applyData(next))
+      .catch((cause) => setError(cause instanceof Error ? cause.message : "Could not load the PA script."))
+      .finally(() => setLoading(false));
+  }
+
+  async function loadData() {
     setLoading(true);
     setError(null);
     setActionError(null);
     setSaved(false);
-    try {
-      applyData(await readResponse(await fetch("/api/announcements/pa", { cache: "no-store" })));
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Could not load the PA script.");
-    } finally {
-      setLoading(false);
-    }
+    await fetchData();
   }
 
   useEffect(() => {
     if (initialData) return;
-    void loadData({ cached: true });
+    // `loading` starts true here and the page renders the cached copy (if any) while it is;
+    // the editor stays locked until fresh data lands.
+    void fetchData();
     // First view only (and only without the server's copy); later loads come from Refresh.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

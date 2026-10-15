@@ -129,12 +129,13 @@ export function ReviewPlayer({
 }) {
   const { isPlaying, isBuffering, playheadStore, bufferedStore, volume, setVolume, playbackRate, setPlaybackRate, seekTo, togglePlayback } =
     playback;
+  const { card: cardRef, stage: stageRef, controls: controlsRef, video: videoRef, canvas: canvasRef } = refs;
 
   let stageContent;
   if (isImageReview && version?.imageUrl) {
     stageContent = (
       <div
-        ref={refs.canvas}
+        ref={canvasRef}
         className="relative overflow-hidden rounded-md border border-border bg-black max-lg:portrait:rounded-none max-lg:portrait:border-0"
         onClick={onCanvasClick}
       >
@@ -196,7 +197,7 @@ export function ReviewPlayer({
         <div className="relative overflow-hidden rounded-md border border-border bg-black max-lg:portrait:rounded-none max-lg:portrait:border-0">
           <video
             key={version.id}
-            ref={refs.video}
+            ref={videoRef}
             className="aspect-video w-full cursor-pointer bg-black"
             onClick={() => void togglePlayback()}
             playsInline
@@ -219,7 +220,7 @@ export function ReviewPlayer({
           ) : null}
         </div>
 
-        <div ref={refs.controls} className={cn("mt-2 px-1 sm:px-2 max-lg:portrait:mt-1", HIDE_WHILE_COMPOSING_CLASS)}>
+        <div ref={controlsRef} className={cn("mt-2 px-1 sm:px-2 max-lg:portrait:mt-1", HIDE_WHILE_COMPOSING_CLASS)}>
           {/* Markers sit in their own lane above the track so they never block scrubbing. On touch
               each marker's 40px hit area is a pseudo-element, so the lane stays 24px tall. */}
           <div className="relative h-6 lg:pointer-fine:h-4">
@@ -316,7 +317,7 @@ export function ReviewPlayer({
 
   return (
     <div
-      ref={refs.card}
+      ref={cardRef}
       className={cn(
         "rounded-md border border-border bg-card p-2 sm:p-4 lg:flex lg:h-full lg:flex-col lg:justify-center",
         // Upright phones and tablets: flush, so the picture uses the column's full width.
@@ -325,7 +326,7 @@ export function ReviewPlayer({
       )}
     >
       <div
-        ref={refs.stage}
+        ref={stageRef}
         className="mx-auto w-full max-lg:landscape:max-w-[calc((100dvh_-_9rem)_*_16_/_9)]"
         style={mediaStageMaxWidthPx ? { maxWidth: `${Math.round(mediaStageMaxWidthPx)}px` } : undefined}
       >

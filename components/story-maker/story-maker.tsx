@@ -9,6 +9,7 @@ import { IconButton } from "@/components/kit/icon-button";
 import { useRememberedState } from "@/components/kit/remembered-state";
 import { ManagerRosterButton } from "@/components/manager-roster-button";
 import { PageHeader } from "@/components/page-header";
+import { useHydrated } from "@/components/project-assets/use-hydrated";
 import { CanvasFields } from "@/components/social-story/canvas-fields";
 import { useShortcutTitles } from "@/components/social-story/custom-shortcuts";
 import { initialState, saveDrafts, templateById, templateDefaults, type EditorState } from "@/components/social-story/editor-drafts";
@@ -91,8 +92,9 @@ export function StoryMaker({ canAppoint }: { canAppoint: boolean }) {
   const fontCssRef = useRef<string | null>(null);
   const titles = useShortcutTitles();
 
-  // Drafts and today's date come from the browser, so load them after mount (no hydration mismatch).
-  useEffect(() => setState(initialState()), []);
+  // Drafts and today's date come from the browser, so load them once hydrated (no hydration mismatch).
+  const hydrated = useHydrated();
+  if (hydrated && state === null) setState(initialState());
   useEffect(() => {
     if (state) saveDrafts(state);
   }, [state]);

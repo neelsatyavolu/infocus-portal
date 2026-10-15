@@ -1,8 +1,12 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 
 const PHONE_DETAIL_STATE = "peopleMemberDetail";
+
+function subscribeNever() {
+  return () => undefined;
+}
 
 function onPhoneDetailEntry() {
   try {
@@ -53,10 +57,16 @@ export function usePhoneDetail({ isDesktop, mounted, onLeave }: { isDesktop: boo
     }
   }
 
+  // False on the server and while hydrating, so the first render matches the server's.
+  const hydrated = useSyncExternalStore(subscribeNever, () => true, () => false);
+  const [entryChecked, setEntryChecked] = useState(false);
+  if (hydrated && !entryChecked) {
+    setEntryChecked(true);
+    if (onPhoneDetailEntry()) setOpen(true);
+  }
+
   useEffect(() => {
-    if (!onPhoneDetailEntry()) return;
-    pushedRef.current = true;
-    setOpen(true);
+    if (onPhoneDetailEntry()) pushedRef.current = true;
   }, []);
 
   // Waits for mount, since the hydration render always guesses desktop.

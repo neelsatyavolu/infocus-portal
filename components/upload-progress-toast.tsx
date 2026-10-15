@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { ProgressBar } from "@/components/kit/progress";
 import { CountBadge, StatusTag } from "@/components/kit/status-tag";
@@ -78,12 +78,17 @@ function statusTone(status: UploadToastStatus): StatusToneInput {
   return "neutral";
 }
 
-export function UploadProgressToast({ items }: UploadProgressToastProps) {
-  const [mounted, setMounted] = useState(false);
+function subscribeNever() {
+  return () => undefined;
+}
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+export function UploadProgressToast({ items }: UploadProgressToastProps) {
+  // False on the server and during hydration (no document to portal into), true after.
+  const mounted = useSyncExternalStore(
+    subscribeNever,
+    () => true,
+    () => false
+  );
 
   if (items.length === 0) {
     return null;

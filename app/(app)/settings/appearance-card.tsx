@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, useSyncExternalStore, type ReactNode } from "react";
 import { LayoutGrid, List, Moon, Sun } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -40,23 +40,32 @@ const VIEW_OPTIONS: { value: PreferenceState["defaultView"]; label: string; icon
   { value: "list", label: "List", icon: <List /> }
 ];
 
+function subscribeNever() {
+  return () => undefined;
+}
+
 function usePreferences() {
   const [prefs, setPrefs] = useState<PreferenceState>(defaults);
+  const [read, setRead] = useState(false);
+  // False on the server and while hydrating, so the first render matches the server's.
+  const hydrated = useSyncExternalStore(subscribeNever, () => true, () => false);
 
-  useEffect(() => {
+  if (hydrated && !read) {
+    setRead(true);
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as PreferenceState;
-      setPrefs({
-        autoPlay: Boolean(parsed.autoPlay),
-        soundEnabled: Boolean(parsed.soundEnabled),
-        defaultView: parsed.defaultView === "list" ? "list" : "grid"
-      });
+      if (raw) {
+        const parsed = JSON.parse(raw) as PreferenceState;
+        setPrefs({
+          autoPlay: Boolean(parsed.autoPlay),
+          soundEnabled: Boolean(parsed.soundEnabled),
+          defaultView: parsed.defaultView === "list" ? "list" : "grid"
+        });
+      }
     } catch {
       // ignore invalid local preferences
     }
-  }, []);
+  }
 
   function save(next: PreferenceState) {
     setPrefs(next);

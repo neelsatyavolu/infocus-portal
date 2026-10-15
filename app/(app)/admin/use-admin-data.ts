@@ -71,15 +71,19 @@ export function useAdminData(initialData: AdminInitialData | null) {
   /** The load error the banner is showing, so a later successful load can take it down. */
   const loadErrorRef = useRef<string | null>(null);
 
+  const fetchBackups = useCallback(
+    () =>
+      getData<BackupStatus>("/api/platform/backups").then(setBackups, (error) => {
+        // Shown in the Backups section (with Try again), not repeated in the page banner.
+        setBackupsError(errorText(error, "Failed to load backups."));
+      }),
+    []
+  );
+
   const loadBackups = useCallback(async () => {
     setBackupsError(null);
-    try {
-      setBackups(await getData<BackupStatus>("/api/platform/backups"));
-    } catch (error) {
-      // Shown in the Backups section (with Try again), not repeated in the page banner.
-      setBackupsError(errorText(error, "Failed to load backups."));
-    }
-  }, []);
+    await fetchBackups();
+  }, [fetchBackups]);
 
   const loadStats = useCallback(() => {
     void getData<PlatformStats>("/api/platform/stats")
@@ -91,62 +95,69 @@ export function useAdminData(initialData: AdminInitialData | null) {
       .catch((error) => setStatsError(errorText(error, "Failed to load admin stats.")));
   }, []);
 
+  /** Loads everything; the caller shows the page loader first (`loading` starts true when it is needed). */
+  const loadAll = useCallback(
+    (pageLoader: boolean, includeStats: boolean) =>
+      Promise.resolve(meRef.current ?? getData<PlatformMe>("/api/platform/me"))
+        .then(async (nextMe) => {
+          meRef.current = nextMe;
+          setMe(nextMe);
+
+          if (nextMe.permissions.canManageAllowedEmails) {
+            if (includeStats) loadStats();
+
+            const [nextRoles, nextUsers, nextRequests, program] = await Promise.all([
+              getData<RoleAssignment[]>("/api/platform/roles"),
+              getData<PlatformUser[]>("/api/platform/users"),
+              getData<PlatformAccessRequest[]>("/api/platform/access-requests"),
+              getData<{ cyclesPerSemester: number }>("/api/platform/program-settings")
+            ]);
+
+            setCyclesPerSemester(program.cyclesPerSemester);
+            setRoles(nextRoles);
+            setUsers(nextUsers);
+            setRequests(nextRequests);
+            setListsLoaded(true);
+            announceAccessRequests(pendingCount(nextRequests));
+          }
+
+          if (nextMe.permissions.canManagePlatformRoles) {
+            await loadBackups();
+          } else {
+            setBackups(null);
+            setBackupsError(null);
+          }
+          // Loaded: clear an earlier load failure (Try again) unless something else replaced its banner.
+          const staleError = loadErrorRef.current;
+          loadErrorRef.current = null;
+          setLoadError(null);
+          if (staleError) {
+            setMessage((current) => (current === staleError ? null : current));
+          }
+        })
+        .catch((error) => {
+          const text = errorText(error, "Failed to load admin data.");
+          loadErrorRef.current = text;
+          setLoadError(text);
+          setMessage(text);
+        })
+        .finally(() => {
+          if (pageLoader) {
+            setLoading(false);
+          }
+        }),
+    [loadBackups, loadStats]
+  );
+
   const refresh = useCallback(
     async (options?: RefreshOptions) => {
       const pageLoader = options?.pageLoader ?? true;
-      const includeStats = options?.includeStats ?? true;
       if (pageLoader) {
         setLoading(true);
       }
-
-      try {
-        const nextMe = meRef.current ?? (await getData<PlatformMe>("/api/platform/me"));
-        meRef.current = nextMe;
-        setMe(nextMe);
-
-        if (nextMe.permissions.canManageAllowedEmails) {
-          if (includeStats) loadStats();
-
-          const [nextRoles, nextUsers, nextRequests, program] = await Promise.all([
-            getData<RoleAssignment[]>("/api/platform/roles"),
-            getData<PlatformUser[]>("/api/platform/users"),
-            getData<PlatformAccessRequest[]>("/api/platform/access-requests"),
-            getData<{ cyclesPerSemester: number }>("/api/platform/program-settings")
-          ]);
-
-          setCyclesPerSemester(program.cyclesPerSemester);
-          setRoles(nextRoles);
-          setUsers(nextUsers);
-          setRequests(nextRequests);
-          setListsLoaded(true);
-          announceAccessRequests(pendingCount(nextRequests));
-        }
-
-        if (nextMe.permissions.canManagePlatformRoles) {
-          await loadBackups();
-        } else {
-          setBackups(null);
-          setBackupsError(null);
-        }
-        // Loaded: clear an earlier load failure (Try again) unless something else replaced its banner.
-        const staleError = loadErrorRef.current;
-        loadErrorRef.current = null;
-        setLoadError(null);
-        if (staleError) {
-          setMessage((current) => (current === staleError ? null : current));
-        }
-      } catch (error) {
-        const text = errorText(error, "Failed to load admin data.");
-        loadErrorRef.current = text;
-        setLoadError(text);
-        setMessage(text);
-      } finally {
-        if (pageLoader) {
-          setLoading(false);
-        }
-      }
+      await loadAll(pageLoader, options?.includeStats ?? true);
     },
-    [loadBackups, loadStats]
+    [loadAll]
   );
 
   useEffect(() => {
@@ -158,11 +169,13 @@ export function useAdminData(initialData: AdminInitialData | null) {
         announceAccessRequests(pendingCount(initialData.requests));
         loadStats();
       }
-      if (initialData.me.permissions.canManagePlatformRoles) void loadBackups();
+      // No earlier backups error to clear on the first load.
+      if (initialData.me.permissions.canManagePlatformRoles) void fetchBackups();
       return;
     }
-    void refresh({ pageLoader: !initial, includeStats: true });
-  }, [initial, initialData, loadBackups, loadStats, refresh]);
+    // `loading` already starts as !initial, so no page-loader reset is needed here.
+    void loadAll(!initial, true);
+  }, [initial, initialData, fetchBackups, loadStats, loadAll]);
 
   useEffect(() => {
     if (!me || !listsLoaded) return;

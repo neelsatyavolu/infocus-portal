@@ -142,7 +142,9 @@ export function useReformatProgress() {
 /** Loads a chunk when the browser is idle (or after a short delay where requestIdleCallback is missing, e.g. Safari). */
 export function useIdlePreload(enabled: boolean, load: () => Promise<unknown>) {
   const loadRef = useRef(load);
-  loadRef.current = load;
+  useEffect(() => {
+    loadRef.current = load;
+  });
 
   useEffect(() => {
     if (!enabled) {
@@ -199,7 +201,9 @@ export function useSeenDocs(activeDoc: TeleprompterDoc | null, ready: boolean) {
   const [view, setView] = useState<{ docId: string; baseline: number } | null>(null);
   const [touched, setTouched] = useState<Record<string, true>>({});
   const seenRef = useRef(seen);
-  seenRef.current = seen;
+  useEffect(() => {
+    seenRef.current = seen;
+  });
   const viewDocIdRef = useRef<string | null>(null);
   const activeDocId = activeDoc?.id ?? null;
   const activeVersion = activeDoc ? latestDocUpdate(activeDoc) : 0;

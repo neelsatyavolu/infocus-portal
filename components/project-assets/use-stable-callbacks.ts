@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useMemo, useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- any callback shape
 type Callbacks = Record<string, (...args: any[]) => unknown>;
@@ -16,12 +16,13 @@ export function useStableCallbacks<T extends Callbacks>(callbacks: T): T {
     latest.current = callbacks;
   });
 
-  return useMemo(() => {
-    const stable: Callbacks = {};
-    for (const key of Object.keys(latest.current)) {
-      stable[key] = (...args: unknown[]) => latest.current[key](...args);
+  // Keys are fixed for the component's life; the wrappers read `latest` when called.
+  const [stable] = useState(() => {
+    const wrappers: Callbacks = {};
+    for (const key of Object.keys(callbacks)) {
+      wrappers[key] = (...args: unknown[]) => latest.current[key](...args);
     }
-    return stable as T;
-    // Keys are fixed for the component's life; the wrappers read `latest` when called.
-  }, []);
+    return wrappers as T;
+  });
+  return stable;
 }

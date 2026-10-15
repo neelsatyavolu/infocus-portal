@@ -18,15 +18,16 @@ export function LiveImageLayer({ liveImage, render }: { liveImage: LiveImageStat
   const [shown, setShown] = useState<Shown>(liveImage ? { image: liveImage, leaving: false } : null);
   const incomingKey = liveImage?.pushedAt ?? null;
 
-  useEffect(() => {
+  // liveImage is keyed by pushedAt; field edits never change a pushed graphic.
+  const [seenKey, setSeenKey] = useState(incomingKey);
+  if (seenKey !== incomingKey) {
+    setSeenKey(incomingKey);
     setShown((current) => {
       if (current && current.image.pushedAt === incomingKey) return current.leaving ? { ...current, leaving: false } : current;
       if (!current) return liveImage ? { image: liveImage, leaving: false } : null;
       return current.leaving ? current : { ...current, leaving: true };
     });
-    // liveImage is keyed by pushedAt; field edits never change a pushed graphic.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [incomingKey]);
+  }
 
   const leaving = shown?.leaving ?? false;
   useEffect(() => {

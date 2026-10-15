@@ -56,11 +56,13 @@ export function useSpeakers() {
 /** Feeds the local mic level into the same speaker map (and returns it for meters). */
 export function useTrackLevel(track: MediaStreamTrack | undefined, onLevel?: (level: number) => void) {
   const [level, setLevel] = useState(0);
+  const [prevTrack, setPrevTrack] = useState(track);
+  if (track !== prevTrack) {
+    setPrevTrack(track);
+    if (!track) setLevel(0);
+  }
   useEffect(() => {
-    if (!track) {
-      setLevel(0);
-      return;
-    }
+    if (!track) return;
     const stop = watchTrackLevel(track, (value) => {
       setLevel(value);
       onLevel?.(value);

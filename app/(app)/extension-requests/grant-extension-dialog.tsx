@@ -47,7 +47,8 @@ export function GrantExtensionDialog({
   const ids = useId();
   const [cycleNumber, setCycleNumber] = useState(initialCycleNumber);
   const [groups, setGroups] = useState<Group[]>([]);
-  const [loadingGroups, setLoadingGroups] = useState(false);
+  // The groups for the opening cycle load as soon as the dialog mounts.
+  const [loadingGroups, setLoadingGroups] = useState(true);
   const [groupId, setGroupId] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const [days, setDays] = useState(2);
@@ -56,10 +57,6 @@ export function GrantExtensionDialog({
 
   useEffect(() => {
     let cancelled = false;
-    setLoadingGroups(true);
-    setGroupId("");
-    setSelected([]);
-
     fetch(`/api/extensions/grants?cycleNumber=${cycleNumber}`, { cache: "no-store" })
       .then(async (response) => {
         const body = await response.json().catch(() => null);
@@ -85,6 +82,15 @@ export function GrantExtensionDialog({
 
   const group = groups.find((entry) => entry.id === groupId) ?? null;
   const cycleOptions = cycleNumbers.includes(cycleNumber) ? cycleNumbers : [...cycleNumbers, cycleNumber];
+
+  /** A new cycle starts over: its groups load and nothing is picked. */
+  function changeCycle(next: number) {
+    if (next === cycleNumber) return;
+    setCycleNumber(next);
+    setLoadingGroups(true);
+    setGroupId("");
+    setSelected([]);
+  }
 
   function pickGroup(id: string) {
     setGroupId(id);
@@ -139,7 +145,7 @@ export function GrantExtensionDialog({
               <NativeSelect
                 id={`${ids}-cycle`}
                 value={cycleNumber}
-                onChange={(event) => setCycleNumber(Number(event.target.value))}
+                onChange={(event) => changeCycle(Number(event.target.value))}
               >
                 {cycleOptions.map((value) => (
                   <option key={value} value={value}>

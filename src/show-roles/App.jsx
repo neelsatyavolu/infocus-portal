@@ -273,7 +273,14 @@ export default function App() {
     async function hydrateSession() {
       try {
         const result = await checkSession();
-        if (!cancelled) setAuthenticated(Boolean(result.authenticated));
+        if (!cancelled) {
+          setAuthenticated(Boolean(result.authenticated));
+          // The only place a session starts, so the first data load starts here too.
+          if (result.authenticated) {
+            loadAppData();
+            loadNonAnchorList();
+          }
+        }
       } catch {
         if (!cancelled) setAuthenticated(false);
       } finally {
@@ -285,13 +292,8 @@ export default function App() {
       cancelled = true;
       if (noticeTimeoutRef.current) clearTimeout(noticeTimeoutRef.current);
     };
-  }, []);
-
-  useEffect(() => {
-    if (!authenticated) return;
-    loadAppData();
-    loadNonAnchorList();
-  }, [authenticated, loadAppData, loadNonAnchorList]);
+    // Both loaders are stable (useCallback over stable deps), so this still runs once.
+  }, [loadAppData, loadNonAnchorList]);
 
   useEffect(() => {
     if (!authenticated) return undefined;
@@ -319,10 +321,10 @@ export default function App() {
     };
   }, [authenticated]);
 
-  useEffect(() => {
-    if (!viewDate || !history.shows.length) return;
-    if (!getShowByDate(history, viewDate)) setViewDate(currentShowDate);
-  }, [viewDate, history, currentShowDate]);
+  // A viewed show that no longer exists falls back to the current show.
+  if (viewDate && viewDate !== currentShowDate && history.shows.length && !getShowByDate(history, viewDate)) {
+    setViewDate(currentShowDate);
+  }
 
   async function handleAnchorChange(slot, value) {
     const first = slot === 0 ? value : anchor1;

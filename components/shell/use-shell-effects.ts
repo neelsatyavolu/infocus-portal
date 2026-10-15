@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 
 /** Slack catch-up runs at most once per tab in this window. */
 const SLACK_SYNC_MIN_MS = 10 * 60_000;
@@ -48,9 +48,16 @@ export function useSlackCatchUp(enabled: boolean) {
 
 /** Meetings live on their own host (meet.infocuspaly.com), where "/" is the Meetings tab. */
 export function useOnMeetHost() {
-  const [onMeetHost, setOnMeetHost] = useState(false);
-  useEffect(() => setOnMeetHost(window.location.hostname.startsWith("meet.")), []);
-  return onMeetHost;
+  // False on the server and at hydration, then read from the location (no hydration mismatch).
+  return useSyncExternalStore(subscribeNever, isMeetHost, () => false);
+}
+
+function subscribeNever() {
+  return () => undefined;
+}
+
+function isMeetHost() {
+  return window.location.hostname.startsWith("meet.");
 }
 
 const TOAST_OFFSET = "calc(3.75rem + env(safe-area-inset-bottom, 0px) + 1rem)";

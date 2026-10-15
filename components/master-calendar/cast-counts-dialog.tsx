@@ -88,16 +88,22 @@ export function CastCountsDialog({ open, onOpenChange }: CastCountsDialogProps) 
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<RosterFilter>("all");
 
-  useEffect(() => {
-    if (!open) {
+  // Each open shows the loading state until the fetch below lands; closing resets the filter.
+  const [wasOpen, setWasOpen] = useState(false);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) {
+      setLoading(true);
+      setError(null);
+    } else {
       setFilter("all");
-      return;
     }
+  }
+
+  useEffect(() => {
+    if (!open) return;
 
     let active = true;
-    setLoading(true);
-    setError(null);
-
     fetch("/api/master-calendar/cast-counts", { cache: "no-store" })
       .then(async (response) => {
         const payload = (await response.json()) as {

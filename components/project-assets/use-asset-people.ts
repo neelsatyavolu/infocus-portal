@@ -29,8 +29,6 @@ export function useAssetPeople({
   const [workspaceMembers, setWorkspaceMembers] = useState<WorkspaceMemberOption[]>([]);
   const [workspaceMembersLoading, setWorkspaceMembersLoading] = useState(false);
   const [workspaceMembersLoaded, setWorkspaceMembersLoaded] = useState(false);
-  /** The last load failed; the open effects wait for the person to open the popover or dialog again. */
-  const [workspaceMembersFailed, setWorkspaceMembersFailed] = useState(false);
   /** The Add people dialog is open (it shows load errors itself). */
   const addDialogOpenRef = useRef(false);
 
@@ -40,7 +38,6 @@ export function useAssetPeople({
     }
 
     setWorkspaceMembersLoading(true);
-    setWorkspaceMembersFailed(false);
     setMembersError(null);
     try {
       const response = await fetch(`/api/projects/${projectId}/member-candidates`, { cache: "no-store" });
@@ -52,7 +49,6 @@ export function useAssetPeople({
       setWorkspaceMembers((payload.data as WorkspaceMemberOption[]) ?? []);
       setWorkspaceMembersLoaded(true);
     } catch {
-      setWorkspaceMembersFailed(true);
       setMembersError("Could not load people for this project.");
       if (!addDialogOpenRef.current) {
         onError("Could not load people for this project.");
@@ -62,54 +58,35 @@ export function useAssetPeople({
     }
   }, [onError, projectId, workspaceMembersLoaded, workspaceMembersLoading]);
 
-  useEffect(() => {
+  const [membersProjectId, setMembersProjectId] = useState(projectId);
+  if (projectId !== membersProjectId) {
+    setMembersProjectId(projectId);
     setWorkspaceMembers([]);
     setWorkspaceMembersLoaded(false);
     setWorkspaceMembersLoading(false);
-    setWorkspaceMembersFailed(false);
-  }, [projectId]);
+  }
 
   useEffect(() => {
     addDialogOpenRef.current = memberAddModalForMediaId !== null;
   }, [memberAddModalForMediaId]);
 
-  useEffect(() => {
-    if (!memberPickerForMediaId) {
-      return;
-    }
-
-    if (!workspaceMembersFailed) {
-      void ensureWorkspaceMembersLoaded();
-    }
-
-    if (!items.some((item) => item.id === memberPickerForMediaId)) {
-      setMemberPickerForMediaId(null);
-    }
-  }, [ensureWorkspaceMembersLoaded, items, memberPickerForMediaId, workspaceMembersFailed]);
-
-  useEffect(() => {
-    if (!memberAddModalForMediaId) {
-      return;
-    }
-
-    if (!workspaceMembersFailed) {
-      void ensureWorkspaceMembersLoaded();
-    }
-
-    if (!items.some((item) => item.id === memberAddModalForMediaId)) {
-      setMemberAddModalForMediaId(null);
-    }
-  }, [ensureWorkspaceMembersLoaded, items, memberAddModalForMediaId, workspaceMembersFailed]);
+  // The popover and the dialog close once their item leaves the list.
+  if (memberPickerForMediaId && !items.some((item) => item.id === memberPickerForMediaId)) {
+    setMemberPickerForMediaId(null);
+  }
+  if (memberAddModalForMediaId && !items.some((item) => item.id === memberAddModalForMediaId)) {
+    setMemberAddModalForMediaId(null);
+  }
 
   // People only exist in a Final Cut folder; leaving it closes the picker and the dialog.
-  useEffect(() => {
-    if (showPackageActions) {
-      return;
+  const [prevShowPackageActions, setPrevShowPackageActions] = useState(showPackageActions);
+  if (showPackageActions !== prevShowPackageActions) {
+    setPrevShowPackageActions(showPackageActions);
+    if (!showPackageActions) {
+      setMemberPickerForMediaId(null);
+      setMemberAddModalForMediaId(null);
     }
-
-    setMemberPickerForMediaId(null);
-    setMemberAddModalForMediaId(null);
-  }, [showPackageActions]);
+  }
 
   async function updateMediaAssignedMembers(mediaId: string, memberIds: string[]) {
     setMembersUpdatingMediaId(mediaId);
@@ -202,8 +179,8 @@ export function useAssetPeople({
 
   function setPickerOpen(mediaId: string, open: boolean) {
     if (open) {
-      // Opening it again is the retry after a failed load.
-      setWorkspaceMembersFailed(false);
+      // Opening it again is also the retry after a failed load.
+      void ensureWorkspaceMembersLoaded();
     }
     setMemberPickerForMediaId((current) => (open ? mediaId : current === mediaId ? null : current));
   }

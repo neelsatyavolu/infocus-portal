@@ -131,14 +131,18 @@ export function CallRoom({
 
   // A new screen share takes the stage unless someone is pinned.
   const sharerId = tiles.find((t) => t.isScreen && !t.isSelf)?.id ?? null;
-  useEffect(() => {
+  const [prevSharerId, setPrevSharerId] = useState<string | null>(null);
+  if (sharerId !== prevSharerId) {
+    setPrevSharerId(sharerId);
     if (sharerId) setPinnedId((current) => (current && current !== sharerId && current !== WATCH_TILE_ID ? current : null));
-  }, [sharerId]);
+  }
   // A new watch-together video takes the stage too (the newest of the two wins).
   const watchId = room.watch?.id ?? null;
-  useEffect(() => {
+  const [prevWatchId, setPrevWatchId] = useState<string | null>(null);
+  if (watchId !== prevWatchId) {
+    setPrevWatchId(watchId);
     if (watchId) setPinnedId(WATCH_TILE_ID);
-  }, [watchId]);
+  }
 
   // Coming back (screen unlocked, a phone call or Siri ended, bfcache): iOS leaves remote <audio>
   // paused without a play() rejection, so the room looks connected but is silent. Restart them.
@@ -169,9 +173,7 @@ export function CallRoom({
   }, []);
 
   const unread = panel === "chat" ? 0 : Math.max(0, call.chat.length - seenChat);
-  useEffect(() => {
-    if (panel === "chat") setSeenChat(call.chat.length);
-  }, [panel, call.chat.length]);
+  if (panel === "chat" && seenChat !== call.chat.length) setSeenChat(call.chat.length);
 
   const togglePanel = useCallback((next: Exclude<Panel, null>) => setPanel((cur) => (cur === next ? null : next)), []);
   const toggleShare = useCallback(() => (media.screen ? media.stopScreenShare() : media.startScreenShare()), [media]);

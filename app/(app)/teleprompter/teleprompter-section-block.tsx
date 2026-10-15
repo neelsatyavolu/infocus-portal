@@ -93,8 +93,8 @@ function SectionEditor({ draft, dirty, working, onChange, onSave, onCancel, onRe
   const id = useId();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  // Only read by the mount effect, so the first render's callback is the one it needs.
   const onOpenedRef = useRef(onOpened);
-  onOpenedRef.current = onOpened;
   const heading = splitSectionLabel({ label: draft.label, content: draft.content }).beat
     ? draft.content.split(/\r?\n/).find((line) => line.trim())?.trim() ?? null
     : null;

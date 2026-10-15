@@ -62,16 +62,20 @@ export default function MeetingsClient() {
   // Phones and narrow windows show one list at a time; the choice is remembered per browser.
   const [segment, setSegment] = useRememberedState<Segment>("meetings.tab", "upcoming", isSegment);
 
-  const load = useCallback(async () => {
-    try {
-      const next = await meetingsApi.list();
-      rememberValue(CACHE_KEY, next);
-      setData(next);
-      setLoadError(null);
-    } catch (err) {
-      setLoadError(errorMessage(err, "Couldn't load meetings."));
-    }
-  }, []);
+  const load = useCallback(
+    () =>
+      meetingsApi
+        .list()
+        .then((next) => {
+          rememberValue(CACHE_KEY, next);
+          setData(next);
+          setLoadError(null);
+        })
+        .catch((err: unknown) => {
+          setLoadError(errorMessage(err, "Couldn't load meetings."));
+        }),
+    []
+  );
 
   useEffect(() => {
     void load();

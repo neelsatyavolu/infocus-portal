@@ -36,8 +36,11 @@ export default function EquipmentManageClient() {
   // The last change's result. It stays until the next change, Refresh, a tab switch or dismiss.
   const [message, setMessage] = useState<FormStatus>(null);
 
+  if (!visited.has(tab)) {
+    setVisited(new Set([...visited, tab]));
+  }
+
   useEffect(() => {
-    setVisited((prev) => (prev.has(tab) ? prev : new Set([...prev, tab])));
     void load(tab);
   }, [tab, load]);
 

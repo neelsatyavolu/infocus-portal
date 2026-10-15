@@ -126,17 +126,21 @@ export function InvitesPanel() {
   const [removing, setRemoving] = useState<InviteRow | null>(null);
   const { people } = useMeetingPeople(canManage);
 
-  const load = useCallback(async () => {
-    try {
-      const data = await meetingsApi.invites();
-      setInvites(data.invites);
-      setCanManage(data.canManage);
-      setCalendar(data.calendar);
-      setLoadError(null);
-    } catch (err) {
-      setLoadError(errorMessage(err, "Couldn't load calendar invites."));
-    }
-  }, []);
+  const load = useCallback(
+    () =>
+      meetingsApi
+        .invites()
+        .then((data) => {
+          setInvites(data.invites);
+          setCanManage(data.canManage);
+          setCalendar(data.calendar);
+          setLoadError(null);
+        })
+        .catch((err: unknown) => {
+          setLoadError(errorMessage(err, "Couldn't load calendar invites."));
+        }),
+    []
+  );
 
   useEffect(() => {
     void load();

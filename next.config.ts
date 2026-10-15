@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 import path from "node:path";
 
-// Hosted builds (Vercel, the Cloudflare deploy workflow, Workers Builds) skip lint + type checking (~40s);
+// Hosted builds (Vercel, the Cloudflare deploy workflow, Workers Builds) skip type checking (Next.js 16 builds no longer lint);
 // .github/workflows/checks.yml runs both on every push. Local `npm run build` still checks.
 const HOSTED_BUILD =
   process.env.VERCEL === "1" || process.env.WORKERS_CI === "1" || process.env.PORTAL_DEPLOY_BUILD === "1";
@@ -27,7 +27,6 @@ const nextConfig: NextConfig = {
       { protocol: "http", hostname: "drive.infocuspaly.com" }
     ]
   },
-  eslint: { ignoreDuringBuilds: HOSTED_BUILD },
   typescript: { ignoreBuildErrors: HOSTED_BUILD },
   // Commit the build came from, shown in call diagnostics.
   env: { NEXT_PUBLIC_BUILD_SHA: process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.WORKERS_CI_COMMIT_SHA ?? process.env.GITHUB_SHA ?? "" },
@@ -55,6 +54,14 @@ const nextConfig: NextConfig = {
       );
     }
     return config;
+  },
+  // `next dev` runs Turbopack, which ignores the webpack rule above: keep `pg` out of the browser.
+  // Production builds use webpack (`next build --webpack`): Turbopack's Worker bundle came out
+  // 24% larger.
+  turbopack: {
+    resolveAlias: {
+      "@/src/lib/prisma-workers": { browser: "./src/lib/prisma-workers.browser.ts" }
+    }
   },
   experimental: {
     optimizePackageImports: ["lucide-react"]

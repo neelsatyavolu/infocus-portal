@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, type RefObject } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, type RefObject } from "react";
 import { isHlsPlaylistUrl } from "@/src/lib/video-buffer";
 
 type HlsInstance = {
@@ -15,7 +15,9 @@ type HlsInstance = {
 export function useHlsPlayer(videoRef: RefObject<HTMLVideoElement | null>, playbackUrl: string | null | undefined) {
   const hlsRef = useRef<HlsInstance | null>(null);
   const playbackUrlRef = useRef(playbackUrl);
-  playbackUrlRef.current = playbackUrl;
+  useLayoutEffect(() => {
+    playbackUrlRef.current = playbackUrl;
+  });
 
   const attachHls = useCallback(async (video: HTMLVideoElement, url: string) => {
     if (hlsRef.current) {

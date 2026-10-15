@@ -36,28 +36,40 @@ export default function ShareLinksDialog({
   const [sharePasscode, setSharePasscode] = useState("");
   const [shareExpiry, setShareExpiry] = useState("");
 
-  const loadShareLinks = useCallback(async () => {
-    setShareLoading(true);
-    try {
-      const response = await fetch(`/api/projects/${projectId}/guest-links`, { cache: "no-store" });
-      if (!response.ok) {
-        throw new Error("Failed");
-      }
+  // Callers set `shareLoading` first (the open reset below does it for the effect).
+  const loadShareLinks = useCallback(
+    () =>
+      fetch(`/api/projects/${projectId}/guest-links`, { cache: "no-store" })
+        .then(async (response) => {
+          if (!response.ok) {
+            throw new Error("Failed");
+          }
 
-      const payload = await response.json();
-      setShareLinks(payload.data as ShareLink[]);
-    } catch {
-      setShareMessage({ tone: "error", text: "Could not load share links." });
-    } finally {
-      setShareLoading(false);
+          const payload = await response.json();
+          setShareLinks(payload.data as ShareLink[]);
+        })
+        .catch(() => {
+          setShareMessage({ tone: "error", text: "Could not load share links." });
+        })
+        .finally(() => {
+          setShareLoading(false);
+        }),
+    [projectId]
+  );
+
+  const [openedFor, setOpenedFor] = useState({ open, projectId });
+  if (open !== openedFor.open || projectId !== openedFor.projectId) {
+    setOpenedFor({ open, projectId });
+    if (open) {
+      setShareMessage(null);
+      setShareLoading(true);
     }
-  }, [projectId]);
+  }
 
   useEffect(() => {
     if (!open) {
       return;
     }
-    setShareMessage(null);
     void loadShareLinks();
   }, [loadShareLinks, open]);
 
@@ -89,6 +101,7 @@ export default function ShareLinksDialog({
       ok("Share link created.");
       setSharePasscode("");
       setShareExpiry("");
+      setShareLoading(true);
       await loadShareLinks();
     } catch {
       fail("Failed to create share link.");
@@ -109,6 +122,7 @@ export default function ShareLinksDialog({
         return;
       }
       ok("Share link revoked.");
+      setShareLoading(true);
       await loadShareLinks();
     } catch {
       fail("Failed to revoke share link.");

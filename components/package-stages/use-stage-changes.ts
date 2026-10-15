@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useSyncExternalStore } from "react";
 import type { CycleStageStatus } from "@/src/lib/package-stage-status";
 
 type StageSlug = "brainstorming" | "a-roll" | "initial-cut" | "final-cut";
@@ -91,15 +91,28 @@ export function useStageChanges(
   activeSlug: StageSlug | null,
   viewer?: string | null
 ): ReadonlySet<StageSlug> {
-  const [changed, setChanged] = useState<ReadonlySet<StageSlug>>(() => new Set());
+  const key = seenStatusesKey(viewer);
+  // Flagged stages are never written to the record, so reading it again after the write below
+  // flags the same stages. The server (and hydration) sees no record, so nothing flags there.
+  const flaggedList = useSyncExternalStore(
+    subscribeNever,
+    () => (statuses ? [...nextSeenStatuses(readSeen(key), statuses, activeSlug).flagged].join(",") : ""),
+    () => ""
+  );
+  const changed = useMemo<ReadonlySet<StageSlug>>(
+    () => new Set(flaggedList ? (flaggedList.split(",") as StageSlug[]) : []),
+    [flaggedList]
+  );
 
   useEffect(() => {
     if (!statuses) return;
-    const key = seenStatusesKey(viewer);
-    const result = nextSeenStatuses(readSeen(key), statuses, activeSlug);
-    writeSeen(key, result.seen);
-    setChanged(result.flagged);
-  }, [statuses, activeSlug, viewer]);
+    writeSeen(key, nextSeenStatuses(readSeen(key), statuses, activeSlug).seen);
+  }, [statuses, activeSlug, key]);
 
   return changed;
+}
+
+/** The record is re-read on each render; nothing outside this hook needs to wake it. */
+function subscribeNever() {
+  return () => {};
 }

@@ -28,6 +28,11 @@ const REVEAL_CLASS =
 const ROW_ICON_CLASS = "pointer-coarse:h-10";
 const REPLY_MAX_HEIGHT_PX = 4 * 20 + 18;
 
+/** Records a card's element in the shared ref (read when scrolling to a comment). */
+function registerCard(cardRefs: ReviewCommentsState["cardRefs"], id: string, node: HTMLElement | null) {
+  cardRefs.current[id] = node;
+}
+
 export type ThreadPermissions = {
   currentUserId: string | null;
   canReply: boolean;
@@ -233,7 +238,7 @@ export function CommentThreadCard({
   return (
     <article
       ref={(node) => {
-        state.cardRefs.current[root.id] = node;
+        registerCard(state.cardRefs, root.id, node);
       }}
       onClick={timeline && onFocus ? () => onFocus(thread) : undefined}
       aria-current={isSelected ? "true" : undefined}

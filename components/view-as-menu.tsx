@@ -49,10 +49,21 @@ export function ViewAsMenu({
     onOpenChange?.(next);
   }
 
+  // Opening (with no list yet) starts a fresh load, so an earlier failure is cleared.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open && !users) setLoadError(null);
+  }
+
+  function retryLoad() {
+    setLoadError(null);
+    setAttempt((count) => count + 1);
+  }
+
   useEffect(() => {
     if (!open || users) return;
     let cancelled = false;
-    setLoadError(null);
     void fetch("/api/auth/view-as/users", { cache: "no-store" })
       .then(async (response) => {
         const body = (await response.json()) as { data?: DirectoryUser[]; error?: { message?: string } };
@@ -127,7 +138,7 @@ export function ViewAsMenu({
                 <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden />
                 Couldn&rsquo;t load users.
               </p>
-              <Button type="button" size="sm" variant="outline" onClick={() => setAttempt((count) => count + 1)}>
+              <Button type="button" size="sm" variant="outline" onClick={retryLoad}>
                 <RotateCw aria-hidden />
                 Retry
               </Button>

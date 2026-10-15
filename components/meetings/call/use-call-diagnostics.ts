@@ -56,9 +56,11 @@ function ownerFromRoom(room: RoomState): InboundOwner {
  */
 export function useCallDiagnostics(ctx: Context) {
   const latest = useRef(ctx);
-  latest.current = ctx;
   const { send, partyTracks, socketStatus, room, e2ee } = ctx;
   // getStats runs on a timer; it reads the newest state through this ref.
+  useEffect(() => {
+    latest.current = ctx;
+  });
 
   // One recorder per call; media code reports through the module sink while it's set.
   useEffect(() => {

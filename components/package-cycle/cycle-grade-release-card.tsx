@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Send } from "lucide-react";
 import { Panel } from "@/components/kit/panel";
 import { Spinner } from "@/components/kit/spinner";
@@ -42,13 +42,14 @@ export function CycleGradeReleaseCard({
   onPublish: (feedback: string) => void;
 }) {
   const [draft, setDraft] = useState(feedback);
+  const [prevFeedback, setPrevFeedback] = useState(feedback);
+  if (feedback !== prevFeedback) {
+    setPrevFeedback(feedback);
+    setDraft(feedback);
+  }
   const publishedDay = formatDay(publishedAt);
   const dirty = draft !== feedback;
   const busy = saving || publishing;
-
-  useEffect(() => {
-    setDraft(feedback);
-  }, [feedback]);
 
   return (
     <Panel

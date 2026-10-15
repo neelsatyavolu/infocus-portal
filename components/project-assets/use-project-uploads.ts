@@ -137,9 +137,10 @@ export function useProjectUploads({
     }
   }, []);
 
-  // Drop finished "processing" entries once the server shows the version as ready.
+  // Drop finished "processing" entries once the server shows the version as ready. Runs on a
+  // zero-delay timer: the check reads the clock, so it can't happen during render.
   useEffect(() => {
-    setActiveUploads((current) => {
+    const timer = window.setTimeout(() => setActiveUploads((current) => {
       const now = Date.now();
       const next = current.filter((upload) => {
         if (upload.status !== "PROCESSING") {
@@ -168,7 +169,8 @@ export function useProjectUploads({
       });
 
       return next.length === current.length ? current : next;
-    });
+    }));
+    return () => window.clearTimeout(timer);
   }, [items, selectedVersionByMedia]);
 
   async function handleNewUpload(file: File) {

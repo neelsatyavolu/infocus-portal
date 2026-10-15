@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { Check, RefreshCw, Save, Sparkles } from "lucide-react";
 import { ROW_CONTROL, TOOLBAR_CONTROL } from "@/components/announcements/sizes";
 import { InlineError } from "@/components/kit/alert";
@@ -66,12 +66,17 @@ function RefreshButton({ loading, disabled, dirty, onRefresh }: {
   );
 }
 
+function subscribeNever() {
+  return () => undefined;
+}
+
+function isMacPlatform() {
+  return /Mac|iPhone|iPad|iPod/.test(navigator.userAgent);
+}
+
 function SaveShortcutHint() {
   // The Mac label on the server and first paint, corrected after mount (no hydration mismatch).
-  const [isMac, setIsMac] = useState(true);
-  useEffect(() => {
-    setIsMac(/Mac|iPhone|iPad|iPod/.test(navigator.userAgent));
-  }, []);
+  const isMac = useSyncExternalStore(subscribeNever, isMacPlatform, () => true);
   // Desktop keyboards only: hidden below lg by KeyHints, and on touch screens (iPads) here.
   return <KeyHints items={[{ keys: shortcutKeys("mod+s", isMac), label: "Save" }]} className="pointer-coarse:hidden" />;
 }

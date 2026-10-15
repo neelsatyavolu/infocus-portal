@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type MouseEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Eye, MessageSquare } from "lucide-react";
@@ -159,11 +159,8 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
   const [deleteRequest, setDeleteRequest] = useState<DeleteRequest | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [transcriptReadyFor, setTranscriptReadyFor] = useState<string | null>(null);
-  const [isMacDesktopApp, setIsMacDesktopApp] = useState(false);
-
-  useEffect(() => {
-    setIsMacDesktopApp(/InFocusMacApp/i.test(window.navigator.userAgent));
-  }, []);
+  // False on the server and at hydration, then read from the user agent (no hydration mismatch).
+  const isMacDesktopApp = useSyncExternalStore(subscribeNever, detectMacDesktopApp, () => false);
 
   const currentVersion = useMemo(
     () => versions.find((version) => version.id === currentVersionId) ?? versions[0],
@@ -618,4 +615,12 @@ export function ReviewShell({ data, guestToken, isGuest = false, allowComment = 
       </div>
     </TooltipProvider>
   );
+}
+
+function subscribeNever() {
+  return () => undefined;
+}
+
+function detectMacDesktopApp() {
+  return /InFocusMacApp/i.test(window.navigator.userAgent);
 }

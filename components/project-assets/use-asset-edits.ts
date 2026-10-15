@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
+import { useState, type Dispatch, type SetStateAction } from "react";
 import { toast } from "sonner";
 import { toAiredDateInputValue } from "@/components/project-assets/format";
 import type {
@@ -67,36 +67,25 @@ export function useAssetEdits({
   const [downloadConfirmAction, setDownloadConfirmAction] = useState<DownloadConfirmAction>(null);
   const [isMoving, setIsMoving] = useState(false);
 
-  useEffect(() => {
-    if (!renameAction) {
-      return;
-    }
+  // Drop a pending rename or move once its item leaves the list.
+  if (renameAction && !items.some((item) => item.id === renameAction.mediaId)) {
+    setRenameAction(null);
+    setRenameTitleInput("");
+  }
 
-    if (!items.some((item) => item.id === renameAction.mediaId)) {
-      setRenameAction(null);
-      setRenameTitleInput("");
-    }
-  }, [items, renameAction]);
-
-  useEffect(() => {
-    if (!moveToVersionAction) {
-      return;
-    }
-
-    const sourceExists = items.some((item) => item.id === moveToVersionAction.sourceMediaId);
-    const targetExists = items.some((item) => item.id === moveToVersionAction.targetMediaId);
-    if (!sourceExists || !targetExists) {
-      setMoveToVersionAction(null);
-    }
-  }, [items, moveToVersionAction]);
-
-  useEffect(() => {
-    if (showPackageActions) {
-      return;
-    }
-
+  if (
+    moveToVersionAction &&
+    (!items.some((item) => item.id === moveToVersionAction.sourceMediaId) ||
+      !items.some((item) => item.id === moveToVersionAction.targetMediaId))
+  ) {
     setMoveToVersionAction(null);
-  }, [showPackageActions]);
+  }
+
+  const [prevShowPackageActions, setPrevShowPackageActions] = useState(showPackageActions);
+  if (showPackageActions !== prevShowPackageActions) {
+    setPrevShowPackageActions(showPackageActions);
+    if (!showPackageActions) setMoveToVersionAction(null);
+  }
 
   function requestRename(mediaId: string) {
     const item = items.find((entry) => entry.id === mediaId);

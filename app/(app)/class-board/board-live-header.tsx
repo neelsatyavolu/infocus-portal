@@ -61,16 +61,22 @@ export function BoardLiveHeader({
   const router = useRouter();
   // Starts from the server's time so the first render matches the server markup.
   const [nowMs, setNowMs] = useState(() => Date.parse(generatedAt));
-  // When this browser got the current data (client clock, so clock skew doesn't matter).
-  const [receivedAt, setReceivedAt] = useState<number | null>(null);
+  // The generatedAt this browser has held too long; new data clears it at once.
+  const [staleFor, setStaleFor] = useState<string | null>(null);
 
   useEffect(() => {
-    setReceivedAt(Date.now());
+    // When this browser got the current data (client clock, so clock skew doesn't matter).
+    const receivedAt = Date.now();
     clearBoardRetries();
+    const tick = window.setInterval(() => {
+      const now = Date.now();
+      setNowMs(now);
+      setStaleFor(now - receivedAt > STALE_AFTER_MS ? generatedAt : null);
+    }, 1000);
+    return () => window.clearInterval(tick);
   }, [generatedAt]);
 
   useEffect(() => {
-    const tick = window.setInterval(() => setNowMs(Date.now()), 1000);
     const refresh = window.setInterval(() => {
       // Offline, a refresh can fall back to a full navigation and leave the TV on an offline page.
       if (navigator.onLine) router.refresh();
@@ -82,7 +88,6 @@ export function BoardLiveHeader({
     };
     reload = window.setTimeout(reloadWhenOnline, BOARD_HARD_RELOAD_MS);
     return () => {
-      window.clearInterval(tick);
       window.clearInterval(refresh);
       window.clearTimeout(reload);
     };
@@ -91,7 +96,7 @@ export function BoardLiveHeader({
   const now = new Date(nowMs);
   const focus = classBoardLiveFocus({ classSessions, days, deadlines }, now);
   const next = focus ? null : (deadlines[0] ?? null);
-  const stale = receivedAt !== null && nowMs - receivedAt > STALE_AFTER_MS;
+  const stale = staleFor === generatedAt;
   // With nothing in the focus slot, the identity takes the whole left side (no empty half-plate).
   const identityColumn = focus || next ? "lg:col-[2/3]" : "lg:col-[2/5]";
 

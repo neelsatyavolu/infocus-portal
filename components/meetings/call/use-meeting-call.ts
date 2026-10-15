@@ -56,6 +56,8 @@ export function useMeetingCall(meetingId: string, onMuted: (kind: "audio" | "vid
   /** Room clock minus ours (ms), from the latest message that carried `now` (watch-together timing). */
   const serverOffsetRef = useRef(0);
   const zombieAttemptRef = useRef(0);
+  // Set to the latest startMedia by the effect below, before any reconnect timer can call it.
+  const startMediaRef = useRef<() => Promise<void>>(async () => undefined);
 
   const e2ee = useCallback(() => {
     if (!e2eeRef.current) e2eeRef.current = new MeetingE2ee();
@@ -142,7 +144,6 @@ export function useMeetingCall(meetingId: string, onMuted: (kind: "audio" | "vid
       setError(errorMessage(err, "Couldn't connect audio and video."));
     }
   }, [e2ee, meetingId, probe]);
-  const startMediaRef = useRef(startMedia);
   useEffect(() => {
     startMediaRef.current = startMedia;
   }, [startMedia]);

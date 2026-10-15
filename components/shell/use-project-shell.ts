@@ -37,13 +37,17 @@ export function useProjectShell(projectId: string | null, mediaId: string | null
   const [data, setData] = useState<ProjectShellData | null>(null);
   // The project whose fallback fetch failed (the bridge can still deliver its data later).
   const [failedFor, setFailedFor] = useState<string | null>(null);
+  const [shellFor, setShellFor] = useState({ projectId, mediaId });
+  if (projectId !== shellFor.projectId || mediaId !== shellFor.mediaId) {
+    setShellFor({ projectId, mediaId });
+    if (!projectId) setData(null);
+    else setFailedFor(null);
+  }
 
   useEffect(() => {
     if (!projectId) {
-      setData(null);
       return;
     }
-    setFailedFor(null);
 
     function apply(next: ProjectShellData | null | undefined) {
       if (next && next.projectId === projectId) setData(next);

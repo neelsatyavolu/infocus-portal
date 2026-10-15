@@ -1,12 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState, useSyncExternalStore } from "react";
 import { useRememberedState } from "@/components/kit/remembered-state";
 
 export type ViewMode = "cards" | "chart";
 
 /** Kept as-is (raw "cards" | "chart", no prefix) so choices saved before the redesign survive. */
 const VIEW_MODE_STORAGE_KEY = "groups:view-mode:v1";
+
+function subscribeNever() {
+  return () => undefined;
+}
 
 function isBoolean(value: unknown): value is boolean {
   return typeof value === "boolean";
@@ -19,16 +23,20 @@ function isBoolean(value: unknown): value is boolean {
  */
 export function useGroupsPrefs() {
   const [viewMode, setViewModeState] = useState<ViewMode>("cards");
+  const [viewModeRead, setViewModeRead] = useState(false);
   const [otherOpen, setOtherOpen] = useRememberedState<boolean>("groups:other-open:v1", false, isBoolean);
+  // False on the server and while hydrating, so the first render matches the server's.
+  const hydrated = useSyncExternalStore(subscribeNever, () => true, () => false);
 
-  useEffect(() => {
+  if (hydrated && !viewModeRead) {
+    setViewModeRead(true);
     try {
       const stored = window.localStorage.getItem(VIEW_MODE_STORAGE_KEY);
       if (stored === "cards" || stored === "chart") setViewModeState(stored);
     } catch {
       // Storage unavailable (private mode); keep the default view.
     }
-  }, []);
+  }
 
   const setViewMode = useCallback((next: ViewMode) => {
     setViewModeState(next);

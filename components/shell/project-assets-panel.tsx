@@ -52,9 +52,13 @@ type ProjectStorage = { state: "loading" } | { state: "failed" } | { state: "rea
 /** Used storage for the project, loaded when the browser is idle. */
 function useProjectStorage(projectId: string) {
   const [storage, setStorage] = useState<ProjectStorage>({ state: "loading" });
+  const [storageProjectId, setStorageProjectId] = useState(projectId);
+  if (projectId !== storageProjectId) {
+    setStorageProjectId(projectId);
+    setStorage({ state: "loading" });
+  }
   useEffect(() => {
     let cancelled = false;
-    setStorage({ state: "loading" });
     const cancelIdle = runWhenIdle(() => {
       void (async () => {
         try {

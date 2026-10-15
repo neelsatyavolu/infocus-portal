@@ -71,6 +71,7 @@ export default function MembersClient({ initialData }: { initialData: MembersPay
   const revealRowRef = useRef(false);
   const { flushAll, flushNote, setNote, drafts } = notes;
   const phone = usePhoneDetail({ isDesktop, mounted, onLeave: flushAll });
+  const { detailRef: phoneDetailRef, closeDetail: closePhoneDetail } = phone;
 
   const cycles = useMemo(() => notes.data?.cycles ?? [], [notes.data]);
   const members = useMemo(() => notes.data?.members ?? [], [notes.data]);
@@ -362,9 +363,9 @@ export default function MembersClient({ initialData }: { initialData: MembersPay
           detail={
             // Nobody listed: the roster's own empty row says why, so this side stays empty.
             selected ? (
-              <div ref={phone.detailRef} className="min-w-0 scroll-mt-24 space-y-3">
+              <div ref={phoneDetailRef} className="min-w-0 scroll-mt-24 space-y-3">
                 <div className="flex items-center justify-between gap-2 lg:hidden">
-                  <Button type="button" variant="ghost" className="-ml-2 h-10 px-2" onClick={phone.closeDetail}>
+                  <Button type="button" variant="ghost" className="-ml-2 h-10 px-2" onClick={closePhoneDetail}>
                     <ArrowLeft aria-hidden />
                     Members
                   </Button>

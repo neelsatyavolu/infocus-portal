@@ -101,16 +101,20 @@ function MeetingGate({ meetingId, userName }: { meetingId: string; userName: str
   const [loadError, setLoadError] = useState<string | null>(null);
   const [waitUntil, setWaitUntil] = useState<number | null>(null);
 
-  const load = useCallback(async () => {
-    try {
-      const { meeting: next } = await meetingsApi.get(meetingId);
-      setMeeting(next);
-      return next;
-    } catch (err) {
-      setLoadError(errorMessage(err, "Couldn't load this meeting."));
-      return null;
-    }
-  }, [meetingId]);
+  const load = useCallback(
+    () =>
+      meetingsApi
+        .get(meetingId)
+        .then(({ meeting: next }) => {
+          setMeeting(next);
+          return next;
+        })
+        .catch((err: unknown) => {
+          setLoadError(errorMessage(err, "Couldn't load this meeting."));
+          return null;
+        }),
+    [meetingId]
+  );
 
   useEffect(() => {
     void load().then((next) => {

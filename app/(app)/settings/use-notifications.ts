@@ -131,42 +131,51 @@ export function useNotifications() {
     setNotificationEmailInput((current) => (replaceInput || current === previousSaved ? nextSaved : current));
   }, []);
 
+  /** One load; `seq` is the save count when it started, so a save made meanwhile wins. */
+  const fetchChannels = useCallback(
+    (seq: number) =>
+      fetch("/api/notification-preferences", { cache: "no-store" })
+        .then(async (response) => {
+          const payload = await response.json();
+
+          if (!mountedRef.current) {
+            return;
+          }
+
+          if (!response.ok || !payload.data) {
+            throw new Error(payload?.error?.message ?? LOAD_ERROR);
+          }
+
+          if (seq === saveSeqRef.current) {
+            applyServer(payload.data as NotificationChannelState);
+          }
+        })
+        .catch((error) => {
+          if (!mountedRef.current) {
+            return;
+          }
+
+          setChannelsError(error instanceof Error ? error.message : LOAD_ERROR);
+        })
+        .finally(() => {
+          if (mountedRef.current) {
+            setChannelsLoading(false);
+          }
+        }),
+    [applyServer]
+  );
+
   const loadChannels = useCallback(async () => {
     const seq = saveSeqRef.current;
     setChannelsLoading(true);
     setChannelsError(null);
+    await fetchChannels(seq);
+  }, [fetchChannels]);
 
-    try {
-      const response = await fetch("/api/notification-preferences", { cache: "no-store" });
-      const payload = await response.json();
-
-      if (!mountedRef.current) {
-        return;
-      }
-
-      if (!response.ok || !payload.data) {
-        throw new Error(payload?.error?.message ?? LOAD_ERROR);
-      }
-
-      if (seq === saveSeqRef.current) {
-        applyServer(payload.data as NotificationChannelState);
-      }
-    } catch (error) {
-      if (!mountedRef.current) {
-        return;
-      }
-
-      setChannelsError(error instanceof Error ? error.message : LOAD_ERROR);
-    } finally {
-      if (mountedRef.current) {
-        setChannelsLoading(false);
-      }
-    }
-  }, [applyServer]);
-
+  // `channelsLoading` starts true and `channelsError` null for this first load.
   useEffect(() => {
-    void loadChannels();
-  }, [loadChannels]);
+    void fetchChannels(saveSeqRef.current);
+  }, [fetchChannels]);
 
   const refreshBrowserDevice = useCallback(async () => {
     if (appDevice !== null) return;

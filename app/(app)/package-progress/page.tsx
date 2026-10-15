@@ -7,15 +7,24 @@ import PackageProgressClient, { type PackageProgressPayload } from "./package-pr
 
 export const metadata: Metadata = { title: "Package Cycle" };
 
+/** This request's clock, read once on the server after the data loads. */
+function requestTime() {
+  return Date.now();
+}
+
 export default async function PackageProgressPage() {
+  let viewerUserId: string;
+  let initialData: PackageProgressPayload;
+  let renderedAt: number;
   try {
     const { userId, platformRole } = await getCurrentAppUser();
+    viewerUserId = userId;
     if (!hasPlatformRole(platformRole, "ASSOCIATE_PRODUCER")) {
       redirect("/access-denied");
     }
 
     const data = await loadPackageProgressData();
-    const initialData: PackageProgressPayload = {
+    initialData = {
       canEdit: canEditPackageCycle(platformRole),
       canAssignProducer: canEditPackageCycle(platformRole),
       ...data,
@@ -23,7 +32,7 @@ export default async function PackageProgressPage() {
     };
 
     // The client's first render uses this clock too, so time-based statuses hydrate unchanged.
-    return <PackageProgressClient initialData={initialData} viewerUserId={userId} renderedAt={Date.now()} />;
+    renderedAt = requestTime();
   } catch (error) {
     if (error instanceof Error && error.message === "FORBIDDEN") {
       redirect("/access-denied");
@@ -31,4 +40,6 @@ export default async function PackageProgressPage() {
 
     throw error;
   }
+
+  return <PackageProgressClient initialData={initialData} viewerUserId={viewerUserId} renderedAt={renderedAt} />;
 }

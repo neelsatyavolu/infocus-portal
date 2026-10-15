@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CheckInStage } from "@/src/lib/package-stages";
 import { fetchGrades } from "./grade-editor-api";
 import type { CycleAverage, CycleTab, GradeMutationPayload, GradeRow } from "./grade-editor-types";
@@ -119,7 +119,10 @@ export function useCycleGrades({
     }
   }
 
-  flushAutosavesRef.current = flushAutosaves;
+  // The latest flush, for the timers and the unmount below (refs are written after render).
+  useLayoutEffect(() => {
+    flushAutosavesRef.current = flushAutosaves;
+  });
 
   function autosaveBlocked() {
     return (

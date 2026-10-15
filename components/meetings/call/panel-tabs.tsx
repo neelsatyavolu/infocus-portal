@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -10,7 +11,6 @@ import {
   type Dispatch,
   type KeyboardEvent,
   type MouseEvent,
-  type MutableRefObject,
   type ReactNode,
   type SetStateAction
 } from "react";
@@ -32,8 +32,10 @@ type PanelCounts = {
 type PanelTabsValue = PanelCounts & {
   active: CallPanelId | null;
   select: (id: CallPanelId) => void;
-  /** Set when a keyboard switch should land focus on the new panel's active tab. */
-  focusTab: MutableRefObject<boolean>;
+  /** Marks whether the next switch came from the keyboard (focus should land on the new active tab). */
+  setFocusTab: (byKeyboard: boolean) => void;
+  /** True once after a keyboard switch; clears the mark. */
+  takeFocusTab: () => boolean;
 };
 
 const PanelTabsContext = createContext<PanelTabsValue | null>(null);
@@ -61,9 +63,17 @@ export function PanelTabsProvider({
   const focusTab = useRef(false);
   const [draft, setDraft] = useState("");
   const { people, waiting, unread, agendaLeft } = counts;
+  const setFocusTab = useCallback((byKeyboard: boolean) => {
+    focusTab.current = byKeyboard;
+  }, []);
+  const takeFocusTab = useCallback(() => {
+    const wanted = focusTab.current;
+    focusTab.current = false;
+    return wanted;
+  }, []);
   const value = useMemo(
-    () => ({ active, select: onSelect, people, waiting, unread, agendaLeft, focusTab }),
-    [active, onSelect, people, waiting, unread, agendaLeft]
+    () => ({ active, select: onSelect, people, waiting, unread, agendaLeft, setFocusTab, takeFocusTab }),
+    [active, onSelect, people, waiting, unread, agendaLeft, setFocusTab, takeFocusTab]
   );
   const chatDraft = useMemo<ChatDraft>(() => [draft, setDraft], [draft]);
   return (
@@ -115,14 +125,14 @@ function TabCount({ tabs, id }: { tabs: PanelTabsValue; id: CallPanelId }) {
 /** Tabs in the panel header: 48px tall, the active one with a 2px green underline. */
 export function PanelTabList({ tabs }: { tabs: PanelTabsValue }) {
   // A keyboard switch remounts the panel; put focus back on the (new) active tab.
+  const { active: activeTab, takeFocusTab } = tabs;
   useEffect(() => {
-    if (!tabs.focusTab.current || !tabs.active) return;
-    tabs.focusTab.current = false;
-    document.getElementById(panelTabId(tabs.active))?.focus();
-  }, [tabs.active, tabs.focusTab]);
+    if (!activeTab || !takeFocusTab()) return;
+    document.getElementById(panelTabId(activeTab))?.focus();
+  }, [activeTab, takeFocusTab]);
 
   function select(id: CallPanelId, byKeyboard: boolean) {
-    tabs.focusTab.current = byKeyboard;
+    tabs.setFocusTab(byKeyboard);
     tabs.select(id);
   }
 

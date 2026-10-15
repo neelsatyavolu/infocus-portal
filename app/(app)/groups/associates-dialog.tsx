@@ -101,11 +101,20 @@ export default function AssociatesDialog({ cycles, activeCycleNumber, open, onOp
     if (open) setCycle(activeCycleNumber);
   }
 
+  // Each load (opening, another cycle, Try again) starts empty (adjusted during render).
+  const loadKey = open ? `${cycle}:${retry}` : null;
+  const [startedKey, setStartedKey] = useState<string | null>(null);
+  if (loadKey !== startedKey) {
+    setStartedKey(loadKey);
+    if (loadKey !== null) {
+      setData(null);
+      setError(null);
+    }
+  }
+
   useEffect(() => {
     if (!open) return;
     const controller = new AbortController();
-    setData(null);
-    setError(null);
     async function load() {
       try {
         const response = await fetch(`/api/groups/associates?cycle=${cycle}`, { cache: "no-store", signal: controller.signal });

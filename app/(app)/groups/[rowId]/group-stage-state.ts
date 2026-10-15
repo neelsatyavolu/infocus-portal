@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { requestNavStatusRefresh } from "@/src/lib/sidebar-nav";
 import {
@@ -30,10 +30,12 @@ export function useGroupStageOverrides(server: Record<FlagKey, boolean>): GroupS
   const [overrides, setOverrides] = useState<FlagOverrides>({});
   const { pitching, proofOfContact } = server;
 
-  // Once the refreshed server value arrives, the override is spent.
-  useEffect(() => {
+  // Once the refreshed server value arrives, the override is spent (pruned while rendering).
+  const [prunedFor, setPrunedFor] = useState({ pitching, proofOfContact });
+  if (prunedFor.pitching !== pitching || prunedFor.proofOfContact !== proofOfContact) {
+    setPrunedFor({ pitching, proofOfContact });
     setOverrides((current) => pruneFlagOverrides(current, { pitching, proofOfContact }));
-  }, [pitching, proofOfContact]);
+  }
 
   const setFlag = useCallback((key: FlagKey, override: FlagOverride) => {
     setOverrides((current) => ({ ...current, [key]: override }));
@@ -80,6 +82,10 @@ export function useRefreshAfterStageWrites(rowId: string, enabled: boolean) {
   }, [enabled, rowId, stage, router]);
 }
 
+function subscribeNever() {
+  return () => undefined;
+}
+
 function seenKey(rowId: string) {
   return `infocus:ui:group-stages:seen:v1:${rowId}`;
 }
@@ -111,15 +117,28 @@ export function useGroupStageChanges(
   signatures: CellSignatures,
   activeKey: StageCellKey | null
 ): ReadonlySet<StageCellKey> {
-  const [changed, setChanged] = useState<ReadonlySet<StageCellKey>>(() => new Set());
-  // A stable dependency: the signatures object is rebuilt on every render.
+  // False on the server and while hydrating, so the first render matches the server's.
+  const hydrated = useSyncExternalStore(subscribeNever, () => true, () => false);
+  // A stable comparison: the signatures object is rebuilt on every render.
   const signaturesKey = JSON.stringify(signatures);
+  const inputKey = `${rowId}\n${signaturesKey}\n${activeKey}`;
+  const [state, setState] = useState<{
+    inputKey: string | null;
+    changed: ReadonlySet<StageCellKey>;
+    write: { rowId: string; seen: CellSignatures } | null;
+  }>(() => ({ inputKey: null, changed: new Set(), write: null }));
 
-  useEffect(() => {
+  // Worked out while rendering when the inputs change; storage is only written after commit, so
+  // a repeated render reads the same stored copy.
+  if (hydrated && state.inputKey !== inputKey) {
     const result = nextSeenSignatures(readSeen(rowId), JSON.parse(signaturesKey) as CellSignatures, activeKey);
-    writeSeen(rowId, result.seen);
-    setChanged(result.flagged);
-  }, [rowId, signaturesKey, activeKey]);
+    setState({ inputKey, changed: result.flagged, write: { rowId, seen: result.seen } });
+  }
 
-  return changed;
+  const { write } = state;
+  useEffect(() => {
+    if (write) writeSeen(write.rowId, write.seen);
+  }, [write]);
+
+  return state.changed;
 }

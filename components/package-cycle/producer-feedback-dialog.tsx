@@ -30,8 +30,6 @@ export default function ProducerFeedbackDialog({
   useEffect(() => {
     if (!PRODUCER_FEEDBACK_ENABLED || !open) return;
     const controller = new AbortController();
-    setGroups(null);
-    setError(null);
     async function load() {
       try {
         const response = await fetch("/api/producer-feedback", { cache: "no-store", signal: controller.signal });
@@ -47,7 +45,16 @@ export default function ProducerFeedbackDialog({
   }, [open, retry]);
   if (!PRODUCER_FEEDBACK_ENABLED) return null;
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (next) {
+          setGroups(null);
+          setError(null);
+        }
+        setOpen(next);
+      }}
+    >
       <DialogTrigger asChild>
         <Button type="button" variant="outline" className={triggerClassName}>
           <MessageSquareText aria-hidden />
@@ -62,7 +69,11 @@ export default function ProducerFeedbackDialog({
         {error ? (
           <div role="alert" className="space-y-3">
             <p className="text-sm text-danger">{error}</p>
-            <Button type="button" variant="outline" onClick={() => setRetry((n) => n + 1)}>
+            <Button type="button" variant="outline" onClick={() => {
+                setGroups(null);
+                setError(null);
+                setRetry((n) => n + 1);
+              }}>
               <RotateCw aria-hidden />
               Try again
             </Button>

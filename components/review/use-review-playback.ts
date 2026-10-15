@@ -51,10 +51,14 @@ export function useReviewPlayback({
   const volume = draftVolume ?? rememberedVolume;
   const [playbackRate, setPlaybackRate] = useRememberedState<number>("review:speed:v1", 1, isPlaybackRate);
 
+  // An image has no duration (no video listeners run while one is shown).
+  if (isImageReview && duration !== 0) {
+    setDuration(0);
+  }
+
   useEffect(() => {
     if (isImageReview) {
       playheadStore.set(0);
-      setDuration(0);
       return;
     }
 

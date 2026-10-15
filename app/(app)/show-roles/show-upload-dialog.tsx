@@ -87,26 +87,37 @@ export function ShowUploadDialog({
   const [file, setFile] = useState<File | null>(null);
   const [progress, setProgress] = useState(0);
   const [thumbnail, setThumbnail] = useState<Blob | null>(null);
-  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
   const [thumbnailSeconds, setThumbnailSeconds] = useState(String(SHOW_THUMBNAIL_SECONDS));
   const [capturing, setCapturing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const load = useCallback(async () => {
-    const next = await readJson<State>(
-      await fetch(`/api/show-roles/publication?date=${encodeURIComponent(showDate)}`, { cache: "no-store" }),
-      "Could not load the show upload."
-    );
-    setState(next);
-    return next;
-  }, [showDate]);
+  const load = useCallback(
+    () =>
+      fetch(`/api/show-roles/publication?date=${encodeURIComponent(showDate)}`, { cache: "no-store" })
+        .then((response) => readJson<State>(response, "Could not load the show upload."))
+        .then((next) => {
+          setState(next);
+          return next;
+        }),
+    [showDate]
+  );
+
+  // Each opening (or another show) starts over (adjusted during render; the load runs below).
+  const [startedFor, setStartedFor] = useState<{ open: boolean; load: typeof load; onOpenChange: typeof onOpenChange } | null>(
+    null
+  );
+  if (!startedFor || startedFor.open !== open || startedFor.load !== load || startedFor.onOpenChange !== onOpenChange) {
+    setStartedFor({ open, load, onOpenChange });
+    if (open) {
+      setPhase("loading");
+      setFile(null);
+      setThumbnail(null);
+    }
+  }
 
   useEffect(() => {
     if (!open) return;
-    setPhase("loading");
-    setFile(null);
-    setThumbnail(null);
     load()
       .then((next) => setPhase(next.publication && next.publication.status !== "DRAFT" ? "status" : "pick"))
       .catch((error) => {
@@ -114,16 +125,6 @@ export function ShowUploadDialog({
         onOpenChange(false);
       });
   }, [open, load, onOpenChange]);
-
-  useEffect(() => {
-    if (!thumbnail) {
-      setThumbnailUrl(null);
-      return;
-    }
-    const url = URL.createObjectURL(thumbnail);
-    setThumbnailUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [thumbnail]);
 
   const publicationStatus = state?.publication?.status;
   useEffect(() => {
@@ -210,7 +211,7 @@ export function ShowUploadDialog({
   const publication = state?.publication ?? null;
   // Widens when a file is picked (thumbnail beside progress, then beside the form), never mid-step.
   const wide = phase === "uploading" || phase === "review";
-  const preview = <ThumbnailPreview url={thumbnailUrl} capturing={capturing} />;
+  const preview = <ThumbnailPreview file={thumbnail} capturing={capturing} />;
 
   return (
     <Dialog open={open} onOpenChange={(next) => (phase === "uploading" && !next ? undefined : onOpenChange(next))}>

@@ -22,6 +22,7 @@ import { CutVersions } from "@/components/package-stages/cut-versions";
 import { FinalCutVideo } from "@/components/package-stages/final-cut-video";
 import { RollKindDialog } from "@/components/package-stages/roll-kind-dialog";
 import { stageReviewHref } from "@/components/package-stages/stage-video";
+import { useDecisionLead } from "@/components/package-stages/decision-lead";
 import { useStageDecisions, type DecisionAction } from "@/components/package-stages/stage-decision-actions";
 import { DecisionBar, StudentStageHeader } from "@/components/package-stages/stage-header";
 import { StageMessage } from "@/components/package-stages/stage-messages";
@@ -144,6 +145,10 @@ export function StageWorkspace({
     approveOutline: slug === "initial-cut",
     reload: reloadAll
   });
+  // Groups Initial Cut: the shell's approval path joins the decision bar once the stage has loaded.
+  const decisionLead = useDecisionLead(
+    producerChrome && slug === "initial-cut" && !loading && Boolean(view && !view.empty && view.row)
+  );
 
   const title = STAGE_TITLES[slug];
   if (loading) {
@@ -206,12 +211,7 @@ export function StageWorkspace({
     mediaBody = <ClipGrid media={media} showNew={view.isProducer} wide={embedded} onWatch={setWatching} />;
   } else if (slug === "initial-cut") {
     mediaBody = (
-      <CutVersions
-        media={media}
-        reviewStage={effectiveReviewStage}
-        remainingExecutiveSignoffs={remainingExecs}
-        collapsePlayer={producerChrome}
-      />
+      <CutVersions media={media} collapsePlayer={producerChrome} />
     );
   } else {
     mediaBody = (
@@ -373,7 +373,7 @@ export function StageWorkspace({
     // the current stage's progress line, which the approval path above already shows.
     const progress = otherStageNote ? null : producerProgressLine(slug, stageStatus, view, progressLabel);
     // Only when there is something to read or decide: no bar repeating the stage bar's status.
-    const showDecisionBar = actions.length > 0 || Boolean(otherStageNote || barStatus || progress);
+    const showDecisionBar = actions.length > 0 || Boolean(decisionLead || otherStageNote || barStatus || progress);
 
     return (
       // A flex column so the decision bar's phone-dock spacer (its aria-hidden child) moves to the
@@ -386,6 +386,7 @@ export function StageWorkspace({
             progress={progress}
             note={otherStageNote}
             actions={actions}
+            lead={decisionLead}
           />
         ) : null}
         {callouts}

@@ -112,6 +112,7 @@ export function DecisionBar({
   progress,
   note,
   actions,
+  lead,
   phoneDock = false
 }: {
   /** Screen-reader heading ("Initial Cut · Stage 1"); the shell above already shows it. */
@@ -121,6 +122,11 @@ export function DecisionBar({
   /** Extra muted line (e.g. "This package is in Stage 2 · Go to Initial 2"). */
   note?: ReactNode;
   actions?: DecisionAction[] | ReactNode;
+  /**
+   * Leads the block (Groups Initial Cut: the approval path), with the status and progress line
+   * under it, so where the cut stands and what to do about it read as one block.
+   */
+  lead?: ReactNode;
   /** Plain-node `actions` only: pin them all above the phone tab bar. */
   phoneDock?: boolean;
 }) {
@@ -143,6 +149,7 @@ export function DecisionBar({
       >
         <h2 className="sr-only">{heading}</h2>
         <div className="flex min-w-0 flex-[1_1_20rem] flex-wrap items-center gap-x-3 gap-y-1.5">
+          {lead ? <div className="w-full min-w-0">{lead}</div> : null}
           {status ? <div className="flex flex-wrap items-center gap-1.5">{status}</div> : null}
           {progress ? <p className="min-w-0 text-sm text-[var(--ink-text)]">{progress}</p> : null}
           {note ? (

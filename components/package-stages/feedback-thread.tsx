@@ -2,7 +2,7 @@
 
 import { useId, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { Check, Play, RotateCcw } from "lucide-react";
+import { Check, ChevronDown, Play, RotateCcw } from "lucide-react";
 import { IconButton } from "@/components/kit/icon-button";
 import { Spinner } from "@/components/kit/spinner";
 import { StatusTag } from "@/components/kit/status-tag";
@@ -17,12 +17,31 @@ import {
 } from "@/components/package-stages/use-stage-comments";
 import { cn } from "@/src/lib/utils";
 
+function ReviewLink({ href }: { href: string }) {
+  return (
+    <Link
+      href={href as never}
+      className="inline-flex items-center gap-1 rounded-sm font-medium text-[var(--brand-green)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <Play className="h-3.5 w-3.5" aria-hidden />
+      Open review
+    </Link>
+  );
+}
+
+/** "Abby submitted a review…" notes: automatic, each pointing at a review on the video page. */
+export function isReviewNotice(comment: StageComment) {
+  return Boolean(comment.reviewHref) && isReviewNoticeText(comment.body);
+}
+
 /**
- * Feedback notes, newest first: author · time on one baseline row, the note, and an optional
- * "Open review" link. Notes in `newIds` (unread when the page opened) get a New tag and a green
- * edge. `foldFrom` hides the rest below xl, where the page is one column (the panel's "Show all").
- * With `onToggleResolved`, each note gets Mark resolved / Reopen; resolved notes carry a Resolved
- * tag and dim.
+ * Feedback notes, newest first: author, time and tags on one row with a small resolve button,
+ * then the note (and an inline Open review link when it points at one). Notes in `newIds`
+ * (unread when the page opened) get a New tag and a green edge. `foldFrom` hides the rest below
+ * xl, where the page is one column (the panel's "Show all"). With `onToggleResolved`, each note
+ * gets Mark resolved / Reopen; resolved notes carry a Resolved tag and dim.
+ * Automatic review notices don't crowd the notes: they fold into a closed "Review activity (n)"
+ * line underneath, one line each with its Open review link.
  */
 export function FeedbackNotes({
   comments,
@@ -39,68 +58,55 @@ export function FeedbackNotes({
   resolvingId?: string | null;
   className?: string;
 }) {
+  const [activityOpen, setActivityOpen] = useState(false);
+  const notes = comments.filter((comment) => !isReviewNotice(comment));
+  const notices = comments.filter(isReviewNotice);
+  const newNotices = notices.filter((comment) => newIds?.has(comment.id)).length;
+
   return (
-    <ul className={cn("space-y-3.5", className)}>
-      {comments.map((comment, index) => {
-        const isNew = Boolean(newIds?.has(comment.id));
-        const resolved = Boolean(comment.resolvedAt);
-        // "Abby submitted a review. Open Review to see comments…" repeats the author and the link
-        // below it, so a review notice reads as one short line with the link inline.
-        const notice = Boolean(comment.reviewHref) && isReviewNoticeText(comment.body);
-        const reviewLink = comment.reviewHref ? (
-          <Link
-            href={comment.reviewHref as never}
-            className="inline-flex items-center gap-1 rounded-sm font-medium text-[var(--brand-green)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <Play className="h-3.5 w-3.5" aria-hidden />
-            Open review
-          </Link>
-        ) : null;
-        return (
-          <li
-            key={comment.id}
-            className={cn(
-              "min-w-0 border-l-2 pl-3",
-              isNew ? "border-l-[var(--brand-green)]" : "border-l-border",
-              foldFrom !== undefined && index >= foldFrom && "max-xl:hidden"
-            )}
-          >
-            <div className="flex min-h-8 min-w-0 items-center gap-2">
-              <span className="min-w-0 truncate text-[13px] font-semibold text-foreground">
-                {commentAuthorLabel(comment.author)}
-              </span>
-              <span className="shrink-0 text-xs text-muted-foreground">{formatCommentWhen(comment.createdAt)}</span>
-              {isNew ? (
-                <StatusTag tone="success" size="sm" className="shrink-0">
-                  New
-                </StatusTag>
-              ) : null}
-              {resolved ? (
-                <StatusTag size="sm" className="shrink-0">
-                  Resolved
-                </StatusTag>
-              ) : null}
-              {onToggleResolved ? (
-                <IconButton
-                  label={resolved ? "Reopen" : "Mark resolved"}
-                  icon={resolved ? RotateCcw : Check}
-                  size="sm"
-                  pressed={resolved}
-                  busy={resolvingId === comment.id}
-                  disabled={resolvingId === comment.id}
-                  className="-my-1 ml-auto shrink-0"
-                  onClick={() => onToggleResolved(comment.id, !resolved)}
-                />
-              ) : null}
-            </div>
-            {notice ? (
-              <p className="flex flex-wrap items-center gap-x-1.5 text-sm text-muted-foreground">
-                Submitted a review
-                <span aria-hidden>·</span>
-                {reviewLink}
-              </p>
-            ) : (
-              <>
+    <div className={cn("space-y-3.5", className)}>
+      {notes.length > 0 ? (
+        <ul className="space-y-3.5">
+          {notes.map((comment, index) => {
+            const isNew = Boolean(newIds?.has(comment.id));
+            const resolved = Boolean(comment.resolvedAt);
+            return (
+              <li
+                key={comment.id}
+                className={cn(
+                  "min-w-0 border-l-2 pl-3",
+                  isNew ? "border-l-[var(--brand-green)]" : "border-l-border",
+                  foldFrom !== undefined && index >= foldFrom && "max-xl:hidden"
+                )}
+              >
+                <div className="flex min-h-8 min-w-0 items-center gap-2">
+                  <span className="min-w-0 truncate text-[13px] font-semibold text-foreground">
+                    {commentAuthorLabel(comment.author)}
+                  </span>
+                  <span className="shrink-0 text-xs text-muted-foreground">{formatCommentWhen(comment.createdAt)}</span>
+                  {isNew ? (
+                    <StatusTag tone="success" size="sm" className="shrink-0">
+                      New
+                    </StatusTag>
+                  ) : null}
+                  {resolved ? (
+                    <StatusTag size="sm" className="shrink-0">
+                      Resolved
+                    </StatusTag>
+                  ) : null}
+                  {onToggleResolved ? (
+                    <IconButton
+                      label={resolved ? "Reopen" : "Mark resolved"}
+                      icon={resolved ? RotateCcw : Check}
+                      size="sm"
+                      pressed={resolved}
+                      busy={resolvingId === comment.id}
+                      disabled={resolvingId === comment.id}
+                      className="-my-1 ml-auto shrink-0"
+                      onClick={() => onToggleResolved(comment.id, !resolved)}
+                    />
+                  ) : null}
+                </div>
                 <p
                   className={cn(
                     "whitespace-pre-wrap break-words text-sm",
@@ -109,13 +115,54 @@ export function FeedbackNotes({
                 >
                   {comment.body}
                 </p>
-                {reviewLink ? <p className="mt-1 text-sm">{reviewLink}</p> : null}
-              </>
-            )}
-          </li>
-        );
-      })}
-    </ul>
+                {comment.reviewHref ? (
+                  <p className="mt-1 text-sm">
+                    <ReviewLink href={comment.reviewHref} />
+                  </p>
+                ) : null}
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+      {notices.length > 0 ? (
+        <div className="min-w-0">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="-ml-2 max-sm:h-10"
+            aria-expanded={activityOpen}
+            onClick={() => setActivityOpen((open) => !open)}
+          >
+            <ChevronDown aria-hidden className={cn("transition-transform", activityOpen && "rotate-180")} />
+            {`Review activity (${notices.length})`}
+            {newNotices > 0 ? (
+              <StatusTag tone="success" size="sm">
+                {`${newNotices} new`}
+              </StatusTag>
+            ) : null}
+          </Button>
+          {activityOpen ? (
+            <ul className="mt-1 divide-y divide-border">
+              {notices.map((comment) => (
+                <li key={comment.id} className="flex min-h-9 min-w-0 flex-wrap items-center gap-x-2 gap-y-1 py-1.5 text-sm">
+                  <span className="min-w-0 truncate font-medium text-foreground">{commentAuthorLabel(comment.author)}</span>
+                  <span className="text-muted-foreground">submitted a review</span>
+                  <span className="text-xs text-muted-foreground">{formatCommentWhen(comment.createdAt)}</span>
+                  {newIds?.has(comment.id) ? (
+                    <StatusTag tone="success" size="sm">
+                      New
+                    </StatusTag>
+                  ) : null}
+                  <span className="ml-auto">{comment.reviewHref ? <ReviewLink href={comment.reviewHref} /> : null}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
   );
 }
 

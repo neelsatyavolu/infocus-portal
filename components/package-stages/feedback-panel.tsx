@@ -6,7 +6,7 @@ import { Panel } from "@/components/kit/panel";
 import { Spinner } from "@/components/kit/spinner";
 import { StatusTag } from "@/components/kit/status-tag";
 import { formatCount } from "@/components/kit/tone";
-import { FeedbackComposer, FeedbackNotes } from "@/components/package-stages/feedback-thread";
+import { FeedbackComposer, FeedbackNotes, isReviewNotice } from "@/components/package-stages/feedback-thread";
 import { useStageComments } from "@/components/package-stages/use-stage-comments";
 import type { GroupStageSlug } from "@/src/lib/package-stages";
 import { cn } from "@/src/lib/utils";
@@ -137,7 +137,9 @@ export function StageFeedbackPanel({
     return () => observer.disconnect();
   }, [markPending, load]);
 
-  const foldable = comments.length > FOLDED_LIMIT;
+  // Folding counts written notes only: review notices sit in their own closed Review activity line.
+  const noteCount = comments.filter((comment) => !isReviewNotice(comment)).length;
+  const foldable = noteCount > FOLDED_LIMIT;
   // Loading counts as empty, so a thread that turns out empty never moves the page below it.
   const empty = comments.length === 0;
   const status = highlightNew ? (
@@ -189,7 +191,7 @@ export function StageFeedbackPanel({
               <DisclosureToggle
                 open={expanded}
                 onToggle={() => setExpanded((open) => !open)}
-                closedLabel={`Show all (${comments.length})`}
+                closedLabel={`Show all (${noteCount})`}
                 openLabel="Show fewer"
                 className="mt-2 xl:hidden"
               />

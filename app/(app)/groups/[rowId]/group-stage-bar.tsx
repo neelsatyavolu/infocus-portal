@@ -78,9 +78,13 @@ function segmentsLabel(segments: StepState[]) {
  * a green dot when it changed since this viewer last opened it, and on extra-wide screens when it
  * happened.
  */
+/** Initial Cut's "Stage 2/3": its strip and the approval path under the bar already say which. */
+const REVIEW_STEP_STATUSES: ReadonlySet<CycleStageStatus> = new Set(["stage-2", "stage-3"]);
+
 function StageCellLink({ cell, changed }: { cell: StageCell; changed: boolean }) {
   const Icon = cell.status ? STATUS_ICON[cell.status] : undefined;
   const word = cell.status ? CYCLE_STAGE_STATUS_LABELS[cell.status] : null;
+  const showWord = Boolean(word) && !(cell.key === "initial" && cell.status && REVIEW_STEP_STATUSES.has(cell.status));
   const tone = cell.status ? toneTextClass(wordTone(cell.status)) : undefined;
   const labelClass = cell.active
     ? "font-semibold text-foreground"
@@ -111,11 +115,13 @@ function StageCellLink({ cell, changed }: { cell: StageCell; changed: boolean })
         ) : cell.pending ? (
           <CircleDot aria-hidden className="h-3 w-3 shrink-0 text-[var(--brand-green)]" />
         ) : null}
-        {word ? (
+        {word && showWord ? (
           <>
             <span className="hidden min-w-0 truncate sm:inline">{word}</span>
             <span className="sr-only sm:hidden">{word}</span>
           </>
+        ) : word ? (
+          <span className="sr-only">{word}</span>
         ) : null}
         {cell.pending ? <span className="sr-only">, where work waits</span> : null}
       </span>

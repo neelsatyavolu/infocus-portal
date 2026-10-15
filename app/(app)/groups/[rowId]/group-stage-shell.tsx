@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect, type ReactNode } from "react";
+import { DecisionLeadProvider, useDecisionLeadHost } from "@/components/package-stages/decision-lead";
 import { PageHeader } from "@/components/page-header";
 import { publishGroupBreadcrumbTopic } from "@/src/lib/app-breadcrumbs";
 import type { GroupNavSlug } from "@/src/lib/package-stages";
@@ -78,30 +79,35 @@ export function GroupStageShell({
   const changed = useGroupStageChanges(rowId, cellSignatures(cells, current), activeKey);
   // Hidden only when this group isn't in the saved list (opened from an email or push link).
   const showStepper = !order.ready || order.index > 0;
+  // The stage's decision bar takes the approval path into its own block (steps beside the
+  // decisions); until it does, the path sits under the stage bar.
+  const lead = useDecisionLeadHost(steps ? <ApprovalPath steps={steps} /> : null);
 
   return (
     <GroupStageStateContext.Provider value={stageState}>
-      {/* No entrance transform here: it would pin the phone decision dock to this div (template.tsx fades the page). */}
-      <div className="flex min-w-0 flex-col gap-5">
-        <PageHeader
-          size="compact"
-          eyebrow={`Cycle ${cycleNumber}`}
-          title={groupTopic || "Untitled group"}
-          description={peopleLine(members, assignedProducer, assignedExecutive)}
-          actions={showStepper ? <GroupStepper order={order} /> : undefined}
-        />
-        {/* Initial Cut's approval steps sit close under the bar: its sub-steps, not more stages. */}
-        <div className="space-y-3">
-          <GroupStageBar cells={cells} changed={changed} />
-          {steps ? <ApprovalPath steps={steps} /> : null}
+      <DecisionLeadProvider value={lead.value}>
+        {/* No entrance transform here: it would pin the phone decision dock to this div (template.tsx fades the page). */}
+        <div className="flex min-w-0 flex-col gap-5">
+          <PageHeader
+            size="compact"
+            eyebrow={`Cycle ${cycleNumber}`}
+            title={groupTopic || "Untitled group"}
+            description={peopleLine(members, assignedProducer, assignedExecutive)}
+            actions={showStepper ? <GroupStepper order={order} /> : undefined}
+          />
+          {/* Initial Cut's approval steps sit close under the bar: its sub-steps, not more stages. */}
+          <div className="space-y-3">
+            <GroupStageBar cells={cells} changed={changed} />
+            {steps && !lead.claimed ? <ApprovalPath steps={steps} /> : null}
+          </div>
+          {/*
+            The hosted StageWorkspace also draws a read-only approval path under the newest cut.
+            The linked one above replaces it on these routes, so hide that copy (two paths built
+            from different data could disagree). Cross-screen request: skip it when `embedded`.
+          */}
+          <div className="min-w-0 [&_ol[aria-label^=Approval]]:hidden">{children}</div>
         </div>
-        {/*
-          The hosted StageWorkspace also draws a read-only approval path under the newest cut.
-          The linked one above replaces it on these routes, so hide that copy (two paths built
-          from different data could disagree). Cross-screen request: skip it when `embedded`.
-        */}
-        <div className="min-w-0 [&_ol[aria-label^=Approval]]:hidden">{children}</div>
-      </div>
+      </DecisionLeadProvider>
     </GroupStageStateContext.Provider>
   );
 }

@@ -35,20 +35,16 @@ function CutStatus({
 
 /**
  * Initial Cut versions: the newest plays in place with Open review (no tag: the stage bar and the
- * header already name its status), or on Groups is a "Current" row with Watch here; earlier versions are compact rows with their own review
- * status (the newest two show by default; the rest fold behind "Show older versions", remembered
- * per browser).
+ * header already name its status), or on Groups a "Current" row with Watch here. Earlier versions
+ * are compact rows with their own result (the newest shows by default; the rest fold behind
+ * "Show older versions", remembered per browser).
  */
 export function CutVersions({
   media,
-  reviewStage,
-  remainingExecutiveSignoffs,
   collapsePlayer = false
 }: {
   /** Newest first. */
   media: StageMediaCard[];
-  reviewStage: 1 | 2 | 3 | null;
-  remainingExecutiveSignoffs?: number;
   /**
    * Producers on Groups open the review from the decision bar, so the newest version is a row
    * like the others ("Current") and its player folds behind Watch here (remembered per browser).
@@ -93,8 +89,6 @@ export function CutVersions({
             olderCount={Math.max(0, earlier.length - 1)}
             showOlder={showOlder}
             onToggleOlder={() => setShowOlder((open) => !open)}
-            reviewStage={reviewStage}
-            remainingExecutiveSignoffs={remainingExecutiveSignoffs}
           />
         ) : null}
       </div>
@@ -109,8 +103,6 @@ export function CutVersions({
           olderCount={Math.max(0, earlier.length - 1)}
           showOlder={showOlder}
           onToggleOlder={() => setShowOlder((open) => !open)}
-          reviewStage={reviewStage}
-          remainingExecutiveSignoffs={remainingExecutiveSignoffs}
         />
       ) : null}
     </div>
@@ -122,16 +114,12 @@ function EarlierVersions({
   items,
   olderCount,
   showOlder,
-  onToggleOlder,
-  reviewStage,
-  remainingExecutiveSignoffs
+  onToggleOlder
 }: {
   items: StageMediaCard[];
   olderCount: number;
   showOlder: boolean;
   onToggleOlder: () => void;
-  reviewStage: 1 | 2 | 3 | null;
-  remainingExecutiveSignoffs?: number;
 }) {
   return (
     <div className="space-y-2">
@@ -147,7 +135,8 @@ function EarlierVersions({
                   {item.title}
                 </span>
                 <span className="flex min-w-0 items-center gap-3">
-                  <CutStatus item={item} reviewStage={reviewStage} remainingExecutiveSignoffs={remainingExecutiveSignoffs} />
+                  {/* An older cut's own result only: the package's wait belongs to the current cut. */}
+                  <CutStatus item={item} reviewStage={null} />
                   <CommentCount count={item.commentCount} />
                 </span>
               </span>

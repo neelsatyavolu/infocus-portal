@@ -159,10 +159,11 @@ export function useStageDecisions({
     if (canDecide) {
       actions.push({
         key: "submit-review",
-        dock: true,
+        // With Open review in the dock (Groups), phones dock Open review + Approve only and this
+        // stays in the bar; otherwise it docks beside Approve.
+        dock: !approveOutline,
         node: (
-          // Below lg it sits in the phone dock beside Approve, so it shows the short words there
-          // (one row); the full label stays the accessible name and the desktop text.
+          // Short words on screen; the full label stays the accessible name and the tooltip.
           <Button
             type="button"
             variant="outline"
@@ -172,12 +173,7 @@ export function useStageDecisions({
             title={SUBMIT_REVIEW_LABEL}
             className="max-lg:px-3"
           >
-            <span aria-hidden className="lg:hidden">
-              Needs revisions
-            </span>
-            <span aria-hidden className="max-lg:hidden">
-              {SUBMIT_REVIEW_LABEL}
-            </span>
+            Needs revisions
           </Button>
         )
       });
@@ -204,7 +200,7 @@ export function useStageDecisions({
         node: (
           <Button
             type="button"
-            variant={canDecide ? "outline" : "default"}
+            variant={canDecide || approveOutline ? "outline" : "default"}
             disabled={approving}
             onClick={() => setApproveAnywayOpen(true)}
           >

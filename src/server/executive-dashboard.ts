@@ -373,9 +373,10 @@ export function buildAllCyclesPart(
   now: Date,
   graders: Grader[] | null = null
 ) {
-  // A row or grade without a cycle number counts as the current cycle's.
+  // A row or grade without a cycle number counts as the current cycle's; cycle 0 (custom
+  // Publishing Queue packages) is never a roster group.
   const cycleOf = (entry: { cycleNumber?: number | null }) => entry.cycleNumber ?? activeCycle;
-  const numbers = [...new Set(records.map(cycleOf))].sort((a, b) => a - b);
+  const numbers = [...new Set(records.map(cycleOf))].filter((number) => number >= 1).sort((a, b) => a - b);
   const parts = numbers.map((number) => {
     const part = buildGroupsPart(
       records.filter((record) => cycleOf(record) === number),
@@ -568,12 +569,13 @@ export async function loadExecutiveDashboard(viewer: ExecutiveViewer, now: Date 
       : attempt("groups", failed, () =>
           Promise.all([
             prisma.packageProgressRow.findMany({
-              where: { cycleNumber: { lte: cycleNumber } },
+              // Cycle 0 holds custom Publishing Queue packages, not roster groups: leave them out.
+              where: { cycleNumber: { gte: 1, lte: cycleNumber } },
               orderBy: [{ cycleNumber: "asc" }, { rowOrder: "asc" }],
               select: GROUP_SELECT
             }),
             prisma.packageGrade.findMany({
-              where: { cycleNumber: { lte: cycleNumber }, awardedFinalCutPoints: { not: null } },
+              where: { cycleNumber: { gte: 1, lte: cycleNumber }, awardedFinalCutPoints: { not: null } },
               select: { userId: true, cycleNumber: true, awardedFinalCutPoints: true, revisionCount: true, publishedAt: true }
             })
           ])

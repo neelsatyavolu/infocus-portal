@@ -503,4 +503,11 @@ describe("buildAllCyclesPart", () => {
     const totalCurrent = buildGroupsPart(current as never, [], READY, EXEC, null, NOW).overview.total;
     expect(part.overview.total).toBe(totalCurrent);
   });
+
+  it("leaves out cycle 0 (custom Publishing Queue packages)", () => {
+    const custom = { ...stage3, id: "custom-1", cycleNumber: 0, groupTopic: "Puppy Yoga" };
+    const part = buildAllCyclesPart([custom] as never, [], READY, EXEC, [] as never, 2, NOW);
+    expect(part.reviewQueue).toEqual([]);
+    expect(part.needs).toEqual([]);
+  });
 });

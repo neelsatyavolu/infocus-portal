@@ -240,7 +240,7 @@ export function AllGradesView({
 
   return (
     <section className="space-y-3">
-      <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card px-4 py-3 sm:flex-row sm:items-center sm:gap-4">
+      <div className="flex flex-col gap-3 rounded-md border border-border bg-card px-4 py-3 sm:flex-row sm:items-center sm:gap-4">
         <div className="min-w-0 flex-1">
           <h1 className="display-sm text-foreground">{title}</h1>
           <p className="text-xs text-muted-foreground">{description}</p>
@@ -250,7 +250,7 @@ export function AllGradesView({
             <button
               type="button"
               onClick={() => setOverrides(EMPTY_OVERRIDES)}
-              className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-accent"
+              className="rounded-md border border-border px-3 py-1.5 text-xs font-semibold hover:bg-accent"
             >
               Reset what-if
             </button>
@@ -265,11 +265,11 @@ export function AllGradesView({
       </div>
 
       {loading ? (
-        <div className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
+        <div className="rounded-md border border-border bg-card p-4 text-sm text-muted-foreground">
           Loading gradebook...
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-border bg-card">
+        <div className="overflow-hidden rounded-md border border-border bg-card">
           <GradeGroup
             open={openGroups.semester}
             onToggle={() => setOpenGroups({ ...openGroups, semester: !openGroups.semester })}
@@ -339,7 +339,7 @@ export function GradeBadge({
 
   if (compact) {
     return (
-      <div className="flex items-center gap-3 rounded-xl border border-border bg-[hsl(var(--background))] px-3 py-2">
+      <div className="flex items-center gap-3 rounded-md border border-border bg-[hsl(var(--background))] px-3 py-2">
         <div className="text-right">
           <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
             {label}
@@ -359,7 +359,7 @@ export function GradeBadge({
   }
 
   return (
-    <div className="flex min-w-[10rem] flex-col items-center justify-center rounded-2xl border border-border bg-[hsl(var(--background))] px-8 py-5 text-center shadow-sm">
+    <div className="flex min-w-[10rem] flex-col items-center justify-center rounded-md border border-border bg-[hsl(var(--background))] px-8 py-5 text-center">
       <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
         {label}
       </div>

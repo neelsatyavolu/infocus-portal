@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CalendarClock, Check, ChevronRight, Loader2, Mail, Plus, X } from "lucide-react";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { clampExtensionDays, EXTENSION_REQUESTS_CHANGED_EVENT } from "@/src/lib/package-extensions";
 import { ApproveExtensionDialog, type GrantTerms } from "./approve-extension-dialog";
@@ -285,7 +286,7 @@ export default function ExtensionRequestsClient() {
     const filedByMember = entry.groupMembers.some((member) => member.userId === entry.student.id);
 
     return (
-      <article key={entry.id} className="rounded-2xl border border-border bg-card p-4">
+      <article key={entry.id} className="rounded-md border border-border bg-card p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="font-medium text-foreground">
@@ -423,36 +424,36 @@ export default function ExtensionRequestsClient() {
 
   return (
     <div className="route-enter mx-auto w-full max-w-4xl space-y-5">
-      <section className="brand-hero-panel relative overflow-hidden rounded-2xl border border-border p-5 md:p-6">
-        <div className="relative flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="eyebrow flex items-center gap-2">
-              <CalendarClock className="h-3 w-3" />
-              Deadlines · Group consent
-            </div>
-            <h1 className="display-md mt-2 text-foreground">Extension Requests</h1>
-            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-              An extension request covers your entire package group. Every member must agree before
-              producers can approve. Two producer approvals are required; the first approving producer
-              sets how many days are granted and which members get them. Executive producers can also
-              grant an extension directly; one more exec approves it and each student gets an email.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="meta-pill tabular-nums">{requestCounts.pending} pending</span>
-            <span className="meta-pill tabular-nums">{requestCounts.approved} approved</span>
-            <span className="meta-pill tabular-nums">{requestCounts.denied} denied</span>
-            {payload?.canGrant ? (
-              <Button size="sm" onClick={() => setGranting(true)}>
-                <Plus className="mr-1 h-3.5 w-3.5" />
-                Grant an extension
-              </Button>
-            ) : null}
-          </div>
-        </div>
-      </section>
+      <PageHeader
+        eyebrow={
+          <>
+            <CalendarClock className="h-3 w-3" />
+            Deadlines · Group consent
+          </>
+        }
+        title="Extension Requests"
+        description={
+          <>
+            An extension request covers your entire package group. Every member must agree before
+            producers can approve. Two producer approvals are required; the first approving producer
+            sets how many days are granted and which members get them. Executive producers can also
+            grant an extension directly; one more exec approves it and each student gets an email.{" "}
+            <span className="tabular-nums">
+              {requestCounts.pending} pending · {requestCounts.approved} approved · {requestCounts.denied} denied
+            </span>
+          </>
+        }
+        actions={
+          payload?.canGrant ? (
+            <Button size="sm" onClick={() => setGranting(true)}>
+              <Plus className="mr-1 h-3.5 w-3.5" />
+              Grant an extension
+            </Button>
+          ) : null
+        }
+      />
 
-      <section className="rounded-2xl border border-border bg-card p-4">
+      <section className="rounded-md border border-border bg-card p-4">
         <h2 className="text-lg font-semibold text-foreground">Request an extension</h2>
         <p className="mt-1 text-xs text-muted-foreground">
           You must be assigned to a package group for the selected cycle. Your teammates will be asked
@@ -506,7 +507,7 @@ export default function ExtensionRequestsClient() {
         {loading ? <p className="text-sm text-muted-foreground">Loading requests…</p> : null}
 
         {!loading && (payload?.requests.length ?? 0) === 0 ? (
-          <p className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
+          <p className="rounded-md border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
             No extension requests yet.
           </p>
         ) : null}

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowUpDown, Check, ChevronLeft, ChevronRight, Inbox, Loader2, MessageSquare, Save, X } from "lucide-react";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -362,66 +363,67 @@ export default function ParticipationClient() {
   const noteMax = noteTarget ? (maxByDate.get(noteTarget.dateKey) ?? 20) : 20;
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-8">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="display-md text-balance text-foreground">Classroom Participation</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+    <div className="route-enter mx-auto w-full max-w-6xl space-y-5 pb-8">
+      <PageHeader
+        title="Classroom Participation"
+        description={
+          <>
             35% of the grade. {PARTICIPATION_POINTS_PER_WEEK} points a week — 10 on Mondays (PA), 20 on
             Tue/Thu class; Wed/Fri shows and holidays off. Full marks post immediately. Docked scores
             need the adviser or another producer to approve.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex min-w-[10.5rem] items-center rounded-md border border-border bg-muted">
-            <div className="pointer-events-none pl-2 text-muted-foreground">
-              <ArrowUpDown className="h-3.5 w-3.5" />
+          </>
+        }
+        actions={
+          <>
+            <div className="inline-flex min-w-[10.5rem] items-center rounded-md border border-border bg-muted">
+              <div className="pointer-events-none pl-2 text-muted-foreground">
+                <ArrowUpDown className="h-3.5 w-3.5" />
+              </div>
+              <Select value={sortBy} onValueChange={(value) => setSortBy(value as NameSortKey)}>
+                <SelectTrigger className="h-9 w-[9.5rem] border-0 bg-transparent shadow-none" aria-label="Sort students">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="lastName">Last name</SelectItem>
+                  <SelectItem value="firstName">First name</SelectItem>
+                  <SelectItem value="email">Email</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <Select value={sortBy} onValueChange={(value) => setSortBy(value as NameSortKey)}>
-              <SelectTrigger className="h-9 w-[9.5rem] border-0 bg-transparent shadow-none" aria-label="Sort students">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="lastName">Last name</SelectItem>
-                <SelectItem value="firstName">First name</SelectItem>
-                <SelectItem value="email">Email</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <Button variant="secondary" size="icon" onClick={() => shiftWeek(-1)} aria-label="Previous week">
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="min-w-[9rem] text-center text-sm font-medium text-foreground">
-            {formatWeekLabel(weekStart)}
-          </span>
-          <Button variant="secondary" size="icon" onClick={() => shiftWeek(1)} aria-label="Next week">
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => setQueueOpen(true)}
-            className={cn(
-              pendingCount > 0 &&
-                "border border-amber-400/40 bg-amber-500/15 text-amber-100 hover:bg-amber-500/25"
-            )}
-          >
-            <Inbox className="h-4 w-4" />
-            Pending
-            <span className="tabular-nums">{pendingCount}</span>
-          </Button>
-          <Button onClick={() => void save()} disabled={saving || loading}>
-            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            Save
-          </Button>
-        </div>
-      </header>
+            <Button variant="outline" size="icon" onClick={() => shiftWeek(-1)} aria-label="Previous week">
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="min-w-[9rem] text-center text-sm font-medium text-foreground">
+              {formatWeekLabel(weekStart)}
+            </span>
+            <Button variant="outline" size="icon" onClick={() => shiftWeek(1)} aria-label="Next week">
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setQueueOpen(true)}
+              className={cn(
+                pendingCount > 0 &&
+                  "border border-amber-400/40 bg-amber-500/15 text-amber-100 hover:bg-amber-500/25"
+              )}
+            >
+              <Inbox className="h-4 w-4" />
+              Pending
+              <span className="tabular-nums">{pendingCount}</span>
+            </Button>
+            <Button onClick={() => void save()} disabled={saving || loading}>
+              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              Save
+            </Button>
+          </>
+        }
+      />
 
       {loading ? (
-        <p className="mt-8 text-sm text-muted-foreground">Loading participation…</p>
+        <p className="text-sm text-muted-foreground">Loading participation…</p>
       ) : (
-        <div className="mt-6 overflow-x-auto rounded-2xl border border-border">
+        <div className="overflow-x-auto rounded-md border border-border bg-card">
           <table className="w-full min-w-[48rem] text-sm max-lg:[&_tr>*:first-child]:sticky max-lg:[&_tr>*:first-child]:left-0 max-lg:[&_tr>*:first-child]:z-10 max-lg:[&_td:first-child]:max-w-[9rem] max-lg:[&_td:first-child]:bg-background max-lg:[&_td:first-child]:[overflow-wrap:anywhere] max-lg:[&_th:first-child]:bg-muted">
             <thead className="bg-muted/50">
               <tr>
@@ -581,7 +583,7 @@ export default function ParticipationClient() {
           ) : (
             <div className="max-h-[60vh] space-y-4 overflow-y-auto pr-1">
               {queue.map((request) => (
-                <section key={request.id} className="rounded-xl border border-border bg-card p-4">
+                <section key={request.id} className="rounded-md border border-border bg-card p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-medium text-foreground">

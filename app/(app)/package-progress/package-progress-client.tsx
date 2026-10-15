@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Edit3, ExternalLink, MoreVertical, Plus, RefreshCcw, StickyNote } from "lucide-react";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -192,8 +193,6 @@ export type PackageProgressPayload = {
 
 const BUTTON_PRIMARY =
   "bg-primary text-primary-foreground hover:bg-primary/90";
-const BUTTON_SECONDARY =
-  "bg-secondary text-foreground hover:bg-accent";
 const BUTTON_WARNING =
   "bg-amber-500/20 border border-amber-300/40 text-amber-100 hover:bg-amber-500/30";
 
@@ -874,34 +873,30 @@ export default function PackageProgressClient({ initialData }: { initialData?: P
 
   return (
     <div className="route-enter mx-auto w-full max-w-[80rem] space-y-5 pb-24">
-      <section className="brand-hero-panel relative overflow-hidden rounded-2xl border border-border p-5 md:p-6">
-        <div className="relative flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
-            <div className="eyebrow">Roster · Cycle {activeCycle?.cycleNumber ?? "—"}</div>
-            <h1 className="display-md mt-2 text-foreground">Package Cycle</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {activeCycle?.focus?.trim()
-                ? activeCycle.focus
-                : "Assign reporters and a producer (associate or executive) for each package."}{" "}
-              Stage completion is managed on{" "}
-              <Link href={"/groups" as never} className="text-foreground underline underline-offset-2">
-                Groups
-              </Link>
-              .
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="meta-pill">
-              {rosterStats.total} group{rosterStats.total === 1 ? "" : "s"}
-            </span>
-            <Button type="button" size="sm" className={BUTTON_SECONDARY} onClick={() => void refresh()}>
+      <PageHeader
+        eyebrow={<>Roster · Cycle {activeCycle?.cycleNumber ?? "—"}</>}
+        title="Package Cycle"
+        description={
+          <>
+            {activeCycle?.focus?.trim()
+              ? activeCycle.focus
+              : "Assign reporters and a producer (associate or executive) for each package."}{" "}
+            Stage completion is managed on{" "}
+            <Link href={"/groups" as never} className="text-foreground underline underline-offset-2">
+              Groups
+            </Link>
+            .
+          </>
+        }
+        actions={
+          <>
+            <Button type="button" size="sm" variant="outline" onClick={() => void refresh()}>
               <RefreshCcw className="mr-2 h-4 w-4" />
               Refresh
             </Button>
             <Link
               href={"/groups" as never}
-              className="inline-flex h-8 items-center justify-center gap-2 rounded-md bg-secondary px-3 text-xs font-medium text-foreground shadow transition hover:bg-accent"
+              className="inline-flex h-8 items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-xs font-medium text-foreground transition hover:bg-accent"
             >
               <ExternalLink className="h-4 w-4" />
               Open Groups
@@ -926,44 +921,44 @@ export default function PackageProgressClient({ initialData }: { initialData?: P
                 {editing ? "Cancel Edit" : "Edit Roster"}
               </Button>
             ) : null}
-          </div>
-        </div>
+          </>
+        }
+      />
 
-        <div className="relative mt-5 grid grid-cols-3 gap-2">
-          {(
-            [
-              ["Groups", rosterStats.total, "In this cycle"],
-              ["With members", rosterStats.withMembers, "Linked reporters"],
-              ["Assigned", rosterStats.withAssigned, "AP or EP"]
-            ] as const
-          ).map(([label, count, hint]) => (
-            <div
-              key={label}
-              className="rounded-xl border border-border bg-[var(--ink-2)] light:bg-muted p-3"
-            >
-              <div className="text-2xl font-semibold leading-none tracking-tight text-foreground">
-                {count}
-              </div>
-              <div className="mt-1 text-xs font-medium text-foreground">{label}</div>
-              <div className="mt-0.5 text-[10px] text-muted-foreground">{hint}</div>
+      <div className="grid grid-cols-3 gap-2">
+        {(
+          [
+            ["Groups", rosterStats.total, "In this cycle"],
+            ["With members", rosterStats.withMembers, "Linked reporters"],
+            ["Assigned", rosterStats.withAssigned, "AP or EP"]
+          ] as const
+        ).map(([label, count, hint]) => (
+          <div
+            key={label}
+            className="rounded-md border border-border bg-card p-3"
+          >
+            <div className="text-2xl font-semibold leading-none tracking-tight text-foreground">
+              {count}
             </div>
-          ))}
-        </div>
+            <div className="mt-1 text-xs font-medium text-foreground">{label}</div>
+            <div className="mt-0.5 text-[10px] text-muted-foreground">{hint}</div>
+          </div>
+        ))}
+      </div>
 
-        {editing && canEdit ? (
-          <p className="relative mt-3 text-xs text-muted-foreground">
-            {saving ? "Saving changes..." : "Edit topic, interviews, ideas, members, and assigned producer. Changes save automatically."}
-          </p>
-        ) : null}
+      {editing && canEdit ? (
+        <p className="text-xs text-muted-foreground">
+          {saving ? "Saving changes..." : "Edit topic, interviews, ideas, members, and assigned producer. Changes save automatically."}
+        </p>
+      ) : null}
 
-        {message ? (
-          <p className="relative mt-3 rounded-lg border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">
-            {message}
-          </p>
-        ) : null}
-      </section>
+      {message ? (
+        <p className="rounded-md border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">
+          {message}
+        </p>
+      ) : null}
 
-      <section className="overflow-hidden rounded-2xl border border-border bg-card">
+      <section className="overflow-hidden rounded-md border border-border bg-card">
         {loading ? (
           <p className="px-4 py-6 text-sm text-muted-foreground">Loading groups…</p>
         ) : (

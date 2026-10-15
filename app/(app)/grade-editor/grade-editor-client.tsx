@@ -7,10 +7,8 @@ import { cycleCheckInSummary, packageSubtotal } from "@/src/lib/grade-editor-sum
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
-  CalendarDays,
   ChevronDown,
   ClipboardList,
-  Clock,
   Download,
   MessageSquare,
   RefreshCcw,
@@ -18,12 +16,9 @@ import {
   Search,
   UserMinus,
   UserRound,
-  Users,
   X
 } from "lucide-react";
-
-const Clock3 = Clock;
-const Users2 = Users;
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import {
@@ -1027,280 +1022,248 @@ export default function GradeEditorClient() {
 
   return (
     <div className="route-enter mx-auto w-full max-w-[1760px] space-y-5 pb-24">
-      {/* ============= Hero (new design) ============= */}
-      <section
-        className="brand-hero-panel relative overflow-hidden rounded-2xl border border-border p-6 md:p-7"
-      >
-        <div className="relative flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
-            <div
-              className="inline-flex items-center gap-1.5 rounded-md border border-[rgb(43,179,110,0.4)] bg-background px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--brand-green)]"
-            >
-              <span className="h-1.5 w-1.5 rounded-full bg-[var(--brand-green)]" />
-              Grade Editor · Producer view
-            </div>
-            <h1
-              className="mt-3 text-[32px] font-semibold leading-none tracking-tight text-foreground md:text-[44px]"
-              style={{ letterSpacing: "-0.02em" }}
-            >
-              {viewMode === TOTAL_VIEW
-                ? "Total Grade"
-                : viewMode === STUDENT_VIEW
-                  ? "Student Gradebook"
-                  : `Package Cycle ${activeCycle?.cycleNumber ?? "—"}`}
-            </h1>
-            <p className="mt-1 text-sm text-[var(--ink-text)]">
-              {viewMode === TOTAL_VIEW
-                ? "Aggregate package scores, check-ins, livestream, completed-week participation, and final credits."
-                : viewMode === STUDENT_VIEW
-                  ? "Open one reporter's grades in the same Schoology-style table students see."
-                  : "Score each reporter's final cut out of 50. Late 20%/30% applies automatically. A second revision after a grade below 75% is capped at 37/50."}
-            </p>
-            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-[var(--ink-text)]">
+      <PageHeader
+        eyebrow="Grade Editor · Producer view"
+        title={
+          viewMode === TOTAL_VIEW
+            ? "Total Grade"
+            : viewMode === STUDENT_VIEW
+              ? "Student Gradebook"
+              : `Package Cycle ${activeCycle?.cycleNumber ?? "—"}`
+        }
+        description={
+          <>
+            {viewMode === TOTAL_VIEW
+              ? "Aggregate package scores, check-ins, livestream, completed-week participation, and final credits."
+              : viewMode === STUDENT_VIEW
+                ? "Open one reporter's grades in the same Schoology-style table students see."
+                : "Score each reporter's final cut out of 50. Late 20%/30% applies automatically. A second revision after a grade below 75% is capped at 37/50."}
+            <span className="mt-1 block text-xs">
               {viewMode === TOTAL_VIEW ? (
-                <div className="inline-flex items-center gap-1.5">
-                  <Users2 className="h-3 w-3" />
-                  <span>
-                    <strong className="font-semibold text-foreground">{totalsRows.length}</strong> reporters · max{" "}
-                    <strong className="font-semibold text-foreground">
-                      {cycles.length * MAX_PACKAGE_PER_CYCLE +
-                        cycles.length * MAX_CHECK_INS_PER_CYCLE +
-                        MAX_LIVESTREAM +
-                        MAX_FINAL}
-                    </strong>{" "}
-                    pts (50×cycles + 20×cycles + 40 livestream + 100 portfolio)
-                  </span>
-                </div>
+                <>
+                  <strong className="font-semibold text-foreground">{totalsRows.length}</strong> reporters · max{" "}
+                  <strong className="font-semibold text-foreground">
+                    {cycles.length * MAX_PACKAGE_PER_CYCLE +
+                      cycles.length * MAX_CHECK_INS_PER_CYCLE +
+                      MAX_LIVESTREAM +
+                      MAX_FINAL}
+                  </strong>{" "}
+                  pts (50×cycles + 20×cycles + 40 livestream + 100 portfolio)
+                </>
               ) : viewMode === STUDENT_VIEW ? (
-                <div className="inline-flex items-center gap-1.5">
-                  <UserRound className="h-3 w-3" />
-                  <span>
-                    {selectedStudent
-                      ? selectedStudent.name?.trim() || selectedStudent.email || "Unnamed user"
-                      : "Pick a reporter from the list"}
-                  </span>
-                </div>
+                selectedStudent
+                  ? selectedStudent.name?.trim() || selectedStudent.email || "Unnamed user"
+                  : "Pick a reporter from the list"
               ) : (
                 <>
-                  <div className="inline-flex items-center gap-1.5">
-                    <CalendarDays className="h-3 w-3" />
-                    <span>
-                      Final Cut: <strong className="font-semibold text-foreground">{formatLongDate(activeCycle?.finalCutDate ?? null)}</strong>
-                    </span>
-                  </div>
-                  <span className="h-3 w-px bg-[var(--ink-4)]" />
-                  <div className="inline-flex items-center gap-1.5">
-                    <Clock3 className="h-3 w-3" />
-                    <span>Auto-saving</span>
-                  </div>
-                  <span className="h-3 w-px bg-[var(--ink-4)]" />
-                  <div className="inline-flex items-center gap-1.5">
-                    <Users2 className="h-3 w-3" />
-                    <span>
-                      <strong className="font-semibold text-foreground">{rows.length}</strong> reporters
-                    </span>
-                  </div>
+                  Final Cut:{" "}
+                  <strong className="font-semibold text-foreground">
+                    {formatLongDate(activeCycle?.finalCutDate ?? null)}
+                  </strong>
+                  {" · Auto-saving · "}
+                  <strong className="font-semibold text-foreground">{rows.length}</strong> reporters
                 </>
               )}
-            </div>
-          </div>
-          {viewMode === "cycle" ? (
-          <div
-            className={cn(
-              "inline-flex items-center gap-2 rounded-md px-3.5 py-2 text-xs font-semibold whitespace-nowrap border",
-              hasUnsavedChanges
-                ? "border-[rgb(242,165,22,0.4)] bg-[rgb(242,165,22,0.15)] text-[var(--brand-amber)]"
-                : "border-[rgb(43,179,110,0.35)] bg-[rgb(43,179,110,0.12)] text-[var(--brand-green)]"
-            )}
-          >
-            <span
-              className={cn(
-                "h-1.5 w-1.5 rounded-full",
-                hasUnsavedChanges ? "bg-[var(--brand-amber)]" : "bg-[var(--brand-green)]"
-              )}
-              style={
-                hasUnsavedChanges
-                  ? { animation: "rec-pulse 1.4s infinite" }
-                  : undefined
-              }
-            />
-            <span>
-              {hasUnsavedChanges
-                ? `${rows.filter((r) => rowHasUnsavedChanges(r, savedRowMap.get(r.userId))).length} unsaved changes`
-                : "All changes saved"}
             </span>
-          </div>
-          ) : null}
-        </div>
+          </>
+        }
+        actions={
+          viewMode === "cycle" ? (
+            <div
+              className={cn(
+                "inline-flex items-center gap-2 rounded-md px-3.5 py-2 text-xs font-semibold whitespace-nowrap border",
+                hasUnsavedChanges
+                  ? "border-[rgb(242,165,22,0.4)] bg-[rgb(242,165,22,0.15)] text-[var(--brand-amber)]"
+                  : "border-[rgb(43,179,110,0.35)] bg-[rgb(43,179,110,0.12)] text-[var(--brand-green)]"
+              )}
+            >
+              <span
+                className={cn(
+                  "h-1.5 w-1.5 rounded-full",
+                  hasUnsavedChanges ? "bg-[var(--brand-amber)]" : "bg-[var(--brand-green)]"
+                )}
+                style={
+                  hasUnsavedChanges
+                    ? { animation: "rec-pulse 1.4s infinite" }
+                    : undefined
+                }
+              />
+              <span>
+                {hasUnsavedChanges
+                  ? `${rows.filter((r) => rowHasUnsavedChanges(r, savedRowMap.get(r.userId))).length} unsaved changes`
+                  : "All changes saved"}
+              </span>
+            </div>
+          ) : null
+        }
+      />
 
-        {/* Cycle tabs row */}
-        {cycles.length > 0 ? (
-          <div className="relative mt-5 inline-flex items-center gap-1 rounded-lg border border-foreground/[0.08] bg-background p-1 max-lg:max-w-full max-lg:flex-wrap">
-            {cycles.map((cycle) => {
-              const isActive = viewMode === "cycle" && activeCycleNumber === cycle.cycleNumber;
-              return (
-                <button
-                  key={cycle.cycleNumber}
-                  type="button"
-                  onClick={() => goToCycle(cycle.cycleNumber)}
+      {/* Cycle tabs row */}
+      {cycles.length > 0 ? (
+        <div className="flex w-fit items-center gap-1 rounded-md border border-foreground/[0.08] bg-background p-1 max-lg:max-w-full max-lg:flex-wrap">
+          {cycles.map((cycle) => {
+            const isActive = viewMode === "cycle" && activeCycleNumber === cycle.cycleNumber;
+            return (
+              <button
+                key={cycle.cycleNumber}
+                type="button"
+                onClick={() => goToCycle(cycle.cycleNumber)}
+                className={cn(
+                  "inline-flex items-center gap-2 rounded-md px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.11em] transition",
+                  isActive
+                    ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
+                    : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
+                )}
+              >
+                Cycle{" "}
+                <span
                   className={cn(
-                    "inline-flex items-center gap-2 rounded-md px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.11em] transition",
+                    "rounded px-1.5 py-0.5 font-mono-broadcast text-[10px] font-medium tabular-nums",
                     isActive
-                      ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
-                      : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
+                      ? "bg-black/25 text-[var(--on-brand)]"
+                      : "bg-foreground/10 text-[var(--ink-text)]"
                   )}
                 >
-                  Cycle{" "}
-                  <span
-                    className={cn(
-                      "rounded px-1.5 py-0.5 font-mono-broadcast text-[10px] font-medium tabular-nums",
-                      isActive
-                        ? "bg-black/25 text-[var(--on-brand)]"
-                        : "bg-foreground/10 text-[var(--ink-text)]"
-                    )}
-                  >
-                    {String(cycle.cycleNumber).padStart(2, "0")}
-                  </span>
-                </button>
-              );
-            })}
-            <button
-              type="button"
-              onClick={() => {
-                setViewMode(TOTAL_VIEW);
-                void loadTotals({ silent: true });
-              }}
-              className={cn(
-                "inline-flex items-center gap-2 rounded-md px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.11em] transition",
-                viewMode === TOTAL_VIEW
-                  ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
-                  : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
-              )}
-            >
-              Total Grade
-            </button>
-            <button
-              type="button"
-              onClick={() => goToStudentView()}
-              className={cn(
-                "inline-flex items-center gap-2 rounded-md px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.11em] transition",
-                viewMode === STUDENT_VIEW
-                  ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
-                  : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
-              )}
-            >
-              <UserRound className="h-3.5 w-3.5" />
-              Student
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                void openMissing();
-              }}
-              className={cn(
-                "inline-flex items-center gap-2 rounded-md px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.11em] transition",
-                "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
-              )}
-            >
-              <AlertTriangle className="h-3.5 w-3.5" />
-              Missing Grades
-            </button>
-          </div>
-        ) : null}
+                  {String(cycle.cycleNumber).padStart(2, "0")}
+                </span>
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => {
+              setViewMode(TOTAL_VIEW);
+              void loadTotals({ silent: true });
+            }}
+            className={cn(
+              "inline-flex items-center gap-2 rounded-md px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.11em] transition",
+              viewMode === TOTAL_VIEW
+                ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
+                : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
+            )}
+          >
+            Total Grade
+          </button>
+          <button
+            type="button"
+            onClick={() => goToStudentView()}
+            className={cn(
+              "inline-flex items-center gap-2 rounded-md px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.11em] transition",
+              viewMode === STUDENT_VIEW
+                ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
+                : "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
+            )}
+          >
+            <UserRound className="h-3.5 w-3.5" />
+            Student
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              void openMissing();
+            }}
+            className={cn(
+              "inline-flex items-center gap-2 rounded-md px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.11em] transition",
+              "text-[var(--ink-text)] hover:bg-foreground/5 hover:text-foreground"
+            )}
+          >
+            <AlertTriangle className="h-3.5 w-3.5" />
+            Missing Grades
+          </button>
+        </div>
+      ) : null}
 
-        {/* 4-up stats with mini bars */}
-        {viewMode === TOTAL_VIEW || viewMode === STUDENT_VIEW ? null : (
-        <div className="relative mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
-          <div className="rounded-xl border border-foreground/[0.08] bg-background p-4">
-            <div className="flex items-center justify-between text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--ink-text)]">
-              <span>Cycle Average</span>
-            </div>
-            <div className="mt-1.5 inline-flex items-baseline gap-1.5 text-[28px] font-semibold leading-none tracking-tight text-foreground">
-              {activeCycleAverage?.averageTotal !== null && activeCycleAverage?.averageTotal !== undefined
-                ? activeCycleAverage.averageTotal.toFixed(1)
-                : "—"}
-              <span className="text-sm font-medium text-muted-foreground">/ {MAX_PACKAGE_PER_CYCLE}</span>
-            </div>
-            <div className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--ink-2)]">
-              <div
-                className="h-full rounded-full"
-                style={{
-                  width: `${Math.min(100, ((activeCycleAverage?.averageTotal ?? 0) / MAX_PACKAGE_PER_CYCLE) * 100)}%`,
-                  background: "var(--brand-green)"
-                }}
-              />
-            </div>
+      {/* 4-up stats with mini bars */}
+      {viewMode === TOTAL_VIEW || viewMode === STUDENT_VIEW ? null : (
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="rounded-md border border-border bg-card p-4">
+          <div className="flex items-center justify-between text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--ink-text)]">
+            <span>Cycle Average</span>
           </div>
-          <div className="rounded-xl border border-foreground/[0.08] bg-background p-4">
-            <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--ink-text)]">
-              Cycle Percentage
-            </div>
-            <div className="mt-1.5 inline-flex items-baseline gap-1.5 text-[28px] font-semibold leading-none tracking-tight text-foreground">
-              {activeCycleAverage?.averagePercentage !== null && activeCycleAverage?.averagePercentage !== undefined
-                ? activeCycleAverage.averagePercentage.toFixed(1)
-                : "—"}
-              <span className="text-sm font-medium text-muted-foreground">%</span>
-            </div>
-            <div className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--ink-2)]">
-              <div
-                className="h-full rounded-full"
-                style={{
-                  width: `${Math.min(100, activeCycleAverage?.averagePercentage ?? 0)}%`,
-                  background: "var(--brand-green)"
-                }}
-              />
-            </div>
+          <div className="mt-1.5 inline-flex items-baseline gap-1.5 text-[28px] font-semibold leading-none tracking-tight text-foreground">
+            {activeCycleAverage?.averageTotal !== null && activeCycleAverage?.averageTotal !== undefined
+              ? activeCycleAverage.averageTotal.toFixed(1)
+              : "—"}
+            <span className="text-sm font-medium text-muted-foreground">/ {MAX_PACKAGE_PER_CYCLE}</span>
           </div>
-          <div className="rounded-xl border border-foreground/[0.08] bg-background p-4">
-            <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--ink-text)]">
-              Published
-            </div>
-            <div className="mt-1.5 inline-flex items-baseline gap-1.5 text-[28px] font-semibold leading-none tracking-tight text-foreground">
-              {activeCycleAverage?.publishedCount ?? 0}
-              <span className="text-sm font-medium text-muted-foreground">/ {rows.length}</span>
-            </div>
-            <div className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--ink-2)]">
-              <div
-                className="h-full rounded-full"
-                style={{
-                  width: rows.length > 0
-                    ? `${Math.min(100, ((activeCycleAverage?.publishedCount ?? 0) / rows.length) * 100)}%`
-                    : "0%",
-                  background: "var(--brand-green)"
-                }}
-              />
-            </div>
-          </div>
-          <div className="rounded-xl border border-foreground/[0.08] bg-background p-4">
-            <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--ink-text)]">
-              Late Submissions
-            </div>
-            <div className="mt-1.5 inline-flex items-baseline gap-1.5 text-[28px] font-semibold leading-none tracking-tight text-[var(--brand-amber)]">
-              {rows.filter((r) => r.extensionsRemaining < 0).length}
-              <span className="text-sm font-medium text-muted-foreground">flagged</span>
-            </div>
-            <div className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--ink-2)]">
-              <div
-                className="h-full rounded-full"
-                style={{
-                  width: rows.length > 0
-                    ? `${Math.min(100, (rows.filter((r) => r.extensionsRemaining < 0).length / rows.length) * 100)}%`
-                    : "0%",
-                  background: "var(--brand-amber)"
-                }}
-              />
-            </div>
+          <div className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--ink-2)]">
+            <div
+              className="h-full rounded-full"
+              style={{
+                width: `${Math.min(100, ((activeCycleAverage?.averageTotal ?? 0) / MAX_PACKAGE_PER_CYCLE) * 100)}%`,
+                background: "var(--brand-green)"
+              }}
+            />
           </div>
         </div>
-        )}
+        <div className="rounded-md border border-border bg-card p-4">
+          <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--ink-text)]">
+            Cycle Percentage
+          </div>
+          <div className="mt-1.5 inline-flex items-baseline gap-1.5 text-[28px] font-semibold leading-none tracking-tight text-foreground">
+            {activeCycleAverage?.averagePercentage !== null && activeCycleAverage?.averagePercentage !== undefined
+              ? activeCycleAverage.averagePercentage.toFixed(1)
+              : "—"}
+            <span className="text-sm font-medium text-muted-foreground">%</span>
+          </div>
+          <div className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--ink-2)]">
+            <div
+              className="h-full rounded-full"
+              style={{
+                width: `${Math.min(100, activeCycleAverage?.averagePercentage ?? 0)}%`,
+                background: "var(--brand-green)"
+              }}
+            />
+          </div>
+        </div>
+        <div className="rounded-md border border-border bg-card p-4">
+          <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--ink-text)]">
+            Published
+          </div>
+          <div className="mt-1.5 inline-flex items-baseline gap-1.5 text-[28px] font-semibold leading-none tracking-tight text-foreground">
+            {activeCycleAverage?.publishedCount ?? 0}
+            <span className="text-sm font-medium text-muted-foreground">/ {rows.length}</span>
+          </div>
+          <div className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--ink-2)]">
+            <div
+              className="h-full rounded-full"
+              style={{
+                width: rows.length > 0
+                  ? `${Math.min(100, ((activeCycleAverage?.publishedCount ?? 0) / rows.length) * 100)}%`
+                  : "0%",
+                background: "var(--brand-green)"
+              }}
+            />
+          </div>
+        </div>
+        <div className="rounded-md border border-border bg-card p-4">
+          <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--ink-text)]">
+            Late Submissions
+          </div>
+          <div className="mt-1.5 inline-flex items-baseline gap-1.5 text-[28px] font-semibold leading-none tracking-tight text-[var(--brand-amber)]">
+            {rows.filter((r) => r.extensionsRemaining < 0).length}
+            <span className="text-sm font-medium text-muted-foreground">flagged</span>
+          </div>
+          <div className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--ink-2)]">
+            <div
+              className="h-full rounded-full"
+              style={{
+                width: rows.length > 0
+                  ? `${Math.min(100, (rows.filter((r) => r.extensionsRemaining < 0).length / rows.length) * 100)}%`
+                  : "0%",
+                background: "var(--brand-amber)"
+              }}
+            />
+          </div>
+        </div>
+      </div>
+      )}
 
-        {message ? (
-          <p className="relative mt-4 rounded-lg border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">
-            {message}
-          </p>
-        ) : null}
-      </section>
-
+      {message ? (
+        <p className="rounded-md border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">
+          {message}
+        </p>
+      ) : null}
       {/* Toolbar */}
       <section className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
@@ -1408,7 +1371,7 @@ export default function GradeEditorClient() {
       <p className="text-xs text-muted-foreground">
         Scores: — ungraded · \ exempt. Both are excluded from totals. Total tab adjustments are temporary; cycle scores save automatically.
       </p>
-      <section className="overflow-hidden rounded-2xl border border-border bg-card">
+      <section className="overflow-hidden rounded-md border border-border bg-card">
         {viewMode === TOTAL_VIEW ? (
           totalsLoading ? (
             <p className="px-4 py-6 text-sm text-muted-foreground">Loading totals...</p>

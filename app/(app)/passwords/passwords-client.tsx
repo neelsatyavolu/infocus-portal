@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FileUp, KeyRound, Loader2, Plus, Search } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import type { VaultAccess, VaultEntrySummary, VaultImportResult } from "@/src/lib/password-vault";
 import { vaultRequest } from "./vault-api";
@@ -64,23 +65,30 @@ export default function PasswordsClient({ access }: { access: VaultAccess }) {
   const withTotp = entries.filter((entry) => entry.hasTotp).length;
 
   return (
-    <div className="route-enter mx-auto w-full max-w-[80rem] space-y-3 pb-24">
-      <section className="brand-hero-panel relative overflow-hidden rounded-2xl border border-border px-4 py-4 md:px-5">
-        <div className="relative flex flex-wrap items-center justify-between gap-3">
-          <div className="min-w-0">
-            <div className="eyebrow">{full ? "Producer view" : "Shared with you"}</div>
-            <h1 className="display-md mt-1 text-balance text-foreground">Passwords</h1>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {full
-                ? "Shared InFocus logins and 2FA codes. Encrypted at rest; every view is logged."
-                : "InFocus logins an executive producer shared with you. Every view is logged."}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="meta-pill">
-              {entries.length} login{entries.length === 1 ? "" : "s"}
-              {withTotp > 0 ? ` · ${withTotp} with 2FA` : ""}
-            </span>
+    <div className="route-enter mx-auto w-full max-w-[80rem] space-y-5 pb-24">
+      <PageHeader
+        eyebrow={full ? "Producer view" : "Shared with you"}
+        title="Passwords"
+        description={
+          <>
+            {full
+              ? "Shared InFocus logins and 2FA codes. Encrypted at rest; every view is logged."
+              : "InFocus logins an executive producer shared with you. Every view is logged."}
+            {` · ${entries.length} login${entries.length === 1 ? "" : "s"}`}
+            {withTotp > 0 ? ` · ${withTotp} with 2FA` : ""}
+          </>
+        }
+        actions={
+          <>
+            <label className="relative w-full sm:w-56">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search passwords…"
+                className="h-9 w-full rounded-md border border-border bg-muted pl-8 pr-3 text-base text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring md:text-sm"
+              />
+            </label>
             {full ? (
               <>
                 <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
@@ -93,34 +101,22 @@ export default function PasswordsClient({ access }: { access: VaultAccess }) {
                 </Button>
               </>
             ) : null}
-          </div>
-        </div>
+          </>
+        }
+      />
 
-        <div className="relative mt-3">
-          <label className="relative block">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search passwords…"
-              className="h-9 w-full rounded-md border border-border bg-muted pl-8 pr-3 text-base text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring md:text-sm"
-            />
-          </label>
-        </div>
+      {message ? (
+        <p className="rounded-md border border-danger/40 bg-danger-tint px-3 py-2 text-sm text-danger">
+          {message}
+        </p>
+      ) : null}
+      {notice ? (
+        <p className="rounded-md border border-[var(--brand-green)]/40 bg-[var(--brand-green)]/10 px-3 py-2 text-sm text-foreground">
+          {notice}
+        </p>
+      ) : null}
 
-        {message ? (
-          <p className="relative mt-3 rounded-lg border border-danger/40 bg-danger-tint px-3 py-2 text-sm text-danger">
-            {message}
-          </p>
-        ) : null}
-        {notice ? (
-          <p className="relative mt-3 rounded-lg border border-[var(--brand-green)]/40 bg-[var(--brand-green)]/10 px-3 py-2 text-sm text-foreground">
-            {notice}
-          </p>
-        ) : null}
-      </section>
-
-      <section className="overflow-hidden rounded-2xl border border-border bg-card">
+      <section className="overflow-hidden rounded-md border border-border bg-card">
         {loading ? (
           <p className="flex items-center justify-center gap-2 px-4 py-8 text-sm text-muted-foreground">
             <Loader2 className="h-3.5 w-3.5 animate-spin" />

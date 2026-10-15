@@ -17,6 +17,7 @@ import {
 } from "@/src/lib/member-notes";
 import { type NameSortKey, sortNamedPeople } from "@/src/lib/name-sort";
 import { cn } from "@/src/lib/utils";
+import { PageHeader } from "@/components/page-header";
 import { BottomTabDock, BottomTabDockButton, CycleTabLabel } from "@/components/ui/bottom-tab-dock";
 
 type CycleTab = {
@@ -236,69 +237,64 @@ export default function MembersClient() {
   const saving = savingKeys.size > 0;
 
   return (
-    <div className="route-enter mx-auto w-full max-w-[80rem] space-y-3 pb-24">
-      <section className="brand-hero-panel relative overflow-hidden rounded-2xl border border-border px-4 py-4 md:px-5">
-        <div className="relative flex flex-wrap items-center justify-between gap-3">
-          <div className="min-w-0">
-            <div className="eyebrow">Producer view</div>
-            <h1 className="display-md mt-1 text-balance text-foreground">Members</h1>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {isGeneral
-                ? "Standing notes on each reporter. Switch cycles for notes that stay with that package."
-                : activeCycle?.focus?.trim()
-                  ? `Cycle ${activeCycle.cycleNumber} · ${activeCycle.focus}`
-                  : `Notes for package cycle ${activeCycleNumber}.`}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="meta-pill">
-              {members.length} member{members.length === 1 ? "" : "s"}
-              {notesOnTab > 0 ? ` · ${notesOnTab} with notes` : ""}
-            </span>
+    <div className="route-enter mx-auto w-full max-w-[80rem] space-y-5 pb-24">
+      <PageHeader
+        eyebrow="Producer view"
+        title="Members"
+        description={
+          <>
+            {isGeneral
+              ? "Standing notes on each reporter. Switch cycles for notes that stay with that package."
+              : activeCycle?.focus?.trim()
+                ? `Cycle ${activeCycle.cycleNumber} · ${activeCycle.focus}`
+                : `Notes for package cycle ${activeCycleNumber}.`}
+            {` · ${members.length} member${members.length === 1 ? "" : "s"}`}
+            {notesOnTab > 0 ? ` · ${notesOnTab} with notes` : ""}
+          </>
+        }
+        actions={
+          <>
             {saving ? (
               <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 Saving
               </span>
             ) : null}
-          </div>
-        </div>
-
-        <div className="relative mt-3 flex flex-wrap items-center gap-2">
-          <label className="relative min-w-[14rem] flex-1">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search members…"
-              className="h-9 w-full rounded-md border border-border bg-muted pl-8 pr-3 text-base text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring md:text-sm"
-            />
-          </label>
-          <div className="inline-flex min-w-[10.5rem] items-center rounded-md border border-border bg-muted">
-            <div className="pointer-events-none pl-2 text-muted-foreground">
-              <ArrowUpDown className="h-3.5 w-3.5" />
+            <label className="relative w-full sm:w-56">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search members…"
+                className="h-9 w-full rounded-md border border-border bg-muted pl-8 pr-3 text-base text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring md:text-sm"
+              />
+            </label>
+            <div className="inline-flex min-w-[10.5rem] items-center rounded-md border border-border bg-muted">
+              <div className="pointer-events-none pl-2 text-muted-foreground">
+                <ArrowUpDown className="h-3.5 w-3.5" />
+              </div>
+              <Select value={sortBy} onValueChange={(value) => setSortBy(value as NameSortKey)}>
+                <SelectTrigger className="h-9 w-[9.5rem] border-0 bg-transparent shadow-none" aria-label="Sort members">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="lastName">Last name</SelectItem>
+                  <SelectItem value="firstName">First name</SelectItem>
+                  <SelectItem value="email">Email</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <Select value={sortBy} onValueChange={(value) => setSortBy(value as NameSortKey)}>
-              <SelectTrigger className="h-9 w-[9.5rem] border-0 bg-transparent shadow-none" aria-label="Sort members">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="lastName">Last name</SelectItem>
-                <SelectItem value="firstName">First name</SelectItem>
-                <SelectItem value="email">Email</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+          </>
+        }
+      />
 
-        {message ? (
-          <p className="relative mt-3 rounded-lg border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">
-            {message}
-          </p>
-        ) : null}
-      </section>
+      {message ? (
+        <p className="rounded-md border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">
+          {message}
+        </p>
+      ) : null}
 
-      <section className="overflow-hidden rounded-2xl border border-border bg-card">
+      <section className="overflow-hidden rounded-md border border-border bg-card">
         {loading ? (
           <p className="px-4 py-8 text-center text-sm text-muted-foreground">Loading members…</p>
         ) : visibleMembers.length === 0 ? (

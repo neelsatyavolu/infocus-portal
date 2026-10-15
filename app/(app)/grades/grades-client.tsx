@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { AllGradesView, GradeBadge } from "@/components/grades/all-grades-view";
+import { PageHeader } from "@/components/page-header";
 import {
   GRADE_WEIGHTS,
   MAX_FINAL_CUT_POINTS,
@@ -246,7 +247,7 @@ export default function GradesClient({
   return (
     <div className="route-enter mx-auto w-full max-w-7xl space-y-5 pb-24">
       {message ? (
-        <p className="rounded-lg border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">
+        <p className="rounded-md border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">
           {message}
         </p>
       ) : null}
@@ -334,19 +335,12 @@ function HomeView({
 }) {
   return (
     <>
-      <section className="brand-hero-panel relative overflow-hidden rounded-2xl border border-border p-5 md:p-6">
-        <div className="relative flex flex-wrap items-start justify-between gap-6">
-          <div className="min-w-0">
-            <div className="eyebrow">Grades · 2026–27</div>
-            <h1 className="display-md mt-2 text-foreground">Grade Dashboard</h1>
-            <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-              Estimated semester grade from packages (55%), participation (35%), and portfolio (10%).
-              Ungraded work is excluded until a producer marks it.
-            </p>
-          </div>
-          <GradeBadge letter={letter} percentage={percentage} label="Estimated grade" />
-        </div>
-      </section>
+      <PageHeader
+        eyebrow="Grades · 2026–27"
+        title="Grade Dashboard"
+        description="Estimated semester grade from packages (55%), participation (35%), and portfolio (10%). Ungraded work is excluded until a producer marks it."
+        actions={<GradeBadge letter={letter} percentage={percentage} label="Estimated grade" />}
+      />
 
       <section className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <CategoryCard
@@ -401,11 +395,11 @@ function PackagesView({
       </div>
 
       {loading ? (
-        <div className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
+        <div className="rounded-md border border-border bg-card p-4 text-sm text-muted-foreground">
           Loading grades...
         </div>
       ) : cycles.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border bg-muted/50 p-8 text-center text-sm text-muted-foreground">
+        <div className="rounded-md border border-dashed border-border bg-muted/50 p-8 text-center text-sm text-muted-foreground">
           No cycles found yet.
         </div>
       ) : (
@@ -421,7 +415,7 @@ function PackagesView({
               <article
                 key={cycle.cycleNumber}
                 className={cn(
-                  "flex flex-col gap-3.5 rounded-2xl border border-border bg-card p-5 transition",
+                  "flex flex-col gap-3.5 rounded-md border border-border bg-card p-5 transition",
                   !cycle.published && "opacity-90"
                 )}
               >
@@ -476,7 +470,7 @@ function PackagesView({
                 </div>
 
                 {cycle.published && cycle.feedback?.trim() ? (
-                  <div className="rounded-lg border border-border bg-[hsl(var(--background))] p-3">
+                  <div className="rounded-md border border-border bg-[hsl(var(--background))] p-3">
                     <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
                       Producer note
                     </div>
@@ -487,7 +481,7 @@ function PackagesView({
                 {cycle.published && cycle.reviewProjectId && cycle.reviewMediaId ? (
                   <Link
                     href={`/projects/${cycle.reviewProjectId}/review/${cycle.reviewMediaId}`}
-                    className="inline-flex w-fit items-center rounded-lg border border-border bg-secondary px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-accent"
+                    className="inline-flex w-fit items-center rounded-md border border-border bg-secondary px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-accent"
                   >
                     View package feedback
                   </Link>
@@ -527,12 +521,12 @@ function ParticipationView({
             Use the week switcher. Official total {loading ? "…" : `${total.earned} / ${total.possible || "—"}`}.
           </p>
         </div>
-        <div className="inline-flex items-center gap-1 rounded-xl border border-foreground/[0.08] bg-card p-1">
+        <div className="inline-flex items-center gap-1 rounded-md border border-foreground/[0.08] bg-card p-1">
           <button
             type="button"
             disabled={weekIndex <= 0}
             onClick={() => onWeekIndex(Math.max(0, weekIndex - 1))}
-            className="rounded-lg p-3 text-[var(--ink-text)] transition hover:bg-foreground/5 hover:text-foreground disabled:opacity-30 lg:p-2"
+            className="rounded-md p-3 text-[var(--ink-text)] transition hover:bg-foreground/5 hover:text-foreground disabled:opacity-30 lg:p-2"
             aria-label="Previous week"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -558,7 +552,7 @@ function ParticipationView({
             type="button"
             disabled={weekIndex >= weeks.length - 1}
             onClick={() => onWeekIndex(Math.min(weeks.length - 1, weekIndex + 1))}
-            className="rounded-lg p-3 text-[var(--ink-text)] transition hover:bg-foreground/5 hover:text-foreground disabled:opacity-30 lg:p-2"
+            className="rounded-md p-3 text-[var(--ink-text)] transition hover:bg-foreground/5 hover:text-foreground disabled:opacity-30 lg:p-2"
             aria-label="Next week"
           >
             <ChevronRight className="h-4 w-4" />
@@ -567,16 +561,16 @@ function ParticipationView({
       </div>
 
       {loading ? (
-        <div className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
+        <div className="rounded-md border border-border bg-card p-4 text-sm text-muted-foreground">
           Loading participation...
         </div>
       ) : !week ? (
-        <div className="rounded-2xl border border-dashed border-border bg-muted/50 p-8 text-center text-sm text-muted-foreground">
+        <div className="rounded-md border border-dashed border-border bg-muted/50 p-8 text-center text-sm text-muted-foreground">
           No participation weeks in this semester yet.
         </div>
       ) : (
         <div className="space-y-3">
-          <div className="flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3">
+          <div className="flex items-center justify-between rounded-md border border-border bg-card px-4 py-3">
             <div>
               <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
                 {week.label}
@@ -596,13 +590,13 @@ function ParticipationView({
           </div>
 
           {classDays.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+            <div className="rounded-md border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
               No class days this week.
             </div>
           ) : (
             <div className="grid gap-3 sm:grid-cols-3">
               {classDays.map((day) => (
-                <div key={day.date} className="rounded-2xl border border-border bg-card p-4">
+                <div key={day.date} className="rounded-md border border-border bg-card p-4">
                   <div className="flex items-center justify-between gap-2">
                     <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
                       {day.weekday} · {day.date.slice(5)}
@@ -664,7 +658,7 @@ function OtherView({
         </p>
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
-        <article className="rounded-2xl border border-border bg-card p-5">
+        <article className="rounded-md border border-border bg-card p-5">
           <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
             Livestreams
           </div>
@@ -684,7 +678,7 @@ function OtherView({
           </div>
         </article>
 
-        <article className="rounded-2xl border border-border bg-card p-5">
+        <article className="rounded-md border border-border bg-card p-5">
           <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
             Portfolio
           </div>
@@ -698,7 +692,7 @@ function OtherView({
               : "Counts as 10% of the semester grade."}
           </p>
           {portfolioFeedback.trim() ? (
-            <p className="mt-3 whitespace-pre-wrap rounded-lg border border-border bg-[hsl(var(--background))] p-3 text-sm">
+            <p className="mt-3 whitespace-pre-wrap rounded-md border border-border bg-[hsl(var(--background))] p-3 text-sm">
               {portfolioFeedback}
             </p>
           ) : null}
@@ -725,7 +719,7 @@ function CategoryCard({
 }) {
   const pct = pctOf(earned, possible);
   return (
-    <div className="rounded-2xl border border-border bg-card p-4">
+    <div className="rounded-md border border-border bg-card p-4">
       <div className="flex items-center justify-between gap-2">
         <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
           {label}
@@ -763,7 +757,7 @@ function PointsCell({
   dim: boolean;
 }) {
   return (
-    <div className="rounded-lg border border-border bg-[hsl(var(--background))] p-3">
+    <div className="rounded-md border border-border bg-[hsl(var(--background))] p-3">
       <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
         {label}
       </div>

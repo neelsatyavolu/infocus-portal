@@ -39,7 +39,8 @@ Tabs with no note are shown to everyone signed in.
 
 **Production**
 
-- The Show (associate producers and up), with **Publishing Queue** and **Livestreams** as tabs at the top. Everyone else sees **Livestream Tracker** here instead.
+- The Show (associate producers and up), with **Publishing Queue** as a tab at the top.
+- Livestream Tracker (everyone).
 
 **Tools**
 
@@ -59,7 +60,7 @@ Tabs with no note are shown to everyone signed in.
 - **Extension Requests** (producers): requests waiting on you.
 - **Meetings** (producers): a red **Live** tag while a meeting you can see is live.
 - **People** (producers): participation changes waiting for approval (not your own). **Participation** shows the same count as a tab.
-- **The Show** (producers) or **Livestream Tracker** (livestream managers): livestream sign-up requests waiting. **Livestreams** shows it as a tab.
+- **Livestream Tracker** (producers and livestream managers): livestream sign-up requests waiting.
 - **Grades**: a green dot when a grade was released since you last opened Grades.
 - **Admin Dashboard**: access requests waiting.
 

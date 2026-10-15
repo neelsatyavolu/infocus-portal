@@ -78,7 +78,7 @@ export function LivestreamsHeader({
         // Producers reach this page as a tab of The Show; everyone else from Production.
         <>
           <Radio className="h-3 w-3" aria-hidden />
-          {data.canAppointManagers ? "The Show" : "Production"} · {data.semester.label}
+          Production · {data.semester.label}
         </>
       }
       title={TITLE}

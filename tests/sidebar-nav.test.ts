@@ -76,7 +76,7 @@ describe("buildSidebarNav", () => {
       { label: null, items: ["dashboard", "grades", "calendar"] },
       { label: "Producing", items: ["groups", "package-progress", "people", "meetings", "extension-requests"] },
       { label: "Class", items: ["announcements", "ideas", "managers"] },
-      { label: "Production", items: ["show"] },
+      { label: "Production", items: ["show", "livestreams"] },
       { label: "Tools", items: ["drive", "teleprompter"] },
       { label: "footer", items: ["settings"] }
     ]);
@@ -144,12 +144,12 @@ describe("buildSidebarNav", () => {
 });
 
 describe("buildHubTabs", () => {
-  it("puts The Show, Publishing Queue and Livestreams together for producers", () => {
+  it("puts The Show and Publishing Queue together for producers; Livestreams has its own item", () => {
     expect(buildHubTabs(associate, "/publishing-queue/row1")?.map((tab) => tab.href)).toEqual([
       "/show-roles",
-      "/publishing-queue",
-      "/livestreams"
+      "/publishing-queue"
     ]);
+    expect(buildHubTabs(associate, "/livestreams")).toBeNull();
   });
 
   it("shows no tab bar where a person has only one page of a hub", () => {
@@ -484,7 +484,7 @@ describe("buildNavSignals", () => {
     expect(signals["extension-requests"]).toMatchObject({ count: 1, label: "1 extension request waiting on you" });
     expect(signals.meetings).toMatchObject({ tag: { label: "Live", tone: "live" }, dotTone: "live" });
     expect(signals.people?.count).toBe(4);
-    expect(signals.show?.count).toBe(3);
+    expect(signals.show).toBeUndefined();
     expect(signals.livestreams?.count).toBe(3);
     expect(signals.admin).toMatchObject({ count: 5, label: "5 access requests waiting" });
   });

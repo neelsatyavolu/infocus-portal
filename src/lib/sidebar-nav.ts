@@ -79,8 +79,7 @@ type HubPage = {
 const HUBS: Record<"show" | "people" | "calendar" | "announcements", HubPage[]> = {
   show: [
     { href: "/show-roles", label: "The Show", producersOnly: true },
-    { href: "/publishing-queue", label: "Publishing Queue", producersOnly: true },
-    { href: "/livestreams", label: "Livestreams" }
+    { href: "/publishing-queue", label: "Publishing Queue", producersOnly: true }
   ],
   people: [
     { href: "/members", label: "Members", producersOnly: true },
@@ -167,10 +166,10 @@ export function buildSidebarNav(context: SidebarNavContext): SidebarNavSection[]
       item("ideas", "/ideas", "Ideas"),
       item("managers", "/managers", "Managers")
     ]),
+    // Livestreams is its own item for everyone; producers also get The Show (with Publishing Queue).
     section("Production", [
-      context.isProducer
-        ? item("show", "/show-roles", "The Show")
-        : item("livestreams", "/livestreams", "Livestream Tracker")
+      context.isProducer && item("show", "/show-roles", "The Show"),
+      item("livestreams", "/livestreams", "Livestream Tracker")
     ]),
     section("Tools", [
       item("drive", "https://drive.infocuspaly.com", "InFocus Drive", { external: true, newTab: true }),
@@ -623,10 +622,7 @@ export function buildNavSignals(
   const signups = countSignal(status.livestreamSignups, (count) =>
     `${plural(count, "livestream sign-up request", "livestream sign-up requests")} waiting`
   );
-  if (signups) {
-    signals.show = signups;
-    signals.livestreams = signups;
-  }
+  if (signups) signals.livestreams = signups;
 
   const latestGrade = status.latestGradePublishedAt ? Date.parse(status.latestGradePublishedAt) : NaN;
   if (Number.isFinite(latestGrade) && options.gradesSeenAt !== null && latestGrade > options.gradesSeenAt) {
@@ -652,19 +648,13 @@ export function moreTabSignal(signals: NavSignals, tabIds: SidebarNavItemId[], v
   };
 }
 
-/** Counts for hub tabs (Participation, Livestreams), keyed by tab href. */
+/** Counts for hub tabs (Participation), keyed by tab href. */
 export function hubTabCounts(status: NavStatus): Record<string, { count: number; label: string }> {
   const counts: Record<string, { count: number; label: string }> = {};
   if (status.participationApprovals && status.participationApprovals > 0) {
     counts["/participation"] = {
       count: status.participationApprovals,
       label: `${plural(status.participationApprovals, "change", "changes")} waiting for approval`
-    };
-  }
-  if (status.livestreamSignups && status.livestreamSignups > 0) {
-    counts["/livestreams"] = {
-      count: status.livestreamSignups,
-      label: `${plural(status.livestreamSignups, "sign-up request", "sign-up requests")} waiting`
     };
   }
   return counts;

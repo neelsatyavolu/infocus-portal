@@ -138,7 +138,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "livestreams",
     label: "Livestream Tracker",
     href: "/livestreams",
-    hint: "Left sidebar, under Production (producers: The Show, then the Livestreams tab)",
+    hint: "Left sidebar, under Production: Livestream Tracker",
     aliases: ["livestream", "live stream", "tracker"],
     audiences: ALL
   },

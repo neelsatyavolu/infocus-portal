@@ -4,7 +4,7 @@ Everyone signed in sees a green ✱ in the bottom-right of Portal. It is hidden 
 
 Answers come from the Portal docs (this folder plus the class rules, Drive storage, and hosts docs). Reporters cannot read the producer-only docs (Admin and accounts, Groups and review, Members, Drive storage, Publishing Queue). Replies should read like a classmate: tab names, short bullets, no routes, tool names, or status codes. Markdown (**bold**, lists) is rendered in the popup. While it works, the popup shows plain status lines (Reading a doc, Reading grades, Preparing a grade change) instead of a generic “Looking that up.” If the docs do not say, it should say it does not know. If the docs say to type something (like `\` for Final Cut exempt), it says exactly that instead of inventing a button.
 
-If you ask **where** a page, tab, or package is, a card appears: **I can show where that is**, with **Take me there**. It only offers pages in your sidebar; ask for one you cannot open and it says that page is not in your sidebar. For a package, students go to that stage's tab in **The Cycle**, and producers go to the package in **Groups** at its current stage. A student on one package can just say “my package.” **Not now** skips it.
+If you ask **where** a page, tab, or package is, a card appears: **I can show where that is**, with **Take me there**. It only offers pages in your sidebar; ask for one you cannot open and it says that page is not in your sidebar. For a package, students go to that stage's page under **My package**, and producers go to the package in **Groups** at its current stage. A student on one package can just say “my package.” **Not now** skips it.
 
 What it can look up depends on role:
 

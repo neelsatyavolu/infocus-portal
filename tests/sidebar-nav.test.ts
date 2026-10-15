@@ -1,12 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { buildSidebarNav, isRailRoute, type SidebarNavContext } from "@/src/lib/sidebar-nav";
+import {
+  buildSidebarNav,
+  isPackageRoute,
+  isRailRoute,
+  myPackageHref,
+  type SidebarNavContext
+} from "@/src/lib/sidebar-nav";
 
 const student: SidebarNavContext = {
   isProducer: false,
   showCycleTabs: true,
   canManageGrades: false,
   canManageAdmin: false,
-  sampleOnly: false
+  sampleOnly: false,
+  myPackageHref: "/initial-cut"
 };
 
 const associate: SidebarNavContext = { ...student, isProducer: true, showCycleTabs: false };
@@ -26,11 +33,7 @@ function allIds(context: SidebarNavContext) {
 describe("buildSidebarNav", () => {
   it("groups a student's sidebar by job", () => {
     expect(ids(student)).toEqual([
-      { label: null, items: ["dashboard", "grades", "master-calendar"] },
-      {
-        label: "My package",
-        items: ["information", "brainstorming", "a-roll", "initial-cut", "final-cut", "extension-requests"]
-      },
+      { label: null, items: ["dashboard", "my-package", "grades", "master-calendar"] },
       { label: "Production", items: ["livestreams"] },
       { label: "Class", items: ["announcements", "announcements-submitted", "announcements-pa", "ideas", "managers", "package-cycles"] },
       { label: "Tools", items: ["drive", "teleprompter"] },
@@ -52,13 +55,18 @@ describe("buildSidebarNav", () => {
     ]);
   });
 
-  it("shows My package to a producer on a roster, without a second Extension Requests link", () => {
-    const sections = ids({ ...associate, showCycleTabs: true });
-    expect(sections[1]).toEqual({
-      label: "My package",
-      items: ["information", "brainstorming", "a-roll", "initial-cut", "final-cut"]
-    });
-    expect(allIds({ ...associate, showCycleTabs: true }).filter((id) => id === "extension-requests")).toHaveLength(1);
+  it("shows My package to a producer on a roster", () => {
+    expect(ids({ ...associate, showCycleTabs: true })[0].items).toEqual([
+      "dashboard",
+      "my-package",
+      "grades",
+      "master-calendar"
+    ]);
+  });
+
+  it("points My package at the stage the person is working on", () => {
+    const myPackage = buildSidebarNav(student)[0].items.find((item) => item.id === "my-package");
+    expect(myPackage?.href).toBe("/initial-cut");
   });
 
   it("gives executives the grade editor and admin instead of student grades", () => {
@@ -80,11 +88,7 @@ describe("buildSidebarNav", () => {
       "teleprompter",
       "managers",
       "ideas",
-      "information",
-      "brainstorming",
-      "a-roll",
-      "initial-cut",
-      "final-cut",
+      "my-package",
       "extension-requests",
       "livestreams",
       "groups",
@@ -129,5 +133,23 @@ describe("isRailRoute", () => {
     expect(isRailRoute("/groups")).toBe(false);
     expect(isRailRoute("/dashboard")).toBe(false);
     expect(isRailRoute("/initial-cut")).toBe(false);
+  });
+});
+
+describe("isPackageRoute", () => {
+  it("covers the five stage pages, the cycle guide and extension requests", () => {
+    for (const path of ["/information", "/brainstorming", "/a-roll", "/initial-cut", "/final-cut", "/extension-requests"]) {
+      expect(isPackageRoute(path), path).toBe(true);
+    }
+    expect(isPackageRoute("/groups")).toBe(false);
+    expect(isPackageRoute("/dashboard")).toBe(false);
+  });
+});
+
+describe("myPackageHref", () => {
+  it("opens the latest unlocked stage", () => {
+    expect(myPackageHref(null)).toBe("/brainstorming");
+    expect(myPackageHref({ "a-roll": true, "initial-cut": false, "final-cut": false })).toBe("/a-roll");
+    expect(myPackageHref({ "a-roll": true, "initial-cut": true, "final-cut": true })).toBe("/final-cut");
   });
 });

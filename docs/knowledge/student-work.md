@@ -1,6 +1,6 @@
 # Student cycle work
 
-Sidebar **The Cycle** (students, and APs who are members of a package):
+Sidebar **My package** (students, and APs who are members of a package) opens the stage you are working on. A stage bar at the top of each page switches between stages; **Cycle guide** is the Information page:
 
 | Tab | Route | What to turn in |
 |---|---|---|

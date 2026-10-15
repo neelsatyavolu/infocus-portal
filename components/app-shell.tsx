@@ -29,12 +29,10 @@ import {
   Users,
   UsersRound,
   Layers,
-  Lightbulb,
   Link2,
   List,
   ScrollText,
   Hourglass,
-  Info,
   KeyRound,
   Megaphone,
   Mic2,
@@ -45,7 +43,6 @@ import {
   Edit3,
   CheckSquare,
   Radio,
-  Film,
   Clapperboard,
   Search,
   Settings,
@@ -68,7 +65,6 @@ import {
   type ProjectShellData,
   type ProjectShellFolder
 } from "@/src/lib/project-shell";
-import { StageStatusChip } from "@/components/package-cycle/stage-status-chip";
 import {
   buildGenericBreadcrumbs,
   buildGroupsBreadcrumbs,
@@ -78,10 +74,17 @@ import {
 } from "@/src/lib/app-breadcrumbs";
 import { STAGE_FEEDBACK_READ_EVENT, type StageCommentUnread } from "@/src/lib/package-stage-comments";
 import { EXTENSION_REQUESTS_CHANGED_EVENT } from "@/src/lib/package-extensions";
-import { executiveWaitPill } from "@/src/lib/package-approval";
 import type { CycleStageStatus } from "@/src/lib/package-stage-status";
 import { folderDisplayName, folderPathSegments } from "@/src/lib/project-folders";
-import { buildSidebarNav, isRailRoute, type SidebarNavItem, type SidebarNavItemId } from "@/src/lib/sidebar-nav";
+import {
+  buildSidebarNav,
+  isPackageRoute,
+  isRailRoute,
+  myPackageHref,
+  type SidebarNavItem,
+  type SidebarNavItemId
+} from "@/src/lib/sidebar-nav";
+import { PackageStageNav } from "@/components/package-cycle/package-stage-nav";
 import type { AssistantAudience } from "@/src/lib/assistant-access";
 import { cn } from "@/src/lib/utils";
 
@@ -242,10 +245,7 @@ function SideNavLink({
   active,
   external = false,
   newTab = false,
-  disabled = false,
   unread,
-  status,
-  statusLabel,
   rail = false
 }: {
   href: string;
@@ -255,26 +255,19 @@ function SideNavLink({
   external?: boolean;
   /** When external, open in a new tab (default false — same-window app switch). */
   newTab?: boolean;
-  disabled?: boolean;
   unread?: number;
-  status?: CycleStageStatus;
-  statusLabel?: string;
   /** Icon-only on large screens (the folded sidebar); the phone drawer always shows labels. */
   rail?: boolean;
 }) {
   const className = cn(
     "relative flex items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-[13px] font-medium transition lg:py-2",
     rail && "lg:justify-center lg:px-0",
-    disabled && "cursor-not-allowed opacity-40 hover:bg-transparent hover:text-muted-foreground",
-    !disabled && active
-      ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
-      : !disabled && "text-muted-foreground hover:bg-card hover:text-foreground"
+    active ? "bg-[var(--brand-fill)] text-[var(--on-brand)]" : "text-muted-foreground hover:bg-card hover:text-foreground"
   );
   const labelClass = cn("min-w-0 flex-1 truncate", rail && "lg:sr-only");
   const trailing = (
     <span className={cn("contents", rail && "lg:hidden")}>
-      {status ? <StageStatusChip status={status} size="sm" label={statusLabel} /> : null}
-      <NavUnread count={unread} onBrand={!disabled && active} />
+      <NavUnread count={unread} onBrand={active} />
     </span>
   );
   const railDot =
@@ -282,16 +275,6 @@ function SideNavLink({
       <span aria-hidden className="absolute right-2 top-1.5 hidden h-2 w-2 rounded-full bg-[var(--brand-green)] lg:block" />
     ) : null;
   const title = rail ? label : undefined;
-
-  if (disabled) {
-    return (
-      <span className={className} aria-disabled="true" title={title}>
-        <Icon className="h-4 w-4 shrink-0" />
-        <span className={labelClass}>{label}</span>
-        {trailing}
-      </span>
-    );
-  }
 
   if (external) {
     return (
@@ -343,12 +326,8 @@ function SideSection({ label, rail = false }: { label: string; rail?: boolean })
 const NAV_ICONS: Record<SidebarNavItemId, SideNavIcon> = {
   dashboard: LayoutDashboard,
   grades: CheckSquare,
+  "my-package": Clapperboard,
   "master-calendar": CalendarDays,
-  information: Info,
-  brainstorming: Lightbulb,
-  "a-roll": Film,
-  "initial-cut": Clapperboard,
-  "final-cut": FileVideo2,
   "extension-requests": Hourglass,
   groups: UsersRound,
   "package-progress": ListChecks,
@@ -380,6 +359,7 @@ const EXACT_MATCH_NAV: ReadonlySet<SidebarNavItemId> = new Set([
 
 function isNavItemActive(item: SidebarNavItem, pathname: string, onMeetHost: boolean) {
   if (item.id === "dashboard") return pathname.startsWith("/dashboard") || pathname.startsWith("/projects");
+  if (item.id === "my-package") return isPackageRoute(pathname);
   if (item.id === "meetings") return pathname.startsWith("/meetings") || (onMeetHost && pathname === "/");
   if (item.external) return false;
   return EXACT_MATCH_NAV.has(item.id) ? pathname === item.href : pathname.startsWith(item.href);
@@ -612,18 +592,19 @@ export function AppShell({
         showCycleTabs,
         canManageGrades,
         canManageAdmin: canManageAllowedEmails,
-        sampleOnly
+        sampleOnly,
+        myPackageHref: myPackageHref(cycleNav)
       }),
-    [isProducer, showCycleTabs, canManageGrades, canManageAllowedEmails, sampleOnly]
+    [isProducer, showCycleTabs, canManageGrades, canManageAllowedEmails, sampleOnly, cycleNav]
   );
+  const packageUnread = feedbackUnread
+    ? feedbackUnread.brainstorming + feedbackUnread["a-roll"] + feedbackUnread["initial-cut"] + feedbackUnread["final-cut"]
+    : 0;
+  const showPackageStageNav = showCycleTabs && !sampleOnly && !embedded && !hideChrome && isPackageRoute(pathname);
 
   function renderNavItem(navItem: SidebarNavItem) {
-    const stageKey =
-      navItem.id === "brainstorming" || navItem.id === "a-roll" || navItem.id === "initial-cut" || navItem.id === "final-cut"
-        ? navItem.id
-        : null;
     const unread =
-      navItem.id === "extension-requests" ? extensionRequestsAwaiting : stageKey ? feedbackUnread?.[stageKey] : undefined;
+      navItem.id === "extension-requests" ? extensionRequestsAwaiting : navItem.id === "my-package" ? packageUnread : undefined;
     return (
       <SideNavLink
         key={navItem.id}
@@ -633,14 +614,7 @@ export function AppShell({
         active={isNavItemActive(navItem, pathname, onMeetHost)}
         external={navItem.external}
         newTab={navItem.newTab}
-        disabled={stageKey !== null && stageKey !== "brainstorming" ? !cycleNav?.[stageKey] : false}
         unread={unread}
-        status={stageKey ? cycleStatuses?.[stageKey] : undefined}
-        statusLabel={
-          stageKey === "initial-cut" && cycleStatuses?.["initial-cut"] === "stage-3" && remainingExecutiveSignoffs != null
-            ? (executiveWaitPill(remainingExecutiveSignoffs) ?? undefined)
-            : undefined
-        }
         rail={rail}
       />
     );
@@ -1717,6 +1691,17 @@ export function AppShell({
               isClassBoard ? "flex min-h-0 flex-col overflow-hidden" : "p-4 pb-24 md:p-6 md:pb-24 lg:pb-6"
             )}
           >
+            {showPackageStageNav ? (
+              <PackageStageNav
+                pathname={pathname}
+                unlocked={cycleNav}
+                statuses={cycleStatuses}
+                unread={feedbackUnread}
+                remainingExecutiveSignoffs={remainingExecutiveSignoffs}
+                extensionRequestsAwaiting={extensionRequestsAwaiting}
+                showExtensionRequests={!canManageWorkspaces}
+              />
+            ) : null}
             {phoneAssetChips.length > 0 ? (
               <nav aria-label="Folders" className="mb-4 flex min-w-0 items-center gap-2 lg:hidden">
                 <div ref={phoneAssetChipsRef} className="relative flex min-w-0 flex-1 gap-2 overflow-x-auto">

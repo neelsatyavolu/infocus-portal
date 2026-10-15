@@ -7,12 +7,8 @@ import { meetingsHomeUrl } from "@/src/lib/meetings/links";
 export type SidebarNavItemId =
   | "dashboard"
   | "grades"
+  | "my-package"
   | "master-calendar"
-  | "information"
-  | "brainstorming"
-  | "a-roll"
-  | "initial-cut"
-  | "final-cut"
   | "extension-requests"
   | "groups"
   | "package-progress"
@@ -60,6 +56,8 @@ export type SidebarNavContext = {
   canManageAdmin: boolean;
   /** Apple App Review account. */
   sampleOnly: boolean;
+  /** Where My package opens: the stage the person is working on (`myPackageHref`). */
+  myPackageHref: string;
 };
 
 function item(id: SidebarNavItemId, href: string, label: string, extra: Partial<SidebarNavItem> = {}): SidebarNavItem {
@@ -83,23 +81,15 @@ export function buildSidebarNav(context: SidebarNavContext): SidebarNavSection[]
     ];
   }
 
-  const extensionRequests = item("extension-requests", "/extension-requests", "Extension Requests");
-
   const sections = [
     section(null, [
       dashboard,
+      // The stage pages, the cycle guide and (for students) Extension Requests sit in the
+      // stage bar at the top of every package page (PackageStageNav).
+      context.showCycleTabs && item("my-package", context.myPackageHref, "My package"),
       !context.canManageGrades && item("grades", "/grades", "Grades"),
       item("master-calendar", "/master-calendar", "Master Calendar")
     ]),
-    context.showCycleTabs &&
-      section("My package", [
-        item("information", "/information", "Information"),
-        item("brainstorming", "/brainstorming", "Brainstorming"),
-        item("a-roll", "/a-roll", "A-roll/B-roll"),
-        item("initial-cut", "/initial-cut", "Initial Cut"),
-        item("final-cut", "/final-cut", "Final Cut"),
-        !context.isProducer && extensionRequests
-      ]),
     context.isProducer &&
       section("Producing", [
         item("groups", "/groups", "Groups"),
@@ -107,7 +97,7 @@ export function buildSidebarNav(context: SidebarNavContext): SidebarNavSection[]
         item("members", "/members", "Members"),
         item("participation", "/participation", "Participation"),
         item("meetings", meetingsHomeUrl(), "Meetings", { external: true }),
-        extensionRequests,
+        item("extension-requests", "/extension-requests", "Extension Requests"),
         context.canManageGrades && item("grade-editor", "/grade-editor", "Grade Editor")
       ]),
     section("Production", [
@@ -139,4 +129,28 @@ export function isRailRoute(pathname: string) {
   if (segments[0] === "projects") return segments.length >= 2;
   if (segments[0] === "groups") return segments.length >= 3;
   return false;
+}
+
+/** The student package pages that share the stage bar. */
+export const PACKAGE_ROUTES = [
+  "/information",
+  "/brainstorming",
+  "/a-roll",
+  "/initial-cut",
+  "/final-cut",
+  "/extension-requests"
+] as const;
+
+export function isPackageRoute(pathname: string) {
+  return PACKAGE_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));
+}
+
+/** The latest unlocked stage; Brainstorming until A-roll/B-roll unlocks. */
+export function myPackageHref(
+  unlocked: { "a-roll": boolean; "initial-cut": boolean; "final-cut": boolean } | null
+) {
+  if (unlocked?.["final-cut"]) return "/final-cut";
+  if (unlocked?.["initial-cut"]) return "/initial-cut";
+  if (unlocked?.["a-roll"]) return "/a-roll";
+  return "/brainstorming";
 }

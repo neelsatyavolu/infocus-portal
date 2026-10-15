@@ -17,16 +17,17 @@ Tabs with no note are shown to everyone signed in.
 **Top**
 
 - Dashboard (students) or Packages (associate producers and up)
+- My package — reporters, and any producer (associate, executive, or super admin) who is on a package roster. Opens the stage you are working on (the latest unlocked one) and shows the total unread feedback on this cycle's package.
 - Grades (`/grades`) — reporters and associate producers. Hidden for executive producers, the adviser, and super admin.
 - Master Calendar
 
-**My package** — reporters, and any producer (associate, executive, or super admin) who is on a package roster: Information, Brainstorming, A-roll/B-roll, Initial Cut, Final Cut. Later tabs are visible but disabled until the previous stage unlocks. Each tab shows its stage status and a count of unread feedback on this cycle's package (earlier cycles never count). Students see **Extension Requests** at the end of this section.
+**The stage bar.** Every package page (Information, Brainstorming, A-roll/B-roll, Initial Cut, Final Cut, Extension Requests) opens with a bar across the top: one tab per stage with its status and a count of unread feedback on this cycle's package (earlier cycles never count). Later stages are visible but disabled until the previous stage unlocks. On the right: **Cycle guide** (`/information`) and, for students, **Extension requests**.
 
 **Producing** — associate producers and up.
 
 - Groups, Package Cycle (roster), Members, Participation
 - Meetings (opens `meet.infocuspaly.com`). Calls open full screen at `meet.infocuspaly.com/<id>` (see `meetings.md`)
-- Extension Requests — producers find it here; students find it under My package. A number shows how many requests are waiting on you.
+- Extension Requests — producers find it here; students find it in the stage bar on their package pages. A number shows how many requests are waiting on you.
 - Grade Editor — executive producers, the adviser, and super admin
 
 **Production**

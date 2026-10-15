@@ -98,7 +98,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "information",
     label: "Information",
     href: "/information",
-    hint: "Left sidebar, under My package",
+    hint: "Left sidebar → My package, then Cycle guide at the top",
     aliases: ["the cycle", "cycle rules", "info"],
     audiences: CYCLE_TABS
   },
@@ -106,7 +106,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "brainstorming",
     label: "Brainstorming",
     href: "/brainstorming",
-    hint: "Left sidebar, under My package",
+    hint: "Left sidebar → My package, then the stage bar at the top",
     aliases: ["brainstorm", "proof of contact", "contact"],
     audiences: CYCLE_TABS
   },
@@ -114,7 +114,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "a-roll",
     label: "A-roll/B-roll",
     href: "/a-roll",
-    hint: "Left sidebar, under My package",
+    hint: "Left sidebar → My package, then the stage bar at the top",
     aliases: ["a roll", "b roll", "aroll", "broll", "a-roll", "b-roll"],
     audiences: CYCLE_TABS
   },
@@ -122,7 +122,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "initial-cut",
     label: "Initial Cut",
     href: "/initial-cut",
-    hint: "Left sidebar, under My package",
+    hint: "Left sidebar → My package, then the stage bar at the top",
     aliases: ["initial", "rough cut"],
     audiences: CYCLE_TABS
   },
@@ -130,7 +130,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "final-cut",
     label: "Final Cut",
     href: "/final-cut",
-    hint: "Left sidebar, under My package",
+    hint: "Left sidebar → My package, then the stage bar at the top",
     aliases: ["final"],
     audiences: CYCLE_TABS
   },
@@ -234,7 +234,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "extension-requests",
     label: "Extension Requests",
     href: "/extension-requests",
-    hint: "Left sidebar",
+    hint: "Students: My package → Extension requests at the top. Producers: left sidebar, under Producing",
     aliases: ["extension", "extensions"],
     audiences: ALL
   },

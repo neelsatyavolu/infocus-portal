@@ -377,14 +377,14 @@ export const packageReviewRemindersHourly = inngest.createFunction(
   }
 );
 
-/** Show manager confirms the filmed show's roles; emails every 3 hours until then. No runs 9 PM to 7 AM Pacific. */
+/** Show manager confirms the filmed show's roles; emails every 3 hours until then. Runs at :30 (1st period ends 10:30); none 9 PM to 7 AM Pacific. */
 export const showRolesConfirmReminders = inngest.createFunction(
   {
     id: "show-roles-confirm-reminders",
     concurrency: 1
   },
   {
-    cron: "TZ=America/Los_Angeles 0 7-20 * * *"
+    cron: "TZ=America/Los_Angeles 30 7-20 * * *"
   },
   async () => {
     return runShowRolesConfirmReminders();

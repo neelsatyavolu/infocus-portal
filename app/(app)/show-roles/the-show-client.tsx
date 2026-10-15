@@ -358,7 +358,8 @@ function OverviewBody() {
             </div>
           ))}
         </div>
-        {daysOut !== null && daysOut <= 0 ? (
+        {/* Filmed in 1st period the day before it airs. */}
+        {daysOut !== null && daysOut <= 1 ? (
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
             {data.rolesConfirmation?.confirmedAt ? (
               <p className="text-xs text-muted-foreground">
@@ -367,7 +368,7 @@ function OverviewBody() {
             ) : (
               <>
                 <p className="text-xs text-muted-foreground">
-                  Filmed. The show manager is emailed every 3 hours until the roles are confirmed.
+                  After filming, the show manager is emailed every 3 hours until the roles are confirmed.
                 </p>
                 <Button type="button" size="sm" disabled={saving} onClick={() => void confirmRoles()}>
                   <Check className="h-3.5 w-3.5" />

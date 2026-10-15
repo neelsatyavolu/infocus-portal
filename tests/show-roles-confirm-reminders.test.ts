@@ -28,7 +28,7 @@ vi.mock("@/src/server/show-manager", () => ({
 
 import { runShowRolesConfirmReminders } from "@/src/server/show-roles-confirm";
 
-// Wednesday, October 14, 2026 is a show day. PDT is UTC-7.
+// Wednesday, October 14, 2026 is a show day, filmed in 1st period on Tuesday the 13th. PDT is UTC-7.
 const pt = (dateKey: string, hhmm: string) => new Date(`${dateKey}T${hhmm}:00-07:00`);
 
 describe("runShowRolesConfirmReminders", () => {
@@ -42,20 +42,26 @@ describe("runShowRolesConfirmReminders", () => {
       anchors: ["Abby", "Otto"]
     });
     mocks.sendBrandedEmails.mockResolvedValue({ configured: true, sent: 1, failed: 0 });
-    mocks.loadPalyClassSessions.mockResolvedValue([
-      { date: "2026-10-14", startsAt: pt("2026-10-14", "08:25").toISOString(), endsAt: pt("2026-10-14", "09:55").toISOString() }
-    ]);
+    mocks.loadPalyClassSessions.mockResolvedValue(
+      ["2026-10-13", "2026-10-15"].map((date) => ({
+        date,
+        startsAt: pt(date, "09:00").toISOString(),
+        endsAt: pt(date, "10:30").toISOString()
+      }))
+    );
     mocks.resolveShowManagers.mockResolvedValue({ pool: [], managers: { "2026-10-14": { name: "Otto", source: "rotation" } } });
     mocks.findShowManagerEmail.mockResolvedValue("otto@example.edu");
   });
 
   it("does nothing while the show is still being filmed", async () => {
-    expect(await runShowRolesConfirmReminders(pt("2026-10-14", "09:00"))).toMatchObject({ sent: 0 });
+    mocks.resolveShowManagers.mockResolvedValue({ pool: [], managers: {} });
+    mocks.findUnique.mockResolvedValue({ confirmedAt: pt("2026-10-09", "11:00"), lastReminderAt: null });
+    expect(await runShowRolesConfirmReminders(pt("2026-10-13", "10:00"))).toMatchObject({ sent: 0, date: "2026-10-09" });
     expect(mocks.sendBrandedEmails).not.toHaveBeenCalled();
   });
 
-  it("emails the show manager with the roles and a link to that show", async () => {
-    expect(await runShowRolesConfirmReminders(pt("2026-10-14", "10:00"))).toEqual({ sent: 1, date: "2026-10-14" });
+  it("emails the show manager right after 1st period the day before", async () => {
+    expect(await runShowRolesConfirmReminders(pt("2026-10-13", "10:30"))).toEqual({ sent: 1, date: "2026-10-14" });
     const mail = mocks.sendBrandedEmails.mock.calls[0][0];
     expect(mail.recipients).toEqual(["otto@example.edu"]);
     expect(mail.ctaUrl).toMatch(/\/show-roles\?date=2026-10-14$/);
@@ -69,9 +75,10 @@ describe("runShowRolesConfirmReminders", () => {
     expect(mocks.sendBrandedEmails).not.toHaveBeenCalled();
   });
 
-  it("keeps reminding about the last show until the next show day", async () => {
+  it("keeps reminding about the last show until the next one is filmed", async () => {
     mocks.findUnique.mockResolvedValue({ confirmedAt: null, lastReminderAt: pt("2026-10-15", "07:00") });
     expect(await runShowRolesConfirmReminders(pt("2026-10-15", "10:00"))).toEqual({ sent: 1, date: "2026-10-14" });
+    expect(await runShowRolesConfirmReminders(pt("2026-10-15", "10:30"))).toMatchObject({ date: "2026-10-16" });
   });
 
   it("skips when another run already claimed the reminder", async () => {

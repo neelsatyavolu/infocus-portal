@@ -1,26 +1,19 @@
 import { extractCalendarAnchors } from "@/src/lib/calendar-show-content";
 import { sendBrandedEmails } from "@/src/lib/email";
 import { mainAppOrigin } from "@/src/lib/hosts";
-import { pacificDateKey, pacificWallTimeToUtc } from "@/src/lib/meetings/schedule";
+import { pacificDateKey } from "@/src/lib/meetings/schedule";
 import { prisma } from "@/src/lib/prisma";
 import { FIRST_SHOW_DATE, addDaysToDateKey, formatShowDateLabel, listShowDatesThrough } from "@/src/lib/show-assignment";
 import {
-  FALLBACK_FILMED_HOUR,
   SHOW_ROLES_REMINDER_INTERVAL_MS,
   latestFilmedShowDate,
+  showFilmingEndsAt,
   showRolesReminderDue
 } from "@/src/lib/show-roles-confirm";
 import { loadPalyClassSessions } from "@/src/server/paly-bell-schedule";
 import { loadScheduleOverrides } from "@/src/server/show-schedule";
 import { findShowManagerEmail, resolveShowManagers } from "@/src/server/show-manager";
 import { ROLES } from "@/src/show-roles/lib/constants";
-
-/** When the class period that films the show ends (noon if the bell schedule has no period that day). */
-async function filmedEndsAt(dateKey: string) {
-  const sessions = await loadPalyClassSessions(dateKey, addDaysToDateKey(dateKey, 1));
-  const session = sessions.find((item) => item.date === dateKey);
-  return session ? new Date(session.endsAt) : pacificWallTimeToUtc(dateKey, FALLBACK_FILMED_HOUR, 0);
-}
 
 async function loadShowRoleLines(dateKey: string) {
   const [entry, show] = await Promise.all([
@@ -44,20 +37,24 @@ async function loadShowRoleLines(dateKey: string) {
 }
 
 /**
- * Hourly: after the class period that films a show ends, email its show manager to confirm the
- * roles on The Show, then again every 3 hours (none 9 PM to 7 AM) until someone confirms.
- * Only the latest filmed show is checked; the next show day takes over.
+ * Hourly: once 1st period on the day before a show ends (it's filmed then), email its show manager
+ * to confirm the roles on The Show, then again every 3 hours (none 9 PM to 7 AM) until someone
+ * confirms. Only the latest filmed show is checked; the next one takes over once it's filmed.
  */
 export async function runShowRolesConfirmReminders(now = new Date()) {
   const today = pacificDateKey(now);
-  const overrides = await loadScheduleOverrides(FIRST_SHOW_DATE, today);
-  const dateKey = latestFilmedShowDate(listShowDatesThrough(today, overrides), today);
+  const horizon = addDaysToDateKey(today, 7);
+  const [overrides, sessions] = await Promise.all([
+    loadScheduleOverrides(FIRST_SHOW_DATE, horizon),
+    loadPalyClassSessions(addDaysToDateKey(today, -14), horizon)
+  ]);
+  const dateKey = latestFilmedShowDate(listShowDatesThrough(horizon, overrides), sessions, now);
   if (!dateKey) return { sent: 0, reason: "no show yet" };
 
   const existing = await prisma.showRolesConfirmation.findUnique({ where: { date: dateKey } });
   const due = showRolesReminderDue({
     now,
-    filmedEndsAt: await filmedEndsAt(dateKey),
+    filmedEndsAt: showFilmingEndsAt(dateKey, sessions),
     confirmedAt: existing?.confirmedAt ?? null,
     lastReminderAt: existing?.lastReminderAt ?? null
   });

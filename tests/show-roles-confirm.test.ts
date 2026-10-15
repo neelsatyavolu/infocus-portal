@@ -3,6 +3,7 @@ import {
   SHOW_ROLES_REMINDER_INTERVAL_MS,
   isShowRolesQuietTime,
   latestFilmedShowDate,
+  showFilmingEndsAt,
   showRolesReminderDue
 } from "@/src/lib/show-roles-confirm";
 
@@ -19,17 +20,37 @@ describe("isShowRolesQuietTime", () => {
   });
 });
 
+// Paly block schedule: 1st period meets Tue/Thu (9:00-10:30); Wed/Fri shows have none.
+const firstPeriod = (dateKey: string) => ({
+  date: dateKey,
+  startsAt: pt(dateKey, "09:00").toISOString(),
+  endsAt: pt(dateKey, "10:30").toISOString()
+});
+const sessions = ["2026-10-06", "2026-10-08", "2026-10-13", "2026-10-15"].map(firstPeriod);
+
+describe("showFilmingEndsAt", () => {
+  it("is the end of 1st period on the school day before the show", () => {
+    expect(showFilmingEndsAt("2026-10-14", sessions)).toEqual(pt("2026-10-13", "10:30"));
+    expect(showFilmingEndsAt("2026-10-16", sessions)).toEqual(pt("2026-10-15", "10:30"));
+  });
+
+  it("falls back to 10:30 AM the day before when the bell schedule has no 1st period", () => {
+    expect(showFilmingEndsAt("2026-10-21", sessions)).toEqual(pt("2026-10-20", "10:30"));
+  });
+});
+
 describe("latestFilmedShowDate", () => {
   const shows = ["2026-10-09", "2026-10-14", "2026-10-16"];
 
-  it("picks the most recent show on or before today", () => {
-    expect(latestFilmedShowDate(shows, "2026-10-14")).toBe("2026-10-14");
-    expect(latestFilmedShowDate(shows, "2026-10-15")).toBe("2026-10-14");
-    expect(latestFilmedShowDate(shows, "2026-10-13")).toBe("2026-10-09");
+  it("moves to the next show once its 1st period filming ends", () => {
+    expect(latestFilmedShowDate(shows, sessions, pt("2026-10-13", "10:00"))).toBe("2026-10-09");
+    expect(latestFilmedShowDate(shows, sessions, pt("2026-10-13", "10:30"))).toBe("2026-10-14");
+    expect(latestFilmedShowDate(shows, sessions, pt("2026-10-15", "09:30"))).toBe("2026-10-14");
+    expect(latestFilmedShowDate(shows, sessions, pt("2026-10-15", "10:30"))).toBe("2026-10-16");
   });
 
-  it("is null before the first show", () => {
-    expect(latestFilmedShowDate(shows, "2026-10-01")).toBeNull();
+  it("is null before the first show is filmed", () => {
+    expect(latestFilmedShowDate(shows, sessions, pt("2026-10-01", "12:00"))).toBeNull();
   });
 });
 

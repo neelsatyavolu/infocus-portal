@@ -4,7 +4,7 @@ import { requireUserId, syncUserProfile } from "@/src/lib/auth";
 import { fail, ok } from "@/src/lib/http";
 import { pacificDateKey } from "@/src/lib/meetings/schedule";
 import { getPlatformAccess, hasPlatformRole } from "@/src/lib/platform-admin";
-import { DATE_KEY_PATTERN } from "@/src/lib/show-assignment";
+import { DATE_KEY_PATTERN, addDaysToDateKey } from "@/src/lib/show-assignment";
 import { userDisplayName } from "@/src/lib/user-display";
 import { confirmShowRoles } from "@/src/server/show-roles-confirm";
 
@@ -22,7 +22,8 @@ export async function POST(request: Request) {
       throw new Error("FORBIDDEN");
     }
     const payload = schema.parse(await request.json());
-    if (payload.date > pacificDateKey(new Date())) {
+    // Filmed in 1st period the day before it airs.
+    if (payload.date > addDaysToDateKey(pacificDateKey(new Date()), 1)) {
       return fail("This show hasn't been filmed yet.", 400);
     }
     return ok(await confirmShowRoles(payload.date, userDisplayName(user)));

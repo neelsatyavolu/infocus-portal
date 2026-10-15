@@ -161,10 +161,11 @@ export function StageWorkspace({
     setUploadItems((current) => current.map((item) => (item.id === id ? { ...item, ...patch } : item)));
   }
 
-  const load = useCallback(async (options?: { quiet?: boolean }) => {
+  const load = useCallback(async (options?: { quiet?: boolean; cached?: boolean }) => {
     const cacheKey = `stage-view:${slug}:${rowId ?? ""}:${reviewStage ?? ""}`;
-    // Show the last copy at once and refresh it quietly (src/lib/client-cache.ts).
-    const cached = options?.quiet ? undefined : cachedValue<StageView>(cacheKey);
+    // On first view, show the last copy at once and refresh it quietly (src/lib/client-cache.ts).
+    // Reloads after a save skip it so the pre-save copy never flashes back.
+    const cached = options?.cached ? cachedValue<StageView>(cacheKey) : undefined;
     const quiet = options?.quiet || cached !== undefined;
     if (cached) setView(cached);
     if (!quiet) setLoading(true);
@@ -181,7 +182,7 @@ export function StageWorkspace({
   }, [slug, rowId, reviewStage]);
 
   useEffect(() => {
-    void load();
+    void load({ cached: true });
   }, [load]);
 
   async function uploadOne(file: File, itemId: string) {

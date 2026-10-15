@@ -22,6 +22,7 @@ import {
 import { PARTICIPATION_POINTS_PER_WEEK, sumParticipationMax } from "@/src/lib/grading";
 import { type NameSortKey, sortNamedPeople } from "@/src/lib/name-sort";
 import { cn } from "@/src/lib/utils";
+import { cachedValue, rememberValue } from "@/src/lib/client-cache";
 
 const NOTE_MAX = 600;
 
@@ -150,20 +151,9 @@ export default function ParticipationClient() {
     });
   }, [weekStart]);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-
-    try {
-      const response = await fetch(`/api/participation?weekStart=${weekStartKey}`, {
-        cache: "no-store"
-      });
-      const payload = await response.json();
-
-      if (!response.ok) {
-        throw new Error(payload?.error?.message ?? "Failed to load participation.");
-      }
-
-      const week = payload.data as WeekData;
+  const load = useCallback(async (options?: { cached?: boolean }) => {
+    const cacheKey = `participation:${weekStartKey}`;
+    function apply(week: WeekData) {
       setData(week);
       const nextDrafts: Record<string, number> = {};
       const nextNotes: Record<string, string> = {};
@@ -177,6 +167,25 @@ export default function ParticipationClient() {
       }
       setDrafts(nextDrafts);
       setNoteDrafts(nextNotes);
+    }
+    // On first view, show the last copy at once and refresh it quietly (src/lib/client-cache.ts).
+    const cached = options?.cached ? cachedValue<WeekData>(cacheKey) : undefined;
+    if (cached) apply(cached);
+    else setLoading(true);
+
+    try {
+      const response = await fetch(`/api/participation?weekStart=${weekStartKey}`, {
+        cache: "no-store"
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload?.error?.message ?? "Failed to load participation.");
+      }
+
+      const week = payload.data as WeekData;
+      rememberValue(cacheKey, week);
+      apply(week);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to load participation.");
     } finally {
@@ -185,7 +194,7 @@ export default function ParticipationClient() {
   }, [weekStartKey]);
 
   useEffect(() => {
-    void load();
+    void load({ cached: true });
   }, [load]);
 
   const loadQueue = useCallback(async () => {

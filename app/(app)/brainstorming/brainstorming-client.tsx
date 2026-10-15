@@ -19,6 +19,7 @@ import { StageStatusChip } from "@/components/package-cycle/stage-status-chip";
 import { cycleStageStatus, emptyCycleStageStatusInput, type CycleStageStatus } from "@/src/lib/package-stage-status";
 import { useFileDrop } from "@/src/lib/use-file-drop";
 import { cn } from "@/src/lib/utils";
+import { cachedValue, rememberValue } from "@/src/lib/client-cache";
 import { BottomTabDock, BottomTabDockButton, CycleTabLabel } from "@/components/ui/bottom-tab-dock";
 
 type Member = {
@@ -125,12 +126,20 @@ export default function BrainstormingClient() {
   const [docDrafts, setDocDrafts] = useState<Record<string, string>>({});
   const fileInputs = useRef<Record<string, HTMLInputElement | null>>({});
 
-  const load = useCallback(async (cycleNumber?: number) => {
-    setLoading(true);
-    try {
-      const data = await fetchPayload(cycleNumber);
+  const load = useCallback(async (cycleNumber?: number, options?: { cached?: boolean }) => {
+    const cacheKey = `brainstorming:${cycleNumber ?? ""}`;
+    function apply(data: Payload) {
       setPayload(data);
       setDocDrafts(Object.fromEntries(data.packages.map((pkg) => [pkg.id, pkg.brainstormDocUrl])));
+    }
+    // On first view, show the last copy at once and refresh it quietly (src/lib/client-cache.ts).
+    const cached = options?.cached ? cachedValue<Payload>(cacheKey) : undefined;
+    if (cached) apply(cached);
+    else setLoading(true);
+    try {
+      const data = await fetchPayload(cycleNumber);
+      rememberValue(cacheKey, data);
+      apply(data);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to load brainstorming.");
     } finally {
@@ -140,7 +149,7 @@ export default function BrainstormingClient() {
 
   useEffect(() => {
     const cycle = Number(new URLSearchParams(window.location.search).get("cycle"));
-    void load(Number.isInteger(cycle) && cycle > 0 ? cycle : undefined);
+    void load(Number.isInteger(cycle) && cycle > 0 ? cycle : undefined, { cached: true });
   }, [load]);
 
   function replacePackage(next: PackageCard) {
@@ -428,7 +437,7 @@ export default function BrainstormingClient() {
         {cycles.map((cycle) => {
           const active = cycle.cycleNumber === activeCycleNumber;
           return (
-            <BottomTabDockButton key={cycle.cycleNumber} active={active} onClick={() => void load(cycle.cycleNumber)}>
+            <BottomTabDockButton key={cycle.cycleNumber} active={active} onClick={() => void load(cycle.cycleNumber, { cached: true })}>
               <CycleTabLabel cycleNumber={cycle.cycleNumber} active={active} />
             </BottomTabDockButton>
           );

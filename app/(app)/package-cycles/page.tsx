@@ -5,6 +5,7 @@ import { CalendarClock, Edit3, RefreshCcw, Save } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/src/lib/utils";
+import { cachedValue, rememberValue } from "@/src/lib/client-cache";
 import { PackageOfCycleWinners } from "./package-of-cycle-winners";
 
 type PackageCycle = {
@@ -113,6 +114,8 @@ function isCyclePassed(cycle: PackageCycle) {
   return finalCut.getTime() < today.getTime();
 }
 
+const CYCLES_CACHE_KEY = "package-cycles";
+
 async function loadCycles() {
   const response = await fetch("/api/package-cycles", { cache: "no-store" });
   const payload = (await response.json()) as {
@@ -124,6 +127,7 @@ async function loadCycles() {
     throw new Error(payload.error?.message ?? "Failed to load package cycles.");
   }
 
+  rememberValue(CYCLES_CACHE_KEY, payload.data);
   return payload.data;
 }
 
@@ -165,7 +169,10 @@ export default function PackageCyclesPage() {
 
     async function hydrate() {
       try {
-        setLoading(true);
+        // Show the last copy at once and refresh it quietly (src/lib/client-cache.ts).
+        const cached = cachedValue<PackageCyclesResponse>(CYCLES_CACHE_KEY);
+        if (cached) applyData(cached);
+        else setLoading(true);
         setMessage(null);
         const data = await loadCycles();
         if (!active) return;

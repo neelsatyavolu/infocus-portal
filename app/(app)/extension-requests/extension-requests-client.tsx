@@ -10,6 +10,7 @@ import { ApproveExtensionDialog, type GrantTerms } from "./approve-extension-dia
 import { DenyExtensionDialog } from "./deny-extension-dialog";
 import { ExtensionDaysInput } from "./extension-days-input";
 import { GrantExtensionDialog } from "./grant-extension-dialog";
+import { cachedValue, rememberValue } from "@/src/lib/client-cache";
 
 type Approval = {
   userId: string;
@@ -93,6 +94,8 @@ function grantedTerms(entry: ExtensionRequest): GrantTerms {
   };
 }
 
+const EXTENSIONS_CACHE_KEY = "extension-requests";
+
 export default function ExtensionRequestsClient() {
   const [payload, setPayload] = useState<Payload | null>(null);
   const [loading, setLoading] = useState(true);
@@ -107,8 +110,18 @@ export default function ExtensionRequestsClient() {
   const [granting, setGranting] = useState(false);
   const [emailingId, setEmailingId] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (options?: { cached?: boolean }) => {
+    function apply(data: Payload) {
+      setPayload(data);
+      if (!cycleSeededRef.current) {
+        cycleSeededRef.current = true;
+        setCycleNumber(data.activeCycleNumber);
+      }
+    }
+    // On first view, show the last copy at once and refresh it quietly (src/lib/client-cache.ts).
+    const cached = options?.cached ? cachedValue<Payload>(EXTENSIONS_CACHE_KEY) : undefined;
+    if (cached) apply(cached);
+    else setLoading(true);
 
     try {
       const response = await fetch("/api/extensions/requests", { cache: "no-store" });
@@ -119,11 +132,8 @@ export default function ExtensionRequestsClient() {
       }
 
       const data = body.data as Payload;
-      setPayload(data);
-      if (!cycleSeededRef.current) {
-        cycleSeededRef.current = true;
-        setCycleNumber(data.activeCycleNumber);
-      }
+      rememberValue(EXTENSIONS_CACHE_KEY, data);
+      apply(data);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to load extension requests.");
     } finally {
@@ -132,7 +142,7 @@ export default function ExtensionRequestsClient() {
   }, []);
 
   useEffect(() => {
-    void load();
+    void load({ cached: true });
   }, [load]);
 
   async function submitRequest() {

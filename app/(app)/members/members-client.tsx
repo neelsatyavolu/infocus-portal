@@ -17,6 +17,7 @@ import {
 } from "@/src/lib/member-notes";
 import { type NameSortKey, sortNamedPeople } from "@/src/lib/name-sort";
 import { cn } from "@/src/lib/utils";
+import { cachedValue, rememberValue } from "@/src/lib/client-cache";
 import { PageHeader } from "@/components/page-header";
 import { BottomTabDock, BottomTabDockButton, CycleTabLabel } from "@/components/ui/bottom-tab-dock";
 
@@ -36,6 +37,8 @@ type MembersPayload = {
   cycles: CycleTab[];
   members: MemberRow[];
 };
+
+const MEMBERS_CACHE_KEY = "members";
 
 function personLabel(person: { name: string | null; email: string | null }) {
   return person.name?.trim() || person.email || "Unnamed member";
@@ -74,21 +77,28 @@ export default function MembersClient() {
 
   useEffect(() => {
     let cancelled = false;
+    function apply(data: MembersPayload) {
+      setCycles(data.cycles);
+      setMembers(data.members);
+      const nextDrafts: Record<string, string> = {};
+      for (const member of data.members) {
+        for (const [cycle, notes] of Object.entries(member.notesByCycle)) {
+          nextDrafts[memberNoteKey(member.id, Number(cycle))] = notes;
+        }
+      }
+      setDrafts(nextDrafts);
+    }
     void (async () => {
       try {
-        setLoading(true);
+        // Show the last copy at once and refresh it quietly (src/lib/client-cache.ts).
+        const cached = cachedValue<MembersPayload>(MEMBERS_CACHE_KEY);
+        if (cached) apply(cached);
+        else setLoading(true);
         setMessage(null);
         const data = await load();
+        rememberValue(MEMBERS_CACHE_KEY, data);
         if (cancelled) return;
-        setCycles(data.cycles);
-        setMembers(data.members);
-        const nextDrafts: Record<string, string> = {};
-        for (const member of data.members) {
-          for (const [cycle, notes] of Object.entries(member.notesByCycle)) {
-            nextDrafts[memberNoteKey(member.id, Number(cycle))] = notes;
-          }
-        }
-        setDrafts(nextDrafts);
+        apply(data);
       } catch (error) {
         if (!cancelled) {
           setMessage(error instanceof Error ? error.message : "Failed to load members.");

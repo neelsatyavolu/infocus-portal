@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 
 const BOTTOM_GAP_PX = 16;
 /** Below this the measured height would be cramped; the sticky max height alone takes over. */
@@ -53,4 +53,37 @@ export function FillViewport({ className, children }: { className?: string; chil
       {children}
     </div>
   );
+}
+
+/**
+ * The window height left below `ref`'s top (measured as if the page were scrolled to the top),
+ * less `reservePx` for whatever sits under it (a Save bar, a gap). Null until measured, or when
+ * less than `minPx` would be left (then the caller keeps its own fallback).
+ */
+export function useAvailableHeight(ref: RefObject<HTMLElement | null>, reservePx: number, minPx = MIN_FILL_PX) {
+  const [height, setHeight] = useState<number | null>(null);
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    const parent = scrollParent(node);
+    let frame = 0;
+    const measure = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => {
+        const top = node.getBoundingClientRect().top + (parent?.scrollTop ?? 0) + window.scrollY;
+        const available = Math.floor(window.innerHeight - top - reservePx);
+        setHeight(available >= minPx ? available : null);
+      });
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    if (node.parentElement?.parentElement) observer.observe(node.parentElement.parentElement);
+    window.addEventListener("resize", measure);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [ref, reservePx, minPx]);
+  return height;
 }

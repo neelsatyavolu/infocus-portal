@@ -1,6 +1,8 @@
 "use client";
 
+import { useRef } from "react";
 import { TableShell } from "@/components/kit/data-table";
+import { useAvailableHeight } from "@/components/kit/fill-viewport";
 import { StatusTag } from "@/components/kit/status-tag";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/src/lib/utils";
@@ -44,8 +46,13 @@ export function weekTotal(userId: string, days: DayColumn[], drafts: GridCells) 
 const TODAY_TINT = "bg-[var(--brand-green)]/5";
 /** The header cell stays opaque (it sticks over the rows), so the tint is layered on bg-card. */
 const TODAY_HEAD_TINT = "bg-linear-to-b from-[var(--brand-green)]/5 to-[var(--brand-green)]/5";
-/** The table scrolls in its own box, so the day headers stay in view; it still fits the screen with the Save bar below. */
+/**
+ * The table scrolls in its own box, so the day headers stay in view. Its height is measured to end
+ * just above the Save bar (TABLE_RESERVE_PX: the bar, its gap and a little room), so the page
+ * itself doesn't scroll; the fixed fallback applies until it's measured or on short screens.
+ */
 const TABLE_MAX_HEIGHT = "max(20rem, calc(100dvh - var(--app-header-h, 0px) - 10rem))";
+const TABLE_RESERVE_PX = 104;
 
 /** Every day column is the same fixed width, w-36 (score field, comment button and the header's Full). */
 const DAY_COLUMN_REM = 9;
@@ -75,13 +82,17 @@ export function ParticipationGrid({
   // Student (at least 14rem) + the day columns + Total (6rem) + the row action (7.5rem).
   const minWidth = `${14 + columns.length * DAY_COLUMN_REM + 6 + 7.5}rem`;
 
+  const tableTop = useRef<HTMLDivElement>(null);
+  const fitHeight = useAvailableHeight(tableTop, TABLE_RESERVE_PX);
+
   return (
     <div className="min-w-0 overflow-hidden rounded-md border border-border bg-card">
       <ParticipationLegend offDays={offDayLabels} className="border-b border-border px-3 py-2.5" />
+      <div ref={tableTop} aria-hidden />
       <TableShell
         stickyFirstColumn
         minWidth={minWidth}
-        maxHeight={TABLE_MAX_HEIGHT}
+        maxHeight={fitHeight ? `${fitHeight}px` : TABLE_MAX_HEIGHT}
         caption="Participation scores for the week"
         className="rounded-none border-0 bg-transparent"
         tableClassName="table-fixed [&_tbody_tr:hover_td:first-child]:bg-[var(--ink-3)] [&_td]:py-2!"

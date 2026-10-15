@@ -1,20 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import type { ReactNode } from "react";
-import {
-  AlertTriangle,
-  Briefcase,
-  Check,
-  Circle,
-  Clock,
-  FolderKanban,
-  Grid2X2,
-  List,
-  Sparkles
-} from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { type PlatformRole } from "@prisma/client";
 import { CreateProjectTile } from "@/components/create-project-tile";
 import { DeleteEntityButton } from "@/components/delete-entity-button";
+import { PageHeader } from "@/components/page-header";
+import { StageTimeline } from "@/components/package-cycle/stage-timeline";
+import { buttonVariants } from "@/components/ui/button";
+import { homeStageSteps } from "@/src/lib/home-stages";
 import { isAppReviewEmail } from "@/src/lib/app-review";
 import { getCurrentAppUser } from "@/src/lib/current-app-user";
 import { userDisplayName } from "@/src/lib/user-display";
@@ -25,6 +18,7 @@ import {
   formatStageDueLabel,
   getDashboardData as fetchDashboardPanels,
   loadStudentDashboardSnapshot,
+  type DashboardActivityEntry,
   type DashboardUpNext,
   type StudentDashboardSnapshot
 } from "@/src/server/dashboard-data";
@@ -166,500 +160,362 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
   const accountName = userDisplayName(user) || `${(user.email ?? "Your").split("@")[0]}'s Account`;
   const totalProjects = selectedWorkspace?.projects.length ?? 0;
+  const firstName = (userDisplayName(user) || user.name || "").trim().split(/\s+/)[0] || null;
+
+  if (isStudent && snapshot) {
+    return (
+      <StudentHome
+        snapshot={snapshot}
+        upNext={dashboardPanels.upNext}
+        activity={dashboardPanels.activity}
+        firstName={firstName}
+      />
+    );
+  }
+
+  const canCreate = access.canManageWorkspaces && selectedWorkspace !== null && canCreateInWorkspace(selectedWorkspaceRole);
 
   return (
     <div className="space-y-5">
-      {isStudent && snapshot ? (
-        <StudentSnapshot snapshot={snapshot} />
-      ) : (
-        <>
-      {/* HERO — broadcast-banded cycle marquee */}
-      <section className="brand-hero-panel relative overflow-hidden px-6 py-5">
-        <div className="relative flex flex-wrap items-center justify-between gap-6">
-          <div className="min-w-0">
-            <div className="eyebrow flex items-center gap-2">
-              <span className="rec-dot rec-dot-red" />
-              {dashboardPanels.upNext?.cycleNumber
-                ? `Live Cycle - Cycle ${dashboardPanels.upNext.cycleNumber}`
-                : "Live Cycle"}
-            </div>
-            <h1 className="display-md mt-2 text-foreground">
-              {selectedWorkspace?.name ?? accountName}
-            </h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              {selectedWorkspace
-                ? `Browse ${totalProjects} active package${totalProjects === 1 ? "" : "s"} · Shows Wed & Fri`
-                : "Select a workspace to start reviewing packages."}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="meta-pill">
-              <Clock className="h-3.5 w-3.5" />
-              {workspaces.length} workspace{workspaces.length === 1 ? "" : "s"}
-            </span>
-            {selectedWorkspace ? (
-              <span className="meta-pill">
-                <FolderKanban className="h-3.5 w-3.5" />
-                {totalProjects} project{totalProjects === 1 ? "" : "s"}
-              </span>
-            ) : null}
-          </div>
-        </div>
-      </section>
-
-      {/* TOOLBAR */}
-      <section className="rounded-2xl border border-border bg-card p-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-            <Briefcase className="h-4 w-4" />
-            {selectedWorkspace ? `Projects in ${selectedWorkspace.name}` : "No workspace selected"}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <div className="inline-flex items-center gap-1 rounded-lg border border-border bg-muted p-1 text-sm">
+      <PageHeader
+        eyebrow={
+          <>
+            <span className="rec-dot rec-dot-red" />
+            {dashboardPanels.upNext?.cycleNumber ? `Live Cycle - Cycle ${dashboardPanels.upNext.cycleNumber}` : "Live Cycle"}
+          </>
+        }
+        title={selectedWorkspace?.name ?? accountName}
+        description={
+          selectedWorkspace
+            ? `${totalProjects} active package${totalProjects === 1 ? "" : "s"} · ${workspaces.length} workspace${workspaces.length === 1 ? "" : "s"} · Shows Wed & Fri`
+            : "Select a workspace to start reviewing packages."
+        }
+        actions={
+          selectedWorkspace ? (
+            <div className="inline-flex items-center gap-1 rounded-md border border-border p-1 text-sm" aria-label="Sort packages">
               {(["name", "recent", "size"] as const).map((value) => (
                 <Link
                   key={value}
-                  href={`/dashboard?workspaceId=${selectedWorkspace?.id ?? ""}&sort=${value}&view=${viewValue}`}
-                  className={`rounded-md px-2 py-1.5 ${
-                    sortValue === value
-                      ? "bg-secondary text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
+                  href={`/dashboard?workspaceId=${selectedWorkspace.id}&sort=${value}&view=${viewValue}`}
+                  aria-current={sortValue === value ? "true" : undefined}
+                  className={`rounded-md px-2.5 py-1.5 ${
+                    sortValue === value ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   {value === "name" ? "Name" : value === "recent" ? "Recent" : "Size"}
                 </Link>
               ))}
             </div>
-            <div className="inline-flex items-center gap-1 rounded-lg border border-border bg-muted p-1 text-sm">
-              <Link
-                href={`/dashboard?workspaceId=${selectedWorkspace?.id ?? ""}&sort=${sortValue}&view=grid`}
-                className={`grid h-7 w-7 place-items-center rounded-md ${
-                  viewValue === "grid" ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"
-                }`}
-                aria-label="Grid view"
-              >
-                <Grid2X2 className="h-3.5 w-3.5" />
-              </Link>
-              <Link
-                href={`/dashboard?workspaceId=${selectedWorkspace?.id ?? ""}&sort=${sortValue}&view=list`}
-                className={`grid h-7 w-7 place-items-center rounded-md ${
-                  viewValue === "list" ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"
-                }`}
-                aria-label="List view"
-              >
-                <List className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
+          ) : null
+        }
+      />
 
-      {!selectedWorkspace ? (
-        <section className="rounded-2xl border border-dashed border-border bg-muted/50 px-5 py-8 text-center text-sm text-muted-foreground">
-          You do not have any workspaces yet.
-        </section>
-      ) : projects.length === 0 ? (
-        <section className="space-y-3">
-          <div className="rounded-2xl border border-dashed border-border bg-muted/50 px-5 py-8 text-center text-sm text-muted-foreground">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+        {!selectedWorkspace ? (
+          <section className="rounded-md border border-dashed border-border px-5 py-8 text-center text-sm text-muted-foreground">
+            You do not have any workspaces yet.
+          </section>
+        ) : projects.length === 0 && !canCreate ? (
+          <section className="rounded-md border border-dashed border-border px-5 py-8 text-center text-sm text-muted-foreground">
             <Sparkles className="mx-auto mb-2 h-5 w-5 text-[var(--brand-green)]" />
             No projects in this workspace yet.
-          </div>
-          {access.canManageWorkspaces && canCreateInWorkspace(selectedWorkspaceRole) ? (
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              <CreateProjectTile workspaceId={selectedWorkspace.id} />
-            </div>
-          ) : null}
-        </section>
-      ) : (
-        <section className={`grid gap-4 ${viewValue === "list" ? "grid-cols-1" : "sm:grid-cols-2 xl:grid-cols-4"}`}>
-          {projects.map((project, index) => {
-            const gradient = TILE_GRADIENTS[index % TILE_GRADIENTS.length];
-
-            return (
+          </section>
+        ) : (
+          <section
+            className={`grid content-start gap-4 ${viewValue === "list" ? "grid-cols-1" : "sm:grid-cols-2 2xl:grid-cols-3"}`}
+          >
+            {projects.map((project, index) => (
               <Link
                 key={project.id}
                 href={`/projects/${project.id}`}
-                className="group overflow-hidden rounded-2xl border border-border bg-card transition hover:border-[var(--brand-green)]/40 hover:bg-card/90"
+                className="group overflow-hidden rounded-md border border-border bg-card transition hover:border-[var(--brand-green)]/40"
               >
-                <div className={`brand-tile-orbs relative h-28 p-4 ${gradient}`}>
+                <div className={`brand-tile-orbs relative h-24 p-4 ${TILE_GRADIENTS[index % TILE_GRADIENTS.length]}`}>
                   <p className="relative text-lg font-semibold tracking-tight text-soft-white">{project.name}</p>
                   <p className="relative text-xs font-medium text-soft-white/85">{selectedWorkspace.name}</p>
                 </div>
-
-                <div className="space-y-3 p-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm text-muted-foreground">
-                      {project._count.mediaItems} media file{project._count.mediaItems === 1 ? "" : "s"}
-                    </span>
-                  </div>
-
+                <div className="flex items-center justify-between gap-2 px-4 py-3">
+                  <span className="text-sm text-muted-foreground">
+                    {project._count.mediaItems} media file{project._count.mediaItems === 1 ? "" : "s"}
+                  </span>
                   {access.canManageWorkspaces ? (
-                    <div className="flex items-center justify-end">
-                      <DeleteEntityButton
-                        endpoint={`/api/projects/${project.id}`}
-                        label={project.name}
-                        description="This permanently deletes the project and all media files in it. This action cannot be undone."
-                        redirectTo="/dashboard"
-                        className="relative z-10"
-                      />
-                    </div>
+                    <DeleteEntityButton
+                      endpoint={`/api/projects/${project.id}`}
+                      label={project.name}
+                      description="This permanently deletes the project and all media files in it. This action cannot be undone."
+                      redirectTo="/dashboard"
+                      className="relative z-10"
+                    />
                   ) : null}
                 </div>
               </Link>
-            );
-          })}
+            ))}
+            {canCreate ? <CreateProjectTile workspaceId={selectedWorkspace.id} /> : null}
+          </section>
+        )}
 
-          {access.canManageWorkspaces && selectedWorkspace && canCreateInWorkspace(selectedWorkspaceRole) ? (
-            <CreateProjectTile workspaceId={selectedWorkspace.id} />
-          ) : null}
-        </section>
-      )}
-        </>
-      )}
+        <aside className="flex flex-col gap-5">
+          {dashboardPanels.upNext ? <MyPackageCard upNext={dashboardPanels.upNext} compact /> : null}
+          <ActivityCard activity={dashboardPanels.activity} />
+        </aside>
+      </div>
+    </div>
+  );
+}
 
-      {/* Up Next + Activity row */}
-      <section className="grid gap-5 lg:grid-cols-[1fr_320px]">
-        <div className="rounded-2xl border border-border bg-card p-5">
-          <div className="flex items-center justify-between">
-            <h2 className="display-sm text-foreground">Up Next</h2>
-            <span className="text-xs text-muted-foreground">
-              {dashboardPanels.upNext
-                ? `Cycle ${dashboardPanels.upNext.cycleNumber} stages`
-                : "Your cycle stages"}
-            </span>
-          </div>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {dashboardPanels.upNext?.groupTopic
-              ? `Package: ${dashboardPanels.upNext.groupTopic}`
-              : "Submit each stage by its due date."}
-          </p>
-          {dashboardPanels.upNext ? (
-            <div className="mt-4 flex flex-col gap-2.5">
-              {dashboardPanels.upNext.stages.map((stage, index) => {
-                const allPriorDone = dashboardPanels.upNext!.stages
-                  .slice(0, index)
-                  .every((prior) => prior.done);
-                let tone: "done" | "warn" | "future";
-                if (stage.done) tone = "done";
-                else if (allPriorDone) tone = "warn";
-                else tone = "future";
-                const dueLabel = formatStageDueLabel(stage.dueDate);
-                const meta =
-                  tone === "done"
-                    ? "Submitted"
-                    : dueLabel ??
-                      (tone === "warn" ? "Up next — submit when ready" : "Locked until prior stage");
-                return (
-                  <StageRow key={stage.key} tone={tone} title={stage.label} meta={meta} />
-                );
-              })}
-            </div>
+function StudentHome({
+  snapshot,
+  upNext,
+  activity,
+  firstName
+}: {
+  snapshot: StudentDashboardSnapshot;
+  upNext: DashboardUpNext | null;
+  activity: DashboardActivityEntry[];
+  firstName: string | null;
+}) {
+  const steps = upNext ? homeStageSteps(upNext.stages) : [];
+  const current = steps.find((step) => step.tone === "current") ?? null;
+  const currentDue = current ? formatStageDueLabel(current.dueDate) : null;
+
+  return (
+    <div className="space-y-5">
+      <PageHeader
+        eyebrow={upNext ? `Cycle ${upNext.cycleNumber}` : snapshot.semesterLabel}
+        title={firstName ? `Hi, ${firstName}` : "Dashboard"}
+        description={
+          current
+            ? `${current.label}: ${currentDue ?? "submit when ready"}.`
+            : upNext
+              ? "Every stage of your package is submitted."
+              : "You aren't assigned to a package this cycle yet."
+        }
+        actions={
+          current ? (
+            <Link href={current.href as never} className={buttonVariants()}>
+              Open {current.label}
+            </Link>
+          ) : null
+        }
+      />
+
+      <div className="grid gap-5 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          {upNext ? (
+            <MyPackageCard upNext={upNext} unreadFeedback={snapshot.unreadFeedback} snapshot={snapshot} />
           ) : (
-            <div className="mt-4 rounded-lg border border-dashed border-border bg-[hsl(var(--background))] px-4 py-6 text-center text-xs text-muted-foreground">
-              You aren&apos;t assigned to a package this cycle yet.
-            </div>
+            <section className="flex h-full flex-col justify-center rounded-md border border-dashed border-border px-5 py-8 text-center text-sm text-muted-foreground">
+              You aren&apos;t assigned to a package this cycle yet. Ask a producer to add you.
+            </section>
           )}
         </div>
+        <GradeCard snapshot={snapshot} />
+      </div>
 
-        <aside className="rounded-2xl border border-border bg-card p-5">
-          <h2 className="display-sm text-foreground">Activity</h2>
-          {dashboardPanels.activity.length > 0 ? (
-            <div className="mt-3 flex flex-col">
-              {dashboardPanels.activity.map((entry, index) => (
-                <ActivityRow
-                  key={entry.id}
-                  palette={(["av-green", "av-red", "av-blue", "av-purple", "av-gray"] as const)[index % 5]}
-                  initials={entry.initials}
-                  who="You"
-                  what={entry.verb}
-                  what2={entry.subject ?? "an item"}
-                  when={formatRelativeTime(entry.createdAt)}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="mt-3 rounded-lg border border-dashed border-border bg-[hsl(var(--background))] px-4 py-6 text-center text-xs text-muted-foreground">
-              No recent activity from you yet.
-            </div>
-          )}
-        </aside>
-      </section>
+      <div className="grid gap-5 md:grid-cols-2">
+        <ThisWeekCard snapshot={snapshot} />
+        <ActivityCard activity={activity} />
+      </div>
+    </div>
+  );
+}
 
-      {isStudent && snapshot ? (
-        <StudentDetailsRow snapshot={snapshot} upNext={dashboardPanels.upNext} />
+function CardHeading({ title, href, linkLabel }: { title: string; href?: string; linkLabel?: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <h2 className="display-sm text-foreground">{title}</h2>
+      {href && linkLabel ? (
+        <Link href={href as never} className="text-sm text-[var(--brand-green)] hover:text-foreground">
+          {linkLabel} →
+        </Link>
       ) : null}
     </div>
   );
 }
 
-function pctOf(earned: number, possible: number) {
-  if (possible <= 0) return null;
-  return Math.round((earned / possible) * 1000) / 10;
-}
-
-function formatHours(hours: number) {
-  return Number.isInteger(hours) ? String(hours) : hours.toFixed(1);
-}
-
-function StudentSnapshot({ snapshot }: { snapshot: StudentDashboardSnapshot }) {
-  const packagePct = pctOf(snapshot.packages.earned, snapshot.packages.possible);
-  const participationPct = pctOf(snapshot.participation.earned, snapshot.participation.possible);
-  const livestreamPct = pctOf(snapshot.livestreamHours, snapshot.requiredLivestreamHours);
+function MyPackageCard({
+  upNext,
+  unreadFeedback,
+  snapshot,
+  compact = false
+}: {
+  upNext: DashboardUpNext;
+  unreadFeedback?: number;
+  snapshot?: StudentDashboardSnapshot;
+  compact?: boolean;
+}) {
+  const steps = homeStageSteps(upNext.stages);
+  const current = steps.find((step) => step.tone === "current");
+  const dueLabels = Object.fromEntries(steps.map((step) => [step.key, formatStageDueLabel(step.dueDate)]));
+  const people = [
+    upNext.memberNames.filter(Boolean).join(", "),
+    upNext.producerName ? `Producer: ${upNext.producerName}` : "No producer assigned"
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
-    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <Link
-        href="/grades"
-        className="rounded-2xl border border-border bg-card p-4 transition hover:border-[var(--brand-green)]/40 hover:bg-card/90"
-      >
-        <div className="flex items-center justify-between gap-2">
-          <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            Your grade
+    <section className="flex h-full flex-col gap-4 rounded-md border border-border bg-card p-5">
+      <div>
+        <div className="text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">My package</div>
+        <h2 className="display-sm mt-1 text-foreground">{upNext.groupTopic?.trim() || "Untitled package"}</h2>
+        <p className="mt-0.5 text-sm text-muted-foreground">{people}</p>
+      </div>
+      {compact ? (
+        current ? (
+          <Link href={current.href as never} className="text-sm text-[var(--brand-green)] hover:text-foreground">
+            {current.label}
+            {dueLabels[current.key] ? ` · ${dueLabels[current.key]}` : ""} →
+          </Link>
+        ) : null
+      ) : (
+        <StageTimeline steps={steps} dueLabels={dueLabels} />
+      )}
+      {compact ? null : (
+        <dl className="mt-auto flex flex-wrap gap-x-8 gap-y-3 border-t border-border pt-4 text-sm">
+          <div>
+            <dt className="text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">Check-ins</dt>
+            <dd className="font-mono-broadcast tabular-nums">
+              {upNext.checkInsDone} / {upNext.checkInsTotal}
+            </dd>
           </div>
-          <span className="meta-pill">{snapshot.semesterLabel}</span>
-        </div>
-        <div
-          className={`mt-2 text-3xl font-semibold leading-none tracking-tight ${
-            snapshot.letter ? "text-[var(--brand-green)]" : "text-muted-foreground"
-          }`}
-        >
-          {snapshot.letter ?? "—"}
-        </div>
-        <div className="mt-1 text-xs text-[var(--brand-green)]">
-          {snapshot.percentage === null ? "Not gradeable yet" : `${snapshot.percentage.toFixed(1)}% estimated`}
-        </div>
-        <p className="mt-2 text-[11px] text-muted-foreground">Packages, participation, and portfolio.</p>
-      </Link>
-
-      <SnapshotCard
-        href="/grades"
-        label="Packages"
-        weight="55%"
-        value={
-          snapshot.packages.possible > 0
-            ? `${snapshot.packages.earned} / ${snapshot.packages.possible}`
-            : "—"
-        }
-        detail={packagePct === null ? "Not gradeable yet" : `${packagePct}% of category`}
-        hint="Final cuts + check-ins"
-        progress={packagePct}
-      />
-      <SnapshotCard
-        href="/grades"
-        label="Participation"
-        weight="35%"
-        value={
-          snapshot.participation.possible > 0
-            ? `${snapshot.participation.earned} / ${snapshot.participation.possible}`
-            : "—"
-        }
-        detail={participationPct === null ? "Not gradeable yet" : `${participationPct}% of category`}
-        hint="Mon 10 · Tue/Thu 20"
-        progress={participationPct}
-      />
-      <SnapshotCard
-        href="/livestreams"
-        label="Livestream"
-        weight={`${snapshot.requiredLivestreamHours}h`}
-        value={`${formatHours(snapshot.livestreamHours)} / ${snapshot.requiredLivestreamHours}h`}
-        detail={
-          snapshot.livestreamPoints === null
-            ? livestreamPct === null
-              ? "No hours logged yet"
-              : `${livestreamPct}% of required hours`
-            : `${snapshot.livestreamPoints} pts earned`
-        }
-        hint="8 hours · 40 pts this semester"
-        progress={livestreamPct}
-      />
+          <div>
+            <dt className="text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">Feedback</dt>
+            <dd>
+              <Link href={(current?.href ?? "/brainstorming") as never} className="hover:text-[var(--brand-green)]">
+                {unreadFeedback ? `${unreadFeedback} unread` : "No unread notes"}
+              </Link>
+            </dd>
+          </div>
+          {snapshot ? (
+            <div>
+              <dt className="text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">Extensions</dt>
+              <dd>
+                <Link href="/extension-requests" className="hover:text-[var(--brand-green)]">
+                  <span className="font-mono-broadcast tabular-nums">
+                    {snapshot.extensionsRemaining} / {snapshot.extensionBank}
+                  </span>{" "}
+                  days left
+                </Link>
+              </dd>
+            </div>
+          ) : null}
+        </dl>
+      )}
     </section>
   );
 }
 
-function StudentDetailsRow({
-  snapshot,
-  upNext
-}: {
-  snapshot: StudentDashboardSnapshot;
-  upNext: DashboardUpNext | null;
-}) {
-  const week = snapshot.thisWeek;
-  const weekPct = week ? pctOf(week.earned, week.possible) : null;
-  const extensionPct = pctOf(snapshot.extensionsRemaining, snapshot.extensionBank);
-  const teammates = upNext?.memberNames.filter(Boolean).join(" · ") || "No teammates listed";
+function GradeCard({ snapshot }: { snapshot: StudentDashboardSnapshot }) {
+  const rows = [
+    {
+      label: "Packages · 55%",
+      value: snapshot.packages.possible > 0 ? `${snapshot.packages.earned} / ${snapshot.packages.possible}` : "—",
+      href: "/grades"
+    },
+    {
+      label: "Participation · 35%",
+      value:
+        snapshot.participation.possible > 0 ? `${snapshot.participation.earned} / ${snapshot.participation.possible}` : "—",
+      href: "/grades"
+    },
+    {
+      label: "Livestream",
+      value: `${formatHours(snapshot.livestreamHours)} / ${snapshot.requiredLivestreamHours}h${
+        snapshot.livestreamPoints === null ? "" : ` · ${snapshot.livestreamPoints} pts`
+      }`,
+      href: "/livestreams"
+    }
+  ];
 
   return (
-    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <SnapshotCard
-        href="/grades"
-        label="This week"
-        weight={week?.label ?? "Participation"}
-        value={week && week.possible > 0 ? `${week.earned} / ${week.possible}` : "—"}
-        detail={weekPct === null ? "No class days scored yet" : `${weekPct}% of this week`}
-        hint="Mon 10 · Tue/Thu 20"
-        progress={weekPct}
-      >
-        {week && week.days.length > 0 ? (
-          <div className="mt-3 flex flex-wrap gap-1.5">
+    <section className="flex flex-col gap-4 rounded-md border border-border bg-card p-5">
+      <CardHeading title="Grade" href="/grades" linkLabel="All grades" />
+      <div className="flex items-baseline gap-3">
+        <span
+          className={`text-4xl font-semibold leading-none tracking-tight ${
+            snapshot.letter ? "text-[var(--brand-green)]" : "text-muted-foreground"
+          }`}
+        >
+          {snapshot.letter ?? "—"}
+        </span>
+        <span className="text-sm text-muted-foreground">
+          {snapshot.percentage === null ? "Not gradeable yet" : `${snapshot.percentage.toFixed(1)}% estimated`} ·{" "}
+          {snapshot.semesterLabel}
+        </span>
+      </div>
+      <dl className="flex flex-col">
+        {rows.map((row) => (
+          <Link
+            key={row.label}
+            href={row.href as never}
+            className="flex items-center justify-between gap-3 border-t border-border py-2.5 text-sm hover:text-[var(--brand-green)]"
+          >
+            <dt className="text-muted-foreground">{row.label}</dt>
+            <dd className="font-mono-broadcast tabular-nums">{row.value}</dd>
+          </Link>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
+function ThisWeekCard({ snapshot }: { snapshot: StudentDashboardSnapshot }) {
+  const week = snapshot.thisWeek;
+  return (
+    <section className="flex flex-col gap-3 rounded-md border border-border bg-card p-5">
+      <CardHeading title="This week" href="/grades" linkLabel="Participation" />
+      {week && week.possible > 0 ? (
+        <>
+          <p className="text-sm text-muted-foreground">
+            {week.label}:{" "}
+            <span className="font-mono-broadcast tabular-nums text-foreground">
+              {week.earned} / {week.possible}
+            </span>{" "}
+            points · Mon 10 · Tue/Thu 20
+          </p>
+          <div className="flex flex-wrap gap-1.5">
             {week.days.map((day) => (
               <span key={day.weekday} className="meta-pill">
                 {day.weekday} {day.points === null ? "—" : `${day.points}/${day.maxPoints}`}
               </span>
             ))}
           </div>
-        ) : null}
-      </SnapshotCard>
-
-      <SnapshotCard
-        href="/extension-requests"
-        label="Extensions"
-        weight={`${snapshot.extensionBank} days`}
-        value={`${snapshot.extensionsRemaining} / ${snapshot.extensionBank}`}
-        detail={
-          snapshot.extensionsRemaining === snapshot.extensionBank
-            ? "Full bank remaining"
-            : `${snapshot.extensionsRemaining} day${snapshot.extensionsRemaining === 1 ? "" : "s"} left`
-        }
-        hint="Used against late final-cut days"
-        progress={extensionPct}
-      />
-
-      <SnapshotCard
-        href="/brainstorming"
-        label="Feedback"
-        weight="Producer"
-        value={snapshot.unreadFeedback > 0 ? String(snapshot.unreadFeedback) : "0"}
-        detail={
-          snapshot.unreadFeedback > 0
-            ? `${snapshot.unreadFeedback} unread comment${snapshot.unreadFeedback === 1 ? "" : "s"}`
-            : "No unread comments"
-        }
-        hint="Stage notes from your producer"
-        progress={null}
-      />
-
-      <SnapshotCard
-        href="/a-roll"
-        label="Your package"
-        weight={upNext ? `Cycle ${upNext.cycleNumber}` : "Cycle"}
-        value={upNext?.groupTopic?.trim() || "Unassigned"}
-        detail={
-          upNext
-            ? upNext.producerName
-              ? `Producer · ${upNext.producerName}`
-              : "No producer assigned"
-            : "Not on a package this cycle"
-        }
-        hint={
-          upNext
-            ? `${teammates} · ${upNext.checkInsDone}/${upNext.checkInsTotal} check-ins`
-            : "Ask a producer to add you"
-        }
-        progress={upNext ? pctOf(upNext.checkInsDone, upNext.checkInsTotal) : null}
-      />
+        </>
+      ) : (
+        <p className="text-sm text-muted-foreground">No class days scored yet this week.</p>
+      )}
     </section>
   );
 }
 
-function SnapshotCard({
-  href,
-  label,
-  weight,
-  value,
-  detail,
-  hint,
-  progress,
-  children
-}: {
-  href: string;
-  label: string;
-  weight: string;
-  value: string;
-  detail: string;
-  hint: string;
-  progress: number | null;
-  children?: ReactNode;
-}) {
+function ActivityCard({ activity }: { activity: DashboardActivityEntry[] }) {
   return (
-    <Link
-      href={href as never}
-      className="rounded-2xl border border-border bg-card p-4 transition hover:border-[var(--brand-green)]/40 hover:bg-card/90"
-    >
-      <div className="flex items-center justify-between gap-2">
-        <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-          {label}
+    <section className="rounded-md border border-border bg-card p-5">
+      <CardHeading title="Activity" />
+      {activity.length > 0 ? (
+        <div className="mt-3 flex flex-col">
+          {activity.map((entry, index) => (
+            <ActivityRow
+              key={entry.id}
+              palette={(["av-green", "av-red", "av-blue", "av-purple", "av-gray"] as const)[index % 5]}
+              initials={entry.initials}
+              who="You"
+              what={entry.verb}
+              what2={entry.subject ?? "an item"}
+              when={formatRelativeTime(entry.createdAt)}
+            />
+          ))}
         </div>
-        <span className="meta-pill">{weight}</span>
-      </div>
-      <div className="mt-2 text-2xl font-semibold leading-none tracking-tight text-foreground">
-        {value}
-      </div>
-      <div className="mt-1 text-xs text-[var(--brand-green)]">{detail}</div>
-      <p className="mt-2 text-[11px] text-muted-foreground">{hint}</p>
-      {progress !== null ? (
-        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
-          <div
-            className="h-full rounded-full bg-[var(--brand-green)]"
-            style={{ width: `${Math.min(100, progress)}%` }}
-          />
-        </div>
-      ) : null}
-      {children}
-    </Link>
+      ) : (
+        <p className="mt-3 text-sm text-muted-foreground">No recent activity from you yet.</p>
+      )}
+    </section>
   );
 }
 
-function StageRow({
-  tone,
-  title,
-  meta
-}: {
-  tone: "done" | "warn" | "future";
-  title: string;
-  meta: string;
-}) {
-  const wrapperCls =
-    tone === "warn"
-      ? "border-[rgb(242,165,22,0.4)] bg-[rgb(242,165,22,0.06)]"
-      : tone === "future"
-        ? "border-border bg-[hsl(var(--background))] opacity-60"
-        : "border-border bg-[hsl(var(--background))]";
-  const iconCls =
-    tone === "done"
-      ? "border-[rgb(43,179,110,0.4)] bg-[rgb(43,179,110,0.18)] text-[var(--brand-green)]"
-      : tone === "warn"
-        ? "border-[rgb(242,165,22,0.4)] bg-[rgb(242,165,22,0.18)] text-[var(--brand-amber)]"
-        : "border-border bg-card text-muted-foreground";
-  const metaCls =
-    tone === "warn" ? "text-[var(--brand-amber)]" : "text-muted-foreground";
-  const Icon =
-    tone === "done" ? Check : tone === "warn" ? AlertTriangle : Circle;
-
-  return (
-    <div
-      className={`flex items-center justify-between gap-3 rounded-lg border px-3.5 py-3 ${wrapperCls}`}
-    >
-      <div className="flex min-w-0 items-center gap-3">
-        <div
-          className={`grid h-7 w-7 place-items-center rounded-full border ${iconCls}`}
-        >
-          <Icon className="h-3.5 w-3.5" strokeWidth={3} />
-        </div>
-        <div className="min-w-0">
-          <div className="text-sm font-semibold text-foreground">{title}</div>
-          <div className={`text-xs ${metaCls}`}>{meta}</div>
-        </div>
-      </div>
-      {tone === "done" ? (
-        <span className="status-pill status-approved">Submitted</span>
-      ) : tone === "warn" ? (
-        <span className="status-pill status-warn">Up next</span>
-      ) : (
-        <span className="status-pill status-neutral">Pending</span>
-      )}
-    </div>
-  );
+function formatHours(hours: number) {
+  return Number.isInteger(hours) ? String(hours) : hours.toFixed(1);
 }
 
 function ActivityRow({

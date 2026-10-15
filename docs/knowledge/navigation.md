@@ -16,41 +16,41 @@ Tabs with no note are shown to everyone signed in.
 
 **Top**
 
-- Announcements
 - Dashboard (students) or Packages (associate producers and up)
 - Grades (`/grades`) — reporters and associate producers. Hidden for executive producers, the adviser, and super admin.
+- Master Calendar
+
+**My package** — reporters, and any producer (associate, executive, or super admin) who is on a package roster: Information, Brainstorming, A-roll/B-roll, Initial Cut, Final Cut. Later tabs are visible but disabled until the previous stage unlocks. Each tab shows its stage status and a count of unread feedback on this cycle's package (earlier cycles never count). Students see **Extension Requests** at the end of this section.
+
+**Producing** — associate producers and up.
+
+- Groups, Package Cycle (roster), Members, Participation
+- Meetings (opens `meet.infocuspaly.com`). Calls open full screen at `meet.infocuspaly.com/<id>` (see `meetings.md`)
+- Extension Requests — producers find it here; students find it under My package. A number shows how many requests are waiting on you.
+- Grade Editor — executive producers, the adviser, and super admin
 
 **Production**
 
-- Master Calendar
-- Cycle Dates (`/package-cycles`: stage dates for each cycle)
-- InFocus Drive (opens `drive.infocuspaly.com` in a new tab)
-- Teleprompter (opens `teleprompter.infocuspaly.com`)
-- Managers (one card per manager area: equipment, livestream, website, social media; see `managers.md`)
-- Ideas (`/ideas`: story ideas from Bay Area news and events, new every 2 days; see `ideas.md`)
-
-**The Cycle** — reporters, and any producer (associate, executive, or super admin) who is on a package roster: Information, Brainstorming, A-roll/B-roll, Initial Cut, Final Cut. Later tabs are visible but disabled until the previous stage unlocks. Each tab shows its stage status and a count of unread feedback on this cycle's package (earlier cycles never count). Students see **Extension Requests** at the end of this section.
-
-**Livestreams**
-
+- The Show and Publishing Queue — associate producers and up
 - Livestream Tracker
 
-**Producers** — the heading and its tabs show only for associate producers and up.
+**Class**
 
-- Groups, Members, Package Cycle (roster), Publishing Queue, The Show, Participation — associate producers and up
-- Meetings (opens `meet.infocuspaly.com`) — associate producers and up. Calls open full screen at `meet.infocuspaly.com/<id>` (see `meetings.md`)
-- Grade Editor — executive producers, the adviser, and super admin
-- Extension Requests — producers find it here; students find it at the end of The Cycle. A number shows how many requests are waiting on you.
-
-**Announcements**
-
+- Announcements
 - Submitted — everyone can read. Associate producers and up can delete. Executive producers and super admin can invite outside viewers.
 - PA (assigned announcers and producers can edit)
+- Ideas (`/ideas`: story ideas from Bay Area news and events, new every 2 days; see `ideas.md`)
+- Managers (one card per manager area: equipment, livestream, website, social media; see `managers.md`)
+- Cycle Dates (`/package-cycles`: stage dates for each cycle)
 
-**Admin** — the heading shows only for executive producers, the adviser, and super admin.
+**Tools**
 
-- Admin Dashboard — executive producers, the adviser, and super admin
-- Settings — everyone. Without the Admin heading, Settings sits at the bottom on its own.
+- InFocus Drive (opens `drive.infocuspaly.com` in a new tab)
+- Teleprompter (opens `teleprompter.infocuspaly.com`)
+
+**At the end of the list:** Admin Dashboard (executive producers, the adviser, and super admin), then Settings (everyone).
+
+On a project page (`/projects/...`) or a group's stage page (`/groups/<group>/<stage>`), the sidebar folds to icons on large screens so the video has more room. Hover an icon to see its name; a green dot means unread items.
 
 **Bottom of the sidebar:** your name, a **Passwords** key icon (associate producers and up; see `passwords.md`), and **Sign out**. Super admin, the adviser, and anyone with a limited View as grant can click their name to View as another user (see `accounts-and-admin.md`).
 

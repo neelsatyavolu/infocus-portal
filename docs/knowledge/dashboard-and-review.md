@@ -10,8 +10,8 @@ The public homepage introduces InFocus as Palo Alto High School's student-run br
 
 Route: `/dashboard`.
 
-- **Students** see their cycle snapshot: **Up Next** (each stage of this cycle as Submitted, up next, or locked, with due dates), recent **Activity**, and cards for the estimated grade, Packages, Participation, Livestream hours, this week's participation, Extensions (opens `/extension-requests`), unread producer Feedback, and **Your package** (topic, producer, teammates). Grade cards open `/grades`.
-- **Producers** (associates and above) see **Packages** — workspaces and their projects, not the Groups review board. Pick a workspace, sort by Name, Recent, or Size, and switch Grid or List view. Producers with owner or editor access to the workspace can create projects; any producer can delete one (this deletes all its media).
+- **Students** see a header with what to do next (the current stage and its due date, with an **Open** button for that stage), then **My package** (topic, teammates, producer, a bar for each stage marked Submitted, Now or Later with due dates, check-ins, unread producer feedback, and extension days left, which opens `/extension-requests`), a **Grade** card (estimated letter and percent, Packages, Participation, and Livestream hours; opens `/grades` or `/livestreams`), **This week** (participation by day), and recent **Activity**.
+- **Producers** (associates and above) see **Packages** — workspaces and their projects, not the Groups review board. Pick a workspace (top bar), sort by Name, Recent, or Size (page header), and switch Grid or List view (top bar). If they are on a package roster, a **My package** card on the right links to their current stage; recent **Activity** sits below it. Producers with owner or editor access to the workspace can create projects; any producer can delete one (this deletes all its media).
 
 ## Projects
 

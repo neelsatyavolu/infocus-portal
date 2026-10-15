@@ -306,6 +306,8 @@ export type NavPackageStatus = {
   currentStage: PackageStageSlug | null;
   /** When the current stage closes (ISO), only while it still owes work. */
   dueAt: string | null;
+  /** When each stage closes (ISO, extension days counted); for the sidebar's This cycle list. */
+  dueDates?: Partial<Record<PackageStageSlug, string | null>> | null;
 };
 
 export type NavStatus = {
@@ -486,7 +488,36 @@ export type CycleCard = {
   segments: Array<"done" | "current" | "later">;
   doneCount: number;
   tag: { label: string; tone: CycleCardTone };
+  /** Each stage with where it stands: its result, or when it is due. */
+  stages: CycleCardStage[];
 };
+
+export type CycleCardStage = {
+  slug: PackageStageSlug;
+  label: string;
+  state: "done" | "current" | "later" | "revisions";
+  /** "Approved", "Submitted", "Due Thu", "Due Oct 28"… */
+  detail: string | null;
+  tone: CycleCardTone;
+  /** Null while the stage is still locked. */
+  href: string | null;
+};
+
+const pacificMonthDay = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/Los_Angeles",
+  month: "short",
+  day: "numeric"
+});
+
+/** "Due Thu" within 72 hours, else "Due Oct 28"; null without a date or once it has passed. */
+function stageDueLabel(dueAt: string | null | undefined, now: Date) {
+  if (!dueAt) return null;
+  const soon = formatDueTag(dueAt, now);
+  if (soon) return soon;
+  const due = new Date(dueAt);
+  if (Number.isNaN(due.getTime()) || due.getTime() < now.getTime()) return null;
+  return `Due ${pacificMonthDay.format(due)}`;
+}
 
 const CYCLE_CARD_STATUS: Partial<Record<CycleStageStatus, { label: string; tone: CycleCardTone }>> = {
   approved: { label: "Approved", tone: "success" },
@@ -527,13 +558,37 @@ export function buildCycleCard(pkg: NavPackageStatus | null, now: Date): CycleCa
     : due
       ? { label: due, tone: "warning" as const }
       : ((status && CYCLE_CARD_STATUS[status]) ?? { label: "In progress", tone: "neutral" as const });
+  const stages: CycleCardStage[] = PACKAGE_STAGE_ORDER.map((slug, index) => {
+    const stageStatus = statusOf(slug);
+    const unlocked = slug === "brainstorming" || Boolean(pkg.unlocked?.[slug as keyof PackageUnlocked]);
+    const known = stageStatus ? CYCLE_CARD_STATUS[stageStatus] : undefined;
+    const dueLabel = stageDueLabel(pkg.dueDates?.[slug] ?? (slug === current ? pkg.dueAt : null), now);
+    const state: CycleCardStage["state"] =
+      stageStatus === "needs-revisions"
+        ? "revisions"
+        : segments[index] === "done"
+          ? "done"
+          : index === currentIndex
+            ? "current"
+            : "later";
+    const pendingDetail = dueLabel ?? (index === currentIndex ? "In progress" : null);
+    const detail = stageStatus && stageStatus !== "pending" && stageStatus !== "locked" && known ? known.label : pendingDetail;
+    const tone: CycleCardTone =
+      stageStatus && stageStatus !== "pending" && stageStatus !== "locked" && known
+        ? known.tone
+        : index === currentIndex && dueLabel && formatDueTag(pkg.dueDates?.[slug] ?? pkg.dueAt, now)
+          ? "warning"
+          : "neutral";
+    return { slug, label: PACKAGE_STAGE_LABELS[slug], state, detail, tone, href: unlocked ? `/${slug}` : null };
+  });
   return {
     cycleNumber: pkg.cycleNumber,
     href: `/${stage}`,
     stageLabel: PACKAGE_STAGE_LABELS[stage],
     segments,
     doneCount: segments.filter((segment) => segment === "done").length,
-    tag
+    tag,
+    stages
   };
 }
 

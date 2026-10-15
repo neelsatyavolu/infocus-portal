@@ -77,6 +77,8 @@ export function stageClosesAt(stage: PackageStageSlug, cycle: StageCycleDates, e
   return date ? deadlineClosesAt(date) : null;
 }
 
+const PACKAGE_STAGE_SLUGS: PackageStageSlug[] = ["brainstorming", "a-roll", "initial-cut", "final-cut"];
+
 async function loadPackagePart(userId: string): Promise<NavPackageStatus> {
   const gates = await loadStudentNavGates(userId);
   const remaining = "remainingExecutiveSignoffs" in gates ? gates.remainingExecutiveSignoffs : null;
@@ -90,8 +92,7 @@ async function loadPackagePart(userId: string): Promise<NavPackageStatus> {
     currentStage: gates.hasRow ? currentPackageStage(gates.unlocked) : null,
     dueAt: null
   };
-  // A due date only matters while the current stage still owes work.
-  if (!base.currentStage || base.statuses?.[base.currentStage] !== "pending" || base.cycleNumber === null) {
+  if (!base.currentStage || base.cycleNumber === null) {
     return base;
   }
   const [cycle, row] = await Promise.all([
@@ -111,8 +112,13 @@ async function loadPackagePart(userId: string): Promise<NavPackageStatus> {
     })
   ]);
   if (!cycle) return base;
-  const closesAt = stageClosesAt(base.currentStage, cycle, approvedExtensionDaysFor(row, userId));
-  return { ...base, dueAt: closesAt?.toISOString() ?? null };
+  const extensionDays = approvedExtensionDaysFor(row, userId);
+  const dueDates = Object.fromEntries(
+    PACKAGE_STAGE_SLUGS.map((stage) => [stage, stageClosesAt(stage, cycle, extensionDays)?.toISOString() ?? null])
+  ) as Record<PackageStageSlug, string | null>;
+  // The My package line's due date only matters while the current stage still owes work.
+  const dueAt = base.statuses?.[base.currentStage] === "pending" ? dueDates[base.currentStage] : null;
+  return { ...base, dueAt, dueDates };
 }
 
 export const GROUP_ATTENTION_SELECT = {

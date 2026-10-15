@@ -189,11 +189,12 @@ describe("GET /api/nav/status", () => {
     expect(mocks.prisma.livestreamSignupRequest.count).toHaveBeenCalledWith({ where: { status: "PENDING" } });
   });
 
-  it("skips the due date when the current stage owes nothing", async () => {
+  it("skips the My package due date when the current stage owes nothing, but keeps every stage's date", async () => {
     mocks.loadStudentNavGates.mockResolvedValue({ ...gates, statuses: { ...gates.statuses, "initial-cut": "submitted" } });
     const { body } = await call("?parts=package");
-    expect((body.data?.package as { dueAt: string | null }).dueAt).toBeNull();
-    expect(mocks.prisma.packageCycle.findUnique).not.toHaveBeenCalled();
+    const pkg = body.data?.package as { dueAt: string | null; dueDates: Record<string, string | null> | null };
+    expect(pkg.dueAt).toBeNull();
+    expect(Object.keys(pkg.dueDates ?? {})).toEqual(["brainstorming", "a-roll", "initial-cut", "final-cut"]);
   });
 
   it("returns an off-roster package without a stage", async () => {

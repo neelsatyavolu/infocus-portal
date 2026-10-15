@@ -590,8 +590,36 @@ describe("shell breadcrumbs", () => {
 });
 
 describe("buildCycleCard", () => {
+  it("lists each stage with its result or due date, and links only unlocked stages", () => {
+    const card = buildCycleCard(
+      packageStatus({
+        dueDates: {
+          brainstorming: "2026-09-20T06:59:00.000Z",
+          "a-roll": "2026-10-02T06:59:00.000Z",
+          "initial-cut": dueFriday,
+          "final-cut": "2026-10-29T06:59:00.000Z"
+        }
+      }),
+      thursdayNoon
+    );
+    expect(card?.stages).toEqual([
+      { slug: "brainstorming", label: "Brainstorming", state: "done", detail: "Approved", tone: "success", href: "/brainstorming" },
+      { slug: "a-roll", label: "A-roll/B-roll", state: "done", detail: "Approved", tone: "success", href: "/a-roll" },
+      { slug: "initial-cut", label: "Initial Cut", state: "current", detail: "Due tomorrow", tone: "warning", href: "/initial-cut" },
+      { slug: "final-cut", label: "Final Cut", state: "later", detail: "Due Oct 28", tone: "neutral", href: null }
+    ]);
+  });
+
+  it("marks a stage sent back for revisions", () => {
+    const card = buildCycleCard(
+      packageStatus({ statuses: { brainstorming: "approved", "a-roll": "needs-revisions", "initial-cut": "pending", "final-cut": "locked" } }),
+      thursdayNoon
+    );
+    expect(card?.stages[1]).toMatchObject({ state: "revisions", detail: "Revisions", tone: "danger" });
+  });
+
   it("shows the four stages, the current stage and its due tag", () => {
-    expect(buildCycleCard(packageStatus(), thursdayNoon)).toEqual({
+    expect(buildCycleCard(packageStatus(), thursdayNoon)).toMatchObject({
       cycleNumber: 3,
       href: "/initial-cut",
       stageLabel: "Initial Cut",

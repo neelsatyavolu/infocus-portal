@@ -11,7 +11,7 @@
  * failed reports.
  * Live instead: npx wrangler tail infocus-meeting-room --format json
  */
-import { formatRecord, latestMeetingId, parseArgs, recordsFromEvents, type LogRecord } from "./meetings-logs-lib";
+import { collectPages, formatRecord, latestMeetingId, parseArgs, recordsFromEvents, type LogRecord } from "./meetings-logs-lib";
 
 const SCRIPT_NAME = "infocus-meeting-room";
 const LIMIT = 2000;
@@ -62,7 +62,7 @@ async function main() {
     mid = latest;
   }
 
-  const events = await query(accountId, token, from, to, mid);
+  const { events, truncated } = await collectPages((end) => query(accountId, token, from, end, mid), to, LIMIT);
   const records: LogRecord[] = recordsFromEvents(events).filter(
     (record) => record.mid === mid && (!args.uid || (record.uid ?? "").startsWith(args.uid))
   );
@@ -71,7 +71,7 @@ async function main() {
     return;
   }
   console.log(`Meeting ${mid} · ${records.length} events · since ${new Date(from).toISOString()}`);
-  if (events.length >= LIMIT) console.log(`(hit the ${LIMIT}-event limit; narrow with --since or --uid)`);
+  if (truncated) console.log(`(stopped after ${events.length} events; narrow with --since or --uid)`);
   for (const record of records) console.log(formatRecord(record));
 }
 

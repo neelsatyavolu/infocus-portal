@@ -54,6 +54,39 @@ export function recordsFromEvents(events: readonly Record<string, unknown>[]): L
   return records.sort((a, b) => a.at - b.at);
 }
 
+type RawEvent = Record<string, unknown>;
+
+function eventKey(event: RawEvent) {
+  const metadata = event.$metadata as { id?: unknown; message?: unknown } | undefined;
+  if (typeof metadata?.id === "string") return metadata.id;
+  const source = typeof event.source === "string" ? event.source : JSON.stringify(event.source ?? metadata?.message ?? "");
+  return `${String(event.timestamp)}|${source}`;
+}
+
+/**
+ * Every event up to `to`: the query API returns the newest `limit` events, so each full page moves
+ * `to` back to just after its oldest event (that millisecond is fetched again and de-duplicated).
+ * `truncated` when `maxPages` ran out or a whole page shares one millisecond.
+ */
+export async function collectPages(
+  fetchPage: (to: number) => Promise<readonly RawEvent[]>,
+  to: number,
+  limit: number,
+  maxPages = 25
+): Promise<{ events: RawEvent[]; truncated: boolean }> {
+  const seen = new Map<string, RawEvent>();
+  let end = to;
+  for (let page = 0; page < maxPages; page += 1) {
+    const events = await fetchPage(end);
+    for (const event of events) seen.set(eventKey(event), event);
+    if (events.length < limit) return { events: [...seen.values()], truncated: false };
+    const oldest = Math.min(...events.map((event) => (typeof event.timestamp === "number" ? event.timestamp : end)));
+    if (oldest + 1 >= end) break;
+    end = oldest + 1;
+  }
+  return { events: [...seen.values()], truncated: true };
+}
+
 export function latestMeetingId(records: readonly LogRecord[]) {
   return [...records].reverse().find((record) => record.mid)?.mid ?? null;
 }

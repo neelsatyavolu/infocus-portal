@@ -34,6 +34,7 @@ import {
   REQUIRED_MANAGED_LIVESTREAMS,
   upcomingLivestreamsFirst
 } from "@/src/lib/livestream";
+import { cachedValue, rememberValue } from "@/src/lib/client-cache";
 import { cn } from "@/src/lib/utils";
 
 type Person = { id: string; name: string | null; email: string | null };
@@ -195,6 +196,8 @@ const fieldClass =
 
 const labelClass = "block text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-text)]";
 
+const LIVESTREAMS_CACHE_KEY = "livestreams";
+
 export default function LivestreamsClient() {
   const [tab, setTab] = useState<Tab>("schedule");
   const [data, setData] = useState<Payload | null>(null);
@@ -220,6 +223,7 @@ export default function LivestreamsClient() {
   const load = useCallback(async () => {
     setError(null);
     const payload = await readJson<Payload>(await fetch("/api/livestreams"));
+    rememberValue(LIVESTREAMS_CACHE_KEY, payload);
     setData(payload);
 
     if (payload.canManage) {
@@ -239,9 +243,13 @@ export default function LivestreamsClient() {
 
   useEffect(() => {
     let cancelled = false;
+    // On first view (mount or tab switch), show the last copy at once and refresh it quietly
+    // (src/lib/client-cache.ts). Reloads after a save call load() directly and skip it.
+    const cached = cachedValue<Payload>(LIVESTREAMS_CACHE_KEY);
+    if (cached) setData(cached);
     (async () => {
       try {
-        setLoading(true);
+        setLoading(!cached);
         await load();
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load");

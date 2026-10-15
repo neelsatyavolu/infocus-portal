@@ -8,9 +8,12 @@ import { PageHeader } from "@/components/page-header";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { windowFor, type SubmittedAnnouncement } from "@/components/submitted-announcement-card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { cachedValue, rememberValue } from "@/src/lib/client-cache";
 import { COLLEGE_VISITS_SPREADSHEET_ID } from "@/src/lib/college-visits";
 
 const COLLEGE_VISITS_URL = `https://docs.google.com/spreadsheets/d/${COLLEGE_VISITS_SPREADSHEET_ID}/edit?usp=sharing`;
+
+const SUBMITTED_CACHE_KEY = "announcements-submitted";
 
 const INVITE_DURATIONS = [
   { value: "30d", label: "30 days" },
@@ -62,17 +65,22 @@ export default function SubmittedAnnouncementsClient({ canInvite }: { canInvite:
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  async function loadData(isRefresh = false) {
+  async function loadData(isRefresh = false, options?: { cached?: boolean }) {
+    // On first view, show the last copy at once and refresh it quietly (src/lib/client-cache.ts).
+    // The Refresh button skips it.
+    const cached = options?.cached ? cachedValue<SubmittedAnnouncementsResponse>(SUBMITTED_CACHE_KEY) : undefined;
+    if (cached) setData(cached);
     if (isRefresh) {
       setRefreshing(true);
     } else {
-      setLoading(true);
+      setLoading(!cached);
     }
 
     setMessage(null);
 
     try {
       const nextData = await readData<SubmittedAnnouncementsResponse>("/api/announcements/submitted");
+      rememberValue(SUBMITTED_CACHE_KEY, nextData);
       setData(nextData);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Failed to load submitted announcements.");
@@ -86,7 +94,7 @@ export default function SubmittedAnnouncementsClient({ canInvite }: { canInvite:
   }
 
   useEffect(() => {
-    void loadData();
+    void loadData(false, { cached: true });
   }, []);
 
   async function deleteAnnouncement() {

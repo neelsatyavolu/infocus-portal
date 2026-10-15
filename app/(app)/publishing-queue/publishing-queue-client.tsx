@@ -27,6 +27,7 @@ import {
 } from "@/src/lib/publishing-queue";
 import { formatShowDateLabel } from "@/src/lib/show-assignment";
 import type { NasUploadFields } from "@/src/lib/nas-upload-client";
+import { cachedValue, rememberValue } from "@/src/lib/client-cache";
 import { cn } from "@/src/lib/utils";
 
 type QueueRow = {
@@ -242,6 +243,17 @@ function QueueThumbnail({ url }: { url: string | null }) {
   );
 }
 
+type QueueData = {
+  packages: QueueRow[];
+  publishingConfigured?: boolean;
+  today?: string;
+  upcomingShows: UpcomingShow[];
+  candidates?: Candidate[];
+};
+
+// Only the plain queue (no ?candidates=1) is cached; it is what the page loads on arrival.
+const QUEUE_CACHE_KEY = "publishing-queue";
+
 export default function PublishingQueueClient({ canEdit }: { canEdit: boolean }) {
   const [rows, setRows] = useState<QueueRow[]>([]);
   const [upcoming, setUpcoming] = useState<UpcomingShow[]>([]);
@@ -271,34 +283,38 @@ export default function PublishingQueueClient({ canEdit }: { canEdit: boolean })
     }
   }
 
+  const applyQueue = useCallback((data: QueueData | undefined, withCandidates: boolean) => {
+    setRows(data?.packages ?? []);
+    setPublishingConfigured(data?.publishingConfigured ?? null);
+    setToday(data?.today);
+    setUpcoming(data?.upcomingShows ?? []);
+    if (withCandidates) {
+      setCandidates(data?.candidates ?? []);
+    }
+  }, []);
+
   const load = useCallback(async (withCandidates = false) => {
     const response = await fetch(
       withCandidates ? "/api/package-cycle/queue?candidates=1" : "/api/package-cycle/queue",
       { cache: "no-store" }
     );
-    const body = (await response.json()) as {
-      data?: {
-        packages: QueueRow[];
-        publishingConfigured?: boolean;
-        today?: string;
-        upcomingShows: UpcomingShow[];
-        candidates?: Candidate[];
-      };
-    };
-    setRows(body.data?.packages ?? []);
-    setPublishingConfigured(body.data?.publishingConfigured ?? null);
-    setToday(body.data?.today);
-    setUpcoming(body.data?.upcomingShows ?? []);
-    if (withCandidates) {
-      setCandidates(body.data?.candidates ?? []);
-    }
-  }, []);
+    const body = (await response.json()) as { data?: QueueData };
+    if (!withCandidates && response.ok && body.data) rememberValue(QUEUE_CACHE_KEY, body.data);
+    applyQueue(body.data, withCandidates);
+  }, [applyQueue]);
 
   useEffect(() => {
+    // On first view, show the last copy at once and refresh it quietly (src/lib/client-cache.ts).
+    // Reloads after a save call load() directly and skip it.
+    const cached = cachedValue<QueueData>(QUEUE_CACHE_KEY);
+    if (cached) {
+      applyQueue(cached, false);
+      setLoading(false);
+    }
     void load()
       .catch(() => toast.error("Could not load the publishing queue."))
       .finally(() => setLoading(false));
-  }, [load]);
+  }, [applyQueue, load]);
 
   async function openAdd() {
     setAddOpen(true);

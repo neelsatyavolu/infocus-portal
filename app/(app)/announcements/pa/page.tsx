@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { cachedValue, rememberValue } from "@/src/lib/client-cache";
 import { paTimeLabel } from "@/src/lib/pa-script";
 
 type PaResponse = {
@@ -17,6 +18,8 @@ type PaResponse = {
   autofill?: { status: "ok" | "warning" | "unavailable"; message?: string };
   script: { content: string; version: number } | null;
 };
+
+const PA_CACHE_KEY = "announcements-pa";
 
 async function readResponse(response: Response): Promise<PaResponse> {
   const payload = (await response.json()) as {
@@ -41,14 +44,23 @@ export default function PaAnnouncementsPage() {
   const [discardOpen, setDiscardOpen] = useState(false);
   const dirty = data?.script != null && content !== data.script.content;
 
-  async function loadData() {
+  function applyData(next: PaResponse) {
+    setData(next);
+    setContent(next.script?.content ?? "");
+  }
+
+  /** `cached` (first view only) shows the last copy at once and refreshes it quietly (src/lib/client-cache.ts). */
+  async function loadData(options?: { cached?: boolean }) {
+    const cached = options?.cached ? cachedValue<PaResponse>(PA_CACHE_KEY) : undefined;
+    // The page renders the cached copy while `loading`; the editor stays locked until fresh data lands.
+    if (cached) applyData(cached);
     setLoading(true);
     setError(null);
     setSaved(false);
     try {
       const next = await readResponse(await fetch("/api/announcements/pa", { cache: "no-store" }));
-      setData(next);
-      setContent(next.script?.content ?? "");
+      rememberValue(PA_CACHE_KEY, next);
+      applyData(next);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not load the PA script.");
     } finally {
@@ -57,7 +69,7 @@ export default function PaAnnouncementsPage() {
   }
 
   useEffect(() => {
-    void loadData();
+    void loadData({ cached: true });
   }, []);
 
   useEffect(() => {

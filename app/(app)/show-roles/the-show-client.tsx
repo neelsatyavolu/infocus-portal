@@ -10,6 +10,7 @@ import { NamePicker } from "@/components/name-picker";
 import { PageHeader } from "@/components/page-header";
 import { Button, buttonVariants } from "@/components/ui/button";
 import App from "@/src/show-roles/App";
+import { cachedValue, rememberValue } from "@/src/lib/client-cache";
 import { queuePackageSubtitle } from "@/src/lib/publishing-queue";
 import { cn } from "@/src/lib/utils";
 
@@ -56,6 +57,10 @@ const ShowUploadDialog = dynamic(
   { ssr: false }
 );
 
+function overviewCacheKey(date?: string) {
+  return `show-roles-overview:${date ?? ""}`;
+}
+
 function OverviewBody() {
   // Reminder emails link to a filmed show with ?date=.
   const requestedDate = useSearchParams().get("date") ?? undefined;
@@ -64,18 +69,26 @@ function OverviewBody() {
   const [saving, setSaving] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
 
-  const load = useCallback(async (date?: string) => {
+  const load = useCallback(async (date?: string, options?: { cached?: boolean }) => {
+    // On first view of a show, show the last copy at once and refresh it quietly (src/lib/client-cache.ts).
+    // Reloads after a save skip it so the pre-save copy never flashes back.
+    const cached = options?.cached ? cachedValue<Overview>(overviewCacheKey(date)) : undefined;
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+    }
     const query = date ? `?date=${encodeURIComponent(date)}` : "";
     const response = await fetch(`/api/show-roles/overview${query}`, { cache: "no-store" });
     const payload = (await response.json()) as { data?: Overview; error?: { message?: string } };
     if (!response.ok || !payload.data) {
       throw new Error(payload.error?.message ?? "Could not load the show.");
     }
+    rememberValue(overviewCacheKey(date), payload.data);
     setData(payload.data);
   }, []);
 
   useEffect(() => {
-    void load(requestedDate)
+    void load(requestedDate, { cached: true })
       .catch((error: unknown) => toast.error(error instanceof Error ? error.message : "Could not load the show."))
       .finally(() => setLoading(false));
   }, [load, requestedDate]);
@@ -229,7 +242,7 @@ function OverviewBody() {
             <button
               key={show.date}
               type="button"
-              onClick={() => void load(show.date)}
+              onClick={() => void load(show.date, { cached: true })}
               className={cn(
                 "rounded-md border px-2.5 py-1 text-xs font-semibold",
                 show.date === data.date

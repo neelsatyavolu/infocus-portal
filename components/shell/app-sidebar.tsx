@@ -6,9 +6,10 @@ import { useEffect, useRef, type MouseEvent } from "react";
 import { X } from "lucide-react";
 import { BrandWordmark } from "@/components/brand-wordmark";
 import { useMediaQuery } from "@/components/kit/remembered-state";
-import type { NavSignals, SidebarNavItem, SidebarNavSection } from "@/src/lib/sidebar-nav";
+import type { CycleCard, NavSignals, SidebarNavItem, SidebarNavSection } from "@/src/lib/sidebar-nav";
 import { cn } from "@/src/lib/utils";
 import { isNavItemActive, navIconFor } from "@/components/shell/nav-items";
+import { SidebarCycleCard } from "@/components/shell/cycle-card";
 import { SidebarNavLink } from "@/components/shell/sidebar-nav-link";
 import { DRAWER_ID } from "@/components/shell/use-phone-drawer";
 
@@ -38,6 +39,7 @@ function SectionLabel({ label, rail }: { label: string; rail: boolean }) {
 export function AppSidebar({
   sections,
   signals,
+  cycleCard,
   pathname,
   onMeetHost,
   isProducer,
@@ -48,6 +50,8 @@ export function AppSidebar({
 }: {
   sections: SidebarNavSection[];
   signals: NavSignals;
+  /** "This cycle" at the foot of the list (people on a package roster); null hides it. */
+  cycleCard: CycleCard | null;
   pathname: string;
   onMeetHost: boolean;
   isProducer: boolean;
@@ -141,6 +145,8 @@ export function AppSidebar({
           </div>
         ))}
       </nav>
+
+      {cycleCard ? <SidebarCycleCard card={cycleCard} rail={rail} /> : null}
 
       {footer ? (
         <nav

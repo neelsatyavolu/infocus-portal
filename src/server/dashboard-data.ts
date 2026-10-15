@@ -17,6 +17,12 @@ import { loadStageCommentUnread } from "@/src/server/package-stage-comments";
 import { loadGradebookExtras } from "@/src/server/student-gradebook";
 import { buildGradeSummary } from "@/src/server/student-grade-summary";
 
+
+/** True when a media title already ends with its version ("… Version 6", "… v6"). */
+export function titleNamesVersion(title: string, versionNumber: number) {
+  return new RegExp(`(?:\\bversion\\s*|\\bv)${versionNumber}\\s*$`, "i").test(title.trim());
+}
+
 export type DashboardStage = {
   key: "proofOfContact" | "aRollBRoll" | "initialCut" | "finalCut";
   label: string;
@@ -297,9 +303,10 @@ export async function getDashboardData({
           const actorEmail = event.actor?.email ?? null;
           const subjectTitle =
             event.mediaVersion?.mediaItem?.title ?? event.mediaItem?.title ?? null;
-          const subjectVersion = event.mediaVersion?.versionNumber
-            ? ` v${event.mediaVersion.versionNumber}`
-            : "";
+          const versionNumber = event.mediaVersion?.versionNumber;
+          // Titles like "Initial Cut Version 6" already name the version.
+          const subjectVersion =
+            versionNumber && !(subjectTitle && titleNamesVersion(subjectTitle, versionNumber)) ? ` v${versionNumber}` : "";
           return {
             id: event.id,
             actorName,

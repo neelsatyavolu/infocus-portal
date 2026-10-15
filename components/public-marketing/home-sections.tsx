@@ -23,13 +23,14 @@ const NEW_TAB = <span className="sr-only"> (opens in a new tab)</span>;
  * The nameplate: who InFocus is, the page's one primary button (with Equipment beside it) right
  * after that first paragraph (in view at once on phones), then what Portal is. Screen order matches reading and tab order
  * at every width. Its side inset is the cards' (ROW_PAD), so the hero, Quick links, Apps and the
- * pillar cards all start their text on the same lines.
+ * pillar cards all start their text on the same lines. Beside the cards (lg) it is as tall as
+ * they are, so its content sits centered: any spare height splits evenly above and below.
  */
 export function HomeHero({ className }: { className?: string }) {
   return (
     <section
       aria-labelledby="home-title"
-      className={cn("brand-hero-panel flex min-w-0 flex-col gap-4 py-5 md:gap-5 md:py-6", ROW_PAD, className)}
+      className={cn("brand-hero-panel flex min-w-0 flex-col gap-4 py-5 md:gap-5 md:py-6 lg:justify-center", ROW_PAD, className)}
     >
       <div className="eyebrow flex items-center gap-2">
         <span className="rec-dot rec-dot-red" aria-hidden />

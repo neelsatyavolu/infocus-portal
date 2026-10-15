@@ -74,7 +74,7 @@ export const homeApps = [
   },
   {
     icon: Tv,
-    title: "InFocus for everyone",
+    title: "InFocus News for iPhone",
     description: "Every show and story, live games, and alerts when something new drops. Share it with friends and family.",
     href: NEWS_IPHONE_APP_URL,
     action: "Download on the App Store",

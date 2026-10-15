@@ -3,7 +3,7 @@
  * Set IPHONE_APPS_RELEASED to true once Apple approves both iPhone apps: the App Store
  * buttons then replace "Coming soon to the App Store".
  */
-export const IPHONE_APPS_RELEASED = false;
+export const IPHONE_APPS_RELEASED = true;
 
 /** InFocus Portal for iPhone (class members), App Store Connect app 6818610871. */
 export const PORTAL_IPHONE_APP_URL = "https://apps.apple.com/app/id6818610871";

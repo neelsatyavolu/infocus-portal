@@ -154,6 +154,7 @@ export function AppShell({
             <AppSidebar
               sections={nav.sections}
               signals={nav.signals}
+              cycleCard={nav.cycleCard}
               pathname={pathname}
               onMeetHost={onMeetHost}
               isProducer={isProducer}

@@ -6,6 +6,7 @@ import { showsBreadcrumbTrail } from "@/components/shell/shell-breadcrumbs";
 import { buildGenericBreadcrumbs, buildGroupsBreadcrumbs, buildProjectBreadcrumbs } from "@/src/lib/app-breadcrumbs";
 import { deadlineClosesAt } from "@/src/lib/deadlines";
 import {
+  buildCycleCard,
   buildHubTabs,
   buildNavSignals,
   buildPhoneTabs,
@@ -585,5 +586,40 @@ describe("shell breadcrumbs", () => {
       { label: "Sage", href: "/projects/p1?scope=active&folderId=f2" },
       { label: "Robotics A-roll", href: "/projects/p1/review/m1" }
     ]);
+  });
+});
+
+describe("buildCycleCard", () => {
+  it("shows the four stages, the current stage and its due tag", () => {
+    expect(buildCycleCard(packageStatus(), thursdayNoon)).toEqual({
+      cycleNumber: 3,
+      href: "/initial-cut",
+      stageLabel: "Initial Cut",
+      segments: ["done", "done", "current", "later"],
+      doneCount: 2,
+      tag: { label: "Due tomorrow", tone: "warning" }
+    });
+  });
+
+  it("points at the stage that asked for revisions", () => {
+    const card = buildCycleCard(
+      packageStatus({ statuses: { brainstorming: "approved", "a-roll": "needs-revisions", "initial-cut": "pending", "final-cut": "locked" } }),
+      thursdayNoon
+    );
+    expect(card).toMatchObject({ href: "/a-roll", stageLabel: "A-roll/B-roll", tag: { label: "Revisions", tone: "danger" } });
+  });
+
+  it("uses the stage's own status when nothing is due soon", () => {
+    const card = buildCycleCard(
+      packageStatus({ statuses: { brainstorming: "approved", "a-roll": "approved", "initial-cut": "submitted", "final-cut": "locked" } }),
+      thursdayNoon
+    );
+    expect(card?.tag).toEqual({ label: "Submitted", tone: "warning" });
+    expect(buildCycleCard(packageStatus({ dueAt: null }), thursdayNoon)?.tag).toEqual({ label: "In progress", tone: "neutral" });
+  });
+
+  it("is hidden for people without a package this cycle", () => {
+    expect(buildCycleCard(null, thursdayNoon)).toBeNull();
+    expect(buildCycleCard(packageStatus({ hasRow: false }), thursdayNoon)).toBeNull();
   });
 });

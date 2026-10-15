@@ -1,8 +1,8 @@
 # iPhone apps
 
-InFocus has two iPhone apps. Both are in TestFlight while they're tested.
+InFocus has two iPhone apps, both on the App Store: **InFocus Portal** (class members) and **InFocus News** (everyone).
 
-The infocuspaly.com homepage has a **Get the apps** section (both iPhone apps and InFocus for Mac). Until Apple approves the iPhone apps it says "Coming soon to the App Store"; on release day set `IPHONE_APPS_RELEASED` to true in `src/lib/app-links.ts`.
+The infocuspaly.com homepage has a **Get the apps** section (both iPhone apps and InFocus for Mac) with App Store buttons for both iPhone apps (`IPHONE_APPS_RELEASED` in `src/lib/app-links.ts`).
 
 The privacy policy for both apps and the Portal is the public page `/privacy` (https://infocuspaly.com/privacy), linked from the App Store listings.
 

@@ -476,6 +476,68 @@ export function packageStatusLine(
   return null;
 }
 
+export type CycleCardTone = "success" | "warning" | "danger" | "review" | "neutral";
+
+/** The sidebar's "This cycle" card: where the person's package stands, at a glance. */
+export type CycleCard = {
+  cycleNumber: number | null;
+  href: string;
+  stageLabel: string;
+  /** One cell per package stage, in order. */
+  segments: Array<"done" | "current" | "later">;
+  doneCount: number;
+  tag: { label: string; tone: CycleCardTone };
+};
+
+const CYCLE_CARD_STATUS: Partial<Record<CycleStageStatus, { label: string; tone: CycleCardTone }>> = {
+  approved: { label: "Approved", tone: "success" },
+  "stage-1-approved": { label: "Stage 1 approved", tone: "success" },
+  queued: { label: "Queued", tone: "review" },
+  submitted: { label: "Submitted", tone: "warning" },
+  "needs-revisions": { label: "Revisions", tone: "danger" },
+  "stage-2": { label: "Stage 2", tone: "review" },
+  "stage-3": { label: "Stage 3", tone: "review" }
+};
+
+const STAGE_DONE: ReadonlySet<CycleStageStatus> = new Set(["approved", "queued"]);
+
+/**
+ * The card for anyone on a package roster this cycle (null otherwise): the four stages as a
+ * strip, the stage being worked on, and one tag. Revisions come first, then "Due …" within 72
+ * hours, then the stage's own status, then "In progress".
+ */
+export function buildCycleCard(pkg: NavPackageStatus | null, now: Date): CycleCard | null {
+  if (!pkg?.hasRow) return null;
+  const current = pkg.currentStage ?? currentPackageStage(pkg.unlocked);
+  const currentIndex = PACKAGE_STAGE_ORDER.indexOf(current);
+  const statusOf = (stage: PackageStageSlug) => pkg.statuses?.[stage];
+  const segments = PACKAGE_STAGE_ORDER.map((stage, index) => {
+    const status = statusOf(stage);
+    if (status && STAGE_DONE.has(status)) return "done" as const;
+    if (index === currentIndex) return "current" as const;
+    return index < currentIndex ? ("done" as const) : ("later" as const);
+  });
+  const revising = PACKAGE_STAGE_ORDER.slice(0, currentIndex + 1)
+    .reverse()
+    .find((stage) => statusOf(stage) === "needs-revisions");
+  const stage = revising ?? current;
+  const status = statusOf(stage);
+  const due = !revising && status === "pending" ? formatDueTag(pkg.dueAt, now) : null;
+  const tag = revising
+    ? { label: "Revisions", tone: "danger" as const }
+    : due
+      ? { label: due, tone: "warning" as const }
+      : ((status && CYCLE_CARD_STATUS[status]) ?? { label: "In progress", tone: "neutral" as const });
+  return {
+    cycleNumber: pkg.cycleNumber,
+    href: `/${stage}`,
+    stageLabel: PACKAGE_STAGE_LABELS[stage],
+    segments,
+    doneCount: segments.filter((segment) => segment === "done").length,
+    tag
+  };
+}
+
 export type NavSignal = {
   /** Mono count in the status slot (unread, waiting on you). */
   count?: number;

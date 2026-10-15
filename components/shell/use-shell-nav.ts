@@ -7,6 +7,7 @@ import { useGradesSeen } from "@/components/shell/nav-seen";
 import { hasRole } from "@/components/shell/shell-route";
 import { useNavStatus } from "@/components/shell/use-nav-status";
 import {
+  buildCycleCard,
   buildHubTabs,
   buildNavSignals,
   buildPhoneTabs,
@@ -90,6 +91,8 @@ export function useShellNav({
     signals,
     more,
     hubTabs,
+    // Only where the sidebar shows the student package screens (students, producers on a roster).
+    cycleCard: chrome && showCycleTabs && !sampleOnly ? buildCycleCard(pkg, new Date()) : null,
     showPackageStageNav:
       chrome && showCycleTabs && !sampleOnly && isPackageRoute(pathname, { includeExtensionRequests: !isProducer })
   };

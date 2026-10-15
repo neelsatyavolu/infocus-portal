@@ -18,8 +18,8 @@ import type { DashboardActivityEntry, DashboardUpNext, StudentDashboardSnapshot 
  * grid: My package (2/3: the stages and the numbers) with Grade (1/3) on the first row, Your
  * activity (2/3) with This week (1/3) on the second, so both rows share one column line and
  * every panel opens with a single title row. From md to
- * xl: My package, then Grade | This week, then Activity. Without a package: Grade | This week |
- * Activity. `snapshot` is null when the grade snapshot failed to load (panels show the error).
+ * xl: My package, then Grade | This week, then Activity. Without a package: Grade | This week
+ * (similar heights, so neither card stretches), then Activity across the full width. `snapshot` is null when the grade snapshot failed to load (panels show the error).
  */
 export function StudentHome({
   firstName,
@@ -96,10 +96,10 @@ export function StudentHome({
           <ActivityPanel activity={activity} className="md:col-span-2 xl:col-start-1 xl:row-start-2" />
         </div>
       ) : (
-        <div className="grid gap-4 sm:gap-5 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
           <GradePanel snapshot={snapshot} />
           <ThisWeekPanel snapshot={snapshot} />
-          <ActivityPanel activity={activity} className="md:col-span-2 xl:col-span-1" />
+          <ActivityPanel activity={activity} className="md:col-span-2" />
         </div>
       )}
     </div>

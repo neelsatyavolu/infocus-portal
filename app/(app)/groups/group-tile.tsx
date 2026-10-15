@@ -2,6 +2,7 @@
 
 import { memo } from "react";
 import Link from "next/link";
+import { Hourglass } from "lucide-react";
 import { StatusTag } from "@/components/kit/status-tag";
 import type { StatusToneInput } from "@/components/kit/tone";
 import { StageTrack } from "@/components/groups/stage-track";
@@ -17,12 +18,11 @@ type Tag = { key: string; label: string; tone: StatusToneInput };
 function tileTags(view: GroupRowView): Tag[] {
   const status: Tag = { key: "status", label: view.tileStatus.label, tone: view.tileStatus.tone };
   const schedule: Tag[] = view.schedule ? [{ key: "schedule", label: view.schedule.label, tone: view.schedule.tone }] : [];
-  const extension: Tag[] = view.extensionLabel ? [{ key: "extension", label: view.extensionLabel, tone: "warning" }] : [];
   const grades: Tag[] = view.gradesPill ? [{ key: "grades", label: view.gradesPill.label, tone: view.gradesPill.tone }] : [];
   const gradeOwed = view.gradesPill?.tone === "warn";
   return gradeOwed
-    ? [...grades, status, ...schedule, ...extension]
-    : [status, ...schedule, ...extension, ...grades];
+    ? [...grades, status, ...schedule]
+    : [status, ...schedule, ...grades];
 }
 
 /**
@@ -102,6 +102,12 @@ function GroupTileBase({
             {tag.label}
           </StatusTag>
         ))}
+        {view.extensionLabel ? (
+          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+            <Hourglass className="h-3.5 w-3.5" aria-hidden />
+            {view.extensionLabel}
+          </span>
+        ) : null}
         {canNotes || canApprovePitch ? (
           <div className="relative z-10 ml-auto flex shrink-0 items-center gap-2">
             {rowId && canNotes ? (

@@ -8,7 +8,7 @@ import {
   type GroupTileStatus
 } from "@/src/lib/group-tile-status";
 import { groupScheduleStatus, type GroupScheduleInput, type GroupScheduleStatus } from "@/src/lib/group-schedule";
-import { extensionBadgeLabel, extensionDueIn } from "@/src/lib/package-extensions";
+import { extensionDueIn } from "@/src/lib/package-extensions";
 import { producerMayActOnPackage } from "@/src/lib/package-producer-assignment";
 import type { BrainstormProofView } from "@/src/lib/package-brainstorm";
 import {
@@ -168,7 +168,8 @@ export function cycleHasDeadlines(dates: CycleDates | null | undefined) {
 }
 
 function scheduleFor(row: GroupRow, approvalStage: string, dates: CycleDates | null, now: Date) {
-  if (!dates) return null;
+  // Once Final Cut is turned in there is nothing left to be on track or behind for.
+  if (!dates || row.finalCut) return null;
   const state = { ...row, approvalStage };
   return groupScheduleStatus({
     dates: {
@@ -235,7 +236,10 @@ function extensionLabelFor(row: GroupRow, ctx: RowViewContext) {
     ctx.cycleDates && !row.finalCut
       ? extensionDueIn(dateOrNull(ctx.cycleDates.finalCut), row.extensionDays ?? 0, ctx.now)
       : null;
-  return extensionBadgeLabel(row.extensionDays, dueIn);
+  // Quiet text on the tile ("4d extension · due in 3d"), not a tag.
+  const days = row.extensionDays ?? 0;
+  const label = days > 0 ? `${days}d extension` : "Extension";
+  return dueIn ? `${label} · due in ${dueIn.toLowerCase()}` : label;
 }
 
 function contactLineFor(row: GroupRow) {

@@ -31,7 +31,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "announcements",
     label: "Announcements",
     href: "/announcements",
-    hint: "Left sidebar, at the top",
+    hint: "Left sidebar, under Class",
     aliases: ["announcement", "bulletin"],
     audiences: ALL
   },
@@ -63,7 +63,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "master-calendar",
     label: "Master Calendar",
     href: "/master-calendar",
-    hint: "Left sidebar, under Production",
+    hint: "Left sidebar, at the top",
     aliases: ["calendar", "anchors", "pa", "cast"],
     audiences: ALL
   },
@@ -71,7 +71,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "package-cycles",
     label: "Cycle Dates",
     href: "/package-cycles",
-    hint: "Left sidebar, under Production",
+    hint: "Left sidebar, under Class",
     aliases: ["package cycles", "deadlines", "due dates"],
     audiences: ALL
   },
@@ -79,7 +79,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "drive",
     label: "InFocus Drive",
     href: "https://drive.infocuspaly.com",
-    hint: "Left sidebar, under Production",
+    hint: "Left sidebar, under Tools",
     aliases: ["drive", "nas", "files"],
     audiences: ALL,
     external: true,
@@ -89,7 +89,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "teleprompter",
     label: "Teleprompter",
     href: "https://teleprompter.infocuspaly.com",
-    hint: "Left sidebar, under Production",
+    hint: "Left sidebar, under Tools",
     aliases: ["prompter", "script"],
     audiences: ALL,
     external: true
@@ -98,7 +98,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "information",
     label: "Information",
     href: "/information",
-    hint: "Left sidebar, under The Cycle",
+    hint: "Left sidebar, under My package",
     aliases: ["the cycle", "cycle rules", "info"],
     audiences: CYCLE_TABS
   },
@@ -106,7 +106,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "brainstorming",
     label: "Brainstorming",
     href: "/brainstorming",
-    hint: "Left sidebar, under The Cycle",
+    hint: "Left sidebar, under My package",
     aliases: ["brainstorm", "proof of contact", "contact"],
     audiences: CYCLE_TABS
   },
@@ -114,7 +114,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "a-roll",
     label: "A-roll/B-roll",
     href: "/a-roll",
-    hint: "Left sidebar, under The Cycle",
+    hint: "Left sidebar, under My package",
     aliases: ["a roll", "b roll", "aroll", "broll", "a-roll", "b-roll"],
     audiences: CYCLE_TABS
   },
@@ -122,7 +122,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "initial-cut",
     label: "Initial Cut",
     href: "/initial-cut",
-    hint: "Left sidebar, under The Cycle",
+    hint: "Left sidebar, under My package",
     aliases: ["initial", "rough cut"],
     audiences: CYCLE_TABS
   },
@@ -130,7 +130,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "final-cut",
     label: "Final Cut",
     href: "/final-cut",
-    hint: "Left sidebar, under The Cycle",
+    hint: "Left sidebar, under My package",
     aliases: ["final"],
     audiences: CYCLE_TABS
   },
@@ -138,7 +138,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "livestreams",
     label: "Livestream Tracker",
     href: "/livestreams",
-    hint: "Left sidebar, under Livestreams",
+    hint: "Left sidebar, under Production",
     aliases: ["livestream", "live stream", "tracker"],
     audiences: ALL
   },
@@ -146,7 +146,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "managers",
     label: "Managers",
     href: "/managers",
-    hint: "Left sidebar, under Production",
+    hint: "Left sidebar, under Class",
     aliases: ["manager", "equipment manager", "livestream manager", "website manager", "social media manager"],
     audiences: ALL
   },
@@ -154,7 +154,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "ideas",
     label: "Ideas",
     href: "/ideas",
-    hint: "Left sidebar, under Production",
+    hint: "Left sidebar, under Class",
     aliases: ["idea", "story ideas", "package ideas", "pitch ideas", "suggested ideas", "bay area news"],
     audiences: ALL
   },
@@ -170,7 +170,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "groups",
     label: "Groups",
     href: "/groups",
-    hint: "Left sidebar, under Producers",
+    hint: "Left sidebar, under Producing",
     aliases: ["group", "tiles", "pitch", "review"],
     audiences: PRODUCERS
   },
@@ -178,7 +178,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "members",
     label: "Members",
     href: "/members",
-    hint: "Left sidebar, under Producers",
+    hint: "Left sidebar, under Producing",
     aliases: ["member notes", "people", "notes"],
     audiences: PRODUCERS
   },
@@ -186,7 +186,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "package-progress",
     label: "Package Cycle",
     href: "/package-progress",
-    hint: "Left sidebar, under Producers",
+    hint: "Left sidebar, under Producing",
     aliases: ["roster", "package cycle roster"],
     audiences: PRODUCERS
   },
@@ -194,7 +194,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "publishing-queue",
     label: "Publishing Queue",
     href: "/publishing-queue",
-    hint: "Left sidebar, under Producers",
+    hint: "Left sidebar, under Production",
     aliases: ["queue", "pq", "air date", "show date"],
     audiences: PRODUCERS
   },
@@ -202,7 +202,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "grade-editor",
     label: "Grade Editor",
     href: "/grade-editor",
-    hint: "Left sidebar, under Producers",
+    hint: "Left sidebar, under Producing",
     aliases: ["gradebook", "scores", "grading", "grades"],
     audiences: EXECS
   },
@@ -210,7 +210,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "the-show",
     label: "The Show",
     href: "/show-roles",
-    hint: "Left sidebar, under Producers",
+    hint: "Left sidebar, under Production",
     aliases: ["show roles", "rundown"],
     audiences: PRODUCERS
   },
@@ -218,7 +218,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "participation",
     label: "Participation",
     href: "/participation",
-    hint: "Left sidebar, under Producers",
+    hint: "Left sidebar, under Producing",
     aliases: ["class participation"],
     audiences: PRODUCERS
   },
@@ -242,7 +242,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "submitted",
     label: "Submitted",
     href: "/announcements/submitted",
-    hint: "Left sidebar, under Announcements",
+    hint: "Left sidebar, under Class",
     aliases: ["submitted announcements"],
     audiences: ALL
   },
@@ -250,7 +250,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "admin",
     label: "Admin Dashboard",
     href: "/admin",
-    hint: "Left sidebar, under Admin",
+    hint: "Left sidebar, at the bottom",
     aliases: ["admin", "accounts", "access requests"],
     audiences: EXECS
   },

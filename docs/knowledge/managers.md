@@ -1,6 +1,6 @@
 # Managers
 
-`/managers` (sidebar → Production → **Managers**) is where appointed managers find their tool. Everyone signed in sees the tab. It shows one card per area:
+`/managers` (sidebar → Class → **Managers**) is where appointed managers find their tool. Everyone signed in sees the tab. It shows one card per area:
 
 | Area | Opens | Who can open it |
 |---|---|---|

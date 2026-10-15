@@ -56,8 +56,6 @@ import {
   Volume2,
   X
 } from "lucide-react";
-import { AssistantChat } from "@/components/assistant-chat";
-import { CommandPalette } from "@/components/command-palette";
 import type { WorkspaceOption } from "@/components/dashboard-workspace-selector";
 import { ViewAsMenu } from "@/components/view-as-menu";
 import { Button } from "@/components/ui/button";
@@ -83,7 +81,7 @@ import { EXTENSION_REQUESTS_CHANGED_EVENT } from "@/src/lib/package-extensions";
 import { executiveWaitPill } from "@/src/lib/package-approval";
 import type { CycleStageStatus } from "@/src/lib/package-stage-status";
 import { folderDisplayName, folderPathSegments } from "@/src/lib/project-folders";
-import { meetingsHomeUrl } from "@/src/lib/meetings/links";
+import { buildSidebarNav, isRailRoute, type SidebarNavItem, type SidebarNavItemId } from "@/src/lib/sidebar-nav";
 import type { AssistantAudience } from "@/src/lib/assistant-access";
 import { cn } from "@/src/lib/utils";
 
@@ -92,6 +90,13 @@ const DashboardWorkspaceSelector = dynamic(
   () => import("@/components/dashboard-workspace-selector").then((m) => m.DashboardWorkspaceSelector),
   { ssr: false }
 );
+// The ✱ panel (assistant + messages) and the ⌘K palette load after the page, not with it.
+const AssistantChat = dynamic(() => import("@/components/assistant-chat").then((m) => m.AssistantChat), {
+  ssr: false
+});
+const CommandPalette = dynamic(() => import("@/components/command-palette").then((m) => m.CommandPalette), {
+  ssr: false
+});
 
 /** Sidebar badges refetch on navigation or tab focus only when they are older than this. */
 const NAV_REFRESH_MS = 15_000;
@@ -240,7 +245,8 @@ function SideNavLink({
   disabled = false,
   unread,
   status,
-  statusLabel
+  statusLabel,
+  rail = false
 }: {
   href: string;
   icon: SideNavIcon;
@@ -253,26 +259,35 @@ function SideNavLink({
   unread?: number;
   status?: CycleStageStatus;
   statusLabel?: string;
+  /** Icon-only on large screens (the folded sidebar); the phone drawer always shows labels. */
+  rail?: boolean;
 }) {
   const className = cn(
-    "flex items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-[13px] font-medium transition lg:py-2",
+    "relative flex items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-[13px] font-medium transition lg:py-2",
+    rail && "lg:justify-center lg:px-0",
     disabled && "cursor-not-allowed opacity-40 hover:bg-transparent hover:text-muted-foreground",
     !disabled && active
       ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
       : !disabled && "text-muted-foreground hover:bg-card hover:text-foreground"
   );
+  const labelClass = cn("min-w-0 flex-1 truncate", rail && "lg:sr-only");
   const trailing = (
-    <>
+    <span className={cn("contents", rail && "lg:hidden")}>
       {status ? <StageStatusChip status={status} size="sm" label={statusLabel} /> : null}
       <NavUnread count={unread} onBrand={!disabled && active} />
-    </>
+    </span>
   );
+  const railDot =
+    rail && unread && unread > 0 ? (
+      <span aria-hidden className="absolute right-2 top-1.5 hidden h-2 w-2 rounded-full bg-[var(--brand-green)] lg:block" />
+    ) : null;
+  const title = rail ? label : undefined;
 
   if (disabled) {
     return (
-      <span className={className} aria-disabled="true">
+      <span className={className} aria-disabled="true" title={title}>
         <Icon className="h-4 w-4 shrink-0" />
-        <span className="min-w-0 flex-1 truncate">{label}</span>
+        <span className={labelClass}>{label}</span>
         {trailing}
       </span>
     );
@@ -284,34 +299,90 @@ function SideNavLink({
         href={href}
         className={className}
         aria-current={active ? "page" : undefined}
+        title={title}
         {...(newTab ? { target: "_blank", rel: "noopener noreferrer" } : {})}
       >
         <Icon className="h-4 w-4 shrink-0" />
-        <span className="min-w-0 flex-1 truncate">
+        <span className={labelClass}>
           {label}
           {newTab ? <span className="sr-only"> (opens in a new tab)</span> : null}
         </span>
-        <ExternalLink className="h-3 w-3 shrink-0 opacity-60" aria-hidden />
+        <ExternalLink className={cn("h-3 w-3 shrink-0 opacity-60", rail && "lg:hidden")} aria-hidden />
         {trailing}
+        {railDot}
       </a>
     );
   }
 
   return (
-    <Link href={href as never} className={className} aria-current={active ? "page" : undefined}>
+    <Link href={href as never} className={className} aria-current={active ? "page" : undefined} title={title}>
       <Icon className="h-4 w-4 shrink-0" />
-      <span className="min-w-0 flex-1 truncate">{label}</span>
+      <span className={labelClass}>{label}</span>
       {trailing}
+      {railDot}
     </Link>
   );
 }
 
-function SideSection({ label }: { label: string }) {
+function SideSection({ label, rail = false }: { label: string; rail?: boolean }) {
   return (
-    <div className="mt-[0.675rem] px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--ink-5)]">
-      {label}
-    </div>
+    <>
+      <div
+        className={cn(
+          "mt-[0.675rem] px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--ink-5)]",
+          rail && "lg:hidden"
+        )}
+      >
+        {label}
+      </div>
+      {rail ? <div aria-hidden className="mx-2 my-2 hidden border-t border-border lg:block" /> : null}
+    </>
   );
+}
+
+const NAV_ICONS: Record<SidebarNavItemId, SideNavIcon> = {
+  dashboard: LayoutDashboard,
+  grades: CheckSquare,
+  "master-calendar": CalendarDays,
+  information: Info,
+  brainstorming: Lightbulb,
+  "a-roll": Film,
+  "initial-cut": Clapperboard,
+  "final-cut": FileVideo2,
+  "extension-requests": Hourglass,
+  groups: UsersRound,
+  "package-progress": ListChecks,
+  members: Users,
+  participation: Hand,
+  meetings: Video,
+  "grade-editor": Edit3,
+  "show-roles": Mic2,
+  "publishing-queue": ListOrdered,
+  livestreams: Radio,
+  announcements: Megaphone,
+  "announcements-submitted": List,
+  "announcements-pa": Volume2,
+  ideas: Newspaper,
+  managers: UserCog,
+  "package-cycles": GitBranch,
+  drive: Cloud,
+  teleprompter: ScrollText,
+  admin: Shield,
+  settings: Settings
+};
+
+/** Exact-match pages: a prefix match would also light up their sub-pages' links. */
+const EXACT_MATCH_NAV: ReadonlySet<SidebarNavItemId> = new Set([
+  "announcements",
+  "announcements-submitted",
+  "announcements-pa"
+]);
+
+function isNavItemActive(item: SidebarNavItem, pathname: string, onMeetHost: boolean) {
+  if (item.id === "dashboard") return pathname.startsWith("/dashboard") || pathname.startsWith("/projects");
+  if (item.id === "meetings") return pathname.startsWith("/meetings") || (onMeetHost && pathname === "/");
+  if (item.external) return false;
+  return EXACT_MATCH_NAV.has(item.id) ? pathname === item.href : pathname.startsWith(item.href);
 }
 
 function readProjectShellStateFromDom(expectedProjectId: string) {
@@ -533,7 +604,47 @@ export function AppShell({
   const showCycleTabs = !isProducer || onStudentPackage;
   const canManageAllowedEmails = hasRole(platformRole, "EXECUTIVE_PRODUCER");
   const canManageGrades = hasRole(platformRole, "EXECUTIVE_PRODUCER");
-  const canManageExtensions = hasRole(platformRole, "ASSOCIATE_PRODUCER");
+  const rail = isRailRoute(pathname);
+  const navSections = useMemo(
+    () =>
+      buildSidebarNav({
+        isProducer,
+        showCycleTabs,
+        canManageGrades,
+        canManageAdmin: canManageAllowedEmails,
+        sampleOnly
+      }),
+    [isProducer, showCycleTabs, canManageGrades, canManageAllowedEmails, sampleOnly]
+  );
+
+  function renderNavItem(navItem: SidebarNavItem) {
+    const stageKey =
+      navItem.id === "brainstorming" || navItem.id === "a-roll" || navItem.id === "initial-cut" || navItem.id === "final-cut"
+        ? navItem.id
+        : null;
+    const unread =
+      navItem.id === "extension-requests" ? extensionRequestsAwaiting : stageKey ? feedbackUnread?.[stageKey] : undefined;
+    return (
+      <SideNavLink
+        key={navItem.id}
+        href={navItem.href}
+        icon={navItem.id === "dashboard" && isProducer ? Briefcase : NAV_ICONS[navItem.id]}
+        label={navItem.label}
+        active={isNavItemActive(navItem, pathname, onMeetHost)}
+        external={navItem.external}
+        newTab={navItem.newTab}
+        disabled={stageKey !== null && stageKey !== "brainstorming" ? !cycleNav?.[stageKey] : false}
+        unread={unread}
+        status={stageKey ? cycleStatuses?.[stageKey] : undefined}
+        statusLabel={
+          stageKey === "initial-cut" && cycleStatuses?.["initial-cut"] === "stage-3" && remainingExecutiveSignoffs != null
+            ? (executiveWaitPill(remainingExecutiveSignoffs) ?? undefined)
+            : undefined
+        }
+        rail={rail}
+      />
+    );
+  }
   const currentView = searchParams.get("view") === "list" ? "list" : "grid";
   const canControlLayout = isDashboardRoute || isProjectAssetsRoute;
   const currentScope = searchParams.get("scope") === "deleted" ? "deleted" : "active";
@@ -1052,7 +1163,7 @@ export function AppShell({
     <div
       className={cn(
         hideChrome ? "h-dvh overflow-hidden" : "min-h-screen lg:h-screen lg:overflow-hidden",
-        hideChrome || embedded ? "" : "lg:pl-[240px]"
+        hideChrome || embedded ? "" : rail ? "lg:pl-16" : "lg:pl-[240px]"
       )}
     >
       <a
@@ -1075,6 +1186,7 @@ export function AppShell({
         id="app-sidebar"
         className={cn(
           "fixed inset-y-0 left-0 z-[60] flex h-dvh w-[min(240px,85vw)] flex-col gap-3 border-r border-border bg-[var(--ink)] px-3 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[env(safe-area-inset-top)] transition-transform duration-200 ease-out lg:z-40",
+          rail && "lg:w-16 lg:px-2",
           navOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
@@ -1082,10 +1194,24 @@ export function AppShell({
         <div className="flex items-center justify-between gap-2">
           <Link
             href="/dashboard"
-            className="flex min-w-0 items-center px-2 py-1.5"
+            className={cn("flex min-w-0 items-center px-2 py-1.5", rail && "lg:mx-auto lg:px-0")}
             aria-label="InFocus Portal home"
           >
-            <BrandWordmark className="h-9 w-auto object-contain" width={84} height={36} priority />
+            <BrandWordmark
+              className={cn("h-9 w-auto object-contain", rail && "lg:hidden")}
+              width={84}
+              height={36}
+              priority
+            />
+            {rail ? (
+              <Image
+                src="/favicon/infocus-hub-icon.png"
+                alt=""
+                width={32}
+                height={32}
+                className="hidden h-8 w-8 lg:block"
+              />
+            ) : null}
           </Link>
           <button
             type="button"
@@ -1106,263 +1232,23 @@ export function AppShell({
             }
           }}
         >
-          {sampleOnly ? (
-            <>
-              <SideNavLink
-                href="/dashboard"
-                icon={LayoutDashboard}
-                label="Dashboard"
-                active={pathname.startsWith("/dashboard") || pathname.startsWith("/projects")}
-              />
-              <SideNavLink href="/settings" icon={Settings} label="Settings" active={pathname.startsWith("/settings")} />
-            </>
-          ) : (
-          <>
-          <SideNavLink
-            href={"/announcements" as never}
-            icon={Megaphone}
-            label="Announcements"
-            active={pathname === "/announcements"}
-          />
-          {isProducer ? (
-            <SideNavLink
-              href="/dashboard"
-              icon={Briefcase}
-              label="Packages"
-              active={pathname === "/dashboard" || pathname.startsWith("/projects")}
-            />
-          ) : (
-            <SideNavLink
-              href="/dashboard"
-              icon={LayoutDashboard}
-              label="Dashboard"
-              active={pathname.startsWith("/dashboard")}
-            />
-          )}
-          {!canManageGrades ? (
-            <SideNavLink
-              href={"/grades" as never}
-              icon={CheckSquare}
-              label="Grades"
-              active={pathname.startsWith("/grades")}
-            />
-          ) : null}
-
-          <SideSection label="Production" />
-          <SideNavLink
-            href={"/master-calendar" as never}
-            icon={CalendarDays}
-            label="Master Calendar"
-            active={pathname.startsWith("/master-calendar")}
-          />
-          <SideNavLink
-            href={"/package-cycles" as never}
-            icon={GitBranch}
-            label="Cycle Dates"
-            active={pathname.startsWith("/package-cycles")}
-          />
-          <SideNavLink
-            href="https://drive.infocuspaly.com"
-            icon={Cloud}
-            label="InFocus Drive"
-            active={false}
-            external
-            newTab
-          />
-          <SideNavLink
-            href="https://teleprompter.infocuspaly.com"
-            icon={ScrollText}
-            label="Teleprompter"
-            active={false}
-            external
-          />
-          <SideNavLink
-            href={"/managers" as never}
-            icon={UserCog}
-            label="Managers"
-            active={pathname.startsWith("/managers")}
-          />
-          <SideNavLink
-            href={"/ideas" as never}
-            icon={Newspaper}
-            label="Ideas"
-            active={pathname.startsWith("/ideas")}
-          />
-
-          {showCycleTabs ? (
-            <>
-              <SideSection label="The Cycle" />
-              <SideNavLink
-                href={"/information" as never}
-                icon={Info}
-                label="Information"
-                active={pathname.startsWith("/information")}
-              />
-              <SideNavLink
-                href={"/brainstorming" as never}
-                icon={Lightbulb}
-                label="Brainstorming"
-                active={pathname.startsWith("/brainstorming")}
-                unread={feedbackUnread?.brainstorming}
-                status={cycleStatuses?.brainstorming}
-              />
-              <SideNavLink
-                href={"/a-roll" as never}
-                icon={Film}
-                label="A-roll/B-roll"
-                active={pathname.startsWith("/a-roll")}
-                disabled={!cycleNav?.["a-roll"]}
-                unread={feedbackUnread?.["a-roll"]}
-                status={cycleStatuses?.["a-roll"]}
-              />
-              <SideNavLink
-                href={"/initial-cut" as never}
-                icon={Clapperboard}
-                label="Initial Cut"
-                active={pathname.startsWith("/initial-cut")}
-                disabled={!cycleNav?.["initial-cut"]}
-                unread={feedbackUnread?.["initial-cut"]}
-                status={cycleStatuses?.["initial-cut"]}
-                statusLabel={
-                  cycleStatuses?.["initial-cut"] === "stage-3" && remainingExecutiveSignoffs != null
-                    ? (executiveWaitPill(remainingExecutiveSignoffs) ?? undefined)
-                    : undefined
-                }
-              />
-              <SideNavLink
-                href={"/final-cut" as never}
-                icon={FileVideo2}
-                label="Final Cut"
-                active={pathname.startsWith("/final-cut")}
-                disabled={!cycleNav?.["final-cut"]}
-                unread={feedbackUnread?.["final-cut"]}
-                status={cycleStatuses?.["final-cut"]}
-              />
-              {!canManageWorkspaces ? (
-                <SideNavLink
-                  href={"/extension-requests" as never}
-                  icon={Hourglass}
-                  label="Extension Requests"
-                  active={pathname.startsWith("/extension-requests")}
-                  unread={extensionRequestsAwaiting}
-                />
+          {navSections.map((navSection) => (
+            <div key={navSection.label ?? "top"} className={cn("flex flex-col gap-0.5", navSection.label === "footer" && "mt-[0.675rem]")}>
+              {navSection.label && navSection.label !== "footer" ? (
+                <SideSection label={navSection.label} rail={rail} />
               ) : null}
-            </>
-          ) : null}
-
-          <SideSection label="Livestreams" />
-          <SideNavLink
-            href={"/livestreams" as never}
-            icon={Radio}
-            label="Livestream Tracker"
-            active={pathname.startsWith("/livestreams")}
-          />
-
-          {canManageWorkspaces ? (
-            <>
-              <SideSection label="Producers" />
-              <SideNavLink
-                href={"/groups" as never}
-                icon={UsersRound}
-                label="Groups"
-                active={pathname.startsWith("/groups")}
-              />
-              <SideNavLink
-                href={"/members" as never}
-                icon={Users}
-                label="Members"
-                active={pathname.startsWith("/members")}
-              />
-              <SideNavLink
-                href={meetingsHomeUrl()}
-                icon={Video}
-                label="Meetings"
-                external
-                active={pathname.startsWith("/meetings") || (onMeetHost && pathname === "/")}
-              />
-              <SideNavLink
-                href={"/package-progress" as never}
-                icon={ListChecks}
-                label="Package Cycle"
-                active={pathname.startsWith("/package-progress")}
-              />
-              <SideNavLink
-                href={"/publishing-queue" as never}
-                icon={ListOrdered}
-                label="Publishing Queue"
-                active={pathname.startsWith("/publishing-queue")}
-              />
-              {canManageGrades ? (
-                <SideNavLink
-                  href={"/grade-editor" as never}
-                  icon={Edit3}
-                  label="Grade Editor"
-                  active={pathname.startsWith("/grade-editor")}
-                />
-              ) : null}
-              <SideNavLink
-                href={"/show-roles" as never}
-                icon={Mic2}
-                label="The Show"
-                active={pathname.startsWith("/show-roles")}
-              />
-              {canManageExtensions ? (
-                <SideNavLink
-                  href={"/participation" as never}
-                  icon={Hand}
-                  label="Participation"
-                  active={pathname.startsWith("/participation")}
-                />
-              ) : null}
-              <SideNavLink
-                href={"/extension-requests" as never}
-                icon={Hourglass}
-                label="Extension Requests"
-                active={pathname.startsWith("/extension-requests")}
-                unread={extensionRequestsAwaiting}
-              />
-            </>
-          ) : null}
-
-          <SideSection label="Announcements" />
-          <SideNavLink
-            href={"/announcements/submitted" as never}
-            icon={List}
-            label="Submitted"
-            active={pathname === "/announcements/submitted"}
-          />
-          <SideNavLink
-            href={"/announcements/pa" as never}
-            icon={Volume2}
-            label="PA"
-            active={pathname === "/announcements/pa"}
-          />
-
-          {canManageAllowedEmails ? (
-            <>
-              <SideSection label="Admin" />
-              <SideNavLink
-                href="/admin"
-                icon={Shield}
-                label="Admin Dashboard"
-                active={pathname.startsWith("/admin")}
-              />
-            </>
-          ) : (
-            <div aria-hidden className="mt-[0.675rem]" />
-          )}
-          <SideNavLink
-            href="/settings"
-            icon={Settings}
-            label="Settings"
-            active={pathname.startsWith("/settings")}
-          />
-          </>
-          )}
+              {navSection.items.map((navItem) => renderNavItem(navItem))}
+            </div>
+          ))}
         </nav>
 
         {/* Footer */}
-        <div className="mt-auto flex items-center gap-2 border-t border-border px-1 pt-3">
+        <div
+          className={cn(
+            "mt-auto flex items-center gap-2 border-t border-border px-1 pt-3",
+            rail && "lg:flex-col lg:px-0"
+          )}
+        >
           <ViewAsMenu currentUser={currentUser} canViewAs={canViewAs} viewingAs={viewingAs}>
             {currentUser.imageUrl ? (
               <Image
@@ -1378,7 +1264,7 @@ export function AppShell({
                 {getInitials(currentUser.name, currentUser.email)}
               </span>
             )}
-            <div className="min-w-0 flex-1">
+            <div className={cn("min-w-0 flex-1", rail && "lg:hidden")}>
               <p className="truncate text-xs font-semibold text-foreground">
                 {currentUser.name ?? "InFocus User"}
               </p>

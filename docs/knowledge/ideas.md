@@ -1,6 +1,6 @@
 # Ideas
 
-Route: `/ideas` (sidebar → Production → **Ideas**). Everyone signed in sees the same page: reporters, associate producers, executive producers, the adviser, and super admin.
+Route: `/ideas` (sidebar → Class → **Ideas**). Everyone signed in sees the same page: reporters, associate producers, executive producers, the adviser, and super admin.
 
 Ideas is a list of suggested story ideas to help a group decide what to pitch. It does not replace pitching, and nothing on it is assigned to anyone. Pitching and approval still happen in class and on Groups (see `groups-and-review.md` and `student-work.md`).
 

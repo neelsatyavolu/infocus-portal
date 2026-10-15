@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   ensurePackageProgressDefaults: vi.fn(),
+  loadRequiredFinalCutGraders: vi.fn(),
   canManageLivestreams: vi.fn(),
   prisma: {
     packageExtensionRequest: { findMany: vi.fn() },
@@ -20,11 +21,13 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/src/lib/prisma", () => ({ prisma: mocks.prisma }));
 vi.mock("@/src/server/package-progress-data", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/src/server/package-progress-data")>()),
-  ensurePackageProgressDefaults: mocks.ensurePackageProgressDefaults
+  ensurePackageProgressDefaults: mocks.ensurePackageProgressDefaults,
+  loadRequiredFinalCutGraders: mocks.loadRequiredFinalCutGraders
 }));
 vi.mock("@/src/server/livestream-access", () => ({ canManageLivestreams: mocks.canManageLivestreams }));
 
-import { buildCalendarPart, buildGroupsPart, loadExecutiveDashboard } from "@/src/server/executive-dashboard";
+import { buildCalendarPart } from "@/components/home/executive-calendar";
+import { buildGroupsPart, loadExecutiveDashboard } from "@/src/server/executive-dashboard";
 import { setCalendarAnchors } from "@/src/lib/calendar-show-content";
 import { SHOW_TEMPLATE } from "@/src/lib/master-calendar-cells";
 
@@ -74,7 +77,9 @@ function record(id: string, fields: Overrides = {}) {
     finalCutMediaItemId: null,
     queuedForAirAt: null,
     awaitingRevisedInitialCut: false,
-    members: [{ userId: `${id}-member` }],
+    assignedProducer: { name: "Rowan", nickname: null, email: null },
+    assignedExecutiveProducer: null,
+    members: [{ userId: `${id}-member`, user: { name: `Abby ${id}`, nickname: null, email: null } }],
     proofOfContacts: [],
     approval: null,
     initialCutMediaItem: null,
@@ -106,7 +111,14 @@ const stage3 = record("Robotics", {
     stage: "EXECUTIVE_REVIEW",
     controversial: false,
     signoffs: [
-      { userId: "adviser-1", stage: "ADVISER_REVIEW", approved: true, mediaItemId: "cut-1", createdAt: new Date("2026-10-13T18:00:00.000Z") }
+      {
+        userId: "adviser-1",
+        stage: "ADVISER_REVIEW",
+        approved: true,
+        mediaItemId: "cut-1",
+        createdAt: new Date("2026-10-13T18:00:00.000Z"),
+        user: { name: "Sage", nickname: null, email: null }
+      }
     ]
   }
 });
@@ -235,7 +247,15 @@ describe("buildCalendarPart", () => {
         overrides,
         entries: [],
         queued: [],
-        livestreams: [{ id: "ls-1", title: "Football vs. Gunn", startsAt: new Date("2026-10-17T01:00:00.000Z") }]
+        livestreams: [
+          {
+            id: "ls-1",
+            title: "Football vs. Gunn",
+            startsAt: new Date("2026-10-17T01:00:00.000Z"),
+            capacity: 4,
+            _count: { attendees: 3, signups: 2 }
+          }
+        ]
       },
       "2026-10-15"
     );
@@ -266,6 +286,12 @@ describe("loadExecutiveDashboard", () => {
     peak = 0;
     mocks.ensurePackageProgressDefaults.mockImplementation(query([CYCLE]));
     mocks.canManageLivestreams.mockResolvedValue(true);
+    mocks.loadRequiredFinalCutGraders.mockImplementation(
+      query([
+        { userId: "exec-1", name: "Otto", email: null, category: null },
+        { userId: "exec-2", name: "Sage", email: null, category: null }
+      ])
+    );
     mocks.prisma.packageExtensionRequest.findMany.mockImplementation(
       query([
         {
@@ -335,6 +361,9 @@ describe("loadExecutiveDashboard", () => {
     expect(dashboard.overview?.total).toBe(4);
     expect(dashboard.deadlines?.map((deadline) => deadline.label)).toEqual(["Initial Cut · Stage 2", "Initial Cut · Stage 3"]);
     expect(dashboard.events).not.toBeNull();
+    expect(dashboard.reviewQueue?.map((row) => row.topic)).toContain("Robotics");
+    expect(dashboard.gradersLoaded).toBe(true);
+    expect(dashboard.showDays).not.toBeNull();
     expect(peak).toBeLessThanOrEqual(5);
   });
 
@@ -347,5 +376,105 @@ describe("loadExecutiveDashboard", () => {
     expect(dashboard.overview).toBeNull();
     expect(dashboard.deadlines).toBeNull();
     expect(dashboard.needs.some((need) => need.kind === "access")).toBe(true);
+  });
+});
+
+describe("class queues", () => {
+  const studio = record("Studio", {
+    initialCut: true,
+    finalCut: true,
+    finalCutMediaItemId: "final-2",
+    finalCutMediaItem: { createdAt: utc("2026-10-14") },
+    queuedForAirAt: utc("2026-10-14"),
+    approval: { stage: "APPROVED", controversial: false, signoffs: [] },
+    finalCutScores: [
+      { graderUserId: "exec-2", memberUserId: "Studio-member", points: 40, qualityPoints: 20, effortPoints: 20 }
+    ]
+  });
+  const graders = [
+    { userId: "exec-1", name: "Otto", email: null },
+    { userId: "exec-2", name: "Sage", email: null }
+  ];
+
+  it("lists every group waiting on a review, overdue first, then longest waiting", () => {
+    const { reviewQueue } = buildGroupsPart([...RECORDS, studio] as never, GRADES, READY, EXEC, CYCLE_DATES, NOW, graders);
+    expect(reviewQueue.map((row) => [row.topic, row.stage])).toEqual([
+      ["Theater", "Pitch"],
+      ["Garden", "Brainstorm"],
+      ["Bakery", "Final Cut to queue"],
+      ["Robotics", "Initial Cut · Stage 3"]
+    ]);
+    const garden = reviewQueue.find((row) => row.topic === "Garden");
+    expect(garden).toMatchObject({ waitingOn: "Rowan", forViewer: true, href: "/groups/Garden/brainstorming" });
+    expect(garden?.members).toBe("Abby");
+    expect(reviewQueue.find((row) => row.topic === "Robotics")?.waitingOn).toMatch(/^Execs/);
+    expect(reviewQueue.find((row) => row.topic === "Theater")?.forViewer).toBe(false);
+  });
+
+  it("shows who still owes Final Cut scores, then graded groups not yet published", () => {
+    const { gradingQueue } = buildGroupsPart([...RECORDS, studio] as never, GRADES, READY, EXEC, CYCLE_DATES, NOW, graders);
+    expect(gradingQueue).toEqual([
+      expect.objectContaining({
+        topic: "Studio",
+        state: "scoring",
+        owing: ["Otto"],
+        scored: 1,
+        graders: 2,
+        href: "/groups/Studio/final-cut",
+        forViewer: true
+      }),
+      expect.objectContaining({ topic: "Bakery", state: "unpublished", href: "/grade-editor" })
+    ]);
+  });
+
+  it("drops published groups from the grading queue", () => {
+    const published = [{ ...GRADES[0], publishedAt: utc("2026-10-14") }];
+    const { gradingQueue, activity } = buildGroupsPart(RECORDS as never, published, READY, EXEC, CYCLE_DATES, NOW, graders);
+    expect(gradingQueue).toEqual([]);
+    expect(activity[0]).toMatchObject({ topic: "Bakery", text: "Grades published" });
+  });
+
+  it("builds recent activity from sign-offs and uploads, newest first", () => {
+    const { activity } = buildGroupsPart(RECORDS as never, GRADES, READY, EXEC, CYCLE_DATES, NOW, graders);
+    expect(activity.map((entry) => [entry.topic, entry.text])).toEqual([
+      ["Robotics", "Sage approved Stage 2"],
+      ["Bakery", "Final Cut turned in"],
+      ["Robotics", "Initial Cut V1 uploaded"],
+      ["Garden", "Brainstorm sent for review"]
+    ]);
+  });
+});
+
+describe("upcoming show days and livestreams", () => {
+  it("lists two weeks of show and PA days with who's on air, what's queued and what's missing", () => {
+    const { showDays, livestreams } = buildCalendarPart(
+      {
+        overrides: [
+          { date: "2026-10-16", kind: "SHOW", label: "" },
+          { date: "2026-10-26", kind: "PA", label: "" },
+          { date: "2026-10-28", kind: "SHOW", label: "Spirit Week Recap" }
+        ],
+        entries: [{ date: "2026-10-16", content: setCalendarAnchors(SHOW_TEMPLATE, ["Abby"]) }],
+        queued: [{ id: "row-1", groupTopic: "Robotics", cycleNumber: 1, queuedForShowDate: "2026-10-28" }],
+        livestreams: [
+          { id: "ls-1", title: "Volleyball", startsAt: new Date("2026-10-27T01:00:00.000Z"), capacity: 4, _count: { attendees: 4, signups: 0 } },
+          // Past the 14 days.
+          { id: "ls-2", title: "Later", startsAt: new Date("2026-11-05T01:00:00.000Z"), capacity: 4, _count: { attendees: 0, signups: 1 } }
+        ]
+      },
+      "2026-10-15"
+    );
+    const byDate = Object.fromEntries(showDays.map((row) => [row.dateKey, row]));
+    expect(byDate["2026-10-16"]).toMatchObject({ kind: "SHOW", anchors: ["Abby"], missing: ["1 anchor", "Nothing queued"] });
+    expect(byDate["2026-10-26"]).toMatchObject({ kind: "PA", missing: ["No PA"] });
+    expect(byDate["2026-10-28"]).toMatchObject({
+      label: "Spirit Week Recap",
+      packages: [{ id: "row-1", title: "Robotics" }],
+      missing: ["No anchors"]
+    });
+    expect(showDays.every((row) => row.dateKey < "2026-10-29")).toBe(true);
+    expect(livestreams).toEqual([
+      expect.objectContaining({ id: "ls-1", crew: 4, capacity: 4, openLabel: "Full", pending: 0 })
+    ]);
   });
 });

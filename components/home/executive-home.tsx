@@ -4,6 +4,11 @@ import { PageHeader } from "@/components/page-header";
 import { ExecutiveNeedsPanel } from "@/components/home/executive-needs-panel";
 import { ExecutiveOverviewPanel } from "@/components/home/executive-overview-panel";
 import { ExecutiveWeekPanel } from "@/components/home/executive-week-panel";
+import { ExecutiveReviewPanel } from "@/components/home/executive-review-panel";
+import { ExecutiveGradingPanel } from "@/components/home/executive-grading-panel";
+import { ExecutiveShowsPanel } from "@/components/home/executive-shows-panel";
+import { ExecutiveLivestreamsPanel } from "@/components/home/executive-livestreams-panel";
+import { ExecutiveActivityPanel } from "@/components/home/executive-activity-panel";
 import type { ExecutiveDashboard, WeekDeadline } from "@/src/server/executive-dashboard";
 
 function nextDeadlineLine(deadlines: WeekDeadline[] | null) {
@@ -17,8 +22,9 @@ function nextDeadlineLine(deadlines: WeekDeadline[] | null) {
 /**
  * Home for executives, the adviser and super admin (/dashboard). The header says the cycle, how
  * many things wait on the viewer and how many groups are behind. Below: Needs you beside This
- * week (the list first on phones), Class overview across the page, then the producer Projects
- * view (`projects`) under its own heading.
+ * week (the list first on phones), Class overview across the page, the class Review queue beside
+ * the Grading queue, Upcoming shows across the page, Upcoming livestreams beside Recent class
+ * activity, then the producer Projects view (`projects`). Paired panels share a row height.
  */
 export function ExecutiveHome({
   firstName,
@@ -61,6 +67,15 @@ export function ExecutiveHome({
         <ExecutiveWeekPanel deadlines={dashboard.deadlines} events={dashboard.events} />
       </div>
       <ExecutiveOverviewPanel overview={dashboard.overview} />
+      <div className="grid gap-4 sm:gap-5 lg:grid-cols-2">
+        <ExecutiveReviewPanel rows={dashboard.reviewQueue} now={now} />
+        <ExecutiveGradingPanel rows={dashboard.gradingQueue} gradersLoaded={dashboard.gradersLoaded} />
+      </div>
+      <ExecutiveShowsPanel rows={dashboard.showDays} />
+      <div className="grid gap-4 sm:gap-5 lg:grid-cols-2">
+        <ExecutiveLivestreamsPanel rows={dashboard.livestreams} />
+        <ExecutiveActivityPanel entries={dashboard.activity} now={now} />
+      </div>
 
       <section aria-labelledby="home-projects-heading" className="pt-2">
         {projects}

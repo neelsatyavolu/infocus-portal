@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { needDetail, needUrgency, orderNeeds, type NeedItem } from "@/components/home/executive-needs";
+import { deadlineSoonTag, needDetail, needUrgency, orderNeeds, type NeedItem } from "@/components/home/executive-needs";
 import { deadlineClosesAt } from "@/src/lib/deadlines";
 
 // Thursday, Oct 15, 2026 at noon Pacific (PDT).
@@ -79,5 +79,14 @@ describe("needDetail", () => {
     const due = item("a", { dueAt: dueOn("2026-10-16"), waitingSince: "2026-10-13T19:00:00.000Z" });
     expect(needDetail(due, NOW)).toBe("Stage 3 sign-off · waiting 2d");
     expect(needDetail(item("b", { waitingSince: "2026-10-13T19:00:00.000Z" }), NOW)).toBe("Stage 3 sign-off");
+  });
+});
+
+describe("deadlineSoonTag", () => {
+  it("tags only overdue and today or tomorrow", () => {
+    expect(deadlineSoonTag(dueOn("2026-10-14"), NOW)).toMatchObject({ label: "Overdue 1d", tone: "danger" });
+    expect(deadlineSoonTag(dueOn("2026-10-16"), NOW)).toMatchObject({ label: "Due tomorrow", tone: "warning" });
+    expect(deadlineSoonTag(dueOn("2026-10-19"), NOW)).toBeNull();
+    expect(deadlineSoonTag(null, NOW)).toBeNull();
   });
 });

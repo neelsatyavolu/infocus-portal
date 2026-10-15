@@ -1,60 +1,104 @@
 import type { PlatformRole, Prisma } from "@prisma/client";
 import { visibleGroupRows } from "@/components/groups/group-attention";
-import { buildClassOverview, groupNeedItem, type ClassOverview, type GroupReadySince } from "@/components/home/executive-groups";
+import {
+  buildCalendarPart,
+  UPCOMING_DAYS,
+  type LivestreamRow,
+  type ShowDayRow,
+  type WeekEvent
+} from "@/components/home/executive-calendar";
+import {
+  buildClassOverview,
+  buildGradingQueue,
+  groupNeedItem,
+  latestActivity,
+  orderReviewQueue,
+  reviewQueueRow,
+  type ActivityEntry,
+  type ClassOverview,
+  type GradingQueueRow,
+  type GroupActivitySource,
+  type GroupFacts,
+  type GroupReadySince,
+  type ReviewQueueRow
+} from "@/components/home/executive-groups";
 import { orderNeeds, type NeedItem } from "@/components/home/executive-needs";
-import { buildDayModels, dateFromKey } from "@/components/master-calendar/calendar-model";
 import { buildGroupRowView, type CycleDates, type GroupRow } from "@/app/(app)/groups/group-row-model";
 import { buildBoardDeadlines } from "@/src/lib/class-board";
-import { deadlineClosesAt, pacificDateKey } from "@/src/lib/deadlines";
+import { pacificDateKey } from "@/src/lib/deadlines";
 import { remainingFromApproval } from "@/src/lib/package-approval";
 import { serializeProofs } from "@/src/lib/package-brainstorm";
 import { approvedExtensionDaysFor, extensionRequestAwaitsUser } from "@/src/lib/package-extensions";
-import { canGradeFinalCut, gradersDoneWithGroup } from "@/src/lib/package-final-cut-scores";
+import { gradersDoneWithGroup } from "@/src/lib/package-final-cut-scores";
 import { membersAwaitingFinalCutScores } from "@/src/lib/package-revisions";
 import { currentCutRevisionStage } from "@/src/lib/initial-cut-review-versions";
 import { APPROVAL_COMMENT_PREFIX } from "@/src/lib/package-stage-comments";
 import { earlyStageNeedsChanges } from "@/src/lib/package-stage-status";
 import { buildPlatformAccess } from "@/src/lib/platform-admin";
 import { prisma } from "@/src/lib/prisma";
-import { resolveScheduleDay, type ScheduleKind } from "@/src/lib/school-schedule";
 import { addDaysToDateKey, formatShowDateShort, parseDateKeyUtc } from "@/src/lib/show-assignment";
+import { labeledUser } from "@/src/lib/user-display";
 import { ASSOCIATE_REVIEW_AUDIT } from "@/src/server/associate-review-history";
 import { mayDecideExtensionRequest } from "@/src/server/extension-requests";
 import { canManageLivestreams } from "@/src/server/livestream-access";
-import { activeCycleNumberFor, ensurePackageProgressDefaults } from "@/src/server/package-progress-data";
+import {
+  activeCycleNumberFor,
+  ensurePackageProgressDefaults,
+  loadRequiredFinalCutGraders
+} from "@/src/server/package-progress-data";
 
 /**
  * The executive Home (/dashboard for executives, the adviser and super admin): what waits on the
- * viewer, the cycle's groups by stage, and the next two weeks. Built from the loaders and rules
- * the pages use (the Groups row view, the sidebar's counts, the Master Calendar's day model).
- * Queries run in three small waves (at most 5 at once: the Prisma pool on Workers); each part
- * fails on its own (logged, listed in `failed`) and the rest still renders.
+ * viewer, the class's review and grading queues, the cycle's groups by stage, the next two weeks
+ * of shows and livestreams, and recent class activity. Built from the loaders and rules the pages
+ * use (the Groups row view, the sidebar's counts, the Master Calendar's day model). Queries run
+ * in three small waves (at most 5 at once: the Prisma pool on Workers); each part fails on its
+ * own (logged, listed in `failed`) and the rest still renders.
  */
 
 export type ExecutiveViewer = { userId: string; role: PlatformRole | null };
 
-export type ExecutivePart = "cycle" | "groups" | "extensions" | "participation" | "access" | "livestreams" | "calendar";
+export type ExecutivePart =
+  | "cycle"
+  | "groups"
+  | "graders"
+  | "extensions"
+  | "participation"
+  | "access"
+  | "livestreams"
+  | "calendar";
 
 export type WeekDeadline = { key: string; label: string; dateKey: string; dateLabel: string; daysUntil: number };
-export type WeekEvent = { key: string; kind: "show" | "livestream"; title: string; dateLabel: string; href: string };
+export type { LivestreamRow, ShowDayRow, WeekEvent };
 
 export type ExecutiveDashboard = {
   cycleNumber: number | null;
   /** Ordered by urgency (orderNeeds). */
   needs: NeedItem[];
   overview: ClassOverview | null;
+  /** Null when the roster failed to load (as for every group part below). */
+  reviewQueue: ReviewQueueRow[] | null;
+  gradingQueue: GradingQueueRow[] | null;
+  /** False when the grader list failed: scoring rows then show counts without names. */
+  gradersLoaded: boolean;
+  activity: ActivityEntry[] | null;
   /** Stage deadlines in the next 14 days; null when the cycles failed to load. */
   deadlines: WeekDeadline[] | null;
   /** Shows and livestreams in the next 7 days; null when the calendar failed to load. */
   events: WeekEvent[] | null;
+  /** Show and PA days in the next 14 days. */
+  showDays: ShowDayRow[] | null;
+  /** Livestreams in the next 14 days. */
+  livestreams: LivestreamRow[] | null;
   failed: ExecutivePart[];
 };
 
-const WEEK_DAYS = 7;
 const DEADLINE_DAYS = 14;
 
 // ---------------------------------------------------------------------------------------------
-// Groups: the Groups page's row fields (loadPackageProgressData), without names or producer lists.
+// Groups: the Groups page's row fields (loadPackageProgressData), plus the names the queues show.
+
+const PERSON = { select: { name: true, nickname: true, email: true } } as const;
 
 const GROUP_SELECT = {
   id: true,
@@ -70,18 +114,22 @@ const GROUP_SELECT = {
   extension: true,
   assignedProducerUserId: true,
   assignedExecutiveProducerUserId: true,
+  assignedProducer: PERSON,
+  assignedExecutiveProducer: PERSON,
   brainstormDocUrl: true,
   initialCutMediaItemId: true,
   finalCutMediaItemId: true,
   queuedForAirAt: true,
   awaitingRevisedInitialCut: true,
-  members: { select: { userId: true } },
+  members: { select: { userId: true, user: PERSON } },
   proofOfContacts: { select: { id: true, slot: true, fileName: true, mimeType: true, updatedAt: true } },
   approval: {
     select: {
       stage: true,
       controversial: true,
-      signoffs: { select: { userId: true, stage: true, approved: true, mediaItemId: true, createdAt: true } }
+      signoffs: {
+        select: { userId: true, stage: true, approved: true, mediaItemId: true, createdAt: true, user: PERSON }
+      }
     }
   },
   initialCutMediaItem: {
@@ -110,8 +158,9 @@ const GROUP_SELECT = {
 } satisfies Prisma.PackageProgressRowSelect;
 
 type GroupRecord = Prisma.PackageProgressRowGetPayload<{ select: typeof GROUP_SELECT }>;
-type FinalCutGrade = { userId: string; awardedFinalCutPoints: number | null; revisionCount: number };
+type FinalCutGrade = { userId: string; awardedFinalCutPoints: number | null; revisionCount: number; publishedAt?: Date | null };
 type Cycle = Awaited<ReturnType<typeof ensurePackageProgressDefaults>>[number];
+type Grader = { userId: string; name: string | null; email: string | null };
 
 function iso(date: Date | null | undefined) {
   return date?.toISOString() ?? null;
@@ -148,9 +197,14 @@ function latestApproval(record: GroupRecord, stage: string) {
   return times.length > 0 ? new Date(Math.max(...times)) : null;
 }
 
+function personName(person: { name: string | null; nickname?: string | null; email: string | null } | null) {
+  return person ? labeledUser(person).name?.trim() || person.email || null : null;
+}
+
 function toGroupRow(record: GroupRecord, readyAt: Map<string, Date>, finalCutGrades: FinalCutGrade[]) {
   const memberIds = record.members.map((member) => member.userId);
   const officiallyGraded = new Set(finalCutGrades.map((grade) => grade.userId));
+  const published = new Set(finalCutGrades.filter((grade) => grade.publishedAt).map((grade) => grade.userId));
   const cutVersion = record.initialCutMediaItem?.currentVersion ?? null;
   const aRoll = record.stageMedia[0] ?? null;
   const reviewReadyAt = {
@@ -158,6 +212,7 @@ function toGroupRow(record: GroupRecord, readyAt: Map<string, Date>, finalCutGra
     "a-roll": iso(readyAt.get(`${record.id}:${aRoll?.mediaItem.currentVersionId}`) ?? aRoll?.createdAt),
     "initial-cut": iso(readyAt.get(`${record.id}:${cutVersion?.id}`) ?? cutVersion?.createdAt)
   };
+  const hasFinalCut = Boolean(record.finalCutMediaItemId) && memberIds.length > 0;
   const row: GroupRow = {
     id: record.id,
     reviewReadyAt,
@@ -168,6 +223,7 @@ function toGroupRow(record: GroupRecord, readyAt: Map<string, Date>, finalCutGra
     assignedProducerUserId: record.assignedProducerUserId,
     assignedExecutiveProducerUserId: record.assignedExecutiveProducerUserId,
     memberUserIds: memberIds,
+    members: record.members.map((member) => ({ userId: member.userId, ...labeledUser(member.user) })),
     initialCutMediaItemId: record.initialCutMediaItemId,
     finalCutMediaItemId: record.finalCutMediaItemId,
     pitching: record.pitching,
@@ -193,8 +249,8 @@ function toGroupRow(record: GroupRecord, readyAt: Map<string, Date>, finalCutGra
     aRollHasMedia: record.stageMedia.length > 0,
     ...earlyStageNeedsChanges(record),
     queuedForAir: Boolean(record.queuedForAirAt),
-    finalCutGraded:
-      Boolean(record.finalCutMediaItemId) && memberIds.length > 0 && memberIds.every((id) => officiallyGraded.has(id)),
+    finalCutGraded: hasFinalCut && memberIds.every((id) => officiallyGraded.has(id)),
+    finalCutGradesPublished: hasFinalCut && memberIds.every((id) => published.has(id)),
     finalCutScoredByUserIds: gradersDoneWithGroup(
       record.finalCutScores,
       membersAwaitingFinalCutScores(memberIds, record.finalCutScores, finalCutGrades)
@@ -209,7 +265,25 @@ function toGroupRow(record: GroupRecord, readyAt: Map<string, Date>, finalCutGra
     "initial-stage-3": iso(latestApproval(record, "ADVISER_REVIEW")) ?? reviewReadyAt["initial-cut"],
     "final-cut": iso(record.finalCutMediaItem?.createdAt)
   };
-  return { row, readySince };
+  const publishedTimes = finalCutGrades
+    .filter((grade) => memberIds.includes(grade.userId) && grade.publishedAt)
+    .map((grade) => grade.publishedAt!.getTime());
+  const activity: Omit<GroupActivitySource, "key" | "topic" | "href"> = {
+    signoffs: (record.approval?.signoffs ?? []).map((signoff) => ({
+      stage: signoff.stage,
+      approved: signoff.approved,
+      createdAt: signoff.createdAt,
+      actorName: personName(signoff.user)
+    })),
+    brainstormReadyAt: reviewReadyAt.brainstorming,
+    aRollAt: aRoll?.createdAt ?? null,
+    cutVersion: cutVersion ? { versionNumber: cutVersion.versionNumber, createdAt: cutVersion.createdAt } : null,
+    finalCutAt: record.finalCutMediaItem?.createdAt ?? null,
+    queuedAt: record.queuedForAirAt,
+    gradesPublishedAt: hasFinalCut && row.finalCutGradesPublished && publishedTimes.length > 0 ? new Date(Math.max(...publishedTimes)) : null
+  };
+  const assignedName = personName(record.assignedExecutiveProducer) ?? personName(record.assignedProducer);
+  return { row, readySince, activity, assignedName, finalCutSubmittedAt: iso(record.finalCutMediaItem?.createdAt) };
 }
 
 export function cycleDatesOf(cycle: Cycle | undefined): CycleDates | null {
@@ -224,8 +298,9 @@ export function cycleDatesOf(cycle: Cycle | undefined): CycleDates | null {
 }
 
 /**
- * The Groups page's rows for this viewer (visibleGroupRows, buildGroupRowView), the ones waiting
- * on them as "Needs you" rows, and the cycle's overview.
+ * The Groups page's rows for this viewer (visibleGroupRows, buildGroupRowView): the ones waiting
+ * on them as "Needs you" rows, the class review and grading queues, the overview and the latest
+ * activity. `graders` is null when the grader list failed.
  */
 export function buildGroupsPart(
   records: GroupRecord[],
@@ -233,21 +308,53 @@ export function buildGroupsPart(
   readyAt: Map<string, Date>,
   viewer: ExecutiveViewer,
   dates: CycleDates | null,
-  now: Date
+  now: Date,
+  graders: Grader[] | null = null
 ) {
-  const mapped = records.map((record) => toGroupRow(record, readyAt, finalCutGrades));
-  const readyById = new Map(mapped.map(({ row, readySince }) => [row.id, readySince]));
+  const mapped = new Map(
+    records.map((record) => {
+      const group = toGroupRow(record, readyAt, finalCutGrades);
+      return [record.id, group] as const;
+    })
+  );
   const rows = visibleGroupRows(
-    mapped.map(({ row }) => row),
+    [...mapped.values()].map(({ row }) => row),
     { platformRole: viewer.role, currentUserId: viewer.userId, producerCategory: null }
   );
   const ctx = { platformRole: viewer.role, currentUserId: viewer.userId, cycleDates: dates, now };
-  const views = rows.map((row, index) => buildGroupRowView(row, index, ctx));
-  const needs = views.flatMap((view) => {
-    const item = groupNeedItem(view, readyById.get(view.row.id) ?? {}, dates);
+  const facts: GroupFacts[] = rows.map((row, index) => {
+    const group = mapped.get(row.id ?? "");
+    return {
+      view: buildGroupRowView(row, index, ctx),
+      readySince: group?.readySince ?? {},
+      assignedName: group?.assignedName ?? null,
+      finalCutSubmittedAt: group?.finalCutSubmittedAt ?? null
+    };
+  });
+  const needs = facts.flatMap((fact) => {
+    const item = groupNeedItem(fact.view, fact.readySince, dates);
     return item ? [item] : [];
   });
-  return { needs, overview: buildClassOverview(views) };
+  const reviewQueue = orderReviewQueue(
+    facts.flatMap((fact) => {
+      const row = reviewQueueRow(fact, dates);
+      return row ? [row] : [];
+    }),
+    now
+  );
+  const activity = latestActivity(
+    facts.flatMap(({ view }) => {
+      const group = mapped.get(view.row.id ?? "");
+      return group && view.href ? [{ key: view.key, topic: view.topic, href: view.href, ...group.activity }] : [];
+    })
+  );
+  return {
+    needs,
+    overview: buildClassOverview(facts.map((fact) => fact.view)),
+    reviewQueue,
+    gradingQueue: buildGradingQueue(facts, graders, viewer.userId),
+    activity
+  };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -346,122 +453,6 @@ async function loadLivestreamNeeds(viewer: ExecutiveViewer) {
   });
 }
 
-// ---------------------------------------------------------------------------------------------
-// Calendar: the next 7 days of the Master Calendar and the Publishing Queue.
-
-type CalendarRecords = {
-  overrides: Array<{ date: string; kind: string; label: string }>;
-  entries: Array<{ date: string; content: string }>;
-  queued: Array<{ id: string; groupTopic: string; cycleNumber: number; queuedForShowDate: string | null }>;
-  livestreams: Array<{ id: string; title: string; startsAt: Date }>;
-};
-
-function weekdayKeys(todayKey: string) {
-  return Array.from({ length: WEEK_DAYS }, (_, offset) => addDaysToDateKey(todayKey, offset)).filter((key) => {
-    const weekday = parseDateKeyUtc(key).getUTCDay();
-    return weekday !== 0 && weekday !== 6;
-  });
-}
-
-/** Ends at 11:59 PM Pacific that day, like a stage deadline. */
-function endOfDay(dateKey: string) {
-  return deadlineClosesAt(parseDateKeyUtc(dateKey)).toISOString();
-}
-
-/**
- * Show and PA days in the next week, through the Master Calendar's own day model (anchors and
- * PA announcers needed, packages queued), and the week's shows and livestreams.
- */
-export function buildCalendarPart(records: CalendarRecords, todayKey: string) {
-  const keys = weekdayKeys(todayKey);
-  const overrides = new Map(records.overrides.map((row) => [row.date, { kind: row.kind as ScheduleKind, label: row.label }]));
-  const days = buildDayModels({
-    weeks: [keys.map(dateFromKey)],
-    entries: Object.fromEntries(records.entries.map((entry) => [entry.date, entry.content])),
-    scheduleDays: keys.map((key) => resolveScheduleDay(key, overrides)),
-    queuedPackages: records.queued.map((row) => ({
-      id: row.id,
-      groupTopic: row.groupTopic,
-      cycleNumber: row.cycleNumber,
-      date: row.queuedForShowDate
-    })),
-    showManagers: {},
-    todayKey,
-    // Everyone on this Home can edit the calendar, so the "needed" flags apply.
-    canEdit: true
-  });
-
-  const needs: NeedItem[] = days.flatMap((day) => {
-    const date = formatShowDateShort(day.dateKey);
-    const dueAt = endOfDay(day.dateKey);
-    const items: NeedItem[] = [];
-    if (day.anchorsNeeded) {
-      items.push({
-        key: `anchors-${day.dateKey}`,
-        kind: "anchors",
-        title: `Anchors for ${date}`,
-        need: day.anchors.length === 0 ? "None set" : `${day.anchors.length} of 2 set`,
-        href: "/master-calendar",
-        dueAt,
-        waitingSince: null
-      });
-    }
-    if (day.paNeeded) {
-      items.push({
-        key: `announcers-${day.dateKey}`,
-        kind: "announcers",
-        title: `PA announcers for ${date}`,
-        need: day.paNames.length === 0 ? "None set" : `${day.paNames.length} of 2 set`,
-        href: "/master-calendar",
-        dueAt,
-        waitingSince: null
-      });
-    }
-    if (day.kind === "SHOW" && day.queue.length === 0) {
-      items.push({
-        key: `queue-${day.dateKey}`,
-        kind: "queue",
-        title: `Package for ${date}`,
-        need: "Nothing queued for this show",
-        href: "/publishing-queue",
-        dueAt,
-        waitingSince: null
-      });
-    }
-    return items;
-  });
-
-  const shows: Array<WeekEvent & { at: number }> = days
-    .filter((day) => day.kind === "SHOW")
-    .map((day) => ({
-      key: `show-${day.dateKey}`,
-      kind: "show",
-      title: day.specialLabel ? `Show · ${day.specialLabel}` : "Show",
-      dateLabel: formatShowDateShort(day.dateKey),
-      href: "/publishing-queue",
-      at: parseDateKeyUtc(day.dateKey).getTime()
-    }));
-  const livestreams: Array<WeekEvent & { at: number }> = records.livestreams.map((event) => ({
-    key: `livestream-${event.id}`,
-    kind: "livestream",
-    title: event.title,
-    dateLabel: event.startsAt.toLocaleString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      timeZone: "America/Los_Angeles"
-    }),
-    href: "/livestreams",
-    at: parseDateKeyUtc(pacificDateKey(event.startsAt)).getTime()
-  }));
-  const events = [...shows, ...livestreams]
-    .sort((a, b) => a.at - b.at || (a.kind === b.kind ? 0 : a.kind === "show" ? -1 : 1))
-    .map(({ key, kind, title, dateLabel, href }) => ({ key, kind, title, dateLabel, href }));
-  return { needs, events };
-}
-
 /** Stage deadlines (cycle dates and the Class Board's Stage 2 and 3 dates) in the next 14 days. */
 export function buildWeekDeadlines(cycles: Cycle[], todayKey: string, activeCycle: number): WeekDeadline[] {
   return buildBoardDeadlines(
@@ -501,7 +492,7 @@ async function attempt<T>(part: ExecutivePart, failed: ExecutivePart[], load: ()
 export async function loadExecutiveDashboard(viewer: ExecutiveViewer, now: Date = new Date()): Promise<ExecutiveDashboard> {
   const failed: ExecutivePart[] = [];
   const todayKey = pacificDateKey(now);
-  const weekEndKey = addDaysToDateKey(todayKey, WEEK_DAYS);
+  const endKey = addDaysToDateKey(todayKey, UPCOMING_DAYS);
 
   // Wave 1 (5): the cycles, and the counted kinds.
   const [cycles, extensions, participation, access, livestreamSignups] = await Promise.all([
@@ -514,52 +505,59 @@ export async function loadExecutiveDashboard(viewer: ExecutiveViewer, now: Date 
   const cycleNumber = cycles ? activeCycleNumberFor(cycles, now) : null;
   const activeCycle = cycles?.find((cycle) => cycle.cycleNumber === cycleNumber);
 
-  // Wave 2 (5): the cycle's roster and Final Cut grades, and the week's calendar.
+  // Wave 2 (5): the cycle's roster and Final Cut grades, and two weeks of calendar.
   const [groupRecords, calendarBase] = await Promise.all([
     cycleNumber === null
       ? Promise.resolve(null)
       : attempt("groups", failed, () =>
           Promise.all([
             prisma.packageProgressRow.findMany({ where: { cycleNumber }, orderBy: { rowOrder: "asc" }, select: GROUP_SELECT }),
-            canGradeFinalCut(viewer.role)
-              ? prisma.packageGrade.findMany({
-                  where: { cycleNumber, awardedFinalCutPoints: { not: null } },
-                  select: { userId: true, awardedFinalCutPoints: true, revisionCount: true }
-                })
-              : Promise.resolve([] as FinalCutGrade[])
+            prisma.packageGrade.findMany({
+              where: { cycleNumber, awardedFinalCutPoints: { not: null } },
+              select: { userId: true, awardedFinalCutPoints: true, revisionCount: true, publishedAt: true }
+            })
           ])
         ),
     attempt("calendar", failed, () =>
       Promise.all([
         prisma.schoolCalendarDay.findMany({
-          where: { date: { gte: todayKey, lt: weekEndKey } },
+          where: { date: { gte: todayKey, lt: endKey } },
           select: { date: true, kind: true, label: true }
         }),
         prisma.masterCalendarEntry.findMany({
-          where: { date: { gte: todayKey, lt: weekEndKey } },
+          where: { date: { gte: todayKey, lt: endKey } },
           select: { date: true, content: true }
         }),
         prisma.packageProgressRow.findMany({
-          where: { queuedForAirAt: { not: null }, queuedForShowDate: { gte: todayKey, lt: weekEndKey } },
-          select: { id: true, groupTopic: true, cycleNumber: true, queuedForShowDate: true }
+          where: { queuedForAirAt: { not: null }, queuedForShowDate: { gte: todayKey, lt: endKey } },
+          select: { id: true, groupTopic: true, cycleNumber: true, queuedForShowDate: true },
+          orderBy: { queuedForAirAt: "asc" }
         })
       ])
     )
   ]);
 
-  // Wave 3 (2): when each group became ready, and the week's livestreams.
-  const [readyAt, livestreams] = await Promise.all([
+  // Wave 3 (4 at most): when each group became ready, the Final Cut graders (two lookups side
+  // by side), and two weeks of livestreams with their crew and pending sign-up counts.
+  const [readyAt, graders, livestreams] = await Promise.all([
     groupRecords
       ? attempt("groups", failed, () => loadReadyAt(groupRecords[0].map((record) => record.id)))
       : Promise.resolve(null),
+    groupRecords ? attempt("graders", failed, () => loadRequiredFinalCutGraders()) : Promise.resolve(null),
     calendarBase
       ? attempt("calendar", failed, () =>
           prisma.livestreamEvent.findMany({
             where: {
               status: { not: "CANCELLED" },
-              startsAt: { gte: parseDateKeyUtc(todayKey), lt: parseDateKeyUtc(addDaysToDateKey(weekEndKey, 1)) }
+              startsAt: { gte: parseDateKeyUtc(todayKey), lt: parseDateKeyUtc(addDaysToDateKey(endKey, 1)) }
             },
-            select: { id: true, title: true, startsAt: true },
+            select: {
+              id: true,
+              title: true,
+              startsAt: true,
+              capacity: true,
+              _count: { select: { attendees: true, signups: { where: { status: "PENDING" } } } }
+            },
             orderBy: { startsAt: "asc" }
           })
         )
@@ -568,20 +566,12 @@ export async function loadExecutiveDashboard(viewer: ExecutiveViewer, now: Date 
 
   const groups =
     groupRecords && readyAt
-      ? buildGroupsPart(groupRecords[0], groupRecords[1], readyAt, viewer, cycleDatesOf(activeCycle), now)
+      ? buildGroupsPart(groupRecords[0], groupRecords[1], readyAt, viewer, cycleDatesOf(activeCycle), now, graders)
       : null;
   const calendar =
     calendarBase && livestreams
       ? buildCalendarPart(
-          {
-            overrides: calendarBase[0],
-            entries: calendarBase[1],
-            queued: calendarBase[2],
-            livestreams: livestreams.filter((event) => {
-              const key = pacificDateKey(event.startsAt);
-              return key >= todayKey && key < weekEndKey;
-            })
-          },
+          { overrides: calendarBase[0], entries: calendarBase[1], queued: calendarBase[2], livestreams },
           todayKey
         )
       : null;
@@ -601,8 +591,14 @@ export async function loadExecutiveDashboard(viewer: ExecutiveViewer, now: Date 
       now
     ),
     overview: groups?.overview ?? null,
+    reviewQueue: groups?.reviewQueue ?? null,
+    gradingQueue: groups?.gradingQueue ?? null,
+    gradersLoaded: graders !== null,
+    activity: groups?.activity ?? null,
     deadlines: cycles && cycleNumber !== null ? buildWeekDeadlines(cycles, todayKey, cycleNumber) : null,
     events: calendar?.events ?? null,
+    showDays: calendar?.showDays ?? null,
+    livestreams: calendar?.livestreams ?? null,
     failed: [...new Set(failed)]
   };
 }

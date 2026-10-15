@@ -40,7 +40,7 @@ function time(value: string | null): number | null {
 }
 
 /** Whole Pacific calendar days from `from` to `to` (negative when `to` is earlier). */
-function pacificDayDiff(from: Date, to: Date) {
+export function pacificDayDiff(from: Date, to: Date) {
   const fromKey = Date.parse(`${pacificDateKey(from)}T00:00:00.000Z`);
   const toKey = Date.parse(`${pacificDateKey(to)}T00:00:00.000Z`);
   return Math.round((toKey - fromKey) / DAY_MS);
@@ -126,4 +126,15 @@ export function needDetail(item: NeedItem, now: Date = new Date()) {
     return `${item.need} · waiting ${waitingAge(new Date(since), now)}`;
   }
   return item.need;
+}
+
+/**
+ * A deadline tag only when it matters: overdue (danger), or due today or tomorrow (warning).
+ * Null otherwise, so calm rows stay calm.
+ */
+export function deadlineSoonTag(dueAt: string | null, now: Date = new Date()): NeedUrgency | null {
+  const due = time(dueAt);
+  if (due === null) return null;
+  if (due > now.getTime() && pacificDayDiff(now, new Date(due)) > 1) return null;
+  return needUrgency({ key: "", kind: "group", title: "", need: "", href: "", dueAt, waitingSince: null }, now);
 }

@@ -33,7 +33,18 @@ const nextConfig: NextConfig = {
   env: { NEXT_PUBLIC_BUILD_SHA: process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.WORKERS_CI_COMMIT_SHA ?? process.env.GITHUB_SHA ?? "" },
   // Prisma on Cloudflare Workers (OpenNext patches these two packages; they must stay external).
   serverExternalPackages: ["@prisma/client", ".prisma/client"],
-  webpack: (config, { isServer, webpack }) => {
+  webpack: (config, { isServer, nextRuntime, dev, webpack }) => {
+    // Production server build: Next.js only shares a module group over 20 KB and caps how many
+    // chunks a route may load, so the same src/server helpers were copied into hundreds of route
+    // files. The Worker ships one bundle, so a smaller bundle means faster cold starts.
+    if (isServer && nextRuntime === "nodejs" && !dev && config.optimization?.splitChunks) {
+      config.optimization.splitChunks = {
+        ...config.optimization.splitChunks,
+        minSize: 0,
+        maxInitialRequests: Infinity,
+        maxAsyncRequests: Infinity
+      };
+    }
     // src/lib/prisma.ts reaches client bundles through shared libs; keep `pg` out of the browser.
     if (!isServer) {
       config.plugins.push(

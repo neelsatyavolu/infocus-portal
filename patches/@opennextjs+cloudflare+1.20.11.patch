@@ -1,0 +1,13 @@
+diff --git a/node_modules/@opennextjs/cloudflare/dist/cli/build/patches/plugins/load-manifest.js b/node_modules/@opennextjs/cloudflare/dist/cli/build/patches/plugins/load-manifest.js
+index bff72bd..2fb5fd2 100644
+--- a/node_modules/@opennextjs/cloudflare/dist/cli/build/patches/plugins/load-manifest.js
++++ b/node_modules/@opennextjs/cloudflare/dist/cli/build/patches/plugins/load-manifest.js
+@@ -89,7 +89,7 @@ async function getEvalManifestRule(buildOpts) {
+     // Shared map of short hash prefix -> full SHA1 hash, used for collision resolution.
+     const prefixMap = new Map();
+     for (const path of manifestPaths) {
+-        if (path.endsWith("page_client-reference-manifest.js")) {
++        if (path.endsWith("page_client-reference-manifest.js") || path.endsWith("route_client-reference-manifest.js")) {
+             // `page_client-reference-manifest.js` files could contain large repeated values.
+             // Factor out large values into separate variables to reduce the overall size of the generated code.
+             let manifest = await readFile(path, "utf-8");

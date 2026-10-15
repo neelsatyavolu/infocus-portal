@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
+import { FillViewport } from "@/components/kit/fill-viewport";
 import { cn } from "@/src/lib/utils";
 
 /**
@@ -8,10 +9,14 @@ import { cn } from "@/src/lib/utils";
  * src/lib/sidebar-nav.ts). These split that column; none of them adds its own max-width.
  */
 
-/** Sticky list panes clear the shell's sticky top bar (`--app-header-h`, set by AppShell). */
+/**
+ * Sticky list panes clear the shell's sticky top bar (`--app-header-h`, set by AppShell), and are
+ * no taller than the window left below them (`--fill-viewport-h`, FillViewport), so a list page
+ * opens without a page scroll.
+ */
 const STICKY_LIST = {
-  lg: "lg:sticky lg:top-[calc(var(--app-header-h,0px)+1rem)] lg:max-h-[calc(100dvh-var(--app-header-h,0px)-2rem)] lg:overflow-y-auto",
-  md: "md:sticky md:top-[calc(var(--app-header-h,0px)+1rem)] md:max-h-[calc(100dvh-var(--app-header-h,0px)-2rem)] md:overflow-y-auto"
+  lg: "lg:sticky lg:top-[calc(var(--app-header-h,0px)+1rem)] lg:max-h-[min(var(--fill-viewport-h,100dvh),calc(100dvh-var(--app-header-h,0px)-2rem))] lg:overflow-y-auto",
+  md: "md:sticky md:top-[calc(var(--app-header-h,0px)+1rem)] md:max-h-[min(var(--fill-viewport-h,100dvh),calc(100dvh-var(--app-header-h,0px)-2rem))] md:overflow-y-auto"
 } as const;
 
 /**
@@ -56,7 +61,7 @@ export function ListDetail({
         className
       )}
     >
-      <div
+      <FillViewport
         className={cn(
           "min-w-0",
           showDetailOnPhone && (lg ? "max-lg:hidden" : "max-md:hidden"),
@@ -65,7 +70,7 @@ export function ListDetail({
         )}
       >
         {list}
-      </div>
+      </FillViewport>
       <div className={cn("min-w-0", !showDetailOnPhone && (lg ? "max-lg:hidden" : "max-md:hidden"))}>
         {onBack ? (
           <div className={cn("mb-3", lg ? "lg:hidden" : "md:hidden", card && "mb-0 border-b border-border px-2 py-1")}>

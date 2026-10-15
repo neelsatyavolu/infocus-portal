@@ -15,10 +15,11 @@ import { Alert } from "@/components/kit/alert";
 import { isTypingTarget, useListHotkeys } from "@/components/kit/hotkeys";
 import { IconButton } from "@/components/kit/icon-button";
 import { useRememberedState } from "@/components/kit/remembered-state";
-import { CalendarToolbar, MonthStatusTags } from "@/components/master-calendar/calendar-toolbar";
+import { CalendarActions, MonthStatusTags } from "@/components/master-calendar/calendar-toolbar";
 import { CastCountsDialog } from "@/components/master-calendar/cast-counts-dialog";
 import {
   DAY_PANEL_ID,
+  monthCountsLine,
   WEEK_LEGEND,
   buildDayModels,
   buildWeekSegments,
@@ -308,9 +309,30 @@ export default function MasterCalendarClient({
               {cal.monthTitle}
             </>
           }
-          description={WEEK_LEGEND}
+          description={
+            cal.canEdit || cal.canViewCastCounts ? (
+              <>
+                <span className="font-medium text-foreground">{monthCountsLine(summary)}</span>
+                {` · ${WEEK_LEGEND}`}
+              </>
+            ) : (
+              WEEK_LEGEND
+            )
+          }
           actions={
             <>
+              <CalendarActions
+                canEdit={cal.canEdit}
+                canViewCastCounts={cal.canViewCastCounts}
+                syncing={cal.syncing}
+                wipingAnchors={cal.wipingAnchors}
+                onOpenCastCounts={() => setCastCountsOpen(true)}
+                onSync={cal.syncNow}
+                onWipe={() => {
+                  cal.clearWipeError();
+                  setConfirmingWipe(true);
+                }}
+              />
               <MonthStepper
                 loading={cal.loading}
                 previousDisabled={cal.atCalendarStart}
@@ -325,20 +347,6 @@ export default function MasterCalendarClient({
           }
         />
 
-        <CalendarToolbar
-          summary={summary}
-          loading={cal.loading}
-          canEdit={cal.canEdit}
-          canViewCastCounts={cal.canViewCastCounts}
-          syncing={cal.syncing}
-          wipingAnchors={cal.wipingAnchors}
-          onOpenCastCounts={() => setCastCountsOpen(true)}
-          onSync={cal.syncNow}
-          onWipe={() => {
-            cal.clearWipeError();
-            setConfirmingWipe(true);
-          }}
-        />
 
         {hasAlerts ? (
           <div className="space-y-2">

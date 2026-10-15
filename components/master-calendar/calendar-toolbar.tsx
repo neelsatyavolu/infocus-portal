@@ -1,12 +1,11 @@
 "use client";
 
 import { Check, Eraser, FileUp, Users } from "lucide-react";
-import { Toolbar } from "@/components/kit/action-bar";
 import { ActionMenu } from "@/components/kit/menu";
 import { Spinner } from "@/components/kit/spinner";
 import { StatusTag } from "@/components/kit/status-tag";
 import { Button } from "@/components/ui/button";
-import { monthCountsLine, type MonthSummary } from "@/components/master-calendar/calendar-model";
+import type { MonthSummary } from "@/components/master-calendar/calendar-model";
 import type { SyncState } from "@/components/master-calendar/use-master-calendar";
 
 function monthShort(monthKey: string) {
@@ -74,13 +73,11 @@ export function MonthStatusTags({ summary, syncState }: { summary: MonthSummary;
 }
 
 /**
- * The row under the header (producers and executives): the month's counts, then Anchors & PA,
- * Sync to Doc and Wipe anchors in one row of matched controls. On phones, Sync stays and the
- * other two move into the ⋯ menu. A thin bar under the row shows a month loading.
+ * The header's calendar actions (producers and executives): Anchors & PA, Sync to Doc and Wipe
+ * anchors as one row of matched controls beside the month stepper, so nothing sits between the
+ * header and the board. On phones, Sync stays and the other two move into the ⋯ menu.
  */
-export function CalendarToolbar({
-  summary,
-  loading,
+export function CalendarActions({
   canEdit,
   canViewCastCounts,
   syncing,
@@ -89,8 +86,6 @@ export function CalendarToolbar({
   onSync,
   onWipe
 }: {
-  summary: MonthSummary;
-  loading: boolean;
   canEdit: boolean;
   canViewCastCounts: boolean;
   syncing: boolean;
@@ -101,51 +96,43 @@ export function CalendarToolbar({
 }) {
   if (!canEdit && !canViewCastCounts) return null;
   return (
-    <Toolbar
-      aria-label="Calendar actions"
-      size="touch"
-      busy={loading}
-      meta={monthCountsLine(summary)}
-      end={
-        <>
-          {canViewCastCounts ? (
-            <Button type="button" variant="outline" onClick={onOpenCastCounts} className="max-sm:hidden">
-              <Users aria-hidden />
-              Anchors & PA
-            </Button>
-          ) : null}
-          {canEdit ? (
-            <Button type="button" variant="outline" onClick={onSync} disabled={syncing || wipingAnchors} aria-busy={syncing || undefined}>
-              {syncing ? <Spinner /> : <FileUp aria-hidden />}
-              Sync to Doc
-            </Button>
-          ) : null}
-          {canEdit ? (
-            <Button type="button" variant="destructive-quiet" onClick={onWipe} disabled={wipingAnchors || syncing} className="max-sm:hidden">
-              <Eraser aria-hidden />
-              Wipe anchors…
-            </Button>
-          ) : null}
-          <span className="contents sm:hidden">
-            <ActionMenu
-              label="More calendar actions"
-              variant="outline"
-              className="h-10"
-              items={[
-                { label: "Anchors & PA", icon: Users, onSelect: onOpenCastCounts, hidden: !canViewCastCounts },
-                {
-                  label: "Wipe anchors…",
-                  icon: Eraser,
-                  tone: "danger",
-                  onSelect: onWipe,
-                  disabled: wipingAnchors || syncing,
-                  hidden: !canEdit
-                }
-              ]}
-            />
-          </span>
-        </>
-      }
-    />
+    <div role="group" aria-label="Calendar actions" className="flex items-center gap-2">
+      {canViewCastCounts ? (
+        <Button type="button" variant="outline" onClick={onOpenCastCounts} className="max-sm:hidden">
+          <Users aria-hidden />
+          Anchors & PA
+        </Button>
+      ) : null}
+      {canEdit ? (
+        <Button type="button" variant="outline" onClick={onSync} disabled={syncing || wipingAnchors} aria-busy={syncing || undefined}>
+          {syncing ? <Spinner /> : <FileUp aria-hidden />}
+          Sync to Doc
+        </Button>
+      ) : null}
+      {canEdit ? (
+        <Button type="button" variant="destructive-quiet" onClick={onWipe} disabled={wipingAnchors || syncing} className="max-sm:hidden">
+          <Eraser aria-hidden />
+          Wipe anchors…
+        </Button>
+      ) : null}
+      <span className="contents sm:hidden">
+        <ActionMenu
+          label="More calendar actions"
+          variant="outline"
+          className="h-10"
+          items={[
+            { label: "Anchors & PA", icon: Users, onSelect: onOpenCastCounts, hidden: !canViewCastCounts },
+            {
+              label: "Wipe anchors…",
+              icon: Eraser,
+              tone: "danger",
+              onSelect: onWipe,
+              disabled: wipingAnchors || syncing,
+              hidden: !canEdit
+            }
+          ]}
+        />
+      </span>
+    </div>
   );
 }

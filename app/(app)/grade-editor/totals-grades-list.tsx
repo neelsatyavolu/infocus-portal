@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { ChevronRight } from "lucide-react";
 import { StatusTag } from "@/components/kit/status-tag";
 import { emailLocalPart, letterGrade, personLabel } from "./grade-editor-utils";
-import { LetterGradeTag, PointsReadout } from "./grade-editor-table";
+import { LetterGradeTag, PercentReadout } from "./grade-editor-table";
 import { PhoneListSkeleton } from "./cycle-grades-list";
 import type { TotalsRowView } from "./totals-grades-table";
 
@@ -43,10 +43,7 @@ export function TotalsGradesList({
                 ) : null}
               </span>
             </span>
-            <PointsReadout
-              earned={summary.totalMax > 0 ? summary.totalGrade : null}
-              possible={summary.totalMax > 0 ? summary.totalMax : null}
-            />
+            <PercentReadout percent={summary.totalPct} />
             <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-muted-foreground" />
           </button>
         </li>

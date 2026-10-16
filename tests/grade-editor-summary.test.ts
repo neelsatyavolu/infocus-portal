@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cycleCheckInSummary, packageSubtotal } from "@/src/lib/grade-editor-summary";
+import { cycleCheckInSummary, editorWeightedPercentage, packageSubtotal } from "@/src/lib/grade-editor-summary";
 
 describe("cycleCheckInSummary", () => {
   it("sums released numeric check-ins and counts 5 possible for each", () => {
@@ -45,5 +45,33 @@ describe("packageSubtotal", () => {
   it("ignores dash and backslash overrides and clamps numbers to the max", () => {
     expect(packageSubtotal(entries, { 2: "-", 3: "\\" }, 50)).toEqual({ earned: 42, possible: 50 });
     expect(packageSubtotal(entries, { 2: "99" }, 50)).toEqual({ earned: 92, possible: 100 });
+  });
+});
+
+describe("editorWeightedPercentage", () => {
+  it("weights packages 55 / participation 35 like the student gradebook, not raw points", () => {
+    // A missed Final Cut (0/50), 50/60 check-ins due so far, near-perfect participation.
+    const percent = editorWeightedPercentage({
+      finalCuts: { earned: 0, possible: 50 },
+      checkIns: { earned: 50, possible: 60 },
+      livestream: null,
+      participation: { earned: 369, possible: 370 },
+      final: null,
+      extra: null
+    });
+    expect(percent).toBe(66.6);
+  });
+
+  it("is null when nothing is gradeable", () => {
+    expect(
+      editorWeightedPercentage({
+        finalCuts: { earned: 0, possible: 0 },
+        checkIns: null,
+        livestream: null,
+        participation: { earned: 0, possible: 0 },
+        final: null,
+        extra: null
+      })
+    ).toBeNull();
   });
 });

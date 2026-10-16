@@ -1,4 +1,5 @@
 import type { GradeScoreState } from "@prisma/client";
+import { MAX_LIVESTREAM_POINTS, MAX_PORTFOLIO_POINTS, weightedCategoryPercentage } from "@/src/lib/grading";
 import { CHECK_IN_STAGES, POINTS_PER_CHECK_IN, type CheckInScores } from "@/src/lib/package-stages";
 
 export type PointsSummary = { earned: number; possible: number };
@@ -59,4 +60,35 @@ export function packageSubtotal(
     },
     { earned: 0, possible: 0 }
   );
+}
+
+/** Earned and possible for one Total Grade credit; null when it is ungraded or exempt. */
+type Credit = PointsSummary | null;
+
+/**
+ * The Total Grade tab's estimated grade, weighted like the student gradebook
+ * (src/lib/grading.ts, 55 / 35 / 10): Packages = final cuts + check-ins due so far +
+ * livestream + extra credit; Participation; Portfolio = the final. Anything not
+ * gradeable yet is left out of both sides. Null when nothing is gradeable.
+ */
+export function editorWeightedPercentage(input: {
+  finalCuts: PointsSummary;
+  checkIns: Credit;
+  livestream: number | null;
+  participation: PointsSummary;
+  final: number | null;
+  extra: Credit;
+}) {
+  const credits = [input.checkIns, input.extra].filter((credit): credit is PointsSummary => credit !== null);
+  return weightedCategoryPercentage({
+    packages: {
+      earned: input.finalCuts.earned + credits.reduce((total, credit) => total + credit.earned, 0) + (input.livestream ?? 0),
+      possible:
+        input.finalCuts.possible +
+        credits.reduce((total, credit) => total + credit.possible, 0) +
+        (input.livestream === null ? 0 : MAX_LIVESTREAM_POINTS)
+    },
+    participation: input.participation,
+    portfolio: input.final === null ? { earned: 0, possible: 0 } : { earned: input.final, possible: MAX_PORTFOLIO_POINTS }
+  });
 }

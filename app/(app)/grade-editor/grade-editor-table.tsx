@@ -268,6 +268,22 @@ export function PointsReadout({
   );
 }
 
+/** The weighted total grade as a percentage ("—" when nothing is gradeable yet). */
+export function PercentReadout({ percent, className }: { percent: number | null; className?: string }) {
+  return (
+    <span
+      title="Weighted 55 / 35 / 10 over work due so far"
+      className={cn(
+        "whitespace-nowrap font-mono-broadcast text-[13px] font-medium tabular-nums leading-none",
+        percent === null ? "text-muted-foreground" : percentTone(percent),
+        className
+      )}
+    >
+      {percent === null ? "—" : formatPercent(percent)}
+    </span>
+  );
+}
+
 /** Moves focus to the same score box in the next or previous row (Enter / Shift+Enter). */
 function moveInColumn(input: HTMLInputElement, direction: 1 | -1) {
   const key = input.dataset.gradeNav;

@@ -124,21 +124,24 @@ export function portfolioCategoryScore(input: GradeInput): CategoryScore {
 }
 
 /**
- * Weighted percentage across the three categories. A category with nothing
+ * Weighted percentage from the three category scores. A category with nothing
  * gradeable yet (possible = 0) is dropped and the remaining weights are
- * renormalised, so an early-semester grade is not dragged down by a portfolio
- * that does not exist.
+ * renormalised. Null when no category has anything gradeable.
  */
-export function weightedGradePercentage(input: GradeInput) {
+export function weightedCategoryPercentage(scores: {
+  packages: CategoryScore;
+  participation: CategoryScore;
+  portfolio: CategoryScore;
+}) {
   const categories: Array<{ weight: number; score: CategoryScore }> = [
-    { weight: GRADE_WEIGHTS.packages, score: packageCategoryScore(input) },
-    { weight: GRADE_WEIGHTS.participation, score: participationCategoryScore(input) },
-    { weight: GRADE_WEIGHTS.portfolio, score: portfolioCategoryScore(input) }
+    { weight: GRADE_WEIGHTS.packages, score: scores.packages },
+    { weight: GRADE_WEIGHTS.participation, score: scores.participation },
+    { weight: GRADE_WEIGHTS.portfolio, score: scores.portfolio }
   ];
 
   const active = categories.filter((category) => category.score.possible > 0);
   if (active.length === 0) {
-    return 0;
+    return null;
   }
 
   const totalWeight = active.reduce((total, category) => total + category.weight, 0);
@@ -148,6 +151,20 @@ export function weightedGradePercentage(input: GradeInput) {
   );
 
   return Number(((weighted / totalWeight) * 100).toFixed(1));
+}
+
+/**
+ * Weighted percentage across the three categories, so an early-semester grade
+ * is not dragged down by a portfolio that does not exist.
+ */
+export function weightedGradePercentage(input: GradeInput) {
+  return (
+    weightedCategoryPercentage({
+      packages: packageCategoryScore(input),
+      participation: participationCategoryScore(input),
+      portfolio: portfolioCategoryScore(input)
+    }) ?? 0
+  );
 }
 
 /**

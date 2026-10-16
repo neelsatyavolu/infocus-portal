@@ -12,6 +12,7 @@ import { rovingIndex } from "@/components/kit/roving";
 import { ListDetailSkeleton } from "@/components/kit/skeleton";
 import type { SaveStateValue } from "@/components/kit/status-tag";
 import { ViewTabPanel, ViewTabs } from "@/components/kit/view-tabs";
+import { TopBarSlot } from "@/components/shell/top-bar-slot";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { pacificDateKey } from "@/src/lib/deadlines";
 import { buildCycleGradesCsv, buildTotalGradesCsv, defaultTotalsAdjustments } from "@/src/lib/grade-editor-csv";
@@ -533,9 +534,18 @@ export default function GradeEditorClient() {
         tableView && "lg:h-[calc(100dvh-var(--app-header-h,4rem)-3rem)] lg:min-h-[36rem]"
       )}
     >
-      <div className="shrink-0" onKeyDownCapture={moveViewTabFocus}>
-        <ViewTabs ariaLabel="Grade Editor views" idPrefix={TAB_ID_PREFIX} value={tabValue} onChange={selectView} items={tabItems} />
-      </div>
+      <TopBarSlot>
+        <div className="flex min-w-0 flex-1" onKeyDownCapture={moveViewTabFocus}>
+          <ViewTabs
+            ariaLabel="Grade Editor views"
+            idPrefix={TAB_ID_PREFIX}
+            value={tabValue}
+            onChange={selectView}
+            items={tabItems}
+            size="bar"
+          />
+        </div>
+      </TopBarSlot>
 
       <ViewTabPanel
         idPrefix={TAB_ID_PREFIX}
@@ -550,7 +560,6 @@ export default function GradeEditorClient() {
           stats={cycleStats}
           totalsReporterCount={totals.totalsRows.length}
           totalsLoading={totalsTableLoading && totals.totalsRows.length === 0}
-          cycleCount={cycles.length}
           saveState={pageSaveState}
           dirtyCount={grades.dirtyUserIds.size}
           temporaryEdits={temporaryEdits}

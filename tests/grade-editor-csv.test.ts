@@ -76,7 +76,7 @@ describe("grade editor CSV exports", () => {
 
     expect(csv).toBe([
       "Name,Email,Cycle 01,Cycle 02,Check-Ins,Livestream,Participation,Final,Extra Points,Extra Max,Total Grade,Total Max,Percentage,Letter Grade,Notes",
-      "Grace Hopper,grace@example.com,38,35,10,20,45/50,80,4,5,232,305,76.1,C,\"Late add, approved\""
+      "Grace Hopper,grace@example.com,38,35,10,20,45/50,80,4,5,232,305,77.5,C,\"Late add, approved\""
     ].join("\n"));
   });
 

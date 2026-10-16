@@ -6,7 +6,7 @@ import { Spinner } from "@/components/kit/spinner";
 import { CountBadge, SaveState, StatusTag, type SaveStateValue } from "@/components/kit/status-tag";
 import { Button } from "@/components/ui/button";
 import { MAX_PACKAGE_PER_CYCLE, type CycleTab, type ViewMode } from "./grade-editor-types";
-import { formatLongDate, formatPercent, totalsMaxPoints } from "./grade-editor-utils";
+import { formatLongDate, formatPercent } from "./grade-editor-utils";
 
 /** The cycle's numbers for the context line. Null while another cycle is still loading. */
 export type CycleStats = {
@@ -36,7 +36,6 @@ export function GradeEditorHeader({
   stats,
   totalsReporterCount,
   totalsLoading,
-  cycleCount,
   saveState,
   dirtyCount,
   temporaryEdits,
@@ -56,7 +55,6 @@ export function GradeEditorHeader({
   totalsReporterCount: number;
   /** The first totals are still loading (nothing to count yet). */
   totalsLoading: boolean;
-  cycleCount: number;
   saveState: SaveStateValue;
   dirtyCount: number;
   temporaryEdits: number;
@@ -69,7 +67,6 @@ export function GradeEditorHeader({
   onPublishAll: () => void;
 }) {
   const focus = cycle?.focus?.trim();
-  const maxPoints = totalsMaxPoints(cycleCount);
 
   const status =
     viewMode === "cycle" ? (
@@ -97,8 +94,8 @@ export function GradeEditorHeader({
       totalsLoading ? (
         "Loading totals…"
       ) : (
-        <span title="50 × cycles + 20 × cycles + 40 livestream + 100 portfolio">
-          {totalsReporterCount} reporters · out of {maxPoints} pts
+        <span title="Packages (final cuts, check-ins, livestream) 55%, Participation 35%, Portfolio 10%. Only work that is due or graded counts, like the student gradebook.">
+          {totalsReporterCount} reporters · weighted 55 / 35 / 10, work due so far
         </span>
       )
     ) : viewMode === "student" ? (

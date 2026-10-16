@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import type { TotalsAdjustments } from "@/src/lib/grade-editor-csv";
 import { MAX_NOTES_LENGTH, PARTICIPATION_HINT } from "./grade-editor-types";
 import { emailLocalPart, letterGrade, personLabel } from "./grade-editor-utils";
-import { LetterGradeTag, PointsReadout } from "./grade-editor-table";
+import { LetterGradeTag, PercentReadout, PointsReadout } from "./grade-editor-table";
 import { LimitedTextarea, TextCounter } from "./limited-textarea";
 import { SheetStepButtons } from "./sheet-step-buttons";
 import { CheckInsTotalField, CycleTotalField, ExtraField, FinalField, LivestreamField } from "./totals-fields";
@@ -61,11 +61,7 @@ export function TotalsRowSheet({
       headerExtra={
         <>
           <LetterGradeTag percent={summary.totalPct} letter={letter} />
-          <PointsReadout
-            earned={summary.totalMax > 0 ? summary.totalGrade : null}
-            possible={summary.totalMax > 0 ? summary.totalMax : null}
-            align="left"
-          />
+          <PercentReadout percent={summary.totalPct} />
           {edited ? (
             <StatusTag tone="warning" title="Temporary: changes this page and the CSV only, gone after a reload">
               Edited

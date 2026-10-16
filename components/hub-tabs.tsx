@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { CountBadge, StatusDot, type CountBadgeTone, type StatusDotTone } from "@/components/kit/status-tag";
-import { TAB_LIST_CLASS, tabItemClass } from "@/components/kit/tab-styles";
+import { TOP_BAR_TAB_LIST_CLASS, tabItemClass } from "@/components/kit/tab-styles";
 import type { HubTab } from "@/src/lib/sidebar-nav";
-import { cn } from "@/src/lib/utils";
 
 /** A hub tab plus an optional status: a count (requests waiting on you) or a "something new" dot. */
 export type HubTabWithStatus = HubTab & {
@@ -23,13 +22,13 @@ export type HubTabWithStatus = HubTab & {
  */
 export function HubTabs({ tabs }: { tabs: HubTabWithStatus[] }) {
   return (
-    <nav aria-label="Section" className={cn(TAB_LIST_CLASS, "h-14 flex-1 gap-5 self-end border-b-0 md:gap-6")}>
+    <nav aria-label="Section" className={TOP_BAR_TAB_LIST_CLASS}>
       {tabs.map((tab) => (
         <Link
           key={tab.href}
           href={tab.href as never}
           aria-current={tab.active ? "page" : undefined}
-          className={cn(tabItemClass(tab.active), "mb-0 h-14")}
+          className={tabItemClass(tab.active, "bar")}
         >
           {tab.label}
           {tab.count ? (

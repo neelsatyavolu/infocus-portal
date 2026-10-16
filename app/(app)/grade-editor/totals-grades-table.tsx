@@ -23,6 +23,7 @@ import {
   GradeTableHead,
   LetterGradeTag,
   NUM_CELL,
+  PercentReadout,
   PointsReadout,
   REPORTER_INSET,
   ReporterCell,
@@ -150,11 +151,7 @@ function TotalsGradeRow({ view, handlers }: { view: TotalsRowView; handlers: Tot
       <td className={cn(CELL, GROUP_START, SECOND_PINNED)}>
         <span className="flex items-center gap-2">
           <LetterGradeTag percent={summary.totalPct} letter={summary.totalPct === null ? null : letterGrade(summary.totalPct)} />
-          <PointsReadout
-            earned={summary.totalMax > 0 ? summary.totalGrade : null}
-            possible={summary.totalMax > 0 ? summary.totalMax : null}
-            align="left"
-          />
+          <PercentReadout percent={summary.totalPct} />
         </span>
       </td>
       {row.cycleTotals.map((entry, entryIdx) => (

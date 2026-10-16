@@ -91,7 +91,9 @@ describe("persisted check-in overrides", () => {
     expect(summary.percentage).toBe(46.7);
     expect(summary.finalCutPoints).toEqual([null]);
     expect(byUserId.get("student")?.checkInScoresByCycle[1]).toEqual({ pitching: 0, proofOfContact: 3, aRollBRoll: 4, initialCut: null });
-    expect(byUserId.get("student")?.checkInPoints).toBe(12); // 20 semester max - 8 missed due points
+    // Same as the official grade: only stages already due count.
+    expect(byUserId.get("student")?.checkInPoints).toBe(7);
+    expect(byUserId.get("student")?.checkInPossible).toBe(15);
   });
 
   it.each(["UNGRADED", "EXEMPT"])("excludes %s check-ins from both official and editor totals", async (state) => {
@@ -104,8 +106,8 @@ describe("persisted check-in overrides", () => {
     expect(summary.percentage).toBe(100);
     const { byUserId } = await loadGradeEditorCredits({ userIds: ["student"], cycles: [cycle] });
     expect(byUserId.get("student")?.checkInScoresByCycle[1]?.aRollBRoll).toBe(state);
-    expect(byUserId.get("student")?.checkInPossible).toBe(15);
-    expect(byUserId.get("student")?.checkInPoints).toBe(15);
+    expect(byUserId.get("student")?.checkInPossible).toBe(10);
+    expect(byUserId.get("student")?.checkInPoints).toBe(10);
   });
 
   it.each(["UNGRADED", "EXEMPT"])("keeps a %s final cut excluded after its deadline", async (state) => {

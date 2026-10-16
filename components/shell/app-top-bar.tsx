@@ -8,6 +8,7 @@ import { Kbd } from "@/components/kit/kbd";
 import type { AppBreadcrumb } from "@/src/lib/app-breadcrumbs";
 import { cn } from "@/src/lib/utils";
 import { ShellBreadcrumbs, showsBreadcrumbTrail } from "@/components/shell/shell-breadcrumbs";
+import { TOP_BAR_SLOT_ID } from "@/components/shell/top-bar-slot";
 import { DRAWER_ID } from "@/components/shell/use-phone-drawer";
 import type { ShellLinkClick } from "@/components/shell/use-shell-link";
 
@@ -19,7 +20,8 @@ const SQUARE_BUTTON =
  * Its row is the content column (same gutters and max width), so the first crumb starts on the
  * page's left edge and the last control ends on its right edge. Left: the hub's tabs on a page
  * that has them (Master Calendar / Cycle Dates…), otherwise breadcrumbs (two or more; a lone
- * crumb would repeat the page title). Right: Search (⌘K) and the account menu, 36px
+ * crumb would repeat the page title), otherwise a slot a page can fill with its own view tabs
+ * (TopBarSlot, e.g. the Grade Editor). Right: Search (⌘K) and the account menu, 36px
  * (40px on phones). Viewing as is told once, by the notice at the top of the column (with its
  * actions), plus the avatar's amber ring that stays in sight while the page scrolls. Page
  * controls such as the dashboard's workspace and Grid/List live in each page's toolbar.
@@ -81,7 +83,7 @@ export function AppTopBar({
           ) : showsBreadcrumbTrail(crumbs) ? (
             <ShellBreadcrumbs crumbs={crumbs} onLinkClick={onLinkClick} />
           ) : (
-            <div className="min-w-0 flex-1" />
+            <div id={TOP_BAR_SLOT_ID} className="flex min-w-0 flex-1 self-stretch" />
           )}
           <div className="ml-auto flex shrink-0 items-center gap-1 md:gap-2">
             {showSearch ? (

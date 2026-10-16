@@ -11,14 +11,11 @@ import { cycleSemesterTerm } from "@/src/lib/package-grades";
 import { PLATFORM_SUPER_ADMIN_EMAIL, normalizeEmail } from "@/src/lib/platform-admin";
 import {
   CHECK_IN_STATE_SELECT,
-  CHECK_IN_STAGES,
-  POINTS_PER_CHECK_IN,
   checkInGradeForProgress,
   checkInOverrides,
   releasedCheckInScores,
   type CheckInScores,
   cycleCheckInDates,
-  padCheckInsToSemesterMax,
   sumReleasedCheckIns,
   type CheckInProgressSnapshot
 } from "@/src/lib/package-stages";
@@ -213,19 +210,10 @@ export async function loadGradeEditorCredits(input: {
         }
       }))
     );
-    const excludedPossible = perCycle.reduce((total, cycle, index) => {
-      if (cycleSemesterTerm(cycle.cycleNumber) !== term) return total;
-      if (!quota.countedCycles[index]) return total;
-      const scores = credits.checkInScoresByCycle[cycle.cycleNumber]!;
-      return total + CHECK_IN_STAGES.filter((stage) => typeof scores[stage] === "string").length * POINTS_PER_CHECK_IN;
-    }, 0);
-    const padded = padCheckInsToSemesterMax({
-      releasedEarned: counted.earned,
-      releasedPossible: counted.possible,
-      semesterMax: Math.max(0, semesterCheckInMax(role, term, termCycleCount) - excludedPossible)
-    });
-    credits.checkInPoints = padded.earned;
-    credits.checkInPossible = padded.possible;
+    // Only stages whose deadline has passed count, like the student gradebook (no credit for
+    // work that is not due yet). Ungraded and exempt stages are already left out.
+    credits.checkInPoints = counted.possible > 0 ? counted.earned : null;
+    credits.checkInPossible = counted.possible > 0 ? counted.possible : null;
     credits.livestreamPoints = livestreamByUser.get(userId) ?? null;
     credits.livestreamHours = livestreamHoursByUser.get(userId) ?? 0;
     byUserId.set(userId, credits);

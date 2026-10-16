@@ -2,15 +2,10 @@ import { LoadingRegion, PageHeaderSkeleton, Skeleton } from "@/components/kit/sk
 
 const COLUMNS = ["w-28", "w-10", "w-10", "w-10", "w-10", "w-14", "w-16", "w-20", "w-14", "w-20", "w-24"];
 
-/** Grade Editor route skeleton: view tabs, header plate, and one work panel (toolbar + table rows). */
+/** Grade Editor route skeleton (its view tabs live in the top bar): header plate, and one work panel (toolbar + table rows). */
 export default function Loading() {
   return (
     <LoadingRegion label="Loading Grade Editor" className="space-y-5">
-      <div aria-hidden className="flex h-10 items-center gap-6 border-b border-border">
-        {Array.from({ length: 5 }, (_, index) => (
-          <Skeleton key={index} className="h-3.5 w-16" />
-        ))}
-      </div>
       <PageHeaderSkeleton actions={2} />
       <div aria-hidden className="overflow-hidden rounded-md border border-border bg-card">
         <div className="space-y-3 border-b border-border p-4">

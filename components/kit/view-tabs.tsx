@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from "react";
 import { centerInStrip, rovingIndex } from "@/components/kit/roving";
 import { CountBadge, StatusDot, type CountBadgeTone, type StatusDotTone } from "@/components/kit/status-tag";
-import { TAB_LIST_CLASS, tabItemClass } from "@/components/kit/tab-styles";
+import { TAB_LIST_CLASS, TOP_BAR_TAB_LIST_CLASS, tabItemClass, type TabSize } from "@/components/kit/tab-styles";
 import { cn } from "@/src/lib/utils";
 
 export type ViewTabItem<T extends string> = {
@@ -45,7 +45,8 @@ export function ViewTabs<T extends string>({
   ariaLabel: string;
   /** Connects tabs to ViewTabPanels. Defaults to a generated id (then panels can't link). */
   idPrefix?: string;
-  size?: "md" | "lg";
+  /** `bar` when the strip sits in the top bar (TopBarSlot). */
+  size?: TabSize;
   className?: string;
 }) {
   const generated = useId();
@@ -71,7 +72,7 @@ export function ViewTabs<T extends string>({
   }
 
   return (
-    <div ref={strip} role="tablist" aria-label={ariaLabel} className={cn(TAB_LIST_CLASS, className)}>
+    <div ref={strip} role="tablist" aria-label={ariaLabel} className={cn(size === "bar" ? TOP_BAR_TAB_LIST_CLASS : TAB_LIST_CLASS, className)}>
       {items.map((item, index) => {
         const active = item.value === value;
         const ids = viewTabIds(prefix, item.value);

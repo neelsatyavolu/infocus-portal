@@ -13,7 +13,6 @@ import {
   pendingGroupNavSlug,
   pendingGroupStageSlug,
   pendingPackageStage,
-  padCheckInsToSemesterMax,
   sumReleasedCheckIns
 } from "@/src/lib/package-stages";
 
@@ -193,7 +192,6 @@ describe("check-in grade release", () => {
     expect(grade.earned).toBe(7);
     expect(grade.possible).toBe(15);
     expect(releasedCheckInScores(grade, dates, now, overrides)).toEqual({ pitching: 0, proofOfContact: 3, aRollBRoll: 4, initialCut: null });
-    expect(padCheckInsToSemesterMax({ releasedEarned: grade.earned, releasedPossible: grade.possible, semesterMax: 60 })).toEqual({ earned: 52, possible: 60 });
   });
 
   it("restores automatic approval credit when an override is cleared", () => {
@@ -250,18 +248,6 @@ describe("check-in grade release", () => {
       });
     expect(grade(0)).toMatchObject({ earned: 0, possible: 5 });
     expect(grade(10)).toMatchObject({ earned: null, possible: 0 });
-  });
-
-  it("pads unreleased S1 check-ins to 60 and only subtracts missed due work", () => {
-    expect(
-      padCheckInsToSemesterMax({ releasedEarned: 10, releasedPossible: 10, semesterMax: 60 })
-    ).toEqual({ earned: 60, possible: 60 });
-    expect(
-      padCheckInsToSemesterMax({ releasedEarned: 5, releasedPossible: 10, semesterMax: 60 })
-    ).toEqual({ earned: 55, possible: 60 });
-    expect(
-      padCheckInsToSemesterMax({ releasedEarned: null, releasedPossible: 0, semesterMax: 60 })
-    ).toEqual({ earned: null, possible: null });
   });
 });
 

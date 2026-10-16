@@ -1,5 +1,6 @@
 import { gradeScoreLabel, numericGradeScore, parseGradeScore, type GradeScore } from "@/src/lib/grade-score";
 import type { GradeScoreState } from "@prisma/client";
+import { editorWeightedPercentage } from "@/src/lib/grade-editor-summary";
 import { MAX_CHECK_IN_POINTS_PER_CYCLE } from "@/src/lib/package-stages";
 
 const MAX_PACKAGE_PER_CYCLE = 50;
@@ -204,7 +205,16 @@ export function buildTotalGradesCsv({
       row.participationPossible +
       optionalMax(row.adjustments.final, MAX_FINAL) +
       optionalMax(row.adjustments.extraPoints, row.adjustments.extraMax);
-    const percentage = totalMax > 0 ? (totalGrade / totalMax) * 100 : null;
+    // Weighted like the student gradebook; Total Grade / Total Max stay the plain point sums.
+    const credit = (value: GradeScore, possible: number) => (typeof value === "number" ? { earned: value, possible } : null);
+    const percentage = editorWeightedPercentage({
+      finalCuts: { earned: packageSum, possible: packageMax },
+      checkIns: credit(row.adjustments.checkIns, row.checkInPossible ?? checkInMax),
+      livestream: numericGradeScore(row.adjustments.livestream),
+      participation: { earned: row.participationEarned, possible: row.participationPossible },
+      final: numericGradeScore(row.adjustments.final),
+      extra: credit(row.adjustments.extraPoints, row.adjustments.extraMax)
+    });
 
     lines.push(
       csvLine([

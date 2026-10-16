@@ -306,27 +306,6 @@ export function sumReleasedCheckIns(grades: readonly CheckInCycleGrade[]): {
 }
 
 /**
- * Grade Editor / totals: semester check-in max (S1 reporters = 60) while only
- * docking stages whose deadline passed without a turn-in. Unreleased work is
- * full credit so 10/10 due today reads as 60/60, not 10/60.
- */
-export function padCheckInsToSemesterMax(input: {
-  releasedEarned: number | null;
-  releasedPossible: number;
-  semesterMax: number;
-}): { earned: number | null; possible: number | null } {
-  if (input.semesterMax <= 0 || input.releasedPossible <= 0) {
-    return { earned: null, possible: null };
-  }
-  const earned = input.releasedEarned ?? 0;
-  const missed = Math.max(0, input.releasedPossible - earned);
-  return {
-    earned: input.semesterMax - missed,
-    possible: input.semesterMax
-  };
-}
-
-/**
  * First incomplete package stage, or Final Cut once every stage is done.
  * Groups uses this so opening a tile lands on the work that is still pending.
  */

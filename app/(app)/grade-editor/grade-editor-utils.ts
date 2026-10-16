@@ -1,12 +1,10 @@
 import { numericGradeScore } from "@/src/lib/grade-score";
-import { packageSubtotal } from "@/src/lib/grade-editor-summary";
+import { editorWeightedPercentage, packageSubtotal } from "@/src/lib/grade-editor-summary";
 import { defaultTotalsAdjustments, type TotalsAdjustments } from "@/src/lib/grade-editor-csv";
 import { PACKAGE_CYCLE_NUMBERS } from "@/src/lib/package-grades";
 import type { StatusTone } from "@/components/kit/tone";
 import {
   MAX_CHECK_INS_PER_CYCLE,
-  MAX_FINAL,
-  MAX_LIVESTREAM,
   MAX_PACKAGE_PER_CYCLE,
   type CycleFilter,
   type CycleTab,
@@ -309,7 +307,12 @@ export function cycleFilterCounts(rows: GradeRow[], notEnteredIds: ReadonlySet<s
   return counts;
 }
 
-/* ---------- Total view maths (unchanged from the original table) ---------- */
+/* ---------- Total view maths ---------- */
+
+/** A typed credit's earned/possible, or null when it is ungraded or exempt. */
+function creditPoints(score: TotalsAdjustments["checkIns"], possible: number) {
+  return typeof score === "number" ? { earned: score, possible } : null;
+}
 
 export function totalsRowSummary(
   row: TotalsRow,
@@ -324,30 +327,18 @@ export function totalsRowSummary(
         ? payloadCheckInPossible
         : cycleCount * MAX_CHECK_INS_PER_CYCLE;
   const packages = packageSubtotal(row.cycleTotals, adjustments.cycleOverrides, MAX_PACKAGE_PER_CYCLE);
-  const totalGrade =
-    packages.earned +
-    (numericGradeScore(adjustments.checkIns) ?? 0) +
-    (numericGradeScore(adjustments.livestream) ?? 0) +
-    row.participationEarned +
-    (numericGradeScore(adjustments.final) ?? 0) +
-    (numericGradeScore(adjustments.extraPoints) ?? 0);
-  const totalMax =
-    packages.possible +
-    (typeof adjustments.checkIns !== "number" ? 0 : checkInMax) +
-    (typeof adjustments.livestream !== "number" ? 0 : MAX_LIVESTREAM) +
-    row.participationPossible +
-    (typeof adjustments.final !== "number" ? 0 : MAX_FINAL) +
-    (typeof adjustments.extraPoints === "number" ? adjustments.extraMax : 0);
-  const totalPct = totalMax > 0 ? (totalGrade / totalMax) * 100 : null;
-  return { checkInMax, packages, totalGrade, totalMax, totalPct };
+  const totalPct = editorWeightedPercentage({
+    finalCuts: packages,
+    checkIns: creditPoints(adjustments.checkIns, checkInMax),
+    livestream: numericGradeScore(adjustments.livestream),
+    participation: { earned: row.participationEarned, possible: row.participationPossible },
+    final: numericGradeScore(adjustments.final),
+    extra: creditPoints(adjustments.extraPoints, adjustments.extraMax)
+  });
+  return { checkInMax, packages, totalPct };
 }
 
 export type TotalsSummary = ReturnType<typeof totalsRowSummary>;
-
-/** The page-wide maximum shown in the Total header: 50×cycles + 20×cycles + 40 livestream + 100 portfolio. */
-export function totalsMaxPoints(cycleCount: number) {
-  return cycleCount * MAX_PACKAGE_PER_CYCLE + cycleCount * MAX_CHECK_INS_PER_CYCLE + MAX_LIVESTREAM + MAX_FINAL;
-}
 
 /**
  * The temporary override for a Total-view cycle cell. Returns the next overrides map, or

@@ -397,7 +397,6 @@ export function StageWorkspace({
           <FinalCutProducerView
             rowId={row.id}
             media={mediaPanel}
-            feedback={feedbackPanel}
             hasFinalCut={media.length > 0}
             headline={row.headline ?? null}
             toss={row.toss ?? ""}

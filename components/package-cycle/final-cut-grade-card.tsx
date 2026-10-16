@@ -19,6 +19,7 @@ import {
   type GradeDraft
 } from "@/components/package-stages/grade-helpers";
 import { MemberGradeCards, MemberGradeTable } from "@/components/package-stages/grade-members";
+import { cn } from "@/src/lib/utils";
 
 export type FinalCutMemberGradeData = {
   userId: string;
@@ -81,7 +82,7 @@ export type FinalCutScoreInput = { memberUserId: string; qualityPoints: number; 
 const CAPS = "text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground";
 
 /** Deadline / Submitted / Deduction as three equal cells in one card. */
-function TimingStrip({ grade }: { grade: FinalCutGradeCardData }) {
+function TimingStrip({ grade, compact }: { grade: FinalCutGradeCardData; compact: boolean }) {
   const cells = [
     {
       label: "Deadline",
@@ -107,7 +108,12 @@ function TimingStrip({ grade }: { grade: FinalCutGradeCardData }) {
     }
   ];
   return (
-    <dl className="grid grid-cols-1 divide-y divide-border rounded-md border border-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+    <dl
+      className={cn(
+        "grid grid-cols-1 divide-y divide-border rounded-md border border-border sm:grid-cols-3 sm:divide-x sm:divide-y-0",
+        compact && "xl:grid-cols-1 xl:divide-x-0 xl:divide-y"
+      )}
+    >
       {cells.map((cell) => (
         <div key={cell.label} className="min-w-0 px-4 py-3">
           <dt className={CAPS}>{cell.label}</dt>
@@ -151,7 +157,8 @@ function GraderProgress({ grade, scoringMembers }: { grade: FinalCutGradeCardDat
 /**
  * Member grades for a Final Cut: timing, how grading works (folded), every member's scores
  * (a table on wide screens, cards on phones), late penalties, and Save my scores. On phones the
- * Save bar sticks above the tab bar while typed scores are unsaved. A score problem shows in full
+ * Save bar sticks above the tab bar while typed scores are unsaved. `compact` (a narrow rail on
+ * wide screens) always uses the cards and stacks the timing cells. A score problem shows in full
  * as its own line above Save (scrolled into view), apart from the saved message.
  */
 export function FinalCutGradeCard({
@@ -160,7 +167,8 @@ export function FinalCutGradeCard({
   onSave,
   onPenaltyChanged,
   message,
-  savePrimary = true
+  savePrimary = true,
+  compact = false
 }: {
   rowId: string;
   grade: FinalCutGradeCardData;
@@ -169,6 +177,8 @@ export function FinalCutGradeCard({
   message?: string | null;
   /** Save my scores is the view's one filled button (false when Publish Grades is next). */
   savePrimary?: boolean;
+  /** Narrow column: member cards on every screen size, timing cells stacked on wide screens. */
+  compact?: boolean;
 }) {
   const timing = lateStatus(grade);
   const [draft, setDraft] = useState<GradeDraft>(() => draftFrom(grade.members));
@@ -176,7 +186,7 @@ export function FinalCutGradeCard({
   const [error, setError] = useState<string | null>(null);
   const [savingPenaltyFor, setSavingPenaltyFor] = useState<string | null>(null);
   const errorRef = useRef<HTMLDivElement | null>(null);
-  const wide = useMediaQuery("(min-width: 1280px)");
+  const wide = useMediaQuery("(min-width: 1280px)") && !compact;
 
   useEffect(() => {
     if (error) errorRef.current?.scrollIntoView?.({ block: "nearest" });
@@ -267,7 +277,7 @@ export function FinalCutGradeCard({
       bodyClassName="space-y-4"
     >
       <GraderProgress grade={grade} scoringMembers={scoringMembers} />
-      <TimingStrip grade={grade} />
+      <TimingStrip grade={grade} compact={compact} />
       {grade.daysLate > 0 && grade.blocksSecondRevision ? (
         <Alert tone="danger" compact>
           {timing.detail}

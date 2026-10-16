@@ -36,14 +36,14 @@ export function finalCutPrimaryAction(input: {
 }
 
 /**
- * Producer Final Cut tab on Groups. Top: the video with what airs (headline and toss) under it,
- * and the rail with the feedback thread, then Package of the Cycle. Below, full width: member
- * grades, then the shared cycle note. Send to queue lives in the stage's decision bar.
+ * Producer Final Cut tab on Groups. Left: the video with what airs (headline and toss) under it.
+ * Rail: the shared cycle grade note (with Publish grades), Package of the Cycle, then member
+ * grades. The stage feedback thread is not shown here; the cycle note is the Final Cut feedback.
+ * Send to queue lives in the stage's decision bar.
  */
 export function FinalCutProducerView({
   rowId,
   media,
-  feedback,
   hasFinalCut,
   headline,
   toss,
@@ -63,8 +63,6 @@ export function FinalCutProducerView({
 }: {
   rowId: string;
   media: ReactNode;
-  /** The stage's feedback panel, first in the rail. */
-  feedback?: ReactNode;
   hasFinalCut: boolean;
   headline: string | null;
   toss: string;
@@ -83,32 +81,15 @@ export function FinalCutProducerView({
   primaryAction?: FinalCutPrimaryAction;
 }) {
   return (
-    <div className="space-y-5">
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_24rem]">
-        <div className="min-w-0 space-y-5">
-          {media}
-          {hasFinalCut ? (
-            <FinalCutShowCard headline={headline} toss={toss} canEdit={canEditToss} onEdit={onEditToss} />
-          ) : null}
-        </div>
-        <div className="min-w-0 space-y-5">
-          {feedback}
-          {hasFinalCut && packageOfCycle ? (
-            <PackageOfCycleCard rowId={rowId} panel={packageOfCycle} members={members} onChanged={onReload} />
-          ) : null}
-        </div>
+    <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_26rem]">
+      <div className="min-w-0 space-y-5">
+        {media}
+        {hasFinalCut ? (
+          <FinalCutShowCard headline={headline} toss={toss} canEdit={canEditToss} onEdit={onEditToss} />
+        ) : null}
       </div>
-
-      {grade ? (
-        <>
-          <FinalCutGradeCard
-            rowId={rowId}
-            grade={grade}
-            onSave={onSaveGrade}
-            onPenaltyChanged={onReload}
-            message={gradeMessage}
-            savePrimary={primaryAction === "save"}
-          />
+      <div className="min-w-0 space-y-5">
+        {grade ? (
           <CycleGradeReleaseCard
             feedback={grade.feedback}
             published={grade.published}
@@ -119,12 +100,26 @@ export function FinalCutProducerView({
             onSave={onSaveFeedback}
             onPublish={onPublishGrades}
           />
-        </>
-      ) : (
-        <section aria-label="Grading" className="rounded-md border border-border bg-card">
-          <EmptyState icon={Award} title="Final Cut scoring is not available yet." />
-        </section>
-      )}
+        ) : null}
+        {hasFinalCut && packageOfCycle ? (
+          <PackageOfCycleCard rowId={rowId} panel={packageOfCycle} members={members} onChanged={onReload} />
+        ) : null}
+        {grade ? (
+          <FinalCutGradeCard
+            rowId={rowId}
+            grade={grade}
+            onSave={onSaveGrade}
+            onPenaltyChanged={onReload}
+            message={gradeMessage}
+            savePrimary={primaryAction === "save"}
+            compact
+          />
+        ) : (
+          <section aria-label="Grading" className="rounded-md border border-border bg-card">
+            <EmptyState icon={Award} title="Final Cut scoring is not available yet." />
+          </section>
+        )}
+      </div>
     </div>
   );
 }

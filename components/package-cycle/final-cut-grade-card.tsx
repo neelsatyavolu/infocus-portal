@@ -18,7 +18,7 @@ import {
   scoresFromDraft,
   type GradeDraft
 } from "@/components/package-stages/grade-helpers";
-import { MemberGradeCards, MemberGradeTable } from "@/components/package-stages/grade-members";
+import { MemberGradeCards, MemberGradeCompact, MemberGradeTable } from "@/components/package-stages/grade-members";
 import { cn } from "@/src/lib/utils";
 
 export type FinalCutMemberGradeData = {
@@ -108,17 +108,12 @@ function TimingStrip({ grade, compact }: { grade: FinalCutGradeCardData; compact
     }
   ];
   return (
-    <dl
-      className={cn(
-        "grid grid-cols-1 divide-y divide-border rounded-md border border-border sm:grid-cols-3 sm:divide-x sm:divide-y-0",
-        compact && "xl:grid-cols-1 xl:divide-x-0 xl:divide-y"
-      )}
-    >
+    <dl className="grid grid-cols-1 divide-y divide-border rounded-md border border-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
       {cells.map((cell) => (
-        <div key={cell.label} className="min-w-0 px-4 py-3">
+        <div key={cell.label} className={cn("min-w-0", compact ? "px-3 py-2" : "px-4 py-3")}>
           <dt className={CAPS}>{cell.label}</dt>
           <dd className="mt-1 text-sm font-medium text-foreground">{cell.value}</dd>
-          <dd className="text-[13px] text-muted-foreground">{cell.detail}</dd>
+          <dd className={cn("text-muted-foreground", compact ? "text-xs leading-snug" : "text-[13px]")}>{cell.detail}</dd>
         </div>
       ))}
     </dl>
@@ -158,7 +153,7 @@ function GraderProgress({ grade, scoringMembers }: { grade: FinalCutGradeCardDat
  * Member grades for a Final Cut: timing, how grading works (folded), every member's scores
  * (a table on wide screens, cards on phones), late penalties, and Save my scores. On phones the
  * Save bar sticks above the tab bar while typed scores are unsaved. `compact` (a narrow rail on
- * wide screens) always uses the cards and stacks the timing cells. A score problem shows in full
+ * wide screens) uses short member rows and a tighter timing strip on every screen size. A score problem shows in full
  * as its own line above Save (scrolled into view), apart from the saved message.
  */
 export function FinalCutGradeCard({
@@ -177,7 +172,7 @@ export function FinalCutGradeCard({
   message?: string | null;
   /** Save my scores is the view's one filled button (false when Publish Grades is next). */
   savePrimary?: boolean;
-  /** Narrow column: member cards on every screen size, timing cells stacked on wide screens. */
+  /** Narrow column: short member rows and a tighter timing strip on every screen size. */
   compact?: boolean;
 }) {
   const timing = lateStatus(grade);
@@ -186,7 +181,7 @@ export function FinalCutGradeCard({
   const [error, setError] = useState<string | null>(null);
   const [savingPenaltyFor, setSavingPenaltyFor] = useState<string | null>(null);
   const errorRef = useRef<HTMLDivElement | null>(null);
-  const wide = useMediaQuery("(min-width: 1280px)") && !compact;
+  const wide = useMediaQuery("(min-width: 1280px)");
 
   useEffect(() => {
     if (error) errorRef.current?.scrollIntoView?.({ block: "nearest" });
@@ -292,6 +287,8 @@ export function FinalCutGradeCard({
 
       {grade.members.length === 0 ? (
         <p className="text-sm text-muted-foreground">This package has no members.</p>
+      ) : compact ? (
+        <MemberGradeCompact {...rows} />
       ) : wide ? (
         <MemberGradeTable {...rows} />
       ) : (

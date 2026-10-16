@@ -57,11 +57,23 @@ function PartInput({
 }
 
 /** Each executive producer's score for one member, so graders can see each other's numbers. */
-function GraderScores({ member, viewerUserId }: { member: FinalCutMemberGradeData; viewerUserId: string }) {
-  if (member.graderScores.length === 0) return null;
+function GraderScores({
+  member,
+  viewerUserId,
+  scoredOnly = false
+}: {
+  member: FinalCutMemberGradeData;
+  viewerUserId: string;
+  /** Leave out "not scored" graders (the waiting-on line already names them). */
+  scoredOnly?: boolean;
+}) {
+  const graders = scoredOnly
+    ? member.graderScores.filter((grader) => grader.quality != null && grader.effort != null)
+    : member.graderScores;
+  if (graders.length === 0) return null;
   return (
     <ul className="flex flex-wrap gap-x-4 gap-y-1" aria-label="Scores by executive producer">
-      {member.graderScores.map((grader) => {
+      {graders.map((grader) => {
         const scored = grader.quality != null && grader.effort != null;
         return (
           <li key={grader.userId} className={scored ? "text-foreground" : "text-muted-foreground"}>
@@ -85,11 +97,19 @@ function GraderScores({ member, viewerUserId }: { member: FinalCutMemberGradeDat
 }
 
 /** Average / waiting-on line and each EP's scores, under a member. */
-function MemberDetail({ member, viewerUserId }: { member: FinalCutMemberGradeData; viewerUserId: string }) {
+function MemberDetail({
+  member,
+  viewerUserId,
+  compact = false
+}: {
+  member: FinalCutMemberGradeData;
+  viewerUserId: string;
+  compact?: boolean;
+}) {
   return (
-    <div className="space-y-1 text-[13px] leading-snug text-muted-foreground">
+    <div className={cn("space-y-1 leading-snug text-muted-foreground", compact ? "text-xs" : "text-[13px]")}>
       <p>{memberGradeSummary(member)}</p>
-      <GraderScores member={member} viewerUserId={viewerUserId} />
+      <GraderScores member={member} viewerUserId={viewerUserId} scoredOnly={compact} />
     </div>
   );
 }
@@ -320,6 +340,85 @@ export function MemberGradeCards({
               />
             </div>
             <MemberDetail member={member} viewerUserId={viewerUserId} />
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+/**
+ * Narrow rail: one short row per member. Name and official grade on top, then quality, effort and
+ * late penalty side by side, then the scored graders.
+ */
+export function MemberGradeCompact({
+  members,
+  canGrade,
+  viewerUserId,
+  draft,
+  onDraftChange,
+  savingPenaltyFor,
+  onPenaltyChange
+}: MemberGradeRowsProps) {
+  return (
+    <ul className="divide-y divide-border rounded-md border border-border">
+      {members.map((member) => {
+        const name = personLabel(member);
+        const entry = draft[member.userId] ?? EMPTY_ENTRY;
+        const editable = canGrade && !member.locked;
+        return (
+          <li key={member.userId} className="min-w-0 space-y-2 px-3 py-2.5">
+            <div className="flex min-w-0 items-baseline justify-between gap-3">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <span className="truncate font-medium text-foreground">{name}</span>
+                {member.locked ? <LockedTag /> : null}
+              </div>
+              <div className="shrink-0 font-mono-broadcast text-sm tabular-nums text-foreground">
+                <span className={cn(CAPS, "mr-2 font-sans")}>Official</span>
+                {formatPts(member.officialPoints)}
+                <span className="text-muted-foreground"> / 50</span>
+              </div>
+            </div>
+            <div
+              className={cn(
+                "grid items-end gap-2",
+                editable ? "grid-cols-[4.5rem_4.5rem_minmax(0,1fr)]" : "grid-cols-1"
+              )}
+            >
+              {editable ? (
+                <>
+                  <label className="min-w-0 space-y-1">
+                    <span className={CAPS}>Q /25</span>
+                    <PartInput
+                      touch
+                      value={entry.quality}
+                      onChange={(value) => onDraftChange(member.userId, { ...entry, quality: value })}
+                      label={`${name} quality score`}
+                    />
+                  </label>
+                  <label className="min-w-0 space-y-1">
+                    <span className={CAPS}>E /25</span>
+                    <PartInput
+                      touch
+                      value={entry.effort}
+                      onChange={(value) => onDraftChange(member.userId, { ...entry, effort: value })}
+                      label={`${name} effort score`}
+                    />
+                  </label>
+                </>
+              ) : null}
+              <div className="min-w-0 space-y-1">
+                <div className={CAPS}>Late penalty</div>
+                <LatePenalty
+                  touch
+                  member={member}
+                  canEdit={canGrade}
+                  saving={savingPenaltyFor === member.userId}
+                  onChange={(percent) => onPenaltyChange(member.userId, percent)}
+                />
+              </div>
+            </div>
+            <MemberDetail member={member} viewerUserId={viewerUserId} compact />
           </li>
         );
       })}

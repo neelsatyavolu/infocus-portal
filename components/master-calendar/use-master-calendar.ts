@@ -35,17 +35,14 @@ import {
   type ScheduleDay,
   type ShowManagerAssignment
 } from "@/components/master-calendar/calendar-model";
+import { postJson, type ApiPayload } from "@/components/master-calendar/post-json";
 
-type ApiPayload<T> = { data?: T; error?: { message?: string } };
+/** A save that hasn't answered by then is sent again (post-json.ts); a normal one takes under 1 s. */
+const SAVE_RETRY_MS = 8000;
 
-async function postJson<T>(url: string, body: unknown) {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body)
-  });
-  const payload = (await response.json().catch(() => ({}))) as ApiPayload<T>;
-  return { response, payload };
+/** Saves set a value, so a stuck one can safely be sent again. */
+function saveJson<T>(url: string, body: unknown) {
+  return postJson<T>(url, body, { retryAfterMs: SAVE_RETRY_MS });
 }
 
 function errorText(error: unknown, fallback: string) {
@@ -340,7 +337,7 @@ export function useMasterCalendar(initialData: CalendarResponse) {
     await Promise.all([
       ...addedIds.map(async (mediaItemId) => {
         try {
-          const { response, payload } = await postJson("/api/master-calendar/mark-aired", { mediaItemId, date: dateKey });
+          const { response, payload } = await saveJson("/api/master-calendar/mark-aired", { mediaItemId, date: dateKey });
           if (!response.ok) throw new Error(payload.error?.message ?? "Failed to mark aired.");
         } catch (error) {
           setMessage(errorText(error, "Failed to mark aired."));
@@ -348,7 +345,7 @@ export function useMasterCalendar(initialData: CalendarResponse) {
       }),
       ...removedIds.map(async (mediaItemId) => {
         try {
-          const { response, payload } = await postJson("/api/master-calendar/unmark-aired", { mediaItemId });
+          const { response, payload } = await saveJson("/api/master-calendar/unmark-aired", { mediaItemId });
           if (!response.ok) throw new Error(payload.error?.message ?? "Failed to revert aired.");
         } catch (error) {
           setMessage(errorText(error, "Failed to revert aired."));
@@ -371,7 +368,7 @@ export function useMasterCalendar(initialData: CalendarResponse) {
 
     setSavingNotes((current) => [...current, dateKey]);
     try {
-      const { response, payload } = await postJson<{ date: string; content?: string; deleted?: boolean }>(
+      const { response, payload } = await saveJson<{ date: string; content?: string; deleted?: boolean }>(
         "/api/master-calendar",
         { date: dateKey, content: nextContent }
       );
@@ -487,7 +484,7 @@ export function useMasterCalendar(initialData: CalendarResponse) {
   async function saveShowAnchors(dateKey: string, names: string[], source: "manual" | "random") {
     setCastBusyDate(dateKey);
     try {
-      const { response, payload } = await postJson<{ content?: string }>("/api/show-roles/anchors", {
+      const { response, payload } = await saveJson<{ content?: string }>("/api/show-roles/anchors", {
         date: dateKey,
         names,
         source
@@ -529,7 +526,7 @@ export function useMasterCalendar(initialData: CalendarResponse) {
   async function saveShowManager(dateKey: string, name: string) {
     setCastBusyDate(dateKey);
     try {
-      const { response, payload } = await postJson<{
+      const { response, payload } = await saveJson<{
         content?: string;
         name?: string;
         source?: "rotation" | "manual";
@@ -556,7 +553,7 @@ export function useMasterCalendar(initialData: CalendarResponse) {
   async function savePaAnnouncers(dateKey: string, names: string[]) {
     setCastBusyDate(dateKey);
     try {
-      const { response, payload } = await postJson<{ content?: string }>("/api/show-roles/pa-announcers", {
+      const { response, payload } = await saveJson<{ content?: string }>("/api/show-roles/pa-announcers", {
         date: dateKey,
         names
       });
@@ -588,7 +585,7 @@ export function useMasterCalendar(initialData: CalendarResponse) {
   async function saveCrew(dateKey: string, role: CalendarCrewRole, names: string[]) {
     setCastBusyDate(dateKey);
     try {
-      const { response, payload } = await postJson<{ content?: string }>("/api/show-roles/crew", {
+      const { response, payload } = await saveJson<{ content?: string }>("/api/show-roles/crew", {
         date: dateKey,
         role,
         names
@@ -610,7 +607,7 @@ export function useMasterCalendar(initialData: CalendarResponse) {
     setMessage(null);
     setSyncError(null);
     try {
-      const { response, payload } = await postJson<{ entries?: Array<{ date: string; content: string }> }>(
+      const { response, payload } = await saveJson<{ entries?: Array<{ date: string; content: string }> }>(
         "/api/show-roles/anchors/wipe",
         { month: monthKey }
       );

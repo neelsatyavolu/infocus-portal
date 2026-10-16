@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { readRemembered, writeRemembered } from "@/components/kit/remembered-state";
 import {
   VIEW_STORAGE_KEY,
@@ -39,6 +39,53 @@ function currentSearch() {
 
 export type OAuthResults = { youtube: OAuthResult | null; googleCalendar: OAuthResult | null };
 
+const NO_OAUTH: OAuthResults = { youtube: null, googleCalendar: null };
+
+type ScrollTarget = { id: string; nonce: number };
+type InitialNavigation = {
+  view: AdminView;
+  section: string | null;
+  oauth: OAuthResults;
+  oauthSearch: string | null;
+  scrollTarget: ScrollTarget | null;
+};
+
+/** The first view, from a Google sign-in return, the link's #hash, or the view remembered here. */
+function resolveInitialNavigation(canSystem: boolean): InitialNavigation {
+  const parsed = parseOAuthReturn(window.location.search);
+  const oauthReturn = Boolean(parsed.youtube || parsed.googleCalendar);
+  const target = resolveInitialView({
+    hash: window.location.hash,
+    stored: readRemembered(storage(), VIEW_STORAGE_KEY, null, isAdminView),
+    canSystem,
+    oauthReturn
+  });
+  return {
+    view: target.view,
+    section: target.section ?? null,
+    oauth: oauthReturn ? { youtube: parsed.youtube, googleCalendar: parsed.googleCalendar } : NO_OAUTH,
+    oauthSearch: oauthReturn ? parsed.search : null,
+    scrollTarget: target.section ? { id: target.section, nonce: Date.now() } : null
+  };
+}
+
+/**
+ * Resolves the first view once, during render on the client (so a client-side visit renders the
+ * right view first), and keeps it. The server and hydration render show Overview, as before.
+ */
+function createInitialStore() {
+  let value: InitialNavigation | null = null;
+  return {
+    get(canSystem: boolean) {
+      value ??= resolveInitialNavigation(canSystem);
+      return value;
+    },
+    subscribe() {
+      return () => {};
+    }
+  };
+}
+
 /**
  * Which Admin view is open. The first view comes from a Google sign-in return (System), the
  * link's #hash, the view remembered in this browser, or Overview, and is written to the URL as
@@ -46,38 +93,46 @@ export type OAuthResults = { youtube: OAuthResult | null; googleCalendar: OAuthR
  * entry, switch view and then scroll to it once it is visible, so Back returns to where you were.
  */
 export function useAdminNavigation({ enabled, canSystem }: { enabled: boolean; canSystem: boolean }) {
-  const [view, setView] = useState<AdminView>("overview");
-  const [oauth, setOauth] = useState<OAuthResults>({ youtube: null, googleCalendar: null });
-  const [scrollTarget, setScrollTarget] = useState<{ id: string; nonce: number } | null>(null);
+  const [initialStore] = useState(createInitialStore);
+  const initial = useSyncExternalStore(
+    initialStore.subscribe,
+    useCallback(() => (enabled ? initialStore.get(canSystem) : null), [initialStore, enabled, canSystem]),
+    () => null
+  );
+  // Set by tabs and links after the first view; until then the resolved first view shows.
+  const [pickedView, setView] = useState<AdminView | null>(null);
+  const [pickedScrollTarget, setScrollTarget] = useState<ScrollTarget | null>(null);
+  const [dismissed, setDismissed] = useState<Partial<Record<keyof OAuthResults, true>>>({});
   const resolvedRef = useRef(false);
+
+  const view = pickedView ?? initial?.view ?? "overview";
+  const scrollTarget = pickedScrollTarget ?? initial?.scrollTarget ?? null;
+  const initialOauth = initial?.oauth ?? NO_OAUTH;
+  const oauth = useMemo<OAuthResults>(
+    () => ({
+      youtube: dismissed.youtube ? null : initialOauth.youtube,
+      googleCalendar: dismissed.googleCalendar ? null : initialOauth.googleCalendar
+    }),
+    [initialOauth, dismissed]
+  );
 
   const show = useCallback((next: AdminView) => {
     setView(next);
     writeRemembered(storage(), VIEW_STORAGE_KEY, next);
   }, []);
 
-  // Before paint, so a remembered or linked view never flashes Overview first.
+  // Before paint: write the first view to the URL and remember it.
   useLayoutEffect(() => {
-    if (!enabled || resolvedRef.current) return;
+    if (!initial || resolvedRef.current) return;
     resolvedRef.current = true;
-    const parsed = parseOAuthReturn(window.location.search);
-    const oauthReturn = Boolean(parsed.youtube || parsed.googleCalendar);
-    const target = resolveInitialView({
-      hash: window.location.hash,
-      stored: readRemembered(storage(), VIEW_STORAGE_KEY, null, isAdminView),
-      canSystem,
-      oauthReturn
-    });
-    if (oauthReturn) {
-      setOauth({ youtube: parsed.youtube, googleCalendar: parsed.googleCalendar });
-      replaceUrl(parsed.search, target.section ?? window.location.hash.replace(/^#/, ""));
+    if (initial.oauthSearch !== null) {
+      replaceUrl(initial.oauthSearch, initial.section ?? window.location.hash.replace(/^#/, ""));
     } else if (!window.location.hash) {
       // So Back from a section link lands on this view again.
-      replaceUrl(currentSearch(), target.view);
+      replaceUrl(currentSearch(), initial.view);
     }
-    show(target.view);
-    if (target.section) setScrollTarget({ id: target.section, nonce: Date.now() });
-  }, [enabled, canSystem, show]);
+    writeRemembered(storage(), VIEW_STORAGE_KEY, initial.view);
+  }, [initial]);
 
   // Scroll only after the view's panel has lost `hidden`; scrolling inside a hidden panel does nothing.
   useEffect(() => {
@@ -123,7 +178,7 @@ export function useAdminNavigation({ enabled, canSystem }: { enabled: boolean; c
   }, [enabled, goTo]);
 
   const dismissOauth = useCallback((key: keyof OAuthResults) => {
-    setOauth((current) => ({ ...current, [key]: null }));
+    setDismissed((current) => ({ ...current, [key]: true }));
   }, []);
 
   return {

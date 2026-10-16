@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { CheckCircle2, SearchX, Users } from "lucide-react";
 import { Alert } from "@/components/kit/alert";
+import { useHydrated } from "@/components/project-assets/use-hydrated";
 import { EmptyState, ErrorState } from "@/components/kit/empty-state";
 import { useMediaQuery } from "@/components/kit/remembered-state";
 import { rovingIndex } from "@/components/kit/roving";
@@ -106,6 +107,11 @@ export default function GradeEditorClient() {
    * cycle being graded when the first totals (and so the cycles) arrive, unless a view was picked.
    */
   const [autoOpen, setAutoOpen] = useState(false);
+  /** The cycle the page is opening on (remembered or auto-opened), until its rows have loaded. */
+  const [openingCycle, setOpeningCycle] = useState<number | null>(null);
+  /** Today in Pacific time when the page opened, for picking the cycle being graded. */
+  const [openedOn] = useState(() => pacificDateKey(new Date()));
+  const hydrated = useHydrated();
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [studentRefreshToken, setStudentRefreshToken] = useState(0);
   const [search, setSearch] = useState("");
@@ -140,34 +146,47 @@ export default function GradeEditorClient() {
     const hadCache = totals.hydrateFromCache();
     missing.hydrateFromCache();
     void missing.loadMissing();
-    const stored = readStoredView();
-    if (stored) {
-      setViewMode(stored.viewMode);
-      if (stored.viewMode === "cycle" && stored.cycleNumber !== null) void grades.loadCycle(stored.cycleNumber);
-    } else {
-      setAutoOpen(true);
-    }
-    setViewReady(true);
     void totals.loadTotals(hadCache ? { silent: true } : undefined);
     // Runs once on mount, like the original first load.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    if (!autoOpen || !totals.totalsSettled) return;
+  // The remembered view, read once storage is readable (after hydration).
+  if (hydrated && !viewReady) {
+    setViewReady(true);
+    const stored = readStoredView();
+    if (stored) {
+      setViewMode(stored.viewMode);
+      if (stored.viewMode === "cycle" && stored.cycleNumber !== null) setOpeningCycle(stored.cycleNumber);
+    } else {
+      setAutoOpen(true);
+    }
+  }
+
+  // Decides once, when the first totals (and cycles) arrive.
+  if (autoOpen && totals.totalsSettled) {
     setAutoOpen(false);
-    const gradingCycle = latestPassedCycle(cycles, pacificDateKey(new Date()));
+    const gradingCycle = latestPassedCycle(cycles, openedOn);
     if (gradingCycle !== null) {
       setViewMode("cycle");
-      void grades.loadCycle(gradingCycle);
+      setOpeningCycle(gradingCycle);
     }
-    // Decides once, when the first totals (and cycles) arrive.
+  }
+
+  // Loads the cycle the page opened on. Until it has loaded (or failed), the stored view is left
+  // alone, so it never records the default cycle in between.
+  useEffect(() => {
+    if (openingCycle === null) return;
+    void grades.loadCycle(openingCycle).finally(() => setOpeningCycle(null));
+    // Only when the opening cycle is chosen.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoOpen, totals.totalsSettled, cycles]);
+  }, [openingCycle]);
 
   useEffect(() => {
-    if (viewReady && !autoOpen && grades.pendingCycleNumber === null) writeStoredView(viewKey(viewMode, grades.activeCycleNumber));
-  }, [viewReady, autoOpen, viewMode, grades.activeCycleNumber, grades.pendingCycleNumber]);
+    if (viewReady && !autoOpen && openingCycle === null && grades.pendingCycleNumber === null) {
+      writeStoredView(viewKey(viewMode, grades.activeCycleNumber));
+    }
+  }, [viewReady, autoOpen, openingCycle, viewMode, grades.activeCycleNumber, grades.pendingCycleNumber]);
 
   // Fresh cycle rows (a cycle opened, or Refresh): fetch the missing report again, so the Not
   // entered chip and the counts match the rows (another producer may have changed grades).

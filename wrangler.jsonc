@@ -18,8 +18,10 @@
   "images": { "binding": "IMAGES" },
   // Matches the longest maxDuration in the app (300 s).
   "limits": { "cpu_ms": 300000 },
-  // Run near the database, as the sfo1 pin did on Vercel.
-  "placement": { "mode": "smart" },
+  // Always run next to the database (Supabase, AWS us-west-1), as the sfo1 pin did on Vercel.
+  // Free-plan traffic can land in a far data center (Marseille on Oct 15, 2026); Smart Placement
+  // left the Worker there, so every query crossed the Atlantic. Pinned, a page pays one long hop.
+  "placement": { "mode": "targeted", "region": "aws:us-west-1" },
   "observability": { "enabled": true },
   // Every minute: meeting reminders and upkeep (worker.ts). Replaces the two every-minute Inngest functions.
   "triggers": { "crons": ["* * * * *"] },

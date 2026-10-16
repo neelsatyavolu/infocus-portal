@@ -74,8 +74,8 @@ function cycleGroups(locked: boolean): HeaderGroup[] {
         {
           label: "Score",
           sub: `/${MAX_PACKAGE_PER_CYCLE}`,
-          title: `Final Cut score out of ${MAX_PACKAGE_PER_CYCLE} and its percentage (before any late penalty)`,
-          width: 104
+          title: `Final Cut score out of ${MAX_PACKAGE_PER_CYCLE} and its percentage after any late penalty`,
+          width: 132
         },
         {
           label: "Turned in",

@@ -19,6 +19,7 @@ import {
 import {
   isMissedFinalCut,
   isOverExtensions,
+  latePenalizedPoints,
   isRowFilledIn,
   overExtensionsTitle,
   formatPercent,
@@ -137,31 +138,38 @@ export function ScoreField({
 
 /**
  * The score beside the score box as a percentage of 50, to one decimal (0.0% when missed), or the
- * word Exempt for an exempt Final Cut. Revision caps are in the score; any late penalty is not
- * (the client never receives the penalized points), so it never claims to be the final result.
+ * word Exempt for an exempt Final Cut. Revision caps are in the score. When a late penalty took
+ * points off, it shows the official percentage with a Late mark and both scores on hover. An
+ * unsaved edit shows the typed score until the save returns the new official points.
  */
 export function ScorePercent({ row }: { row: GradeRow }) {
   const missed = isMissedFinalCut(row);
   const exempt = row.finalCutState === "EXEMPT";
-  const points = row.effortPoints ?? (missed ? 0 : null);
+  const late = latePenalizedPoints(row);
+  const points = late ?? row.effortPoints ?? (missed ? 0 : null);
   const percent = points === null ? null : (points / MAX_PACKAGE_PER_CYCLE) * 100;
+  const title = missed
+    ? "No approved Final Cut by the deadline"
+    : exempt
+      ? "Exempt: left out of totals"
+      : late !== null
+        ? `${late}/${MAX_PACKAGE_PER_CYCLE} after the late penalty (${row.effortPoints}/${MAX_PACKAGE_PER_CYCLE} before)`
+        : percent === null
+          ? undefined
+          : row.officialPoints === null
+            ? `Out of ${MAX_PACKAGE_PER_CYCLE}, before any late penalty (saving)`
+            : `Out of ${MAX_PACKAGE_PER_CYCLE}, no late penalty`;
   return (
-    <span
-      title={
-        missed
-          ? "No approved Final Cut by the deadline"
-          : exempt
-            ? "Exempt: left out of totals"
-            : percent === null
-              ? undefined
-              : `Out of ${MAX_PACKAGE_PER_CYCLE}, before any late penalty`
-      }
-      className={cn(
-        "inline-block w-10 text-right font-mono-broadcast text-[11px] tabular-nums",
-        missed ? "text-danger" : exempt ? "text-muted-foreground" : percentTone(percent)
-      )}
-    >
-      {exempt ? "Exempt" : formatPercent(percent)}
+    <span title={title} className="inline-flex items-baseline gap-1">
+      <span
+        className={cn(
+          "inline-block w-10 text-right font-mono-broadcast text-[11px] tabular-nums",
+          missed ? "text-danger" : exempt ? "text-muted-foreground" : percentTone(percent)
+        )}
+      >
+        {exempt ? "Exempt" : formatPercent(percent)}
+      </span>
+      {late !== null && <span className="text-[10px] font-medium text-[var(--brand-amber)]">Late</span>}
     </span>
   );
 }

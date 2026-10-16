@@ -196,12 +196,16 @@ export function useCycleGrades({
   }
 
   function updateRow(userId: string, patch: Partial<GradeRow>) {
+    // A new score or turned-in date changes the late penalty: drop the saved official points
+    // until the save returns fresh ones.
+    const staleOfficial = "effortPoints" in patch || "finalCutState" in patch || "turnedInDate" in patch;
     setRows((current) =>
       current.map((row) =>
         row.userId === userId
           ? {
               ...row,
-              ...patch
+              ...patch,
+              ...(staleOfficial ? { officialPoints: null } : {})
             }
           : row
       )

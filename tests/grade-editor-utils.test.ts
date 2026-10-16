@@ -5,6 +5,7 @@ import {
   cycleFilterCounts,
   cycleFilterMatches,
   hasTemporaryEdits,
+  latePenalizedPoints,
   latestPassedCycle,
   mergeTotalsAdjustments,
   missingCountsByCycle,
@@ -27,6 +28,7 @@ function gradeRow(overrides: Partial<GradeRow> = {}): GradeRow {
     name: "Abby Example",
     email: "abby@example.edu",
     effortPoints: null,
+    officialPoints: null,
     teamworkPoints: null,
     previousEffortPoints: null,
     previousTeamworkPoints: null,
@@ -311,5 +313,13 @@ describe("views", () => {
     expect(latestPassedCycle(cycles, "2026-10-14")).toBe(1);
     expect(latestPassedCycle(cycles, "2026-09-01")).toBeNull();
     expect(latestPassedCycle([], "2026-10-15")).toBeNull();
+  });
+
+  it("reports official points only when a late penalty took points off", () => {
+    expect(latePenalizedPoints(gradeRow({ effortPoints: 40, officialPoints: 32 }))).toBe(32);
+    expect(latePenalizedPoints(gradeRow({ effortPoints: 40, officialPoints: 40 }))).toBeNull();
+    // Unsaved edit: official points are cleared until the save returns.
+    expect(latePenalizedPoints(gradeRow({ effortPoints: 40, officialPoints: null }))).toBeNull();
+    expect(latePenalizedPoints(gradeRow({ effortPoints: null, officialPoints: null }))).toBeNull();
   });
 });

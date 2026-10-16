@@ -196,6 +196,12 @@ export function matchesSearch(person: { name: string | null; email: string | nul
 
 /* ---------- Row status (cycle view) ---------- */
 
+/** The saved official points when a late penalty took points off, otherwise null. */
+export function latePenalizedPoints(row: GradeRow) {
+  if (row.officialPoints === null || row.effortPoints === null) return null;
+  return row.officialPoints < row.effortPoints ? row.officialPoints : null;
+}
+
 export function isMissedFinalCut(row: GradeRow) {
   return row.finalCutMissing && row.effortPoints === null && !row.finalCutState;
 }

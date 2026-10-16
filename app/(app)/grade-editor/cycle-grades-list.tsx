@@ -6,7 +6,7 @@ import { cycleCheckInSummary } from "@/src/lib/grade-editor-summary";
 import { Skeleton } from "@/components/kit/skeleton";
 import { cn } from "@/src/lib/utils";
 import { MAX_PACKAGE_PER_CYCLE, type GradeRow, type TotalsRow } from "./grade-editor-types";
-import { emailLocalPart, isMissedFinalCut, rowLabel } from "./grade-editor-utils";
+import { emailLocalPart, isMissedFinalCut, latePenalizedPoints, rowLabel } from "./grade-editor-utils";
 import { OverExtensionsTag, RowSaveMark, RowStatusTag } from "./row-fields";
 
 export function PhoneListSkeleton({ count = 8 }: { count?: number }) {
@@ -24,6 +24,8 @@ export function PhoneListSkeleton({ count = 8 }: { count?: number }) {
 
 function finalLabel(row: GradeRow) {
   if (row.finalCutState === "EXEMPT") return "Exempt";
+  const late = latePenalizedPoints(row);
+  if (late !== null) return `${late}/${MAX_PACKAGE_PER_CYCLE} late`;
   if (row.effortPoints !== null) return `${row.effortPoints}/${MAX_PACKAGE_PER_CYCLE}`;
   if (isMissedFinalCut(row)) return `0/${MAX_PACKAGE_PER_CYCLE}`;
   return "—";

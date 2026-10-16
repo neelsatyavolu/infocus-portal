@@ -26,6 +26,11 @@ export type GradeRow = {
   name: string | null;
   email: string | null;
   effortPoints: number | null;
+  /**
+   * The saved score after any late penalty (what the student gradebook counts), or null when
+   * there is no saved score. Cleared on a local edit to the score or turned-in date until the save returns.
+   */
+  officialPoints: number | null;
   teamworkPoints: number | null;
   previousEffortPoints: number | null;
   previousTeamworkPoints: number | null;
@@ -113,6 +118,7 @@ export type GradeMutationPayload = Pick<
   GradeRow,
   | "finalCutState"
   | "effortPoints"
+  | "officialPoints"
   | "teamworkPoints"
   | "previousEffortPoints"
   | "previousTeamworkPoints"

@@ -140,6 +140,7 @@ function serializeGrade(grade: {
   effortPoints: number;
   teamworkPoints: number;
   awardedFinalCutPoints?: number | null;
+  finalCutPoints?: number | null;
   finalCutState?: GradeScoreState | null;
   previousEffortPoints: number | null;
   previousTeamworkPoints: number | null;
@@ -170,6 +171,7 @@ function serializeGrade(grade: {
     userId: grade.userId,
     finalCutState: grade.finalCutState ?? null,
     effortPoints: quality,
+    officialPoints: quality === null ? null : grade.finalCutPoints ?? null,
     teamworkPoints: grade.teamworkPoints,
     previousEffortPoints: grade.previousEffortPoints,
     previousTeamworkPoints: grade.previousTeamworkPoints,
@@ -344,7 +346,8 @@ export async function GET(request: Request) {
             effortPoints: true,
             finalCutState: true,
             teamworkPoints: true,
-            awardedFinalCutPoints: true
+            awardedFinalCutPoints: true,
+            finalCutPoints: true
           }
         }),
         prisma.packageTotalNote.findMany({
@@ -367,7 +370,8 @@ export async function GET(request: Request) {
         if (grade.finalCutState || grade.awardedFinalCutPoints === null) continue;
         const cycleMap = gradeByUserCycle.get(grade.userId) ?? new Map();
         cycleMap.set(grade.cycleNumber, {
-          effortPoints: grade.awardedFinalCutPoints ?? grade.effortPoints,
+          // Official points: after any late penalty, as the student gradebook counts them.
+          effortPoints: grade.finalCutPoints,
           teamworkPoints: 0
         });
         gradeByUserCycle.set(grade.userId, cycleMap);
@@ -546,6 +550,7 @@ export async function GET(request: Request) {
           finalCutState: true,
           teamworkPoints: true,
           awardedFinalCutPoints: true,
+          finalCutPoints: true,
           ...CHECK_IN_STATE_SELECT,
           pitchingPoints: true,
           proofOfContactPoints: true,
@@ -577,7 +582,8 @@ export async function GET(request: Request) {
           userId: true,
           effortPoints: true,
           finalCutState: true,
-          teamworkPoints: true
+          teamworkPoints: true,
+          finalCutPoints: true
         }
       }),
       prisma.packageGrade.findMany({
@@ -621,7 +627,7 @@ export async function GET(request: Request) {
 
     for (const grade of publishedGrades) {
       if (grade.finalCutState) continue;
-      const total = gradeTotal(grade.effortPoints, grade.teamworkPoints);
+      const total = grade.finalCutPoints;
       const cycleAggregate = cycleAverageMap.get(grade.cycleNumber) ?? { sum: 0, count: 0 };
       cycleAggregate.sum += total;
       cycleAggregate.count += 1;
@@ -675,6 +681,7 @@ export async function GET(request: Request) {
             !grade?.finalCutState &&
             Boolean(creditsByUserId.get(entry.id)?.finalCutMissingByCycle[activeCycleNumber]),
           effortPoints: totalPoints,
+          officialPoints: totalPoints === null ? null : grade?.finalCutPoints ?? null,
           teamworkPoints: grade?.teamworkPoints ?? null,
           previousEffortPoints: grade?.previousEffortPoints ?? null,
           previousTeamworkPoints: grade?.previousTeamworkPoints ?? null,
@@ -934,6 +941,7 @@ export async function POST(request: Request) {
             finalCutState: true,
             teamworkPoints: true,
             awardedFinalCutPoints: true,
+            finalCutPoints: true,
             previousEffortPoints: true,
             previousTeamworkPoints: true,
             revisedAt: true,
@@ -982,6 +990,7 @@ export async function POST(request: Request) {
           effortPoints: true,
           finalCutState: true,
           awardedFinalCutPoints: true,
+          finalCutPoints: true,
           teamworkPoints: true,
           previousEffortPoints: true,
           previousTeamworkPoints: true,
@@ -1056,6 +1065,7 @@ export async function POST(request: Request) {
           effortPoints: true,
           finalCutState: true,
           awardedFinalCutPoints: true,
+          finalCutPoints: true,
           teamworkPoints: true,
           previousEffortPoints: true,
           previousTeamworkPoints: true,
@@ -1122,6 +1132,7 @@ export async function POST(request: Request) {
           effortPoints: true,
           finalCutState: true,
           awardedFinalCutPoints: true,
+          finalCutPoints: true,
           teamworkPoints: true,
           previousEffortPoints: true,
           previousTeamworkPoints: true,
@@ -1206,6 +1217,7 @@ export async function POST(request: Request) {
           effortPoints: true,
           finalCutState: true,
           awardedFinalCutPoints: true,
+          finalCutPoints: true,
           teamworkPoints: true,
           previousEffortPoints: true,
           previousTeamworkPoints: true,

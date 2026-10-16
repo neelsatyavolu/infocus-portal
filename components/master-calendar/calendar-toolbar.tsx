@@ -73,9 +73,9 @@ export function MonthStatusTags({ summary, syncState }: { summary: MonthSummary;
 }
 
 /**
- * The header's calendar actions (producers and executives): Anchors & PA, Sync to Doc and Wipe
- * anchors as one row of matched controls beside the month stepper, so nothing sits between the
- * header and the board. On phones, Sync stays and the other two move into the ⋯ menu.
+ * The header's calendar actions (producers and executives): Sync to Doc, with Anchors & PA and
+ * Wipe anchors in the ⋯ menu beside it, so the header stays one short row and its status tags
+ * keep the room to sit on one line.
  */
 export function CalendarActions({
   canEdit,
@@ -97,42 +97,28 @@ export function CalendarActions({
   if (!canEdit && !canViewCastCounts) return null;
   return (
     <div role="group" aria-label="Calendar actions" className="flex items-center gap-2">
-      {canViewCastCounts ? (
-        <Button type="button" variant="outline" onClick={onOpenCastCounts} className="max-sm:hidden">
-          <Users aria-hidden />
-          Anchors & PA
-        </Button>
-      ) : null}
       {canEdit ? (
         <Button type="button" variant="outline" onClick={onSync} disabled={syncing || wipingAnchors} aria-busy={syncing || undefined}>
           {syncing ? <Spinner /> : <FileUp aria-hidden />}
           Sync to Doc
         </Button>
       ) : null}
-      {canEdit ? (
-        <Button type="button" variant="destructive-quiet" onClick={onWipe} disabled={wipingAnchors || syncing} className="max-sm:hidden">
-          <Eraser aria-hidden />
-          Wipe anchors…
-        </Button>
-      ) : null}
-      <span className="contents sm:hidden">
-        <ActionMenu
-          label="More calendar actions"
-          variant="outline"
-          className="h-10"
-          items={[
-            { label: "Anchors & PA", icon: Users, onSelect: onOpenCastCounts, hidden: !canViewCastCounts },
-            {
-              label: "Wipe anchors…",
-              icon: Eraser,
-              tone: "danger",
-              onSelect: onWipe,
-              disabled: wipingAnchors || syncing,
-              hidden: !canEdit
-            }
-          ]}
-        />
-      </span>
+      <ActionMenu
+        label="More calendar actions"
+        variant="outline"
+        className="max-sm:h-10"
+        items={[
+          { label: "Anchors & PA", icon: Users, onSelect: onOpenCastCounts, hidden: !canViewCastCounts },
+          {
+            label: "Wipe anchors…",
+            icon: Eraser,
+            tone: "danger",
+            onSelect: onWipe,
+            disabled: wipingAnchors || syncing,
+            hidden: !canEdit
+          }
+        ]}
+      />
     </div>
   );
 }

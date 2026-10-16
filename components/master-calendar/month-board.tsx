@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, type MouseEvent } from "react";
+import { useMemo, useState, type MouseEvent } from "react";
 import { WEEKDAYS, groupHolidayRuns, type DayFailure, type DayModel, type WeekRow } from "@/components/master-calendar/calendar-model";
 import { DayCell } from "@/components/master-calendar/day-cell";
 import { HolidayRunBar } from "@/components/master-calendar/holiday-run";
@@ -22,6 +22,8 @@ const RUN_SPAN: Record<number, string> = {
  * lines stay on one row); narrower it is an agenda, one card of day rows per week. Same DOM
  * either way; week wrappers become `display: contents` in the grid. In the grid, a run of days
  * off with the same label is one short bar; in the agenda each of those days keeps its row.
+ * The agenda opens at this week: weeks already over fold behind one "Earlier" button (the grid
+ * shows the whole month, so it never folds).
  */
 export function MonthBoard({
   rows,
@@ -44,21 +46,14 @@ export function MonthBoard({
   onSelect: (dateKey: string, fromKeyboard: boolean) => void;
   onImageMenu?: (dateKey: string, event: MouseEvent<HTMLDivElement>) => void;
 }) {
-  const boardRef = useRef<HTMLDivElement | null>(null);
-  const scrolledRef = useRef(false);
+  const [earlierOpen, setEarlierOpen] = useState(false);
   const boardRows = useMemo(() => rows.map((row) => ({ ...row, cells: groupHolidayRuns(row.segments) })), [rows]);
-
-  // On a phone, open the current month at this week (once, without animation). The first two
-  // weeks are already near the top, so the header's status and actions stay in view. (A wide
-  // screen can show the agenda beside the Day panel too; it keeps the page at the top.)
-  useEffect(() => {
-    if (scrolledRef.current) return;
-    scrolledRef.current = true;
-    const board = boardRef.current;
-    const index = rows.findIndex((row) => row.hasToday);
-    if (!board || index < 2 || window.innerWidth >= 768) return;
-    document.getElementById(`master-calendar-${rows[index].key}`)?.scrollIntoView({ block: "start" });
-  }, [rows]);
+  // Weeks whose days are all over, before the first week that still has a day to come.
+  const firstCurrent = rows.findIndex((row) => row.days.some((day) => !day.isPast));
+  const pastCount = firstCurrent === -1 ? 0 : firstCurrent;
+  const pastDates = new Set(rows.slice(0, pastCount).flatMap((row) => row.days.map((day) => day.dateKey)));
+  // Stepping or Today onto an earlier day opens them, so the picked day is always on the board.
+  const foldEarlier = pastCount > 0 && !earlierOpen && !(selectedDate && pastDates.has(selectedDate));
 
   function renderDay(day: DayModel) {
     return (
@@ -78,7 +73,6 @@ export function MonthBoard({
 
   return (
     <div
-      ref={boardRef}
       aria-busy={loading || undefined}
       className={cn("@container min-w-0 transition-opacity", loading && "opacity-60")}
     >
@@ -89,12 +83,28 @@ export function MonthBoard({
           </div>
         ))}
 
-        {boardRows.map((row) => (
+        {foldEarlier ? (
+          <button
+            type="button"
+            onClick={() => setEarlierOpen(true)}
+            className={cn(
+              "flex h-8 w-full items-center rounded-md border border-dashed border-border px-3 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring @min-[58rem]:hidden",
+              LABEL_CLASS
+            )}
+          >
+            {pastCount === 1 ? `Show last week (${rows[0].label})` : `Show ${pastCount} earlier weeks`}
+          </button>
+        ) : null}
+
+        {boardRows.map((row, index) => (
           <section
             key={row.key}
             id={`master-calendar-${row.key}`}
             aria-label={row.hasToday ? `This week, ${row.label}` : `Week of ${row.label}`}
-            className="scroll-mt-[calc(var(--app-header-h,3.5rem)+0.75rem)] space-y-2 @min-[58rem]:contents"
+            className={cn(
+              "scroll-mt-[calc(var(--app-header-h,3.5rem)+0.75rem)] space-y-2 @min-[58rem]:contents",
+              foldEarlier && index < pastCount && "@max-[58rem]:hidden"
+            )}
           >
             <h2 className={cn("flex h-8 items-center gap-2 @min-[58rem]:hidden", LABEL_CLASS)}>
               {row.hasToday ? (

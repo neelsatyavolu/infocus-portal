@@ -21,25 +21,25 @@ Tabs with no note are shown to everyone signed in.
 - Dashboard (students), Packages (associate producers) or Home (executive producers, the adviser and super admin; see dashboard-and-review.md)
 - My package: reporters, and any producer (associate, executive, or super admin) who is on a package roster. Opens the stage you are working on (the latest unlocked one) and shows the total unread feedback on this cycle's package.
 - Grades (`/grades`): reporters and associate producers. Hidden for executive producers, the adviser, and super admin.
-- Calendar: Master Calendar, with **Cycle Dates** (`/package-cycles`: stage dates for each cycle) as a tab at the top
+- Calendar: Master Calendar, with **Cycle Dates** (`/package-cycles`: stage dates for each cycle) as a tab in the top bar
 
 **Producing** (associate producers and up)
 
 - Groups, Package Cycle (roster)
-- People: Members, with **Participation** as a tab at the top
+- People: Members, with **Participation** as a tab in the top bar
 - Meetings (opens `meet.infocuspaly.com`). Calls open full screen at `meet.infocuspaly.com/<id>` (see `meetings.md`)
 - Extension Requests: producers find it here; students find it in the stage bar on their package pages. A number shows how many requests are waiting on you.
 - Grade Editor: executive producers, the adviser, and super admin
 
 **Class**
 
-- Announcements, with **Submitted** (everyone can read; associate producers and up can delete; executive producers and super admin can invite outside viewers) and **PA** (assigned announcers and producers can edit) as tabs at the top
+- Announcements, with **Submitted** (everyone can read; associate producers and up can delete; executive producers and super admin can invite outside viewers) and **PA** (assigned announcers and producers can edit) as tabs in the top bar
 - Ideas (`/ideas`: story ideas from Bay Area news and events, new every 2 days; see `ideas.md`)
 - Managers (opens **Manager tools**, one row per manager area: equipment, livestream, website, social media; see `managers.md`)
 
 **Production**
 
-- The Show (associate producers and up), with **Publishing Queue** as a tab at the top.
+- The Show (associate producers and up), with **Publishing Queue** as a tab in the top bar.
 - Livestream Tracker (everyone).
 
 **Tools**
@@ -79,7 +79,7 @@ Everyone signed in gets a green ✱ in the bottom-right of Portal. It opens a fl
 | `/projects/.../review` | Media review (producers / project members) |
 | `/grade-editor` | Executives, adviser, super admin |
 | `/class-board` | Not in the sidebar. Anyone signed in, or a classroom screen unlocked with the Class Board PIN. Shows the current cycle, livestreams, and calendar |
-| `/master-calendar` **Anchors & PA** button (in the toolbar; in the ⋯ menu on phones) | Executives, adviser, super admin |
+| `/master-calendar` **Anchors & PA** (in the header's ⋯ menu) | Executives, adviser, super admin |
 | `/live` | Livestream dashboard. Anyone signed in, or signed-out crew with the livestream PIN (see `livestreams.md`) |
 | `/equipment` | Equipment checkout (also `equipment.infocuspaly.com`) |
 | `/submit-announcement` | Public form, no Portal login |

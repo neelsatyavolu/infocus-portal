@@ -1,6 +1,6 @@
 # Announcements
 
-One **Announcements** link in the sidebar opens three tabs at the top of the page: **Announcements** (the class feed), **Submitted**, and **PA**.
+One **Announcements** link in the sidebar opens three tabs in the top bar: **Announcements** (the class feed), **Submitted**, and **PA**.
 
 ## Class feed (`/announcements`)
 

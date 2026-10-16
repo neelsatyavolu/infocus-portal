@@ -186,6 +186,7 @@ export function AppShell({
                 onOpenDrawer={drawer.openDrawer}
                 showSearch={!sampleOnly}
                 onSearch={() => setPaletteOpen(true)}
+                tabs={nav.hubTabs ? <HubTabs tabs={nav.hubTabs} /> : undefined}
                 account={
                   <AccountMenu
                     currentUser={currentUser}
@@ -232,7 +233,6 @@ export function AppShell({
                   {chrome && viewingAs ? (
                     <ViewAsNotice name={viewedName} canSwitch={canViewAs} onSwitch={openViewAs} className="mb-5" />
                   ) : null}
-                  {nav.hubTabs ? <HubTabs tabs={nav.hubTabs} /> : null}
                   {nav.showPackageStageNav ? (
                     <PackageStageNav
                       pathname={pathname}

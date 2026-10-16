@@ -17,8 +17,9 @@ const SQUARE_BUTTON =
 /**
  * The 56px top bar, on the same line as the sidebar's brand row and the assets panel header.
  * Its row is the content column (same gutters and max width), so the first crumb starts on the
- * page's left edge and the last control ends on its right edge. Left: breadcrumbs (two or more;
- * a lone crumb would repeat the page title). Right: Search (⌘K) and the account menu, 36px
+ * page's left edge and the last control ends on its right edge. Left: the hub's tabs on a page
+ * that has them (Master Calendar / Cycle Dates…), otherwise breadcrumbs (two or more; a lone
+ * crumb would repeat the page title). Right: Search (⌘K) and the account menu, 36px
  * (40px on phones). Viewing as is told once, by the notice at the top of the column (with its
  * actions), plus the avatar's amber ring that stays in sight while the page scrolls. Page
  * controls such as the dashboard's workspace and Grid/List live in each page's toolbar.
@@ -33,6 +34,7 @@ export function AppTopBar({
   onOpenDrawer,
   showSearch,
   onSearch,
+  tabs,
   account
 }: {
   crumbs: AppBreadcrumb[];
@@ -46,6 +48,8 @@ export function AppTopBar({
   onOpenDrawer: () => void;
   showSearch: boolean;
   onSearch: () => void;
+  /** The hub's tabs, shown in place of the breadcrumbs. */
+  tabs?: ReactNode;
   account: ReactNode;
 }) {
   return (
@@ -72,7 +76,9 @@ export function AppTopBar({
               <Image src="/favicon/infocus-hub-icon.png" alt="" width={28} height={28} className="h-7 w-7" />
             </Link>
           )}
-          {showsBreadcrumbTrail(crumbs) ? (
+          {tabs ? (
+            tabs
+          ) : showsBreadcrumbTrail(crumbs) ? (
             <ShellBreadcrumbs crumbs={crumbs} onLinkClick={onLinkClick} />
           ) : (
             <div className="min-w-0 flex-1" />

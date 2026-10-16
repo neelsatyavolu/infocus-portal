@@ -296,6 +296,7 @@ export default function MasterCalendarClient({
       {/* The phone sheet covers the page: what's behind it is inert, so Tab and screen readers stay in the sheet. */}
       <div className="space-y-5" inert={sheetOpen || undefined}>
         <PageHeader
+          size="compact"
           eyebrow={
             <>
               <CalendarDays className="h-3 w-3" aria-hidden />
@@ -311,10 +312,9 @@ export default function MasterCalendarClient({
           }
           description={
             cal.canEdit || cal.canViewCastCounts ? (
-              <>
-                <span className="font-medium text-foreground">{monthCountsLine(summary)}</span>
-                {` · ${WEEK_LEGEND}`}
-              </>
+              <span className="font-medium text-foreground" title={WEEK_LEGEND}>
+                {monthCountsLine(summary)}
+              </span>
             ) : (
               WEEK_LEGEND
             )
@@ -346,7 +346,6 @@ export default function MasterCalendarClient({
             </>
           }
         />
-
 
         {hasAlerts ? (
           <div className="space-y-2">

@@ -5,7 +5,7 @@ import { prisma } from "@/src/lib/prisma";
 import { runMeetingHousekeeping } from "@/src/server/meetings-housekeeping";
 import { markMeetingLive } from "@/src/server/meetings-join";
 import { endMeeting } from "@/src/server/meetings-moderation";
-import { notifyMeetingKnock, runMeetingReminders } from "@/src/server/meetings-notify";
+import { MEETING_REMINDERS, notifyMeetingKnock, runMeetingReminders } from "@/src/server/meetings-notify";
 
 /** Server-to-server Meetings endpoints: room reports and the minute tick from the Worker, notes updates from the Drive. */
 
@@ -22,17 +22,40 @@ export async function checkRoomCaller(request: Request, meetingId: string) {
   return payload ? ("ok" as const) : ("denied" as const);
 }
 
+const REMINDER_HORIZON_MS = Math.max(...MEETING_REMINDERS.map((reminder) => reminder.minutes)) * 60 * 1000;
+
+/**
+ * One query covering everything the tick can act on: live meetings (upkeep), notes still recording
+ * or processing (the stuck-notes sweep), and meetings starting within the longest reminder lead.
+ * Most minutes nothing matches, and the tick skips the seven queries below.
+ */
+async function meetingTickHasWork(now: Date) {
+  const meeting = await prisma.meeting.findFirst({
+    where: {
+      OR: [
+        { status: "LIVE" },
+        { notesStatus: { in: ["RECORDING", "PROCESSING"] } },
+        { status: "SCHEDULED", startsAt: { gt: now, lte: new Date(now.getTime() + REMINDER_HORIZON_MS) } }
+      ]
+    },
+    select: { id: true }
+  });
+  return meeting !== null;
+}
+
 /**
  * The Worker's every-minute cron: meeting reminders, then upkeep. One failing doesn't stop the
  * other; the next tick retries. `failed` makes the route answer 500 so the Worker logs it.
  */
 export async function runMeetingTick(now = new Date()) {
+  if (!(await meetingTickHasWork(now))) return { failed: false, idle: true, reminders: null, housekeeping: null };
   const [reminders, housekeeping] = await Promise.allSettled([runMeetingReminders(now), runMeetingHousekeeping(now)]);
   for (const [name, result] of [["reminders", reminders], ["housekeeping", housekeeping]] as const) {
     if (result.status === "rejected") console.error(`meetings tick: ${name} failed`, result.reason);
   }
   return {
     failed: reminders.status === "rejected" || housekeeping.status === "rejected",
+    idle: false,
     reminders: reminders.status === "fulfilled" ? reminders.value : null,
     housekeeping: housekeeping.status === "fulfilled" ? housekeeping.value : null
   };

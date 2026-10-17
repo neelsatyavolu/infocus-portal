@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   findUnique: vi.fn(),
+  findFirst: vi.fn(),
   update: vi.fn(),
   participantUpdateMany: vi.fn(),
   markLive: vi.fn(),
@@ -13,13 +14,17 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/src/lib/prisma", () => ({
   prisma: {
-    meeting: { findUnique: mocks.findUnique, update: mocks.update },
+    meeting: { findUnique: mocks.findUnique, findFirst: mocks.findFirst, update: mocks.update },
     meetingParticipant: { updateMany: mocks.participantUpdateMany }
   }
 }));
 vi.mock("@/src/server/meetings-join", () => ({ markMeetingLive: mocks.markLive }));
 vi.mock("@/src/server/meetings-moderation", () => ({ endMeeting: mocks.endMeeting }));
-vi.mock("@/src/server/meetings-notify", () => ({ notifyMeetingKnock: mocks.knock, runMeetingReminders: mocks.reminders }));
+vi.mock("@/src/server/meetings-notify", () => ({
+  MEETING_REMINDERS: [{ minutes: 15 }, { minutes: 5 }],
+  notifyMeetingKnock: mocks.knock,
+  runMeetingReminders: mocks.reminders
+}));
 vi.mock("@/src/server/meetings-housekeeping", () => ({ runMeetingHousekeeping: mocks.housekeeping }));
 
 import { POST as notesPost } from "@/app/api/service/meetings/[id]/notes/route";
@@ -45,6 +50,7 @@ beforeEach(() => {
   vi.stubEnv("MEETING_ROOM_SECRET", ROOM_SECRET);
   vi.stubEnv("DRIVE_SERVICE_TOKEN", DRIVE_TOKEN);
   mocks.findUnique.mockResolvedValue(meeting);
+  mocks.findFirst.mockResolvedValue({ id: "m1" });
   mocks.update.mockResolvedValue({});
   mocks.markLive.mockResolvedValue(true);
   mocks.endMeeting.mockResolvedValue({ ended: true });
@@ -199,7 +205,28 @@ describe("POST /api/service/meetings/tick", () => {
   it("runs reminders and housekeeping", async () => {
     const response = await tick(await signMeetingInternalToken("room", MEETING_TICK_TOKEN_ID, ROOM_SECRET));
     expect(response.status).toBe(200);
-    expect((await response.json()).data).toEqual({ reminders: { pushed: 0 }, housekeeping: { staleEnded: 0 } });
+    expect((await response.json()).data).toEqual({ idle: false, reminders: { pushed: 0 }, housekeeping: { staleEnded: 0 } });
+  });
+
+  it("skips reminders and housekeeping when no meeting needs either", async () => {
+    vi.useFakeTimers({ now: new Date("2026-10-05T04:00:00.000Z"), toFake: ["Date"] });
+    mocks.findFirst.mockResolvedValueOnce(null);
+    const response = await tick(await signMeetingInternalToken("room", MEETING_TICK_TOKEN_ID, ROOM_SECRET));
+    vi.useRealTimers();
+    expect(response.status).toBe(200);
+    expect((await response.json()).data).toEqual({ idle: true, reminders: null, housekeeping: null });
+    expect(mocks.reminders).not.toHaveBeenCalled();
+    expect(mocks.housekeeping).not.toHaveBeenCalled();
+    expect(mocks.findFirst.mock.calls[0][0]).toEqual({
+      where: {
+        OR: [
+          { status: "LIVE" },
+          { notesStatus: { in: ["RECORDING", "PROCESSING"] } },
+          { status: "SCHEDULED", startsAt: { gt: new Date("2026-10-05T04:00:00.000Z"), lte: new Date("2026-10-05T04:15:00.000Z") } }
+        ]
+      },
+      select: { id: true }
+    });
   });
 
   it("still runs housekeeping when reminders fail, and reports the failure", async () => {

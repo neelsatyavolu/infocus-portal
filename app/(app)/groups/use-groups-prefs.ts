@@ -16,15 +16,25 @@ function isBoolean(value: unknown): value is boolean {
   return typeof value === "boolean";
 }
 
+function isCycleNumber(value: unknown): value is number | null {
+  return value === null || (typeof value === "number" && Number.isInteger(value));
+}
+
 /**
- * Per-browser Groups choices: Tiles or Progress, and whether Other groups is open. Both are read
- * after mount, so the server and first client render match. The filter is not remembered on
- * purpose: Needs you already comes first, and a remembered filter would make the board jump.
+ * Per-browser Groups choices: Tiles or Progress, whether Other groups is open, and the last cycle
+ * picked. All are read after mount, so the server and first client render match. The filter is not
+ * remembered on purpose: Needs you already comes first, and a remembered filter would make the board
+ * jump.
  */
 export function useGroupsPrefs() {
   const [viewMode, setViewModeState] = useState<ViewMode>("cards");
   const [viewModeRead, setViewModeRead] = useState(false);
   const [otherOpen, setOtherOpen] = useRememberedState<boolean>("groups:other-open:v1", false, isBoolean);
+  const [lastCycle, setLastCycle, lastCycleLoaded] = useRememberedState<number | null>(
+    "groups:last-cycle:v1",
+    null,
+    isCycleNumber
+  );
   // False on the server and while hydrating, so the first render matches the server's.
   const hydrated = useSyncExternalStore(subscribeNever, () => true, () => false);
 
@@ -47,5 +57,5 @@ export function useGroupsPrefs() {
     }
   }, []);
 
-  return { viewMode, setViewMode, otherOpen, setOtherOpen };
+  return { viewMode, setViewMode, otherOpen, setOtherOpen, lastCycle, setLastCycle, lastCycleLoaded };
 }

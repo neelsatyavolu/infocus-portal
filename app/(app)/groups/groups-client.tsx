@@ -102,7 +102,7 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
   const [filter, setFilter] = useState<GroupsFilter>("all");
   const [associatesOpen, setAssociatesOpen] = useState(false);
   const [now, setNow] = useState(() => Date.now());
-  const { viewMode, setViewMode, otherOpen, setOtherOpen } = useGroupsPrefs();
+  const { viewMode, setViewMode, otherOpen, setOtherOpen, lastCycle, setLastCycle, lastCycleLoaded } = useGroupsPrefs();
 
   const rowsRef = useRef(rows);
   const activeCycleNumberRef = useRef(activeCycleNumber);
@@ -161,6 +161,7 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
   }, []);
 
   function selectCycle(next: number) {
+    setLastCycle(next);
     if (next === activeCycleNumberRef.current) return;
     activeCycleNumberRef.current = next;
     setActiveCycleNumber(next);
@@ -172,6 +173,27 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
     }
     void loadCycle(next, "switch");
   }
+
+  // Open on the cycle last picked in this browser, if it still exists (adjusted during render; the
+  // effect below loads it).
+  const [cycleRestoreChecked, setCycleRestoreChecked] = useState(false);
+  const [restoredCycle, setRestoredCycle] = useState<number | null>(null);
+  if (lastCycleLoaded && !cycleRestoreChecked) {
+    setCycleRestoreChecked(true);
+    if (lastCycle !== null && lastCycle !== activeCycleNumber && cycles.some((c) => c.cycleNumber === lastCycle)) {
+      setActiveCycleNumber(lastCycle);
+      setRestoredCycle(lastCycle);
+    }
+  }
+
+  useEffect(() => {
+    if (restoredCycle === null) return;
+    activeCycleNumberRef.current = restoredCycle;
+    async function load(cycleNumber: number) {
+      await loadCycle(cycleNumber, "switch");
+    }
+    void load(restoredCycle);
+  }, [restoredCycle, loadCycle]);
 
   function refresh() {
     void loadCycle(activeCycleNumberRef.current, "refresh");

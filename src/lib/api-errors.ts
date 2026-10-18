@@ -30,6 +30,12 @@ export function handleRouteError(error: unknown) {
       return fail("Rate limit exceeded", 429);
     }
 
+    // Prisma messages name tables, queries and the pooler; keep them in the logs, not the UI.
+    if (error.name.startsWith("PrismaClient")) {
+      console.error("Database error in route", error);
+      return fail("Something went wrong on the server. Try again.", 500);
+    }
+
     return fail(error.message, 400);
   }
 

@@ -6,6 +6,7 @@
 import { default as handler } from "./.open-next/worker.js";
 import { MEETING_TICK_TOKEN_ID, signMeetingInternalToken } from "./src/lib/meetings/room-token";
 import { meetingTickHasWork } from "./src/lib/meetings/tick-precheck";
+import { isLiveOverlayRequest, serveCachedOverlay, type OverlayCache } from "./src/lib/live-overlay-cache";
 import { isNextImageRequest, serveCachedImage, type ImageCache } from "./src/lib/next-image-cache";
 
 type PortalEnv = {
@@ -64,6 +65,11 @@ async function runShowUpload(env: PortalEnv, ctx: WorkerContext, id: string): Pr
 
 export default {
   fetch(request: Request, env: PortalEnv, ctx: WorkerContext): Promise<Response> {
+    // OBS overlay polls: answered from this data center's cache for a couple of seconds (src/lib/live-overlay-cache.ts).
+    if (isLiveOverlayRequest(request)) {
+      const cache = (caches as unknown as { default: OverlayCache }).default;
+      return serveCachedOverlay(request, () => handler.fetch(request, env, ctx), cache, ctx);
+    }
     if (!isNextImageRequest(request)) return handler.fetch(request, env, ctx);
     // Resized images: this data center's cache first, so each image is resized once (src/lib/next-image-cache.ts).
     const cache = (caches as unknown as { default: ImageCache }).default;

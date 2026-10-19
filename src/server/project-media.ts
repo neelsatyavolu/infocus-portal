@@ -110,6 +110,51 @@ function buildProjectMediaOrderBy(query: ProjectMediaQuery): Prisma.MediaItemOrd
   return [{ updatedAt: "desc" }];
 }
 
+/** What each media row carries, in the project list and in `GET /api/media/[mediaId]`. */
+export const PROJECT_MEDIA_ROW_INCLUDE = {
+  folder: true,
+  memberAssignments: {
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          nickname: true,
+          email: true
+        }
+      }
+    },
+    orderBy: {
+      createdAt: "asc"
+    }
+  },
+  deletedBy: {
+    select: {
+      name: true,
+      nickname: true,
+      email: true
+    }
+  },
+  currentVersion: true,
+  versions: {
+    orderBy: { versionNumber: "desc" },
+    include: {
+      createdBy: {
+        select: {
+          name: true,
+          nickname: true,
+          email: true
+        }
+      },
+      _count: {
+        select: {
+          comments: true
+        }
+      }
+    }
+  }
+} satisfies Prisma.MediaItemInclude;
+
 export async function getProjectMediaPage(query: ProjectMediaQuery) {
   const pageSize = Math.min(Math.max(query.pageSize ?? PROJECT_MEDIA_PAGE_SIZE, 1), 100);
   const page = Math.max(1, query.page);
@@ -120,49 +165,7 @@ export async function getProjectMediaPage(query: ProjectMediaQuery) {
     prisma.mediaItem.count({ where }),
     prisma.mediaItem.findMany({
       where,
-      include: {
-        folder: true,
-        memberAssignments: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                nickname: true,
-                email: true
-              }
-            }
-          },
-          orderBy: {
-            createdAt: "asc"
-          }
-        },
-        deletedBy: {
-          select: {
-            name: true,
-            nickname: true,
-            email: true
-          }
-        },
-        currentVersion: true,
-        versions: {
-          orderBy: { versionNumber: "desc" },
-          include: {
-            createdBy: {
-              select: {
-                name: true,
-                nickname: true,
-                email: true
-              }
-            },
-            _count: {
-              select: {
-                comments: true
-              }
-            }
-          }
-        }
-      },
+      include: PROJECT_MEDIA_ROW_INCLUDE,
       orderBy,
       skip: (page - 1) * pageSize,
       take: pageSize

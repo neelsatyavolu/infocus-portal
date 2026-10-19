@@ -7,11 +7,40 @@ import { getPlatformAccess } from "@/src/lib/platform-admin";
 import { prisma } from "@/src/lib/prisma";
 import { canManageProjectMedia } from "@/src/lib/rbac";
 import { recomputeForMediaItem } from "@/src/server/cycle-cut-status";
+import { serializeMediaRow } from "@/src/server/media-json";
 import { requireMediaAccess } from "@/src/server/memberships";
+import { PROJECT_MEDIA_ROW_INCLUDE } from "@/src/server/project-media";
 
 const updateMediaSchema = z.object({
   title: z.string().trim().min(1).max(150)
 });
+
+/** One media item, shaped like a row of `GET /api/projects/[projectId]/media`. Same access as the review page. */
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ mediaId: string }> }
+) {
+  try {
+    const { mediaId } = await params;
+    await requireMediaAccess(
+      mediaId,
+      [WorkspaceRole.OWNER_ADMIN, WorkspaceRole.EDITOR, WorkspaceRole.REVIEWER],
+      { allowVisibility: true }
+    );
+
+    const media = await prisma.mediaItem.findUnique({
+      where: { id: mediaId },
+      include: PROJECT_MEDIA_ROW_INCLUDE
+    });
+    if (!media) {
+      throw new Error("NOT_FOUND");
+    }
+
+    return ok(await serializeMediaRow(media));
+  } catch (error) {
+    return handleRouteError(error);
+  }
+}
 
 export async function PATCH(
   request: Request,

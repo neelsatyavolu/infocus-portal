@@ -1,5 +1,6 @@
 import { handleRouteError } from "@/src/lib/api-errors";
 import { ok } from "@/src/lib/http";
+import { serializeMediaRow } from "@/src/server/media-json";
 import { requireProjectRole } from "@/src/server/memberships";
 import {
   getProjectMediaPage,
@@ -35,7 +36,8 @@ export async function GET(
       page
     });
 
-    return ok(media);
+    // Rows carry storageSizeBytes as BigInt, which JSON cannot encode; versions also get the poster URL.
+    return ok({ ...media, items: await Promise.all(media.items.map((item) => serializeMediaRow(item))) });
   } catch (error) {
     return handleRouteError(error);
   }

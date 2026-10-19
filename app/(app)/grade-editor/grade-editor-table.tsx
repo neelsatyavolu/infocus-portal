@@ -315,7 +315,9 @@ export function ScoreInput({
   navKey,
   title = SCORE_GRAMMAR_HINT,
   inputMode = "decimal",
-  disabled
+  disabled,
+  onFocus,
+  onBlur
 }: {
   value: string;
   onChange: (raw: string) => void;
@@ -333,6 +335,8 @@ export function ScoreInput({
   title?: string;
   inputMode?: "decimal" | "numeric";
   disabled?: boolean;
+  onFocus?: () => void;
+  onBlur?: () => void;
 }) {
   function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key !== "Enter" || !navKey) return;
@@ -348,6 +352,8 @@ export function ScoreInput({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         onKeyDown={onKeyDown}
+        onFocus={onFocus}
+        onBlur={onBlur}
         placeholder={placeholder}
         inputMode={inputMode}
         disabled={disabled}

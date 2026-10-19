@@ -1,6 +1,6 @@
 "use client";
 
-import { useId } from "react";
+import { useId, useState } from "react";
 import { ChevronDown, History, Lock, MessageSquare } from "lucide-react";
 import { gradeScoreInput, gradeScoreLabel, numericGradeScore, parseGradeScore } from "@/src/lib/grade-score";
 import type { CheckInStage } from "@/src/lib/package-stages";
@@ -101,7 +101,10 @@ export function CheckInField({
   );
 }
 
-/** The Final Cut score box (out of 50). Typing saves after a short pause. */
+/**
+ * The Final Cut score box (out of 50). Typing saves after a short pause. When a late penalty took
+ * points off, the box shows the official points; focusing it shows the score as entered for editing.
+ */
 export function ScoreField({
   row,
   onChange,
@@ -113,10 +116,14 @@ export function ScoreField({
   size?: FieldSize;
   navKey?: string;
 }) {
+  const [editing, setEditing] = useState(false);
+  const late = latePenalizedPoints(row);
   return (
     <ScoreInput
       label={`${rowLabel(row)} Final Cut score`}
-      value={gradeScoreInput(row.finalCutState ?? row.effortPoints)}
+      value={!editing && late !== null ? String(late) : gradeScoreInput(row.finalCutState ?? row.effortPoints)}
+      onFocus={() => setEditing(true)}
+      onBlur={() => setEditing(false)}
       max={null}
       size={size}
       width={size === "touch" ? "w-12" : "w-11"}

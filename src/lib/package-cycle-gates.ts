@@ -66,6 +66,26 @@ export function studentCycleNumber(
   return activeCycleNumber;
 }
 
+/** Cookie holding the cycle a held student picked in the sidebar's cycle switch. */
+export const STUDENT_CYCLE_COOKIE = "infocus_student_cycle";
+
+type StudentCycleRow = { cycleNumber: number; finalCutMediaItemId: string | null; finalCut: boolean };
+
+/**
+ * The cycle a student's tabs show. A student held on the previous cycle (its Final Cut is not in)
+ * who is also on the active cycle's roster may switch between the two (`choices`); `preferred`
+ * (the cookie) opens the active one.
+ */
+export function studentCycleChoice(activeCycleNumber: number, rows: StudentCycleRow[], preferred: number | null) {
+  const previousRow = rows.find((row) => row.cycleNumber === activeCycleNumber - 1) ?? null;
+  const heldCycle = studentCycleNumber(activeCycleNumber, previousRow);
+  const choices =
+    heldCycle !== activeCycleNumber && rows.some((row) => row.cycleNumber === activeCycleNumber)
+      ? [heldCycle, activeCycleNumber]
+      : null;
+  return { cycleNumber: choices && preferred === activeCycleNumber ? activeCycleNumber : heldCycle, choices };
+}
+
 export function parseApprovalStage(value: PackageApprovalStage | string | null | undefined): PackageApprovalStage | null {
   if (!value) return null;
   return value as PackageApprovalStage;

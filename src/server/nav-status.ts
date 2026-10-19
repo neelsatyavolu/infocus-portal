@@ -85,6 +85,7 @@ async function loadPackagePart(userId: string): Promise<NavPackageStatus> {
   const base: NavPackageStatus = {
     hasRow: gates.hasRow,
     cycleNumber: gates.cycleNumber ?? null,
+    cycleChoices: gates.cycleChoices,
     unlocked: gates.unlocked,
     statuses: gates.hasRow ? gates.statuses : null,
     unread: gates.unread ?? null,

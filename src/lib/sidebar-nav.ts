@@ -304,6 +304,8 @@ export type NavPackageStatus = {
   /** On a package roster for the person's current cycle. */
   hasRow: boolean;
   cycleNumber: number | null;
+  /** The two cycles a student held on the previous one may switch between (studentCycleChoice). */
+  cycleChoices?: number[] | null;
   unlocked: PackageUnlocked;
   statuses: Record<PackageStageSlug, CycleStageStatus> | null;
   unread: StageCommentUnread | null;
@@ -487,6 +489,8 @@ export type CycleCardTone = "success" | "warning" | "danger" | "review" | "neutr
 /** The sidebar's "This cycle" card: where the person's package stands, at a glance. */
 export type CycleCard = {
   cycleNumber: number | null;
+  /** Set when the person may switch the cycle their tabs show. */
+  cycleChoices: number[] | null;
   href: string;
   stageLabel: string;
   /** One cell per package stage, in order. */
@@ -588,6 +592,7 @@ export function buildCycleCard(pkg: NavPackageStatus | null, now: Date): CycleCa
   });
   return {
     cycleNumber: pkg.cycleNumber,
+    cycleChoices: pkg.cycleChoices ?? null,
     href: `/${stage}`,
     stageLabel: PACKAGE_STAGE_LABELS[stage],
     segments,

@@ -1,5 +1,6 @@
 import { recordAssociateReviewHistory } from "@/src/server/associate-review-history";
 import { MediaStatus, type PlatformRole, type Prisma } from "@prisma/client";
+import { cookies } from "next/headers";
 import { hasPlatformRole, isExecutiveProducer } from "@/src/lib/platform-admin";
 import {
   canGradeFinalCut,
@@ -17,8 +18,9 @@ import {
 } from "@/src/lib/package-extensions";
 import {
   CYCLE_STAGE_FOLDERS,
+  STUDENT_CYCLE_COOKIE,
   studentCanUpload,
-  studentCycleNumber,
+  studentCycleChoice,
   studentStageUnlocked,
   type CycleStageSlug
 } from "@/src/lib/package-cycle-gates";
@@ -93,17 +95,37 @@ export async function resolveActiveCycleNumber(requested?: number | null, cycles
   );
 }
 
+/** The cycle picked in the sidebar's cycle switch (STUDENT_CYCLE_COOKIE); null outside a request. */
+async function preferredStudentCycle() {
+  try {
+    const value = Number((await cookies()).get(STUDENT_CYCLE_COOKIE)?.value);
+    return Number.isInteger(value) && value > 0 ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The student's cycle and, while they may switch, the two cycles to pick from (studentCycleChoice). */
+async function resolveStudentCycleChoice(userId: string, cycles?: CycleList) {
+  const active = await resolveActiveCycleNumber(null, cycles);
+  if (active <= 1) return { cycleNumber: active, choices: null };
+  const [rows, preferred] = await Promise.all([
+    prisma.packageProgressRow.findMany({
+      where: { cycleNumber: { in: [active - 1, active] }, members: { some: { userId } } },
+      select: { cycleNumber: true, finalCutMediaItemId: true, finalCut: true }
+    }),
+    preferredStudentCycle()
+  ]);
+  return studentCycleChoice(active, rows, preferred);
+}
+
 /** Active cycle for a student's own tabs; an explicit valid request wins. */
 export async function resolveStudentCycleNumber(userId: string, requested?: number | null, cycles?: CycleList) {
-  const active = await resolveActiveCycleNumber(requested, cycles);
-  if (requested && active === requested) return active;
-  const previousRow = active > 1
-    ? await prisma.packageProgressRow.findFirst({
-        where: { cycleNumber: active - 1, members: { some: { userId } } },
-        select: { finalCutMediaItemId: true, finalCut: true }
-      })
-    : null;
-  return studentCycleNumber(active, previousRow);
+  if (requested) {
+    const active = await resolveActiveCycleNumber(requested, cycles);
+    if (active === requested) return active;
+  }
+  return (await resolveStudentCycleChoice(userId, cycles)).cycleNumber;
 }
 
 const STAGE_ROW_INCLUDE = {
@@ -134,19 +156,22 @@ export async function loadStudentCycleRow(userId: string, cycleNumber: number) {
 /**
  * The student's row on their own cycle (resolveStudentCycleNumber + loadStudentCycleRow).
  * When the previous cycle decides which one that is, both cycles' rows load in one query and the
- * previous row's Final Cut picks, instead of a check and then a second read.
+ * previous row's Final Cut (and the sidebar's cycle switch) picks, instead of a check and then a
+ * second read.
  */
 async function loadStudentStageRow(userId: string, requested?: number | null) {
   const active = await resolveActiveCycleNumber(requested);
   if ((requested && active === requested) || active <= 1) {
     return loadStudentCycleRow(userId, active);
   }
-  const rows = await prisma.packageProgressRow.findMany({
-    where: { cycleNumber: { in: [active - 1, active] }, members: { some: { userId } } },
-    include: STAGE_ROW_INCLUDE
-  });
-  const previousRow = rows.find((row) => row.cycleNumber === active - 1) ?? null;
-  const cycleNumber = studentCycleNumber(active, previousRow);
+  const [rows, preferred] = await Promise.all([
+    prisma.packageProgressRow.findMany({
+      where: { cycleNumber: { in: [active - 1, active] }, members: { some: { userId } } },
+      include: STAGE_ROW_INCLUDE
+    }),
+    preferredStudentCycle()
+  ]);
+  const { cycleNumber } = studentCycleChoice(active, rows, preferred);
   return rows.find((row) => row.cycleNumber === cycleNumber) ?? null;
 }
 
@@ -517,7 +542,7 @@ async function loadFinalCutGradePanel(input: {
 }
 
 export async function loadStudentNavGates(userId: string) {
-  const cycleNumber = await resolveStudentCycleNumber(userId);
+  const { cycleNumber, choices: cycleChoices } = await resolveStudentCycleChoice(userId);
   const locked = { "a-roll": false, "initial-cut": false, "final-cut": false };
   const [unread, row] = await Promise.all([
     loadStageCommentUnread(userId, cycleNumber),
@@ -563,6 +588,7 @@ export async function loadStudentNavGates(userId: string) {
   if (!row) {
     return {
       cycleNumber,
+      cycleChoices,
       hasRow: false,
       unlocked: locked,
       statuses: allCycleStageStatuses(emptyCycleStageStatusInput()),
@@ -589,6 +615,7 @@ export async function loadStudentNavGates(userId: string) {
   };
   return {
     cycleNumber,
+    cycleChoices,
     hasRow: true,
     unlocked: {
       "a-roll": studentStageUnlocked("a-roll", row, approval),

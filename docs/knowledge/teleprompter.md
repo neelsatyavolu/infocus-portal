@@ -45,6 +45,8 @@ College visits come from every weekly tab in the college-visit sheet except Samp
 
 A3 starts with a `[INSERT PACKAGE TOSS]` placeholder. When Teleprompter opens or refreshes a show, it fills that placeholder with the toss of the first package queued for that show date (read by the coanchor). A second queued package gets its own block read by the anchor. A queued package with no toss yet gets `[INSERT PACKAGE TOSS: headline]` (the Final Cut headline, or the topic if there is none), which is filled in automatically once the group adds its toss. Text a producer has already written in place of a placeholder is never replaced. The fill happens once per placeholder: a package queued or removed after that, or a toss edited after that, has to be changed in the script by hand.
 
+A4 starts with a `[INSERT THANK YOU NAMES]` placeholder. The same refresh replaces it with the first names of every member of the packages queued for that show (nickname if set, else first name), e.g. "Thank you Abby, Otto, and Sage!". It also fills once: a line a producer already wrote is never replaced, and a package queued after the fill has to be added by hand.
+
 Spirit Week recap shows have no package. For a show named "Spirit Week Day N Recap", A3 starts with "Yesterday's theme was [theme] - let's watch the InFocus Spirit Week Day N recap." instead of the placeholder. The Overall Recap gets "Let's watch the InFocus Spirit Week Overall Recap." This only applies when the show's script is first created.
 
 ## Studio kiosk

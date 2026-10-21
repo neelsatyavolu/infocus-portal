@@ -8,7 +8,12 @@ import {
   type AssistantActionPreview
 } from "@/src/server/assistant-actions";
 import { ASSISTANT_DOC_TOOLS, runAssistantDocTool } from "@/src/server/assistant-docs";
-import { ASSISTANT_SHOW_PLACE_TOOL, showAssistantPlace } from "@/src/server/assistant-places";
+import {
+  ASSISTANT_SHOW_PLACE_TOOL,
+  ASSISTANT_SWITCH_CYCLE_TOOL,
+  showAssistantPlace,
+  switchAssistantCycle
+} from "@/src/server/assistant-places";
 
 const GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions";
 export const ASSISTANT_GEMINI_MODEL = "gemini-3.1-flash-lite";
@@ -21,7 +26,8 @@ type AssistantTool =
   | (typeof ASSISTANT_DOC_TOOLS)[number]
   | (typeof ASSISTANT_LOOKUP_TOOLS)[number]
   | (typeof ASSISTANT_MUTATION_TOOLS)[number]
-  | typeof ASSISTANT_SHOW_PLACE_TOOL;
+  | typeof ASSISTANT_SHOW_PLACE_TOOL
+  | typeof ASSISTANT_SWITCH_CYCLE_TOOL;
 
 export type AssistantChatMessage = {
   role: "user" | "assistant";
@@ -52,6 +58,7 @@ const WRITING_RULES = `How to write:
 - Bold those names with **Groups** (one pair of asterisks, never nested, never ****). You may use simple - bullets.
 - If they ask how to do something, give the taps: open Groups, click the package, use the stage tabs at the bottom.
 - If they ask where a page, tab, or package is, call show_place. A Take me there card will appear. Say you can take them there. Do not put the path in the chat text.
+- If a student asks to switch, go back to, or work on another cycle, call switch_cycle. A Switch card will appear; say they can tap it. If it says they cannot switch, explain why in plain words.
 
 Never put in the reply:
 - URLs, routes like /groups, file names, or tool names (read_doc, list_packages)
@@ -118,10 +125,11 @@ export function systemPromptFor(
 export function assistantToolsFor(audience: AssistantAudience, canMutate: boolean) {
   const allowed = new Set(assistantLookupNames(audience));
   const lookups = ASSISTANT_LOOKUP_TOOLS.filter((tool) => allowed.has(tool.function.name));
+  const places = [ASSISTANT_SHOW_PLACE_TOOL, ASSISTANT_SWITCH_CYCLE_TOOL];
   if (canMutate) {
-    return [...ASSISTANT_DOC_TOOLS, ASSISTANT_SHOW_PLACE_TOOL, ...lookups, ...ASSISTANT_MUTATION_TOOLS];
+    return [...ASSISTANT_DOC_TOOLS, ...places, ...lookups, ...ASSISTANT_MUTATION_TOOLS];
   }
-  return [...ASSISTANT_DOC_TOOLS, ASSISTANT_SHOW_PLACE_TOOL, ...lookups];
+  return [...ASSISTANT_DOC_TOOLS, ...places, ...lookups];
 }
 
 export function sanitizeAssistantMessages(input: unknown): AssistantChatMessage[] {
@@ -224,6 +232,14 @@ async function executeAssistantToolCall(name: string, args: unknown, ctx: ToolCo
       actorUserId: ctx.actorUserId,
       args
     });
+    if (outcome.preview && !ctx.places.some((place) => place.id === outcome.preview?.id)) {
+      ctx.places.push(outcome.preview);
+    }
+    return outcome.error ? { error: outcome.error } : outcome.result;
+  }
+
+  if (name === "switch_cycle") {
+    const outcome = await switchAssistantCycle({ actorUserId: ctx.actorUserId, args });
     if (outcome.preview && !ctx.places.some((place) => place.id === outcome.preview?.id)) {
       ctx.places.push(outcome.preview);
     }

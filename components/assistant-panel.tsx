@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, type CSSProperties, type Dispatch, type SetStateAction } from "react";
 import { AssistantConversation } from "@/components/assistant/assistant-conversation";
 import { isSafePlaceHref } from "@/components/assistant/assistant-stream";
+import { switchCycle } from "@/components/shell/cycle-card";
 import { ChatComposer } from "@/components/assistant/chat-composer";
 import { openingTab } from "@/components/assistant/opening-tab";
 import { loopFocus } from "@/components/assistant/panel-focus";
@@ -235,6 +236,11 @@ export function AssistantPanel({
   }
 
   function goToPlace(place: AssistantPlacePreview) {
+    if (place.switchToCycle) {
+      chat.setPlace(place.id, "opened");
+      switchCycle(place.switchToCycle);
+      return;
+    }
     if (!isSafePlaceHref(place.href)) {
       return;
     }

@@ -10,7 +10,7 @@ Sidebar **My package** (students, and APs who are members of a package) opens th
 | Initial Cut | `/initial-cut` | Polished draft; revisions until stage 1–3 pass |
 | Final Cut | `/final-cut` | After stage 3; the video plus a one-line headline (e.g. "Palo Alto Airport Day brings the community together") and a toss for the anchors; every EP scores each member on quality /25 and effort /25 |
 
-These tabs show the current cycle (the first one whose Final Cut date has not passed). Exception: if the student's package in the previous cycle has no Final Cut yet (no upload and not marked done by a producer), the tabs stay on that previous cycle until the Final Cut is in. If the student is also on a group in the new cycle, the cycle card at the foot of the sidebar shows a switch (for example "Cycle 2 | Cycle 3") so they can open either cycle and submit to it; the pick is remembered in that browser. Producers still see the new cycle on Groups.
+These tabs show the current cycle (the first one whose Final Cut date has not passed). Exception: if the student's package in the previous cycle has no Final Cut yet (no upload and not marked done by a producer), the tabs stay on that previous cycle until the Final Cut is in. If the student is also on a group in the new cycle, the cycle card at the foot of the sidebar shows a switch (for example "Cycle 2 | Cycle 3") so they can open either cycle and submit to it (or ask the assistant to switch); the pick is remembered in that browser. Producers still see the new cycle on Groups.
 
 Stages unlock in order. Later stages show in the stage bar but are disabled (hovering says "Unlocks when the previous stage is approved"); opening a locked stage's page says "This stage is locked." and which approval unlocks it:
 

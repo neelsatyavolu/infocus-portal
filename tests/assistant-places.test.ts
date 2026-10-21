@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ASSISTANT_PLACES,
+  assistantCycleSwitch,
   findGatedAssistantPlace,
   isMyPackageQuery,
   matchAssistantPlace,
@@ -88,5 +89,32 @@ describe("isMyPackageQuery", () => {
     expect(isMyPackageQuery("where is my package")).toBe(true);
     expect(isMyPackageQuery("groups")).toBe(false);
     expect(isMyPackageQuery("packages")).toBe(false);
+  });
+});
+
+describe("assistantCycleSwitch", () => {
+  const held = { cycleNumber: 2, choices: [2, 3] };
+
+  it("offers a held student the other cycle as a switch card", () => {
+    expect(assistantCycleSwitch(held, 3)).toMatchObject({
+      preview: { id: "cycle-switch:3", title: "Switch to Cycle 3", switchToCycle: 3 }
+    });
+    expect(assistantCycleSwitch({ cycleNumber: 3, choices: [2, 3] }, 2).preview?.switchToCycle).toBe(2);
+  });
+
+  it("shows no card for the cycle they already have open", () => {
+    const outcome = assistantCycleSwitch(held, 2);
+    expect(outcome.preview).toBeUndefined();
+    expect(outcome.result).toEqual({ alreadyOn: true, cycleNumber: 2 });
+  });
+
+  it("refuses cycles outside the two choices", () => {
+    expect(assistantCycleSwitch(held, 1)).toEqual({ error: "You can switch between Cycle 2 and Cycle 3." });
+  });
+
+  it("refuses students who have only one cycle", () => {
+    const outcome = assistantCycleSwitch({ cycleNumber: 3, choices: null }, 2);
+    expect(outcome.preview).toBeUndefined();
+    expect(outcome.error).toMatch(/only have Cycle 3/);
   });
 });

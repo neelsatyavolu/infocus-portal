@@ -1,6 +1,7 @@
 const LABELS: Record<string, string> = {
   list_docs: "Reading docs",
   show_place: "Finding that page",
+  switch_cycle: "Checking your cycles",
   search_docs: "Searching docs",
   read_doc: "Reading a doc",
   list_people: "Looking up people",

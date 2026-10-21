@@ -47,6 +47,7 @@ describe("assistant lookup tools", () => {
     expect(memberTools).not.toContain("list_queue");
     expect(memberTools).not.toContain("propose_set_grade");
     expect(memberTools).toContain("show_place");
+    expect(memberTools).toContain("switch_cycle");
     expect(associateTools).not.toContain("get_grades");
     expect(associateTools).toContain("list_queue");
     expect(associateTools).toContain("show_place");

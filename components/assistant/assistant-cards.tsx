@@ -143,7 +143,7 @@ export function ApprovalCard({
   );
 }
 
-/** "Where is X": a page the asker can open (role-gated on the server). */
+/** "Where is X": a page the asker can open (role-gated on the server), or a student's cycle switch. */
 export function PlaceCard({
   place,
   state,
@@ -164,17 +164,18 @@ export function PlaceCard({
   const opened = state === "opened";
   const buttonClass = cardButtonClass(touch);
   const GoIcon = place.external && place.newTab ? ExternalLink : ArrowRight;
+  const switching = Boolean(place.switchToCycle);
 
   return (
     <DecisionCard
       status={
         <>
           <span className="text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">
-            I can show where that is
+            {switching ? "Switch cycle" : "I can show where that is"}
           </span>
           {opened ? (
             <StatusTag tone="success" icon={Check}>
-              Opened
+              {switching ? "Switching" : "Opened"}
             </StatusTag>
           ) : null}
         </>
@@ -192,7 +193,7 @@ export function PlaceCard({
               onClick={onGo}
               className={cn(buttonClass, "text-brand-green hover:text-brand-green")}
             >
-              Take me there
+              {switching ? "Switch" : "Take me there"}
               <GoIcon aria-hidden />
             </Button>
           </>

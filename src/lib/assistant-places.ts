@@ -7,6 +7,8 @@ export type AssistantPlacePreview = {
   hint: string;
   external?: boolean;
   newTab?: boolean;
+  /** Set on a cycle switch: Go saves this cycle as the student's pick and reloads instead of following href. */
+  switchToCycle?: number;
 };
 
 type AssistantPlace = {
@@ -385,5 +387,34 @@ export function assistantPlacePreview(input: {
     hint: input.hint,
     ...(input.external ? { external: true } : {}),
     ...(input.newTab ? { newTab: true } : {})
+  };
+}
+
+/**
+ * The assistant's "switch my cycle" card, from the student's studentCycleChoice: only a student
+ * held on the previous cycle who is also on the new roster may switch, and only to one of the two.
+ */
+export function assistantCycleSwitch(
+  choice: { cycleNumber: number; choices: number[] | null },
+  requested: number
+): { preview?: AssistantPlacePreview; error?: string; result?: unknown } {
+  if (!choice.choices) {
+    return { error: `You only have Cycle ${choice.cycleNumber} to work on, so there is no cycle to switch to.` };
+  }
+  if (!choice.choices.includes(requested)) {
+    return { error: `You can switch between ${choice.choices.map((n) => `Cycle ${n}`).join(" and ")}.` };
+  }
+  if (requested === choice.cycleNumber) {
+    return { result: { alreadyOn: true, cycleNumber: requested } };
+  }
+  return {
+    preview: {
+      id: `cycle-switch:${requested}`,
+      title: `Switch to Cycle ${requested}`,
+      href: "/information",
+      hint: "Your cycle tabs and the cycle card at the foot of the sidebar will show this cycle. You can switch back there anytime.",
+      switchToCycle: requested
+    },
+    result: { found: true, name: `Cycle ${requested}` }
   };
 }

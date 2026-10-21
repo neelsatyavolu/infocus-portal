@@ -74,9 +74,9 @@ const CYCLE_COOKIE_MAX_AGE = 60 * 60 * 24 * 90;
 
 /**
  * Picks which cycle the student's tabs show (the server honors it only while they may switch),
- * then reloads so every stage page, the sidebar and the in-memory page copies load that cycle.
+ * then reloads (also the assistant's switch_cycle card) so every stage page, the sidebar and the in-memory page copies load that cycle.
  */
-function switchCycle(cycleNumber: number) {
+export function switchCycle(cycleNumber: number) {
   const secure = window.location.protocol === "https:" ? "; secure" : "";
   document.cookie = `${STUDENT_CYCLE_COOKIE}=${cycleNumber}; path=/; max-age=${CYCLE_COOKIE_MAX_AGE}; samesite=lax${secure}`;
   window.location.reload();

@@ -1,5 +1,6 @@
 import type { AssistantAudience } from "@/src/lib/assistant-access";
 import {
+  assistantCycleSwitch,
   assistantPlacePreview,
   findGatedAssistantPlace,
   isMyPackageQuery,
@@ -8,6 +9,7 @@ import {
 } from "@/src/lib/assistant-places";
 import { pendingGroupNavSlug, workspaceSlugFromNav, type GroupNavSlug } from "@/src/lib/package-stages";
 import { findAssistantGroupRow, listAssistantGroups } from "@/src/server/assistant-lookups";
+import { resolveStudentCycleChoice } from "@/src/server/package-cycle-stage";
 
 type GroupRow = Awaited<ReturnType<typeof findAssistantGroupRow>>;
 
@@ -146,6 +148,39 @@ export const ASSISTANT_SHOW_PLACE_TOOL = {
         place: { type: "string", description: "Page, tab, or package name" }
       },
       required: ["place"],
+      additionalProperties: false
+    }
+  }
+};
+
+/** "Switch me to Cycle 3": a card that flips the sidebar's cycle switch, only when the student has it. */
+export async function switchAssistantCycle(params: {
+  actorUserId?: string;
+  args: unknown;
+}): Promise<{ preview?: AssistantPlacePreview; error?: string; result?: unknown }> {
+  const args = params.args && typeof params.args === "object" ? (params.args as Record<string, unknown>) : {};
+  const requested = Number(args.cycleNumber);
+  if (!Number.isInteger(requested) || requested < 1) {
+    return { error: "Name the cycle number to switch to." };
+  }
+  if (!params.actorUserId) {
+    return { error: "You cannot switch cycles from this assistant." };
+  }
+  return assistantCycleSwitch(await resolveStudentCycleChoice(params.actorUserId), requested);
+}
+
+export const ASSISTANT_SWITCH_CYCLE_TOOL = {
+  type: "function" as const,
+  function: {
+    name: "switch_cycle",
+    description:
+      "When a student asks to switch, view, or work on another cycle (for example go back to Cycle 2 to turn in its Final Cut, or open Cycle 3), call this so a Switch card can appear. It only works for a student still owing the previous cycle's Final Cut who is also on the new cycle; otherwise it says why.",
+    parameters: {
+      type: "object",
+      properties: {
+        cycleNumber: { type: "integer", description: "Cycle to switch to, e.g. 3" }
+      },
+      required: ["cycleNumber"],
       additionalProperties: false
     }
   }

@@ -106,7 +106,7 @@ async function preferredStudentCycle() {
 }
 
 /** The student's cycle and, while they may switch, the two cycles to pick from (studentCycleChoice). */
-async function resolveStudentCycleChoice(userId: string, cycles?: CycleList) {
+export async function resolveStudentCycleChoice(userId: string, cycles?: CycleList) {
   const active = await resolveActiveCycleNumber(null, cycles);
   if (active <= 1) return { cycleNumber: active, choices: null };
   const [rows, preferred] = await Promise.all([

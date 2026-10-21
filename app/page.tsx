@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AppsCard, HomeHero, NewsroomSection, QuickLinksCard } from "@/components/public-marketing/home-sections";
+import { AboutSection, AppsCard, HomeHero, NewsroomSection, QuickLinksCard } from "@/components/public-marketing/home-sections";
 import { MarketingPage } from "@/components/public-marketing/marketing-page";
 
 export const metadata: Metadata = {
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 /**
  * Public home page. In order: the nameplate with "Open InFocus Portal" (class members) and
  * Equipment, Quick links (Master Calendar, announcements) and Get the apps beside it, then the
- * newsroom overview. On phones the same blocks stack in that order. From lg the hero and the
+ * newsroom overview and About. On phones the same blocks stack in that order. From lg the hero and the
  * cards split the row in half: the two columns end within a few pixels of each other, and the
  * split lines up with the two-by-two pillar cards below.
  */
@@ -26,6 +26,7 @@ export default function HomePage() {
           </div>
         </div>
         <NewsroomSection />
+        <AboutSection />
       </div>
     </MarketingPage>
   );

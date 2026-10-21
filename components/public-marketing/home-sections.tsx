@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Route } from "next";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
+import { AboutPortalText } from "@/components/about-portal";
 import { IconTile } from "@/components/kit/avatar";
 import { StatusTag } from "@/components/kit/status-tag";
 import { buttonVariants } from "@/components/ui/button";
@@ -213,6 +214,28 @@ export function NewsroomSection() {
             </ul>
           </article>
         ))}
+      </div>
+    </section>
+  );
+}
+
+/** Who built the Portal, that it is open source, and how to contribute. Last on the home page. */
+export function AboutSection() {
+  return (
+    <section id="about" aria-labelledby="about-title" className={cn("space-y-5", ANCHOR_OFFSET)}>
+      <div>
+        <div className="eyebrow eyebrow-ink">About</div>
+        <h2 id="about-title" className="display-md mt-2 text-foreground">
+          How the Portal was made
+        </h2>
+      </div>
+      <div
+        className={cn(
+          "flex max-w-3xl flex-col gap-3 rounded-md border border-border bg-card py-4 text-sm leading-relaxed text-[var(--ink-text)] md:py-5",
+          ROW_PAD
+        )}
+      >
+        <AboutPortalText linkClassName={INLINE_LINK_CLASS} />
       </div>
     </section>
   );

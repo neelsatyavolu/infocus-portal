@@ -4,6 +4,7 @@ import { AlertTriangle } from "lucide-react";
 import { SettingsHeader, SettingsLayout, type SettingsNavItem } from "@/components/settings-layout";
 import { cn } from "@/src/lib/utils";
 import { PinsSection, useAccessPin } from "./access-pins";
+import { AboutSection } from "./about-section";
 import { AppearanceSection } from "./appearance-card";
 import { AppsSection } from "./apps-section";
 import { MacAppSection } from "./mac-app-card";
@@ -113,7 +114,8 @@ export default function SettingsPage() {
     ...(showPins ? [{ id: "pins", label: "PINs", status: statuses.pins }] : []),
     ...(signature.visible ? [{ id: "signature", label: "Signature", status: statuses.signature }] : []),
     { id: "mac-app", label: "InFocus for Mac" },
-    { id: "apps", label: "Apps & links" }
+    { id: "apps", label: "Apps & links" },
+    { id: "about", label: "About" }
   ];
 
   return (
@@ -135,6 +137,7 @@ export default function SettingsPage() {
         {signature.visible ? <SignatureSection state={signature} /> : null}
         <MacAppSection />
         <AppsSection />
+        <AboutSection />
       </SettingsLayout>
     </div>
   );

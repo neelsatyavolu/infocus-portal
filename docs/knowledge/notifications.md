@@ -22,6 +22,7 @@ The list shows a tag beside a section when something needs a look. **Notificatio
 - **Signature** (executive producers and the super admin only, signed in as themselves; hidden while using View as): draw your signature with a mouse, trackpad, pen, or finger, then **Save signature**. It prints above your name on Package of the Cycle certificates. **Redraw** replaces it; **Remove** takes it off, leaving a blank line for you. See `package-cycles.md`.
 - **InFocus for Mac**: depends on the device. In a Mac browser: what the Mac app does (Mac notifications, Portal in its own window, Drive in Finder) and **Download for Mac** with three install steps. Inside the app: a note that you're already using it. On other devices: what it does, and to open Settings on a Mac to download it. See `drive-and-media.md`.
 - **Apps & links**: links to the grades dashboard, teleprompter, and InFocus Drive, plus the weekly schedule.
+- **About**: who built the Portal and how, a link to its public GitHub repository (MIT license), and how to suggest changes or contribute (GitHub, or email neel@xanom.co). The same text is the About section at the bottom of the public home page.
 
 ## Mac and iPhone notifications
 

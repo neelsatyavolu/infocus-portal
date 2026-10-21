@@ -70,16 +70,23 @@ function seasonHintFor(existingSeasons: number[] | null, season: string | undefi
     : "Adds to the existing playlist.";
 }
 
+/** An automatic edit that is already the show's draft: review it here instead of picking a file. */
+export type EditedShow = { videoUrl: string; posterUrl: string | null };
+
 export function ShowUploadDialog({
   open,
   onOpenChange,
   showDate,
-  showLabel
+  showLabel,
+  edited = null,
+  onScheduled
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   showDate: string;
   showLabel: string;
+  edited?: EditedShow | null;
+  onScheduled?: () => void;
 }) {
   const [phase, setPhase] = useState<Phase>("loading");
   const [state, setState] = useState<State | null>(null);
@@ -119,12 +126,20 @@ export function ShowUploadDialog({
   useEffect(() => {
     if (!open) return;
     load()
-      .then((next) => setPhase(next.publication && next.publication.status !== "DRAFT" ? "status" : "pick"))
+      .then((next) => {
+        if (next.publication && next.publication.status !== "DRAFT") return setPhase("status");
+        // The edited file is already the draft: straight to the title/time form.
+        if (edited && next.defaults) {
+          setForm(formFromDefaults(next.defaults));
+          return setPhase("review");
+        }
+        setPhase("pick");
+      })
       .catch((error) => {
         toast.error(error instanceof Error ? error.message : "Could not load the show upload.");
         onOpenChange(false);
       });
-  }, [open, load, onOpenChange]);
+  }, [open, load, onOpenChange, edited]);
 
   const publicationStatus = state?.publication?.status;
   useEffect(() => {
@@ -200,6 +215,7 @@ export function ShowUploadDialog({
       );
       setState(next);
       setPhase("status");
+      onScheduled?.();
       toast.success("Sent to YouTube. It uploads in the background.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not schedule the show.");
@@ -211,7 +227,19 @@ export function ShowUploadDialog({
   const publication = state?.publication ?? null;
   // Widens when a file is picked (thumbnail beside progress, then beside the form), never mid-step.
   const wide = phase === "uploading" || phase === "review";
-  const preview = <ThumbnailPreview file={thumbnail} capturing={capturing} />;
+  const reviewingEdit = Boolean(edited) && !file;
+  const preview = reviewingEdit && edited ? (
+    <video
+      src={edited.videoUrl}
+      poster={edited.posterUrl ?? undefined}
+      controls
+      preload="metadata"
+      className="aspect-video w-full rounded-md border border-border bg-black"
+      aria-label="The edited show"
+    />
+  ) : (
+    <ThumbnailPreview file={thumbnail} capturing={capturing} />
+  );
 
   return (
     <Dialog open={open} onOpenChange={(next) => (phase === "uploading" && !next ? undefined : onOpenChange(next))}>
@@ -263,6 +291,7 @@ export function ShowUploadDialog({
             onThumbnailSecondsChange={setThumbnailSeconds}
             canRetake={Boolean(file) && !capturing}
             onRetake={() => file && void retakeThumbnail(file, Math.max(0, Number(thumbnailSeconds) || 0))}
+            retakeControls={!reviewingEdit}
           />
         ) : null}
 

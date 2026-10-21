@@ -26,7 +26,9 @@ vi.mock("@/src/server/youtube-client", async (original) => ({
   youtubeAccessToken: mocks.token, listYoutubePlaylists: mocks.playlists, sourceVideoSize: mocks.size
 }));
 
-import { confirmShowPublication, initShowUpload, showPublicationState } from "@/src/server/show-publishing";
+import {
+  attachEditedShow, confirmShowPublication, initShowUpload, showPublicationState
+} from "@/src/server/show-publishing";
 
 const NOW = new Date("2026-09-21T20:00:00Z");
 const draft = { id: "pub", showDate: "2026-09-22", status: "DRAFT", nasPath: "Package Storage/Shows/2026-09-22/show.mp4" };
@@ -130,5 +132,25 @@ describe("show publishing service", () => {
     mocks.size.mockRejectedValue(new Error("no range"));
     await expect(confirmShowPublication(confirmInput, NOW)).rejects.toThrow("InFocus Drive");
     expect(mocks.send).not.toHaveBeenCalled();
+  });
+  it("attachEditedShow creates a draft with the edited path", async () => {
+    mocks.find.mockResolvedValue(null);
+    await attachEditedShow({ userId: "u1", showDate: "2026-09-22", nasPath: "Package Storage/Shows/2026-09-22/edit-a.mp4" });
+    expect(mocks.upsert).toHaveBeenCalledWith({
+      where: { showDate: "2026-09-22" },
+      update: expect.objectContaining({ nasPath: "Package Storage/Shows/2026-09-22/edit-a.mp4", createdById: "u1" }),
+      create: expect.objectContaining({
+        showDate: "2026-09-22", nasPath: "Package Storage/Shows/2026-09-22/edit-a.mp4", description: "",
+        title: "InFocus News | Tuesday, September 22nd, 2026", publishAt: new Date("2026-09-22T15:30:00Z")
+      })
+    });
+    expect(mocks.mint).not.toHaveBeenCalled();
+  });
+
+  it("attachEditedShow refuses non-draft", async () => {
+    mocks.find.mockResolvedValue({ ...draft, status: "SCHEDULED" });
+    await expect(attachEditedShow({ userId: "u1", showDate: "2026-09-22", nasPath: "Package Storage/Shows/2026-09-22/edit-a.mp4" }))
+      .rejects.toMatchObject({ status: 409 });
+    expect(mocks.upsert).not.toHaveBeenCalled();
   });
 });

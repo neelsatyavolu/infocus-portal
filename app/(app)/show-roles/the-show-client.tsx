@@ -16,6 +16,7 @@ import { cachedValue, rememberValue } from "@/src/lib/client-cache";
 import { cn } from "@/src/lib/utils";
 import { ShowConfirmBanner } from "./show-confirm-banner";
 import { ShowDateStrip } from "./show-date-strip";
+import { ShowEditPanel } from "./show-edit-panel";
 import {
   daysOutFrom,
   fallbackTitle,
@@ -30,6 +31,7 @@ import {
 } from "./show-overview";
 import { CastPanel, PackagesPanel, ShowRolesPanel, type SavingTarget } from "./show-panels";
 import { GeneratorAppSkeleton, ShowSkeleton } from "./show-skeleton";
+import type { EditedShow } from "./show-upload-dialog";
 
 // Loaded only when a producer opens it; keeps upload/thumbnail code off the page.
 const ShowUploadDialog = dynamic(
@@ -101,6 +103,9 @@ function OverviewBody({ initial }: { initial: View | null }) {
   const [retrying, setRetrying] = useState(false);
   const [saving, setSaving] = useState<SavingTarget>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
+  // Set when the dialog opens to review an automatic edit instead of picking a file.
+  const [editedShow, setEditedShow] = useState<EditedShow | null>(null);
+  const [editRefresh, setEditRefresh] = useState(0);
   const requestRef = useRef(0);
   // The address on screen now, for saves that finish after someone picked another show.
   const viewKeyRef = useRef(viewKey);
@@ -251,7 +256,14 @@ function OverviewBody({ initial }: { initial: View | null }) {
           description={whenLabel(daysOut, showDay)}
           actions={
             <>
-              <Button type="button" variant="outline" onClick={() => setUploadOpen(true)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setEditedShow(null);
+                  setUploadOpen(true);
+                }}
+              >
                 <Upload aria-hidden />
                 Upload show
               </Button>
@@ -328,6 +340,15 @@ function OverviewBody({ initial }: { initial: View | null }) {
             showSlots={daysOut >= 0 && showDay}
             className="@3xl:col-span-2"
           />
+          <ShowEditPanel
+            showDate={overview.date}
+            refreshKey={editRefresh}
+            onReview={(edited) => {
+              setEditedShow(edited);
+              setUploadOpen(true);
+            }}
+            className="@3xl:col-span-2"
+          />
         </div>
       </div>
 
@@ -335,6 +356,8 @@ function OverviewBody({ initial }: { initial: View | null }) {
         <ShowUploadDialog
           open={uploadOpen}
           onOpenChange={setUploadOpen}
+          edited={editedShow}
+          onScheduled={() => setEditRefresh((count) => count + 1)}
           showDate={overview.date}
           showLabel={overview.label}
         />

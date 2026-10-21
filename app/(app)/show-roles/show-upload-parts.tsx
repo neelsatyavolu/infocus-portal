@@ -188,7 +188,8 @@ export function ReviewForm({
   thumbnailSeconds,
   onThumbnailSecondsChange,
   canRetake,
-  onRetake
+  onRetake,
+  retakeControls = true
 }: {
   form: Form;
   setForm: Dispatch<SetStateAction<Form | null>>;
@@ -198,6 +199,8 @@ export function ReviewForm({
   onThumbnailSecondsChange: (value: string) => void;
   canRetake: boolean;
   onRetake: () => void;
+  /** False for an automatic edit: the editing Mac already saved its poster. */
+  retakeControls?: boolean;
 }) {
   const update = (patch: Partial<Form>) => setForm((current) => (current ? { ...current, ...patch } : current));
   return (
@@ -206,7 +209,7 @@ export function ReviewForm({
         <div role="group" aria-labelledby={THUMBNAIL_CAPTION_ID} className="min-w-0 space-y-2">
           <ThumbnailCaption />
           {thumbnail}
-          <div className="flex items-center gap-2">
+          <div className={retakeControls ? "flex items-center gap-2" : "hidden"}>
             <Input
               type="number"
               min={0}

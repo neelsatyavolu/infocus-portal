@@ -14,6 +14,7 @@ import { notifyManagersOfReadyVersion } from "@/src/server/notify-media-ready";
 import { discoverYoutubePublications, publishYoutubePackage } from "@/src/server/youtube-publishing-jobs";
 import { runPackageReviewReminders } from "@/src/server/package-review-reminders";
 import { runShowRolesConfirmReminders } from "@/src/server/show-roles-confirm";
+import { runShowEditReminders } from "@/src/server/show-editor-notify";
 import { MEETING_CALENDAR_EVENT, runMeetingCalendarJob } from "@/src/server/meetings-google-calendar";
 import { reticketScribes } from "@/src/server/meetings-housekeeping";
 import { retryScribeRekey, SCRIBE_REKEY_RETRY_EVENT, SCRIBE_RETRY_DELAYS_MS } from "@/src/server/meetings-scribe";
@@ -391,6 +392,20 @@ export const showRolesConfirmReminders = inngest.createFunction(
   }
 );
 
+/** 18:00 Pacific: one reminder when tomorrow's show had an automatic edit but isn't scheduled on YouTube yet. */
+export const showEditReminderDaily = inngest.createFunction(
+  {
+    id: "show-edit-reminder-daily",
+    concurrency: 1
+  },
+  {
+    cron: "TZ=America/Los_Angeles 0 18 * * *"
+  },
+  async () => {
+    return runShowEditReminders();
+  }
+);
+
 export const producerMeetingScheduleDaily = inngest.createFunction(
   {
     id: "producer-meeting-schedule-daily"
@@ -480,6 +495,7 @@ export const inngestFunctions = [
   refreshAssociateFeedbackDaily,
   packageReviewRemindersHourly,
   showRolesConfirmReminders,
+  showEditReminderDaily,
   producerMeetingScheduleDaily,
   meetingInvitesSend,
   meetingsScribeReticket,

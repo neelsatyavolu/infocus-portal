@@ -55,6 +55,8 @@ const publicRoutePatterns = [
   /^\/api\/service\/runtime-check$/,
   // Show → YouTube uploads from the Portal Worker's queue consumer (CRON_SECRET bearer, checked in the handler).
   /^\/api\/service\/shows\/upload$/,
+  // The editing Mac's job queue for automatic show edits (SHOW_EDITOR_TOKEN bearer, checked in the handlers).
+  /^\/api\/service\/show-editor\/.+$/,
   /^\/meet-scribe$/,
   // Meeting link previews (metadata + generated image only; src/lib/meetings/link-preview.ts).
   MEETING_PREVIEW_PUBLIC_PATH,

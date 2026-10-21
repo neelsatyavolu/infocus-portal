@@ -1773,6 +1773,156 @@ model ShowPublication {
   @@index([status])
 }
 
+/// Automatic show edit, run by the editing Mac (infocus-editor) that polls /api/service/show-editor/*.
+/// QUEUED → RUNNING → REVIEW → PUBLISHED, or FAILED / CANCELLED. A producer's fix request puts a REVIEW job back to QUEUED.
+model ShowEditJob {
+  id              String    @id @default(cuid())
+  /// Airing date (YYYY-MM-DD).
+  showDate        String
+  /// Drive paths of the switcher recording(s) under `Shows/`, in order (1–4).
+  sourcePaths     Json
+  status          String    @default("QUEUED")
+  stage           String?
+  message         String?
+  /// The producer's Redo note, passed to the agent as quoted data.
+  note            String?
+  /// Where the current (or in-progress) version is uploaded; the poster sits beside it.
+  outputNasPath   String?
+  posterNasPath   String?
+  decisions       Json?
+  checks          Json?
+  needsReview     Boolean   @default(false)
+  /// Running total across every run of this job (edit and fixes).
+  costUsd         Float?
+  attempt         Int       @default(0)
+  error           String?
+  createdById     String
+  cancelRequested Boolean   @default(false)
+  /// A producer's fix request waiting for the editor.
+  pendingFix      String?
+  rememberFix     Boolean   @default(false)
+  /// Agent SDK session, resumed for fixes.
+  agentSessionId  String?
+  /// [{ from: "producer" | "editor", text, at, version? }]
+  conversation    Json?
+  version         Int       @default(1)
+  /// The machine that claimed it. Fixes go back to the same machine, where the job folder is.
+  deviceId        String?
+  claimedAt       DateTime?
+  heartbeatAt     DateTime?
+  finishedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([status])
+  @@index([showDate])
+  @@index([deviceId])
+}
+
+/// One "Connect AI account" code. The producer's computer seals a subscription sign-in to the Mac's
+/// public key and posts it here; the Portal only ever holds that ciphertext, and drops it once the Mac
+/// acknowledges it (or after an hour).
+model ShowEditorPairing {
+  id          String    @id @default(cuid())
+  /// sha256 of the 8-character code (shown as XXXX-XXXX); the code itself is never stored.
+  codeHash    String    @unique
+  backend     String
+  /// The machine the sign-in is for, and its public key when the code was made; only that key gets it.
+  deviceId    String
+  publicKey   String
+  ciphertext  String?
+  createdById String
+  expiresAt   DateTime
+  submittedAt DateTime?
+  deliveredAt DateTime?
+  ackOk       Boolean?
+  ackError    String?
+  createdAt   DateTime  @default(now())
+
+  @@index([createdAt])
+}
+
+/// Linking the editing Mac (device-code flow): the setup app shows `userCode`, a producer approves it on
+/// The Show, and the Mac collects its token once with `deviceCode`. Rows expire after 15 minutes.
+model ShowEditorLink {
+  id             String    @id @default(cuid())
+  /// sha256 of the Mac's secret device code; the code itself is never stored.
+  deviceCodeHash String    @unique
+  /// The 8 characters the producer approves (shown as XXXX-XXXX).
+  userCode       String    @unique
+  deviceName     String
+  expiresAt      DateTime
+  approvedById   String?
+  /// The new device token, held only until the Mac collects it (then this row is deleted).
+  token          String?
+  deniedAt       DateTime?
+  createdAt      DateTime  @default(now())
+}
+
+/// A linked editing machine (several may be linked; exactly one is `active` and takes new edits).
+/// Its heartbeat state lives here. Editor routes accept only an unrevoked token; the legacy
+/// SHOW_EDITOR_TOKEN maps to the row with id "legacy" (no token).
+model ShowEditorDevice {
+  id         String    @id @default(cuid())
+  name       String
+  /// "dedicated" (the team MacBook) or "personal" (someone's own laptop).
+  kind       String    @default("dedicated")
+  /// sha256 of the device token; null only for the legacy row.
+  tokenHash  String?   @unique
+  active     Boolean   @default(false)
+  linkedById String
+  linkedAt   DateTime  @default(now())
+  lastSeenAt DateTime?
+  version    String?
+  busy       Boolean   @default(false)
+  /// { ok: boolean, problems: string[] }
+  health     Json?
+  /// [{ name: "claude" | "codex" | "grok", connected: boolean, detail: string }]
+  backends   Json?
+  /// X25519 public key (base64); AI sign-ins are sealed to it.
+  publicKey  String?
+  revokedAt  DateTime?
+
+  @@index([revokedAt])
+  @@index([active])
+}
+
+/// Editor settings producers change on The Show (one row). Null falls back to the SHOW_EDITOR_* env vars.
+model ShowEditorSettings {
+  id            String   @id @default("editor")
+  autoStart     Boolean?
+  autoPublish   Boolean?
+  /// Release tag the editor installs (e.g. "v0.3.1"); null follows the newest release.
+  targetVersion String?
+  /// Order the editor tries AI subscriptions in, e.g. ["claude", "codex"].
+  agentOrder    Json?
+  /// House rules the editor follows instead of asking; null uses the editor's built-in default.
+  houseRules    String?
+  updatedById   String?
+  updatedAt     DateTime @updatedAt
+  /// Auto-start looks at Drive at most every 5 minutes (from any machine's heartbeat).
+  lastAutoStartCheckAt DateTime?
+}
+
+/// A producer's remote command for the editing Mac (doctor, update, restart, repair, logs). The last 20 are kept.
+model ShowEditorCommand {
+  id            String    @id @default(cuid())
+  /// The machine it's for.
+  deviceId      String
+  kind          String
+  /// PENDING → SENT (handed over in a heartbeat) → DONE / FAILED (the Mac's ack).
+  status        String    @default("PENDING")
+  ok            Boolean?
+  output        String?
+  requestedById String
+  createdAt     DateTime  @default(now())
+  sentAt        DateTime?
+  finishedAt    DateTime?
+
+  @@index([deviceId, status])
+  @@index([createdAt])
+}
+
 /// Roster of livestream managers (producers appoint them). Not a PlatformRole.
 model LivestreamManager {
   id              String   @id @default(cuid())

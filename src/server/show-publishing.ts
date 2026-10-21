@@ -119,6 +119,21 @@ export async function initShowUpload(input: { userId: string; showDate: string; 
   return { upload };
 }
 
+/** The editing Mac finished a show: point the draft at its file (the same fields `initShowUpload` writes, no upload session). */
+export async function attachEditedShow(input: { userId: string; showDate: string; nasPath: string }) {
+  const existing = await prisma.showPublication.findUnique({ where: { showDate: input.showDate } });
+  if (existing && existing.status !== "DRAFT") {
+    throw new ShowUploadError("This show was already sent to YouTube. Make changes in YouTube Studio.", 409);
+  }
+  const draft = {
+    nasPath: input.nasPath, title: showTitle(input.showDate), description: "",
+    publishAt: showPublishAt(input.showDate), createdById: input.userId
+  };
+  await prisma.showPublication.upsert({
+    where: { showDate: input.showDate }, update: draft, create: { showDate: input.showDate, ...draft }
+  });
+}
+
 async function requireDraft(showDate: string) {
   const publication = await prisma.showPublication.findUnique({ where: { showDate } });
   if (!publication) throw new ShowUploadError("Upload the show video first.");

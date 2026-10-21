@@ -35,6 +35,7 @@ pnpm-debug.log*
 !/prisma/migrations/20260919_youtube_publishing/
 !/prisma/migrations/20260921173000_equipment_passkeys/
 !/prisma/migrations/20261015200000_stage_comment_resolved/
+!/prisma/migrations/20261021120000_show_editor/
 /infocus-equipment
 # local sibling repo
 /Show-Roles

@@ -60,6 +60,23 @@ Apple App Review demo account (`src/lib/app-review.ts`): `APP_REVIEW_EMAIL` is t
 
 Meetings calendar invites reuse `YOUTUBE_CLIENT_ID` and `YOUTUBE_CLIENT_SECRET` (and the same registered redirect, `/api/admin/youtube/callback`). The Google account comes from **Admin → Connect Google Calendar**, stored encrypted like the YouTube one; enable the Google Calendar API in that Cloud project. No new variables.
 
+## Automatic show editing
+
+Editing machines run [infocus-editor](https://github.com/neelsatyavolu/infocus-editor) and poll `/api/service/show-editor/*`. Everything is managed on The Show by producers, so none of these variables is required:
+- **Linking:** a machine is linked by approving the code its setup app shows, and gets its own token. Several machines can be linked; one is active.
+- **Settings:** auto-start, auto-publish, the pinned version, AI account order and the house rules are saved in the Portal.
+
+The variables below are only fallbacks:
+- `SHOW_EDITOR_TOKEN`: optional legacy secret (`openssl rand -hex 32`). A client sending it as `Authorization: Bearer …` counts as a machine named "legacy". It is separate from `CRON_SECRET` and `DRIVE_SERVICE_TOKEN`, which never leave the Portal.
+- `SHOW_EDITOR_AUTO_START`: `1` turns auto-start on while the **Start editing by itself** setting has never been saved. With it on, a new recording that has settled in Drive `Shows/` starts the edit of the next show (at most one check every 5 minutes).
+- `SHOW_EDITOR_AUTO_PUBLISH`: `1` turns auto-publish on while **Schedule clean edits by themselves** has never been saved. An edit with nothing flagged and every check passed is then scheduled with the Upload show defaults.
+- `SHOW_EDITOR_TARGET_VERSION`: a release tag (e.g. `v0.3.1`), used while **Editor version** is empty. Unset means machines follow the newest release.
+- `SHOW_EDITOR_REPO_URL`: the editor's git repository, used in the **Connect AI account** command (`uvx --from git+<repo> infocus-editor connect …`). Defaults to `https://github.com/neelsatyavolu/infocus-editor`; set it to run a fork.
+
+The editor signs in to a Claude, Codex or Grok subscription, never an API key. **Connect AI account** gives a one-time code for one machine. The sign-in is sealed on the producer's computer to that machine's key, so the Portal only stores ciphertext and deletes it once the machine confirms it (or after an hour). The command and the link page use `APP_BASE_URL` as the Portal address.
+
+Recordings are listed and downloaded through Drive (`DRIVE_BASE_URL`, `DRIVE_SERVICE_TOKEN`); Drive's service user needs read access to `Shows/`.
+
 ## Teleprompter kiosk
 
 `TELEPROMPTER_KIOSK_TOKEN` (at least 16 characters), `TELEPROMPTER_KIOSK_SERIAL` (label only).

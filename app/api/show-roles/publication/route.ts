@@ -8,6 +8,7 @@ import { SHOW_DESCRIPTION_MAX, SHOW_TITLE_MAX } from "@/src/lib/show-publication
 import {
   confirmShowPublication, initShowUpload, showPublicationState, ShowUploadError
 } from "@/src/server/show-publishing";
+import { markShowEditPublished } from "@/src/server/show-editor";
 
 const dateKey = z.string().regex(DATE_KEY_PATTERN);
 
@@ -64,7 +65,10 @@ export async function POST(request: Request) {
       return ok(await initShowUpload({ userId, showDate: payload.showDate, fileName: payload.fileName }));
     }
     const { showDate, title, description, publishDate, publishTime, seasonNumber } = confirmSchema.parse(body);
-    return ok(await confirmShowPublication({ userId, showDate, title, description, publishDate, publishTime, seasonNumber }));
+    const state = await confirmShowPublication({ userId, showDate, title, description, publishDate, publishTime, seasonNumber });
+    // An automatic edit that was the draft is done once it's scheduled; never fail the schedule over it.
+    await markShowEditPublished(showDate).catch((error) => console.error("show editor: mark published failed", error));
+    return ok(state);
   } catch (error) {
     return routeError(error);
   }

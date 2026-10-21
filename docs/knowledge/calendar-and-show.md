@@ -100,6 +100,57 @@ Any producer (associate producer and up) can press **Upload show** at the top of
 
 After you schedule it, the Portal locks the upload. Change the title, time, or anything else in YouTube Studio. One upload per show date. Until you press Schedule, you can choose a different file.
 
+### Automatic editing
+
+Any producer sees an **Automatic editing** card on The Show. An editing machine (the team MacBook, or for now someone's own laptop) cuts the show on its own: it picks the takes, replaces every old switcher graphic with fresh ones, levels the audio and checks the result.
+
+- **Editor status:** **Editor online**, **Editor offline · last seen …**, or **Editor needs attention**, for the active machine, with its version. An edit started while it's offline waits until it's back.
+- **Start:** the recordings in Drive `Shows/` are listed newest first, with the newest one filmed the day before the show already ticked. Tick more than one, in order, if the show was recorded in parts (up to 4). A file still copying to Drive can't be picked yet. Press **Start automatic editing**. Packages come from the Publishing Queue for that show; anchors' names come from The Show.
+- **While it runs:** a live line shows the step (finding the takes, making graphics, rendering, checking, uploading). **Cancel** stops it.
+- **Ready for review:** the edited show plays in the card, with anything the editor flagged for a person to check. **Review & schedule** opens Upload show with the edited file already in place, so you only check the title, time and playlist. The person who started it and the show manager get an email and notification when it's ready or if it fails, and a reminder at 6 PM the evening before the show if it still isn't scheduled.
+- **Ask for a fix:** type what's wrong (timecodes help, e.g. "At 1:12 the Math Club card is cut off") and press **Send the fix**. The editor changes the same edit and replies with what it did; the new version replaces the preview. Tick **Remember this for future shows** to add it to the house rules. Fixes work until the show is scheduled.
+  - **Which machine:** a fix runs on the machine that made the edit, because its files are there. If that machine is offline, the card says **Waiting for … to come online**. If it was unlinked, the fix fails; use **Redo**.
+- **Redo:** start the edit over with a note for the editor (for example, "use the later take of the close").
+
+#### Linking an editing machine
+
+Setting up a machine means opening the InFocus Editor app on it and pressing **Link to Portal**. Nobody types a password or token.
+
+1. The app shows a code and an **Open Portal** button, which opens The Show with **Link the editor Mac '…'?**.
+2. Check the code matches, keep **Make it the active editor now** ticked (or untick it to add the machine without switching), and press **Approve**. **Cancel** turns it down.
+3. The machine finishes setting up by itself. A link code lasts 15 minutes.
+
+#### Editing machines
+
+Under **Editing machines**, each linked machine shows:
+- its name, and **Dedicated** (the team MacBook) or **Personal** (someone's laptop)
+- online or last seen, its version, and any problems
+- its AI accounts
+- an **Active** badge on the one machine that takes new edits
+
+Buttons:
+- **Make active:** switch new edits to that machine. An edit already running finishes where it is.
+- **Unlink:** the machine stops working at once. Waiting fixes for its edits fail; use Redo.
+- **Run health check**, **Update now**, **Restart**, **Repair** (reinstalls missing tools) and **Show log:** the machine runs them within about a minute, and the latest result shows under its buttons.
+
+#### Connect AI account
+
+Editing machines run on a Claude, Codex (ChatGPT) or Grok subscription, not an API key. Each machine lists its accounts as **Connected** or **Not connected**, with what it reports.
+
+1. Under **Connect AI account**, pick the machine (the active one is chosen already) and **Claude**, **Codex** or **Grok**.
+2. Copy the command shown and run it in Terminal on your own computer. You sign in there with the subscription's usual sign-in.
+3. The sign-in is encrypted on your computer so only that machine can read it, and sent through the Portal. Its row shows **Waiting for sign-in**, then **Installing**, then **Connected**. If it shows **Failed**, the reason is beside it; make a new code.
+
+A code works once and lasts 10 minutes. The Portal never sees the sign-in itself, and deletes the encrypted copy once the machine has it (or after an hour).
+
+#### Editor settings
+
+- **Start editing by itself:** a new recording in Drive `Shows/` starts the edit of the next show without anyone pressing Start.
+- **Schedule clean edits by themselves:** an edit with nothing flagged and every check passed is scheduled on YouTube with the usual title and time. Flagged edits always wait for review.
+- **Editor version:** empty follows the newest release; type one like `v0.3.1` to pin it or roll back.
+- **AI account order:** which subscription the editor tries first, then next.
+- **House rules:** decisions the editor follows instead of asking. It starts from the editor's built-in rules; **Save rules** stores your version, and remembered fixes are added to it.
+
 ### Show Roles Generator (`/show-roles?generator=1`)
 
 Opened from **Open generator** on The Show's Show roles card. The generator opens on its own current show, whichever date The Show had open; pick the show inside the generator. **Back to The Show** returns to the date The Show had open.

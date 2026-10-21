@@ -2,9 +2,9 @@ import { prisma } from "@/src/lib/prisma";
 import { producerUserIds } from "@/src/server/meetings-people";
 
 /**
- * Names the Scribe's transcriber should expect (sent with every start; the Drive turns them into
- * whisper hotwords). Every Portal user's nickname and full name, producers first: the Drive keeps
- * only about 900 characters, so if the list ever grows past that, class members are cut first.
+ * Names the Scribe's notes should spell right (sent with every start; the Drive gives them to the
+ * summary model, not to whisper). Every Portal user's nickname and full name, producers first: the
+ * Drive keeps about 4,000 characters, so if the list ever grows past that, class members are cut first.
  */
 export const MAX_SCRIBE_VOCABULARY = 300;
 

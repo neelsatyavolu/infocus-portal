@@ -61,7 +61,7 @@ In a notes box, type `[package]` to search package videos and insert a package p
 **Anchors**
 
 - Every show has two Anchors slots. Pick names on the dropdowns, or press Randomize to fill both. Randomize works on any show. Picking a name by hand replaces a random assignment.
-- Nobody anchors twice in the same month. The Portal rejects a pick of someone who already anchored that month.
+- Randomize never picks someone who already anchored that month. A producer can still pick them by hand on the calendar or The Show.
 - Randomize uses registered class members, never advisers, EPs, or super admin. EPs and super admin can be picked by hand on the calendar. Advisers are not in the calendar dropdowns.
 - Randomize also skips that week's PA announcers (for both shows that week) and anyone marked **Non-anchor** in the generator's Anchor History.
 - Someone picked by hand in the first week (days 1–7) or from day 22 on stays out of Randomize for that month, even if you remove them later. **Wipe anchors** clears this.

@@ -197,11 +197,13 @@ async function upsertShowAnchors(dateKey: string, anchors: string[]) {
 export async function setShowAnchors(dateKey: string, names: string[], source: "manual" | "random") {
   const anchors = uniqueNames(names).slice(0, 2);
   const month = monthKeyFromDateKey(dateKey);
-  const already = await collectMonthAnchorNames(month, dateKey);
-  const blocked = new Set(already);
-  const repeat = anchors.filter((name) => blocked.has(name));
-  if (repeat.length > 0) {
-    throw new Error(`${repeat.join(" and ")} already anchored this month.`);
+  // A hand pick may repeat someone who already anchored this month; Randomize never does.
+  if (source === "random") {
+    const blocked = new Set(await collectMonthAnchorNames(month, dateKey));
+    const repeat = anchors.filter((name) => blocked.has(name));
+    if (repeat.length > 0) {
+      throw new Error(`${repeat.join(" and ")} already anchored this month.`);
+    }
   }
 
   const existing = await prisma.masterCalendarEntry.findUnique({ where: { date: dateKey } });

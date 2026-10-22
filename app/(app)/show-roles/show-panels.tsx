@@ -133,7 +133,7 @@ export function CastPanel({
             <NamePicker
               value={anchor1}
               options={overview.members}
-              disabledOptions={[anchor2, ...overview.monthAnchors]}
+              disabledOptions={[anchor2]}
               placeholder="Anchor 1"
               disabled={busy}
               onChange={(value) => onAnchorsChange([value, anchor2])}
@@ -143,7 +143,7 @@ export function CastPanel({
             <NamePicker
               value={anchor2}
               options={overview.members}
-              disabledOptions={[anchor1, ...overview.monthAnchors]}
+              disabledOptions={[anchor1]}
               placeholder="Anchor 2"
               disabled={busy}
               onChange={(value) => onAnchorsChange([anchor1, value])}

@@ -186,7 +186,7 @@ Subdomains:
 `src/show-roles/lib/anchors.js`. Shows run **Wednesday and Friday**.
 
 - Every show has two **Anchors** slots. Producers pick names on the master calendar or The Show, or press **Randomize** to fill both. There are no volunteer or random weeks; randomizing is a choice on any show.
-- Nobody anchors twice in the same month.
+- Randomize never picks someone who already anchored that month. A producer can still pick them by hand.
 - Monday PA announcers are randomly drawn from people who are not anchoring that month.
 - Randomize pulls from registered users who are not advisers, executive producers, or super-admin. EPs and super-admin can be picked by hand on the dropdowns but are never chosen by Randomize. Unique first names; full name if two people share a first name.
 - The Show / show-roles generator loads the same registered-user roster. Generate Roles and role repick skip EPs, advisers, and super-admin; those people stay available in the manual picker.

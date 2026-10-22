@@ -1,13 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { CalendarCheck, Loader2, MessageSquarePlus, Undo2, Wand2 } from "lucide-react";
 import { Alert, InlineNote } from "@/components/kit/alert";
 import { Panel } from "@/components/kit/panel";
 import { StatusTag } from "@/components/kit/status-tag";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { SHOW_EDIT_NOTE_MAX, SHOW_EDIT_STAGE_LABELS, type ShowEditState, type ShowEditView } from "@/src/lib/show-editor";
+import {
+  packageNote, SHOW_EDIT_NOTE_MAX, SHOW_EDIT_STAGE_LABELS, type QueuedPackageView, type ShowEditState, type ShowEditView
+} from "@/src/lib/show-editor";
 import {
   defaultSourceSelection, SHOW_EDIT_SOURCE_ROLE_LABELS, sourceSelectionError, type ShowEditSource
 } from "@/src/lib/show-editor-sources";
@@ -94,10 +97,11 @@ function fileNameOf(path: string) {
 }
 
 /** Start, at the top of the status card: what it will use, the button, and the offline note. */
-function StartRow({ selected, selectionError, busy, starting, online, onStart }: {
-  selected: ShowEditSource[]; selectionError: string | null; busy: boolean; starting: boolean; online: boolean;
-  onStart: (note: string) => void;
+function StartRow({ selected, selectionError, packages, busy, starting, online, onStart }: {
+  selected: ShowEditSource[]; selectionError: string | null; packages: QueuedPackageView[]; busy: boolean; starting: boolean;
+  online: boolean; onStart: (note: string) => void;
 }) {
+  const packageLine = packageNote(packages);
   const used = selected.filter((source) => source.role !== "ignore");
   // Optional instructions for this edit; the editor follows them over the house rules.
   const [open, setOpen] = useState(false);
@@ -133,6 +137,12 @@ function StartRow({ selected, selectionError, busy, starting, online, onStart }:
           </span>
         </label>
       ) : null}
+      <InlineNote tone={packageLine.tone === "warning" ? "warning" : "muted"}>
+        {packageLine.text}{" "}
+        {packageLine.tone === "warning" ? (
+          <Link href="/publishing-queue" className="underline underline-offset-2">Open the Publishing Queue</Link>
+        ) : null}
+      </InlineNote>
       {!online ? <InlineNote>{OFFLINE_NOTE}</InlineNote> : null}
     </div>
   );
@@ -275,6 +285,7 @@ export function EditingShowView({ showDate, state, busyAction, send, onReview }:
           <StartRow
             selected={selected}
             selectionError={sourceSelectionError(selected)}
+            packages={state.packages}
             busy={busy}
             starting={busyAction === "start"}
             online={state.worker.online}

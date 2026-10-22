@@ -102,9 +102,11 @@ async function deliver(recipients: Recipients, copy: Copy, showDate: string, ide
   ]);
 }
 
+/** The flag the email quotes: a missing or unused package first (someone has to act on it), else the first one. */
 function firstFlagged(job: NoticeJob) {
   const decisions = Array.isArray(job.decisions) ? (job.decisions as unknown as ShowEditDecision[]) : [];
-  return decisions.find((decision) => decision.flagged)?.detail ?? null;
+  const flagged = decisions.filter((decision) => decision.flagged);
+  return (flagged.find((decision) => decision.kind === "package") ?? flagged[0])?.detail ?? null;
 }
 
 function noticeCopy(job: NoticeJob, notice: ShowEditNotice) {

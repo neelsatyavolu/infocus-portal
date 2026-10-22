@@ -20,7 +20,7 @@ The editor builds the show from what's in the Portal, so set these up first:
 
 - **Anchors:** put the anchors on the **Master Calendar** for that show date. Their names go on the dual third, spelled from the class list.
 - **Announcements:** write them in the show's **Teleprompter** (or schedule them in Announcements). Each announcement card is made from this text, so put the date, time and place in it.
-- **Packages:** queue each package for the show in the **Publishing Queue**, with its final cut and its toss (the line the anchor reads to throw to it). The editor drops the package in at the throw, and the YouTube description uses the toss.
+- **Packages:** queue each package for the show in the **Publishing Queue**, with its final cut and its toss (the line the anchor reads to throw to it). The editor drops the package in at the throw, and the YouTube description uses the toss. The line under **Start automatic editing** names the queued packages, and warns if none is queued or one has no final cut yet.
 
 ## 2. Record and export
 
@@ -120,5 +120,6 @@ The edits run on **PH-LAB-INFOCUS-M04**, a MacBook in the studio. Leave it plugg
 - **"No AI account connected":** connect one under Machines → **Connect AI account**.
 - **"An update needs admin approval":** on the studio Mac, open **InFocus Editor Setup**, press **Repair** and enter the admin password. This only happens when an update changes the admin helper.
 - **Wrong files ticked, or a file missing:** tick or untick it under Recordings. If a new export isn't listed, wait 5 minutes for it to be renamed, then reload.
+- **"No package is queued" or a package flag:** if the anchors throw to a package that isn't queued, the editor puts a placeholder slate there and flags it. Queue the package with its final cut in the **Publishing Queue**, then **Redo automatic edit**.
 - **A name or card is wrong:** **Send back** with the right spelling or wording, and tick **Remember this for future shows** so it sticks.
 - **The video won't play in the page:** try Safari.

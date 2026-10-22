@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ShowRecording } from "@/src/lib/show-editor";
+import { packageNote, type ShowRecording } from "@/src/lib/show-editor";
 import {
   autoStartGroups, briefSources, defaultSourceSelection, normalizeSources, preselectionExclusion, recordingNotes,
   roleFromName, setSourceRole, showDateFromName, showRecordingBaseName, sourceSelectionError, toggleFolder, toggleSource, visibleRecordings
@@ -231,5 +231,20 @@ describe("isShowRecordingPath", () => {
     ]) {
       expect(isShowRecordingPath(path), path).toBe(false);
     }
+  });
+});
+
+describe("packageNote", () => {
+  it("warns when no package is queued, without stopping the edit", () => {
+    expect(packageNote([])).toMatchObject({ tone: "warning", text: expect.stringContaining("No package is queued for this show") });
+  });
+
+  it("warns about a queued package with no final cut, by name", () => {
+    expect(packageNote([{ title: "Bake sale", ready: false }, { title: "Lawsuit", ready: true }]))
+      .toEqual({ tone: "warning", text: expect.stringMatching(/^“Bake sale” is queued but has no final cut uploaded/) });
+  });
+
+  it("names the packages the editor will use", () => {
+    expect(packageNote([{ title: "Lawsuit", ready: true }])).toEqual({ tone: "info", text: "Package from the Publishing Queue: “Lawsuit”." });
   });
 });

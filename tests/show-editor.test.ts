@@ -504,6 +504,17 @@ describe("show editor jobs", () => {
       expect(mocks.job.update.mock.calls[1][0].data).not.toHaveProperty("checks");
     });
 
+    it("lists the show's queued packages, ready once a final cut is uploaded", async () => {
+      mocks.job.findFirst.mockResolvedValue(null);
+      mocks.rows.mockResolvedValue([
+        { groupTopic: "Lawsuit", finalCutToss: "", finalCutMediaItem: { title: "Field trip lawsuit", currentVersion: { nasPath: "Package Storage/x.mp4" } } },
+        { groupTopic: "Bake sale", finalCutToss: "", finalCutMediaItem: null }
+      ]);
+      expect((await showEditState(SHOW, NOW)).packages).toEqual([
+        { title: "Field trip lawsuit", ready: true }, { title: "Bake sale", ready: false }
+      ]);
+    });
+
     it("the producer's view lists logs newest first, with links for the newest five", async () => {
       const logs = Array.from({ length: 6 }, (_, index) => ({
         version: index + 1, path: LOG(`job1-v${index + 1}-s${index}.tar.gz`), at: `2026-10-20T2${index}:00:00.000Z`

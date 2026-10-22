@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { ChevronRight, Download, Loader2, RotateCcw } from "lucide-react";
 import { Alert } from "@/components/kit/alert";
 import { StatusTag } from "@/components/kit/status-tag";
@@ -29,12 +30,21 @@ export function EditorStatusTag({ worker, devices }: { worker: ShowEditWorker; d
 export function FlaggedDecisions({ decisions, failures }: { decisions: ShowEditDecision[]; failures: { rule?: string; detail?: string }[] }) {
   const flagged = decisions.filter((decision) => decision.flagged);
   if (flagged.length === 0 && failures.length === 0) return null;
+  // A package flag usually means one wasn't queued: say where to fix it.
+  const packageFlag = flagged.some((decision) => decision.kind === "package");
   return (
     <Alert tone="warning" title="Check these before scheduling" compact>
       <ul className="list-disc space-y-0.5 pl-4">
         {flagged.map((decision, index) => <li key={`d${index}`}>{decision.detail}</li>)}
         {failures.map((failure, index) => <li key={`f${index}`}>{failure.detail ?? failure.rule}</li>)}
       </ul>
+      {packageFlag ? (
+        <p className="mt-2">
+          Missing a package? Queue it with its final cut in the{" "}
+          <Link href="/publishing-queue" className="underline underline-offset-2">Publishing Queue</Link>, then press{" "}
+          <strong>Redo automatic edit</strong>.
+        </p>
+      ) : null}
     </Alert>
   );
 }

@@ -345,18 +345,23 @@ function outputPaths(showDate: string, now: Date) {
   return { outputNasPath, posterNasPath: nasPosterPath(outputNasPath) };
 }
 
-async function queuedPackages(showDate: string) {
+/** Every package queued for the show, in queue order; `nasPath` is null until its final cut is uploaded. */
+async function queuedPackageRows(showDate: string) {
   const rows = await prisma.packageProgressRow.findMany({
     where: { queuedForAirAt: { not: null }, queuedForShowDate: showDate },
     select: { groupTopic: true, finalCutToss: true, finalCutMediaItem: { select: { title: true, currentVersion: { select: { nasPath: true } } } } },
     orderBy: { queuedForAirAt: "asc" }
   });
-  return rows.flatMap((row) => {
-    const nasPath = row.finalCutMediaItem?.currentVersion?.nasPath;
-    if (!nasPath) return [];
-    const toss = row.finalCutToss.trim();
-    return [{ title: row.finalCutMediaItem?.title?.trim() || row.groupTopic.trim(), nasPath, toss: toss || null }];
-  });
+  return rows.map((row) => ({
+    title: row.finalCutMediaItem?.title?.trim() || row.groupTopic.trim(),
+    nasPath: row.finalCutMediaItem?.currentVersion?.nasPath ?? null,
+    toss: row.finalCutToss.trim() || null
+  }));
+}
+
+/** The queued packages the editor can use (a final cut is uploaded). */
+async function queuedPackages(showDate: string) {
+  return (await queuedPackageRows(showDate)).flatMap(({ nasPath, ...rest }) => (nasPath ? [{ ...rest, nasPath }] : []));
 }
 
 async function buildClaim(job: ShowEditJob, paths: { outputNasPath: string; posterNasPath: string }, now: Date): Promise<ShowEditClaim> {
@@ -668,12 +673,13 @@ async function debugLogLinks(job: ShowEditJob): Promise<ShowEditDebugLog[]> {
 }
 
 export async function showEditState(showDate: string, now = new Date()): Promise<ShowEditState> {
-  const [devices, job, publication, settings, pairings] = await Promise.all([
+  const [devices, job, publication, settings, pairings, packageRows] = await Promise.all([
     listEditorDevices(now),
     prisma.showEditJob.findFirst({ where: { showDate }, orderBy: { createdAt: "desc" } }),
     prisma.showPublication.findUnique({ where: { showDate } }),
     loadEditorSettings(),
-    pairingStatuses(now)
+    pairingStatuses(now),
+    queuedPackageRows(showDate)
   ]);
   let recordings: ShowRecording[] = [];
   let recordingsError: string | null = null;
@@ -702,6 +708,7 @@ export async function showEditState(showDate: string, now = new Date()): Promise
     pairings,
     recordings,
     recordingsError,
+    packages: packageRows.map((row) => ({ title: row.title, ready: row.nasPath !== null })),
     job: job ? { ...showEditView(job), debugLogs: await debugLogLinks(job) } : null,
     publicationStatus: publication?.status ?? null,
     preview,

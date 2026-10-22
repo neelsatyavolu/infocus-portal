@@ -201,6 +201,16 @@ describe("show editor notifications and auto-start", () => {
     expect(mocks.email.mock.calls[0][0].paragraphs.join(" ")).toContain("No package was queued; used a placeholder.");
   });
 
+  it("a missing package is the flag the email leads with, even when it isn't the first", async () => {
+    await notifyShowEdit(job({ needsReview: true, decisions: [
+      { kind: "name", detail: "Guessed an anchor's spelling.", flagged: true },
+      { kind: "package", detail: "The anchors throw to a package, but none is queued.", flagged: true }
+    ] }), "needs-review");
+    const text = mocks.email.mock.calls[0][0].paragraphs.join(" ");
+    expect(text).toContain("The anchors throw to a package, but none is queued.");
+    expect(text).not.toContain("Guessed an anchor's spelling.");
+  });
+
   it("a notification failure never throws", async () => {
     mocks.email.mockRejectedValue(new Error("Resend down"));
     await expect(notifyShowEdit(job(), "review")).resolves.toBeUndefined();

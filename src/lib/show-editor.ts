@@ -218,6 +218,8 @@ export type ShowEditState = {
   pairings: PairingStatus[];
   recordings: ShowRecording[];
   recordingsError: string | null;
+  /** The packages queued for this show in the Publishing Queue, in order; `ready` once its final cut is uploaded. */
+  packages: QueuedPackageView[];
   job: ShowEditView | null;
   /** The show's YouTube publication status (DRAFT until scheduled), or null when nothing was uploaded. */
   publicationStatus: string | null;
@@ -227,6 +229,31 @@ export type ShowEditState = {
   approve: ShowEditApprovePreview | null;
   autoStart: AutoStartPreview | null;
 };
+
+export type QueuedPackageView = { title: string; ready: boolean };
+
+/**
+ * The line beside Start about this show's packages. Nothing queued is a warning, not a stop: some shows have no
+ * package, and if the anchors throw to one, the editor puts a placeholder there and flags it.
+ */
+export function packageNote(packages: QueuedPackageView[]): { tone: "warning" | "info"; text: string } {
+  if (packages.length === 0) {
+    return {
+      tone: "warning",
+      text: "No package is queued for this show. If the anchors throw to one, queue it in the Publishing Queue before you start; otherwise the editor puts a placeholder there and flags it."
+    };
+  }
+  const missing = packages.filter((pkg) => !pkg.ready);
+  if (missing.length > 0) {
+    const names = missing.map((pkg) => `“${pkg.title}”`).join(", ");
+    return {
+      tone: "warning",
+      text: `${names} ${missing.length === 1 ? "is" : "are"} queued but ${missing.length === 1 ? "has" : "have"} no final cut uploaded, so the editor can't use ${missing.length === 1 ? "it" : "them"}. Upload the final cut in the Publishing Queue first.`
+    };
+  }
+  const names = packages.map((pkg) => `“${pkg.title}”`).join(", ");
+  return { tone: "info", text: `${packages.length === 1 ? "Package" : "Packages"} from the Publishing Queue: ${names}.` };
+}
 
 /** Upload show's default title and publish time (ISO); `problem` says why Approve can't use them yet. */
 export type ShowEditApprovePreview = { title: string; publishAt: string; problem: string | null };

@@ -70,10 +70,10 @@ When it's done, the person who started it and that day's show manager (from the 
 
 On the Editing tab:
 
-1. Watch the edit under **Review**.
+1. Watch the edit under **Review**. The chapters under the video (Intro, Welcome, each announcement, each package, Sign-off, Outro) jump straight to that part.
 2. Read **Check these before scheduling** if it's there. These are things the editor wasn't sure about, like a name it guessed from what the anchors said.
 3. Then choose:
-   - **Approve & schedule:** schedules it on YouTube at 8:30 AM on show day, with the usual title, description, thumbnail and season playlist. The line beside the button says exactly what it will do.
+   - **Approve & schedule:** schedules it on YouTube at 8:30 AM on show day, with the usual title, description, thumbnail and season playlist. The line beside the button says exactly what it will do. The description lists the chapters with their times (YouTube turns them into chapters) and ends with the show's hashtags.
    - **Change details:** opens the Upload show form with the edit already in it, to change the title, time or playlist first.
    - **Send back:** type what to change under **What needs to change?** (timecodes help, like "At 1:12 the Math Club card is cut off") and press **Send back to the editor**. It fixes the same edit and replies with what it did, and you review the new version. Tick **Remember this for future shows** to make it a house rule.
    - **Redo automatic edit:** throws this edit away and starts over, with an optional note, like "use the later take of the close".

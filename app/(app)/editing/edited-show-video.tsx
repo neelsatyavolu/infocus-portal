@@ -1,14 +1,17 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { chapterTime, type ShowChapter } from "@/src/lib/show-chapters";
 
 /**
  * The edited show's player. The Editing page reloads its state every 10–60 s, and every load mints a new signed
  * link, so the player keeps the link it started with (a new `src` restarts the video at 0:00). It takes the newest
  * link only when its own stops working (it expired), and picks up where it was. Give it a `key` per job version so
- * a new version starts fresh.
+ * a new version starts fresh. Its chapters (from the editor) sit underneath: each one jumps there.
  */
-export function EditedShowVideo({ videoUrl, posterUrl, label }: { videoUrl: string; posterUrl: string | null; label: string }) {
+export function EditedShowVideo({ videoUrl, posterUrl, label, chapters = [] }: {
+  videoUrl: string; posterUrl: string | null; label: string; chapters?: ShowChapter[];
+}) {
   const [held, setHeld] = useState({ src: videoUrl, poster: posterUrl });
   const resume = useRef<{ time: number; playing: boolean } | null>(null);
   const video = useRef<HTMLVideoElement>(null);
@@ -29,17 +32,44 @@ export function EditedShowVideo({ videoUrl, posterUrl, label }: { videoUrl: stri
     if (at.playing) void element.play().catch(() => undefined);
   }
 
+  function jump(start: number) {
+    const element = video.current;
+    if (!element) return;
+    element.currentTime = start;
+    void element.play().catch(() => undefined);
+  }
+
   return (
-    <video
-      ref={video}
-      src={held.src}
-      poster={held.poster ?? undefined}
-      controls
-      preload="metadata"
-      onError={onError}
-      onLoadedMetadata={onLoadedMetadata}
-      className="aspect-video w-full max-w-3xl rounded-md border border-border bg-black"
-      aria-label={label}
-    />
+    <div className="max-w-3xl space-y-2">
+      <video
+        ref={video}
+        src={held.src}
+        poster={held.poster ?? undefined}
+        controls
+        preload="metadata"
+        onError={onError}
+        onLoadedMetadata={onLoadedMetadata}
+        className="aspect-video w-full rounded-md border border-border bg-black"
+        aria-label={label}
+      />
+      {chapters.length > 1 ? (
+        <nav aria-label="Chapters">
+          <ol className="flex flex-wrap gap-1.5">
+            {chapters.map((chapter) => (
+              <li key={`${chapter.start}-${chapter.title}`}>
+                <button
+                  type="button"
+                  onClick={() => jump(chapter.start)}
+                  className="rounded-md border border-border px-2 py-1 text-[13px] hover:bg-muted"
+                >
+                  <span className="font-mono text-[12px] text-muted-foreground tabular-nums">{chapterTime(chapter.start)}</span>{" "}
+                  {chapter.title}
+                </button>
+              </li>
+            ))}
+          </ol>
+        </nav>
+      ) : null}
+    </div>
   );
 }

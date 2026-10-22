@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { SHOW_HASHTAGS } from "@/src/lib/show-publication";
 
 const mocks = vi.hoisted(() => ({
   find: vi.fn(), findFirst: vi.fn(), upsert: vi.fn(), update: vi.fn(), updateMany: vi.fn(),
@@ -65,7 +66,8 @@ describe("show publishing service", () => {
     const state = await showPublicationState("2026-09-22");
     expect(state.defaults).toEqual({
       title: "InFocus News | Tuesday, September 22nd, 2026",
-      description: "Anchors Abby Ames and Otto Ortiz share campus announcements. The board voted on a new schedule. Reported by Sage Smith.",
+      description: "Anchors Abby Ames and Otto Ortiz share campus announcements. The board voted on a new schedule. Reported by Sage Smith." +
+        `\n\n${SHOW_HASHTAGS.join(" ")}`,
       publishDate: "2026-09-22",
       publishTime: "08:30",
       seasonNumber: 31,
@@ -81,8 +83,17 @@ describe("show publishing service", () => {
     mocks.editJob.mockResolvedValue({ checks: { tosses: ["The board met last night. Sage Smith has more."] } });
     const state = await showPublicationState("2026-09-22");
     expect(state.defaults?.description).toBe(
-      "Anchors Abby Ames and Otto Ortiz share campus announcements. The board met last night. Reported by Sage Smith.");
+      `Anchors Abby Ames and Otto Ortiz share campus announcements. The board met last night. Reported by Sage Smith.\n\n${SHOW_HASHTAGS.join(" ")}`);
     expect(mocks.editJob).toHaveBeenCalledWith(expect.objectContaining({ where: { showDate: "2026-09-22", status: { in: ["REVIEW", "PUBLISHED"] } } }));
+  });
+
+  it("adds the edit's chapters to the description", async () => {
+    mocks.find.mockResolvedValue(null);
+    mocks.editJob.mockResolvedValue({ checks: { chapters: [
+      { title: "Intro", start: 0 }, { title: "Welcome", start: 12 }, { title: "Package: School board", start: 40 }, { title: "Outro", start: 200 }
+    ] } });
+    const state = await showPublicationState("2026-09-22");
+    expect(state.defaults?.description).toContain("\n\n0:00 Intro\n0:12 Welcome\n0:40 Package: School board\n3:20 Outro\n\n#InFocusNews");
   });
 
   it("suggests a new season on the first show of a new semester", async () => {

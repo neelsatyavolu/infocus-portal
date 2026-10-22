@@ -1,4 +1,5 @@
 import { pacificDayStart } from "@/src/lib/class-board";
+import { chapterLines, type ShowChapter } from "@/src/lib/show-chapters";
 
 export const SHOW_PUBLISH_TIME = "08:30";
 export const SHOW_THUMBNAIL_SECONDS = 16.5;
@@ -42,6 +43,9 @@ function joinNames(names: string[]) {
 
 export type DescribedPackage = { reporters: string[]; toss: string | null };
 
+/** At the end of every show's description; YouTube shows the first three above the title. */
+export const SHOW_HASHTAGS = ["#InFocusNews", "#Paly", "#StudentNews"];
+
 /** A sentence that only hands off to the reporters ("InFocus reporters A and B have more."). */
 const HANDOFF = /\bInFocus reporters?\b|\b(?:have|has) (?:more|the story|the details)\W*$/i;
 
@@ -57,7 +61,7 @@ export function tossStory(toss: string) {
  * The YouTube description: the anchors, then each package as its toss's story credited to its reporters
  * ("… Reported by A and B."). A package with no toss is credited in one line.
  */
-export function showDescription(input: { anchors: string[]; packages: DescribedPackage[] }) {
+export function showDescription(input: { anchors: string[]; packages: DescribedPackage[]; chapters?: ShowChapter[] }) {
   const anchors = input.anchors.map((name) => name.trim()).filter(Boolean);
   const sentences: string[] = [];
   if (anchors.length) {
@@ -76,7 +80,9 @@ export function showDescription(input: { anchors: string[]; packages: DescribedP
         : `InFocus reporters ${joinNames(reporters)} share a story.`);
     }
   }
-  return sentences.join(" ");
+  // The edited show's chapters (YouTube makes chapters from them), then the hashtags.
+  const chapters = chapterLines(input.chapters ?? []);
+  return [sentences.join(" "), chapters, SHOW_HASHTAGS.join(" ")].filter(Boolean).join("\n\n");
 }
 
 /**

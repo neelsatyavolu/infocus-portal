@@ -5,6 +5,7 @@ import {
   parseSeasonNumber,
   seasonPlaylistTitle,
   fullAnchorNames,
+  SHOW_HASHTAGS,
   showDescription,
   showPublishAt,
   showTitle,
@@ -34,6 +35,8 @@ describe("showPublishAt", () => {
   });
 });
 
+const TAGS = `\n\n${SHOW_HASHTAGS.join(" ")}`;
+
 describe("showDescription", () => {
   it("credits the anchors, then each package as its toss's story with the reporters' full names", () => {
     expect(showDescription({
@@ -44,22 +47,22 @@ describe("showDescription", () => {
       }]
     })).toBe(
       "Anchors Abby Ames and Otto Ortiz share campus announcements. " +
-      "Last year, a class field trip led to a lawsuit. Reported by Sage Smith, Rio Reyes, and Lee Lin."
+      "Last year, a class field trip led to a lawsuit. Reported by Sage Smith, Rio Reyes, and Lee Lin." + TAGS
     );
   });
 
   it("keeps story sentences that merely mention reporters, and drops a 'has more' hand-off", () => {
     expect(showDescription({ anchors: [], packages: [{
       reporters: ["Sage Smith"], toss: "Reporters were turned away at the meeting. Sage has more."
-    }] })).toBe("Reporters were turned away at the meeting. Reported by Sage Smith.");
+    }] })).toBe("Reporters were turned away at the meeting. Reported by Sage Smith." + TAGS);
   });
 
   it("credits a package with no toss in one line, and handles one anchor and missing pieces", () => {
     expect(showDescription({ anchors: ["Abby Ames"], packages: [{ reporters: ["Sage Smith"], toss: null }] }))
-      .toBe("Anchor Abby Ames shares campus announcements. InFocus reporter Sage Smith shares a story.");
-    expect(showDescription({ anchors: [], packages: [] })).toBe("");
+      .toBe("Anchor Abby Ames shares campus announcements. InFocus reporter Sage Smith shares a story." + TAGS);
+    expect(showDescription({ anchors: [], packages: [] })).toBe(SHOW_HASHTAGS.join(" "));
     expect(showDescription({ anchors: ["", "Otto Ortiz"], packages: [{ reporters: [], toss: "  " }] }))
-      .toBe("Anchor Otto Ortiz shares campus announcements.");
+      .toBe("Anchor Otto Ortiz shares campus announcements." + TAGS);
   });
 });
 

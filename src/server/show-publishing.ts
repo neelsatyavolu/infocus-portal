@@ -7,6 +7,7 @@ import {
   chooseSeason, fullAnchorNames, parseSeasonNumber, SHOW_PUBLISH_TIME, showDescription, showPublishAt, showTitle,
   type DescribedPackage
 } from "@/src/lib/show-publication";
+import { chaptersOf, type ShowChapter } from "@/src/lib/show-chapters";
 import { userDisplayName } from "@/src/lib/user-display";
 import { youtubeWatchUrl } from "@/src/lib/youtube-publication";
 import { enqueueShowUploads } from "@/src/server/show-upload-queue";
@@ -21,17 +22,23 @@ function semesterLabelFor(dateKey: string) {
   return semesterForDate(new Date(`${dateKey}T12:00:00Z`)).label;
 }
 
-/** What the anchors said at each package's throw in the show's latest edit (`checks.tosses`), by package order. */
-async function spokenTosses(showDate: string): Promise<(string | null)[]> {
+/**
+ * From the show's latest edit: what the anchors said at each package's throw (`checks.tosses`, by package order)
+ * and the edit's chapters (`checks.chapters`).
+ */
+async function latestEditDetails(showDate: string): Promise<{ tosses: (string | null)[]; chapters: ShowChapter[] }> {
   const job = await prisma.showEditJob.findFirst({
     where: { showDate, status: { in: ["REVIEW", "PUBLISHED"] } }, orderBy: { updatedAt: "desc" }, select: { checks: true }
   });
   const tosses = (job?.checks as { tosses?: unknown } | null)?.tosses;
-  return Array.isArray(tosses) ? tosses.map((toss) => (typeof toss === "string" && toss.trim() ? toss.trim().slice(0, 1500) : null)) : [];
+  return {
+    tosses: Array.isArray(tosses) ? tosses.map((toss) => (typeof toss === "string" && toss.trim() ? toss.trim().slice(0, 1500) : null)) : [],
+    chapters: chaptersOf(job?.checks)
+  };
 }
 
 async function showCredits(showDate: string) {
-  const [entry, show, rows, users, spoken] = await Promise.all([
+  const [entry, show, rows, users, edit] = await Promise.all([
     prisma.masterCalendarEntry.findUnique({ where: { date: showDate } }),
     prisma.showRolesShow.findUnique({ where: { date: showDate } }),
     prisma.packageProgressRow.findMany({
@@ -40,7 +47,7 @@ async function showCredits(showDate: string) {
       orderBy: { queuedForAirAt: "asc" }
     }),
     prisma.user.findMany({ select: { name: true, nickname: true } }),
-    spokenTosses(showDate)
+    latestEditDetails(showDate)
   ]);
   // Same precedence as The Show overview: Master Calendar anchors win over stored picks.
   const calendarAnchors = entry ? extractCalendarAnchors(entry.content) : [];
@@ -50,11 +57,12 @@ async function showCredits(showDate: string) {
   // Full names in the description; the toss from the package, else what the anchors said on air.
   const packages: DescribedPackage[] = rows.map((row, index) => ({
     reporters: [...new Set(row.members.map((member) => member.user.name?.trim() || userDisplayName(member.user)).filter(Boolean))],
-    toss: row.finalCutToss.trim() || spoken[index] || null
+    toss: row.finalCutToss.trim() || edit.tosses[index] || null
   }));
   return {
     anchors: fullAnchorNames(calendarAnchors.length > 0 ? calendarAnchors : storedAnchors, users),
-    packages
+    packages,
+    chapters: edit.chapters
   };
 }
 

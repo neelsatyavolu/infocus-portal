@@ -19,6 +19,7 @@ import type { EditedShow } from "../show-roles/show-upload-dialog";
 import {
   approveLine, AUTO_SCHEDULE_NOTE, DebugLogLinks, DetectedStructure, FixHistory, FlaggedDecisions, RedoControl, SendBackForm, structureDecisions
 } from "./show-edit-parts";
+import { chaptersOf } from "@/src/lib/show-chapters";
 import { EditedShowVideo } from "./edited-show-video";
 import { RecordingPicker } from "./show-edit-recordings";
 import { isActiveJob, type EditAction } from "./use-show-edit";
@@ -240,6 +241,7 @@ function ReviewCards({ state, job, sentToYouTube, busyAction, send, onReview }: 
             videoUrl={state.preview.videoUrl}
             posterUrl={state.preview.posterUrl}
             label={`Edited show, version ${job.version}`}
+            chapters={chaptersOf(job.checks)}
           />
         ) : null}
         <FlaggedDecisions decisions={job.decisions} failures={failuresOf(job)} />

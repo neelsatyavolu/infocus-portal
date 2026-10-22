@@ -920,5 +920,25 @@ describe("show editor jobs", () => {
       mocks.publication.findUnique.mockResolvedValue(draft);
       expect((await showEditState(SHOW, NOW)).approve).toBeNull();
     });
+
+    it("once scheduled the state keeps the edited show's preview and says where it stands on YouTube", async () => {
+      const publishAt = new Date("2026-10-21T15:30:00Z");
+      mocks.job.findFirst.mockResolvedValue(job({ status: "PUBLISHED", outputNasPath: out }));
+      mocks.publication.findUnique.mockResolvedValue({ status: "SCHEDULED", nasPath: out, publishAt, videoId: "dQw4w9WgXcQ" });
+      const state = await showEditState(SHOW, NOW);
+      expect(state.preview?.videoUrl).toContain("web=1");
+      expect(state.approve).toBeNull();
+      expect(state.published).toEqual({
+        status: "SCHEDULED", publishAt: "2026-10-21T15:30:00.000Z", youtubeUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+      });
+      // Sent from another file (uploaded by hand): no preview of the edit, and no link before YouTube has the video.
+      mocks.publication.findUnique.mockResolvedValue({ status: "UPLOADING", nasPath: "Package Storage/Shows/2026-10-21/upload.mp4", publishAt, videoId: null });
+      const other = await showEditState(SHOW, NOW);
+      expect(other.preview).toBeNull();
+      expect(other.published).toMatchObject({ status: "UPLOADING", youtubeUrl: null });
+      // A draft isn't sent yet.
+      mocks.publication.findUnique.mockResolvedValue({ ...draft, publishAt, videoId: null });
+      expect((await showEditState(SHOW, NOW)).published).toBeNull();
+    });
   });
 });

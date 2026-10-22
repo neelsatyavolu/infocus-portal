@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { CalendarCheck, Loader2, MessageSquarePlus, Undo2, Wand2 } from "lucide-react";
+import { CalendarCheck, ExternalLink, Loader2, MessageSquarePlus, Undo2, Wand2 } from "lucide-react";
 import { Alert, InlineNote } from "@/components/kit/alert";
 import { Panel } from "@/components/kit/panel";
 import { StatusTag } from "@/components/kit/status-tag";
@@ -17,7 +17,8 @@ import {
 import { editSummaryStatus } from "@/src/lib/show-editor-views";
 import type { EditedShow } from "../show-roles/show-upload-dialog";
 import {
-  approveLine, AUTO_SCHEDULE_NOTE, DebugLogLinks, DetectedStructure, FixHistory, FlaggedDecisions, RedoControl, SendBackForm, structureDecisions
+  approveLine, AUTO_SCHEDULE_NOTE, DebugLogLinks, DetectedStructure, FixHistory, FlaggedDecisions, LINK_CLASS, pacificTime, RedoControl,
+  SendBackForm, sentLine, structureDecisions
 } from "./show-edit-parts";
 import { chaptersOf } from "@/src/lib/show-chapters";
 import { EditedShowVideo } from "./edited-show-video";
@@ -86,7 +87,18 @@ function StatusBody({ state, sentToYouTube, busy, send }: { state: ShowEditState
   }
   if (job?.status === "FAILED") return <Alert tone="danger" title="The automatic edit failed" compact>{job.error ?? "Unknown error."}</Alert>;
   if (job?.status === "PUBLISHED" || sentToYouTube) {
-    return <p className="text-sm text-muted-foreground">This show was sent to YouTube. Make changes in YouTube Studio.</p>;
+    const youtubeUrl = state.published?.youtubeUrl;
+    return (
+      <div className="space-y-1.5">
+        <p className="text-sm text-muted-foreground">{sentLine(state.published)}</p>
+        {youtubeUrl ? (
+          <a href={youtubeUrl} target="_blank" rel="noreferrer" className={`${LINK_CLASS} text-sm`}>
+            <ExternalLink className="h-4 w-4" aria-hidden />
+            Watch on YouTube
+          </a>
+        ) : null}
+      </div>
+    );
   }
   if (job?.status === "CANCELLED") return <p className="text-sm text-muted-foreground">The last automatic edit was cancelled. You can start it again.</p>;
   if (job?.status === "REVIEW") return <p className="text-sm text-muted-foreground">The edit is done. Watch it below, then approve it or send it back.</p>;
@@ -167,9 +179,8 @@ function RecordingsCard({ state, selected, busy, onChange }: {
 }
 
 /** Approve & schedule with what it will do, Change details (the upload dialog), and Send back with its form. */
-function ReviewActions({ state, job, sentToYouTube, busyAction, send, onReview }: {
-  state: ShowEditState; job: ShowEditView; sentToYouTube: boolean; busyAction: EditAction["action"] | null; send: Send;
-  onReview: (edited: EditedShow) => void;
+function ReviewActions({ state, job, busyAction, send, onReview }: {
+  state: ShowEditState; job: ShowEditView; busyAction: EditAction["action"] | null; send: Send; onReview: (edited: EditedShow) => void;
 }) {
   const [sendingBack, setSendingBack] = useState(false);
   const busy = busyAction !== null;
@@ -179,7 +190,7 @@ function ReviewActions({ state, job, sentToYouTube, busyAction, send, onReview }
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <Button
           type="button"
-          disabled={busy || !approve || approve.problem !== null || sentToYouTube}
+          disabled={busy || !approve || approve.problem !== null}
           onClick={() => void send({ action: "approve", id: job.id }, "Approved. Scheduled on YouTube.")}
         >
           {busyAction === "approve" ? <Loader2 className="animate-spin" aria-hidden /> : <CalendarCheck aria-hidden />}
@@ -191,37 +202,44 @@ function ReviewActions({ state, job, sentToYouTube, busyAction, send, onReview }
           variant="link"
           size="sm"
           className="h-auto px-0"
-          disabled={!preview || sentToYouTube}
+          disabled={!preview}
           onClick={() => preview && onReview(preview)}
         >
           Change details
         </Button>
       </div>
-      {!sentToYouTube ? <p className="text-[13px] text-muted-foreground">{AUTO_SCHEDULE_NOTE}</p> : null}
-      {!sentToYouTube ? (
-        <>
-          <Button type="button" variant="outline" disabled={busy} aria-expanded={sendingBack} onClick={() => setSendingBack((open) => !open)}>
-            <Undo2 aria-hidden />
-            Send back
-          </Button>
-          {sendingBack ? (
-            <SendBackForm
-              busy={busy}
-              onSendBack={async (text, remember) => {
-                const done = await send({ action: "fix", id: job.id, text, remember }, "Sent back. The editor will make a new version.");
-                if (done) setSendingBack(false);
-                return done;
-              }}
-            />
-          ) : null}
-        </>
+      <p className="text-[13px] text-muted-foreground">{AUTO_SCHEDULE_NOTE}</p>
+      <Button type="button" variant="outline" disabled={busy} aria-expanded={sendingBack} onClick={() => setSendingBack((open) => !open)}>
+        <Undo2 aria-hidden />
+        Send back
+      </Button>
+      {sendingBack ? (
+        <SendBackForm
+          busy={busy}
+          onSendBack={async (text, remember) => {
+            const done = await send({ action: "fix", id: job.id, text, remember }, "Sent back. The editor will make a new version.");
+            if (done) setSendingBack(false);
+            return done;
+          }}
+        />
       ) : null}
       <FixHistory conversation={job.conversation} />
     </div>
   );
 }
 
-/** At Review: the edited show, anything flagged, Approve or Send back; then what the editor found. */
+/** Under the edited show: its version, when it finished and what it cost. */
+function editDetails(job: ShowEditView, sent: boolean) {
+  const parts = [`Version ${job.version}`];
+  if (job.finishedAt) parts.push(`finished ${pacificTime.format(new Date(job.finishedAt))}`);
+  if (job.costUsd !== null) parts.push(`editing cost ${sent ? "" : "so far "}$${job.costUsd.toFixed(2)}`);
+  return parts.join(" · ");
+}
+
+/**
+ * At Review: the edited show, anything flagged, Approve or Send back; then what the editor found. Once it was sent
+ * to YouTube the same cards stay, read-only: the show with its chapters, the flags, the send-backs and the cost.
+ */
 function ReviewCards({ state, job, sentToYouTube, busyAction, send, onReview }: {
   state: ShowEditState; job: ShowEditView; sentToYouTube: boolean; busyAction: EditAction["action"] | null; send: Send;
   onReview: (edited: EditedShow) => void;
@@ -230,7 +248,7 @@ function ReviewCards({ state, job, sentToYouTube, busyAction, send, onReview }: 
   return (
     <>
       <Panel
-        title="Review"
+        title={sentToYouTube ? "The edited show" : "Review"}
         status={<StatusTag tone="neutral">Version {job.version}</StatusTag>}
         bodyClassName="space-y-4"
       >
@@ -244,11 +262,17 @@ function ReviewCards({ state, job, sentToYouTube, busyAction, send, onReview }: 
             chapters={chaptersOf(job.checks)}
           />
         ) : null}
-        <FlaggedDecisions decisions={job.decisions} failures={failuresOf(job)} />
-        <ReviewActions state={state} job={job} sentToYouTube={sentToYouTube} busyAction={busyAction} send={send} onReview={onReview} />
-        {job.costUsd !== null ? (
-          <p className="text-[13px] text-muted-foreground">Editing cost so far ${job.costUsd.toFixed(2)}</p>
-        ) : null}
+        <FlaggedDecisions
+          decisions={job.decisions}
+          failures={failuresOf(job)}
+          {...(sentToYouTube ? { title: "Flagged by the editor" } : {})}
+        />
+        {sentToYouTube ? (
+          <FixHistory conversation={job.conversation} />
+        ) : (
+          <ReviewActions state={state} job={job} busyAction={busyAction} send={send} onReview={onReview} />
+        )}
+        <p className="text-[13px] text-muted-foreground">{editDetails(job, sentToYouTube)}</p>
       </Panel>
       {found ? (
         <Panel title="What the editor found">
@@ -298,7 +322,7 @@ export function EditingShowView({ showDate, state, busyAction, send, onReview }:
           <RedoControl busy={busy} onRedo={(note) => send({ action: "redo", id: job.id, ...(note ? { note } : {}) }, "Starting the edit over.")} />
         ) : null}
       </Panel>
-      {job?.status === "REVIEW" ? (
+      {job && (job.status === "REVIEW" || (job.status === "PUBLISHED" && sentToYouTube)) ? (
         <ReviewCards state={state} job={job} sentToYouTube={sentToYouTube} busyAction={busyAction} send={send} onReview={onReview} />
       ) : null}
       {canStart ? (

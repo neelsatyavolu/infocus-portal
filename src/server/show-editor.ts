@@ -6,9 +6,10 @@ import {
   autoPublishReady, LEGACY_EDITOR_DEVICE_ID, SHOW_EDIT_MAX_ATTEMPT, SHOW_EDIT_STALE_MS, SHOW_RECORDINGS_FOLDER,
   UNFINISHED_SHOW_EDIT_STATUSES, type EditorHealth, type ShowEditDecision, type ShowEditMessage, type ShowEditStage,
   type EditorBackendStatus, type ShowEditBackend, type ShowEditorCommandKind, type ShowEditorMachineKind, type ShowEditState, type ShowEditStatus, type ShowEditView,
-  type AutoStartPreview, type ShowEditApprovePreview, type ShowRecording
+  type AutoStartPreview, type ShowEditApprovePreview, type ShowEditPublished, type ShowRecording
 } from "@/src/lib/show-editor";
 import { showPublishAt } from "@/src/lib/show-publication";
+import { youtubeWatchUrl } from "@/src/lib/youtube-publication";
 import { portalChecks, publishSlotNotBefore } from "@/src/lib/show-editor-escalation";
 import {
   driveFileSize, editorDriveBaseUrl, listShowRecordings, mintEditorDownload, mintEditorUpload
@@ -641,8 +642,14 @@ async function approvePreview(job: ShowEditJob | null, publication: DraftPublica
   }
 }
 
+/** After Approve (or Upload show) sent the edited file itself to YouTube. */
+function isSentEdit(job: ShowEditJob | null, publication: DraftPublication): job is ShowEditJob {
+  return (job?.status === "PUBLISHED" || job?.status === "REVIEW") && publication !== null && publication.status !== "DRAFT"
+    && Boolean(job.outputNasPath) && publication.nasPath === job.outputNasPath;
+}
+
 async function previewFor(job: ShowEditJob | null, publication: DraftPublication) {
-  if (!isReviewedDraft(job, publication) || !job.outputNasPath) return null;
+  if (!(isReviewedDraft(job, publication) || isSentEdit(job, publication)) || !job.outputNasPath) return null;
   try {
     const [video, poster] = await Promise.all([
       nasMintDownloadUrl(job.outputNasPath, PREVIEW_TTL_SECONDS),
@@ -653,6 +660,20 @@ async function previewFor(job: ShowEditJob | null, publication: DraftPublication
     console.error("show editor: preview link failed", job.id, error);
     return null;
   }
+}
+
+type SentPublication = { status: string; publishAt: Date; videoId: string | null } | null;
+
+/** Where the show stands on YouTube once it left DRAFT; the watch link waits for YouTube's video ID. */
+function publishedView(publication: SentPublication): ShowEditPublished | null {
+  if (!publication || publication.status === "DRAFT") return null;
+  let youtubeUrl: string | null = null;
+  try {
+    youtubeUrl = publication.videoId ? youtubeWatchUrl(publication.videoId) : null;
+  } catch {
+    // A malformed ID gets no link rather than a broken one.
+  }
+  return { status: publication.status, publishAt: publication.publishAt.toISOString(), youtubeUrl };
 }
 
 /**
@@ -712,6 +733,7 @@ export async function showEditState(showDate: string, now = new Date()): Promise
     job: job ? { ...showEditView(job), debugLogs: await debugLogLinks(job) } : null,
     publicationStatus: publication?.status ?? null,
     preview,
+    published: publishedView(publication),
     approve,
     autoStart
   };

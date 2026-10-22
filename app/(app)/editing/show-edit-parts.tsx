@@ -10,7 +10,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import {
   editorStatus, SHOW_EDIT_FIX_MAX, SHOW_EDIT_NOTE_MAX,
-  type ShowEditApprovePreview, type ShowEditDecision, type ShowEditMessage, type ShowEditorDeviceView, type ShowEditWorker
+  type ShowEditApprovePreview, type ShowEditDecision, type ShowEditMessage, type ShowEditorDeviceView, type ShowEditPublished,
+  type ShowEditWorker
 } from "@/src/lib/show-editor";
 import type { ShowEditDebugLog } from "@/src/lib/show-editor-debug-logs";
 
@@ -27,13 +28,15 @@ export function EditorStatusTag({ worker, devices }: { worker: ShowEditWorker; d
   return <StatusTag tone={status.tone} dot>{status.label}</StatusTag>;
 }
 
-export function FlaggedDecisions({ decisions, failures }: { decisions: ShowEditDecision[]; failures: { rule?: string; detail?: string }[] }) {
+export function FlaggedDecisions({ decisions, failures, title = "Check these before scheduling" }: {
+  decisions: ShowEditDecision[]; failures: { rule?: string; detail?: string }[]; title?: string;
+}) {
   const flagged = decisions.filter((decision) => decision.flagged);
   if (flagged.length === 0 && failures.length === 0) return null;
   // A package flag usually means one wasn't queued: say where to fix it.
   const packageFlag = flagged.some((decision) => decision.kind === "package");
   return (
-    <Alert tone="warning" title="Check these before scheduling" compact>
+    <Alert tone="warning" title={title} compact>
       <ul className="list-disc space-y-0.5 pl-4">
         {flagged.map((decision, index) => <li key={`d${index}`}>{decision.detail}</li>)}
         {failures.map((failure, index) => <li key={`f${index}`}>{failure.detail ?? failure.rule}</li>)}
@@ -116,6 +119,18 @@ export function approveLine(approve: ShowEditApprovePreview | null) {
   return `Schedules “${approve.title}” for ${pacificTime.format(new Date(approve.publishAt))}.`;
 }
 
+const SENDING = new Set(["UPLOADING", "PROCESSING", "FINALIZING"]);
+
+/** Once the show was sent to YouTube: where it stands there, and that changes now happen in YouTube Studio. */
+export function sentLine(published: ShowEditPublished | null) {
+  if (!published) return "This show was sent to YouTube. Make changes in YouTube Studio.";
+  const when = pacificTime.format(new Date(published.publishAt));
+  if (SENDING.has(published.status)) return `Sending it to YouTube now. It goes public ${when}.`;
+  if (published.status === "FAILED") return "Sending it to YouTube needs attention. Open Upload show to see why.";
+  if (published.status === "LIVE") return `Public on YouTube since ${when}. Make changes in YouTube Studio.`;
+  return `Scheduled on YouTube for ${when}. Make changes in YouTube Studio.`;
+}
+
 export const AUTO_SCHEDULE_NOTE = "If nobody approves, it's scheduled automatically at 8:00 AM on show day.";
 
 /** Redo automatic edit: throws this edit away and edits the show again, with an optional note. */
@@ -195,7 +210,7 @@ export function DetectedStructure({ decisions }: { decisions: ShowEditDecision[]
 }
 
 const DEBUG_LOG_HINT = "Editor log and AI transcript for this run. Share it when reporting a problem.";
-const LINK_CLASS = "inline-flex items-center gap-1.5 text-[var(--brand-green)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+export const LINK_CLASS = "inline-flex items-center gap-1.5 text-[var(--brand-green)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 function DebugLogLink({ log, label }: { log: ShowEditDebugLog & { url: string }; label: string }) {
   return (

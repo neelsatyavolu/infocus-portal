@@ -15,6 +15,7 @@ import type { EditedShow } from "../show-roles/show-upload-dialog";
 import {
   approveLine, AUTO_SCHEDULE_NOTE, DebugLogLinks, DetectedStructure, FixHistory, FlaggedDecisions, RedoControl, SendBackForm, structureDecisions
 } from "./show-edit-parts";
+import { EditedShowVideo } from "./edited-show-video";
 import { RecordingPicker } from "./show-edit-recordings";
 import { isActiveJob, type EditAction } from "./use-show-edit";
 
@@ -199,14 +200,11 @@ function ReviewCards({ state, job, sentToYouTube, busyAction, send, onReview }: 
       >
         {job.error ? <Alert tone="danger" compact>{job.error}</Alert> : null}
         {state.preview ? (
-          <video
-            key={state.preview.videoUrl}
-            src={state.preview.videoUrl}
-            poster={state.preview.posterUrl ?? undefined}
-            controls
-            preload="metadata"
-            className="aspect-video w-full max-w-3xl rounded-md border border-border bg-black"
-            aria-label={`Edited show, version ${job.version}`}
+          <EditedShowVideo
+            key={`${job.id}-${job.version}`}
+            videoUrl={state.preview.videoUrl}
+            posterUrl={state.preview.posterUrl}
+            label={`Edited show, version ${job.version}`}
           />
         ) : null}
         <FlaggedDecisions decisions={job.decisions} failures={failuresOf(job)} />

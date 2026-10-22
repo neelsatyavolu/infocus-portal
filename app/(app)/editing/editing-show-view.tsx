@@ -80,39 +80,49 @@ function StatusBody({ state, sentToYouTube, busy, send }: { state: ShowEditState
   if (job?.status === "PUBLISHED" || sentToYouTube) {
     return <p className="text-sm text-muted-foreground">This show was sent to YouTube. Make changes in YouTube Studio.</p>;
   }
-  if (job?.status === "CANCELLED") return <p className="text-sm text-muted-foreground">The last automatic edit was cancelled. Start it again below.</p>;
+  if (job?.status === "CANCELLED") return <p className="text-sm text-muted-foreground">The last automatic edit was cancelled. You can start it again.</p>;
   if (job?.status === "REVIEW") return <p className="text-sm text-muted-foreground">The edit is done. Watch it below, then review and schedule it.</p>;
-  return <p className="text-sm text-muted-foreground">No automatic edit for this show yet. Pick its recordings below and start one.</p>;
+  return <p className="text-sm text-muted-foreground">No automatic edit for this show yet.</p>;
 }
 
-/** Recordings, the auto-start note and Start, while the show can (still) be edited. */
-function StartCard({ showDate, state, busy, starting, send }: {
-  showDate: string; state: ShowEditState; busy: boolean; starting: boolean; send: Send;
+function fileNameOf(path: string) {
+  return path.split("/").pop() ?? path;
+}
+
+/** Start, at the top of the status card: what it will use, the button, and the offline note. */
+function StartRow({ selected, selectionError, busy, starting, online, onStart }: {
+  selected: ShowEditSource[]; selectionError: string | null; busy: boolean; starting: boolean; online: boolean; onStart: () => void;
 }) {
-  const [picked, setPicked] = useState<{ date: string; sources: ShowEditSource[] } | null>(null);
-  const selected = picked?.date === showDate ? picked.sources : defaultSourceSelection(state.recordings, showDate);
-  const selectionError = sourceSelectionError(selected);
+  const used = selected.filter((source) => source.role !== "ignore");
   return (
-    <Panel title="Start an edit" description="Recordings from the Shows folder on Drive, newest first." bodyClassName="space-y-3">
-      {state.recordingsError ? <Alert tone="danger" compact>{state.recordingsError}</Alert> : null}
-      {state.settings.autoStart ? <AutoStartNote preview={state.autoStart} /> : null}
-      <RecordingPicker
-        recordings={state.recordings}
-        selected={selected}
-        disabled={busy}
-        onChange={(sources) => setPicked({ date: showDate, sources })}
-      />
+    <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-3">
-        <Button
-          type="button"
-          disabled={busy || selectionError !== null}
-          onClick={() => void send({ action: "start", date: showDate, sources: selected }, "Automatic editing queued.")}
-        >
+        <Button type="button" disabled={busy || selectionError !== null} onClick={onStart}>
           {starting ? <Loader2 className="animate-spin" aria-hidden /> : <Wand2 aria-hidden />}
           Start automatic editing
         </Button>
-        {!state.worker.online ? <InlineNote>{OFFLINE_NOTE}</InlineNote> : null}
+        <span className="text-[13px] text-muted-foreground">
+          {selectionError ?? `Uses ${used.length === 1 ? "1 recording" : `${used.length} recordings`}: ${used.map((source) => fileNameOf(source.path)).join(", ")}. Change them under Recordings.`}
+        </span>
       </div>
+      {!online ? <InlineNote>{OFFLINE_NOTE}</InlineNote> : null}
+    </div>
+  );
+}
+
+/** The recordings to edit and the auto-start note, while the show can (still) be edited. */
+function RecordingsCard({ state, selected, busy, onChange }: {
+  state: ShowEditState; selected: ShowEditSource[]; busy: boolean; onChange: (sources: ShowEditSource[]) => void;
+}) {
+  return (
+    <Panel
+      title="Recordings"
+      description="From the Shows folder on Drive, newest first. This show's recordings are ticked already."
+      bodyClassName="space-y-3"
+    >
+      {state.recordingsError ? <Alert tone="danger" compact>{state.recordingsError}</Alert> : null}
+      {state.settings.autoStart ? <AutoStartNote preview={state.autoStart} /> : null}
+      <RecordingPicker recordings={state.recordings} selected={selected} disabled={busy} onChange={onChange} />
     </Panel>
   );
 }
@@ -188,10 +198,23 @@ export function EditingShowView({ showDate, state, busyAction, send, onReview }:
   const sentToYouTube = state.publicationStatus !== null && state.publicationStatus !== "DRAFT";
   const canStart = !sentToYouTube && (!job || ["FAILED", "CANCELLED"].includes(job.status));
   const summary = editSummaryStatus({ status: job?.status ?? null, stage: job?.stage ?? null, publicationStatus: state.publicationStatus });
+  // The recordings picked for this date (cleared when the date changes); Start sits at the top.
+  const [picked, setPicked] = useState<{ date: string; sources: ShowEditSource[] } | null>(null);
+  const selected = picked?.date === showDate ? picked.sources : defaultSourceSelection(state.recordings, showDate);
   return (
     <div className="space-y-5">
       <Panel title="This show's edit" status={<StatusTag tone={summary.tone}>{summary.label}</StatusTag>} bodyClassName="space-y-3">
         <StatusBody state={state} sentToYouTube={sentToYouTube} busy={busy} send={send} />
+        {canStart ? (
+          <StartRow
+            selected={selected}
+            selectionError={sourceSelectionError(selected)}
+            busy={busy}
+            starting={busyAction === "start"}
+            online={state.worker.online}
+            onStart={() => void send({ action: "start", date: showDate, sources: selected }, "Automatic editing queued.")}
+          />
+        ) : null}
         {job?.status === "FAILED" && !sentToYouTube ? (
           <RedoForm busy={busy} onRedo={(note) => send({ action: "redo", id: job.id, note }, "Starting the edit over.")} />
         ) : null}
@@ -199,7 +222,9 @@ export function EditingShowView({ showDate, state, busyAction, send, onReview }:
       {job?.status === "REVIEW" ? (
         <ReviewCards state={state} job={job} sentToYouTube={sentToYouTube} busy={busy} send={send} onReview={onReview} />
       ) : null}
-      {canStart ? <StartCard showDate={showDate} state={state} busy={busy} starting={busyAction === "start"} send={send} /> : null}
+      {canStart ? (
+        <RecordingsCard state={state} selected={selected} busy={busy} onChange={(sources) => setPicked({ date: showDate, sources })} />
+      ) : null}
     </div>
   );
 }

@@ -137,14 +137,17 @@ export function normalizePairingCode(input: string) {
 }
 
 /** Remote commands producers can send the editing Mac. */
-export const SHOW_EDITOR_COMMANDS = ["doctor", "update", "restart", "repair", "logs"] as const;
+export const SHOW_EDITOR_COMMANDS = ["doctor", "update", "restart", "repair", "logs", "always-on", "normal-power"] as const;
 export type ShowEditorCommandKind = (typeof SHOW_EDITOR_COMMANDS)[number];
 export const SHOW_EDITOR_COMMAND_LABELS: Record<ShowEditorCommandKind, string> = {
   doctor: "Run health check",
   update: "Update now",
   restart: "Restart",
   repair: "Repair",
-  logs: "Show log"
+  logs: "Show log",
+  // Never sleep (lid closed too), no auto-logout, no macOS update restarts; or back to macOS's own settings.
+  "always-on": "Keep awake always",
+  "normal-power": "Normal sleep"
 };
 export const SHOW_EDITOR_COMMAND_OUTPUT_MAX = 4000;
 export const SHOW_EDITOR_COMMAND_HISTORY = 20;

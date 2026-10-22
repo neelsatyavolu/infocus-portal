@@ -235,4 +235,12 @@ describe("show edits route", () => {
     await POST(post({ action: "command", deviceId: "d1", kind: "repair" }));
     expect(mocks.command).toHaveBeenCalledWith({ userId: "u1", deviceId: "d1", kind: "repair" });
   });
+
+  it("command accepts the power commands (keep awake always, normal sleep)", async () => {
+    mocks.command.mockResolvedValue({ id: "c2" });
+    for (const kind of ["always-on", "normal-power"]) {
+      expect((await POST(post({ action: "command", deviceId: "d1", kind }))).status).toBe(200);
+      expect(mocks.command).toHaveBeenLastCalledWith({ userId: "u1", deviceId: "d1", kind });
+    }
+  });
 });

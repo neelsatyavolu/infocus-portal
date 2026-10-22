@@ -223,8 +223,10 @@ export type ShowEditState = {
   job: ShowEditView | null;
   /** The show's YouTube publication status (DRAFT until scheduled), or null when nothing was uploaded. */
   publicationStatus: string | null;
-  /** At REVIEW, while the edited file is the show's draft: playable links for the preview. */
+  /** At REVIEW while the edited file is the show's draft, and after it was sent to YouTube: playable links for it. */
   preview: { videoUrl: string; posterUrl: string | null } | null;
+  /** Once the show was sent to YouTube (whichever file): where it stands there. */
+  published: ShowEditPublished | null;
   /** Same condition: what Approve & schedule would schedule. */
   approve: ShowEditApprovePreview | null;
   autoStart: AutoStartPreview | null;
@@ -257,6 +259,9 @@ export function packageNote(packages: QueuedPackageView[]): { tone: "warning" | 
 
 /** Upload show's default title and publish time (ISO); `problem` says why Approve can't use them yet. */
 export type ShowEditApprovePreview = { title: string; publishAt: string; problem: string | null };
+
+/** The show on YouTube: its publication status, when it goes public, and its watch link once YouTube has it. */
+export type ShowEditPublished = { status: string; publishAt: string; youtubeUrl: string | null };
 
 /** One Drive folder listing → its recordings, newest first. `folder` is set for a subfolder of `Shows/`. */
 export function recordingsFromListing(items: DriveListItem[], now = new Date(), folder: string | null = null): ShowRecording[] {

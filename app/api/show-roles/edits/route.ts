@@ -97,7 +97,7 @@ export async function GET(request: Request) {
     }
     // The picker's Preview: a playable link for one listed recording, minted only when asked for.
     const preview = params.get("preview");
-    if (preview !== null) return okNoStore({ url: await recordingPreviewUrl(preview) });
+    if (preview !== null) return okNoStore(await recordingPreviewUrl(preview));
     const date = params.get("date");
     if (!date || !DATE_KEY_PATTERN.test(date)) return fail("A valid date is required.", 400);
     // The Show's one-line summary: no Drive listing, no preview links.

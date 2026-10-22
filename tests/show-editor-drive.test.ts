@@ -86,10 +86,31 @@ describe("recording preview links", () => {
     mocks.mint.mockResolvedValue("https://drive.example.org/api/service/file?token=r.1.x&inline=true");
   });
 
-  it("mints a web playback link for a listed recording", async () => {
-    const url = await recordingPreviewUrl("Shows/InFocus Show 10-22-2026.mov", NOW);
-    expect(url).toBe("https://drive.example.org/api/service/file?token=r.1.x&inline=true&web=1");
+  function prepareReplies(reply: Response) {
+    mocks.fetch.mockImplementation(async (url: string) => url.startsWith("/api/service/web-proxy")
+      ? reply
+      : listing([{ name: "InFocus Show 10-22-2026.mov", path: "Shows/InFocus Show 10-22-2026.mov", mtime: "2026-10-21T18:00:00Z" }]));
+  }
+
+  it("mints a web playback link once Drive has the browser copy ready", async () => {
+    prepareReplies(new Response(JSON.stringify({ ready: true }), { status: 200 }));
+    const preview = await recordingPreviewUrl("Shows/InFocus Show 10-22-2026.mov", NOW);
+    expect(preview).toEqual({ ready: true, url: "https://drive.example.org/api/service/file?token=r.1.x&inline=true&web=1" });
+    expect(mocks.fetch).toHaveBeenCalledWith(
+      `/api/service/web-proxy?path=${encodeURIComponent("Shows/InFocus Show 10-22-2026.mov")}`, { method: "POST" });
     expect(mocks.mint).toHaveBeenCalledWith("Shows/InFocus Show 10-22-2026.mov", 3 * 3600);
+  });
+
+  it("reports a recording Drive is still converting, with no link yet", async () => {
+    prepareReplies(new Response(JSON.stringify({ ready: false }), { status: 200 }));
+    expect(await recordingPreviewUrl("Shows/InFocus Show 10-22-2026.mov", NOW)).toEqual({ ready: false, url: null });
+    expect(mocks.mint).not.toHaveBeenCalled();
+  });
+
+  it("falls back to the plain web link when Drive can't prepare one ahead", async () => {
+    prepareReplies(new Response("Not Found", { status: 404 }));
+    const preview = await recordingPreviewUrl("Shows/InFocus Show 10-22-2026.mov", NOW);
+    expect(preview).toEqual({ ready: true, url: "https://drive.example.org/api/service/file?token=r.1.x&inline=true&web=1" });
   });
 
   it("refuses a path outside Shows/ without asking Drive, and one the listing doesn't have", async () => {

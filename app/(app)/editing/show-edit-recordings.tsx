@@ -38,23 +38,45 @@ function groupsOf(recordings: ShowRecording[]): Group[] {
 
 const CANT_PLAY = "This browser can't play this file. Try Safari.";
 
-/** One recording playing inline; its link is minted when it opens (GET /api/show-roles/edits?preview=). */
+/** How often the picker asks again while Drive converts a recording, and when it stops asking. */
+const PREVIEW_POLL_MS = 4000;
+const PREVIEW_GIVE_UP_MS = 15 * 60 * 1000;
+
+/**
+ * One recording playing inline; its link is minted when it opens (GET /api/show-roles/edits?preview=). Drive
+ * converts a switcher recording for the browser first, so the picker asks again until it's ready.
+ */
 function RecordingPreview({ recording }: { recording: ShowRecording }) {
   const [url, setUrl] = useState<string | null>(null);
+  const [preparing, setPreparing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     let current = true;
-    fetch(`/api/show-roles/edits?preview=${encodeURIComponent(recording.path)}`, { cache: "no-store" })
-      .then(async (response) => {
-        const body = (await response.json().catch(() => ({}))) as { data?: { url?: string }; error?: { message?: string } };
-        if (!response.ok || !body.data?.url) throw new Error(body.error?.message ?? "Couldn't load the preview.");
-        if (current) setUrl(body.data.url);
-      })
-      .catch((reason: unknown) => {
-        if (current) setError(reason instanceof Error ? reason.message : "Couldn't load the preview.");
-      });
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const startedAt = Date.now();
+    const ask = () =>
+      fetch(`/api/show-roles/edits?preview=${encodeURIComponent(recording.path)}`, { cache: "no-store" })
+        .then(async (response) => {
+          const body = (await response.json().catch(() => ({}))) as {
+            data?: { ready?: boolean; url?: string | null }; error?: { message?: string };
+          };
+          if (!response.ok || !body.data) throw new Error(body.error?.message ?? "Couldn't load the preview.");
+          if (!current) return;
+          if (body.data.ready && body.data.url) {
+            setUrl(body.data.url);
+            return;
+          }
+          if (Date.now() - startedAt > PREVIEW_GIVE_UP_MS) throw new Error("The preview is taking too long. Try again later.");
+          setPreparing(true);
+          timer = setTimeout(ask, PREVIEW_POLL_MS);
+        })
+        .catch((reason: unknown) => {
+          if (current) setError(reason instanceof Error ? reason.message : "Couldn't load the preview.");
+        });
+    void ask();
     return () => {
       current = false;
+      clearTimeout(timer);
     };
   }, [recording.path]);
   if (error) return <InlineNote tone="warning">{error}</InlineNote>;
@@ -62,7 +84,9 @@ function RecordingPreview({ recording }: { recording: ShowRecording }) {
     return (
       <p className="flex items-center gap-2 text-[13px] text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-        Loading the preview…
+        {preparing
+          ? "Preparing the preview. The first look at a recording takes a minute or two."
+          : "Loading the preview…"}
       </p>
     );
   }

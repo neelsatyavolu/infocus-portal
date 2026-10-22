@@ -44,15 +44,30 @@ export async function listShowRecordings(now = new Date()): Promise<ShowRecordin
 const RECORDING_PREVIEW_TTL_SECONDS = 3 * 3600;
 
 /**
- * A playable link for one recording the picker lists, minted like the edited show's preview. Refused (400)
- * for a path outside `Shows/`, and (404) for one the listing doesn't have.
+ * Whether Drive's browser copy of a recording is ready. A switcher recording has to be converted first, which
+ * takes about a minute per few minutes of show: longer than a `<video>` or the tunnel waits for a first byte,
+ * so Drive converts it in the background and the picker asks again. A Drive without that endpoint converts
+ * while the video waits, as before.
+ */
+async function browserCopyReady(path: string) {
+  const res = await driveFetch(`/api/service/web-proxy?path=${encodeURIComponent(path)}`, { method: "POST" });
+  if (res.status === 404 || res.status === 405) return true;
+  if (!res.ok) throw new Error(`Drive web proxy failed: ${res.status} ${(await res.text()).slice(0, 200)}`);
+  return ((await res.json()) as { ready?: boolean }).ready === true;
+}
+
+/**
+ * A playable link for one recording the picker lists, minted like the edited show's preview, or `ready: false`
+ * while Drive is still converting it. Refused (400) for a path outside `Shows/`, and (404) for one the listing
+ * doesn't have.
  */
 export async function recordingPreviewUrl(path: string, now = new Date()) {
   if (!isShowRecordingPath(path)) throw new ShowEditError(`Pick a recording from the ${SHOW_RECORDINGS_FOLDER} folder.`, 400);
   if (!(await listShowRecordings(now)).some((recording) => recording.path === path)) {
     throw new ShowEditError(`That recording isn't in the ${SHOW_RECORDINGS_FOLDER} folder on Drive.`, 404);
   }
-  return nasDeriveWebPlaybackUrl(await nasMintDownloadUrl(path, RECORDING_PREVIEW_TTL_SECONDS));
+  if (!(await browserCopyReady(path))) return { ready: false, url: null };
+  return { ready: true, url: nasDeriveWebPlaybackUrl(await nasMintDownloadUrl(path, RECORDING_PREVIEW_TTL_SECONDS)) };
 }
 
 /** Where the setup app lives on the Drive (uploaded by hand after each setup-app build). */

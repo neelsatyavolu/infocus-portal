@@ -86,9 +86,9 @@ describe("show edits route", () => {
   });
 
   it("GET ?preview= mints one recording's playback link for producers only, keeping refusals", async () => {
-    mocks.preview.mockResolvedValue("https://drive.example.org/api/service/file?token=r&web=1");
+    mocks.preview.mockResolvedValue({ ready: true, url: "https://drive.example.org/api/service/file?token=r&web=1" });
     const response = await GET(new Request("https://portal.example.edu/api/show-roles/edits?preview=Shows%2Fa.mov"));
-    expect(await response.json()).toEqual({ data: { url: "https://drive.example.org/api/service/file?token=r&web=1" } });
+    expect(await response.json()).toEqual({ data: { ready: true, url: "https://drive.example.org/api/service/file?token=r&web=1" } });
     expect(response.headers.get("cache-control")).toContain("no-store");
     expect(mocks.preview).toHaveBeenCalledWith("Shows/a.mov");
     mocks.preview.mockRejectedValue(new ShowEditError("Pick a recording from the Shows folder.", 400));

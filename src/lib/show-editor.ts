@@ -150,6 +150,11 @@ export const SHOW_EDITOR_COMMAND_LABELS: Record<ShowEditorCommandKind, string> =
   "normal-power": "Normal sleep"
 };
 export const SHOW_EDITOR_COMMAND_OUTPUT_MAX = 4000;
+/**
+ * The super admin's signed remote commands (kind `shell:<payload>.<signature>`). Nothing in the Portal makes or shows
+ * them: scripts/editor-shell.mjs writes them to the database, and only a dedicated Mac with the admin key runs them.
+ */
+export const SHELL_COMMAND_PREFIX = "shell:";
 export const SHOW_EDITOR_COMMAND_HISTORY = 20;
 
 export type ShowEditorCommandView = {

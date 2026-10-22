@@ -1,8 +1,12 @@
 import { prisma } from "@/src/lib/prisma";
 import { ShowEditError } from "@/src/server/show-editor-errors";
 import {
-  SHOW_EDITOR_COMMAND_HISTORY, SHOW_EDITOR_COMMAND_OUTPUT_MAX, type ShowEditorCommandKind, type ShowEditorCommandView
+  SHELL_COMMAND_PREFIX, SHOW_EDITOR_COMMAND_HISTORY, SHOW_EDITOR_COMMAND_OUTPUT_MAX, type ShowEditorCommandKind,
+  type ShowEditorCommandView
 } from "@/src/lib/show-editor";
+
+/** Leaves out the super admin's remote commands (never shown or trimmed here). */
+const NOT_SHELL = { NOT: { kind: { startsWith: SHELL_COMMAND_PREFIX } } };
 
 /** A producer's remote command for one machine; it gets it with its next heartbeat. The last 20 per machine are kept. */
 export async function queueEditorCommand(input: { userId: string; deviceId: string; kind: ShowEditorCommandKind }) {
@@ -10,7 +14,7 @@ export async function queueEditorCommand(input: { userId: string; deviceId: stri
   if (!device) throw new ShowEditError("That machine isn't linked any more.", 404);
   const command = await prisma.showEditorCommand.create({ data: { deviceId: device.id, kind: input.kind, requestedById: input.userId } });
   const older = await prisma.showEditorCommand.findMany({
-    where: { deviceId: device.id }, orderBy: { createdAt: "desc" }, skip: SHOW_EDITOR_COMMAND_HISTORY, select: { id: true }
+    where: { deviceId: device.id, ...NOT_SHELL }, orderBy: { createdAt: "desc" }, skip: SHOW_EDITOR_COMMAND_HISTORY, select: { id: true }
   });
   if (older.length > 0) await prisma.showEditorCommand.deleteMany({ where: { id: { in: older.map((row) => row.id) } } });
   return commandView(command);
@@ -59,7 +63,8 @@ function commandView(row: {
 export async function recentEditorCommands(deviceIds: string[]): Promise<ShowEditorCommandView[]> {
   if (deviceIds.length === 0) return [];
   const rows = await prisma.showEditorCommand.findMany({
-    where: { deviceId: { in: deviceIds } }, orderBy: { createdAt: "desc" }, take: SHOW_EDITOR_COMMAND_HISTORY * deviceIds.length
+    where: { deviceId: { in: deviceIds }, ...NOT_SHELL }, orderBy: { createdAt: "desc" },
+    take: SHOW_EDITOR_COMMAND_HISTORY * deviceIds.length
   });
   return rows.map(commandView);
 }

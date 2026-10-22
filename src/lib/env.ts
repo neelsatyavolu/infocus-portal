@@ -53,7 +53,12 @@ const envSchema = z.object({
     (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
     z.string().min(1).optional()
   ),
-  /** OpenRouter key for the Portal assistant (free models). */
+  /** NVIDIA NIM key for the Portal assistant (tried before OpenRouter). */
+  NVIDIA_API_KEY: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().min(1).optional()
+  ),
+  /** OpenRouter key for the Portal assistant (free models, fallback after NVIDIA). */
   OPENROUTER_API_KEY: z.preprocess(
     (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
     z.string().min(1).optional()

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   DEFAULT_OPENROUTER_MODELS,
+  NVIDIA_ASSISTANT_MODEL,
   runAssistantChat,
   sanitizeAssistantMessages,
   systemPromptFor
@@ -73,6 +74,35 @@ describe("systemPromptFor", () => {
 });
 
 describe("runAssistantChat providers", () => {
+  it("uses NVIDIA first when its key is set", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(reply({ content: "Open **Groups**." }));
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await runAssistantChat({
+      nvidiaApiKey: "nvidia-key",
+      openRouterApiKey: "test-key",
+      messages: [{ role: "user", content: "How do I queue a package?" }]
+    });
+    expect(result.model).toBe(NVIDIA_ASSISTANT_MODEL);
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain("integrate.api.nvidia.com");
+    expect(fetchMock.mock.calls[0]?.[1]?.headers).toMatchObject({ Authorization: "Bearer nvidia-key" });
+    expect(requestBody(fetchMock)).not.toHaveProperty("reasoning");
+  });
+
+  it("falls back to OpenRouter when NVIDIA is busy", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(failure(429, "Too many requests"))
+      .mockResolvedValueOnce(reply({ content: "Open **Groups**." }));
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await runAssistantChat({
+      nvidiaApiKey: "nvidia-key",
+      openRouterApiKey: "test-key",
+      messages: [{ role: "user", content: "How do I queue a package?" }]
+    });
+    expect(result.model).toBe(DEFAULT_OPENROUTER_MODELS[0]);
+    expect(String(fetchMock.mock.calls[1]?.[0])).toContain("openrouter.ai");
+  });
+
   it("uses the best free OpenRouter model first", async () => {
     const fetchMock = vi.fn().mockResolvedValue(reply({ content: "Open **Groups** and send to queue." }));
     vi.stubGlobal("fetch", fetchMock);
@@ -188,9 +218,9 @@ describe("runAssistantChat providers", () => {
     expect(onTool).toHaveBeenCalledWith("list_docs");
   });
 
-  it("requires an OpenRouter key", async () => {
+  it("requires an NVIDIA or OpenRouter key", async () => {
     await expect(
       runAssistantChat({ messages: [{ role: "user", content: "How do I queue a package?" }] })
-    ).rejects.toThrow("OPENROUTER_API_KEY");
+    ).rejects.toThrow("NVIDIA_API_KEY or OPENROUTER_API_KEY");
   });
 });

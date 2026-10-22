@@ -59,9 +59,10 @@ export async function POST(request: Request) {
       return fail(ASSISTANT_QUOTA_MESSAGE, 429);
     }
 
+    const nvidiaApiKey = env.NVIDIA_API_KEY;
     const openRouterApiKey = env.OPENROUTER_API_KEY;
-    if (!openRouterApiKey) {
-      return fail("Assistant is not configured yet. Add OPENROUTER_API_KEY.", 503);
+    if (!nvidiaApiKey && !openRouterApiKey) {
+      return fail("Assistant is not configured yet. Add NVIDIA_API_KEY or OPENROUTER_API_KEY.", 503);
     }
 
     const payload = payloadSchema.parse(await request.json());
@@ -74,6 +75,7 @@ export async function POST(request: Request) {
         };
         try {
           const result = await runAssistantChat({
+            nvidiaApiKey,
             openRouterApiKey,
             openRouterModel: env.OPENROUTER_MODEL,
             messages,

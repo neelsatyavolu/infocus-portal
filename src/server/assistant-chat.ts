@@ -14,6 +14,9 @@ import {
   switchAssistantCycle
 } from "@/src/server/assistant-places";
 
+const NVIDIA_CHAT_URL = "https://integrate.api.nvidia.com/v1/chat/completions";
+/** Tried first: NVIDIA's free endpoint for Nemotron 3 Ultra (no published daily cap). */
+export const NVIDIA_ASSISTANT_MODEL = "nvidia/nemotron-3-ultra-550b-a55b";
 const OPENROUTER_CHAT_URL = "https://openrouter.ai/api/v1/chat/completions";
 /** Best free tool-calling models on OpenRouter as of October 2026, strongest first. `openrouter/free` picks any free model that supports tools. */
 export const DEFAULT_OPENROUTER_MODELS = [
@@ -37,22 +40,30 @@ export type AssistantChatMessage = {
   content: string;
 };
 
-type OpenRouterChatMessage =
+type ChatProvider = {
+  name: string;
+  url: string;
+  apiKey: string;
+  model: string;
+  extraBody?: Record<string, unknown>;
+};
+
+type ChatMessage =
   | { role: "system"; content: string }
   | { role: "user"; content: string }
-  | { role: "assistant"; content?: string | null; tool_calls?: OpenRouterToolCall[] }
+  | { role: "assistant"; content?: string | null; tool_calls?: ChatToolCall[] }
   | { role: "tool"; tool_call_id: string; content: string };
 
-type OpenRouterToolCall = {
+type ChatToolCall = {
   id: string;
   type: "function";
   function: { name: string; arguments: string };
 };
 
-type OpenRouterChoiceMessage = {
+type ChatChoiceMessage = {
   role?: string;
   content?: string | null;
-  tool_calls?: OpenRouterToolCall[];
+  tool_calls?: ChatToolCall[];
 };
 
 const WRITING_RULES = `How to write:
@@ -260,24 +271,23 @@ async function executeAssistantToolCall(name: string, args: unknown, ctx: ToolCo
   return result;
 }
 
-async function openRouterChat(params: {
-  apiKey: string;
-  model: string;
-  messages: OpenRouterChatMessage[];
+async function chatCompletion(params: {
+  provider: ChatProvider;
+  messages: ChatMessage[];
   tools: unknown[];
 }) {
-  const response = await fetch(OPENROUTER_CHAT_URL, {
+  const response = await fetch(params.provider.url, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${params.apiKey}`,
+      Authorization: `Bearer ${params.provider.apiKey}`,
       "Content-Type": "application/json",
       "X-Title": "InFocus Portal"
     },
     body: JSON.stringify({
-      model: params.model,
+      model: params.provider.model,
       temperature: 0.2,
       max_tokens: 900,
-      reasoning: { effort: "low", exclude: true },
+      ...params.provider.extraBody,
       tools: params.tools,
       tool_choice: "auto",
       messages: params.messages
@@ -286,12 +296,13 @@ async function openRouterChat(params: {
 
   const payload = (await response.json().catch(() => null)) as {
     error?: { message?: string; code?: string };
-    choices?: Array<{ message?: OpenRouterChoiceMessage }>;
+    detail?: string;
+    choices?: Array<{ message?: ChatChoiceMessage }>;
   } | null;
 
   if (!response.ok || payload?.error) {
     const status = response.ok ? 502 : response.status;
-    const message = payload?.error?.message ?? `OpenRouter request failed (${status})`;
+    const message = payload?.error?.message ?? payload?.detail ?? `${params.provider.name} request failed (${status})`;
     const error = new Error(message) as Error & { status: number };
     error.status = status;
     throw error;
@@ -299,29 +310,27 @@ async function openRouterChat(params: {
 
   const message = payload?.choices?.[0]?.message;
   if (!message) {
-    throw new Error("OpenRouter returned an empty response.");
+    throw new Error(`${params.provider.name} returned an empty response.`);
   }
 
   return message;
 }
 
-async function runOpenRouterModel(params: {
-  apiKey: string;
-  model: string;
+async function runAssistantModel(params: {
+  provider: ChatProvider;
   messages: AssistantChatMessage[];
   tools: AssistantTool[];
   system: string;
   ctx: ToolContext;
 }) {
-  const conversation: OpenRouterChatMessage[] = [
+  const conversation: ChatMessage[] = [
     { role: "system", content: params.system },
     ...params.messages.map((message) => ({ role: message.role, content: message.content }))
   ];
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round += 1) {
-    const message = await openRouterChat({
-      apiKey: params.apiKey,
-      model: params.model,
+    const message = await chatCompletion({
+      provider: params.provider,
       messages: conversation,
       tools: params.tools
     });
@@ -335,7 +344,7 @@ async function runOpenRouterModel(params: {
       return {
         reply,
         sources: [...params.ctx.sources],
-        model: params.model,
+        model: params.provider.model,
         proposals: params.ctx.proposals,
         places: params.ctx.places
       };
@@ -368,7 +377,31 @@ function isRetryableStatus(status: number | undefined) {
   return status === 400 || status === 403 || status === 404 || status === 429 || (status !== undefined && status >= 500);
 }
 
+function assistantProviders(params: {
+  nvidiaApiKey?: string;
+  openRouterApiKey?: string;
+  openRouterModel?: string;
+}): ChatProvider[] {
+  const providers: ChatProvider[] = [];
+  if (params.nvidiaApiKey) {
+    providers.push({ name: "NVIDIA", url: NVIDIA_CHAT_URL, apiKey: params.nvidiaApiKey, model: NVIDIA_ASSISTANT_MODEL });
+  }
+  if (params.openRouterApiKey) {
+    for (const model of openRouterModels(params.openRouterModel)) {
+      providers.push({
+        name: "OpenRouter",
+        url: OPENROUTER_CHAT_URL,
+        apiKey: params.openRouterApiKey,
+        model,
+        extraBody: { reasoning: { effort: "low", exclude: true } }
+      });
+    }
+  }
+  return providers;
+}
+
 export async function runAssistantChat(params: {
+  nvidiaApiKey?: string;
   openRouterApiKey?: string;
   openRouterModel?: string;
   messages: AssistantChatMessage[];
@@ -378,8 +411,9 @@ export async function runAssistantChat(params: {
   audience?: AssistantAudience;
   onTool?: (name: string) => void;
 }) {
-  if (!params.openRouterApiKey) {
-    throw new Error("Assistant is not configured yet. Add OPENROUTER_API_KEY.");
+  const providers = assistantProviders(params);
+  if (providers.length === 0) {
+    throw new Error("Assistant is not configured yet. Add NVIDIA_API_KEY or OPENROUTER_API_KEY.");
   }
 
   const audience = params.audience ?? "member";
@@ -387,7 +421,7 @@ export async function runAssistantChat(params: {
   const system = systemPromptFor(audience, Boolean(params.canMutate), params.actorName);
   let lastError: Error | null = null;
 
-  for (const model of openRouterModels(params.openRouterModel)) {
+  for (const provider of providers) {
     // Fresh state per model so a failed attempt's cards and sources are not shown.
     const ctx: ToolContext = {
       canMutate: params.canMutate,
@@ -400,9 +434,8 @@ export async function runAssistantChat(params: {
       onTool: params.onTool
     };
     try {
-      return await runOpenRouterModel({
-        apiKey: params.openRouterApiKey,
-        model,
+      return await runAssistantModel({
+        provider,
         messages: params.messages,
         tools,
         system,
@@ -419,5 +452,5 @@ export async function runAssistantChat(params: {
   if (httpStatus(lastError) === 429) {
     throw new Error("TOO_MANY_REQUESTS");
   }
-  throw lastError ?? new Error("No OpenRouter model is available.");
+  throw lastError ?? new Error("No assistant model is available.");
 }

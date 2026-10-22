@@ -37,9 +37,9 @@ Everyone signed in, except on bare video review and the Class Board.
 ## How it runs
 
 - API: `POST /api/assistant/chat` (session required; streams status lines, then the reply). Approving a card calls `POST /api/assistant/actions` (super admin and adviser only).
-- Provider: OpenRouter free models. NVIDIA `nemotron-3-ultra-550b-a55b:free` first; if it fails or is busy, `nemotron-3.5-super-vl:free`, then `openrouter/free` (any free model that can use tools).
-- Key: `OPENROUTER_API_KEY` (server only). Optional `OPENROUTER_MODEL` to try a specific model id first.
+- Provider: NVIDIA Nemotron 3 Ultra (`nvidia/nemotron-3-ultra-550b-a55b`) on NVIDIA's free endpoint first. If it fails or is busy, OpenRouter's free models: the same model (`:free`), then `nemotron-3.5-super-vl:free`, then `openrouter/free` (any free model that can use tools).
+- Keys: `NVIDIA_API_KEY` and/or `OPENROUTER_API_KEY` (server only). Optional `OPENROUTER_MODEL` to try a specific OpenRouter model first.
 - Chat history lives only in the open page. It survives moving between Portal pages but is gone after a reload or closing the tab. Nothing is saved to the database. Each question sends the last 12 messages, each cut to 2,000 characters.
-- Usage caps (OpenRouter free models allow 20 requests a minute; a question can take several requests when it looks things up): reporters 3 per 10 minutes / 5 a day; associates 6 / 12; executives and admin 10 / 25. The whole class shares 5 questions a minute and 400 a day. Over a cap, it says “You've asked enough for now. Try again later.” Counts are kept in server memory, so a server restart resets them.
+- Usage caps (NVIDIA's free endpoint allows about 40 requests a minute and OpenRouter's free models 20; a question can take several requests when it looks things up): reporters 3 per 10 minutes / 5 a day; associates 6 / 12; executives and admin 10 / 25. The whole class shares 5 questions a minute and 400 a day. Over a cap, it says “You've asked enough for now. Try again later.” Counts are kept in server memory, so a server restart resets them.
 
-If the key is missing, the panel says the assistant is not configured.
+If both keys are missing, the panel says the assistant is not configured.

@@ -105,7 +105,7 @@ After you schedule it, the Portal locks the upload. Change the title, time, or a
 
 Opened from **Open generator** on The Show's Show roles card. The generator opens on its own current show, whichever date The Show had open; pick the show inside the generator. **Back to The Show** returns to the date The Show had open.
 
-Crew roles are Show Director, Graphics Director, Tech Director, Teleprompter, and Floor Director, plus Backup #1 and #2. **Generate Roles** auto-assigns them. It skips EPs, advisers, and super admin; they stay in the manual picker. Each role has **Re-pick**, **Manual**, and a confirm toggle; **Confirm All** confirms every role.
+Crew roles are Show Director, Teleprompter, and Floor Director, plus Backup #1 and #2. There is no Graphics Director or Tech Director: shows are edited automatically (see Editing). **Generate Roles** auto-assigns them. It skips EPs, advisers, and super admin; they stay in the manual picker. Each role has **Re-pick**, **Manual**, and a confirm toggle; **Confirm All** confirms every role.
 
 Other buttons: **New Show**, **Anchor History** (times anchored, last anchored, and a **Non-anchor** checkbox that keeps someone out of Randomize), **Refresh**, **Import JSON**, **Backup**, and **Clear History** (deletes all saved shows except the current one; cannot be undone).
 

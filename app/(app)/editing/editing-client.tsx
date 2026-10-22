@@ -16,6 +16,7 @@ import { cn } from "@/src/lib/utils";
 import { ShowDateStrip } from "../show-roles/show-date-strip";
 import { fallbackTitle, stripItems } from "../show-roles/show-overview";
 import type { EditedShow } from "../show-roles/show-upload-dialog";
+import { EditingHowToView } from "./editing-howto-view";
 import { EditingMachinesView } from "./editing-machines-view";
 import { EditingSettingsView } from "./editing-settings-view";
 import { EditingShowView } from "./editing-show-view";
@@ -45,11 +46,11 @@ function replaceAddress(href: string) {
 }
 
 /**
- * The Editing tab: one show's automatic edit (Show), the editing machines (Machines) and the editor's
- * settings (Settings). The open show (`?date=`, default the next show, as on The Show), the view
+ * The Editing tab: one show's automatic edit (Show), the editing machines (Machines), the editor's
+ * settings (Settings) and the guide (How to: docs/knowledge/automatic-editing.md, which the assistant reads too). The open show (`?date=`, default the next show, as on The Show), the view
  * (`?view=`) and a waiting link approval (`?link=CODE`, which opens Machines) all live in the address.
  */
-export default function EditingClient({ initial }: { initial: LoadedOverview | null }) {
+export default function EditingClient({ initial, howTo }: { initial: LoadedOverview | null; howTo: string }) {
   const params = useSearchParams();
   const requestedDate = params.get("date") ?? undefined;
   const linkCode = params.get("link");
@@ -78,6 +79,8 @@ export default function EditingClient({ initial }: { initial: LoadedOverview | n
   const state = edit.state;
 
   function body() {
+    // The guide needs no editor state.
+    if (view === "howto") return <EditingHowToView markdown={howTo} />;
     if (!state) {
       if (edit.error || (!showDate && overview.error)) {
         return (

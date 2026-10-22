@@ -80,7 +80,8 @@ describe("/editing", () => {
 
   it("loads the same show The Show would open, or the one in ?date=", async () => {
     expect(clientProps(await EditingPage(search({})))).toEqual({
-      initial: { key: "", overview: { date: "2026-10-21", label: "Wednesday, October 21" } }
+      initial: { key: "", overview: { date: "2026-10-21", label: "Wednesday, October 21" } },
+      howTo: expect.stringMatching(/^# How automatic editing works/)
     });
     expect(mocks.overview).toHaveBeenLastCalledWith(null);
     await EditingPage(search({ date: "2026-10-23" }));
@@ -88,7 +89,7 @@ describe("/editing", () => {
   });
 
   it("leaves a bad ?date= to the client", async () => {
-    expect(clientProps(await EditingPage(search({ date: "tomorrow" })))).toEqual({ initial: null });
+    expect(clientProps(await EditingPage(search({ date: "tomorrow" })))).toMatchObject({ initial: null });
     expect(mocks.overview).not.toHaveBeenCalled();
   });
 });

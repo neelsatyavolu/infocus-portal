@@ -6,6 +6,7 @@ import { hasPlatformRole } from "@/src/lib/platform-admin";
 import { DATE_KEY_PATTERN } from "@/src/lib/show-assignment";
 import { editingHref, parseEditingView } from "@/src/lib/show-editor-views";
 import { asApiJson } from "@/src/server/as-api-json";
+import { readAssistantDoc } from "@/src/server/assistant-docs";
 import { loadShowOverview } from "@/src/server/show-overview-data";
 import EditingClient from "./editing-client";
 import { EditingSkeleton } from "./editing-skeleton";
@@ -58,7 +59,7 @@ export default async function EditingPage({ searchParams }: { searchParams: Prom
 
   return (
     <Suspense fallback={<EditingSkeleton />}>
-      <EditingClient initial={await loadInitialOverview(date)} />
+      <EditingClient initial={await loadInitialOverview(date)} howTo={readAssistantDoc("automatic-editing")?.content ?? ""} />
     </Suspense>
   );
 }

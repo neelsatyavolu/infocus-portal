@@ -117,7 +117,7 @@ Producer page (associate producer and up) for automatic editing. It's a tab of T
 
 - **Header:** the show date being edited, and a tag for the active editing machine on every view: **Editor online · <machine> · <version>** (with **busy** while it edits), **Editor offline · <machine> · last seen …**, **Editor needs attention · …**, or **No editor linked**. An edit started while it's offline waits until it's back.
 - **Show strip:** the same show strip as The Show. It opens on the same show The Show opens on, and the date is in the link (`/editing?date=YYYY-MM-DD`).
-- **Views:** **Show**, **Machines** and **Settings**. The view is in the link too (`/editing?view=machines`, `/editing?view=settings`); without one it opens on Show.
+- **Views:** **Show**, **Machines**, **Settings** and **How to**. The view is in the link too (`/editing?view=machines`, `/editing?view=settings`, `/editing?view=howto`); without one it opens on Show. **How to** is the step-by-step guide, the same text as `automatic-editing.md`.
 
 Emails and notifications about an automatic edit (ready for review, failed, scheduled, and the 6 PM reminder) link to that show on the Editing tab.
 
@@ -128,12 +128,12 @@ One show's automatic edit, in cards:
 - **This show's edit:** where it stands (**Not started**, **Editing: <step>**, **Ready for review**, **Scheduled** or **Failed**). While it runs, a live line shows the step (finding the takes, making graphics, rendering, checking, uploading) and **Cancel** stops it. If it failed, the reason is here. At review or after a failure, **Redo automatic edit** throws this edit away and edits the show again; it opens a box for an optional note to the editor (for example, "use the later take of the close"), then **Redo the edit**.
   - **Debug log:** once a run ends (ready, failed or cancelled), **Download debug log** fetches that version's editor log and AI transcript (for example **Debug log (v3)**); **Earlier versions** lists the logs from earlier fixes. Share it when reporting a problem.
 - **Start an edit** (until the show is edited or sent to YouTube): the recordings in Drive `Shows/` and its subfolders, newest first. Open a folder to see its files, or tick the folder to take all of them.
-  - **Ticked already:** the TriCaster names every export `InFocus Show <airing date>`, with ` (1)`, ` (2)` for repeats. The files named after this show's airing date are ticked, oldest first.
+  - **Ticked already:** every 5 minutes the NAS renames TriCaster exports after their airing date (the day after the export): `InFocus Show <airing date>.mov` for a switched recording, `InFocus Show <airing date> Left.mov` / `Center` / `Right` for the three cameras recorded together, with ` (1)`, ` (2)` for repeats. The files named after this show's airing date are ticked, oldest first.
   - **Never ticked:** files with EDITED in the name, the untitled `InFocus Show.mov`, and a file exactly the size of another date's file. That last one is marked "Same size as …: probably a copy of another show".
   - **Picking:** up to 12 files. A file still copying to Drive can't be picked yet.
   - **Older files:** the list shows the 6 newest files (and any older ones already ticked); **Show N older** shows the rest and **Show fewer** folds them away again. Folders work as before.
   - **Preview:** plays that file right in the list, one at a time. If the browser can't play it (some TriCaster files only play in Safari), it says so.
-  - **Roles:** each chosen file is on **Auto**, and the editor works out from the pictures and sound which files are switched program feeds, which are camera feeds (M two-shot, L, R) and which were recorded together. You can set a file to **Program**, **Camera M**, **Camera L** or **Camera R** yourself, or **Ignore** to leave it out. The arrows change the order.
+  - **Roles:** a camera file starts on its camera (Left **Camera L**, Center **Camera M** (two-shot), Right **Camera R**); any other file starts on **Auto**, and the editor works out from the pictures and sound which files are switched program feeds, which are camera feeds and which were recorded together. You can set a file to **Program**, **Camera M**, **Camera L** or **Camera R** yourself, or **Ignore** to leave it out. The arrows change the order.
   - With **Start editing by itself** on, the card says which files auto-start will use and when.
   - Press **Start automatic editing**. Packages come from the Publishing Queue for that show; anchors' names come from The Show. The editor also gets the class list by full name (for name bars and to tell who is on air) and the announcement cards from recent shows' edits, so new cards match them.
 - **Review** (once it's edited): the edited show plays, with its version and anything the editor flagged for a person to check (**Check these before scheduling**). The person who started it and that date's show manager (from the Master Calendar) get an email and notification when it's ready or if it fails, and a reminder at 6 PM the evening before the show if it still isn't scheduled. For an edit that auto-start began, only the show manager does.
@@ -166,6 +166,7 @@ Buttons:
 - **Make active:** switch new edits to that machine. An edit already running finishes where it is.
 - **Unlink:** the machine stops working at once. Waiting fixes for its edits fail; use Redo.
 - **Run health check**, **Update now**, **Restart**, **Repair** (reinstalls missing tools) and **Show log:** the machine runs them within about a minute, and the latest result shows under its buttons.
+- **Keep awake always** / **Normal sleep:** the Mac never sleeps (on battery or power, lid open or closed), restarts after a power cut, never logs out by itself and doesn't restart for macOS updates; or it goes back to normal. A dedicated machine is set to keep awake when it's set up.
 
 #### Connect AI account
 

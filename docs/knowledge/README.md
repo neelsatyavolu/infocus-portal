@@ -26,6 +26,7 @@ When answering:
 | Student cycle tabs (brainstorm → final cut) | `student-work.md` |
 | Grades, Grade Editor, participation | `grading.md` |
 | Master Calendar, The Show, Editing (automatic editing), anchors, PA | `calendar-and-show.md` |
+| How to do automatic editing, step by step (the Editing tab's How to) | `automatic-editing.md` |
 | Class Board | `class-board.md` |
 | Publishing Queue | `publishing-queue.md` |
 | Managers tab and the Instagram Post Maker | `managers.md` |

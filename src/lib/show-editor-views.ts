@@ -5,7 +5,7 @@ import { SHOW_EDIT_STAGE_LABELS, type ShowEditStage, type ShowEditStatus } from 
  * shows for a date. Client-safe; the link server and the notifications build their URLs from here too.
  */
 
-export const EDITING_VIEWS = ["show", "machines", "settings"] as const;
+export const EDITING_VIEWS = ["show", "machines", "settings", "howto"] as const;
 
 /**
  * The InFocus Editor setup app, linked from Machines. It bundles the graphics package (real names in its working
@@ -14,7 +14,9 @@ export const EDITING_VIEWS = ["show", "machines", "settings"] as const;
  */
 export const EDITOR_SETUP_APP_URL = "/api/show-roles/edits?setup=1";
 export type EditingView = (typeof EDITING_VIEWS)[number];
-export const EDITING_VIEW_LABELS: Record<EditingView, string> = { show: "Show", machines: "Machines", settings: "Settings" };
+export const EDITING_VIEW_LABELS: Record<EditingView, string> = {
+  show: "Show", machines: "Machines", settings: "Settings", howto: "How to"
+};
 
 /** `?view=` → a view; anything else is Show. A link code always opens Machines, where its approval is. */
 export function parseEditingView(view: string | null | undefined, link?: string | null): EditingView {

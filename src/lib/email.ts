@@ -2,6 +2,7 @@ import { Resend } from "resend";
 import { mainAppOrigin } from "@/src/lib/hosts";
 import { EMAIL_BRAND, escapeHtml, renderBrandedEmail } from "@/src/lib/email-layout";
 import { pushBodyFromParagraphs, sendNativePushToEmails } from "@/src/lib/native-push";
+import { MAX_TOTAL_POINTS } from "@/src/lib/package-grades";
 import type { PackageMailContent } from "@/src/lib/package-stage-events";
 
 type AnnouncementEmailPayload = {
@@ -265,7 +266,7 @@ export async function sendGradeEmails(payload: GradeEmailPayload) {
       ? `Your Package Cycle ${payload.cycleNumber} grade is published`
       : `Your Package Cycle ${payload.cycleNumber} grade was updated`,
     heading: published ? "Grade published" : "Grade updated",
-    paragraphs: [intro, `Score: ${payload.totalPoints}/40 (${payload.percentage.toFixed(1)}%)`],
+    paragraphs: [intro, `Score: ${payload.totalPoints}/${MAX_TOTAL_POINTS} (${payload.percentage.toFixed(1)}%)`],
     ctaLabel: "Open grade viewer",
     ctaUrl: payload.gradeUrl
   });

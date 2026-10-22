@@ -8,6 +8,7 @@ import { fail, ok } from "@/src/lib/http";
 import {
   MAX_EFFORT_POINTS,
   MAX_TEAMWORK_POINTS,
+  MAX_TOTAL_POINTS,
   PACKAGE_CYCLE_NUMBERS,
   gradePercentage,
   gradeTotal,
@@ -256,7 +257,7 @@ async function notifyGradeUser(
     isWebPushConfigured()
   ) {
     const title = payload.mode === "published" ? "Grade published" : "Grade updated";
-    const body = `Package Cycle ${payload.cycleNumber}: ${payload.totalPoints}/40 (${payload.percentage.toFixed(1)}%)`;
+    const body = `Package Cycle ${payload.cycleNumber}: ${payload.totalPoints}/${MAX_TOTAL_POINTS} (${payload.percentage.toFixed(1)}%)`;
 
     const results = await Promise.all(
       recipient.pushSubscriptions.map((subscription) =>

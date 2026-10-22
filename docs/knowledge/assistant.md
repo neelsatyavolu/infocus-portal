@@ -37,9 +37,9 @@ Everyone signed in, except on bare video review and the Class Board.
 ## How it runs
 
 - API: `POST /api/assistant/chat` (session required; streams status lines, then the reply). Approving a card calls `POST /api/assistant/actions` (super admin and adviser only).
-- Provider: Gemini `gemini-3.1-flash-lite` first (`GEMINI_API_KEY_CHAT`, not the teleprompter `GEMINI_API_KEY`). If Gemini fails, Groq `openai/gpt-oss-120b`, then `llama-3.3-70b-versatile`, then `llama-3.1-8b-instant`.
-- Keys: `GEMINI_API_KEY_CHAT` and/or `GROQ_API_KEY` (server only). Optional `GROQ_MODEL` to pin a Groq model id.
+- Provider: OpenRouter free models. NVIDIA `nemotron-3-ultra-550b-a55b:free` first; if it fails or is busy, `nemotron-3.5-super-vl:free`, then `openrouter/free` (any free model that can use tools).
+- Key: `OPENROUTER_API_KEY` (server only). Optional `OPENROUTER_MODEL` to try a specific model id first.
 - Chat history lives only in the open page. It survives moving between Portal pages but is gone after a reload or closing the tab. Nothing is saved to the database. Each question sends the last 12 messages, each cut to 2,000 characters.
-- Usage caps (so the class stays under Gemini Flash-Lite free-tier ~15 requests/min and ~1,000/day): reporters 3 per 10 minutes / 5 a day; associates 6 / 12; executives and admin 10 / 25. The whole class shares 5 questions a minute and 400 a day. Over a cap, it says “You've asked enough for now. Try again later.” Counts are kept in server memory, so a server restart resets them.
+- Usage caps (OpenRouter free models allow 20 requests a minute; a question can take several requests when it looks things up): reporters 3 per 10 minutes / 5 a day; associates 6 / 12; executives and admin 10 / 25. The whole class shares 5 questions a minute and 400 a day. Over a cap, it says “You've asked enough for now. Try again later.” Counts are kept in server memory, so a server restart resets them.
 
-If both keys are missing, the panel says the assistant is not configured.
+If the key is missing, the panel says the assistant is not configured.

@@ -1,32 +1,38 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ASSISTANT_DOC_TOOLS } from "@/src/server/assistant-docs";
 import {
-  ASSISTANT_GEMINI_MODEL,
+  DEFAULT_OPENROUTER_MODELS,
   runAssistantChat,
   sanitizeAssistantMessages,
-  systemPromptFor,
-  toGeminiFunctionDeclarations
+  systemPromptFor
 } from "@/src/server/assistant-chat";
 
-const { generateContent } = vi.hoisted(() => ({
-  generateContent: vi.fn()
-}));
+type ToolCall = { id: string; type: "function"; function: { name: string; arguments: string } };
 
-vi.mock("@google/genai", () => ({
-  ApiError: class ApiError extends Error {
-    status: number;
-    constructor(options: { message: string; status: number }) {
-      super(options.message);
-      this.status = options.status;
-    }
-  },
-  GoogleGenAI: class GoogleGenAI {
-    models = { generateContent };
-  }
-}));
+function reply(message: { content?: string | null; tool_calls?: ToolCall[] }) {
+  return { ok: true, status: 200, json: async () => ({ choices: [{ message }] }) };
+}
+
+function failure(status: number, message = "error") {
+  return { ok: false, status, json: async () => ({ error: { message } }) };
+}
+
+function toolCall(name: string, args: Record<string, unknown> = {}): ToolCall {
+  return { id: `call-${name}`, type: "function", function: { name, arguments: JSON.stringify(args) } };
+}
+
+function requestBody(fetchMock: ReturnType<typeof vi.fn>, call = 0) {
+  return JSON.parse(String(fetchMock.mock.calls[call]?.[1]?.body)) as {
+    model: string;
+    tools: Array<{ function: { name: string } }>;
+    messages: Array<{ role: string; content?: string }>;
+  };
+}
+
+function toolNames(fetchMock: ReturnType<typeof vi.fn>) {
+  return requestBody(fetchMock).tools.map((tool) => tool.function.name);
+}
 
 afterEach(() => {
-  generateContent.mockReset();
   vi.unstubAllGlobals();
 });
 
@@ -54,18 +60,6 @@ describe("sanitizeAssistantMessages", () => {
   });
 });
 
-describe("toGeminiFunctionDeclarations", () => {
-  it("maps Groq-style tools to Gemini function declarations", () => {
-    const declarations = toGeminiFunctionDeclarations(ASSISTANT_DOC_TOOLS);
-    expect(declarations.map((declaration) => declaration.name)).toEqual([
-      "list_docs",
-      "search_docs",
-      "read_doc"
-    ]);
-    expect(declarations[1]?.parametersJsonSchema).toMatchObject({ required: ["query"] });
-  });
-});
-
 describe("systemPromptFor", () => {
   it("tells the model who is signed in and to use list_my_groups for producers", () => {
     const prompt = systemPromptFor("associate", false, "Ada");
@@ -79,129 +73,124 @@ describe("systemPromptFor", () => {
 });
 
 describe("runAssistantChat providers", () => {
-  it("uses Gemini 3.1 Flash-Lite first", async () => {
-    generateContent.mockResolvedValue({
-      text: "Open **Groups** and send to queue.",
-      functionCalls: undefined
-    });
-    const fetchMock = vi.fn();
+  it("uses the best free OpenRouter model first", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(reply({ content: "Open **Groups** and send to queue." }));
     vi.stubGlobal("fetch", fetchMock);
 
     const result = await runAssistantChat({
-      geminiApiKey: "gemini-key",
-      groqApiKey: "groq-key",
+      openRouterApiKey: "test-key",
       messages: [{ role: "user", content: "How do I queue a package?" }]
     });
 
-    expect(result.model).toBe(ASSISTANT_GEMINI_MODEL);
+    expect(result.model).toBe(DEFAULT_OPENROUTER_MODELS[0]);
     expect(result.reply).toBe("Open **Groups** and send to queue.");
-    expect(generateContent).toHaveBeenCalledTimes(1);
-    expect(generateContent.mock.calls[0]?.[0]).toMatchObject({ model: ASSISTANT_GEMINI_MODEL });
-    const declarations = generateContent.mock.calls[0]?.[0]?.config?.tools?.[0]?.functionDeclarations as Array<{
-      name: string;
-    }>;
-    expect(declarations.map((declaration) => declaration.name)).not.toContain("get_grades");
-    expect(declarations.map((declaration) => declaration.name)).not.toContain("list_queue");
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain("openrouter.ai");
+    expect(requestBody(fetchMock).model).toBe(DEFAULT_OPENROUTER_MODELS[0]);
+    expect(toolNames(fetchMock)).not.toContain("get_grades");
+    expect(toolNames(fetchMock)).not.toContain("list_queue");
+  });
+
+  it("tries a pinned model before the defaults", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(reply({ content: "Hi." }));
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await runAssistantChat({
+      openRouterApiKey: "test-key",
+      openRouterModel: "some/model:free",
+      messages: [{ role: "user", content: "Hi" }]
+    });
+    expect(result.model).toBe("some/model:free");
   });
 
   it("gives executives grade lookup but not mutations", async () => {
-    generateContent.mockResolvedValue({
-      text: "Ada is on track.",
-      functionCalls: undefined
-    });
+    const fetchMock = vi.fn().mockResolvedValue(reply({ content: "Ada is on track." }));
+    vi.stubGlobal("fetch", fetchMock);
     await runAssistantChat({
-      geminiApiKey: "gemini-key",
+      openRouterApiKey: "test-key",
       audience: "executive",
       messages: [{ role: "user", content: "What's Ada's grade?" }]
     });
-    const declarations = generateContent.mock.calls[0]?.[0]?.config?.tools?.[0]?.functionDeclarations as Array<{
-      name: string;
-    }>;
-    expect(declarations.map((declaration) => declaration.name)).toContain("get_grades");
-    expect(declarations.map((declaration) => declaration.name)).not.toContain("propose_set_grade");
-    expect(declarations.map((declaration) => declaration.name)).toContain("list_my_groups");
+    expect(toolNames(fetchMock)).toContain("get_grades");
+    expect(toolNames(fetchMock)).not.toContain("propose_set_grade");
+    expect(toolNames(fetchMock)).toContain("list_my_groups");
   });
 
-  it("passes the signed-in name into Gemini", async () => {
-    generateContent.mockResolvedValue({
-      text: "You produce Solar buses.",
-      functionCalls: undefined
-    });
+  it("passes the signed-in name into the system prompt", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(reply({ content: "You produce Solar buses." }));
+    vi.stubGlobal("fetch", fetchMock);
     await runAssistantChat({
-      geminiApiKey: "gemini-key",
+      openRouterApiKey: "test-key",
       audience: "associate",
       actorName: "Ada",
       messages: [{ role: "user", content: "What packages am I assigned to?" }]
     });
-    expect(generateContent.mock.calls[0]?.[0]?.config?.systemInstruction).toContain("Ada");
+    expect(requestBody(fetchMock).messages[0]).toMatchObject({ role: "system" });
+    expect(requestBody(fetchMock).messages[0]?.content).toContain("Ada");
   });
 
-  it("falls back to Groq gpt-oss-120b when Gemini fails", async () => {
-    generateContent.mockRejectedValue(Object.assign(new Error("quota"), { status: 429 }));
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ choices: [{ message: { content: "Send to queue from Groups." } }] })
-    });
+  it("falls back to the next free model when one is busy", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(failure(429, "rate limited"))
+      .mockResolvedValueOnce(reply({ content: "Send to queue from Groups." }));
     vi.stubGlobal("fetch", fetchMock);
 
     const result = await runAssistantChat({
-      geminiApiKey: "gemini-key",
-      groqApiKey: "groq-key",
+      openRouterApiKey: "test-key",
       messages: [{ role: "user", content: "How do I queue a package?" }]
     });
 
-    expect(result.model).toBe("openai/gpt-oss-120b");
+    expect(result.model).toBe(DEFAULT_OPENROUTER_MODELS[1]);
     expect(result.reply).toBe("Send to queue from Groups.");
-    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)).model).toBe("openai/gpt-oss-120b");
+    expect(requestBody(fetchMock, 1).model).toBe(DEFAULT_OPENROUTER_MODELS[1]);
+  });
+
+  it("reports TOO_MANY_REQUESTS when every model is rate limited", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(failure(429, "rate limited")));
+    await expect(
+      runAssistantChat({
+        openRouterApiKey: "test-key",
+        messages: [{ role: "user", content: "How do I queue a package?" }]
+      })
+    ).rejects.toThrow("TOO_MANY_REQUESTS");
   });
 
   it("refuses grade lookup when the model calls it as a reporter", async () => {
-    generateContent
-      .mockResolvedValueOnce({
-        text: undefined,
-        functionCalls: [{ id: "1", name: "get_grades", args: { person: "Ada" } }]
-      })
-      .mockResolvedValueOnce({
-        text: "I cannot look up grades.",
-        functionCalls: undefined
-      });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(reply({ content: null, tool_calls: [toolCall("get_grades", { person: "Ada" })] }))
+      .mockResolvedValueOnce(reply({ content: "I cannot look up grades." }));
+    vi.stubGlobal("fetch", fetchMock);
     const result = await runAssistantChat({
-      geminiApiKey: "gemini-key",
+      openRouterApiKey: "test-key",
       audience: "member",
       actorUserId: "student-1",
       messages: [{ role: "user", content: "What's Ada's grade?" }]
     });
     expect(result.reply).toBe("I cannot look up grades.");
-    const followUp = generateContent.mock.calls[1]?.[0]?.contents as Array<{
-      parts?: Array<{ functionResponse?: { response?: { error?: string } } }>;
-    }>;
-    expect(followUp?.at(-1)?.parts?.[0]?.functionResponse?.response?.error).toMatch(/cannot look that up/i);
+    const toolMessage = requestBody(fetchMock, 1).messages.at(-1);
+    expect(toolMessage?.role).toBe("tool");
+    expect(JSON.parse(String(toolMessage?.content)).error).toMatch(/cannot look that up/i);
   });
 
   it("reports tool names through onTool", async () => {
-    generateContent
-      .mockResolvedValueOnce({
-        text: undefined,
-        functionCalls: [{ id: "1", name: "list_docs", args: {} }],
-        candidates: [{ content: { role: "model", parts: [{ functionCall: { id: "1", name: "list_docs", args: {} } }] } }]
-      })
-      .mockResolvedValueOnce({
-        text: "Open **Groups**.",
-        functionCalls: undefined
-      });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(reply({ content: null, tool_calls: [toolCall("list_docs")] }))
+      .mockResolvedValueOnce(reply({ content: "Open **Groups**." }));
+    vi.stubGlobal("fetch", fetchMock);
     const onTool = vi.fn();
     await runAssistantChat({
-      geminiApiKey: "gemini-key",
+      openRouterApiKey: "test-key",
       messages: [{ role: "user", content: "How do I queue a package?" }],
       onTool
     });
     expect(onTool).toHaveBeenCalledWith("list_docs");
   });
 
-  it("requires a Gemini chat key or Groq key", async () => {
+  it("requires an OpenRouter key", async () => {
     await expect(
       runAssistantChat({ messages: [{ role: "user", content: "How do I queue a package?" }] })
-    ).rejects.toThrow("GEMINI_API_KEY_CHAT");
+    ).rejects.toThrow("OPENROUTER_API_KEY");
   });
 });

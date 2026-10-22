@@ -59,10 +59,9 @@ export async function POST(request: Request) {
       return fail(ASSISTANT_QUOTA_MESSAGE, 429);
     }
 
-    const geminiApiKey = env.GEMINI_API_KEY_CHAT;
-    const groqApiKey = env.GROQ_API_KEY;
-    if (!geminiApiKey && !groqApiKey) {
-      return fail("Assistant is not configured yet. Add GEMINI_API_KEY_CHAT or GROQ_API_KEY.", 503);
+    const openRouterApiKey = env.OPENROUTER_API_KEY;
+    if (!openRouterApiKey) {
+      return fail("Assistant is not configured yet. Add OPENROUTER_API_KEY.", 503);
     }
 
     const payload = payloadSchema.parse(await request.json());
@@ -75,9 +74,8 @@ export async function POST(request: Request) {
         };
         try {
           const result = await runAssistantChat({
-            geminiApiKey,
-            groqApiKey,
-            groqModel: env.GROQ_MODEL,
+            openRouterApiKey,
+            openRouterModel: env.OPENROUTER_MODEL,
             messages,
             canMutate: isPlatformSuperAdmin(access.role),
             audience,

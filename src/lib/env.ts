@@ -24,7 +24,7 @@ const envSchema = z.object({
   APP_BASE_URL: z.string().url().optional(),
   GEMINI_API_KEY: z.string().min(1).optional(),
   PASSWORD_VAULT_KEY: z.string().min(1).optional(),
-  /** Gemini key for the Portal assistant. Separate from teleprompter `GEMINI_API_KEY`. */
+  /** Gemini key for feedback scoring. Separate from teleprompter `GEMINI_API_KEY`. */
   GEMINI_API_KEY_CHAT: z.preprocess(
     (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
     z.string().min(1).optional()
@@ -53,13 +53,13 @@ const envSchema = z.object({
     (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
     z.string().min(1).optional()
   ),
-  /** Groq Cloud key for Portal assistant fallback after Gemini. */
-  GROQ_API_KEY: z.preprocess(
+  /** OpenRouter key for the Portal assistant (free models). */
+  OPENROUTER_API_KEY: z.preprocess(
     (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
     z.string().min(1).optional()
   ),
-  /** Override Groq model id. Default is openai/gpt-oss-120b with Llama fallbacks. */
-  GROQ_MODEL: z.preprocess(
+  /** Pin an OpenRouter model id. Default is the free list in `src/server/assistant-chat.ts`. */
+  OPENROUTER_MODEL: z.preprocess(
     (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
     z.string().min(1).optional()
   ),

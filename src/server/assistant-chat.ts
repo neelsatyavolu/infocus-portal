@@ -1,4 +1,3 @@
-import { ApiError, GoogleGenAI, type Content } from "@google/genai";
 import { assistantLookupNames, assistantWhoLine, type AssistantAudience } from "@/src/lib/assistant-access";
 import type { AssistantPlacePreview } from "@/src/lib/assistant-places";
 import {
@@ -15,9 +14,13 @@ import {
   switchAssistantCycle
 } from "@/src/server/assistant-places";
 
-const GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions";
-export const ASSISTANT_GEMINI_MODEL = "gemini-3.1-flash-lite";
-const DEFAULT_GROQ_MODELS = ["openai/gpt-oss-120b", "llama-3.3-70b-versatile", "llama-3.1-8b-instant"] as const;
+const OPENROUTER_CHAT_URL = "https://openrouter.ai/api/v1/chat/completions";
+/** Best free tool-calling models on OpenRouter as of October 2026, strongest first. `openrouter/free` picks any free model that supports tools. */
+export const DEFAULT_OPENROUTER_MODELS = [
+  "nvidia/nemotron-3-ultra-550b-a55b:free",
+  "nvidia/nemotron-3.5-super-vl:free",
+  "openrouter/free"
+] as const;
 const MAX_TOOL_ROUNDS = 6;
 const MAX_MESSAGES = 12;
 const MAX_MESSAGE_CHARS = 2_000;
@@ -34,22 +37,22 @@ export type AssistantChatMessage = {
   content: string;
 };
 
-type GroqChatMessage =
+type OpenRouterChatMessage =
   | { role: "system"; content: string }
   | { role: "user"; content: string }
-  | { role: "assistant"; content?: string | null; tool_calls?: GroqToolCall[] }
+  | { role: "assistant"; content?: string | null; tool_calls?: OpenRouterToolCall[] }
   | { role: "tool"; tool_call_id: string; content: string };
 
-type GroqToolCall = {
+type OpenRouterToolCall = {
   id: string;
   type: "function";
   function: { name: string; arguments: string };
 };
 
-type GroqChoiceMessage = {
+type OpenRouterChoiceMessage = {
   role?: string;
   content?: string | null;
-  tool_calls?: GroqToolCall[];
+  tool_calls?: OpenRouterToolCall[];
 };
 
 const WRITING_RULES = `How to write:
@@ -169,34 +172,16 @@ function parseToolArguments(raw: string) {
   }
 }
 
-function groqModels(preferred?: string) {
-  const unique = [...new Set([preferred?.trim(), ...DEFAULT_GROQ_MODELS].filter(Boolean) as string[])];
+function openRouterModels(preferred?: string) {
+  const unique = [...new Set([preferred?.trim(), ...DEFAULT_OPENROUTER_MODELS].filter(Boolean) as string[])];
   return unique;
 }
 
 function httpStatus(error: unknown): number | undefined {
-  if (error instanceof ApiError) {
-    return error.status;
-  }
   if (error && typeof error === "object" && "status" in error && typeof error.status === "number") {
     return error.status;
   }
   return undefined;
-}
-
-function asRecord(value: unknown): Record<string, unknown> {
-  if (value && typeof value === "object" && !Array.isArray(value)) {
-    return value as Record<string, unknown>;
-  }
-  return { output: value as unknown };
-}
-
-export function toGeminiFunctionDeclarations(tools: AssistantTool[]) {
-  return tools.map((tool) => ({
-    name: tool.function.name,
-    description: tool.function.description,
-    parametersJsonSchema: tool.function.parameters
-  }));
 }
 
 type ToolContext = {
@@ -275,22 +260,24 @@ async function executeAssistantToolCall(name: string, args: unknown, ctx: ToolCo
   return result;
 }
 
-async function groqChat(params: {
+async function openRouterChat(params: {
   apiKey: string;
   model: string;
-  messages: GroqChatMessage[];
+  messages: OpenRouterChatMessage[];
   tools: unknown[];
 }) {
-  const response = await fetch(GROQ_CHAT_URL, {
+  const response = await fetch(OPENROUTER_CHAT_URL, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${params.apiKey}`,
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      "X-Title": "InFocus Portal"
     },
     body: JSON.stringify({
       model: params.model,
       temperature: 0.2,
       max_tokens: 900,
+      reasoning: { effort: "low", exclude: true },
       tools: params.tools,
       tool_choice: "auto",
       messages: params.messages
@@ -299,176 +286,91 @@ async function groqChat(params: {
 
   const payload = (await response.json().catch(() => null)) as {
     error?: { message?: string; code?: string };
-    choices?: Array<{ message?: GroqChoiceMessage }>;
+    choices?: Array<{ message?: OpenRouterChoiceMessage }>;
   } | null;
 
-  if (!response.ok) {
-    const message = payload?.error?.message ?? `Groq request failed (${response.status})`;
+  if (!response.ok || payload?.error) {
+    const status = response.ok ? 502 : response.status;
+    const message = payload?.error?.message ?? `OpenRouter request failed (${status})`;
     const error = new Error(message) as Error & { status: number };
-    error.status = response.status;
+    error.status = status;
     throw error;
   }
 
   const message = payload?.choices?.[0]?.message;
   if (!message) {
-    throw new Error("Groq returned an empty response.");
+    throw new Error("OpenRouter returned an empty response.");
   }
 
   return message;
 }
 
-async function runGeminiAssistant(params: {
+async function runOpenRouterModel(params: {
   apiKey: string;
+  model: string;
   messages: AssistantChatMessage[];
   tools: AssistantTool[];
   system: string;
   ctx: ToolContext;
 }) {
-  const client = new GoogleGenAI({ apiKey: params.apiKey });
-  const contents: Content[] = params.messages.map((message) => ({
-    role: message.role === "assistant" ? "model" : "user",
-    parts: [{ text: message.content }]
-  }));
+  const conversation: OpenRouterChatMessage[] = [
+    { role: "system", content: params.system },
+    ...params.messages.map((message) => ({ role: message.role, content: message.content }))
+  ];
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round += 1) {
-    const response = await client.models.generateContent({
-      model: ASSISTANT_GEMINI_MODEL,
-      contents,
-      config: {
-        temperature: 0.2,
-        maxOutputTokens: 900,
-        systemInstruction: params.system,
-        thinkingConfig: { thinkingBudget: 0 },
-        tools: [{ functionDeclarations: toGeminiFunctionDeclarations(params.tools) }]
-      }
+    const message = await openRouterChat({
+      apiKey: params.apiKey,
+      model: params.model,
+      messages: conversation,
+      tools: params.tools
     });
 
-    const toolCalls = (response.functionCalls ?? []).filter((call) => call.name);
+    const toolCalls = message.tool_calls ?? [];
     if (toolCalls.length === 0) {
-      const reply = (response.text ?? "").trim() || fallbackReply(params.ctx);
+      const reply = (message.content ?? "").trim() || fallbackReply(params.ctx);
       if (!reply) {
         throw new Error("Assistant returned an empty reply.");
       }
       return {
         reply,
         sources: [...params.ctx.sources],
-        model: ASSISTANT_GEMINI_MODEL,
+        model: params.model,
         proposals: params.ctx.proposals,
         places: params.ctx.places
       };
     }
 
-    const modelContent = response.candidates?.[0]?.content;
-    contents.push(
-      modelContent
-        ? { role: modelContent.role ?? "model", parts: modelContent.parts ?? [] }
-        : {
-            role: "model",
-            parts: toolCalls.map((call) => ({
-              functionCall: { id: call.id, name: call.name, args: call.args }
-            }))
-          }
-    );
+    conversation.push({
+      role: "assistant",
+      content: message.content ?? "",
+      tool_calls: toolCalls
+    });
 
-    const responseParts = [];
     for (const call of toolCalls) {
-      const name = call.name as string;
-      const result = await executeAssistantToolCall(name, call.args ?? {}, params.ctx);
-      responseParts.push({
-        functionResponse: {
-          id: call.id,
-          name,
-          response: asRecord(result)
-        }
+      const result = await executeAssistantToolCall(
+        call.function.name,
+        parseToolArguments(call.function.arguments),
+        params.ctx
+      );
+      conversation.push({
+        role: "tool",
+        tool_call_id: call.id,
+        content: JSON.stringify(result)
       });
     }
-    contents.push({ role: "user", parts: responseParts });
   }
 
   throw new Error("Assistant used too many doc lookups. Ask a more specific question.");
 }
 
-async function runGroqAssistant(params: {
-  apiKey: string;
-  model?: string;
-  messages: AssistantChatMessage[];
-  tools: AssistantTool[];
-  system: string;
-  ctx: ToolContext;
-}) {
-  const conversation: GroqChatMessage[] = [
-    { role: "system", content: params.system },
-    ...params.messages.map((message) => ({ role: message.role, content: message.content }))
-  ];
-
-  let lastError: Error | null = null;
-
-  for (const model of groqModels(params.model)) {
-    try {
-      for (let round = 0; round < MAX_TOOL_ROUNDS; round += 1) {
-        const message = await groqChat({
-          apiKey: params.apiKey,
-          model,
-          messages: conversation,
-          tools: params.tools
-        });
-
-        const toolCalls = message.tool_calls ?? [];
-        if (toolCalls.length === 0) {
-          const reply = (message.content ?? "").trim() || fallbackReply(params.ctx);
-          if (!reply) {
-            throw new Error("Assistant returned an empty reply.");
-          }
-          return {
-            reply,
-            sources: [...params.ctx.sources],
-            model,
-            proposals: params.ctx.proposals,
-            places: params.ctx.places
-          };
-        }
-
-        conversation.push({
-          role: "assistant",
-          content: message.content ?? "",
-          tool_calls: toolCalls
-        });
-
-        for (const call of toolCalls) {
-          const result = await executeAssistantToolCall(
-            call.function.name,
-            parseToolArguments(call.function.arguments),
-            params.ctx
-          );
-          conversation.push({
-            role: "tool",
-            tool_call_id: call.id,
-            content: JSON.stringify(result)
-          });
-        }
-      }
-
-      throw new Error("Assistant used too many doc lookups. Ask a more specific question.");
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error("Assistant failed.");
-      const status = httpStatus(error);
-      if (status === 429) {
-        throw new Error("TOO_MANY_REQUESTS");
-      }
-      if (status === 404 || status === 400) {
-        continue;
-      }
-      throw lastError;
-    }
-  }
-
-  throw lastError ?? new Error("No Groq model is available.");
+function isRetryableStatus(status: number | undefined) {
+  return status === 400 || status === 403 || status === 404 || status === 429 || (status !== undefined && status >= 500);
 }
 
 export async function runAssistantChat(params: {
-  geminiApiKey?: string;
-  groqApiKey?: string;
-  groqModel?: string;
+  openRouterApiKey?: string;
+  openRouterModel?: string;
   messages: AssistantChatMessage[];
   canMutate?: boolean;
   actorUserId?: string;
@@ -476,60 +378,46 @@ export async function runAssistantChat(params: {
   audience?: AssistantAudience;
   onTool?: (name: string) => void;
 }) {
+  if (!params.openRouterApiKey) {
+    throw new Error("Assistant is not configured yet. Add OPENROUTER_API_KEY.");
+  }
+
   const audience = params.audience ?? "member";
   const tools: AssistantTool[] = assistantToolsFor(audience, Boolean(params.canMutate));
   const system = systemPromptFor(audience, Boolean(params.canMutate), params.actorName);
-  const ctx: ToolContext = {
-    canMutate: params.canMutate,
-    actorUserId: params.actorUserId,
-    audience,
-    allowedLookups: new Set(assistantLookupNames(audience)),
-    sources: new Set<string>(),
-    proposals: [],
-    places: [],
-    onTool: params.onTool
-  };
+  let lastError: Error | null = null;
 
-  let geminiError: Error | null = null;
-
-  if (params.geminiApiKey) {
+  for (const model of openRouterModels(params.openRouterModel)) {
+    // Fresh state per model so a failed attempt's cards and sources are not shown.
+    const ctx: ToolContext = {
+      canMutate: params.canMutate,
+      actorUserId: params.actorUserId,
+      audience,
+      allowedLookups: new Set(assistantLookupNames(audience)),
+      sources: new Set<string>(),
+      proposals: [],
+      places: [],
+      onTool: params.onTool
+    };
     try {
-      return await runGeminiAssistant({
-        apiKey: params.geminiApiKey,
+      return await runOpenRouterModel({
+        apiKey: params.openRouterApiKey,
+        model,
         messages: params.messages,
         tools,
         system,
         ctx
       });
     } catch (error) {
-      geminiError = error instanceof Error ? error : new Error("Gemini request failed.");
-      const status = httpStatus(error);
-      if (status) {
-        (geminiError as Error & { status: number }).status = status;
+      lastError = error instanceof Error ? error : new Error("Assistant failed.");
+      if (!isRetryableStatus(httpStatus(error))) {
+        throw lastError;
       }
-      ctx.sources.clear();
-      ctx.proposals.length = 0;
-      ctx.places.length = 0;
     }
   }
 
-  if (params.groqApiKey) {
-    return runGroqAssistant({
-      apiKey: params.groqApiKey,
-      model: params.groqModel,
-      messages: params.messages,
-      tools,
-      system,
-      ctx
-    });
+  if (httpStatus(lastError) === 429) {
+    throw new Error("TOO_MANY_REQUESTS");
   }
-
-  if (geminiError) {
-    if (httpStatus(geminiError) === 429) {
-      throw new Error("TOO_MANY_REQUESTS");
-    }
-    throw geminiError;
-  }
-
-  throw new Error("Assistant is not configured yet. Add GEMINI_API_KEY_CHAT or GROQ_API_KEY.");
+  throw lastError ?? new Error("No OpenRouter model is available.");
 }

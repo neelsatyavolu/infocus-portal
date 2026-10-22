@@ -165,3 +165,13 @@ export function autoStartGroups(recordings: ShowRecording[], options: { now: Dat
       return [{ showDate, files, ready: options.now.getTime() >= readyAtMs, readyAt: new Date(readyAtMs).toISOString() }];
     });
 }
+
+/** Recordings the picker shows before "Show older". */
+export const RECORDINGS_SHOWN = 6;
+
+/** Files newest first: the newest 6, plus older ones already ticked (in order); `hidden` counts the rest. */
+export function visibleRecordings(files: ShowRecording[], chosen: ReadonlySet<string>, showAll: boolean) {
+  if (showAll) return { shown: files, hidden: 0 };
+  const shown = files.filter((file, index) => index < RECORDINGS_SHOWN || chosen.has(file.path));
+  return { shown, hidden: files.length - shown.length };
+}

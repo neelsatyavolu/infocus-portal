@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { DebugLogLinks } from "@/app/(app)/editing/show-edit-parts";
+import { approveLine, DebugLogLinks } from "@/app/(app)/editing/show-edit-parts";
 import { editorLogPath, isEditorLogPath, mergeDebugLog } from "@/src/lib/show-editor-debug-logs";
 
 const SHOW = "2026-10-21";
@@ -68,5 +68,18 @@ describe("DebugLogLinks", () => {
 
   it("has no disclosure with only one log", () => {
     expect(renderToStaticMarkup(<DebugLogLinks logs={[log(1, "https://drive.example.org/v1")]} />)).not.toContain("<details");
+  });
+});
+
+describe("approveLine", () => {
+  it("says what Approve & schedule will schedule and when, in Pacific time", () => {
+    expect(approveLine({ title: "InFocus News | Friday, October 23rd, 2026", publishAt: "2026-10-23T15:30:00.000Z", problem: null }))
+      .toBe("Schedules \u201cInFocus News | Friday, October 23rd, 2026\u201d for Fri, Oct 23, 8:30 AM.");
+  });
+
+  it("shows the problem instead, or points to Change details when there's no preview", () => {
+    expect(approveLine({ title: "x", publishAt: "2026-10-23T15:30:00.000Z", problem: "Pick a season first: use Change details." }))
+      .toBe("Pick a season first: use Change details.");
+    expect(approveLine(null)).toContain("Change details");
   });
 });

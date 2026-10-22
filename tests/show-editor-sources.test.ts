@@ -2,8 +2,9 @@ import { describe, expect, it } from "vitest";
 import type { ShowRecording } from "@/src/lib/show-editor";
 import {
   autoStartGroups, briefSources, defaultSourceSelection, normalizeSources, preselectionExclusion, recordingNotes,
-  setSourceRole, showDateFromName, showRecordingBaseName, sourceSelectionError, toggleFolder, toggleSource
+  setSourceRole, showDateFromName, showRecordingBaseName, sourceSelectionError, toggleFolder, toggleSource, visibleRecordings
 } from "@/src/lib/show-editor-sources";
+import { isShowRecordingPath } from "@/src/lib/show-editor";
 
 const NOW = new Date("2026-10-21T22:00:00Z");
 
@@ -165,5 +166,42 @@ describe("auto-start grouping", () => {
       file("InFocus Show 11-30-2026.mov", { modifiedAt: minutesAgo(60) })
     ];
     expect(autoStartGroups(recordings, { now: NOW, ...window })).toEqual([]);
+  });
+});
+
+describe("picker visibility", () => {
+  const files = Array.from({ length: 9 }, (_, index) => file(`InFocus Show ${index}.mov`));
+
+  it("shows the newest 6 and counts the rest", () => {
+    const { shown, hidden } = visibleRecordings(files, new Set(), false);
+    expect(shown.map((entry) => entry.name)).toEqual(files.slice(0, 6).map((entry) => entry.name));
+    expect(hidden).toBe(3);
+  });
+
+  it("keeps an older ticked file in view, in order", () => {
+    const { shown, hidden } = visibleRecordings(files, new Set([files[8].path]), false);
+    expect(shown.map((entry) => entry.name)).toEqual([...files.slice(0, 6), files[8]].map((entry) => entry.name));
+    expect(hidden).toBe(2);
+  });
+
+  it("shows everything once opened, and nothing is hidden with 6 or fewer", () => {
+    expect(visibleRecordings(files, new Set(), true)).toEqual({ shown: files, hidden: 0 });
+    expect(visibleRecordings(files.slice(0, 6), new Set(), false).hidden).toBe(0);
+  });
+});
+
+describe("isShowRecordingPath", () => {
+  it("takes a file in Shows/ or one folder down", () => {
+    expect(isShowRecordingPath("Shows/InFocus Show 10-23-2026.mov")).toBe(true);
+    expect(isShowRecordingPath("Shows/ISO 10-23/cam L.mov")).toBe(true);
+  });
+
+  it("refuses other roots, traversal, deeper paths, empty parts and backslashes", () => {
+    for (const path of [
+      "Package Storage/a.mov", "Shows", "Shows/", "/Shows/a.mov", "Shows/../secret.mov", "Shows/ISO/../../x.mov",
+      "Shows/./a.mov", "Shows/a/b/c.mov", "Shows//a.mov", "Shows/a\\..\\b.mov", `Shows/${"x".repeat(520)}`
+    ]) {
+      expect(isShowRecordingPath(path), path).toBe(false);
+    }
   });
 });

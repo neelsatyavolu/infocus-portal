@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronRight, Download, Loader2 } from "lucide-react";
+import { ChevronRight, Download, Loader2, RotateCcw } from "lucide-react";
 import { Alert } from "@/components/kit/alert";
 import { StatusTag } from "@/components/kit/status-tag";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import {
   editorStatus, SHOW_EDIT_FIX_MAX, SHOW_EDIT_NOTE_MAX,
-  type ShowEditDecision, type ShowEditMessage, type ShowEditorDeviceView, type ShowEditWorker
+  type ShowEditApprovePreview, type ShowEditDecision, type ShowEditMessage, type ShowEditorDeviceView, type ShowEditWorker
 } from "@/src/lib/show-editor";
 import type { ShowEditDebugLog } from "@/src/lib/show-editor-debug-logs";
 
@@ -39,9 +39,9 @@ export function FlaggedDecisions({ decisions, failures }: { decisions: ShowEditD
   );
 }
 
-/** A text box with a submit button; Redo uses it for the note, the fix box for the request. */
+/** A text box with a submit button; Redo uses it for the note, Send back for what needs to change. */
 function NoteForm({
-  label, placeholder, max, submitLabel, busy, onSubmit, extra
+  label, placeholder, max, submitLabel, busy, onSubmit, extra, optional = false
 }: {
   label: string;
   placeholder: string;
@@ -50,6 +50,8 @@ function NoteForm({
   busy: boolean;
   onSubmit: (text: string, remember: boolean) => Promise<boolean>;
   extra?: "remember";
+  /** Can be sent empty. */
+  optional?: boolean;
 }) {
   const [text, setText] = useState("");
   const [remember, setRemember] = useState(false);
@@ -59,7 +61,7 @@ function NoteForm({
       className="space-y-2"
       onSubmit={(event) => {
         event.preventDefault();
-        if (!text.trim()) return;
+        if (!optional && !text.trim()) return;
         void onSubmit(text.trim(), remember).then((done) => {
           if (done) {
             setText("");
@@ -74,7 +76,7 @@ function NoteForm({
         {extra === "remember" ? (
           <Checkbox checked={remember} onCheckedChange={setRemember}>Remember this for future shows</Checkbox>
         ) : <span />}
-        <Button type="submit" variant="outline" disabled={busy || !text.trim()}>
+        <Button type="submit" variant="outline" disabled={busy || (!optional && !text.trim())}>
           {busy ? <Loader2 className="animate-spin" aria-hidden /> : null}
           {submitLabel}
         </Button>
@@ -86,48 +88,78 @@ function NoteForm({
 export function RedoForm({ busy, onRedo }: { busy: boolean; onRedo: (note: string) => Promise<boolean> }) {
   return (
     <NoteForm
-      label="Redo with a note for the editor"
+      label="Note for the editor (optional)"
       placeholder="What should it do differently? e.g. Use the later take of the close."
       max={SHOW_EDIT_NOTE_MAX}
       submitLabel="Redo the edit"
       busy={busy}
       onSubmit={(note) => onRedo(note)}
+      optional
     />
   );
 }
 
-/** Remote prompting: the producer's requests and the editor's replies, then the box for the next one. */
-export function FixConversation({
-  conversation, busy, onFix
-}: {
-  conversation: ShowEditMessage[];
-  busy: boolean;
-  onFix: (text: string, remember: boolean) => Promise<boolean>;
-}) {
+/** Approve & schedule's line: what it will schedule and when, or why it can't yet. */
+export function approveLine(approve: ShowEditApprovePreview | null) {
+  if (!approve) return "Couldn't read the usual title and time. Use Change details.";
+  if (approve.problem) return approve.problem;
+  return `Schedules “${approve.title}” for ${pacificTime.format(new Date(approve.publishAt))}.`;
+}
+
+export const AUTO_SCHEDULE_NOTE = "If nobody approves, it's scheduled automatically at 8:00 AM on show day.";
+
+/** Redo automatic edit: throws this edit away and edits the show again, with an optional note. */
+export function RedoControl({ busy, onRedo }: { busy: boolean; onRedo: (note: string) => Promise<boolean> }) {
+  const [open, setOpen] = useState(false);
   return (
-    <div className="space-y-3">
-      {conversation.length > 0 ? (
-        <ol className="space-y-2 text-sm" aria-label="Fix requests and replies">
-          {conversation.map((entry, index) => (
-            <li key={index} className={entry.from === "producer" ? "rounded-md border border-border p-2.5" : "rounded-md bg-[var(--ink-2)] p-2.5"}>
-              <div className={LABEL_CLASS}>
-                {entry.from === "producer" ? "Producer" : `Editor${entry.version ? ` · v${entry.version}` : ""}`}
-              </div>
-              <p className="mt-1 whitespace-pre-wrap">{entry.text}</p>
-            </li>
-          ))}
-        </ol>
+    <div className="space-y-2">
+      <Button type="button" variant="outline" disabled={busy} aria-expanded={open} onClick={() => setOpen((value) => !value)}>
+        <RotateCcw aria-hidden />
+        Redo automatic edit
+      </Button>
+      {open ? (
+        <RedoForm
+          busy={busy}
+          onRedo={async (note) => {
+            const done = await onRedo(note);
+            if (done) setOpen(false);
+            return done;
+          }}
+        />
       ) : null}
-      <NoteForm
-        label="Ask for a fix"
-        placeholder="What's wrong? Timecodes help, e.g. At 1:12 the Math Club card is cut off."
-        max={SHOW_EDIT_FIX_MAX}
-        submitLabel="Send the fix"
-        busy={busy}
-        onSubmit={onFix}
-        extra="remember"
-      />
     </div>
+  );
+}
+
+/** Send back (remote prompting): what needs to change goes to the same editor session, which makes the next version. */
+export function SendBackForm({ busy, onSendBack }: { busy: boolean; onSendBack: (text: string, remember: boolean) => Promise<boolean> }) {
+  return (
+    <NoteForm
+      label="What needs to change?"
+      placeholder="Timecodes help, e.g. At 1:12 the Math Club card is cut off."
+      max={SHOW_EDIT_FIX_MAX}
+      submitLabel="Send back to the editor"
+      busy={busy}
+      onSubmit={onSendBack}
+      extra="remember"
+    />
+  );
+}
+
+/** The producers' send-backs and the editor's replies, oldest first. */
+export function FixHistory({ conversation }: { conversation: ShowEditMessage[] }) {
+  if (conversation.length === 0) return null;
+  return (
+    <ol className="space-y-2 text-sm" aria-label="Send-backs and replies">
+      {conversation.map((entry, index) => (
+        <li key={index} className={entry.from === "producer" ? "rounded-md border border-border p-2.5" : "rounded-md bg-[var(--ink-2)] p-2.5"}>
+          <div className={LABEL_CLASS}>
+            {entry.from === "producer" ? "Producer" : `Editor${entry.version ? ` · v${entry.version}` : ""}`}
+          </div>
+          <p className="mt-1 whitespace-pre-wrap">{entry.text}</p>
+        </li>
+      ))}
+    </ol>
   );
 }
 

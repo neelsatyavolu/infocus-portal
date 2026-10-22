@@ -1,14 +1,32 @@
 "use client";
 
+import { Download } from "lucide-react";
 import { Panel } from "@/components/kit/panel";
+import { buttonVariants } from "@/components/ui/button";
 import { SHOW_EDIT_BACKEND_LABELS, type ShowEditState } from "@/src/lib/show-editor";
+import { EDITOR_SETUP_APP_URL } from "@/src/lib/show-editor-views";
 import { ConnectAiAccount, EditingMachines, type ShownPairing } from "./show-edit-machines";
 import { LinkConfirm } from "./show-edit-settings";
 import type { EditAction } from "./use-show-edit";
 
+/** A new machine starts here: the setup app installs everything, then shows a code to link it. */
+function SetupAppDownload() {
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+      <a href={EDITOR_SETUP_APP_URL} download className={buttonVariants({ variant: "outline" })}>
+        <Download aria-hidden />
+        Download the setup app
+      </a>
+      <span className="text-[13px] text-muted-foreground">
+        Open it on the Mac that will edit and follow the steps. It installs everything, then shows a code to link it here.
+      </span>
+    </div>
+  );
+}
+
 /**
- * The Machines view: a waiting link approval (`?link=CODE`), every linked editing machine with its buttons
- * and command results, and Connect AI account.
+ * The Machines view: a waiting link approval (`?link=CODE`), the setup app for a new machine, every linked
+ * editing machine with its buttons and command results, and Connect AI account.
  */
 export function EditingMachinesView({ state, linkCode, pairing, busy, send, onLinkDone }: {
   state: ShowEditState;
@@ -26,7 +44,9 @@ export function EditingMachinesView({ state, linkCode, pairing, busy, send, onLi
         title="Editing machines"
         count={devices.length}
         description="The active machine takes new edits. Commands run within about a minute; the latest result shows under each machine."
+        bodyClassName="space-y-4"
       >
+        <SetupAppDownload />
         <EditingMachines
           devices={devices}
           pairings={state.pairings}

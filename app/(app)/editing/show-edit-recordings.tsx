@@ -1,15 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Folder } from "lucide-react";
-import { InlineError } from "@/components/kit/alert";
+import { useEffect, useState } from "react";
+import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Folder, Loader2, Play } from "lucide-react";
+import { InlineError, InlineNote } from "@/components/kit/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { NativeSelect } from "@/components/ui/native-select";
 import type { ShowRecording } from "@/src/lib/show-editor";
 import {
-  MAX_SHOW_EDIT_SOURCES, recordingNotes, setSourceRole, SHOW_EDIT_SOURCE_ROLE_LABELS, SHOW_EDIT_SOURCE_ROLES,
-  sourceSelectionError, toggleFolder, toggleSource, type ShowEditSource, type ShowEditSourceRole
+  MAX_SHOW_EDIT_SOURCES, recordingNotes, RECORDINGS_SHOWN, setSourceRole, SHOW_EDIT_SOURCE_ROLE_LABELS, SHOW_EDIT_SOURCE_ROLES,
+  sourceSelectionError, toggleFolder, toggleSource, visibleRecordings, type ShowEditSource, type ShowEditSourceRole
 } from "@/src/lib/show-editor-sources";
 import { LABEL_CLASS, pacificTime } from "./show-edit-parts";
 
@@ -36,29 +36,83 @@ function groupsOf(recordings: ShowRecording[]): Group[] {
   ];
 }
 
-function FileRow({ recording, chosen, disabled, note, onToggle }: {
-  recording: ShowRecording; chosen: boolean; disabled: boolean; note?: string; onToggle: () => void;
-}) {
+const CANT_PLAY = "This browser can't play this file. Try Safari.";
+
+/** One recording playing inline; its link is minted when it opens (GET /api/show-roles/edits?preview=). */
+function RecordingPreview({ recording }: { recording: ShowRecording }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    let current = true;
+    fetch(`/api/show-roles/edits?preview=${encodeURIComponent(recording.path)}`, { cache: "no-store" })
+      .then(async (response) => {
+        const body = (await response.json().catch(() => ({}))) as { data?: { url?: string }; error?: { message?: string } };
+        if (!response.ok || !body.data?.url) throw new Error(body.error?.message ?? "Couldn't load the preview.");
+        if (current) setUrl(body.data.url);
+      })
+      .catch((reason: unknown) => {
+        if (current) setError(reason instanceof Error ? reason.message : "Couldn't load the preview.");
+      });
+    return () => {
+      current = false;
+    };
+  }, [recording.path]);
+  if (error) return <InlineNote tone="warning">{error}</InlineNote>;
+  if (!url) {
+    return (
+      <p className="flex items-center gap-2 text-[13px] text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+        Loading the preview…
+      </p>
+    );
+  }
   return (
-    <div className="flex min-w-0 items-center gap-3 px-3 py-1.5">
-      <Checkbox checked={chosen} disabled={disabled || !recording.stable} onCheckedChange={onToggle} labelClassName="min-w-0 flex-1">
-        <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2">
-          <span className="truncate font-medium">{recording.name}</span>
-          <span className="text-[13px] text-muted-foreground">
-            {pacificTime.format(new Date(recording.modifiedAt))} · {sizeLabel(recording.size)}
-            {recording.stable ? "" : " · still copying"}
+    <video
+      src={url}
+      controls
+      preload="metadata"
+      className="aspect-video w-full max-w-xl rounded-md border border-border bg-black"
+      aria-label={`Preview of ${recording.name}`}
+      onError={() => setError(CANT_PLAY)}
+    />
+  );
+}
+
+/** Which recording's preview is open (one at a time). */
+type PreviewProps = { previewPath: string | null; onPreview: (path: string | null) => void };
+
+function FileRow({ recording, chosen, disabled, note, onToggle, previewPath, onPreview }: {
+  recording: ShowRecording; chosen: boolean; disabled: boolean; note?: string; onToggle: () => void;
+} & PreviewProps) {
+  const previewing = previewPath === recording.path;
+  return (
+    <div className="space-y-2 px-3 py-1.5">
+      <div className="flex min-w-0 items-center gap-3">
+        <Checkbox checked={chosen} disabled={disabled || !recording.stable} onCheckedChange={onToggle} labelClassName="min-w-0 flex-1">
+          <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2">
+            <span className="truncate font-medium">{recording.name}</span>
+            <span className="text-[13px] text-muted-foreground">
+              {pacificTime.format(new Date(recording.modifiedAt))} · {sizeLabel(recording.size)}
+              {recording.stable ? "" : " · still copying"}
+            </span>
+            {note ? <span className="basis-full text-[13px] text-[var(--brand-amber)]">{note}</span> : null}
           </span>
-          {note ? <span className="basis-full text-[13px] text-[var(--brand-amber)]">{note}</span> : null}
-        </span>
-      </Checkbox>
+        </Checkbox>
+        <Button type="button" size="sm" variant="ghost" className="shrink-0" aria-expanded={previewing}
+          aria-label={`Preview ${recording.name}`} onClick={() => onPreview(previewing ? null : recording.path)}>
+          <Play aria-hidden />
+          Preview
+        </Button>
+      </div>
+      {previewing ? <RecordingPreview recording={recording} /> : null}
     </div>
   );
 }
 
-function FolderRows({ group, selected, disabled, notes, onChange }: {
+function FolderRows({ group, selected, disabled, notes, onChange, previewPath, onPreview }: {
   group: Group & { folder: string }; selected: ShowEditSource[]; disabled: boolean; notes: Record<string, string>;
   onChange: (next: ShowEditSource[]) => void;
-}) {
+} & PreviewProps) {
   const chosen = new Set(selected.map((source) => source.path));
   const usable = group.files.filter((file) => file.stable);
   const picked = usable.filter((file) => chosen.has(file.path)).length;
@@ -89,7 +143,7 @@ function FolderRows({ group, selected, disabled, notes, onChange }: {
         <div className="pl-6">
           {group.files.map((recording) => (
             <FileRow key={recording.path} recording={recording} chosen={chosen.has(recording.path)} disabled={disabled} note={notes[recording.path]}
-              onToggle={() => onChange(toggleSource(selected, recording.path))} />
+              onToggle={() => onChange(toggleSource(selected, recording.path))} previewPath={previewPath} onPreview={onPreview} />
           ))}
         </div>
       ) : null}
@@ -140,6 +194,30 @@ function ChosenSources({ selected, disabled, onChange }: { selected: ShowEditSou
   );
 }
 
+/** The loose files: the newest 6 and any older ticked ones, with Show older / Show fewer. */
+function LooseFiles({ files, chosen, selected, disabled, notes, onChange, previewPath, onPreview }: {
+  files: ShowRecording[]; chosen: Set<string>; selected: ShowEditSource[]; disabled: boolean; notes: Record<string, string>;
+  onChange: (next: ShowEditSource[]) => void;
+} & PreviewProps) {
+  const [showAll, setShowAll] = useState(false);
+  const { shown, hidden } = visibleRecordings(files, chosen, showAll);
+  return (
+    <div>
+      {shown.map((recording) => (
+        <FileRow key={recording.path} recording={recording} chosen={chosen.has(recording.path)} disabled={disabled} note={notes[recording.path]}
+          onToggle={() => onChange(toggleSource(selected, recording.path))} previewPath={previewPath} onPreview={onPreview} />
+      ))}
+      {hidden > 0 || (showAll && files.length > RECORDINGS_SHOWN) ? (
+        <div className="px-3 py-1">
+          <Button type="button" size="sm" variant="ghost" className="text-muted-foreground" onClick={() => setShowAll(!showAll)}>
+            {showAll ? "Show fewer" : `Show ${hidden} older`}
+          </Button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 /**
  * The recordings in Drive `Shows/` and its subfolders. Ticking a file adds it on Auto (the editor works out
  * what it is); ticking a folder adds all its finished files. Roles and order can be changed below.
@@ -150,25 +228,23 @@ export function RecordingPicker({ recordings, selected, disabled, onChange }: {
     disabled: boolean;
   onChange: (next: ShowEditSource[]) => void;
 }) {
+  const [previewPath, setPreviewPath] = useState<string | null>(null);
   if (recordings.length === 0) {
     return <p className="text-sm text-muted-foreground">No recordings in the Shows folder on Drive yet.</p>;
   }
   const chosen = new Set(selected.map((source) => source.path));
   const notes = recordingNotes(recordings);
+  const preview = { previewPath, onPreview: setPreviewPath };
   return (
     <div className="space-y-3">
       <div role="group" aria-label="Recordings in the Shows folder" className="divide-y divide-border rounded-md border border-border">
         {groupsOf(recordings).map((group) =>
           group.folder === null ? (
-            <div key="loose">
-              {group.files.map((recording) => (
-                <FileRow key={recording.path} recording={recording} chosen={chosen.has(recording.path)} disabled={disabled} note={notes[recording.path]}
-                  onToggle={() => onChange(toggleSource(selected, recording.path))} />
-              ))}
-            </div>
+            <LooseFiles key="loose" files={group.files} chosen={chosen} selected={selected} disabled={disabled}
+              notes={notes} onChange={onChange} {...preview} />
           ) : (
             <FolderRows key={group.folder} group={{ ...group, folder: group.folder }} selected={selected} disabled={disabled}
-              notes={notes} onChange={onChange} />
+              notes={notes} onChange={onChange} {...preview} />
           )
         )}
       </div>

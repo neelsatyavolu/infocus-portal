@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   user: vi.fn(), profile: vi.fn(), access: vi.fn(),
-  state: vi.fn(), start: vi.fn(), cancel: vi.fn(), redo: vi.fn(), fix: vi.fn(), pair: vi.fn(),
-  unlink: vi.fn(), activate: vi.fn(), decide: vi.fn(), describe: vi.fn(), command: vi.fn(), settings: vi.fn(), summary: vi.fn()
+  state: vi.fn(), start: vi.fn(), cancel: vi.fn(), redo: vi.fn(), fix: vi.fn(), approve: vi.fn(), pair: vi.fn(),
+  unlink: vi.fn(), preview: vi.fn(), activate: vi.fn(), decide: vi.fn(), describe: vi.fn(), command: vi.fn(), settings: vi.fn(), summary: vi.fn()
 }));
 
 vi.mock("@/src/lib/auth", () => ({ requireUserId: mocks.user, syncUserProfile: mocks.profile }));
@@ -15,7 +15,7 @@ vi.mock("@/src/lib/platform-admin", () => ({
 vi.mock("@/src/server/show-editor", async (original) => ({
   ...await original<typeof import("@/src/server/show-editor")>(),
   showEditState: mocks.state, startShowEdit: mocks.start, cancelShowEdit: mocks.cancel,
-  redoShowEdit: mocks.redo, requestShowFix: mocks.fix, unlinkEditorDevice: mocks.unlink
+  redoShowEdit: mocks.redo, requestShowFix: mocks.fix, approveShowEdit: mocks.approve, unlinkEditorDevice: mocks.unlink
 }));
 vi.mock("@/src/server/show-editor-link", () => ({
   activateEditorDevice: mocks.activate, decideEditorLink: mocks.decide, describeEditorLink: mocks.describe
@@ -25,6 +25,7 @@ vi.mock("@/src/server/show-editor-settings", () => ({ saveEditorSettings: mocks.
 vi.mock("@/src/server/show-editor-summary", () => ({ showEditSummary: mocks.summary }));
 
 vi.mock("@/src/server/show-editor-pairing", () => ({ createPairing: mocks.pair }));
+vi.mock("@/src/server/show-editor-drive", () => ({ recordingPreviewUrl: mocks.preview }));
 
 import { GET, POST } from "@/app/api/show-roles/edits/route";
 import { ShowEditError } from "@/src/server/show-editor";
@@ -70,6 +71,19 @@ describe("show edits route", () => {
     expect(mocks.summary).toHaveBeenCalledTimes(1);
   });
 
+  it("GET ?preview= mints one recording's playback link for producers only, keeping refusals", async () => {
+    mocks.preview.mockResolvedValue("https://drive.example.org/api/service/file?token=r&web=1");
+    const response = await GET(new Request("https://portal.example.edu/api/show-roles/edits?preview=Shows%2Fa.mov"));
+    expect(await response.json()).toEqual({ data: { url: "https://drive.example.org/api/service/file?token=r&web=1" } });
+    expect(response.headers.get("cache-control")).toContain("no-store");
+    expect(mocks.preview).toHaveBeenCalledWith("Shows/a.mov");
+    mocks.preview.mockRejectedValue(new ShowEditError("Pick a recording from the Shows folder.", 400));
+    expect((await GET(new Request("https://portal.example.edu/api/show-roles/edits?preview=..%2Fx"))).status).toBe(400);
+    mocks.access.mockResolvedValue({ role: null });
+    expect((await GET(new Request("https://portal.example.edu/api/show-roles/edits?preview=Shows%2Fa.mov"))).status).toBe(403);
+    expect(mocks.preview).toHaveBeenCalledTimes(2);
+  });
+
   it("start passes each file and its role through in order", async () => {
     mocks.start.mockResolvedValue({ id: "job1" });
     const sources = [{ path: "Shows/ISO/b.mov", role: "M" }, { path: "Shows/a.mov", role: "auto" }, { path: "Shows/c.mov", role: "ignore" }];
@@ -104,9 +118,11 @@ describe("show edits route", () => {
     expect(mocks.start).not.toHaveBeenCalled();
   });
 
-  it("redo requires a note", async () => {
-    expect((await POST(post({ action: "redo", id: "job1", note: "  " }))).status).toBe(400);
+  it("redo takes an optional note of at most 500 characters", async () => {
+    expect((await POST(post({ action: "redo", id: "job1", note: "x".repeat(501) }))).status).toBe(400);
     mocks.redo.mockResolvedValue({ id: "job2" });
+    expect((await POST(post({ action: "redo", id: "job1" }))).status).toBe(200);
+    expect(mocks.redo).toHaveBeenLastCalledWith({ userId: "u1", id: "job1", note: undefined });
     await POST(post({ action: "redo", id: "job1", note: "Use the later take." }));
     expect(mocks.redo).toHaveBeenCalledWith({ userId: "u1", id: "job1", note: "Use the later take." });
   });
@@ -117,6 +133,21 @@ describe("show edits route", () => {
     mocks.fix.mockResolvedValue({ id: "job1" });
     await POST(post({ action: "fix", id: "job1", text: "At 1:12 the card is cut off.", remember: true }));
     expect(mocks.fix).toHaveBeenCalledWith({ userId: "u1", id: "job1", text: "At 1:12 the card is cut off.", remember: true });
+  });
+
+  it("approve needs an id, passes the producer, and its refusals keep their message and status", async () => {
+    expect((await POST(post({ action: "approve" }))).status).toBe(400);
+    mocks.approve.mockResolvedValue({ id: "job1", status: "PUBLISHED" });
+    const response = await POST(post({ action: "approve", id: "job1" }));
+    expect(response.status).toBe(200);
+    expect(mocks.approve).toHaveBeenCalledWith({ id: "job1", userId: "u1" });
+    mocks.approve.mockRejectedValue(new ShowEditError("Pick a season first: use Change details.", 409));
+    const refused = await POST(post({ action: "approve", id: "job1" }));
+    expect(refused.status).toBe(409);
+    expect((await refused.json()).error.message).toBe("Pick a season first: use Change details.");
+    mocks.access.mockResolvedValue({ role: null });
+    expect((await POST(post({ action: "approve", id: "job1" }))).status).toBe(403);
+    expect(mocks.approve).toHaveBeenCalledTimes(2);
   });
 
   it("cancel passes the id and refusals keep their status", async () => {

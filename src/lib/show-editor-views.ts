@@ -6,6 +6,9 @@ import { SHOW_EDIT_STAGE_LABELS, type ShowEditStage, type ShowEditStatus } from 
  */
 
 export const EDITING_VIEWS = ["show", "machines", "settings"] as const;
+
+/** The InFocus Editor setup app (the newest release on GitHub), linked from Machines. */
+export const EDITOR_SETUP_APP_URL = "https://github.com/neelsatyavolu/infocus-editor/releases/latest/download/InFocus-Editor-Setup.dmg";
 export type EditingView = (typeof EDITING_VIEWS)[number];
 export const EDITING_VIEW_LABELS: Record<EditingView, string> = { show: "Show", machines: "Machines", settings: "Settings" };
 

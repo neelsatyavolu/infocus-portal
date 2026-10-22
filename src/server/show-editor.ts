@@ -6,8 +6,10 @@ import {
   autoPublishReady, LEGACY_EDITOR_DEVICE_ID, SHOW_EDIT_MAX_ATTEMPT, SHOW_EDIT_STALE_MS, SHOW_RECORDINGS_FOLDER,
   UNFINISHED_SHOW_EDIT_STATUSES, type EditorHealth, type ShowEditDecision, type ShowEditMessage, type ShowEditStage,
   type EditorBackendStatus, type ShowEditBackend, type ShowEditorCommandKind, type ShowEditorMachineKind, type ShowEditState, type ShowEditStatus, type ShowEditView,
-  type AutoStartPreview, type ShowRecording
+  type AutoStartPreview, type ShowEditApprovePreview, type ShowRecording
 } from "@/src/lib/show-editor";
+import { showPublishAt } from "@/src/lib/show-publication";
+import { portalChecks, publishSlotNotBefore } from "@/src/lib/show-editor-escalation";
 import {
   driveFileSize, editorDriveBaseUrl, listShowRecordings, mintEditorDownload, mintEditorUpload
 } from "@/src/server/show-editor-drive";
@@ -22,6 +24,8 @@ import {
   attachEditedShow, confirmShowPublication, showPublicationState, ShowUploadError
 } from "@/src/server/show-publishing";
 import { loadShowStory } from "@/src/server/show-story";
+import { pastShowCards, type PastShowCard } from "@/src/server/show-editor-past-cards";
+import { classRoster } from "@/src/server/show-editor-roster";
 import { ShowEditError } from "@/src/server/show-editor-errors";
 import {
   briefSources, normalizeSources, sourceSelectionError, type ShowEditBriefSource, type ShowEditSource
@@ -35,6 +39,8 @@ export { ShowEditError };
 const PREVIEW_TTL_SECONDS = 3 * 3600;
 const MACHINE_UNLINKED = "The machine that made this edit is no longer linked; use Redo";
 const SENT_TO_YOUTUBE = "This show was already sent to YouTube. Make changes in YouTube Studio.";
+const NO_SEASON = "Pick a season first: use Change details.";
+const TIME_PASSED = "The usual publish time has already passed. Pick a new time: use Change details.";
 
 export type ShowEditBrief = {
   jobId: string;
@@ -46,7 +52,11 @@ export type ShowEditBrief = {
   /** The same paths in order, for editors from before multicam. */
   sourcePaths: string[];
   anchors: string[];
+  /** Full names of the class (staff left out), A–Z, at most 300: anchors above are often nicknames. */
+  roster: string[];
   announcements: string[];
+  /** Announcement cards from other shows' latest edits (`checks.cards`), newest show first, at most 16. */
+  pastCards: PastShowCard[];
   packages: { title: string; nasPath: string; toss: string | null }[];
   note: string | null;
   /** The producers' house rules from the Editing tab; null means the editor's built-in default. */
@@ -176,7 +186,7 @@ export async function cancelShowEdit(input: { id: string }, now = new Date()): P
   return showEditView(await requireJob(job.id).catch(() => job));
 }
 
-export async function redoShowEdit(input: { userId: string; id: string; note: string }, now = new Date()): Promise<ShowEditView> {
+export async function redoShowEdit(input: { userId: string; id: string; note?: string }, now = new Date()): Promise<ShowEditView> {
   const old = await requireJob(input.id);
   if (!["REVIEW", "FAILED", "CANCELLED"].includes(old.status)) {
     throw new ShowEditError("Redo is for an edit that finished, failed or was cancelled.", 409);
@@ -189,7 +199,7 @@ export async function redoShowEdit(input: { userId: string; id: string; note: st
     });
   }
   const job = await prisma.showEditJob.create({
-    data: { showDate: old.showDate, sourcePaths: normalizeSources(old.sourcePaths), note: input.note.trim(), createdById: input.userId }
+    data: { showDate: old.showDate, sourcePaths: normalizeSources(old.sourcePaths), note: input.note?.trim() || null, createdById: input.userId }
   });
   return showEditView(job);
 }
@@ -355,11 +365,13 @@ async function buildClaim(job: ShowEditJob, paths: { outputNasPath: string; post
   const sources = briefSources(normalizeSources(job.sourcePaths));
   // Ignored files stay in `sources` (so the editor can say so) but are never downloaded, and older editors never see them.
   const sourcePaths = sources.filter((source) => source.role !== "ignore").map((source) => source.path);
-  const [story, packages, settings, recordings] = await Promise.all([
+  const [story, packages, settings, recordings, pastCards, roster] = await Promise.all([
     loadShowStory(job.showDate),
     queuedPackages(job.showDate),
     loadEditorSettings(),
-    kind === "edit" ? listShowRecordings(now) : Promise.resolve([] as ShowRecording[])
+    kind === "edit" ? listShowRecordings(now) : Promise.resolve([] as ShowRecording[]),
+    pastShowCards(job.showDate),
+    classRoster()
   ]);
   const listed = new Map(recordings.map((recording) => [recording.path, recording]));
   const timedSources = kind === "edit"
@@ -374,7 +386,9 @@ async function buildClaim(job: ShowEditJob, paths: { outputNasPath: string; post
     sources: timedSources,
     sourcePaths,
     anchors: story.anchors,
+    roster,
     announcements: story.announcements,
+    pastCards,
     packages,
     note: job.note,
     houseRules: settings.houseRules,
@@ -469,16 +483,46 @@ export async function showEditUploadTargets(id: string, now = new Date()) {
   return { driveBaseUrl: editorDriveBaseUrl(), video, poster, log };
 }
 
+type ScheduleDefaults = NonNullable<Awaited<ReturnType<typeof showPublicationState>>["defaults"]>;
+
+/** Why Upload show's defaults can't be scheduled as they are (no season, or the time has passed); null when they can. */
+function defaultsProblem(defaults: ScheduleDefaults, now: Date) {
+  if (!defaults.seasonNumber) return NO_SEASON;
+  if (showPublishAt(defaults.publishDate, defaults.publishTime).getTime() <= now.getTime()) return TIME_PASSED;
+  return null;
+}
+
+/** The defaults, moved to `earliest` when their time is sooner (the 8 AM auto-schedule). */
+function notBefore(defaults: ScheduleDefaults, earliest: Date | undefined): ScheduleDefaults {
+  if (!earliest || showPublishAt(defaults.publishDate, defaults.publishTime).getTime() >= earliest.getTime()) return defaults;
+  return { ...defaults, ...publishSlotNotBefore(earliest) };
+}
+
+/**
+ * Schedules the show's draft with Upload show's defaults (auto-publish, Approve, and the 8 AM auto-schedule
+ * with `earliest`); returns the publish time. Refusals are plain ShowEditErrors.
+ */
+export async function scheduleWithDefaults(showDate: string, userId: string, now: Date, earliest?: Date) {
+  const { defaults: usual } = await showPublicationState(showDate);
+  if (!usual) throw new ShowEditError(SENT_TO_YOUTUBE, 409);
+  const defaults = notBefore(usual, earliest);
+  const problem = defaultsProblem(defaults, now);
+  const { title, description, publishDate, publishTime, seasonNumber } = defaults;
+  if (problem || !seasonNumber) throw new ShowEditError(problem ?? NO_SEASON, 409);
+  try {
+    await confirmShowPublication({ userId, showDate, title, description, publishDate, publishTime, seasonNumber });
+  } catch (error) {
+    if (error instanceof ShowUploadError) throw new ShowEditError(error.message, error.status);
+    throw error;
+  }
+  return showPublishAt(publishDate, publishTime);
+}
+
 /** Phase 2 (SHOW_EDITOR_AUTO_PUBLISH=1): schedule a clean edit with the upload dialog's defaults. */
-async function autoPublish(job: ShowEditJob, input: { needsReview: boolean; checks: unknown }) {
+async function autoPublish(job: ShowEditJob, input: { needsReview: boolean; checks: unknown }, now: Date) {
   if (!autoPublishReady(input) || !(await loadEditorSettings()).autoPublish) return false;
   try {
-    const defaults = (await showPublicationState(job.showDate)).defaults;
-    if (!defaults?.seasonNumber) return false;
-    await confirmShowPublication({
-      userId: job.createdById, showDate: job.showDate, title: defaults.title, description: defaults.description,
-      publishDate: defaults.publishDate, publishTime: defaults.publishTime, seasonNumber: defaults.seasonNumber
-    });
+    await scheduleWithDefaults(job.showDate, job.createdById, now);
     return true;
   } catch (error) {
     console.error("show editor: auto-publish skipped", job.id, error);
@@ -508,7 +552,7 @@ export async function completeShowEdit(input: {
   const data: Prisma.ShowEditJobUpdateInput = {
     status: "REVIEW", stage: null, message: null, error: null, cancelRequested: false, finishedAt: now,
     decisions: input.decisions as unknown as Prisma.InputJsonValue,
-    checks: mergeDebugLog(job.checks, input.checks, debugLog) as Prisma.InputJsonValue,
+    checks: { ...mergeDebugLog(job.checks, input.checks, debugLog), ...portalChecks(job.checks) } as Prisma.InputJsonValue,
     needsReview: input.needsReview,
     costUsd: (job.costUsd ?? 0) + input.costUsd,
     agentSessionId: input.agentSessionId,
@@ -522,7 +566,7 @@ export async function completeShowEdit(input: {
   const updated = await prisma.showEditJob.update({ where: { id: job.id }, data });
   if (input.houseRules?.trim()) await saveEditorSettings({ houseRules: input.houseRules }, null);
   const reviewed = { ...job, ...updated, needsReview: input.needsReview };
-  if (await autoPublish(job, input)) {
+  if (await autoPublish(job, input, now)) {
     await prisma.showEditJob.update({ where: { id: job.id }, data: { status: "PUBLISHED" } });
     await notifyShowEdit({ ...reviewed, status: "PUBLISHED" }, "published");
   } else {
@@ -558,9 +602,42 @@ export async function markShowEditPublished(showDate: string) {
   });
 }
 
-async function previewFor(job: ShowEditJob | null, publication: { status: string; nasPath: string } | null) {
-  if (!job || job.status !== "REVIEW" || !publication || publication.status !== "DRAFT") return null;
-  if (!job.outputNasPath || publication.nasPath !== job.outputNasPath) return null;
+type DraftPublication = { status: string; nasPath: string } | null;
+
+/** At REVIEW, with the edited file as the show's draft: the edit Approve and the preview are for. */
+export function isReviewedDraft(job: ShowEditJob | null, publication: DraftPublication): job is ShowEditJob {
+  return job?.status === "REVIEW" && publication?.status === "DRAFT" && Boolean(job.outputNasPath) && publication.nasPath === job.outputNasPath;
+}
+
+/** Approve & schedule: schedule the edited draft with Upload show's defaults, which finishes the job. */
+export async function approveShowEdit(input: { id: string; userId: string }, now = new Date()): Promise<ShowEditView> {
+  const job = await requireJob(input.id);
+  if (job.status === "PUBLISHED") throw new ShowEditError("This edit was already scheduled.", 409);
+  if (job.status !== "REVIEW") throw new ShowEditError("An edit can be approved once it's ready for review.", 409);
+  const publication = await requireShowStillDraft(job.showDate);
+  if (!isReviewedDraft(job, publication)) throw new ShowEditError("This edit is no longer the show's video. Reload and try again.", 409);
+  await scheduleWithDefaults(job.showDate, input.userId, now);
+  // Scheduled is what counts; never fail the approval over the job's own status.
+  await markShowEditPublished(job.showDate).catch((error) => console.error("show editor: mark published failed", job.id, error));
+  return showEditView(await requireJob(job.id).catch(() => ({ ...job, status: "PUBLISHED" })));
+}
+
+/** What Approve would schedule, with the same check as approving; null if the defaults can't be read. */
+async function approvePreview(job: ShowEditJob | null, publication: DraftPublication, now: Date): Promise<ShowEditApprovePreview | null> {
+  if (!isReviewedDraft(job, publication)) return null;
+  try {
+    const { defaults } = await showPublicationState(job.showDate);
+    if (!defaults) return null;
+    const publishAt = showPublishAt(defaults.publishDate, defaults.publishTime).toISOString();
+    return { title: defaults.title, publishAt, problem: defaultsProblem(defaults, now) };
+  } catch (error) {
+    console.error("show editor: approve preview failed", job.id, error);
+    return null;
+  }
+}
+
+async function previewFor(job: ShowEditJob | null, publication: DraftPublication) {
+  if (!isReviewedDraft(job, publication) || !job.outputNasPath) return null;
   try {
     const [video, poster] = await Promise.all([
       nasMintDownloadUrl(job.outputNasPath, PREVIEW_TTL_SECONDS),
@@ -609,6 +686,7 @@ export async function showEditState(showDate: string, now = new Date()): Promise
   const active = devices.find((device) => device.active) ?? null;
   const autoStart = settings.autoStart && !job ? autoStartPreview(showDate, recordings, now) : null;
   const fixMachine = job?.status === "QUEUED" && job.pendingFix && job.deviceId ? devices.find((device) => device.id === job.deviceId) : undefined;
+  const [preview, approve] = await Promise.all([previewFor(job, publication), approvePreview(job, publication, now)]);
   return {
     worker: {
       online: active?.online ?? false,
@@ -626,7 +704,8 @@ export async function showEditState(showDate: string, now = new Date()): Promise
     recordingsError,
     job: job ? { ...showEditView(job), debugLogs: await debugLogLinks(job) } : null,
     publicationStatus: publication?.status ?? null,
-    preview: await previewFor(job, publication),
+    preview,
+    approve,
     autoStart
   };
 }

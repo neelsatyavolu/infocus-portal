@@ -1,7 +1,9 @@
-import { driveBaseUrl, driveFetch, nasMintUploadSession } from "@/src/lib/nas-storage";
+import { driveBaseUrl, driveFetch, nasDeriveWebPlaybackUrl, nasMintDownloadUrl, nasMintUploadSession } from "@/src/lib/nas-storage";
 import {
-  MAX_LISTED_FOLDERS, MAX_LISTED_RECORDINGS, recordingsFromListing, SHOW_RECORDINGS_FOLDER, type DriveListItem, type ShowRecording
+  isShowRecordingPath, MAX_LISTED_FOLDERS, MAX_LISTED_RECORDINGS, recordingsFromListing, SHOW_RECORDINGS_FOLDER,
+  type DriveListItem, type ShowRecording
 } from "@/src/lib/show-editor";
+import { ShowEditError } from "@/src/server/show-editor-errors";
 
 /** Download and upload links handed to the editing Mac last this long (Drive's cap is 6 hours). */
 export const EDITOR_TOKEN_TTL_SECONDS = 6 * 3600;
@@ -36,6 +38,21 @@ export async function listShowRecordings(now = new Date()): Promise<ShowRecordin
   return [...recordingsFromListing(top, now), ...nested.flat()]
     .sort((a, b) => b.modifiedAt.localeCompare(a.modifiedAt))
     .slice(0, MAX_LISTED_RECORDINGS);
+}
+
+/** Recording previews in the picker play for this long. */
+const RECORDING_PREVIEW_TTL_SECONDS = 3 * 3600;
+
+/**
+ * A playable link for one recording the picker lists, minted like the edited show's preview. Refused (400)
+ * for a path outside `Shows/`, and (404) for one the listing doesn't have.
+ */
+export async function recordingPreviewUrl(path: string, now = new Date()) {
+  if (!isShowRecordingPath(path)) throw new ShowEditError(`Pick a recording from the ${SHOW_RECORDINGS_FOLDER} folder.`, 400);
+  if (!(await listShowRecordings(now)).some((recording) => recording.path === path)) {
+    throw new ShowEditError(`That recording isn't in the ${SHOW_RECORDINGS_FOLDER} folder on Drive.`, 404);
+  }
+  return nasDeriveWebPlaybackUrl(await nasMintDownloadUrl(path, RECORDING_PREVIEW_TTL_SECONDS));
 }
 
 /** Read link for one file, for the editing Mac to download (`inline=false` streams the original). */

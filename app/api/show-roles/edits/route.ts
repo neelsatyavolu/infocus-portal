@@ -12,9 +12,10 @@ import {
   MAX_SHOW_EDIT_SOURCES, normalizeSources, SHOW_EDIT_SOURCE_ROLES, sourceSelectionError
 } from "@/src/lib/show-editor-sources";
 import {
-  cancelShowEdit, redoShowEdit, requestShowFix, showEditState, ShowEditError, startShowEdit, unlinkEditorDevice
+  approveShowEdit, cancelShowEdit, redoShowEdit, requestShowFix, showEditState, ShowEditError, startShowEdit, unlinkEditorDevice
 } from "@/src/server/show-editor";
 import { queueEditorCommand } from "@/src/server/show-editor-commands";
+import { recordingPreviewUrl } from "@/src/server/show-editor-drive";
 import { activateEditorDevice, decideEditorLink, describeEditorLink } from "@/src/server/show-editor-link";
 import { createPairing } from "@/src/server/show-editor-pairing";
 import { saveEditorSettings } from "@/src/server/show-editor-settings";
@@ -37,8 +38,11 @@ const actionSchema = z.discriminatedUnion("action", [
     sourcePaths: z.array(recordingPath).max(MAX_SHOW_EDIT_SOURCES, `Pick at most ${MAX_SHOW_EDIT_SOURCES} files.`).optional()
   }),
   z.object({ action: z.literal("cancel"), id: jobId }),
-  z.object({ action: z.literal("redo"), id: jobId, note: z.string().trim().min(1).max(SHOW_EDIT_NOTE_MAX) }),
+  // The note for the editor is optional.
+  z.object({ action: z.literal("redo"), id: jobId, note: z.string().trim().max(SHOW_EDIT_NOTE_MAX).optional() }),
   z.object({ action: z.literal("fix"), id: jobId, text: z.string().trim().min(1).max(SHOW_EDIT_FIX_MAX), remember: z.boolean() }),
+  // Schedule the edit under review with Upload show's defaults.
+  z.object({ action: z.literal("approve"), id: jobId }),
   // A sign-in for one machine; without deviceId, the active one.
   z.object({ action: z.literal("pair"), backend: z.enum(SHOW_EDIT_BACKENDS), deviceId: deviceId.optional() }),
   // Approve (or, with approve: false, turn down) the machine waiting on this link code. Other machines stay
@@ -61,7 +65,7 @@ const actionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("command"), deviceId, kind: z.enum(SHOW_EDITOR_COMMANDS) })
 ]);
 
-/** Same gate as Upload show (app/api/show-roles/publication): any producer can start, cancel, redo and fix. */
+/** Same gate as Upload show (app/api/show-roles/publication): any producer can start, cancel, redo, fix and approve. */
 async function requireProducer() {
   const userId = await requireUserId();
   const user = await syncUserProfile(userId);
@@ -85,6 +89,9 @@ export async function GET(request: Request) {
     const linkCode = params.get("link");
     // The confirm screen for /editing?link=CODE: which Mac is asking to be linked.
     if (linkCode !== null) return okNoStore({ link: await describeEditorLink(linkCode) });
+    // The picker's Preview: a playable link for one listed recording, minted only when asked for.
+    const preview = params.get("preview");
+    if (preview !== null) return okNoStore({ url: await recordingPreviewUrl(preview) });
     const date = params.get("date");
     if (!date || !DATE_KEY_PATTERN.test(date)) return fail("A valid date is required.", 400);
     // The Show's one-line summary: no Drive listing, no preview links.
@@ -114,6 +121,8 @@ export async function POST(request: Request) {
         return okNoStore(await redoShowEdit({ userId, id: body.id, note: body.note }));
       case "fix":
         return okNoStore(await requestShowFix({ userId, id: body.id, text: body.text, remember: body.remember }));
+      case "approve":
+        return okNoStore(await approveShowEdit({ id: body.id, userId }));
       case "pair":
         return okNoStore(await createPairing({ userId, backend: body.backend, deviceId: body.deviceId }));
       case "link":

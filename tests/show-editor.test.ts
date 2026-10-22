@@ -12,7 +12,7 @@ const mocks = vi.hoisted(() => ({
   acks: vi.fn(), purge: vi.fn(), deliver: vi.fn(), pairings: vi.fn(),
   settings: { findUnique: vi.fn(), upsert: vi.fn() },
   commandAcks: vi.fn(), takeCommands: vi.fn(), recentCommands: vi.fn(),
-  activate: vi.fn(), devices: vi.fn(), revoke: vi.fn()
+  activate: vi.fn(), devices: vi.fn(), revoke: vi.fn(), mint: vi.fn(), roster: vi.fn()
 }));
 
 vi.mock("@/src/lib/prisma", () => ({ prisma: {
@@ -23,6 +23,11 @@ vi.mock("@/src/lib/prisma", () => ({ prisma: {
   packageProgressRow: { findMany: mocks.rows }
 } }));
 vi.mock("@/src/server/show-story", () => ({ loadShowStory: mocks.story }));
+vi.mock("@/src/server/show-editor-roster", () => ({ classRoster: mocks.roster }));
+vi.mock("@/src/lib/nas-storage", async (original) => ({
+  ...await original<typeof import("@/src/lib/nas-storage")>(),
+  nasMintDownloadUrl: mocks.mint
+}));
 vi.mock("@/src/server/show-editor-drive", () => ({
   listShowRecordings: mocks.recordings,
   mintEditorDownload: mocks.download,
@@ -51,7 +56,7 @@ vi.mock("@/src/server/show-editor-notify", () => ({
 }));
 
 import {
-  unlinkEditorDevice, cancelShowEdit, claimNextShowEdit, completeShowEdit, failShowEdit, recordHeartbeat, redoShowEdit,
+  approveShowEdit, scheduleWithDefaults, unlinkEditorDevice, cancelShowEdit, claimNextShowEdit, completeShowEdit, failShowEdit, recordHeartbeat, redoShowEdit,
   reportShowEditProgress, requestShowFix, showEditState, showEditUploadTargets, startShowEdit
 } from "@/src/server/show-editor";
 import { ShowUploadError } from "@/src/server/show-publishing";
@@ -86,6 +91,7 @@ describe("show editor jobs", () => {
     mocks.recordings.mockResolvedValue([recording]);
     mocks.story.mockResolvedValue({ date: SHOW, anchors: ["Abby Ames", "Otto Ortiz"], announcements: ["Math Club meets after school."], packages: [] });
     mocks.rows.mockResolvedValue([]);
+    mocks.roster.mockResolvedValue(["Abby Ames", "Otto Ortiz", "Sage Stone"]);
     mocks.download.mockImplementation(async (path: string) => `https://drive.example.org/api/service/file?path=${encodeURIComponent(path)}&token=r.1.x&inline=false`);
     mocks.upload.mockImplementation(async (path: string) => ({ path, token: `rw.${path.length}` }));
     mocks.size.mockResolvedValue(1000);
@@ -166,6 +172,21 @@ describe("show editor jobs", () => {
     expect(claim.downloads!.map((entry) => [entry.path, entry.size])).toEqual([["Shows/A.mov", 100], ["Shows/C.mov", 102]]);
   });
 
+  it("the brief carries the class roster by full name", async () => {
+    mocks.job.findFirst.mockResolvedValueOnce(job());
+    expect((await claimNextShowEdit("dev1", NOW))!.brief.roster).toEqual(["Abby Ames", "Otto Ortiz", "Sage Stone"]);
+  });
+
+  it("the brief carries other shows' announcement cards as pastCards", async () => {
+    mocks.job.findFirst.mockResolvedValueOnce(job());
+    const past = { showDate: "2026-10-16", checks: { cards: [{ title: "Math Club", points: ["Room 204"], script: "Math Club meets Tuesday." }] } };
+    // Only the past-cards query asks for finished edits; the stale-job sweep gets nothing.
+    mocks.job.findMany.mockImplementation(async ({ where }) => (where?.status?.in ? [past] : []));
+    const claim = (await claimNextShowEdit("dev1", NOW))!;
+    expect(claim.brief.pastCards).toEqual([{ showDate: "2026-10-16", title: "Math Club", points: ["Room 204"], script: "Math Club meets Tuesday." }]);
+    expect(mocks.job.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { status: { in: ["REVIEW", "PUBLISHED"] }, showDate: { not: SHOW } } }));
+  });
+
   it("claims the oldest queued job once", async () => {
     mocks.job.findFirst.mockResolvedValueOnce(job()).mockResolvedValueOnce(job()).mockResolvedValue(null);
     mocks.job.updateMany.mockResolvedValueOnce({ count: 1 }).mockResolvedValueOnce({ count: 0 });
@@ -236,6 +257,12 @@ describe("show editor jobs", () => {
       showDate: SHOW, sourcePaths: sources, note: "Use the second take of the close.", createdById: "u2"
     } });
     expect(mocks.job.updateMany).toHaveBeenCalledWith({ where: { id: "job1", status: "REVIEW" }, data: expect.objectContaining({ status: "CANCELLED" }) });
+  });
+
+  it("redo without a note stores none", async () => {
+    mocks.job.findUnique.mockResolvedValueOnce(job({ status: "FAILED" }));
+    await redoShowEdit({ userId: "u2", id: "job1" }, NOW);
+    expect(mocks.job.create).toHaveBeenCalledWith({ data: expect.objectContaining({ note: null }) });
   });
 
   it("brief lists queued packages in queue order with their nasPath", async () => {
@@ -770,6 +797,110 @@ describe("show editor jobs", () => {
         needsReview: false, costUsd: 1, agentSessionId: "s"
       }, NOW);
       expect(mocks.confirm).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("approve", () => {
+    const out = "Package Storage/Shows/2026-10-21/x.mp4";
+    const defaults = {
+      title: "InFocus News | Wednesday, October 21st, 2026", description: "Anchors …", publishDate: SHOW, publishTime: "08:30",
+      seasonNumber: 31, existingSeasons: [31]
+    };
+    const draft = { status: "DRAFT", nasPath: out };
+    const approve = (now = NOW) => approveShowEdit({ id: "job1", userId: "u2" }, now);
+
+    beforeEach(() => {
+      mocks.job.findUnique.mockResolvedValue(job({ status: "REVIEW", outputNasPath: out }));
+      mocks.publication.findUnique.mockResolvedValue(draft);
+      mocks.pubState.mockResolvedValue({ defaults });
+      mocks.confirm.mockResolvedValue(undefined);
+      mocks.mint.mockResolvedValue("https://drive.example.org/api/service/file?path=x&token=r.1.x&inline=false");
+    });
+
+    it("schedules the draft with Upload show's defaults and marks the edit PUBLISHED", async () => {
+      // The draft first; after scheduling, markShowEditPublished reads the sent publication.
+      mocks.publication.findUnique.mockResolvedValueOnce(draft).mockResolvedValueOnce({ status: "UPLOADING", nasPath: out });
+      await approve();
+      expect(mocks.confirm).toHaveBeenCalledWith({
+        userId: "u2", showDate: SHOW, title: defaults.title, description: "Anchors …", publishDate: SHOW, publishTime: "08:30", seasonNumber: 31
+      });
+      expect(mocks.job.updateMany).toHaveBeenCalledWith({ where: { showDate: SHOW, status: "REVIEW", outputNasPath: out }, data: { status: "PUBLISHED" } });
+    });
+
+    it("refuses an edit that isn't ready for review, or was already scheduled", async () => {
+      mocks.job.findUnique.mockResolvedValue(job({ status: "RUNNING", outputNasPath: out }));
+      await expect(approve()).rejects.toMatchObject({ status: 409, message: "An edit can be approved once it's ready for review." });
+      mocks.job.findUnique.mockResolvedValue(job({ status: "PUBLISHED", outputNasPath: out }));
+      await expect(approve()).rejects.toMatchObject({ status: 409, message: "This edit was already scheduled." });
+      expect(mocks.confirm).not.toHaveBeenCalled();
+    });
+
+    it("refuses once the show was sent to YouTube, or when the draft is another file", async () => {
+      mocks.publication.findUnique.mockResolvedValue({ status: "SCHEDULED", nasPath: out });
+      await expect(approve()).rejects.toMatchObject({ status: 409, message: "This show was already sent to YouTube. Make changes in YouTube Studio." });
+      mocks.publication.findUnique.mockResolvedValue({ status: "DRAFT", nasPath: "Package Storage/Shows/2026-10-21/upload.mp4" });
+      await expect(approve()).rejects.toMatchObject({ status: 409 });
+      expect(mocks.confirm).not.toHaveBeenCalled();
+    });
+
+    it("without a season it says to pick one under Change details", async () => {
+      mocks.pubState.mockResolvedValue({ defaults: { ...defaults, seasonNumber: null } });
+      await expect(approve()).rejects.toMatchObject({ status: 409, message: "Pick a season first: use Change details." });
+      expect(mocks.confirm).not.toHaveBeenCalled();
+      expect(mocks.job.updateMany).not.toHaveBeenCalled();
+    });
+
+    it("once the usual publish time has passed it says so and points to Change details", async () => {
+      // 9:00 AM Pacific on the show date, after the 8:30 default.
+      await expect(approve(new Date("2026-10-21T16:00:00Z"))).rejects.toMatchObject({
+        status: 409, message: "The usual publish time has already passed. Pick a new time: use Change details."
+      });
+      expect(mocks.confirm).not.toHaveBeenCalled();
+    });
+
+    it("a refusal from scheduling comes back as its plain message", async () => {
+      mocks.confirm.mockRejectedValue(new ShowUploadError("The show video is not on InFocus Drive yet. Wait for the upload to finish."));
+      await expect(approve()).rejects.toMatchObject({ status: 400, message: "The show video is not on InFocus Drive yet. Wait for the upload to finish." });
+    });
+
+    it("auto-publish uses the same defaults check: no season, no schedule", async () => {
+      vi.stubEnv("SHOW_EDITOR_AUTO_PUBLISH", "1");
+      mocks.pubState.mockResolvedValue({ defaults: { ...defaults, seasonNumber: null } });
+      mocks.job.findUnique.mockResolvedValueOnce(job({ status: "RUNNING", outputNasPath: out }));
+      const clean = { coversClean: true, loudness: [{ segment: "open", ok: true }] };
+      await completeShowEdit({ id: "job1", outputNasPath: out, decisions: [], checks: clean, needsReview: false, costUsd: 1, agentSessionId: "s" }, NOW);
+      expect(mocks.confirm).not.toHaveBeenCalled();
+      expect(mocks.notify).toHaveBeenCalledWith(expect.anything(), "review");
+    });
+
+    it("with earliest, a default time sooner than that moves to it (the 8 AM auto-schedule)", async () => {
+      // 8:20 AM Pacific on show day: 8:30 is under 15 minutes away, so it publishes at 8:35.
+      const late = new Date("2026-10-21T15:20:00Z");
+      const publishAt = await scheduleWithDefaults(SHOW, "u1", late, new Date(late.getTime() + 15 * 60_000));
+      expect(mocks.confirm).toHaveBeenCalledWith(expect.objectContaining({ publishDate: SHOW, publishTime: "08:35" }));
+      expect(publishAt.toISOString()).toBe("2026-10-21T15:35:00.000Z");
+      // At 8:00 the usual 8:30 is far enough out and stays.
+      const early = new Date("2026-10-21T15:00:00Z");
+      await scheduleWithDefaults(SHOW, "u1", early, new Date(early.getTime() + 15 * 60_000));
+      expect(mocks.confirm).toHaveBeenLastCalledWith(expect.objectContaining({ publishTime: "08:30" }));
+    });
+
+    it("an auto-started job keeps that mark when the editor's complete replaces checks", async () => {
+      mocks.job.findUnique.mockResolvedValueOnce(job({ status: "RUNNING", outputNasPath: out, checks: { autoStarted: true } }));
+      await completeShowEdit({ id: "job1", outputNasPath: out, decisions: [], checks: { coversClean: false }, needsReview: true, costUsd: 1, agentSessionId: "s" }, NOW);
+      expect(mocks.job.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ checks: { coversClean: false, autoStarted: true } }) }));
+    });
+
+    it("the state previews what Approve will schedule, or why it can't, only for the reviewed draft", async () => {
+      mocks.job.findFirst.mockResolvedValue(job({ status: "REVIEW", outputNasPath: out }));
+      expect((await showEditState(SHOW, NOW)).approve).toEqual({ title: defaults.title, publishAt: "2026-10-21T15:30:00.000Z", problem: null });
+      mocks.pubState.mockResolvedValue({ defaults: { ...defaults, seasonNumber: null } });
+      expect((await showEditState(SHOW, NOW)).approve).toMatchObject({ problem: "Pick a season first: use Change details." });
+      mocks.publication.findUnique.mockResolvedValue({ status: "DRAFT", nasPath: "Package Storage/Shows/2026-10-21/upload.mp4" });
+      expect((await showEditState(SHOW, NOW)).approve).toBeNull();
+      mocks.job.findFirst.mockResolvedValue(job({ status: "RUNNING", outputNasPath: out }));
+      mocks.publication.findUnique.mockResolvedValue(draft);
+      expect((await showEditState(SHOW, NOW)).approve).toBeNull();
     });
   });
 });

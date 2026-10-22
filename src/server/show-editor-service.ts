@@ -30,6 +30,7 @@ export const progressSchema = z.object({ stage: z.enum(SHOW_EDIT_STAGES), messag
 export const completeSchema = z.object({
   outputNasPath: z.string().min(1).max(512),
   decisions: z.array(z.object({ kind: z.string().min(1).max(40), detail: z.string().max(300), flagged: z.boolean() })).max(50),
+  // Free-form; `cards` ({ title, points, script }[]) comes back to later briefs as `pastCards`, checked when read.
   checks: z.record(z.string(), z.unknown()),
   needsReview: z.boolean(),
   costUsd: z.number().min(0).max(1000),

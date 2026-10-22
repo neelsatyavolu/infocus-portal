@@ -7,14 +7,15 @@ const mocks = vi.hoisted(() => ({
   user: vi.fn(), users: vi.fn(),
   recordings: vi.fn(),
   managers: vi.fn(), managerEmail: vi.fn(),
-  email: vi.fn(), push: vi.fn()
+  email: vi.fn(), push: vi.fn(), roles: vi.fn()
 }));
 
 vi.mock("@/src/lib/prisma", () => ({ prisma: {
   showEditorSettings: { updateMany: mocks.heartbeatUpdate, upsert: mocks.settingsUpsert },
   showEditJob: { findMany: mocks.jobs, create: mocks.create, findFirst: mocks.latestJob },
   showPublication: { findUnique: mocks.publication },
-  user: { findUnique: mocks.user, findMany: mocks.users }
+  user: { findUnique: mocks.user, findMany: mocks.users },
+  platformRoleAssignment: { findMany: mocks.roles }
 } }));
 vi.mock("@/src/server/show-editor-drive", () => ({ listShowRecordings: mocks.recordings }));
 vi.mock("@/src/server/show-schedule", () => ({ loadScheduleOverrides: async () => new Map() }));
@@ -23,7 +24,9 @@ vi.mock("@/src/lib/email", () => ({ sendBrandedEmails: mocks.email }));
 vi.mock("@/src/server/push-notify", () => ({ sendPushToUserIds: mocks.push }));
 
 import { nextUpcomingShowDate } from "@/src/lib/show-assignment";
-import { notifyShowEdit, runShowEditAutoStart, runShowEditReminders } from "@/src/server/show-editor-notify";
+import {
+  notifyShowEdit, notifyShowEditEscalation, runShowEditAutoStart, runShowEditReminders, shortShowDate
+} from "@/src/server/show-editor-notify";
 
 // Tuesday 2026-10-20, 3 PM Pacific: filmed this morning, airs on the next show day.
 const NOW = new Date("2026-10-20T22:00:00Z");
@@ -59,6 +62,7 @@ describe("show editor notifications and auto-start", () => {
     mocks.users.mockResolvedValue([{ id: "manager-id", email: "manager@example.edu" }]);
     mocks.email.mockResolvedValue({ configured: true, sent: 2, failed: 0 });
     mocks.push.mockResolvedValue({ sent: 1, failed: 0 });
+    mocks.roles.mockResolvedValue([]);
   });
 
   it("auto-start creates one job from every settled file named after the show, all on Auto", async () => {
@@ -71,7 +75,7 @@ describe("show editor notifications and auto-start", () => {
     await runShowEditAutoStart(NOW);
     expect(mocks.create).toHaveBeenCalledTimes(1);
     expect(mocks.create).toHaveBeenCalledWith({ data: expect.objectContaining({
-      showDate: NEXT_SHOW, createdById: "manager-id",
+      showDate: NEXT_SHOW, createdById: "manager-id", checks: { autoStarted: true },
       sourcePaths: [{ path: `Shows/${SHOW_NAME}.mov`, role: "auto" }, { path: `Shows/${SHOW_NAME} (1).mov`, role: "auto" }]
     }) });
   });
@@ -131,6 +135,62 @@ describe("show editor notifications and auto-start", () => {
     expect(failed.paragraphs.join(" ")).toContain("This is the SD capture; pick the HD recording.");
     expect(failed.paragraphs.join(" ")).toContain("Open Editing to try again with Redo");
     expect(failed.ctaUrl).toMatch(/\/editing\?date=2026-10-21$/);
+  });
+
+  it("an auto-started edit notifies only the show manager, never the account it was started under", async () => {
+    await notifyShowEdit(job({ createdById: "manager-or-adviser", checks: { autoStarted: true } }), "review");
+    expect(mocks.user).not.toHaveBeenCalled();
+    expect(mocks.email).toHaveBeenCalledWith(expect.objectContaining({ recipients: ["manager@example.edu"] }));
+    expect(mocks.push).toHaveBeenCalledWith(["manager-id"], expect.anything());
+  });
+
+  describe("approval escalation notices", () => {
+    beforeEach(() => {
+      mocks.roles.mockResolvedValue([{ email: "Otto@Example.edu" }, { email: "sage@example.edu" }]);
+      mocks.managers.mockResolvedValue({ pool: [], managers: { "2026-10-23": { name: "Sage Smith" } } });
+      mocks.users.mockImplementation(async ({ where }) => (where.OR
+        ? [
+            { id: "otto-id", email: "otto@example.edu", notificationPreference: { notificationEmail: "otto.alerts@example.edu" } },
+            { id: "sage-id", email: "sage@example.edu", notificationPreference: null }
+          ]
+        : [{ id: "manager-id", email: "manager@example.edu" }]));
+    });
+
+    it("the escalation goes to every producer, at their notification address, once per version", async () => {
+      await notifyShowEditEscalation(job({ showDate: "2026-10-23", version: 2 }), { kind: "escalate" });
+      const sent = mocks.email.mock.calls[0][0];
+      expect(sent.recipients).toEqual(expect.arrayContaining(["otto.alerts@example.edu", "sage@example.edu"]));
+      expect(sent.recipients).not.toContain("starter@example.edu");
+      expect(sent.subject).toBe("The Fri, Oct 23 show still needs approval");
+      expect(sent.paragraphs.join(" ")).toContain("the show manager hasn't responded");
+      expect(sent.paragraphs.join(" ")).toContain("scheduled automatically at 8:00 AM on show day");
+      expect(sent.idempotencyKey).toBe("show-edit/job1/escalate/2");
+      expect(sent.ctaUrl).toMatch(/\/editing\?date=2026-10-23$/);
+      expect(mocks.push).toHaveBeenCalledWith(["otto-id", "sage-id"], expect.anything());
+    });
+
+    it("the auto-schedule notice goes to the starter and show manager, with the publish time", async () => {
+      await notifyShowEditEscalation(job({ showDate: "2026-10-23" }), { kind: "auto-scheduled", publishAt: new Date("2026-10-23T15:30:00Z") });
+      const sent = mocks.email.mock.calls[0][0];
+      expect(sent.recipients).toEqual(["starter@example.edu", "manager@example.edu"]);
+      expect(sent.paragraphs[0]).toBe("The Fri, Oct 23 show was scheduled automatically because nobody approved it by 8:00 AM. It publishes at 8:30 AM.");
+    });
+
+    it("a failed auto-schedule tells the starter, show manager and producers why", async () => {
+      await notifyShowEditEscalation(job({ showDate: "2026-10-23" }), { kind: "auto-schedule-failed", reason: "Pick a season first: use Change details." });
+      const sent = mocks.email.mock.calls[0][0];
+      expect(sent.recipients).toEqual(expect.arrayContaining(["starter@example.edu", "manager@example.edu", "otto.alerts@example.edu", "sage@example.edu"]));
+      expect(sent.paragraphs.join(" ")).toContain("Pick a season first: use Change details.");
+    });
+
+    it("never throws", async () => {
+      mocks.roles.mockRejectedValue(new Error("db down"));
+      await expect(notifyShowEditEscalation(job(), { kind: "escalate" })).resolves.toBeUndefined();
+    });
+
+    it("short show dates read like Fri, Oct 23", () => {
+      expect(shortShowDate("2026-10-23")).toBe("Fri, Oct 23");
+    });
   });
 
   it("a flagged edit names the first flagged decision", async () => {

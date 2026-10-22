@@ -24,7 +24,7 @@ import { EditorStatusTag } from "./show-edit-parts";
 import { useEditingOverview, type LoadedOverview } from "./use-editing-overview";
 import { useShowEdit } from "./use-show-edit";
 
-// Loaded only when a producer opens Review & schedule; keeps upload code off the page.
+// Loaded only when a producer opens Change details; keeps upload code off the page.
 const ShowUploadDialog = dynamic(
   () => import("../show-roles/show-upload-dialog").then((mod) => mod.ShowUploadDialog),
   { ssr: false }
@@ -57,7 +57,7 @@ export default function EditingClient({ initial }: { initial: LoadedOverview | n
   const overview = useEditingOverview(requestedDate, initial);
   const showDate = requestedDate && DATE_KEY_PATTERN.test(requestedDate) ? requestedDate : overview.overview?.date ?? null;
   const edit = useShowEdit(showDate);
-  // Review & schedule: the edited file, reviewed in The Show's upload dialog without leaving Editing.
+  // Change details: the edited file, scheduled from The Show's upload dialog without leaving Editing.
   const [uploadOpen, setUploadOpen] = useState(false);
   const [editedShow, setEditedShow] = useState<EditedShow | null>(null);
 

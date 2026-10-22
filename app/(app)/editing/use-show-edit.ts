@@ -16,8 +16,9 @@ const LOAD_FALLBACK = "Could not load automatic editing.";
 export type EditAction =
   | { action: "start"; date: string; sources: ShowEditSource[] }
   | { action: "cancel"; id: string }
-  | { action: "redo"; id: string; note: string }
+  | { action: "redo"; id: string; note?: string }
   | { action: "fix"; id: string; text: string; remember: boolean }
+  | { action: "approve"; id: string }
   | { action: "pair"; backend: ShowEditBackend; deviceId: string }
   | { action: "activate"; deviceId: string }
   | { action: "unlink"; deviceId: string }

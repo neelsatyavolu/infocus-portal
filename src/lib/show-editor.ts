@@ -215,8 +215,13 @@ export type ShowEditState = {
   publicationStatus: string | null;
   /** At REVIEW, while the edited file is the show's draft: playable links for the preview. */
   preview: { videoUrl: string; posterUrl: string | null } | null;
+  /** Same condition: what Approve & schedule would schedule. */
+  approve: ShowEditApprovePreview | null;
   autoStart: AutoStartPreview | null;
 };
+
+/** Upload show's default title and publish time (ISO); `problem` says why Approve can't use them yet. */
+export type ShowEditApprovePreview = { title: string; publishAt: string; problem: string | null };
 
 /** One Drive folder listing → its recordings, newest first. `folder` is set for a subfolder of `Shows/`. */
 export function recordingsFromListing(items: DriveListItem[], now = new Date(), folder: string | null = null): ShowRecording[] {
@@ -236,6 +241,17 @@ export function recordingsFromListing(items: DriveListItem[], now = new Date(), 
     })
     .sort((a, b) => b.modifiedAt.localeCompare(a.modifiedAt))
     .slice(0, MAX_LISTED_RECORDINGS);
+}
+
+/**
+ * A path the picker can list: a file in `Shows/` or one subfolder down, with no `..`, `.`, empty parts or
+ * backslashes. The server also checks the Drive listing before minting a preview link.
+ */
+export function isShowRecordingPath(path: string) {
+  if (path.length > 512 || path.includes("\\")) return false;
+  const parts = path.split("/");
+  if (parts[0] !== SHOW_RECORDINGS_FOLDER || parts.length < 2 || parts.length > 3) return false;
+  return parts.slice(1).every((part) => part.trim() !== "" && part !== "." && part !== "..");
 }
 
 export function editorOnline(lastSeenAt: Date | string | null | undefined, now = new Date()) {

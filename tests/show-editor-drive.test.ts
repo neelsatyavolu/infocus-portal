@@ -1,13 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ fetch: vi.fn() }));
+const mocks = vi.hoisted(() => ({ fetch: vi.fn(), mint: vi.fn() }));
 
 vi.mock("@/src/lib/nas-storage", async (original) => ({
   ...await original<typeof import("@/src/lib/nas-storage")>(),
-  driveFetch: mocks.fetch
+  driveFetch: mocks.fetch,
+  nasMintDownloadUrl: mocks.mint
 }));
 
-import { listShowRecordings } from "@/src/server/show-editor-drive";
+import { listShowRecordings, recordingPreviewUrl } from "@/src/server/show-editor-drive";
 
 const NOW = new Date("2026-10-21T22:00:00Z");
 
@@ -74,5 +75,27 @@ describe("listing Drive Shows/", () => {
     const opened = mocks.fetch.mock.calls.map(([url]) => decodeURIComponent(String(url).split("path=")[1])).filter((path) => path !== "Shows");
     expect(opened).toHaveLength(12);
     expect(opened).not.toContain("Shows/F14");
+  });
+});
+
+describe("recording preview links", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.fetch.mockImplementation(async () =>
+      listing([{ name: "InFocus Show 10-22-2026.mov", path: "Shows/InFocus Show 10-22-2026.mov", mtime: "2026-10-21T18:00:00Z" }]));
+    mocks.mint.mockResolvedValue("https://drive.example.org/api/service/file?token=r.1.x&inline=true");
+  });
+
+  it("mints a web playback link for a listed recording", async () => {
+    const url = await recordingPreviewUrl("Shows/InFocus Show 10-22-2026.mov", NOW);
+    expect(url).toBe("https://drive.example.org/api/service/file?token=r.1.x&inline=true&web=1");
+    expect(mocks.mint).toHaveBeenCalledWith("Shows/InFocus Show 10-22-2026.mov", 3 * 3600);
+  });
+
+  it("refuses a path outside Shows/ without asking Drive, and one the listing doesn't have", async () => {
+    await expect(recordingPreviewUrl("Shows/../Package Storage/x.mov", NOW)).rejects.toMatchObject({ status: 400 });
+    expect(mocks.fetch).not.toHaveBeenCalled();
+    await expect(recordingPreviewUrl("Shows/other.mov", NOW)).rejects.toMatchObject({ status: 404 });
+    expect(mocks.mint).not.toHaveBeenCalled();
   });
 });

@@ -42,10 +42,13 @@ async function main() {
   const db = new pg.Client({ connectionString: url });
   await db.connect();
   try {
+    // Who asked, for the record (the signing key is what authorizes it): the super admin's account when this
+    // machine knows it (PLATFORM_SUPER_ADMIN_EMAIL or a SUPER_ADMIN role row), else a fixed label.
     const admin = (await db.query(
-      `SELECT u.id FROM "User" u JOIN "PlatformRoleAssignment" r ON lower(r.email) = lower(u.email)
-       WHERE r.role = 'SUPER_ADMIN' LIMIT 1`)).rows[0];
-    if (!admin) throw new Error("No super admin account found.");
+      `SELECT u.id FROM "User" u WHERE lower(u.email) = lower($1)
+       UNION ALL SELECT u.id FROM "User" u JOIN "PlatformRoleAssignment" r ON lower(r.email) = lower(u.email)
+       WHERE r.role = 'SUPER_ADMIN' LIMIT 1`, [process.env.PLATFORM_SUPER_ADMIN_EMAIL ?? ""])).rows[0]
+      ?? { id: "super-admin-shell" };
     const devices = (await db.query(
       `SELECT id, name, kind, "tokenHash", "lastSeenAt" FROM "ShowEditorDevice" WHERE "revokedAt" IS NULL AND kind = 'dedicated'
        AND ($1::text IS NULL OR name = $1) ORDER BY "lastSeenAt" DESC NULLS LAST`, [args.machine ?? null])).rows;

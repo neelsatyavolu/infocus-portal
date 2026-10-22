@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   user: vi.fn(), profile: vi.fn(), access: vi.fn(),
   state: vi.fn(), start: vi.fn(), cancel: vi.fn(), redo: vi.fn(), fix: vi.fn(), pair: vi.fn(),
-  unlink: vi.fn(), activate: vi.fn(), decide: vi.fn(), describe: vi.fn(), command: vi.fn(), settings: vi.fn()
+  unlink: vi.fn(), activate: vi.fn(), decide: vi.fn(), describe: vi.fn(), command: vi.fn(), settings: vi.fn(), summary: vi.fn()
 }));
 
 vi.mock("@/src/lib/auth", () => ({ requireUserId: mocks.user, syncUserProfile: mocks.profile }));
@@ -22,6 +22,7 @@ vi.mock("@/src/server/show-editor-link", () => ({
 }));
 vi.mock("@/src/server/show-editor-commands", () => ({ queueEditorCommand: mocks.command }));
 vi.mock("@/src/server/show-editor-settings", () => ({ saveEditorSettings: mocks.settings }));
+vi.mock("@/src/server/show-editor-summary", () => ({ showEditSummary: mocks.summary }));
 
 vi.mock("@/src/server/show-editor-pairing", () => ({ createPairing: mocks.pair }));
 
@@ -55,6 +56,18 @@ describe("show edits route", () => {
     const response = await GET(new Request("https://portal.example.edu/api/show-roles/edits?date=2026-10-21"));
     expect(await response.json()).toEqual({ data: { job: null } });
     expect(response.headers.get("cache-control")).toContain("no-store");
+  });
+
+  it("GET with summary=1 answers The Show's one line without the full state", async () => {
+    mocks.summary.mockResolvedValue({ status: "RUNNING", stage: "render", publicationStatus: null });
+    const response = await GET(new Request("https://portal.example.edu/api/show-roles/edits?date=2026-10-21&summary=1"));
+    expect(await response.json()).toEqual({ data: { status: "RUNNING", stage: "render", publicationStatus: null } });
+    expect(mocks.summary).toHaveBeenCalledWith("2026-10-21");
+    expect(mocks.state).not.toHaveBeenCalled();
+    expect((await GET(new Request("https://portal.example.edu/api/show-roles/edits?date=nope&summary=1"))).status).toBe(400);
+    mocks.access.mockResolvedValue({ role: null });
+    expect((await GET(new Request("https://portal.example.edu/api/show-roles/edits?date=2026-10-21&summary=1"))).status).toBe(403);
+    expect(mocks.summary).toHaveBeenCalledTimes(1);
   });
 
   it("start passes each file and its role through in order", async () => {

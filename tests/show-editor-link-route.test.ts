@@ -40,7 +40,7 @@ describe("editor link routes and device-token auth", () => {
   });
 
   it("link start needs no auth and passes the device name through", async () => {
-    const started = { deviceCode: "d", userCode: "ABCD-2345", verificationUrl: "https://portal.example.edu/show-roles?link=ABCD-2345", expiresAt: "x", interval: 5 };
+    const started = { deviceCode: "d", userCode: "ABCD-2345", verificationUrl: "https://portal.example.edu/editing?link=ABCD-2345", expiresAt: "x", interval: 5 };
     mocks.start.mockResolvedValue(started);
     const response = await linkStart(post("link", { deviceName: "Studio MacBook Pro" }));
     expect(response.status).toBe(200);

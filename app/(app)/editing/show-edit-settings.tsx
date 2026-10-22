@@ -76,8 +76,8 @@ function AgentOrder({ order, disabled, onChange }: { order: ShowEditBackend[]; d
 }
 
 /**
- * Editor settings producers manage from The Show. Remount it (key on `settings.updatedAt`) after a save
- * so the text fields pick up what was stored.
+ * Editor settings producers manage from the Editing tab. Remount it (key on `settings.updatedAt`) after a
+ * save so the version field picks up what was stored.
  */
 export function EditorSettingsForm({ settings, busy, onSave }: {
   settings: ShowEditorSettingsView;
@@ -85,11 +85,9 @@ export function EditorSettingsForm({ settings, busy, onSave }: {
   onSave: (patch: SettingsPatch) => Promise<boolean>;
 }) {
   const [version, setVersion] = useState(settings.targetVersion ?? "");
-  const [rules, setRules] = useState(settings.houseRules ?? DEFAULT_SHOW_EDITOR_HOUSE_RULES);
   const versionValid = version.trim() === "" || SHOW_EDITOR_VERSION_PATTERN.test(version.trim());
   return (
     <div className="space-y-4">
-      <div className={LABEL_CLASS}>Editor settings</div>
       <SwitchRow
         id="show-editor-auto-start" label="Start editing by itself" disabled={busy} checked={settings.autoStart}
         hint="When a new recording reaches the Shows folder on Drive, the edit of the next show starts without anyone pressing Start."
@@ -118,36 +116,47 @@ export function EditorSettingsForm({ settings, busy, onSave }: {
         </p>
       </form>
       <AgentOrder order={settings.agentOrder} disabled={busy} onChange={(agentOrder) => void onSave({ agentOrder })} />
-      <form
-        className="space-y-1.5"
-        onSubmit={(event) => {
-          event.preventDefault();
-          void onSave({ houseRules: rules.trim() ? rules : null });
-        }}
-      >
-        <label htmlFor="show-editor-house-rules" className={LABEL_CLASS}>House rules</label>
-        <p className="text-[13px] text-muted-foreground">
-          Decisions the editor follows instead of asking. Remembered fixes are added here.
-          {settings.houseRules === null ? " The editor is using its built-in rules (shown below)." : ""}
-        </p>
-        <Textarea id="show-editor-house-rules" rows={14} value={rules} maxLength={SHOW_EDITOR_HOUSE_RULES_MAX}
-          className="font-mono text-[12px]" onChange={(event) => setRules(event.target.value)} />
-        <div className="flex flex-wrap gap-2">
-          <Button type="submit" size="sm" variant="outline" disabled={busy}>Save rules</Button>
-          {settings.houseRules !== null ? (
-            <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={() => void onSave({ houseRules: null })}>
-              Go back to the built-in rules
-            </Button>
-          ) : null}
-        </div>
-      </form>
     </div>
+  );
+}
+
+/** The house rules editor. Remount it (key on `settings.updatedAt`) after a save so the box shows what was stored. */
+export function HouseRulesForm({ settings, busy, onSave }: {
+  settings: ShowEditorSettingsView;
+  busy: boolean;
+  onSave: (patch: SettingsPatch) => Promise<boolean>;
+}) {
+  const [rules, setRules] = useState(settings.houseRules ?? DEFAULT_SHOW_EDITOR_HOUSE_RULES);
+  return (
+    <form
+      className="space-y-1.5"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void onSave({ houseRules: rules.trim() ? rules : null });
+      }}
+    >
+      <label htmlFor="show-editor-house-rules" className="sr-only">House rules</label>
+      <p className="text-[13px] text-muted-foreground">
+        Decisions the editor follows instead of asking. Remembered fixes are added here.
+        {settings.houseRules === null ? " The editor is using its built-in rules (shown below)." : ""}
+      </p>
+      <Textarea id="show-editor-house-rules" rows={14} value={rules} maxLength={SHOW_EDITOR_HOUSE_RULES_MAX}
+        className="font-mono text-[12px]" onChange={(event) => setRules(event.target.value)} />
+      <div className="flex flex-wrap gap-2">
+        <Button type="submit" size="sm" variant="outline" disabled={busy}>Save rules</Button>
+        {settings.houseRules !== null ? (
+          <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={() => void onSave({ houseRules: null })}>
+            Go back to the built-in rules
+          </Button>
+        ) : null}
+      </div>
+    </form>
   );
 }
 
 type PendingLink = { userCode: string; deviceName: string; expiresAt: string };
 
-/** `/show-roles?link=CODE`: a producer confirms the editing machine that asked to be linked. */
+/** `/editing?link=CODE`: a producer confirms the editing machine that asked to be linked. */
 export function LinkConfirm({ code, devices, onDone }: { code: string; devices: ShowEditorDeviceView[]; onDone: (message: string | null) => void }) {
   const [pending, setPending] = useState<PendingLink | null | "loading">("loading");
   const [activate, setActivate] = useState(true);

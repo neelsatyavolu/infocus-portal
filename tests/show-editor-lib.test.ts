@@ -39,6 +39,19 @@ describe("show editor helpers", () => {
     expect(lastSeenLabel(null, NOW)).toBe("never");
   });
 
+  it("names the active machine in the Editing header's status", () => {
+    const base = { busy: false, version: "v0.3.1", health: { ok: true, problems: [] } };
+    const online = { ...base, online: true, lastSeenAt: NOW.toISOString() };
+    expect(editorStatus(online, NOW, "Studio Mac")).toEqual({ tone: "success", label: "Editor online · Studio Mac · v0.3.1" });
+    expect(editorStatus({ ...online, busy: true }, NOW, "Studio Mac").label).toBe("Editor online · Studio Mac · busy · v0.3.1");
+    expect(editorStatus({ ...base, online: false, lastSeenAt: "2026-10-20T21:48:00Z" }, NOW, "Studio Mac")).toEqual({
+      tone: "danger", label: "Editor offline · Studio Mac · last seen 12 min ago"
+    });
+    expect(editorStatus({ ...online, health: { ok: false, problems: ["On battery"] } }, NOW, "Studio Mac").label).toBe(
+      "Editor needs attention · Studio Mac · v0.3.1"
+    );
+  });
+
   it("auto-publish needs clean covers and every loudness row ok", () => {
     expect(autoPublishReady({ needsReview: false, checks: { coversClean: true, loudness: [{ ok: true }] } })).toBe(true);
     expect(autoPublishReady({ needsReview: false, checks: { coversClean: true, loudness: [] } })).toBe(false);

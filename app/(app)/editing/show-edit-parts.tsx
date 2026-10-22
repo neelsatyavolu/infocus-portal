@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import {
   editorStatus, SHOW_EDIT_FIX_MAX, SHOW_EDIT_NOTE_MAX,
-  type ShowEditDecision, type ShowEditMessage, type ShowEditWorker
+  type ShowEditDecision, type ShowEditMessage, type ShowEditorDeviceView, type ShowEditWorker
 } from "@/src/lib/show-editor";
 
 export const LABEL_CLASS = "text-[11px] font-medium uppercase leading-tight tracking-[0.11em] text-muted-foreground";
@@ -18,8 +18,10 @@ export const pacificTime = new Intl.DateTimeFormat("en-US", {
   timeZone: "America/Los_Angeles", weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit"
 });
 
-export function EditorStatusTag({ worker }: { worker: ShowEditWorker }) {
-  const status = editorStatus(worker);
+/** The Editing header's editor pill: online or offline, the active machine and its version. */
+export function EditorStatusTag({ worker, devices }: { worker: ShowEditWorker; devices: ShowEditorDeviceView[] }) {
+  if (devices.length === 0) return <StatusTag tone="danger" dot>No editor linked</StatusTag>;
+  const status = editorStatus(worker, new Date(), devices.find((device) => device.active)?.name);
   return <StatusTag tone={status.tone} dot>{status.label}</StatusTag>;
 }
 
@@ -131,18 +133,20 @@ export function FixConversation({
 /** Decision kinds the editor uses to report which files it found to be what (recordings, cameras, skipped copies). */
 const STRUCTURE_KINDS = new Set(["structure", "recordings"]);
 
+/** What the editor reported about the files themselves (recordings, cameras, skipped copies). */
+export function structureDecisions(decisions: ShowEditDecision[]) {
+  return decisions.filter((decision) => STRUCTURE_KINDS.has(decision.kind));
+}
+
 /** After an edit: what the editor worked out from the files, e.g. "2 recordings: r1 multicam (M, L, R), …". */
 export function DetectedStructure({ decisions }: { decisions: ShowEditDecision[] }) {
-  const found = decisions.filter((decision) => STRUCTURE_KINDS.has(decision.kind));
+  const found = structureDecisions(decisions);
   if (found.length === 0) return null;
   return (
-    <div className="space-y-1 text-sm">
-      <div className={LABEL_CLASS}>What the editor found</div>
-      <ul className="space-y-0.5">
-        {found.map((decision, index) => (
-          <li key={index} className={decision.flagged ? "text-[var(--brand-amber)]" : undefined}>{decision.detail}</li>
-        ))}
-      </ul>
-    </div>
+    <ul className="space-y-0.5 text-sm">
+      {found.map((decision, index) => (
+        <li key={index} className={decision.flagged ? "text-[var(--brand-amber)]" : undefined}>{decision.detail}</li>
+      ))}
+    </ul>
   );
 }

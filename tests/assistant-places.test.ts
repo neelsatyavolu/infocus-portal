@@ -36,6 +36,19 @@ describe("matchAssistantPlace", () => {
     });
   });
 
+  it("sends producers to the Editing tab, like the Publishing Queue, and not reporters", () => {
+    for (const query of ["editing", "Where is automatic editing?", "editing machines", "house rules"]) {
+      expect(matchAssistantPlace(query, "associate"), query).toMatchObject({
+        title: "Editing",
+        href: "/editing",
+        hint: "Left sidebar → The Show, then the Editing tab"
+      });
+    }
+    expect(matchAssistantPlace("the show", "associate")).toMatchObject({ href: "/show-roles" });
+    expect(matchAssistantPlace("editing", "member")).toBeNull();
+    expect(findGatedAssistantPlace("editing", "member")?.title).toBe("Editing");
+  });
+
   it("does not offer producer pages to reporters", () => {
     expect(matchAssistantPlace("groups", "member")).toBeNull();
     expect(matchAssistantPlace("grade editor", "member")).toBeNull();

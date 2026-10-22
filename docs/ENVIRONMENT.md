@@ -62,7 +62,7 @@ Meetings calendar invites reuse `YOUTUBE_CLIENT_ID` and `YOUTUBE_CLIENT_SECRET` 
 
 ## Automatic show editing
 
-Editing machines run [infocus-editor](https://github.com/neelsatyavolu/infocus-editor) and poll `/api/service/show-editor/*`. Everything is managed on The Show by producers, so none of these variables is required:
+Editing machines run [infocus-editor](https://github.com/neelsatyavolu/infocus-editor) and poll `/api/service/show-editor/*`. Everything is managed on the Editing tab (`/editing`) by producers, so none of these variables is required:
 - **Linking:** a machine is linked by approving the code its setup app shows, and gets its own token. Several machines can be linked; one is active.
 - **Settings:** auto-start, auto-publish, the pinned version, AI account order and the house rules are saved in the Portal.
 

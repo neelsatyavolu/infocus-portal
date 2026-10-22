@@ -46,7 +46,7 @@ export type ShowEditBrief = {
   announcements: string[];
   packages: { title: string; nasPath: string; toss: string | null }[];
   note: string | null;
-  /** The producers' house rules from The Show; null means the editor's built-in default. */
+  /** The producers' house rules from the Editing tab; null means the editor's built-in default. */
   houseRules: string | null;
   outputNasPath: string;
   posterNasPath: string;

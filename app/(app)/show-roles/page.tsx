@@ -4,6 +4,7 @@ import { redirect, unstable_rethrow } from "next/navigation";
 import { getCurrentAppUser } from "@/src/lib/current-app-user";
 import { hasPlatformRole } from "@/src/lib/platform-admin";
 import { DATE_KEY_PATTERN } from "@/src/lib/show-assignment";
+import { editingHref } from "@/src/lib/show-editor-views";
 import { loadShowOverview } from "@/src/server/show-overview-data";
 import { asApiJson } from "@/src/server/as-api-json";
 import type { Overview } from "./show-overview";
@@ -35,6 +36,12 @@ export default async function ShowRolesPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const params = await searchParams;
+  // Older editor apps and links already handed out open /show-roles?link=CODE; the approval is on Editing now.
+  if (typeof params.link === "string" && params.link) {
+    redirect(editingHref({ link: params.link, date: typeof params.date === "string" ? params.date : undefined }) as never);
+  }
+
   try {
     const { platformRole } = await getCurrentAppUser();
     if (!hasPlatformRole(platformRole, "ASSOCIATE_PRODUCER")) {
@@ -51,7 +58,6 @@ export default async function ShowRolesPage({
   }
 
   // The fallback shows before the client reads the URL, so pick the shape of the right view here.
-  const params = await searchParams;
   const generator = params.generator === "1";
   const initial = generator ? null : await loadInitialOverview(params.date);
 

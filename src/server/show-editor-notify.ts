@@ -8,6 +8,7 @@ import { addDaysToDateKey, formatShowDateLabel, nextUpcomingShowDate } from "@/s
 import type { ShowEditDecision, ShowRecording } from "@/src/lib/show-editor";
 import { listShowRecordings } from "@/src/server/show-editor-drive";
 import { autoStartGroups, type AutoStartGroup } from "@/src/lib/show-editor-sources";
+import { editingHref } from "@/src/lib/show-editor-views";
 import { findShowManagerEmail, resolveShowManagers } from "@/src/server/show-manager";
 import { loadScheduleOverrides } from "@/src/server/show-schedule";
 import { sendPushToUserIds } from "@/src/server/push-notify";
@@ -19,7 +20,7 @@ type NoticeJob = Pick<ShowEditJob, "id" | "showDate" | "createdById" | "version"
 const AUTO_START_EVERY_MS = 5 * 60_000;
 
 function showLink(showDate: string) {
-  return `${mainAppOrigin()}/show-roles?date=${showDate}`;
+  return `${mainAppOrigin()}${editingHref({ date: showDate })}`;
 }
 
 async function showManagerEmail(showDate: string) {
@@ -76,7 +77,7 @@ function noticeCopy(job: NoticeJob, notice: ShowEditNotice) {
         heading: "The automatic edit failed",
         lines: [
           `Reason: ${job.error ?? "unknown"}`,
-          "Open The Show to try again with Redo, or upload the show yourself."
+          "Open Editing to try again with Redo, or upload the show yourself from The Show."
         ]
       };
     case "published":
@@ -101,7 +102,7 @@ export async function notifyShowEdit(job: NoticeJob, notice: ShowEditNotice) {
             subject: copy.subject,
             heading: copy.heading,
             paragraphs: copy.lines,
-            ctaLabel: "Open The Show",
+            ctaLabel: "Open Editing",
             ctaUrl: url,
             idempotencyKey: `show-edit/${job.id}/${notice}/${job.version}`
           })
@@ -182,7 +183,7 @@ export async function runShowEditReminders(now = new Date()) {
     subject,
     heading: "Tomorrow's show isn't scheduled",
     paragraphs: [`The ${label} show airs tomorrow and isn't scheduled on YouTube yet.`, where],
-    ctaLabel: "Open The Show",
+    ctaLabel: "Open Editing",
     ctaUrl: showLink(showDate),
     idempotencyKey: `show-edit-reminder/${showDate}`
   });

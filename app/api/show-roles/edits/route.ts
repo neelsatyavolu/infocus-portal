@@ -18,6 +18,7 @@ import { queueEditorCommand } from "@/src/server/show-editor-commands";
 import { activateEditorDevice, decideEditorLink, describeEditorLink } from "@/src/server/show-editor-link";
 import { createPairing } from "@/src/server/show-editor-pairing";
 import { saveEditorSettings } from "@/src/server/show-editor-settings";
+import { showEditSummary } from "@/src/server/show-editor-summary";
 
 const dateKey = z.string().regex(DATE_KEY_PATTERN);
 const jobId = z.string().min(1).max(64);
@@ -82,10 +83,12 @@ export async function GET(request: Request) {
     await requireProducer();
     const params = new URL(request.url).searchParams;
     const linkCode = params.get("link");
-    // The confirm screen for /show-roles?link=CODE: which Mac is asking to be linked.
+    // The confirm screen for /editing?link=CODE: which Mac is asking to be linked.
     if (linkCode !== null) return okNoStore({ link: await describeEditorLink(linkCode) });
     const date = params.get("date");
     if (!date || !DATE_KEY_PATTERN.test(date)) return fail("A valid date is required.", 400);
+    // The Show's one-line summary: no Drive listing, no preview links.
+    if (params.get("summary") === "1") return okNoStore(await showEditSummary(date));
     return okNoStore(await showEditState(date));
   } catch (error) {
     return routeError(error);

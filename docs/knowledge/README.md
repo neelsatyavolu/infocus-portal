@@ -25,7 +25,7 @@ When answering:
 | Groups, approval chain, producer review | `groups-and-review.md` |
 | Student cycle tabs (brainstorm → final cut) | `student-work.md` |
 | Grades, Grade Editor, participation | `grading.md` |
-| Master Calendar, The Show, anchors, PA | `calendar-and-show.md` |
+| Master Calendar, The Show, Editing (automatic editing), anchors, PA | `calendar-and-show.md` |
 | Class Board | `class-board.md` |
 | Publishing Queue | `publishing-queue.md` |
 | Managers tab and the Instagram Post Maker | `managers.md` |

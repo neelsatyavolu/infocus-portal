@@ -35,13 +35,13 @@ describe("editor linking (device code)", () => {
     mocks.device.count.mockResolvedValue(1);
   });
 
-  it("start stores only the device code's hash and returns a 15-minute link", async () => {
+  it("start stores only the device code's hash and returns a 15-minute link to the Editing tab", async () => {
     vi.stubEnv("APP_BASE_URL", "https://portal.example.edu");
     const link = await startEditorLink({ deviceName: "Studio MacBook Pro" }, NOW);
     expect(link.deviceCode.length).toBeGreaterThanOrEqual(43);
     expect(link.userCode).toMatch(/^[2-9A-HJ-KM-NP-Z]{4}-[2-9A-HJ-KM-NP-Z]{4}$/);
     expect(link).toMatchObject({
-      verificationUrl: `https://portal.example.edu/show-roles?link=${link.userCode}`,
+      verificationUrl: `https://portal.example.edu/editing?link=${link.userCode}`,
       expiresAt: new Date(NOW.getTime() + 15 * 60_000).toISOString(),
       interval: 5
     });

@@ -201,6 +201,14 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     audiences: PRODUCERS
   },
   {
+    id: "editing",
+    label: "Editing",
+    href: "/editing",
+    hint: "Left sidebar → The Show, then the Editing tab",
+    aliases: ["automatic editing", "show editor", "auto edit", "editing machines", "editor mac", "house rules"],
+    audiences: PRODUCERS
+  },
+  {
     id: "grade-editor",
     label: "Grade Editor",
     href: "/grade-editor",

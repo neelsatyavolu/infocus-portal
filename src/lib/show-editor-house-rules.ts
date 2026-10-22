@@ -1,6 +1,6 @@
 /**
  * The editor's default house rules (the generic rules from infocus-editor's house-rules.example.md).
- * The House rules editor on The Show starts from this; until a producer saves their own, the editor uses
+ * The House rules editor on the Editing tab starts from this; until a producer saves their own, the editor uses
  * its built-in copy of the same text.
  */
 export const DEFAULT_SHOW_EDITOR_HOUSE_RULES = `# House rules

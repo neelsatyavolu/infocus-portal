@@ -161,7 +161,7 @@ export const SHOW_EDITOR_VERSION_PATTERN = /^v\d+\.\d+\.\d+$/;
 export const LINK_TTL_MS = 15 * 60_000;
 export const LINK_POLL_INTERVAL_S = 5;
 
-/** What producers set on The Show; null means "use the SHOW_EDITOR_* env fallback". */
+/** What producers set on the Editing tab; null means "use the SHOW_EDITOR_* env fallback". */
 export type ShowEditorSettingsView = {
   autoStart: boolean;
   autoPublish: boolean;
@@ -259,10 +259,11 @@ export function lastSeenLabel(lastSeenAt: string | null, now = new Date()) {
   return `${Math.round(hours / 24)} days ago`;
 }
 
-/** The panel's one-line editor status. */
-export function editorStatus(worker: ShowEditWorker, now = new Date()): { tone: "success" | "warning" | "danger"; label: string } {
+/** The one-line editor status; with `machine`, the active machine's name follows the state. */
+export function editorStatus(worker: ShowEditWorker, now = new Date(), machine?: string): { tone: "success" | "warning" | "danger"; label: string } {
   const version = worker.version ? ` · ${worker.version}` : "";
-  if (!worker.online) return { tone: "danger", label: `Editor offline · last seen ${lastSeenLabel(worker.lastSeenAt, now)}` };
-  if (worker.health && !worker.health.ok) return { tone: "warning", label: `Editor needs attention${version}` };
-  return { tone: "success", label: `Editor online${worker.busy ? " · busy" : ""}${version}` };
+  const name = machine ? ` · ${machine}` : "";
+  if (!worker.online) return { tone: "danger", label: `Editor offline${name} · last seen ${lastSeenLabel(worker.lastSeenAt, now)}` };
+  if (worker.health && !worker.health.ok) return { tone: "warning", label: `Editor needs attention${name}${version}` };
+  return { tone: "success", label: `Editor online${name}${worker.busy ? " · busy" : ""}${version}` };
 }

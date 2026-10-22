@@ -84,6 +84,7 @@ Producer page (associate producer and up) for one show date. It opens on the nex
 - **Cast:** **Show manager** (tagged **Rotation**, which rotates across EPs and APs, or **Manual**; **Use rotation** returns a hand-picked show to the rotation) and **Anchors** (**Anchor 1** and **Anchor 2**) with **Randomize**, with the same rules as the calendar. Changes save to the calendar, and a **Saving** tag shows while they do. The anchor dropdowns grey out anyone who already anchored that month. These dropdowns use the generator roster, which also lists advisers and super admin.
 - **Show roles:** that date's crew, each marked **Confirmed** or **Pending** with the generator's confirmations, and an **N/5 confirmed** count. **Open generator** opens the Show Roles Generator (below).
 - **Packages:** what the Publishing Queue has assigned to this show, out of two (**1 of 2**, **Full**), with a dashed **Open slot** for each one left. Click a package to open its Final Cut page; **Publishing queue →** opens the queue to add one.
+- **Automatic editing:** one line for this show's automatic edit: **Not started**, **Editing: <step>**, **Ready for review**, **Scheduled** or **Failed**. **Open Editing →** opens the Editing tab (below) on this show.
 
 ### Upload show (to YouTube)
 
@@ -100,34 +101,57 @@ Any producer (associate producer and up) can press **Upload show** at the top of
 
 After you schedule it, the Portal locks the upload. Change the title, time, or anything else in YouTube Studio. One upload per show date. Until you press Schedule, you can choose a different file.
 
-### Automatic editing
+### Show Roles Generator (`/show-roles?generator=1`)
 
-Any producer sees an **Automatic editing** card on The Show. An editing machine (the team MacBook, or for now someone's own laptop) cuts the show on its own: it picks the takes, replaces every old switcher graphic with fresh ones, levels the audio and checks the result.
+Opened from **Open generator** on The Show's Show roles card. The generator opens on its own current show, whichever date The Show had open; pick the show inside the generator. **Back to The Show** returns to the date The Show had open.
 
-- **Editor status:** **Editor online**, **Editor offline · last seen …**, or **Editor needs attention**, for the active machine, with its version. An edit started while it's offline waits until it's back.
-- **Start:** the recordings in Drive `Shows/` and its subfolders are listed newest first. Open a folder to see its files, or tick the folder to take all of them.
+Crew roles are Show Director, Graphics Director, Tech Director, Teleprompter, and Floor Director, plus Backup #1 and #2. **Generate Roles** auto-assigns them. It skips EPs, advisers, and super admin; they stay in the manual picker. Each role has **Re-pick**, **Manual**, and a confirm toggle; **Confirm All** confirms every role.
+
+Other buttons: **New Show**, **Anchor History** (times anchored, last anchored, and a **Non-anchor** checkbox that keeps someone out of Randomize), **Refresh**, **Import JSON**, **Backup**, and **Clear History** (deletes all saved shows except the current one; cannot be undone).
+
+The show selector includes every saved date, including past shows; the latest four dates also have quick tabs. Selecting a date displays its saved assignments and confirmations. The Member Pool shows each person's last crew, anchor, or associate show-manager assignment as **1 show ago**, **2 shows ago**, etc., or **Never** when none is recorded before the selected show. Counts use saved show dates before the selected date, not calendar days or future assignments. Crew members, anchors, and associate producers who were show manager in the previous two shows are on cooldown, with their counts highlighted in amber. Show-manager duty uses the calendar's resolved rotation or manual override. Backup assignments do not count toward cooldown. The generator opens on the next show after today and only accepts new shows on Wednesday or Friday school days, so seeded no-school days (such as Friday, October 2, 2026) are skipped. It does not accept special shows on other weekdays.
+
+## Editing (`/editing`)
+
+Producer page (associate producer and up) for automatic editing. It's a tab of The Show, between **The Show** and **Publishing Queue**, and the sidebar's The Show item stays lit on it. An editing machine (the team MacBook, or for now someone's own laptop) cuts the show on its own: it picks the takes, replaces every old switcher graphic with fresh ones, levels the audio and checks the result.
+
+- **Header:** the show date being edited, and a tag for the active editing machine on every view: **Editor online · <machine> · <version>** (with **busy** while it edits), **Editor offline · <machine> · last seen …**, **Editor needs attention · …**, or **No editor linked**. An edit started while it's offline waits until it's back.
+- **Show strip:** the same show strip as The Show. It opens on the same show The Show opens on, and the date is in the link (`/editing?date=YYYY-MM-DD`).
+- **Views:** **Show**, **Machines** and **Settings**. The view is in the link too (`/editing?view=machines`, `/editing?view=settings`); without one it opens on Show.
+
+Emails and notifications about an automatic edit (ready for review, failed, scheduled, and the 6 PM reminder) link to that show on the Editing tab.
+
+### Show view
+
+One show's automatic edit, in cards:
+
+- **This show's edit:** where it stands (**Not started**, **Editing: <step>**, **Ready for review**, **Scheduled** or **Failed**). While it runs, a live line shows the step (finding the takes, making graphics, rendering, checking, uploading) and **Cancel** stops it. If it failed, the reason and **Redo the edit** (with a note for the editor) are here.
+- **Start an edit** (until the show is edited or sent to YouTube): the recordings in Drive `Shows/` and its subfolders, newest first. Open a folder to see its files, or tick the folder to take all of them.
   - **Ticked already:** the TriCaster names every export `InFocus Show <airing date>`, with ` (1)`, ` (2)` for repeats. The files named after this show's airing date are ticked, oldest first.
   - **Never ticked:** files with EDITED in the name, the untitled `InFocus Show.mov`, and a file exactly the size of another date's file. That last one is marked "Same size as …: probably a copy of another show".
   - **Picking:** up to 12 files. A file still copying to Drive can't be picked yet.
   - **Roles:** each chosen file is on **Auto**, and the editor works out from the pictures and sound which files are switched program feeds, which are camera feeds (M two-shot, L, R) and which were recorded together. You can set a file to **Program**, **Camera M**, **Camera L** or **Camera R** yourself, or **Ignore** to leave it out. The arrows change the order.
+  - With **Start editing by itself** on, the card says which files auto-start will use and when.
   - Press **Start automatic editing**. Packages come from the Publishing Queue for that show; anchors' names come from The Show.
-- **While it runs:** a live line shows the step (finding the takes, making graphics, rendering, checking, uploading). **Cancel** stops it.
-- **Ready for review:** the edited show plays in the card, with what the editor found in the files (for example "2 recordings: r1 multicam (M, L, R), r2 multicam (M, L, R)") and anything it flagged for a person to check. **Review & schedule** opens Upload show with the edited file already in place, so you only check the title, time and playlist. The person who started it and the show manager get an email and notification when it's ready or if it fails, and a reminder at 6 PM the evening before the show if it still isn't scheduled.
-- **Ask for a fix:** type what's wrong (timecodes help, e.g. "At 1:12 the Math Club card is cut off") and press **Send the fix**. The editor changes the same edit and replies with what it did; the new version replaces the preview. Tick **Remember this for future shows** to add it to the house rules. Fixes work until the show is scheduled.
-  - **Which machine:** a fix runs on the machine that made the edit, because its files are there. If that machine is offline, the card says **Waiting for … to come online**. If it was unlinked, the fix fails; use **Redo**.
-- **Redo:** start the edit over with a note for the editor (for example, "use the later take of the close").
+- **Review** (once it's edited): the edited show plays, with its version and anything the editor flagged for a person to check (**Check these before scheduling**). **Review & schedule** opens Upload show right here with the edited file already in place, so you only check the title, time and playlist, then **Schedule on YouTube**. The person who started it and the show manager get an email and notification when it's ready or if it fails, and a reminder at 6 PM the evening before the show if it still isn't scheduled.
+- **What the editor found:** what it worked out from the files, for example "2 recordings: r1 multicam (M, L, R), r2 multicam (M, L, R)".
+- **Fixes:** under **Ask for a fix**, type what's wrong (timecodes help, e.g. "At 1:12 the Math Club card is cut off") and press **Send the fix**. The editor changes the same edit and replies with what it did; the conversation stays in the card and the new version replaces the preview. Tick **Remember this for future shows** to add it to the house rules. Fixes work until the show is scheduled.
+  - **Which machine:** a fix runs on the machine that made the edit, because its files are there. If that machine is offline, the edit card says **Waiting for … to come online**. If it was unlinked, the fix fails; use **Redo**.
+- **Start over:** **Redo the edit** starts the edit over with a note for the editor (for example, "use the later take of the close").
+
+### Machines view
 
 #### Linking an editing machine
 
 Setting up a machine means opening the InFocus Editor app on it and pressing **Link to Portal**. Nobody types a password or token.
 
-1. The app shows a code and an **Open Portal** button, which opens The Show with **Link the editor Mac '…'?**.
+1. The app shows a code and an **Open Portal** button, which opens the Editing tab's Machines view with **Link the editor Mac '…'?** (`/editing?link=CODE`; older links to `/show-roles?link=CODE` go there too). If you weren't signed in, you come back to it after signing in.
 2. Check the code matches, keep **Make it the active editor now** ticked (or untick it to add the machine without switching), and press **Approve**. **Cancel** turns it down.
 3. The machine finishes setting up by itself. A link code lasts 15 minutes.
 
 #### Editing machines
 
-Under **Editing machines**, each linked machine shows:
+Each linked machine shows:
 - its name, and **Dedicated** (the team MacBook) or **Personal** (someone's laptop)
 - online or last seen, its version, and any problems
 - its AI accounts
@@ -142,26 +166,18 @@ Buttons:
 
 Editing machines run on a Claude, Codex (ChatGPT) or Grok subscription, not an API key. Each machine lists its accounts as **Connected** or **Not connected**, with what it reports.
 
-1. Under **Connect AI account**, pick the machine (the active one is chosen already) and **Claude**, **Codex** or **Grok**.
+1. In the **Connect AI account** card, pick the machine (the active one is chosen already) and **Claude**, **Codex** or **Grok**.
 2. Copy the command shown and run it in Terminal on your own computer. You sign in there with the subscription's usual sign-in.
 3. The sign-in is encrypted on your computer so only that machine can read it, and sent through the Portal. Its row shows **Waiting for sign-in**, then **Installing**, then **Connected**. If it shows **Failed**, the reason is beside it; make a new code.
 
 A code works once and lasts 10 minutes. The Portal never sees the sign-in itself, and deletes the encrypted copy once the machine has it (or after an hour).
 
-#### Editor settings
+### Settings view
 
-- **Start editing by itself:** once the files named after an upcoming show are in Drive `Shows/`, the edit starts without anyone pressing Start. It waits until every file has been unchanged for 10 minutes, and with several files, 10 more after the newest one (exports arrive one after another). The card says which files it will use and when.
+**Editor settings:**
+- **Start editing by itself:** once the files named after an upcoming show are in Drive `Shows/`, the edit starts without anyone pressing Start. It waits until every file has been unchanged for 10 minutes, and with several files, 10 more after the newest one (exports arrive one after another).
 - **Schedule clean edits by themselves:** an edit with nothing flagged and every check passed is scheduled on YouTube with the usual title and time. Flagged edits always wait for review.
 - **Editor version:** empty follows the newest release; type one like `v0.3.1` to pin it or roll back.
 - **AI account order:** which subscription the editor tries first, then next.
-- **House rules:** decisions the editor follows instead of asking. It starts from the editor's built-in rules; **Save rules** stores your version, and remembered fixes are added to it.
 
-### Show Roles Generator (`/show-roles?generator=1`)
-
-Opened from **Open generator** on The Show's Show roles card. The generator opens on its own current show, whichever date The Show had open; pick the show inside the generator. **Back to The Show** returns to the date The Show had open.
-
-Crew roles are Show Director, Graphics Director, Tech Director, Teleprompter, and Floor Director, plus Backup #1 and #2. **Generate Roles** auto-assigns them. It skips EPs, advisers, and super admin; they stay in the manual picker. Each role has **Re-pick**, **Manual**, and a confirm toggle; **Confirm All** confirms every role.
-
-Other buttons: **New Show**, **Anchor History** (times anchored, last anchored, and a **Non-anchor** checkbox that keeps someone out of Randomize), **Refresh**, **Import JSON**, **Backup**, and **Clear History** (deletes all saved shows except the current one; cannot be undone).
-
-The show selector includes every saved date, including past shows; the latest four dates also have quick tabs. Selecting a date displays its saved assignments and confirmations. The Member Pool shows each person's last crew, anchor, or associate show-manager assignment as **1 show ago**, **2 shows ago**, etc., or **Never** when none is recorded before the selected show. Counts use saved show dates before the selected date, not calendar days or future assignments. Crew members, anchors, and associate producers who were show manager in the previous two shows are on cooldown, with their counts highlighted in amber. Show-manager duty uses the calendar's resolved rotation or manual override. Backup assignments do not count toward cooldown. The generator opens on the next show after today and only accepts new shows on Wednesday or Friday school days, so seeded no-school days (such as Friday, October 2, 2026) are skipped. It does not accept special shows on other weekdays.
+**House rules:** decisions the editor follows instead of asking. It starts from the editor's built-in rules; **Save rules** stores your version, and remembered fixes are added to it. **Go back to the built-in rules** drops your version.

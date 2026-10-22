@@ -114,20 +114,23 @@ describe("show editor notifications and auto-start", () => {
     });
   });
 
-  it("review and failure notify the starter and show manager", async () => {
+  it("review and failure notify the starter and show manager, linking to that date on Editing", async () => {
     await notifyShowEdit(job(), "review");
     expect(mocks.email).toHaveBeenCalledWith(expect.objectContaining({
       recipients: ["starter@example.edu", "manager@example.edu"],
-      ctaUrl: expect.stringContaining("/show-roles?date=2026-10-21"),
+      ctaLabel: "Open Editing",
+      ctaUrl: expect.stringMatching(/\/editing\?date=2026-10-21$/),
       idempotencyKey: "show-edit/job1/review/1"
     }));
-    expect(mocks.push).toHaveBeenCalledWith(["starter", "manager-id"], expect.objectContaining({ url: expect.stringContaining("date=2026-10-21") }));
+    expect(mocks.push).toHaveBeenCalledWith(["starter", "manager-id"], expect.objectContaining({ url: expect.stringMatching(/\/editing\?date=2026-10-21$/) }));
 
     mocks.email.mockClear();
     await notifyShowEdit(job({ status: "FAILED", error: "This is the SD capture; pick the HD recording." }), "failed");
     const failed = mocks.email.mock.calls[0][0];
     expect(failed.subject).toMatch(/failed/i);
     expect(failed.paragraphs.join(" ")).toContain("This is the SD capture; pick the HD recording.");
+    expect(failed.paragraphs.join(" ")).toContain("Open Editing to try again with Redo");
+    expect(failed.ctaUrl).toMatch(/\/editing\?date=2026-10-21$/);
   });
 
   it("a flagged edit names the first flagged decision", async () => {
@@ -152,7 +155,11 @@ describe("show editor notifications and auto-start", () => {
       mocks.publication.mockResolvedValue({ status: "DRAFT" });
       const result = await runShowEditReminders(evening);
       expect(result).toEqual({ sent: 1, date: NEXT_SHOW });
-      expect(mocks.email).toHaveBeenCalledWith(expect.objectContaining({ idempotencyKey: `show-edit-reminder/${NEXT_SHOW}` }));
+      expect(mocks.email).toHaveBeenCalledWith(expect.objectContaining({
+        idempotencyKey: `show-edit-reminder/${NEXT_SHOW}`,
+        ctaUrl: expect.stringMatching(new RegExp(`/editing\\?date=${NEXT_SHOW}$`))
+      }));
+      expect(mocks.push).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ url: expect.stringContaining(`/editing?date=${NEXT_SHOW}`) }));
     });
 
     it("no reminder once the show is scheduled, or when no edit was started", async () => {

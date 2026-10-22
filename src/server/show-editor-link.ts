@@ -7,12 +7,13 @@ import {
   type EditorBackendStatus, type EditorHealth, type ShowEditorDeviceView
 } from "@/src/lib/show-editor";
 import { hashEditorToken } from "@/src/lib/show-editor-auth";
+import { editingHref } from "@/src/lib/show-editor-views";
 import { ShowEditError } from "@/src/server/show-editor-errors";
 import { randomPairingCode } from "@/src/server/show-editor-pairing";
 
 /**
  * Linking the editing Mac with a device-code flow (like signing a TV in to a streaming service): the setup
- * app shows a code, a producer approves it on The Show, and the Mac collects its token exactly once.
+ * app shows a code, a producer approves it on the Editing tab, and the Mac collects its token exactly once.
  * Nobody copies a token.
  */
 
@@ -35,7 +36,7 @@ export async function startEditorLink(input: { deviceName: string }, now = new D
   return {
     deviceCode,
     userCode: shown,
-    verificationUrl: `${mainAppOrigin().replace(/\/$/, "")}/show-roles?link=${shown}`,
+    verificationUrl: `${mainAppOrigin().replace(/\/$/, "")}${editingHref({ link: shown })}`,
     expiresAt: expiresAt.toISOString(),
     interval: LINK_POLL_INTERVAL_S
   };
@@ -70,7 +71,7 @@ async function waitingLink(userCode: string, now: Date) {
   return link;
 }
 
-/** For the confirm screen (`/show-roles?link=CODE`): which Mac is asking. */
+/** For the confirm screen (`/editing?link=CODE`): which Mac is asking. */
 export async function describeEditorLink(userCode: string, now = new Date()) {
   const link = await waitingLink(userCode, now);
   return link ? { userCode: formatPairingCode(link.userCode), deviceName: link.deviceName, expiresAt: link.expiresAt.toISOString() } : null;

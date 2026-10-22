@@ -15,6 +15,7 @@ import {
   EMPTY_NAV_STATUS,
   formatDueTag,
   hubTabCounts,
+  isInHub,
   isPackageRoute,
   isRailRoute,
   isWideRoute,
@@ -121,6 +122,7 @@ describe("buildSidebarNav", () => {
       "/publishing-queue",
       "/grade-editor",
       "/show-roles",
+      "/editing",
       "/participation",
       "/admin",
       "/settings"
@@ -145,12 +147,23 @@ describe("buildSidebarNav", () => {
 });
 
 describe("buildHubTabs", () => {
-  it("puts The Show and Publishing Queue together for producers; Livestreams has its own item", () => {
+  it("puts The Show, Editing and Publishing Queue together for producers; Livestreams has its own item", () => {
     expect(buildHubTabs(associate, "/publishing-queue/row1")?.map((tab) => tab.href)).toEqual([
       "/show-roles",
+      "/editing",
       "/publishing-queue"
     ]);
     expect(buildHubTabs(associate, "/livestreams")).toBeNull();
+  });
+
+  it("gives Editing its own tab, between The Show and Publishing Queue, for producers only", () => {
+    const tabs = buildHubTabs(associate, "/editing");
+    expect(tabs?.map((tab) => tab.label)).toEqual(["The Show", "Editing", "Publishing Queue"]);
+    expect(tabs?.find((tab) => tab.active)?.href).toBe("/editing");
+    expect(buildHubTabs(executive, "/show-roles")?.map((tab) => tab.href)).toContain("/editing");
+    expect(buildHubTabs(student, "/editing")).toBeNull();
+    expect(reachable(student).has("/editing")).toBe(false);
+    expect(reachable(associate).has("/editing")).toBe(true);
   });
 
   it("shows no tab bar where a person has only one page of a hub", () => {
@@ -226,8 +239,19 @@ describe("isNavItemActive", () => {
     const people = buildSidebarNav(associate).flatMap((navSection) => navSection.items).find((navItem) => navItem.id === "people")!;
     const meetings = buildSidebarNav(associate).flatMap((navSection) => navSection.items).find((navItem) => navItem.id === "meetings")!;
     expect(isNavItemActive(people, "/participation", false, true)).toBe(true);
+    expect(isNavItemActive(people, "/editing", false, true)).toBe(false);
     expect(isNavItemActive(meetings, "/", true, true)).toBe(true);
     expect(isNavItemActive(meetings, "/", false, true)).toBe(false);
+  });
+
+  it("keeps The Show lit on Editing, as on the Publishing Queue", () => {
+    const show = buildSidebarNav(associate).flatMap((navSection) => navSection.items).find((navItem) => navItem.id === "show")!;
+    expect(show.href).toBe("/show-roles");
+    for (const path of ["/show-roles", "/editing", "/publishing-queue", "/publishing-queue/row1"]) {
+      expect(isNavItemActive(show, path, false, true), path).toBe(true);
+    }
+    expect(isNavItemActive(show, "/editing-other", false, true)).toBe(false);
+    expect(isInHub("show", "/editing")).toBe(true);
   });
 });
 
@@ -295,6 +319,7 @@ describe("isWideRoute", () => {
       "/members",
       "/participation",
       "/show-roles",
+      "/editing",
       "/publishing-queue",
       "/livestreams",
       "/announcements",

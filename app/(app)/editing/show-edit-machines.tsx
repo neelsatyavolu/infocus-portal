@@ -10,7 +10,7 @@ import {
   lastSeenLabel, SHOW_EDIT_BACKEND_LABELS, SHOW_EDIT_BACKENDS, SHOW_EDITOR_COMMAND_LABELS, SHOW_EDITOR_COMMANDS,
   type PairingStatus, type ShowEditBackend, type ShowEditorCommandKind, type ShowEditorCommandView, type ShowEditorDeviceView
 } from "@/src/lib/show-editor";
-import { LABEL_CLASS, pacificTime } from "./show-edit-parts";
+import { pacificTime } from "./show-edit-parts";
 
 export type ShownPairing = { deviceId: string; backend: ShowEditBackend; code: string; command: string; expiresAt: string };
 
@@ -130,7 +130,7 @@ function MachineRow({
 }
 
 /** "Connect AI account": pick the machine (the active one by default) and the subscription, then run the command. */
-function ConnectAiAccount({
+export function ConnectAiAccount({
   devices, pairings, shown, busy, onConnect
 }: {
   devices: ShowEditorDeviceView[];
@@ -148,7 +148,6 @@ function ConnectAiAccount({
   if (!target) return null;
   return (
     <div className="space-y-2">
-      <div className={LABEL_CLASS}>Connect AI account</div>
       <div className="flex flex-wrap items-center gap-2">
         {devices.length > 1 ? (
           <NativeSelect
@@ -202,44 +201,37 @@ function ConnectAiAccount({
 
 /** Every linked editing machine; exactly one is active and takes new edits. */
 export function EditingMachines({
-  devices, pairings, commands, shown, busy, onActivate, onUnlink, onCommand, onConnect
+  devices, pairings, commands, busy, onActivate, onUnlink, onCommand
 }: {
   devices: ShowEditorDeviceView[];
   pairings: PairingStatus[];
   commands: ShowEditorCommandView[];
-  shown: ShownPairing | null;
   busy: boolean;
   onActivate: (deviceId: string) => void;
   onUnlink: (deviceId: string) => void;
   onCommand: (deviceId: string, kind: ShowEditorCommandKind) => void;
-  onConnect: (deviceId: string, backend: ShowEditBackend) => void;
 }) {
+  if (devices.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        No editing machine is linked. Open the InFocus Editor app on the Mac and press Link to Portal.
+      </p>
+    );
+  }
   return (
-    <div className="space-y-3">
-      <div className={LABEL_CLASS}>Editing machines</div>
-      {devices.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No editing machine is linked. Open the InFocus Editor app on the Mac and press Link to Portal.
-        </p>
-      ) : (
-        <ul className="space-y-3">
-          {devices.map((device) => (
-            <MachineRow
-              key={device.id}
-              device={device}
-              pairings={pairings}
-              commands={commands.filter((command) => command.deviceId === device.id)}
-              busy={busy}
-              onActivate={() => onActivate(device.id)}
-              onUnlink={() => onUnlink(device.id)}
-              onCommand={(kind) => onCommand(device.id, kind)}
-            />
-          ))}
-        </ul>
-      )}
-      {devices.length > 0 ? (
-        <ConnectAiAccount devices={devices} pairings={pairings} shown={shown} busy={busy} onConnect={onConnect} />
-      ) : null}
-    </div>
+    <ul className="space-y-3">
+      {devices.map((device) => (
+        <MachineRow
+          key={device.id}
+          device={device}
+          pairings={pairings}
+          commands={commands.filter((command) => command.deviceId === device.id)}
+          busy={busy}
+          onActivate={() => onActivate(device.id)}
+          onUnlink={() => onUnlink(device.id)}
+          onCommand={(kind) => onCommand(device.id, kind)}
+        />
+      ))}
+    </ul>
   );
 }

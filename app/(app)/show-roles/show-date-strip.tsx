@@ -14,19 +14,28 @@ function fullyVisible(strip: HTMLElement, child: HTMLElement) {
  * useSearchParams), so the page shows the saved copy at once and loads the rest in the background,
  * with no server round trip. Modified clicks still open the show in a new tab or window.
  */
-function selectShow(event: MouseEvent<HTMLAnchorElement>, item: StripItem) {
+function selectShow(event: MouseEvent<HTMLAnchorElement>, item: StripItem, href: string) {
   if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
   event.preventDefault();
-  if (!item.active) window.history.replaceState(null, "", showHref(item.date));
+  if (!item.active) window.history.replaceState(null, "", href);
 }
 
 /**
  * The upcoming shows as equal cells: they fill the column on desktop and scroll sideways inside
  * the strip (never the page) when there isn't room. The chosen show stays in the address (reload
  * and share keep it). The open show is marked like a tab: card fill and a 2px green underline.
- * `disabled` dims it and stops switching (while a save for the open show runs).
+ * `disabled` dims it and stops switching (while a save for the open show runs). `hrefFor` is each show's
+ * address (The Show's by default; Editing keeps its own page and view).
  */
-export function ShowDateStrip({ items, disabled = false }: { items: StripItem[]; disabled?: boolean }) {
+export function ShowDateStrip({
+  items,
+  disabled = false,
+  hrefFor = showHref
+}: {
+  items: StripItem[];
+  disabled?: boolean;
+  hrefFor?: (date: string) => string;
+}) {
   const stripRef = useRef<HTMLOListElement>(null);
   const activeRef = useRef<HTMLAnchorElement>(null);
   const activeDate = items.find((item) => item.active)?.date;
@@ -52,9 +61,9 @@ export function ShowDateStrip({ items, disabled = false }: { items: StripItem[];
           <li key={item.date} className="min-w-0 snap-start">
             <a
               ref={item.active ? activeRef : undefined}
-              href={showHref(item.date)}
+              href={hrefFor(item.date)}
               aria-current={item.active ? "page" : undefined}
-              onClick={(event) => selectShow(event, item)}
+              onClick={(event) => selectShow(event, item, hrefFor(item.date))}
               className={cn(
                 "group relative flex h-16 min-w-0 flex-col justify-center gap-0.5 overflow-hidden rounded-md border border-border px-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
                 item.active

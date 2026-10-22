@@ -79,6 +79,7 @@ type HubPage = {
 const HUBS: Record<"show" | "people" | "calendar" | "announcements", HubPage[]> = {
   show: [
     { href: "/show-roles", label: "The Show", producersOnly: true },
+    { href: "/editing", label: "Editing", producersOnly: true },
     { href: "/publishing-queue", label: "Publishing Queue", producersOnly: true }
   ],
   people: [

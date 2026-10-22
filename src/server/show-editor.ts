@@ -26,6 +26,9 @@ import { ShowEditError } from "@/src/server/show-editor-errors";
 import {
   briefSources, normalizeSources, sourceSelectionError, type ShowEditBriefSource, type ShowEditSource
 } from "@/src/lib/show-editor-sources";
+import {
+  DEBUG_LOG_LINKS, debugLogsOf, editorLogPath, isEditorLogPath, mergeDebugLog, type ShowEditDebugLog, type ShowEditDebugLogEntry
+} from "@/src/lib/show-editor-debug-logs";
 
 export { ShowEditError };
 
@@ -61,6 +64,10 @@ export type ShowEditClaim = {
 };
 
 
+function objectChecks(checks: unknown): Record<string, unknown> {
+  return checks && typeof checks === "object" && !Array.isArray(checks) ? (checks as Record<string, unknown>) : {};
+}
+
 function conversationOf(job: Pick<ShowEditJob, "conversation">): ShowEditMessage[] {
   return Array.isArray(job.conversation) ? (job.conversation as unknown as ShowEditMessage[]) : [];
 }
@@ -86,6 +93,7 @@ export function showEditView(job: ShowEditJob): ShowEditView {
     pendingFix: job.pendingFix,
     conversation: conversationOf(job),
     version: job.version,
+    debugLogs: debugLogsOf(job.checks).reverse().map(({ version, at }) => ({ version, url: null, at })),
     createdAt: job.createdAt.toISOString(),
     heartbeatAt: job.heartbeatAt?.toISOString() ?? null,
     finishedAt: job.finishedAt?.toISOString() ?? null
@@ -434,11 +442,31 @@ async function requireRunning(id: string) {
   return job;
 }
 
-export async function showEditUploadTargets(id: string) {
+/** The timeline version a run produces: a fix makes the next one. */
+function runVersion(job: ShowEditJob) {
+  return job.pendingFix ? job.version + 1 : job.version;
+}
+
+/** This run's debug bundle path; the stamp is the claim time, the same stamp as the run's output file. */
+function runLogPath(job: ShowEditJob, now: Date) {
+  const stamp = (job.claimedAt ?? now).getTime().toString(36);
+  return editorLogPath({ showDate: job.showDate, jobId: job.id, version: runVersion(job), stamp });
+}
+
+/** The bundle a complete/fail reports, checked against this job (400 otherwise); null when none was sent. */
+function debugLogEntry(job: ShowEditJob, path: string | undefined, now: Date): ShowEditDebugLogEntry | null {
+  if (path === undefined) return null;
+  if (!isEditorLogPath(path, job.showDate, job.id)) throw new ShowEditError("debugLogPath isn't this edit's debug log path.", 400);
+  return { version: runVersion(job), path, at: now.toISOString() };
+}
+
+export async function showEditUploadTargets(id: string, now = new Date()) {
   const job = await requireRunning(id);
   if (!job.outputNasPath || !job.posterNasPath) throw new ShowEditError("This edit has no output path yet.", 409);
-  const [video, poster] = await Promise.all([mintEditorUpload(job.outputNasPath), mintEditorUpload(job.posterNasPath)]);
-  return { driveBaseUrl: editorDriveBaseUrl(), video, poster };
+  const [video, poster, log] = await Promise.all([
+    mintEditorUpload(job.outputNasPath), mintEditorUpload(job.posterNasPath), mintEditorUpload(runLogPath(job, now))
+  ]);
+  return { driveBaseUrl: editorDriveBaseUrl(), video, poster, log };
 }
 
 /** Phase 2 (SHOW_EDITOR_AUTO_PUBLISH=1): schedule a clean edit with the upload dialog's defaults. */
@@ -463,11 +491,13 @@ export async function completeShowEdit(input: {
   needsReview: boolean; costUsd: number; agentSessionId: string; reply?: string;
   /** The full updated house rules after a remembered fix. */
   houseRules?: string;
+  debugLogPath?: string;
 }, now = new Date()) {
   const job = await requireRunning(input.id);
   if (input.outputNasPath !== job.outputNasPath) throw new ShowEditError("outputNasPath doesn't match this run's brief.", 409);
   const isFix = Boolean(job.pendingFix);
   if (isFix && !input.reply?.trim()) throw new ShowEditError("A fix needs a reply saying what changed.", 400);
+  const debugLog = debugLogEntry(job, input.debugLogPath, now);
   try {
     await attachEditedShow({ userId: job.createdById, showDate: job.showDate, nasPath: input.outputNasPath });
   } catch (error) {
@@ -478,7 +508,7 @@ export async function completeShowEdit(input: {
   const data: Prisma.ShowEditJobUpdateInput = {
     status: "REVIEW", stage: null, message: null, error: null, cancelRequested: false, finishedAt: now,
     decisions: input.decisions as unknown as Prisma.InputJsonValue,
-    checks: input.checks as Prisma.InputJsonValue,
+    checks: mergeDebugLog(job.checks, input.checks, debugLog) as Prisma.InputJsonValue,
     needsReview: input.needsReview,
     costUsd: (job.costUsd ?? 0) + input.costUsd,
     agentSessionId: input.agentSessionId,
@@ -501,10 +531,19 @@ export async function completeShowEdit(input: {
   return { ok: true as const };
 }
 
-export async function failShowEdit(input: { id: string; error: string; cancelled: boolean }, now = new Date()) {
+export async function failShowEdit(input: { id: string; error: string; cancelled: boolean; debugLogPath?: string }, now = new Date()) {
   const job = await requireJob(input.id);
-  if (job.status !== "RUNNING" && job.status !== "QUEUED") return { ok: true as const };
-  const data = await endedRunData(job, input.error.trim() || "The edit failed.", input.cancelled, now);
+  const debugLog = debugLogEntry(job, input.debugLogPath, now);
+  const checks = () => mergeDebugLog(job.checks, objectChecks(job.checks), debugLog) as Prisma.InputJsonValue;
+  if (job.status !== "RUNNING" && job.status !== "QUEUED") {
+    // Already ended (e.g. timed out): still keep the bundle downloadable.
+    if (debugLog) await prisma.showEditJob.update({ where: { id: job.id }, data: { checks: checks() } });
+    return { ok: true as const };
+  }
+  const data = {
+    ...await endedRunData(job, input.error.trim() || "The edit failed.", input.cancelled, now),
+    ...(debugLog ? { checks: checks() } : {})
+  };
   const updated = await prisma.showEditJob.update({ where: { id: job.id }, data });
   if (data.status === "FAILED") await notifyShowEdit({ ...job, ...updated, status: "FAILED", error: input.error }, "failed");
   return { ok: true as const };
@@ -532,6 +571,23 @@ async function previewFor(job: ShowEditJob | null, publication: { status: string
     console.error("show editor: preview link failed", job.id, error);
     return null;
   }
+}
+
+/**
+ * Read links (6 h) for the newest few bundles. Skipped while a run is going, so the 10-second poll
+ * doesn't mint tokens nobody is shown; a link that can't be minted stays null.
+ */
+async function debugLogLinks(job: ShowEditJob): Promise<ShowEditDebugLog[]> {
+  const logs = debugLogsOf(job.checks).reverse();
+  const active = job.status === "QUEUED" || job.status === "RUNNING";
+  return Promise.all(logs.map(async ({ version, path, at }, index) => {
+    if (active || index >= DEBUG_LOG_LINKS) return { version, url: null, at };
+    const url = await mintEditorDownload(path).catch((error) => {
+      console.error("show editor: debug log link failed", job.id, error);
+      return null;
+    });
+    return { version, url, at };
+  }));
 }
 
 export async function showEditState(showDate: string, now = new Date()): Promise<ShowEditState> {
@@ -568,7 +624,7 @@ export async function showEditState(showDate: string, now = new Date()): Promise
     pairings,
     recordings,
     recordingsError,
-    job: job ? showEditView(job) : null,
+    job: job ? { ...showEditView(job), debugLogs: await debugLogLinks(job) } : null,
     publicationStatus: publication?.status ?? null,
     preview: await previewFor(job, publication),
     autoStart

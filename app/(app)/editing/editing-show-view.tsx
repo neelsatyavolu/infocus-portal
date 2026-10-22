@@ -12,7 +12,7 @@ import {
 } from "@/src/lib/show-editor-sources";
 import { editSummaryStatus } from "@/src/lib/show-editor-views";
 import type { EditedShow } from "../show-roles/show-upload-dialog";
-import { DetectedStructure, FixConversation, FlaggedDecisions, RedoForm, structureDecisions } from "./show-edit-parts";
+import { DebugLogLinks, DetectedStructure, FixConversation, FlaggedDecisions, RedoForm, structureDecisions } from "./show-edit-parts";
 import { RecordingPicker } from "./show-edit-recordings";
 import { isActiveJob, type EditAction } from "./use-show-edit";
 
@@ -205,6 +205,7 @@ export function EditingShowView({ showDate, state, busyAction, send, onReview }:
     <div className="space-y-5">
       <Panel title="This show's edit" status={<StatusTag tone={summary.tone}>{summary.label}</StatusTag>} bodyClassName="space-y-3">
         <StatusBody state={state} sentToYouTube={sentToYouTube} busy={busy} send={send} />
+        {job && !isActiveJob(job) ? <DebugLogLinks logs={job.debugLogs} /> : null}
         {canStart ? (
           <StartRow
             selected={selected}

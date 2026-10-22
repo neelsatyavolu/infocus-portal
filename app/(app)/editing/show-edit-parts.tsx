@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { ChevronRight, Download, Loader2 } from "lucide-react";
 import { Alert } from "@/components/kit/alert";
 import { StatusTag } from "@/components/kit/status-tag";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import {
   editorStatus, SHOW_EDIT_FIX_MAX, SHOW_EDIT_NOTE_MAX,
   type ShowEditDecision, type ShowEditMessage, type ShowEditorDeviceView, type ShowEditWorker
 } from "@/src/lib/show-editor";
+import type { ShowEditDebugLog } from "@/src/lib/show-editor-debug-logs";
 
 export const LABEL_CLASS = "text-[11px] font-medium uppercase leading-tight tracking-[0.11em] text-muted-foreground";
 
@@ -148,5 +149,49 @@ export function DetectedStructure({ decisions }: { decisions: ShowEditDecision[]
         <li key={index} className={decision.flagged ? "text-[var(--brand-amber)]" : undefined}>{decision.detail}</li>
       ))}
     </ul>
+  );
+}
+
+const DEBUG_LOG_HINT = "Editor log and AI transcript for this run. Share it when reporting a problem.";
+const LINK_CLASS = "inline-flex items-center gap-1.5 text-[var(--brand-green)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+function DebugLogLink({ log, label }: { log: ShowEditDebugLog & { url: string }; label: string }) {
+  return (
+    <a href={log.url} download rel="noreferrer" title={DEBUG_LOG_HINT} aria-label={`Download debug log (v${log.version})`} className={LINK_CLASS}>
+      <Download className="h-3.5 w-3.5 shrink-0" aria-hidden />
+      {label}
+    </a>
+  );
+}
+
+/** The newest run's debug bundle, with earlier versions' bundles behind a disclosure. */
+export function DebugLogLinks({ logs }: { logs: ShowEditDebugLog[] }) {
+  const linked = logs.filter((log): log is ShowEditDebugLog & { url: string } => log.url !== null);
+  if (linked.length === 0) return null;
+  const [latest, ...earlier] = linked;
+  return (
+    <div className="space-y-1.5 text-[13px]">
+      <p className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span className="font-medium text-foreground">Debug log (v{latest.version})</span>
+        <DebugLogLink log={latest} label="Download debug log" />
+      </p>
+      <p className="text-muted-foreground">{DEBUG_LOG_HINT}</p>
+      {earlier.length > 0 ? (
+        <details className="group">
+          <summary className="inline-flex cursor-pointer list-none items-center gap-1 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+            <ChevronRight className="h-3.5 w-3.5 shrink-0 transition-transform group-open:rotate-90" aria-hidden />
+            Earlier versions ({earlier.length})
+          </summary>
+          <ul className="mt-1.5 space-y-1 pl-5">
+            {earlier.map((log) => (
+              <li key={`${log.version}-${log.at}`} className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                <DebugLogLink log={log} label={`Debug log (v${log.version})`} />
+                <span className="text-muted-foreground">{pacificTime.format(new Date(log.at))}</span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
+    </div>
   );
 }

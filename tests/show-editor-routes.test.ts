@@ -125,6 +125,23 @@ describe("show editor service routes", () => {
     expect(mocks.fail).toHaveBeenCalledWith({ id: "job1", error: "ffmpeg exited with an error", cancelled: false });
   });
 
+  it("complete and fail forward an optional debugLogPath and refuse an oversized one", async () => {
+    const debugLogPath = "Package Storage/Shows/2026-10-21/editor-logs/job1-v1-abc.tar.gz";
+    mocks.complete.mockResolvedValue({ ok: true });
+    mocks.fail.mockResolvedValue({ ok: true });
+    await complete(post({ ...goodComplete, debugLogPath }), params);
+    expect(mocks.complete).toHaveBeenCalledWith({ id: "job1", ...goodComplete, debugLogPath });
+    await failRoute(post({ error: "x", cancelled: true, debugLogPath }), params);
+    expect(mocks.fail).toHaveBeenCalledWith({ id: "job1", error: "x", cancelled: true, debugLogPath });
+    expect((await failRoute(post({ error: "x", cancelled: false, debugLogPath: "x".repeat(513) }), params)).status).toBe(400);
+  });
+
+  it("a debugLogPath the service refuses is a 400", async () => {
+    mocks.fail.mockRejectedValue(new ShowEditError("debugLogPath isn't this edit's debug log path.", 400));
+    const response = await failRoute(post({ error: "x", cancelled: false, debugLogPath: "Package Storage/Shows/../x.tar.gz" }), params);
+    expect(response.status).toBe(400);
+  });
+
   it("upload targets are never cached", async () => {
     mocks.targets.mockResolvedValue({ driveBaseUrl: "https://drive", video: { path: "a", token: "rw" }, poster: { path: "b", token: "rw" } });
     const response = await uploadTargets(post({}), params);

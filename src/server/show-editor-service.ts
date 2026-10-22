@@ -22,6 +22,9 @@ export const heartbeatSchema = z.object({
 /** POST pair/<code> from the producer's computer: the sealed sign-in (size and base64 are checked in the service). */
 export const pairSubmitSchema = z.object({ ciphertext: z.string() });
 
+/** The run's debug bundle from upload-targets' `log.path`; the service checks it belongs to the job. */
+const debugLogPathSchema = z.string().min(1).max(512).optional();
+
 export const progressSchema = z.object({ stage: z.enum(SHOW_EDIT_STAGES), message: z.string().max(300) });
 
 export const completeSchema = z.object({
@@ -32,14 +35,15 @@ export const completeSchema = z.object({
   costUsd: z.number().min(0).max(1000),
   agentSessionId: z.string().max(100),
   reply: z.string().max(1000).optional(),
-  houseRules: z.string().max(SHOW_EDITOR_HOUSE_RULES_MAX).optional()
+  houseRules: z.string().max(SHOW_EDITOR_HOUSE_RULES_MAX).optional(),
+  debugLogPath: debugLogPathSchema
 });
 
 /** Device-code linking from the Mac's setup app (no auth; rate-limited). */
 export const linkStartSchema = z.object({ deviceName: z.string().trim().min(1).max(80) });
 export const linkPollSchema = z.object({ deviceCode: z.string().min(16).max(128) });
 
-export const failSchema = z.object({ error: z.string().max(1000), cancelled: z.boolean() });
+export const failSchema = z.object({ error: z.string().max(1000), cancelled: z.boolean(), debugLogPath: debugLogPathSchema });
 
 export async function readEditorBody(request: Request): Promise<unknown> {
   return request.json().catch(() => ({}));

@@ -363,14 +363,137 @@ describe("show editor jobs", () => {
     expect(mocks.job.update).toHaveBeenLastCalledWith({ where: { id: "job1" }, data: expect.objectContaining({ status: "CANCELLED" }) });
   });
 
-  it("upload targets mint read/write tokens for the claimed paths", async () => {
+  it("upload targets mint read/write tokens for the claimed paths and the run's debug bundle", async () => {
+    const stamp = NOW.getTime().toString(36);
     mocks.job.findUnique.mockResolvedValueOnce(job({
-      status: "RUNNING", outputNasPath: "Package Storage/Shows/2026-10-21/x.mp4", posterNasPath: "Package Storage/Shows/2026-10-21/x.poster.jpg"
+      status: "RUNNING", claimedAt: NOW,
+      outputNasPath: `Package Storage/Shows/2026-10-21/InFocus Show 2026-10-21-${stamp}.mp4`,
+      posterNasPath: `Package Storage/Shows/2026-10-21/InFocus Show 2026-10-21-${stamp}.poster.jpg`
     }));
-    expect(await showEditUploadTargets("job1")).toEqual({
+    expect(await showEditUploadTargets("job1", NOW)).toEqual({
       driveBaseUrl: "https://drive.example.org",
-      video: { path: "Package Storage/Shows/2026-10-21/x.mp4", token: expect.stringMatching(/^rw\./) },
-      poster: { path: "Package Storage/Shows/2026-10-21/x.poster.jpg", token: expect.stringMatching(/^rw\./) }
+      video: { path: `Package Storage/Shows/2026-10-21/InFocus Show 2026-10-21-${stamp}.mp4`, token: expect.stringMatching(/^rw\./) },
+      poster: { path: `Package Storage/Shows/2026-10-21/InFocus Show 2026-10-21-${stamp}.poster.jpg`, token: expect.stringMatching(/^rw\./) },
+      log: { path: `Package Storage/Shows/2026-10-21/editor-logs/job1-v1-${stamp}.tar.gz`, token: expect.stringMatching(/^rw\./) }
+    });
+    expect(mocks.upload).toHaveBeenCalledTimes(3);
+  });
+
+  it("a fix run's debug bundle is named for the version it makes", async () => {
+    mocks.job.findUnique.mockResolvedValueOnce(job({
+      status: "RUNNING", claimedAt: NOW, pendingFix: "Fix the card", version: 2, outputNasPath: "o.mp4", posterNasPath: "o.poster.jpg"
+    }));
+    const targets = await showEditUploadTargets("job1", NOW);
+    expect(targets.log.path).toBe(`Package Storage/Shows/2026-10-21/editor-logs/job1-v3-${NOW.getTime().toString(36)}.tar.gz`);
+  });
+
+  describe("debug logs", () => {
+    const LOG = (name: string) => `Package Storage/Shows/2026-10-21/editor-logs/${name}`;
+    const finished = { decisions: [], needsReview: false, costUsd: 1, agentSessionId: "s" };
+
+    it("complete stores a valid debugLogPath in checks next to the run's own checks", async () => {
+      mocks.job.findUnique.mockResolvedValueOnce(job({ status: "RUNNING", outputNasPath: "o.mp4" }));
+      await completeShowEdit({ id: "job1", outputNasPath: "o.mp4", checks: { coversClean: true }, debugLogPath: LOG("job1-v1-abc.tar.gz"), ...finished }, NOW);
+      expect(mocks.job.update.mock.calls[0][0].data.checks).toEqual({
+        coversClean: true,
+        debugLog: LOG("job1-v1-abc.tar.gz"),
+        debugLogs: [{ version: 1, path: LOG("job1-v1-abc.tar.gz"), at: NOW.toISOString() }]
+      });
+    });
+
+    it("complete and fail refuse a debugLogPath for another date, another job, with .. or the wrong extension", async () => {
+      const bad = [
+        "Package Storage/Shows/2026-10-22/editor-logs/job1-v1-abc.tar.gz",
+        LOG("job2-v1-abc.tar.gz"),
+        LOG("job1-v1-../../x.tar.gz"),
+        LOG("job1-v1-abc.zip"),
+        LOG("job1-v1-abc.tar.gz.mp4"),
+        LOG("job1-v1/abc.tar.gz")
+      ];
+      for (const debugLogPath of bad) {
+        mocks.job.findUnique.mockResolvedValueOnce(job({ status: "RUNNING", outputNasPath: "o.mp4" }));
+        await expect(completeShowEdit({ id: "job1", outputNasPath: "o.mp4", checks: {}, debugLogPath, ...finished }, NOW)).rejects.toMatchObject({ status: 400 });
+        mocks.job.findUnique.mockResolvedValueOnce(job({ status: "RUNNING" }));
+        await expect(failShowEdit({ id: "job1", error: "x", cancelled: false, debugLogPath }, NOW)).rejects.toMatchObject({ status: 400 });
+      }
+      expect(mocks.attach).not.toHaveBeenCalled();
+      expect(mocks.job.update).not.toHaveBeenCalled();
+    });
+
+    it("a fix completion appends its log to the earlier versions' logs", async () => {
+      const v1 = { version: 1, path: LOG("job1-v1-abc.tar.gz"), at: "2026-10-20T20:00:00.000Z" };
+      mocks.job.findUnique.mockResolvedValueOnce(job({
+        status: "RUNNING", outputNasPath: "o2.mp4", pendingFix: "Fix it", version: 1,
+        checks: { coversClean: false, debugLog: v1.path, debugLogs: [v1] }
+      }));
+      await completeShowEdit({
+        id: "job1", outputNasPath: "o2.mp4", checks: { coversClean: true }, reply: "Fixed.", debugLogPath: LOG("job1-v2-def.tar.gz"), ...finished
+      }, NOW);
+      expect(mocks.job.update.mock.calls[0][0].data.checks).toEqual({
+        coversClean: true,
+        debugLog: LOG("job1-v2-def.tar.gz"),
+        debugLogs: [v1, { version: 2, path: LOG("job1-v2-def.tar.gz"), at: NOW.toISOString() }]
+      });
+    });
+
+    it("a failed fix keeps the earlier checks and adds the failed run's log", async () => {
+      const v1 = { version: 1, path: LOG("job1-v1-abc.tar.gz"), at: "2026-10-20T20:00:00.000Z" };
+      mocks.job.findUnique.mockResolvedValueOnce(job({
+        status: "RUNNING", pendingFix: "Fix it", version: 1, outputNasPath: "o2.mp4", checks: { coversClean: true, debugLog: v1.path, debugLogs: [v1] }
+      }));
+      await failShowEdit({ id: "job1", error: "Render failed", cancelled: false, debugLogPath: LOG("job1-v2-def.tar.gz") }, NOW);
+      expect(mocks.job.update).toHaveBeenCalledWith({ where: { id: "job1" }, data: expect.objectContaining({
+        status: "REVIEW",
+        checks: { coversClean: true, debugLog: LOG("job1-v2-def.tar.gz"), debugLogs: [v1, { version: 2, path: LOG("job1-v2-def.tar.gz"), at: NOW.toISOString() }] }
+      }) });
+    });
+
+    it("a failed or cancelled edit records its log; one that already ended still keeps it", async () => {
+      mocks.job.findUnique.mockResolvedValueOnce(job({ status: "RUNNING", cancelRequested: true }));
+      await failShowEdit({ id: "job1", error: "Cancelled", cancelled: true, debugLogPath: LOG("job1-v1-abc.tar.gz") }, NOW);
+      expect(mocks.job.update).toHaveBeenLastCalledWith({ where: { id: "job1" }, data: expect.objectContaining({
+        status: "CANCELLED", checks: { debugLog: LOG("job1-v1-abc.tar.gz"), debugLogs: [{ version: 1, path: LOG("job1-v1-abc.tar.gz"), at: NOW.toISOString() }] }
+      }) });
+      mocks.job.findUnique.mockResolvedValueOnce(job({ status: "FAILED" }));
+      await failShowEdit({ id: "job1", error: "late", cancelled: false, debugLogPath: LOG("job1-v1-def.tar.gz") }, NOW);
+      expect(mocks.job.update).toHaveBeenLastCalledWith({ where: { id: "job1" }, data: {
+        checks: { debugLog: LOG("job1-v1-def.tar.gz"), debugLogs: [{ version: 1, path: LOG("job1-v1-def.tar.gz"), at: NOW.toISOString() }] }
+      } });
+    });
+
+    it("the old payload without debugLogPath stores checks as sent and leaves a failure's checks alone", async () => {
+      mocks.job.findUnique.mockResolvedValueOnce(job({ status: "RUNNING", outputNasPath: "o.mp4" }));
+      await completeShowEdit({ id: "job1", outputNasPath: "o.mp4", checks: { coversClean: true }, ...finished }, NOW);
+      expect(mocks.job.update.mock.calls[0][0].data.checks).toEqual({ coversClean: true });
+      mocks.job.findUnique.mockResolvedValueOnce(job({ status: "RUNNING", checks: { coversClean: true } }));
+      await failShowEdit({ id: "job1", error: "x", cancelled: false }, NOW);
+      expect(mocks.job.update.mock.calls[1][0].data).not.toHaveProperty("checks");
+    });
+
+    it("the producer's view lists logs newest first, with links for the newest five", async () => {
+      const logs = Array.from({ length: 6 }, (_, index) => ({
+        version: index + 1, path: LOG(`job1-v${index + 1}-s${index}.tar.gz`), at: `2026-10-20T2${index}:00:00.000Z`
+      }));
+      mocks.job.findFirst.mockResolvedValue(job({ status: "REVIEW", version: 6, checks: { debugLog: logs[5].path, debugLogs: logs } }));
+      const state = await showEditState(SHOW, NOW);
+      expect(state.job!.debugLogs.map((log) => log.version)).toEqual([6, 5, 4, 3, 2, 1]);
+      expect(state.job!.debugLogs[0]).toEqual({ version: 6, url: expect.stringContaining(encodeURIComponent(logs[5].path)), at: logs[5].at });
+      expect(state.job!.debugLogs.slice(0, 5).every((log) => log.url?.includes("token="))).toBe(true);
+      expect(state.job!.debugLogs[5].url).toBeNull();
+      expect(mocks.download).toHaveBeenCalledTimes(5);
+    });
+
+    it("a FAILED edit's log has a link; a running job mints none; a link that fails to mint is null", async () => {
+      const log = { version: 1, path: LOG("job1-v1-abc.tar.gz"), at: "2026-10-20T20:00:00.000Z" };
+      mocks.job.findFirst.mockResolvedValue(job({ status: "FAILED", checks: { debugLogs: [log] } }));
+      expect((await showEditState(SHOW, NOW)).job!.debugLogs[0].url).toContain("token=");
+      mocks.download.mockClear();
+      mocks.job.findFirst.mockResolvedValue(job({ status: "RUNNING", pendingFix: "Fix it", checks: { debugLogs: [log] } }));
+      expect((await showEditState(SHOW, NOW)).job!.debugLogs).toEqual([{ version: 1, url: null, at: log.at }]);
+      expect(mocks.download).not.toHaveBeenCalled();
+      mocks.download.mockRejectedValueOnce(new Error("Drive down"));
+      mocks.job.findFirst.mockResolvedValue(job({ status: "CANCELLED", checks: { debugLogs: [log] } }));
+      expect((await showEditState(SHOW, NOW)).job!.debugLogs).toEqual([{ version: 1, url: null, at: log.at }]);
     });
   });
 

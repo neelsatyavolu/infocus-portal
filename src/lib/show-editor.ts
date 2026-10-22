@@ -1,3 +1,4 @@
+import type { ShowEditDebugLog } from "@/src/lib/show-editor-debug-logs";
 import type { ShowEditSource, ShowEditSourceRole } from "@/src/lib/show-editor-sources";
 
 /**
@@ -83,6 +84,8 @@ export type ShowEditView = {
   pendingFix: string | null;
   conversation: ShowEditMessage[];
   version: number;
+  /** Each run's debug bundle, newest first; the newest few have a download link. */
+  debugLogs: ShowEditDebugLog[];
   createdAt: string;
   heartbeatAt: string | null;
   finishedAt: string | null;

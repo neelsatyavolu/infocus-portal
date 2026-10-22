@@ -5,7 +5,7 @@ import { editorRouteError } from "@/src/server/show-editor-service";
 
 export const dynamic = "force-dynamic";
 
-/** Drive read/write tokens for this run's show file and poster, minted right before upload (Bearer SHOW_EDITOR_TOKEN). */
+/** Drive read/write tokens for this run's show file, poster and debug bundle, minted right before upload (Bearer SHOW_EDITOR_TOKEN). */
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   if (!(await isShowEditorRequest(request))) return fail("Unauthorized", 401);
   try {

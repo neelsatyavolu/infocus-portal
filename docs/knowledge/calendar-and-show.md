@@ -126,6 +126,7 @@ Emails and notifications about an automatic edit (ready for review, failed, sche
 One show's automatic edit, in cards:
 
 - **This show's edit:** where it stands (**Not started**, **Editing: <step>**, **Ready for review**, **Scheduled** or **Failed**). While it runs, a live line shows the step (finding the takes, making graphics, rendering, checking, uploading) and **Cancel** stops it. If it failed, the reason and **Redo the edit** (with a note for the editor) are here.
+  - **Debug log:** once a run ends (ready, failed or cancelled), **Download debug log** fetches that version's editor log and AI transcript (for example **Debug log (v3)**); **Earlier versions** lists the logs from earlier fixes. Share it when reporting a problem.
 - **Start an edit** (until the show is edited or sent to YouTube): the recordings in Drive `Shows/` and its subfolders, newest first. Open a folder to see its files, or tick the folder to take all of them.
   - **Ticked already:** the TriCaster names every export `InFocus Show <airing date>`, with ` (1)`, ` (2)` for repeats. The files named after this show's airing date are ticked, oldest first.
   - **Never ticked:** files with EDITED in the name, the untitled `InFocus Show.mov`, and a file exactly the size of another date's file. That last one is marked "Same size as …: probably a copy of another show".

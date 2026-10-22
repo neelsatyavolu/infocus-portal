@@ -31,7 +31,8 @@ function tileTags(view: GroupRowView): Tag[] {
  * Enter too); Notes and Approve pitch sit above the link layer.
  * Anatomy: title with the pending stage on the right; people with check-ins on the right; the
  * stage track; then status tags, with any actions at the end of that same row (they wrap under
- * the tags when room runs out). The tag row is pinned to the bottom so rows of tiles line up.
+ * the tags when room runs out). The tag row sits right under the track; a shorter tile in a
+ * stretched grid row takes the slack at its bottom, not above the tags.
  * A group waiting on someone else drops the card fill: quieter, with text at full contrast.
  */
 function GroupTileBase({
@@ -96,7 +97,7 @@ function GroupTileBase({
 
       <StageTrack segments={view.segments} />
 
-      <div className="mt-auto flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-2">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-2">
         {tileTags(view).map((tag) => (
           <StatusTag key={tag.key} tone={tag.tone}>
             {tag.label}

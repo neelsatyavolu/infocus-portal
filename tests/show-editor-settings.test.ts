@@ -93,7 +93,16 @@ describe("editor commands", () => {
     mocks.command.findMany.mockResolvedValueOnce([{ id: "c1", kind: "logs" }]);
     expect(await takePendingCommands("laptop", NOW)).toEqual([{ id: "c1", kind: "logs" }]);
     expect(mocks.command.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { deviceId: "laptop", status: "PENDING" } }));
-    expect(mocks.command.updateMany).toHaveBeenCalledWith({ where: { id: { in: ["c1"] }, status: "PENDING" }, data: { status: "SENT", sentAt: NOW } });
+    expect(mocks.command.updateMany).toHaveBeenLastCalledWith({ where: { id: { in: ["c1"] }, status: "PENDING" }, data: { status: "SENT", sentAt: NOW } });
+  });
+
+  it("closes a command the machine never answered within an hour, before handing out new ones", async () => {
+    mocks.command.findMany.mockResolvedValueOnce([]);
+    await takePendingCommands("laptop", NOW);
+    expect(mocks.command.updateMany).toHaveBeenCalledWith({
+      where: { deviceId: "laptop", status: "SENT", sentAt: { lt: new Date(NOW.getTime() - 60 * 60_000) } },
+      data: { status: "FAILED", ok: false, output: expect.stringContaining("No answer from the machine"), finishedAt: NOW }
+    });
   });
 
   it("stores the Mac's result, capped at 4000 characters", async () => {

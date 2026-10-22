@@ -20,8 +20,16 @@ export async function queueEditorCommand(input: { userId: string; deviceId: stri
   return commandView(command);
 }
 
-/** Heartbeat: this machine's commands not yet handed over, oldest first. */
+/** A command handed over this long ago with no answer is given up on (the Mac restarted or crashed mid-way). */
+export const COMMAND_ANSWER_TIMEOUT_MS = 60 * 60_000;
+export const COMMAND_NO_ANSWER = "No answer from the machine (it probably restarted). Send it again if it's still needed.";
+
+/** Heartbeat: this machine's commands not yet handed over, oldest first. Ones it never answered are closed first. */
 export async function takePendingCommands(deviceId: string, now = new Date()) {
+  await prisma.showEditorCommand.updateMany({
+    where: { deviceId, status: "SENT", sentAt: { lt: new Date(now.getTime() - COMMAND_ANSWER_TIMEOUT_MS) } },
+    data: { status: "FAILED", ok: false, output: COMMAND_NO_ANSWER, finishedAt: now }
+  });
   const pending = await prisma.showEditorCommand.findMany({
     where: { deviceId, status: "PENDING" }, orderBy: { createdAt: "asc" }, take: 10, select: { id: true, kind: true }
   });

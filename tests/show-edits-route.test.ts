@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   user: vi.fn(), profile: vi.fn(), access: vi.fn(),
   state: vi.fn(), start: vi.fn(), cancel: vi.fn(), redo: vi.fn(), fix: vi.fn(), approve: vi.fn(), pair: vi.fn(),
-  unlink: vi.fn(), preview: vi.fn(), activate: vi.fn(), decide: vi.fn(), describe: vi.fn(), command: vi.fn(), settings: vi.fn(), summary: vi.fn()
+  unlink: vi.fn(), preview: vi.fn(), setup: vi.fn(), activate: vi.fn(), decide: vi.fn(), describe: vi.fn(), command: vi.fn(), settings: vi.fn(), summary: vi.fn()
 }));
 
 vi.mock("@/src/lib/auth", () => ({ requireUserId: mocks.user, syncUserProfile: mocks.profile }));
@@ -25,7 +25,7 @@ vi.mock("@/src/server/show-editor-settings", () => ({ saveEditorSettings: mocks.
 vi.mock("@/src/server/show-editor-summary", () => ({ showEditSummary: mocks.summary }));
 
 vi.mock("@/src/server/show-editor-pairing", () => ({ createPairing: mocks.pair }));
-vi.mock("@/src/server/show-editor-drive", () => ({ recordingPreviewUrl: mocks.preview }));
+vi.mock("@/src/server/show-editor-drive", () => ({ recordingPreviewUrl: mocks.preview, setupAppDownloadUrl: mocks.setup }));
 
 import { GET, POST } from "@/app/api/show-roles/edits/route";
 import { ShowEditError } from "@/src/server/show-editor";
@@ -69,6 +69,20 @@ describe("show edits route", () => {
     mocks.access.mockResolvedValue({ role: null });
     expect((await GET(new Request("https://portal.example.edu/api/show-roles/edits?date=2026-10-21&summary=1"))).status).toBe(403);
     expect(mocks.summary).toHaveBeenCalledTimes(1);
+  });
+
+  it("GET ?setup=1 redirects a producer to a fresh Drive link for the setup app, uncached", async () => {
+    mocks.setup.mockResolvedValue("https://drive.example.org/api/service/file?token=s&inline=false");
+    const response = await GET(new Request("https://portal.example.edu/api/show-roles/edits?setup=1"));
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBe("https://drive.example.org/api/service/file?token=s&inline=false");
+    expect(response.headers.get("cache-control")).toBe("no-store");
+  });
+
+  it("GET ?setup=1 refuses a non-producer without minting a link", async () => {
+    mocks.access.mockResolvedValue({ role: null });
+    expect((await GET(new Request("https://portal.example.edu/api/show-roles/edits?setup=1"))).status).toBe(403);
+    expect(mocks.setup).not.toHaveBeenCalled();
   });
 
   it("GET ?preview= mints one recording's playback link for producers only, keeping refusals", async () => {

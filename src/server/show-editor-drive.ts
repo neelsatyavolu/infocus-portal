@@ -55,6 +55,16 @@ export async function recordingPreviewUrl(path: string, now = new Date()) {
   return nasDeriveWebPlaybackUrl(await nasMintDownloadUrl(path, RECORDING_PREVIEW_TTL_SECONDS));
 }
 
+/** Where the setup app lives on the Drive (uploaded by hand after each setup-app build). */
+export const EDITOR_SETUP_APP_PATH = "Package Storage/Editor/InFocus Editor Setup.dmg";
+
+/** A 30-minute download link for the setup app, saved as a file rather than opened. */
+export async function setupAppDownloadUrl() {
+  const url = new URL(await nasMintDownloadUrl(EDITOR_SETUP_APP_PATH, 30 * 60));
+  url.searchParams.set("inline", "false");
+  return url.toString();
+}
+
 /** Read link for one file, for the editing Mac to download (`inline=false` streams the original). */
 export async function mintEditorDownload(path: string) {
   const res = await driveFetch("/api/service/mint-token", {

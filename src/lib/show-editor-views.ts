@@ -7,8 +7,12 @@ import { SHOW_EDIT_STAGE_LABELS, type ShowEditStage, type ShowEditStatus } from 
 
 export const EDITING_VIEWS = ["show", "machines", "settings"] as const;
 
-/** The InFocus Editor setup app (the newest release on GitHub), linked from Machines. */
-export const EDITOR_SETUP_APP_URL = "https://github.com/neelsatyavolu/infocus-editor/releases/latest/download/InFocus-Editor-Setup.dmg";
+/**
+ * The InFocus Editor setup app, linked from Machines. It bundles the graphics package (real names in its working
+ * files), so it lives on the Drive, never in a public release: this route checks the producer, then redirects to
+ * a short-lived Drive link.
+ */
+export const EDITOR_SETUP_APP_URL = "/api/show-roles/edits?setup=1";
 export type EditingView = (typeof EDITING_VIEWS)[number];
 export const EDITING_VIEW_LABELS: Record<EditingView, string> = { show: "Show", machines: "Machines", settings: "Settings" };
 

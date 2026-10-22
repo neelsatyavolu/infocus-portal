@@ -79,7 +79,7 @@ describe("editor commands", () => {
     mocks.command.findMany.mockResolvedValueOnce([{ id: "old1" }, { id: "old2" }]);
     expect(await queueEditorCommand({ userId: "u1", deviceId: "laptop", kind: "doctor" })).toMatchObject({ id: "c1", deviceId: "laptop", kind: "doctor", status: "PENDING" });
     expect(mocks.command.create).toHaveBeenCalledWith({ data: { deviceId: "laptop", kind: "doctor", requestedById: "u1" } });
-    expect(mocks.command.findMany).toHaveBeenCalledWith({ where: { deviceId: "laptop" }, orderBy: { createdAt: "desc" }, skip: 20, select: { id: true } });
+    expect(mocks.command.findMany).toHaveBeenCalledWith({ where: { deviceId: "laptop", NOT: { kind: { startsWith: "shell:" } } }, orderBy: { createdAt: "desc" }, skip: 20, select: { id: true } });
     expect(mocks.command.deleteMany).toHaveBeenCalledWith({ where: { id: { in: ["old1", "old2"] } } });
   });
 
@@ -109,7 +109,7 @@ describe("editor commands", () => {
     expect(await recentEditorCommands(["laptop", "team-mac"])).toEqual([
       { id: "c2", deviceId: "laptop", kind: "logs", status: "DONE", output: "last lines", createdAt: NOW.toISOString(), finishedAt: NOW.toISOString() }
     ]);
-    expect(mocks.command.findMany).toHaveBeenCalledWith({ where: { deviceId: { in: ["laptop", "team-mac"] } }, orderBy: { createdAt: "desc" }, take: 40 });
+    expect(mocks.command.findMany).toHaveBeenCalledWith({ where: { deviceId: { in: ["laptop", "team-mac"] }, NOT: { kind: { startsWith: "shell:" } } }, orderBy: { createdAt: "desc" }, take: 40 });
     expect(await recentEditorCommands([])).toEqual([]);
   });
 });

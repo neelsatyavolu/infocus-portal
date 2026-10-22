@@ -13,7 +13,7 @@ import type { EditAction } from "./use-show-edit";
 function SetupAppDownload() {
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-      <a href={EDITOR_SETUP_APP_URL} download className={buttonVariants({ variant: "outline" })}>
+      <a href={EDITOR_SETUP_APP_URL} className={buttonVariants({ variant: "outline" })}>
         <Download aria-hidden />
         Download the setup app
       </a>

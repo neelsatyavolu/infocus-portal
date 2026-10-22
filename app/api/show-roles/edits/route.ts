@@ -15,7 +15,7 @@ import {
   approveShowEdit, cancelShowEdit, redoShowEdit, requestShowFix, showEditState, ShowEditError, startShowEdit, unlinkEditorDevice
 } from "@/src/server/show-editor";
 import { queueEditorCommand } from "@/src/server/show-editor-commands";
-import { recordingPreviewUrl } from "@/src/server/show-editor-drive";
+import { recordingPreviewUrl, setupAppDownloadUrl } from "@/src/server/show-editor-drive";
 import { activateEditorDevice, decideEditorLink, describeEditorLink } from "@/src/server/show-editor-link";
 import { createPairing } from "@/src/server/show-editor-pairing";
 import { saveEditorSettings } from "@/src/server/show-editor-settings";
@@ -89,6 +89,10 @@ export async function GET(request: Request) {
     const linkCode = params.get("link");
     // The confirm screen for /editing?link=CODE: which Mac is asking to be linked.
     if (linkCode !== null) return okNoStore({ link: await describeEditorLink(linkCode) });
+    // Machines' "Download the setup app": a short-lived Drive link, for producers only.
+    if (params.get("setup") === "1") {
+      return new Response(null, { status: 302, headers: { Location: await setupAppDownloadUrl(), "Cache-Control": "no-store" } });
+    }
     // The picker's Preview: a playable link for one listed recording, minted only when asked for.
     const preview = params.get("preview");
     if (preview !== null) return okNoStore({ url: await recordingPreviewUrl(preview) });

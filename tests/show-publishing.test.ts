@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   find: vi.fn(), findFirst: vi.fn(), upsert: vi.fn(), update: vi.fn(), updateMany: vi.fn(),
-  calendar: vi.fn(), show: vi.fn(), rows: vi.fn(),
+  calendar: vi.fn(), show: vi.fn(), rows: vi.fn(), users: vi.fn(), editJob: vi.fn(),
   mint: vi.fn(), download: vi.fn(), send: vi.fn(), size: vi.fn(), token: vi.fn(), playlists: vi.fn(),
   configured: { value: true }
 }));
@@ -11,7 +11,9 @@ vi.mock("@/src/lib/prisma", () => ({ prisma: {
   showPublication: { findUnique: mocks.find, findFirst: mocks.findFirst, upsert: mocks.upsert, update: mocks.update, updateMany: mocks.updateMany },
   masterCalendarEntry: { findUnique: mocks.calendar },
   showRolesShow: { findUnique: mocks.show },
-  packageProgressRow: { findMany: mocks.rows }
+  packageProgressRow: { findMany: mocks.rows },
+  user: { findMany: mocks.users },
+  showEditJob: { findFirst: mocks.editJob }
 } }));
 vi.mock("@/src/server/show-upload-queue", () => ({ enqueueShowUploads: mocks.send }));
 vi.mock("@/src/lib/nas-storage", async (original) => ({
@@ -43,10 +45,13 @@ describe("show publishing service", () => {
     mocks.send.mockResolvedValue(undefined);
     mocks.configured.value = true;
     mocks.calendar.mockResolvedValue(null);
-    mocks.show.mockResolvedValue({ anchors: ["Abby Ames", "Otto Ortiz"] });
+    mocks.show.mockResolvedValue({ anchors: ["Abby", "Otto Ortiz"] });
     mocks.rows.mockResolvedValue([
-      { groupTopic: "school board decisions", members: [{ user: { name: "Sage Smith", nickname: null, email: "s@example.edu" } }] }
+      { groupTopic: "School Board Package", finalCutToss: "The board voted on a new schedule. InFocus reporter Sage has more.",
+        members: [{ user: { name: "Sage Smith", nickname: "Sage", email: "s@example.edu" } }] }
     ]);
+    mocks.users.mockResolvedValue([{ name: "Abby Ames", nickname: null }, { name: "Otto Ortiz", nickname: null }]);
+    mocks.editJob.mockResolvedValue(null);
     mocks.findFirst.mockResolvedValue(null);
     mocks.token.mockResolvedValue("token");
     mocks.playlists.mockResolvedValue([
@@ -60,12 +65,24 @@ describe("show publishing service", () => {
     const state = await showPublicationState("2026-09-22");
     expect(state.defaults).toEqual({
       title: "InFocus News | Tuesday, September 22nd, 2026",
-      description: "Anchors Abby Ames and Otto Ortiz share campus announcements. InFocus reporter Sage Smith shares news of school board decisions.",
+      description: "Anchors Abby Ames and Otto Ortiz share campus announcements. The board voted on a new schedule. Reported by Sage Smith.",
       publishDate: "2026-09-22",
       publishTime: "08:30",
       seasonNumber: 31,
       existingSeasons: [31, 30]
     });
+  });
+
+  it("uses what the anchors said at the throw when the package has no toss", async () => {
+    mocks.find.mockResolvedValue(null);
+    mocks.rows.mockResolvedValue([
+      { groupTopic: "School Board Package", finalCutToss: "", members: [{ user: { name: "Sage Smith", nickname: null, email: null } }] }
+    ]);
+    mocks.editJob.mockResolvedValue({ checks: { tosses: ["The board met last night. Sage Smith has more."] } });
+    const state = await showPublicationState("2026-09-22");
+    expect(state.defaults?.description).toBe(
+      "Anchors Abby Ames and Otto Ortiz share campus announcements. The board met last night. Reported by Sage Smith.");
+    expect(mocks.editJob).toHaveBeenCalledWith(expect.objectContaining({ where: { showDate: "2026-09-22", status: { in: ["REVIEW", "PUBLISHED"] } } }));
   });
 
   it("suggests a new season on the first show of a new semester", async () => {

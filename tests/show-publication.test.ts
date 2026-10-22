@@ -4,9 +4,11 @@ import {
   ordinalDay,
   parseSeasonNumber,
   seasonPlaylistTitle,
+  fullAnchorNames,
   showDescription,
   showPublishAt,
-  showTitle
+  showTitle,
+  tossStory
 } from "@/src/lib/show-publication";
 
 describe("showTitle", () => {
@@ -33,23 +35,56 @@ describe("showPublishAt", () => {
 });
 
 describe("showDescription", () => {
-  it("credits anchors and reporters", () => {
+  it("credits the anchors, then each package as its toss's story with the reporters' full names", () => {
     expect(showDescription({
       anchors: ["Abby Ames", "Otto Ortiz"],
-      reporters: ["Sage Smith", "Rio Reyes", "Lee Lin"],
-      topics: "school board decisions"
+      packages: [{
+        reporters: ["Sage Smith", "Rio Reyes", "Lee Lin"],
+        toss: "Last year, a class field trip led to a lawsuit. InFocus reporters Sage, Rio, and Lee have more."
+      }]
     })).toBe(
       "Anchors Abby Ames and Otto Ortiz share campus announcements. " +
-      "InFocus reporters Sage Smith, Rio Reyes, and Lee Lin share news of school board decisions."
+      "Last year, a class field trip led to a lawsuit. Reported by Sage Smith, Rio Reyes, and Lee Lin."
     );
   });
 
-  it("handles one anchor, one reporter, and missing pieces", () => {
-    expect(showDescription({ anchors: ["Abby Ames"], reporters: ["Sage Smith"], topics: "" }))
-      .toBe("Anchor Abby Ames shares campus announcements. InFocus reporter Sage Smith shares the news.");
-    expect(showDescription({ anchors: [], reporters: [], topics: "" })).toBe("");
-    expect(showDescription({ anchors: ["", "Otto Ortiz"], reporters: [], topics: "x" }))
+  it("keeps story sentences that merely mention reporters, and drops a 'has more' hand-off", () => {
+    expect(showDescription({ anchors: [], packages: [{
+      reporters: ["Sage Smith"], toss: "Reporters were turned away at the meeting. Sage has more."
+    }] })).toBe("Reporters were turned away at the meeting. Reported by Sage Smith.");
+  });
+
+  it("credits a package with no toss in one line, and handles one anchor and missing pieces", () => {
+    expect(showDescription({ anchors: ["Abby Ames"], packages: [{ reporters: ["Sage Smith"], toss: null }] }))
+      .toBe("Anchor Abby Ames shares campus announcements. InFocus reporter Sage Smith shares a story.");
+    expect(showDescription({ anchors: [], packages: [] })).toBe("");
+    expect(showDescription({ anchors: ["", "Otto Ortiz"], packages: [{ reporters: [], toss: "  " }] }))
       .toBe("Anchor Otto Ortiz shares campus announcements.");
+  });
+});
+
+describe("tossStory", () => {
+  it("keeps the story and drops only the hand-off sentence", () => {
+    expect(tossStory("A field trip sparked a lawsuit. InFocus reporter Sage Smith has more.")).toBe("A field trip sparked a lawsuit.");
+    expect(tossStory("No hand-off here")).toBe("No hand-off here");
+  });
+});
+
+describe("fullAnchorNames", () => {
+  const users = [
+    { name: "Sage Smith", nickname: null },
+    { name: "Edward Jones", nickname: "EJ" },
+    { name: "Rio Reyes", nickname: null },
+    { name: "Rio Lopez", nickname: null },
+    { name: null, nickname: "Ghost" }
+  ];
+
+  it("turns a first name or nickname into the one matching full name, any case", () => {
+    expect(fullAnchorNames(["sage", "EJ"], users)).toEqual(["Sage Smith", "Edward Jones"]);
+  });
+
+  it("leaves a name alone when nobody or several people match, or it's already a full name", () => {
+    expect(fullAnchorNames(["Rio", "Nobody", "Ghost", "Abby Ames"], users)).toEqual(["Rio", "Nobody", "Ghost", "Abby Ames"]);
   });
 });
 

@@ -40,23 +40,59 @@ function joinNames(names: string[]) {
   return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
 }
 
-export function showDescription(input: { anchors: string[]; reporters: string[]; topics: string }) {
+export type DescribedPackage = { reporters: string[]; toss: string | null };
+
+/** A sentence that only hands off to the reporters ("InFocus reporters A and B have more."). */
+const HANDOFF = /\bInFocus reporters?\b|\b(?:have|has) (?:more|the story|the details)\W*$/i;
+
+/** The story in a package's toss, without the hand-off sentence that names the reporters. */
+export function tossStory(toss: string) {
+  return (toss.trim().match(/[^.!?]+[.!?]+["”’)]*|[^.!?]+$/g) ?? [])
+    .map((sentence) => sentence.trim())
+    .filter((sentence) => sentence && !HANDOFF.test(sentence))
+    .join(" ");
+}
+
+/**
+ * The YouTube description: the anchors, then each package as its toss's story credited to its reporters
+ * ("… Reported by A and B."). A package with no toss is credited in one line.
+ */
+export function showDescription(input: { anchors: string[]; packages: DescribedPackage[] }) {
   const anchors = input.anchors.map((name) => name.trim()).filter(Boolean);
-  const reporters = input.reporters.map((name) => name.trim()).filter(Boolean);
-  const topics = input.topics.trim();
   const sentences: string[] = [];
   if (anchors.length) {
     sentences.push(anchors.length === 1
       ? `Anchor ${anchors[0]} shares campus announcements.`
       : `Anchors ${joinNames(anchors)} share campus announcements.`);
   }
-  if (reporters.length) {
-    const subject = reporters.length === 1
-      ? `InFocus reporter ${reporters[0]} shares`
-      : `InFocus reporters ${joinNames(reporters)} share`;
-    sentences.push(`${subject} ${topics ? `news of ${topics}` : "the news"}.`);
+  for (const pkg of input.packages) {
+    const reporters = pkg.reporters.map((name) => name.trim()).filter(Boolean);
+    const story = pkg.toss ? tossStory(pkg.toss) : "";
+    if (story) {
+      sentences.push(reporters.length ? `${story} Reported by ${joinNames(reporters)}.` : story);
+    } else if (reporters.length) {
+      sentences.push(reporters.length === 1
+        ? `InFocus reporter ${reporters[0]} shares a story.`
+        : `InFocus reporters ${joinNames(reporters)} share a story.`);
+    }
   }
   return sentences.join(" ");
+}
+
+/**
+ * Master Calendar anchors are often first names or nicknames ("Sumedh"). Each becomes the one Portal user whose
+ * nickname or first name it is, by full name; a name that matches nobody, or more than one person, stays as written.
+ */
+export function fullAnchorNames(anchors: string[], users: { name: string | null; nickname: string | null }[]) {
+  const key = (value: string) => value.trim().toLowerCase();
+  return anchors.map((anchor) => {
+    const wanted = key(anchor);
+    if (!wanted || wanted.includes(" ")) return anchor.trim();
+    const matches = new Set(users
+      .filter((user) => user.name?.trim() && (key(user.nickname ?? "") === wanted || key(user.name!.split(/\s+/)[0]) === wanted))
+      .map((user) => user.name!.trim()));
+    return matches.size === 1 ? [...matches][0] : anchor.trim();
+  });
 }
 
 export function seasonPlaylistTitle(seasonNumber: number) {

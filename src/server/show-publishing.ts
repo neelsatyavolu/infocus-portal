@@ -4,7 +4,8 @@ import { extractCalendarAnchors } from "@/src/lib/calendar-show-content";
 import { semesterForDate } from "@/src/lib/livestream";
 import { buildShowNasPath, isNasStorageEnabled, nasMintDownloadUrl, nasMintUploadSession, nasPosterPath, nasUploadBytes } from "@/src/lib/nas-storage";
 import {
-  chooseSeason, parseSeasonNumber, SHOW_PUBLISH_TIME, showDescription, showPublishAt, showTitle
+  chooseSeason, fullAnchorNames, parseSeasonNumber, SHOW_PUBLISH_TIME, showDescription, showPublishAt, showTitle,
+  type DescribedPackage
 } from "@/src/lib/show-publication";
 import { userDisplayName } from "@/src/lib/user-display";
 import { youtubeWatchUrl } from "@/src/lib/youtube-publication";
@@ -20,27 +21,40 @@ function semesterLabelFor(dateKey: string) {
   return semesterForDate(new Date(`${dateKey}T12:00:00Z`)).label;
 }
 
+/** What the anchors said at each package's throw in the show's latest edit (`checks.tosses`), by package order. */
+async function spokenTosses(showDate: string): Promise<(string | null)[]> {
+  const job = await prisma.showEditJob.findFirst({
+    where: { showDate, status: { in: ["REVIEW", "PUBLISHED"] } }, orderBy: { updatedAt: "desc" }, select: { checks: true }
+  });
+  const tosses = (job?.checks as { tosses?: unknown } | null)?.tosses;
+  return Array.isArray(tosses) ? tosses.map((toss) => (typeof toss === "string" && toss.trim() ? toss.trim().slice(0, 1500) : null)) : [];
+}
+
 async function showCredits(showDate: string) {
-  const [entry, show, rows] = await Promise.all([
+  const [entry, show, rows, users, spoken] = await Promise.all([
     prisma.masterCalendarEntry.findUnique({ where: { date: showDate } }),
     prisma.showRolesShow.findUnique({ where: { date: showDate } }),
     prisma.packageProgressRow.findMany({
       where: { queuedForAirAt: { not: null }, queuedForShowDate: showDate },
       include: { members: { include: { user: { select: { name: true, nickname: true, email: true } } } } },
       orderBy: { queuedForAirAt: "asc" }
-    })
+    }),
+    prisma.user.findMany({ select: { name: true, nickname: true } }),
+    spokenTosses(showDate)
   ]);
   // Same precedence as The Show overview: Master Calendar anchors win over stored picks.
   const calendarAnchors = entry ? extractCalendarAnchors(entry.content) : [];
   const storedAnchors = Array.isArray(show?.anchors)
     ? show.anchors.filter((name): name is string => typeof name === "string" && name.length > 0)
     : [];
-  const reporters = [...new Set(rows.flatMap((row) => row.members.map((member) => userDisplayName(member.user))))];
-  const topics = rows.map((row) => row.groupTopic.trim()).filter(Boolean);
+  // Full names in the description; the toss from the package, else what the anchors said on air.
+  const packages: DescribedPackage[] = rows.map((row, index) => ({
+    reporters: [...new Set(row.members.map((member) => member.user.name?.trim() || userDisplayName(member.user)).filter(Boolean))],
+    toss: row.finalCutToss.trim() || spoken[index] || null
+  }));
   return {
-    anchors: calendarAnchors.length > 0 ? calendarAnchors : storedAnchors,
-    reporters: reporters.filter(Boolean),
-    topics: topics.length <= 2 ? topics.join(" and ") : `${topics.slice(0, -1).join(", ")}, and ${topics.at(-1)}`
+    anchors: fullAnchorNames(calendarAnchors.length > 0 ? calendarAnchors : storedAnchors, users),
+    packages
   };
 }
 

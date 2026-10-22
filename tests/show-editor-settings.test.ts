@@ -58,9 +58,9 @@ describe("editor settings", () => {
     });
   });
 
-  it("the default house rules are the 12 generic rules, with no names", () => {
+  it("the default house rules are the 17 generic rules, with no names", () => {
     const rules = DEFAULT_SHOW_EDITOR_HOUSE_RULES.split("\n").filter((line) => /^\d+\. /.test(line));
-    expect(rules).toHaveLength(12);
+    expect(rules).toHaveLength(17);
     expect(DEFAULT_SHOW_EDITOR_HOUSE_RULES).toContain("−6 dBFS");
     expect(DEFAULT_SHOW_EDITOR_HOUSE_RULES.length).toBeLessThan(20_000);
   });

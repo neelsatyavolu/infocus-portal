@@ -1,5 +1,5 @@
 /**
- * The editor's default house rules (the 12 generic rules from infocus-editor's house-rules.example.md).
+ * The editor's default house rules (the generic rules from infocus-editor's house-rules.example.md).
  * The House rules editor on The Show starts from this; until a producer saves their own, the editor uses
  * its built-in copy of the same text.
  */
@@ -19,4 +19,9 @@ Decisions producers have already made. The unattended editor reads these before 
 10. **Packages come only from the publishing queue** (\`brief.packages\`, in order). If the anchors throw to a package that isn't there, use a placeholder slate and flag it.
 11. **Explicit lyrics in package music go to review**, never to auto-publish.
 12. **Package design rules:** name plates are square in Soft White \`#ECEFEA\`. TVs idle on \`09 TV Standby\`. The Follow card sits top left.
+13. **Several recordings:** the best take of a segment can be in any recording. The last complete, clean read wins wherever it is. A take never spans two recordings.
+14. **Camera feeds, the open, throws and close:** these are on M (the two-shot).
+15. **Camera feeds, announcements:** each one is on the side set (L or R) of the anchor reading it, with that announcement's card on the TV. Decide who is reading from mouth movement, then the loudest feed, then the script order. When the recording also has a switched program file, its cuts are the starting point.
+16. **Camera feeds, cutting:** cut on sentence boundaries, never in the middle of a word, and hold every shot for at least about 2 seconds.
+17. **Camera feeds, graphics:** camera feeds have no burned-in graphics. Put name bars or the dual third on at each anchor's first M shot, and the Follow card once in the close.
 `;

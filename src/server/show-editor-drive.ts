@@ -1,5 +1,7 @@
 import { driveBaseUrl, driveFetch, nasMintUploadSession } from "@/src/lib/nas-storage";
-import { recordingsFromListing, SHOW_RECORDINGS_FOLDER, type DriveListItem, type ShowRecording } from "@/src/lib/show-editor";
+import {
+  MAX_LISTED_FOLDERS, MAX_LISTED_RECORDINGS, recordingsFromListing, SHOW_RECORDINGS_FOLDER, type DriveListItem, type ShowRecording
+} from "@/src/lib/show-editor";
 
 /** Download and upload links handed to the editing Mac last this long (Drive's cap is 6 hours). */
 export const EDITOR_TOKEN_TTL_SECONDS = 6 * 3600;
@@ -15,9 +17,25 @@ export async function driveListing(dir: string): Promise<DriveListItem[]> {
   return Array.isArray(data.items) ? data.items : [];
 }
 
-/** The switcher's recordings in Drive `Shows/`, newest first. */
+/**
+ * The recordings in Drive `Shows/` and one level of subfolders (a camera set often lands in a folder),
+ * newest first. Only the newest 12 subfolders are opened, and one that can't be read is skipped.
+ */
 export async function listShowRecordings(now = new Date()): Promise<ShowRecording[]> {
-  return recordingsFromListing(await driveListing(SHOW_RECORDINGS_FOLDER), now);
+  const top = await driveListing(SHOW_RECORDINGS_FOLDER);
+  const folders = top
+    .filter((item) => item.isDir && !item.name.startsWith(".") && !item.name.startsWith("#") && !item.name.startsWith("@"))
+    .sort((a, b) => b.mtime.localeCompare(a.mtime))
+    .slice(0, MAX_LISTED_FOLDERS);
+  const nested = await Promise.all(folders.map((folder) =>
+    driveListing(folder.path).then((items) => recordingsFromListing(items, now, folder.path)).catch((error) => {
+      console.error("show editor: couldn't list a Shows subfolder", error);
+      return [] as ShowRecording[];
+    })
+  ));
+  return [...recordingsFromListing(top, now), ...nested.flat()]
+    .sort((a, b) => b.modifiedAt.localeCompare(a.modifiedAt))
+    .slice(0, MAX_LISTED_RECORDINGS);
 }
 
 /** Read link for one file, for the editing Mac to download (`inline=false` streams the original). */

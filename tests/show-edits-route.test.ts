@@ -57,16 +57,36 @@ describe("show edits route", () => {
     expect(response.headers.get("cache-control")).toContain("no-store");
   });
 
-  it("start passes sourcePaths through in order", async () => {
+  it("start passes each file and its role through in order", async () => {
     mocks.start.mockResolvedValue({ id: "job1" });
-    await POST(post({ action: "start", date: "2026-10-21", sourcePaths: ["Shows/a.mov", "Shows/b.mov"] }));
-    expect(mocks.start).toHaveBeenCalledWith({ userId: "u1", showDate: "2026-10-21", sourcePaths: ["Shows/a.mov", "Shows/b.mov"] });
+    const sources = [{ path: "Shows/ISO/b.mov", role: "M" }, { path: "Shows/a.mov", role: "auto" }, { path: "Shows/c.mov", role: "ignore" }];
+    await POST(post({ action: "start", date: "2026-10-21", sources }));
+    expect(mocks.start).toHaveBeenCalledWith({ userId: "u1", showDate: "2026-10-21", sources });
   });
 
-  it("start takes 1–4 distinct recordings under Shows/", async () => {
-    for (const sourcePaths of [[], ["a", "b", "c", "d", "e"].map((name) => `Shows/${name}.mov`), ["Package Storage/x.mov"],
-      ["Shows/../secret.mov"], ["Shows/a.mov", "Shows/a.mov"]]) {
-      expect((await POST(post({ action: "start", date: "2026-10-21", sourcePaths }))).status).toBe(400);
+  it("start still takes a plain path list from an older page, as files on Auto", async () => {
+    mocks.start.mockResolvedValue({ id: "job1" });
+    await POST(post({ action: "start", date: "2026-10-21", sourcePaths: ["Shows/a.mov", "Shows/b.mov"] }));
+    expect(mocks.start).toHaveBeenCalledWith({
+      userId: "u1", showDate: "2026-10-21", sources: [{ path: "Shows/a.mov", role: "auto" }, { path: "Shows/b.mov", role: "auto" }]
+    });
+  });
+
+  it("start takes 1–12 distinct recordings under Shows/ with known roles, and says what's wrong", async () => {
+    const thirteen = Array.from({ length: 13 }, (_, index) => ({ path: `Shows/${index}.mov`, role: "auto" }));
+    const cases: [unknown[], string | null][] = [
+      [[], "Pick at least one recording."],
+      [thirteen, "Pick at most 12 files."],
+      [[{ path: "Package Storage/x.mov", role: "auto" }], "Pick recordings from the Shows folder."],
+      [[{ path: "Shows/../secret.mov", role: "auto" }], "Pick recordings from the Shows folder."],
+      [[{ path: "Shows/a.mov", role: "auto" }, { path: "Shows/a.mov", role: "M" }], "Pick each recording once."],
+      [[{ path: "Shows/a.mov", role: "camera-4" }], null],
+      [[{ path: "Shows/a.mov", role: "ignore" }], "Every file is set to Ignore. Use at least one."]
+    ];
+    for (const [sources, message] of cases) {
+      const response = await POST(post({ action: "start", date: "2026-10-21", sources }));
+      expect(response.status).toBe(400);
+      if (message) expect((await response.json()).error.message).toBe(message);
     }
     expect(mocks.start).not.toHaveBeenCalled();
   });

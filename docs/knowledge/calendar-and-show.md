@@ -105,9 +105,14 @@ After you schedule it, the Portal locks the upload. Change the title, time, or a
 Any producer sees an **Automatic editing** card on The Show. An editing machine (the team MacBook, or for now someone's own laptop) cuts the show on its own: it picks the takes, replaces every old switcher graphic with fresh ones, levels the audio and checks the result.
 
 - **Editor status:** **Editor online**, **Editor offline · last seen …**, or **Editor needs attention**, for the active machine, with its version. An edit started while it's offline waits until it's back.
-- **Start:** the recordings in Drive `Shows/` are listed newest first, with the newest one filmed the day before the show already ticked. Tick more than one, in order, if the show was recorded in parts (up to 4). A file still copying to Drive can't be picked yet. Press **Start automatic editing**. Packages come from the Publishing Queue for that show; anchors' names come from The Show.
+- **Start:** the recordings in Drive `Shows/` and its subfolders are listed newest first. Open a folder to see its files, or tick the folder to take all of them.
+  - **Ticked already:** the TriCaster names every export `InFocus Show <airing date>`, with ` (1)`, ` (2)` for repeats. The files named after this show's airing date are ticked, oldest first.
+  - **Never ticked:** files with EDITED in the name, the untitled `InFocus Show.mov`, and a file exactly the size of another date's file. That last one is marked "Same size as …: probably a copy of another show".
+  - **Picking:** up to 12 files. A file still copying to Drive can't be picked yet.
+  - **Roles:** each chosen file is on **Auto**, and the editor works out from the pictures and sound which files are switched program feeds, which are camera feeds (M two-shot, L, R) and which were recorded together. You can set a file to **Program**, **Camera M**, **Camera L** or **Camera R** yourself, or **Ignore** to leave it out. The arrows change the order.
+  - Press **Start automatic editing**. Packages come from the Publishing Queue for that show; anchors' names come from The Show.
 - **While it runs:** a live line shows the step (finding the takes, making graphics, rendering, checking, uploading). **Cancel** stops it.
-- **Ready for review:** the edited show plays in the card, with anything the editor flagged for a person to check. **Review & schedule** opens Upload show with the edited file already in place, so you only check the title, time and playlist. The person who started it and the show manager get an email and notification when it's ready or if it fails, and a reminder at 6 PM the evening before the show if it still isn't scheduled.
+- **Ready for review:** the edited show plays in the card, with what the editor found in the files (for example "2 recordings: r1 multicam (M, L, R), r2 multicam (M, L, R)") and anything it flagged for a person to check. **Review & schedule** opens Upload show with the edited file already in place, so you only check the title, time and playlist. The person who started it and the show manager get an email and notification when it's ready or if it fails, and a reminder at 6 PM the evening before the show if it still isn't scheduled.
 - **Ask for a fix:** type what's wrong (timecodes help, e.g. "At 1:12 the Math Club card is cut off") and press **Send the fix**. The editor changes the same edit and replies with what it did; the new version replaces the preview. Tick **Remember this for future shows** to add it to the house rules. Fixes work until the show is scheduled.
   - **Which machine:** a fix runs on the machine that made the edit, because its files are there. If that machine is offline, the card says **Waiting for … to come online**. If it was unlinked, the fix fails; use **Redo**.
 - **Redo:** start the edit over with a note for the editor (for example, "use the later take of the close").
@@ -145,7 +150,7 @@ A code works once and lasts 10 minutes. The Portal never sees the sign-in itself
 
 #### Editor settings
 
-- **Start editing by itself:** a new recording in Drive `Shows/` starts the edit of the next show without anyone pressing Start.
+- **Start editing by itself:** once the files named after an upcoming show are in Drive `Shows/`, the edit starts without anyone pressing Start. It waits until every file has been unchanged for 10 minutes, and with several files, 10 more after the newest one (exports arrive one after another). The card says which files it will use and when.
 - **Schedule clean edits by themselves:** an edit with nothing flagged and every check passed is scheduled on YouTube with the usual title and time. Flagged edits always wait for review.
 - **Editor version:** empty follows the newest release; type one like `v0.3.1` to pin it or roll back.
 - **AI account order:** which subscription the editor tries first, then next.

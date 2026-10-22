@@ -1,3 +1,5 @@
+import type { ShowEditSource, ShowEditSourceRole } from "@/src/lib/show-editor-sources";
+
 /**
  * Automatic show editing (client-safe): statuses, limits, views and the small rules the server
  * and the panel share. Server logic lives in src/server/show-editor.ts; the editing Mac is the
@@ -27,7 +29,6 @@ export const SHOW_EDIT_STAGE_LABELS: Record<ShowEditStage, string> = {
 
 /** Folder (Drive share path) the switcher's recordings land in. */
 export const SHOW_RECORDINGS_FOLDER = "Shows";
-export const MAX_SHOW_EDIT_SOURCES = 4;
 export const SHOW_EDIT_NOTE_MAX = 500;
 export const SHOW_EDIT_FIX_MAX = 1000;
 /** A recording whose size or time changed this recently may still be copying to the NAS. */
@@ -37,7 +38,10 @@ export const SHOW_EDIT_STALE_MS = 15 * 60_000;
 /** A stale job is retried until this many attempts have been used, then it fails. */
 export const SHOW_EDIT_MAX_ATTEMPT = 2;
 export const EDITOR_ONLINE_MS = 3 * 60_000;
-export const MAX_LISTED_RECORDINGS = 30;
+/** Newest files across `Shows/` and its subfolders. */
+export const MAX_LISTED_RECORDINGS = 60;
+/** How many of the newest subfolders of `Shows/` are opened. */
+export const MAX_LISTED_FOLDERS = 12;
 
 const RECORDING_EXTENSIONS = /\.(mov|mp4)$/i;
 
@@ -48,6 +52,8 @@ export type ShowRecording = {
   modifiedAt: string;
   /** Unchanged for RECORDING_STABLE_MS, so it has finished copying. */
   stable: boolean;
+  /** The subfolder of `Shows/` it's in (e.g. "Shows/InFocus Show 10-22-2026"), or null when it's loose in `Shows/`. */
+  folder: string | null;
 };
 
 export type DriveListItem = { name: string; path: string; isDir: boolean; size: number; mtime: string };
@@ -61,7 +67,7 @@ export type EditorHealth = { ok: boolean; problems: string[] };
 export type ShowEditView = {
   id: string;
   showDate: string;
-  sourcePaths: string[];
+  sources: ShowEditSource[];
   status: ShowEditStatus;
   stage: ShowEditStage | null;
   message: string | null;
@@ -166,6 +172,9 @@ export type ShowEditorSettingsView = {
   updatedAt: string | null;
 };
 
+/** With auto-start on: the recordings it would start this show from, and whether they've settled. */
+export type AutoStartPreview = { files: { path: string; role: ShowEditSourceRole }[]; ready: boolean; readyAt: string | null; error: string | null };
+
 export const SHOW_EDITOR_MACHINE_KINDS = ["dedicated", "personal"] as const;
 export type ShowEditorMachineKind = (typeof SHOW_EDITOR_MACHINE_KINDS)[number];
 /** The legacy SHOW_EDITOR_TOKEN counts as a machine with this id and name. */
@@ -203,10 +212,11 @@ export type ShowEditState = {
   publicationStatus: string | null;
   /** At REVIEW, while the edited file is the show's draft: playable links for the preview. */
   preview: { videoUrl: string; posterUrl: string | null } | null;
+  autoStart: AutoStartPreview | null;
 };
 
-/** `Shows/` listing → recordings, newest first, at most 30. */
-export function recordingsFromListing(items: DriveListItem[], now = new Date()): ShowRecording[] {
+/** One Drive folder listing → its recordings, newest first. `folder` is set for a subfolder of `Shows/`. */
+export function recordingsFromListing(items: DriveListItem[], now = new Date(), folder: string | null = null): ShowRecording[] {
   return items
     .filter((item) => !item.isDir && RECORDING_EXTENSIONS.test(item.name) && !item.name.startsWith("."))
     .map((item) => {
@@ -217,7 +227,8 @@ export function recordingsFromListing(items: DriveListItem[], now = new Date()):
         name: item.name,
         size: item.size,
         modifiedAt: valid ? modified.toISOString() : new Date(0).toISOString(),
-        stable: valid && now.getTime() - modified.getTime() > RECORDING_STABLE_MS
+        stable: valid && now.getTime() - modified.getTime() > RECORDING_STABLE_MS,
+        folder
       };
     })
     .sort((a, b) => b.modifiedAt.localeCompare(a.modifiedAt))
@@ -254,26 +265,4 @@ export function editorStatus(worker: ShowEditWorker, now = new Date()): { tone: 
   if (!worker.online) return { tone: "danger", label: `Editor offline · last seen ${lastSeenLabel(worker.lastSeenAt, now)}` };
   if (worker.health && !worker.health.ok) return { tone: "warning", label: `Editor needs attention${version}` };
   return { tone: "success", label: `Editor online${worker.busy ? " · busy" : ""}${version}` };
-}
-
-/**
- * Shows are filmed the school day before they air: preselect the newest finished recording from the
- * few days before the show (never one from the show day or later).
- */
-export function defaultRecordingSelection(recordings: ShowRecording[], showDate: string, timeZone = "America/Los_Angeles") {
-  const day = new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" });
-  const showMs = Date.parse(`${showDate}T12:00:00Z`);
-  const pick = recordings.find((recording) => {
-    if (!recording.stable) return false;
-    const filmed = day.format(new Date(recording.modifiedAt));
-    const daysBefore = (showMs - Date.parse(`${filmed}T12:00:00Z`)) / 86_400_000;
-    return daysBefore >= 1 && daysBefore <= 4;
-  });
-  return pick ? [pick.path] : [];
-}
-
-/** Ordered multi-select: clicking adds a recording to the end, clicking again removes it. */
-export function toggleRecording(selected: string[], path: string) {
-  if (selected.includes(path)) return selected.filter((item) => item !== path);
-  return selected.length >= MAX_SHOW_EDIT_SOURCES ? selected : [...selected, path];
 }

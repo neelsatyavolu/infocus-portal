@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  editorStatus, SHOW_EDIT_FIX_MAX, SHOW_EDIT_NOTE_MAX, toggleRecording,
-  type ShowEditDecision, type ShowEditMessage, type ShowEditWorker, type ShowRecording
+  editorStatus, SHOW_EDIT_FIX_MAX, SHOW_EDIT_NOTE_MAX,
+  type ShowEditDecision, type ShowEditMessage, type ShowEditWorker
 } from "@/src/lib/show-editor";
 
 export const LABEL_CLASS = "text-[11px] font-medium uppercase leading-tight tracking-[0.11em] text-muted-foreground";
@@ -18,58 +18,9 @@ export const pacificTime = new Intl.DateTimeFormat("en-US", {
   timeZone: "America/Los_Angeles", weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit"
 });
 
-function sizeLabel(bytes: number) {
-  return bytes >= 1e9 ? `${(bytes / 1e9).toFixed(1)} GB` : `${Math.max(1, Math.round(bytes / 1e6))} MB`;
-}
-
 export function EditorStatusTag({ worker }: { worker: ShowEditWorker }) {
   const status = editorStatus(worker);
   return <StatusTag tone={status.tone} dot>{status.label}</StatusTag>;
-}
-
-/** Ordered multi-select of the switcher's recordings (a show split into several files is picked in order). */
-export function RecordingPicker({
-  recordings,
-  selected,
-  onChange,
-  disabled
-}: {
-  recordings: ShowRecording[];
-  selected: string[];
-  onChange: (next: string[]) => void;
-  disabled: boolean;
-}) {
-  if (recordings.length === 0) {
-    return <p className="text-sm text-muted-foreground">No recordings in the Shows folder on Drive yet.</p>;
-  }
-  return (
-    <div role="group" aria-label="Recordings, in order" className="divide-y divide-border rounded-md border border-border">
-      {recordings.map((recording) => {
-        const order = selected.indexOf(recording.path);
-        return (
-          <div key={recording.path} className="flex min-w-0 items-center gap-3 px-3 py-1.5">
-            <Checkbox
-              checked={order >= 0}
-              disabled={disabled || !recording.stable}
-              onCheckedChange={() => onChange(toggleRecording(selected, recording.path))}
-              labelClassName="min-w-0 flex-1"
-            >
-              <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2">
-                <span className="truncate font-medium">{recording.name}</span>
-                <span className="text-[13px] text-muted-foreground">
-                  {pacificTime.format(new Date(recording.modifiedAt))} · {sizeLabel(recording.size)}
-                  {recording.stable ? "" : " · still copying"}
-                </span>
-              </span>
-            </Checkbox>
-            {order >= 0 && selected.length > 1 ? (
-              <span className="font-mono text-[12px] text-muted-foreground" aria-label={`Part ${order + 1}`}>{order + 1}</span>
-            ) : null}
-          </div>
-        );
-      })}
-    </div>
-  );
 }
 
 export function FlaggedDecisions({ decisions, failures }: { decisions: ShowEditDecision[]; failures: { rule?: string; detail?: string }[] }) {
@@ -173,6 +124,25 @@ export function FixConversation({
         onSubmit={onFix}
         extra="remember"
       />
+    </div>
+  );
+}
+
+/** Decision kinds the editor uses to report which files it found to be what (recordings, cameras, skipped copies). */
+const STRUCTURE_KINDS = new Set(["structure", "recordings"]);
+
+/** After an edit: what the editor worked out from the files, e.g. "2 recordings: r1 multicam (M, L, R), …". */
+export function DetectedStructure({ decisions }: { decisions: ShowEditDecision[] }) {
+  const found = decisions.filter((decision) => STRUCTURE_KINDS.has(decision.kind));
+  if (found.length === 0) return null;
+  return (
+    <div className="space-y-1 text-sm">
+      <div className={LABEL_CLASS}>What the editor found</div>
+      <ul className="space-y-0.5">
+        {found.map((decision, index) => (
+          <li key={index} className={decision.flagged ? "text-[var(--brand-amber)]" : undefined}>{decision.detail}</li>
+        ))}
+      </ul>
     </div>
   );
 }

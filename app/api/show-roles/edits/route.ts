@@ -5,9 +5,12 @@ import { fail, okNoStore } from "@/src/lib/http";
 import { getPlatformAccess, hasPlatformRole } from "@/src/lib/platform-admin";
 import { DATE_KEY_PATTERN } from "@/src/lib/show-assignment";
 import {
-  MAX_SHOW_EDIT_SOURCES, SHOW_EDIT_BACKENDS, SHOW_EDIT_FIX_MAX, SHOW_EDIT_NOTE_MAX, SHOW_EDITOR_COMMANDS,
+  SHOW_EDIT_BACKENDS, SHOW_EDIT_FIX_MAX, SHOW_EDIT_NOTE_MAX, SHOW_EDITOR_COMMANDS,
   SHOW_EDITOR_HOUSE_RULES_MAX, SHOW_EDITOR_VERSION_PATTERN, SHOW_RECORDINGS_FOLDER
 } from "@/src/lib/show-editor";
+import {
+  MAX_SHOW_EDIT_SOURCES, normalizeSources, SHOW_EDIT_SOURCE_ROLES, sourceSelectionError
+} from "@/src/lib/show-editor-sources";
 import {
   cancelShowEdit, redoShowEdit, requestShowFix, showEditState, ShowEditError, startShowEdit, unlinkEditorDevice
 } from "@/src/server/show-editor";
@@ -28,8 +31,9 @@ const actionSchema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("start"),
     date: dateKey,
-    sourcePaths: z.array(recordingPath).min(1).max(MAX_SHOW_EDIT_SOURCES)
-      .refine((paths) => new Set(paths).size === paths.length, "Pick each recording once.")
+    // Each file with its role; `sourcePaths` (plain paths, all on Auto) is still accepted from older pages.
+    sources: z.array(z.object({ path: recordingPath, role: z.enum(SHOW_EDIT_SOURCE_ROLES) })).max(MAX_SHOW_EDIT_SOURCES, `Pick at most ${MAX_SHOW_EDIT_SOURCES} files.`).optional(),
+    sourcePaths: z.array(recordingPath).max(MAX_SHOW_EDIT_SOURCES, `Pick at most ${MAX_SHOW_EDIT_SOURCES} files.`).optional()
   }),
   z.object({ action: z.literal("cancel"), id: jobId }),
   z.object({ action: z.literal("redo"), id: jobId, note: z.string().trim().min(1).max(SHOW_EDIT_NOTE_MAX) }),
@@ -95,8 +99,12 @@ export async function POST(request: Request) {
     if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid request", 400);
     const body = parsed.data;
     switch (body.action) {
-      case "start":
-        return okNoStore(await startShowEdit({ userId, showDate: body.date, sourcePaths: body.sourcePaths }));
+      case "start": {
+        const sources = body.sources ?? normalizeSources(body.sourcePaths ?? []);
+        const invalid = sourceSelectionError(sources);
+        if (invalid) return fail(invalid, 400);
+        return okNoStore(await startShowEdit({ userId, showDate: body.date, sources }));
+      }
       case "cancel":
         return okNoStore(await cancelShowEdit({ id: body.id }));
       case "redo":

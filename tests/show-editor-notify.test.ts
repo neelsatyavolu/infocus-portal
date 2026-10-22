@@ -29,9 +29,13 @@ import { notifyShowEdit, runShowEditAutoStart, runShowEditReminders } from "@/sr
 const NOW = new Date("2026-10-20T22:00:00Z");
 const NEXT_SHOW = nextUpcomingShowDate("2026-10-20", new Map(), { includeToday: false })!;
 
+/** The TriCaster names exports after the AIRING date. */
+const SHOW_NAME = `InFocus Show ${NEXT_SHOW.slice(5, 7)}-${NEXT_SHOW.slice(8)}-${NEXT_SHOW.slice(0, 4)}`;
+
 function recording(overrides: Record<string, unknown> = {}) {
-  return { path: "Shows/InFocus 10-20.mov", name: "InFocus 10-20.mov", size: 345_000_000,
-    modifiedAt: "2026-10-20T18:00:00.000Z", stable: true, ...overrides };
+  const name = (overrides.name as string | undefined) ?? `${SHOW_NAME}.mov`;
+  return { path: `Shows/${name}`, name, size: 345_000_000,
+    modifiedAt: "2026-10-20T18:00:00.000Z", stable: true, folder: null, ...overrides };
 }
 
 function job(overrides: Record<string, unknown> = {}) {
@@ -57,21 +61,38 @@ describe("show editor notifications and auto-start", () => {
     mocks.push.mockResolvedValue({ sent: 1, failed: 0 });
   });
 
-  it("auto-start creates one job for a new stable recording", async () => {
-    mocks.recordings.mockResolvedValue([recording(), recording({ path: "Shows/older.mov", modifiedAt: "2026-10-20T17:00:00.000Z" })]);
+  it("auto-start creates one job from every settled file named after the show, all on Auto", async () => {
+    mocks.recordings.mockResolvedValue([
+      recording({ name: `${SHOW_NAME} (1).mov`, modifiedAt: "2026-10-20T18:30:00.000Z", size: 2 }),
+      recording({ size: 1 }),
+      recording({ name: "InFocus Show.mov", size: 3 }),
+      recording({ name: `${SHOW_NAME} EDITED.mov`, size: 4 })
+    ]);
     await runShowEditAutoStart(NOW);
     expect(mocks.create).toHaveBeenCalledTimes(1);
     expect(mocks.create).toHaveBeenCalledWith({ data: expect.objectContaining({
-      showDate: NEXT_SHOW, sourcePaths: ["Shows/InFocus 10-20.mov"], createdById: "manager-id"
+      showDate: NEXT_SHOW, createdById: "manager-id",
+      sourcePaths: [{ path: `Shows/${SHOW_NAME}.mov`, role: "auto" }, { path: `Shows/${SHOW_NAME} (1).mov`, role: "auto" }]
     }) });
   });
 
-  it("auto-start ignores recordings still changing and dates that already have a job", async () => {
+  it("auto-start waits for files still changing, and 10 more minutes after the newest of several", async () => {
     mocks.recordings.mockResolvedValue([recording({ modifiedAt: new Date(NOW.getTime() - 5 * 60_000).toISOString() })]);
     await runShowEditAutoStart(NOW);
     expect(mocks.create).not.toHaveBeenCalled();
 
-    mocks.recordings.mockResolvedValue([recording()]);
+    // Two exports, the newest settled for 15 minutes: one file would start, two wait until 20.
+    mocks.recordings.mockResolvedValue([
+      recording({ size: 1, modifiedAt: new Date(NOW.getTime() - 60 * 60_000).toISOString() }),
+      recording({ name: `${SHOW_NAME} (1).mov`, size: 2, modifiedAt: new Date(NOW.getTime() - 15 * 60_000).toISOString() })
+    ]);
+    await runShowEditAutoStart(NOW);
+    expect(mocks.create).not.toHaveBeenCalled();
+    await runShowEditAutoStart(new Date(NOW.getTime() + 5 * 60_000));
+    expect(mocks.create).toHaveBeenCalledTimes(1);
+  });
+
+  it("auto-start skips dates that already have a job", async () => {
     mocks.jobs.mockResolvedValue([{ id: "old", status: "CANCELLED" }]);
     await runShowEditAutoStart(NOW);
     expect(mocks.create).not.toHaveBeenCalled();

@@ -9,22 +9,26 @@ import { Disclosure } from "@/components/kit/disclosure";
 import { Panel } from "@/components/kit/panel";
 import { Button } from "@/components/ui/button";
 import {
-  defaultRecordingSelection, SHOW_EDIT_BACKEND_LABELS, SHOW_EDIT_STAGE_LABELS, SHOW_EDITOR_COMMAND_LABELS,
+  SHOW_EDIT_BACKEND_LABELS, SHOW_EDIT_STAGE_LABELS, SHOW_EDITOR_COMMAND_LABELS,
   type ShowEditBackend, type ShowEditorCommandKind, type ShowEditState, type ShowEditView
 } from "@/src/lib/show-editor";
 import type { EditedShow } from "./show-upload-dialog";
 import { EditingMachines, type ShownPairing } from "./show-edit-machines";
 import {
-  EditorStatusTag, FixConversation, FlaggedDecisions, RecordingPicker, RedoForm
+  DetectedStructure, EditorStatusTag, FixConversation, FlaggedDecisions, RedoForm
 } from "./show-edit-parts";
+import { RecordingPicker } from "./show-edit-recordings";
 import { EditorSettingsForm, LinkConfirm, type SettingsPatch } from "./show-edit-settings";
+import {
+  defaultSourceSelection, SHOW_EDIT_SOURCE_ROLE_LABELS, sourceSelectionError, type ShowEditSource
+} from "@/src/lib/show-editor-sources";
 
 const ACTIVE_POLL_MS = 10_000;
 const IDLE_POLL_MS = 60_000;
 const OFFLINE_NOTE = "The editing machine is offline. The job will start when it's back.";
 
 type Action =
-  | { action: "start"; date: string; sourcePaths: string[] }
+  | { action: "start"; date: string; sources: ShowEditSource[] }
   | { action: "cancel"; id: string }
   | { action: "redo"; id: string; note: string }
   | { action: "fix"; id: string; text: string; remember: boolean }
@@ -33,6 +37,25 @@ type Action =
   | { action: "unlink"; deviceId: string }
   | { action: "command"; deviceId: string; kind: ShowEditorCommandKind }
   | ({ action: "settings" } & SettingsPatch);
+
+const clock = new Intl.DateTimeFormat("en-US", { timeZone: "America/Los_Angeles", hour: "numeric", minute: "2-digit" });
+
+/** With auto-start on: which recordings it will start this show from, and whether it's still waiting for them. */
+function AutoStartNote({ preview }: { preview: ShowEditState["autoStart"] }) {
+  if (!preview) {
+    return <InlineNote>Auto-start is on. It starts this show once its recordings reach the Shows folder and stop changing for 10 minutes.</InlineNote>;
+  }
+  const files = preview.files.map((file) => `${file.path.split("/").pop()} (${SHOW_EDIT_SOURCE_ROLE_LABELS[file.role]})`).join(", ");
+  if (preview.error) return <InlineNote tone="warning">Auto-start found {files}, but can&rsquo;t use them: {preview.error} Pick the recordings below instead.</InlineNote>;
+  return (
+    <InlineNote>
+      Auto-start will edit this show from {files}
+      {preview.ready || !preview.readyAt
+        ? "; it starts within 5 minutes."
+        : ` once its files have settled (about ${clock.format(new Date(preview.readyAt))}).`}
+    </InlineNote>
+  );
+}
 
 function isActive(job: ShowEditView | null) {
   return job?.status === "QUEUED" || job?.status === "RUNNING";
@@ -71,7 +94,7 @@ export function ShowEditPanel({
   const [state, setState] = useState<ShowEditState | null>(null);
   const [hidden, setHidden] = useState(false);
   const [busy, setBusy] = useState<Action["action"] | null>(null);
-  const [picked, setPicked] = useState<{ date: string; paths: string[] } | null>(null);
+  const [picked, setPicked] = useState<{ date: string; sources: ShowEditSource[] } | null>(null);
   const [pairing, setPairing] = useState<ShownPairing | null>(null);
   const linkCode = useSearchParams().get("link");
   const router = useRouter();
@@ -141,23 +164,25 @@ export function ShowEditPanel({
   if (hidden || !state) return null;
   const { worker, job } = state;
   const sentToYouTube = state.publicationStatus !== null && state.publicationStatus !== "DRAFT";
-  const selected = picked?.date === showDate ? picked.paths : defaultRecordingSelection(state.recordings, showDate);
+  const selected = picked?.date === showDate ? picked.sources : defaultSourceSelection(state.recordings, showDate);
+  const selectionError = sourceSelectionError(selected);
   const canStart = !sentToYouTube && (!job || ["FAILED", "CANCELLED"].includes(job.status));
 
   const startSection = canStart ? (
     <div className="space-y-3">
       {state.recordingsError ? <Alert tone="danger" compact>{state.recordingsError}</Alert> : null}
+      {state.settings.autoStart ? <AutoStartNote preview={state.autoStart} /> : null}
       <RecordingPicker
         recordings={state.recordings}
         selected={selected}
         disabled={busy !== null}
-        onChange={(paths) => setPicked({ date: showDate, paths })}
+        onChange={(sources) => setPicked({ date: showDate, sources })}
       />
       <div className="flex flex-wrap items-center gap-3">
         <Button
           type="button"
-          disabled={busy !== null || selected.length === 0}
-          onClick={() => void send({ action: "start", date: showDate, sourcePaths: selected }, "Automatic editing queued.")}
+          disabled={busy !== null || selectionError !== null}
+          onClick={() => void send({ action: "start", date: showDate, sources: selected }, "Automatic editing queued.")}
         >
           {busy === "start" ? <Loader2 className="animate-spin" aria-hidden /> : <Wand2 aria-hidden />}
           Start automatic editing
@@ -208,6 +233,7 @@ export function ShowEditPanel({
               aria-label={`Edited show, version ${job.version}`}
             />
           ) : null}
+          <DetectedStructure decisions={job.decisions} />
           <FlaggedDecisions decisions={job.decisions} failures={failuresOf(job)} />
           <div className="flex flex-wrap items-center gap-3">
             <Button type="button" disabled={!state.preview || sentToYouTube} onClick={() => state.preview && onReview(state.preview)}>

@@ -6,12 +6,12 @@ import {
   autoPublishReady, LEGACY_EDITOR_DEVICE_ID, SHOW_EDIT_MAX_ATTEMPT, SHOW_EDIT_STALE_MS, SHOW_RECORDINGS_FOLDER,
   UNFINISHED_SHOW_EDIT_STATUSES, type EditorHealth, type ShowEditDecision, type ShowEditMessage, type ShowEditStage,
   type EditorBackendStatus, type ShowEditBackend, type ShowEditorCommandKind, type ShowEditorMachineKind, type ShowEditState, type ShowEditStatus, type ShowEditView,
-  type ShowRecording
+  type AutoStartPreview, type ShowRecording
 } from "@/src/lib/show-editor";
 import {
   driveFileSize, editorDriveBaseUrl, listShowRecordings, mintEditorDownload, mintEditorUpload
 } from "@/src/server/show-editor-drive";
-import { notifyShowEdit, runShowEditAutoStart } from "@/src/server/show-editor-notify";
+import { notifyShowEdit, runShowEditAutoStart, showEditAutoStartGroups } from "@/src/server/show-editor-notify";
 import {
   applyCredentialAcks, deliverCredentials, pairingStatuses, purgeStaleCiphertext
 } from "@/src/server/show-editor-pairing";
@@ -23,6 +23,9 @@ import {
 } from "@/src/server/show-publishing";
 import { loadShowStory } from "@/src/server/show-story";
 import { ShowEditError } from "@/src/server/show-editor-errors";
+import {
+  briefSources, normalizeSources, sourceSelectionError, type ShowEditBriefSource, type ShowEditSource
+} from "@/src/lib/show-editor-sources";
 
 export { ShowEditError };
 
@@ -35,6 +38,9 @@ export type ShowEditBrief = {
   showDate: string;
   filmedOn: string | null;
   version: number;
+  /** The recordings and their roles, in the producer's order. */
+  sources: ShowEditBriefSource[];
+  /** The same paths in order, for editors from before multicam. */
   sourcePaths: string[];
   anchors: string[];
   announcements: string[];
@@ -54,9 +60,6 @@ export type ShowEditClaim = {
   fix?: { text: string; remember: boolean; agentSessionId: string | null; version: number };
 };
 
-function stringArray(value: Prisma.JsonValue | null): string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
-}
 
 function conversationOf(job: Pick<ShowEditJob, "conversation">): ShowEditMessage[] {
   return Array.isArray(job.conversation) ? (job.conversation as unknown as ShowEditMessage[]) : [];
@@ -66,7 +69,7 @@ export function showEditView(job: ShowEditJob): ShowEditView {
   return {
     id: job.id,
     showDate: job.showDate,
-    sourcePaths: stringArray(job.sourcePaths),
+    sources: normalizeSources(job.sourcePaths),
     status: job.status as ShowEditStatus,
     stage: (job.stage as ShowEditStage | null) ?? null,
     message: job.message,
@@ -110,18 +113,20 @@ async function refuseUnfinishedJob(showDate: string, exceptId?: string) {
 }
 
 export async function startShowEdit(
-  input: { userId: string; showDate: string; sourcePaths: string[] }, now = new Date()
+  input: { userId: string; showDate: string; sources: ShowEditSource[] }, now = new Date()
 ): Promise<ShowEditView> {
+  const invalid = sourceSelectionError(input.sources);
+  if (invalid) throw new ShowEditError(invalid, 400);
   await requireShowStillDraft(input.showDate);
   await refuseUnfinishedJob(input.showDate);
   const listed = new Map((await listShowRecordings(now)).map((recording) => [recording.path, recording]));
-  for (const path of input.sourcePaths) {
+  for (const { path } of input.sources) {
     const recording = listed.get(path);
     if (!recording) throw new ShowEditError(`${path} isn't in the ${SHOW_RECORDINGS_FOLDER} folder on Drive.`, 400);
     if (!recording.stable) throw new ShowEditError(`${recording.name} is still copying to Drive. Try again in a few minutes.`, 400);
   }
   const job = await prisma.showEditJob.create({
-    data: { showDate: input.showDate, sourcePaths: input.sourcePaths, createdById: input.userId }
+    data: { showDate: input.showDate, sourcePaths: input.sources, createdById: input.userId }
   });
   return showEditView(job);
 }
@@ -176,7 +181,7 @@ export async function redoShowEdit(input: { userId: string; id: string; note: st
     });
   }
   const job = await prisma.showEditJob.create({
-    data: { showDate: old.showDate, sourcePaths: stringArray(old.sourcePaths), note: input.note.trim(), createdById: input.userId }
+    data: { showDate: old.showDate, sourcePaths: normalizeSources(old.sourcePaths), note: input.note.trim(), createdById: input.userId }
   });
   return showEditView(job);
 }
@@ -339,7 +344,9 @@ async function queuedPackages(showDate: string) {
 async function buildClaim(job: ShowEditJob, paths: { outputNasPath: string; posterNasPath: string }, now: Date): Promise<ShowEditClaim> {
   const kind = job.pendingFix ? "fix" : "edit";
   const version = kind === "fix" ? job.version + 1 : job.version;
-  const sourcePaths = stringArray(job.sourcePaths);
+  const sources = briefSources(normalizeSources(job.sourcePaths));
+  // Ignored files stay in `sources` (so the editor can say so) but are never downloaded, and older editors never see them.
+  const sourcePaths = sources.filter((source) => source.role !== "ignore").map((source) => source.path);
   const [story, packages, settings, recordings] = await Promise.all([
     loadShowStory(job.showDate),
     queuedPackages(job.showDate),
@@ -347,12 +354,16 @@ async function buildClaim(job: ShowEditJob, paths: { outputNasPath: string; post
     kind === "edit" ? listShowRecordings(now) : Promise.resolve([] as ShowRecording[])
   ]);
   const listed = new Map(recordings.map((recording) => [recording.path, recording]));
+  const timedSources = kind === "edit"
+    ? sources.map((source) => ({ ...source, modifiedAt: listed.get(source.path)?.modifiedAt ?? null }))
+    : sources;
   const first = listed.get(sourcePaths[0] ?? "");
   const brief: ShowEditBrief = {
     jobId: job.id,
     showDate: job.showDate,
     filmedOn: first ? pacificDateKey(new Date(first.modifiedAt)) : null,
     version,
+    sources: timedSources,
     sourcePaths,
     anchors: story.anchors,
     announcements: story.announcements,
@@ -540,6 +551,7 @@ export async function showEditState(showDate: string, now = new Date()): Promise
     recordingsError = "Couldn't read the Shows folder on Drive.";
   }
   const active = devices.find((device) => device.active) ?? null;
+  const autoStart = settings.autoStart && !job ? autoStartPreview(showDate, recordings, now) : null;
   const fixMachine = job?.status === "QUEUED" && job.pendingFix && job.deviceId ? devices.find((device) => device.id === job.deviceId) : undefined;
   return {
     worker: {
@@ -558,6 +570,15 @@ export async function showEditState(showDate: string, now = new Date()): Promise
     recordingsError,
     job: job ? showEditView(job) : null,
     publicationStatus: publication?.status ?? null,
-    preview: await previewFor(job, publication)
+    preview: await previewFor(job, publication),
+    autoStart
   };
+}
+
+/** The panel's auto-start note: the recordings auto-start would use for this show, and when they'll have settled. */
+function autoStartPreview(showDate: string, recordings: ShowRecording[], now: Date): AutoStartPreview | null {
+  const group = showEditAutoStartGroups(recordings, now).find((entry) => entry.showDate === showDate);
+  if (!group) return null;
+  const files = group.files.map((file) => ({ path: file.path, role: "auto" as const }));
+  return { files, ready: group.ready, readyAt: group.ready ? null : group.readyAt, error: sourceSelectionError(files) };
 }

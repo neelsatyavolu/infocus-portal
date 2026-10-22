@@ -106,34 +106,64 @@ describe("show editor jobs", () => {
   });
 
   it("starts a job for a listed recording", async () => {
-    const view = await startShowEdit({ userId: "u1", showDate: SHOW, sourcePaths: [SRC] }, NOW);
-    expect(mocks.job.create).toHaveBeenCalledWith({ data: { showDate: SHOW, sourcePaths: [SRC], createdById: "u1" } });
-    expect(view).toMatchObject({ status: "QUEUED", sourcePaths: [SRC] });
+    const view = await startShowEdit({ userId: "u1", showDate: SHOW, sources: [{ path: SRC, role: "auto" }] }, NOW);
+    expect(mocks.job.create).toHaveBeenCalledWith({ data: { showDate: SHOW, sourcePaths: [{ path: SRC, role: "auto" }], createdById: "u1" } });
+    expect(view).toMatchObject({ status: "QUEUED", sources: [{ path: SRC, role: "auto" }] });
   });
 
   it("refuses start when publication is not DRAFT", async () => {
     mocks.publication.findUnique.mockResolvedValue({ status: "SCHEDULED", nasPath: "x" });
-    await expect(startShowEdit({ userId: "u1", showDate: SHOW, sourcePaths: [SRC] }, NOW)).rejects.toMatchObject({ status: 409 });
+    await expect(startShowEdit({ userId: "u1", showDate: SHOW, sources: [{ path: SRC, role: "auto" }] }, NOW)).rejects.toMatchObject({ status: 409 });
     expect(mocks.job.create).not.toHaveBeenCalled();
   });
 
   it("refuses a second unfinished job for the same date", async () => {
     mocks.job.findFirst.mockResolvedValue(job({ status: "RUNNING" }));
-    await expect(startShowEdit({ userId: "u1", showDate: SHOW, sourcePaths: [SRC] }, NOW)).rejects.toMatchObject({ status: 409 });
+    await expect(startShowEdit({ userId: "u1", showDate: SHOW, sources: [{ path: SRC, role: "auto" }] }, NOW)).rejects.toMatchObject({ status: 409 });
   });
 
   it("refuses a path not in the Drive listing, or one still copying", async () => {
-    await expect(startShowEdit({ userId: "u1", showDate: SHOW, sourcePaths: ["Shows/other.mov"] }, NOW)).rejects.toMatchObject({ status: 400 });
+    await expect(startShowEdit({ userId: "u1", showDate: SHOW, sources: [{ path: "Shows/other.mov", role: "auto" }] }, NOW)).rejects.toMatchObject({ status: 400 });
     mocks.recordings.mockResolvedValue([{ ...recording, stable: false }]);
-    await expect(startShowEdit({ userId: "u1", showDate: SHOW, sourcePaths: [SRC] }, NOW)).rejects.toMatchObject({ status: 400 });
+    await expect(startShowEdit({ userId: "u1", showDate: SHOW, sources: [{ path: SRC, role: "auto" }] }, NOW)).rejects.toMatchObject({ status: 400 });
     expect(mocks.job.create).not.toHaveBeenCalled();
   });
 
   it("keeps several recordings in the order picked", async () => {
     const second = { ...recording, path: "Shows/InFocus 10-20 part 2.mov", name: "InFocus 10-20 part 2.mov" };
     mocks.recordings.mockResolvedValue([second, recording]);
-    await startShowEdit({ userId: "u1", showDate: SHOW, sourcePaths: [SRC, second.path] }, NOW);
-    expect(mocks.job.create.mock.calls[0][0].data.sourcePaths).toEqual([SRC, second.path]);
+    await startShowEdit({ userId: "u1", showDate: SHOW, sources: [{ path: SRC, role: "M" }, { path: second.path, role: "auto" }] }, NOW);
+    expect(mocks.job.create.mock.calls[0][0].data.sourcePaths).toEqual([{ path: SRC, role: "M" }, { path: second.path, role: "auto" }]);
+  });
+
+  it("refuses a selection that can't be edited, with a plain reason", async () => {
+    await expect(startShowEdit({ userId: "u1", showDate: SHOW, sources: [] }, NOW)).rejects.toMatchObject({ status: 400, message: "Pick at least one recording." });
+    await expect(startShowEdit({ userId: "u1", showDate: SHOW, sources: [{ path: SRC, role: "ignore" }] }, NOW))
+      .rejects.toMatchObject({ status: 400, message: "Every file is set to Ignore. Use at least one." });
+    expect(mocks.job.create).not.toHaveBeenCalled();
+  });
+
+  it("an old job's plain path list reads as files on Auto, and Redo keeps it that way", async () => {
+    mocks.job.findUnique.mockResolvedValueOnce(job({ status: "FAILED", sourcePaths: [SRC, "Shows/b.mov"] }));
+    await redoShowEdit({ userId: "u1", id: "job1", note: "Try again" }, NOW);
+    expect(mocks.job.create.mock.calls[0][0].data.sourcePaths).toEqual([{ path: SRC, role: "auto" }, { path: "Shows/b.mov", role: "auto" }]);
+  });
+
+  it("the brief lists sources with roles, order and export time; ignored files are neither downloaded nor in sourcePaths", async () => {
+    const recordings = ["A", "B", "C"].map((part, index) => ({ ...recording, path: `Shows/${part}.mov`, name: `${part}.mov`, size: 100 + index }));
+    mocks.recordings.mockResolvedValue(recordings);
+    mocks.job.findFirst.mockResolvedValueOnce(job({ sourcePaths: [
+      { path: "Shows/A.mov", role: "M" }, { path: "Shows/B.mov", role: "ignore" }, { path: "Shows/C.mov", role: "auto" }
+    ] }));
+    const claim = (await claimNextShowEdit("dev1", NOW))!;
+    const at = recording.modifiedAt;
+    expect(claim.brief.sources).toEqual([
+      { path: "Shows/A.mov", role: "M", order: 1, modifiedAt: at },
+      { path: "Shows/B.mov", role: "ignore", order: 2, modifiedAt: at },
+      { path: "Shows/C.mov", role: "auto", order: 3, modifiedAt: at }
+    ]);
+    expect(claim.brief.sourcePaths).toEqual(["Shows/A.mov", "Shows/C.mov"]);
+    expect(claim.downloads!.map((entry) => [entry.path, entry.size])).toEqual([["Shows/A.mov", 100], ["Shows/C.mov", 102]]);
   });
 
   it("claims the oldest queued job once", async () => {
@@ -198,11 +228,12 @@ describe("show editor jobs", () => {
     expect(mocks.job.update).toHaveBeenCalledWith({ where: { id: "job1" }, data: { stage: "analyze", message: "Finding takes", heartbeatAt: NOW } });
   });
 
-  it("redo copies sourcePaths and note", async () => {
-    mocks.job.findUnique.mockResolvedValueOnce(job({ status: "REVIEW", sourcePaths: [SRC, "Shows/b.mov"] }));
+  it("redo copies the sources, roles and note", async () => {
+    const sources = [{ path: SRC, role: "M" }, { path: "Shows/b.mov", role: "L" }];
+    mocks.job.findUnique.mockResolvedValueOnce(job({ status: "REVIEW", sourcePaths: sources }));
     await redoShowEdit({ userId: "u2", id: "job1", note: "Use the second take of the close." }, NOW);
     expect(mocks.job.create).toHaveBeenCalledWith({ data: {
-      showDate: SHOW, sourcePaths: [SRC, "Shows/b.mov"], note: "Use the second take of the close.", createdById: "u2"
+      showDate: SHOW, sourcePaths: sources, note: "Use the second take of the close.", createdById: "u2"
     } });
     expect(mocks.job.updateMany).toHaveBeenCalledWith({ where: { id: "job1", status: "REVIEW" }, data: expect.objectContaining({ status: "CANCELLED" }) });
   });

@@ -5,8 +5,9 @@ import { pacificDateKey } from "@/src/lib/meetings/schedule";
 import { PACKAGE_ADVISER_EMAIL } from "@/src/lib/platform-admin";
 import { prisma } from "@/src/lib/prisma";
 import { addDaysToDateKey, formatShowDateLabel, nextUpcomingShowDate } from "@/src/lib/show-assignment";
-import type { ShowEditDecision } from "@/src/lib/show-editor";
+import type { ShowEditDecision, ShowRecording } from "@/src/lib/show-editor";
 import { listShowRecordings } from "@/src/server/show-editor-drive";
+import { autoStartGroups, type AutoStartGroup } from "@/src/lib/show-editor-sources";
 import { findShowManagerEmail, resolveShowManagers } from "@/src/server/show-manager";
 import { loadScheduleOverrides } from "@/src/server/show-schedule";
 import { sendPushToUserIds } from "@/src/server/push-notify";
@@ -16,10 +17,6 @@ export type ShowEditNotice = "review" | "needs-review" | "failed" | "published";
 type NoticeJob = Pick<ShowEditJob, "id" | "showDate" | "createdById" | "version" | "error" | "decisions" | "needsReview" | "status">;
 
 const AUTO_START_EVERY_MS = 5 * 60_000;
-/** Auto-start waits until a recording has been unchanged this long, so it never edits a half-copied file. */
-const AUTO_START_SETTLED_MS = 10 * 60_000;
-/** Only recordings from the last day and a half count as new. */
-const AUTO_START_LOOKBACK_MS = 36 * 3600_000;
 
 function showLink(showDate: string) {
   return `${mainAppOrigin()}/show-roles?date=${showDate}`;
@@ -123,10 +120,16 @@ async function autoStartUserId(showDate: string) {
   return users[0]?.id ?? null;
 }
 
+/** What auto-start would edit per upcoming show (airing today through a week out) right now. */
+export function showEditAutoStartGroups(recordings: ShowRecording[], now = new Date()): AutoStartGroup[] {
+  const today = pacificDateKey(now);
+  return autoStartGroups(recordings, { now, firstDate: today, lastDate: addDaysToDateKey(today, 7) });
+}
+
 /**
- * Auto-start on (setting, or SHOW_EDITOR_AUTO_START=1; called from the editors' heartbeats, at most every 5 minutes): a new recording
- * that has settled on Drive starts the edit of the next show after the day it was filmed, unless that show
- * already has an edit or was sent to YouTube.
+ * Auto-start on (setting, or SHOW_EDITOR_AUTO_START=1; called from the editors' heartbeats, at most every
+ * 5 minutes): once every recording named after an upcoming show has settled on Drive, start that show's
+ * edit with every file on Auto, unless the show already has an edit or was sent to YouTube.
  */
 export async function runShowEditAutoStart(now: Date) {
   // Several machines heartbeat; the settings row makes sure only one of them looks at Drive per 5 minutes.
@@ -137,30 +140,21 @@ export async function runShowEditAutoStart(now: Date) {
   });
   if (due.count === 0) return;
 
-  const today = pacificDateKey(now);
-  const overrides = await loadScheduleOverrides(addDaysToDateKey(today, -3), addDaysToDateKey(today, 30));
-  const recordings = (await listShowRecordings(now)).filter((recording) => {
-    const age = now.getTime() - new Date(recording.modifiedAt).getTime();
-    return age >= AUTO_START_SETTLED_MS && age <= AUTO_START_LOOKBACK_MS;
-  });
-  const seen = new Set<string>();
-  for (const recording of recordings) {
-    const showDate = nextUpcomingShowDate(pacificDateKey(new Date(recording.modifiedAt)), overrides, { includeToday: false });
-    // Newest recording per show only (the list is newest first).
-    if (!showDate || showDate < today || seen.has(showDate)) continue;
-    seen.add(showDate);
+  for (const group of showEditAutoStartGroups(await listShowRecordings(now), now)) {
+    if (!group.ready) continue;
     const [existing, publication] = await Promise.all([
-      prisma.showEditJob.findMany({ where: { showDate }, select: { id: true, status: true } }),
-      prisma.showPublication.findUnique({ where: { showDate } })
+      prisma.showEditJob.findMany({ where: { showDate: group.showDate }, select: { id: true, status: true } }),
+      prisma.showPublication.findUnique({ where: { showDate: group.showDate } })
     ]);
     if (existing.length > 0 || (publication && publication.status !== "DRAFT")) continue;
-    const createdById = await autoStartUserId(showDate);
+    const createdById = await autoStartUserId(group.showDate);
     if (!createdById) {
-      console.error("show editor: auto-start has no show manager or adviser account", showDate);
+      console.error("show editor: auto-start has no show manager or adviser account", group.showDate);
       continue;
     }
+    const sources = group.files.map((file) => ({ path: file.path, role: "auto" as const }));
     await prisma.showEditJob.create({
-      data: { showDate, sourcePaths: [recording.path], createdById, message: "Started automatically when the recording reached Drive." }
+      data: { showDate: group.showDate, sourcePaths: sources, createdById, message: "Started automatically when the recordings reached Drive." }
     });
   }
 }

@@ -7,7 +7,7 @@ import { prisma } from "@/src/lib/prisma";
 import { addDaysToDateKey, formatShowDateLabel, nextUpcomingShowDate } from "@/src/lib/show-assignment";
 import type { ShowEditDecision, ShowRecording } from "@/src/lib/show-editor";
 import { listShowRecordings } from "@/src/server/show-editor-drive";
-import { autoStartGroups, type AutoStartGroup } from "@/src/lib/show-editor-sources";
+import { autoStartGroups, roleFromName, type AutoStartGroup } from "@/src/lib/show-editor-sources";
 import { editingHref } from "@/src/lib/show-editor-views";
 import { isAutoStarted } from "@/src/lib/show-editor-escalation";
 import { findShowManagerEmail, resolveShowManagers } from "@/src/server/show-manager";
@@ -257,7 +257,7 @@ export async function runShowEditAutoStart(now: Date) {
       console.error("show editor: auto-start has no show manager or adviser account", group.showDate);
       continue;
     }
-    const sources = group.files.map((file) => ({ path: file.path, role: "auto" as const }));
+    const sources = group.files.map((file) => ({ path: file.path, role: roleFromName(file.name) }));
     // createdById is the show manager's (or adviser's) account; autoStarted keeps the notices to the show manager.
     await prisma.showEditJob.create({
       data: {

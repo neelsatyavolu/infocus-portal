@@ -28,7 +28,7 @@ import { pastShowCards, type PastShowCard } from "@/src/server/show-editor-past-
 import { classRoster } from "@/src/server/show-editor-roster";
 import { ShowEditError } from "@/src/server/show-editor-errors";
 import {
-  briefSources, normalizeSources, sourceSelectionError, type ShowEditBriefSource, type ShowEditSource
+  briefSources, normalizeSources, roleFromName, sourceSelectionError, type ShowEditBriefSource, type ShowEditSource
 } from "@/src/lib/show-editor-sources";
 import {
   DEBUG_LOG_LINKS, debugLogsOf, editorLogPath, isEditorLogPath, mergeDebugLog, type ShowEditDebugLog, type ShowEditDebugLogEntry
@@ -714,6 +714,6 @@ export async function showEditState(showDate: string, now = new Date()): Promise
 function autoStartPreview(showDate: string, recordings: ShowRecording[], now: Date): AutoStartPreview | null {
   const group = showEditAutoStartGroups(recordings, now).find((entry) => entry.showDate === showDate);
   if (!group) return null;
-  const files = group.files.map((file) => ({ path: file.path, role: "auto" as const }));
+  const files = group.files.map((file) => ({ path: file.path, role: roleFromName(file.name) }));
   return { files, ready: group.ready, readyAt: group.ready ? null : group.readyAt, error: sourceSelectionError(files) };
 }

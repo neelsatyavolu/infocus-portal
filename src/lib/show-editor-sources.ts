@@ -1,8 +1,10 @@
 /**
- * Which recordings an automatic edit uses (client-safe). The TriCaster names every export
- * `InFocus Show <airing date>.mov`, with ` (1)`/` (2)` for repeats, and records no timecode, so the
- * editor works out from the content which files are program feeds, which are cameras and which belong
- * together. Producers can still pin a file's role, or tell the editor to ignore it.
+ * Which recordings an automatic edit uses (client-safe). The NAS names every TriCaster export after its
+ * airing date: `InFocus Show <airing date>.mov` for a switched recording, or `InFocus Show <airing date> Left.mov`
+ * / `Center` / `Right` for the three cameras recorded together, with ` (1)`/` (2)` for repeats
+ * (`rename_infocusshow.sh` in the InFocus Editing share). No timecode is recorded, so the editor works out from
+ * the content which files belong together; a camera's name presets its role (Left L, Center M, Right R).
+ * Producers can still change a file's role, or tell the editor to ignore it.
  * ShowEditJob.sourcePaths stores `[{ path, role }]`; rows from before this hold plain paths (role auto).
  */
 import type { ShowRecording } from "@/src/lib/show-editor";
@@ -65,10 +67,20 @@ export function showRecordingBaseName(showDate: string) {
   return `InFocus Show ${month}-${day}-${year}`;
 }
 
-/** `InFocus Show 10-22-2026 (2).mov` → "2026-10-22", the airing date; null for any other name. */
+const SHOW_FILE = /^InFocus Show (\d{2})-(\d{2})-(\d{4})(?: (Left|Center|Right))?(?: \(\d+\))?\.(?:mov|mp4)$/i;
+
+/** `InFocus Show 10-22-2026 (2).mov` or `… 10-22-2026 Left.mov` → "2026-10-22", the airing date; null for any other name. */
 export function showDateFromName(name: string): string | null {
-  const match = /^InFocus Show (\d{2})-(\d{2})-(\d{4})(?: \(\d+\))?\.(?:mov|mp4)$/i.exec(name.trim());
+  const match = SHOW_FILE.exec(name.trim());
   return match ? `${match[3]}-${match[1]}-${match[2]}` : null;
+}
+
+const CAMERA_ROLES: Record<string, ShowEditSourceRole> = { left: "L", center: "M", right: "R" };
+
+/** The role a file's name presets: a camera's (`… Left.mov` L, `Center` M, `Right` R), otherwise Auto. Takes a name or path. */
+export function roleFromName(nameOrPath: string): ShowEditSourceRole {
+  const camera = SHOW_FILE.exec((nameOrPath.split("/").pop() ?? "").trim())?.[4];
+  return camera ? CAMERA_ROLES[camera.toLowerCase()] : "auto";
 }
 
 /**
@@ -94,12 +106,12 @@ export function showDateCandidates(recordings: ShowRecording[], showDate: string
     .sort((a, b) => a.modifiedAt.localeCompare(b.modifiedAt));
 }
 
-/** Preselect the show's finished clips by name, oldest first (so parts stay in order), each on Auto. */
+/** Preselect the show's finished clips by name, oldest first (so parts stay in order), cameras on their role. */
 export function defaultSourceSelection(recordings: ShowRecording[], showDate: string): ShowEditSource[] {
   return showDateCandidates(recordings, showDate)
     .filter((recording) => recording.stable)
     .slice(0, MAX_SHOW_EDIT_SOURCES)
-    .map((recording) => ({ path: recording.path, role: "auto" }));
+    .map((recording) => ({ path: recording.path, role: roleFromName(recording.name) }));
 }
 
 /** Notes shown beside listed files (e.g. the copy-of-another-show warning). */
@@ -112,10 +124,10 @@ export function recordingNotes(recordings: ShowRecording[]): Record<string, stri
   return notes;
 }
 
-/** Clicking a file adds it at the end on Auto; clicking again removes it. */
+/** Clicking a file adds it at the end (on its camera role, else Auto); clicking again removes it. */
 export function toggleSource(selected: ShowEditSource[], path: string): ShowEditSource[] {
   if (selected.some((source) => source.path === path)) return selected.filter((source) => source.path !== path);
-  return selected.length >= MAX_SHOW_EDIT_SOURCES ? selected : [...selected, { path, role: "auto" }];
+  return selected.length >= MAX_SHOW_EDIT_SOURCES ? selected : [...selected, { path, role: roleFromName(path) }];
 }
 
 /** Selecting a folder adds every finished video in it (or removes them all when they're all chosen). */
@@ -126,7 +138,7 @@ export function toggleFolder(selected: ShowEditSource[], files: ShowRecording[])
     const paths = new Set(usable.map((file) => file.path));
     return selected.filter((source) => !paths.has(source.path));
   }
-  const added = usable.filter((file) => !chosen.has(file.path)).map((file): ShowEditSource => ({ path: file.path, role: "auto" }));
+  const added = usable.filter((file) => !chosen.has(file.path)).map((file): ShowEditSource => ({ path: file.path, role: roleFromName(file.name) }));
   return [...selected, ...added].slice(0, MAX_SHOW_EDIT_SOURCES);
 }
 

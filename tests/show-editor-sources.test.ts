@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ShowRecording } from "@/src/lib/show-editor";
 import {
   autoStartGroups, briefSources, defaultSourceSelection, normalizeSources, preselectionExclusion, recordingNotes,
-  setSourceRole, showDateFromName, showRecordingBaseName, sourceSelectionError, toggleFolder, toggleSource, visibleRecordings
+  roleFromName, setSourceRole, showDateFromName, showRecordingBaseName, sourceSelectionError, toggleFolder, toggleSource, visibleRecordings
 } from "@/src/lib/show-editor-sources";
 import { isShowRecordingPath } from "@/src/lib/show-editor";
 
@@ -92,6 +92,34 @@ describe("names and preselection", () => {
     expect(showDateFromName("InFocus Show.mov")).toBeNull();
     expect(showDateFromName("InFocus Show 10-22-2026 EDITED.mov")).toBeNull();
     expect(showDateFromName("InFocus Show 10-22-2026.prproj")).toBeNull();
+  });
+
+  it("reads the three cameras' names (Left, Center, Right) and presets their roles", () => {
+    expect(showDateFromName("InFocus Show 10-22-2026 Left.mov")).toBe("2026-10-22");
+    expect(showDateFromName("InFocus Show 10-22-2026 Center (1).mov")).toBe("2026-10-22");
+    expect(showDateFromName("infocus show 10-22-2026 right.MOV")).toBe("2026-10-22");
+    expect(showDateFromName("InFocus Show Left.mov")).toBeNull();             // not renamed by the NAS yet
+    expect(showDateFromName("InFocus Show 10-22-2026 Wide.mov")).toBeNull();
+    expect(["Left", "Center (1)", "Right"].map((cam) => roleFromName(`Shows/InFocus Show 10-22-2026 ${cam}.mov`)))
+      .toEqual(["L", "M", "R"]);
+    expect(roleFromName("InFocus Show 10-22-2026 (1).mov")).toBe("auto");
+    expect(roleFromName("InFocus Show Left.mov")).toBe("auto");
+  });
+
+  it("preselects a three-camera recording with each camera on its role", () => {
+    const recordings = [
+      file("InFocus Show 10-22-2026 Right.mov", { modifiedAt: "2026-10-21T18:02:00.000Z" }),
+      file("InFocus Show 10-22-2026 Left.mov", { modifiedAt: "2026-10-21T18:00:00.000Z" }),
+      file("InFocus Show 10-22-2026 Center.mov", { modifiedAt: "2026-10-21T18:01:00.000Z" })
+    ];
+    expect(defaultSourceSelection(recordings, "2026-10-22")).toEqual([
+      { path: "Shows/InFocus Show 10-22-2026 Left.mov", role: "L" },
+      { path: "Shows/InFocus Show 10-22-2026 Center.mov", role: "M" },
+      { path: "Shows/InFocus Show 10-22-2026 Right.mov", role: "R" }
+    ]);
+    expect(toggleSource([], "Shows/InFocus Show 10-22-2026 Center (1).mov")).toEqual([
+      { path: "Shows/InFocus Show 10-22-2026 Center (1).mov", role: "M" }
+    ]);
   });
 
   it("preselects the show's clips by airing-date name, oldest first, on Auto", () => {

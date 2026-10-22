@@ -131,7 +131,7 @@ async function refuseUnfinishedJob(showDate: string, exceptId?: string) {
 }
 
 export async function startShowEdit(
-  input: { userId: string; showDate: string; sources: ShowEditSource[] }, now = new Date()
+  input: { userId: string; showDate: string; sources: ShowEditSource[]; note?: string }, now = new Date()
 ): Promise<ShowEditView> {
   const invalid = sourceSelectionError(input.sources);
   if (invalid) throw new ShowEditError(invalid, 400);
@@ -144,7 +144,7 @@ export async function startShowEdit(
     if (!recording.stable) throw new ShowEditError(`${recording.name} is still copying to Drive. Try again in a few minutes.`, 400);
   }
   const job = await prisma.showEditJob.create({
-    data: { showDate: input.showDate, sourcePaths: input.sources, createdById: input.userId }
+    data: { showDate: input.showDate, sourcePaths: input.sources, note: input.note?.trim() || null, createdById: input.userId }
   });
   return showEditView(job);
 }

@@ -8,7 +8,7 @@ Who can use it: associate producers and up. Everything happens on the **Editing*
 
 1. Record the show on the TriCaster and export the files to the **Shows** folder on Drive.
 2. Wait about 5 minutes for the files to be renamed after the show.
-3. Open **Editing**, pick the show, check the ticked recordings and press **Start automatic editing**.
+3. Open **Editing**, pick the show, check the ticked recordings, add any instructions and press **Start automatic editing**.
 4. About 15 minutes later you get an email that it's ready. Watch it.
 5. Press **Approve & schedule**, or **Send back** with what to change.
 
@@ -47,7 +47,8 @@ It waits until a file has finished copying before renaming it. A file still name
    - **Preview** plays a file in the page. Some TriCaster files only play in Safari.
    - Tick or untick files, and change a file's role if it's wrong. **Ignore** leaves a file out.
    - Files with EDITED in the name, the untitled `InFocus Show.mov` and copies of another show are never ticked.
-4. Press **Start automatic editing**.
+4. To tell the editor something about this show, press **Add instructions** and type it, like "Use the later take of the open" or "Leave out the yearbook announcement". It follows these over the house rules, for this show only. To make something permanent, add it to the house rules in Settings.
+5. Press **Start automatic editing**.
 
 If **Start editing by itself** is on (Settings), you don't need to press anything: the edit starts once the show's files have sat unchanged in Drive for 10 minutes.
 

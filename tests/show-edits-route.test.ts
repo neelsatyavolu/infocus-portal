@@ -102,14 +102,22 @@ describe("show edits route", () => {
     mocks.start.mockResolvedValue({ id: "job1" });
     const sources = [{ path: "Shows/ISO/b.mov", role: "M" }, { path: "Shows/a.mov", role: "auto" }, { path: "Shows/c.mov", role: "ignore" }];
     await POST(post({ action: "start", date: "2026-10-21", sources }));
-    expect(mocks.start).toHaveBeenCalledWith({ userId: "u1", showDate: "2026-10-21", sources });
+    expect(mocks.start).toHaveBeenCalledWith({ userId: "u1", showDate: "2026-10-21", sources, note: undefined });
+  });
+
+  it("start passes the producer's instructions, trimmed, and refuses ones over 500 characters", async () => {
+    mocks.start.mockResolvedValue({ id: "job1" });
+    const sources = [{ path: "Shows/a.mov", role: "auto" }];
+    await POST(post({ action: "start", date: "2026-10-21", sources, note: "  Skip the yearbook announcement.  " }));
+    expect(mocks.start).toHaveBeenCalledWith({ userId: "u1", showDate: "2026-10-21", sources, note: "Skip the yearbook announcement." });
+    expect((await POST(post({ action: "start", date: "2026-10-21", sources, note: "x".repeat(501) }))).status).toBe(400);
   });
 
   it("start still takes a plain path list from an older page, as files on Auto", async () => {
     mocks.start.mockResolvedValue({ id: "job1" });
     await POST(post({ action: "start", date: "2026-10-21", sourcePaths: ["Shows/a.mov", "Shows/b.mov"] }));
     expect(mocks.start).toHaveBeenCalledWith({
-      userId: "u1", showDate: "2026-10-21", sources: [{ path: "Shows/a.mov", role: "auto" }, { path: "Shows/b.mov", role: "auto" }]
+      userId: "u1", showDate: "2026-10-21", sources: [{ path: "Shows/a.mov", role: "auto" }, { path: "Shows/b.mov", role: "auto" }], note: undefined
     });
   });
 

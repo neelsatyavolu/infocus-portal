@@ -35,7 +35,9 @@ const actionSchema = z.discriminatedUnion("action", [
     date: dateKey,
     // Each file with its role; `sourcePaths` (plain paths, all on Auto) is still accepted from older pages.
     sources: z.array(z.object({ path: recordingPath, role: z.enum(SHOW_EDIT_SOURCE_ROLES) })).max(MAX_SHOW_EDIT_SOURCES, `Pick at most ${MAX_SHOW_EDIT_SOURCES} files.`).optional(),
-    sourcePaths: z.array(recordingPath).max(MAX_SHOW_EDIT_SOURCES, `Pick at most ${MAX_SHOW_EDIT_SOURCES} files.`).optional()
+    sourcePaths: z.array(recordingPath).max(MAX_SHOW_EDIT_SOURCES, `Pick at most ${MAX_SHOW_EDIT_SOURCES} files.`).optional(),
+    // Instructions for this edit (optional), passed to the editor as quoted data, like a Redo note.
+    note: z.string().trim().max(SHOW_EDIT_NOTE_MAX).optional()
   }),
   z.object({ action: z.literal("cancel"), id: jobId }),
   // The note for the editor is optional.
@@ -117,7 +119,7 @@ export async function POST(request: Request) {
         const sources = body.sources ?? normalizeSources(body.sourcePaths ?? []);
         const invalid = sourceSelectionError(sources);
         if (invalid) return fail(invalid, 400);
-        return okNoStore(await startShowEdit({ userId, showDate: body.date, sources }));
+        return okNoStore(await startShowEdit({ userId, showDate: body.date, sources, note: body.note }));
       }
       case "cancel":
         return okNoStore(await cancelShowEdit({ id: body.id }));

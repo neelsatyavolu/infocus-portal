@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarCheck, Loader2, Undo2, Wand2 } from "lucide-react";
+import { CalendarCheck, Loader2, MessageSquarePlus, Undo2, Wand2 } from "lucide-react";
 import { Alert, InlineNote } from "@/components/kit/alert";
 import { Panel } from "@/components/kit/panel";
 import { StatusTag } from "@/components/kit/status-tag";
 import { Button } from "@/components/ui/button";
-import { SHOW_EDIT_STAGE_LABELS, type ShowEditState, type ShowEditView } from "@/src/lib/show-editor";
+import { Textarea } from "@/components/ui/textarea";
+import { SHOW_EDIT_NOTE_MAX, SHOW_EDIT_STAGE_LABELS, type ShowEditState, type ShowEditView } from "@/src/lib/show-editor";
 import {
   defaultSourceSelection, SHOW_EDIT_SOURCE_ROLE_LABELS, sourceSelectionError, type ShowEditSource
 } from "@/src/lib/show-editor-sources";
@@ -94,20 +95,44 @@ function fileNameOf(path: string) {
 
 /** Start, at the top of the status card: what it will use, the button, and the offline note. */
 function StartRow({ selected, selectionError, busy, starting, online, onStart }: {
-  selected: ShowEditSource[]; selectionError: string | null; busy: boolean; starting: boolean; online: boolean; onStart: () => void;
+  selected: ShowEditSource[]; selectionError: string | null; busy: boolean; starting: boolean; online: boolean;
+  onStart: (note: string) => void;
 }) {
   const used = selected.filter((source) => source.role !== "ignore");
+  // Optional instructions for this edit; the editor follows them over the house rules.
+  const [open, setOpen] = useState(false);
+  const [note, setNote] = useState("");
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="button" disabled={busy || selectionError !== null} onClick={onStart}>
+        <Button type="button" disabled={busy || selectionError !== null} onClick={() => onStart(open ? note.trim() : "")}>
           {starting ? <Loader2 className="animate-spin" aria-hidden /> : <Wand2 aria-hidden />}
           Start automatic editing
+        </Button>
+        <Button type="button" variant="ghost" size="sm" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
+          <MessageSquarePlus aria-hidden />
+          {open ? "No instructions" : "Add instructions"}
         </Button>
         <span className="text-[13px] text-muted-foreground">
           {selectionError ?? `Uses ${used.length === 1 ? "1 recording" : `${used.length} recordings`}: ${used.map((source) => fileNameOf(source.path)).join(", ")}. Change them under Recordings.`}
         </span>
       </div>
+      {open ? (
+        <label className="block max-w-2xl space-y-1.5">
+          <span className="text-[13px] font-medium">Instructions for the editor (optional)</span>
+          <Textarea
+            value={note}
+            maxLength={SHOW_EDIT_NOTE_MAX}
+            rows={3}
+            disabled={busy}
+            onChange={(event) => setNote(event.target.value)}
+            placeholder="e.g. Use the later take of the open, and leave out the yearbook announcement."
+          />
+          <span className="block text-[12px] text-muted-foreground">
+            For this show only. To make something permanent, add it to the house rules in Settings.
+          </span>
+        </label>
+      ) : null}
       {!online ? <InlineNote>{OFFLINE_NOTE}</InlineNote> : null}
     </div>
   );
@@ -242,6 +267,9 @@ export function EditingShowView({ showDate, state, busyAction, send, onReview }:
     <div className="space-y-5">
       <Panel title="This show's edit" status={<StatusTag tone={summary.tone}>{summary.label}</StatusTag>} bodyClassName="space-y-3">
         <StatusBody state={state} sentToYouTube={sentToYouTube} busy={busy} send={send} />
+        {job?.note && !canStart ? (
+          <p className="text-[13px] text-muted-foreground">Instructions: &ldquo;{job.note}&rdquo;</p>
+        ) : null}
         {job && !isActiveJob(job) ? <DebugLogLinks logs={job.debugLogs} /> : null}
         {canStart ? (
           <StartRow
@@ -250,7 +278,7 @@ export function EditingShowView({ showDate, state, busyAction, send, onReview }:
             busy={busy}
             starting={busyAction === "start"}
             online={state.worker.online}
-            onStart={() => void send({ action: "start", date: showDate, sources: selected }, "Automatic editing queued.")}
+            onStart={(note) => void send({ action: "start", date: showDate, sources: selected, ...(note ? { note } : {}) }, "Automatic editing queued.")}
           />
         ) : null}
         {(job?.status === "FAILED" || job?.status === "REVIEW") && !sentToYouTube ? (

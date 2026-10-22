@@ -113,8 +113,15 @@ describe("show editor jobs", () => {
 
   it("starts a job for a listed recording", async () => {
     const view = await startShowEdit({ userId: "u1", showDate: SHOW, sources: [{ path: SRC, role: "auto" }] }, NOW);
-    expect(mocks.job.create).toHaveBeenCalledWith({ data: { showDate: SHOW, sourcePaths: [{ path: SRC, role: "auto" }], createdById: "u1" } });
+    expect(mocks.job.create).toHaveBeenCalledWith({ data: { showDate: SHOW, sourcePaths: [{ path: SRC, role: "auto" }], note: null, createdById: "u1" } });
     expect(view).toMatchObject({ status: "QUEUED", sources: [{ path: SRC, role: "auto" }] });
+  });
+
+  it("keeps the producer's instructions on the job, for the editor's brief", async () => {
+    await startShowEdit({ userId: "u1", showDate: SHOW, sources: [{ path: SRC, role: "auto" }], note: " Use the later take of the open. " }, NOW);
+    expect(mocks.job.create).toHaveBeenCalledWith({
+      data: { showDate: SHOW, sourcePaths: [{ path: SRC, role: "auto" }], note: "Use the later take of the open.", createdById: "u1" }
+    });
   });
 
   it("refuses start when publication is not DRAFT", async () => {

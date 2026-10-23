@@ -143,6 +143,12 @@ export function buildScriptWordMap(sections: Array<{ id: string; label: string; 
 
       if (lastBlock && classified.kind === "cue" && !classified.spoken && ROLL_CUE.test(classified.text)) {
         lastBlock.rollAfter = true;
+        // Copy after the roll (coming back from the package) is a new story.
+        if (block) {
+          blockNumber += 1;
+          blockStartLine = lineIndex;
+          block = null;
+        }
       }
 
       const text = spokenTextOf(classified);

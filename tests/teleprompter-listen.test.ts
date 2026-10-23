@@ -75,15 +75,48 @@ describe("StreamingTranscriber", () => {
     expect(updates.at(-1)).toEqual({ words: [], final: false });
   });
 
-  it("cuts long speech into reads of at most ten seconds", async () => {
+  it("cuts long speech into reads of at most twelve seconds", async () => {
     const lengths: number[] = [];
     const transcriber = fakeTranscriber([], lengths);
     transcriber.push(block(0));
-    for (let index = 0; index < 250; index += 1) {
-      transcriber.push(block(index % 37 === 0 ? 0.05 : 0.2));
+    for (let index = 0; index < 400; index += 1) {
+      transcriber.push(block(0.2));
       await settle();
     }
-    expect(Math.max(...lengths)).toBeLessThanOrEqual(10.01);
+    expect(Math.max(...lengths)).toBeLessThanOrEqual(12.01);
     expect(lengths.length).toBeGreaterThan(10);
+  });
+
+  it("never settles the same word twice when long speech is cut", async () => {
+    // Each block is one "word", named by a tiny marker in its first sample.
+    const updates: TranscriptUpdate[] = [];
+    const transcriber = new StreamingTranscriber({
+      blockSize: BLOCK,
+      sampleRate: 16000,
+      decode: async (audio) => {
+        const words: string[] = [];
+        for (let offset = 0; offset + BLOCK <= audio.length; offset += BLOCK) {
+          words.push(`w${Math.round(audio[offset] * 1e5)}`);
+        }
+        return words.join(" ");
+      },
+      onWords: (update) => updates.push(update)
+    });
+    transcriber.push(block(0));
+    for (let index = 1; index <= 300; index += 1) {
+      const loud = block(index % 23 === 0 ? 0.12 : 0.2);
+      loud[0] = index * 1e-5;
+      transcriber.push(loud);
+      await settle();
+    }
+    for (let index = 301; index <= 310; index += 1) {
+      const quiet = block(0);
+      quiet[0] = index * 1e-5;
+      transcriber.push(quiet);
+      await settle();
+    }
+    const settled = updates.filter((update) => update.final).flatMap((update) => update.words);
+    expect(new Set(settled).size).toBe(settled.length);
+    expect(settled.length).toBeGreaterThan(250);
   });
 });

@@ -93,8 +93,13 @@ type Utterance = { blocks: Float32Array[]; levels: number[]; committed: number; 
 const STEP_MS = 400;
 const PREROLL_MS = 300;
 const END_SILENCE_MS = 600;
-const MAX_UTTERANCE_MS = 10_000;
-/** A long utterance is cut at its quietest moment in this last stretch, between words. */
+/**
+ * Reading without a pause is cut into reads of 8–12 s: from 8 s on, at the first block that's
+ * the quietest of the last stretch (likely between words), and at 12 s regardless. The cut is
+ * at the newest block, so no audio (and no settled word) belongs to two reads.
+ */
+const SOFT_MAX_UTTERANCE_MS = 8000;
+const MAX_UTTERANCE_MS = 12_000;
 const CUT_SEARCH_MS = 1500;
 const MIN_DECODE_MS = 500;
 
@@ -124,7 +129,8 @@ export class StreamingTranscriber {
     const db = levelDb(block);
     const event = this.gate.push(db);
 
-    if (event === "start") {
+    // "speech" with no utterance open: a long one was just cut, so this block starts the next.
+    if (event === "start" || (event === "speech" && !this.current)) {
       this.current = { blocks: [...this.preroll, block], levels: [...this.preroll.map(levelDb), db], committed: 0, previous: [], ended: false };
       this.preroll = [];
       this.blocksSinceDecode = 0;
@@ -132,11 +138,9 @@ export class StreamingTranscriber {
       this.current.blocks.push(block);
       this.current.levels.push(db);
       this.blocksSinceDecode += 1;
-      if (event === "end") {
+      if (event === "end" || this.shouldCut(this.current)) {
         this.finish(this.current);
         this.current = null;
-      } else if (this.current.blocks.length >= this.blocksFor(MAX_UTTERANCE_MS)) {
-        this.cutLongUtterance(this.current);
       }
     } else {
       this.preroll = [...this.preroll, block].slice(-this.blocksFor(PREROLL_MS));
@@ -155,26 +159,16 @@ export class StreamingTranscriber {
     this.finals.push(utterance);
   }
 
-  private cutLongUtterance(utterance: Utterance) {
-    const searchFrom = utterance.blocks.length - this.blocksFor(CUT_SEARCH_MS);
-    let cut = searchFrom;
-    for (let index = searchFrom; index < utterance.levels.length; index += 1) {
-      if (utterance.levels[index] < utterance.levels[cut]) {
-        cut = index;
-      }
+  private shouldCut(utterance: Utterance) {
+    const length = utterance.blocks.length;
+    if (length >= this.blocksFor(MAX_UTTERANCE_MS)) {
+      return true;
     }
-    const carried: Utterance = {
-      blocks: utterance.blocks.slice(cut),
-      levels: utterance.levels.slice(cut),
-      committed: 0,
-      previous: [],
-      ended: false
-    };
-    utterance.blocks = utterance.blocks.slice(0, cut);
-    utterance.levels = utterance.levels.slice(0, cut);
-    this.finish(utterance);
-    this.current = carried;
-    this.blocksSinceDecode = 0;
+    if (length < this.blocksFor(SOFT_MAX_UTTERANCE_MS)) {
+      return false;
+    }
+    const recent = utterance.levels.slice(-this.blocksFor(CUT_SEARCH_MS));
+    return utterance.levels[length - 1] <= Math.min(...recent);
   }
 
   /** One decode at a time: finished utterances first, then a fresh read of the current one. */

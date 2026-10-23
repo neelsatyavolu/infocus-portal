@@ -128,6 +128,17 @@ describe("buildScriptWordMap", () => {
     expect(tossMap.blocks.map((block) => block.rollAfter)).toEqual([true, true, false]);
   });
 
+  it("ends the story at a roll cue even without a camera line after it", () => {
+    const tossMap = buildScriptWordMap([
+      { id: "a", label: "A3", content: "CAM 2\nHere's our package on robots.\n{ROLL PACKAGE}\nWelcome back everyone." }
+    ]);
+    expect(tossMap.blocks.map((block) => [map.words.length > 0, block.rollAfter, tossMap.words[block.firstWordIndex]?.raw])).toEqual([
+      [true, true, "Here's"],
+      [true, false, "Welcome"]
+    ]);
+    expect(new Set(tossMap.blocks.map((block) => block.id)).size).toBe(2);
+  });
+
   it("marks the blocks a {ROLL …} cue follows", () => {
     const rolled = map.blocks.filter((block) => block.rollAfter).map((block) => map.words[block.lastWordIndex]?.raw);
     // The package toss (A3) and the last line of the closing (A5); the A1 intro rolls before any words.

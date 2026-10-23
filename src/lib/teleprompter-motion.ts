@@ -87,3 +87,30 @@ export function easeTowardPosition(current: number, target: number, deltaMs: num
   const next = current + (goal - current) * (1 - Math.exp(-deltaMs / FOLLOW_EASE_MS));
   return Math.abs(goal - next) < 0.5 ? goal : next;
 }
+
+/** Follow-along keeps a speed that closes the gap to the target over about this long… */
+const FOLLOW_TRACK_MS = 800;
+/** …and changes that speed gradually, so words arriving in bursts still read as one scroll. */
+const FOLLOW_ACCEL_MS = 300;
+/** Farther than this (a re-find, a click on a word), or any distance back: glide there instead. */
+const FOLLOW_JUMP_PX = 360;
+const FOLLOW_MAX_SPEED = 1200;
+
+export type FollowScrollState = { position: number; velocity: number };
+
+/**
+ * One frame of follow-along scrolling. Holds a scroll speed that keeps pace with the reading
+ * (the target moves a few px per word), slows smoothly to a stop when the words stop, and
+ * never passes the target.
+ */
+export function followScrollStep(state: FollowScrollState, target: number, deltaMs: number, maxPosition: number): FollowScrollState {
+  const goal = Math.min(Math.max(0, target), maxPosition);
+  const gap = goal - state.position;
+  if (gap < -1 || gap > FOLLOW_JUMP_PX) {
+    return { position: easeTowardPosition(state.position, goal, deltaMs, maxPosition), velocity: 0 };
+  }
+  const wanted = Math.min(FOLLOW_MAX_SPEED, Math.max(0, gap) / (FOLLOW_TRACK_MS / 1000));
+  const velocity = state.velocity + (wanted - state.velocity) * (1 - Math.exp(-deltaMs / FOLLOW_ACCEL_MS));
+  const position = Math.max(0, Math.min(goal, state.position + (velocity * deltaMs) / 1000));
+  return { position, velocity: position >= goal ? Math.min(velocity, wanted) : velocity };
+}

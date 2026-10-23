@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { MessageSquare, Play } from "lucide-react";
 import { MediaBadge, MediaThumb } from "@/components/kit/media";
+import { VideoPlayer } from "@/components/kit/video-player";
 import { buttonVariants } from "@/components/ui/button";
 import type { StageMediaCard } from "@/components/package-stages/types";
 import { cn } from "@/src/lib/utils";
@@ -50,15 +51,12 @@ export function StageVideo({
       <div className="overflow-hidden rounded-md border border-border bg-black">
         <div className="mx-auto w-full max-w-[calc(min(62dvh,36rem)*16/9)]">
           {item.playbackUrl ? (
-            <video
+            <VideoPlayer
               key={item.versionId ?? item.id}
               src={item.playbackUrl}
-              poster={item.thumbnailUrl ?? undefined}
-              controls
-              playsInline
+              poster={item.thumbnailUrl}
               preload="none"
-              aria-label={title}
-              className="block aspect-video w-full bg-black"
+              label={title}
             />
           ) : (
             <MediaThumb

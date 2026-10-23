@@ -3,6 +3,7 @@
 import { MessageSquare } from "lucide-react";
 import { MediaBadge, MediaTile } from "@/components/kit/media";
 import { StatusTag } from "@/components/kit/status-tag";
+import { VideoPlayer } from "@/components/kit/video-player";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { StageComments } from "@/components/package-cycle/stage-comments";
 import { mediaStatusLabel } from "@/components/package-stages/stage-status";
@@ -136,13 +137,7 @@ export function WatchClipDialog({
         <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
           <div className="min-w-0">
             {clip?.playbackUrl ? (
-              <video
-                key={clip.id}
-                src={clip.playbackUrl}
-                controls
-                playsInline
-                className="aspect-video w-full rounded-md bg-black"
-              />
+              <VideoPlayer key={clip.id} src={clip.playbackUrl} label={clip.title} preload="auto" className="rounded-md" />
             ) : (
               <div className="grid aspect-video w-full place-items-center rounded-md bg-black px-4 text-center text-sm text-[var(--soft-white)]/70">
                 This clip is not ready to play yet.

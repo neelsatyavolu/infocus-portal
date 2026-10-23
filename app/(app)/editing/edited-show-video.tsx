@@ -1,13 +1,14 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { VideoPlayer } from "@/components/kit/video-player";
 import { chapterTime, type ShowChapter } from "@/src/lib/show-chapters";
 
 /**
  * The edited show's player. The Editing page reloads its state every 10–60 s, and every load mints a new signed
  * link, so the player keeps the link it started with (a new `src` restarts the video at 0:00). It takes the newest
  * link only when its own stops working (it expired), and picks up where it was. Give it a `key` per job version so
- * a new version starts fresh. Its chapters (from the editor) sit underneath: each one jumps there.
+ * a new version starts fresh. Its chapters (from the editor) mark the seek bar and sit underneath: each one jumps there.
  */
 export function EditedShowVideo({ videoUrl, posterUrl, label, chapters = [] }: {
   videoUrl: string; posterUrl: string | null; label: string; chapters?: ShowChapter[];
@@ -41,16 +42,16 @@ export function EditedShowVideo({ videoUrl, posterUrl, label, chapters = [] }: {
 
   return (
     <div className="max-w-3xl space-y-2">
-      <video
+      <VideoPlayer
         ref={video}
         src={held.src}
-        poster={held.poster ?? undefined}
-        controls
+        poster={held.poster}
         preload="metadata"
+        chapters={chapters}
         onError={onError}
         onLoadedMetadata={onLoadedMetadata}
-        className="aspect-video w-full rounded-md border border-border bg-black"
-        aria-label={label}
+        className="rounded-md border border-border"
+        label={label}
       />
       {chapters.length > 1 ? (
         <nav aria-label="Chapters">

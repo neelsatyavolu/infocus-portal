@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ExternalLink, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { VideoPlayer } from "@/components/kit/video-player";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
@@ -229,13 +230,12 @@ export function ShowUploadDialog({
   const wide = phase === "uploading" || phase === "review";
   const reviewingEdit = Boolean(edited) && !file;
   const preview = reviewingEdit && edited ? (
-    <video
+    <VideoPlayer
       src={edited.videoUrl}
-      poster={edited.posterUrl ?? undefined}
-      controls
+      poster={edited.posterUrl}
       preload="metadata"
-      className="aspect-video w-full rounded-md border border-border bg-black"
-      aria-label="The edited show"
+      className="rounded-md border border-border"
+      label="The edited show"
     />
   ) : (
     <ThumbnailPreview file={thumbnail} capturing={capturing} />

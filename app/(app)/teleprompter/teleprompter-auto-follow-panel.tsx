@@ -57,6 +57,86 @@ export function AutoFollowTag({ status, mode }: { status: ListenerStatus | null;
   return <span className={cn(TAG_CLASS, tag.className)}>{tag.label}</span>;
 }
 
+const READY_MS = 1200;
+
+/**
+ * Covers run mode while Auto starts (mic permission, the first model download), so nobody starts
+ * reading before it can follow. Flashes "Ready" when it's listening. A startup failure stays up
+ * until closed; a failure mid-show never covers the script (the top-bar tag reports it).
+ */
+export function AutoFollowOverlay({ status, onCancel }: { status: ListenerStatus | null; onCancel: () => void }) {
+  const phase = status?.phase ?? "starting";
+  const [listened, setListened] = useState(false);
+  const [showReady, setShowReady] = useState(false);
+  if (phase === "listening" && !listened) {
+    setListened(true);
+    setShowReady(true);
+  }
+  useEffect(() => {
+    if (!showReady) return;
+    const timer = window.setTimeout(() => setShowReady(false), READY_MS);
+    return () => window.clearTimeout(timer);
+  }, [showReady]);
+
+  const startingUp = phase === "starting" || phase === "loading";
+  const failed = status?.phase === "error" && !listened;
+  if (!startingUp && !failed && !showReady) {
+    return null;
+  }
+
+  const progress = status?.phase === "loading" ? status.progress : null;
+  let heading = "Don't start yet";
+  let detail = "Starting the microphone. If Chrome asks, click Allow.";
+  if (status?.phase === "loading") {
+    detail =
+      progress === null
+        ? "Loading the speech model."
+        : `Downloading the speech model: ${Math.round(progress * 100)}%. Only the first time on this computer.`;
+  } else if (status?.phase === "error") {
+    heading = "Auto couldn't start";
+    detail = status.message;
+  } else if (!startingUp) {
+    heading = "Ready";
+    detail = "Start reading.";
+  }
+
+  return (
+    <div
+      role="alertdialog"
+      aria-live="assertive"
+      aria-label={heading}
+      className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-6 bg-[#0F110F]/95 px-8 text-center text-soft-white"
+    >
+      <p
+        className={cn(
+          "text-[clamp(2.5rem,8vw,6rem)] font-semibold uppercase leading-none tracking-[0.04em]",
+          failed ? "text-[#FF8A8E]" : startingUp ? "text-[#F2A516]" : "text-[#2BB36E]"
+        )}
+      >
+        {heading}
+      </p>
+      <p className="max-w-2xl text-[clamp(1rem,2.4vw,1.6rem)] leading-snug text-[#DCE2DE]">{detail}</p>
+      {status?.phase === "loading" ? (
+        <div className="h-3 w-full max-w-xl overflow-hidden rounded-sm bg-[#252925]" aria-hidden>
+          <div
+            className={cn("h-full bg-[#F2A516] transition-[width] duration-300", progress === null && "w-1/3 animate-pulse")}
+            style={progress === null ? undefined : { width: `${Math.round(progress * 100)}%` }}
+          />
+        </div>
+      ) : null}
+      {startingUp || failed ? (
+        <button
+          type="button"
+          onClick={onCancel}
+          className="mt-2 inline-flex h-10 items-center rounded-md border border-[#2B302B] px-4 text-sm font-medium text-[#DCE2DE] transition-colors hover:bg-[#252925] hover:text-soft-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2BB36E]"
+        >
+          {failed ? "Close, scroll by hand" : "Cancel, scroll by hand"}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 const LABEL_CLASS = "text-[11px] font-medium uppercase tracking-[0.11em] text-[#DCE2DE]";
 const SELECT_CLASS =
   "mt-1.5 h-8 w-full min-w-0 rounded-md border border-[#2B302B] bg-[#252925] px-2 text-xs text-soft-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2BB36E] pointer-coarse:h-10";
@@ -183,6 +263,23 @@ export function AutoFollowSettingsSection({
           </select>
         </label>
       </div>
+      <label className="mt-3 block">
+        <span className={LABEL_CLASS}>Second microphone</span>
+        <select
+          className={SELECT_CLASS}
+          value={settings.secondDeviceId}
+          onChange={(event) => onChange((current) => ({ ...current, secondDeviceId: event.target.value }))}
+        >
+          <option value="">None</option>
+          {mics
+            .filter((mic) => mic.id !== settings.deviceId)
+            .map((mic) => (
+              <option key={mic.id} value={mic.id}>
+                {mic.label}
+              </option>
+            ))}
+        </select>
+      </label>
       {enabled ? <LevelMeter levelRef={levelRef} /> : null}
       <p className="mt-2 text-xs leading-snug text-[#DCE2DE]">
         Click a word to follow from there. Any key or arrow takes over by hand.

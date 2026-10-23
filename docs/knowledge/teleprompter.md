@@ -24,14 +24,15 @@ A full-screen scroll with a playhead arrow near the top. The top bar has a show 
 - **Holding**: it hears talk that isn't the script (banter, an ad-lib) and stays still.
 - **Package**: the anchor finished a toss to `{ROLL PACKAGE}` (or another `ROLL`, `SOT`, `PKG` or `PLAY` cue). It waits there and moves when the anchor reads the start of the next story, so the package's own audio can't move it. After 15 seconds it also accepts a full sentence from later in the show, in case the next story was cut.
 - **Searching**: it lost the place for a few seconds and looks across the whole show; reading a sentence of script picks it back up.
-- **Loading**: the first time on a computer, Chrome downloads the speech model (about 150 MB for Fast, 210 MB for Accurate). After that it's cached and starts in seconds.
 - **Auto failed**: the microphone or the speech model stopped (hover for the reason; Settings shows it too). The script holds still: take over by hand, or press **F** twice to restart Auto.
+
+While Auto starts (the microphone permission, then the speech model: about 150 MB for Fast, 210 MB for Accurate, downloaded the first time on a computer and cached after), the whole screen says **Don't start yet** with the download progress. It flashes **Ready** when it's listening; start reading then. **Cancel** turns Auto off and scrolls by hand. If Auto can't start, the screen says why until you close it.
 
 Turn Auto on once before the show on the studio computer, so the model is already downloaded and the microphone already allowed.
 
 Taking over by hand always works: Space stops the script where it is, and any arrow key or touch button scrolls by hand from there at the last scroll speed (↑ and ↓ adjust it). Either one turns Auto off; press **F** to turn it back on, and it follows from the line at the arrow. With Auto on, clicking a word makes it follow from that word, and the section menu jumps there and keeps following. Switching shows turns Auto off.
 
-**Settings → Auto follow** picks the microphone, the channel (**Both**, or **Input 1** / **Input 2** on a two-input audio interface, for example the program feed on one and a crew mic on the other), and the model (**Fast**, the default, or **Accurate**, which is slower). The meter shows the input level; it turns green while it hears someone talking, and the white mark is where it starts counting sound as speech (it adjusts to the room by itself). Speech recognition runs in Chrome on that computer: audio isn't sent anywhere. Use Chrome; the first use asks for microphone permission.
+**Settings → Auto follow** picks the microphone, the channel (**Both**, or **Input 1** / **Input 2** on a two-input audio interface), a **Second microphone** (for example one USB mic per anchor; both are mixed together, and a two-input interface with **Both** does the same), and the model (**Fast**, the default, or **Accurate**, which is slower). The meter shows the input level; it turns green while it hears someone talking, and the white mark is where it starts counting sound as speech (it adjusts to the room by itself). Speech recognition runs in Chrome on that computer: audio isn't sent anywhere. Use Chrome; the first use asks for microphone permission.
 
 | Key | Action |
 |---|---|

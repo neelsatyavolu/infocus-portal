@@ -87,7 +87,7 @@ On the Editing tab:
 
 ## The editing Mac
 
-The edits run on **PH-LAB-INFOCUS-M04**, a MacBook in the studio. Leave it plugged in and logged in as `student`. Locking the screen or closing the lid is fine: it never sleeps. Logging out or shutting it down stops the editor until someone logs back in.
+The edits run on **PH-LAB-INFOCUS-M04**, a MacBook in the studio. Leave it plugged in and logged in as `student`. Locking the screen or closing the lid is fine: it never sleeps. With the logout/shutdown guard installed, the dedicated editor cancels normal logout, restart and shutdown requests while its service is running, including between shows. Maintenance requires stopping the editor service first. A forced shutdown, power loss, system crash or forced administrator restart can still take it offline; someone must log back in afterwards. Personal computers keep their normal logout and shutdown behavior.
 
 **Machines** (`/editing?view=machines`) shows each editing Mac, whether it's online, its version and any problems. The Mac marked **Active** takes new edits. The buttons:
 

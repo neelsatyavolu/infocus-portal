@@ -73,6 +73,8 @@ export type ShowEditView = {
   stage: ShowEditStage | null;
   message: string | null;
   note: string | null;
+  /** The publish time picked with the instructions (ISO); null means the usual 8:30 AM on show day. */
+  publishAt: string | null;
   outputNasPath: string | null;
   decisions: ShowEditDecision[];
   checks: Record<string, unknown> | null;
@@ -222,6 +224,8 @@ export type ShowEditState = {
   recordingsError: string | null;
   /** The packages queued for this show in the Publishing Queue, in order; `ready` once its final cut is uploaded. */
   packages: QueuedPackageView[];
+  /** Announcements in the show's script (Teleprompter A2); null when the show has no script yet. */
+  announcements: number | null;
   job: ShowEditView | null;
   /** The show's YouTube publication status (DRAFT until scheduled), or null when nothing was uploaded. */
   publicationStatus: string | null;
@@ -257,6 +261,26 @@ export function packageNote(packages: QueuedPackageView[]): { tone: "warning" | 
   }
   const names = packages.map((pkg) => `“${pkg.title}”`).join(", ");
   return { tone: "info", text: `${packages.length === 1 ? "Package" : "Packages"} from the Publishing Queue: ${names}.` };
+}
+
+/**
+ * The line beside Start about this show's announcements. A warning, not a stop: without a script the editor uses
+ * the submitted announcements, and some shows have none.
+ */
+export function announcementNote(count: number | null): { tone: "warning" | "info"; text: string } {
+  if (count === null) {
+    return {
+      tone: "warning",
+      text: "This show has no Teleprompter script yet, so the editor will use the announcements as they were submitted. Each card is made from that text."
+    };
+  }
+  if (count === 0) {
+    return {
+      tone: "warning",
+      text: "The show's script has no announcements in A2. If the anchors read any, add them in the Teleprompter before you start: each card is made from that text."
+    };
+  }
+  return { tone: "info", text: `${count === 1 ? "1 announcement" : `${count} announcements`} in the show's script (A2).` };
 }
 
 /** Upload show's default title and publish time (ISO); `problem` says why Approve can't use them yet. */

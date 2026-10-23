@@ -9,7 +9,7 @@ const PUBLISH_AT = "2026-10-23T15:30:00.000Z";
 
 function job(overrides: Partial<ShowEditView> = {}): ShowEditView {
   return {
-    id: "job1", showDate: SHOW, sources: [], status: "PUBLISHED", stage: null, message: null, note: "Use the later open.",
+    id: "job1", showDate: SHOW, sources: [], status: "PUBLISHED", stage: null, message: null, note: "Use the later open.", publishAt: null,
     outputNasPath: "Package Storage/Shows/2026-10-23/edit.mp4",
     decisions: [
       { kind: "structure", detail: "1 recording: r1 program", flagged: false },
@@ -31,7 +31,7 @@ function state(overrides: Partial<ShowEditState> = {}): ShowEditState {
     worker: { online: true, lastSeenAt: null, busy: false, version: null, health: null },
     devices: [], waitingFor: null,
     settings: { autoStart: false } as ShowEditState["settings"],
-    commands: [], pairings: [], recordings: [], recordingsError: null, packages: [],
+    commands: [], pairings: [], recordings: [], recordingsError: null, packages: [], announcements: 2,
     job: job(),
     publicationStatus: "SCHEDULED",
     preview: { videoUrl: "https://drive.example.org/file?web=1", posterUrl: null },
@@ -92,5 +92,19 @@ describe("EditingShowView once scheduled", () => {
     const markup = render(state({ job: job({ status: "REVIEW" }), publicationStatus: "DRAFT", published: null }));
     expect(markup).toContain("Approve &amp; schedule");
     expect(markup).toContain("Send back");
+  });
+
+  it("at Review, Approve waits until the publish date and time are ticked as right", () => {
+    const markup = render(state({
+      job: job({ status: "REVIEW" }), publicationStatus: "DRAFT", published: null,
+      approve: { title: "InFocus News | Friday, October 23rd, 2026", publishAt: PUBLISH_AT, problem: null }
+    }));
+    expect(markup).toContain("Goes public Fri, Oct 23, 8:30 AM. That’s the right date and time.");
+    expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>.*?Approve &amp; schedule/);
+  });
+
+  it("shows a publish time picked with the instructions", () => {
+    const markup = render(state({ job: job({ publishAt: "2026-10-23T19:00:00.000Z" }) }));
+    expect(markup).toContain("Goes public: Fri, Oct 23, 12:00 PM (picked with the instructions)");
   });
 });

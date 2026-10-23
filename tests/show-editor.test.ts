@@ -12,7 +12,7 @@ const mocks = vi.hoisted(() => ({
   acks: vi.fn(), purge: vi.fn(), deliver: vi.fn(), pairings: vi.fn(),
   settings: { findUnique: vi.fn(), upsert: vi.fn() },
   commandAcks: vi.fn(), takeCommands: vi.fn(), recentCommands: vi.fn(),
-  activate: vi.fn(), devices: vi.fn(), revoke: vi.fn(), mint: vi.fn(), roster: vi.fn()
+  activate: vi.fn(), devices: vi.fn(), revoke: vi.fn(), mint: vi.fn(), roster: vi.fn(), doc: vi.fn()
 }));
 
 vi.mock("@/src/lib/prisma", () => ({ prisma: {
@@ -20,9 +20,13 @@ vi.mock("@/src/lib/prisma", () => ({ prisma: {
   showEditorDevice: mocks.device,
   showPublication: mocks.publication,
   showEditorSettings: mocks.settings,
-  packageProgressRow: { findMany: mocks.rows }
+  packageProgressRow: { findMany: mocks.rows },
+  teleprompterDoc: { findFirst: mocks.doc }
 } }));
-vi.mock("@/src/server/show-story", () => ({ loadShowStory: mocks.story, loadShowSubmissions: mocks.submissions }));
+vi.mock("@/src/server/show-story", () => ({
+  loadShowStory: mocks.story, loadShowSubmissions: mocks.submissions,
+  bulletinParagraphs: (content: string) => content.split("\n").filter((line) => line.trim())
+}));
 vi.mock("@/src/server/show-editor-roster", () => ({ classRoster: mocks.roster }));
 vi.mock("@/src/lib/nas-storage", async (original) => ({
   ...await original<typeof import("@/src/lib/nas-storage")>(),
@@ -110,18 +114,39 @@ describe("show editor jobs", () => {
     mocks.settings.upsert.mockImplementation(async ({ create }) => ({ ...create, updatedAt: NOW }));
     mocks.takeCommands.mockResolvedValue([]);
     mocks.recentCommands.mockResolvedValue([]);
+    mocks.doc.mockResolvedValue(null);
   });
 
   it("starts a job for a listed recording", async () => {
     const view = await startShowEdit({ userId: "u1", showDate: SHOW, sources: [{ path: SRC, role: "auto" }] }, NOW);
-    expect(mocks.job.create).toHaveBeenCalledWith({ data: { showDate: SHOW, sourcePaths: [{ path: SRC, role: "auto" }], note: null, createdById: "u1" } });
-    expect(view).toMatchObject({ status: "QUEUED", sources: [{ path: SRC, role: "auto" }] });
+    expect(mocks.job.create).toHaveBeenCalledWith({ data: {
+      showDate: SHOW, sourcePaths: [{ path: SRC, role: "auto" }], note: null, publishAt: null, createdById: "u1"
+    } });
+    expect(view).toMatchObject({ status: "QUEUED", sources: [{ path: SRC, role: "auto" }], publishAt: null });
+  });
+
+  it("start keeps a publish time picked with the instructions, and refuses one that has passed", async () => {
+    const publishAt = new Date("2026-10-21T19:00:00Z");
+    const view = await startShowEdit({ userId: "u1", showDate: SHOW, sources: [{ path: SRC, role: "auto" }], publishAt }, NOW);
+    expect(mocks.job.create).toHaveBeenCalledWith({ data: expect.objectContaining({ publishAt }) });
+    expect(view.publishAt).toBe("2026-10-21T19:00:00.000Z");
+    await expect(startShowEdit({ userId: "u1", showDate: SHOW, sources: [{ path: SRC, role: "auto" }], publishAt: NOW }, NOW))
+      .rejects.toMatchObject({ status: 400, message: "Pick a publish time in the future." });
+  });
+
+  it("the state counts the announcements in the show's script, or says there is no script", async () => {
+    expect((await showEditState(SHOW, NOW)).announcements).toBeNull();
+    mocks.doc.mockResolvedValue({ sections: [{ content: "Math Club meets after school.\nYearbook photos are Friday." }] });
+    expect((await showEditState(SHOW, NOW)).announcements).toBe(2);
+    expect(mocks.doc).toHaveBeenLastCalledWith(expect.objectContaining({ where: { showDate: new Date("2026-10-21T12:00:00.000Z") } }));
+    mocks.doc.mockResolvedValue({ sections: [] });
+    expect((await showEditState(SHOW, NOW)).announcements).toBe(0);
   });
 
   it("keeps the producer's instructions on the job, for the editor's brief", async () => {
     await startShowEdit({ userId: "u1", showDate: SHOW, sources: [{ path: SRC, role: "auto" }], note: " Use the later take of the open. " }, NOW);
     expect(mocks.job.create).toHaveBeenCalledWith({
-      data: { showDate: SHOW, sourcePaths: [{ path: SRC, role: "auto" }], note: "Use the later take of the open.", createdById: "u1" }
+      data: { showDate: SHOW, sourcePaths: [{ path: SRC, role: "auto" }], note: "Use the later take of the open.", publishAt: null, createdById: "u1" }
     });
   });
 
@@ -270,9 +295,16 @@ describe("show editor jobs", () => {
     mocks.job.findUnique.mockResolvedValueOnce(job({ status: "REVIEW", sourcePaths: sources }));
     await redoShowEdit({ userId: "u2", id: "job1", note: "Use the second take of the close." }, NOW);
     expect(mocks.job.create).toHaveBeenCalledWith({ data: {
-      showDate: SHOW, sourcePaths: sources, note: "Use the second take of the close.", createdById: "u2"
+      showDate: SHOW, sourcePaths: sources, note: "Use the second take of the close.", publishAt: undefined, createdById: "u2"
     } });
     expect(mocks.job.updateMany).toHaveBeenCalledWith({ where: { id: "job1", status: "REVIEW" }, data: expect.objectContaining({ status: "CANCELLED" }) });
+  });
+
+  it("redo keeps the publish time picked with the first start", async () => {
+    const publishAt = new Date("2026-10-21T19:00:00Z");
+    mocks.job.findUnique.mockResolvedValueOnce(job({ status: "FAILED", publishAt }));
+    await redoShowEdit({ userId: "u2", id: "job1" }, NOW);
+    expect(mocks.job.create).toHaveBeenCalledWith({ data: expect.objectContaining({ publishAt }) });
   });
 
   it("redo without a note stores none", async () => {
@@ -834,7 +866,7 @@ describe("show editor jobs", () => {
       seasonNumber: 31, existingSeasons: [31]
     };
     const draft = { status: "DRAFT", nasPath: out };
-    const approve = (now = NOW) => approveShowEdit({ id: "job1", userId: "u2" }, now);
+    const approve = (now = NOW, publishAt = new Date("2026-10-21T15:30:00Z")) => approveShowEdit({ id: "job1", userId: "u2", publishAt }, now);
 
     beforeEach(() => {
       mocks.job.findUnique.mockResolvedValue(job({ status: "REVIEW", outputNasPath: out }));
@@ -877,12 +909,25 @@ describe("show editor jobs", () => {
       expect(mocks.job.updateMany).not.toHaveBeenCalled();
     });
 
-    it("once the usual publish time has passed it says so and points to Change details", async () => {
+    it("once the publish time has passed it says so and points to Change details", async () => {
       // 9:00 AM Pacific on the show date, after the 8:30 default.
       await expect(approve(new Date("2026-10-21T16:00:00Z"))).rejects.toMatchObject({
-        status: 409, message: "The usual publish time has already passed. Pick a new time: use Change details."
+        status: 409, message: "The publish time has already passed. Pick a new time: use Change details."
       });
       expect(mocks.confirm).not.toHaveBeenCalled();
+    });
+
+    it("refuses when the time the producer confirmed isn't the one it would schedule", async () => {
+      await expect(approve(NOW, new Date("2026-10-21T19:00:00Z"))).rejects.toMatchObject({
+        status: 409, message: "The publish time changed since this page loaded. Check it and approve again."
+      });
+      expect(mocks.confirm).not.toHaveBeenCalled();
+    });
+
+    it("schedules at the publish time picked with the instructions", async () => {
+      mocks.pubState.mockResolvedValue({ defaults: { ...defaults, publishTime: "12:00" } });
+      await approve(NOW, new Date("2026-10-21T19:00:00Z"));
+      expect(mocks.confirm).toHaveBeenCalledWith(expect.objectContaining({ publishDate: SHOW, publishTime: "12:00" }));
     });
 
     it("a refusal from scheduling comes back as its plain message", async () => {

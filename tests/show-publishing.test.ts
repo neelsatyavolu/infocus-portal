@@ -75,6 +75,14 @@ describe("show publishing service", () => {
     });
   });
 
+  it("uses the publish time picked with the latest automatic edit instead of 8:30 on show day", async () => {
+    mocks.find.mockResolvedValue(null);
+    mocks.editJob.mockResolvedValue({ checks: null, publishAt: new Date("2026-09-23T19:00:00Z") });
+    const state = await showPublicationState("2026-09-22");
+    expect(state.defaults).toMatchObject({ publishDate: "2026-09-23", publishTime: "12:00" });
+    expect(mocks.editJob).toHaveBeenCalledWith({ where: { showDate: "2026-09-22" }, orderBy: { createdAt: "desc" }, select: { publishAt: true } });
+  });
+
   it("uses what the anchors said at the throw when the package has no toss", async () => {
     mocks.find.mockResolvedValue(null);
     mocks.rows.mockResolvedValue([

@@ -15,10 +15,10 @@ import {
  * `targetRef` every frame; React state (the faded lines, the mode chip) syncs a few times a second.
  */
 
-export type AutoFollowSettings = { deviceId: string; channel: MicChannel; model: SpeechModelChoice };
+export type AutoFollowSettings = { deviceId: string; channel: MicChannel; secondDeviceId: string; model: SpeechModelChoice };
 
 const SETTINGS_KEY = "teleprompter-auto-follow-v1";
-const DEFAULT_SETTINGS: AutoFollowSettings = { deviceId: "", channel: "mix", model: "fast" };
+const DEFAULT_SETTINGS: AutoFollowSettings = { deviceId: "", channel: "mix", secondDeviceId: "", model: "fast" };
 const SYNC_MS = 200;
 
 function readSettings(): AutoFollowSettings {
@@ -30,6 +30,7 @@ function readSettings(): AutoFollowSettings {
     return {
       deviceId: typeof parsed.deviceId === "string" ? parsed.deviceId : DEFAULT_SETTINGS.deviceId,
       channel: parsed.channel === "left" || parsed.channel === "right" ? parsed.channel : DEFAULT_SETTINGS.channel,
+      secondDeviceId: typeof parsed.secondDeviceId === "string" ? parsed.secondDeviceId : DEFAULT_SETTINGS.secondDeviceId,
       model: parsed.model === "accurate" ? "accurate" : DEFAULT_SETTINGS.model
     };
   } catch {
@@ -112,6 +113,7 @@ export function useAutoFollow({
       model: settings.model,
       deviceId: settings.deviceId,
       channel: settings.channel,
+      secondDeviceId: settings.secondDeviceId,
       onStatus: setStatus,
       onLevel: (level) => {
         levelRef.current = level;
@@ -128,7 +130,7 @@ export function useAutoFollow({
       stop();
       levelRef.current = null;
     };
-  }, [enabled, settings.model, settings.deviceId, settings.channel]);
+  }, [enabled, settings.model, settings.deviceId, settings.channel, settings.secondDeviceId]);
 
   const anchor = useCallback((wordIndex: number) => {
     const follower = followerRef.current;

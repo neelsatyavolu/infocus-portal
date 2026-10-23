@@ -90,33 +90,26 @@ self.onmessage = async ({ data }) => {
 };
 `;
 
-/** Picks a channel (or averages both) and resamples to 16 kHz when the context runs faster. */
+/** Cuts the (already mono) mix into 16 kHz blocks, resampling when the context runs faster. */
 const WORKLET_SOURCE = `
 class PrompterTap extends AudioWorkletProcessor {
-  constructor(options) {
+  constructor() {
     super();
-    this.channel = options.processorOptions.channel;
     this.step = sampleRate / ${SAMPLE_RATE};
     this.position = 0;
     this.block = new Float32Array(${BLOCK});
     this.filled = 0;
   }
 
-  sampleAt(input, index) {
-    if (input.length === 1 || this.channel === "left") return input[0][index];
-    if (this.channel === "right") return input[1][index];
-    return (input[0][index] + input[1][index]) / 2;
-  }
-
   process(inputs) {
-    const input = inputs[0];
-    if (!input || input.length === 0) return true;
-    const frames = input[0].length;
+    const samples = inputs[0] && inputs[0][0];
+    if (!samples) return true;
+    const frames = samples.length;
     while (this.position < frames) {
       const index = Math.floor(this.position);
       const next = Math.min(index + 1, frames - 1);
       const fraction = this.position - index;
-      this.block[this.filled++] = this.sampleAt(input, index) * (1 - fraction) + this.sampleAt(input, next) * fraction;
+      this.block[this.filled++] = samples[index] * (1 - fraction) + samples[next] * fraction;
       if (this.filled === this.block.length) {
         this.port.postMessage(this.block, [this.block.buffer]);
         this.block = new Float32Array(${BLOCK});
@@ -208,15 +201,31 @@ function decodeWith(loaded: Engine, audio: Float32Array) {
   });
 }
 
-function micErrorMessage(error: unknown) {
+function micErrorMessage(error: unknown, which: string) {
   const name = error instanceof DOMException ? error.name : "";
   if (name === "NotAllowedError" || name === "SecurityError") {
     return "Microphone blocked. Allow it for this site in Chrome (the icon at the left of the address bar), then turn Auto on again.";
   }
   if (name === "NotFoundError" || name === "OverconstrainedError") {
-    return "That microphone isn't connected. Pick another one in Settings.";
+    return `The ${which} isn't connected. Pick another one in Settings.`;
   }
-  return error instanceof Error ? error.message : "The microphone didn't start.";
+  return error instanceof Error ? error.message : `The ${which} didn't start.`;
+}
+
+function openMicrophone(deviceId: string, which: string) {
+  return navigator.mediaDevices
+    .getUserMedia({
+      audio: {
+        deviceId: deviceId ? { exact: deviceId } : undefined,
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+        channelCount: { ideal: 2 }
+      }
+    })
+    .catch((error: unknown) => {
+      throw new Error(micErrorMessage(error, which));
+    });
 }
 
 /** Microphones Chrome can see. Names only appear once the page has microphone permission. */
@@ -230,16 +239,41 @@ export async function listMicrophones() {
     .map((device, index) => ({ id: device.deviceId, label: device.label || `Microphone ${index + 1}` }));
 }
 
-async function openAudio(stream: MediaStream, channel: MicChannel) {
-  let context: AudioContext;
-  let source: MediaStreamAudioSourceNode;
+type AudioInput = { stream: MediaStream; channel: MicChannel };
+
+/**
+ * Mixes every microphone down to one mono signal: each mic gives its chosen input (or both,
+ * averaged), and two mics add together. Anchors take turns, so one recognizer hears them all.
+ */
+function mixToMono(context: AudioContext, inputs: AudioInput[]) {
+  const mono = context.createGain();
+  mono.channelCount = 1;
+  mono.channelCountMode = "explicit";
+  mono.channelInterpretation = "speakers";
+  for (const { stream, channel } of inputs) {
+    const source = context.createMediaStreamSource(stream);
+    const channels = stream.getAudioTracks()[0]?.getSettings().channelCount ?? 2;
+    if (channel === "mix" || channels < 2) {
+      source.connect(mono);
+    } else {
+      const splitter = context.createChannelSplitter(2);
+      source.connect(splitter);
+      splitter.connect(mono, channel === "left" ? 0 : 1);
+    }
+  }
+  return mono;
+}
+
+async function openAudio(inputs: AudioInput[]) {
+  let context = new AudioContext({ sampleRate: SAMPLE_RATE });
+  let mono: GainNode;
   try {
-    context = new AudioContext({ sampleRate: SAMPLE_RATE });
-    source = context.createMediaStreamSource(stream);
+    mono = mixToMono(context, inputs);
   } catch {
     // This browser can't resample the mic itself; the worklet does it instead.
+    void context.close();
     context = new AudioContext();
-    source = context.createMediaStreamSource(stream);
+    mono = mixToMono(context, inputs);
   }
   const url = URL.createObjectURL(new Blob([WORKLET_SOURCE], { type: "text/javascript" }));
   try {
@@ -253,14 +287,13 @@ async function openAudio(stream: MediaStream, channel: MicChannel) {
   const tap = new AudioWorkletNode(context, "prompter-tap", {
     numberOfInputs: 1,
     numberOfOutputs: 1,
-    channelCountMode: "max",
-    channelInterpretation: "discrete",
-    processorOptions: { channel }
+    channelCount: 1,
+    channelCountMode: "explicit"
   });
   // Silent output: some browsers only run a node that leads to the speakers.
   const mute = context.createGain();
   mute.gain.value = 0;
-  source.connect(tap).connect(mute).connect(context.destination);
+  mono.connect(tap).connect(mute).connect(context.destination);
   return { context, tap };
 }
 
@@ -268,6 +301,8 @@ export type ListenerOptions = {
   model: SpeechModelChoice;
   deviceId: string;
   channel: MicChannel;
+  /** A second microphone mixed in (for example one per anchor); "" for none. */
+  secondDeviceId: string;
   onStatus: (status: ListenerStatus) => void;
   onWords: (update: TranscriptUpdate) => void;
   onLevel: (level: ListenerLevel) => void;
@@ -284,22 +319,13 @@ export function startListener(options: ListenerOptions) {
       throw new Error("This browser can't use a microphone here. Use Chrome on the https site.");
     }
 
-    let stream: MediaStream;
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          deviceId: options.deviceId ? { exact: options.deviceId } : undefined,
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false,
-          channelCount: { ideal: 2 }
-        }
-      });
-    } catch (error) {
-      throw new Error(micErrorMessage(error));
-    }
-    const stopStream = () => stream.getTracks().forEach((track) => track.stop());
+    const inputs: AudioInput[] = [];
+    const stopStream = () => inputs.forEach(({ stream }) => stream.getTracks().forEach((track) => track.stop()));
     cleanup = stopStream;
+    inputs.push({ stream: await openMicrophone(options.deviceId, "microphone"), channel: options.channel });
+    if (options.secondDeviceId && options.secondDeviceId !== options.deviceId) {
+      inputs.push({ stream: await openMicrophone(options.secondDeviceId, "second microphone"), channel: "mix" });
+    }
     if (stopped) return stopStream();
     const fail = (message: string) => {
       if (stopped) return;
@@ -307,8 +333,8 @@ export function startListener(options: ListenerOptions) {
       cleanup();
       options.onStatus({ phase: "error", message });
     };
-    for (const track of stream.getAudioTracks()) {
-      track.onended = () => fail("The microphone was disconnected. Plug it back in, then turn Auto on again.");
+    for (const track of inputs.flatMap(({ stream }) => stream.getAudioTracks())) {
+      track.onended = () => fail("A microphone was disconnected. Plug it back in, then turn Auto on again.");
     }
 
     const loaded = loadEngine(options.model, (progress) => {
@@ -341,7 +367,7 @@ export function startListener(options: ListenerOptions) {
         if (!stopped) options.onWords(update);
       }
     });
-    const { context, tap } = await openAudio(stream, options.channel);
+    const { context, tap } = await openAudio(inputs);
     tap.port.onmessage = ({ data }: MessageEvent<Float32Array>) => options.onLevel(transcriber.push(data));
     cleanup = () => {
       transcriber.stop();

@@ -22,7 +22,7 @@ import {
   type ScriptWordMap
 } from "@/src/lib/teleprompter-script-words";
 import { cn } from "@/src/lib/utils";
-import { AutoFollowButton, AutoFollowSettingsSection, AutoFollowTag } from "./teleprompter-auto-follow-panel";
+import { AutoFollowButton, AutoFollowOverlay, AutoFollowSettingsSection, AutoFollowTag } from "./teleprompter-auto-follow-panel";
 import type { TeleprompterDoc, TeleprompterSection } from "./teleprompter-model";
 import { useAutoFollow } from "./use-auto-follow";
 import { BAR_BUTTON_CLASS, BAR_CLASS, BAR_PANEL_TOP_CLASS, BAR_SELECT_CLASS, RUN_MODE_ROOT_CLASS } from "./teleprompter-run-mode-chrome";
@@ -473,9 +473,8 @@ export default function FullscreenRunMode({
     };
   }, [applyPosition, followTargetRef]);
 
-  // One path for the keys and the on-screen touch controls. With Auto on, any of them takes over
-  // by hand right where the script is: Space stops there; an arrow scrolls from there at the
-  // last manual speed (adjusted by that arrow), so nobody ramps up from zero mid-sentence.
+  // One path for the keys and the touch controls. With Auto on, any of them takes over where the
+  // script is: Space stops there; an arrow scrolls on at the last manual speed, adjusted.
   const applyControl = useCallback((control: RunModeControl) => {
     const takingOver = autoRef.current;
     if (takingOver) {
@@ -645,6 +644,7 @@ export default function FullscreenRunMode({
         </div>
       </header>
 
+      {auto ? <AutoFollowOverlay status={followStatus} onCancel={toggleAuto} /> : null}
       {settingsOpen ? (
         <div className={cn("absolute right-2 z-30 w-72 rounded-md border border-[#2B302B] bg-[#1A1D1A] text-soft-white", BAR_PANEL_TOP_CLASS)}>
           <div className="flex h-11 items-center justify-between gap-3 border-b border-[#2B302B] pl-3 pr-1.5 pointer-coarse:h-12">

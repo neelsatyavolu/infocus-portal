@@ -730,7 +730,7 @@ export async function showEditState(showDate: string, now = new Date()): Promise
     devices,
     waitingFor: fixMachine && !fixMachine.online ? fixMachine.name : null,
     settings,
-    commands: await recentEditorCommands(devices.map((device) => device.id)),
+    commands: await recentEditorCommands(devices.map((device) => device.id), now),
     pairings,
     recordings,
     recordingsError,

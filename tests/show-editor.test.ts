@@ -686,7 +686,7 @@ describe("show editor jobs", () => {
     const state = await showEditState(SHOW, NOW);
     expect(state.worker).toMatchObject({ online: false, health: { ok: false, problems: ["The Mac is on battery."] } });
     expect(state.devices).toHaveLength(2);
-    expect(mocks.recentCommands).toHaveBeenCalledWith(["dev1", "laptop"]);
+    expect(mocks.recentCommands).toHaveBeenCalledWith(["dev1", "laptop"], NOW);
     expect(state.commands).toHaveLength(1);
     expect(state.settings).toMatchObject({ autoStart: false, agentOrder: ["claude", "codex", "grok"], houseRules: null });
     expect(state.recordings).toEqual([recording]);

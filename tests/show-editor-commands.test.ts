@@ -16,10 +16,16 @@ const notShell = { NOT: { kind: { startsWith: "shell:" } } };
 describe("editor commands", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("never lists the super admin's remote commands on the Machines page", async () => {
+  it("never lists the super admin's remote commands, nor results finished over 6 hours ago", async () => {
     mocks.findMany.mockResolvedValue([]);
-    await recentEditorCommands(["d1"]);
-    expect(mocks.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { deviceId: { in: ["d1"] }, ...notShell } }));
+    const now = new Date("2026-10-22T23:00:00Z");
+    await recentEditorCommands(["d1"], now);
+    expect(mocks.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: {
+        deviceId: { in: ["d1"] }, ...notShell,
+        OR: [{ finishedAt: null }, { finishedAt: { gte: new Date("2026-10-22T17:00:00Z") } }]
+      }
+    }));
   });
 
   it("trims a machine's history without touching remote commands", async () => {

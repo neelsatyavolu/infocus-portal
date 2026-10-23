@@ -115,10 +115,15 @@ describe("editor commands", () => {
 
   it("lists the history newest first", async () => {
     mocks.command.findMany.mockResolvedValueOnce([{ id: "c2", deviceId: "laptop", kind: "logs", status: "DONE", output: "last lines", createdAt: NOW, finishedAt: NOW }]);
-    expect(await recentEditorCommands(["laptop", "team-mac"])).toEqual([
+    expect(await recentEditorCommands(["laptop", "team-mac"], NOW)).toEqual([
       { id: "c2", deviceId: "laptop", kind: "logs", status: "DONE", output: "last lines", createdAt: NOW.toISOString(), finishedAt: NOW.toISOString() }
     ]);
-    expect(mocks.command.findMany).toHaveBeenCalledWith({ where: { deviceId: { in: ["laptop", "team-mac"] }, NOT: { kind: { startsWith: "shell:" } } }, orderBy: { createdAt: "desc" }, take: 40 });
+    expect(mocks.command.findMany).toHaveBeenCalledWith({
+      where: {
+        deviceId: { in: ["laptop", "team-mac"] }, NOT: { kind: { startsWith: "shell:" } },
+        OR: [{ finishedAt: null }, { finishedAt: { gte: new Date(NOW.getTime() - 6 * 3600_000) } }]
+      },
+      orderBy: { createdAt: "desc" }, take: 40 });
     expect(await recentEditorCommands([])).toEqual([]);
   });
 });

@@ -67,11 +67,18 @@ function commandView(row: {
   };
 }
 
-/** Newest first, for the panel's results and history (the last 20 per machine). */
-export async function recentEditorCommands(deviceIds: string[]): Promise<ShowEditorCommandView[]> {
+/** A finished command's result leaves the Machines panel this long after it finished. */
+export const COMMAND_RESULT_SHOWN_MS = 6 * 3600_000;
+
+/** Newest first, for the panel's results: waiting, running, or finished in the last 6 hours (of the last 20 per machine). */
+export async function recentEditorCommands(deviceIds: string[], now = new Date()): Promise<ShowEditorCommandView[]> {
   if (deviceIds.length === 0) return [];
   const rows = await prisma.showEditorCommand.findMany({
-    where: { deviceId: { in: deviceIds }, ...NOT_SHELL }, orderBy: { createdAt: "desc" },
+    where: {
+      deviceId: { in: deviceIds }, ...NOT_SHELL,
+      OR: [{ finishedAt: null }, { finishedAt: { gte: new Date(now.getTime() - COMMAND_RESULT_SHOWN_MS) } }]
+    },
+    orderBy: { createdAt: "desc" },
     take: SHOW_EDITOR_COMMAND_HISTORY * deviceIds.length
   });
   return rows.map(commandView);

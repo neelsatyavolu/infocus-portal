@@ -5,7 +5,7 @@ import { ChevronRight, Expand, FastForward, Minimize2, Minus, Pause, Play, Plus,
 import {
   TELEPROMPTER_PLAYHEAD_TOP_PX,
   advanceTeleprompterPosition,
-  easeTowardPosition,
+  followScrollStep,
   teleprompterArrowState,
   sectionIdAtPosition,
   teleprompterContentTransform,
@@ -22,6 +22,7 @@ import {
   type ScriptWordMap
 } from "@/src/lib/teleprompter-script-words";
 import { cn } from "@/src/lib/utils";
+import { followTargetY } from "./follow-target-y";
 import { AutoFollowButton, AutoFollowOverlay, AutoFollowSettingsSection, AutoFollowTag } from "./teleprompter-auto-follow-panel";
 import type { TeleprompterDoc, TeleprompterSection } from "./teleprompter-model";
 import { useAutoFollow } from "./use-auto-follow";
@@ -318,7 +319,7 @@ export default function FullscreenRunMode({
   const activeSectionIdRef = useRef(activeSectionId);
   const sectionsRef = useRef(doc.sections);
   const autoRef = useRef(auto);
-  const followNodeRef = useRef<{ index: number; node: HTMLElement } | null>(null);
+  const followRef = useRef({ index: -1, y: 0, at: 0, velocity: 0 });
   useEffect(() => {
     autoRef.current = auto;
     pausedRef.current = paused;
@@ -335,7 +336,6 @@ export default function FullscreenRunMode({
     [doc.sections]
   );
   const wordMap = useMemo(() => buildScriptWordMap(doc.sections), [doc.sections]);
-
   /** The first word whose line reaches the playhead (the last word past the end): where following starts. */
   const wordAtPlayhead = useCallback(() => {
     let last = 0;
@@ -417,37 +417,37 @@ export default function FullscreenRunMode({
     let rafId = 0;
     let lastFrame = performance.now();
 
-    /** Where the follow target word sits in the script (its line centered on the playhead). */
-    function followPosition() {
+    /** Where follow-along wants the script; measured when the target moves (and twice a second). */
+    function followPosition(now: number) {
       const index = autoRef.current ? followTargetRef.current : null;
-      if (index === null) {
+      const follow = followRef.current;
+      if (index === null || !contentRef.current) {
+        follow.velocity = 0;
         return null;
       }
-      let cached = followNodeRef.current;
-      if (!cached || cached.index !== index || !cached.node.isConnected) {
-        const node = contentRef.current?.querySelector<HTMLElement>(`[data-w="${index}"]`);
-        if (!node) {
-          return null;
-        }
-        cached = { index, node };
-        followNodeRef.current = cached;
+      if (index !== follow.index || now - follow.at > 500) {
+        const y = followTargetY(contentRef.current, index);
+        if (y === null) return null;
+        Object.assign(follow, { index, y, at: now });
       }
-      return cached.node.offsetTop + cached.node.offsetHeight / 2;
+      return follow.y;
     }
 
     function tick(now: number) {
       const deltaMs = Math.min(now - lastFrame, 48);
       lastFrame = now;
       const contentHeight = contentHeightRef.current;
-      const followTarget = followPosition();
+      const followTarget = followPosition(now);
 
       if ((followTarget !== null || !pausedRef.current) && contentHeight > 0) {
         const maxPosition = teleprompterMaxPosition(contentHeight);
-        applyPosition(
-          followTarget !== null
-            ? easeTowardPosition(positionRef.current, followTarget, deltaMs, maxPosition)
-            : advanceTeleprompterPosition(positionRef.current, speedRef.current, deltaMs, maxPosition)
-        );
+        if (followTarget !== null) {
+          const step = followScrollStep({ position: positionRef.current, velocity: followRef.current.velocity }, followTarget, deltaMs, maxPosition);
+          followRef.current.velocity = step.velocity;
+          applyPosition(step.position);
+        } else {
+          applyPosition(advanceTeleprompterPosition(positionRef.current, speedRef.current, deltaMs, maxPosition));
+        }
 
         const nextId = sectionIdAtPosition(
           sectionsRef.current.map((section) => ({

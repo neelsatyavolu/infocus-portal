@@ -5,6 +5,7 @@ import {
   TELEPROMPTER_SPEED_STEP,
   advanceTeleprompterPosition,
   easeTowardPosition,
+  followScrollStep,
   nudgeTeleprompterSpeed,
   teleprompterArrowState,
   sectionIdAtPosition,
@@ -146,5 +147,65 @@ describe("easeTowardPosition", () => {
 
   it("doesn't move when it's already there", () => {
     expect(easeTowardPosition(300, 300, 16, 5000)).toBe(300);
+  });
+});
+
+describe("followScrollStep", () => {
+  /** Words arrive in bursts (3 words every 450 ms), each word 14 px further down the script. */
+  function readAloud(seconds: number) {
+    let state = { position: 0, velocity: 0 };
+    let target = 0;
+    const speeds: number[] = [];
+    const gaps: number[] = [];
+    for (let frame = 0; frame * 16 < seconds * 1000; frame += 1) {
+      const now = frame * 16;
+      if (now % 450 < 16) target += 3 * 14;
+      state = followScrollStep(state, target, 16, 100_000);
+      speeds.push(state.velocity);
+      gaps.push(target - state.position);
+    }
+    return { speeds, gaps, state, target };
+  }
+
+  it("scrolls at a steady speed while words keep arriving in bursts", () => {
+    const { speeds } = readAloud(12);
+    const settled = speeds.slice(Math.round(4000 / 16));
+    const average = settled.reduce((sum, speed) => sum + speed, 0) / settled.length;
+    expect(average).toBeGreaterThan(80);
+    // Never stops or lurches between bursts: within ±35% of the average speed.
+    expect(Math.min(...settled)).toBeGreaterThan(average * 0.65);
+    expect(Math.max(...settled)).toBeLessThan(average * 1.35);
+  });
+
+  it("keeps up: the line being read stays within about a line of the arrow", () => {
+    const { gaps } = readAloud(12);
+    expect(Math.max(...gaps.slice(Math.round(4000 / 16)))).toBeLessThan(140);
+  });
+
+  it("slows to a stop when the words stop, without passing the target", () => {
+    let state = { position: 0, velocity: 120 };
+    const trace: number[] = [];
+    for (let frame = 0; frame < 300; frame += 1) {
+      state = followScrollStep(state, 100, 16, 100_000);
+      trace.push(state.position);
+    }
+    expect(Math.max(...trace)).toBeLessThanOrEqual(100);
+    expect(trace).toEqual([...trace].sort((left, right) => left - right));
+    expect(state.velocity).toBeLessThan(1);
+    expect(trace.at(-1)).toBeGreaterThan(99);
+  });
+
+  it("glides quickly to a far target or back to an earlier one", () => {
+    let state = { position: 0, velocity: 0 };
+    for (let frame = 0; frame < 300; frame += 1) state = followScrollStep(state, 3000, 16, 100_000);
+    expect(state.position).toBeGreaterThan(2990);
+    for (let frame = 0; frame < 120; frame += 1) state = followScrollStep(state, 2500, 16, 100_000);
+    expect(state.position).toBeLessThan(2510);
+    expect(state.velocity).toBe(0);
+  });
+
+  it("stays inside the script", () => {
+    expect(followScrollStep({ position: 10, velocity: 0 }, 9000, 2000, 500).position).toBeLessThanOrEqual(500);
+    expect(followScrollStep({ position: 10, velocity: 0 }, -50, 2000, 500).position).toBe(0);
   });
 });

@@ -182,6 +182,31 @@ describe("followScrollStep", () => {
     expect(Math.max(...gaps.slice(Math.round(4000 / 16)))).toBeLessThan(140);
   });
 
+  it("glides across the gap to the next announcement without stalling or lurching", () => {
+    for (const gap of [250, 450, 700]) {
+      let state = { position: 0, velocity: 0 };
+      let target = 0;
+      let previous = 0;
+      let worstChange = 0;
+      let slowest = Infinity;
+      for (let frame = 0; frame * 16 < 14_000; frame += 1) {
+        const now = frame * 16;
+        if (now % 450 < 16) target += 3 * 14;
+        // Reading on into the next announcement: its first line sits `gap` px further down.
+        if (now >= 6000 && now - 16 < 6000) target += gap;
+        state = followScrollStep(state, target, 16, 100_000);
+        if (now > 4000) {
+          worstChange = Math.max(worstChange, Math.abs(state.velocity - previous));
+          slowest = Math.min(slowest, state.velocity);
+        }
+        previous = state.velocity;
+      }
+      // Speed never changes by more than 50 px/s in one frame, and never drops to a stall.
+      expect(worstChange).toBeLessThan(50);
+      expect(slowest).toBeGreaterThan(40);
+    }
+  });
+
   it("slows to a stop when the words stop, without passing the target", () => {
     let state = { position: 0, velocity: 120 };
     const trace: number[] = [];

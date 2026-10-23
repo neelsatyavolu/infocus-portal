@@ -120,6 +120,17 @@ describe("ScriptFollower", () => {
     expect(follower.mode(now + 20000)).toBe("follow");
   });
 
+  it("finishes an announcement before moving to the next one", () => {
+    const college = wordIndexOf("College");
+    const spirit = wordIndexOf("Spirit");
+    const follower = new ScriptFollower(map, college, 0);
+    // Steady reading builds up a lead, which must stop at the announcement's last word.
+    const { now } = read(follower, college, spirit - 3, 0);
+    expect(follower.target).toBeLessThanOrEqual(spirit - 1);
+    follower.hear(rawWords(spirit - 2, spirit - 1), true, now);
+    expect(follower.target).toBe(spirit);
+  });
+
   it("stops at the end of the toss instead of leading into the next story", () => {
     const toss = wordIndexOf("The", wordIndexOf("library."));
     const follower = new ScriptFollower(map, toss, 0);

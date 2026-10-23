@@ -92,8 +92,11 @@ export function easeTowardPosition(current: number, target: number, deltaMs: num
 const FOLLOW_TRACK_MS = 800;
 /** …and changes that speed gradually, so words arriving in bursts still read as one scroll. */
 const FOLLOW_ACCEL_MS = 300;
-/** Farther than this (a re-find, a click on a word), or any distance back: glide there instead. */
-const FOLLOW_JUMP_PX = 360;
+/**
+ * Farther than about a screen (a re-find, a click on a word), or any distance back: glide there
+ * instead. Gaps between stories (a camera line and a cue) stay under it and scroll smoothly.
+ */
+const FOLLOW_JUMP_PX = 900;
 const FOLLOW_MAX_SPEED = 1200;
 
 export type FollowScrollState = { position: number; velocity: number };
@@ -107,7 +110,9 @@ export function followScrollStep(state: FollowScrollState, target: number, delta
   const goal = Math.min(Math.max(0, target), maxPosition);
   const gap = goal - state.position;
   if (gap < -1 || gap > FOLLOW_JUMP_PX) {
-    return { position: easeTowardPosition(state.position, goal, deltaMs, maxPosition), velocity: 0 };
+    const position = easeTowardPosition(state.position, goal, deltaMs, maxPosition);
+    // Keep the glide's speed, so the scroll that takes over near the target carries on from it.
+    return { position, velocity: Math.max(0, ((position - state.position) * 1000) / Math.max(1, deltaMs)) };
   }
   const wanted = Math.min(FOLLOW_MAX_SPEED, Math.max(0, gap) / (FOLLOW_TRACK_MS / 1000));
   const velocity = state.velocity + (wanted - state.velocity) * (1 - Math.exp(-deltaMs / FOLLOW_ACCEL_MS));

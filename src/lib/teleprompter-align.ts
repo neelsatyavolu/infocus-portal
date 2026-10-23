@@ -327,10 +327,19 @@ export class ScriptFollower {
     const base = Math.max(this.cursor, this.ghost);
     const lead = this.mode(now) === "follow" ? Math.min(MAX_LEAD_WORDS, Math.round(this.wordsPerSecond() * (LATENCY_MS / 1000))) : 0;
     const next = Math.min(last, base + 1);
-    // Never lead out of a story that tosses to a package: stop on its last line.
-    const current = this.map.blocks[this.wordBlock[Math.max(0, base)]];
-    const block = current?.rollAfter && base >= 0 ? current : this.map.blocks[this.wordBlock[next]];
-    const target = Math.min(next + lead, block ? block.lastWordIndex : last);
+    const current = base >= 0 ? this.map.blocks[this.wordBlock[base]] : undefined;
+    let target: number;
+    if (current && base < current.lastWordIndex) {
+      // The lead stops at the story's last word: moving on early would scroll the lines still
+      // being read off the top.
+      target = Math.min(next + lead, current.lastWordIndex);
+    } else if (current) {
+      // Story finished: on to the next one's first word, unless it tossed to a package.
+      target = current.rollAfter ? base : next;
+    } else {
+      const block = this.map.blocks[this.wordBlock[next]];
+      target = Math.min(next + lead, block ? block.lastWordIndex : last);
+    }
     this.target = jumped ? target : Math.max(this.target, target);
   }
 }

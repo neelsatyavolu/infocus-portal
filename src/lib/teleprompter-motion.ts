@@ -77,3 +77,13 @@ export function sectionIdAtPosition(sections: Array<{ id: string; top: number }>
   }
   return nextId;
 }
+
+/** How quickly follow-along closes the gap to its target: about 63% of the way every 350 ms. */
+const FOLLOW_EASE_MS = 350;
+
+/** Follow-along: glide toward the target line without overshooting, however text arrives. */
+export function easeTowardPosition(current: number, target: number, deltaMs: number, maxPosition: number) {
+  const goal = Math.min(Math.max(0, target), maxPosition);
+  const next = current + (goal - current) * (1 - Math.exp(-deltaMs / FOLLOW_EASE_MS));
+  return Math.abs(goal - next) < 0.5 ? goal : next;
+}

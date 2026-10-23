@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { fillPackageTosses } from "@/src/lib/teleprompter-package-toss";
 import { getSectionDisplayParts } from "@/src/lib/teleprompter-run-script";
 import {
   buildScriptWordMap,
@@ -9,37 +8,7 @@ import {
   splitStyledSegments,
   type ScriptWordMap
 } from "@/src/lib/teleprompter-script-words";
-import { buildDefaultTeleprompterSections, renderA2BulletinContent } from "@/src/lib/teleprompter-template";
-import type { SubmittedAnnouncement } from "@/src/lib/submitted-announcements";
-
-function announcement(text: string) {
-  return { announcement: text } as SubmittedAnnouncement;
-}
-
-function templateSections() {
-  const sections = buildDefaultTeleprompterSections({
-    showDate: new Date("2026-10-23T12:00:00.000Z"),
-    a2BulletinContent: renderA2BulletinContent([
-      announcement("College visits this week: check MaiaLearning for times."),
-      announcement("Spirit Week starts Monday with pajama day."),
-      announcement("Robot Club meets Thursday in the library.")
-    ]),
-    anchorName: "Abby Ames",
-    coanchorName: "Otto Ortiz"
-  });
-
-  return sections.map((section, index) => ({
-    id: `s${index + 1}`,
-    label: section.label,
-    content:
-      section.label === "A3"
-        ? fillPackageTosses(section.content, [
-            { title: "Robotics", toss: "The robotics team built a robot that sorts recycling." },
-            { title: "Garden", toss: "" }
-          ])
-        : section.content
-  }));
-}
+import { templateSections } from "./fixtures/teleprompter-template-sections";
 
 function spokenText(map: ScriptWordMap, sectionId: string) {
   return map.words
@@ -148,6 +117,32 @@ describe("buildScriptWordMap", () => {
       expect(word.index).toBeGreaterThanOrEqual(block?.firstWordIndex ?? Infinity);
       expect(word.index).toBeLessThanOrEqual(block?.lastWordIndex ?? -1);
     }
+  });
+
+  it("marks a toss when the roll cue comes after a camera line or in the next section", () => {
+    const tossMap = buildScriptWordMap([
+      { id: "a", label: "A1", content: "CAM 2\nHere's a story about the garden.\nCAM 3\n{SOT}" },
+      { id: "b", label: "A2", content: "CAM 1\nAnd now the weather.\n{VO}" },
+      { id: "c", label: "A3", content: "{ROLL PACKAGE}\nCAM 2\nWelcome back." }
+    ]);
+    expect(tossMap.blocks.map((block) => block.rollAfter)).toEqual([true, true, false]);
+  });
+
+  it("ends the story at a roll cue even without a camera line after it", () => {
+    const tossMap = buildScriptWordMap([
+      { id: "a", label: "A3", content: "CAM 2\nHere's our package on robots.\n{ROLL PACKAGE}\nWelcome back everyone." }
+    ]);
+    expect(tossMap.blocks.map((block) => [map.words.length > 0, block.rollAfter, tossMap.words[block.firstWordIndex]?.raw])).toEqual([
+      [true, true, "Here's"],
+      [true, false, "Welcome"]
+    ]);
+    expect(new Set(tossMap.blocks.map((block) => block.id)).size).toBe(2);
+  });
+
+  it("marks the blocks a {ROLL …} cue follows", () => {
+    const rolled = map.blocks.filter((block) => block.rollAfter).map((block) => map.words[block.lastWordIndex]?.raw);
+    // The package toss (A3) and the last line of the closing (A5); the A1 intro rolls before any words.
+    expect(rolled).toEqual(["recycling.", "Vikings!"]);
   });
 
   it("flags lines that say prompter, so reading them can never be a command", () => {

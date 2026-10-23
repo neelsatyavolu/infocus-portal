@@ -92,35 +92,50 @@ function clockWords(hour: number, minute: number): string {
   return `${numberToWords(hour)} ${minute < 10 ? `oh ${ONES[minute]}` : numberToWords(minute)}`;
 }
 
+const WHOLE_NUMBER = String.raw`(\d{1,3}(?:,\d{3})+|\d+)`;
+
+/** "1,500" → "one thousand five hundred", "3.5" → "three point five"; null past the limit. */
+function cardinalWords(text: string): string | null {
+  const match = text.match(new RegExp(`^${WHOLE_NUMBER}(?:\\.(\\d+))?$`));
+  if (!match) {
+    return null;
+  }
+  const value = Number(match[1].replace(/,/g, ""));
+  if (value > MAX_SPELLED_NUMBER) {
+    return null;
+  }
+  const fraction = match[2] ? ` point ${[...match[2]].map((digit) => ONES[Number(digit)]).join(" ")}` : "";
+  return `${numberToWords(value)}${fraction}`;
+}
+
 /** Spelled-out words for a numeric word, or null when it isn't one. */
 function numericWords(core: string): string | null {
-  const time = core.match(/^(\d{1,2}):(\d{2})$/);
-  if (time) {
-    return clockWords(Number(time[1]), Number(time[2]));
+  // "3:30", "5:00pm", "7am" (a.m./p.m. arrive without their trailing dot).
+  const time = core.match(/^(\d{1,2})(?::(\d{2}))?(?:([ap])\.?m)?$/);
+  if (time && (time[2] || time[3])) {
+    const clock = clockWords(Number(time[1]), Number(time[2] ?? 0));
+    return time[3] ? `${clock} ${time[3]}m` : clock;
   }
 
-  const ordinal = core.match(/^(\d+)(st|nd|rd|th)$/);
+  const ordinal = core.match(new RegExp(`^${WHOLE_NUMBER}(st|nd|rd|th)$`));
   if (ordinal) {
-    const value = Number(ordinal[1]);
+    const value = Number(ordinal[1].replace(/,/g, ""));
     return value <= MAX_SPELLED_NUMBER ? ordinalWords(value) : null;
   }
 
-  const percent = core.match(/^(\d+)%$/);
-  if (percent) {
-    const value = Number(percent[1]);
-    return value <= MAX_SPELLED_NUMBER ? `${numberToWords(value)} percent` : null;
+  if (core.endsWith("%")) {
+    const amount = cardinalWords(core.slice(0, -1));
+    return amount ? `${amount} percent` : null;
   }
 
-  if (/^\d{1,3}(,\d{3})+$/.test(core) || /^\d+$/.test(core)) {
-    const value = Number(core.replace(/,/g, ""));
-    if (value > MAX_SPELLED_NUMBER) {
-      return null;
+  if (/^\d{4}$/.test(core)) {
+    const value = Number(core);
+    if (value >= 1100 && value < 2100) {
+      return yearWords(value);
     }
-    const isYear = /^\d{4}$/.test(core) && value >= 1100 && value < 2100;
-    return isYear ? yearWords(value) : numberToWords(value);
   }
 
-  return null;
+  return cardinalWords(core);
 }
 
 function pieceTokens(piece: string): string[] {

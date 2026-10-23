@@ -50,18 +50,28 @@ describe("normalizeSpokenWord", () => {
     expect(normalizeSpokenWord("50%")).toEqual(["fifty", "percent"]);
   });
 
+  it("reads decimals with point, not as a web address", () => {
+    expect(normalizeSpokenWord("3.5")).toEqual(["three", "point", "five"]);
+    expect(normalizeSpokenWord("10.25")).toEqual(["ten", "point", "two", "five"]);
+    expect(normalizeSpokenWord("0.5%")).toEqual(["zero", "point", "five", "percent"]);
+  });
+
   it("reads ordinals", () => {
     expect(normalizeSpokenWord("23rd,")).toEqual(["twenty", "third"]);
     expect(normalizeSpokenWord("4th")).toEqual(["fourth"]);
     expect(normalizeSpokenWord("1st")).toEqual(["first"]);
     expect(normalizeSpokenWord("12th")).toEqual(["twelfth"]);
     expect(normalizeSpokenWord("20th")).toEqual(["twentieth"]);
+    expect(normalizeSpokenWord("1,000th")).toEqual(["one", "thousandth"]);
   });
 
   it("reads clock times", () => {
     expect(normalizeSpokenWord("3:30")).toEqual(["three", "thirty"]);
     expect(normalizeSpokenWord("7:05")).toEqual(["seven", "oh", "five"]);
     expect(normalizeSpokenWord("11:00")).toEqual(["eleven"]);
+    expect(normalizeSpokenWord("5:00pm")).toEqual(["five", "pm"]);
+    expect(normalizeSpokenWord("5:30p.m.")).toEqual(["five", "thirty", "pm"]);
+    expect(normalizeSpokenWord("7am")).toEqual(["seven", "am"]);
   });
 
   it("spells out the InFocus handle and website", () => {

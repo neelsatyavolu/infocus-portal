@@ -304,9 +304,10 @@ export default function FullscreenRunMode({
   const [isBrowserFullscreen, setIsBrowserFullscreen] = useState(false);
   const [activeSectionId, setActiveSectionId] = useState(doc.sections[0]?.id ?? "");
   // Reading cursor: the last script word read. Until follow-along drives it, the only way to set
-  // it is the "click a word" test toggle; null means nothing is dimmed (the old look).
+  // it is the "click a word" test toggle; null means nothing is dimmed (the old look). It keeps
+  // the word map it indexes, so editing the script mid-run drops it instead of shifting it.
   const [markOnClick, setMarkOnClick] = useState(false);
-  const [cursor, setCursor] = useState<number | null>(null);
+  const [cursor, setCursor] = useState<{ map: ScriptWordMap; index: number } | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const sectionEls = useRef<Record<string, HTMLElement | null>>({});
@@ -331,7 +332,7 @@ export default function FullscreenRunMode({
     [doc.sections]
   );
   const wordMap = useMemo(() => buildScriptWordMap(doc.sections), [doc.sections]);
-  const reading = readingLineOf(wordMap, cursor);
+  const reading = cursor?.map === wordMap ? readingLineOf(wordMap, cursor.index) : null;
 
   useEffect(() => {
     saveRunModeSettings(settings);
@@ -658,7 +659,7 @@ export default function FullscreenRunMode({
               ? (event) => {
                   const word = (event.target as HTMLElement).closest<HTMLElement>("[data-w]");
                   if (word?.dataset.w) {
-                    setCursor(Number(word.dataset.w));
+                    setCursor({ map: wordMap, index: Number(word.dataset.w) });
                   }
                 }
               : undefined

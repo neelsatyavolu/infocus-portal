@@ -466,6 +466,15 @@ KeyValueList { items?: { key?; label; value; mono?; trailing?; tone?; hidden? }[
 - `MediaTile { thumbnailUrl; title; meta?; status?; topLeft?; topRight?; bottomLeft?; bottomRight?; highlight?: "new" | "active"; href?; onClick?; sizes?; className? }`.
 - `MediaBadge { children; mono? = true; className? }`: a dark label on media (duration, version).
 
+### VideoPlayer: `video-player.tsx` (client)
+- `VideoPlayer { src; label; poster?; preload? = "metadata"; chapters?; className?; ref?; onError?; onLoadedMetadata? }`:
+  the Portal's player. Use it for every playable video instead of `<video controls>` (the review
+  page keeps its own timeline player; meeting tiles are live feeds). A black 16:9 frame with a
+  flat control plate: green progress, chapter marks and a hover time on the seek bar
+  (`video-seek-bar.tsx`), Geist Mono time, speed, picture in picture, full screen. Controls hide
+  while playing. Keys once focused: Space/K, J/L, arrows, M, F, 0–9. Pass the frame's border and
+  radius in `className`; `ref` reaches the `<video>`.
+
 ---
 
 ## Layout: `layout.tsx`

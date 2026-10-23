@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Folder, Loader2, Play } from "lucide-react";
 import { InlineError, InlineNote } from "@/components/kit/alert";
+import { VideoPlayer } from "@/components/kit/video-player";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -91,12 +92,11 @@ function RecordingPreview({ recording }: { recording: ShowRecording }) {
     );
   }
   return (
-    <video
+    <VideoPlayer
       src={url}
-      controls
       preload="metadata"
-      className="aspect-video w-full max-w-xl rounded-md border border-border bg-black"
-      aria-label={`Preview of ${recording.name}`}
+      className="max-w-xl rounded-md border border-border"
+      label={`Preview of ${recording.name}`}
       onError={() => setError(CANT_PLAY)}
     />
   );

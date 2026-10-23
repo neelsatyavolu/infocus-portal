@@ -101,6 +101,8 @@ export type ShowEditWorker = {
 
 /** AI subscriptions the editor can run on (signed in on someone's computer, never an API key). */
 export const SHOW_EDIT_BACKENDS = ["claude", "codex", "grok"] as const;
+/** Until a producer saves an order: Codex (gpt-6.1-sol low) first, then Claude (Sonnet 5.5 high). */
+export const SHOW_EDIT_DEFAULT_AGENT_ORDER = ["codex", "claude", "grok"] as const;
 export type ShowEditBackend = (typeof SHOW_EDIT_BACKENDS)[number];
 export const SHOW_EDIT_BACKEND_LABELS: Record<ShowEditBackend, string> = { claude: "Claude", codex: "Codex", grok: "Grok" };
 

@@ -558,7 +558,7 @@ describe("show editor jobs", () => {
     const result = await recordHeartbeat({ deviceId: "dev1", version: "0.1.0", busy: true, health: healthy }, NOW);
     expect(result).toEqual({
       active: true, cancelJobIds: ["job1"], targetVersion: null, credentials: [], commands: [],
-      settings: { agentOrder: ["claude", "codex", "grok"], targetVersion: null }
+      settings: { agentOrder: ["codex", "claude", "grok"], targetVersion: null }
     });
     expect(mocks.device.update).toHaveBeenCalledWith({
       where: { id: "dev1" }, data: { lastSeenAt: NOW, version: "0.1.0", busy: true, health: healthy }
@@ -688,7 +688,7 @@ describe("show editor jobs", () => {
     expect(state.devices).toHaveLength(2);
     expect(mocks.recentCommands).toHaveBeenCalledWith(["dev1", "laptop"], NOW);
     expect(state.commands).toHaveLength(1);
-    expect(state.settings).toMatchObject({ autoStart: false, agentOrder: ["claude", "codex", "grok"], houseRules: null });
+    expect(state.settings).toMatchObject({ autoStart: false, agentOrder: ["codex", "claude", "grok"], houseRules: null });
     expect(state.recordings).toEqual([recording]);
     expect(state.job).toBeNull();
     expect(state.waitingFor).toBeNull();

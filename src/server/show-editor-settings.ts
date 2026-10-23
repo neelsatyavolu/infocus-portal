@@ -1,6 +1,6 @@
 import type { Prisma, ShowEditorSettings } from "@prisma/client";
 import { prisma } from "@/src/lib/prisma";
-import { SHOW_EDIT_BACKENDS, type ShowEditBackend, type ShowEditorSettingsView } from "@/src/lib/show-editor";
+import { SHOW_EDIT_BACKENDS, SHOW_EDIT_DEFAULT_AGENT_ORDER, type ShowEditBackend, type ShowEditorSettingsView } from "@/src/lib/show-editor";
 
 const SETTINGS_ID = "editor";
 
@@ -13,9 +13,9 @@ export type ShowEditorSettingsInput = {
 };
 
 function agentOrderOf(value: Prisma.JsonValue | null | undefined): ShowEditBackend[] {
-  if (!Array.isArray(value)) return [...SHOW_EDIT_BACKENDS];
+  if (!Array.isArray(value)) return [...SHOW_EDIT_DEFAULT_AGENT_ORDER];
   const order = value.filter((name): name is ShowEditBackend => SHOW_EDIT_BACKENDS.includes(name as ShowEditBackend));
-  return order.length > 0 ? [...new Set(order)] : [...SHOW_EDIT_BACKENDS];
+  return order.length > 0 ? [...new Set(order)] : [...SHOW_EDIT_DEFAULT_AGENT_ORDER];
 }
 
 /** A saved setting wins; null (or no row) falls back to the old SHOW_EDITOR_* env vars. */

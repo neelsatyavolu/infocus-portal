@@ -31,7 +31,7 @@ describe("editor settings", () => {
     vi.stubEnv("SHOW_EDITOR_AUTO_PUBLISH", "1");
     vi.stubEnv("SHOW_EDITOR_TARGET_VERSION", " v0.2.0 ");
     expect(effectiveEditorSettings(null)).toEqual({
-      autoStart: true, autoPublish: true, targetVersion: "v0.2.0", agentOrder: ["claude", "codex", "grok"], houseRules: null, updatedAt: null
+      autoStart: true, autoPublish: true, targetVersion: "v0.2.0", agentOrder: ["codex", "claude", "grok"], houseRules: null, updatedAt: null
     });
     expect(effectiveEditorSettings(row({ autoStart: false, autoPublish: false, targetVersion: "v0.3.1" }))).toMatchObject({
       autoStart: false, autoPublish: false, targetVersion: "v0.3.1"
@@ -45,7 +45,7 @@ describe("editor settings", () => {
 
   it("keeps a valid saved agent order and ignores junk", () => {
     expect(effectiveEditorSettings(row({ agentOrder: ["codex", "claude"] })).agentOrder).toEqual(["codex", "claude"]);
-    expect(effectiveEditorSettings(row({ agentOrder: ["gemini"] })).agentOrder).toEqual(["claude", "codex", "grok"]);
+    expect(effectiveEditorSettings(row({ agentOrder: ["gemini"] })).agentOrder).toEqual(["codex", "claude", "grok"]);
   });
 
   it("saves only the fields given", async () => {

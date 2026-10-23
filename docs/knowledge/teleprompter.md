@@ -14,7 +14,7 @@ Signed-in members with access to the InFocus workspace can create, edit, and run
 
 ## Run mode
 
-A full-screen scroll with a playhead arrow near the top. The top bar has a show picker, a section jump menu, a **Paused** tag and the scroll speed (px/s; **REV** when scrolling backward), **Font settings** (Script size, Cue size, Reset, and the list of keys), fullscreen, and exit.
+A full-screen scroll with a playhead arrow near the top. The top bar has a show picker, a section jump menu, a **Paused** tag and the scroll speed (px/s; **REV** when scrolling backward), **Font settings** (Script size, Cue size, Reset, **Reading line test**, and the list of keys), fullscreen, and exit. **Reading line test** is for trying out the coming follow-along feature: with it on, clicking a word marks it as read and fades the lines above it. Turning it off, or switching shows, clears the mark.
 
 | Key | Action |
 |---|---|

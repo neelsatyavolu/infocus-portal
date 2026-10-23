@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ChevronRight, Expand, FastForward, Minimize2, Minus, Pause, Play, Plus, Rewind, Settings2, X } from "lucide-react";
 import {
   TELEPROMPTER_PLAYHEAD_TOP_PX,
@@ -12,8 +12,16 @@ import {
   teleprompterSectionJumpPosition
 } from "@/src/lib/teleprompter-motion";
 import { classifyRunScriptLine, getSectionDisplayParts } from "@/src/lib/teleprompter-run-script";
+import {
+  buildScriptWordMap,
+  readingLineOf,
+  readLinesBefore,
+  scriptLineKey,
+  type ScriptLinePart,
+  type ScriptWordMap
+} from "@/src/lib/teleprompter-script-words";
 import { cn } from "@/src/lib/utils";
-import type { TeleprompterDoc } from "./teleprompter-model";
+import type { TeleprompterDoc, TeleprompterSection } from "./teleprompter-model";
 import { BAR_BUTTON_CLASS, BAR_CLASS, BAR_PANEL_TOP_CLASS, BAR_SELECT_CLASS, RUN_MODE_ROOT_CLASS } from "./teleprompter-run-mode-chrome";
 
 /*
@@ -23,17 +31,15 @@ import { BAR_BUTTON_CLASS, BAR_CLASS, BAR_PANEL_TOP_CLASS, BAR_SELECT_CLASS, RUN
  * layout changed. Loaded on demand (teleprompter-run-mode-loader.tsx).
  */
 
-type StyledSegment = {
-  text: string;
-  tone: "default" | "red" | "yellow";
-};
-
 type RunModeSettings = {
   bodyScale: number;
   cueScale: number;
 };
 
-const STYLE_PATTERN = /(\[(?:RED|YELLOW)\].*?\[\/(?:RED|YELLOW)\])/gi;
+/** Lines above the one being read fade; the reading line and everything below stay full white. */
+const LINE_FADE_CLASS = "transition-opacity duration-300";
+const READ_LINE_CLASS = "opacity-55";
+
 const RUN_MODE_SETTINGS_KEY = "teleprompter-run-mode-settings-v2";
 const DEFAULT_RUN_MODE_SETTINGS: RunModeSettings = {
   bodyScale: 1,
@@ -79,35 +85,6 @@ function saveRunModeSettings(settings: RunModeSettings) {
   }
 }
 
-function splitStyledSegments(text: string): StyledSegment[] {
-  if (!text) {
-    return [];
-  }
-
-  const chunks = text.split(STYLE_PATTERN).filter(Boolean);
-  return chunks.map((chunk) => {
-    const upper = chunk.toUpperCase();
-    if (upper.startsWith("[RED]") && upper.endsWith("[/RED]")) {
-      return {
-        text: chunk.slice(5, -6),
-        tone: "red"
-      };
-    }
-
-    if (upper.startsWith("[YELLOW]") && upper.endsWith("[/YELLOW]")) {
-      return {
-        text: chunk.slice(8, -9),
-        tone: "yellow"
-      };
-    }
-
-    return {
-      text: chunk,
-      tone: "default"
-    };
-  });
-}
-
 function CueHighlight({ text, settings }: { text: string; settings: RunModeSettings }) {
   return (
     <span
@@ -121,45 +98,54 @@ function CueHighlight({ text, settings }: { text: string; settings: RunModeSetti
   );
 }
 
+/** Each word is its own span carrying its script word index (`data-w`), for the reading cursor. */
 function SpokenLine({
-  text,
+  parts,
   lineIndex,
-  settings
+  settings,
+  dimmed
 }: {
-  text: string;
+  parts: ScriptLinePart[];
   lineIndex: number;
   settings: RunModeSettings;
+  dimmed: boolean;
 }) {
-  const segments = splitStyledSegments(text);
-  if (segments.length === 0) {
+  if (parts.length === 0) {
     return null;
   }
 
   return (
     <p
       key={`line-${lineIndex}`}
-      className="text-soft-white"
+      className={cn("text-soft-white", LINE_FADE_CLASS, dimmed && READ_LINE_CLASS)}
       style={{
         fontSize: buildClamp(2.5, 5.4, 6.2, settings.bodyScale),
         lineHeight: 1.12
       }}
     >
-      {segments.map((segment, segmentIndex) => (
+      {parts.map((part, partIndex) => (
         <span
-          key={`${lineIndex}-${segmentIndex}-${segment.tone}`}
+          key={`${lineIndex}-${partIndex}`}
+          data-w={part.wordIndex ?? undefined}
           className={cn(
-            segment.tone === "red" ? "text-red-500" : "",
-            segment.tone === "yellow" ? "text-[oklch(90.5%_0.182_98.111)]" : ""
+            part.tone === "red" ? "text-red-500" : "",
+            part.tone === "yellow" ? "text-[oklch(90.5%_0.182_98.111)]" : ""
           )}
         >
-          {segment.text}
+          {part.text}
         </span>
       ))}
     </p>
   );
 }
 
-function renderScriptLine(line: string, lineIndex: number, settings: RunModeSettings) {
+function renderScriptLine(
+  line: string,
+  lineIndex: number,
+  settings: RunModeSettings,
+  parts: ScriptLinePart[],
+  dimmed: boolean
+) {
   const classified = classifyRunScriptLine(line);
 
   if (classified.kind === "gap") {
@@ -170,7 +156,7 @@ function renderScriptLine(line: string, lineIndex: number, settings: RunModeSett
     return (
       <p
         key={`line-camera-${lineIndex}`}
-        className="uppercase text-soft-white"
+        className={cn("uppercase text-soft-white", LINE_FADE_CLASS, dimmed && READ_LINE_CLASS)}
         style={{
           fontSize: buildClamp(2.5, 5.4, 6.2, settings.bodyScale),
           lineHeight: 1.08
@@ -183,17 +169,53 @@ function renderScriptLine(line: string, lineIndex: number, settings: RunModeSett
 
   if (classified.kind === "cue") {
     return (
-      <div key={`line-cue-${lineIndex}`} className="space-y-3 md:space-y-5">
+      <div key={`line-cue-${lineIndex}`} className={cn("space-y-3 md:space-y-5", LINE_FADE_CLASS, dimmed && READ_LINE_CLASS)}>
         <div>
           <CueHighlight text={classified.text} settings={settings} />
         </div>
-        {classified.spoken ? <SpokenLine text={classified.spoken} lineIndex={lineIndex} settings={settings} /> : null}
+        {classified.spoken ? <SpokenLine parts={parts} lineIndex={lineIndex} settings={settings} dimmed={false} /> : null}
       </div>
     );
   }
 
-  return <SpokenLine key={`line-${lineIndex}`} text={classified.text} lineIndex={lineIndex} settings={settings} />;
+  return <SpokenLine key={`line-${lineIndex}`} parts={parts} lineIndex={lineIndex} settings={settings} dimmed={dimmed} />;
 }
+
+const NO_PARTS: ScriptLinePart[] = [];
+
+/** Memoized so moving the reading line re-renders only the sections whose dimming changed. */
+const RunSection = memo(function RunSection({
+  section,
+  settings,
+  wordMap,
+  readLines,
+  registerSection
+}: {
+  section: TeleprompterSection;
+  settings: RunModeSettings;
+  wordMap: ScriptWordMap;
+  /** Lines from the top of this section that have been read. */
+  readLines: number;
+  registerSection: (sectionId: string, node: HTMLElement | null) => void;
+}) {
+  const lines = getSectionDisplayParts(section).content.split(/\r?\n/);
+  return (
+    <section
+      ref={(node) => registerSection(section.id, node)}
+      className="mb-16 space-y-3 last:mb-0 md:mb-24 md:space-y-4"
+    >
+      {lines.map((line, index) =>
+        renderScriptLine(
+          line,
+          index,
+          settings,
+          wordMap.lineParts.get(scriptLineKey(section.id, index)) ?? NO_PARTS,
+          index < readLines
+        )
+      )}
+    </section>
+  );
+});
 
 type RunModeControl = Parameters<typeof teleprompterArrowState>[1];
 
@@ -281,6 +303,11 @@ export default function FullscreenRunMode({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isBrowserFullscreen, setIsBrowserFullscreen] = useState(false);
   const [activeSectionId, setActiveSectionId] = useState(doc.sections[0]?.id ?? "");
+  // Reading cursor: the last script word read. Until follow-along drives it, the only way to set
+  // it is the "click a word" test toggle; null means nothing is dimmed (the old look). It keeps
+  // the word map it indexes, so editing the script mid-run drops it instead of shifting it.
+  const [markOnClick, setMarkOnClick] = useState(false);
+  const [cursor, setCursor] = useState<{ map: ScriptWordMap; index: number } | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const sectionEls = useRef<Record<string, HTMLElement | null>>({});
@@ -304,6 +331,8 @@ export default function FullscreenRunMode({
       })),
     [doc.sections]
   );
+  const wordMap = useMemo(() => buildScriptWordMap(doc.sections), [doc.sections]);
+  const reading = cursor?.map === wordMap ? readingLineOf(wordMap, cursor.index) : null;
 
   useEffect(() => {
     saveRunModeSettings(settings);
@@ -324,7 +353,12 @@ export default function FullscreenRunMode({
   if (sectionStart.docId !== doc.id || sectionStart.firstSectionId !== firstSectionId) {
     setSectionStart({ docId: doc.id, firstSectionId });
     setActiveSectionId(firstSectionId);
+    setCursor(null);
   }
+
+  const registerSection = useCallback((sectionId: string, node: HTMLElement | null) => {
+    sectionEls.current[sectionId] = node;
+  }, []);
 
   const applyPosition = useCallback((next: number) => {
     positionRef.current = next;
@@ -557,6 +591,23 @@ export default function FullscreenRunMode({
             />
           </div>
           <div className="border-t border-[#2B302B] p-3">
+            <label className="flex items-center justify-between gap-3 text-[11px] font-medium uppercase tracking-[0.11em] text-[#DCE2DE]">
+              Reading line test
+              <input
+                type="checkbox"
+                checked={markOnClick}
+                onChange={(event) => {
+                  setMarkOnClick(event.target.checked);
+                  if (!event.target.checked) {
+                    setCursor(null);
+                  }
+                }}
+                className="h-4 w-4 accent-[#2BB36E]"
+              />
+            </label>
+            <p className="mt-1.5 text-xs leading-snug text-[#DCE2DE]">Click a word to mark it as read. Lines above it fade.</p>
+          </div>
+          <div className="border-t border-[#2B302B] p-3">
             <div className="mb-2 flex items-center justify-between gap-3 text-[11px] font-medium uppercase tracking-[0.11em] text-[#DCE2DE]">
               Keys
               <span className="font-mono-broadcast text-xs normal-case tracking-normal tabular-nums text-[#ECEFEA]">
@@ -597,28 +648,33 @@ export default function FullscreenRunMode({
         </div>
         <div
           ref={contentRef}
-          className="absolute left-0 right-0 pl-28 pr-16 pt-2 md:pl-32 md:pr-20"
+          className={cn("absolute left-0 right-0 pl-28 pr-16 pt-2 md:pl-32 md:pr-20", markOnClick && "cursor-pointer")}
           style={{
             transform: teleprompterContentTransform(0),
             willChange: "transform",
             backfaceVisibility: "hidden"
           }}
+          onClick={
+            markOnClick
+              ? (event) => {
+                  const word = (event.target as HTMLElement).closest<HTMLElement>("[data-w]");
+                  if (word?.dataset.w) {
+                    setCursor({ map: wordMap, index: Number(word.dataset.w) });
+                  }
+                }
+              : undefined
+          }
         >
-          {doc.sections.map((section) => {
-            const display = getSectionDisplayParts(section);
-            const lines = display.content.split(/\r?\n/);
-            return (
-              <section
-                key={section.id}
-                ref={(node) => {
-                  sectionEls.current[section.id] = node;
-                }}
-                className="mb-16 space-y-3 last:mb-0 md:mb-24 md:space-y-4"
-              >
-                {lines.map((line, index) => renderScriptLine(line, index, settings))}
-              </section>
-            );
-          })}
+          {doc.sections.map((section, sectionIndex) => (
+            <RunSection
+              key={section.id}
+              section={section}
+              settings={settings}
+              wordMap={wordMap}
+              readLines={readLinesBefore(sectionIndex, reading)}
+              registerSection={registerSection}
+            />
+          ))}
         </div>
       </div>
 

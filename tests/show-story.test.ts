@@ -24,7 +24,7 @@ vi.mock("@google/genai", () => ({ GoogleGenAI: class { models = { generateConten
 
 import { GET, POST } from "@/app/api/managers/social-media/show/route";
 import { joinNames, packageByline, showApDate, showSlideFileName, showSlideName, showSlides } from "@/src/lib/show-story";
-import { bulletinParagraphs, listRecapShowDates } from "@/src/server/show-story";
+import { bulletinParagraphs, listRecapShowDates, loadShowSubmissions } from "@/src/server/show-story";
 
 const URL_BASE = "https://infocus.test/api/managers/social-media/show";
 const post = (body: unknown) => new Request(URL_BASE, {
@@ -57,6 +57,27 @@ describe("show story helpers", () => {
     const a2 = "BULLETIN\n\nCAM 2\n[ANCHOR]\nClub Fair is Thursday\nin the Quad.\n\nCAM 3\n[CO-ANCHOR]\nThe blood drive is Friday.\n\n[INSERT PACKAGE TOSS]";
     expect(bulletinParagraphs(a2)).toEqual(["Club Fair is Thursday in the Quad.", "The blood drive is Friday."]);
     expect(bulletinParagraphs("")).toEqual([]);
+  });
+});
+
+describe("show submissions for the editor", () => {
+  const submission = (n: number, mediaLink = "", moreInfo = "") => ({
+    id: `s${n}`, isPermanent: true, rowNumber: n, timestamp: "", timestampIso: null, name: "Pat Doe", email: "pat@example.org",
+    category: "", submitterKind: "student", runOn: "", announcement: `Club ${n}  meets\n today.`, startDate: "", startDateIso: null,
+    endDate: "", endDateIso: null, mediaLink, moreInfo, source: "native" as const
+  });
+
+  it("passes more than the teleprompter's four, with each one's media link and note but no names", async () => {
+    const all = [1, 2, 3, 4, 5, 6].map((n) => submission(n, n === 2 ? " https://drive.google.com/file/d/X/view " : "", n === 2 ? "Put the QR on screen" : ""));
+    mocks.fetchSubmitted.mockResolvedValue({ announcements: all, meta: {} });
+    mocks.collegeVisit.mockResolvedValue(null);
+    const submissions = await loadShowSubmissions("2026-10-23");
+    expect(submissions).toHaveLength(6);
+    expect(submissions.find((s) => s.mediaLink)).toEqual({
+      text: "Club 2 meets today.", mediaLink: "https://drive.google.com/file/d/X/view", moreInfo: "Put the QR on screen"
+    });
+    expect(submissions.filter((s) => s.mediaLink === null && s.moreInfo === null)).toHaveLength(5);
+    expect(JSON.stringify(submissions)).not.toMatch(/Pat Doe|pat@example/);
   });
 });
 

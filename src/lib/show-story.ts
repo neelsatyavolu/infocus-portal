@@ -14,6 +14,9 @@ export type ShowStoryData = {
   announcementSource: "teleprompter" | "submissions";
   packages: ShowStoryPackage[];
 };
+/** One announcement as submitted, for the show editor (`brief.submissions`). */
+export type ShowSubmission = { text: string; mediaLink: string | null; moreInfo: string | null };
+
 export type ShowStoryResponse = ShowStoryData & { shows: string[] };
 
 /** Gemini summarizes at most this many announcements, each at most this long. */

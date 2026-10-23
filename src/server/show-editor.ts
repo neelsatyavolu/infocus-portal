@@ -24,7 +24,8 @@ import { loadEditorSettings, saveEditorSettings } from "@/src/server/show-editor
 import {
   attachEditedShow, confirmShowPublication, showPublicationState, ShowUploadError
 } from "@/src/server/show-publishing";
-import { loadShowStory } from "@/src/server/show-story";
+import type { ShowSubmission } from "@/src/lib/show-story";
+import { loadShowStory, loadShowSubmissions } from "@/src/server/show-story";
 import { pastShowCards, type PastShowCard } from "@/src/server/show-editor-past-cards";
 import { classRoster } from "@/src/server/show-editor-roster";
 import { ShowEditError } from "@/src/server/show-editor-errors";
@@ -56,6 +57,8 @@ export type ShowEditBrief = {
   /** Full names of the class (staff left out), A–Z, at most 300: anchors above are often nicknames. */
   roster: string[];
   announcements: string[];
+  /** The announcements as submitted, with the media link and note people attached: the editor's source for QR codes. */
+  submissions: ShowSubmission[];
   /** Announcement cards from other shows' latest edits (`checks.cards`), newest show first, at most 16. */
   pastCards: PastShowCard[];
   packages: { title: string; nasPath: string; toss: string | null }[];
@@ -371,8 +374,9 @@ async function buildClaim(job: ShowEditJob, paths: { outputNasPath: string; post
   const sources = briefSources(normalizeSources(job.sourcePaths));
   // Ignored files stay in `sources` (so the editor can say so) but are never downloaded, and older editors never see them.
   const sourcePaths = sources.filter((source) => source.role !== "ignore").map((source) => source.path);
-  const [story, packages, settings, recordings, pastCards, roster] = await Promise.all([
+  const [story, submissions, packages, settings, recordings, pastCards, roster] = await Promise.all([
     loadShowStory(job.showDate),
+    loadShowSubmissions(job.showDate),
     queuedPackages(job.showDate),
     loadEditorSettings(),
     kind === "edit" ? listShowRecordings(now) : Promise.resolve([] as ShowRecording[]),
@@ -394,6 +398,7 @@ async function buildClaim(job: ShowEditJob, paths: { outputNasPath: string; post
     anchors: story.anchors,
     roster,
     announcements: story.announcements,
+    submissions,
     pastCards,
     packages,
     note: job.note,

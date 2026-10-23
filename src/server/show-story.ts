@@ -5,13 +5,14 @@ import { mergeCollegeVisitIntoBulletin } from "@/src/lib/college-visits";
 import { finalCutHeadline } from "@/src/lib/package-headline";
 import { prisma } from "@/src/lib/prisma";
 import { FIRST_SHOW_DATE, addDaysToDateKey, listShowDatesThrough, todayDateKey } from "@/src/lib/show-assignment";
-import { RECENT_SHOW_COUNT, type ShowStoryData } from "@/src/lib/show-story";
+import { RECENT_SHOW_COUNT, type ShowStoryData, type ShowSubmission } from "@/src/lib/show-story";
 import {
   collapseTeleprompterSpokenParagraphs,
   getGeminiClient,
   isTeleprompterCueLine
 } from "@/src/lib/teleprompter-announcement-formatting";
 import { TELEPROMPTER_TIME_ZONE, selectAnnouncementsForBulletin } from "@/src/lib/teleprompter-template";
+import type { SubmittedAnnouncement } from "@/src/lib/submitted-announcements";
 import { userDisplayName } from "@/src/lib/user-display";
 import { fetchSubmittedAnnouncements } from "@/src/server/announcement-submissions";
 import { loadScheduleOverrides } from "@/src/server/show-schedule";
@@ -42,21 +43,46 @@ export function bulletinParagraphs(content: string): string[] {
     .filter((line) => line && !isTeleprompterCueLine(line));
 }
 
-/** What the teleprompter would pick for that date, in the submitters' own words. */
-async function scheduledAnnouncements(showDate: Date): Promise<string[]> {
-  let selected: Awaited<ReturnType<typeof fetchSubmittedAnnouncements>>["announcements"] = [];
+/** The submissions the teleprompter would pick for that date (its four, unless `limit` says otherwise). */
+async function scheduledSubmissions(showDate: Date, limit = 4): Promise<SubmittedAnnouncement[]> {
+  let selected: SubmittedAnnouncement[] = [];
   try {
     const submitted = await fetchSubmittedAnnouncements({ includeSchoologyOnly: false });
-    selected = selectAnnouncementsForBulletin({ announcements: submitted.announcements, showDate, timeZone: TELEPROMPTER_TIME_ZONE });
+    selected = selectAnnouncementsForBulletin({ announcements: submitted.announcements, showDate, timeZone: TELEPROMPTER_TIME_ZONE, limit });
   } catch (error) {
     console.error("Show story: submitted announcements unavailable", error);
   }
   try {
-    selected = mergeCollegeVisitIntoBulletin(selected, await loadCollegeVisitBulletinAnnouncement(showDate));
+    selected = mergeCollegeVisitIntoBulletin(selected, await loadCollegeVisitBulletinAnnouncement(showDate), limit);
   } catch (error) {
     console.error("Show story: college visits unavailable", error);
   }
-  return selected.map((announcement) => announcement.announcement.replace(/\s+/g, " ").trim()).filter(Boolean);
+  return selected;
+}
+
+const oneLine = (text: string) => text.replace(/\s+/g, " ").trim();
+
+/** What the teleprompter would pick for that date, in the submitters' own words. */
+async function scheduledAnnouncements(showDate: Date): Promise<string[]> {
+  return (await scheduledSubmissions(showDate)).map((announcement) => oneLine(announcement.announcement)).filter(Boolean);
+}
+
+/** More than the teleprompter's four: producers swap announcements in, and the editor matches cards by text. */
+const EDITOR_SUBMISSIONS = 12;
+
+/**
+ * The announcements that could run on that date as people submitted them, with the file or link they attached and
+ * their note to InFocus, so the editor can put a QR code on a card. No names or emails.
+ */
+export async function loadShowSubmissions(dateKey: string): Promise<ShowSubmission[]> {
+  const submissions = await scheduledSubmissions(new Date(`${dateKey}T12:00:00.000Z`), EDITOR_SUBMISSIONS);
+  return submissions
+    .map((submission) => ({
+      text: oneLine(submission.announcement),
+      mediaLink: submission.mediaLink.trim() || null,
+      moreInfo: oneLine(submission.moreInfo) || null
+    }))
+    .filter((submission) => submission.text);
 }
 
 export async function loadShowStory(dateKey: string): Promise<ShowStoryData> {

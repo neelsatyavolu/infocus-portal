@@ -5,7 +5,7 @@ const mocks = vi.hoisted(() => ({
   device: { update: vi.fn(), count: vi.fn(), findFirst: vi.fn(), findMany: vi.fn() },
   publication: { findUnique: vi.fn() },
   rows: vi.fn(),
-  story: vi.fn(),
+  story: vi.fn(), submissions: vi.fn(),
   recordings: vi.fn(), download: vi.fn(), upload: vi.fn(), size: vi.fn(),
   attach: vi.fn(), confirm: vi.fn(), pubState: vi.fn(),
   notify: vi.fn(), autoStart: vi.fn(),
@@ -22,7 +22,7 @@ vi.mock("@/src/lib/prisma", () => ({ prisma: {
   showEditorSettings: mocks.settings,
   packageProgressRow: { findMany: mocks.rows }
 } }));
-vi.mock("@/src/server/show-story", () => ({ loadShowStory: mocks.story }));
+vi.mock("@/src/server/show-story", () => ({ loadShowStory: mocks.story, loadShowSubmissions: mocks.submissions }));
 vi.mock("@/src/server/show-editor-roster", () => ({ classRoster: mocks.roster }));
 vi.mock("@/src/lib/nas-storage", async (original) => ({
   ...await original<typeof import("@/src/lib/nas-storage")>(),
@@ -90,6 +90,7 @@ describe("show editor jobs", () => {
     mocks.job.update.mockImplementation(async ({ data }) => job(data));
     mocks.recordings.mockResolvedValue([recording]);
     mocks.story.mockResolvedValue({ date: SHOW, anchors: ["Abby Ames", "Otto Ortiz"], announcements: ["Math Club meets after school."], packages: [] });
+    mocks.submissions.mockResolvedValue([]);
     mocks.rows.mockResolvedValue([]);
     mocks.roster.mockResolvedValue(["Abby Ames", "Otto Ortiz", "Sage Stone"]);
     mocks.download.mockImplementation(async (path: string) => `https://drive.example.org/api/service/file?path=${encodeURIComponent(path)}&token=r.1.x&inline=false`);
@@ -182,6 +183,14 @@ describe("show editor jobs", () => {
   it("the brief carries the class roster by full name", async () => {
     mocks.job.findFirst.mockResolvedValueOnce(job());
     expect((await claimNextShowEdit("dev1", NOW))!.brief.roster).toEqual(["Abby Ames", "Otto Ortiz", "Sage Stone"]);
+  });
+
+  it("the brief carries the show's submissions with their media links, for QR codes on cards", async () => {
+    mocks.job.findFirst.mockResolvedValueOnce(job());
+    const submitted = [{ text: "Scan the QR to join Peer Tutoring!", mediaLink: "https://drive.google.com/file/d/X/view", moreInfo: null }];
+    mocks.submissions.mockResolvedValueOnce(submitted);
+    expect((await claimNextShowEdit("dev1", NOW))!.brief.submissions).toEqual(submitted);
+    expect(mocks.submissions).toHaveBeenCalledWith(SHOW);
   });
 
   it("the brief carries other shows' announcement cards as pastCards", async () => {

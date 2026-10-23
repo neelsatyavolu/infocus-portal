@@ -1786,6 +1786,8 @@ model ShowEditJob {
   message         String?
   /// The producer's Redo note, passed to the agent as quoted data.
   note            String?
+  /// When the show goes public, picked with the instructions; null means the usual 8:30 AM on show day.
+  publishAt       DateTime?
   /// Where the current (or in-progress) version is uploaded; the poster sits beside it.
   outputNasPath   String?
   posterNasPath   String?

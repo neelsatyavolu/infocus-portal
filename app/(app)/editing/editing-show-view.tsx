@@ -7,10 +7,13 @@ import { Alert, InlineNote } from "@/components/kit/alert";
 import { Panel } from "@/components/kit/panel";
 import { StatusTag } from "@/components/kit/status-tag";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  packageNote, SHOW_EDIT_NOTE_MAX, SHOW_EDIT_STAGE_LABELS, type QueuedPackageView, type ShowEditState, type ShowEditView
+  announcementNote, packageNote, SHOW_EDIT_NOTE_MAX, SHOW_EDIT_STAGE_LABELS, type QueuedPackageView, type ShowEditState, type ShowEditView
 } from "@/src/lib/show-editor";
+import { SHOW_PUBLISH_TIME } from "@/src/lib/show-publication";
 import {
   defaultSourceSelection, SHOW_EDIT_SOURCE_ROLE_LABELS, sourceSelectionError, type ShowEditSource
 } from "@/src/lib/show-editor-sources";
@@ -30,6 +33,7 @@ const OFFLINE_NOTE = "The editing machine is offline. The job will start when it
 const clock = new Intl.DateTimeFormat("en-US", { timeZone: "America/Los_Angeles", hour: "numeric", minute: "2-digit" });
 
 type Send = (body: EditAction, success?: string) => Promise<boolean>;
+type PublishSlot = { date: string; time: string };
 
 /** With auto-start on: which recordings it will start this show from, and whether it's still waiting for them. */
 function AutoStartNote({ preview }: { preview: ShowEditState["autoStart"] }) {
@@ -109,20 +113,49 @@ function fileNameOf(path: string) {
   return path.split("/").pop() ?? path;
 }
 
+/** The publish date and time, beside the instructions: the usual 8:30 AM on show day unless changed. */
+function PublishTimeFields({ showDate, slot, disabled, onChange }: {
+  showDate: string; slot: PublishSlot; disabled: boolean; onChange: (slot: PublishSlot) => void;
+}) {
+  const usual = slot.date === showDate && slot.time === SHOW_PUBLISH_TIME;
+  return (
+    <div className="max-w-2xl space-y-1.5">
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="space-y-1.5">
+          <span className="block text-[13px] font-medium">Goes public</span>
+          <Input type="date" value={slot.date} disabled={disabled} onChange={(event) => onChange({ ...slot, date: event.target.value })} />
+        </label>
+        <label className="space-y-1.5">
+          <span className="block text-[13px] font-medium">Time (Pacific)</span>
+          <Input type="time" value={slot.time} disabled={disabled} onChange={(event) => onChange({ ...slot, time: event.target.value })} />
+        </label>
+      </div>
+      <span className="block text-[12px] text-muted-foreground">
+        {usual ? "The usual time. Change it only if this show goes public at another time." : "This show goes public at this time instead of 8:30 AM on show day."}
+      </span>
+    </div>
+  );
+}
+
 /** Start, at the top of the status card: what it will use, the button, and the offline note. */
-function StartRow({ selected, selectionError, packages, busy, starting, online, onStart }: {
-  selected: ShowEditSource[]; selectionError: string | null; packages: QueuedPackageView[]; busy: boolean; starting: boolean;
-  online: boolean; onStart: (note: string) => void;
+function StartRow({ showDate, selected, selectionError, packages, announcements, busy, starting, online, onStart }: {
+  showDate: string; selected: ShowEditSource[]; selectionError: string | null; packages: QueuedPackageView[];
+  announcements: number | null; busy: boolean; starting: boolean; online: boolean;
+  onStart: (note: string, publish: PublishSlot | null) => void;
 }) {
   const packageLine = packageNote(packages);
+  const announcementLine = announcementNote(announcements);
   const used = selected.filter((source) => source.role !== "ignore");
   // Optional instructions for this edit; the editor follows them over the house rules.
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState("");
+  const [slot, setSlot] = useState<PublishSlot>({ date: showDate, time: SHOW_PUBLISH_TIME });
+  // Only a changed, complete date and time is sent; otherwise the show keeps the usual time.
+  const changed = open && slot.date && slot.time && (slot.date !== showDate || slot.time !== SHOW_PUBLISH_TIME) ? slot : null;
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="button" disabled={busy || selectionError !== null} onClick={() => onStart(open ? note.trim() : "")}>
+        <Button type="button" disabled={busy || selectionError !== null} onClick={() => onStart(open ? note.trim() : "", changed)}>
           {starting ? <Loader2 className="animate-spin" aria-hidden /> : <Wand2 aria-hidden />}
           Start automatic editing
         </Button>
@@ -150,6 +183,13 @@ function StartRow({ selected, selectionError, packages, busy, starting, online, 
           </span>
         </label>
       ) : null}
+      {open ? <PublishTimeFields showDate={showDate} slot={slot} disabled={busy} onChange={setSlot} /> : null}
+      <InlineNote tone={announcementLine.tone === "warning" ? "warning" : "muted"}>
+        {announcementLine.text}{" "}
+        {announcementLine.tone === "warning" ? (
+          <Link href={`/teleprompter?showDate=${showDate}` as never} className="underline underline-offset-2">Open the script</Link>
+        ) : null}
+      </InlineNote>
       <InlineNote tone={packageLine.tone === "warning" ? "warning" : "muted"}>
         {packageLine.text}{" "}
         {packageLine.tone === "warning" ? (
@@ -183,15 +223,28 @@ function ReviewActions({ state, job, busyAction, send, onReview }: {
   state: ShowEditState; job: ShowEditView; busyAction: EditAction["action"] | null; send: Send; onReview: (edited: EditedShow) => void;
 }) {
   const [sendingBack, setSendingBack] = useState(false);
+  // The publish time the producer ticked as right; a different time (after Change details or a redo) unticks it.
+  const [confirmedAt, setConfirmedAt] = useState<string | null>(null);
   const busy = busyAction !== null;
   const { approve, preview } = state;
+  const schedulable = approve !== null && approve.problem === null;
+  const confirmed = schedulable && confirmedAt === approve.publishAt;
   return (
     <div className="space-y-3">
+      {schedulable ? (
+        <Checkbox
+          checked={confirmed}
+          disabled={busy}
+          onCheckedChange={(checked) => setConfirmedAt(checked ? approve.publishAt : null)}
+        >
+          Goes public {pacificTime.format(new Date(approve.publishAt))}. That&rsquo;s the right date and time.
+        </Checkbox>
+      ) : null}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <Button
           type="button"
-          disabled={busy || !approve || approve.problem !== null}
-          onClick={() => void send({ action: "approve", id: job.id }, "Approved. Scheduled on YouTube.")}
+          disabled={busy || !confirmed}
+          onClick={() => approve && void send({ action: "approve", id: job.id, publishAt: approve.publishAt }, "Approved. Scheduled on YouTube.")}
         >
           {busyAction === "approve" ? <Loader2 className="animate-spin" aria-hidden /> : <CalendarCheck aria-hidden />}
           Approve &amp; schedule
@@ -306,16 +359,25 @@ export function EditingShowView({ showDate, state, busyAction, send, onReview }:
         {job?.note && !canStart ? (
           <p className="text-[13px] text-muted-foreground">Instructions: &ldquo;{job.note}&rdquo;</p>
         ) : null}
+        {job?.publishAt && !canStart ? (
+          <p className="text-[13px] text-muted-foreground">Goes public: {pacificTime.format(new Date(job.publishAt))} (picked with the instructions)</p>
+        ) : null}
         {job && !isActiveJob(job) ? <DebugLogLinks logs={job.debugLogs} /> : null}
         {canStart ? (
           <StartRow
+            key={showDate}
+            showDate={showDate}
             selected={selected}
             selectionError={sourceSelectionError(selected)}
             packages={state.packages}
+            announcements={state.announcements}
             busy={busy}
             starting={busyAction === "start"}
             online={state.worker.online}
-            onStart={(note) => void send({ action: "start", date: showDate, sources: selected, ...(note ? { note } : {}) }, "Automatic editing queued.")}
+            onStart={(note, publish) => void send(
+              { action: "start", date: showDate, sources: selected, ...(note ? { note } : {}), ...(publish ? { publish } : {}) },
+              "Automatic editing queued."
+            )}
           />
         ) : null}
         {(job?.status === "FAILED" || job?.status === "REVIEW") && !sentToYouTube ? (

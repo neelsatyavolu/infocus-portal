@@ -4,6 +4,7 @@ import { requireUserId, syncUserProfile } from "@/src/lib/auth";
 import { fail, okNoStore } from "@/src/lib/http";
 import { getPlatformAccess, hasPlatformRole } from "@/src/lib/platform-admin";
 import { DATE_KEY_PATTERN } from "@/src/lib/show-assignment";
+import { showPublishAt } from "@/src/lib/show-publication";
 import {
   SHOW_EDIT_BACKENDS, SHOW_EDIT_FIX_MAX, SHOW_EDIT_NOTE_MAX, SHOW_EDITOR_COMMANDS,
   SHOW_EDITOR_HOUSE_RULES_MAX, SHOW_EDITOR_VERSION_PATTERN, SHOW_RECORDINGS_FOLDER
@@ -23,6 +24,7 @@ import { showEditSummary } from "@/src/server/show-editor-summary";
 
 const dateKey = z.string().regex(DATE_KEY_PATTERN);
 const jobId = z.string().min(1).max(64);
+const publishTime = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Pick a publish time.");
 const deviceId = z.string().min(1).max(64);
 const recordingPath = z.string().max(512).refine(
   (path) => path.startsWith(`${SHOW_RECORDINGS_FOLDER}/`) && !path.split("/").includes(".."),
@@ -37,14 +39,19 @@ const actionSchema = z.discriminatedUnion("action", [
     sources: z.array(z.object({ path: recordingPath, role: z.enum(SHOW_EDIT_SOURCE_ROLES) })).max(MAX_SHOW_EDIT_SOURCES, `Pick at most ${MAX_SHOW_EDIT_SOURCES} files.`).optional(),
     sourcePaths: z.array(recordingPath).max(MAX_SHOW_EDIT_SOURCES, `Pick at most ${MAX_SHOW_EDIT_SOURCES} files.`).optional(),
     // Instructions for this edit (optional), passed to the editor as quoted data, like a Redo note.
-    note: z.string().trim().max(SHOW_EDIT_NOTE_MAX).optional()
+    note: z.string().trim().max(SHOW_EDIT_NOTE_MAX).optional(),
+    // A publish date and time (Pacific) picked with the instructions; without them, the usual 8:30 AM on show day.
+    publish: z.object({ date: dateKey, time: publishTime }).optional()
   }),
   z.object({ action: z.literal("cancel"), id: jobId }),
   // The note for the editor is optional.
   z.object({ action: z.literal("redo"), id: jobId, note: z.string().trim().max(SHOW_EDIT_NOTE_MAX).optional() }),
   z.object({ action: z.literal("fix"), id: jobId, text: z.string().trim().min(1).max(SHOW_EDIT_FIX_MAX), remember: z.boolean() }),
-  // Schedule the edit under review with Upload show's defaults.
-  z.object({ action: z.literal("approve"), id: jobId }),
+  // Schedule the edit under review with Upload show's defaults, at the publish time the producer confirmed.
+  z.object({
+    action: z.literal("approve"), id: jobId,
+    publishAt: z.string({ required_error: "Reload the page and confirm the publish time." }).datetime()
+  }),
   // A sign-in for one machine; without deviceId, the active one.
   z.object({ action: z.literal("pair"), backend: z.enum(SHOW_EDIT_BACKENDS), deviceId: deviceId.optional() }),
   // Approve (or, with approve: false, turn down) the machine waiting on this link code. Other machines stay
@@ -119,7 +126,8 @@ export async function POST(request: Request) {
         const sources = body.sources ?? normalizeSources(body.sourcePaths ?? []);
         const invalid = sourceSelectionError(sources);
         if (invalid) return fail(invalid, 400);
-        return okNoStore(await startShowEdit({ userId, showDate: body.date, sources, note: body.note }));
+        const publishAt = body.publish ? showPublishAt(body.publish.date, body.publish.time) : undefined;
+        return okNoStore(await startShowEdit({ userId, showDate: body.date, sources, note: body.note, publishAt }));
       }
       case "cancel":
         return okNoStore(await cancelShowEdit({ id: body.id }));
@@ -128,7 +136,7 @@ export async function POST(request: Request) {
       case "fix":
         return okNoStore(await requestShowFix({ userId, id: body.id, text: body.text, remember: body.remember }));
       case "approve":
-        return okNoStore(await approveShowEdit({ id: body.id, userId }));
+        return okNoStore(await approveShowEdit({ id: body.id, userId, publishAt: new Date(body.publishAt) }));
       case "pair":
         return okNoStore(await createPairing({ userId, backend: body.backend, deviceId: body.deviceId }));
       case "link":

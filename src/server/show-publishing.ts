@@ -8,6 +8,7 @@ import {
   type DescribedPackage
 } from "@/src/lib/show-publication";
 import { chaptersOf, type ShowChapter } from "@/src/lib/show-chapters";
+import { publishSlotNotBefore } from "@/src/lib/show-editor-escalation";
 import { userDisplayName } from "@/src/lib/user-display";
 import { youtubeWatchUrl } from "@/src/lib/youtube-publication";
 import { enqueueShowUploads } from "@/src/server/show-upload-queue";
@@ -109,14 +110,18 @@ export async function showPublicationState(showDate: string) {
   const publication = await prisma.showPublication.findUnique({ where: { showDate } });
   const base = { showDate, configured: Boolean(youtubePublishingConfig()), publication: publication ? publicationView(publication) : null };
   if (publication && publication.status !== "DRAFT") return { ...base, defaults: null };
-  const [credits, season] = await Promise.all([showCredits(showDate), seasonSuggestion(showDate)]);
+  const [credits, season, edit] = await Promise.all([
+    showCredits(showDate),
+    seasonSuggestion(showDate),
+    // A publish time picked with the latest automatic edit's instructions replaces the usual one.
+    prisma.showEditJob.findFirst({ where: { showDate }, orderBy: { createdAt: "desc" }, select: { publishAt: true } })
+  ]);
   return {
     ...base,
     defaults: {
       title: showTitle(showDate),
       description: showDescription(credits),
-      publishDate: showDate,
-      publishTime: SHOW_PUBLISH_TIME,
+      ...(edit?.publishAt ? publishSlotNotBefore(edit.publishAt) : { publishDate: showDate, publishTime: SHOW_PUBLISH_TIME }),
       ...season
     }
   };

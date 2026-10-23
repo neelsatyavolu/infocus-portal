@@ -25,7 +25,7 @@ import {
   attachEditedShow, confirmShowPublication, showPublicationState, ShowUploadError
 } from "@/src/server/show-publishing";
 import type { ShowSubmission } from "@/src/lib/show-story";
-import { loadShowStory, loadShowSubmissions } from "@/src/server/show-story";
+import { bulletinParagraphs, loadShowStory, loadShowSubmissions } from "@/src/server/show-story";
 import { pastShowCards, type PastShowCard } from "@/src/server/show-editor-past-cards";
 import { classRoster } from "@/src/server/show-editor-roster";
 import { ShowEditError } from "@/src/server/show-editor-errors";
@@ -42,7 +42,8 @@ const PREVIEW_TTL_SECONDS = 3 * 3600;
 const MACHINE_UNLINKED = "The machine that made this edit is no longer linked; use Redo";
 const SENT_TO_YOUTUBE = "This show was already sent to YouTube. Make changes in YouTube Studio.";
 const NO_SEASON = "Pick a season first: use Change details.";
-const TIME_PASSED = "The usual publish time has already passed. Pick a new time: use Change details.";
+const TIME_PASSED = "The publish time has already passed. Pick a new time: use Change details.";
+const PUBLISH_TIME_CHANGED = "The publish time changed since this page loaded. Check it and approve again.";
 
 export type ShowEditBrief = {
   jobId: string;
@@ -95,6 +96,7 @@ export function showEditView(job: ShowEditJob): ShowEditView {
     stage: (job.stage as ShowEditStage | null) ?? null,
     message: job.message,
     note: job.note,
+    publishAt: job.publishAt?.toISOString() ?? null,
     outputNasPath: job.outputNasPath,
     decisions: Array.isArray(job.decisions) ? (job.decisions as unknown as ShowEditDecision[]) : [],
     checks: job.checks && typeof job.checks === "object" && !Array.isArray(job.checks)
@@ -135,10 +137,11 @@ async function refuseUnfinishedJob(showDate: string, exceptId?: string) {
 }
 
 export async function startShowEdit(
-  input: { userId: string; showDate: string; sources: ShowEditSource[]; note?: string }, now = new Date()
+  input: { userId: string; showDate: string; sources: ShowEditSource[]; note?: string; publishAt?: Date }, now = new Date()
 ): Promise<ShowEditView> {
   const invalid = sourceSelectionError(input.sources);
   if (invalid) throw new ShowEditError(invalid, 400);
+  if (input.publishAt && input.publishAt.getTime() <= now.getTime()) throw new ShowEditError("Pick a publish time in the future.", 400);
   await requireShowStillDraft(input.showDate);
   await refuseUnfinishedJob(input.showDate);
   const listed = new Map((await listShowRecordings(now)).map((recording) => [recording.path, recording]));
@@ -148,7 +151,10 @@ export async function startShowEdit(
     if (!recording.stable) throw new ShowEditError(`${recording.name} is still copying to Drive. Try again in a few minutes.`, 400);
   }
   const job = await prisma.showEditJob.create({
-    data: { showDate: input.showDate, sourcePaths: input.sources, note: input.note?.trim() || null, createdById: input.userId }
+    data: {
+      showDate: input.showDate, sourcePaths: input.sources, note: input.note?.trim() || null,
+      publishAt: input.publishAt ?? null, createdById: input.userId
+    }
   });
   return showEditView(job);
 }
@@ -203,7 +209,11 @@ export async function redoShowEdit(input: { userId: string; id: string; note?: s
     });
   }
   const job = await prisma.showEditJob.create({
-    data: { showDate: old.showDate, sourcePaths: normalizeSources(old.sourcePaths), note: input.note?.trim() || null, createdById: input.userId }
+    // A publish time picked with the first start carries over.
+    data: {
+      showDate: old.showDate, sourcePaths: normalizeSources(old.sourcePaths), note: input.note?.trim() || null,
+      publishAt: old.publishAt, createdById: input.userId
+    }
   });
   return showEditView(job);
 }
@@ -363,6 +373,16 @@ async function queuedPackageRows(showDate: string) {
   }));
 }
 
+/** How many announcements the show's script reads in A2; null when the show has no script yet. */
+async function scriptAnnouncementCount(showDate: string) {
+  const doc = await prisma.teleprompterDoc.findFirst({
+    where: { showDate: new Date(`${showDate}T12:00:00.000Z`) },
+    select: { sections: { where: { label: "A2" }, select: { content: true }, take: 1 } },
+    orderBy: { updatedAt: "desc" }
+  });
+  return doc ? bulletinParagraphs(doc.sections[0]?.content ?? "").length : null;
+}
+
 /** The queued packages the editor can use (a final cut is uploaded). */
 async function queuedPackages(showDate: string) {
   return (await queuedPackageRows(showDate)).flatMap(({ nasPath, ...rest }) => (nasPath ? [{ ...rest, nasPath }] : []));
@@ -511,15 +531,19 @@ function notBefore(defaults: ScheduleDefaults, earliest: Date | undefined): Sche
 
 /**
  * Schedules the show's draft with Upload show's defaults (auto-publish, Approve, and the 8 AM auto-schedule
- * with `earliest`); returns the publish time. Refusals are plain ShowEditErrors.
+ * with `earliest`); returns the publish time. With `confirmed` (Approve), the time the producer checked must
+ * still be the one it would use. Refusals are plain ShowEditErrors.
  */
-export async function scheduleWithDefaults(showDate: string, userId: string, now: Date, earliest?: Date) {
+export async function scheduleWithDefaults(showDate: string, userId: string, now: Date, earliest?: Date, confirmed?: Date) {
   const { defaults: usual } = await showPublicationState(showDate);
   if (!usual) throw new ShowEditError(SENT_TO_YOUTUBE, 409);
   const defaults = notBefore(usual, earliest);
   const problem = defaultsProblem(defaults, now);
   const { title, description, publishDate, publishTime, seasonNumber } = defaults;
   if (problem || !seasonNumber) throw new ShowEditError(problem ?? NO_SEASON, 409);
+  if (confirmed && showPublishAt(publishDate, publishTime).getTime() !== confirmed.getTime()) {
+    throw new ShowEditError(PUBLISH_TIME_CHANGED, 409);
+  }
   try {
     await confirmShowPublication({ userId, showDate, title, description, publishDate, publishTime, seasonNumber });
   } catch (error) {
@@ -620,14 +644,17 @@ export function isReviewedDraft(job: ShowEditJob | null, publication: DraftPubli
   return job?.status === "REVIEW" && publication?.status === "DRAFT" && Boolean(job.outputNasPath) && publication.nasPath === job.outputNasPath;
 }
 
-/** Approve & schedule: schedule the edited draft with Upload show's defaults, which finishes the job. */
-export async function approveShowEdit(input: { id: string; userId: string }, now = new Date()): Promise<ShowEditView> {
+/**
+ * Approve & schedule: schedule the edited draft with Upload show's defaults, which finishes the job. `publishAt` is
+ * the time the producer confirmed beside the button.
+ */
+export async function approveShowEdit(input: { id: string; userId: string; publishAt: Date }, now = new Date()): Promise<ShowEditView> {
   const job = await requireJob(input.id);
   if (job.status === "PUBLISHED") throw new ShowEditError("This edit was already scheduled.", 409);
   if (job.status !== "REVIEW") throw new ShowEditError("An edit can be approved once it's ready for review.", 409);
   const publication = await requireShowStillDraft(job.showDate);
   if (!isReviewedDraft(job, publication)) throw new ShowEditError("This edit is no longer the show's video. Reload and try again.", 409);
-  await scheduleWithDefaults(job.showDate, input.userId, now);
+  await scheduleWithDefaults(job.showDate, input.userId, now, undefined, input.publishAt);
   // Scheduled is what counts; never fail the approval over the job's own status.
   await markShowEditPublished(job.showDate).catch((error) => console.error("show editor: mark published failed", job.id, error));
   return showEditView(await requireJob(job.id).catch(() => ({ ...job, status: "PUBLISHED" })));
@@ -699,13 +726,14 @@ async function debugLogLinks(job: ShowEditJob): Promise<ShowEditDebugLog[]> {
 }
 
 export async function showEditState(showDate: string, now = new Date()): Promise<ShowEditState> {
-  const [devices, job, publication, settings, pairings, packageRows] = await Promise.all([
+  const [devices, job, publication, settings, pairings, packageRows, announcements] = await Promise.all([
     listEditorDevices(now),
     prisma.showEditJob.findFirst({ where: { showDate }, orderBy: { createdAt: "desc" } }),
     prisma.showPublication.findUnique({ where: { showDate } }),
     loadEditorSettings(),
     pairingStatuses(now),
-    queuedPackageRows(showDate)
+    queuedPackageRows(showDate),
+    scriptAnnouncementCount(showDate)
   ]);
   let recordings: ShowRecording[] = [];
   let recordingsError: string | null = null;
@@ -735,6 +763,7 @@ export async function showEditState(showDate: string, now = new Date()): Promise
     recordings,
     recordingsError,
     packages: packageRows.map((row) => ({ title: row.title, ready: row.nasPath !== null })),
+    announcements,
     job: job ? { ...showEditView(job), debugLogs: await debugLogLinks(job) } : null,
     publicationStatus: publication?.status ?? null,
     preview,

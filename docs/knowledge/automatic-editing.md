@@ -10,7 +10,7 @@ Who can use it: associate producers and up. Everything happens on the **Editing*
 2. Wait about 5 minutes for the files to be renamed after the show.
 3. Open **Editing**, pick the show, check the ticked recordings, add any instructions and press **Start automatic editing**.
 4. About 15 minutes later you get an email that it's ready. Watch it.
-5. Press **Approve & schedule**, or **Send back** with what to change.
+5. Tick that the publish date and time are right, then press **Approve & schedule**, or **Send back** with what to change.
 
 If nobody does anything, it's scheduled on YouTube by itself at 8:00 AM on show day.
 
@@ -19,7 +19,7 @@ If nobody does anything, it's scheduled on YouTube by itself at 8:00 AM on show 
 The editor builds the show from what's in the Portal, so set these up first:
 
 - **Anchors:** put the anchors on the **Master Calendar** for that show date. Their names go on the dual third, spelled from the class list.
-- **Announcements:** write them in the show's **Teleprompter** (or schedule them in Announcements). Each announcement card is made from this text, so put the date, time and place in it.
+- **Announcements:** write them in the show's **Teleprompter** (or schedule them in Announcements). Each announcement card is made from this text, so put the date, time and place in it. The line under **Start automatic editing** says how many announcements the script has, and warns if the show has no script yet or its A2 is empty.
 - **Packages:** queue each package for the show in the **Publishing Queue**, with its final cut and its toss (the line the anchor reads to throw to it). The editor drops the package in at the throw, and the YouTube description uses the toss. The line under **Start automatic editing** names the queued packages, and warns if none is queued or one has no final cut yet.
 
 ## 2. Record and export
@@ -47,7 +47,7 @@ It waits until a file has finished copying before renaming it. A file still name
    - **Preview** plays a file in the page. Some TriCaster files only play in Safari.
    - Tick or untick files, and change a file's role if it's wrong. **Ignore** leaves a file out.
    - Files with EDITED in the name, the untitled `InFocus Show.mov` and copies of another show are never ticked.
-4. To tell the editor something about this show, press **Add instructions** and type it, like "Use the later take of the open" or "Leave out the yearbook announcement". It follows these over the house rules, for this show only. To make something permanent, add it to the house rules in Settings.
+4. To tell the editor something about this show, press **Add instructions** and type it, like "Use the later take of the open" or "Leave out the yearbook announcement". It follows these over the house rules, for this show only. To make something permanent, add it to the house rules in Settings. The same box has **Goes public** and **Time (Pacific)**: leave them on show day at 8:30 AM, or change them if this show goes public at another time. **Approve & schedule** and the 8:00 AM auto-schedule then use that time, and a redo keeps it.
 5. Press **Start automatic editing**.
 
 If **Start editing by itself** is on (Settings), you don't need to press anything: the edit starts once the show's files have sat unchanged in Drive for 10 minutes.
@@ -73,7 +73,7 @@ On the Editing tab:
 1. Watch the edit under **Review**. The chapters under the video (Intro, Welcome, each announcement, each package, Sign-off, Outro) jump straight to that part.
 2. Read **Check these before scheduling** if it's there. These are things the editor wasn't sure about, like a name it guessed from what the anchors said.
 3. Then choose:
-   - **Approve & schedule:** schedules it on YouTube at 8:30 AM on show day, with the usual title, description, thumbnail and season playlist. The line beside the button says exactly what it will do. The description lists the chapters with their times (YouTube turns them into chapters) and ends with the show's hashtags.
+   - **Approve & schedule:** schedules it on YouTube at 8:30 AM on show day (or the time picked with the instructions), with the usual title, description, thumbnail and season playlist. First tick **Goes public … That's the right date and time.**; the button stays off until you do. The line beside the button says exactly what it will do. The description lists the chapters with their times (YouTube turns them into chapters) and ends with the show's hashtags.
    - **Change details:** opens the Upload show form with the edit already in it, to change the title, time or playlist first.
    - **Send back:** type what to change under **What needs to change?** (timecodes help, like "At 1:12 the Math Club card is cut off") and press **Send back to the editor**. It fixes the same edit and replies with what it did, and you review the new version. Tick **Remember this for future shows** to make it a house rule.
    - **Redo automatic edit:** throws this edit away and starts over, with an optional note, like "use the later take of the close".

@@ -113,6 +113,14 @@ describe("show edits route", () => {
     expect((await POST(post({ action: "start", date: "2026-10-21", sources, note: "x".repeat(501) }))).status).toBe(400);
   });
 
+  it("start turns a picked publish date and time (Pacific) into an instant, and refuses a malformed time", async () => {
+    mocks.start.mockResolvedValue({ id: "job1" });
+    const sources = [{ path: "Shows/a.mov", role: "auto" }];
+    await POST(post({ action: "start", date: "2026-10-21", sources, publish: { date: "2026-10-22", time: "12:00" } }));
+    expect(mocks.start).toHaveBeenCalledWith(expect.objectContaining({ publishAt: new Date("2026-10-22T19:00:00.000Z") }));
+    expect((await POST(post({ action: "start", date: "2026-10-21", sources, publish: { date: "2026-10-22", time: "25:00" } }))).status).toBe(400);
+  });
+
   it("start still takes a plain path list from an older page, as files on Auto", async () => {
     mocks.start.mockResolvedValue({ id: "job1" });
     await POST(post({ action: "start", date: "2026-10-21", sourcePaths: ["Shows/a.mov", "Shows/b.mov"] }));
@@ -160,15 +168,16 @@ describe("show edits route", () => {
   it("approve needs an id, passes the producer, and its refusals keep their message and status", async () => {
     expect((await POST(post({ action: "approve" }))).status).toBe(400);
     mocks.approve.mockResolvedValue({ id: "job1", status: "PUBLISHED" });
-    const response = await POST(post({ action: "approve", id: "job1" }));
+    expect((await POST(post({ action: "approve", id: "job1" }))).status).toBe(400);
+    const response = await POST(post({ action: "approve", id: "job1", publishAt: "2026-10-21T15:30:00.000Z" }));
     expect(response.status).toBe(200);
-    expect(mocks.approve).toHaveBeenCalledWith({ id: "job1", userId: "u1" });
+    expect(mocks.approve).toHaveBeenCalledWith({ id: "job1", userId: "u1", publishAt: new Date("2026-10-21T15:30:00.000Z") });
     mocks.approve.mockRejectedValue(new ShowEditError("Pick a season first: use Change details.", 409));
-    const refused = await POST(post({ action: "approve", id: "job1" }));
+    const refused = await POST(post({ action: "approve", id: "job1", publishAt: "2026-10-21T15:30:00.000Z" }));
     expect(refused.status).toBe(409);
     expect((await refused.json()).error.message).toBe("Pick a season first: use Change details.");
     mocks.access.mockResolvedValue({ role: null });
-    expect((await POST(post({ action: "approve", id: "job1" }))).status).toBe(403);
+    expect((await POST(post({ action: "approve", id: "job1", publishAt: "2026-10-21T15:30:00.000Z" }))).status).toBe(403);
     expect(mocks.approve).toHaveBeenCalledTimes(2);
   });
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Plus, ScrollText } from "lucide-react";
 import { Alert } from "@/components/kit/alert";
@@ -671,13 +672,18 @@ export default function TeleprompterClient() {
         }}
       />
 
-      {runModeOpen && activeDoc ? (
-        RunMode ? (
-          <RunMode doc={activeDoc} docs={orderedDocs} onSelectDoc={setSelectedDocId} onClose={closeRunMode} />
-        ) : (
-          <RunModeLoading failed={runMode.failed} onRetry={() => void runMode.load()} onClose={closeRunMode} />
-        )
-      ) : null}
+      {/* On <body>: the page sits in an animated wrapper (route-fade) that is its own stacking
+          context, which kept full-screen run mode under the teleprompter header. */}
+      {runModeOpen && activeDoc
+        ? createPortal(
+            RunMode ? (
+              <RunMode doc={activeDoc} docs={orderedDocs} onSelectDoc={setSelectedDocId} onClose={closeRunMode} />
+            ) : (
+              <RunModeLoading failed={runMode.failed} onRetry={() => void runMode.load()} onClose={closeRunMode} />
+            ),
+            document.body
+          )
+        : null}
     </>
   );
 }

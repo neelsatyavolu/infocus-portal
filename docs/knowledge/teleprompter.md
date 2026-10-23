@@ -14,7 +14,24 @@ Signed-in members with access to the InFocus workspace can create, edit, and run
 
 ## Run mode
 
-A full-screen scroll with a playhead arrow near the top. The top bar has a show picker, a section jump menu, a **Paused** tag and the scroll speed (px/s; **REV** when scrolling backward), **Font settings** (Script size, Cue size, Reset, **Reading line test**, and the list of keys), fullscreen, and exit. **Reading line test** is for trying out the coming follow-along feature: with it on, clicking a word marks it as read and fades the lines above it. Turning it off, or switching shows, clears the mark.
+A full-screen scroll with a playhead arrow near the top. The top bar has a show picker, a section jump menu, a **Paused** tag and the scroll speed (px/s; **REV** when scrolling backward), **Auto**, **Settings** (Script size, Cue size, Reset, Auto follow, and the list of keys), fullscreen, and exit.
+
+### Auto follow
+
+**Auto** (or the **F** key) makes the prompter follow the anchor's voice: it listens through the computer's microphone, works out which line is being read, and keeps that line at the arrow. Lines already read fade. The tag in the top bar says what it's doing:
+
+- **Following**: it hears the script and is keeping up.
+- **Holding**: it hears talk that isn't the script (banter, an ad-lib) and stays still.
+- **Package**: the anchor finished a toss to `{ROLL PACKAGE}` (or another `ROLL`, `SOT`, `PKG` or `PLAY` cue). It waits there and moves when the anchor reads the start of the next story, so the package's own audio can't move it. After 15 seconds it also accepts a full sentence from later in the show, in case the next story was cut.
+- **Searching**: it lost the place for a few seconds and looks across the whole show; reading a sentence of script picks it back up.
+- **Loading**: the first time on a computer, Chrome downloads the speech model (about 150 MB for Fast, 210 MB for Accurate). After that it's cached and starts in seconds.
+- **Auto failed**: the microphone or the speech model stopped (hover for the reason; Settings shows it too). The script holds still: take over by hand, or press **F** twice to restart Auto.
+
+Turn Auto on once before the show on the studio computer, so the model is already downloaded and the microphone already allowed.
+
+Taking over by hand always works: Space stops the script where it is, and any arrow key or touch button scrolls by hand from there at the last scroll speed (↑ and ↓ adjust it). Either one turns Auto off; press **F** to turn it back on, and it follows from the line at the arrow. With Auto on, clicking a word makes it follow from that word, and the section menu jumps there and keeps following. Switching shows turns Auto off.
+
+**Settings → Auto follow** picks the microphone, the channel (**Both**, or **Input 1** / **Input 2** on a two-input audio interface, for example the program feed on one and a crew mic on the other), and the model (**Fast**, the default, or **Accurate**, which is slower). The meter shows the input level; it turns green while it hears someone talking, and the white mark is where it starts counting sound as speech (it adjusts to the room by itself). Speech recognition runs in Chrome on that computer: audio isn't sent anywhere. Use Chrome; the first use asks for microphone permission.
 
 | Key | Action |
 |---|---|
@@ -23,6 +40,7 @@ A full-screen scroll with a playhead arrow near the top. The top bar has a show 
 | ↓ | Slower. Going past zero reverses. After a pause, starts in reverse at the first step. |
 | ← | Scroll backward at the current speed. |
 | → | Scroll forward at the current speed. |
+| F | Auto follow on or off. |
 | Esc | Leave run mode. |
 
 After a Space pause, ← and → do not restart the scroll; use Space or ↑/↓.

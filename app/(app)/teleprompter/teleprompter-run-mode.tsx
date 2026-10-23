@@ -5,6 +5,7 @@ import { ChevronRight, Expand, FastForward, Minimize2, Minus, Pause, Play, Plus,
 import {
   TELEPROMPTER_PLAYHEAD_TOP_PX,
   advanceTeleprompterPosition,
+  easeTowardPosition,
   teleprompterArrowState,
   sectionIdAtPosition,
   teleprompterContentTransform,
@@ -21,14 +22,16 @@ import {
   type ScriptWordMap
 } from "@/src/lib/teleprompter-script-words";
 import { cn } from "@/src/lib/utils";
+import { AutoFollowButton, AutoFollowSettingsSection, AutoFollowTag } from "./teleprompter-auto-follow-panel";
 import type { TeleprompterDoc, TeleprompterSection } from "./teleprompter-model";
+import { useAutoFollow } from "./use-auto-follow";
 import { BAR_BUTTON_CLASS, BAR_CLASS, BAR_PANEL_TOP_CLASS, BAR_SELECT_CLASS, RUN_MODE_ROOT_CLASS } from "./teleprompter-run-mode-chrome";
 
 /*
- * Full-screen run mode. Always dark (the same in Light theme), so it uses literal hexes. The
- * keys, timing, rAF loop, playhead, stage geometry and line rendering are unchanged; only the
- * top-bar chrome (matched control sizes, PAUSED tag, speed readout) and the settings panel's
- * layout changed. Loaded on demand (teleprompter-run-mode-loader.tsx).
+ * Full-screen run mode. Always dark (the same in Light theme), so it uses literal hexes. Scrolls
+ * at a set speed by hand, or with Auto on (F) follows the anchor's voice (use-auto-follow.ts):
+ * the rAF loop then eases toward the word being read instead of scrolling. Any key or touch
+ * control hands it back to manual. Loaded on demand (teleprompter-run-mode-loader.tsx).
  */
 
 type RunModeSettings = {
@@ -241,6 +244,7 @@ const KEY_LEGEND: Array<{ keys: string; label: string }> = [
   { keys: "↓", label: "Slower, then reverse" },
   { keys: "←", label: "Scroll back" },
   { keys: "→", label: "Scroll forward" },
+  { keys: "F", label: "Auto follow on / off" },
   { keys: "Esc", label: "Exit" }
 ];
 
@@ -303,11 +307,7 @@ export default function FullscreenRunMode({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isBrowserFullscreen, setIsBrowserFullscreen] = useState(false);
   const [activeSectionId, setActiveSectionId] = useState(doc.sections[0]?.id ?? "");
-  // Reading cursor: the last script word read. Until follow-along drives it, the only way to set
-  // it is the "click a word" test toggle; null means nothing is dimmed (the old look). It keeps
-  // the word map it indexes, so editing the script mid-run drops it instead of shifting it.
-  const [markOnClick, setMarkOnClick] = useState(false);
-  const [cursor, setCursor] = useState<{ map: ScriptWordMap; index: number } | null>(null);
+  const [auto, setAuto] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const sectionEls = useRef<Record<string, HTMLElement | null>>({});
@@ -317,7 +317,10 @@ export default function FullscreenRunMode({
   const contentHeightRef = useRef(0);
   const activeSectionIdRef = useRef(activeSectionId);
   const sectionsRef = useRef(doc.sections);
+  const autoRef = useRef(auto);
+  const followNodeRef = useRef<{ index: number; node: HTMLElement } | null>(null);
   useEffect(() => {
+    autoRef.current = auto;
     pausedRef.current = paused;
     speedRef.current = speed;
     activeSectionIdRef.current = activeSectionId;
@@ -332,7 +335,30 @@ export default function FullscreenRunMode({
     [doc.sections]
   );
   const wordMap = useMemo(() => buildScriptWordMap(doc.sections), [doc.sections]);
-  const reading = cursor?.map === wordMap ? readingLineOf(wordMap, cursor.index) : null;
+
+  /** The first word whose line reaches the playhead (the last word past the end): where following starts. */
+  const wordAtPlayhead = useCallback(() => {
+    let last = 0;
+    for (const node of contentRef.current?.querySelectorAll<HTMLElement>("[data-w]") ?? []) {
+      last = Number(node.dataset.w);
+      if (node.offsetTop + node.offsetHeight >= positionRef.current) {
+        return last;
+      }
+    }
+    return last;
+  }, []);
+  const {
+    settings: followSettings,
+    setSettings: setFollowSettings,
+    status: followStatus,
+    mode: followMode,
+    cursor: followCursor,
+    levelRef: followLevelRef,
+    targetRef: followTargetRef,
+    anchor: followFrom
+  } = useAutoFollow({ wordMap, enabled: auto, wordAtPlayhead });
+  // Lines above the word being read fade (only while following).
+  const reading = readingLineOf(wordMap, followCursor);
 
   useEffect(() => {
     saveRunModeSettings(settings);
@@ -353,7 +379,8 @@ export default function FullscreenRunMode({
   if (sectionStart.docId !== doc.id || sectionStart.firstSectionId !== firstSectionId) {
     setSectionStart({ docId: doc.id, firstSectionId });
     setActiveSectionId(firstSectionId);
-    setCursor(null);
+    // A different show starts at its top, by hand.
+    setAuto(false);
   }
 
   const registerSection = useCallback((sectionId: string, node: HTMLElement | null) => {
@@ -390,15 +417,36 @@ export default function FullscreenRunMode({
     let rafId = 0;
     let lastFrame = performance.now();
 
+    /** Where the follow target word sits in the script (its line centered on the playhead). */
+    function followPosition() {
+      const index = autoRef.current ? followTargetRef.current : null;
+      if (index === null) {
+        return null;
+      }
+      let cached = followNodeRef.current;
+      if (!cached || cached.index !== index || !cached.node.isConnected) {
+        const node = contentRef.current?.querySelector<HTMLElement>(`[data-w="${index}"]`);
+        if (!node) {
+          return null;
+        }
+        cached = { index, node };
+        followNodeRef.current = cached;
+      }
+      return cached.node.offsetTop + cached.node.offsetHeight / 2;
+    }
+
     function tick(now: number) {
       const deltaMs = Math.min(now - lastFrame, 48);
       lastFrame = now;
       const contentHeight = contentHeightRef.current;
+      const followTarget = followPosition();
 
-      if (!pausedRef.current && contentHeight > 0) {
+      if ((followTarget !== null || !pausedRef.current) && contentHeight > 0) {
         const maxPosition = teleprompterMaxPosition(contentHeight);
         applyPosition(
-          advanceTeleprompterPosition(positionRef.current, speedRef.current, deltaMs, maxPosition)
+          followTarget !== null
+            ? easeTowardPosition(positionRef.current, followTarget, deltaMs, maxPosition)
+            : advanceTeleprompterPosition(positionRef.current, speedRef.current, deltaMs, maxPosition)
         );
 
         const nextId = sectionIdAtPosition(
@@ -423,13 +471,31 @@ export default function FullscreenRunMode({
     return () => {
       window.cancelAnimationFrame(rafId);
     };
-  }, [applyPosition]);
+  }, [applyPosition, followTargetRef]);
 
-  // One path for the keys and the on-screen touch controls.
+  // One path for the keys and the on-screen touch controls. With Auto on, any of them takes over
+  // by hand right where the script is: Space stops there; an arrow scrolls from there at the
+  // last manual speed (adjusted by that arrow), so nobody ramps up from zero mid-sentence.
   const applyControl = useCallback((control: RunModeControl) => {
-    const next = teleprompterArrowState({ paused: pausedRef.current, speed: speedRef.current }, control);
+    const takingOver = autoRef.current;
+    if (takingOver) {
+      autoRef.current = false;
+      setAuto(false);
+    }
+    const from = { paused: takingOver ? control === "space" : pausedRef.current, speed: speedRef.current };
+    const next = takingOver && control === "space" ? from : teleprompterArrowState(from, control);
     setSpeed(next.speed);
     setPaused(next.paused);
+  }, []);
+
+  /** F and the Auto button. Turning it off leaves the script paused where it is. */
+  const toggleAuto = useCallback(() => {
+    const next = !autoRef.current;
+    autoRef.current = next;
+    setAuto(next);
+    if (!next) {
+      setPaused(true);
+    }
   }, []);
 
   useEffect(() => {
@@ -451,17 +517,29 @@ export default function FullscreenRunMode({
       if (event.key === "Escape") {
         event.preventDefault();
         onClose();
+        return;
+      }
+
+      if (event.key.toLowerCase() === "f" && !event.repeat && !event.metaKey && !event.ctrlKey && !event.altKey) {
+        event.preventDefault();
+        toggleAuto();
       }
     }
 
     window.addEventListener("keydown", onKeyDown, { passive: false });
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [applyControl, onClose]);
+  }, [applyControl, onClose, toggleAuto]);
 
+  // With Auto on, jumping to a section keeps following, from the first words at or after it.
   function jumpToSection(sectionId: string) {
     activeSectionIdRef.current = sectionId;
     setActiveSectionId(sectionId);
     applyPosition(teleprompterSectionJumpPosition(sectionEls.current[sectionId]?.offsetTop ?? 0));
+    const sectionIndex = doc.sections.findIndex((section) => section.id === sectionId);
+    const firstWord = wordMap.words.find((word) => word.sectionIndex >= sectionIndex) ?? wordMap.words.at(-1);
+    if (autoRef.current && firstWord) {
+      followFrom(firstWord.index);
+    }
   }
 
   async function toggleBrowserFullscreen() {
@@ -524,26 +602,31 @@ export default function FullscreenRunMode({
           </select>
         </div>
 
-        {/* Status slot: whether it's paused and how fast, readable from the operator's seat. */}
+        {/* Status slot: following or paused, and how fast, readable from the operator's seat. */}
         <div className="flex shrink-0 items-center gap-2">
           <span role="status" className="flex">
-            {paused ? (
+            {auto ? (
+              <AutoFollowTag status={followStatus} mode={followMode} />
+            ) : paused ? (
               <span className="inline-flex h-5 items-center rounded-sm bg-[#F2A516]/35 px-2 text-[11px] font-medium uppercase leading-none tracking-[0.11em] text-[#4A2F00]">
                 Paused
               </span>
             ) : null}
           </span>
-          <span className="hidden font-mono-broadcast text-xs tabular-nums text-[#3a413c] sm:inline" title="Scroll speed">
-            {formatRunSpeed(speed)} px/s
-          </span>
+          {auto ? null : (
+            <span className="hidden font-mono-broadcast text-xs tabular-nums text-[#3a413c] sm:inline" title="Scroll speed">
+              {formatRunSpeed(speed)} px/s
+            </span>
+          )}
         </div>
 
         <div className="flex shrink-0 items-center gap-0.5">
+          <AutoFollowButton on={auto} onToggle={toggleAuto} />
           <button
             type="button"
             className={cn(BAR_BUTTON_CLASS, settingsOpen && "bg-black/10")}
             onClick={() => setSettingsOpen((current) => !current)}
-            aria-label="Font settings"
+            aria-label="Settings"
             aria-expanded={settingsOpen}
           >
             <Settings2 className="h-4 w-4" />
@@ -565,7 +648,7 @@ export default function FullscreenRunMode({
       {settingsOpen ? (
         <div className={cn("absolute right-2 z-30 w-72 rounded-md border border-[#2B302B] bg-[#1A1D1A] text-soft-white", BAR_PANEL_TOP_CLASS)}>
           <div className="flex h-11 items-center justify-between gap-3 border-b border-[#2B302B] pl-3 pr-1.5 pointer-coarse:h-12">
-            <p className="text-sm font-semibold">Font settings</p>
+            <p className="text-sm font-semibold">Settings</p>
             <button
               type="button"
               className="inline-flex h-7 items-center rounded-md px-2 text-xs font-medium text-[#DCE2DE] transition-colors hover:bg-[#252925] hover:text-soft-white pointer-coarse:h-10 pointer-coarse:px-3"
@@ -590,23 +673,13 @@ export default function FullscreenRunMode({
               onChange={(cueScale) => setSettings((current) => ({ ...current, cueScale }))}
             />
           </div>
-          <div className="border-t border-[#2B302B] p-3">
-            <label className="flex items-center justify-between gap-3 text-[11px] font-medium uppercase tracking-[0.11em] text-[#DCE2DE]">
-              Reading line test
-              <input
-                type="checkbox"
-                checked={markOnClick}
-                onChange={(event) => {
-                  setMarkOnClick(event.target.checked);
-                  if (!event.target.checked) {
-                    setCursor(null);
-                  }
-                }}
-                className="h-4 w-4 accent-[#2BB36E]"
-              />
-            </label>
-            <p className="mt-1.5 text-xs leading-snug text-[#DCE2DE]">Click a word to mark it as read. Lines above it fade.</p>
-          </div>
+          <AutoFollowSettingsSection
+            enabled={auto}
+            settings={followSettings}
+            onChange={setFollowSettings}
+            status={followStatus}
+            levelRef={followLevelRef}
+          />
           <div className="border-t border-[#2B302B] p-3">
             <div className="mb-2 flex items-center justify-between gap-3 text-[11px] font-medium uppercase tracking-[0.11em] text-[#DCE2DE]">
               Keys
@@ -648,18 +721,18 @@ export default function FullscreenRunMode({
         </div>
         <div
           ref={contentRef}
-          className={cn("absolute left-0 right-0 pl-28 pr-16 pt-2 md:pl-32 md:pr-20", markOnClick && "cursor-pointer")}
+          className={cn("absolute left-0 right-0 pl-28 pr-16 pt-2 md:pl-32 md:pr-20", auto && "cursor-pointer")}
           style={{
             transform: teleprompterContentTransform(0),
             willChange: "transform",
             backfaceVisibility: "hidden"
           }}
           onClick={
-            markOnClick
+            auto
               ? (event) => {
                   const word = (event.target as HTMLElement).closest<HTMLElement>("[data-w]");
                   if (word?.dataset.w) {
-                    setCursor({ map: wordMap, index: Number(word.dataset.w) });
+                    followFrom(Number(word.dataset.w));
                   }
                 }
               : undefined

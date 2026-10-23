@@ -35,6 +35,8 @@ export type ScriptBlock = {
   startLineIndex: number;
   firstWordIndex: number;
   lastWordIndex: number;
+  /** A `{ROLL …}` (or SOT/PKG/PLAY) cue follows the block's words: the anchor tosses to tape. */
+  rollAfter: boolean;
 };
 
 /** One rendered piece of a spoken line: a word, or the space/punctuation/placeholder between. */
@@ -53,6 +55,8 @@ const STYLE_PATTERN = /(\[(?:RED|YELLOW)\].*?\[\/(?:RED|YELLOW)\])/gi;
 const INLINE_PLACEHOLDER = /(\{[^}]*\}|\[[^\]]*\])/;
 const WHOLE_PLACEHOLDER = /^(\{[^}]*\}|\[[^\]]*\])$/;
 const WAKE_WORDS = new Set(["prompter", "teleprompter"]);
+/** Cues that hand off to tape: a package, an intro or outro, a sound bite. */
+const ROLL_CUE = /^(ROLL|PKG|SOT|PLAY)\b/;
 
 export function splitStyledSegments(text: string): StyledSegment[] {
   if (!text) {
@@ -79,8 +83,7 @@ export function scriptLineKey(sectionId: string, lineIndex: number) {
 }
 
 /** The text run mode shows as spoken copy for a line, or null for gaps, cameras and bare cues. */
-function spokenTextOf(line: string) {
-  const classified = classifyRunScriptLine(line);
+function spokenTextOf(classified: ReturnType<typeof classifyRunScriptLine>) {
   if (classified.kind === "spoken") {
     return classified.text;
   }
@@ -119,6 +122,9 @@ export function buildScriptWordMap(sections: Array<{ id: string; label: string; 
   const words: ScriptWord[] = [];
   const blocks: ScriptBlock[] = [];
   const partsByLine = new Map<string, ScriptLinePart[]>();
+  // The last block with words, across camera lines and sections: a roll cue after a `CAM n`
+  // line or at the top of the next section still ends that story.
+  let lastBlock: ScriptBlock | null = null;
 
   sections.forEach((section, sectionIndex) => {
     const lines = getSectionDisplayParts(section).content.split(/\r?\n/);
@@ -127,14 +133,19 @@ export function buildScriptWordMap(sections: Array<{ id: string; label: string; 
     let block: ScriptBlock | null = null;
 
     lines.forEach((line, lineIndex) => {
-      if (classifyRunScriptLine(line).kind === "camera") {
+      const classified = classifyRunScriptLine(line);
+      if (classified.kind === "camera") {
         blockNumber += 1;
         blockStartLine = lineIndex;
         block = null;
         return;
       }
 
-      const text = spokenTextOf(line);
+      if (lastBlock && classified.kind === "cue" && !classified.spoken && ROLL_CUE.test(classified.text)) {
+        lastBlock.rollAfter = true;
+      }
+
+      const text = spokenTextOf(classified);
       if (text === null) {
         return;
       }
@@ -150,9 +161,11 @@ export function buildScriptWordMap(sections: Array<{ id: string; label: string; 
           sectionId: section.id,
           startLineIndex: blockStartLine,
           firstWordIndex: firstIndex,
-          lastWordIndex: firstIndex
+          lastWordIndex: firstIndex,
+          rollAfter: false
         };
         blocks.push(block);
+        lastBlock = block;
       }
 
       pending.forEach((word, offset) => {

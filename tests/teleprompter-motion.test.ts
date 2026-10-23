@@ -4,6 +4,7 @@ import {
   TELEPROMPTER_PLAYHEAD_TOP_PX,
   TELEPROMPTER_SPEED_STEP,
   advanceTeleprompterPosition,
+  easeTowardPosition,
   nudgeTeleprompterSpeed,
   teleprompterArrowState,
   sectionIdAtPosition,
@@ -122,5 +123,28 @@ describe("sectionIdAtPosition", () => {
     expect(sectionIdAtPosition(sections, 12)).toBe("a1");
     expect(sectionIdAtPosition(sections, 400)).toBe("a2");
     expect(sectionIdAtPosition(sections, 901)).toBe("a3");
+  });
+});
+
+describe("easeTowardPosition", () => {
+  it("glides toward the target and lands on it without overshooting", () => {
+    let position = 0;
+    const trace: number[] = [];
+    for (let frame = 0; frame < 200; frame += 1) {
+      position = easeTowardPosition(position, 600, 16, 5000);
+      trace.push(position);
+    }
+    expect(trace).toEqual([...trace].sort((left, right) => left - right));
+    expect(Math.max(...trace)).toBeLessThanOrEqual(600);
+    expect(trace.at(-1)).toBe(600);
+  });
+
+  it("stays inside the script", () => {
+    expect(easeTowardPosition(100, -50, 2000, 5000)).toBe(0);
+    expect(easeTowardPosition(4990, 9000, 2000, 5000)).toBe(5000);
+  });
+
+  it("doesn't move when it's already there", () => {
+    expect(easeTowardPosition(300, 300, 16, 5000)).toBe(300);
   });
 });

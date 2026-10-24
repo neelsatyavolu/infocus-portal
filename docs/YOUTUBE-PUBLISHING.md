@@ -36,18 +36,18 @@ Production setup, migration application, and a real channel upload require opera
 
 Once a package's video is ready on YouTube, the Portal posts it to infocusnews.tv (WordPress with SNO's FLEX theme) through the REST API, then emails managers instead of asking them to post it. Code: `src/server/wordpress-story.ts`, `src/server/wordpress-client.ts`, `src/lib/wordpress-story.ts`.
 
-- **Story:** headline = the YouTube title; SNO's Video/Embed box (`video`) gets the embed code, shown **Above Story** (`videolocation`); the featured image is YouTube's thumbnail (`maxresdefault`, else `hqdefault`), set to **Do Not Display** on the story page (`featureimage`), so it only shows on the homepage and lists.
+- **Story:** headline = the YouTube title; SNO's Video/Embed box (`video`) gets the YouTube watch URL, which SNO renders as a player (the API strips `<iframe>` embed code), shown **Above Story** (`videolocation`); the featured image is YouTube's thumbnail (`maxresdefault`, else `hqdefault`), set to **Do Not Display** on the story page (`featureimage`), so it only shows on the homepage and lists.
 - **Category:** Workers AI picks one from the site's live category list (never Uncategorized, Archives, Featured Stories or Livestreams), from the headline, topic and anchor toss. If the model fails or answers with something off the list, it goes under News.
 - **Schedule:** published at 9:05 AM Pacific on the show date (`status: future`), or right away if that time has passed.
-- **Order of steps:** pick the category, upload the thumbnail, create a **draft**, check that SNO saved the embed, then schedule. Each step is saved on `YoutubePublication` (`wordpressCategoryId`, `wordpressMediaId`, `wordpressPostId`), so retries never upload or post twice; a lost response is matched by the video ID in the Portal user's latest drafts. A draft whose embed did not save is left unpublished.
-- **Emails:** while `wordpressStatus` is `PENDING`, no manager email is sent. On `POSTED`, managers get **Scheduled: <headline>** with the publish time and a link to the story in wp-admin. After 5 failed attempts (one a minute), or at once if the embed did not save, it is `FAILED` and managers get the usual embed-code email saying to post it by hand. Packages published while posting was not configured keep `wordpressStatus` null and get the embed-code email.
+- **Order of steps:** pick the category, upload the thumbnail, create a **draft**, check that SNO saved the video link, then schedule. Each step is saved on `YoutubePublication` (`wordpressCategoryId`, `wordpressMediaId`, `wordpressPostId`), so retries never upload or post twice; a lost response is matched by the video ID in the Portal user's latest drafts. A draft whose video link did not save is left unpublished.
+- **Emails:** while `wordpressStatus` is `PENDING`, no manager email is sent. On `POSTED`, managers get **Scheduled: <headline>** with the publish time and a link to the story in wp-admin. After 5 failed attempts (one a minute), or at once if the video link did not save, it is `FAILED` and managers get the usual embed-code email saying to post it by hand. Packages published while posting was not configured keep `wordpressStatus` null and get the embed-code email.
 - A package moved to another show after its story is scheduled keeps the old publish time; change it in WordPress.
 
 **Setup**
 
 1. Apply `prisma/migrations/20261024000000_youtube_publication_wordpress/migration.sql`.
-2. On infocusnews.tv, create a WordPress user for the Portal and an application password on its profile (Users → Profile → Application Passwords).
-3. SNO must let the REST API sign in with application passwords and set the `video`, `videolocation` and `featureimage` story fields (`register_post_meta` with `show_in_rest`). Neither worked as of October 2026 (SNO support ticket #273363): signed-in API requests crashed on a missing `json_basic_auth_handler`, and those fields are not exposed.
+2. On infocusnews.tv, create a WordPress user for the Portal.
+3. SNO exposed the `video`, `videolocation` and `featureimage` story fields to the REST API in October 2026 (support ticket #273363). The site's sign-in for API requests (SNO's `json_basic_auth_handler`) checks the user's **login password**: application passwords are rejected with `incorrect_password`, so `WORDPRESS_APP_PASSWORD` holds the login password.
 4. Set `WORDPRESS_URL`, `WORDPRESS_USERNAME` and `WORDPRESS_APP_PASSWORD` as Worker secrets. Until all three are set, nothing is posted.
 
 ## Whole-show uploads (The Show → Upload show)

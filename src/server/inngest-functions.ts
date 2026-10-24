@@ -15,6 +15,7 @@ import { discoverYoutubePublications, publishYoutubePackage } from "@/src/server
 import { runPackageReviewReminders } from "@/src/server/package-review-reminders";
 import { runShowRolesConfirmReminders } from "@/src/server/show-roles-confirm";
 import { runShowEditReminders } from "@/src/server/show-editor-notify";
+import { runClassBoardSlackPost } from "@/src/server/class-board-slack";
 import { MEETING_CALENDAR_EVENT, runMeetingCalendarJob } from "@/src/server/meetings-google-calendar";
 import { reticketScribes } from "@/src/server/meetings-housekeeping";
 import { retryScribeRekey, SCRIBE_REKEY_RETRY_EVENT, SCRIBE_RETRY_DELAYS_MS } from "@/src/server/meetings-scribe";
@@ -406,6 +407,18 @@ export const showEditReminderDaily = inngest.createFunction(
   }
 );
 
+/** 19:00 Pacific Monday, Wednesday and Friday: the Class Board standings in Slack. The event posts one now (for testing). */
+export const classBoardSlackStandings = inngest.createFunction(
+  {
+    id: "class-board-slack-standings",
+    concurrency: 1
+  },
+  [{ cron: "TZ=America/Los_Angeles 0 19 * * 1,3,5" }, { event: "class-board/slack.requested" }],
+  async () => {
+    return runClassBoardSlackPost();
+  }
+);
+
 export const producerMeetingScheduleDaily = inngest.createFunction(
   {
     id: "producer-meeting-schedule-daily"
@@ -496,6 +509,7 @@ export const inngestFunctions = [
   packageReviewRemindersHourly,
   showRolesConfirmReminders,
   showEditReminderDaily,
+  classBoardSlackStandings,
   producerMeetingScheduleDaily,
   meetingInvitesSend,
   meetingsScribeReticket,

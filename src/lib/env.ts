@@ -43,6 +43,8 @@ const envSchema = z.object({
   SLACK_PROOF_OF_CONTACT_CHANNEL: z.string().min(1).optional(),
   /** Channel name or ID; default C0BEQV4DUCR (#announcements). */
   SLACK_ANNOUNCEMENTS_CHANNEL: z.string().min(1).optional(),
+  /** Channel ID for the Mon/Wed/Fri Class Board standings post; unset, nothing is posted. */
+  SLACK_CLASS_BOARD_CHANNEL: z.string().min(1).optional(),
   /** Shared secret so the studio Mac can open teleprompter without Google login. */
   TELEPROMPTER_KIOSK_TOKEN: z.preprocess(
     (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),

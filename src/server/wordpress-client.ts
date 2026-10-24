@@ -43,16 +43,13 @@ export async function listWordpressCategories(config: WordpressConfig) {
   return wordpressRequest<WordpressCategory[]>(config, "/wp/v2/categories?per_page=100&_fields=id,name,slug,description");
 }
 
+/** One request (title and alt text ride in the query), so a failure never leaves an upload whose ID was not returned. */
 export async function uploadWordpressImage(config: WordpressConfig, image: { bytes: ArrayBuffer; filename: string; title: string }) {
-  const media = await wordpressRequest<{ id: number }>(config, "/wp/v2/media", {
+  const query = new URLSearchParams({ title: image.title, alt_text: image.title });
+  const media = await wordpressRequest<{ id: number }>(config, `/wp/v2/media?${query}`, {
     method: "POST",
     body: image.bytes,
     headers: { "Content-Type": "image/jpeg", "Content-Disposition": `attachment; filename="${image.filename}"` }
-  });
-  await wordpressRequest(config, `/wp/v2/media/${media.id}`, {
-    method: "POST",
-    body: JSON.stringify({ title: image.title, alt_text: image.title }),
-    headers: { "Content-Type": "application/json" }
   });
   return media.id;
 }
@@ -80,10 +77,13 @@ export async function scheduleWordpressPost(config: WordpressConfig, postId: num
   });
 }
 
-/** A story this user already made for this video, so a retry after a lost response does not post twice. */
+/**
+ * A draft this user already made for this video, so a retry after a lost response does not post twice.
+ * Only drafts: the post ID is saved before a story is scheduled, so a lost one is always still a draft.
+ */
 export async function findWordpressPostByVideo(config: WordpressConfig, videoId: string) {
   const me = await wordpressRequest<{ id: number }>(config, "/wp/v2/users/me?_fields=id");
   const posts = await wordpressRequest<WordpressPost[]>(config,
-    `/wp/v2/posts?author=${me.id}&status=publish,future,draft,pending&context=edit&per_page=20&orderby=date&order=desc&_fields=id,link,status,meta`);
+    `/wp/v2/posts?author=${me.id}&status=draft&context=edit&per_page=20&orderby=modified&order=desc&_fields=id,link,status,meta`);
   return posts.find((post) => typeof post.meta?.video === "string" && post.meta.video.includes(`/embed/${videoId}`)) ?? null;
 }

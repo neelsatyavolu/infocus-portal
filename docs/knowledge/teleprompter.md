@@ -4,6 +4,8 @@ Host: `teleprompter.infocuspaly.com` (also linked from the Portal sidebar). The 
 
 Signed-in members with access to the InFocus workspace can create, edit, and run scripts.
 
+In the InFocus Portal iPhone app, **More → Teleprompter** (and The Show's **Open script**) opens a native teleprompter: the scripts, section editing and reformatting, and a full-screen Run mode with speed, sizes and mirror. Auto follow and voice commands are only on the web page.
+
 - **Page header:** which show it is and when the scripts last synced. On a show day that has a script, it says **Today's show** with today's date; otherwise **Next show** (or **Show on** for a chosen date). **New script** and **Refresh** are here (and the workspace picker, in the Portal, for people in more than one workspace).
 - **Scripts list** (left; **Hide scripts** folds it away, **Show scripts** brings it back, and the page remembers that): each script shows its show date, section count, and one tag: **Today**, **Next show**, **To fill · n** (sections that still have an `[INSERT …]` placeholder), or **No sections**. A green dot means it changed since you last opened it in this browser; changed sections inside the script get the same mark. A script's **⋯** menu has **Rename script** and **Delete script**. **Show n more** lists older scripts. On phones and narrow windows, the open script is a card at the top; tap it to open the **Scripts** list.
 - **Script toolbar:** **Add section** (a label such as `A1` and the script text), **Reformat all** (AI cleanup of the whole script), and **Run**. On phones and narrow windows, Add section and Reformat all are in the script card's **⋯** menu.

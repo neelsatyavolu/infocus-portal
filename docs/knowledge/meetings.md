@@ -76,6 +76,7 @@ This is separate from Admin → System → Integrations → **YouTube channel** 
 
 - A scheduled meeting **opens 5 minutes before it starts**, for everyone (hosts too). Earlier, joining says when it opens ("This meeting opens at 9:10 PM."). A meeting that's already live can always be joined.
 - Hosts go straight in. Everyone else **asks to join** and waits until a host lets them in.
+- **In the iPhone app**, tapping **Join** (or a meeting reminder) skips the preview screen: you join straight away with your mic and camera off, then turn them on in the call. The app doesn't ask again each time for camera and microphone access (iOS asks once). Screens before or after the call (opens at, not let in, ended) have a **Close** button that returns to the app.
 - **Quick access** (host setting): producers join without asking. Someone a host removed still has to ask.
 - Hosts get a push when someone is waiting (at most every 2 minutes per person).
 - If you rejoin after being let in (refresh, another device), you go straight back in.

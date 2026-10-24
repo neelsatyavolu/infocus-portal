@@ -27,6 +27,9 @@ async function viewerOrRedirect() {
   redirect(result.forbidden ? "/access-denied" : ("/sign-in" as never));
 }
 
+/** The app closes its call screen when the page goes here (APP_LEAVE_URL in components/meetings/call/embed-context.tsx). */
+const APP_LEAVE_URL = "/meetings?left=1";
+
 function NoProducerMeeting({ embedded }: { embedded: boolean }) {
   return (
     <CallPlate
@@ -35,11 +38,16 @@ function NoProducerMeeting({ embedded }: { embedded: boolean }) {
       title="No InFocus Producer Meeting scheduled"
       body="There isn't a live or upcoming one right now."
       actions={
-        !embedded ? (
+        embedded ? (
+          // A full navigation, so the app sees it and closes.
+          <a href={APP_LEAVE_URL} className={buttonVariants({ variant: "outline" })}>
+            Close
+          </a>
+        ) : (
           <Link href={"/meetings" as never} className={buttonVariants({ variant: "outline" })}>
             Go to Meetings
           </Link>
-        ) : undefined
+        )
       }
     />
   );
@@ -57,17 +65,23 @@ export default async function MeetPage({
   searchParams
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ app?: string | string[] }>;
+  searchParams: Promise<{ app?: string | string[]; join?: string | string[] }>;
 }) {
-  const [{ id }, { app }] = await Promise.all([params, searchParams]);
+  const [{ id }, { app, join }] = await Promise.all([params, searchParams]);
   const viewer = await viewerOrRedirect();
   const embedded = await isEmbeddedApp(app);
+  // The app's Join button already was the join tap: skip pre-join (`?join=1`, app only).
+  const autoJoin = embedded && join === "1";
 
   if (id === PRODUCER_SERIES_SLUG) {
     const meetingId = await resolveProducerSeriesMeetingId();
     if (!meetingId) return <NoProducerMeeting embedded={embedded} />;
-    redirect(`/meet/${encodeURIComponent(meetingId)}${app === "1" ? "?app=1" : ""}` as never);
+    const query = new URLSearchParams();
+    if (app === "1") query.set("app", "1");
+    if (autoJoin) query.set("join", "1");
+    const search = query.toString();
+    redirect(`/meet/${encodeURIComponent(meetingId)}${search ? `?${search}` : ""}` as never);
   }
 
-  return <MeetCallLoader meetingId={id} userName={viewer.name} embedded={embedded} />;
+  return <MeetCallLoader meetingId={id} userName={viewer.name} embedded={embedded} autoJoin={autoJoin} />;
 }

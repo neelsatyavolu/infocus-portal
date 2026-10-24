@@ -13,7 +13,7 @@ import { pacificDayLabel, pacificTimeLabel } from "@/src/lib/meetings/client/tim
 import { Avatar } from "./avatar";
 import { CallButton } from "./call-button";
 import { DevicePopover } from "./device-popover";
-import { useMeetEmbedded } from "./embed-context";
+import { useExitCall, useMeetEmbedded } from "./embed-context";
 import { OVERLAY_CHIP } from "./overlay";
 import { shouldMonitorMic, micTestLabel } from "@/src/lib/meetings/client/mic-monitor";
 import { LevelMeter } from "./level-meter";
@@ -136,6 +136,7 @@ export function PreJoin({
   onJoin: () => void;
 }) {
   const embedded = useMeetEmbedded();
+  const exitCall = useExitCall();
   const micPermission = useObservableAsValue(media.mic.permissionState$, "unknown");
   const cameraPermission = useObservableAsValue(media.camera.permissionState$, "unknown");
   const neverAllowed = micPermission !== "granted" && cameraPermission !== "granted";
@@ -172,11 +173,15 @@ export function PreJoin({
                 <p className="text-[13px] text-muted-foreground">{joinPath(meeting)}</p>
               </div>
             )}
-            {!embedded ? (
+            {embedded ? (
+              <Button variant="outline" className="h-11 w-full" onClick={exitCall}>
+                Close
+              </Button>
+            ) : (
               <Link href={"/meetings" as never} className={cn(buttonVariants({ variant: "outline" }), "h-11 w-full")}>
                 Back to Meetings
               </Link>
-            ) : null}
+            )}
             <p className="flex items-center gap-1.5 pt-1 text-xs text-muted-foreground">
               <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden />
               Encrypted on your device. Only people in the meeting can see and hear it.

@@ -4,8 +4,8 @@ import { createContext, useCallback, useContext } from "react";
 
 /**
  * True inside the InFocus iPhone app's web view (`?app=1`, the embedded cookie, or its user agent).
- * The app shows its own close button, so the call hides web chrome and "back" links, and leaving
- * goes to `/meetings?left=1`, which the app intercepts to close the view.
+ * The call hides web chrome, "back" links become Close, and leaving or closing goes to
+ * `/meetings?left=1`, which the app intercepts to close the view.
  */
 const MeetEmbedContext = createContext(false);
 

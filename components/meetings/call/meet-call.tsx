@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import type { MeetingDetail } from "@/src/lib/meetings/types";
@@ -26,10 +26,12 @@ const LIVE_STAGES: ReadonlySet<CallStage> = new Set(["prejoin", "joining", "wait
 function SupportedCall({
   meeting,
   userName,
+  autoJoin,
   onNotOpen
 }: {
   meeting: MeetingDetail;
   userName: string;
+  autoJoin: boolean;
   onNotOpen: () => void;
 }) {
   const media = useLocalMedia();
@@ -72,6 +74,18 @@ function SupportedCall({
     void call.join();
   };
 
+  // The app's Join tap counts as this one (its web view plays audio without a gesture). Once only:
+  // leaving or an end screen never rejoins by itself.
+  const autoJoined = useRef(false);
+  const { stage, join: joinCall } = call;
+  const over = meeting.status === "ENDED" || meeting.status === "CANCELED";
+  useEffect(() => {
+    if (!autoJoin || autoJoined.current || stage !== "prejoin" || over) return;
+    autoJoined.current = true;
+    resumeAudio();
+    void joinCall();
+  }, [autoJoin, stage, over, joinCall]);
+
   const leave = async () => {
     await call.leave();
     exitCall();
@@ -79,6 +93,7 @@ function SupportedCall({
 
   switch (call.stage) {
     case "prejoin":
+      if (autoJoin && !over) return <JoiningScreen />;
       return <PreJoin meeting={meeting} userName={userName} media={media} joining={false} onJoin={join} />;
     case "joining":
       return <JoiningScreen />;
@@ -96,7 +111,7 @@ function SupportedCall({
 }
 
 /** Loads the meeting, then holds people on "Opens at …" until the join window opens. */
-function MeetingGate({ meetingId, userName }: { meetingId: string; userName: string }) {
+function MeetingGate({ meetingId, userName, autoJoin }: { meetingId: string; userName: string; autoJoin: boolean }) {
   const [meeting, setMeeting] = useState<MeetingDetail | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [waitUntil, setWaitUntil] = useState<number | null>(null);
@@ -134,25 +149,28 @@ function MeetingGate({ meetingId, userName }: { meetingId: string; userName: str
   if (waitUntil !== null) {
     return <OpensAtScreen meeting={meeting} opensAt={waitUntil} onOpen={() => setWaitUntil(null)} />;
   }
-  return <SupportedCall meeting={meeting} userName={userName} onNotOpen={onNotOpen} />;
+  return <SupportedCall meeting={meeting} userName={userName} autoJoin={autoJoin} onNotOpen={onNotOpen} />;
 }
 
-/** Full-screen call: browser check → opens-at wait → pre-join → lobby → call → end screens. */
+/** Full-screen call: browser check → opens-at wait → pre-join (skipped from the app) → lobby → call → end screens. */
 export default function MeetCall({
   meetingId,
   userName,
-  embedded
+  embedded,
+  autoJoin
 }: {
   meetingId: string;
   userName: string;
   embedded: boolean;
+  /** Skip pre-join (the app's Join). */
+  autoJoin: boolean;
 }) {
   const [support] = useState(meetingBrowserSupport);
   return (
     <MeetEmbedProvider value={embedded}>
       <TooltipProvider delayDuration={400}>
         {support.ok ? (
-          <MeetingGate meetingId={meetingId} userName={userName} />
+          <MeetingGate meetingId={meetingId} userName={userName} autoJoin={autoJoin} />
         ) : (
           <EndScreen kind="unsupported" message={support.reason} />
         )}

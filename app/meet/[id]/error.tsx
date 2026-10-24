@@ -18,7 +18,15 @@ export default function MeetError({ error, reset }: { error: Error & { digest?: 
       eyebrow="Meeting"
       tag={<StatusTag tone="danger">Crashed</StatusTag>}
       title="Something went wrong in the call"
-      actions={<Button onClick={reset}>Rejoin</Button>}
+      actions={
+        <>
+          {/* A real navigation to the app's close URL: the iPhone app closes the call; the web lands on Meetings. */}
+          <Button variant="outline" onClick={() => window.location.replace("/meetings?left=1")}>
+            Leave
+          </Button>
+          <Button onClick={reset}>Rejoin</Button>
+        </>
+      }
     >
       <PlateData className="p-3">
         <p className="break-words font-mono text-xs text-[var(--ink-text)]">

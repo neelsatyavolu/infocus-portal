@@ -4,12 +4,20 @@ import Link from "next/link";
 import { StatusTag } from "@/components/kit/status-tag";
 import type { StatusToneInput } from "@/components/kit/tone";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { useMeetEmbedded } from "./embed-context";
+import { useExitCall, useMeetEmbedded } from "./embed-context";
 import { CallPlate } from "./status-plate";
 
-/** Hidden in the iPhone app, which shows its own close button. */
+/** In the iPhone app: Close, which sends the app to its close URL. */
 export function BackToMeetings() {
-  if (useMeetEmbedded()) return null;
+  const embedded = useMeetEmbedded();
+  const exitCall = useExitCall();
+  if (embedded) {
+    return (
+      <Button variant="outline" onClick={exitCall}>
+        Close
+      </Button>
+    );
+  }
   return (
     <Link href={"/meetings" as never} className={buttonVariants({ variant: "outline" })}>
       Back to Meetings
@@ -59,6 +67,8 @@ export function DeniedScreen({ onAskAgain }: { onAskAgain: () => void }) {
 
 /** The "joining" stage, after Join is pressed (loading before that is PreJoinSkeleton). */
 export function JoiningScreen() {
+  const embedded = useMeetEmbedded();
+  const exitCall = useExitCall();
   return (
     <CallPlate
       ariaLive
@@ -69,6 +79,14 @@ export function JoiningScreen() {
         </StatusTag>
       }
       title="Joining the meeting…"
+      // The app has no other way out if joining hangs.
+      actions={
+        embedded ? (
+          <Button variant="outline" onClick={exitCall}>
+            Close
+          </Button>
+        ) : undefined
+      }
     />
   );
 }
@@ -103,7 +121,6 @@ export function EndScreen({
   message?: string | null;
   onRejoin?: () => void;
 }) {
-  const embedded = useMeetEmbedded();
   const copy = {
     left: { title: "You left the meeting", body: undefined },
     removed: { title: "You were removed from the meeting", body: "A host removed you. You can't rejoin with this link." },
@@ -114,7 +131,6 @@ export function EndScreen({
     unsupported: { title: "This browser can't join", body: message ?? "Use a current Chrome or Safari." }
   }[kind];
   const rejoin = Boolean(onRejoin) && (kind === "left" || kind === "error" || kind === "full");
-  const hasActions = rejoin || kind === "signin" || !embedded;
   const tag = END_TAG[kind];
   return (
     <CallPlate
@@ -124,13 +140,11 @@ export function EndScreen({
       title={copy.title}
       body={copy.body}
       actions={
-        hasActions ? (
-          <>
-            <BackToMeetings />
-            {rejoin ? <Button onClick={onRejoin}>Rejoin</Button> : null}
-            {kind === "signin" ? <SignInAgain /> : null}
-          </>
-        ) : undefined
+        <>
+          <BackToMeetings />
+          {rejoin ? <Button onClick={onRejoin}>Rejoin</Button> : null}
+          {kind === "signin" ? <SignInAgain /> : null}
+        </>
       }
     />
   );

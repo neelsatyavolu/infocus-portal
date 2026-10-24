@@ -43,7 +43,7 @@ export async function advanceWordpressStory(publication: StoryPublication, conte
         title: publication.title, categories: categoryId === null ? [] : [categoryId], featuredMedia: mediaId, meta: storyMeta(publication.videoId)
       });
       if (typeof draft.meta?.video !== "string" || !draft.meta.video.includes(publication.videoId)) {
-        throw new StoryError(`infocusnews.tv did not save the video embed, so draft ${draft.id} was left unpublished. SNO must let the API set story fields.`);
+        throw new StoryError(`infocusnews.tv did not save the video link, so draft ${draft.id} was left unpublished. SNO must let the API set story fields.`);
       }
       postId = draft.id;
       await save({ wordpressPostId: postId });

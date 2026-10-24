@@ -85,5 +85,5 @@ export async function findWordpressPostByVideo(config: WordpressConfig, videoId:
   const me = await wordpressRequest<{ id: number }>(config, "/wp/v2/users/me?_fields=id");
   const posts = await wordpressRequest<WordpressPost[]>(config,
     `/wp/v2/posts?author=${me.id}&status=draft&context=edit&per_page=20&orderby=modified&order=desc&_fields=id,link,status,meta`);
-  return posts.find((post) => typeof post.meta?.video === "string" && post.meta.video.includes(`/embed/${videoId}`)) ?? null;
+  return posts.find((post) => typeof post.meta?.video === "string" && post.meta.video.includes(videoId)) ?? null;
 }

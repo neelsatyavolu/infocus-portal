@@ -5,23 +5,46 @@ import { escapeHtml, renderBrandedEmail } from "@/src/lib/email-layout";
 import { mainAppOrigin } from "@/src/lib/hosts";
 import { sendNativePushToUserIds } from "@/src/lib/native-push";
 import { youtubeEmbedCode, youtubeWatchUrl } from "@/src/lib/youtube-publication";
+import type { StoryOutcome } from "@/src/server/wordpress-story";
 
 const emailPayload = z.object({ from: z.string(), to: z.string().email(), subject: z.string(), text: z.string(), html: z.string() });
+// Older payloads have no push body; they all asked managers to copy the embed code.
+const pushBody = z.object({ pushBody: z.string().default("Ready for the website. Open it to copy the embed code.") });
 
-export function publicationEmailPayload(publication: { rowId: string; title: string; showDate: string; videoId: string }, recipient: string) {
+const storyTime = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/Los_Angeles", weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit"
+});
+
+/** Without a story outcome (WordPress posting off) managers get the embed code to post by hand. */
+export function publicationEmailPayload(
+  publication: { rowId: string; title: string; showDate: string; videoId: string }, recipient: string, story?: StoryOutcome
+) {
   const from = process.env.RESEND_FROM_EMAIL;
   if (!from || !process.env.RESEND_API_KEY) throw new Error("Publication email is not configured.");
   const watch = youtubeWatchUrl(publication.videoId);
+  if (story?.status === "POSTED") {
+    const content = renderBrandedEmail({
+      heading: "Package scheduled on infocusnews.tv",
+      paragraphs: [publication.title, `Goes live: ${storyTime.format(story.publishAt)}`, `Watch: ${watch}`,
+        "The Portal posted it with the YouTube thumbnail and picked its category. Check the story and change anything that's off."],
+      ctaLabel: "Review the story", ctaUrl: story.editUrl
+    });
+    return { from, to: recipient, subject: `Scheduled: ${publication.title}`, html: content.html, text: content.text,
+      pushBody: "Scheduled on infocusnews.tv. Open it to review the story." };
+  }
   const embed = youtubeEmbedCode(publication.videoId);
   const page = `${mainAppOrigin()}/publishing-queue/${encodeURIComponent(publication.rowId)}`;
+  const failed = story?.status === "FAILED"
+    ? [`The Portal couldn't post it to infocusnews.tv (${story.error}), so please post it by hand.`] : [];
   const content = renderBrandedEmail({
     heading: "Package ready for the website",
-    paragraphs: [publication.title, `Air date: ${publication.showDate}`, `Watch: ${watch}`],
+    paragraphs: [publication.title, `Air date: ${publication.showDate}`, `Watch: ${watch}`, ...failed],
     ctaLabel: "View package & copy embed code", ctaUrl: page,
     extraHtml: `<p>Embed code:</p><pre style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px">${escapeHtml(embed)}</pre>`
   });
   return { from, to: recipient, subject: `Published: ${publication.title}`,
-    html: content.html, text: `${content.text}\n\nEmbed code:\n${embed}` };
+    html: content.html, text: `${content.text}\n\nEmbed code:\n${embed}`,
+    pushBody: "Ready for the website. Open it to copy the embed code." };
 }
 
 export async function deliverPublicationEmails(publicationId: string, now = new Date()) {
@@ -61,7 +84,7 @@ export async function deliverPublicationEmails(publicationId: string, now = new 
     const rowId = email.publication?.rowId;
     await sendNativePushToUserIds([email.recipientUserId], {
       title: emailPayload.parse(email.payload).subject,
-      body: "Ready for the website. Open it to copy the embed code.",
+      body: pushBody.parse(email.payload).pushBody,
       url: `${mainAppOrigin()}/publishing-queue${rowId ? `/${encodeURIComponent(rowId)}` : ""}`
     });
   }

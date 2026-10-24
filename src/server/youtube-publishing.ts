@@ -6,6 +6,8 @@ import { resolveOriginalDownloadUrl } from "@/src/lib/media-playback";
 import { isPublicationDue, publicationDateKey } from "@/src/lib/youtube-publication";
 import { beginYoutubeUpload, checkYoutubeVideo, PublicationError, readUploadProgress, sourceVideoSize,
   uploadYoutubeChunk, verifyYoutubeChannel, youtubeAccessToken, youtubePublishingConfig } from "@/src/server/youtube-client";
+import { advanceWordpressStory, type StoryOutcome } from "@/src/server/wordpress-story";
+import { wordpressConfig } from "@/src/server/wordpress-client";
 import { deliverPublicationEmails, publicationEmailPayload } from "@/src/server/youtube-publication-email";
 
 export async function dueYoutubePackageIds(now = new Date(), afterId?: string) {
@@ -16,7 +18,8 @@ export async function dueYoutubePackageIds(now = new Date(), afterId?: string) {
       { queuedForAirAt: { not: null }, queuedForShowDate: { gte: config.startDate, lte: publicationDateKey(now) }, youtubePublication: null },
       // Started uploads keep going whatever the air date, so a manual publish finishes before show day.
       { queuedForAirAt: { not: null }, youtubePublication: { status: { in: ["UPLOADING", "PROCESSING"] } } },
-      { youtubePublication: { status: "PUBLISHED", emails: { some: { sentAt: null, cancelledAt: null } } } }
+      { youtubePublication: { status: "PUBLISHED", emails: { some: { sentAt: null, cancelledAt: null } } } },
+      { youtubePublication: { status: "PUBLISHED", wordpressStatus: "PENDING" } }
     ] },
     select: { id: true }, orderBy: { id: "asc" }, take: 100,
     ...(afterId ? { cursor: { id: afterId }, skip: 1 } : {})
@@ -63,6 +66,9 @@ export async function advanceYoutubePublication(rowId: string, now = new Date())
   if (!row) return { more: false };
   let publication = row.youtubePublication;
   if (publication?.status === "PUBLISHED") {
+    if (publication.wordpressStatus === "PENDING" && publication.videoId) {
+      await advanceStory(row, { ...publication, videoId: publication.videoId }, now);
+    }
     await deliverPublicationEmails(publication.id, now);
     return { more: false };
   }
@@ -83,15 +89,19 @@ export async function advanceYoutubePublication(rowId: string, now = new Date())
     const token = await youtubeAccessToken();
     if (publication.videoId) {
       if (!await checkYoutubeVideo(publication.videoId, token, publication.channelId)) return { more: false };
-      const managers = await prisma.publishingManager.findMany({ select: { userId: true, user: { select: { email: true } } } });
-      const recipients = new Map(managers.flatMap(({ userId, user }) => user.email
-        ? [[user.email.trim().toLowerCase(), userId] as const] : []));
       const ready = { ...publication, videoId: publication.videoId };
-      // Publishing status and outbox are committed together, so a crash cannot lose notifications.
-      await prisma.youtubePublication.update({ where: { id: publication.id }, data: {
-        status: "PUBLISHED", publishedAt: now, lastError: null,
-        emails: { createMany: { data: [...recipients].map(([recipient, recipientUserId]) => ({ recipient, recipientUserId, payload: publicationEmailPayload(ready, recipient) })), skipDuplicates: true } }
-      } });
+      if (wordpressConfig()) {
+        // Managers hear about it once the infocusnews.tv story is scheduled (or could not be).
+        await prisma.youtubePublication.update({ where: { id: publication.id }, data: {
+          status: "PUBLISHED", publishedAt: now, lastError: null, wordpressStatus: "PENDING"
+        } });
+        await advanceStory(row, ready, now);
+      } else {
+        // Publishing status and outbox are committed together, so a crash cannot lose notifications.
+        await prisma.youtubePublication.update({ where: { id: publication.id }, data: {
+          status: "PUBLISHED", publishedAt: now, lastError: null, emails: await managerOutbox(ready)
+        } });
+      }
       await deliverPublicationEmails(publication.id, now);
       return { more: false };
     }
@@ -131,4 +141,24 @@ export async function advanceYoutubePublication(rowId: string, now = new Date())
     } });
     return { more: false };
   }
+}
+
+type ReadyPublication = NonNullable<PublicationRow["youtubePublication"]> & { videoId: string };
+
+async function managerOutbox(publication: ReadyPublication, story?: StoryOutcome) {
+  const managers = await prisma.publishingManager.findMany({ select: { userId: true, user: { select: { email: true } } } });
+  const recipients = new Map(managers.flatMap(({ userId, user }) => user.email
+    ? [[user.email.trim().toLowerCase(), userId] as const] : []));
+  return { createMany: { skipDuplicates: true, data: [...recipients].map(([recipient, recipientUserId]) => ({
+    recipient, recipientUserId, payload: publicationEmailPayload(publication, recipient, story)
+  })) } };
+}
+
+/** One infocusnews.tv attempt; a settled story and the manager outbox are committed together. */
+async function advanceStory(row: PublicationRow, publication: ReadyPublication, now: Date) {
+  const story = await advanceWordpressStory(publication, { topic: row.groupTopic, toss: row.finalCutToss }, now);
+  if (!story) return;
+  await prisma.youtubePublication.update({ where: { id: publication.id }, data: story.status === "POSTED"
+    ? { wordpressStatus: "POSTED", wordpressPostId: story.postId, wordpressUrl: story.url, wordpressError: null, emails: await managerOutbox(publication, story) }
+    : { wordpressStatus: "FAILED", wordpressError: story.error, emails: await managerOutbox(publication, story) } });
 }

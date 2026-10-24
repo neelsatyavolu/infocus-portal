@@ -58,6 +58,8 @@ Apple App Review demo account (`src/lib/app-review.ts`): `APP_REVIEW_EMAIL` is t
 
 `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`, `YOUTUBE_CHANNEL_ID`, `YOUTUBE_PUBLISHING_START_DATE`, `YOUTUBE_PUBLISH_HOUR_PACIFIC`. The channel authorization comes from **Admin → Reconnect YouTube** (stored encrypted in the database with a key derived from `APP_AUTH_SECRET`); `YOUTUBE_REFRESH_TOKEN` is only a fallback when nothing is stored. See [YOUTUBE-PUBLISHING.md](YOUTUBE-PUBLISHING.md).
 
+Posting packages to infocusnews.tv: `WORDPRESS_URL` (`https://infocusnews.tv`), `WORDPRESS_USERNAME` (the Portal's WordPress user), `WORDPRESS_APP_PASSWORD` (an application password from that user's profile). Unset, managers get the embed-code email instead. Category picks use the Workers AI settings (`CLOUDFLARE_WORKERS_AI_TOKEN`); without them every story goes under News. See [YOUTUBE-PUBLISHING.md](YOUTUBE-PUBLISHING.md#infocusnewstv-stories).
+
 Meetings calendar invites reuse `YOUTUBE_CLIENT_ID` and `YOUTUBE_CLIENT_SECRET` (and the same registered redirect, `/api/admin/youtube/callback`). The Google account comes from **Admin → Connect Google Calendar**, stored encrypted like the YouTube one; enable the Google Calendar API in that Cloud project. No new variables.
 
 ## Automatic show editing

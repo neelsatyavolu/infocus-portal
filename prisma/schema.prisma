@@ -1716,6 +1716,14 @@ model YoutubePublication {
   videoId         String?  @unique
   publishedAt     DateTime?
   lastError       String?
+  /// infocusnews.tv story: null = not posted automatically (WordPress unset), PENDING, POSTED, FAILED.
+  wordpressStatus     String?
+  wordpressPostId     Int?
+  wordpressMediaId    Int?
+  wordpressCategoryId Int?
+  wordpressUrl        String?
+  wordpressAttempts   Int      @default(0)
+  wordpressError      String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   row             PackageProgressRow @relation(fields: [rowId], references: [id], onDelete: Cascade)

@@ -1,10 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   row: vi.fn(), update: vi.fn(), upsert: vi.fn(), token: vi.fn(), progress: vi.fn(), chunk: vi.fn(), check: vi.fn(),
   source: vi.fn(), emails: vi.fn(), emailUpdate: vi.fn(), send: vi.fn(), manager: vi.fn(), managers: vi.fn(), rows: vi.fn(),
-  push: vi.fn(), event: vi.fn()
+  push: vi.fn(), event: vi.fn(), story: vi.fn()
 }));
+vi.mock("@/src/server/wordpress-story", () => ({ advanceWordpressStory: mocks.story }));
 vi.mock("@/src/lib/inngest", () => ({ inngest: { send: mocks.event } }));
 vi.mock("@/src/lib/native-push", () => ({ sendNativePushToUserIds: mocks.push }));
 vi.mock("@/src/lib/prisma", () => ({ prisma: {
@@ -214,4 +215,64 @@ it("discovers subsequent pages without repeatedly selecting the oldest stuck row
   mocks.rows.mockResolvedValue([{ id: "next" }]);
   expect(await dueYoutubePackageIds(new Date("2026-09-19T12:00:00Z"), "previous")).toEqual(["next"]);
   expect(mocks.rows).toHaveBeenCalledWith(expect.objectContaining({ cursor: { id: "previous" }, skip: 1, orderBy: { id: "asc" } }));
+});
+
+describe("infocusnews.tv story", () => {
+  const ready = { id: "pub", rowId: "row", title: "Story", status: "UPLOADING", showDate: "2026-09-19", mediaVersionId: "v1",
+    channelId: "channel", videoId: "abcdefgh_12", wordpressStatus: null };
+  const posted = { status: "POSTED", postId: 900, url: "https://news.example.edu/story/",
+    editUrl: "https://news.example.edu/wp-admin/post.php?post=900&action=edit", publishAt: new Date("2026-09-19T16:05:00Z") };
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubEnv("RESEND_API_KEY", "test-key");
+    vi.stubEnv("RESEND_FROM_EMAIL", "InFocus <sender@example.test>");
+    vi.stubEnv("WORDPRESS_URL", "https://news.example.edu");
+    vi.stubEnv("WORDPRESS_USERNAME", "portal");
+    vi.stubEnv("WORDPRESS_APP_PASSWORD", "abcd efgh");
+    mocks.token.mockResolvedValue("token");
+    mocks.update.mockResolvedValue({});
+    mocks.check.mockResolvedValue(true);
+    mocks.emails.mockResolvedValue([]);
+    mocks.managers.mockResolvedValue([{ userId: "manager", user: { email: "manager@example.test" } }]);
+  });
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("holds manager emails until the story is scheduled, then sends the scheduled email", async () => {
+    mocks.row.mockResolvedValue({ id: "row", groupTopic: "Topic", finalCutToss: "Toss", queuedForAirAt: new Date(), queuedForShowDate: "2026-09-19", youtubePublication: ready });
+    mocks.story.mockResolvedValue(null);
+    await advanceYoutubePublication("row", new Date("2026-09-19T12:00:00Z"));
+    expect(mocks.update).toHaveBeenCalledWith({ where: { id: "pub" }, data: expect.objectContaining({ status: "PUBLISHED", wordpressStatus: "PENDING" }) });
+    expect(mocks.update).not.toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ emails: expect.anything() }) }));
+    expect(mocks.story).toHaveBeenCalledWith(expect.objectContaining({ videoId: "abcdefgh_12" }), { topic: "Topic", toss: "Toss" }, expect.any(Date));
+
+    mocks.row.mockResolvedValue({ id: "row", groupTopic: "Topic", finalCutToss: "Toss", queuedForAirAt: new Date(), queuedForShowDate: "2026-09-19",
+      youtubePublication: { ...ready, status: "PUBLISHED", wordpressStatus: "PENDING" } });
+    mocks.story.mockResolvedValue(posted);
+    await advanceYoutubePublication("row", new Date("2026-09-19T12:05:00Z"));
+    expect(mocks.update).toHaveBeenCalledWith({ where: { id: "pub" }, data: expect.objectContaining({
+      wordpressStatus: "POSTED", wordpressPostId: 900,
+      emails: { createMany: { skipDuplicates: true, data: [expect.objectContaining({ payload: expect.objectContaining({ subject: "Scheduled: Story" }) })] } }
+    }) });
+  });
+
+  it("falls back to the embed-code email when posting fails", async () => {
+    mocks.row.mockResolvedValue({ id: "row", groupTopic: "", finalCutToss: "", queuedForAirAt: new Date(), queuedForShowDate: "2026-09-19",
+      youtubePublication: { ...ready, status: "PUBLISHED", wordpressStatus: "PENDING" } });
+    mocks.story.mockResolvedValue({ status: "FAILED", error: "infocusnews.tv returned HTTP 500" });
+    await advanceYoutubePublication("row", new Date("2026-09-19T12:05:00Z"));
+    const data = mocks.update.mock.calls.map(([call]) => call.data).find((call) => call.wordpressStatus === "FAILED");
+    const payload = data.emails.createMany.data[0].payload;
+    expect(payload.subject).toBe("Published: Story");
+    expect(payload.text).toContain("post it by hand");
+    expect(payload.text).toContain("youtube.com/embed/abcdefgh_12");
+  });
+
+  it("lists published packages whose story is still pending", async () => {
+    vi.stubEnv("YOUTUBE_CLIENT_ID", "id");
+    mocks.rows.mockResolvedValue([]);
+    await dueYoutubePackageIds(new Date("2026-09-19T12:00:00Z"));
+    expect(mocks.rows).toHaveBeenCalledWith(expect.objectContaining({ where: { OR: expect.arrayContaining([
+      { youtubePublication: { status: "PUBLISHED", wordpressStatus: "PENDING" } }
+    ]) } }));
+  });
 });

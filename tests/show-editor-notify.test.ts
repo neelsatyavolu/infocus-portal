@@ -156,15 +156,15 @@ describe("show editor notifications and auto-start", () => {
         : [{ id: "manager-id", email: "manager@example.edu" }]));
     });
 
-    it("the escalation goes to every producer, at their notification address, once per version", async () => {
-      await notifyShowEditEscalation(job({ showDate: "2026-10-23", version: 2 }), { kind: "escalate" });
+    it("the escalation goes to every producer, at their notification address, one email per hourly reminder", async () => {
+      await notifyShowEditEscalation(job({ showDate: "2026-10-23", version: 2 }), { kind: "escalate", at: "2026-10-23T05:00:00.000Z" });
       const sent = mocks.email.mock.calls[0][0];
       expect(sent.recipients).toEqual(expect.arrayContaining(["otto.alerts@example.edu", "sage@example.edu"]));
       expect(sent.recipients).not.toContain("starter@example.edu");
       expect(sent.subject).toBe("The Fri, Oct 23 show still needs approval");
       expect(sent.paragraphs.join(" ")).toContain("the show manager hasn't responded");
       expect(sent.paragraphs.join(" ")).toContain("scheduled automatically at 8:00 AM on show day");
-      expect(sent.idempotencyKey).toBe("show-edit/job1/escalate/2");
+      expect(sent.idempotencyKey).toBe("show-edit/job1/escalate/2/2026-10-23T05:00:00.000Z");
       expect(sent.ctaUrl).toMatch(/\/editing\?date=2026-10-23$/);
       expect(mocks.push).toHaveBeenCalledWith(["otto-id", "sage-id"], expect.anything());
     });
@@ -185,7 +185,7 @@ describe("show editor notifications and auto-start", () => {
 
     it("never throws", async () => {
       mocks.roles.mockRejectedValue(new Error("db down"));
-      await expect(notifyShowEditEscalation(job(), { kind: "escalate" })).resolves.toBeUndefined();
+      await expect(notifyShowEditEscalation(job(), { kind: "escalate", at: "2026-10-23T05:00:00.000Z" })).resolves.toBeUndefined();
     });
 
     it("short show dates read like Fri, Oct 23", () => {

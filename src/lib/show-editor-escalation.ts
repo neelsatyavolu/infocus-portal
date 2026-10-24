@@ -2,15 +2,17 @@ import { pacificDateKey, pacificLocalStamp } from "@/src/lib/meetings/schedule";
 import { showPublishAt } from "@/src/lib/show-publication";
 
 /**
- * Approval at Review: an edit nobody has approved after an hour is escalated to every producer once the
- * deadline (8:00 AM Pacific on show day) is under 12 hours away, and at the deadline it is scheduled with
- * Upload show's defaults. What was sent lives in the job's `checks.escalation`, per version, so a new
- * version (after Send back) starts the clock again. Pure; the cron runs it (src/server/show-editor-escalation.ts).
+ * Approval at Review: an edit nobody has approved after an hour is escalated to every producer, again every
+ * hour (never 2–6 AM Pacific) until someone acts, and at the deadline (8:00 AM Pacific on show day) it is
+ * scheduled with Upload show's defaults. What was sent lives in the job's `checks.escalation`, per version,
+ * so a new version (after Send back) starts the clock again. Pure; the cron runs it (src/server/show-editor-escalation.ts).
  */
 
 export const REVIEW_DEADLINE_TIME = "08:00";
 export const ESCALATE_AFTER_MS = 60 * 60_000;
-export const ESCALATE_WITHIN_MS = 12 * 60 * 60_000;
+/** No reminders from 2:00 to 6:00 AM Pacific. */
+const QUIET_FROM_HOUR = 2;
+const QUIET_UNTIL_HOUR = 6;
 /** The auto-schedule never publishes sooner than this from now. */
 export const AUTO_SCHEDULE_LEAD_MS = 15 * 60_000;
 
@@ -65,9 +67,11 @@ export function escalationStep(
   const sent = escalationOf(job.checks, job.version);
   const untilDeadline = reviewDeadline(job.showDate).getTime() - now.getTime();
   if (untilDeadline <= 0) return sent?.autoScheduledAt || sent?.autoScheduleError ? "none" : "auto-schedule";
-  if (sent?.producersAt) return "none";
-  const waited = now.getTime() - job.finishedAt.getTime();
-  return waited >= ESCALATE_AFTER_MS && untilDeadline < ESCALATE_WITHIN_MS ? "escalate" : "none";
+  const hour = Number(pacificLocalStamp(now).slice(9, 11));
+  if (hour >= QUIET_FROM_HOUR && hour < QUIET_UNTIL_HOUR) return "none";
+  // An hour after it reached Review, then an hour after the last reminder.
+  const since = sent?.producersAt ? new Date(sent.producersAt) : job.finishedAt;
+  return now.getTime() - since.getTime() >= ESCALATE_AFTER_MS ? "escalate" : "none";
 }
 
 /** A publish date and `HH:MM` (Pacific) no sooner than `earliest`, rounded up to the minute. */

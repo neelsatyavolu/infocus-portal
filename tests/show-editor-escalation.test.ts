@@ -22,12 +22,19 @@ describe("escalationStep", () => {
     expect(reviewDeadline(SHOW).toISOString()).toBe("2026-10-23T15:00:00.000Z");
   });
 
-  it("finished 2 days early: nothing until the deadline is under 12 hours away (8 PM the night before)", () => {
-    const early = job({ finishedAt: at("2026-10-21T17:00:00Z") });
-    expect(escalationStep(early, at("2026-10-22T12:00:00Z"))).toBe("none");
-    // Exactly 12 hours before is not yet "less than 12 hours".
-    expect(escalationStep(early, at("2026-10-23T03:00:00Z"))).toBe("none");
-    expect(escalationStep(early, at("2026-10-23T03:01:00Z"))).toBe("escalate");
+  it("escalates an hour after it reached Review, even days before the show", () => {
+    // finishedAt 17:00Z is 10 AM Pacific on Wednesday.
+    const early = job();
+    expect(escalationStep(early, at("2026-10-21T17:59:00Z"))).toBe("none");
+    expect(escalationStep(early, at("2026-10-21T18:00:00Z"))).toBe("escalate");
+  });
+
+  it("never between 2:00 and 6:00 AM Pacific", () => {
+    const early = job();
+    expect(escalationStep(early, at("2026-10-23T08:59:00Z"))).toBe("escalate");
+    expect(escalationStep(early, at("2026-10-23T09:00:00Z"))).toBe("none");
+    expect(escalationStep(early, at("2026-10-23T12:59:00Z"))).toBe("none");
+    expect(escalationStep(early, at("2026-10-23T13:00:00Z"))).toBe("escalate");
   });
 
   it("finished at 11 PM the night before: escalates an hour later", () => {
@@ -42,9 +49,10 @@ describe("escalationStep", () => {
     expect(escalationStep(morning, at("2026-10-23T15:00:00Z"))).toBe("auto-schedule");
   });
 
-  it("already escalated: not again; at the deadline it still auto-schedules, once", () => {
+  it("already escalated: again an hour later; at the deadline it still auto-schedules, once", () => {
     const escalated = job({ checks: { escalation: { version: 1, producersAt: "2026-10-23T03:01:00Z" } } });
-    expect(escalationStep(escalated, at("2026-10-23T05:00:00Z"))).toBe("none");
+    expect(escalationStep(escalated, at("2026-10-23T04:00:00Z"))).toBe("none");
+    expect(escalationStep(escalated, at("2026-10-23T04:01:00Z"))).toBe("escalate");
     expect(escalationStep(escalated, at("2026-10-23T15:00:00Z"))).toBe("auto-schedule");
     const scheduled = job({ checks: { escalation: { version: 1, autoScheduledAt: "2026-10-23T15:00:00Z" } } });
     expect(escalationStep(scheduled, at("2026-10-23T15:01:00Z"))).toBe("none");
@@ -100,9 +108,8 @@ describe("publishSlotNotBefore", () => {
 });
 
 describe("showEditTickWindow (Worker pre-check)", () => {
-  it("is today only until 7 PM Pacific, then today and tomorrow", () => {
-    expect(showEditTickWindow(at("2026-10-22T18:00:00Z"))).toEqual(["2026-10-22", "2026-10-22"]);
-    expect(showEditTickWindow(at("2026-10-23T02:00:00Z"))).toEqual(["2026-10-22", SHOW]);
-    expect(showEditTickWindow(at("2026-10-23T14:00:00Z"))).toEqual([SHOW, SHOW]);
+  it("is today and tomorrow (Pacific)", () => {
+    expect(showEditTickWindow(at("2026-10-22T18:00:00Z"))).toEqual(["2026-10-22", SHOW]);
+    expect(showEditTickWindow(at("2026-10-23T14:00:00Z"))).toEqual([SHOW, "2026-10-24"]);
   });
 });

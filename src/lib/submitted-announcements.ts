@@ -1,4 +1,4 @@
-import * as google from "googleapis/build/src/apis/sheets";
+import { batchGetSheetValues } from "@/src/lib/google-sheets";
 
 const START_ROW = 2;
 const DEFAULT_RANGE = "C2:M";
@@ -179,23 +179,7 @@ export async function fetchSubmittedAnnouncementsFromGoogleSheet(): Promise<Subm
   try {
     const config = getConfig();
 
-    const auth = new google.auth.JWT({
-      email: config.email,
-      key: config.privateKey,
-      scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"]
-    });
-
-    const sheets = google.sheets({
-      version: "v4",
-      auth
-    });
-
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: config.spreadsheetId,
-      range: config.range
-    });
-
-    const rows = response.data.values ?? [];
+    const [rows] = await batchGetSheetValues(config, config.spreadsheetId, [config.range]);
     const parsedRows = rows.map((row, index) => parseRow(row ?? [], index));
     const announcements = parsedRows
       .map((entry) => entry.announcement)

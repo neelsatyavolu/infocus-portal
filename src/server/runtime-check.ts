@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { gunzipSync, gzipSync } from "node:zlib";
 import { buildProviderToken } from "@/src/lib/apns";
+import { fetchCollegeVisits } from "@/src/lib/college-visits-sheet";
 import { hashPassword, verifyPassword } from "@/src/lib/password-hash";
 import { prisma } from "@/src/lib/prisma";
 import { listAssistantDocs } from "@/src/server/assistant-docs";
@@ -77,6 +78,12 @@ const CHECKS: Record<string, () => Promise<string | void>> = {
   env: async () => {
     const missing = REQUIRED_ENV.filter((name) => !process.env[name]);
     if (missing.length) throw new Error(`missing ${missing.join(", ")}`);
+  },
+  // A2 autofill reads college visits from Google Sheets; the sheet always has rows, so none means no access.
+  googleSheets: async () => {
+    const visits = await fetchCollegeVisits();
+    if (visits.length === 0) throw new Error("no college visits read; is the Google service account set?");
+    return `${visits.length} college visits`;
   },
   drive: async () => {
     const base = process.env.DRIVE_BASE_URL;

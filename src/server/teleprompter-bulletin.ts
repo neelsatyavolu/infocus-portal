@@ -47,7 +47,8 @@ export async function loadA2Bulletin(showDate: Date, options: { pa?: boolean } =
   try {
     const collegeVisit = await loadCollegeVisitBulletinAnnouncement(showDate);
     merged = mergeCollegeVisitIntoBulletin(selected, collegeVisit);
-  } catch {
+  } catch (error) {
+    console.error("A2 bulletin: college visits unavailable", error);
     merged = selected;
   }
 

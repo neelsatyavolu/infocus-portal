@@ -204,7 +204,7 @@ function draftNamedVisits(visits: CollegeVisit[], showDateKey: string) {
   if (visits.length === 1) {
     const visit = visits[0];
     const when = [dayPhrase(visit.dateKey, showDateKey), timePhrase(visit.time)].filter(Boolean).join(" ");
-    return `${visit.college} will be visiting the College and Career Center ${when}.`;
+    return sentence(`${visit.college} will be visiting the College and Career Center ${when}`);
   }
 
   const sameDay = visits.every((visit) => visit.dateKey === visits[0].dateKey);
@@ -217,7 +217,7 @@ function draftNamedVisits(visits: CollegeVisit[], showDateKey: string) {
     }
 
     const times = joinAnd(timed.map((visit) => `${visit.college} is at ${formatSpokenClock(visit.time)}`));
-    return `${names} will be visiting the College and Career Center ${day}. ${times}.`;
+    return `${names} will be visiting the College and Career Center ${day}. ${sentence(times)}`;
   }
 
   const clauses = visits.map((visit, index) => {
@@ -229,7 +229,12 @@ function draftNamedVisits(visits: CollegeVisit[], showDateKey: string) {
     return `${visit.college} ${when}`;
   });
 
-  return `${joinAnd(clauses)}.`;
+  return sentence(joinAnd(clauses));
+}
+
+// Spoken clocks already end in "a.m." or "p.m.", which closes the sentence.
+function sentence(text: string) {
+  return text.endsWith(".") ? text : `${text}.`;
 }
 
 function formatVisitSpan(visits: CollegeVisit[], showDateKey: string) {

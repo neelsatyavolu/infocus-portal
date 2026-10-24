@@ -125,6 +125,35 @@ describe("college visit bulletin copy", () => {
     expect(text).not.toMatch(/Upcoming college visits:/i);
   });
 
+  it("ends a sentence that closes on a clock with one period", () => {
+    const visit = (college: string, dateKey: string, time: string) => ({
+      college,
+      topic: "Rep visit",
+      location: "Paly CCC",
+      dateKey,
+      time
+    });
+    const sameDay = draftCollegeVisitAnnouncement(
+      [visit("California Lutheran University", "2026-10-29", "9:05 AM"), visit("The New School", "2026-10-29", "10:45 AM")],
+      "2026-10-28"
+    );
+    const oneVisit = draftCollegeVisitAnnouncement([visit("The New School", "2026-10-29", "10:45 AM")], "2026-10-28");
+    const twoDays = draftCollegeVisitAnnouncement(
+      [visit("University of Portland", "2026-10-27", "1:40 PM"), visit("The New School", "2026-10-29", "10:45 AM")],
+      "2026-10-27"
+    );
+
+    expect(sameDay).toBe(
+      `California Lutheran University and The New School will be visiting the College and Career Center tomorrow. California Lutheran University is at 9:05 a.m. and The New School is at 10:45 a.m. ${COLLEGE_VISIT_RSVP_LINE}`
+    );
+    expect(oneVisit).toBe(
+      `The New School will be visiting the College and Career Center tomorrow at 10:45 a.m. ${COLLEGE_VISIT_RSVP_LINE}`
+    );
+    expect(twoDays).toBe(
+      `University of Portland will be visiting the College and Career Center today at 1:40 p.m. and The New School on Thursday at 10:45 a.m. ${COLLEGE_VISIT_RSVP_LINE}`
+    );
+  });
+
   it("keeps every college grouped by day in a crowded window without individual times", () => {
     const text = draftCollegeVisitAnnouncement(
       visitsInShowWindow(parseCollegeVisitRows(sheetRows), "2026-09-09", "2026-09-11"),

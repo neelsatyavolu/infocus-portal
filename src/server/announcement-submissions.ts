@@ -108,8 +108,9 @@ export async function fetchSubmittedAnnouncements(options?: {
       ])).digest("hex")}`
     }));
     sheetMeta = sheet.meta;
-  } catch {
+  } catch (error) {
     // Native submissions still load if the sheet is missing or unreachable.
+    console.error("Submitted announcements: Google Sheet unavailable", error);
   }
 
   const deletions = await prisma.submittedAnnouncementDeletion.findMany({ select: { id: true } });

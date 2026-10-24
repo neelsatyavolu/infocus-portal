@@ -1,7 +1,8 @@
 /**
  * Browser-side upload of a file to InFocus Drive.
- * Small files use one multipart POST. Larger files go in retried 16 MiB chunks
- * so Cloudflare Tunnel drops do not kill the whole transfer.
+ * Small files use one multipart POST. Larger files go in retried chunks of up to 32 MiB, eight at
+ * a time, so Cloudflare Tunnel drops do not kill the whole transfer. Chunk size and streams match
+ * Drive's own uploader (infocus-drive app/static/api.js), which is tuned against its speed test.
  */
 
 export type NasUploadFields = {
@@ -16,8 +17,9 @@ export type NasUploadFields = {
 };
 
 export const NAS_CHUNK_THRESHOLD = 8 * 1024 * 1024;
-export const NAS_CHUNK_SIZE = 16 * 1024 * 1024;
-const NAS_CHUNK_STREAMS = 3;
+/** Drive's CHUNK_SIZE_MAX: it clamps anything larger. */
+export const NAS_CHUNK_SIZE = 32 * 1024 * 1024;
+const NAS_CHUNK_STREAMS = 8;
 const NAS_CHUNK_RETRIES = 3;
 
 export function isNasUpload(upload: NasUploadFields): boolean {
@@ -37,6 +39,16 @@ export function nasServiceUrl(uploadUrl: string, leaf: string, query?: Record<st
 
 export function nasShouldChunk(fileSize: number): boolean {
   return fileSize >= NAS_CHUNK_THRESHOLD;
+}
+
+/**
+ * Chunk size for one file: at least NAS_CHUNK_STREAMS pieces (whole MiB, 1–32 MiB, Drive's
+ * limits), so a 40 MB clip uses every stream instead of going up as two chunks.
+ */
+export function nasChunkSize(fileSize: number): number {
+  const mib = 1024 * 1024;
+  const perStream = Math.ceil(Math.max(1, fileSize) / NAS_CHUNK_STREAMS);
+  return Math.min(NAS_CHUNK_SIZE, Math.max(mib, Math.ceil(perStream / mib) * mib));
 }
 
 function xhrErrorMessage(xhr: XMLHttpRequest, fallback: string): string {
@@ -148,7 +160,7 @@ async function uploadFileChunked(
   initBody.set("token", fileToken);
   initBody.set("name", file.name);
   initBody.set("size", String(file.size));
-  initBody.set("chunk_size", String(NAS_CHUNK_SIZE));
+  initBody.set("chunk_size", String(nasChunkSize(file.size)));
   const initText = await sendXhr("POST", nasServiceUrl(uploadUrl, "init"), initBody, {
     timeoutMs: 60 * 1000
   });
@@ -163,7 +175,7 @@ async function uploadFileChunked(
   }
   const uploadId = session.upload_id;
 
-  const chunkSize = session.chunk_size || NAS_CHUNK_SIZE;
+  const chunkSize = session.chunk_size || nasChunkSize(file.size);
   const totalChunks = session.total_chunks;
   const received = new Set(session.received ?? []);
   const pieceLoaded = Array.from({ length: totalChunks }, (_, index) => {

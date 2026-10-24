@@ -1,3 +1,4 @@
+import { semesterBounds } from "@/src/lib/livestream";
 import type { SchoolYear } from "@/src/lib/program-config";
 import { defaultScheduleKind, isSeededHoliday, utcWeekdayFromDateKey, type ScheduleKind } from "@/src/lib/school-schedule";
 import { addDaysToDateKey } from "@/src/lib/show-assignment";
@@ -20,8 +21,27 @@ function projectYear(year: SchoolYear): SchoolYear {
     firstDay: addDaysToDateKey(year.firstDay, YEAR_DAYS),
     lastDay: addDaysToDateKey(year.lastDay, YEAR_DAYS),
     firstShowDate: addDaysToDateKey(year.firstShowDate, YEAR_DAYS),
+    ...(year.secondSemesterFirstShowDate
+      ? { secondSemesterFirstShowDate: addDaysToDateKey(year.secondSemesterFirstShowDate, YEAR_DAYS) }
+      : {}),
     source: "feed"
   };
+}
+
+/** YYYY-MM-DD second semester starts in the year that begins on `firstDay`. */
+function secondSemesterStart(firstDay: string) {
+  return semesterBounds(Number(firstDay.slice(0, 4)), 2).start.toISOString().slice(0, 10);
+}
+
+/** Wednesdays and Fridays from `from` up to (not including) `until` that are not holidays. */
+function showDaysBefore(from: string, until: string): GeneratedDay[] {
+  const days: GeneratedDay[] = [];
+  for (let date = from; date < until; date = addDaysToDateKey(date, 1)) {
+    if (defaultScheduleKind(utcWeekdayFromDateKey(date)) === "SHOW" && !isSeededHoliday(date)) {
+      days.push({ date, kind: "NONE", label: "" });
+    }
+  }
+  return days;
 }
 
 /**
@@ -43,16 +63,16 @@ function isWeekday(dateKey: string) {
 }
 
 /**
- * Calendar days the school years imply: no shows before a year's first show, and nothing at
- * all (no PA, shows or participation) on summer weekdays between two years.
+ * Calendar days the school years imply: no shows before a year's first show or, in second
+ * semester, before its first show, and nothing at all (no PA, shows or participation) on summer
+ * weekdays between two years.
  */
 export function schoolYearDays(years: readonly SchoolYear[]): GeneratedDay[] {
   const days: GeneratedDay[] = [];
   years.forEach((year, index) => {
-    for (let date = year.firstDay; date < year.firstShowDate; date = addDaysToDateKey(date, 1)) {
-      if (defaultScheduleKind(utcWeekdayFromDateKey(date)) === "SHOW" && !isSeededHoliday(date)) {
-        days.push({ date, kind: "NONE", label: "" });
-      }
+    days.push(...showDaysBefore(year.firstDay, year.firstShowDate));
+    if (year.secondSemesterFirstShowDate) {
+      days.push(...showDaysBefore(secondSemesterStart(year.firstDay), year.secondSemesterFirstShowDate));
     }
     const next = years[index + 1];
     if (!next) return;

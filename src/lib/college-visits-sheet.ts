@@ -1,4 +1,3 @@
-import * as google from "googleapis/build/src/apis/sheets";
 import {
   collegeVisitsSpreadsheetId,
   draftCollegeVisitAnnouncement,
@@ -8,6 +7,7 @@ import {
   visitsInShowWindow,
   type CollegeVisit
 } from "@/src/lib/college-visits";
+import { batchGetSheetValues, fetchSheetTitles, type GoogleServiceAccount } from "@/src/lib/google-sheets";
 import { TELEPROMPTER_TIME_ZONE, getNextShowDate } from "@/src/lib/teleprompter-template";
 import type { SubmittedAnnouncement } from "@/src/lib/submitted-announcements";
 
@@ -33,7 +33,8 @@ function showDateKey(showDate: Date) {
   }).format(showDate);
 }
 
-function getSheetsClient() {
+/** Null when no service account is set up; a key that is set but malformed is an error, not silence. */
+function getServiceAccount(): GoogleServiceAccount | null {
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL?.trim();
   const rawPrivateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
   if (!email || !rawPrivateKey) {
@@ -42,46 +43,34 @@ function getSheetsClient() {
 
   const privateKey = normalizePrivateKey(rawPrivateKey);
   if (!isLikelyPemPrivateKey(privateKey)) {
-    return null;
+    throw new Error("Invalid GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY format for college visits.");
   }
 
-  const auth = new google.auth.JWT({
-    email,
-    key: privateKey,
-    scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"]
-  });
-
-  return google.sheets({
-    version: "v4",
-    auth
-  });
+  return { email, privateKey };
 }
 
 export async function fetchCollegeVisits(): Promise<CollegeVisit[]> {
-  const sheets = getSheetsClient();
-  if (!sheets) {
+  const account = getServiceAccount();
+  if (!account) {
     return [];
   }
 
   const spreadsheetId = collegeVisitsSpreadsheetId();
-  const meta = await sheets.spreadsheets.get({
-    spreadsheetId,
-    fields: "sheets.properties.title"
-  });
-  const titles = (meta.data.sheets ?? [])
-    .map((sheet) => sheet.properties?.title?.trim() ?? "")
+  const titles = (await fetchSheetTitles(account, spreadsheetId))
+    .map((title) => title.trim())
     .filter((title) => title && !shouldSkipCollegeVisitSheet(title));
 
   if (titles.length === 0) {
     return [];
   }
 
-  const response = await sheets.spreadsheets.values.batchGet({
+  const ranges = await batchGetSheetValues(
+    account,
     spreadsheetId,
-    ranges: titles.map((title) => `'${title.replace(/'/g, "''")}'!A:E`)
-  });
+    titles.map((title) => `'${title.replace(/'/g, "''")}'!A:E`)
+  );
 
-  return parseCollegeVisitRows((response.data.valueRanges ?? []).flatMap((range) => range.values ?? []));
+  return parseCollegeVisitRows(ranges.flat());
 }
 
 export async function loadCollegeVisitBulletinAnnouncement(

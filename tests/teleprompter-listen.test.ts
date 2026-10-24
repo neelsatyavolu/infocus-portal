@@ -75,6 +75,44 @@ describe("StreamingTranscriber", () => {
     expect(updates.at(-1)).toEqual({ words: [], final: false });
   });
 
+  it("hands over each finished utterance, marking the ones said after a pause", async () => {
+    const utterances: Array<{ words: string[]; afterPause: boolean }> = [];
+    const transcriber = new StreamingTranscriber({
+      blockSize: BLOCK,
+      sampleRate: 16000,
+      decode: async (audio) => SENTENCE.slice(0, Math.floor(audio.length / 16000 / 0.3)).join(" "),
+      onWords: () => undefined,
+      onUtterance: (utterance) => utterances.push(utterance)
+    });
+    for (const loud of [false, false, ...Array(15).fill(true), ...Array(10).fill(false)]) {
+      transcriber.push(block(loud ? 0.2 : 0));
+      await settle();
+    }
+    expect(utterances).toHaveLength(1);
+    expect(utterances[0].afterPause).toBe(true);
+    expect(utterances[0].words.slice(0, 3)).toEqual(["Good", "morning", "Paly"]);
+  });
+
+  it("counts a cut at a short pause as after a pause, but not a forced cut", async () => {
+    const utterances: Array<{ words: string[]; afterPause: boolean }> = [];
+    const transcriber = new StreamingTranscriber({
+      blockSize: BLOCK,
+      sampleRate: 16000,
+      decode: async (audio) => SENTENCE.slice(0, Math.floor(audio.length / 16000 / 0.3)).join(" "),
+      onWords: () => undefined,
+      onUtterance: (utterance) => utterances.push(utterance)
+    });
+    transcriber.push(block(0));
+    // 9 s of talk, a 0.3 s gap (too short to end the utterance), then 13 s of talk without a break.
+    const talk = (blocks: number) => Array.from({ length: blocks }, (_, index) => (index % 3 === 0 ? 0.25 : 0.2));
+    const levels = [...talk(90), ...Array(3).fill(0.0005), ...talk(130), ...Array(10).fill(0)];
+    for (const level of levels) {
+      transcriber.push(block(level));
+      await settle();
+    }
+    expect(utterances.map((utterance) => utterance.afterPause)).toEqual([true, true, false]);
+  });
+
   it("cuts long speech into reads of at most twelve seconds", async () => {
     const lengths: number[] = [];
     const transcriber = fakeTranscriber([], lengths);

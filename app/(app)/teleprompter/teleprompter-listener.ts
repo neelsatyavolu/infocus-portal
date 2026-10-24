@@ -1,4 +1,4 @@
-import { StreamingTranscriber, type TranscriptUpdate } from "@/src/lib/teleprompter-listen";
+import { StreamingTranscriber, type TranscriptUpdate, type Utterance } from "@/src/lib/teleprompter-listen";
 
 /*
  * Run mode's ears, all in the browser: the microphone goes through an AudioWorklet (16 kHz mono
@@ -305,6 +305,8 @@ export type ListenerOptions = {
   secondDeviceId: string;
   onStatus: (status: ListenerStatus) => void;
   onWords: (update: TranscriptUpdate) => void;
+  /** Each finished utterance, for voice commands. */
+  onUtterance: (utterance: Utterance) => void;
   onLevel: (level: ListenerLevel) => void;
 };
 
@@ -365,6 +367,9 @@ export function startListener(options: ListenerOptions) {
       },
       onWords: (update) => {
         if (!stopped) options.onWords(update);
+      },
+      onUtterance: (utterance) => {
+        if (!stopped) options.onUtterance(utterance);
       }
     });
     const { context, tap } = await openAudio(inputs);

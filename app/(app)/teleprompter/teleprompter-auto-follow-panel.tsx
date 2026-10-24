@@ -1,6 +1,7 @@
 import { useEffect, useState, type RefObject } from "react";
 import { AudioLines } from "lucide-react";
 import type { FollowMode } from "@/src/lib/teleprompter-align";
+import type { VoiceCommandResult } from "@/src/lib/teleprompter-voice-commands";
 import { cn } from "@/src/lib/utils";
 import { SPEECH_MODELS, listMicrophones, type ListenerLevel, type ListenerStatus, type MicChannel } from "./teleprompter-listener";
 import type { AutoFollowSettings } from "./use-auto-follow";
@@ -29,8 +30,9 @@ export function AutoFollowButton({ on, onToggle }: { on: boolean; onToggle: () =
   );
 }
 
-const MODE_TAGS: Record<FollowMode, { label: string; className: string }> = {
+const MODE_TAGS: Record<FollowMode | "paused", { label: string; className: string }> = {
   follow: { label: "Following", className: "bg-[#2BB36E]/35 text-[#073B20]" },
+  paused: { label: "Paused", className: "bg-[#F2A516]/35 text-[#4A2F00]" },
   hold: { label: "Holding", className: "bg-black/10 text-[#0F110F]" },
   package: { label: "Package", className: "bg-black/10 text-[#0F110F]" },
   search: { label: "Searching", className: "bg-[#F2A516]/35 text-[#4A2F00]" }
@@ -38,7 +40,27 @@ const MODE_TAGS: Record<FollowMode, { label: string; className: string }> = {
 
 const TAG_CLASS = "inline-flex h-5 items-center rounded-sm px-2 text-[11px] font-medium uppercase leading-none tracking-[0.11em]";
 
-export function AutoFollowTag({ status, mode }: { status: ListenerStatus | null; mode: FollowMode | null }) {
+export function AutoFollowTag({
+  status,
+  mode,
+  command
+}: {
+  status: ListenerStatus | null;
+  mode: FollowMode | "paused" | null;
+  /** The last voice command, shown in place of the mode for a few seconds. */
+  command: VoiceCommandResult | null;
+}) {
+  if (command && status?.phase === "listening") {
+    return command.ok ? (
+      <span className={cn(TAG_CLASS, "bg-[#2BB36E]/35 normal-case tracking-normal text-[#073B20]")} title="Voice command">
+        ✓ {command.label}
+      </span>
+    ) : (
+      <span className={cn(TAG_CLASS, "bg-[#F2A516]/35 normal-case tracking-normal text-[#4A2F00]")} title={`Heard: ${command.heard}`}>
+        ? Didn&apos;t catch that
+      </span>
+    );
+  }
   if (!status || status.phase === "starting") {
     return <span className={cn(TAG_CLASS, "bg-black/10 text-[#0F110F]")}>Starting</span>;
   }
@@ -283,6 +305,10 @@ export function AutoFollowSettingsSection({
       {enabled ? <LevelMeter levelRef={levelRef} /> : null}
       <p className="mt-2 text-xs leading-snug text-[#DCE2DE]">
         Click a word to follow from there. Any key or arrow takes over by hand.
+      </p>
+      <p className="mt-2 text-xs leading-snug text-[#DCE2DE]">
+        Voice: say <span className="text-soft-white">“Teleprompter, …”</span> go to the top · go to the second announcement · go
+        to A3 / the closing · go to spirit week · next · back · line back · pause · resume · undo
       </p>
     </div>
   );

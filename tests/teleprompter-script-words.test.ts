@@ -145,19 +145,18 @@ describe("buildScriptWordMap", () => {
     expect(rolled).toEqual(["recycling.", "Vikings!"]);
   });
 
-  it("flags lines that say prompter, so reading them can never be a command", () => {
+  it("flags lines that say a wake word, so reading them can never be a command", () => {
     const flagged = buildScriptWordMap([
-      { id: "x", label: "A1", content: "Hey Prompter, meet the new teleprompter.\nNothing to see here." }
+      { id: "x", label: "A1", content: "Meet Penny, our new teleprompter.\nNothing to see here." }
     ]);
-    expect(flagged.words.filter((word) => word.mentionsPrompter).map((word) => word.raw)).toEqual([
-      "Hey",
-      "Prompter,",
-      "meet",
-      "the",
+    expect(flagged.words.filter((word) => word.mentionsWakeWord).map((word) => word.raw)).toEqual([
+      "Meet",
+      "Penny,",
+      "our",
       "new",
       "teleprompter."
     ]);
-    expect(map.words.some((word) => word.mentionsPrompter)).toBe(false);
+    expect(map.words.some((word) => word.mentionsWakeWord)).toBe(false);
   });
 });
 

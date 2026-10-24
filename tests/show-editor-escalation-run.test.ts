@@ -48,13 +48,13 @@ describe("approval escalation run", () => {
     expect(mocks.jobs).toHaveBeenCalledWith({ where: { status: "REVIEW", showDate: { gte: "2026-10-22", lte: SHOW } } });
   });
 
-  it("escalates once: records it for this version (keeping checks), then tells the producers", async () => {
+  it("escalates: records it for this version (keeping checks), then tells the producers", async () => {
     expect(await runShowEditEscalations(NIGHT_BEFORE)).toEqual({ checked: 1, escalated: 1, scheduled: 0, failed: 0 });
     expect(mocks.updateMany).toHaveBeenCalledWith({
       where: { id: "job1", status: "REVIEW", version: 1 },
       data: { checks: { coversClean: true, escalation: { version: 1, producersAt: NIGHT_BEFORE.toISOString(), autoScheduledAt: null, autoScheduleError: null } } }
     });
-    expect(mocks.notify).toHaveBeenCalledWith(expect.objectContaining({ id: "job1" }), { kind: "escalate" });
+    expect(mocks.notify).toHaveBeenCalledWith(expect.objectContaining({ id: "job1" }), { kind: "escalate", at: NIGHT_BEFORE.toISOString() });
   });
 
   it("sends nothing when a producer acted in the meantime (the record didn't save)", async () => {

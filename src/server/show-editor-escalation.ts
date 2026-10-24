@@ -23,7 +23,7 @@ async function saveEscalation(job: ShowEditJob, patch: Partial<ShowEditEscalatio
 async function escalate(job: ShowEditJob, now: Date) {
   // Recorded before sending, so a slow send is never repeated by the next tick.
   if (!(await saveEscalation(job, { producersAt: now.toISOString() }))) return false;
-  await notifyShowEditEscalation(job, { kind: "escalate" });
+  await notifyShowEditEscalation(job, { kind: "escalate", at: now.toISOString() });
   return true;
 }
 

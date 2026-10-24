@@ -81,7 +81,7 @@ On the Editing tab:
 ## 6. If nobody approves
 
 - At 6 PM the evening before the show, if it isn't scheduled yet, the starter and the show manager get a reminder.
-- After an hour with no answer, once 8:00 AM on show day is less than 12 hours away, every producer gets an email: **The <date> show still needs approval**.
+- After an hour with no answer, every producer gets an email and notification: **The <date> show still needs approval**. It repeats every hour (never between 2 and 6 AM) until someone approves, sends it back, redoes it or schedules it.
 - At 8:00 AM on show day it's scheduled on YouTube by itself (at least 15 minutes out), and the starter and show manager are told.
 - A send-back makes a new version, and the clock starts again.
 

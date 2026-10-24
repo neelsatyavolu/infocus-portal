@@ -157,7 +157,7 @@ export async function notifyShowEdit(job: NoticeJob, notice: ShowEditNotice) {
 }
 
 export type ShowEditEscalationNotice =
-  | { kind: "escalate" }
+  | { kind: "escalate"; at: string }
   | { kind: "auto-scheduled"; publishAt: Date }
   | { kind: "auto-schedule-failed"; reason: string };
 
@@ -204,7 +204,7 @@ function escalationCopy(job: NoticeJob, notice: ShowEditEscalationNotice): Copy 
 }
 
 /**
- * The approval cron's notices: the escalation goes to every producer; the auto-schedule notice to the
+ * The approval cron's notices: the hourly escalation goes to every producer; the auto-schedule notice to the
  * starter and show manager; a failed auto-schedule to all of them. Never throws.
  */
 export async function notifyShowEditEscalation(job: NoticeJob, notice: ShowEditEscalationNotice) {
@@ -214,7 +214,9 @@ export async function notifyShowEditEscalation(job: NoticeJob, notice: ShowEditE
       : notice.kind === "auto-scheduled"
         ? await recipientsFor(job.showDate, starterOf(job))
         : mergeRecipients(await recipientsFor(job.showDate, starterOf(job)), await producerRecipients());
-    await deliver(recipients, escalationCopy(job, notice), job.showDate, `show-edit/${job.id}/${notice.kind}/${job.version}`);
+    // Each hourly reminder is its own email.
+    const key = `show-edit/${job.id}/${notice.kind}/${job.version}${notice.kind === "escalate" ? `/${notice.at}` : ""}`;
+    await deliver(recipients, escalationCopy(job, notice), job.showDate, key);
   } catch (error) {
     console.error("show editor: escalation notice failed", job.id, notice.kind, error);
   }

@@ -10,7 +10,7 @@ vi.mock("@/src/lib/prisma", () => ({
   }
 }));
 
-import { DEFAULT_SCHOOL_YEARS, orderSchoolYears, parseProgramConfig, type SchoolYear } from "@/src/lib/program-config";
+import { DEFAULT_SCHOOL_YEARS, orderSchoolYears, parseProgramConfig, schoolYearSchema, type SchoolYear } from "@/src/lib/program-config";
 import { resolveScheduleDay } from "@/src/lib/school-schedule";
 import { planSchoolYearSync, schoolYearDays, schoolYearFromFeed, schoolYearsThrough } from "@/src/lib/school-year-days";
 import { listUpcomingShowDates } from "@/src/lib/show-assignment";
@@ -25,6 +25,18 @@ describe("program config", () => {
     expect(parseProgramConfig(undefined).schoolYears).toEqual(DEFAULT_SCHOOL_YEARS);
     expect(parseProgramConfig({ schoolYears: "nope" }).schoolYears).toEqual(DEFAULT_SCHOOL_YEARS);
     expect(parseProgramConfig({}).calendarSync).toBeNull();
+  });
+
+  it("gives a year saved before the second-semester first show existed the default one", () => {
+    const stored = { schoolYears: [{ firstDay: "2026-08-13", lastDay: "2027-06-03", firstShowDate: "2026-09-04", source: "manual" }] };
+    expect(parseProgramConfig(stored).schoolYears[0].secondSemesterFirstShowDate).toBe("2027-01-08");
+  });
+
+  it("refuses a second-semester first show outside the year or before the first show", () => {
+    const base = { firstDay: "2026-08-13", lastDay: "2027-06-03", firstShowDate: "2026-09-04" };
+    expect(schoolYearSchema.safeParse({ ...base, secondSemesterFirstShowDate: "2026-09-02" }).success).toBe(false);
+    expect(schoolYearSchema.safeParse({ ...base, secondSemesterFirstShowDate: "2027-06-04" }).success).toBe(false);
+    expect(schoolYearSchema.safeParse({ ...base, secondSemesterFirstShowDate: "2027-01-08" }).success).toBe(true);
   });
 
   it("orders years and refuses overlapping ones", () => {
@@ -44,6 +56,13 @@ describe("days a school year implies", () => {
     expect(resolveScheduleDay("2027-08-16", byDate).kind).toBe("PA");
   });
 
+  it("has no second-semester shows before its first show", () => {
+    expect(byDate.get("2027-01-06")).toEqual({ date: "2027-01-06", kind: "NONE", label: "" });
+    expect(byDate.has("2027-01-08")).toBe(false);
+    expect(byDate.has("2026-12-16")).toBe(false);
+    expect(listUpcomingShowDates("2027-01-05", 2, byDate)).toEqual(["2027-01-08", "2027-01-13"]);
+  });
+
   it("marks summer weekdays off and leaves weekends and the last year's summer alone", () => {
     expect(byDate.get("2027-06-04")).toEqual({ date: "2027-06-04", kind: "HOLIDAY", label: "Summer break" });
     expect(byDate.get("2027-08-11")?.kind).toBe("HOLIDAY");
@@ -59,7 +78,7 @@ describe("days a school year implies", () => {
   it("guesses the following years so the calendar never runs out", () => {
     const years = schoolYearsThrough(DEFAULT_SCHOOL_YEARS, "2028-09-01");
     expect(years.map((entry) => entry.firstDay)).toEqual(["2026-08-13", "2027-08-12", "2028-08-10"]);
-    expect(years[1]).toEqual({ ...next, source: "feed" });
+    expect(years[1]).toEqual({ ...next, secondSemesterFirstShowDate: "2028-01-07", source: "feed" });
     expect(schoolYearsThrough(DEFAULT_SCHOOL_YEARS, "2027-01-01")).toHaveLength(1);
   });
 });
@@ -129,7 +148,7 @@ describe("the daily school calendar sync", () => {
     expect(status).toMatchObject({ ok: false, finalsDates: [] });
     expect(status.message).toContain("could not be read");
     const written = m.create.mock.calls[0][0].data as Array<{ date: string; kind: string; source: string }>;
-    expect(written[0]).toEqual({ date: "2027-06-04", kind: "HOLIDAY", label: "Summer break", source: "config" });
+    expect(written.find((day) => day.date === "2027-06-04")).toEqual({ date: "2027-06-04", kind: "HOLIDAY", label: "Summer break", source: "config" });
     expect(m.upsert.mock.calls.at(-1)?.[0].update.config.calendarSync).toMatchObject({ ok: false });
   });
 

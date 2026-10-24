@@ -15,15 +15,16 @@ import { COLUMN_LABEL_CLASS, RemoveButton } from "./admin-ui";
 const FIELDS = [
   { key: "firstDay", label: "First day of school" },
   { key: "firstShowDate", label: "First show" },
+  { key: "secondSemesterFirstShowDate", label: "S2 first show" },
   { key: "lastDay", label: "Last day of school" }
 ] as const;
 
 /**
- * Year | three dates | remove, spread across the panel so it lines up with the footer buttons.
- * From @3xl only: the tracks need about 650px, and the row is narrower than that at @2xl.
+ * Year | four dates | remove, spread across the panel so it lines up with the footer buttons.
+ * From @4xl only: the tracks need about 800px, and the row is narrower than that at @3xl.
  */
 const YEAR_GRID =
-  "grid grid-cols-[minmax(0,1fr)_2.5rem] gap-x-3 gap-y-3 @3xl:grid-cols-[8rem_repeat(3,minmax(9rem,1fr))_2.5rem] @3xl:items-center";
+  "grid grid-cols-[minmax(0,1fr)_2.5rem] gap-x-3 gap-y-3 @4xl:grid-cols-[8rem_repeat(4,minmax(9rem,1fr))_2.5rem] @4xl:items-center";
 
 function yearTitle(year: SchoolYear) {
   const start = Number(year.firstDay.slice(0, 4));
@@ -32,7 +33,7 @@ function yearTitle(year: SchoolYear) {
 
 /** Compares years by their values (key order differs between the server and a new row). */
 function yearsKey(years: readonly SchoolYear[]) {
-  return years.map((year) => [year.firstDay, year.firstShowDate, year.lastDay, year.source].join("|")).join(";");
+  return years.map((year) => [year.firstDay, year.firstShowDate, year.secondSemesterFirstShowDate ?? "", year.lastDay, year.source].join("|")).join(";");
 }
 
 /**
@@ -72,7 +73,9 @@ export function SchoolYearsPanel({
   const needsCheck = years.some((year) => year.source === "feed");
 
   function change(index: number, key: (typeof FIELDS)[number]["key"], value: string) {
-    setYears((current) => current.map((year, at) => (at === index ? { ...year, [key]: value } : year)));
+    // A cleared second-semester first show is left out, so second semester has shows from its start.
+    const next = key === "secondSemesterFirstShowDate" && !value ? undefined : value;
+    setYears((current) => current.map((year, at) => (at === index ? { ...year, [key]: next } : year)));
   }
 
   function addYear() {
@@ -83,6 +86,9 @@ export function SchoolYearsPanel({
       {
         firstDay: addDaysToDateKey(last.firstDay, 364),
         firstShowDate: addDaysToDateKey(last.firstShowDate, 364),
+        ...(last.secondSemesterFirstShowDate
+          ? { secondSemesterFirstShowDate: addDaysToDateKey(last.secondSemesterFirstShowDate, 364) }
+          : {}),
         lastDay: addDaysToDateKey(last.lastDay, 364),
         source: "manual"
       }
@@ -123,10 +129,10 @@ export function SchoolYearsPanel({
             {needsCheck ? <StatusTag tone="warning">Check dates</StatusTag> : null}
           </>
         }
-        description="Shows run Wednesday and Friday from the first show to the last day of school, and PA runs on Mondays. Nothing is scheduled over the summer."
+        description="Shows run Wednesday and Friday from the first show to the last day of school, except in second semester before its first show (S2 first show). PA runs on Mondays. Nothing is scheduled over the summer."
       />
 
-      <div aria-hidden="true" className={cn(YEAR_GRID, "hidden border-t border-border px-4 py-2 @3xl:grid md:px-5")}>
+      <div aria-hidden="true" className={cn(YEAR_GRID, "hidden border-t border-border px-4 py-2 @4xl:grid md:px-5")}>
         <span className={COLUMN_LABEL_CLASS}>Year</span>
         {FIELDS.map((field) => (
           <span key={field.key} className={COLUMN_LABEL_CLASS}>
@@ -153,20 +159,20 @@ export function SchoolYearsPanel({
                 ) : null}
               </div>
               {FIELDS.map((field) => (
-                <label key={field.key} className="col-span-2 flex min-w-0 flex-col gap-1.5 @3xl:col-span-1 @3xl:row-start-1">
-                  <span className={cn(COLUMN_LABEL_CLASS, "@3xl:sr-only")}>
+                <label key={field.key} className="col-span-2 flex min-w-0 flex-col gap-1.5 @4xl:col-span-1 @4xl:row-start-1">
+                  <span className={cn(COLUMN_LABEL_CLASS, "@4xl:sr-only")}>
                     {field.label}
                     <span className="sr-only"> {title}</span>
                   </span>
                   <Input
                     type="date"
-                    value={year[field.key]}
+                    value={year[field.key] ?? ""}
                     onChange={(event) => change(index, field.key, event.target.value)}
                     className="w-full font-mono tabular-nums"
                   />
                 </label>
               ))}
-              <div className="col-start-2 row-start-1 flex justify-end @3xl:col-start-5">
+              <div className="col-start-2 row-start-1 flex justify-end @4xl:col-start-6">
                 {years.length > 1 ? (
                   <RemoveButton
                     label={`Remove ${title}`}

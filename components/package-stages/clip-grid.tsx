@@ -1,11 +1,13 @@
 "use client";
 
-import { MessageSquare } from "lucide-react";
+import { Check, Download, MessageSquare } from "lucide-react";
 import { MediaBadge, MediaTile } from "@/components/kit/media";
 import { StatusTag } from "@/components/kit/status-tag";
 import { VideoPlayer } from "@/components/kit/video-player";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { StageComments } from "@/components/package-cycle/stage-comments";
+import { downloadClips } from "@/components/package-stages/clip-download";
 import { mediaStatusLabel } from "@/components/package-stages/stage-status";
 import type { StageMediaCard } from "@/components/package-stages/types";
 import { rollKindLabel } from "@/src/lib/package-roll-kind";
@@ -33,13 +35,15 @@ const GROUPS = [
  * A-roll/B-roll clips grouped under A-ROLL / B-ROLL (older unlabeled clips under OTHER), as
  * equal-height tiles: thumbnail with the roll tag, note count and (for producers) NEW with the
  * green "new" edge, then a one-line title with a tag only when the clip isn't ready. Columns
- * follow the panel's own width (container queries), not the window. A tile opens the watch dialog.
+ * follow the panel's own width (container queries), not the window. A tile opens the watch dialog,
+ * or while `selection` is on, ticks the clip for download (only ready clips can be ticked).
  */
 export function ClipGrid({
   media,
   showNew,
   wide = false,
-  onWatch
+  onWatch,
+  selection
 }: {
   media: StageMediaCard[];
   /** Producers: mark clips uploaded after the latest revision request. */
@@ -47,6 +51,7 @@ export function ClipGrid({
   /** Wide route (Groups): up to 5 columns. */
   wide?: boolean;
   onWatch: (item: StageMediaCard) => void;
+  selection?: { selected: ReadonlySet<string>; onToggle: (id: string) => void } | null;
 }) {
   return (
     <div className="@container space-y-5">
@@ -62,14 +67,23 @@ export function ClipGrid({
             <ul className={cn("grid grid-cols-2 gap-3 @md:grid-cols-3 @3xl:grid-cols-4", wide && "@5xl:grid-cols-5")}>
               {items.map((item) => {
                 const isNew = showNew && Boolean(item.isNew);
+                const selectable = item.status === "READY";
+                const ticked = Boolean(selection?.selected.has(item.id));
                 return (
-                  <li key={item.versionId ?? item.id} className="min-w-0">
+                  <li key={item.versionId ?? item.id} className={cn("min-w-0", selection && !selectable && "opacity-50")}>
                     <MediaTile
                       thumbnailUrl={item.thumbnailUrl}
                       title={item.title}
                       status={<ClipStatus status={item.status} />}
-                      highlight={isNew ? "new" : undefined}
-                      onClick={() => onWatch(item)}
+                      highlight={selection ? (ticked ? "active" : undefined) : isNew ? "new" : undefined}
+                      pressed={selection && selectable ? ticked : undefined}
+                      onClick={
+                        selection
+                          ? selectable
+                            ? () => selection.onToggle(item.id)
+                            : undefined
+                          : () => onWatch(item)
+                      }
                       sizes="(min-width: 1280px) 20vw, (min-width: 640px) 33vw, 50vw"
                       topLeft={
                         item.rollKind ? <MediaBadge mono={false}>{rollKindLabel(item.rollKind)}</MediaBadge> : null
@@ -93,6 +107,7 @@ export function ClipGrid({
                           </span>
                         ) : null
                       }
+                      bottomRight={selection && selectable ? <SelectTick ticked={ticked} /> : null}
                     />
                   </li>
                 );
@@ -102,6 +117,23 @@ export function ClipGrid({
         );
       })}
     </div>
+  );
+}
+
+/** The tick in a tile's corner while selecting (the tile itself is the toggle button). */
+function SelectTick({ ticked }: { ticked: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "grid h-5 w-5 place-items-center rounded-sm border",
+        ticked
+          ? "border-[var(--brand-green)] bg-[var(--brand-green)] text-black"
+          : "border-[var(--soft-white)]/70 bg-black/60"
+      )}
+    >
+      {ticked ? <Check className="h-3.5 w-3.5" /> : null}
+    </span>
   );
 }
 
@@ -143,6 +175,17 @@ export function WatchClipDialog({
                 This clip is not ready to play yet.
               </div>
             )}
+            {clip?.status === "READY" ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3"
+                onClick={() => void downloadClips(rowId, [clip.id])}
+              >
+                <Download aria-hidden className="h-4 w-4" />
+                Download original
+              </Button>
+            ) : null}
           </div>
           {clip ? (
             <StageComments

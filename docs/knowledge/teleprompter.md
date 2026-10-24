@@ -18,7 +18,7 @@ A full-screen scroll with a playhead arrow near the top. The top bar has a show 
 
 ### Auto follow
 
-**Auto** (or the **F** key) makes the prompter follow the anchor's voice: it listens through the computer's microphone, works out which line is being read, and keeps that line at the arrow. Lines already read fade. The tag in the top bar says what it's doing:
+**Auto** is on when run mode opens (turn it off with the **F** key or the **Auto** button, and that computer remembers). It makes the prompter follow the anchor's voice: it listens through the computer's microphone, works out which line is being read, and keeps that line at the arrow. Lines already read fade. The tag in the top bar says what it's doing:
 
 - **Following**: it hears the script and is keeping up.
 - **Holding**: it hears talk that isn't the script (banter, an ad-lib) and stays still.
@@ -31,6 +31,23 @@ While Auto starts (the microphone permission, then the speech model: about 150 M
 Turn Auto on once before the show on the studio computer, so the model is already downloaded and the microphone already allowed.
 
 Taking over by hand always works: Space stops the script where it is, and any arrow key or touch button scrolls by hand from there at the last scroll speed (↑ and ↓ adjust it). Either one turns Auto off; press **F** to turn it back on, and it follows from the line at the arrow. With Auto on, clicking a word makes it follow from that word, and the section menu jumps there and keeps following. Switching shows turns Auto off.
+
+### Voice commands
+
+While Auto is on, the crew can steer by voice. Start with **"Teleprompter,"** (after a pause, or right after the anchor finishes a sentence), then one command:
+
+| Say | Does |
+|---|---|
+| Teleprompter, go to the top | Top of the show |
+| Teleprompter, go to the first (second, third, last) announcement | That announcement in the bulletin |
+| Teleprompter, go to A3 / the open / the announcements / the package / the thank yous / the closing | That section |
+| Teleprompter, go to spirit week | The story that starts with those words |
+| Teleprompter, next / back | Next story; back to the start of this one (or the one before) |
+| Teleprompter, line back | Up a line |
+| Teleprompter, pause / resume | Hold still / follow again |
+| Teleprompter, undo | Undo the last jump |
+
+The top bar shows what it did (**✓ Top**) or **? Didn't catch that** for a few seconds. "Teleprompter" only counts at the start of a sentence, so talking *about* the teleprompter ("the teleprompter is slow") does nothing, and while the script itself says "teleprompter" nearby, commands are ignored. "Prompter, …" also works.
 
 **Settings → Auto follow** picks the microphone, the channel (**Both**, or **Input 1** / **Input 2** on a two-input audio interface), a **Second microphone** (for example one USB mic per anchor; both are mixed together, and a two-input interface with **Both** does the same), and the model (**Fast**, the default, or **Accurate**, which is slower). The meter shows the input level; it turns green while it hears someone talking, and the white mark is where it starts counting sound as speech (it adjusts to the room by itself). Speech recognition runs in Chrome on that computer: audio isn't sent anywhere. Use Chrome; the first use asks for microphone permission.
 

@@ -79,6 +79,8 @@ export function splitWords(text: string) {
 }
 
 export type TranscriptUpdate = { words: string[]; final: boolean };
+/** One finished utterance, all its words; `afterPause` unless it was cut out of long speech. */
+export type Utterance = { words: string[]; afterPause: boolean };
 
 export type TranscriberOptions = {
   /** Samples per pushed block (100 ms at 16 kHz is 1600). */
@@ -86,19 +88,22 @@ export type TranscriberOptions = {
   sampleRate: number;
   decode: (audio: Float32Array) => Promise<string>;
   onWords: (update: TranscriptUpdate) => void;
+  onUtterance?: (utterance: Utterance) => void;
 };
 
-type Utterance = { blocks: Float32Array[]; levels: number[]; committed: number; previous: string[]; ended: boolean };
+type Speech = { blocks: Float32Array[]; levels: number[]; committed: number; previous: string[]; ended: boolean; afterPause: boolean };
 
 const STEP_MS = 400;
 const PREROLL_MS = 300;
 const END_SILENCE_MS = 600;
 /**
- * Reading without a pause is cut into reads of 8–12 s: from 8 s on, at the first block that's
- * the quietest of the last stretch (likely between words), and at 12 s regardless. The cut is
- * at the newest block, so no audio (and no settled word) belongs to two reads.
+ * Reading without a long pause is cut into reads of 8–12 s: from 8 s at the first short gap
+ * (a block under the speech threshold), from 10 s at the quietest moment of the last stretch
+ * (likely between words), and at 12 s regardless. The cut is at the newest block, so no audio
+ * (and no settled word) belongs to two reads.
  */
 const SOFT_MAX_UTTERANCE_MS = 8000;
+const QUIET_CUT_MS = 10_000;
 const MAX_UTTERANCE_MS = 12_000;
 const CUT_SEARCH_MS = 1500;
 const MIN_DECODE_MS = 500;
@@ -108,9 +113,11 @@ export class StreamingTranscriber {
   private readonly options: TranscriberOptions;
   private readonly blockMs: number;
   private preroll: Float32Array[] = [];
-  private current: Utterance | null = null;
-  private finals: Utterance[] = [];
+  private current: Speech | null = null;
+  private finals: Speech[] = [];
   private blocksSinceDecode = 0;
+  /** Whether the next utterance, after a cut, follows a real (if short) pause. */
+  private cutAtPause = false;
   private busy = false;
   private stopped = false;
 
@@ -131,7 +138,14 @@ export class StreamingTranscriber {
 
     // "speech" with no utterance open: a long one was just cut, so this block starts the next.
     if (event === "start" || (event === "speech" && !this.current)) {
-      this.current = { blocks: [...this.preroll, block], levels: [...this.preroll.map(levelDb), db], committed: 0, previous: [], ended: false };
+      this.current = {
+        blocks: [...this.preroll, block],
+        levels: [...this.preroll.map(levelDb), db],
+        committed: 0,
+        previous: [],
+        ended: false,
+        afterPause: event === "start" || this.cutAtPause
+      };
       this.preroll = [];
       this.blocksSinceDecode = 0;
     } else if (this.current) {
@@ -139,6 +153,8 @@ export class StreamingTranscriber {
       this.current.levels.push(db);
       this.blocksSinceDecode += 1;
       if (event === "end" || this.shouldCut(this.current)) {
+        // A cut at a quiet block is a short pause between sentences or speakers, not mid-word.
+        this.cutAtPause = event !== "end" && db < this.gate.thresholdDb;
         this.finish(this.current);
         this.current = null;
       }
@@ -154,12 +170,12 @@ export class StreamingTranscriber {
     this.stopped = true;
   }
 
-  private finish(utterance: Utterance) {
+  private finish(utterance: Speech) {
     utterance.ended = true;
     this.finals.push(utterance);
   }
 
-  private shouldCut(utterance: Utterance) {
+  private shouldCut(utterance: Speech) {
     const length = utterance.blocks.length;
     if (length >= this.blocksFor(MAX_UTTERANCE_MS)) {
       return true;
@@ -167,8 +183,12 @@ export class StreamingTranscriber {
     if (length < this.blocksFor(SOFT_MAX_UTTERANCE_MS)) {
       return false;
     }
+    const level = utterance.levels[length - 1];
+    if (level < this.gate.thresholdDb) {
+      return true;
+    }
     const recent = utterance.levels.slice(-this.blocksFor(CUT_SEARCH_MS));
-    return utterance.levels[length - 1] <= Math.min(...recent);
+    return length >= this.blocksFor(QUIET_CUT_MS) && level <= Math.min(...recent);
   }
 
   /** One decode at a time: finished utterances first, then a fresh read of the current one. */
@@ -188,7 +208,7 @@ export class StreamingTranscriber {
     }
   }
 
-  private async run(utterance: Utterance, final: boolean) {
+  private async run(utterance: Speech, final: boolean) {
     this.busy = true;
     const audio = concat(utterance.blocks);
     let words: string[] = [];
@@ -211,16 +231,19 @@ export class StreamingTranscriber {
     this.schedule();
   }
 
-  private emitFinal(utterance: Utterance, words: string[]) {
+  private emitFinal(utterance: Speech, words: string[]) {
     // Never re-send settled words, even if the last read disagrees with them.
     const fresh = words.slice(utterance.committed);
     if (fresh.length > 0) {
       this.options.onWords({ words: fresh, final: true });
     }
     this.options.onWords({ words: [], final: false });
+    if (words.length > 0) {
+      this.options.onUtterance?.({ words, afterPause: utterance.afterPause });
+    }
   }
 
-  private emitPartial(utterance: Utterance, words: string[]) {
+  private emitPartial(utterance: Speech, words: string[]) {
     const agreed = agreedPrefix(utterance.previous, words);
     if (agreed > utterance.committed) {
       this.options.onWords({ words: words.slice(utterance.committed, agreed), final: true });

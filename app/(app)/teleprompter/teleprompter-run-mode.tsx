@@ -25,7 +25,7 @@ import { cn } from "@/src/lib/utils";
 import { followTargetY } from "./follow-target-y";
 import { AutoFollowButton, AutoFollowOverlay, AutoFollowSettingsSection, AutoFollowTag } from "./teleprompter-auto-follow-panel";
 import type { TeleprompterDoc, TeleprompterSection } from "./teleprompter-model";
-import { useAutoFollow } from "./use-auto-follow";
+import { readAutoFollowOn, saveAutoFollowOn, useAutoFollow } from "./use-auto-follow";
 import { BAR_BUTTON_CLASS, BAR_CLASS, BAR_PANEL_TOP_CLASS, BAR_SELECT_CLASS, RUN_MODE_ROOT_CLASS } from "./teleprompter-run-mode-chrome";
 
 /*
@@ -308,7 +308,7 @@ export default function FullscreenRunMode({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isBrowserFullscreen, setIsBrowserFullscreen] = useState(false);
   const [activeSectionId, setActiveSectionId] = useState(doc.sections[0]?.id ?? "");
-  const [auto, setAuto] = useState(false);
+  const [auto, setAuto] = useState(readAutoFollowOn);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const sectionEls = useRef<Record<string, HTMLElement | null>>({});
@@ -335,6 +335,29 @@ export default function FullscreenRunMode({
       })),
     [doc.sections]
   );
+  const firstSectionId = doc.sections[0]?.id ?? "";
+  const [sectionStart, setSectionStart] = useState({ docId: doc.id, firstSectionId });
+  if (sectionStart.docId !== doc.id || sectionStart.firstSectionId !== firstSectionId) {
+    setSectionStart({ docId: doc.id, firstSectionId });
+    setActiveSectionId(firstSectionId);
+  }
+
+  const registerSection = useCallback((sectionId: string, node: HTMLElement | null) => {
+    sectionEls.current[sectionId] = node;
+  }, []);
+
+  const applyPosition = useCallback((next: number) => {
+    positionRef.current = next;
+    const node = contentRef.current;
+    if (node) {
+      node.style.transform = teleprompterContentTransform(next);
+    }
+  }, []);
+
+  // A new show starts at its top; before useAutoFollow, so a follower rebuilt for it does too.
+  useEffect(() => {
+    applyPosition(0);
+  }, [applyPosition, doc.id, firstSectionId]);
   const wordMap = useMemo(() => buildScriptWordMap(doc.sections), [doc.sections]);
   /** The first word whose line reaches the playhead (the last word past the end): where following starts. */
   const wordAtPlayhead = useCallback(() => {
@@ -352,11 +375,12 @@ export default function FullscreenRunMode({
     setSettings: setFollowSettings,
     status: followStatus,
     mode: followMode,
+    command: followCommand,
     cursor: followCursor,
     levelRef: followLevelRef,
     targetRef: followTargetRef,
     anchor: followFrom
-  } = useAutoFollow({ wordMap, enabled: auto, wordAtPlayhead });
+  } = useAutoFollow({ wordMap, sections: doc.sections, enabled: auto, wordAtPlayhead });
   // Lines above the word being read fade (only while following).
   const reading = readingLineOf(wordMap, followCursor);
 
@@ -373,31 +397,6 @@ export default function FullscreenRunMode({
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
-
-  const firstSectionId = doc.sections[0]?.id ?? "";
-  const [sectionStart, setSectionStart] = useState({ docId: doc.id, firstSectionId });
-  if (sectionStart.docId !== doc.id || sectionStart.firstSectionId !== firstSectionId) {
-    setSectionStart({ docId: doc.id, firstSectionId });
-    setActiveSectionId(firstSectionId);
-    // A different show starts at its top, by hand.
-    setAuto(false);
-  }
-
-  const registerSection = useCallback((sectionId: string, node: HTMLElement | null) => {
-    sectionEls.current[sectionId] = node;
-  }, []);
-
-  const applyPosition = useCallback((next: number) => {
-    positionRef.current = next;
-    const node = contentRef.current;
-    if (node) {
-      node.style.transform = teleprompterContentTransform(next);
-    }
-  }, []);
-
-  useEffect(() => {
-    applyPosition(0);
-  }, [applyPosition, doc.id, firstSectionId]);
 
   useEffect(() => {
     function measure() {
@@ -492,6 +491,7 @@ export default function FullscreenRunMode({
     const next = !autoRef.current;
     autoRef.current = next;
     setAuto(next);
+    saveAutoFollowOn(next);
     if (!next) {
       setPaused(true);
     }
@@ -605,7 +605,7 @@ export default function FullscreenRunMode({
         <div className="flex shrink-0 items-center gap-2">
           <span role="status" className="flex">
             {auto ? (
-              <AutoFollowTag status={followStatus} mode={followMode} />
+              <AutoFollowTag status={followStatus} mode={followMode} command={followCommand} />
             ) : paused ? (
               <span className="inline-flex h-5 items-center rounded-sm bg-[#F2A516]/35 px-2 text-[11px] font-medium uppercase leading-none tracking-[0.11em] text-[#4A2F00]">
                 Paused

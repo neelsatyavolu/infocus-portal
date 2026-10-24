@@ -24,8 +24,8 @@ export type ScriptWord = {
   /** Index into the section's displayed lines (after the beat heading is removed). */
   lineIndex: number;
   blockId: string;
-  /** The line says "prompter": hearing it read is script, never a voice command. */
-  mentionsPrompter: boolean;
+  /** The line says "teleprompter" or "prompter" (the voice wake word): reading it is never a command. */
+  mentionsWakeWord: boolean;
 };
 
 /** A run of script from one `CAM n` line to the next (one story or announcement). */
@@ -54,7 +54,8 @@ export type ReadingLine = { sectionIndex: number; lineIndex: number };
 const STYLE_PATTERN = /(\[(?:RED|YELLOW)\].*?\[\/(?:RED|YELLOW)\])/gi;
 const INLINE_PLACEHOLDER = /(\{[^}]*\}|\[[^\]]*\])/;
 const WHOLE_PLACEHOLDER = /^(\{[^}]*\}|\[[^\]]*\])$/;
-const WAKE_WORDS = new Set(["prompter", "teleprompter"]);
+/** The voice-command wake words (teleprompter-voice-commands.ts). */
+const WAKE_WORDS = new Set(["teleprompter", "prompter"]);
 /** Cues that hand off to tape: a package, an intro or outro, a sound bite. */
 const ROLL_CUE = /^(ROLL|PKG|SOT|PLAY)\b/;
 
@@ -159,7 +160,7 @@ export function buildScriptWordMap(sections: Array<{ id: string; label: string; 
       const pending: PendingWord[] = [];
       const parts = lineParts(text, pending);
       const firstIndex = words.length;
-      const mentionsPrompter = pending.some((word) => word.tokens.some((token) => WAKE_WORDS.has(token)));
+      const mentionsWakeWord = pending.some((word) => word.tokens.some((token) => WAKE_WORDS.has(token)));
 
       if (pending.length > 0 && !block) {
         block = {
@@ -183,7 +184,7 @@ export function buildScriptWordMap(sections: Array<{ id: string; label: string; 
           sectionIndex,
           lineIndex,
           blockId: block?.id ?? "",
-          mentionsPrompter
+          mentionsWakeWord
         });
       });
       if (block && pending.length > 0) {

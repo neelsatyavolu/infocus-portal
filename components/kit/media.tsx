@@ -109,6 +109,7 @@ export function MediaTile({
   highlight,
   href,
   onClick,
+  pressed,
   sizes,
   className
 }: {
@@ -124,6 +125,8 @@ export function MediaTile({
   highlight?: "new" | "active";
   href?: string;
   onClick?: () => void;
+  /** A toggle tile (e.g. selecting clips): sets aria-pressed on the button. */
+  pressed?: boolean;
   sizes?: string;
   className?: string;
 }) {
@@ -166,7 +169,7 @@ export function MediaTile({
   }
   if (onClick) {
     return (
-      <button type="button" onClick={onClick} className={classes}>
+      <button type="button" onClick={onClick} aria-pressed={pressed} className={classes}>
         {body}
       </button>
     );

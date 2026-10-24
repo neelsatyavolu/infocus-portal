@@ -241,12 +241,14 @@ async function* asAsyncIterable(
 ): AsyncGenerator<Uint8Array, void, undefined> {
   if (typeof (source as ReadableStream<Uint8Array>).getReader === "function") {
     const reader = (source as ReadableStream<Uint8Array>).getReader();
+    let finished = false;
 
     try {
       while (true) {
         const { done, value } = await reader.read();
 
         if (done) {
+          finished = true;
           return;
         }
 
@@ -255,6 +257,10 @@ async function* asAsyncIterable(
         }
       }
     } finally {
+      // Stopped early (the download was cancelled): close the upstream fetch too.
+      if (!finished) {
+        await reader.cancel().catch(() => undefined);
+      }
       reader.releaseLock();
     }
   }
@@ -271,118 +277,122 @@ export function createStoredZipStream(
   callbacks?: StoredZipCallbacks
 ) {
   const encoder = new TextEncoder();
-  let cancelled = false;
 
-  return new ReadableStream<Uint8Array>({
-    start(controller) {
-      void (async () => {
-        const records: CentralDirectoryRecord[] = [];
-        let offset = 0n;
+  async function* archiveChunks(): AsyncGenerator<Uint8Array, void, undefined> {
+    const records: CentralDirectoryRecord[] = [];
+    let offset = 0n;
 
+    for await (const entry of entries) {
+      const normalizedName = entry.name.replace(/^\/+/, "").replace(/\\/g, "/");
+      if (!normalizedName) {
+        continue;
+      }
+
+      const nameBytes = encoder.encode(normalizedName);
+      const { dosDate, dosTime } = toDosDateTime(entry.lastModified ?? new Date());
+      const localHeaderOffset = offset;
+      const localHeader = createLocalFileHeader(nameBytes, dosTime, dosDate);
+      yield localHeader;
+      offset += BigInt(localHeader.byteLength);
+
+      let crc32 = 0;
+      let size = 0n;
+
+      for await (const chunk of asAsyncIterable(entry.stream)) {
+        const bytes = chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk);
+        crc32 = updateCrc32(crc32, bytes);
+        size += BigInt(bytes.byteLength);
+        yield bytes;
+        offset += BigInt(bytes.byteLength);
+      }
+
+      const descriptor = createDataDescriptor(crc32, size);
+      yield descriptor;
+      offset += BigInt(descriptor.byteLength);
+
+      records.push({
+        compressedSize: size,
+        crc32,
+        localHeaderOffset,
+        nameBytes,
+        uncompressedSize: size,
+        dosDate,
+        dosTime
+      });
+
+      callbacks?.onEntryWritten?.({ name: normalizedName, bytes: size, offset });
+    }
+
+    const centralDirectoryOffset = offset;
+
+    for (const record of records) {
+      const header = createCentralDirectoryHeader(record);
+      yield header;
+      offset += BigInt(header.byteLength);
+    }
+
+    const centralDirectorySize = offset - centralDirectoryOffset;
+    const archiveNeedsZip64 =
+      records.length > ZIP64_ENTRY_LIMIT ||
+      centralDirectoryOffset > ZIP64_FIELD_LIMIT ||
+      centralDirectorySize > ZIP64_FIELD_LIMIT ||
+      records.some(recordNeedsZip64);
+
+    if (archiveNeedsZip64) {
+      const zip64EndOffset = offset;
+      const zip64End = createZip64EndOfCentralDirectory(
+        BigInt(records.length),
+        centralDirectorySize,
+        centralDirectoryOffset
+      );
+      yield zip64End;
+      offset += BigInt(zip64End.byteLength);
+
+      const zip64Locator = createZip64EndOfCentralDirectoryLocator(zip64EndOffset);
+      yield zip64Locator;
+      offset += BigInt(zip64Locator.byteLength);
+    }
+
+    const endOfCentralDirectory = createEndOfCentralDirectory(
+      records.length,
+      centralDirectorySize,
+      centralDirectoryOffset,
+      archiveNeedsZip64
+    );
+    yield endOfCentralDirectory;
+    offset += BigInt(endOfCentralDirectory.byteLength);
+
+    callbacks?.onComplete?.({
+      totalBytes: offset,
+      entryCount: records.length,
+      usedZip64: archiveNeedsZip64
+    });
+  }
+
+  const chunks = archiveChunks();
+
+  // Pull-based: the next upstream chunk is read only when the client has taken the last one, so a
+  // fast source feeding a slow download never piles bytes up in memory (Workers cap it at 128 MB).
+  return new ReadableStream<Uint8Array>(
+    {
+      async pull(controller) {
         try {
-          for await (const entry of entries) {
-            if (cancelled) {
-              return;
-            }
-
-            const normalizedName = entry.name.replace(/^\/+/, "").replace(/\\/g, "/");
-            if (!normalizedName) {
-              continue;
-            }
-
-            const nameBytes = encoder.encode(normalizedName);
-            const { dosDate, dosTime } = toDosDateTime(entry.lastModified ?? new Date());
-            const localHeaderOffset = offset;
-            const localHeader = createLocalFileHeader(nameBytes, dosTime, dosDate);
-            controller.enqueue(localHeader);
-            offset += BigInt(localHeader.byteLength);
-
-            let crc32 = 0;
-            let size = 0n;
-
-            for await (const chunk of asAsyncIterable(entry.stream)) {
-              if (cancelled) {
-                return;
-              }
-
-              const bytes = chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk);
-              crc32 = updateCrc32(crc32, bytes);
-              size += BigInt(bytes.byteLength);
-              controller.enqueue(bytes);
-              offset += BigInt(bytes.byteLength);
-            }
-
-            const descriptor = createDataDescriptor(crc32, size);
-            controller.enqueue(descriptor);
-            offset += BigInt(descriptor.byteLength);
-
-            records.push({
-              compressedSize: size,
-              crc32,
-              localHeaderOffset,
-              nameBytes,
-              uncompressedSize: size,
-              dosDate,
-              dosTime
-            });
-
-            callbacks?.onEntryWritten?.({ name: normalizedName, bytes: size, offset });
+          const { done, value } = await chunks.next();
+          if (done) {
+            controller.close();
+          } else {
+            controller.enqueue(value);
           }
-
-          const centralDirectoryOffset = offset;
-
-          for (const record of records) {
-            const header = createCentralDirectoryHeader(record);
-            controller.enqueue(header);
-            offset += BigInt(header.byteLength);
-          }
-
-          const centralDirectorySize = offset - centralDirectoryOffset;
-          const archiveNeedsZip64 =
-            records.length > ZIP64_ENTRY_LIMIT ||
-            centralDirectoryOffset > ZIP64_FIELD_LIMIT ||
-            centralDirectorySize > ZIP64_FIELD_LIMIT ||
-            records.some(recordNeedsZip64);
-
-          if (archiveNeedsZip64) {
-            const zip64EndOffset = offset;
-            const zip64End = createZip64EndOfCentralDirectory(
-              BigInt(records.length),
-              centralDirectorySize,
-              centralDirectoryOffset
-            );
-            controller.enqueue(zip64End);
-            offset += BigInt(zip64End.byteLength);
-
-            const zip64Locator = createZip64EndOfCentralDirectoryLocator(zip64EndOffset);
-            controller.enqueue(zip64Locator);
-            offset += BigInt(zip64Locator.byteLength);
-          }
-
-          const endOfCentralDirectory = createEndOfCentralDirectory(
-            records.length,
-            centralDirectorySize,
-            centralDirectoryOffset,
-            archiveNeedsZip64
-          );
-          controller.enqueue(endOfCentralDirectory);
-          offset += BigInt(endOfCentralDirectory.byteLength);
-
-          controller.close();
-          callbacks?.onComplete?.({
-            totalBytes: offset,
-            entryCount: records.length,
-            usedZip64: archiveNeedsZip64
-          });
         } catch (error) {
           callbacks?.onError?.(error);
           controller.error(error);
         }
-      })();
+      },
+      async cancel() {
+        callbacks?.onCancel?.();
+        await chunks.return(undefined).catch(() => undefined);
+      }
     },
-    cancel() {
-      cancelled = true;
-      callbacks?.onCancel?.();
-    }
-  });
+    { highWaterMark: 0 }
+  );
 }

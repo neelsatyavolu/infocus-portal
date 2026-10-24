@@ -20,6 +20,7 @@ import { StageStatusChip } from "@/components/package-cycle/stage-status-chip";
 import { ClipGrid, WatchClipDialog } from "@/components/package-stages/clip-grid";
 import { CutVersions } from "@/components/package-stages/cut-versions";
 import { FinalCutVideo } from "@/components/package-stages/final-cut-video";
+import { useFootageDownload } from "@/components/package-stages/footage-download";
 import { RollKindDialog } from "@/components/package-stages/roll-kind-dialog";
 import { stageReviewHref } from "@/components/package-stages/stage-video";
 import { useDecisionLead } from "@/components/package-stages/decision-lead";
@@ -128,6 +129,7 @@ export function StageWorkspace({
 
   const media = view?.media ?? [];
   const row = view?.row;
+  const footageDownload = useFootageDownload(slug === "a-roll" ? (row?.id ?? null) : null, media);
   const grade = view?.finalCutGrade ?? null;
   const finalCutProducer = producerChrome && slug === "final-cut";
   const primaryAction = finalCutProducer
@@ -211,7 +213,15 @@ export function StageWorkspace({
       />
     );
   } else if (slug === "a-roll") {
-    mediaBody = <ClipGrid media={media} showNew={view.isProducer} wide={embedded} onWatch={setWatching} />;
+    mediaBody = (
+      <ClipGrid
+        media={media}
+        showNew={view.isProducer}
+        wide={embedded}
+        onWatch={setWatching}
+        selection={footageDownload.selection}
+      />
+    );
   } else if (slug === "initial-cut") {
     mediaBody = (
       <CutVersions media={media} collapsePlayer={producerChrome} />
@@ -236,6 +246,7 @@ export function StageWorkspace({
                 : "Your Final Cut"
         }
         count={media.length > 0 ? media.length : null}
+        actions={footageDownload.actions}
         description={canUpload && !upload.uploading ? dropHint(slug, media.length > 0, !studentPage) : undefined}
         padding="md"
       >

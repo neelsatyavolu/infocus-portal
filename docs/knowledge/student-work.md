@@ -22,6 +22,8 @@ Stages unlock in order. Later stages show in the stage bar but are disabled (hov
 
 **A-roll/B-roll**: pick A-roll or B-roll, then one or more clips (up to 30 GB per A-roll file, 15 GB per B-roll file). The assigned producer gets an email and push the first time footage is uploaded each day. Once the producer approves A-roll/B-roll, uploads close; new producer feedback reopens it.
 
+**Downloading footage**: open a clip and use **Download original** to save that file as it was uploaded. On the **Footage** panel, **Download all** saves every ready clip as one zip with `A-roll` and `B-roll` folders (with only one clip it downloads that file). **Select** turns the tiles into checkboxes: tick the clips you want, then **Download N clips** (one clip saves as itself, more as a zip). Clips still uploading or processing can't be picked. One zip holds at most 40 GB; for more, select fewer clips and download in parts. Group members and producers can download a package's footage.
+
 **Initial Cut**: each upload is a new version of the same cut (the button reads **Upload Initial Cut** the first time, then **Upload new version**). The version goes to whichever stage is reviewing it, and that stage's reviewers get an email and push. No more uploads once Stage 3 approves.
 
 **Final Cut**: one upload. A second upload is allowed only as the second revision after a low first grade (see grading.md).

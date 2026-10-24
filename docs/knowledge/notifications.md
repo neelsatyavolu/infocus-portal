@@ -49,7 +49,7 @@ Browser push goes only to devices registered with **Browser** on in Settings →
 | Extension approved | Each chosen student | Email |
 | Participation dock submitted | Executives, the adviser, and super admin (not the requester) | Email |
 | Equipment request; item out 72 hours | Equipment managers; borrower and managers daily | Email (see `equipment.md`) |
-| Package ready on YouTube | Website managers | Email with watch link and embed code (see `publishing-queue.md`) |
+| Package ready on YouTube | Website managers | Email that the infocusnews.tv story is scheduled, with a link to review it; or, if it couldn't be posted, the watch link and embed code (see `publishing-queue.md`) |
 | Added in Admin or by the assistant | The new person | Invite email (optional) |
 | Access request decided | The requester | Email |
 | Email sign-in | You | Six-digit code, expires in 10 minutes |

@@ -37,6 +37,8 @@ People and “registered users” are the same list. Do not add a second account
 
 Producer Team sits on Admin's **People** tab, beside the People list (below it on narrow screens). Pick a person already in People, then choose Associate Producer, Executive Producer, or Adviser, and press **Save role**. To change someone's role, pick them and save the new one. The team is listed by role (Advisers, Executive producers, Associate producers). Associate producers are not assigned a News / Feature / Commentary category. Only super admin and the adviser can assign roles.
 
+**producers@infocusportal.com** (and the old producers@infocuspaly.com) goes to every executive producer and super admin who has a Portal account, looked up when the message arrives, so changing someone's role here changes who gets it. It arrives as "<sender> via InFocus Producers", and replying goes to the sender. The adviser and associate producers don't get it.
+
 ## Other Admin controls
 
 Admin has tabs across the top: **Overview**, **People**, **School year**, and, for super admin and the adviser, **System**. It reopens the tab you used last on that browser. Old links to a section (for example `/admin#backups` or `/admin#configuration`) still open the right tab and scroll to it. The Overview tab shows how many access requests are waiting, and a tab with something broken shows a warning icon. On every tab but Overview, the line under the title lists what needs attention (access requests waiting, YouTube uploads paused, Google Calendar not connected or its sync failed, the last backup failed, Paly's calendar check failed), each a link to where it is fixed; past two items, **+N more** opens Overview.

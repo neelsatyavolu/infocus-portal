@@ -62,7 +62,7 @@ For sticky names, configure a named tunnel with hostnames `grades` / `teleprompt
 
 ## Retiring infocuspaly.com
 
-Already moved: every Portal host, Drive (`drive.infocusportal.com`), the meeting server (`meet-api.infocusportal.com`), the NAS control panel and SSH (`ugos.` and `ssh.infocusportal.com`; the old `ugos.` and `www.` redirect), Google sign-in and YouTube callbacks, email (Resend sends from `@infocusportal.com`; Email Routing forwards `producers@infocusportal.com`), and the editing Mac's `portal_url`. App releases from Oct 24, 2026 on (iPhone Portal 1.3.0, InFocus News 1.0.1, InFocus for Mac and CLI 1.1.0) use infocusportal.com and move old links, pushes, cookies and the saved Drive address over. The CLI also follows Drive's `X-Drive-Moved-To` header by itself, and the editor maps an old `portal_url`.
+Already moved: every Portal host, Drive (`drive.infocusportal.com`), the meeting server (`meet-api.infocusportal.com`), the NAS control panel and SSH (`ugos.` and `ssh.infocusportal.com`; the old `ugos.` and `www.` redirect), Google sign-in and YouTube callbacks, email (Resend sends from `@infocusportal.com`; Email Routing sends `producers@` on both domains to `workers/producers-forward`, which re-sends it to the Portal's executive producers and super admins), and the editing Mac's `portal_url`. App releases from Oct 24, 2026 on (iPhone Portal 1.3.0, InFocus News 1.0.1, InFocus for Mac and CLI 1.1.0) use infocusportal.com and move old links, pushes, cookies and the saved Drive address over. The CLI also follows Drive's `X-Drive-Moved-To` header by itself, and the editor maps an old `portal_url`.
 
 Still on infocuspaly.com, to finish before letting it go:
 

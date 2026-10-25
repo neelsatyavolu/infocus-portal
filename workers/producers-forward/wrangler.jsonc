@@ -1,0 +1,17 @@
+{
+  // producers@ on infocusportal.com and infocuspaly.com (Email Routing rules point at this Worker by name).
+  // Secrets, never committed: RESEND_API_KEY, PLATFORM_SUPER_ADMIN_EMAIL, FALLBACK_DESTINATIONS (`wrangler secret put`).
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "infocus-producers-forward",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  // The Portal's database (same Hyperdrive config as the Portal Worker). The id is not a credential.
+  "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "ed1d440dbd764d159d1e6071f2c51435" }],
+  "observability": { "enabled": true },
+  "workers_dev": false,
+  "vars": {
+    "LIST_ADDRESS": "producers@infocusportal.com",
+    "LIST_NAME": "InFocus Producers"
+  }
+}

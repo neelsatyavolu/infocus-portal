@@ -1,4 +1,4 @@
-import { mainAppOrigin, toInstalledAppUrl } from "@/src/lib/hosts";
+import { mainAppOrigin } from "@/src/lib/hosts";
 import type { KeyResponse } from "@/src/lib/meetings/types";
 import { inngest } from "@/src/lib/inngest";
 import { driveFetch } from "@/src/lib/nas-storage";
@@ -79,8 +79,7 @@ export async function startMeetingScribe(
       roomToken,
       key: key.key,
       epoch: key.epoch,
-      // Drive pins this origin (its PORTAL_BASE_URL), set up on the original domain like the installed apps.
-      portalBaseUrl: toInstalledAppUrl(mainAppOrigin()).replace(/\/+$/, ""),
+      portalBaseUrl: mainAppOrigin().replace(/\/+$/, ""),
       part,
       vocabulary
     });

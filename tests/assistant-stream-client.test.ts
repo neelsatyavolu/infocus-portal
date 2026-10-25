@@ -21,11 +21,11 @@ describe("isSafePlaceHref", () => {
   });
 
   it("allows https on the InFocus app hosts only", () => {
-    expect(isSafePlaceHref("https://drive.infocuspaly.com/folder")).toBe(true);
+    expect(isSafePlaceHref("https://drive.infocusportal.com/folder")).toBe(true);
     expect(isSafePlaceHref("https://equipment.infocuspaly.com")).toBe(true);
-    expect(isSafePlaceHref("http://drive.infocuspaly.com")).toBe(false);
+    expect(isSafePlaceHref("http://drive.infocusportal.com")).toBe(false);
     expect(isSafePlaceHref("https://example.com")).toBe(false);
-    expect(isSafePlaceHref("https://drive.infocuspaly.com.example.com")).toBe(false);
+    expect(isSafePlaceHref("https://drive.infocusportal.com.example.com")).toBe(false);
   });
 
   it("refuses protocol-relative, backslash and script links", () => {

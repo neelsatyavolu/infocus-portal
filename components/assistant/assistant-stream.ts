@@ -118,8 +118,7 @@ export function uid() {
 }
 
 const ALLOWED_PLACE_HOSTS = new Set([
-  "drive.infocuspaly.com",
-  ...PORTAL_DOMAINS.flatMap((domain) => [`teleprompter.${domain}`, `equipment.${domain}`])
+  ...PORTAL_DOMAINS.flatMap((domain) => [`drive.${domain}`, `teleprompter.${domain}`, `equipment.${domain}`])
 ]);
 
 /** Take me there only follows a Portal path or https on one of the InFocus app hosts. */

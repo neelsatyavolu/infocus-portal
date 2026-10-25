@@ -17,7 +17,7 @@ describe("provisionNasUsers", () => {
 
   it("posts unique emails to Drive ensure-user", async () => {
     process.env.DRIVE_SERVICE_TOKEN = "secret-token";
-    process.env.DRIVE_BASE_URL = "https://drive.infocuspaly.com";
+    process.env.DRIVE_BASE_URL = "https://drive.infocusportal.com";
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, text: async () => "" });
     vi.stubGlobal("fetch", fetchMock);
 
@@ -28,7 +28,7 @@ describe("provisionNasUsers", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe("https://drive.infocuspaly.com/api/service/ensure-user");
+    expect(url).toBe("https://drive.infocusportal.com/api/service/ensure-user");
     expect((init.headers as Record<string, string>).Authorization).toBe("Bearer secret-token");
     expect(JSON.parse(String(init.body))).toEqual({
       users: [{ email: "tw12345@pausd.us", name: "T" }]
@@ -37,7 +37,7 @@ describe("provisionNasUsers", () => {
 
   it("posts emails to Drive revoke-user", async () => {
     process.env.DRIVE_SERVICE_TOKEN = "secret-token";
-    process.env.DRIVE_BASE_URL = "https://drive.infocuspaly.com";
+    process.env.DRIVE_BASE_URL = "https://drive.infocusportal.com";
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, text: async () => "" });
     vi.stubGlobal("fetch", fetchMock);
 
@@ -45,7 +45,7 @@ describe("provisionNasUsers", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe("https://drive.infocuspaly.com/api/service/revoke-user");
+    expect(url).toBe("https://drive.infocusportal.com/api/service/revoke-user");
     expect(JSON.parse(String(init.body))).toEqual({
       users: [{ email: "gonekid@pausd.us" }]
     });

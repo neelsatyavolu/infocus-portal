@@ -9,7 +9,7 @@ Same Next.js app, host-based routing in `middleware.ts`. The Portal answers on t
 | `teleprompter.infocusportal.com` | teleprompter | `/teleprompter` |
 | `equipment.infocusportal.com` | equipment | `/equipment` |
 | `meet.infocusportal.com` | meet | `/meetings` (also `/producers` → `/meet/producers`, `/<id>` → `/meet/<id>`) |
-| `drive.infocuspaly.com` | separate app | InFocus Drive (other repo); stays on the old domain |
+| `drive.infocusportal.com` | separate app | InFocus Drive (other repo, Cloudflare Tunnel); `drive.infocuspaly.com` still reaches it and moves browsers here |
 
 Each of those Portal hosts also exists on infocuspaly.com (`meet.infocuspaly.com`, …).
 
@@ -17,7 +17,7 @@ Each of those Portal hosts also exists on infocuspaly.com (`meet.infocuspaly.com
 
 `APP_BASE_URL` decides which domain is canonical (`canonicalPortalDomain()`; in the browser, `NEXT_PUBLIC_APP_URL`). Links, emails and Slack posts use it.
 
-- **Browsers** on the other domain get a 308 to the same page on the canonical one (`legacyPortalRedirect`). Only `GET`/`HEAD` pages move: API calls, `/_next`, `/.well-known` and `/meet-scribe` answer on both domains. Drive's notes taker is pinned to infocuspaly.com (its `PORTAL_BASE_URL`), so the Portal sends it that origin (`src/server/meetings-scribe.ts`).
+- **Browsers** on the other domain get a 308 to the same page on the canonical one (`legacyPortalRedirect`). Only `GET`/`HEAD` pages move: API calls, `/_next`, `/.well-known` and `/meet-scribe` answer on both domains. Drive's notes taker opens `/meet-scribe` on the origin Drive pins (its `PORTAL_BASE_URL`, now infocusportal.com).
 - **Not moved:** the InFocus iPhone app (`?app=1`, its embedded cookie or `InFocusiOSApp/` user agent), the InFocus Mac app (`InFocusMacApp/`), and kiosks that hold the teleprompter kiosk or equipment station cookie. The apps already installed only treat infocuspaly.com as the Portal; anything else opens in Safari.
 - **Links on the old domain:** pages served on infocuspaly.com move a clicked link to the canonical domain onto infocuspaly.com (`PortalDomainLinks`, mounted in `app/layout.tsx`), so the apps keep the page in the app.
 - **App notifications** (APNs, iPhone and Mac) rewrite Portal links to infocuspaly.com (`toInstalledAppUrl` in `src/lib/native-push.ts`), so the installed apps open them in the app.
@@ -59,3 +59,16 @@ For sticky names, configure a named tunnel with hostnames `grades` / `teleprompt
 | `TELEPROMPTER_APP_URL` | Optional absolute teleprompter URL |
 | `EQUIPMENT_APP_URL` | Optional absolute equipment URL |
 | `MEET_APP_URL` / `NEXT_PUBLIC_MEET_APP_URL` | Meetings host (default `https://meet.<canonical domain>`); set both alike |
+
+## Retiring infocuspaly.com
+
+Already moved: every Portal host, Drive (`drive.infocusportal.com`), the meeting server (`meet-api.infocusportal.com`), Google sign-in and YouTube callbacks. App builds from Oct 24, 2026 on (iPhone Portal, InFocus for Mac, InFocus News, editor setup) use infocusportal.com and treat infocuspaly.com links, pushes, cookies and the saved Drive address as the new domain.
+
+Still on infocuspaly.com, to move before letting it go:
+
+1. **Older app builds.** iPhone and Mac builds from before the move only know infocuspaly.com. Wait until the App Store and the Mac app's auto-update have replaced them (`NativePushDevice.appVersion` shows what's registered), then drop the `toInstalledAppUrl` call in `src/lib/native-push.ts` and the app exemptions in `legacyPortalRedirect`'s caller (`middleware.ts`).
+2. **Email.** `RESEND_FROM_EMAIL` (Portal and Drive) and `WEB_PUSH_SUBJECT` are `@infocuspaly.com`; inbound mail routing and the Resend/SES DNS records live on that zone. Verify infocusportal.com in Resend first.
+3. **Equipment passkeys.** RP ID is `infocuspaly.com` (`PASSKEY_RP_ID`). Switch it to infocusportal.com and have managers register new passkeys.
+4. **NAS admin.** `ugos.infocuspaly.com` (UGOS admin + SSO, `scripts/install_ugos_sso.py` in infocus-drive) and `ssh.infocuspaly.com` (deploy SSH through Cloudflare Access) are tunnel hostnames on the old zone.
+5. **Vercel fallback.** The `/.well-known/{acme-challenge,vercel}` routes and the Vercel project.
+

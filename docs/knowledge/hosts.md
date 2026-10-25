@@ -9,7 +9,7 @@ Same Next.js app. Host routing in `middleware.ts`.
 | `teleprompter.infocusportal.com` | Teleprompter, full screen with no sidebar | Nothing else |
 | `equipment.infocusportal.com` | Equipment checkout (`/equipment`) | Equipment pages only |
 | `meet.infocusportal.com` | Meetings: `/` is the Meetings tab, `/producers` the InFocus Producer Meeting, `/<meeting id>` a call | `/meetings/<id>` (notes) |
-| `drive.infocuspaly.com` | InFocus Drive (other repo) | — |
+| `drive.infocusportal.com` | InFocus Drive (other repo) | — |
 
 **The old address, infocuspaly.com,** still works for every host above (`grades.infocuspaly.com`, `meet.infocuspaly.com`, …). In a browser, a page there moves permanently to the same page on infocusportal.com, so you may need to sign in once more. It doesn't move inside the InFocus iPhone and Mac apps (they keep using the address they were built with until they're updated), on kiosks (the studio teleprompter and equipment station), or for the API.
 

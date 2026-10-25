@@ -142,7 +142,7 @@ describe("links on the old domain", () => {
   it("move to the same page on the current domain", () => {
     expect(linkOnCurrentPortalDomain("https://teleprompter.infocusportal.com/x?y=1", "infocuspaly.com")).toBe("https://teleprompter.infocuspaly.com/x?y=1");
     expect(linkOnCurrentPortalDomain("https://meet.infocuspaly.com/", "meet.infocuspaly.com")).toBeNull();
-    expect(linkOnCurrentPortalDomain("https://drive.infocuspaly.com/", "infocusportal.com")).toBeNull();
+    expect(linkOnCurrentPortalDomain("https://drive.infocusportal.com/", "infocuspaly.com")).toBeNull();
     expect(linkOnCurrentPortalDomain("https://example.com/", "infocuspaly.com")).toBeNull();
     expect(linkOnCurrentPortalDomain("https://infocusportal.com/", "localhost")).toBeNull();
   });

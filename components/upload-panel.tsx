@@ -99,7 +99,7 @@ export function UploadPanel({ projectId, canUpload }: UploadPanelProps) {
       setProgress(nextProgress);
     };
 
-    // NAS: direct multipart upload to drive.infocuspaly.com (Package Cycles path)
+    // NAS: direct multipart upload to drive.infocusportal.com (Package Cycles path)
     if (init.data.upload.provider === "NAS") {
       try {
         const { completeNasUpload, uploadFileToNas } = await import("@/src/lib/nas-upload-client");

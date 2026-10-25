@@ -44,7 +44,7 @@ Tabs with no note are shown to everyone signed in.
 
 **Tools**
 
-- InFocus Drive (opens `drive.infocuspaly.com` in a new tab)
+- InFocus Drive (opens `drive.infocusportal.com` in a new tab)
 - Teleprompter (opens `teleprompter.infocusportal.com`)
 
 **Pinned at the bottom of the sidebar:** Admin Dashboard (executive producers, the adviser, and super admin), then Settings (everyone). Your name, **Passwords** and **Sign out** are in the account menu in the top bar.

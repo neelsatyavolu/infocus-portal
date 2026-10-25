@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { EQUIPMENT_STATION_COOKIE_NAME } from "@/src/lib/auth-cookies";
-import { resolveSessionCookieDomain } from "@/src/lib/hosts";
+import { PORTAL_DOMAINS, portalDomainOf, resolveSessionCookieDomain } from "@/src/lib/hosts";
 export { EQUIPMENT_STATION_COOKIE_NAME };
 export const EQUIPMENT_SESSION_SECONDS = 3600;
 export const EQUIPMENT_OAUTH_COOKIE_NAME = "infocus_equipment_google_oauth";
@@ -40,8 +40,24 @@ export function getEquipmentStationCookieMeta(host?: string | null) {
   };
 }
 
+/** Where equipment sign-in and passkeys run: the equipment host, main host and www of each Portal domain. */
+export const EQUIPMENT_PORTAL_ORIGINS = PORTAL_DOMAINS.flatMap((domain) =>
+  ["equipment.", "", "www."].map((prefix) => `https://${prefix}${domain}`)
+);
+
+/**
+ * Passkeys were registered on infocuspaly.com, so every Portal domain keeps that RP ID; the other
+ * domain is allowed to use it by /.well-known/webauthn on infocuspaly.com (worker.ts).
+ */
+export const PASSKEY_RP_ID = "infocuspaly.com";
+
+/** The origins infocuspaly.com's /.well-known/webauthn lets use its passkeys. */
+export function passkeyRelatedOrigins() {
+  return EQUIPMENT_PORTAL_ORIGINS.filter((origin) => portalDomainOf(new URL(origin).hostname) !== PASSKEY_RP_ID);
+}
+
 export function isEquipmentSignInOrigin(origin: string) {
-  if (["https://equipment.infocuspaly.com", "https://infocuspaly.com", "https://www.infocuspaly.com"].includes(origin)) return true;
+  if (EQUIPMENT_PORTAL_ORIGINS.includes(origin)) return true;
   try { return process.env.NODE_ENV !== "production" && new URL(origin).hostname === "localhost"; }
   catch { return false; }
 }

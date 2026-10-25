@@ -17,11 +17,11 @@ InFocus Portal is the student broadcast production site for **InFocus News** (Pa
 
 | Host | App |
 |---|---|
-| `infocuspaly.com` | Portal (packages, calendar, admin, …) |
-| `grades.infocuspaly.com` | Student grades |
-| `teleprompter.infocuspaly.com` | Teleprompter |
+| `infocusportal.com` | Portal (packages, calendar, admin, …) |
+| `grades.infocusportal.com` | Student grades |
+| `teleprompter.infocusportal.com` | Teleprompter |
 | `drive.infocuspaly.com` | InFocus Drive (separate app) |
-| `equipment.infocuspaly.com` | Equipment checkout, requests, and manage |
+| `equipment.infocusportal.com` | Equipment checkout, requests, and manage |
 
 One sign-in covers Portal, grades, teleprompter, and equipment manage (shared session cookie). Sign in with Google or an emailed code. Checkout and requests stay public.
 

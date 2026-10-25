@@ -1,18 +1,19 @@
 import { ArrowUpRight } from "lucide-react";
 import { SettingsGrid, SettingsPanel, SettingsSection } from "@/components/settings-layout";
+import { gradesAppOrigin, teleprompterAppOrigin } from "@/src/lib/hosts";
 
 const APP_LINKS = [
   {
-    href: "https://grades.infocuspaly.com",
+    href: gradesAppOrigin(),
     title: "Grades dashboard",
     description: "Estimated grade, participation, packages, and calculator",
-    host: "grades.infocuspaly.com"
+    host: new URL(gradesAppOrigin()).host
   },
   {
-    href: "https://teleprompter.infocuspaly.com",
+    href: teleprompterAppOrigin(),
     title: "Teleprompter",
     description: "Fullscreen run mode + AI reformat",
-    host: "teleprompter.infocuspaly.com"
+    host: new URL(teleprompterAppOrigin()).host
   },
   {
     href: "https://drive.infocuspaly.com",

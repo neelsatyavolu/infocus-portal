@@ -1,6 +1,6 @@
 # Teleprompter
 
-Host: `teleprompter.infocuspaly.com` (also linked from the Portal sidebar). The Show's **Open script** / **Create script** opens it for that show date.
+Host: `teleprompter.infocusportal.com` (also linked from the Portal sidebar). The Show's **Open script** / **Create script** opens it for that show date.
 
 Signed-in members with access to the InFocus workspace can create, edit, and run scripts.
 

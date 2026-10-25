@@ -57,7 +57,7 @@ Code: `src/lib/nas-storage.ts` → `buildNasMediaPath`, `nasPosterPath`.
 ## Architecture
 
 ```
-Browser (infocuspaly.com)
+Browser (infocusportal.com or infocuspaly.com)
   │ POST /api/media/init-upload
   ▼
 Packages API (Vercel)
@@ -71,7 +71,7 @@ NAS: /volumeN/<share>/Package Cycles/… or Package Storage/…
 
 1. **Init** — packages builds path, mints short-lived path token on Drive.  
 2. **Upload** — browser sends **directly to Drive** (not through Vercel). Files under 8 MiB are one POST; larger files go in retried 16 MiB chunks (`/api/service/upload/init|chunk|complete`) so the tunnel can drop a piece without killing the file.
-3. **CORS** — Drive allows `https://infocuspaly.com` and `*.vercel.app`.  
+3. **CORS** — Drive allows `https://infocusportal.com`, `https://infocuspaly.com` (and their `www.`) and `*.vercel.app`.  
 4. **Complete** — `POST .../complete-nas-upload` → status `READY` (no Bunny processing).  
 5. **Poster** — browser captures a frame → `POST .../poster` → Drive service upload.  
 6. **Playback** — signed `GET /api/service/file?path=&token=` (progressive MP4).
@@ -186,7 +186,7 @@ Server: `resolveThumbnailUrl` / `resolvePlaybackUrl` in `src/lib/media-playback.
 2. ✅ docker-compose passes `PACKAGES_*` into container  
 3. ✅ Service API smoke-tested (ensure-dir, mint, upload)  
 4. ✅ Packages prod env + DB schema  
-5. ✅ CORS on Drive for `infocuspaly.com` / `*.vercel.app`  
+5. ✅ CORS on Drive for `infocusportal.com` / `infocuspaly.com` / `*.vercel.app`  
 6. ✅ Flattened nested test folders on NAS; fixed `nasPath` in DB  
 7. ⚠️ Preview env vars may still need “all branches” in Vercel UI if missing  
 

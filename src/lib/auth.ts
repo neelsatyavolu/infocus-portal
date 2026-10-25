@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { WorkspaceRole } from "@prisma/client";
 import { APP_SESSION_COOKIE_NAME } from "@/src/lib/auth-cookies";
 import { parseAppSessionToken, type SessionUser } from "@/src/lib/auth-edge";
-import { resolveSessionCookieDomain } from "@/src/lib/hosts";
+import { portalDomainOf, resolveSessionCookieDomain } from "@/src/lib/hosts";
 import { isEmailAllowedToUsePlatform, normalizeEmail } from "@/src/lib/platform-admin";
 import { prisma } from "@/src/lib/prisma";
 import {
@@ -252,10 +252,8 @@ export function hasGoogleOAuthConfig() {
   return Boolean(clientId && clientSecret && getAuthSecret());
 }
 
-const TRUSTED_RETURN_HOST = /^(?:[a-z0-9-]+\.)*infocuspaly\.com$/;
-
 /**
- * An absolute return URL we may send people to after sign-in: https only, infocuspaly.com or a
+ * An absolute return URL we may send people to after sign-in: https only, a Portal domain or its
  * subdomain (e.g. the Meetings host), no credentials or port, never an API path. Parsed as a URL,
  * so tricks like backslashes or "@" can't smuggle in another host.
  */
@@ -268,7 +266,7 @@ export function isTrustedReturnUrl(value: string) {
       !url.username &&
       !url.password &&
       !url.port &&
-      TRUSTED_RETURN_HOST.test(url.hostname) &&
+      portalDomainOf(url.hostname) !== null &&
       !url.pathname.startsWith("/api/")
     );
   } catch {
@@ -292,12 +290,12 @@ export function sanitizeReturnTo(returnTo?: string | null, fallback = "/dashboar
   return value;
 }
 
-/** Where a JSON sign-in route sends the browser: a path on this origin, a trusted infocuspaly.com URL, or /dashboard. */
+/** Where a JSON sign-in route sends the browser: a path on this origin, a trusted Portal domain URL, or /dashboard. */
 export function resolveSignInReturnTo(returnTo: string | undefined, origin: string) {
   // Resolve as a URL too: URL parsing can normalize backslashes into an external host.
   const safe = sanitizeReturnTo(returnTo);
   const target = new URL(safe, origin);
-  // Same origin → path only; another infocuspaly.com host (e.g. the Meetings host) → as is.
+  // Same origin → path only; another Portal host (e.g. the Meetings host) → as is.
   if (target.origin === origin) return `${target.pathname}${target.search}${target.hash}`;
   return isTrustedReturnUrl(safe) ? safe : "/dashboard";
 }

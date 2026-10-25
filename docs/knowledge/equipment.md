@@ -1,6 +1,6 @@
 # Equipment
 
-Host: `equipment.infocuspaly.com` (also `/equipment` on the main Portal origin).
+Host: `equipment.infocusportal.com` (also `/equipment` on the main Portal origin). The old `equipment.infocuspaly.com` still works. Manager passkeys belong to infocuspaly.com and work on both addresses in Safari and Chrome; in Firefox, a passkey works only on infocuspaly.com, so sign in with Google or an email code on infocusportal.com.
 
 Pages: **Checkout** (`/equipment`), **Request** (`/equipment/request`), and **Manage** (`/equipment/manage`, shown as **Dashboard sign-in** to people who can't open it). The tabs sit in the top bar on a computer and in a bottom tab bar on a phone. **Back to InFocus Portal** (top right; an arrow on a phone) returns to the main dashboard. Managers also reach Manage from the Equipment row on `/managers` (`managers.md`).
 

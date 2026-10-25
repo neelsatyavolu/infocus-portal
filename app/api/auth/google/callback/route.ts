@@ -9,6 +9,7 @@ import {
   sanitizeReturnTo
 } from "@/src/lib/auth";
 import { APP_SESSION_COOKIE_NAME, GOOGLE_OAUTH_STATE_COOKIE_NAME } from "@/src/lib/auth-cookies";
+import { mainOriginForHost, portalDomainOf } from "@/src/lib/hosts";
 
 import { createStationToken, EQUIPMENT_OAUTH_COOKIE_NAME, EQUIPMENT_STATION_COOKIE_NAME, getEquipmentStationCookieMeta, isEquipmentSignInOrigin } from "@/src/lib/equipment-kiosk";
 import { requireEquipmentStationManager } from "@/src/server/equipment-station";
@@ -29,6 +30,12 @@ type GoogleUserInfoResponse = {
 };
 
 function getBaseUrl(request: NextRequest) {
+  // On a Portal domain, Google returns to that domain's main host: the state cookie is per domain.
+  const host = request.headers.get("host");
+  if (portalDomainOf(host)) {
+    return mainOriginForHost(host);
+  }
+
   const configured = process.env.APP_BASE_URL?.trim();
   if (configured) {
     return configured.replace(/\/$/, "");

@@ -3,6 +3,7 @@ import { Lexend } from "next/font/google";
 import localFont from "next/font/local";
 import { Toaster } from "@/components/ui/sonner";
 import { N3elAnalytics } from "@/components/n3el-analytics";
+import { PortalDomainLinks } from "@/components/portal-domain-links";
 import { THEME_INIT_SCRIPT } from "@/src/lib/theme";
 import "./globals.css";
 
@@ -81,6 +82,7 @@ export default function RootLayout({
         {children}
         <Toaster />
         <N3elAnalytics />
+        <PortalDomainLinks />
       </body>
     </html>
   );

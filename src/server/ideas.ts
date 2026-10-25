@@ -20,7 +20,7 @@ import { workersAiConfig, workersAiJsonChat } from "@/src/server/workers-ai";
  */
 
 // Says who is asking. Feeds that refuse a labelled reader are not in IDEA_FEEDS.
-const FEED_USER_AGENT = "InFocusPortal/1.0 (+https://infocuspaly.com; story ideas feed reader)";
+const FEED_USER_AGENT = "InFocusPortal/1.0 (+https://infocusportal.com; story ideas feed reader)";
 const FEED_TIMEOUT_MS = 12_000;
 // The largest feed on the list is under 500 KB.
 const FEED_MAX_CHARS = 3_000_000;

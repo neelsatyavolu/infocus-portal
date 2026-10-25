@@ -1,4 +1,5 @@
 import type { AssistantAudience } from "@/src/lib/assistant-access";
+import { teleprompterAppOrigin } from "@/src/lib/hosts";
 
 export type AssistantPlacePreview = {
   id: string;
@@ -90,7 +91,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
   {
     id: "teleprompter",
     label: "Teleprompter",
-    href: "https://teleprompter.infocuspaly.com",
+    href: teleprompterAppOrigin(),
     hint: "Left sidebar, under Tools",
     aliases: ["prompter", "script"],
     audiences: ALL,

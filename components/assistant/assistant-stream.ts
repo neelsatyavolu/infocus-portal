@@ -1,5 +1,6 @@
 import type { AssistantAudience } from "@/src/lib/assistant-access";
 import type { AssistantPlacePreview } from "@/src/lib/assistant-places";
+import { PORTAL_DOMAINS } from "@/src/lib/hosts";
 
 /** A change the assistant proposes; nothing is saved until Approve (POST /api/assistant/actions). */
 export type ActionPreview = {
@@ -118,8 +119,7 @@ export function uid() {
 
 const ALLOWED_PLACE_HOSTS = new Set([
   "drive.infocuspaly.com",
-  "teleprompter.infocuspaly.com",
-  "equipment.infocuspaly.com"
+  ...PORTAL_DOMAINS.flatMap((domain) => [`teleprompter.${domain}`, `equipment.${domain}`])
 ]);
 
 /** Take me there only follows a Portal path or https on one of the InFocus app hosts. */

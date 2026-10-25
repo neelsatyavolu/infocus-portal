@@ -190,7 +190,7 @@ describe("proof-of-contact Slack post", () => {
         channel: "C0BUG24GYP2",
         text: "Alex Lee - Lee-Patel - Cycle #2 - Proof of Contact",
         username: "InFocus Portal",
-        icon_url: "https://infocuspaly.com/favicon/infocus-hub-icon.png"
+        icon_url: "https://infocusportal.com/favicon/infocus-hub-icon.png"
       })
     });
   });

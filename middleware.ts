@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { appReviewEmail, isAppReviewEmail, isAppReviewPathAllowed } from "@/src/lib/app-review";
-import { APP_SESSION_COOKIE_NAME, TELEPROMPTER_KIOSK_COOKIE_NAME } from "@/src/lib/auth-cookies";
+import { APP_SESSION_COOKIE_NAME, EQUIPMENT_STATION_COOKIE_NAME, TELEPROMPTER_KIOSK_COOKIE_NAME } from "@/src/lib/auth-cookies";
 import { parseAppSessionToken } from "@/src/lib/auth-edge";
 import { EMBEDDED_APP_COOKIE } from "@/src/lib/embedded-app";
-import { mainAppOrigin, meetAppOrigin, normalizeHost, resolveAppSurface, type AppSurface } from "@/src/lib/hosts";
+import {
+  legacyPortalRedirect,
+  mainOriginForHost,
+  meetOriginForHost,
+  normalizeHost,
+  resolveAppSurface,
+  type AppSurface
+} from "@/src/lib/hosts";
+import { portalAppDevice } from "@/src/lib/mac-app-bridge";
 import { MEETING_PREVIEW_PUBLIC_PATH, meetingPreviewRewritePath } from "@/src/lib/meetings/link-preview";
 import {
   isEmbeddedAppRequest,
@@ -74,11 +82,12 @@ function isPublicRoute(pathname: string) {
 }
 
 function buildSignInUrl(req: NextRequest, surface: AppSurface) {
-  // Meetings host: sign in on the main host (Google's redirect lives there) and come back to this
-  // exact meet URL (sanitizeReturnTo allows https *.infocuspaly.com).
+  // Meetings host: sign in on the main host of the same domain (Google's redirect lives there) and
+  // come back to this exact meet URL (sanitizeReturnTo allows https Portal domain hosts).
   if (surface === "meet") {
-    const signInUrl = new URL("/sign-in", mainAppOrigin());
-    signInUrl.searchParams.set("returnTo", `${meetAppOrigin()}${req.nextUrl.pathname}${req.nextUrl.search}`);
+    const host = req.headers.get("host");
+    const signInUrl = new URL("/sign-in", mainOriginForHost(host));
+    signInUrl.searchParams.set("returnTo", `${meetOriginForHost(host)}${req.nextUrl.pathname}${req.nextUrl.search}`);
     return signInUrl;
   }
   const signInUrl = new URL("/sign-in", req.url);
@@ -165,6 +174,25 @@ export default async function middleware(req: NextRequest) {
   const surface = resolveAppSurface(host);
   const isApiRoute = pathname.startsWith("/api/");
   const sessionToken = req.cookies.get(APP_SESSION_COOKIE_NAME)?.value;
+  const embeddedApp = isEmbeddedAppRequest({
+    appParam: req.nextUrl.searchParams.get("app"),
+    embeddedCookie: req.cookies.get(EMBEDDED_APP_COOKIE)?.value,
+    userAgent: req.headers.get("user-agent")
+  });
+
+  // Browsers on the other Portal domain → the same page on the canonical one. The iPhone and Mac
+  // apps only trust the domain they were built with, and kiosks keep the cookies they were set up
+  // with, so those stay where they are (src/lib/hosts.ts).
+  const legacyTarget = legacyPortalRedirect(host, req.method, pathname, req.nextUrl.search);
+  if (
+    legacyTarget &&
+    !embeddedApp &&
+    !portalAppDevice(req.headers.get("user-agent") ?? "") &&
+    !req.cookies.has(TELEPROMPTER_KIOSK_COOKIE_NAME) &&
+    !req.cookies.has(EQUIPMENT_STATION_COOKIE_NAME)
+  ) {
+    return withSurfaceHeaders(NextResponse.redirect(legacyTarget, 308), surface, host);
+  }
 
   // Apple App Review demo account: its sample workspace and settings only (src/lib/app-review.ts).
   if (appReviewEmail() && sessionToken) {
@@ -197,7 +225,7 @@ export default async function middleware(req: NextRequest) {
   }
 
   if (surface === "meet") {
-    const route = routeMeetHost(pathname, req.nextUrl.search, mainAppOrigin());
+    const route = routeMeetHost(pathname, req.nextUrl.search, mainOriginForHost(host));
     if (route.kind === "redirect") {
       return withSurfaceHeaders(NextResponse.redirect(new URL(route.location, req.url), route.status), surface, host);
     }
@@ -213,13 +241,8 @@ export default async function middleware(req: NextRequest) {
   // Old meeting links on the main host → the Meetings host (308, query kept). Not in the iPhone
   // app (it loads the main host and watches for /meetings), and not where no Meetings host exists.
   if (surface === "main" && shouldUseMeetHost(normalizeHost(host), Boolean(process.env.MEET_APP_URL?.trim()))) {
-    const target = meetHostRedirectFromMain(pathname, req.nextUrl.search, meetAppOrigin());
-    const embedded = isEmbeddedAppRequest({
-      appParam: req.nextUrl.searchParams.get("app"),
-      embeddedCookie: req.cookies.get(EMBEDDED_APP_COOKIE)?.value,
-      userAgent: req.headers.get("user-agent")
-    });
-    if (target && !embedded) {
+    const target = meetHostRedirectFromMain(pathname, req.nextUrl.search, meetOriginForHost(host));
+    if (target && !embeddedApp) {
       return withSurfaceHeaders(NextResponse.redirect(target, 308), surface, host);
     }
   }

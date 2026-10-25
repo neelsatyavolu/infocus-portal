@@ -1,4 +1,5 @@
 import { apnsTopic, isApnsConfigured, sendApns, type ApnsDevice, type ApnsEnvironment } from "@/src/lib/apns";
+import { toInstalledAppUrl } from "@/src/lib/hosts";
 import { prisma } from "@/src/lib/prisma";
 
 /** Portal app notifications: fan an alert out to every registered Mac and iPhone of the given people. */
@@ -65,7 +66,8 @@ export async function sendNativePushToUserIds(userIds: string[], payload: Native
     const results = await sendApns(devices, {
       title: trimTo(payload.title, 120),
       body: trimTo(payload.body, NATIVE_PUSH_BODY_MAX),
-      url: payload.url,
+      // Installed apps only open pages on the domain they were built with.
+      url: payload.url ? toInstalledAppUrl(payload.url) : undefined,
       threadId: payload.threadId ?? threadIdForUrl(payload.url)
     });
 

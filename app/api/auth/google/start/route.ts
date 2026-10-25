@@ -8,12 +8,19 @@ import {
   sanitizeReturnTo
 } from "@/src/lib/auth";
 import { GOOGLE_OAUTH_STATE_COOKIE_NAME } from "@/src/lib/auth-cookies";
+import { mainOriginForHost, portalDomainOf } from "@/src/lib/hosts";
 
 import { EQUIPMENT_OAUTH_COOKIE_NAME, isEquipmentSignInOrigin } from "@/src/lib/equipment-kiosk";
 
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 
 function getBaseUrl(request: NextRequest) {
+  // On a Portal domain, Google returns to that domain's main host: the state cookie is per domain.
+  const host = request.headers.get("host");
+  if (portalDomainOf(host)) {
+    return mainOriginForHost(host);
+  }
+
   const configured = process.env.APP_BASE_URL?.trim();
   if (configured) {
     return configured.replace(/\/$/, "");

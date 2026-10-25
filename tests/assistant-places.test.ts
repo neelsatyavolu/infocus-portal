@@ -63,7 +63,7 @@ describe("matchAssistantPlace", () => {
   it("opens Drive in a new tab", () => {
     expect(matchAssistantPlace("drive", "member")).toMatchObject({
       title: "InFocus Drive",
-      href: "https://drive.infocuspaly.com",
+      href: "https://drive.infocusportal.com",
       external: true,
       newTab: true
     });

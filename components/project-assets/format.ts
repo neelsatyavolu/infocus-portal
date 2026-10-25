@@ -37,7 +37,6 @@ export function shouldBypassNextImageOptimization(src: string) {
     // Bunny CDN + Drive signed poster URLs (auth in query; optimizer would strip/expire)
     return (
       url.hostname.endsWith(".b-cdn.net") ||
-      url.hostname === "drive.infocuspaly.com" ||
       PORTAL_DOMAINS.some((domain) => url.hostname.endsWith(`.${domain}`))
     );
   } catch {

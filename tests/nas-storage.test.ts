@@ -6,7 +6,7 @@ import {
 } from "@/src/lib/nas-storage";
 
 const FILE_URL =
-  "https://drive.infocuspaly.com/api/service/file?path=Package%20Storage%2FCycle%201%2Fclip.mov&token=abc";
+  "https://drive.infocusportal.com/api/service/file?path=Package%20Storage%2FCycle%201%2Fclip.mov&token=abc";
 
 describe("NAS Drive URL helpers", () => {
   it("keeps poster.jpg beside the video for client-captured frames", () => {

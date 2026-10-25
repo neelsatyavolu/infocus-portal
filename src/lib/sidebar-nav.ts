@@ -179,7 +179,7 @@ export function buildSidebarNav(context: SidebarNavContext): SidebarNavSection[]
       item("livestreams", "/livestreams", "Livestream Tracker")
     ]),
     section("Tools", [
-      item("drive", "https://drive.infocuspaly.com", "InFocus Drive", { external: true, newTab: true }),
+      item("drive", "https://drive.infocusportal.com", "InFocus Drive", { external: true, newTab: true }),
       item("teleprompter", teleprompterAppOrigin(), "Teleprompter", { external: true })
     ]),
     section("footer", [context.canManageAdmin && item("admin", "/admin", "Admin Dashboard"), settings])

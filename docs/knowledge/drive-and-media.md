@@ -1,6 +1,6 @@
 # Drive, uploads, and playback
 
-**InFocus Drive** (`drive.infocuspaly.com`) is the NAS file browser. New Portal uploads use `MEDIA_STORAGE_PROVIDER=NAS`. Bunny is legacy only.
+**InFocus Drive** (`drive.infocusportal.com`) is the NAS file browser. New Portal uploads use `MEDIA_STORAGE_PROVIDER=NAS`. Bunny is legacy only.
 
 On Drive, choose **Continue with Google** or **Sign in with email**. For email sign-in, enter your registered email address, and enter the six-digit code sent to your inbox on the same page. Codes expire in 10 minutes and work once. Check spam if needed. Resend after one minute, up to five codes per hour; five incorrect guesses require a new code. Drive keeps its existing account permissions. Manual NAS username/password sign-in remains available. This does not change Finder/SMB passwords.
 

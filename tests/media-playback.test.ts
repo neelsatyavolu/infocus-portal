@@ -31,7 +31,7 @@ import {
 } from "@/src/lib/media-playback";
 
 const FILE_URL =
-  "https://drive.infocuspaly.com/api/service/file?path=Package%20Storage%2FCycle%201%2FJeffDay.mov&token=tok";
+  "https://drive.infocusportal.com/api/service/file?path=Package%20Storage%2FCycle%201%2FJeffDay.mov&token=tok";
 
 const nasVersion = {
   bunnyVideoId: "nas_abc",

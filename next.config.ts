@@ -23,6 +23,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "lh3.googleusercontent.com" },
       { protocol: "https", hostname: "*.b-cdn.net" },
       // NAS posters/signed downloads from InFocus Drive
+      { protocol: "https", hostname: "drive.infocusportal.com" },
       { protocol: "https", hostname: "drive.infocuspaly.com" },
       { protocol: "http", hostname: "drive.infocuspaly.com" }
     ]

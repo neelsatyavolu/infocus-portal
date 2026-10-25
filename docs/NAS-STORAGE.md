@@ -63,7 +63,7 @@ Browser (infocusportal.com or infocuspaly.com)
 Packages API (Vercel)
   │ service bearer → ensure-dir + mint-token
   ▼
-drive.infocuspaly.com /api/service/*
+drive.infocusportal.com /api/service/*
   │
   ▼
 NAS: /volumeN/<share>/Package Cycles/… or Package Storage/…
@@ -106,7 +106,7 @@ Compose must pass these into the container (`env_file: .env` + explicit `environ
 
 ```env
 MEDIA_STORAGE_PROVIDER=NAS
-DRIVE_BASE_URL=https://drive.infocuspaly.com
+DRIVE_BASE_URL=https://drive.infocusportal.com
 DRIVE_SERVICE_TOKEN=<same-as-drive-PACKAGES_SERVICE_TOKEN>
 NEXT_PUBLIC_MEDIA_STORAGE_HINT=InFocus Drive (Package Cycles)
 ```
@@ -116,7 +116,7 @@ NEXT_PUBLIC_MEDIA_STORAGE_HINT=InFocus Drive (Package Cycles)
 Set for **Production** and **Development** (Preview optional — CLI may ask “Git branch?”; leave empty for all previews):
 
 - `MEDIA_STORAGE_PROVIDER=NAS`
-- `DRIVE_BASE_URL=https://drive.infocuspaly.com`
+- `DRIVE_BASE_URL=https://drive.infocusportal.com`
 - `DRIVE_SERVICE_TOKEN=…`
 - `NEXT_PUBLIC_MEDIA_STORAGE_HINT=InFocus Drive (Package Cycles)`
 
@@ -208,7 +208,7 @@ Server: `resolveThumbnailUrl` / `resolvePlaybackUrl` in `src/lib/media-playback.
 
 ```bash
 # Drive service (from laptop)
-curl -sS -X POST https://drive.infocuspaly.com/api/service/ensure-dir \
+curl -sS -X POST https://drive.infocusportal.com/api/service/ensure-dir \
   -H "Authorization: Bearer $DRIVE_SERVICE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"path":"Package Cycles"}'

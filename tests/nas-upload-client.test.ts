@@ -3,12 +3,12 @@ import { nasChunkSize, nasServiceUrl, nasShouldChunk, NAS_CHUNK_SIZE, NAS_CHUNK_
 
 describe("NAS upload client", () => {
   it("builds service chunk URLs from the minted upload URL", () => {
-    const base = "https://drive.infocuspaly.com/api/service/upload";
-    expect(nasServiceUrl(base, "init")).toBe("https://drive.infocuspaly.com/api/service/upload/init");
+    const base = "https://drive.infocusportal.com/api/service/upload";
+    expect(nasServiceUrl(base, "init")).toBe("https://drive.infocusportal.com/api/service/upload/init");
     expect(nasServiceUrl(base, "chunk", { upload_id: "abc", index: "2", token: "tok" })).toBe(
-      "https://drive.infocuspaly.com/api/service/upload/chunk?upload_id=abc&index=2&token=tok"
+      "https://drive.infocusportal.com/api/service/upload/chunk?upload_id=abc&index=2&token=tok"
     );
-    expect(nasServiceUrl(base, "complete")).toBe("https://drive.infocuspaly.com/api/service/upload/complete");
+    expect(nasServiceUrl(base, "complete")).toBe("https://drive.infocusportal.com/api/service/upload/complete");
   });
 
   it("chunks files at 8 MiB and above", () => {

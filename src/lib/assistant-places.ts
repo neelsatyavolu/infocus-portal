@@ -81,7 +81,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
   {
     id: "drive",
     label: "InFocus Drive",
-    href: "https://drive.infocuspaly.com",
+    href: "https://drive.infocusportal.com",
     hint: "Left sidebar, under Tools",
     aliases: ["drive", "nas", "files"],
     audiences: ALL,

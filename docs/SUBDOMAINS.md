@@ -62,13 +62,10 @@ For sticky names, configure a named tunnel with hostnames `grades` / `teleprompt
 
 ## Retiring infocuspaly.com
 
-Already moved: every Portal host, Drive (`drive.infocusportal.com`), the meeting server (`meet-api.infocusportal.com`), Google sign-in and YouTube callbacks. App builds from Oct 24, 2026 on (iPhone Portal, InFocus for Mac, InFocus News, editor setup) use infocusportal.com and treat infocuspaly.com links, pushes, cookies and the saved Drive address as the new domain.
+Already moved: every Portal host, Drive (`drive.infocusportal.com`), the meeting server (`meet-api.infocusportal.com`), the NAS control panel and SSH (`ugos.` and `ssh.infocusportal.com`; the old `ugos.` and `www.` redirect), Google sign-in and YouTube callbacks, email (Resend sends from `@infocusportal.com`; Email Routing forwards `producers@infocusportal.com`), and the editing Mac's `portal_url`. App releases from Oct 24, 2026 on (iPhone Portal 1.3.0, InFocus News 1.0.1, InFocus for Mac and CLI 1.1.0) use infocusportal.com and move old links, pushes, cookies and the saved Drive address over. The CLI also follows Drive's `X-Drive-Moved-To` header by itself, and the editor maps an old `portal_url`.
 
-Still on infocuspaly.com, to move before letting it go:
+Still on infocuspaly.com, to finish before letting it go:
 
-1. **Older app builds.** iPhone and Mac builds from before the move only know infocuspaly.com. Wait until the App Store and the Mac app's auto-update have replaced them (`NativePushDevice.appVersion` shows what's registered), then drop the `toInstalledAppUrl` call in `src/lib/native-push.ts` and the app exemptions in `legacyPortalRedirect`'s caller (`middleware.ts`).
-2. **Email.** `RESEND_FROM_EMAIL` (Portal and Drive) and `WEB_PUSH_SUBJECT` are `@infocuspaly.com`; inbound mail routing and the Resend/SES DNS records live on that zone. Verify infocusportal.com in Resend first.
-3. **Equipment passkeys.** RP ID is `infocuspaly.com` (`PASSKEY_RP_ID`). Switch it to infocusportal.com and have managers register new passkeys.
-4. **NAS admin.** `ugos.infocuspaly.com` (UGOS admin + SSO, `scripts/install_ugos_sso.py` in infocus-drive) and `ssh.infocuspaly.com` (deploy SSH through Cloudflare Access) are tunnel hostnames on the old zone.
-5. **Vercel fallback.** The `/.well-known/{acme-challenge,vercel}` routes and the Vercel project.
-
+1. **Older app builds.** iPhone builds before 1.3.0 and Mac builds before 1.1.0 only know infocuspaly.com. Wait until the App Store and the Mac app's auto-update have replaced them (`NativePushDevice.appVersion` shows what's registered), then drop the `toInstalledAppUrl` call in `src/lib/native-push.ts` and the app exemptions in `legacyPortalRedirect`'s caller (`middleware.ts`).
+2. **Equipment passkeys.** RP ID is `infocuspaly.com` (`PASSKEY_RP_ID`). Switch it to infocusportal.com and have managers register new passkeys.
+3. **Vercel fallback.** The `/.well-known/{acme-challenge,vercel}` routes and the Vercel project.

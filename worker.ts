@@ -9,6 +9,7 @@ import { meetingTickHasWork } from "./src/lib/meetings/tick-precheck";
 import { showEditTickHasWork } from "./src/lib/show-editor-tick-precheck";
 import { isLiveOverlayRequest, serveCachedOverlay, type OverlayCache } from "./src/lib/live-overlay-cache";
 import { isNextImageRequest, serveCachedImage, type ImageCache } from "./src/lib/next-image-cache";
+import { PASSKEY_RP_ID, passkeyRelatedOrigins } from "./src/lib/equipment-kiosk";
 
 type PortalEnv = {
   MEETING_ROOM_SECRET?: string;
@@ -36,7 +37,7 @@ async function tickMeetings(env: PortalEnv, ctx: WorkerContext) {
     return;
   }
   const token = await signMeetingInternalToken("room", MEETING_TICK_TOKEN_ID, secret);
-  const base = (env.APP_BASE_URL?.trim() || "https://infocuspaly.com").replace(/\/+$/, "");
+  const base = (env.APP_BASE_URL?.trim() || "https://infocusportal.com").replace(/\/+$/, "");
   const request = new Request(`${base}/api/service/meetings/tick`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` }
@@ -60,7 +61,7 @@ async function tickShowEdits(env: PortalEnv, ctx: WorkerContext) {
     console.error("portal cron: CRON_SECRET is not set; show edit tick skipped");
     return;
   }
-  const base = (env.APP_BASE_URL?.trim() || "https://infocuspaly.com").replace(/\/+$/, "");
+  const base = (env.APP_BASE_URL?.trim() || "https://infocusportal.com").replace(/\/+$/, "");
   const request = new Request(`${base}/api/service/show-editor/tick`, {
     method: "POST",
     headers: { Authorization: `Bearer ${secret}` }
@@ -76,7 +77,7 @@ type ShowUploadMessage = { body: { id?: unknown }; ack(): void; retry(options?: 
 async function runShowUpload(env: PortalEnv, ctx: WorkerContext, id: string): Promise<number | null> {
   const secret = env.CRON_SECRET?.trim();
   if (!secret) throw new Error("CRON_SECRET is not set");
-  const base = (env.APP_BASE_URL?.trim() || "https://infocuspaly.com").replace(/\/+$/, "");
+  const base = (env.APP_BASE_URL?.trim() || "https://infocusportal.com").replace(/\/+$/, "");
   const request = new Request(`${base}/api/service/shows/upload`, {
     method: "POST",
     headers: { Authorization: `Bearer ${secret}`, "Content-Type": "application/json" },
@@ -90,6 +91,12 @@ async function runShowUpload(env: PortalEnv, ctx: WorkerContext, id: string): Pr
 
 export default {
   fetch(request: Request, env: PortalEnv, ctx: WorkerContext): Promise<Response> {
+    // WebAuthn related origins: lets infocusportal.com use the equipment passkeys registered on
+    // infocuspaly.com (src/lib/equipment-kiosk.ts). Answered here, ahead of the app's sign-in checks.
+    const url = new URL(request.url);
+    if (url.pathname === "/.well-known/webauthn" && url.hostname === PASSKEY_RP_ID) {
+      return Promise.resolve(Response.json({ origins: passkeyRelatedOrigins() }, { headers: { "Cache-Control": "public, max-age=3600" } }));
+    }
     // OBS overlay polls: answered from this data center's cache for a couple of seconds (src/lib/live-overlay-cache.ts).
     if (isLiveOverlayRequest(request)) {
       const cache = (caches as unknown as { default: OverlayCache }).default;

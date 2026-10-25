@@ -27,7 +27,7 @@ Tabs with no note are shown to everyone signed in.
 
 - Groups, Package Cycle (roster)
 - People: Members, with **Participation** as a tab in the top bar
-- Meetings (opens `meet.infocuspaly.com`). Calls open full screen at `meet.infocuspaly.com/<id>` (see `meetings.md`)
+- Meetings (opens `meet.infocusportal.com`). Calls open full screen at `meet.infocusportal.com/<id>` (see `meetings.md`)
 - Extension Requests: producers find it here; students find it in the stage bar on their package pages. A number shows how many requests are waiting on you.
 - Grade Editor: executive producers, the adviser, and super admin
 
@@ -45,7 +45,7 @@ Tabs with no note are shown to everyone signed in.
 **Tools**
 
 - InFocus Drive (opens `drive.infocuspaly.com` in a new tab)
-- Teleprompter (opens `teleprompter.infocuspaly.com`)
+- Teleprompter (opens `teleprompter.infocusportal.com`)
 
 **Pinned at the bottom of the sidebar:** Admin Dashboard (executive producers, the adviser, and super admin), then Settings (everyone). Your name, **Passwords** and **Sign out** are in the account menu in the top bar.
 
@@ -81,7 +81,7 @@ Everyone signed in gets a green ✱ in the bottom-right of Portal. It opens a fl
 | `/class-board` | Not in the sidebar. Anyone signed in, or a classroom screen unlocked with the Class Board PIN. Shows the current cycle, livestreams, and calendar |
 | `/master-calendar` **Anchors & PA** (in the header's ⋯ menu) | Executives, adviser, super admin |
 | `/live` | Livestream dashboard. Anyone signed in, or signed-out crew with the livestream PIN (see `livestreams.md`) |
-| `/equipment` | Equipment checkout (also `equipment.infocuspaly.com`) |
+| `/equipment` | Equipment checkout (also `equipment.infocusportal.com`) |
 | `/submit-announcement` | Public form, no Portal login |
 | `/announcements/shared` | Submitted announcements for invited viewers, opened from an invite link |
 | `/g/[token]` | Guest review link |

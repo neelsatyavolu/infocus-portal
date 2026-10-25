@@ -1,5 +1,7 @@
+import { portalDomainOf } from "@/src/lib/hosts";
+
 /**
- * Routing between the main host and the Meetings host (meet.infocuspaly.com). Pure and
+ * Routing between the main host and the Meetings host (meet.<Portal domain>). Pure and
  * Edge-safe: middleware.ts applies the decisions.
  *
  * Meetings host:  /            → (rewrite) /meetings
@@ -72,9 +74,10 @@ export function isEmbeddedAppRequest(input: { appParam: string | null; embeddedC
 }
 
 /**
- * Only move people off the main host where the Meetings host exists: production infocuspaly.com
- * hosts, or when MEET_APP_URL is set. Local dev and Vercel previews keep meetings on their own host.
+ * Only move people off the main host where the Meetings host exists: a Portal domain's main host
+ * (or www), or when MEET_APP_URL is set. Local dev and Vercel previews keep meetings on their own host.
  */
 export function shouldUseMeetHost(host: string, meetUrlConfigured: boolean) {
-  return meetUrlConfigured || host === "infocuspaly.com" || host === "www.infocuspaly.com";
+  const domain = portalDomainOf(host);
+  return meetUrlConfigured || (domain !== null && (host === domain || host === `www.${domain}`));
 }

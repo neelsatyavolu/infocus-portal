@@ -6,6 +6,7 @@ import {
 } from "@simplewebauthn/server";
 import { prisma } from "@/src/lib/prisma";
 import { getPlatformAccess, isEmailAllowedToUsePlatform } from "@/src/lib/platform-admin";
+import { EQUIPMENT_PORTAL_ORIGINS, PASSKEY_RP_ID } from "@/src/lib/equipment-kiosk";
 import { requireEquipmentManagerAccess } from "@/src/server/equipment-access";
 
 type Purpose = "register" | "login" | "unlock";
@@ -13,12 +14,11 @@ type Context = { origin: string; rpID: string };
 
 export function passkeyContext(request: Request): Context {
   const url = new URL(request.url);
-  const productionOrigins = ["https://equipment.infocuspaly.com", "https://infocuspaly.com", "https://www.infocuspaly.com"];
   const local = process.env.NODE_ENV !== "production" && url.hostname === "localhost";
-  if ((!productionOrigins.includes(url.origin) && !local) || request.headers.get("origin") !== url.origin) {
+  if ((!EQUIPMENT_PORTAL_ORIGINS.includes(url.origin) && !local) || request.headers.get("origin") !== url.origin) {
     throw new Error("FORBIDDEN");
   }
-  return { origin: url.origin, rpID: local ? "localhost" : "infocuspaly.com" };
+  return { origin: url.origin, rpID: local ? "localhost" : PASSKEY_RP_ID };
 }
 
 export async function requirePasskeyManager(userId: string) {

@@ -176,10 +176,10 @@ class days, not air dates. Participation is scored on Tuesday and Thursday class
 
 Subdomains:
 
-- `grades.infocuspaly.com` — student grade dashboard (Overview: packages, participation, livestream and portfolio; Gradebook with what-if)
+- `grades.infocusportal.com` — student grade dashboard (Overview: packages, participation, livestream and portfolio; Gradebook with what-if)
 - Grade Editor **Student** tab — producers open one reporter's Schoology-style All Grades table (same grouping as the student Gradebook; what-if does not save)
-- `teleprompter.infocuspaly.com` — teleprompter app
-- `infocuspaly.com` — main packages app
+- `teleprompter.infocusportal.com` — teleprompter app
+- `infocusportal.com` — main packages app
 
 ## Anchors and the show
 

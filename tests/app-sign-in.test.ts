@@ -20,7 +20,7 @@ import { POST as authorize } from "@/app/api/auth/app/authorize/route";
 import { POST as exchange } from "@/app/api/auth/app/token/route";
 import middleware from "@/middleware";
 
-const origin = "https://hub.infocuspaly.com";
+const origin = "https://hub.infocusportal.com";
 // RFC 7636 Appendix B.
 const verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
 const challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
@@ -37,7 +37,7 @@ const user: SessionUser = {
 function authorizeRequest(fields: Record<string, string>, requestOrigin = origin) {
   return new NextRequest(`${origin}/api/auth/app/authorize`, {
     method: "POST",
-    headers: { origin: requestOrigin, host: "hub.infocuspaly.com" },
+    headers: { origin: requestOrigin, host: "hub.infocusportal.com" },
     body: new URLSearchParams(fields)
   });
 }
@@ -45,7 +45,7 @@ function authorizeRequest(fields: Record<string, string>, requestOrigin = origin
 function tokenRequest(body: unknown) {
   return new NextRequest(`${origin}/api/auth/app/token`, {
     method: "POST",
-    headers: { "content-type": "application/json", host: "hub.infocuspaly.com" },
+    headers: { "content-type": "application/json", host: "hub.infocusportal.com" },
     body: JSON.stringify(body)
   });
 }
@@ -149,7 +149,7 @@ describe("middleware", () => {
     const token = await middleware(tokenRequest({}));
     expect(token.headers.get("location")).toBeNull();
 
-    const page = await middleware(new NextRequest(`${origin}/app-sign-in?challenge=${challenge}&state=${state}`, { headers: { host: "hub.infocuspaly.com" } }));
+    const page = await middleware(new NextRequest(`${origin}/app-sign-in?challenge=${challenge}&state=${state}`, { headers: { host: "hub.infocusportal.com" } }));
     const signIn = new URL(page.headers.get("location")!);
     expect(signIn.pathname).toBe("/sign-in");
     expect(signIn.searchParams.get("returnTo")).toBe(`/app-sign-in?challenge=${challenge}&state=${state}`);

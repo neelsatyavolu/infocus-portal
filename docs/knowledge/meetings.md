@@ -4,8 +4,8 @@ Private video meetings for producers, with notes written on the InFocus Drive.
 
 ## Where meetings live
 
-- Meetings have their own address: **meet.infocuspaly.com**. The Meetings tab is at the top (`meet.infocuspaly.com`), the InFocus Producer Meeting at **meet.infocuspaly.com/producers**, and each meeting at `meet.infocuspaly.com/<meeting id>`.
-- Copy link, calendar invites and link previews all use these addresses. Old `infocuspaly.com/meet/…` and `/meetings` links still work: they move to the meet address.
+- Meetings have their own address: **meet.infocusportal.com**. The Meetings tab is at the top (`meet.infocusportal.com`), the InFocus Producer Meeting at **meet.infocusportal.com/producers**, and each meeting at `meet.infocusportal.com/<meeting id>`.
+- Copy link, calendar invites and link previews all use these addresses. Old `infocusportal.com/meet/…` and `/meetings` links still work: they move to the meet address.
 - The InFocus Portal iPhone app keeps opening meetings inside the app, as before.
 - **The Meetings tab:** **Schedule** and **Start now** sit in the header (execs also get **Start private meeting…** from the arrow next to Start now).
   - **Join now** (at the top) lists meetings you can join right now: live ones (with a **Live** tag), and scheduled ones that have opened to join (from 5 minutes before the start, with a **Starting** tag), which move up out of Upcoming. An open Agenda panel stays open when its meeting moves up.
@@ -44,7 +44,7 @@ Private video meetings for producers, with notes written on the InFocus Drive.
 - The **InFocus Producer Meeting** repeats every Sunday, Monday and Wednesday at 9:15 PM Pacific for 60 minutes. The next 21 days are always listed.
 - A host can **move** or **cancel** one occurrence (**⋯** on the meeting → **Move…** or **Cancel meeting…**). A moved occurrence stays moved; a cancelled one stays cancelled.
 - A live meeting can't be moved or cancelled. Use **End for everyone**.
-- **Stable link:** `meet.infocuspaly.com/producers` always opens the current InFocus Producer Meeting (the live one, otherwise the next one). Before it opens, the page says when it opens.
+- **Stable link:** `meet.infocusportal.com/producers` always opens the current InFocus Producer Meeting (the live one, otherwise the next one). Before it opens, the page says when it opens.
 - **Reminders:** a push 15 minutes before and again 5 minutes before a meeting starts ("… starts in 15 minutes", "… starts in 5 minutes. Join now."). Tapping it opens the call, in the iPhone and Mac apps too. Everyone gets them for open meetings (or only the picked people, when some were picked); invite-only meetings remind only the people on them. A meeting scheduled less than 15 minutes ahead skips the 15-minute reminder. Moving a meeting sends the reminders again at the new time.
 
 ## Calendar invites
@@ -52,10 +52,10 @@ Private video meetings for producers, with notes written on the InFocus Drive.
 - Invites are **Google Calendar events** sent from the InFocus Google account. Guests get Google's own invite email, and Google keeps their calendars up to date when something changes. The Portal sends no `.ics` files.
 - Executive producers, the adviser, and super admin keep the list of email addresses (Meetings → **Calendar invites** on the InFocus Producer Meeting card). Every producer can open it to see how many addresses get invites and whether invites are working ("Invites are sent from … via Google Calendar", or "Last sync failed: …").
 - An address can be **linked to a producer**. Invite-only meetings only invite addresses linked to the people on them.
-- **InFocus Producer Meeting:** one repeating event (Sunday, Monday and Wednesday, 9:15 PM Pacific), linking to `meet.infocuspaly.com/producers`. Every address on the list is a guest.
+- **InFocus Producer Meeting:** one repeating event (Sunday, Monday and Wednesday, 9:15 PM Pacific), linking to `meet.infocusportal.com/producers`. Every address on the list is a guest.
 - Adding an address makes it a guest of the repeating event and of every upcoming meeting it qualifies for. Removing it takes it off them, and Google sends that person a cancellation.
 - When a host moves or cancels one occurrence, only that day changes in everyone's calendar.
-- **Other scheduled meetings** (set more than 10 minutes ahead) get their own event, linking to `meet.infocuspaly.com/<id>`. Open meetings invite every address; invite-only meetings invite only the linked addresses of the people on them. Moving or renaming updates it; cancelling deletes it (guests get a cancellation); adding or removing someone from an invite-only meeting updates its guests. "Start now" meetings get no event.
+- **Other scheduled meetings** (set more than 10 minutes ahead) get their own event, linking to `meet.infocusportal.com/<id>`. Open meetings invite every address; invite-only meetings invite only the linked addresses of the people on them. Moving or renaming updates it; cancelling deletes it (guests get a cancellation); adding or removing someone from an invite-only meeting updates its guests. "Start now" meetings get no event.
 - Changes reach Google in the background (retried if Google is briefly unavailable). **Sync now** re-checks everything.
 - **Only upcoming dates change.** Past meetings keep what they said at the time:
   - If the InFocus Producer Meeting's title, link or description changes after it has already met, the repeating event is split: the old one ends at the last past date, and a new one (with the new details and the same guests) starts at the next date. Moved or cancelled upcoming dates are applied to the new one. Guests get Google's update.
@@ -68,7 +68,7 @@ Private video meetings for producers, with notes written on the InFocus Drive.
 
 1. In the Google Cloud project that has the Portal's Google sign-in (the one used for YouTube), enable the **Google Calendar API**.
 2. Admin → **System** → **Integrations** → **Google Calendar** → **Connect Google Calendar**, and sign in as the InFocus Google account. Allow calendar access.
-3. In Meetings → **Calendar invites** (on the InFocus Producer Meeting card), press **Sync now** once to create the repeating event for everyone already on the list. **Sync now** also updates existing events whose title or link changed (for example after the move to meet.infocuspaly.com).
+3. In Meetings → **Calendar invites** (on the InFocus Producer Meeting card), press **Sync now** once to create the repeating event for everyone already on the list. **Sync now** also updates existing events whose title or link changed (for example after the move to meet.infocusportal.com).
 
 This is separate from Admin → System → Integrations → **YouTube channel** (**Reconnect YouTube**) and doesn't change it.
 
@@ -126,7 +126,7 @@ This is separate from Admin → System → Integrations → **YouTube channel** 
 
 ## Link previews
 
-- Sharing a meeting link in iMessage, Slack, Discord, WhatsApp, LinkedIn or Telegram shows a preview card with the meeting's title, its date and time (Pacific) or "Happening now" while it's live, and the agenda items that aren't checked off yet (the first three, then "+N more"). `meet.infocuspaly.com/producers` (and the old `/meet/producers` link) shows the next InFocus Producer Meeting.
+- Sharing a meeting link in iMessage, Slack, Discord, WhatsApp, LinkedIn or Telegram shows a preview card with the meeting's title, its date and time (Pacific) or "Happening now" while it's live, and the agenda items that aren't checked off yet (the first three, then "+N more"). `meet.infocusportal.com/producers` (and the old `/meet/producers` link) shows the next InFocus Producer Meeting.
 - The card shows the title, time and agenda only, never who is invited or attending. Anyone the link reaches can see the agenda, so keep private details out of agenda lines. A cancelled meeting shows "Cancelled · <title>"; a link to a meeting that doesn't exist shows "InFocus meeting".
 - Opening the link still needs an InFocus sign-in.
 

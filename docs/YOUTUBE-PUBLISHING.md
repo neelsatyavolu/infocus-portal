@@ -5,7 +5,7 @@ Publishing Queue sends each queued Final Cut to the configured InFocus channel a
 ## Activation
 
 1. Review and apply `prisma/migrations/20260919_youtube_publishing/migration.sql` through the normal production migration process. This adds only the manager, publication, and email-outbox tables. Regenerate Prisma on deployment.
-2. Enable YouTube Data API v3 in the Google Cloud project. On the OAuth client, add the redirect URI `https://infocuspaly.com/api/admin/youtube/callback` (`APP_BASE_URL` + `/api/admin/youtube/callback`). Set the OAuth consent screen's publishing status to **In production**: while it is in **Testing**, Google expires refresh tokens after 7 days and uploads stop.
+2. Enable YouTube Data API v3 in the Google Cloud project. On the OAuth client, add the redirect URI `https://infocusportal.com/api/admin/youtube/callback` (`APP_BASE_URL` + `/api/admin/youtube/callback`). Set the OAuth consent screen's publishing status to **In production**: while it is in **Testing**, Google expires refresh tokens after 7 days and uploads stop.
 3. Connect the channel: **Admin → YouTube channel → Reconnect YouTube** (super admin or adviser, signed in as themselves). Google asks for the account; choose the **InFocus channel** (its Brand Account) and allow every permission (`youtube.upload`, `youtube.readonly`, `youtube`). The Portal checks the channel matches `YOUTUBE_CHANNEL_ID`, then stores the refresh token encrypted in `YoutubeCredential` (migration `20261002210000_youtube_credential`; key derived from `APP_AUTH_SECRET`). Do this again whenever the card says the authorization expired. The old `YOUTUBE_REFRESH_TOKEN` env var is only a fallback when nothing is stored.
 4. Set these server-only environment variables in the deployment:
 

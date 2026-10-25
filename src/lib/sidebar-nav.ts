@@ -1,5 +1,6 @@
 import type { PlatformRole } from "@prisma/client";
 import { pacificDateKey } from "@/src/lib/deadlines";
+import { teleprompterAppOrigin } from "@/src/lib/hosts";
 import { meetingsHomeUrl } from "@/src/lib/meetings/links";
 import type { StageCommentUnread } from "@/src/lib/package-stage-comments";
 import type { CycleStageStatus } from "@/src/lib/package-stage-status";
@@ -179,7 +180,7 @@ export function buildSidebarNav(context: SidebarNavContext): SidebarNavSection[]
     ]),
     section("Tools", [
       item("drive", "https://drive.infocuspaly.com", "InFocus Drive", { external: true, newTab: true }),
-      item("teleprompter", "https://teleprompter.infocuspaly.com", "Teleprompter", { external: true })
+      item("teleprompter", teleprompterAppOrigin(), "Teleprompter", { external: true })
     ]),
     section("footer", [context.canManageAdmin && item("admin", "/admin", "Admin Dashboard"), settings])
   ];

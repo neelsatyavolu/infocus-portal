@@ -110,7 +110,7 @@ describe("buildSidebarNav", () => {
       "/master-calendar",
       "/package-cycles",
       "https://drive.infocuspaly.com",
-      "https://teleprompter.infocuspaly.com",
+      "https://teleprompter.infocusportal.com",
       "/managers",
       "/ideas",
       "/initial-cut",

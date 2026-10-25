@@ -1,5 +1,6 @@
 import { isApprovalTransitionAllowed } from "@/src/lib/approval";
 import { folderDisplayName, isDirectChildFolder } from "@/src/lib/project-folders";
+import { PORTAL_DOMAINS } from "@/src/lib/hosts";
 import type {
   ActiveUpload,
   ApprovalStatusValue,
@@ -37,7 +38,7 @@ export function shouldBypassNextImageOptimization(src: string) {
     return (
       url.hostname.endsWith(".b-cdn.net") ||
       url.hostname === "drive.infocuspaly.com" ||
-      url.hostname.endsWith(".infocuspaly.com")
+      PORTAL_DOMAINS.some((domain) => url.hostname.endsWith(`.${domain}`))
     );
   } catch {
     return false;

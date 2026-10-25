@@ -32,8 +32,15 @@
   },
   // Keep the workers.dev test address alongside the routes.
   "workers_dev": true,
-  // Live traffic moves from Vercel one route at a time; deleting a route sends it back.
+  // Both Portal domains (src/lib/hosts.ts): infocusportal.com is canonical; infocuspaly.com stays for
+  // installed apps and old links. Removing a route takes that host off the Worker.
   "routes": [
+    { "pattern": "infocusportal.com/*", "zone_name": "infocusportal.com" },
+    { "pattern": "www.infocusportal.com/*", "zone_name": "infocusportal.com" },
+    { "pattern": "meet.infocusportal.com/*", "zone_name": "infocusportal.com" },
+    { "pattern": "grades.infocusportal.com/*", "zone_name": "infocusportal.com" },
+    { "pattern": "equipment.infocusportal.com/*", "zone_name": "infocusportal.com" },
+    { "pattern": "teleprompter.infocusportal.com/*", "zone_name": "infocusportal.com" },
     { "pattern": "infocuspaly.com/*", "zone_name": "infocuspaly.com" },
     { "pattern": "meet.infocuspaly.com/*", "zone_name": "infocuspaly.com" },
     { "pattern": "grades.infocuspaly.com/*", "zone_name": "infocuspaly.com" },

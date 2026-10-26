@@ -2,8 +2,9 @@
  * Halloween season: from October 15 through November 1 (the viewer's local time) the Portal wears
  * the InFocus Halloween 2026 Package colors and logos (`<html class="halloween">`, globals.css)
  * and the signed-in shell gets its pumpkins, bats, ghost and spider (components/halloween/).
- * Outside the season nothing changes. Each browser can turn the season, its sounds or its music
- * off in Settings → Appearance; those choices and the pumpkin count live in localStorage.
+ * Outside the season nothing changes. Each browser can turn the season, its sounds, its music or
+ * its surprise BOOs off in Settings → Appearance; those choices and the pumpkin count live in
+ * localStorage.
  */
 
 export const HALLOWEEN_CLASS = "halloween";
@@ -21,11 +22,19 @@ export type HalloweenPrefs = {
   muted: boolean;
   /** The viewer turned the background music off. */
   musicOff: boolean;
+  /** The viewer turned the random big BOOs off. */
+  scaresOff: boolean;
   /** Pumpkins smashed in this browser, ever. */
   smashed: number;
 };
 
-export const DEFAULT_HALLOWEEN_PREFS: HalloweenPrefs = { off: false, muted: false, musicOff: false, smashed: 0 };
+export const DEFAULT_HALLOWEEN_PREFS: HalloweenPrefs = {
+  off: false,
+  muted: false,
+  musicOff: false,
+  scaresOff: false,
+  smashed: 0
+};
 
 export function isHalloweenSeason(now: Date): boolean {
   const key = now.getMonth() * 100 + now.getDate();
@@ -45,6 +54,7 @@ export function parseHalloweenPrefs(raw: string | null | undefined): HalloweenPr
       off: parsed?.off === true,
       muted: parsed?.muted === true,
       musicOff: parsed?.musicOff === true,
+      scaresOff: parsed?.scaresOff === true,
       smashed: Number.isFinite(smashed) && smashed > 0 ? Math.floor(smashed) : 0
     };
   } catch {

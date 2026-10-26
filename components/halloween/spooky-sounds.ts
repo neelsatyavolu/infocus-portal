@@ -5,7 +5,7 @@
  * before it stay silent.
  */
 
-export type SpookySound = "splat" | "boo" | "cackle" | "scurry" | "creak" | "flap";
+export type SpookySound = "splat" | "boo" | "cackle" | "scurry" | "creak" | "flap" | "scare";
 
 let context: AudioContext | null = null;
 
@@ -150,13 +150,78 @@ function flap(ctx: AudioContext, t: number, out: AudioNode) {
   }
 }
 
+/**
+ * The big BOO: a deep boom, a screeching dissonant chord and a growling "BOOOO", through a
+ * compressor so it lands loud without distorting.
+ */
+function scare(ctx: AudioContext, t: number, out: AudioNode) {
+  const squash = ctx.createDynamicsCompressor();
+  squash.threshold.value = -12;
+  squash.ratio.value = 6;
+  squash.attack.value = 0.002;
+  squash.release.value = 0.25;
+  squash.connect(out);
+
+  const boom = ctx.createOscillator();
+  boom.frequency.setValueAtTime(90, t);
+  boom.frequency.exponentialRampToValueAtTime(28, t + 0.7);
+  boom.connect(envelope(squash, t, 0.004, 0.8, 0.75));
+  boom.start(t);
+  boom.stop(t + 0.82);
+
+  const hit = ctx.createBufferSource();
+  hit.buffer = noiseBuffer(ctx, 0.5);
+  const hitTone = ctx.createBiquadFilter();
+  hitTone.type = "lowpass";
+  hitTone.frequency.setValueAtTime(5000, t);
+  hitTone.frequency.exponentialRampToValueAtTime(200, t + 0.45);
+  hit.connect(hitTone).connect(envelope(squash, t, 0.003, 0.5, 0.5));
+  hit.start(t);
+
+  // Three notes a semitone and a tritone apart, bending up: the horror-movie violin stab.
+  [1046, 1108, 1480].forEach((pitch) => {
+    const screech = ctx.createOscillator();
+    screech.type = "sawtooth";
+    screech.frequency.setValueAtTime(pitch, t);
+    screech.frequency.exponentialRampToValueAtTime(pitch * 1.12, t + 0.9);
+    const edge = ctx.createBiquadFilter();
+    edge.type = "bandpass";
+    edge.frequency.value = 2400;
+    edge.Q.value = 0.9;
+    screech.connect(edge).connect(envelope(squash, t, 0.01, 1, 0.35));
+    screech.start(t);
+    screech.stop(t + 1.05);
+  });
+
+  // "BOOOO": a low buzzy voice through an "oo" vowel filter, sliding down.
+  const voice = ctx.createOscillator();
+  voice.type = "sawtooth";
+  voice.frequency.setValueAtTime(210, t + 0.05);
+  voice.frequency.exponentialRampToValueAtTime(95, t + 1.3);
+  const growl = ctx.createOscillator();
+  growl.frequency.value = 28;
+  const growlDepth = ctx.createGain();
+  growlDepth.gain.value = 12;
+  growl.connect(growlDepth).connect(voice.frequency);
+  const vowel = ctx.createBiquadFilter();
+  vowel.type = "lowpass";
+  vowel.frequency.value = 700;
+  vowel.Q.value = 6;
+  voice.connect(vowel).connect(envelope(squash, t + 0.05, 0.06, 1.35, 0.9));
+  voice.start(t + 0.05);
+  growl.start(t + 0.05);
+  voice.stop(t + 1.45);
+  growl.stop(t + 1.45);
+}
+
 const PLAYERS: Record<SpookySound, (ctx: AudioContext, t: number, out: AudioNode) => void> = {
   splat,
   boo,
   cackle,
   scurry,
   creak,
-  flap
+  flap,
+  scare
 };
 
 /** `volume` scales the sound (1 for clicks, lower for visitors arriving on their own). */

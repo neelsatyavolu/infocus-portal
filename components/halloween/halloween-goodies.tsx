@@ -6,6 +6,7 @@ import { useMediaQuery } from "@/components/kit/remembered-state";
 import { isHalloweenDay, readHalloweenPrefs, writeHalloweenPrefs } from "@/src/lib/halloween";
 import { useHalloweenActive, useHalloweenPrefs } from "@/src/lib/use-halloween";
 import { HalloweenMusic } from "./halloween-music";
+import { HalloweenScare } from "./halloween-scare";
 import { playSpookySound, type SpookySound } from "./spooky-sounds";
 import { BatSprite, GhostSprite, PUMPKIN_FACE_COUNT, PumpkinSprite, SpiderSprite, SplatSprite } from "./sprites";
 import "./halloween.css";
@@ -39,7 +40,10 @@ function isTyping(target: EventTarget | null) {
   return target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
 }
 
-/** Music, pumpkins, bats, a ghost and a spider for the signed-in shell, only in the Halloween season. */
+/**
+ * Music, pumpkins, bats, a ghost, a spider and the odd big BOO for the signed-in shell, only in the
+ * Halloween season.
+ */
 export function HalloweenGoodies() {
   return useHalloweenActive() ? <Haunting /> : null;
 }
@@ -229,8 +233,10 @@ function Haunting() {
   }
 
   return (
-    <div className="hw-layer">
-      <HalloweenMusic />
+    <>
+      <HalloweenScare />
+      <div className="hw-layer">
+        <HalloweenMusic />
       {sprites.map((sprite) => {
         switch (sprite.kind) {
           case "pumpkin":
@@ -326,6 +332,7 @@ function Haunting() {
             );
         }
       })}
-    </div>
+      </div>
+    </>
   );
 }

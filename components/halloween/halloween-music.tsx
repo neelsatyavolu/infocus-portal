@@ -22,7 +22,7 @@ function subscribeMedia(onChange: () => void) {
 }
 
 /** A video or audio player on the page is making sound (muted background videos don't count). */
-function mediaIsPlaying() {
+export function mediaIsPlaying() {
   return Array.from(document.querySelectorAll<HTMLMediaElement>("video, audio")).some(
     (media) => !media.paused && !media.ended && !media.muted && media.volume > 0
   );

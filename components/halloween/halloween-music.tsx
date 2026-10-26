@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { Music, VolumeX } from "lucide-react";
 import { readHalloweenPrefs, writeHalloweenPrefs } from "@/src/lib/halloween";
+import { isRunModeOpen, subscribeRunMode } from "@/src/lib/run-mode-signal";
 import { useHalloweenPrefs } from "@/src/lib/use-halloween";
 import { startSpookyMusic, stopSpookyMusic } from "./spooky-music";
 import { runningSpookyAudio, unlockSpookySounds } from "./spooky-sounds";
@@ -31,13 +32,15 @@ export function mediaIsPlaying() {
 /**
  * Background music for the Halloween season, with a mute button beside the ✱ button. It starts on
  * the first click or key press (browsers block sound before that), and pauses while the tab is
- * hidden or another player on the page is playing, so it never talks over a package video.
+ * hidden, another player on the page is playing or teleprompter run mode is open, so it never
+ * talks over a package video or an anchor reading.
  */
 export function HalloweenMusic() {
   const { musicOff } = useHalloweenPrefs();
   const [ctx, setCtx] = useState<AudioContext | null>(() => runningSpookyAudio());
   const hidden = useSyncExternalStore(subscribeVisibility, () => document.hidden, () => false);
   const mediaPlaying = useSyncExternalStore(subscribeMedia, mediaIsPlaying, () => false);
+  const runMode = useSyncExternalStore(subscribeRunMode, isRunModeOpen, () => false);
   const subscribeAudio = useCallback(
     (onChange: () => void) => {
       ctx?.addEventListener("statechange", onChange);
@@ -46,7 +49,7 @@ export function HalloweenMusic() {
     [ctx]
   );
   const running = useSyncExternalStore(subscribeAudio, () => ctx?.state === "running", () => false);
-  const playing = running && !musicOff && !hidden && !mediaPlaying;
+  const playing = running && !musicOff && !hidden && !mediaPlaying && !runMode;
 
   useEffect(() => {
     if (ctx) return;

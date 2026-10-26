@@ -1,18 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { isRunModeOpen, msSinceRunModeClosed } from "@/src/lib/run-mode-signal";
 import { useHalloweenPrefs } from "@/src/lib/use-halloween";
 import { mediaIsPlaying } from "./halloween-music";
 import { playScareSound, type ScareVariant } from "./scare-sounds";
 import { runningSpookyAudio } from "./spooky-sounds";
 import { BatSprite, EyesSprite, GhostSprite, PumpkinSprite, SpiderSprite } from "./sprites";
 
-/** The first one 6–15 s in, then one at a random moment every 1–2.5 minutes. */
+/** The first one 6–15 s in, then one at a random moment every 60–90 s. */
 const FIRST_SCARE_MIN_MS = 6_000;
 const FIRST_SCARE_SPREAD_MS = 9_000;
 const SCARE_MIN_MS = 60_000;
-const SCARE_SPREAD_MS = 90_000;
-/** Not a good moment (sound still locked, video playing, tab hidden): check again soon. */
+const SCARE_SPREAD_MS = 30_000;
+/** Not a good moment (sound locked, video playing, tab hidden, run mode): check again soon. */
 const RETRY_MS = 2_000;
 const SCARE_VOLUME = 0.85;
 const SECRET = "scare";
@@ -76,7 +77,8 @@ function Figure({ scare }: { scare: Scare }): ReactNode {
 /**
  * The big BOOs: now and then something jumps out with a loud stinger. Five variants (ghost,
  * jack-o'-lantern, spider, eyes in the dark, bat swarm), never the same one twice in a row. No
- * flashing; click-through, so they never block the page. Typing "scare" sets one off.
+ * flashing; click-through, so they never block the page; never in teleprompter run mode. Typing
+ * "scare" sets one off.
  */
 export function HalloweenScare() {
   const { muted, scaresOff } = useHalloweenPrefs();
@@ -94,8 +96,14 @@ export function HalloweenScare() {
   useEffect(() => {
     if (scaresOff) return;
     let timer = window.setTimeout(function attempt() {
-      // Wait until a scare can be heard (or sounds are muted), and never over a video or a hidden tab.
-      const ready = (muted || runningSpookyAudio()) && !document.hidden && !mediaIsPlaying();
+      // Wait until a scare can be heard (or sounds are muted). Never over a video, a hidden tab or
+      // teleprompter run mode, and not in the first minute after run mode closes.
+      const ready =
+        (muted || runningSpookyAudio()) &&
+        !document.hidden &&
+        !mediaIsPlaying() &&
+        !isRunModeOpen() &&
+        msSinceRunModeClosed() >= SCARE_MIN_MS;
       if (ready) boo();
       timer = window.setTimeout(attempt, ready ? SCARE_MIN_MS + Math.random() * SCARE_SPREAD_MS : RETRY_MS);
     }, FIRST_SCARE_MIN_MS + Math.random() * FIRST_SCARE_SPREAD_MS);
@@ -104,7 +112,7 @@ export function HalloweenScare() {
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
-      if (event.metaKey || event.ctrlKey || event.altKey || isTyping(event.target)) return;
+      if (event.metaKey || event.ctrlKey || event.altKey || isTyping(event.target) || isRunModeOpen()) return;
       typed.current = (typed.current + event.key.toLowerCase()).slice(-SECRET.length);
       if (typed.current === SECRET) {
         typed.current = "";

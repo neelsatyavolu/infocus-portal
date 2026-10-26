@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from "re
 import { toast } from "sonner";
 import { useMediaQuery } from "@/components/kit/remembered-state";
 import { isHalloweenDay, readHalloweenPrefs, writeHalloweenPrefs } from "@/src/lib/halloween";
+import { isRunModeOpen } from "@/src/lib/run-mode-signal";
 import { useHalloweenActive, useHalloweenPrefs } from "@/src/lib/use-halloween";
 import { HalloweenMusic } from "./halloween-music";
 import { HalloweenScare } from "./halloween-scare";
@@ -87,7 +88,7 @@ function Haunting() {
   );
 
   const visit = useCallback(() => {
-    if (document.hidden) return;
+    if (document.hidden || isRunModeOpen()) return;
     const roll = Math.random();
     const height = window.innerHeight;
     if (roll < 0.35 || still) {
@@ -161,7 +162,7 @@ function Haunting() {
   // Secrets: type "boo" for a burst of ghosts, or the Konami code for pumpkin rain.
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
-      if (event.metaKey || event.ctrlKey || event.altKey || isTyping(event.target)) return;
+      if (event.metaKey || event.ctrlKey || event.altKey || isTyping(event.target) || isRunModeOpen()) return;
       keys.current = [...keys.current, event.key.toLowerCase()].slice(-KONAMI.length);
       const recent = keys.current;
       if (recent.slice(-BOO.length).join("") === BOO) {

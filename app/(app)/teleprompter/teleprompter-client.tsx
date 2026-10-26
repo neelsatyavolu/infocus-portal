@@ -11,6 +11,7 @@ import { useRememberedState } from "@/components/kit/remembered-state";
 import { Sheet } from "@/components/kit/sheet";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { markRunModeOpen } from "@/src/lib/run-mode-signal";
 import { cn } from "@/src/lib/utils";
 import { createTeleprompterActions } from "./teleprompter-actions";
 import { ScriptTitleDialog } from "./teleprompter-dialogs";
@@ -368,6 +369,8 @@ export default function TeleprompterClient() {
   const canRun = Boolean(activeDoc && activeDoc.sections.length > 0) && !sectionEditorOpen;
 
   const closeRunMode = useCallback(() => setRunModeOpen(false), []);
+  // Tells the Halloween extras to stay silent while someone reads (src/lib/run-mode-signal.ts).
+  useEffect(() => (runModeOpen ? markRunModeOpen() : undefined), [runModeOpen]);
 
   function openRunMode() {
     if (!canRun) {

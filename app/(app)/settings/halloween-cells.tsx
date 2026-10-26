@@ -62,7 +62,7 @@ export function HalloweenCells({ onSaved }: { onSaved: () => void }) {
       <SettingsCell
         inline
         title="Surprise BOOs"
-        description="Something jumps out every minute or two."
+        description="Something jumps out every 60–90 seconds."
         htmlFor="pref-halloween-scares"
         className="min-h-16"
       >

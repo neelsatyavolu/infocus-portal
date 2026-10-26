@@ -1,9 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Menu, Search } from "lucide-react";
+import { HubIcon } from "@/components/hub-icon";
 import { Kbd } from "@/components/kit/kbd";
 import type { AppBreadcrumb } from "@/src/lib/app-breadcrumbs";
 import { cn } from "@/src/lib/utils";
@@ -75,7 +75,7 @@ export function AppTopBar({
               aria-label="InFocus Portal home"
               className="-ml-1.5 grid h-10 w-10 shrink-0 place-items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
             >
-              <Image src="/favicon/infocus-hub-icon.png" alt="" width={28} height={28} className="h-7 w-7" />
+              <HubIcon size={28} className="h-7 w-7" />
             </Link>
           )}
           {tabs ? (

@@ -1,0 +1,209 @@
+/* Halloween extras (components/halloween/halloween-goodies.tsx). Below dialogs (z-50). */
+
+.hw-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.hw-hit {
+  pointer-events: auto;
+  cursor: pointer;
+  background: none;
+  border: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.hw-hit:focus-visible {
+  outline: 2px solid var(--brand-green);
+  outline-offset: 2px;
+}
+
+/* A pumpkin peeking in from the left or right edge. */
+.hw-pumpkin {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  animation: hw-peek 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.hw-pumpkin[data-side="left"] { left: 0; --hw-from: -100%; --hw-tilt: 12deg; }
+.hw-pumpkin[data-side="right"] { right: 0; --hw-from: 100%; --hw-tilt: -12deg; }
+.hw-pumpkin > svg {
+  width: 100%;
+  height: 100%;
+  animation: hw-wobble 2.4s ease-in-out 0.6s infinite;
+  filter: drop-shadow(0 0 10px rgb(255 122 26 / 0.45));
+}
+.hw-pumpkin:hover > svg { animation-duration: 0.5s; }
+@keyframes hw-peek {
+  from { transform: translateX(var(--hw-from)) rotate(var(--hw-tilt)); }
+  to   { transform: translateX(0) rotate(var(--hw-tilt)); }
+}
+@keyframes hw-wobble {
+  0%, 100% { transform: rotate(0); }
+  25%      { transform: rotate(-6deg); }
+  75%      { transform: rotate(6deg); }
+}
+
+.hw-splat {
+  position: absolute;
+  width: 88px;
+  height: 88px;
+  margin: -12px;
+  animation: hw-splat 1.4s ease-out both;
+}
+@keyframes hw-splat {
+  0%   { transform: scale(0.3); opacity: 1; }
+  20%  { transform: scale(1.15); }
+  35%  { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1) translateY(10px); opacity: 0; }
+}
+
+.hw-plus-one {
+  position: absolute;
+  font: 600 14px/1 var(--font-display);
+  color: var(--brand-green);
+  white-space: nowrap;
+  animation: hw-rise 1.2s ease-out both;
+}
+@keyframes hw-rise {
+  from { transform: translateY(0); opacity: 1; }
+  to   { transform: translateY(-40px); opacity: 0; }
+}
+
+/* Bats cross the top of the window, dipping as they go. */
+.hw-bat {
+  position: absolute;
+  left: 0;
+  width: 48px;
+  height: 24px;
+  animation: hw-fly var(--hw-duration, 7s) linear both;
+}
+.hw-bat > svg,
+.hw-spider > button > svg { filter: drop-shadow(0 0 5px rgb(155 92 255 / 0.55)); }
+.hw-bat[data-direction="rtl"] { animation-name: hw-fly-back; }
+.hw-bat[data-direction="rtl"] > svg { transform: scaleX(-1); }
+@keyframes hw-fly {
+  0%   { transform: translate(-60px, 0); }
+  25%  { transform: translate(25vw, 30px); }
+  50%  { transform: translate(50vw, -10px); }
+  75%  { transform: translate(75vw, 26px); }
+  100% { transform: translate(calc(100vw + 60px), 0); }
+}
+@keyframes hw-fly-back {
+  0%   { transform: translate(calc(100vw + 60px), 0); }
+  25%  { transform: translate(75vw, 26px); }
+  50%  { transform: translate(50vw, -10px); }
+  75%  { transform: translate(25vw, 30px); }
+  100% { transform: translate(-60px, 0); }
+}
+.hw-wing-left,
+.hw-wing-right {
+  transform-box: fill-box;
+  animation: hw-flap 0.22s ease-in-out infinite alternate;
+}
+.hw-wing-left { transform-origin: right center; }
+.hw-wing-right { transform-origin: left center; }
+@keyframes hw-flap {
+  from { transform: scaleY(1); }
+  to   { transform: scaleY(0.25); }
+}
+
+/* A ghost drifts up from the bottom corner and fades. */
+.hw-ghost {
+  position: absolute;
+  bottom: -90px;
+  width: 64px;
+  height: 72px;
+  animation: hw-haunt 13s ease-in-out both;
+}
+.hw-ghost > svg {
+  width: 100%;
+  height: 100%;
+  animation: hw-sway 2.6s ease-in-out infinite;
+}
+.hw-ghost[data-gone="true"] { animation: hw-vanish 0.5s ease-in both; }
+@keyframes hw-haunt {
+  0%   { transform: translateY(0); opacity: 0; }
+  10%  { opacity: 0.95; }
+  80%  { opacity: 0.95; }
+  100% { transform: translateY(-70vh); opacity: 0; }
+}
+@keyframes hw-sway {
+  0%, 100% { transform: translateX(-10px) rotate(-4deg); }
+  50%      { transform: translateX(10px) rotate(4deg); }
+}
+@keyframes hw-vanish {
+  to { transform: scale(1.6); opacity: 0; }
+}
+
+/* A spider lowers itself on a thread, waits, and climbs back up. */
+.hw-spider {
+  position: absolute;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: hw-dangle 12s ease-in-out both;
+}
+.hw-spider::before {
+  content: "";
+  width: 1px;
+  height: 100vh;
+  margin-top: -100vh;
+  background: #8A8F8B;
+  opacity: 0.6;
+}
+.hw-spider > button > svg { width: 40px; height: 34px; animation: hw-spin 3s ease-in-out infinite; }
+.hw-spider[data-gone="true"] { animation: hw-climb 0.45s ease-in both; }
+@keyframes hw-dangle {
+  0%   { transform: translateY(-60px); }
+  20%  { transform: translateY(var(--hw-drop, 160px)); }
+  30%  { transform: translateY(calc(var(--hw-drop, 160px) - 14px)); }
+  40%, 80% { transform: translateY(var(--hw-drop, 160px)); }
+  100% { transform: translateY(-60px); }
+}
+@keyframes hw-climb {
+  to { transform: translateY(-80px); }
+}
+@keyframes hw-spin {
+  0%, 100% { transform: rotate(-8deg); }
+  50%      { transform: rotate(8deg); }
+}
+
+/* The "boo" secret: a burst of ghosts from the middle of the window. */
+.hw-burst {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 72px;
+  height: 80px;
+  margin: -40px 0 0 -36px;
+  animation: hw-burst 1.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes hw-burst {
+  0%   { transform: translate(0, 0) scale(0.2); opacity: 0; }
+  20%  { opacity: 1; }
+  100% { transform: translate(var(--hw-x), var(--hw-y)) scale(1.2) rotate(var(--hw-r)); opacity: 0; }
+}
+
+/* Pumpkin rain (the Konami code). */
+.hw-rain {
+  position: absolute;
+  top: -70px;
+  width: 44px;
+  height: 44px;
+  animation: hw-fall var(--hw-duration, 2.4s) cubic-bezier(0.55, 0, 1, 0.45) both;
+}
+@keyframes hw-fall {
+  to { transform: translateY(calc(100vh + 80px)) rotate(var(--hw-r, 180deg)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hw-layer *,
+  .hw-layer *::before {
+    animation: none !important;
+  }
+}

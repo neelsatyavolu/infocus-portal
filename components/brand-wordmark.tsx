@@ -12,7 +12,7 @@ type BrandWordmarkProps = {
 /**
  * Logo wordmark: white letters for the dark theme, ink letters and deep green for the light theme.
  * Both files share one canvas, so the same size works for either. The light file is lazy, so dark
- * pages never download it.
+ * pages never download it. In the Halloween season (src/lib/halloween.ts) the pumpkin twins show.
  */
 export function BrandWordmark({ className, alt = "InFocus Portal", width = 280, height = 120, priority }: BrandWordmarkProps) {
   return (
@@ -22,7 +22,7 @@ export function BrandWordmark({ className, alt = "InFocus Portal", width = 280, 
         alt={alt}
         width={width}
         height={height}
-        className={cn(className, "light:hidden")}
+        className={cn(className, "halloween-hide light:hidden")}
         priority={priority}
       />
       <Image
@@ -30,7 +30,21 @@ export function BrandWordmark({ className, alt = "InFocus Portal", width = 280, 
         alt={alt}
         width={width}
         height={height}
-        className={cn(className, "hidden light:block")}
+        className={cn(className, "halloween-hide hidden light:block")}
+      />
+      <Image
+        src="/halloween/infocus-wordmark.png"
+        alt={alt}
+        width={width}
+        height={height}
+        className={cn(className, "halloween-show light:hidden")}
+      />
+      <Image
+        src="/halloween/infocus-wordmark-light.png"
+        alt={alt}
+        width={width}
+        height={height}
+        className={cn(className, "halloween-show hidden light:block")}
       />
     </>
   );

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import Image from "next/image";
+import { HubIcon } from "@/components/hub-icon";
 import { cn } from "@/src/lib/utils";
 import { Avatar } from "./avatar";
 import { PREJOIN_CONTAINER } from "./prejoin-layout";
@@ -19,7 +19,7 @@ export function MeetBar({ left, right }: { left: ReactNode; right?: ReactNode })
 export function MeetingsMark() {
   return (
     <>
-      <Image src="/favicon/infocus-hub-icon.png" alt="" width={24} height={24} className="h-6 w-6 rounded-sm" />
+      <HubIcon size={24} className="h-6 w-6 rounded-sm" />
       <span className="text-sm font-semibold text-foreground">Meetings</span>
     </>
   );

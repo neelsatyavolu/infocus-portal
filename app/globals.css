@@ -157,6 +157,44 @@
   --color-indigo-300: oklch(45.7% 0.24 277.023);
 }
 
+/* ============================================================
+   Halloween (Oct 15 – Nov 1, src/lib/halloween.ts): the InFocus Halloween
+   2026 Package. Pumpkin #FF7A1A replaces Green on Dark, Deep Pumpkin
+   #B4440A replaces InFocus Green fills, Witch Purple #9B5CFF replaces
+   Record Red. Ink, Soft White and Lexend are unchanged.
+   ============================================================ */
+
+:root.halloween {
+  --primary: 21 89% 37%;
+  --accent: 21 40% 13%;
+  --accent-foreground: 25 90% 82%;
+  --ring: 25 100% 55%;
+  --chart-1: 25 100% 55%;
+
+  --brand-green: #FF7A1A;
+  --brand-green-deep: #E8650F;
+  --brand-fill: #B4440A;
+  --brand-fill-hover: #C24E10;
+  --brand-red: #9B5CFF;
+}
+
+/* Light: pumpkin text deepens to Deep Pumpkin so it reads on white. */
+:root.halloween.light {
+  --accent: 25 80% 93%;
+  --accent-foreground: 21 89% 28%;
+  --ring: 21 89% 37%;
+
+  --brand-green: #B4440A;
+  --brand-green-deep: #8F3507;
+  --brand-fill-hover: #8F3507;
+}
+
+/* Logos: the 2026 file carries .halloween-hide, its Halloween twin .halloween-show. */
+:root:not(.halloween) .halloween-show,
+:root.halloween .halloween-hide {
+  display: none !important;
+}
+
 @theme inline {
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
@@ -456,6 +494,17 @@ video {
 .av-purple { background: #08492A; color: var(--on-brand); }
 .av-blue   { background: #2BB36E; color: #0F110F; }
 .av-gray   { background: #343934; color: var(--on-brand); }
+
+/* Halloween versions of the flat greens above (the 2026 tokens cover the rest). */
+.halloween .brand-gradient-3 { background: #6E2A06; }
+.halloween .brand-gradient-5 { background: #8A3608; }
+.halloween .av-purple { background: #4A2A80; }
+.halloween .av-blue   { background: #FF7A1A; }
+/* Approved stays a success green, not pumpkin, so it never reads as a warning. */
+.halloween .status-approved,
+.halloween .rem-pill-ok { color: #2BB36E; }
+.halloween.light .status-approved,
+.halloween.light .rem-pill-ok { color: #0B6E3E; }
 
 /* Timecode — Geist Mono is for data only */
 .timecode {

@@ -3,7 +3,8 @@ import { cn } from "@/src/lib/utils";
 
 /**
  * The 2026 wordmark the board and its PIN gate share: the cropped /brand masters, Soft White on
- * dark and the color file in light mode. Set the height with `className`.
+ * dark and the color file in light mode, and their pumpkin twins in the Halloween season. Set the
+ * height with `className`.
  */
 export function BoardWordmark({ alt = "", className }: { alt?: string; className?: string }) {
   return (
@@ -13,7 +14,7 @@ export function BoardWordmark({ alt = "", className }: { alt?: string; className
         alt={alt}
         width={1200}
         height={321}
-        className={cn("w-auto light:hidden", className)}
+        className={cn("halloween-hide w-auto light:hidden", className)}
         priority
       />
       <Image
@@ -21,8 +22,22 @@ export function BoardWordmark({ alt = "", className }: { alt?: string; className
         alt={alt}
         width={1200}
         height={321}
-        className={cn("hidden w-auto light:block", className)}
+        className={cn("halloween-hide hidden w-auto light:block", className)}
         priority
+      />
+      <Image
+        src="/halloween/brand-wordmark-white.png"
+        alt={alt}
+        width={1200}
+        height={321}
+        className={cn("halloween-show w-auto light:hidden", className)}
+      />
+      <Image
+        src="/halloween/brand-wordmark-color.png"
+        alt={alt}
+        width={1200}
+        height={321}
+        className={cn("halloween-show hidden w-auto light:block", className)}
       />
     </>
   );

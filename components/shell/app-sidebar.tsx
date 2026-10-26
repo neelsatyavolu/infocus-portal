@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, type MouseEvent } from "react";
 import { X } from "lucide-react";
 import { BrandWordmark } from "@/components/brand-wordmark";
+import { HubIcon } from "@/components/hub-icon";
 import { useMediaQuery } from "@/components/kit/remembered-state";
 import type { CycleCard, NavSignals, SidebarNavItem, SidebarNavSection } from "@/src/lib/sidebar-nav";
 import { cn } from "@/src/lib/utils";
@@ -116,7 +116,7 @@ export function AppSidebar({
         <Link href="/dashboard" className="flex min-w-0 items-center rounded-md px-1" aria-label="InFocus Portal home">
           <BrandWordmark className={cn("h-8 w-auto object-contain", rail && "lg:hidden")} width={75} height={32} priority />
           {rail ? (
-            <Image src="/favicon/infocus-hub-icon.png" alt="" width={32} height={32} className="hidden h-8 w-8 lg:block" />
+            <HubIcon size={32} className="hidden h-8 w-8 lg:block" />
           ) : null}
         </Link>
         <button

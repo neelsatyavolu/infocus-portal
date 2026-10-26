@@ -24,6 +24,7 @@ import { useShellLink } from "@/components/shell/use-shell-link";
 import { useShellNav } from "@/components/shell/use-shell-nav";
 import { setClientCacheOwner } from "@/src/lib/client-cache";
 import { isRailRoute, isWideRoute } from "@/src/lib/sidebar-nav";
+import { useHalloweenActive } from "@/src/lib/use-halloween";
 import { cn } from "@/src/lib/utils";
 
 // The ✱ panel (assistant + messages), the ⌘K palette and View as load after the page, not with it.
@@ -33,6 +34,10 @@ const ViewAsMenu = dynamic(() => import("@/components/view-as-menu").then((m) =>
 // Project pages only, so other pages never download them.
 const ProjectAssetsPanel = dynamic(() => import("@/components/shell/project-assets-panel").then((m) => m.ProjectAssetsPanel));
 const PhoneFolderChips = dynamic(() => import("@/components/shell/phone-folder-chips").then((m) => m.PhoneFolderChips));
+// Halloween season only (src/lib/halloween.ts), so the rest of the year never downloads it.
+const HalloweenGoodies = dynamic(() => import("@/components/halloween/halloween-goodies").then((m) => m.HalloweenGoodies), {
+  ssr: false
+});
 const CreateFolderDialog = dynamic(() => import("@/components/shell/create-folder-dialog").then((m) => m.CreateFolderDialog), {
   ssr: false
 });
@@ -74,6 +79,7 @@ export function AppShell({
   const route = useMemo(() => shellRoute(pathname, bare), [pathname, bare]);
   const chrome = !route.hideChrome && !embedded;
   const onMeetHost = useOnMeetHost();
+  const halloween = useHalloweenActive();
 
   // Page caches belong to one signed-in person (View as switches the person).
   setClientCacheOwner(currentUser.email ?? null);
@@ -272,6 +278,7 @@ export function AppShell({
             <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} audience={audience} />
           </>
         ) : null}
+        {halloween && chrome && !onMeetHost ? <HalloweenGoodies /> : null}
         {canViewAs && viewAsMounted ? (
           <ViewAsMenu currentUser={currentUser} canViewAs={canViewAs} viewingAs={viewingAs} open={viewAsOpen} onOpenChange={setViewAsOpen} />
         ) : null}

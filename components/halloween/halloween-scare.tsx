@@ -1,37 +1,94 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useHalloweenPrefs } from "@/src/lib/use-halloween";
 import { mediaIsPlaying } from "./halloween-music";
-import { playSpookySound, runningSpookyAudio } from "./spooky-sounds";
-import { GhostSprite } from "./sprites";
+import { playScareSound, type ScareVariant } from "./scare-sounds";
+import { runningSpookyAudio } from "./spooky-sounds";
+import { BatSprite, EyesSprite, GhostSprite, PumpkinSprite, SpiderSprite } from "./sprites";
 
-/** Never in the first 2 minutes, then one at a random moment every 3–7 minutes. */
-const FIRST_SCARE_MS = 120_000;
-const SCARE_MIN_MS = 180_000;
-const SCARE_SPREAD_MS = 240_000;
-/** Not a good moment (sound still locked, video playing, tab hidden): try again soon. */
-const RETRY_MS = 30_000;
-const SCARE_LASTS_MS = 1_600;
+/** The first one 6–15 s in, then one at a random moment every 1–2.5 minutes. */
+const FIRST_SCARE_MIN_MS = 6_000;
+const FIRST_SCARE_SPREAD_MS = 9_000;
+const SCARE_MIN_MS = 60_000;
+const SCARE_SPREAD_MS = 90_000;
+/** Not a good moment (sound still locked, video playing, tab hidden): check again soon. */
+const RETRY_MS = 2_000;
 const SCARE_VOLUME = 0.85;
 const SECRET = "scare";
+const BAT_COUNT = 18;
+
+const SCARES: Record<ScareVariant, { lastsMs: number; text: string }> = {
+  ghost: { lastsMs: 1_600, text: "BOO!" },
+  pumpkin: { lastsMs: 1_800, text: "BOO! HA HA" },
+  spider: { lastsMs: 1_800, text: "BOO!" },
+  eyes: { lastsMs: 2_400, text: "BOO!" },
+  bats: { lastsMs: 1_800, text: "BOOOO!" }
+};
+const VARIANTS = Object.keys(SCARES) as ScareVariant[];
+
+type Scare = { id: number; variant: ScareVariant; bats: CSSProperties[] };
+
+const between = (min: number, max: number) => min + Math.random() * (max - min);
 
 function isTyping(target: EventTarget | null) {
   return target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
 }
 
+/** Any variant but the last one, so two BOOs in a row never look the same. */
+function nextVariant(last: ScareVariant | null): ScareVariant {
+  const choices = VARIANTS.filter((variant) => variant !== last);
+  return choices[Math.floor(Math.random() * choices.length)];
+}
+
+/** Where each bat in the swarm flies to, from the middle of the screen out past the edges. */
+function batFlights(): CSSProperties[] {
+  return Array.from({ length: BAT_COUNT }, (_, index) => {
+    const angle = (index / BAT_COUNT) * Math.PI * 2 + between(-0.15, 0.15);
+    const reach = between(0.55, 0.8);
+    return {
+      "--hw-x": `${Math.cos(angle) * reach * 100}vw`,
+      "--hw-y": `${Math.sin(angle) * reach * 100}vh`,
+      animationDelay: `${between(0, 0.25)}s`
+    } as CSSProperties;
+  });
+}
+
+function Figure({ scare }: { scare: Scare }): ReactNode {
+  switch (scare.variant) {
+    case "ghost":
+      return <div className="hw-scare-figure"><GhostSprite /></div>;
+    case "pumpkin":
+      return <div className="hw-scare-figure"><PumpkinSprite face={0} /></div>;
+    case "spider":
+      return <div className="hw-scare-figure"><SpiderSprite /></div>;
+    case "eyes":
+      return <div className="hw-scare-figure"><EyesSprite /></div>;
+    case "bats":
+      return scare.bats.map((style, index) => (
+        <div key={index} className="hw-scare-bat" style={style}>
+          <BatSprite />
+        </div>
+      ));
+  }
+}
+
 /**
- * The big BOO: now and then a giant ghost lunges at the screen with a loud stinger. One zoom and
- * shake, no flashing; click-through, so it never blocks the page. Typing "scare" sets one off.
+ * The big BOOs: now and then something jumps out with a loud stinger. Five variants (ghost,
+ * jack-o'-lantern, spider, eyes in the dark, bat swarm), never the same one twice in a row. No
+ * flashing; click-through, so they never block the page. Typing "scare" sets one off.
  */
 export function HalloweenScare() {
   const { muted, scaresOff } = useHalloweenPrefs();
-  const [showing, setShowing] = useState(0);
+  const [scare, setScare] = useState<Scare | null>(null);
+  const last = useRef<ScareVariant | null>(null);
   const typed = useRef("");
 
-  const scare = useCallback(() => {
-    if (!muted) playSpookySound("scare", SCARE_VOLUME);
-    setShowing(Date.now());
+  const boo = useCallback(() => {
+    const variant = nextVariant(last.current);
+    last.current = variant;
+    if (!muted) playScareSound(variant, SCARE_VOLUME);
+    setScare({ id: Date.now(), variant, bats: variant === "bats" ? batFlights() : [] });
   }, [muted]);
 
   useEffect(() => {
@@ -39,11 +96,11 @@ export function HalloweenScare() {
     let timer = window.setTimeout(function attempt() {
       // Wait until a scare can be heard (or sounds are muted), and never over a video or a hidden tab.
       const ready = (muted || runningSpookyAudio()) && !document.hidden && !mediaIsPlaying();
-      if (ready) scare();
+      if (ready) boo();
       timer = window.setTimeout(attempt, ready ? SCARE_MIN_MS + Math.random() * SCARE_SPREAD_MS : RETRY_MS);
-    }, FIRST_SCARE_MS);
+    }, FIRST_SCARE_MIN_MS + Math.random() * FIRST_SCARE_SPREAD_MS);
     return () => window.clearTimeout(timer);
-  }, [muted, scare, scaresOff]);
+  }, [boo, muted, scaresOff]);
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -51,26 +108,31 @@ export function HalloweenScare() {
       typed.current = (typed.current + event.key.toLowerCase()).slice(-SECRET.length);
       if (typed.current === SECRET) {
         typed.current = "";
-        scare();
+        boo();
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [scare]);
+  }, [boo]);
 
   useEffect(() => {
-    if (!showing) return;
-    const timer = window.setTimeout(() => setShowing(0), SCARE_LASTS_MS);
+    if (!scare) return;
+    const timer = window.setTimeout(() => setScare(null), SCARES[scare.variant].lastsMs);
     return () => window.clearTimeout(timer);
-  }, [showing]);
+  }, [scare]);
 
-  if (!showing) return null;
+  if (!scare) return null;
+  const { lastsMs, text } = SCARES[scare.variant];
   return (
-    <div key={showing} className="hw-scare" aria-hidden>
-      <div className="hw-scare-ghost">
-        <GhostSprite />
-      </div>
-      <div className="hw-scare-text">BOO!</div>
+    <div
+      key={scare.id}
+      className="hw-scare"
+      data-variant={scare.variant}
+      style={{ "--hw-lasts": `${lastsMs}ms` } as CSSProperties}
+      aria-hidden
+    >
+      <Figure scare={scare} />
+      <div className="hw-scare-text">{text}</div>
     </div>
   );
 }

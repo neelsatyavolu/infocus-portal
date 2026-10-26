@@ -224,7 +224,8 @@
   to { transform: translateY(calc(100vh + 80px)) rotate(var(--hw-r, 180deg)); }
 }
 
-/* The big BOO: above everything, click-through, one lunge and shake, then a fade. No flashing. */
+/* The big BOOs (halloween-scare.tsx): above everything, click-through, one move and a fade. No
+   flashing. Every animation runs for the variant's --hw-lasts; the sounds are timed to match. */
 .hw-scare {
   position: fixed;
   inset: 0;
@@ -234,25 +235,27 @@
   place-items: center;
   overflow: hidden;
   background: radial-gradient(circle, rgb(15 17 15 / 0.35) 0%, rgb(15 17 15 / 0.92) 70%);
-  animation: hw-scare-dim 1.6s ease-out both;
+  animation: hw-scare-dim var(--hw-lasts) ease-out both;
 }
-.hw-scare-ghost {
+.hw-scare[data-variant="eyes"] { background: rgb(5 6 5 / 0.97); }
+.hw-scare-figure {
   grid-area: 1 / 1;
   width: min(70vw, 70vh);
   aspect-ratio: 64 / 72;
   filter: drop-shadow(0 0 40px rgb(155 92 255 / 0.7));
-  animation: hw-scare-lunge 1.6s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+  animation: hw-scare-lunge var(--hw-lasts) cubic-bezier(0.2, 1.4, 0.4, 1) both;
 }
-.hw-scare-ghost > svg { width: 100%; height: 100%; }
+.hw-scare-figure > svg { width: 100%; height: 100%; }
 .hw-scare-text {
   grid-area: 1 / 1;
   align-self: end;
   margin-bottom: 8vh;
-  font: 800 clamp(64px, 18vw, 220px)/1 var(--font-display);
+  font: 800 clamp(56px, 16vw, 200px)/1 var(--font-display);
   letter-spacing: 0.04em;
+  white-space: nowrap;
   color: #FF7A1A;
   text-shadow: 0 0 30px rgb(255 122 26 / 0.6), 0 6px 0 #B4440A;
-  animation: hw-scare-shout 1.6s ease-out both;
+  animation: hw-scare-shout var(--hw-lasts) ease-out both;
 }
 @keyframes hw-scare-dim {
   0%   { opacity: 0; }
@@ -278,10 +281,94 @@
   100% { transform: scale(1.1); opacity: 0; }
 }
 
+/* Jack-o'-lantern: the same lunge, cackling side to side. */
+.hw-scare[data-variant="pumpkin"] .hw-scare-figure {
+  aspect-ratio: 1;
+  filter: drop-shadow(0 0 50px rgb(255 122 26 / 0.75));
+  animation-name: hw-scare-cackle;
+}
+@keyframes hw-scare-cackle {
+  0%   { transform: scale(0.15) rotate(0); }
+  12%  { transform: scale(1.12) rotate(-8deg); }
+  22%  { transform: scale(1.06) rotate(8deg); }
+  32%  { transform: scale(1.08) rotate(-8deg); }
+  42%  { transform: scale(1.06) rotate(8deg); }
+  52%  { transform: scale(1.08) rotate(-4deg); }
+  62%, 75% { transform: scale(1.06) rotate(0); }
+  100% { transform: scale(1.3) rotate(0); }
+}
+
+/* Spider: drops from the top on its thread, lands with the screech (0.35 s), climbs back up. */
+.hw-scare[data-variant="spider"] .hw-scare-figure {
+  position: relative;
+  width: min(60vw, 60vh);
+  aspect-ratio: 48 / 40;
+  animation-name: hw-scare-drop;
+  animation-timing-function: ease-in;
+}
+.hw-scare[data-variant="spider"] .hw-scare-figure::before {
+  content: "";
+  position: absolute;
+  bottom: 70%;
+  left: 50%;
+  width: 3px;
+  height: 120vh;
+  background: #8A8F8B;
+}
+.hw-scare[data-variant="spider"] .hw-scare-text { animation-delay: 0.3s; animation-duration: 1.5s; }
+@keyframes hw-scare-drop {
+  0%   { transform: translateY(-120vh); }
+  19%  { transform: translateY(4vh); }
+  23%  { transform: translateY(-2vh) rotate(-6deg); }
+  27%  { transform: translateY(1vh) rotate(6deg); }
+  31%  { transform: translateY(0) rotate(-3deg); }
+  36%, 78% { transform: translateY(0) rotate(0); }
+  100% { transform: translateY(-120vh); }
+}
+
+/* Eyes in the dark: two heartbeats of blinking, then they flare with the BOO (0.95 s). */
+.hw-scare[data-variant="eyes"] .hw-scare-figure {
+  width: min(80vw, 900px);
+  aspect-ratio: 3;
+  filter: drop-shadow(0 0 30px rgb(155 92 255 / 0.9));
+  animation-name: hw-scare-stare;
+  animation-timing-function: ease-in-out;
+}
+.hw-scare[data-variant="eyes"] .hw-scare-text { animation-delay: 0.9s; animation-duration: 1.5s; }
+@keyframes hw-scare-stare {
+  0%   { transform: scale(0.6); opacity: 0; }
+  10%  { transform: scale(0.6); opacity: 1; }
+  16%  { transform: scale(0.6, 0.06); }
+  19%  { transform: scale(0.6); }
+  30%  { transform: scale(0.6, 0.06); }
+  33%  { transform: scale(0.6); }
+  39%  { transform: scale(0.62); }
+  43%  { transform: scale(1.25) translate(-10px, 4px); }
+  47%  { transform: scale(1.18) translate(8px, -6px); }
+  51%, 80% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1.3); opacity: 0; }
+}
+
+/* Bat swarm: bursts out of the middle of the screen past every edge. */
+.hw-scare-bat {
+  grid-area: 1 / 1;
+  width: 120px;
+  height: 60px;
+  filter: drop-shadow(0 0 12px rgb(155 92 255 / 0.7));
+  animation: hw-scare-swarm calc(var(--hw-lasts) * 0.8) cubic-bezier(0.3, 0.7, 0.4, 1) both;
+}
+.hw-scare-bat > svg { width: 100%; height: 100%; }
+@keyframes hw-scare-swarm {
+  0%   { transform: translate(0, 0) scale(0.2); opacity: 0; }
+  10%  { opacity: 1; }
+  100% { transform: translate(var(--hw-x), var(--hw-y)) scale(2.2); opacity: 1; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hw-layer *,
   .hw-layer *::before,
-  .hw-scare-ghost,
+  .hw-scare-figure,
+  .hw-scare-bat,
   .hw-scare-text {
     animation: none !important;
   }

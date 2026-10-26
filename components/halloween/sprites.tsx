@@ -110,3 +110,21 @@ export function SpiderSprite({ className }: { className?: string }) {
     </svg>
   );
 }
+
+/** Two glowing eyes in the dark, with slit pupils. */
+export function EyesSprite({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 120 40" className={className} aria-hidden>
+      {[
+        { cx: 30, tilt: 14 },
+        { cx: 90, tilt: -14 }
+      ].map(({ cx, tilt }) => (
+        <g key={cx} transform={`rotate(${tilt} ${cx} 20)`}>
+          <path d={`M${cx - 22} 20 Q${cx} 2 ${cx + 22} 20 Q${cx} 38 ${cx - 22} 20 Z`} fill={PURPLE} />
+          <ellipse cx={cx} cy="20" rx="3" ry="7.5" fill={INK} />
+          <circle cx={cx - 7} cy="16" r="1.8" fill={SOFT_WHITE} opacity="0.8" />
+        </g>
+      ))}
+    </svg>
+  );
+}

@@ -94,7 +94,7 @@ describe("rendering", () => {
     expect(html).toContain('referrerpolicy="strict-origin-when-cross-origin"');
     expect(html).toContain("allowfullscreen");
     expect(html).toContain("height: 54.4px");
-    expect(html).toContain("border-bottom: 4px solid #0B6E3E");
+    expect(html).toContain("border-bottom: 4px solid #B4440A");
     expect(html).toContain("prefers-color-scheme: dark");
     expect(html).not.toContain("border-top-right-radius");
     expect(html).toContain('<script nonce="abc123">');

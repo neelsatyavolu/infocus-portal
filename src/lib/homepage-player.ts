@@ -203,7 +203,7 @@ export function renderHomepagePlayerHtml(nonce: string, fallbackPlaylistId = FAL
 html, body { margin: 0; padding: 0; background: transparent; }
 body { font-family: "Lexend", system-ui, -apple-system, "Segoe UI", sans-serif; }
 #root { width: 100%; background: transparent; }
-.nameplate { box-sizing: border-box; height: 54.4px; display: flex; align-items: center; gap: 12px; padding: 0 20px; background: #F4F6F5; color: #0F110F; border-bottom: 4px solid #0B6E3E; overflow: hidden; min-width: 0; }
+.nameplate { box-sizing: border-box; height: 54.4px; display: flex; align-items: center; gap: 12px; padding: 0 20px; background: #F4F6F5; color: #0F110F; border-bottom: 4px solid #B4440A; overflow: hidden; min-width: 0; }
 #root.live .nameplate { border-bottom-color: #C21F3A; }
 #root.live #label { color: #C21F3A; }
 @media (prefers-color-scheme: dark) {

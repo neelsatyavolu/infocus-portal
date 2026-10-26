@@ -109,7 +109,7 @@ describe("buildSidebarNav", () => {
       "/grades",
       "/master-calendar",
       "/package-cycles",
-      "https://drive.infocusportal.com",
+      "https://drive.infocuspaly.com",
       "https://teleprompter.infocusportal.com",
       "/managers",
       "/ideas",

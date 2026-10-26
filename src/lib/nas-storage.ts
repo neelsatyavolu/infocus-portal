@@ -29,7 +29,7 @@ export type NasUploadSession = {
 };
 
 export function driveBaseUrl(): string {
-  const base = (process.env.DRIVE_BASE_URL || "https://drive.infocusportal.com").replace(/\/$/, "");
+  const base = (process.env.DRIVE_BASE_URL || "https://drive.infocuspaly.com").replace(/\/$/, "");
   return base;
 }
 

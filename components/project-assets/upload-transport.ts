@@ -74,7 +74,7 @@ export async function uploadFileWithTus(
     });
   };
 
-  // NAS: multipart POST to drive.infocusportal.com (CORS-enabled)
+  // NAS: multipart POST to drive.infocuspaly.com (CORS-enabled)
   if ((upload.provider || "").toUpperCase() === "NAS") {
     const { completeNasUpload, uploadFileToNas } = await import("@/src/lib/nas-upload-client");
     await uploadFileToNas(file, upload, reportProgress);

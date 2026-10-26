@@ -26,7 +26,7 @@ function marketingNavItems(): MarketingNavItem[] {
     { href: "/package-cycles", label: "Cycle Dates", key: "package-cycles", external: false, group: "portal", prefetch: false },
     { href: "/package-progress", label: "Package Cycle", key: "package-progress", external: false, group: "portal", prefetch: false },
     equipment,
-    { href: "https://drive.infocusportal.com", label: "InFocus Drive", key: "drive", external: true, group: "tools" }
+    { href: "https://drive.infocuspaly.com", label: "InFocus Drive", key: "drive", external: true, group: "tools" }
   ];
 }
 

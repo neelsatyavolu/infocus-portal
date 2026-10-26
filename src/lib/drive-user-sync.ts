@@ -5,7 +5,7 @@
  */
 
 function driveBaseUrl(): string {
-  return (process.env.DRIVE_BASE_URL || "https://drive.infocusportal.com").replace(/\/$/, "");
+  return (process.env.DRIVE_BASE_URL || "https://drive.infocuspaly.com").replace(/\/$/, "");
 }
 
 function serviceToken(): string {

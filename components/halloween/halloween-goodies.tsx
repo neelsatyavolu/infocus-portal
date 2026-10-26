@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { useMediaQuery } from "@/components/kit/remembered-state";
 import { isHalloweenDay, readHalloweenPrefs, writeHalloweenPrefs } from "@/src/lib/halloween";
 import { useHalloweenActive, useHalloweenPrefs } from "@/src/lib/use-halloween";
-import { playSpookySound, type SpookySound } from "./spooky-sounds";
+import { playSpookySound, unlockSpookySounds, type SpookySound } from "./spooky-sounds";
 import { BatSprite, GhostSprite, PUMPKIN_FACE_COUNT, PumpkinSprite, SpiderSprite, SplatSprite } from "./sprites";
 import "./halloween.css";
 
@@ -19,12 +19,14 @@ type Sprite =
   | { id: number; kind: "burst"; x: number; y: number; r: number }
   | { id: number; kind: "rain"; left: number; duration: number; r: number; face: number };
 
-/** First visitor after this long, then one every 25–60 s while the tab is open. */
-const FIRST_VISIT_MS = 8_000;
-const VISIT_MIN_MS = 25_000;
-const VISIT_SPREAD_MS = 35_000;
+/** First visitor after this long, then one every 8–18 s while the tab is open. */
+const FIRST_VISIT_MS = 3_000;
+const VISIT_MIN_MS = 8_000;
+const VISIT_SPREAD_MS = 10_000;
 const PUMPKIN_STAYS_MS = 15_000;
-const MAX_PUMPKINS = 2;
+const MAX_PUMPKINS = 3;
+/** Visitors that arrive on their own are quieter than the sounds people click for. */
+const AMBIENT_VOLUME = 0.6;
 const GREETED_KEY = "infocus-halloween-greeted";
 const BOO = "boo";
 const KONAMI = ["arrowup", "arrowup", "arrowdown", "arrowdown", "arrowleft", "arrowright", "arrowleft", "arrowright", "b", "a"];
@@ -74,14 +76,18 @@ function Haunting() {
     [later, remove]
   );
 
-  const sound = useCallback((name: SpookySound) => (muted ? undefined : playSpookySound(name)), [muted]);
+  const sound = useCallback(
+    (name: SpookySound, volume = 1) => (muted ? undefined : playSpookySound(name, volume)),
+    [muted]
+  );
 
   const visit = useCallback(() => {
     if (document.hidden) return;
     const roll = Math.random();
     const height = window.innerHeight;
-    if (roll < 0.45 || still) {
+    if (roll < 0.35 || still) {
       if (onScreen.current.filter((sprite) => sprite.kind === "pumpkin").length >= MAX_PUMPKINS) return;
+      sound("creak", AMBIENT_VOLUME);
       spawn(
         (id) => ({
           id,
@@ -92,7 +98,8 @@ function Haunting() {
         }),
         PUMPKIN_STAYS_MS
       );
-    } else if (roll < 0.7) {
+    } else if (roll < 0.65) {
+      sound("flap", AMBIENT_VOLUME);
       const rtl = Math.random() < 0.5;
       const top = between(70, 160);
       for (let i = 0; i < 3; i += 1) {
@@ -103,14 +110,16 @@ function Haunting() {
         );
       }
     } else if (roll < 0.85) {
+      sound("boo", AMBIENT_VOLUME);
       spawn((id) => ({ id, kind: "ghost", left: between(0.15, 0.85) * window.innerWidth, gone: false }), 13_000);
     } else {
+      later(() => sound("scurry", AMBIENT_VOLUME), 600);
       spawn(
         (id) => ({ id, kind: "spider", left: between(0.2, 0.85) * window.innerWidth, drop: between(120, 260), gone: false }),
         12_000
       );
     }
-  }, [later, spawn, still]);
+  }, [later, sound, spawn, still]);
 
   // The visitors' schedule.
   useEffect(() => {
@@ -128,6 +137,17 @@ function Haunting() {
       pending.forEach((timer) => window.clearTimeout(timer));
       pending.clear();
     };
+  }, []);
+
+  // Browsers allow sound only after a click or key press on the page; unlock it on the first one.
+  useEffect(() => {
+    const events = ["pointerdown", "keydown"] as const;
+    function unlock() {
+      unlockSpookySounds();
+      events.forEach((name) => window.removeEventListener(name, unlock, true));
+    }
+    events.forEach((name) => window.addEventListener(name, unlock, true));
+    return () => events.forEach((name) => window.removeEventListener(name, unlock, true));
   }, []);
 
   // October 31: one greeting per browser.

@@ -16,10 +16,10 @@ const APP_LINKS = [
     host: new URL(teleprompterAppOrigin()).host
   },
   {
-    href: "https://drive.infocusportal.com",
+    href: "https://drive.infocuspaly.com",
     title: "InFocus Drive",
     description: "Media storage",
-    host: "drive.infocusportal.com"
+    host: "drive.infocuspaly.com"
   }
 ];
 

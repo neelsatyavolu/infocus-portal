@@ -1,6 +1,8 @@
 # Subdomains
 
-Same Next.js app, host-based routing in `middleware.ts`. The Portal answers on two domains (`PORTAL_DOMAINS` in `src/lib/hosts.ts`): **infocusportal.com**, the canonical one, and **infocuspaly.com**, the original.
+Same Next.js app, host-based routing in `middleware.ts`. The Portal answers on two domains (`PORTAL_DOMAINS` in `src/lib/hosts.ts`): **infocuspaly.com**, the original and canonical one again, and **infocusportal.com**.
+
+**infocuspaly.com is canonical again (2026-10-25).** The school network's DNS filter blocks infocusportal.com and every subdomain, most likely because the domain is newly registered (2026-10-24). That broke the Portal, Meetings and Drive on school Wi-Fi and the NAS's calls to the Portal. `APP_BASE_URL` / `NEXT_PUBLIC_APP_URL` (repository variables and Worker secrets), `DRIVE_BASE_URL` and `MEETING_ROOM_URL` point at infocuspaly.com again, so infocusportal.com pages move there. Switch back only after a lookup from the NAS (`getent hosts infocusportal.com`) returns Cloudflare addresses. The host table below shows the infocusportal.com names, and each one works the same on infocuspaly.com.
 
 | Host | Surface | Home rewrite |
 |------|---------|--------------|
@@ -9,7 +11,7 @@ Same Next.js app, host-based routing in `middleware.ts`. The Portal answers on t
 | `teleprompter.infocusportal.com` | teleprompter | `/teleprompter` |
 | `equipment.infocusportal.com` | equipment | `/equipment` |
 | `meet.infocusportal.com` | meet | `/meetings` (also `/producers` → `/meet/producers`, `/<id>` → `/meet/<id>`) |
-| `drive.infocusportal.com` | separate app | InFocus Drive (other repo, Cloudflare Tunnel); `drive.infocuspaly.com` still reaches it and moves browsers here |
+| `drive.infocusportal.com` | separate app | InFocus Drive (other repo, Cloudflare Tunnel); canonical is `drive.infocuspaly.com` again (see above), and this name moves browsers there |
 
 Each of those Portal hosts also exists on infocuspaly.com (`meet.infocuspaly.com`, …).
 

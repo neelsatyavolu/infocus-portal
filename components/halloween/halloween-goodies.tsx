@@ -5,7 +5,8 @@ import { toast } from "sonner";
 import { useMediaQuery } from "@/components/kit/remembered-state";
 import { isHalloweenDay, readHalloweenPrefs, writeHalloweenPrefs } from "@/src/lib/halloween";
 import { useHalloweenActive, useHalloweenPrefs } from "@/src/lib/use-halloween";
-import { playSpookySound, unlockSpookySounds, type SpookySound } from "./spooky-sounds";
+import { HalloweenMusic } from "./halloween-music";
+import { playSpookySound, type SpookySound } from "./spooky-sounds";
 import { BatSprite, GhostSprite, PUMPKIN_FACE_COUNT, PumpkinSprite, SpiderSprite, SplatSprite } from "./sprites";
 import "./halloween.css";
 
@@ -38,7 +39,7 @@ function isTyping(target: EventTarget | null) {
   return target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
 }
 
-/** Pumpkins, bats, a ghost and a spider for the signed-in shell, only in the Halloween season. */
+/** Music, pumpkins, bats, a ghost and a spider for the signed-in shell, only in the Halloween season. */
 export function HalloweenGoodies() {
   return useHalloweenActive() ? <Haunting /> : null;
 }
@@ -139,17 +140,6 @@ function Haunting() {
     };
   }, []);
 
-  // Browsers allow sound only after a click or key press on the page; unlock it on the first one.
-  useEffect(() => {
-    const events = ["pointerdown", "keydown"] as const;
-    function unlock() {
-      unlockSpookySounds();
-      events.forEach((name) => window.removeEventListener(name, unlock, true));
-    }
-    events.forEach((name) => window.addEventListener(name, unlock, true));
-    return () => events.forEach((name) => window.removeEventListener(name, unlock, true));
-  }, []);
-
   // October 31: one greeting per browser.
   useEffect(() => {
     const now = new Date();
@@ -240,6 +230,7 @@ function Haunting() {
 
   return (
     <div className="hw-layer">
+      <HalloweenMusic />
       {sprites.map((sprite) => {
         switch (sprite.kind) {
           case "pumpkin":

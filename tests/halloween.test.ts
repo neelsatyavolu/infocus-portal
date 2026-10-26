@@ -40,8 +40,13 @@ describe("parseHalloweenPrefs", () => {
   });
 
   it("keeps only real booleans and a whole, positive count", () => {
-    expect(parseHalloweenPrefs('{"off":true,"muted":true,"smashed":7}')).toEqual({ off: true, muted: true, smashed: 7 });
-    expect(parseHalloweenPrefs('{"off":"yes","muted":1,"smashed":-3}')).toEqual(DEFAULT_HALLOWEEN_PREFS);
+    expect(parseHalloweenPrefs('{"off":true,"muted":true,"musicOff":true,"smashed":7}')).toEqual({
+      off: true,
+      muted: true,
+      musicOff: true,
+      smashed: 7
+    });
+    expect(parseHalloweenPrefs('{"off":"yes","muted":1,"musicOff":"no","smashed":-3}')).toEqual(DEFAULT_HALLOWEEN_PREFS);
     expect(parseHalloweenPrefs('{"smashed":4.8}').smashed).toBe(4);
     expect(parseHalloweenPrefs('{"smashed":"lots"}').smashed).toBe(0);
   });

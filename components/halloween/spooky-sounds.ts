@@ -1,7 +1,8 @@
 /**
  * Halloween sound effects, synthesized with Web Audio so there are no audio files to ship or
  * license. Browsers keep audio locked until the person clicks or presses a key on the page, so
- * unlockSpookySounds() runs on that first gesture; visitors that arrive before it stay silent.
+ * unlockSpookySounds() runs on that first gesture (halloween-music.tsx); visitors that arrive
+ * before it stay silent.
  */
 
 export type SpookySound = "splat" | "boo" | "cackle" | "scurry" | "creak" | "flap";
@@ -16,8 +17,13 @@ function audio(): AudioContext | null {
 }
 
 /** Call from a click or key press: creates or resumes the audio context while the browser allows it. */
-export function unlockSpookySounds() {
-  audio();
+export function unlockSpookySounds(): AudioContext | null {
+  return audio();
+}
+
+/** The shared audio context once it is unlocked and running (the music plays through it too). */
+export function runningSpookyAudio(): AudioContext | null {
+  return context?.state === "running" ? context : null;
 }
 
 function noiseBuffer(ctx: AudioContext, seconds: number): AudioBuffer {

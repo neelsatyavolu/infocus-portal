@@ -21,6 +21,29 @@
   outline-offset: 2px;
 }
 
+/* Music on/off, just left of the ✱ button (assistant-chat.tsx) and centered on it. */
+.hw-music {
+  position: absolute;
+  right: calc(max(1.25rem, env(safe-area-inset-right)) + 3.5rem);
+  bottom: calc(var(--phone-tabbar-h, 0px) + max(1.25rem, env(safe-area-inset-bottom)) + 6px);
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  background: hsl(var(--card));
+  color: hsl(var(--muted-foreground));
+}
+.hw-music[data-playing="true"] { color: var(--brand-green); }
+.hw-music:hover { background: var(--ink-3); }
+.hw-music > svg { width: 16px; height: 16px; }
+.hw-music[data-playing="true"] > svg { animation: hw-bob 1.6s ease-in-out infinite; }
+@keyframes hw-bob {
+  0%, 100% { transform: translateY(0) rotate(-6deg); }
+  50%      { transform: translateY(-2px) rotate(6deg); }
+}
+
 /* A pumpkin peeking in from the left or right edge. */
 .hw-pumpkin {
   position: absolute;

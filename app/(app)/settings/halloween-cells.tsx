@@ -10,7 +10,8 @@ function subscribeNever() {
 
 /**
  * Settings → Appearance during the Halloween season (Oct 15 – Nov 1): turn the Halloween look and
- * visitors off in this browser, or just mute their sounds. Renders nothing the rest of the year.
+ * visitors off in this browser, or just mute their sounds or the music. Renders nothing the rest of
+ * the year.
  */
 export function HalloweenCells({ onSaved }: { onSaved: () => void }) {
   const inSeason = useSyncExternalStore(subscribeNever, () => isHalloweenSeason(new Date()), () => false);
@@ -18,7 +19,7 @@ export function HalloweenCells({ onSaved }: { onSaved: () => void }) {
 
   if (!inSeason) return null;
 
-  function update(change: { off?: boolean; muted?: boolean }) {
+  function update(change: { off?: boolean; muted?: boolean; musicOff?: boolean }) {
     writeHalloweenPrefs({ ...readHalloweenPrefs(), ...change });
     onSaved();
   }
@@ -42,6 +43,20 @@ export function HalloweenCells({ onSaved }: { onSaved: () => void }) {
           checked={!prefs.muted}
           disabled={prefs.off}
           onCheckedChange={(on) => update({ muted: !on })}
+        />
+      </SettingsCell>
+      <SettingsCell
+        inline
+        title="Spooky music"
+        description="Pauses while a video plays."
+        htmlFor="pref-halloween-music"
+        className="min-h-16"
+      >
+        <Switch
+          id="pref-halloween-music"
+          checked={!prefs.musicOff}
+          disabled={prefs.off}
+          onCheckedChange={(on) => update({ musicOff: !on })}
         />
       </SettingsCell>
     </>

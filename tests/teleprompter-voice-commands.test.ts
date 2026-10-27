@@ -20,6 +20,50 @@ describe("parseVoiceCommand", () => {
     }
   });
 
+  it("goes to the top however it's asked", () => {
+    for (const text of [
+      "Teleprompter, go to the top please.",
+      "Teleprompter, back to the top, thank you.",
+      "Teleprompter, from the top",
+      "Teleprompter, take it from the top",
+      "Teleprompter, start over",
+      "Teleprompter, restart",
+      "Teleprompter, go all the way back up to the top of the script",
+      "Teleprompter, go up to the top",
+      "Teleprompter, goto top",
+      "Teleprompter, take me to the top",
+      "Teleprompter, start from the beginning",
+      "Promter, go to the top"
+    ]) {
+      expect(gotoWord(text), text).toBe(0);
+    }
+    expect(say("Teleprompter, start")).toMatchObject({ ok: true, action: { kind: "resume" } });
+    expect(say("Teleprompter, go to the top of the second announcement")).toMatchObject({ ok: false });
+  });
+
+  it("drops pleasantries after other commands too", () => {
+    expect(gotoWord("Teleprompter, next please")).toBe(first("Robot"));
+    expect(say("Teleprompter, pause, thanks")).toMatchObject({ ok: true, action: { kind: "pause" } });
+    expect(gotoWord("Teleprompter, go to the closing now")).toBe(first("That"));
+  });
+
+  it("waits for the command after the wake word alone", () => {
+    expect(say("Teleprompter.")).toMatchObject({ ok: false, waiting: true });
+    expect(say("Hey teleprompter, please")).toMatchObject({ ok: false, waiting: true });
+    const awake = (text: string) => parseVoiceCommand(text.split(" "), context(), { awake: true });
+    expect(awake("Go to the top.")).toMatchObject({ ok: true, action: { kind: "goto", word: 0 } });
+    expect(awake("Next.")).toMatchObject({ ok: true, action: { kind: "goto", word: first("Robot") } });
+    expect(awake("Teleprompter, go to the top.")).toMatchObject({ ok: true, action: { kind: "goto", word: 0 } });
+    expect(awake("Make me a sandwich")).toMatchObject({ ok: false });
+    expect(parseVoiceCommand(["Go", "to", "the", "top."], context())).toBeNull();
+  });
+
+  it("only counts a cut-off piece of speech from its sentence starts", () => {
+    const cut = (text: string) => parseVoiceCommand(text.split(" "), context(), { afterPause: false });
+    expect(cut("Teleprompter, go to the top.")).toBeNull();
+    expect(cut("great day Vikings. Teleprompter, go to the top.")).toMatchObject({ ok: true, action: { word: 0 } });
+  });
+
   it("goes to an announcement by number", () => {
     const stories = map.blocks.filter((block) => block.sectionId === "s2");
     expect(gotoWord("Teleprompter, go to the first announcement.")).toBe(stories[0].firstWordIndex);

@@ -23,6 +23,8 @@ const ON_KEY = "teleprompter-auto-follow-on";
 const DEFAULT_SETTINGS: AutoFollowSettings = { deviceId: "", channel: "mix", secondDeviceId: "", model: "fast" };
 const SYNC_MS = 200;
 const COMMAND_SHOWN_MS = 3000;
+/** After the wake word alone, the next utterance this soon is the command. */
+const WAKE_WINDOW_MS = 5000;
 const UNDO_DEPTH = 5;
 
 /** Auto is on when run mode opens, unless it was switched off (F or the button) on this computer. */
@@ -129,6 +131,7 @@ export function useAutoFollow({
   const followerRef = useRef<ScriptFollower | null>(null);
   const pausedRef = useRef(false);
   const undoRef = useRef<number[]>([]);
+  const awakeUntilRef = useRef(0);
   const wordAtPlayheadRef = useRef(wordAtPlayhead);
   const scriptRef = useRef({ wordMap, sections });
   useEffect(() => {
@@ -138,7 +141,7 @@ export function useAutoFollow({
 
   useEffect(() => {
     if (!command) return;
-    const timer = window.setTimeout(() => setCommand(null), COMMAND_SHOWN_MS);
+    const timer = window.setTimeout(() => setCommand(null), "waiting" in command ? WAKE_WINDOW_MS : COMMAND_SHOWN_MS);
     return () => window.clearTimeout(timer);
   }, [command]);
 
@@ -190,12 +193,16 @@ export function useAutoFollow({
       },
       onUtterance: ({ words, afterPause }) => {
         const follower = followerRef.current;
-        // A command starts a sentence: cut-off pieces of long speech never count.
-        if (!follower || !afterPause) return;
-        const result = parseVoiceCommand(words, { ...scriptRef.current, map: scriptRef.current.wordMap, cursor: follower.cursor });
+        if (!follower) return;
+        const now = performance.now();
+        const awake = now < awakeUntilRef.current;
+        awakeUntilRef.current = 0;
+        const context = { ...scriptRef.current, map: scriptRef.current.wordMap, cursor: follower.cursor };
+        const result = parseVoiceCommand(words, context, { afterPause, awake });
         if (!result) return;
         if (result.ok) runCommand(follower, result.action, { paused: pausedRef, undo: undoRef, target: targetRef });
-        setCommand({ ...result, id: performance.now() });
+        if ("waiting" in result) awakeUntilRef.current = now + WAKE_WINDOW_MS;
+        setCommand({ ...result, id: now });
       }
     });
     return () => {

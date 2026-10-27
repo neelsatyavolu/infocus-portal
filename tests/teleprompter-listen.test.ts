@@ -103,9 +103,9 @@ describe("StreamingTranscriber", () => {
       onUtterance: (utterance) => utterances.push(utterance)
     });
     transcriber.push(block(0));
-    // 9 s of talk, a 0.3 s gap (too short to end the utterance), then 13 s of talk without a break.
+    // 5.5 s of talk, a 0.3 s gap (too short to end the utterance), then 9 s of talk without a break.
     const talk = (blocks: number) => Array.from({ length: blocks }, (_, index) => (index % 3 === 0 ? 0.25 : 0.2));
-    const levels = [...talk(90), ...Array(3).fill(0.0005), ...talk(130), ...Array(10).fill(0)];
+    const levels = [...talk(55), ...Array(3).fill(0.0005), ...talk(90), ...Array(10).fill(0)];
     for (const level of levels) {
       transcriber.push(block(level));
       await settle();
@@ -113,7 +113,7 @@ describe("StreamingTranscriber", () => {
     expect(utterances.map((utterance) => utterance.afterPause)).toEqual([true, true, false]);
   });
 
-  it("cuts long speech into reads of at most twelve seconds", async () => {
+  it("cuts long speech into reads of at most eight seconds", async () => {
     const lengths: number[] = [];
     const transcriber = fakeTranscriber([], lengths);
     transcriber.push(block(0));
@@ -121,7 +121,7 @@ describe("StreamingTranscriber", () => {
       transcriber.push(block(0.2));
       await settle();
     }
-    expect(Math.max(...lengths)).toBeLessThanOrEqual(12.01);
+    expect(Math.max(...lengths)).toBeLessThanOrEqual(8.01);
     expect(lengths.length).toBeGreaterThan(10);
   });
 

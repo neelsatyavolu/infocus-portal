@@ -36,11 +36,11 @@ Taking over by hand always works: Space stops the script where it is, and any ar
 
 ### Voice commands
 
-While Auto is on, the crew can steer by voice. Start with **"Teleprompter,"** (after a pause, or right after the anchor finishes a sentence), then one command:
+While Auto is on, the crew can steer by voice. Start with **"Teleprompter,"** (after a pause, or right after the anchor finishes a sentence), then one command. Pausing after "Teleprompter" is fine: the top bar shows **Listening for a command…** and the next thing said within 5 seconds is taken as the command. A "please" or "thank you" at the end is ignored.
 
 | Say | Does |
 |---|---|
-| Teleprompter, go to the top | Top of the show |
+| Teleprompter, go to the top (also: top, from the top, back to the top, start over, restart, the beginning) | Top of the show |
 | Teleprompter, go to the first (second, third, last) announcement | That announcement in the bulletin |
 | Teleprompter, go to A3 / the open / the announcements / the package / the thank yous / the closing | That section |
 | Teleprompter, go to spirit week | The story that starts with those words |

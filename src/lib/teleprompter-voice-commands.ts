@@ -5,8 +5,9 @@ import type { ScriptWordMap } from "@/src/lib/teleprompter-script-words";
 /*
  * Voice commands for Auto follow: "Teleprompter, go to the top", "Teleprompter, next",
  * "Teleprompter, go to the second announcement", "Teleprompter, go to spirit week". A command is
- * an utterance that starts with the wake word, said after a pause; everything else is script
- * reading. Pure: takes the heard words and the script, returns what to do.
+ * a sentence that starts with the wake word; everything else is script reading. The wake word
+ * alone ("Teleprompter…" then a pause) waits for the command in the next utterance. Pure: takes
+ * the heard words and the script, returns what to do.
  */
 
 export type VoiceAction =
@@ -15,7 +16,18 @@ export type VoiceAction =
   | { kind: "resume" }
   | { kind: "undo" };
 
-export type VoiceCommandResult = { ok: true; action: VoiceAction; label: string } | { ok: false; heard: string };
+export type VoiceCommandResult =
+  | { ok: true; action: VoiceAction; label: string }
+  | { ok: false; heard: string }
+  /** Only the wake word: the command should come in the next utterance. */
+  | { ok: false; heard: string; waiting: true };
+
+export type VoiceCommandOptions = {
+  /** The utterance began after a pause; if not (a cut out of long speech), its first word may be mid-sentence. */
+  afterPause?: boolean;
+  /** The wake word was just said on its own, so this utterance is the command even without it. */
+  awake?: boolean;
+};
 
 export type VoiceContext = {
   map: ScriptWordMap;
@@ -26,6 +38,8 @@ export type VoiceContext = {
 
 const FILLERS = new Set(["hey", "ok", "okay", "hi", "yo", "um", "uh", "so"]);
 const POLITE = new Set(["please", "can", "you", "could", "would", "now", "just"]);
+/** What people tack on after the command ("…go to the top, please", "…next, thank you"). */
+const TRAILING = new Set(["please", "now", "thanks", "thank", "you", "again", "ok", "okay", "real", "quick"]);
 const GO_VERBS = [
   ["go", "to"],
   ["jump", "to"],
@@ -34,6 +48,9 @@ const GO_VERBS = [
   ["take", "me", "to"],
   ["back", "to"],
   ["go", "back", "to"],
+  ["go", "up", "to"],
+  ["move", "to"],
+  ["goto"],
   ["go"]
 ];
 const ARTICLES = new Set(["the", "a", "an", "our", "that", "this"]);
@@ -43,7 +60,12 @@ const ORDINALS: Record<string, number> = {
 };
 const STORY_WORDS = new Set(["announcement", "announcements", "story", "stories", "item", "items", "bulletin"]);
 const SECTION_WORDS = new Set(["section", "sections", "segment", "segments", "block", "part"]);
-const TOP_PHRASES = [["top"], ["top", "of", "show"], ["top", "of", "the", "show"], ["beginning"], ["start"], ["very", "top"]];
+/** "top", "the beginning", "start over", "from the top", "all the way back up to the top of the script". */
+const TOP_WORDS = new Set(["top", "tops", "beginning", "start", "restart", "reset", "rewind"]);
+const TOP_FILLER = new Set([
+  "the", "a", "all", "way", "up", "very", "back", "of", "it", "from", "over", "right", "to",
+  "go", "take", "jump", "skip", "scroll", "move", "goto", "script", "page", "show", "rundown"
+]);
 /** Beat names as people say them → the beat heading in the script (badge "A2 - Bulletin"). */
 const BEATS: Array<{ say: string[][]; beat: string }> = [
   { say: [["open"], ["opening"], ["intro"]], beat: "open" },
@@ -84,7 +106,8 @@ function consonants(word: string) {
 }
 
 const TELEPROMPTER = consonants("teleprompter");
-const PROMPTER = consonants("prompter");
+/** "prompter", and "promter" as the models also write it. */
+const PROMPTER = new Set([consonants("prompter"), consonants("promter")]);
 
 /**
  * How many words the wake word took: "teleprompter", or how the speech models split and spell
@@ -95,7 +118,7 @@ function wakeLength(tokens: string[]) {
   for (let count = 1; count <= 3 && count <= tokens.length; count += 1) {
     const sound = consonants(tokens.slice(0, count).join(""));
     // "tl…" (or "trl…", as in "terylopromter"), so "the teleprompter" mid-sentence can't pass.
-    if ((/^tr?l/.test(sound) && editDistance(sound, TELEPROMPTER) <= 2) || sound === PROMPTER) {
+    if ((/^tr?l/.test(sound) && editDistance(sound, TELEPROMPTER) <= 2) || PROMPTER.has(sound)) {
       return count;
     }
   }
@@ -103,17 +126,29 @@ function wakeLength(tokens: string[]) {
 }
 
 /** Where the command words start, after "hey" and the wake word; -1 if it isn't a command. */
-function afterWake(tokens: string[]) {
+function afterWake(tokens: string[], awake: boolean) {
   let index = 0;
   while (index < 2 && FILLERS.has(tokens[index] ?? "")) index += 1;
   const length = wakeLength(tokens.slice(index));
-  return length === 0 ? -1 : index + length;
+  if (length > 0) return index + length;
+  return awake ? index : -1;
 }
 
 function stripLeading(tokens: string[], words: Set<string>) {
   let index = 0;
   while (index < tokens.length && words.has(tokens[index])) index += 1;
   return tokens.slice(index);
+}
+
+function stripTrailing(tokens: string[], words: Set<string>) {
+  let end = tokens.length;
+  while (end > 0 && words.has(tokens[end - 1])) end -= 1;
+  return tokens.slice(0, end);
+}
+
+function isTop(tokens: string[]) {
+  const rest = tokens.filter((token) => !TOP_FILLER.has(token));
+  return rest.length > 0 && rest.length <= 2 && rest.every((token) => TOP_WORDS.has(token));
 }
 
 function blockStart(map: ScriptWordMap, word: number) {
@@ -266,23 +301,27 @@ function controlAction(tokens: string[]): VoiceAction | null {
 const ACTION_LABELS: Record<Exclude<VoiceAction["kind"], "goto">, string> = { pause: "Pause", resume: "Resume", undo: "Undo" };
 
 /**
- * Reads one finished utterance. null: not a command (no wake word at the start, or the script
- * here mentions a wake word, so it's being read). Otherwise what to do, or what it didn't understand.
+ * Reads one finished utterance. null: not a command (no wake word starting a sentence, or the
+ * script here mentions a wake word, so it's being read). Otherwise what to do, what it didn't
+ * understand, or that it heard only the wake word and is waiting for the rest.
  */
-export function parseVoiceCommand(words: string[], context: VoiceContext): VoiceCommandResult | null {
+export function parseVoiceCommand(words: string[], context: VoiceContext, options: VoiceCommandOptions = {}): VoiceCommandResult | null {
+  const { afterPause = true, awake = false } = options;
   // The wake word may also start a new sentence inside the utterance: the crew often speaks right
-  // after the anchor ("…Vikings. Teleprompter, go to the top."). Never mid-sentence.
+  // after the anchor ("…Vikings. Teleprompter, go to the top."). Never mid-sentence. A cut out of
+  // long speech may start mid-sentence, so its first word only counts after a pause.
   const sentenceStarts = words.flatMap((word, index) => (index > 0 && /[.!?]["”']?$/.test(words[index - 1]) ? [index] : []));
-  for (const start of [0, ...sentenceStarts]) {
-    const result = parseSentence(words.slice(start), context);
+  const starts = afterPause || awake ? [0, ...sentenceStarts] : sentenceStarts;
+  for (const start of starts) {
+    const result = parseSentence(words.slice(start), context, awake && start === 0);
     if (result) return result;
   }
   return null;
 }
 
-function parseSentence(words: string[], context: VoiceContext): VoiceCommandResult | null {
+function parseSentence(words: string[], context: VoiceContext, awake: boolean): VoiceCommandResult | null {
   const tokens = tokensOf(words);
-  const start = afterWake(tokens);
+  const start = afterWake(tokens, awake);
   if (start < 0) {
     return null;
   }
@@ -293,25 +332,36 @@ function parseSentence(words: string[], context: VoiceContext): VoiceCommandResu
 
   const heard = words.join(" ");
   const rest = stripLeading(tokens.slice(start), POLITE);
-  if (rest.length === 0 || rest.length > 10) {
-    return { ok: false, heard };
+  const trimmed = stripTrailing(rest, TRAILING);
+  if (trimmed.length === 0) {
+    return awake ? { ok: false, heard } : { ok: false, heard, waiting: true };
   }
+  // As said first ("go to the thank yous" ends in "you"), then without the trailing pleasantries.
+  for (const command of trimmed.length < rest.length ? [rest, trimmed] : [rest]) {
+    const found = commandAction(command, context);
+    if (found) return { ok: true, action: found.action, label: found.label };
+  }
+  return { ok: false, heard };
+}
 
+function commandAction(rest: string[], context: VoiceContext): { action: VoiceAction; label: string } | null {
+  if (rest.length > 12) {
+    return null;
+  }
   const control = controlAction(rest);
   if (control?.kind === "pause" || control?.kind === "resume" || control?.kind === "undo") {
-    return { ok: true, action: control, label: ACTION_LABELS[control.kind] };
+    return { action: control, label: ACTION_LABELS[control.kind] };
   }
   const move = moveTarget(rest, context);
   if (move?.kind === "goto") {
-    return { ok: true, action: move, label: move.label };
+    return { action: move, label: move.label };
   }
-
   const verb = GO_VERBS.find((phrase) => startsWith(rest, phrase) && rest.length > phrase.length);
   const target = verb ? rest.slice(verb.length) : rest;
-  if (TOP_PHRASES.some((phrase) => same(target.filter((token) => !ARTICLES.has(token)), phrase))) {
-    return { ok: true, action: { kind: "goto", word: 0, label: "Top" }, label: "Top" };
+  if (isTop(target)) {
+    return { action: { kind: "goto", word: 0, label: "Top" }, label: "Top" };
   }
   const found =
     ordinalTarget(target, context) ?? labelTarget(target, context) ?? beatTarget(target, context) ?? titleTarget(target, context);
-  return found?.kind === "goto" ? { ok: true, action: found, label: found.label } : { ok: false, heard };
+  return found?.kind === "goto" ? { action: found, label: found.label } : null;
 }

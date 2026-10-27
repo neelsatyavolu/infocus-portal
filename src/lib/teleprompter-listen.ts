@@ -93,18 +93,19 @@ export type TranscriberOptions = {
 
 type Speech = { blocks: Float32Array[]; levels: number[]; committed: number; previous: string[]; ended: boolean; afterPause: boolean };
 
-const STEP_MS = 400;
+/** Reads are one at a time, so this is the fastest re-read; a slow model just reads less often. */
+const STEP_MS = 250;
 const PREROLL_MS = 300;
-const END_SILENCE_MS = 600;
+const END_SILENCE_MS = 450;
 /**
- * Reading without a long pause is cut into reads of 8–12 s: from 8 s at the first short gap
- * (a block under the speech threshold), from 10 s at the quietest moment of the last stretch
- * (likely between words), and at 12 s regardless. The cut is at the newest block, so no audio
- * (and no settled word) belongs to two reads.
+ * Reading without a long pause is cut into reads of 5–8 s (short reads come back faster): from
+ * 5 s at the first short gap (a block under the speech threshold), from 6.5 s at the quietest
+ * moment of the last stretch (likely between words), and at 8 s regardless. The cut is at the
+ * newest block, so no audio (and no settled word) belongs to two reads.
  */
-const SOFT_MAX_UTTERANCE_MS = 8000;
-const QUIET_CUT_MS = 10_000;
-const MAX_UTTERANCE_MS = 12_000;
+const SOFT_MAX_UTTERANCE_MS = 5000;
+const QUIET_CUT_MS = 6500;
+const MAX_UTTERANCE_MS = 8000;
 const CUT_SEARCH_MS = 1500;
 const MIN_DECODE_MS = 500;
 

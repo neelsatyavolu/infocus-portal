@@ -51,6 +51,13 @@ export function AutoFollowTag({
   command: VoiceCommandResult | null;
 }) {
   if (command && status?.phase === "listening") {
+    if ("waiting" in command) {
+      return (
+        <span className={cn(TAG_CLASS, "bg-[#2BB36E]/20 normal-case tracking-normal text-[#073B20]")} title={`Heard: ${command.heard}`}>
+          Listening for a command…
+        </span>
+      );
+    }
     return command.ok ? (
       <span className={cn(TAG_CLASS, "bg-[#2BB36E]/35 normal-case tracking-normal text-[#073B20]")} title="Voice command">
         ✓ {command.label}

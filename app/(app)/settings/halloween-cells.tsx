@@ -19,19 +19,20 @@ export function HalloweenCells({ onSaved }: { onSaved: () => void }) {
 
   if (!inSeason) return null;
 
-  function update(change: Partial<Omit<HalloweenPrefs, "smashed">>) {
+  function update(change: Partial<Omit<HalloweenPrefs, "smashed" | "candy">>) {
     writeHalloweenPrefs({ ...readHalloweenPrefs(), ...change });
     onSaved();
   }
 
   const smashed = prefs.smashed === 1 ? "1 pumpkin smashed" : `${prefs.smashed} pumpkins smashed`;
+  const candy = prefs.candy === 1 ? "1 candy caught" : `${prefs.candy} candies caught`;
 
   return (
     <>
       <SettingsCell
         inline
         title="Halloween"
-        description={`Pumpkin colors and visitors until Nov 1. ${smashed}.`}
+        description={`Pumpkin colors and visitors until Nov 1. ${smashed}, ${candy}.`}
         htmlFor="pref-halloween"
         className="min-h-16"
       >

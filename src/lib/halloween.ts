@@ -1,10 +1,10 @@
 /**
  * Halloween season: from October 15 through November 1 (the viewer's local time) the Portal wears
  * the InFocus Halloween 2026 Package colors and logos (`<html class="halloween">`, globals.css)
- * and the signed-in shell gets its pumpkins, bats, ghost and spider (components/halloween/).
+ * and the signed-in shell gets its visitors and cobwebs (components/halloween/).
  * Outside the season nothing changes. Each browser can turn the season, its sounds, its music or
- * its surprise BOOs off in Settings → Appearance; those choices and the pumpkin count live in
- * localStorage.
+ * its surprise BOOs off in Settings → Appearance; those choices and the pumpkin and candy
+ * counts live in localStorage.
  */
 
 export const HALLOWEEN_CLASS = "halloween";
@@ -26,6 +26,8 @@ export type HalloweenPrefs = {
   scaresOff: boolean;
   /** Pumpkins smashed in this browser, ever. */
   smashed: number;
+  /** Candy caught in this browser, ever. */
+  candy: number;
 };
 
 export const DEFAULT_HALLOWEEN_PREFS: HalloweenPrefs = {
@@ -33,7 +35,8 @@ export const DEFAULT_HALLOWEEN_PREFS: HalloweenPrefs = {
   muted: false,
   musicOff: false,
   scaresOff: false,
-  smashed: 0
+  smashed: 0,
+  candy: 0
 };
 
 export function isHalloweenSeason(now: Date): boolean {
@@ -45,17 +48,22 @@ export function isHalloweenDay(now: Date): boolean {
   return now.getMonth() === 9 && now.getDate() === 31;
 }
 
+function count(value: unknown): number {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+}
+
 export function parseHalloweenPrefs(raw: string | null | undefined): HalloweenPrefs {
   if (!raw) return DEFAULT_HALLOWEEN_PREFS;
   try {
     const parsed = JSON.parse(raw) as Partial<HalloweenPrefs> | null;
-    const smashed = Number(parsed?.smashed);
     return {
       off: parsed?.off === true,
       muted: parsed?.muted === true,
       musicOff: parsed?.musicOff === true,
       scaresOff: parsed?.scaresOff === true,
-      smashed: Number.isFinite(smashed) && smashed > 0 ? Math.floor(smashed) : 0
+      smashed: count(parsed?.smashed),
+      candy: count(parsed?.candy)
     };
   } catch {
     return DEFAULT_HALLOWEEN_PREFS;
@@ -67,6 +75,20 @@ export function parseHalloweenPrefs(raw: string | null | undefined): HalloweenPr
  * green. Same rule as isHalloweenSeason (Oct 15 – Nov 1) and the `off` preference.
  */
 export const HALLOWEEN_INIT_SCRIPT = `(function(){try{var d=new Date(),k=d.getMonth()*100+d.getDate();if(k<${SEASON_START.month * 100 + SEASON_START.day}||k>${SEASON_END.month * 100 + SEASON_END.day})return;var p=null;try{p=JSON.parse(localStorage.getItem("${HALLOWEEN_STORAGE_KEY}")||"null")}catch(e){}if(p&&p.off===true)return;document.documentElement.classList.add("${HALLOWEEN_CLASS}");}catch(e){}})();`;
+
+/** Words typed outside a text box that set off a secret, and the Konami code. */
+export type HalloweenSecret = "boo" | "treat" | "trick" | "konami";
+
+const SECRET_WORDS = ["boo", "treat", "trick"] as const;
+export const KONAMI = ["arrowup", "arrowup", "arrowdown", "arrowdown", "arrowleft", "arrowright", "arrowleft", "arrowright", "b", "a"];
+/** How many recent keys the matcher needs to see. */
+export const SECRET_MEMORY = KONAMI.length;
+
+/** The secret the last keys (lowercased `KeyboardEvent.key` values) just finished, if any. */
+export function matchHalloweenSecret(keys: readonly string[]): HalloweenSecret | null {
+  if (keys.join(",").endsWith(KONAMI.join(","))) return "konami";
+  return SECRET_WORDS.find((word) => keys.slice(-word.length).join("") === word) ?? null;
+}
 
 export function readHalloweenPrefs(): HalloweenPrefs {
   try {

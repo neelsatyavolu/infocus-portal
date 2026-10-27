@@ -89,6 +89,7 @@
   font: 600 14px/1 var(--font-display);
   color: var(--brand-green);
   white-space: nowrap;
+  translate: -50% 0;
   animation: hw-rise 1.2s ease-out both;
 }
 @keyframes hw-rise {
@@ -147,7 +148,6 @@
   height: 100%;
   animation: hw-sway 2.6s ease-in-out infinite;
 }
-.hw-ghost[data-gone="true"] { animation: hw-vanish 0.5s ease-in both; }
 @keyframes hw-haunt {
   0%   { transform: translateY(0); opacity: 0; }
   10%  { opacity: 0.95; }
@@ -157,9 +157,6 @@
 @keyframes hw-sway {
   0%, 100% { transform: translateX(-10px) rotate(-4deg); }
   50%      { transform: translateX(10px) rotate(4deg); }
-}
-@keyframes hw-vanish {
-  to { transform: scale(1.6); opacity: 0; }
 }
 
 /* A spider lowers itself on a thread, waits, and climbs back up. */
@@ -180,16 +177,12 @@
   opacity: 0.6;
 }
 .hw-spider > button > svg { width: 40px; height: 34px; animation: hw-spin 3s ease-in-out infinite; }
-.hw-spider[data-gone="true"] { animation: hw-climb 0.45s ease-in both; }
 @keyframes hw-dangle {
   0%   { transform: translateY(-60px); }
   20%  { transform: translateY(var(--hw-drop, 160px)); }
   30%  { transform: translateY(calc(var(--hw-drop, 160px) - 14px)); }
   40%, 80% { transform: translateY(var(--hw-drop, 160px)); }
   100% { transform: translateY(-60px); }
-}
-@keyframes hw-climb {
-  to { transform: translateY(-80px); }
 }
 @keyframes hw-spin {
   0%, 100% { transform: rotate(-8deg); }
@@ -363,6 +356,192 @@
   10%  { opacity: 1; }
   100% { transform: translate(var(--hw-x), var(--hw-y)) scale(2.2); opacity: 1; }
 }
+
+/* A black cat strolls along the bottom of the window. */
+.hw-cat {
+  position: absolute;
+  bottom: calc(var(--phone-tabbar-h, 0px) + 4px);
+  left: 0;
+  width: 80px;
+  height: 48px;
+  animation: hw-stroll var(--hw-duration, 15s) linear both;
+}
+.hw-cat > svg { width: 100%; height: 100%; filter: drop-shadow(0 0 6px rgb(155 92 255 / 0.6)); }
+.hw-cat[data-direction="rtl"] { animation-name: hw-stroll-back; }
+.hw-cat[data-direction="rtl"] > svg { transform: scaleX(-1); }
+@keyframes hw-stroll {
+  from { transform: translateX(-90px); }
+  to   { transform: translateX(calc(100vw + 90px)); }
+}
+@keyframes hw-stroll-back {
+  from { transform: translateX(calc(100vw + 90px)); }
+  to   { transform: translateX(-90px); }
+}
+.hw-legs-a,
+.hw-legs-b {
+  transform-box: fill-box;
+  transform-origin: center top;
+  animation: hw-step 0.5s ease-in-out infinite alternate;
+}
+.hw-legs-b { animation-direction: alternate-reverse; }
+@keyframes hw-step {
+  from { transform: rotate(-14deg); }
+  to   { transform: rotate(14deg); }
+}
+.hw-cat-tail {
+  transform-box: fill-box;
+  transform-origin: right bottom;
+  animation: hw-swish 1.6s ease-in-out infinite;
+}
+@keyframes hw-swish {
+  0%, 100% { transform: rotate(-6deg); }
+  50%      { transform: rotate(8deg); }
+}
+
+/* A witch on her broom, high across the window. */
+.hw-witch {
+  position: absolute;
+  left: 0;
+  width: 84px;
+  height: 49px;
+  animation: hw-swoop var(--hw-duration, 9s) ease-in-out both;
+}
+.hw-witch > svg { width: 100%; height: 100%; filter: drop-shadow(0 0 8px rgb(155 92 255 / 0.55)); }
+.hw-witch[data-direction="rtl"] { animation-name: hw-swoop-back; }
+.hw-witch[data-direction="rtl"] > svg { transform: scaleX(-1); }
+@keyframes hw-swoop {
+  0%   { transform: translate(-100px, 30px) rotate(-6deg); }
+  35%  { transform: translate(35vw, -10px) rotate(4deg); }
+  65%  { transform: translate(65vw, 40px) rotate(-4deg); }
+  100% { transform: translate(calc(100vw + 100px), 0) rotate(-8deg); }
+}
+@keyframes hw-swoop-back {
+  0%   { transform: translate(calc(100vw + 100px), 30px) rotate(6deg); }
+  35%  { transform: translate(65vw, -10px) rotate(-4deg); }
+  65%  { transform: translate(35vw, 40px) rotate(4deg); }
+  100% { transform: translate(-100px, 0) rotate(8deg); }
+}
+.hw-cape {
+  transform-box: fill-box;
+  transform-origin: right center;
+  animation: hw-flutter 0.3s ease-in-out infinite alternate;
+}
+@keyframes hw-flutter {
+  from { transform: scaleY(1) skewX(0); }
+  to   { transform: scaleY(0.7) skewX(-12deg); }
+}
+
+/* Eyes open in the dark at the edge of the window, blink, and close. */
+.hw-eyes {
+  position: absolute;
+  width: 48px;
+  height: 16px;
+  animation: hw-glare 7s ease-in-out both;
+}
+.hw-eyes > svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 6px rgb(155 92 255 / 0.85));
+  animation: hw-blink 2.3s ease-in-out 0.8s infinite;
+}
+@keyframes hw-glare {
+  0%       { opacity: 0; }
+  12%, 85% { opacity: 1; }
+  100%     { opacity: 0; }
+}
+@keyframes hw-blink {
+  0%, 88%, 100% { transform: scaleY(1); }
+  94%           { transform: scaleY(0.08); }
+}
+
+/* A skeleton hand reaches up from the floor, waves, and sinks back. */
+.hw-hand {
+  position: absolute;
+  bottom: var(--phone-tabbar-h, 0px);
+  width: 40px;
+  height: 80px;
+  animation: hw-reach 8s ease-in-out both;
+}
+.hw-hand > svg {
+  width: 100%;
+  height: 100%;
+  transform-origin: center bottom;
+  animation: hw-wave 1.2s ease-in-out 1.2s infinite;
+}
+@keyframes hw-reach {
+  0%       { transform: translateY(100%); }
+  15%, 80% { transform: translateY(12%); }
+  100%     { transform: translateY(100%); }
+}
+@keyframes hw-wave {
+  0%, 100% { transform: rotate(-10deg); }
+  50%      { transform: rotate(10deg); }
+}
+
+/* Candy drifts down like a leaf: the wrapper falls, the button inside sways. */
+.hw-candy {
+  position: absolute;
+  top: -44px;
+  width: 40px;
+  animation: hw-drift var(--hw-duration, 11s) linear both;
+}
+.hw-candy > button {
+  display: block;
+  width: 100%;
+  animation: hw-flutter-down 2.2s ease-in-out infinite;
+}
+.hw-candy svg { display: block; width: 100%; height: auto; filter: drop-shadow(0 0 5px rgb(255 122 26 / 0.5)); }
+@keyframes hw-drift {
+  to { transform: translateY(calc(100vh + 90px)); }
+}
+@keyframes hw-flutter-down {
+  0%, 100% { transform: translateX(calc(var(--hw-sway, 30px) * -1)) rotate(-25deg); }
+  50%      { transform: translateX(var(--hw-sway, 30px)) rotate(25deg); }
+}
+
+/* Shooed visitors stop where they are and vanish there (the spider climbs its thread). */
+.hw-layer [data-gone="true"] { animation-play-state: paused; pointer-events: none; }
+.hw-layer [data-gone="true"] > * { animation: hw-vanish 0.45s ease-in both; }
+.hw-spider[data-gone="true"] > button { animation: hw-climb 0.45s ease-in both; }
+.hw-cat[data-gone="true"] > svg { animation: hw-hop 0.45s ease-out both; }
+.hw-cat[data-direction="rtl"][data-gone="true"] > svg { animation-name: hw-hop-back; }
+.hw-eyes[data-gone="true"] > svg { animation: hw-shut 0.3s ease-in both; }
+/* `scale`, not `transform`, so a mirrored (right-to-left) sprite stays mirrored as it goes. */
+@keyframes hw-vanish {
+  to { scale: 1.6; opacity: 0; }
+}
+@keyframes hw-climb {
+  to { transform: translateY(-80px); }
+}
+@keyframes hw-hop {
+  to { transform: translate(30px, -40px) rotate(-20deg); opacity: 0; }
+}
+@keyframes hw-hop-back {
+  to { transform: scaleX(-1) translate(30px, -40px) rotate(-20deg); opacity: 0; }
+}
+@keyframes hw-shut {
+  to { transform: scaleY(0); }
+}
+
+/* Cobwebs in two corners of the window, always there in season. */
+.hw-web {
+  position: absolute;
+  width: 110px;
+  height: 110px;
+  opacity: 0.22;
+}
+.hw-web > svg { width: 100%; height: 100%; }
+.hw-web[data-corner="top-right"] { top: 0; right: 0; transform: scaleX(-1); }
+.hw-web[data-corner="bottom-left"] { bottom: var(--phone-tabbar-h, 0px); left: 0; transform: scaleY(-1); }
+:root.light .hw-web { opacity: 0.5; }
+:root.light .hw-web path { stroke: #6E6A7A; }
+@media (max-width: 640px) {
+  .hw-web { width: 72px; height: 72px; }
+}
+
+/* Selected text and scrollbars in pumpkin. */
+:root.halloween ::selection { background: rgb(255 122 26 / 0.35); }
+:root.halloween { scrollbar-color: rgb(180 68 10 / 0.7) transparent; }
 
 @media (prefers-reduced-motion: reduce) {
   .hw-layer *,

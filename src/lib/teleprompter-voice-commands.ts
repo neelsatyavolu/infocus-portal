@@ -277,12 +277,41 @@ function moveTarget(tokens: string[], context: VoiceContext): VoiceAction | null
   }
   const lineBack = [["line", "back"], ["lineback"], ["line", "bag"], ["back", "line"], ["up", "line"], ["back", "a", "line"]];
   if (lineBack.some((phrase) => same(said, phrase))) {
-    const word = map.words[Math.max(0, cursor)];
-    const previousLine = word ? [...map.words].reverse().find((entry) => entry.index < word.index && (entry.sectionIndex !== word.sectionIndex || entry.lineIndex !== word.lineIndex)) : undefined;
-    const lineStart = previousLine ? map.words.find((entry) => entry.sectionIndex === previousLine.sectionIndex && entry.lineIndex === previousLine.lineIndex) : undefined;
-    return gotoWord(lineStart?.index ?? 0, "Line back");
+    return gotoWord(lineStartFrom(context, -1), "Line back");
   }
-  return null;
+  return nudgeTarget(tokens, context);
+}
+
+/** First word of the line `lines` away from the one being read (negative is up, toward the top). */
+function lineStartFrom({ map, cursor }: VoiceContext, lines: number) {
+  const starts = map.words.filter((word, index) => {
+    const before = map.words[index - 1];
+    return !before || before.sectionIndex !== word.sectionIndex || before.lineIndex !== word.lineIndex;
+  });
+  const word = map.words[Math.max(0, cursor)];
+  const here = starts.findLastIndex((start) => !word || start.index <= word.index);
+  return starts[Math.min(starts.length - 1, Math.max(0, here + lines))]?.index ?? 0;
+}
+
+const UP_WORDS = new Set(["up", "back", "backward", "backwards", "higher", "earlier", "previous"]);
+const DOWN_WORDS = new Set(["down", "forward", "forwards", "ahead", "lower", "further", "next"]);
+const NUDGE_WORDS = new Set(["go", "move", "scroll", "jump", "just", "a", "the", "by", "one", "line", "lines", "little", "bit", "tad", "touch", "few", "more"]);
+const LINE_COUNTS: Record<string, number> = { two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };
+const LITTLE_LINES = 2;
+const FEW_LINES = 3;
+
+/** "Go up a little bit", "down a line", "back two lines", "a bit lower". */
+function nudgeTarget(tokens: string[], context: VoiceContext): VoiceAction | null {
+  const up = tokens.some((token) => UP_WORDS.has(token));
+  const down = tokens.some((token) => DOWN_WORDS.has(token));
+  const counts = tokens.filter((token) => token in LINE_COUNTS);
+  const known = tokens.every((token) => UP_WORDS.has(token) || DOWN_WORDS.has(token) || NUDGE_WORDS.has(token) || counts.includes(token));
+  if (up === down || !known || counts.length > 1) {
+    return null;
+  }
+  const lines = counts.length > 0 ? LINE_COUNTS[counts[0]] : tokens.includes("few") ? FEW_LINES : tokens.includes("line") ? 1 : LITTLE_LINES;
+  const label = `${up ? "Up" : "Down"} ${lines === 1 ? "a line" : `${lines} lines`}`;
+  return gotoWord(lineStartFrom(context, up ? -lines : lines), label);
 }
 
 // Includes what the speech models were heard writing for these words ("cause" for pause).

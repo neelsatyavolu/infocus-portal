@@ -101,6 +101,33 @@ describe("parseVoiceCommand", () => {
     expect(gotoWord("Teleprompter, line back", cursor)).toBe(first("I'm"));
   });
 
+  it("moves up or down a little", () => {
+    const lineStarts = map.words.filter((word, index) => {
+      const before = map.words[index - 1];
+      return !before || before.sectionIndex !== word.sectionIndex || before.lineIndex !== word.lineIndex;
+    });
+    const cursor = first("Ortiz.");
+    const here = lineStarts.findLastIndex((start) => start.index <= cursor);
+    const line = (offset: number) => lineStarts[here + offset].index;
+    expect(gotoWord("Teleprompter, go up a little bit", cursor)).toBe(line(-2));
+    expect(gotoWord("Teleprompter, back a little", cursor)).toBe(line(-2));
+    expect(gotoWord("Teleprompter, a bit higher please", cursor)).toBe(line(-2));
+    expect(gotoWord("Teleprompter, go down a little", cursor)).toBe(line(2));
+    expect(gotoWord("Teleprompter, down a line", cursor)).toBe(line(1));
+    expect(gotoWord("Teleprompter, next line", cursor)).toBe(line(1));
+    expect(gotoWord("Teleprompter, up three lines", cursor)).toBe(line(-3));
+    expect(gotoWord("Teleprompter, go up a few lines", cursor)).toBe(line(-3));
+    expect(gotoWord("Teleprompter, go up", cursor)).toBe(line(-2));
+    expect(say("Teleprompter, go up a little bit", cursor)).toMatchObject({ ok: true, label: "Up 2 lines" });
+    // Never past the top.
+    expect(gotoWord("Teleprompter, up ten lines", 0)).toBe(0);
+    // Still the bigger moves.
+    expect(gotoWord("Teleprompter, back")).toBe(first("Spirit"));
+    expect(gotoWord("Teleprompter, next")).toBe(first("Robot"));
+    expect(gotoWord("Teleprompter, go back up to the top", cursor)).toBe(0);
+    expect(say("Teleprompter, a little more")).toMatchObject({ ok: false });
+  });
+
   it("pauses, resumes and undoes", () => {
     expect(say("Teleprompter, pause")).toMatchObject({ ok: true, action: { kind: "pause" } });
     expect(say("Teleprompter stop.")).toMatchObject({ ok: true, action: { kind: "pause" } });

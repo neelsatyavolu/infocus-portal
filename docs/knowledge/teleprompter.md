@@ -46,6 +46,7 @@ While Auto is on, the crew can steer by voice. Start with **"Teleprompter,"** (a
 | Teleprompter, go to spirit week | The story that starts with those words |
 | Teleprompter, next / back | Next story; back to the start of this one (or the one before) |
 | Teleprompter, line back | Up a line |
+| Teleprompter, go up a little / go down a little | Up or down 2 lines ("a line", "a few lines" and "three lines" work too) |
 | Teleprompter, pause / resume | Hold still / follow again |
 | Teleprompter, undo | Undo the last jump |
 

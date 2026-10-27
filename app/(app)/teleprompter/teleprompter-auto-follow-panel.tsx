@@ -192,7 +192,11 @@ function LevelMeter({ levelRef }: { levelRef: RefObject<ListenerLevel | null> })
         />
         {level ? <div className="absolute inset-y-0 w-px bg-soft-white" style={{ left: `${meterPercent(level.thresholdDb)}%` }} /> : null}
       </div>
-      <p className="mt-1 text-xs text-[#DCE2DE]">{level ? (level.speaking ? "Hearing speech" : "Quiet") : "Not listening"}</p>
+      {level?.clipping ? (
+        <p className="mt-1 text-xs text-[#F2A516]">Too loud: the sound is distorting. Turn down the board&apos;s output to this computer.</p>
+      ) : (
+        <p className="mt-1 text-xs text-[#DCE2DE]">{level ? (level.speaking ? "Hearing speech" : "Quiet") : "Not listening"}</p>
+      )}
     </div>
   );
 }

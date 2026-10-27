@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SpeechGate, StreamingTranscriber, agreedPrefix, type TranscriptUpdate } from "@/src/lib/teleprompter-listen";
+import { HighPassFilter, SpeechGate, StreamingTranscriber, agreedPrefix, levelDb, type TranscriptUpdate } from "@/src/lib/teleprompter-listen";
 
 const BLOCK = 1600;
 const SENTENCE = "Good morning Paly today is Friday the twenty third of October and this is InFocus News".split(" ");
@@ -156,5 +156,54 @@ describe("StreamingTranscriber", () => {
     const settled = updates.filter((update) => update.final).flatMap((update) => update.words);
     expect(new Set(settled).size).toBe(settled.length);
     expect(settled.length).toBeGreaterThan(250);
+  });
+
+  it("skips a click or crackle of static instead of reading it", async () => {
+    const lengths: number[] = [];
+    const utterances: string[][] = [];
+    const transcriber = new StreamingTranscriber({
+      blockSize: BLOCK,
+      sampleRate: 16000,
+      decode: async (audio) => {
+        lengths.push(audio.length / 16000);
+        return "you";
+      },
+      onWords: () => undefined,
+      onUtterance: (utterance) => utterances.push(utterance.words)
+    });
+    for (const level of [0, 0, 0, 0.3, ...Array(12).fill(0)]) {
+      transcriber.push(block(level));
+      await settle();
+    }
+    expect(utterances).toEqual([]);
+    expect(lengths.length).toBeLessThanOrEqual(1);
+  });
+
+  it("says when the input is clipping, for a while after", () => {
+    const transcriber = fakeTranscriber([]);
+    expect(transcriber.push(block(0.2)).clipping).toBe(false);
+    expect(transcriber.push(block(1)).clipping).toBe(true);
+    for (let index = 0; index < 5; index += 1) {
+      expect(transcriber.push(block(0.2)).clipping).toBe(true);
+    }
+    for (let index = 0; index < 20; index += 1) transcriber.push(block(0.2));
+    expect(transcriber.push(block(0.2)).clipping).toBe(false);
+  });
+});
+
+describe("HighPassFilter", () => {
+  const sine = (hz: number, seconds: number) => Float32Array.from({ length: 16000 * seconds }, (_, index) => 0.5 * Math.sin((2 * Math.PI * hz * index) / 16000));
+  const throughFilter = (hz: number) => {
+    const filter = new HighPassFilter(100, 16000);
+    const audio = sine(hz, 1);
+    // Fed in blocks, as the microphone sends it; measured after it settles.
+    const out = Array.from({ length: 10 }, (_, index) => filter.process(audio.subarray(index * BLOCK, (index + 1) * BLOCK)));
+    return levelDb(out[9]) - levelDb(audio.subarray(9 * BLOCK));
+  };
+
+  it("takes out mains hum and keeps speech", () => {
+    expect(throughFilter(60)).toBeLessThan(-15);
+    expect(throughFilter(1000)).toBeGreaterThan(-0.5);
+    expect(throughFilter(300)).toBeGreaterThan(-1);
   });
 });

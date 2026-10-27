@@ -10,6 +10,8 @@ import { StreamingTranscriber, type TranscriptUpdate, type Utterance } from "@/s
 const TRANSFORMERS_URL = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.1/dist/transformers.min.js";
 const SAMPLE_RATE = 16000;
 const BLOCK = 1600;
+/** Under the lowest voices; takes out hum from the audio board's line feed. */
+const HIGH_PASS_HZ = 100;
 /** Generous for read speech (about 3 words a second); stops a confused model from rambling. */
 const TOKENS_PER_SECOND = 7;
 /** A read that takes longer than this is treated as failed, so one stuck read can't stop listening. */
@@ -31,7 +33,7 @@ export type ListenerStatus =
   | { phase: "listening"; engine: string }
   | { phase: "error"; message: string };
 
-export type ListenerLevel = { db: number; thresholdDb: number; speaking: boolean };
+export type ListenerLevel = { db: number; thresholdDb: number; speaking: boolean; clipping: boolean };
 
 const WORKER_SOURCE = `
 import { pipeline, env } from "${TRANSFORMERS_URL}";
@@ -356,6 +358,7 @@ export function startListener(options: ListenerOptions) {
     const transcriber = new StreamingTranscriber({
       blockSize: BLOCK,
       sampleRate: SAMPLE_RATE,
+      highPassHz: HIGH_PASS_HZ,
       decode: async (audio) => {
         const text = await decodeWith(loaded, audio);
         failedReads = text === null ? failedReads + 1 : 0;

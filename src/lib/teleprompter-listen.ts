@@ -14,6 +14,64 @@ const GATE_HYSTERESIS_DB = 6;
 const GATE_MIN_DB = -58;
 const GATE_MAX_DB = -25;
 
+/** A sample this close to full scale means the input is clipping (distorted, too loud). */
+const CLIP_LEVEL = 0.98;
+/** How long (in blocks) the meter keeps saying "too loud" after a clipped block. */
+const CLIP_HOLD_BLOCKS = 15;
+
+export function peakLevel(samples: Float32Array) {
+  let peak = 0;
+  for (const sample of samples) {
+    peak = Math.max(peak, Math.abs(sample));
+  }
+  return peak;
+}
+
+/**
+ * A 4th-order high-pass (two biquads): takes out mains hum, rumble and DC from a line feed
+ * (an unbalanced cable off the audio board hums) and leaves speech alone. Keeps its state
+ * between blocks, so one filter per stream.
+ */
+export class HighPassFilter {
+  private readonly stages: Array<{ b0: number; b1: number; b2: number; a1: number; a2: number; x1: number; x2: number; y1: number; y2: number }>;
+
+  constructor(cutoffHz: number, sampleRate: number) {
+    const w0 = (2 * Math.PI * cutoffHz) / sampleRate;
+    const alpha = Math.sin(w0) / (2 * Math.SQRT1_2);
+    const cos = Math.cos(w0);
+    const a0 = 1 + alpha;
+    const stage = () => ({
+      b0: (1 + cos) / 2 / a0,
+      b1: -(1 + cos) / a0,
+      b2: (1 + cos) / 2 / a0,
+      a1: (-2 * cos) / a0,
+      a2: (1 - alpha) / a0,
+      x1: 0,
+      x2: 0,
+      y1: 0,
+      y2: 0
+    });
+    this.stages = [stage(), stage()];
+  }
+
+  process(samples: Float32Array) {
+    const out = new Float32Array(samples.length);
+    for (let index = 0; index < samples.length; index += 1) {
+      let value = samples[index];
+      for (const filter of this.stages) {
+        const y = filter.b0 * value + filter.b1 * filter.x1 + filter.b2 * filter.x2 - filter.a1 * filter.y1 - filter.a2 * filter.y2;
+        filter.x2 = filter.x1;
+        filter.x1 = value;
+        filter.y2 = filter.y1;
+        filter.y1 = y;
+        value = y;
+      }
+      out[index] = value;
+    }
+    return out;
+  }
+}
+
 export function levelDb(samples: Float32Array) {
   let sum = 0;
   for (const sample of samples) {
@@ -86,6 +144,8 @@ export type TranscriberOptions = {
   /** Samples per pushed block (100 ms at 16 kHz is 1600). */
   blockSize: number;
   sampleRate: number;
+  /** High-pass the audio at this frequency before the gate and the model; off when unset. */
+  highPassHz?: number;
   decode: (audio: Float32Array) => Promise<string>;
   onWords: (update: TranscriptUpdate) => void;
   onUtterance?: (utterance: Utterance) => void;
@@ -108,11 +168,15 @@ const QUIET_CUT_MS = 6500;
 const MAX_UTTERANCE_MS = 8000;
 const CUT_SEARCH_MS = 1500;
 const MIN_DECODE_MS = 500;
+/** An utterance with less loud audio than this is a click or a crackle of static, not a word. */
+const MIN_SPEECH_MS = 200;
 
 export class StreamingTranscriber {
   readonly gate: SpeechGate;
   private readonly options: TranscriberOptions;
   private readonly blockMs: number;
+  private readonly highPass: HighPassFilter | null;
+  private clipHold = 0;
   private preroll: Float32Array[] = [];
   private current: Speech | null = null;
   private finals: Speech[] = [];
@@ -126,6 +190,7 @@ export class StreamingTranscriber {
     this.options = options;
     this.blockMs = (options.blockSize / options.sampleRate) * 1000;
     this.gate = new SpeechGate(Math.ceil(END_SILENCE_MS / this.blockMs));
+    this.highPass = options.highPassHz ? new HighPassFilter(options.highPassHz, options.sampleRate) : null;
   }
 
   private blocksFor(ms: number) {
@@ -133,7 +198,9 @@ export class StreamingTranscriber {
   }
 
   /** Feed one block of mono audio. Returns its level, for a meter. */
-  push(block: Float32Array) {
+  push(raw: Float32Array) {
+    this.clipHold = peakLevel(raw) >= CLIP_LEVEL ? CLIP_HOLD_BLOCKS : Math.max(0, this.clipHold - 1);
+    const block = this.highPass ? this.highPass.process(raw) : raw;
     const db = levelDb(block);
     const event = this.gate.push(db);
 
@@ -164,7 +231,7 @@ export class StreamingTranscriber {
     }
 
     this.schedule();
-    return { db, thresholdDb: this.gate.thresholdDb, speaking: this.current !== null };
+    return { db, thresholdDb: this.gate.thresholdDb, speaking: this.current !== null, clipping: this.clipHold > 0 };
   }
 
   stop() {
@@ -173,6 +240,13 @@ export class StreamingTranscriber {
 
   private finish(utterance: Speech) {
     utterance.ended = true;
+    const loud = utterance.levels.filter((level) => level >= this.gate.thresholdDb).length;
+    if (utterance.committed === 0 && loud < this.blocksFor(MIN_SPEECH_MS)) {
+      // A click: skip the read (reads go one at a time, so it would hold up the anchor's words)
+      // and clear any guess a fresh read already made from it.
+      this.options.onWords({ words: [], final: false });
+      return;
+    }
     this.finals.push(utterance);
   }
 

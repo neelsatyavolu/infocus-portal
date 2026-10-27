@@ -4,6 +4,8 @@ import {
   HALLOWEEN_INIT_SCRIPT,
   isHalloweenDay,
   isHalloweenSeason,
+  KONAMI,
+  matchHalloweenSecret,
   parseHalloweenPrefs
 } from "@/src/lib/halloween";
 
@@ -40,18 +42,38 @@ describe("parseHalloweenPrefs", () => {
   });
 
   it("keeps only real booleans and a whole, positive count", () => {
-    expect(parseHalloweenPrefs('{"off":true,"muted":true,"musicOff":true,"scaresOff":true,"smashed":7}')).toEqual({
+    expect(parseHalloweenPrefs('{"off":true,"muted":true,"musicOff":true,"scaresOff":true,"hauntsOff":true,"smashed":7,"candy":12}')).toEqual({
       off: true,
       muted: true,
       musicOff: true,
       scaresOff: true,
-      smashed: 7
+      hauntsOff: true,
+      smashed: 7,
+      candy: 12
     });
-    expect(parseHalloweenPrefs('{"off":"yes","muted":1,"musicOff":"no","scaresOff":0,"smashed":-3}')).toEqual(
+    expect(parseHalloweenPrefs('{"off":"yes","muted":1,"musicOff":"no","scaresOff":0,"hauntsOff":"on","smashed":-3,"candy":-1}')).toEqual(
       DEFAULT_HALLOWEEN_PREFS
     );
     expect(parseHalloweenPrefs('{"smashed":4.8}').smashed).toBe(4);
     expect(parseHalloweenPrefs('{"smashed":"lots"}').smashed).toBe(0);
+    expect(parseHalloweenPrefs('{"smashed":3}').candy).toBe(0);
+  });
+});
+
+describe("matchHalloweenSecret", () => {
+  const typed = (text: string) => text.split("");
+
+  it("finds a secret word as soon as its last letter is typed", () => {
+    expect(matchHalloweenSecret(typed("xboo"))).toBe("boo");
+    expect(matchHalloweenSecret(typed("treat"))).toBe("treat");
+    expect(matchHalloweenSecret(typed("aatrick"))).toBe("trick");
+    expect(matchHalloweenSecret(typed("bo"))).toBeNull();
+    expect(matchHalloweenSecret(typed("tricky"))).toBeNull();
+  });
+
+  it("finds the Konami code, and ignores it with a wrong key in the middle", () => {
+    expect(matchHalloweenSecret(["x", ...KONAMI])).toBe("konami");
+    expect(matchHalloweenSecret([...KONAMI.slice(0, 4), "x", ...KONAMI.slice(5)])).toBeNull();
   });
 });
 

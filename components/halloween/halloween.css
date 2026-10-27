@@ -89,6 +89,7 @@
   font: 600 14px/1 var(--font-display);
   color: var(--brand-green);
   white-space: nowrap;
+  translate: -50% 0;
   animation: hw-rise 1.2s ease-out both;
 }
 @keyframes hw-rise {
@@ -147,7 +148,6 @@
   height: 100%;
   animation: hw-sway 2.6s ease-in-out infinite;
 }
-.hw-ghost[data-gone="true"] { animation: hw-vanish 0.5s ease-in both; }
 @keyframes hw-haunt {
   0%   { transform: translateY(0); opacity: 0; }
   10%  { opacity: 0.95; }
@@ -157,9 +157,6 @@
 @keyframes hw-sway {
   0%, 100% { transform: translateX(-10px) rotate(-4deg); }
   50%      { transform: translateX(10px) rotate(4deg); }
-}
-@keyframes hw-vanish {
-  to { transform: scale(1.6); opacity: 0; }
 }
 
 /* A spider lowers itself on a thread, waits, and climbs back up. */
@@ -180,16 +177,12 @@
   opacity: 0.6;
 }
 .hw-spider > button > svg { width: 40px; height: 34px; animation: hw-spin 3s ease-in-out infinite; }
-.hw-spider[data-gone="true"] { animation: hw-climb 0.45s ease-in both; }
 @keyframes hw-dangle {
   0%   { transform: translateY(-60px); }
   20%  { transform: translateY(var(--hw-drop, 160px)); }
   30%  { transform: translateY(calc(var(--hw-drop, 160px) - 14px)); }
   40%, 80% { transform: translateY(var(--hw-drop, 160px)); }
   100% { transform: translateY(-60px); }
-}
-@keyframes hw-climb {
-  to { transform: translateY(-80px); }
 }
 @keyframes hw-spin {
   0%, 100% { transform: rotate(-8deg); }
@@ -364,12 +357,510 @@
   100% { transform: translate(var(--hw-x), var(--hw-y)) scale(2.2); opacity: 1; }
 }
 
+/* A black cat strolls along the bottom of the window. */
+.hw-cat {
+  position: absolute;
+  bottom: calc(var(--phone-tabbar-h, 0px) + 4px);
+  left: 0;
+  width: 80px;
+  height: 48px;
+  animation: hw-stroll var(--hw-duration, 15s) linear both;
+}
+.hw-cat > svg { width: 100%; height: 100%; filter: drop-shadow(0 0 6px rgb(155 92 255 / 0.6)); }
+.hw-cat[data-direction="rtl"] { animation-name: hw-stroll-back; }
+.hw-cat[data-direction="rtl"] > svg { transform: scaleX(-1); }
+@keyframes hw-stroll {
+  from { transform: translateX(-90px); }
+  to   { transform: translateX(calc(100vw + 90px)); }
+}
+@keyframes hw-stroll-back {
+  from { transform: translateX(calc(100vw + 90px)); }
+  to   { transform: translateX(-90px); }
+}
+.hw-legs-a,
+.hw-legs-b {
+  transform-box: fill-box;
+  transform-origin: center top;
+  animation: hw-step 0.5s ease-in-out infinite alternate;
+}
+.hw-legs-b { animation-direction: alternate-reverse; }
+@keyframes hw-step {
+  from { transform: rotate(-14deg); }
+  to   { transform: rotate(14deg); }
+}
+.hw-cat-tail {
+  transform-box: fill-box;
+  transform-origin: right bottom;
+  animation: hw-swish 1.6s ease-in-out infinite;
+}
+@keyframes hw-swish {
+  0%, 100% { transform: rotate(-6deg); }
+  50%      { transform: rotate(8deg); }
+}
+
+/* A witch on her broom, high across the window. */
+.hw-witch {
+  position: absolute;
+  left: 0;
+  width: 84px;
+  height: 49px;
+  animation: hw-swoop var(--hw-duration, 9s) ease-in-out both;
+}
+.hw-witch > svg { width: 100%; height: 100%; filter: drop-shadow(0 0 8px rgb(155 92 255 / 0.55)); }
+.hw-witch[data-direction="rtl"] { animation-name: hw-swoop-back; }
+.hw-witch[data-direction="rtl"] > svg { transform: scaleX(-1); }
+@keyframes hw-swoop {
+  0%   { transform: translate(-100px, 30px) rotate(-6deg); }
+  35%  { transform: translate(35vw, -10px) rotate(4deg); }
+  65%  { transform: translate(65vw, 40px) rotate(-4deg); }
+  100% { transform: translate(calc(100vw + 100px), 0) rotate(-8deg); }
+}
+@keyframes hw-swoop-back {
+  0%   { transform: translate(calc(100vw + 100px), 30px) rotate(6deg); }
+  35%  { transform: translate(65vw, -10px) rotate(-4deg); }
+  65%  { transform: translate(35vw, 40px) rotate(4deg); }
+  100% { transform: translate(-100px, 0) rotate(8deg); }
+}
+.hw-cape {
+  transform-box: fill-box;
+  transform-origin: right center;
+  animation: hw-flutter 0.3s ease-in-out infinite alternate;
+}
+@keyframes hw-flutter {
+  from { transform: scaleY(1) skewX(0); }
+  to   { transform: scaleY(0.7) skewX(-12deg); }
+}
+
+/* Eyes open in the dark at the edge of the window, blink, and close. */
+.hw-eyes {
+  position: absolute;
+  width: 48px;
+  height: 16px;
+  animation: hw-glare 7s ease-in-out both;
+}
+.hw-eyes > svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 6px rgb(155 92 255 / 0.85));
+  animation: hw-blink 2.3s ease-in-out 0.8s infinite;
+}
+@keyframes hw-glare {
+  0%       { opacity: 0; }
+  12%, 85% { opacity: 1; }
+  100%     { opacity: 0; }
+}
+@keyframes hw-blink {
+  0%, 88%, 100% { transform: scaleY(1); }
+  94%           { transform: scaleY(0.08); }
+}
+
+/* A skeleton hand reaches up from the floor, waves, and sinks back. */
+.hw-hand {
+  position: absolute;
+  bottom: var(--phone-tabbar-h, 0px);
+  width: 40px;
+  height: 80px;
+  animation: hw-reach 8s ease-in-out both;
+}
+.hw-hand > svg {
+  width: 100%;
+  height: 100%;
+  transform-origin: center bottom;
+  animation: hw-wave 1.2s ease-in-out 1.2s infinite;
+}
+@keyframes hw-reach {
+  0%       { transform: translateY(100%); }
+  15%, 80% { transform: translateY(12%); }
+  100%     { transform: translateY(100%); }
+}
+@keyframes hw-wave {
+  0%, 100% { transform: rotate(-10deg); }
+  50%      { transform: rotate(10deg); }
+}
+
+/* Candy drifts down like a leaf: the wrapper falls, the button inside sways. */
+.hw-candy {
+  position: absolute;
+  top: -44px;
+  width: 40px;
+  animation: hw-drift var(--hw-duration, 11s) linear both;
+}
+.hw-candy > button {
+  display: block;
+  width: 100%;
+  animation: hw-flutter-down 2.2s ease-in-out infinite;
+}
+.hw-candy svg { display: block; width: 100%; height: auto; filter: drop-shadow(0 0 5px rgb(255 122 26 / 0.5)); }
+@keyframes hw-drift {
+  to { transform: translateY(calc(100vh + 90px)); }
+}
+@keyframes hw-flutter-down {
+  0%, 100% { transform: translateX(calc(var(--hw-sway, 30px) * -1)) rotate(-25deg); }
+  50%      { transform: translateX(var(--hw-sway, 30px)) rotate(25deg); }
+}
+
+/* Shooed visitors stop where they are and vanish there (the spider climbs its thread). */
+.hw-layer [data-gone="true"] { animation-play-state: paused; pointer-events: none; }
+.hw-layer [data-gone="true"] > * { animation: hw-vanish 0.45s ease-in both; }
+.hw-spider[data-gone="true"] > button { animation: hw-climb 0.45s ease-in both; }
+.hw-cat[data-gone="true"] > svg { animation: hw-hop 0.45s ease-out both; }
+.hw-cat[data-direction="rtl"][data-gone="true"] > svg { animation-name: hw-hop-back; }
+.hw-eyes[data-gone="true"] > svg { animation: hw-shut 0.3s ease-in both; }
+/* `scale`, not `transform`, so a mirrored (right-to-left) sprite stays mirrored as it goes. */
+@keyframes hw-vanish {
+  to { scale: 1.6; opacity: 0; }
+}
+@keyframes hw-climb {
+  to { transform: translateY(-80px); }
+}
+@keyframes hw-hop {
+  to { transform: translate(30px, -40px) rotate(-20deg); opacity: 0; }
+}
+@keyframes hw-hop-back {
+  to { transform: scaleX(-1) translate(30px, -40px) rotate(-20deg); opacity: 0; }
+}
+@keyframes hw-shut {
+  to { transform: scaleY(0); }
+}
+
+/* Cobwebs in two corners of the window, always there in season. */
+.hw-web {
+  position: absolute;
+  width: 110px;
+  height: 110px;
+  opacity: 0.22;
+}
+.hw-web > svg { width: 100%; height: 100%; }
+.hw-web[data-corner="top-right"] { top: 0; right: 0; transform: scaleX(-1); }
+.hw-web[data-corner="bottom-left"] { bottom: var(--phone-tabbar-h, 0px); left: 0; transform: scaleY(-1); }
+:root.light .hw-web { opacity: 0.5; }
+:root.light .hw-web path { stroke: #6E6A7A; }
+@media (max-width: 640px) {
+  .hw-web { width: 72px; height: 72px; }
+}
+
+/* Selected text and scrollbars in pumpkin. */
+:root.halloween ::selection { background: rgb(255 122 26 / 0.35); }
+:root.halloween { scrollbar-color: rgb(180 68 10 / 0.7) transparent; }
+
+/* ============================================================
+   Hauntings (halloween-hauntings.tsx): short, click-through, between the
+   visitors (z-40) and dialogs (z-50). No flashing faster than 3 a second.
+   ============================================================ */
+.hw-haunt {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  pointer-events: none;
+  overflow: hidden;
+}
+.hw-haunt * { pointer-events: none; }
+@keyframes hw-come-and-go {
+  0%   { opacity: 0; }
+  8%   { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* The lights flicker: three dips in 1.5 s. */
+.hw-flicker {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  animation: hw-flicker var(--hw-lasts) linear both;
+}
+@keyframes hw-flicker {
+  0%   { opacity: 0; }
+  10%  { opacity: 0.6; }
+  18%  { opacity: 0.08; }
+  38%  { opacity: 0.55; }
+  46%  { opacity: 0; }
+  66%  { opacity: 0.75; }
+  76%  { opacity: 0.1; }
+  100% { opacity: 0; }
+}
+
+/* Lights out: only a flashlight where the pointer is. */
+.hw-flashlight {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--hw-x) var(--hw-y), transparent 0 110px, rgb(3 3 3 / 0.96) 200px);
+  animation: hw-come-and-go var(--hw-lasts) ease-in-out both;
+}
+
+/* Blood runs down from the top of the window. */
+.hw-drips {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 100%;
+  animation: hw-come-and-go var(--hw-lasts) ease-out both;
+}
+.hw-drips::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 10px;
+  background: linear-gradient(#5A0610, #8A0B16);
+}
+.hw-drip {
+  position: absolute;
+  top: 6px;
+  height: 0;
+  border-radius: 0 0 999px 999px;
+  background: linear-gradient(#5A0610, #8A0B16);
+  animation: hw-drip 2.8s cubic-bezier(0.5, 0, 0.8, 0.6) forwards;
+}
+.hw-drip::after {
+  content: "";
+  position: absolute;
+  left: -25%;
+  bottom: -35%;
+  width: 150%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #8A0B16;
+}
+@keyframes hw-drip {
+  to { height: var(--hw-length, 20vh); }
+}
+
+/* Handprints on the glass, one after another. */
+.hw-handprint {
+  position: absolute;
+  width: 60px;
+  height: 84px;
+  margin: -42px 0 0 -30px;
+  color: rgb(236 239 234 / 0.3);
+  filter: blur(1.4px);
+  opacity: 0;
+  animation: hw-print 3s ease-out both;
+}
+.hw-handprint > svg { width: 100%; height: 100%; }
+:root.light .hw-handprint { color: rgb(50 40 60 / 0.25); }
+@keyframes hw-print {
+  0%   { opacity: 0; transform: scale(1.15); }
+  5%   { opacity: 1; transform: scale(1); }
+  70%  { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+
+/* A glitch: the page splits into colors and jumps. */
+:root.hw-glitching #main { animation: hw-glitch 0.9s steps(1) both; }
+@keyframes hw-glitch {
+  0%   { transform: translate(0); filter: none; }
+  10%  { transform: translate(-6px, 1px); filter: drop-shadow(3px 0 rgb(255 0 60 / 0.7)) drop-shadow(-3px 0 rgb(0 210 255 / 0.7)); }
+  25%  { transform: translate(5px, -2px); filter: drop-shadow(-4px 0 rgb(255 0 60 / 0.7)) drop-shadow(4px 0 rgb(0 210 255 / 0.7)); }
+  40%  { transform: translate(0); filter: none; }
+  55%  { transform: translate(8px, 0) skewX(-4deg); filter: drop-shadow(2px 0 rgb(255 0 60 / 0.7)) drop-shadow(-2px 0 rgb(0 210 255 / 0.7)); }
+  70%  { transform: translate(-3px, 2px); filter: none; }
+  85%  { transform: translate(2px, 0); filter: drop-shadow(-2px 0 rgb(255 0 60 / 0.6)); }
+  100% { transform: translate(0); filter: none; }
+}
+.hw-glitch-bars i {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: rgb(155 92 255 / 0.22);
+  animation: hw-bar 0.9s steps(1) both;
+}
+.hw-glitch-bars i:nth-child(1) { top: 18%; height: 14px; }
+.hw-glitch-bars i:nth-child(2) { top: 52%; height: 32px; background: rgb(255 122 26 / 0.18); animation-delay: 0.15s; }
+.hw-glitch-bars i:nth-child(3) { top: 77%; height: 8px; animation-delay: 0.3s; }
+@keyframes hw-bar {
+  0%   { transform: translateX(0); opacity: 1; }
+  30%  { transform: translateX(-8%) translateY(-30px); }
+  60%  { transform: translateX(6%) translateY(40px); }
+  100% { opacity: 0; }
+}
+
+/* The signal drops out: TV snow and a broadcast slate. */
+.hw-static { position: absolute; inset: 0; animation: hw-come-and-go var(--hw-lasts) linear both; }
+.hw-static-snow { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; opacity: 0.42; }
+.hw-static-band {
+  position: absolute;
+  inset: -20% 0 auto;
+  height: 18%;
+  background: linear-gradient(transparent, rgb(236 239 234 / 0.18), transparent);
+  animation: hw-roll var(--hw-lasts) linear both;
+}
+@keyframes hw-roll { to { transform: translateY(700%); } }
+.hw-static-text {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  padding: 8px 16px;
+  background: #0F110F;
+  color: #ECEFEA;
+  font: 600 clamp(20px, 4vw, 40px)/1 var(--font-mono-broadcast);
+  letter-spacing: 0.2em;
+}
+
+/* The window cracks where something hit it. */
+.hw-crack {
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  margin: -150px 0 0 -150px;
+  overflow: visible;
+  animation: hw-crack var(--hw-lasts) ease-out both;
+}
+.hw-crack path {
+  fill: none;
+  stroke: rgb(236 239 234 / 0.75);
+  stroke-width: 1.3;
+  stroke-linejoin: bevel;
+  filter: drop-shadow(0 0 2px rgb(236 239 234 / 0.6));
+}
+:root.light .hw-crack path { stroke: rgb(40 40 48 / 0.7); filter: none; }
+@keyframes hw-crack {
+  0%   { opacity: 0; transform: scale(0.85); }
+  3%   { opacity: 1; transform: scale(1); }
+  75%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* A tall shadow walks past. */
+.hw-shadow {
+  position: absolute;
+  bottom: var(--phone-tabbar-h, 0px);
+  height: 78vh;
+  aspect-ratio: 60 / 200;
+  opacity: 0.6;
+  filter: blur(3px);
+  animation: hw-pass var(--hw-lasts) ease-in-out both;
+}
+.hw-shadow > svg { width: 100%; height: 100%; }
+.hw-shadow[data-direction="rtl"] { animation-name: hw-pass-back; }
+@keyframes hw-pass {
+  from { transform: translateX(-30vh); }
+  to   { transform: translateX(calc(100vw + 5vh)); }
+}
+@keyframes hw-pass-back {
+  from { transform: translateX(calc(100vw + 5vh)); }
+  to   { transform: translateX(-30vh); }
+}
+
+/* A heartbeat at the edges of the screen. */
+.hw-heartbeat {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 40%, rgb(70 4 10 / 0.75) 100%);
+  animation: hw-pulse 0.8s ease-out 4 both;
+}
+@keyframes hw-pulse {
+  0%   { opacity: 0.25; }
+  15%  { opacity: 1; }
+  100% { opacity: 0.25; }
+}
+
+/* Claw marks tear down the screen. */
+.hw-scratches {
+  position: absolute;
+  width: 200px;
+  height: 260px;
+  animation: hw-come-and-go var(--hw-lasts) ease-out both;
+}
+.hw-scratches > svg { width: 100%; height: 100%; overflow: visible; }
+.hw-claw path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: hw-tear 0.35s ease-in forwards;
+  animation-delay: inherit;
+}
+@keyframes hw-tear { to { stroke-dashoffset: 0; } }
+
+/* A little ghost follows the pointer. */
+.hw-follower {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 44px;
+  height: 50px;
+  animation: hw-come-and-go var(--hw-lasts) ease-in-out both;
+}
+.hw-follower > svg { width: 100%; height: 100%; opacity: 0.85; filter: drop-shadow(0 0 8px rgb(155 92 255 / 0.7)); }
+
+/* Words written with a fingertip on a fogged-up window. */
+.hw-writing {
+  position: absolute;
+  white-space: nowrap;
+  font: 700 clamp(40px, 7vw, 88px)/1 var(--font-display);
+  letter-spacing: 0.06em;
+  color: rgb(236 239 234 / 0.5);
+  text-shadow: 0 0 14px rgb(236 239 234 / 0.45);
+  animation: hw-come-and-go var(--hw-lasts) ease-in-out both;
+}
+:root.light .hw-writing { color: rgb(40 30 50 / 0.45); text-shadow: 0 0 10px rgb(40 30 50 / 0.3); }
+.hw-writing > span {
+  display: inline-block;
+  opacity: 0;
+  animation: hw-letter 0.4s ease-out forwards;
+}
+@keyframes hw-letter {
+  from { opacity: 0; filter: blur(6px); transform: translateY(4px); }
+  to   { opacity: 1; filter: blur(0.6px); transform: none; }
+}
+
+/* Fog rolls in from the floor and back out. */
+.hw-fog {
+  position: absolute;
+  inset: auto -10% 0;
+  height: 60vh;
+  background: radial-gradient(ellipse at 30% 100%, rgb(150 140 170 / 0.55), transparent 70%),
+    radial-gradient(ellipse at 75% 100%, rgb(120 100 160 / 0.5), transparent 65%);
+  filter: blur(14px);
+  animation: hw-fog var(--hw-lasts) ease-in-out both;
+}
+@keyframes hw-fog {
+  0%   { transform: translate(0, 100%); opacity: 0; }
+  35%  { transform: translate(-3%, 0); opacity: 1; }
+  75%  { transform: translate(3%, 0); opacity: 1; }
+  100% { transform: translate(0, 60%); opacity: 0; }
+}
+
+/* A heading that says something it shouldn't. */
+.hw-possessed {
+  color: #C21F33 !important;
+  text-shadow: 0 0 10px rgb(194 31 51 / 0.6);
+  animation: hw-jitter 0.12s steps(2) infinite;
+}
+@keyframes hw-jitter {
+  0%   { transform: translate(0); }
+  50%  { transform: translate(1px, -1px); }
+  100% { transform: translate(-1px, 1px); }
+}
+
+/* The first-visit welcome (halloween-welcome.tsx). */
+.hw-welcome-art {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 12px;
+}
+.hw-welcome-art > svg { width: 52px; height: 52px; }
+.hw-welcome-art > svg:nth-child(2) { width: 60px; height: 68px; animation: hw-sway 2.6s ease-in-out infinite; }
+.hw-welcome-secret {
+  border-left: 2px solid var(--brand-green);
+  padding-left: 10px;
+  color: hsl(var(--foreground));
+}
+.hw-welcome-secret kbd {
+  font: 600 12px/1 var(--font-mono-broadcast);
+  padding: 2px 5px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 3px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hw-layer *,
   .hw-layer *::before,
   .hw-scare-figure,
   .hw-scare-bat,
-  .hw-scare-text {
+  .hw-scare-text,
+  .hw-haunt *,
+  .hw-welcome-art > svg,
+  :root.hw-glitching #main {
     animation: none !important;
   }
 }

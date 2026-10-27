@@ -5,7 +5,7 @@
  * before it stay silent.
  */
 
-export type SpookySound = "splat" | "boo" | "cackle" | "scurry" | "creak" | "flap";
+export type SpookySound = "splat" | "boo" | "cackle" | "scurry" | "creak" | "flap" | "meow" | "chime";
 
 let context: AudioContext | null = null;
 
@@ -150,13 +150,45 @@ function flap(ctx: AudioContext, t: number, out: AudioNode) {
   }
 }
 
+/** A startled cat: a nasal tone that rises and falls while its "mouth" (the filter) opens and closes. */
+function meow(ctx: AudioContext, t: number, out: AudioNode) {
+  const voice = ctx.createOscillator();
+  voice.type = "sawtooth";
+  voice.frequency.setValueAtTime(520, t);
+  voice.frequency.linearRampToValueAtTime(820, t + 0.18);
+  voice.frequency.exponentialRampToValueAtTime(430, t + 0.6);
+  const mouth = ctx.createBiquadFilter();
+  mouth.type = "bandpass";
+  mouth.Q.value = 5;
+  mouth.frequency.setValueAtTime(800, t);
+  mouth.frequency.linearRampToValueAtTime(2200, t + 0.2);
+  mouth.frequency.exponentialRampToValueAtTime(900, t + 0.6);
+  voice.connect(mouth).connect(envelope(out, t, 0.05, 0.65, 0.9));
+  voice.start(t);
+  voice.stop(t + 0.7);
+}
+
+/** Candy caught: two quick bell notes. */
+function chime(ctx: AudioContext, t: number, out: AudioNode) {
+  [1320, 1760].forEach((frequency, i) => {
+    const start = t + i * 0.07;
+    const bell = ctx.createOscillator();
+    bell.frequency.value = frequency;
+    bell.connect(envelope(out, start, 0.005, 0.35, 0.18));
+    bell.start(start);
+    bell.stop(start + 0.4);
+  });
+}
+
 const PLAYERS: Record<SpookySound, (ctx: AudioContext, t: number, out: AudioNode) => void> = {
   splat,
   boo,
   cackle,
   scurry,
   creak,
-  flap
+  flap,
+  meow,
+  chime
 };
 
 /** Plays `play` at `volume` on the shared context (scare-sounds.ts uses this too). */

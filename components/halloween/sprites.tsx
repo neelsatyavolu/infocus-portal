@@ -128,3 +128,103 @@ export function EyesSprite({ className }: { className?: string }) {
     </svg>
   );
 }
+
+const CAT = "#17121F";
+const CLOAK = "#2A1840";
+const BONE = "#E4E1D6";
+
+/** A black cat walking right; the two leg pairs swing in turn (hw-legs-a / hw-legs-b). */
+export function CatSprite({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 80 48" className={className} aria-hidden>
+      <path className="hw-cat-tail" d="M16 24 Q3 22 4 8 Q5 3 9 5 Q8 17 19 20 Z" fill={CAT} />
+      <g className="hw-legs-a" fill={CAT}>
+        <rect x="18" y="28" width="5" height="17" rx="2.5" />
+        <rect x="44" y="28" width="5" height="17" rx="2.5" />
+      </g>
+      <g className="hw-legs-b" fill={CAT}>
+        <rect x="25" y="28" width="5" height="17" rx="2.5" />
+        <rect x="51" y="28" width="5" height="17" rx="2.5" />
+      </g>
+      <ellipse cx="36" cy="26" rx="21" ry="10" fill={CAT} />
+      <circle cx="59" cy="17" r="9" fill={CAT} />
+      <path d="M51 12 L52 2 L58 9 Z M61 9 L67 2 L67 12 Z" fill={CAT} />
+      <ellipse cx="57" cy="16" rx="1.6" ry="2.3" fill={CANDLE} />
+      <ellipse cx="63" cy="16" rx="1.6" ry="2.3" fill={CANDLE} />
+    </svg>
+  );
+}
+
+/** A witch on her broom, flying right, cape flapping. */
+export function WitchSprite({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 96 56" className={className} aria-hidden>
+      <path d="M14 42 L84 30" stroke="#6B4A2B" strokeWidth="3" strokeLinecap="round" />
+      <path d="M20 40 L3 34 L5 42 L1 50 L21 44 Z" fill="#C9A15A" />
+      <path className="hw-cape" d="M40 26 Q27 25 20 33 Q31 32 39 35 Z" fill={PURPLE} />
+      <path d="M37 37 Q40 19 51 17 Q60 19 60 35 Z" fill={CLOAK} />
+      <path d="M54 33 L64 39 L69 37" stroke={CLOAK} strokeWidth="3.5" fill="none" strokeLinecap="round" />
+      <path d="M50 15 Q42 18 38 25" stroke={PUMPKIN} strokeWidth="2.2" fill="none" strokeLinecap="round" />
+      <circle cx="54" cy="14" r="5" fill="#7FB069" />
+      <path d="M43 11 L66 10" stroke={CLOAK} strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M47 11 L62 10 L52 1 L47 4 Z" fill={CLOAK} />
+    </svg>
+  );
+}
+
+/** A skeleton hand reaching up out of the floor. */
+export function HandSprite({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 40 80" className={className} aria-hidden>
+      <g stroke={BONE} strokeWidth="4" strokeLinecap="round" fill="none">
+        <path d="M15 80 L15 50 M24 80 L24 50" />
+        <path d="M9 30 L7 22 M6 18 L5 11" />
+        <path d="M16 28 L16 18 M16 14 L16 5" />
+        <path d="M24 28 L25 18 M25 14 L26 6" />
+        <path d="M31 31 L34 23 M35 19 L36 13" />
+        <path d="M8 42 L3 37 M1 33 L0 29" />
+      </g>
+      <rect x="7" y="29" width="26" height="18" rx="6" fill={BONE} />
+      <path d="M13 34 L13 42 M20 34 L20 42 M27 34 L27 42" stroke={INK} strokeWidth="1.4" strokeLinecap="round" opacity="0.35" />
+    </svg>
+  );
+}
+
+/** Two kinds of candy, picked by `variant`: a wrapped sweet and a candy corn. */
+const CANDIES = [
+  <svg key="wrapped" viewBox="0 0 48 24" aria-hidden>
+    <path d="M14 12 L2 3 L5 12 L2 21 Z M34 12 L46 3 L43 12 L46 21 Z" fill={PURPLE} />
+    <ellipse cx="24" cy="12" rx="11" ry="8" fill={PUMPKIN} />
+    <path d="M18 5 L22 19 M25 4 L29 19" stroke={CANDLE} strokeWidth="2.4" strokeLinecap="round" />
+  </svg>,
+  <svg key="corn" viewBox="0 0 32 36" aria-hidden>
+    <path d="M16 2 Q20 2 26 20 Q28 33 16 34 Q4 33 6 20 Q12 2 16 2 Z" fill={CANDLE} />
+    <path d="M16 2 Q20 2 25.6 21 L6.4 21 Q12 2 16 2 Z" fill={PUMPKIN} />
+    <path d="M16 2 Q18.6 2 21 11 L11 11 Q13.4 2 16 2 Z" fill={SOFT_WHITE} />
+  </svg>
+];
+
+export const CANDY_VARIANT_COUNT = CANDIES.length;
+
+export function CandySprite({ variant = 0 }: { variant?: number }) {
+  return CANDIES[variant % CANDIES.length];
+}
+
+/** Spokes and sagging threads of a web whose center is the top-left corner (0, 0). */
+const COBWEB_PATH = (() => {
+  const angles = [0, 18, 36, 54, 72, 90].map((deg) => (deg * Math.PI) / 180);
+  const at = (angle: number, r: number) => `${(Math.cos(angle) * r).toFixed(1)} ${(Math.sin(angle) * r).toFixed(1)}`;
+  const spokes = angles.map((angle) => `M0 0 L${at(angle, 100)}`);
+  const threads = [24, 46, 68, 88].flatMap((r) =>
+    angles.slice(1).map((angle, i) => `M${at(angles[i], r)} Q${at((angles[i] + angle) / 2, r * 0.82)} ${at(angle, r)}`)
+  );
+  return [...spokes, ...threads].join(" ");
+})();
+
+export function CobwebSprite({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 100 100" className={className} aria-hidden>
+      <path d={COBWEB_PATH} stroke={SOFT_WHITE} strokeWidth="0.9" fill="none" strokeLinecap="round" />
+    </svg>
+  );
+}

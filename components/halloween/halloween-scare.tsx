@@ -96,13 +96,15 @@ export function HalloweenScare() {
   useEffect(() => {
     if (scaresOff) return;
     let timer = window.setTimeout(function attempt() {
-      // Wait until a scare can be heard (or sounds are muted). Never over a video, a hidden tab or
-      // teleprompter run mode, and not in the first minute after run mode closes.
+      // Wait until a scare can be heard (or sounds are muted). Never over a video, a dialog (the
+      // Halloween welcome included), a hidden tab or teleprompter run mode, and not in the first
+      // minute after run mode closes.
       const ready =
         (muted || runningSpookyAudio()) &&
         !document.hidden &&
         !mediaIsPlaying() &&
         !isRunModeOpen() &&
+        !document.querySelector("[role='dialog'], [role='alertdialog']") &&
         msSinceRunModeClosed() >= SCARE_MIN_MS;
       if (ready) boo();
       timer = window.setTimeout(attempt, ready ? SCARE_MIN_MS + Math.random() * SCARE_SPREAD_MS : RETRY_MS);

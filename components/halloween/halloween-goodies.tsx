@@ -1,26 +1,41 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useMediaQuery } from "@/components/kit/remembered-state";
-import { isHalloweenDay, readHalloweenPrefs, writeHalloweenPrefs } from "@/src/lib/halloween";
+import {
+  isHalloweenDay,
+  matchHalloweenSecret,
+  readHalloweenPrefs,
+  SECRET_MEMORY,
+  writeHalloweenPrefs
+} from "@/src/lib/halloween";
 import { isRunModeOpen } from "@/src/lib/run-mode-signal";
 import { useHalloweenActive, useHalloweenPrefs } from "@/src/lib/use-halloween";
 import { HalloweenMusic } from "./halloween-music";
+import { HalloweenHauntings } from "./halloween-hauntings";
 import { HalloweenScare } from "./halloween-scare";
+import { HalloweenWelcome } from "./halloween-welcome";
+import { HauntingSprite, type Sprite } from "./haunting-sprite";
 import { playSpookySound, type SpookySound } from "./spooky-sounds";
-import { BatSprite, GhostSprite, PUMPKIN_FACE_COUNT, PumpkinSprite, SpiderSprite, SplatSprite } from "./sprites";
+import { CANDY_VARIANT_COUNT, CobwebSprite, PUMPKIN_FACE_COUNT } from "./sprites";
 import "./halloween.css";
 
-type Sprite =
-  | { id: number; kind: "pumpkin"; side: "left" | "right"; top: number; face: number }
-  | { id: number; kind: "splat"; side: "left" | "right"; top: number }
-  | { id: number; kind: "plus"; side: "left" | "right"; top: number; text: string }
-  | { id: number; kind: "bat"; top: number; rtl: boolean; duration: number }
-  | { id: number; kind: "ghost"; left: number; gone: boolean }
-  | { id: number; kind: "spider"; left: number; drop: number; gone: boolean }
-  | { id: number; kind: "burst"; x: number; y: number; r: number }
-  | { id: number; kind: "rain"; left: number; duration: number; r: number; face: number };
+type Visitor = "pumpkin" | "candy" | "bats" | "cat" | "ghost" | "eyes" | "witch" | "spider" | "hand";
+
+/** How often each visitor turns up, relative to the others. */
+const VISITOR_WEIGHTS: readonly (readonly [Visitor, number])[] = [
+  ["pumpkin", 26],
+  ["candy", 14],
+  ["bats", 12],
+  ["cat", 10],
+  ["ghost", 9],
+  ["eyes", 9],
+  ["witch", 8],
+  ["spider", 7],
+  ["hand", 5]
+];
+const TOTAL_WEIGHT = VISITOR_WEIGHTS.reduce((sum, [, weight]) => sum + weight, 0);
 
 /** First visitor after this long, then one every 8–18 s while the tab is open. */
 const FIRST_VISIT_MS = 3_000;
@@ -30,20 +45,37 @@ const PUMPKIN_STAYS_MS = 15_000;
 const MAX_PUMPKINS = 3;
 /** Visitors that arrive on their own are quieter than the sounds people click for. */
 const AMBIENT_VOLUME = 0.6;
+const GONE_MS = 500;
 const GREETED_KEY = "infocus-halloween-greeted";
-const BOO = "boo";
-const KONAMI = ["arrowup", "arrowup", "arrowdown", "arrowdown", "arrowleft", "arrowright", "arrowleft", "arrowright", "b", "a"];
 
 const between = (min: number, max: number) => min + Math.random() * (max - min);
 const pick = <T,>(items: readonly T[]) => items[Math.floor(Math.random() * items.length)];
+const side = () => pick(["left", "right"] as const);
+
+function pickVisitor(): Visitor {
+  let roll = Math.random() * TOTAL_WEIGHT;
+  for (const [visitor, weight] of VISITOR_WEIGHTS) {
+    roll -= weight;
+    if (roll < 0) return visitor;
+  }
+  return "pumpkin";
+}
 
 function isTyping(target: EventTarget | null) {
   return target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
 }
 
+/** Adds one to a saved count and returns the new total. */
+function bump(field: "smashed" | "candy"): number {
+  const prefs = readHalloweenPrefs();
+  const total = prefs[field] + 1;
+  writeHalloweenPrefs({ ...prefs, [field]: total });
+  return total;
+}
+
 /**
- * Music, pumpkins, bats, a ghost, a spider and the odd big BOO for the signed-in shell, only in the
- * Halloween season.
+ * The welcome, music, visitors, cobwebs, secrets, hauntings and the odd big BOO for the signed-in
+ * shell, only in the Halloween season.
  */
 export function HalloweenGoodies() {
   return useHalloweenActive() ? <Haunting /> : null;
@@ -87,45 +119,93 @@ function Haunting() {
     [muted]
   );
 
-  const visit = useCallback(() => {
-    if (document.hidden || isRunModeOpen()) return;
-    const roll = Math.random();
-    const height = window.innerHeight;
-    if (roll < 0.35 || still) {
-      if (onScreen.current.filter((sprite) => sprite.kind === "pumpkin").length >= MAX_PUMPKINS) return;
-      sound("creak", AMBIENT_VOLUME);
-      spawn(
-        (id) => ({
-          id,
-          kind: "pumpkin",
-          side: pick(["left", "right"] as const),
-          top: Math.round(between(0.3, 0.7) * height),
-          face: Math.floor(Math.random() * PUMPKIN_FACE_COUNT)
-        }),
-        PUMPKIN_STAYS_MS
-      );
-    } else if (roll < 0.65) {
-      sound("flap", AMBIENT_VOLUME);
-      const rtl = Math.random() < 0.5;
-      const top = between(70, 160);
-      for (let i = 0; i < 3; i += 1) {
-        const duration = between(6, 8.5);
+  const dropCandy = useCallback(
+    (count: number, fast: boolean) => {
+      for (let i = 0; i < count; i += 1) {
+        const duration = fast ? between(2.5, 4) : between(9, 13);
         later(
-          () => spawn((id) => ({ id, kind: "bat", top: top + between(-30, 30), rtl, duration }), duration * 1000),
-          i * 450
+          () =>
+            spawn(
+              (id) => ({
+                id,
+                kind: "candy",
+                left: between(0.03, 0.95) * window.innerWidth,
+                duration,
+                sway: between(18, 48),
+                variant: Math.floor(Math.random() * CANDY_VARIANT_COUNT)
+              }),
+              duration * 1000 + 100
+            ),
+          i * (fast ? 70 : between(300, 700))
         );
       }
-    } else if (roll < 0.85) {
-      sound("boo", AMBIENT_VOLUME);
-      spawn((id) => ({ id, kind: "ghost", left: between(0.15, 0.85) * window.innerWidth, gone: false }), 13_000);
-    } else {
-      later(() => sound("scurry", AMBIENT_VOLUME), 600);
-      spawn(
-        (id) => ({ id, kind: "spider", left: between(0.2, 0.85) * window.innerWidth, drop: between(120, 260), gone: false }),
-        12_000
-      );
+    },
+    [later, spawn]
+  );
+
+  const sendWitch = useCallback(
+    (duration: number) => {
+      spawn((id) => ({ id, kind: "witch", top: between(36, 120), rtl: Math.random() < 0.5, duration, gone: false }), duration * 1000);
+    },
+    [spawn]
+  );
+
+  const visit = useCallback(() => {
+    if (document.hidden || isRunModeOpen()) return;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    let visitor = still ? "pumpkin" : pickVisitor();
+    if (visitor === "pumpkin" && onScreen.current.filter((sprite) => sprite.kind === "pumpkin").length >= MAX_PUMPKINS) {
+      if (still) return;
+      visitor = "candy";
     }
-  }, [later, sound, spawn, still]);
+    switch (visitor) {
+      case "pumpkin":
+        sound("creak", AMBIENT_VOLUME);
+        spawn(
+          (id) => ({ id, kind: "pumpkin", side: side(), top: Math.round(between(0.3, 0.7) * height), face: Math.floor(Math.random() * PUMPKIN_FACE_COUNT) }),
+          PUMPKIN_STAYS_MS
+        );
+        return;
+      case "candy":
+        dropCandy(Math.round(between(3, 5)), false);
+        return;
+      case "bats": {
+        sound("flap", AMBIENT_VOLUME);
+        const rtl = Math.random() < 0.5;
+        const top = between(70, 160);
+        for (let i = 0; i < 3; i += 1) {
+          const duration = between(6, 8.5);
+          later(() => spawn((id) => ({ id, kind: "bat", top: top + between(-30, 30), rtl, duration }), duration * 1000), i * 450);
+        }
+        return;
+      }
+      case "cat": {
+        const duration = between(13, 17);
+        later(() => sound("meow", AMBIENT_VOLUME), 1_500);
+        spawn((id) => ({ id, kind: "cat", rtl: Math.random() < 0.5, duration, gone: false }), duration * 1000);
+        return;
+      }
+      case "ghost":
+        sound("boo", AMBIENT_VOLUME);
+        spawn((id) => ({ id, kind: "ghost", left: between(0.15, 0.85) * width, gone: false }), 13_000);
+        return;
+      case "eyes":
+        spawn((id) => ({ id, kind: "eyes", side: side(), top: between(0.25, 0.85) * height, gone: false }), 7_000);
+        return;
+      case "witch":
+        later(() => sound("cackle", AMBIENT_VOLUME), 1_200);
+        sendWitch(between(8, 11));
+        return;
+      case "spider":
+        later(() => sound("scurry", AMBIENT_VOLUME), 600);
+        spawn((id) => ({ id, kind: "spider", left: between(0.2, 0.85) * width, drop: between(120, 260), gone: false }), 12_000);
+        return;
+      case "hand":
+        spawn((id) => ({ id, kind: "hand", left: between(0.1, 0.9) * width, gone: false }), 8_000);
+        return;
+    }
+  }, [dropCandy, later, sendWitch, sound, spawn, still]);
 
   // The visitors' schedule.
   useEffect(() => {
@@ -156,17 +236,18 @@ function Haunting() {
     } catch {
       return;
     }
-    toast("Happy Halloween from InFocus 🎃", { description: "Watch for pumpkins. Type b-o-o if you dare." });
+    toast("Happy Halloween from InFocus 🎃", { description: "Watch for pumpkins. Type b-o-o or t-r-e-a-t if you dare." });
   }, []);
 
-  // Secrets: type "boo" for a burst of ghosts, or the Konami code for pumpkin rain.
+  // Secrets: "boo" bursts ghosts, "treat" showers candy, "trick" shakes the page, Konami rains pumpkins.
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (event.metaKey || event.ctrlKey || event.altKey || isTyping(event.target) || isRunModeOpen()) return;
-      keys.current = [...keys.current, event.key.toLowerCase()].slice(-KONAMI.length);
-      const recent = keys.current;
-      if (recent.slice(-BOO.length).join("") === BOO) {
-        keys.current = [];
+      keys.current = [...keys.current, event.key.toLowerCase()].slice(-SECRET_MEMORY);
+      const secret = matchHalloweenSecret(keys.current);
+      if (!secret) return;
+      keys.current = [];
+      if (secret === "boo") {
         sound("boo");
         if (still) return;
         for (let i = 0; i < 8; i += 1) {
@@ -182,8 +263,18 @@ function Haunting() {
             1_700
           );
         }
-      } else if (recent.join(",") === KONAMI.join(",")) {
-        keys.current = [];
+      } else if (secret === "treat") {
+        sound("chime");
+        if (!still) dropCandy(30, true);
+      } else if (secret === "trick") {
+        sound("cackle");
+        if (still) return;
+        document.getElementById("main")?.animate(
+          [0, -14, 12, -9, 7, -4, 2, 0].map((x, i) => ({ transform: `translateX(${x}px) rotate(${i % 2 ? 0.6 : -0.6}deg)` })),
+          { duration: 700, easing: "ease-out" }
+        );
+        sendWitch(3.5);
+      } else {
         sound("cackle");
         if (still) return;
         for (let i = 0; i < 28; i += 1) {
@@ -208,131 +299,76 @@ function Haunting() {
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [later, sound, spawn, still]);
+  }, [dropCandy, later, sendWitch, sound, spawn, still]);
 
-  function smash(pumpkin: Extract<Sprite, { kind: "pumpkin" }>) {
-    remove(pumpkin.id);
-    sound("splat");
-    const prefs = readHalloweenPrefs();
-    const smashed = prefs.smashed + 1;
-    writeHalloweenPrefs({ ...prefs, smashed });
-    spawn((id) => ({ id, kind: "splat", side: pumpkin.side, top: pumpkin.top }), 1_400);
-    spawn(
-      (id) => ({ id, kind: "plus", side: pumpkin.side, top: pumpkin.top - 18, text: `+1 · ${smashed} smashed` }),
-      1_200
-    );
-    if (smashed % 10 === 0) {
-      later(() => sound("cackle"), 350);
-      toast(`${smashed} pumpkins smashed`, { description: "The Great Pumpkin is watching." });
-    }
+  function cheer(at: DOMRect, text: string) {
+    const x = Math.min(Math.max(at.left + at.width / 2, 70), window.innerWidth - 70);
+    spawn((id) => ({ id, kind: "plus", x, y: at.top - 10, text }), 1_200);
   }
 
   function dismiss(id: number, noise: SpookySound) {
     sound(noise);
     setSprites((all) => all.map((sprite) => (sprite.id === id && "gone" in sprite ? { ...sprite, gone: true } : sprite)));
-    later(() => remove(id), 500);
+    later(() => remove(id), GONE_MS);
+  }
+
+  function hit(sprite: Sprite, at: DOMRect) {
+    switch (sprite.kind) {
+      case "pumpkin": {
+        remove(sprite.id);
+        sound("splat");
+        const smashed = bump("smashed");
+        spawn((id) => ({ id, kind: "splat", side: sprite.side, top: sprite.top }), 1_400);
+        cheer(at, `+1 · ${smashed} smashed`);
+        if (smashed % 10 === 0) {
+          later(() => sound("cackle"), 350);
+          toast(`${smashed} pumpkins smashed`, { description: "The Great Pumpkin is watching." });
+        }
+        return;
+      }
+      case "candy": {
+        remove(sprite.id);
+        sound("chime");
+        const candy = bump("candy");
+        cheer(at, `+1 · ${candy} candy`);
+        if (candy % 25 === 0) toast(`${candy} pieces of candy`, { description: "Save some for the anchors." });
+        return;
+      }
+      case "bat":
+        sound("flap");
+        remove(sprite.id);
+        return;
+      case "ghost":
+        return dismiss(sprite.id, "boo");
+      case "spider":
+        return dismiss(sprite.id, "scurry");
+      case "cat":
+        return dismiss(sprite.id, "meow");
+      case "witch":
+        return dismiss(sprite.id, "cackle");
+      case "eyes":
+        return dismiss(sprite.id, "creak");
+      case "hand":
+        return dismiss(sprite.id, "scurry");
+    }
   }
 
   return (
     <>
+      <HalloweenWelcome />
       <HalloweenScare />
+      <HalloweenHauntings />
       <div className="hw-layer">
         <HalloweenMusic />
-      {sprites.map((sprite) => {
-        switch (sprite.kind) {
-          case "pumpkin":
-            return (
-              <button
-                key={sprite.id}
-                type="button"
-                className="hw-pumpkin hw-hit"
-                data-side={sprite.side}
-                style={{ top: sprite.top }}
-                onClick={() => smash(sprite)}
-                aria-label="Smash the pumpkin"
-              >
-                <PumpkinSprite face={sprite.face} />
-              </button>
-            );
-          case "splat":
-            return (
-              <div key={sprite.id} className="hw-splat" style={{ top: sprite.top, [sprite.side]: 0 }}>
-                <SplatSprite />
-              </div>
-            );
-          case "plus":
-            return (
-              <div key={sprite.id} className="hw-plus-one" style={{ top: sprite.top, [sprite.side]: 12 }}>
-                {sprite.text}
-              </div>
-            );
-          case "bat":
-            return (
-              <button
-                key={sprite.id}
-                type="button"
-                tabIndex={-1}
-                aria-hidden
-                className="hw-bat hw-hit"
-                data-direction={sprite.rtl ? "rtl" : "ltr"}
-                style={{ top: sprite.top, "--hw-duration": `${sprite.duration}s` } as CSSProperties}
-                onClick={() => {
-                  sound("flap");
-                  remove(sprite.id);
-                }}
-              >
-                <BatSprite />
-              </button>
-            );
-          case "ghost":
-            return (
-              <button
-                key={sprite.id}
-                type="button"
-                className="hw-ghost hw-hit"
-                data-gone={sprite.gone}
-                style={{ left: sprite.left }}
-                onClick={() => dismiss(sprite.id, "boo")}
-                aria-label="Shoo the ghost"
-              >
-                <GhostSprite />
-              </button>
-            );
-          case "spider":
-            return (
-              <div
-                key={sprite.id}
-                className="hw-spider"
-                data-gone={sprite.gone}
-                style={{ left: sprite.left, "--hw-drop": `${sprite.drop}px` } as CSSProperties}
-              >
-                <button type="button" className="hw-hit" onClick={() => dismiss(sprite.id, "scurry")} aria-label="Shoo the spider">
-                  <SpiderSprite />
-                </button>
-              </div>
-            );
-          case "burst":
-            return (
-              <div
-                key={sprite.id}
-                className="hw-burst"
-                style={{ "--hw-x": `${sprite.x}px`, "--hw-y": `${sprite.y}px`, "--hw-r": `${sprite.r}deg` } as CSSProperties}
-              >
-                <GhostSprite />
-              </div>
-            );
-          case "rain":
-            return (
-              <div
-                key={sprite.id}
-                className="hw-rain"
-                style={{ left: sprite.left, "--hw-duration": `${sprite.duration}s`, "--hw-r": `${sprite.r}deg` } as CSSProperties}
-              >
-                <PumpkinSprite face={sprite.face} />
-              </div>
-            );
-        }
-      })}
+        <div className="hw-web" data-corner="top-right">
+          <CobwebSprite />
+        </div>
+        <div className="hw-web" data-corner="bottom-left">
+          <CobwebSprite />
+        </div>
+        {sprites.map((sprite) => (
+          <HauntingSprite key={sprite.id} sprite={sprite} onHit={hit} />
+        ))}
       </div>
     </>
   );

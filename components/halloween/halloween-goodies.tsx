@@ -13,7 +13,9 @@ import {
 import { isRunModeOpen } from "@/src/lib/run-mode-signal";
 import { useHalloweenActive, useHalloweenPrefs } from "@/src/lib/use-halloween";
 import { HalloweenMusic } from "./halloween-music";
+import { HalloweenHauntings } from "./halloween-hauntings";
 import { HalloweenScare } from "./halloween-scare";
+import { HalloweenWelcome } from "./halloween-welcome";
 import { HauntingSprite, type Sprite } from "./haunting-sprite";
 import { playSpookySound, type SpookySound } from "./spooky-sounds";
 import { CANDY_VARIANT_COUNT, CobwebSprite, PUMPKIN_FACE_COUNT } from "./sprites";
@@ -72,8 +74,8 @@ function bump(field: "smashed" | "candy"): number {
 }
 
 /**
- * Music, visitors, cobwebs, secrets and the odd big BOO for the signed-in shell, only in the
- * Halloween season.
+ * The welcome, music, visitors, cobwebs, secrets, hauntings and the odd big BOO for the signed-in
+ * shell, only in the Halloween season.
  */
 export function HalloweenGoodies() {
   return useHalloweenActive() ? <Haunting /> : null;
@@ -267,7 +269,7 @@ function Haunting() {
       } else if (secret === "trick") {
         sound("cackle");
         if (still) return;
-        document.body.animate(
+        document.getElementById("main")?.animate(
           [0, -14, 12, -9, 7, -4, 2, 0].map((x, i) => ({ transform: `translateX(${x}px) rotate(${i % 2 ? 0.6 : -0.6}deg)` })),
           { duration: 700, easing: "ease-out" }
         );
@@ -353,7 +355,9 @@ function Haunting() {
 
   return (
     <>
+      <HalloweenWelcome />
       <HalloweenScare />
+      <HalloweenHauntings />
       <div className="hw-layer">
         <HalloweenMusic />
         <div className="hw-web" data-corner="top-right">

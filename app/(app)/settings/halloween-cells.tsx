@@ -10,7 +10,8 @@ function subscribeNever() {
 
 /**
  * Settings → Appearance during the Halloween season (Oct 15 – Nov 1): turn the Halloween look and
- * visitors off in this browser, or just mute their sounds, the music or the surprise BOOs. Renders
+ * visitors off in this browser, or just mute their sounds, the music, the surprise BOOs or the
+ * hauntings. Renders
  * nothing the rest of the year.
  */
 export function HalloweenCells({ onSaved }: { onSaved: () => void }) {
@@ -72,6 +73,20 @@ export function HalloweenCells({ onSaved }: { onSaved: () => void }) {
           checked={!prefs.scaresOff}
           disabled={prefs.off}
           onCheckedChange={(on) => update({ scaresOff: !on })}
+        />
+      </SettingsCell>
+      <SettingsCell
+        inline
+        title="Hauntings"
+        description="The page does strange things now and then."
+        htmlFor="pref-halloween-haunts"
+        className="min-h-16"
+      >
+        <Switch
+          id="pref-halloween-haunts"
+          checked={!prefs.hauntsOff}
+          disabled={prefs.off}
+          onCheckedChange={(on) => update({ hauntsOff: !on })}
         />
       </SettingsCell>
     </>

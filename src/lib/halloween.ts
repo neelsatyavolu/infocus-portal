@@ -3,7 +3,7 @@
  * the InFocus Halloween 2026 Package colors and logos (`<html class="halloween">`, globals.css)
  * and the signed-in shell gets its visitors and cobwebs (components/halloween/).
  * Outside the season nothing changes. Each browser can turn the season, its sounds, its music or
- * its surprise BOOs off in Settings → Appearance; those choices and the pumpkin and candy
+ * its surprise BOOs or hauntings off in Settings → Appearance; those choices and the pumpkin and candy
  * counts live in localStorage.
  */
 
@@ -24,6 +24,8 @@ export type HalloweenPrefs = {
   musicOff: boolean;
   /** The viewer turned the random big BOOs off. */
   scaresOff: boolean;
+  /** The viewer turned the hauntings (strange things happening to the page) off. */
+  hauntsOff: boolean;
   /** Pumpkins smashed in this browser, ever. */
   smashed: number;
   /** Candy caught in this browser, ever. */
@@ -35,6 +37,7 @@ export const DEFAULT_HALLOWEEN_PREFS: HalloweenPrefs = {
   muted: false,
   musicOff: false,
   scaresOff: false,
+  hauntsOff: false,
   smashed: 0,
   candy: 0
 };
@@ -62,6 +65,7 @@ export function parseHalloweenPrefs(raw: string | null | undefined): HalloweenPr
       muted: parsed?.muted === true,
       musicOff: parsed?.musicOff === true,
       scaresOff: parsed?.scaresOff === true,
+      hauntsOff: parsed?.hauntsOff === true,
       smashed: count(parsed?.smashed),
       candy: count(parsed?.candy)
     };

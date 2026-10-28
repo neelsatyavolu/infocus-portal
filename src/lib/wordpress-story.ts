@@ -71,6 +71,26 @@ export function parseCategoryReply(content: string, categories: WordpressCategor
   }
 }
 
+/** A person in SNO's Writer's Name boxes: a `staff_name` term. */
+export type WordpressStaffName = { id: number; name: string };
+
+function personWords(name: string) {
+  return decodeEntities(name).normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+    .replace(/[^a-z\s'-]/g, "").split(/\s+/).filter(Boolean);
+}
+
+/** The site's byline for a Portal name: the same full name, else the same first and last name (one side may add a middle name). */
+export function findStaffName(name: string, staffNames: WordpressStaffName[]) {
+  const words = personWords(name);
+  if (!words.length) return null;
+  const full = words.join(" ");
+  const ends = `${words[0]} ${words.at(-1)}`;
+  const candidates = staffNames.map((staff) => ({ staff, words: personWords(staff.name) }));
+  return candidates.find((candidate) => candidate.words.join(" ") === full)?.staff
+    ?? candidates.find((candidate) => candidate.words.length > 0 && `${candidate.words[0]} ${candidate.words.at(-1)}` === ends)?.staff
+    ?? null;
+}
+
 function decodeEntities(value: string) {
   return value.replace(/&amp;/g, "&").replace(/&#0?39;|&#8217;/g, "'").replace(/&quot;/g, '"');
 }

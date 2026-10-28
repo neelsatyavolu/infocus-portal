@@ -28,7 +28,8 @@ export async function dueYoutubePackageIds(now = new Date(), afterId?: string) {
 }
 
 const publicationInclude = {
-  youtubePublication: true, finalCutMediaItem: { include: { currentVersion: true } }
+  youtubePublication: true, finalCutMediaItem: { include: { currentVersion: true } },
+  members: { select: { user: { select: { name: true } } }, orderBy: { createdAt: "asc" } }
 } satisfies Prisma.PackageProgressRowInclude;
 
 type PublicationRow = Prisma.PackageProgressRowGetPayload<{ include: typeof publicationInclude }>;
@@ -156,7 +157,9 @@ async function managerOutbox(publication: ReadyPublication, story?: StoryOutcome
 
 /** One infocusnews.tv attempt; a settled story and the manager outbox are committed together. */
 async function advanceStory(row: PublicationRow, publication: ReadyPublication, now: Date) {
-  const story = await advanceWordpressStory(publication, { topic: row.groupTopic, toss: row.finalCutToss }, now);
+  const story = await advanceWordpressStory(publication, {
+    topic: row.groupTopic, toss: row.finalCutToss, writers: row.members.flatMap(({ user }) => user.name?.trim() ? [user.name.trim()] : [])
+  }, now);
   if (!story) return;
   await prisma.youtubePublication.update({ where: { id: publication.id }, data: story.status === "POSTED"
     ? { wordpressStatus: "POSTED", wordpressPostId: story.postId, wordpressUrl: story.url, wordpressError: null, emails: await managerOutbox(publication, story) }

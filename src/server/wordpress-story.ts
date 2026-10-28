@@ -1,8 +1,8 @@
 import { prisma } from "@/src/lib/prisma";
-import { buildCategoryMessages, FALLBACK_CATEGORY_SLUG, parseCategoryReply, pickableCategories, storyMeta, storySchedule,
+import { buildCategoryMessages, FALLBACK_CATEGORY_SLUG, findStaffName, parseCategoryReply, pickableCategories, storyMeta, storySchedule,
   youtubeThumbnailUrls } from "@/src/lib/wordpress-story";
-import { createWordpressDraft, findWordpressPostByVideo, listWordpressCategories, scheduleWordpressPost, uploadWordpressImage,
-  wordpressConfig, WordpressError, type WordpressConfig } from "@/src/server/wordpress-client";
+import { createWordpressDraft, createWordpressStaffName, findWordpressPostByVideo, listWordpressCategories, listWordpressStaffNames,
+  scheduleWordpressPost, uploadWordpressImage, wordpressConfig, WordpressError, type WordpressConfig } from "@/src/server/wordpress-client";
 import { workersAiConfig, workersAiJsonChat } from "@/src/server/workers-ai";
 
 const MAX_ATTEMPTS = 5;
@@ -12,7 +12,8 @@ type StoryPublication = {
   id: string; title: string; showDate: string; videoId: string;
   wordpressPostId: number | null; wordpressMediaId: number | null; wordpressCategoryId: number | null; wordpressAttempts: number;
 };
-type StoryContext = { topic: string; toss: string };
+/** `writers`: the package members' names, for the story's bylines. */
+type StoryContext = { topic: string; toss: string; writers: string[] };
 
 /** What the caller commits together with the manager emails once the story is settled. */
 export type StoryOutcome =
@@ -40,7 +41,8 @@ export async function advanceWordpressStory(publication: StoryPublication, conte
     if (postId === null) {
       // A lost response can leave a draft this user already made for the video.
       const draft = await findWordpressPostByVideo(config, publication.videoId) ?? await createWordpressDraft(config, {
-        title: publication.title, categories: categoryId === null ? [] : [categoryId], featuredMedia: mediaId, meta: storyMeta(publication.videoId)
+        title: publication.title, categories: categoryId === null ? [] : [categoryId], writers: await writerBylines(config, context.writers),
+        featuredMedia: mediaId, meta: storyMeta(publication.videoId)
       });
       if (typeof draft.meta?.video !== "string" || !draft.meta.video.includes(publication.videoId)) {
         throw new StoryError(`infocusnews.tv did not save the video link, so draft ${draft.id} was left unpublished. SNO must let the API set story fields.`);
@@ -76,6 +78,15 @@ async function chooseCategory(config: WordpressConfig, publication: StoryPublica
     }
   }
   return categories.find((category) => category.slug === FALLBACK_CATEGORY_SLUG)?.id ?? null;
+}
+
+/** The members' bylines, adding one for anyone the site doesn't have yet. */
+async function writerBylines(config: WordpressConfig, writers: string[]) {
+  if (!writers.length) return [];
+  const staffNames = await listWordpressStaffNames(config);
+  const ids: number[] = [];
+  for (const name of writers) ids.push(findStaffName(name, staffNames)?.id ?? await createWordpressStaffName(config, name));
+  return [...new Set(ids)];
 }
 
 async function uploadThumbnail(config: WordpressConfig, publication: StoryPublication) {

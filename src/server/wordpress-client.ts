@@ -1,5 +1,5 @@
 import { driveBaseUrl } from "@/src/lib/nas-storage";
-import type { WordpressCategory } from "@/src/lib/wordpress-story";
+import type { WordpressCategory, WordpressStaffName } from "@/src/lib/wordpress-story";
 
 /**
  * infocusnews.tv (WordPress on SNO), signed in as the Portal's user. The site's Cloudflare challenges every request
@@ -56,6 +56,26 @@ export async function listWordpressCategories(config: WordpressConfig) {
   return wordpressRequest<WordpressCategory[]>(config, "/wp/v2/categories?per_page=100&_fields=id,name,slug,description");
 }
 
+/** Everyone with a byline on the site (SNO's Writer's Name boxes). */
+export async function listWordpressStaffNames(config: WordpressConfig) {
+  const staffNames: WordpressStaffName[] = [];
+  for (let page = 1; ; page++) {
+    const batch = await wordpressRequest<WordpressStaffName[]>(config, `/wp/v2/staff_name?per_page=100&page=${page}&_fields=id,name`);
+    staffNames.push(...batch);
+    if (batch.length < 100) return staffNames;
+  }
+}
+
+/** A byline for someone the site doesn't have yet, as typing a new name in a Writer's Name box would add. */
+export async function createWordpressStaffName(config: WordpressConfig, name: string) {
+  const staff = await wordpressRequest<{ id: number }>(config, "/wp/v2/staff_name", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name })
+  });
+  return staff.id;
+}
+
 /** One request (title and alt text ride in the query), so a failure never leaves an upload whose ID was not returned. */
 export async function uploadWordpressImage(config: WordpressConfig, image: { bytes: ArrayBuffer; filename: string; title: string }) {
   const query = new URLSearchParams({ title: image.title, alt_text: image.title });
@@ -71,13 +91,14 @@ export type WordpressPost = { id: number; link: string; status: string; meta?: R
 
 /** A draft, so a story whose SNO fields did not save is never published. */
 export async function createWordpressDraft(config: WordpressConfig, post: {
-  title: string; categories: number[]; featuredMedia: number; meta: Record<string, string>;
+  title: string; categories: number[]; writers: number[]; featuredMedia: number; meta: Record<string, string>;
 }) {
   return wordpressRequest<WordpressPost>(config, "/wp/v2/posts?context=edit", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      title: post.title, status: "draft", categories: post.categories, featured_media: post.featuredMedia, meta: post.meta
+      title: post.title, status: "draft", categories: post.categories, staff_name: post.writers, featured_media: post.featuredMedia,
+      meta: post.meta
     })
   });
 }

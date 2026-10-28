@@ -1,16 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  update: vi.fn(), categories: vi.fn(), upload: vi.fn(), draft: vi.fn(), schedule: vi.fn(), find: vi.fn(), chat: vi.fn(), ai: vi.fn()
+  update: vi.fn(), categories: vi.fn(), upload: vi.fn(), draft: vi.fn(), schedule: vi.fn(), find: vi.fn(), chat: vi.fn(), ai: vi.fn(),
+  staffNames: vi.fn(), createStaffName: vi.fn()
 }));
 vi.mock("@/src/lib/prisma", () => ({ prisma: { youtubePublication: { update: mocks.update } } }));
 vi.mock("@/src/server/workers-ai", () => ({ workersAiConfig: mocks.ai, workersAiJsonChat: mocks.chat }));
 vi.mock("@/src/server/wordpress-client", async (original) => ({
   ...await original<typeof import("@/src/server/wordpress-client")>(),
   listWordpressCategories: mocks.categories, uploadWordpressImage: mocks.upload, createWordpressDraft: mocks.draft,
-  scheduleWordpressPost: mocks.schedule, findWordpressPostByVideo: mocks.find
+  scheduleWordpressPost: mocks.schedule, findWordpressPostByVideo: mocks.find,
+  listWordpressStaffNames: mocks.staffNames, createWordpressStaffName: mocks.createStaffName
 }));
-import { buildCategoryMessages, parseCategoryReply, pickableCategories, storyMeta, storySchedule, youtubeThumbnailUrls } from "@/src/lib/wordpress-story";
+import { buildCategoryMessages, findStaffName, parseCategoryReply, pickableCategories, storyMeta, storySchedule, youtubeThumbnailUrls } from "@/src/lib/wordpress-story";
 import { advanceWordpressStory } from "@/src/server/wordpress-story";
 import { wordpressConfig } from "@/src/server/wordpress-client";
 
@@ -43,6 +45,14 @@ describe("story helpers", () => {
     expect(parseCategoryReply('{"categoryId": 6}', pickable)).toBe(6);
     expect(parseCategoryReply('{"categoryId": 147}', pickable)).toBeNull();
     expect(parseCategoryReply("not json", pickable)).toBeNull();
+  });
+  it("matches a member to the site's byline by full name, or by first and last name", () => {
+    const staff = [{ id: 1, name: "Abby Lane" }, { id: 2, name: "Otto Q. Reyes" }, { id: 3, name: "S&amp;ge Ruiz" }];
+    expect(findStaffName("  abby   LANE ", staff)?.id).toBe(1);
+    expect(findStaffName("Otto Reyes", staff)?.id).toBe(2);
+    expect(findStaffName("Abby Marie Lane", staff)?.id).toBe(1);
+    expect(findStaffName("Abby Stone", staff)).toBeNull();
+    expect(findStaffName("", staff)).toBeNull();
   });
 });
 
@@ -79,7 +89,7 @@ describe("wordpressConfig", () => {
 describe("advanceWordpressStory", () => {
   const publication = { id: "pub", title: "Downtown Game Shop", showDate: "2026-10-27", videoId: VIDEO,
     wordpressPostId: null, wordpressMediaId: null, wordpressCategoryId: null, wordpressAttempts: 0 };
-  const context = { topic: "Card shop", toss: "A new card shop opened downtown." };
+  const context = { topic: "Card shop", toss: "A new card shop opened downtown.", writers: ["Abby Lane", "Otto Reyes"] };
   const now = new Date("2026-10-26T20:00:00Z");
   const savedDraft = { id: 900, link: "https://news.example.edu/?p=900", status: "draft", meta: storyMeta(VIDEO) };
 
@@ -98,6 +108,8 @@ describe("advanceWordpressStory", () => {
     mocks.upload.mockResolvedValue(55);
     mocks.find.mockResolvedValue(null);
     mocks.draft.mockResolvedValue(savedDraft);
+    mocks.staffNames.mockResolvedValue([{ id: 31, name: "Abby Lane" }, { id: 32, name: "Sage Ruiz" }]);
+    mocks.createStaffName.mockResolvedValue(33);
     mocks.schedule.mockResolvedValue({ ...savedDraft, status: "future", link: "https://news.example.edu/downtown-game-shop/" });
   });
   afterEach(() => {
@@ -108,11 +120,19 @@ describe("advanceWordpressStory", () => {
   it("drafts the story with the AI category and thumbnail, then schedules it for 9:05", async () => {
     const outcome = await advanceWordpressStory(publication, context, now);
     expect(mocks.upload).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ filename: `infocus-${VIDEO}.jpg`, title: "Downtown Game Shop" }));
-    expect(mocks.draft).toHaveBeenCalledWith(expect.anything(), { title: "Downtown Game Shop", categories: [6], featuredMedia: 55, meta: storyMeta(VIDEO) });
+    expect(mocks.draft).toHaveBeenCalledWith(expect.anything(),
+      { title: "Downtown Game Shop", categories: [6], writers: [31, 33], featuredMedia: 55, meta: storyMeta(VIDEO) });
+    expect(mocks.createStaffName).toHaveBeenCalledExactlyOnceWith(expect.anything(), "Otto Reyes");
     expect(mocks.schedule).toHaveBeenCalledWith(expect.anything(), 900, { status: "future", dateGmt: "2026-10-27T16:05:00" });
     expect(outcome).toEqual({ status: "POSTED", postId: 900, url: "https://news.example.edu/downtown-game-shop/",
       editUrl: "https://news.example.edu/wp-admin/post.php?post=900&action=edit", publishAt: new Date("2026-10-27T16:05:00Z") });
     expect(mocks.update).toHaveBeenCalledWith({ where: { id: "pub" }, data: { wordpressPostId: 900 } });
+  });
+
+  it("posts without bylines when the package has no members", async () => {
+    await advanceWordpressStory(publication, { ...context, writers: [] }, now);
+    expect(mocks.staffNames).not.toHaveBeenCalled();
+    expect(mocks.draft).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ writers: [] }));
   });
 
   it("files under News when the model's answer is unusable", async () => {

@@ -238,14 +238,15 @@ describe("infocusnews.tv story", () => {
   afterEach(() => vi.unstubAllEnvs());
 
   it("holds manager emails until the story is scheduled, then sends the scheduled email", async () => {
-    mocks.row.mockResolvedValue({ id: "row", groupTopic: "Topic", finalCutToss: "Toss", queuedForAirAt: new Date(), queuedForShowDate: "2026-09-19", youtubePublication: ready });
+    mocks.row.mockResolvedValue({ id: "row", groupTopic: "Topic", finalCutToss: "Toss", queuedForAirAt: new Date(), queuedForShowDate: "2026-09-19", youtubePublication: ready,
+      members: [{ user: { name: " Abby Lane " } }, { user: { name: null } }] });
     mocks.story.mockResolvedValue(null);
     await advanceYoutubePublication("row", new Date("2026-09-19T12:00:00Z"));
     expect(mocks.update).toHaveBeenCalledWith({ where: { id: "pub" }, data: expect.objectContaining({ status: "PUBLISHED", wordpressStatus: "PENDING" }) });
     expect(mocks.update).not.toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ emails: expect.anything() }) }));
-    expect(mocks.story).toHaveBeenCalledWith(expect.objectContaining({ videoId: "abcdefgh_12" }), { topic: "Topic", toss: "Toss" }, expect.any(Date));
+    expect(mocks.story).toHaveBeenCalledWith(expect.objectContaining({ videoId: "abcdefgh_12" }), { topic: "Topic", toss: "Toss", writers: ["Abby Lane"] }, expect.any(Date));
 
-    mocks.row.mockResolvedValue({ id: "row", groupTopic: "Topic", finalCutToss: "Toss", queuedForAirAt: new Date(), queuedForShowDate: "2026-09-19",
+    mocks.row.mockResolvedValue({ id: "row", groupTopic: "Topic", finalCutToss: "Toss", queuedForAirAt: new Date(), queuedForShowDate: "2026-09-19", members: [],
       youtubePublication: { ...ready, status: "PUBLISHED", wordpressStatus: "PENDING" } });
     mocks.story.mockResolvedValue(posted);
     await advanceYoutubePublication("row", new Date("2026-09-19T12:05:00Z"));
@@ -256,7 +257,7 @@ describe("infocusnews.tv story", () => {
   });
 
   it("falls back to the embed-code email when posting fails", async () => {
-    mocks.row.mockResolvedValue({ id: "row", groupTopic: "", finalCutToss: "", queuedForAirAt: new Date(), queuedForShowDate: "2026-09-19",
+    mocks.row.mockResolvedValue({ id: "row", groupTopic: "", finalCutToss: "", queuedForAirAt: new Date(), queuedForShowDate: "2026-09-19", members: [],
       youtubePublication: { ...ready, status: "PUBLISHED", wordpressStatus: "PENDING" } });
     mocks.story.mockResolvedValue({ status: "FAILED", error: "infocusnews.tv returned HTTP 500" });
     await advanceYoutubePublication("row", new Date("2026-09-19T12:05:00Z"));

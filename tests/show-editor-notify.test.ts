@@ -121,12 +121,12 @@ describe("show editor notifications and auto-start", () => {
   it("review and failure notify the starter and show manager, linking to that date on Editing", async () => {
     await notifyShowEdit(job(), "review");
     expect(mocks.email).toHaveBeenCalledWith(expect.objectContaining({
-      recipients: ["starter@example.edu", "manager@example.edu"],
+      recipients: expect.arrayContaining(["starter@example.edu", "manager@example.edu"]),
       ctaLabel: "Open Editing",
       ctaUrl: expect.stringMatching(/\/editing\?date=2026-10-21$/),
       idempotencyKey: "show-edit/job1/review/1"
     }));
-    expect(mocks.push).toHaveBeenCalledWith(["starter", "manager-id"], expect.objectContaining({ url: expect.stringMatching(/\/editing\?date=2026-10-21$/) }));
+    expect(mocks.push).toHaveBeenCalledWith(expect.arrayContaining(["starter", "manager-id"]), expect.objectContaining({ url: expect.stringMatching(/\/editing\?date=2026-10-21$/) }));
 
     mocks.email.mockClear();
     await notifyShowEdit(job({ status: "FAILED", error: "This is the SD capture; pick the HD recording." }), "failed");
@@ -138,7 +138,7 @@ describe("show editor notifications and auto-start", () => {
   });
 
   it("an auto-started edit notifies only the show manager, never the account it was started under", async () => {
-    await notifyShowEdit(job({ createdById: "manager-or-adviser", checks: { autoStarted: true } }), "review");
+    await notifyShowEdit(job({ createdById: "manager-or-adviser", checks: { autoStarted: true } }), "failed");
     expect(mocks.user).not.toHaveBeenCalled();
     expect(mocks.email).toHaveBeenCalledWith(expect.objectContaining({ recipients: ["manager@example.edu"] }));
     expect(mocks.push).toHaveBeenCalledWith(["manager-id"], expect.anything());
@@ -181,6 +181,22 @@ describe("show editor notifications and auto-start", () => {
       const sent = mocks.email.mock.calls[0][0];
       expect(sent.recipients).toEqual(expect.arrayContaining(["starter@example.edu", "manager@example.edu", "otto.alerts@example.edu", "sage@example.edu"]));
       expect(sent.paragraphs.join(" ")).toContain("Pick a season first: use Change details.");
+    });
+
+    it("an edit ready for review also goes to every producer, in one email; a failure doesn't", async () => {
+      for (const notice of ["review", "needs-review"] as const) {
+        mocks.email.mockClear();
+        await notifyShowEdit(job({ showDate: "2026-10-23" }), notice);
+        expect(mocks.email).toHaveBeenCalledTimes(1);
+        expect(mocks.email.mock.calls[0][0].recipients).toEqual(
+          ["starter@example.edu", "manager@example.edu", "otto.alerts@example.edu", "sage@example.edu", "superadmin@example.edu", "adviser@example.edu"]
+        );
+        expect(mocks.push).toHaveBeenLastCalledWith(["starter", "manager-id", "otto-id", "sage-id"], expect.anything());
+      }
+
+      mocks.email.mockClear();
+      await notifyShowEdit(job({ showDate: "2026-10-23", status: "FAILED", error: "boom" }), "failed");
+      expect(mocks.email.mock.calls[0][0].recipients).toEqual(["starter@example.edu", "manager@example.edu"]);
     });
 
     it("never throws", async () => {

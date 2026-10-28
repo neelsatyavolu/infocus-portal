@@ -66,7 +66,7 @@ What it does:
 
 ## 5. Review it
 
-When it's done, the person who started it and that day's show manager (from the Master Calendar) get an email and a notification.
+When it's done, every producer gets one email and a notification that it's ready for review, along with the person who started it and that day's show manager (from the Master Calendar). If it fails, only the starter and the show manager hear.
 
 On the Editing tab:
 

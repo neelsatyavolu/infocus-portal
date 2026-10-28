@@ -146,10 +146,15 @@ function noticeCopy(job: NoticeJob, notice: ShowEditNotice) {
   }
 }
 
-/** Email (with the Mac/iPhone app push) and browser push to the starter and the show manager. Never throws. */
+/**
+ * Email (with the Mac/iPhone app push) and browser push to the starter and the show manager; an edit ready
+ * for review also goes to every producer, all in one email. Never throws.
+ */
 export async function notifyShowEdit(job: NoticeJob, notice: ShowEditNotice) {
   try {
-    const recipients = await recipientsFor(job.showDate, starterOf(job));
+    const recipients = notice === "review" || notice === "needs-review"
+      ? mergeRecipients(await recipientsFor(job.showDate, starterOf(job)), await producerRecipients())
+      : await recipientsFor(job.showDate, starterOf(job));
     await deliver(recipients, noticeCopy(job, notice), job.showDate, `show-edit/${job.id}/${notice}/${job.version}`);
   } catch (error) {
     console.error("show editor: notification failed", job.id, notice, error);

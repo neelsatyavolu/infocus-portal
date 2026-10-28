@@ -1,7 +1,11 @@
+import { driveBaseUrl } from "@/src/lib/nas-storage";
 import type { WordpressCategory } from "@/src/lib/wordpress-story";
 
-/** infocusnews.tv (WordPress on SNO), signed in as the Portal's user with an application password. */
-export type WordpressConfig = { baseUrl: string; authorization: string };
+/**
+ * infocusnews.tv (WordPress on SNO), signed in as the Portal's user. The site's Cloudflare challenges every request
+ * from Workers, so with Drive configured the calls go through Drive's relay and leave from the NAS.
+ */
+export type WordpressConfig = { baseUrl: string; authorization: string; relay: { baseUrl: string; token: string } | null };
 
 // infocusnews.tv (LiteSpeed) refuses non-browser user agents.
 const BROWSER_USER_AGENT =
@@ -14,7 +18,12 @@ export function wordpressConfig(): WordpressConfig | null {
   const username = process.env.WORDPRESS_USERNAME?.trim();
   const password = process.env.WORDPRESS_APP_PASSWORD?.trim();
   if (!baseUrl || !username || !password || !/^https:\/\//.test(baseUrl)) return null;
-  return { baseUrl, authorization: `Basic ${btoa(`${username}:${password}`)}` };
+  const driveToken = process.env.DRIVE_SERVICE_TOKEN?.trim();
+  return {
+    baseUrl,
+    authorization: `Basic ${btoa(`${username}:${password}`)}`,
+    relay: driveToken ? { baseUrl: driveBaseUrl(), token: driveToken } : null
+  };
 }
 
 export class WordpressError extends Error {
@@ -24,12 +33,16 @@ export class WordpressError extends Error {
 }
 
 async function wordpressRequest<T>(config: WordpressConfig, path: string, init: { method?: string; body?: BodyInit; headers?: Record<string, string> } = {}) {
-  const response = await fetch(`${config.baseUrl}/wp-json${path}`, {
+  const { url, auth } = config.relay
+    ? { url: `${config.relay.baseUrl}/api/service/wordpress/wp-json${path}`,
+      auth: { Authorization: `Bearer ${config.relay.token}`, "X-Wordpress-Authorization": config.authorization } }
+    : { url: `${config.baseUrl}/wp-json${path}`, auth: { Authorization: config.authorization } };
+  const response = await fetch(url, {
     method: init.method ?? "GET",
     body: init.body,
     cache: "no-store",
     signal: AbortSignal.timeout(TIMEOUT_MS),
-    headers: { Authorization: config.authorization, "User-Agent": BROWSER_USER_AGENT, Accept: "application/json", ...init.headers }
+    headers: { ...auth, "User-Agent": BROWSER_USER_AGENT, Accept: "application/json", ...init.headers }
   });
   if (!response.ok) {
     // WordPress errors are { code, message }; never echo the request (it carries the password).

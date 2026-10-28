@@ -54,9 +54,25 @@ describe("wordpressConfig", () => {
     vi.stubEnv("WORDPRESS_APP_PASSWORD", "");
     expect(wordpressConfig()).toBeNull();
     vi.stubEnv("WORDPRESS_APP_PASSWORD", "abcd efgh");
-    expect(wordpressConfig()).toEqual({ baseUrl: "https://news.example.edu", authorization: `Basic ${btoa("portal:abcd efgh")}` });
+    vi.stubEnv("DRIVE_SERVICE_TOKEN", "");
+    expect(wordpressConfig()).toEqual({ baseUrl: "https://news.example.edu", authorization: `Basic ${btoa("portal:abcd efgh")}`, relay: null });
     vi.stubEnv("WORDPRESS_URL", "http://news.example.edu");
     expect(wordpressConfig()).toBeNull();
+  });
+  it("sends the site's requests through Drive when Drive is set up", async () => {
+    vi.stubEnv("WORDPRESS_URL", "https://news.example.edu");
+    vi.stubEnv("WORDPRESS_USERNAME", "portal");
+    vi.stubEnv("WORDPRESS_APP_PASSWORD", "abcd efgh");
+    vi.stubEnv("DRIVE_BASE_URL", "https://drive.example.edu/");
+    vi.stubEnv("DRIVE_SERVICE_TOKEN", "drive-token");
+    const fetch = vi.fn(async () => Response.json(CATEGORIES));
+    vi.stubGlobal("fetch", fetch);
+    const client = await vi.importActual<typeof import("@/src/server/wordpress-client")>("@/src/server/wordpress-client");
+    await expect(client.listWordpressCategories(wordpressConfig()!)).resolves.toEqual(CATEGORIES);
+    const [url, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("https://drive.example.edu/api/service/wordpress/wp-json/wp/v2/categories?per_page=100&_fields=id,name,slug,description");
+    expect(init.headers).toMatchObject({ Authorization: "Bearer drive-token", "X-Wordpress-Authorization": `Basic ${btoa("portal:abcd efgh")}` });
+    vi.unstubAllGlobals();
   });
 });
 

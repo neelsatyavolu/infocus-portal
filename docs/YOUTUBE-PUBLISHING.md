@@ -49,6 +49,7 @@ Once a package's video is ready on YouTube, the Portal posts it to infocusnews.t
 2. On infocusnews.tv, create a WordPress user for the Portal.
 3. SNO exposed the `video`, `videolocation` and `featureimage` story fields to the REST API in October 2026 (support ticket #273363). The site's sign-in for API requests (SNO's `json_basic_auth_handler`) checks the user's **login password**: application passwords are rejected with `incorrect_password`, so `WORDPRESS_APP_PASSWORD` holds the login password.
 4. Set `WORDPRESS_URL`, `WORDPRESS_USERNAME` and `WORDPRESS_APP_PASSWORD` as Worker secrets. Until all three are set, nothing is posted.
+5. Set `WORDPRESS_URL` (same site) in Drive's NAS `.env` too. The site's Cloudflare answers every request from a Worker with a "Just a moment..." challenge (HTTP 403), so when `DRIVE_SERVICE_TOKEN` is set the Portal sends its WordPress calls through Drive (`/api/service/wordpress/wp-json/...`) and they leave from the NAS. Drive forwards the site sign-in the Portal sends and never stores it.
 
 ## Whole-show uploads (The Show → Upload show)
 

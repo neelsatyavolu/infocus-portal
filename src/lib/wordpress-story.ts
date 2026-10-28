@@ -91,6 +91,42 @@ export function findStaffName(name: string, staffNames: WordpressStaffName[]) {
     ?? null;
 }
 
+export function samePerson(a: string, b: string) {
+  return findStaffName(a, [{ id: 0, name: b }]) !== null;
+}
+
+const NAME_WORD = /^\p{Lu}[\p{L}'’.-]*$/u;
+
+/**
+ * The names after "InFocus reporter(s)" in the anchor toss, e.g. "InFocus reporters Abby Lane, Otto Reyes and Sage Ruiz
+ * have more." Producers don't always put everyone who worked on a package on its roster, but the toss names them.
+ */
+export function tossReporterNames(toss: string) {
+  const after = toss.match(/\bInFocus\s+reporters?\s+(.*)/isu)?.[1];
+  if (!after) return [];
+  const names: string[] = [];
+  let current: string[] = [];
+  const finish = () => {
+    if (current.length >= 2) names.push(current.join(" "));
+    current = [];
+  };
+  for (const raw of after.split(/\s+/)) {
+    const word = raw.replace(/[,;:.!?]+$/, "");
+    if (word === "and" || word === "&") {
+      finish();
+      continue;
+    }
+    if (!NAME_WORD.test(word)) break;
+    current.push(word);
+    if (raw !== word) {
+      finish();
+      if (/[;:.!?]$/.test(raw)) break;
+    }
+  }
+  finish();
+  return names;
+}
+
 function decodeEntities(value: string) {
   return value.replace(/&amp;/g, "&").replace(/&#0?39;|&#8217;/g, "'").replace(/&quot;/g, '"');
 }

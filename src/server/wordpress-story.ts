@@ -1,6 +1,6 @@
 import { prisma } from "@/src/lib/prisma";
-import { buildCategoryMessages, FALLBACK_CATEGORY_SLUG, findStaffName, parseCategoryReply, pickableCategories, storyMeta, storySchedule,
-  youtubeThumbnailUrls } from "@/src/lib/wordpress-story";
+import { buildCategoryMessages, FALLBACK_CATEGORY_SLUG, findStaffName, parseCategoryReply, pickableCategories, samePerson, storyMeta,
+  storySchedule, tossReporterNames, youtubeThumbnailUrls } from "@/src/lib/wordpress-story";
 import { createWordpressDraft, createWordpressStaffName, findWordpressPostByVideo, listWordpressCategories, listWordpressStaffNames,
   scheduleWordpressPost, uploadWordpressImage, wordpressConfig, WordpressError, type WordpressConfig } from "@/src/server/wordpress-client";
 import { workersAiConfig, workersAiJsonChat } from "@/src/server/workers-ai";
@@ -41,7 +41,7 @@ export async function advanceWordpressStory(publication: StoryPublication, conte
     if (postId === null) {
       // A lost response can leave a draft this user already made for the video.
       const draft = await findWordpressPostByVideo(config, publication.videoId) ?? await createWordpressDraft(config, {
-        title: publication.title, categories: categoryId === null ? [] : [categoryId], writers: await writerBylines(config, context.writers),
+        title: publication.title, categories: categoryId === null ? [] : [categoryId], writers: await writerBylines(config, context),
         featuredMedia: mediaId, meta: storyMeta(publication.videoId)
       });
       if (typeof draft.meta?.video !== "string" || !draft.meta.video.includes(publication.videoId)) {
@@ -80,12 +80,26 @@ async function chooseCategory(config: WordpressConfig, publication: StoryPublica
   return categories.find((category) => category.slug === FALLBACK_CATEGORY_SLUG)?.id ?? null;
 }
 
-/** The members' bylines, adding one for anyone the site doesn't have yet. */
-async function writerBylines(config: WordpressConfig, writers: string[]) {
-  if (!writers.length) return [];
+/**
+ * Bylines for the members, adding one for anyone the site doesn't have yet, plus reporters the toss names who are not on the
+ * roster. A toss name is only credited when the site or the Portal already knows the person, so a typo never becomes a byline.
+ */
+async function writerBylines(config: WordpressConfig, context: StoryContext) {
+  const fromToss = tossReporterNames(context.toss).filter((name) => !context.writers.some((member) => samePerson(member, name)));
+  if (!context.writers.length && !fromToss.length) return [];
   const staffNames = await listWordpressStaffNames(config);
   const ids: number[] = [];
-  for (const name of writers) ids.push(findStaffName(name, staffNames)?.id ?? await createWordpressStaffName(config, name));
+  for (const name of context.writers) ids.push(findStaffName(name, staffNames)?.id ?? await createWordpressStaffName(config, name));
+  const unknown = fromToss.filter((name) => !findStaffName(name, staffNames));
+  const users = unknown.length
+    ? (await prisma.user.findMany({ where: { name: { not: null } }, select: { name: true } })).flatMap(({ name }) => name ? [{ id: 0, name }] : [])
+    : [];
+  for (const name of fromToss) {
+    const staff = findStaffName(name, staffNames);
+    const user = staff ? null : findStaffName(name, users);
+    if (staff) ids.push(staff.id);
+    else if (user) ids.push(await createWordpressStaffName(config, user.name));
+  }
   return [...new Set(ids)];
 }
 

@@ -2,9 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   update: vi.fn(), categories: vi.fn(), upload: vi.fn(), draft: vi.fn(), schedule: vi.fn(), find: vi.fn(), chat: vi.fn(), ai: vi.fn(),
-  staffNames: vi.fn(), createStaffName: vi.fn()
+  staffNames: vi.fn(), createStaffName: vi.fn(), users: vi.fn()
 }));
-vi.mock("@/src/lib/prisma", () => ({ prisma: { youtubePublication: { update: mocks.update } } }));
+vi.mock("@/src/lib/prisma", () => ({ prisma: { youtubePublication: { update: mocks.update }, user: { findMany: mocks.users } } }));
 vi.mock("@/src/server/workers-ai", () => ({ workersAiConfig: mocks.ai, workersAiJsonChat: mocks.chat }));
 vi.mock("@/src/server/wordpress-client", async (original) => ({
   ...await original<typeof import("@/src/server/wordpress-client")>(),
@@ -12,7 +12,7 @@ vi.mock("@/src/server/wordpress-client", async (original) => ({
   scheduleWordpressPost: mocks.schedule, findWordpressPostByVideo: mocks.find,
   listWordpressStaffNames: mocks.staffNames, createWordpressStaffName: mocks.createStaffName
 }));
-import { buildCategoryMessages, findStaffName, parseCategoryReply, pickableCategories, storyMeta, storySchedule, youtubeThumbnailUrls } from "@/src/lib/wordpress-story";
+import { buildCategoryMessages, findStaffName, parseCategoryReply, tossReporterNames, pickableCategories, storyMeta, storySchedule, youtubeThumbnailUrls } from "@/src/lib/wordpress-story";
 import { advanceWordpressStory } from "@/src/server/wordpress-story";
 import { wordpressConfig } from "@/src/server/wordpress-client";
 
@@ -53,6 +53,13 @@ describe("story helpers", () => {
     expect(findStaffName("Abby Marie Lane", staff)?.id).toBe(1);
     expect(findStaffName("Abby Stone", staff)).toBeNull();
     expect(findStaffName("", staff)).toBeNull();
+  });
+  it("reads the reporters the toss names", () => {
+    expect(tossReporterNames("Nobody knew. InFocus reporters Abby Lane, Otto Q Reyes, and Sage Ruiz have more.")).toEqual(["Abby Lane", "Otto Q Reyes", "Sage Ruiz"]);
+    expect(tossReporterNames("InFocus reporter Abby Lane and Otto Reyes spoke with Paly students.")).toEqual(["Abby Lane", "Otto Reyes"]);
+    expect(tossReporterNames("InFocus reporters Abby Lane & Otto Reyes found out more")).toEqual(["Abby Lane", "Otto Reyes"]);
+    expect(tossReporterNames("InFocus reporter Abby Lane. Then Otto Reyes spoke.")).toEqual(["Abby Lane"]);
+    expect(tossReporterNames("Abby Lane went to find out more.")).toEqual([]);
   });
 });
 
@@ -110,6 +117,7 @@ describe("advanceWordpressStory", () => {
     mocks.draft.mockResolvedValue(savedDraft);
     mocks.staffNames.mockResolvedValue([{ id: 31, name: "Abby Lane" }, { id: 32, name: "Sage Ruiz" }]);
     mocks.createStaffName.mockResolvedValue(33);
+    mocks.users.mockResolvedValue([{ name: "Abby Lane" }, { name: "Remy Marie Cole" }]);
     mocks.schedule.mockResolvedValue({ ...savedDraft, status: "future", link: "https://news.example.edu/downtown-game-shop/" });
   });
   afterEach(() => {
@@ -127,6 +135,14 @@ describe("advanceWordpressStory", () => {
     expect(outcome).toEqual({ status: "POSTED", postId: 900, url: "https://news.example.edu/downtown-game-shop/",
       editUrl: "https://news.example.edu/wp-admin/post.php?post=900&action=edit", publishAt: new Date("2026-10-27T16:05:00Z") });
     expect(mocks.update).toHaveBeenCalledWith({ where: { id: "pub" }, data: { wordpressPostId: 900 } });
+  });
+
+  it("adds reporters the toss names who are missing from the roster, when the site or the Portal knows them", async () => {
+    const toss = "InFocus reporters Abby Lane, Sage Ruiz, Remy Cole and Kai Typo have more.";
+    mocks.createStaffName.mockResolvedValueOnce(33).mockResolvedValueOnce(34);
+    await advanceWordpressStory(publication, { ...context, toss }, now);
+    expect(mocks.draft).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ writers: [31, 33, 32, 34] }));
+    expect(mocks.createStaffName.mock.calls.map(([, name]) => name)).toEqual(["Otto Reyes", "Remy Marie Cole"]);
   });
 
   it("posts without bylines when the package has no members", async () => {

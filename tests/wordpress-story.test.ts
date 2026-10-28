@@ -13,6 +13,7 @@ vi.mock("@/src/server/wordpress-client", async (original) => ({
   listWordpressStaffNames: mocks.staffNames, createWordpressStaffName: mocks.createStaffName
 }));
 import { buildCategoryMessages, findStaffName, parseCategoryReply, tossReporterNames, pickableCategories, storyMeta, storySchedule, youtubeThumbnailUrls } from "@/src/lib/wordpress-story";
+import { youtubeEmbedCode } from "@/src/lib/youtube-publication";
 import { advanceWordpressStory } from "@/src/server/wordpress-story";
 import { wordpressConfig } from "@/src/server/wordpress-client";
 
@@ -33,7 +34,7 @@ describe("story helpers", () => {
     expect(storySchedule("2026-10-27", now)).toEqual({ status: "publish", at: now });
   });
   it("embeds the video above the story and hides the thumbnail on the story page", () => {
-    expect(storyMeta(VIDEO)).toEqual({ video: `https://www.youtube.com/watch?v=${VIDEO}`, videolocation: "Above Story", featureimage: "Do Not Display" });
+    expect(storyMeta(VIDEO)).toEqual({ video: youtubeEmbedCode(VIDEO), videolocation: "Above Story", featureimage: "Do Not Display" });
     expect(youtubeThumbnailUrls(VIDEO)[0]).toBe(`https://i.ytimg.com/vi/${VIDEO}/maxresdefault.jpg`);
     expect(() => youtubeThumbnailUrls("../bad")).toThrow();
   });
@@ -173,7 +174,7 @@ describe("advanceWordpressStory", () => {
   it("never schedules a draft whose SNO video field did not save", async () => {
     mocks.draft.mockResolvedValue({ ...savedDraft, meta: { footnotes: "" } });
     const outcome = await advanceWordpressStory(publication, context, now);
-    expect(outcome).toEqual({ status: "FAILED", error: expect.stringContaining("did not save the video link") });
+    expect(outcome).toEqual({ status: "FAILED", error: expect.stringContaining("did not save the video embed code") });
     expect(mocks.schedule).not.toHaveBeenCalled();
   });
 

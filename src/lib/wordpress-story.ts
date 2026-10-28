@@ -1,5 +1,5 @@
 import { pacificWallTimeToUtc } from "@/src/lib/meetings/schedule";
-import { youtubeWatchUrl } from "@/src/lib/youtube-publication";
+import { youtubeEmbedCode, youtubeWatchUrl } from "@/src/lib/youtube-publication";
 
 /** Package stories go live on infocusnews.tv at 9:05 AM Pacific on the show date. */
 export const STORY_PUBLISH_TIME = { hour: 9, minute: 5 } as const;
@@ -22,10 +22,10 @@ export function storySchedule(showDate: string, now = new Date()) {
 /**
  * SNO Add Story fields: the Video/Embed box above the story, and the featured image
  * (the YouTube thumbnail) kept as the teaser image only ("Do Not Display on Story Page").
- * The box gets the video's URL, which SNO turns into a player: the API strips <iframe> embed code.
+ * The box gets the video's embed code (the API kept <iframe> code as of October 28, 2026; it once stripped it).
  */
 export function storyMeta(videoId: string) {
-  return { video: youtubeWatchUrl(videoId), videolocation: "Above Story", featureimage: "Do Not Display" };
+  return { video: youtubeEmbedCode(videoId), videolocation: "Above Story", featureimage: "Do Not Display" };
 }
 
 /** YouTube's thumbnails, best first. maxresdefault is missing for some low-resolution uploads. */

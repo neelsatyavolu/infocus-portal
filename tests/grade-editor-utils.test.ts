@@ -290,6 +290,8 @@ describe("views", () => {
     expect(viewKey("cycle", 3)).toBe("cycle:3");
     expect(parseViewKey("total")).toEqual({ viewMode: "total", cycleNumber: null });
     expect(parseViewKey("student")).toEqual({ viewMode: "student", cycleNumber: null });
+    expect(parseViewKey("participation")).toEqual({ viewMode: "participation", cycleNumber: null });
+    expect(viewKey("participation", 3)).toBe("participation");
     expect(parseViewKey("cycle:2")).toEqual({ viewMode: "cycle", cycleNumber: 2 });
   });
 

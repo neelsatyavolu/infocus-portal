@@ -441,14 +441,14 @@ export function patchMissingReport(report: MissingPayload, row: GradeRow, cycleN
 
 /* ---------- Views ---------- */
 
-export type ViewKey = "total" | "student" | `cycle:${number}`;
+export type ViewKey = "total" | "student" | "participation" | `cycle:${number}`;
 
 export function viewKey(viewMode: ViewMode, cycleNumber: number): ViewKey {
   return viewMode === "cycle" ? `cycle:${cycleNumber}` : viewMode;
 }
 
 export function parseViewKey(value: unknown): { viewMode: ViewMode; cycleNumber: number | null } | null {
-  if (value === "total" || value === "student") return { viewMode: value, cycleNumber: null };
+  if (value === "total" || value === "student" || value === "participation") return { viewMode: value, cycleNumber: null };
   if (typeof value !== "string") return null;
   const match = /^cycle:(\d{1,2})$/.exec(value);
   const cycleNumber = match ? Number(match[1]) : NaN;

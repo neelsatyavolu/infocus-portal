@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ACCESS_REQUESTS_CHANGED_EVENT } from "@/app/(app)/admin/admin-events";
-import { PARTICIPATION_REQUESTS_CHANGED_EVENT } from "@/app/(app)/participation/participation-week";
+import { PARTICIPATION_REQUESTS_CHANGED_EVENT } from "@/app/(app)/grade-editor/participation/participation-week";
 import { isNavItemActive } from "@/components/shell/nav-items";
 import { showsBreadcrumbTrail } from "@/components/shell/shell-breadcrumbs";
 import { buildGenericBreadcrumbs, buildGroupsBreadcrumbs, buildProjectBreadcrumbs } from "@/src/lib/app-breadcrumbs";
@@ -14,7 +14,6 @@ import {
   currentPackageStage,
   EMPTY_NAV_STATUS,
   formatDueTag,
-  hubTabCounts,
   isInHub,
   isPackageRoute,
   isRailRoute,
@@ -123,7 +122,7 @@ describe("buildSidebarNav", () => {
       "/grade-editor",
       "/show-roles",
       "/editing",
-      "/participation",
+      // /participation is now the Grade Editor's Participation tab.
       "/admin",
       "/settings"
     ]) {
@@ -170,8 +169,9 @@ describe("buildHubTabs", () => {
     expect(buildHubTabs(student, "/livestreams")).toBeNull();
   });
 
-  it("groups Members with Participation, and the calendars together", () => {
-    expect(buildHubTabs(associate, "/participation")?.map((tab) => tab.label)).toEqual(["Members", "Participation"]);
+  it("leaves People as Members alone (Participation is a Grade Editor tab), and groups the calendars", () => {
+    expect(buildHubTabs(associate, "/members")).toBeNull();
+    expect(buildHubTabs(executive, "/participation")).toBeNull();
     expect(buildHubTabs(student, "/package-cycles")?.map((tab) => tab.label)).toEqual(["Master Calendar", "Cycle Dates"]);
   });
 
@@ -238,7 +238,8 @@ describe("isNavItemActive", () => {
   it("keeps a hub's link lit on every tab, and Meetings lit on the meet host's home", () => {
     const people = buildSidebarNav(associate).flatMap((navSection) => navSection.items).find((navItem) => navItem.id === "people")!;
     const meetings = buildSidebarNav(associate).flatMap((navSection) => navSection.items).find((navItem) => navItem.id === "meetings")!;
-    expect(isNavItemActive(people, "/participation", false, true)).toBe(true);
+    expect(isNavItemActive(people, "/members", false, true)).toBe(true);
+    expect(isNavItemActive(people, "/participation", false, true)).toBe(false);
     expect(isNavItemActive(people, "/editing", false, true)).toBe(false);
     expect(isNavItemActive(meetings, "/", true, true)).toBe(true);
     expect(isNavItemActive(meetings, "/", false, true)).toBe(false);
@@ -351,14 +352,8 @@ describe("currentPackageStage", () => {
 describe("navStatusPartsFor", () => {
   it("asks only for what each role's sidebar shows", () => {
     expect(navStatusPartsFor(null)).toEqual(["package", "extensions", "livestreams", "grades"]);
-    expect(navStatusPartsFor("ASSOCIATE_PRODUCER")).toEqual([
-      "package",
-      "extensions",
-      "meetings",
-      "people",
-      "livestreams",
-      "grades"
-    ]);
+    // Associates never see participation approvals ("people").
+    expect(navStatusPartsFor("ASSOCIATE_PRODUCER")).toEqual(["package", "extensions", "meetings", "livestreams", "grades"]);
     for (const role of ["EXECUTIVE_PRODUCER", "ADVISER", "SUPER_ADMIN"] as const) {
       expect(navStatusPartsFor(role), role).toEqual([
         "package",
@@ -509,7 +504,8 @@ describe("buildNavSignals", () => {
     expect(signals.groups).toMatchObject({ count: 2, label: "2 groups need you" });
     expect(signals["extension-requests"]).toMatchObject({ count: 1, label: "1 extension request waiting on you" });
     expect(signals.meetings).toMatchObject({ tag: { label: "Live", tone: "live" }, dotTone: "live" });
-    expect(signals.people?.count).toBe(4);
+    expect(signals["grade-editor"]).toMatchObject({ count: 4, label: "4 participation changes waiting for approval" });
+    expect(signals.people).toBeUndefined();
     expect(signals.show).toBeUndefined();
     expect(signals.livestreams?.count).toBe(3);
     expect(signals.admin).toMatchObject({ count: 5, label: "5 access requests waiting" });
@@ -544,14 +540,6 @@ describe("moreTabSignal", () => {
       live: true
     });
     expect(moreTabSignal({}, ["dashboard"], ["dashboard"])).toEqual({ count: 0, live: false });
-  });
-});
-
-describe("hubTabCounts", () => {
-  it("puts waiting counts on the Participation and Livestreams tabs", () => {
-    expect(hubTabCounts(navStatus({ participationApprovals: 2, livestreamSignups: 0 }))).toEqual({
-      "/participation": { count: 2, label: "2 changes waiting for approval" }
-    });
   });
 });
 

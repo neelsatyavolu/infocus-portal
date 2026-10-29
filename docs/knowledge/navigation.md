@@ -26,10 +26,10 @@ Tabs with no note are shown to everyone signed in.
 **Producing** (associate producers and up)
 
 - Groups, Package Cycle (roster)
-- People: Members, with **Participation** as a tab in the top bar
+- People: Members
 - Meetings (opens `meet.infocusportal.com`). Calls open full screen at `meet.infocusportal.com/<id>` (see `meetings.md`)
 - Extension Requests: producers find it here; students find it in the stage bar on their package pages. A number shows how many requests are waiting on you.
-- Grade Editor: executive producers, the adviser, and super admin
+- Grade Editor: executive producers, the adviser, and super admin. Participation is a tab inside it.
 
 **Class**
 
@@ -49,7 +49,7 @@ Tabs with no note are shown to everyone signed in.
 
 **Pinned at the bottom of the sidebar:** Admin Dashboard (executive producers, the adviser, and super admin), then Settings (everyone). Your name, **Passwords** and **Sign out** are in the account menu in the top bar.
 
-**Tabs at the top of a page.** Pages that share one sidebar link show tabs across the top (for example Members | Participation). The sidebar link stays lit on every tab.
+**Tabs at the top of a page.** Pages that share one sidebar link show tabs across the top (for example Master Calendar | Cycle Dates). The sidebar link stays lit on every tab.
 
 **The stage bar.** Every package page (Cycle guide, Brainstorming, A-roll/B-roll, Initial Cut, Final Cut, Extension Requests) opens with a bar across the top: one segment per stage with its number, its status (an icon and a word), its name, and a count of unread feedback on this cycle's package (earlier cycles never count). A green dot on a stage means its status changed (approved, revisions, a new review stage) since you last opened it in this browser. Each stage's top rule turns solid green once it is done; the page you are on has a green tint and underline. Later stages are visible but disabled until the previous stage unlocks. On the right: **Cycle guide** (`/information`) and, for students, **Extension requests** (icons only on narrower screens). On phones the four stages fill one row with short stage names and only the status icon (the unread count and green dot sit beside the stage number), and **Cycle guide** and **Extension requests** sit in a small row just under it.
 
@@ -59,7 +59,7 @@ Tabs with no note are shown to everyone signed in.
 - **Groups** (executive producers, the adviser, and super admin): groups that need you, the same rule as the Groups page's Needs you.
 - **Extension Requests** (producers): requests waiting on you.
 - **Meetings** (producers): a red **Live** tag while a meeting you can see is live.
-- **People** (producers): participation changes waiting for approval (not your own). **Participation** shows the same count as a tab.
+- **Grade Editor** (executive producers, the adviser, and super admin): participation changes waiting for approval (not your own).
 - **Livestream Tracker** (producers and livestream managers): livestream sign-up requests waiting.
 - **Grades**: a green dot when a grade was released since you last opened Grades.
 - **Admin Dashboard**: access requests waiting.

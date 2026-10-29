@@ -5,7 +5,7 @@ Same Next.js app. Host routing in `middleware.ts`.
 | Host | Surface | What else opens there |
 |---|---|---|
 | `infocusportal.com` | Main Portal (public home page at `/`) | Everything |
-| `grades.infocusportal.com` | Student grades home (`/grades`) | `/grade-editor`, `/participation` |
+| `grades.infocusportal.com` | Student grades home (`/grades`) | `/grade-editor` (old `/participation` links open its Participation tab) |
 | `teleprompter.infocusportal.com` | Teleprompter, full screen with no sidebar | Nothing else |
 | `equipment.infocusportal.com` | Equipment checkout (`/equipment`) | Equipment pages only |
 | `meet.infocusportal.com` | Meetings: `/` is the Meetings tab, `/producers` the InFocus Producer Meeting, `/<meeting id>` a call | `/meetings/<id>` (notes) |

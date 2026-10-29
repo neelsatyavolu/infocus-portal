@@ -236,9 +236,9 @@ async function loadMeetingsPart(viewer: NavStatusViewer) {
   });
 }
 
-/** Pending participation changes the viewer may approve (anyone's but their own). */
+/** Pending participation changes the viewer may approve (anyone's but their own), for the Grade Editor link. */
 async function loadPeoplePart(viewer: NavStatusViewer) {
-  if (!hasPlatformRole(viewer.role, "ASSOCIATE_PRODUCER")) return null;
+  if (!hasPlatformRole(viewer.role, "EXECUTIVE_PRODUCER")) return null;
   return prisma.participationGradeRequest.count({
     where: { status: "PENDING", requestedById: { not: viewer.userId } }
   });

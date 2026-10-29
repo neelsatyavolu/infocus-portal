@@ -88,11 +88,11 @@ describe("participationItemsChanged", () => {
 });
 
 describe("canReviewParticipationRequest", () => {
-  it("lets another producer approve", () => {
+  it("lets another executive producer approve", () => {
     expect(
       canReviewParticipationRequest({
         reviewerUserId: "ep",
-        requesterUserId: "ap",
+        requesterUserId: "ep-2",
         reviewerRole: "EXECUTIVE_PRODUCER"
       })
     ).toEqual({ ok: true });
@@ -123,6 +123,16 @@ describe("canReviewParticipationRequest", () => {
         reviewerRole: "ADVISER"
       })
     ).toEqual({ ok: false, reason: "self" });
+  });
+
+  it("blocks associate producers, who no longer see participation", () => {
+    expect(
+      canReviewParticipationRequest({
+        reviewerUserId: "ap",
+        requesterUserId: "ep",
+        reviewerRole: "ASSOCIATE_PRODUCER"
+      })
+    ).toEqual({ ok: false, reason: "forbidden" });
   });
 
   it("blocks students", () => {

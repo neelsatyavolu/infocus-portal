@@ -15,7 +15,7 @@ import {
   toDateKey,
   type GridCells,
   type WeekData
-} from "@/app/(app)/participation/participation-week";
+} from "@/app/(app)/grade-editor/participation/participation-week";
 
 const MON = "2026-10-12";
 const TUE = "2026-10-13";

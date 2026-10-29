@@ -73,7 +73,7 @@ export function GradeEditorToolbar({
   saveAllDisabled,
   onSaveAll
 }: {
-  viewMode: Exclude<ViewMode, "student">;
+  viewMode: Exclude<ViewMode, "student" | "participation">;
   search: string;
   onSearchChange: (value: string) => void;
   searchRef: RefObject<HTMLInputElement | null>;
@@ -211,7 +211,7 @@ const TOTAL_RULE = "Edits here only change this page and the CSV, and are gone a
  * truncates on a narrow window; hover shows every word. Phones and tablets use the row sheets,
  * which carry the same words.
  */
-export function Legend({ viewMode }: { viewMode: Exclude<ViewMode, "student"> }) {
+export function Legend({ viewMode }: { viewMode: Exclude<ViewMode, "student" | "participation"> }) {
   const rule = viewMode === "cycle" ? LATE_POLICY_HINT : `Temporary: ${TOTAL_RULE}`;
   return (
     <p

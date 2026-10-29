@@ -42,7 +42,7 @@ export async function GET(request: Request) {
     const user = await syncUserProfile(userId);
     const access = await getPlatformAccess(user.email);
 
-    if (!hasPlatformRole(access.role, "ASSOCIATE_PRODUCER")) {
+    if (!hasPlatformRole(access.role, "EXECUTIVE_PRODUCER")) {
       throw new Error("FORBIDDEN");
     }
 
@@ -99,7 +99,7 @@ export async function POST(request: Request) {
     const user = await syncUserProfile(userId);
     const access = await getPlatformAccess(user.email);
 
-    if (!hasPlatformRole(access.role, "ASSOCIATE_PRODUCER")) {
+    if (!hasPlatformRole(access.role, "EXECUTIVE_PRODUCER")) {
       throw new Error("FORBIDDEN");
     }
 

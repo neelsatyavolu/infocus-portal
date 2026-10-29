@@ -228,10 +228,10 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
   {
     id: "participation",
     label: "Participation",
-    href: "/participation",
-    hint: "Left sidebar → People, then the Participation tab",
+    href: "/grade-editor?view=participation",
+    hint: "Left sidebar → Grade Editor, then the Participation tab",
     aliases: ["class participation"],
-    audiences: PRODUCERS
+    audiences: EXECS
   },
   {
     id: "class-board",

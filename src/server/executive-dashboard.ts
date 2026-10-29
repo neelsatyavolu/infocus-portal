@@ -465,7 +465,7 @@ async function loadExtensionNeeds(viewer: ExecutiveViewer) {
   });
 }
 
-/** Participation changes from other producers (the sidebar's People count). */
+/** Participation changes from other executives (the sidebar's Grade Editor count). */
 async function loadParticipationNeeds(viewer: ExecutiveViewer) {
   const pending = await prisma.participationGradeRequest.aggregate({
     where: { status: "PENDING", requestedById: { not: viewer.userId } },
@@ -475,7 +475,7 @@ async function loadParticipationNeeds(viewer: ExecutiveViewer) {
   return countNeed("participation", pending._count._all, pending._min.createdAt, {
     title: "Participation changes",
     need: (count) => `${count} to approve`,
-    href: "/participation"
+    href: "/grade-editor?view=participation"
   });
 }
 

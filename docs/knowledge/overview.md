@@ -7,8 +7,8 @@ InFocus Portal is the student broadcast production site for **InFocus News** (Pa
 ## Who it is for
 
 - **Students / reporters**: package work, grades, livestreams, announcements, calendar.
-- **Associate producers**: assigned packages in Groups, Package Cycle (view), Members notes, Participation, publishing queue, The Show, shared Passwords.
-- **Executive producers**: all Groups, Grade Editor, Participation, Admin people, calendar cast.
+- **Associate producers**: assigned packages in Groups, Package Cycle (view), Members notes, publishing queue, The Show, shared Passwords.
+- **Executive producers**: all Groups, Grade Editor (with its Participation tab), Admin people, calendar cast.
 - **Adviser**: same platform-admin powers as super admin; stage 2 of package approval only.
 - **Super admin**: technical owner; can View as any user.
 - **Appointed managers** (equipment, livestream, website, social media): students producers pick to run one tool. See `roles.md` and `managers.md`.

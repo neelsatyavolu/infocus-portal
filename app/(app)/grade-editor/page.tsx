@@ -6,7 +6,7 @@ import GradeEditorClient from "./grade-editor-client";
 
 export const metadata: Metadata = { title: "Grade Editor" };
 
-export default async function GradeEditorPage() {
+export default async function GradeEditorPage({ searchParams }: { searchParams: Promise<{ view?: string | string[] }> }) {
   try {
     const userId = await requireUserId();
     const user = await syncUserProfile(userId);
@@ -23,5 +23,7 @@ export default async function GradeEditorPage() {
     throw error;
   }
 
-  return <GradeEditorClient />;
+  // `?view=participation` (old /participation links, the docked-score email) opens that tab.
+  const { view } = await searchParams;
+  return <GradeEditorClient openParticipation={view === "participation"} />;
 }

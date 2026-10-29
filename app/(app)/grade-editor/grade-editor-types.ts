@@ -135,7 +135,7 @@ export type GradeMutationPayload = Pick<
   | "extensionsRemaining"
 >;
 
-export type ViewMode = "cycle" | "total" | "student";
+export type ViewMode = "cycle" | "total" | "student" | "participation";
 export type SortBy = "firstName" | "lastName";
 
 /** Which rows of a cycle the table shows. */

@@ -83,10 +83,7 @@ const HUBS: Record<"show" | "people" | "calendar" | "announcements", HubPage[]> 
     { href: "/editing", label: "Editing", producersOnly: true },
     { href: "/publishing-queue", label: "Publishing Queue", producersOnly: true }
   ],
-  people: [
-    { href: "/members", label: "Members", producersOnly: true },
-    { href: "/participation", label: "Participation", producersOnly: true }
-  ],
+  people: [{ href: "/members", label: "Members", producersOnly: true }],
   calendar: [
     { href: "/master-calendar", label: "Master Calendar" },
     { href: "/package-cycles", label: "Cycle Dates" }
@@ -412,8 +409,9 @@ export function navStatusPartsFor(role: PlatformRole | null): NavStatusPart[] {
   const producer = role !== null;
   const executive = role === "EXECUTIVE_PRODUCER" || role === "ADVISER" || role === "SUPER_ADMIN";
   return NAV_STATUS_PARTS.filter((part) => {
-    if (part === "groups" || part === "admin") return executive;
-    if (part === "meetings" || part === "people") return producer;
+    // "people" is the participation approvals count, shown on the executives' Grade Editor link.
+    if (part === "groups" || part === "admin" || part === "people") return executive;
+    if (part === "meetings") return producer;
     if (part === "grades") return !executive;
     return true;
   });
@@ -681,10 +679,10 @@ export function buildNavSignals(
     };
   }
 
-  const people = countSignal(status.participationApprovals, (count) =>
+  const participation = countSignal(status.participationApprovals, (count) =>
     `${plural(count, "participation change", "participation changes")} waiting for approval`
   );
-  if (people) signals.people = people;
+  if (participation) signals["grade-editor"] = participation;
 
   const signups = countSignal(status.livestreamSignups, (count) =>
     `${plural(count, "livestream sign-up request", "livestream sign-up requests")} waiting`
@@ -713,16 +711,4 @@ export function moreTabSignal(signals: NavSignals, tabIds: SidebarNavItemId[], v
     count: hidden.length,
     live: hidden.some((id) => signals[id]?.dotTone === "live")
   };
-}
-
-/** Counts for hub tabs (Participation), keyed by tab href. */
-export function hubTabCounts(status: NavStatus): Record<string, { count: number; label: string }> {
-  const counts: Record<string, { count: number; label: string }> = {};
-  if (status.participationApprovals && status.participationApprovals > 0) {
-    counts["/participation"] = {
-      count: status.participationApprovals,
-      label: `${plural(status.participationApprovals, "change", "changes")} waiting for approval`
-    };
-  }
-  return counts;
 }

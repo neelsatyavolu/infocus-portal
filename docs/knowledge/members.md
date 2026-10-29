@@ -1,6 +1,6 @@
 # Members
 
-Route: `/members` (sidebar Producing → **People**, which opens the **Members** tab; **Participation** is the other tab). Producers only: associate producers, executive producers, the adviser, and super admin. Students are sent to Access denied. A count on the **People** link (and on the **Participation** tab) is participation changes waiting for your approval, not Members notes.
+Route: `/members` (sidebar Producing → **People**). Producers only: associate producers, executive producers, the adviser, and super admin. Students are sent to Access denied. Participation moved to the Grade Editor's **Participation** tab (executives only).
 
 A list of class members (not EP, adviser, or super admin) with **general** notes and **per-cycle** notes. This is not the account list and not the package roster.
 

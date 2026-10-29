@@ -12,7 +12,6 @@ import {
   buildNavSignals,
   buildPhoneTabs,
   buildSidebarNav,
-  hubTabCounts,
   isPackageRoute,
   moreTabSignal,
   myPackageHref,
@@ -21,7 +20,7 @@ import {
 
 /**
  * Everything the shell's navigation shows for this person and page: sidebar sections, phone
- * tabs, hub tabs (with their counts), whether the package stage bar shows, and one status
+ * tabs, hub tabs, whether the package stage bar shows, and one status
  * signal per item from GET /api/nav/status.
  */
 export function useShellNav({
@@ -74,13 +73,7 @@ export function useShellNav({
     phoneTabs.map((tab) => tab.id),
     sections.flatMap((section) => section.items.map((item) => item.id))
   );
-  const tabCounts = hubTabCounts(status);
-  const hubTabs: HubTabWithStatus[] | null = chrome
-    ? (buildHubTabs(navContext, pathname)?.map((tab) => {
-        const count = tabCounts[tab.href];
-        return count ? { ...tab, count: count.count, countLabel: count.label } : tab;
-      }) ?? null)
-    : null;
+  const hubTabs: HubTabWithStatus[] | null = chrome ? buildHubTabs(navContext, pathname) : null;
 
   return {
     isProducer,

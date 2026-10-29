@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUpDown, CalendarOff, MessageSquare, RotateCw, Save, Users } from "lucide-react";
 import { Alert } from "@/components/kit/alert";
@@ -47,12 +45,13 @@ function plural(count: number, one: string, many: string) {
 }
 
 /**
- * Participation (People hub): grade the week, clear the queue. Week view is the grid (lg) or a
- * day-at-a-time list (phones/tablets) with Save in a bar that stays in reach; Pending view is the
- * approval queue (the "Pending" control the approval rule refers to), fetched when it is opened.
- * Staff arrive here from the docked-score email.
+ * Participation (the Grade Editor's Participation tab): grade the week, clear the queue. Week view
+ * is the grid (lg) or a day-at-a-time list (phones/tablets) with Save in a bar that stays in reach;
+ * Pending view is the approval queue (the "Pending" control the approval rule refers to), fetched
+ * when it is opened. Staff arrive here from the docked-score email. `onDirtyChange` tells the Grade
+ * Editor about unsaved scores, so leaving the tab can ask first.
  */
-export default function ParticipationClient() {
+export default function ParticipationClient({ onDirtyChange }: { onDirtyChange?: (dirty: boolean) => void }) {
   const mounted = useMounted();
   const apple = useIsApplePlatform();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
@@ -134,6 +133,12 @@ export default function ParticipationClient() {
   }
 
   useHotkeys({ "[": () => shiftWeek(-1), "]": () => shiftWeek(1) }, { enabled: mounted && view === "week" });
+
+  const hasDrafts = dirtyCount > 0;
+  useEffect(() => {
+    onDirtyChange?.(hasDrafts);
+  }, [hasDrafts, onDirtyChange]);
+  useEffect(() => () => onDirtyChange?.(false), [onDirtyChange]);
 
   const saveRef = useRef({ canSave, save });
   useEffect(() => {
@@ -232,7 +237,7 @@ export default function ParticipationClient() {
       <PageHeader
         eyebrow="Classroom · 35% of grade"
         title="Participation"
-        description="Full marks post now. Docked scores wait for the adviser or another producer to approve."
+        description="Full marks post now. Docked scores wait for the adviser or another executive producer to approve."
       />
 
       {!ready ? (

@@ -44,7 +44,17 @@ import { CycleGradesList } from "./cycle-grades-list";
 import { TotalsGradesTable, type TotalsRowHandlers, type TotalsRowView } from "./totals-grades-table";
 import { TotalsGradesList } from "./totals-grades-list";
 import GradeEditorLoading from "./loading";
+import { ParticipationToolbarSkeleton, ParticipationWeekSkeleton } from "./participation/participation-skeleton";
 
+const ParticipationClient = dynamic(() => import("./participation/participation-client"), {
+  ssr: false,
+  loading: () => (
+    <div className="space-y-5">
+      <ParticipationToolbarSkeleton />
+      <ParticipationWeekSkeleton />
+    </div>
+  )
+});
 const StudentGradebookPanel = dynamic(() => import("./student-gradebook-panel").then((m) => m.StudentGradebookPanel), {
   ssr: false,
   loading: () => <ListDetailSkeleton />
@@ -97,8 +107,10 @@ function moveViewTabFocus(event: KeyboardEvent<HTMLDivElement>) {
   tabs[next]?.focus();
 }
 
-export default function GradeEditorClient() {
+export default function GradeEditorClient({ openParticipation = false }: { openParticipation?: boolean }) {
   const [cycles, setCycles] = useState<CycleTab[]>([]);
+  /** The Participation tab has unsaved scores (it reports them), so leaving it asks first. */
+  const [participationDirty, setParticipationDirty] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("total");
   /** Mounted and the remembered view read (the server render can't read it). */
@@ -152,11 +164,14 @@ export default function GradeEditorClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // The remembered view, read once storage is readable (after hydration).
+  // The remembered view, read once storage is readable (after hydration). A Participation link
+  // (`?view=participation`) wins over it.
   if (hydrated && !viewReady) {
     setViewReady(true);
     const stored = readStoredView();
-    if (stored) {
+    if (openParticipation) {
+      setViewMode("participation");
+    } else if (stored) {
       setViewMode(stored.viewMode);
       if (stored.viewMode === "cycle" && stored.cycleNumber !== null) setOpeningCycle(stored.cycleNumber);
     } else {
@@ -294,8 +309,15 @@ export default function GradeEditorClient() {
     return `Wait for ${grades.publishingAll ? "Publish all" : "Save all"} to finish`;
   }
 
+  /** Leaving Participation with unsaved scores discards them (the tab unmounts), so ask first. */
+  function mayLeaveParticipation() {
+    if (viewMode !== "participation" || !participationDirty) return true;
+    return window.confirm("You have unsaved participation scores. Switch view and discard them?");
+  }
+
   function goToCycle(cycleNumber: number, filter?: CycleFilter) {
     if (cycleSwitchBlockedReason(cycleNumber)) return;
+    if (!mayLeaveParticipation()) return;
     const inCycleViewWithRows = viewMode === "cycle" && grades.rows.length > 0;
     const sameCycle = cycleNumber === grades.activeCycleNumber && grades.rows.length > 0;
     if (inCycleViewWithRows && sameCycle && grades.pendingCycleNumber === null) {
@@ -319,6 +341,7 @@ export default function GradeEditorClient() {
   }
 
   function goToTotal() {
+    if (!mayLeaveParticipation()) return;
     setAutoOpen(false);
     setViewMode("total");
     setSheetUserId(null);
@@ -326,6 +349,7 @@ export default function GradeEditorClient() {
   }
 
   function goToStudentView(userId?: string) {
+    if (!mayLeaveParticipation()) return;
     const inCycleViewWithRows = viewMode === "cycle" && grades.rows.length > 0;
     if (inCycleViewWithRows && grades.hasUnsavedChanges) {
       const proceed = window.confirm("You have unsaved changes. Switch view and discard them?");
@@ -340,11 +364,23 @@ export default function GradeEditorClient() {
     }
   }
 
+  function goToParticipation() {
+    const inCycleViewWithRows = viewMode === "cycle" && grades.rows.length > 0;
+    if (inCycleViewWithRows && grades.hasUnsavedChanges) {
+      const proceed = window.confirm("You have unsaved changes. Switch view and discard them?");
+      if (!proceed) return;
+    }
+    setAutoOpen(false);
+    setViewMode("participation");
+    setSheetUserId(null);
+  }
+
   function selectView(key: string) {
     const parsed = parseViewKey(key);
     if (!parsed) return;
     if (parsed.viewMode === "cycle" && parsed.cycleNumber !== null) goToCycle(parsed.cycleNumber);
     else if (parsed.viewMode === "total") goToTotal();
+    else if (parsed.viewMode === "participation") goToParticipation();
     else goToStudentView();
   }
 
@@ -508,6 +544,7 @@ export default function GradeEditorClient() {
         countLabel: `${count} ${count === 1 ? "person" : "people"} missing or unpublished`
       };
     }),
+    { value: "participation", label: "Participation" },
     { value: "total", label: "Total grade" },
     { value: "student", label: "Student" }
   ];
@@ -525,7 +562,7 @@ export default function GradeEditorClient() {
 
   if (!viewReady) return <GradeEditorLoading />;
 
-  const tableView = viewMode !== "student";
+  const tableView = viewMode === "cycle" || viewMode === "total";
 
   return (
     <div
@@ -553,136 +590,143 @@ export default function GradeEditorClient() {
         active
         className={cn("flex min-w-0 flex-col gap-5", tableView && "lg:min-h-0 lg:flex-1")}
       >
-        <GradeEditorHeader
-          viewMode={viewMode}
-          cycleNumber={shownCycleNumber}
-          cycle={shownCycle}
-          stats={cycleStats}
-          totalsReporterCount={totals.totalsRows.length}
-          totalsLoading={totalsTableLoading && totals.totalsRows.length === 0}
-          saveState={pageSaveState}
-          dirtyCount={grades.dirtyUserIds.size}
-          temporaryEdits={temporaryEdits}
-          student={selectedStudent}
-          missingPeople={missingPeople}
-          onOpenMissing={openMissing}
-          publishAllCount={filterCounts["to-publish"]}
-          publishingAll={grades.publishingAll}
-          publishAllDisabled={filterCounts["to-publish"] === 0 || grades.loading || grades.busy || cycleLoading}
-          onPublishAll={() => void publishAll()}
-        />
-
-        {viewMode === "student" ? (
-          <>
-            {message ? (
-              <Alert tone="danger" onDismiss={() => setMessage(null)}>
-                {message}
-              </Alert>
-            ) : null}
-            <StudentGradebookPanel
-              people={studentPeople}
-              selectedUserId={selectedStudentId}
-              onSelectUserId={setSelectedStudentId}
-              sortBy={sortBy}
-              onSortChange={setSortBy}
-              refreshToken={studentRefreshToken}
-              onRefresh={refresh}
-              refreshing={totals.totalsRefreshing}
-              loading={(totals.totalsLoading || !totals.totalsSettled) && studentPeople.length === 0}
-            />
-          </>
+        {viewMode === "participation" ? (
+          // Its own page plate (title, the approval rule), toolbar and Save bar.
+          <ParticipationClient onDirtyChange={setParticipationDirty} />
         ) : (
-          <section
-            aria-label={viewMode === "cycle" ? "Cycle grades" : "Total grades"}
-            className="relative flex min-w-0 flex-col overflow-hidden rounded-md border border-border bg-card lg:min-h-0 lg:flex-1"
-          >
-            {panelBusy ? (
-              <span aria-hidden className="absolute inset-x-0 top-0 z-40 h-0.5 overflow-hidden bg-[var(--ink-3)]">
-                <span className="block h-full w-1/3 bg-[var(--brand-fill)] motion-safe:animate-[loading-bar_1s_ease-in-out_infinite]" />
-              </span>
-            ) : null}
-            <div className="shrink-0 space-y-3 border-b border-border p-4">
-              <GradeEditorToolbar
-                viewMode={viewMode}
-                search={search}
-                onSearchChange={setSearch}
-                searchRef={searchRef}
-                sortBy={sortBy}
-                onSortChange={setSortBy}
-                onRefresh={refresh}
-                refreshing={panelBusy}
-                refreshDisabled={grades.busy}
-                onDownloadCsv={downloadCsv}
-                csvDisabled={viewMode === "total" ? totals.totalsLoading : grades.loading}
-                dirtyCount={grades.dirtyUserIds.size}
-                savingAll={grades.savingAll}
-                saveAllDisabled={grades.dirtyUserIds.size === 0 || grades.loading || grades.busy || cycleLoading}
-                onSaveAll={() => void grades.saveAllRows()}
-              />
-              {viewMode === "cycle" ? (
-                <CycleFilterRow value={cycleFilter} onChange={selectFilter} counts={filterCounts} size={isDesktop ? "sm" : "touch"} />
-              ) : null}
-              {message ? (
-                <Alert tone="danger" compact onDismiss={() => setMessage(null)}>
-                  {message}
-                </Alert>
-              ) : null}
-              {viewMode === "cycle" && shownCycle && !shownCycle.finalCutDate ? (
-                <Alert
-                  tone="warning"
-                  compact
-                  action={
-                    <Link href="/package-cycles" className={buttonVariants({ variant: "outline", size: "sm" })}>
-                      Open Cycle Dates
-                    </Link>
-                  }
-                >
-                  Turned in dates unlock once this cycle has a Final Cut date.
-                </Alert>
-              ) : null}
-            </div>
+          <>
+            <GradeEditorHeader
+              viewMode={viewMode}
+              cycleNumber={shownCycleNumber}
+              cycle={shownCycle}
+              stats={cycleStats}
+              totalsReporterCount={totals.totalsRows.length}
+              totalsLoading={totalsTableLoading && totals.totalsRows.length === 0}
+              saveState={pageSaveState}
+              dirtyCount={grades.dirtyUserIds.size}
+              temporaryEdits={temporaryEdits}
+              student={selectedStudent}
+              missingPeople={missingPeople}
+              onOpenMissing={openMissing}
+              publishAllCount={filterCounts["to-publish"]}
+              publishingAll={grades.publishingAll}
+              publishAllDisabled={filterCounts["to-publish"] === 0 || grades.loading || grades.busy || cycleLoading}
+              onPublishAll={() => void publishAll()}
+            />
 
-            {/* The table's scroll box: from lg the page is held to the window and this box is the
-                only thing that scrolls. Phones and tablets show the row lists, so only the page scrolls. */}
-            <div className="min-h-0 min-w-0 flex-1 overflow-auto lg:overscroll-contain">
-              {viewMode === "cycle" ? (
-                isDesktop ? (
-                  <CycleGradesTable
-                    rows={visibleRows}
-                    state={rowState}
-                    handlers={cycleHandlers}
-                    participationByUserId={totalsByUserId}
-                    loading={grades.loading}
-                    inert={rowsInert}
-                    empty={emptyNode()}
-                  />
-                ) : (
-                  <CycleGradesList
-                    rows={visibleRows}
-                    dirtyUserIds={grades.dirtyUserIds}
-                    savingUserId={grades.savingUserId}
-                    failedUserId={grades.failedUserId}
-                    participationByUserId={totalsByUserId}
-                    loading={grades.loading}
-                    inert={rowsInert}
-                    empty={emptyNode()}
-                    onOpenRow={setSheetUserId}
-                  />
-                )
-              ) : isDesktop ? (
-                <TotalsGradesTable
-                  views={visibleTotalsViews}
-                  cycles={cycles}
-                  handlers={totalsHandlers}
-                  loading={totalsTableLoading}
-                  empty={emptyNode()}
+            {viewMode === "student" ? (
+              <>
+                {message ? (
+                  <Alert tone="danger" onDismiss={() => setMessage(null)}>
+                    {message}
+                  </Alert>
+                ) : null}
+                <StudentGradebookPanel
+                  people={studentPeople}
+                  selectedUserId={selectedStudentId}
+                  onSelectUserId={setSelectedStudentId}
+                  sortBy={sortBy}
+                  onSortChange={setSortBy}
+                  refreshToken={studentRefreshToken}
+                  onRefresh={refresh}
+                  refreshing={totals.totalsRefreshing}
+                  loading={(totals.totalsLoading || !totals.totalsSettled) && studentPeople.length === 0}
                 />
-              ) : (
-                <TotalsGradesList views={visibleTotalsViews} loading={totalsTableLoading} empty={emptyNode()} onOpenRow={setSheetUserId} />
-              )}
-            </div>
-            {isDesktop ? <Legend viewMode={viewMode} /> : null}
-          </section>
+              </>
+            ) : (
+              <section
+                aria-label={viewMode === "cycle" ? "Cycle grades" : "Total grades"}
+                className="relative flex min-w-0 flex-col overflow-hidden rounded-md border border-border bg-card lg:min-h-0 lg:flex-1"
+              >
+                {panelBusy ? (
+                  <span aria-hidden className="absolute inset-x-0 top-0 z-40 h-0.5 overflow-hidden bg-[var(--ink-3)]">
+                    <span className="block h-full w-1/3 bg-[var(--brand-fill)] motion-safe:animate-[loading-bar_1s_ease-in-out_infinite]" />
+                  </span>
+                ) : null}
+                <div className="shrink-0 space-y-3 border-b border-border p-4">
+                  <GradeEditorToolbar
+                    viewMode={viewMode}
+                    search={search}
+                    onSearchChange={setSearch}
+                    searchRef={searchRef}
+                    sortBy={sortBy}
+                    onSortChange={setSortBy}
+                    onRefresh={refresh}
+                    refreshing={panelBusy}
+                    refreshDisabled={grades.busy}
+                    onDownloadCsv={downloadCsv}
+                    csvDisabled={viewMode === "total" ? totals.totalsLoading : grades.loading}
+                    dirtyCount={grades.dirtyUserIds.size}
+                    savingAll={grades.savingAll}
+                    saveAllDisabled={grades.dirtyUserIds.size === 0 || grades.loading || grades.busy || cycleLoading}
+                    onSaveAll={() => void grades.saveAllRows()}
+                  />
+                  {viewMode === "cycle" ? (
+                    <CycleFilterRow value={cycleFilter} onChange={selectFilter} counts={filterCounts} size={isDesktop ? "sm" : "touch"} />
+                  ) : null}
+                  {message ? (
+                    <Alert tone="danger" compact onDismiss={() => setMessage(null)}>
+                      {message}
+                    </Alert>
+                  ) : null}
+                  {viewMode === "cycle" && shownCycle && !shownCycle.finalCutDate ? (
+                    <Alert
+                      tone="warning"
+                      compact
+                      action={
+                        <Link href="/package-cycles" className={buttonVariants({ variant: "outline", size: "sm" })}>
+                          Open Cycle Dates
+                        </Link>
+                      }
+                    >
+                      Turned in dates unlock once this cycle has a Final Cut date.
+                    </Alert>
+                  ) : null}
+                </div>
+
+                {/* The table's scroll box: from lg the page is held to the window and this box is the
+                    only thing that scrolls. Phones and tablets show the row lists, so only the page scrolls. */}
+                <div className="min-h-0 min-w-0 flex-1 overflow-auto lg:overscroll-contain">
+                  {viewMode === "cycle" ? (
+                    isDesktop ? (
+                      <CycleGradesTable
+                        rows={visibleRows}
+                        state={rowState}
+                        handlers={cycleHandlers}
+                        participationByUserId={totalsByUserId}
+                        loading={grades.loading}
+                        inert={rowsInert}
+                        empty={emptyNode()}
+                      />
+                    ) : (
+                      <CycleGradesList
+                        rows={visibleRows}
+                        dirtyUserIds={grades.dirtyUserIds}
+                        savingUserId={grades.savingUserId}
+                        failedUserId={grades.failedUserId}
+                        participationByUserId={totalsByUserId}
+                        loading={grades.loading}
+                        inert={rowsInert}
+                        empty={emptyNode()}
+                        onOpenRow={setSheetUserId}
+                      />
+                    )
+                  ) : isDesktop ? (
+                    <TotalsGradesTable
+                      views={visibleTotalsViews}
+                      cycles={cycles}
+                      handlers={totalsHandlers}
+                      loading={totalsTableLoading}
+                      empty={emptyNode()}
+                    />
+                  ) : (
+                    <TotalsGradesList views={visibleTotalsViews} loading={totalsTableLoading} empty={emptyNode()} onOpenRow={setSheetUserId} />
+                  )}
+                </div>
+                {isDesktop ? <Legend viewMode={viewMode} /> : null}
+              </section>
+            )}
+          </>
         )}
       </ViewTabPanel>
 

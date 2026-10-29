@@ -77,7 +77,7 @@ function RequestPanel({
         request.canReview ? (
           <StatusTag tone="warning">Needs you</StatusTag>
         ) : (
-          <StatusTag tone="neutral" title="Waiting for another producer">
+          <StatusTag tone="neutral" title="Waiting for another executive producer">
             Waiting
           </StatusTag>
         )
@@ -151,7 +151,7 @@ function RequestPanel({
 
 /**
  * The pending queue as a view of the page (the Pending segment): requests you can approve first,
- * then your own, which wait for another producer. Full marks never land here.
+ * then your own, which wait for another executive producer. Full marks never land here.
  */
 export function ParticipationPending({
   queue,

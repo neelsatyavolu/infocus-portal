@@ -38,9 +38,10 @@ function toProposed(entry: ProposedCell): ProposedParticipationEntry {
   };
 }
 
-async function requireProducer(actor: Actor) {
+/** Participation is a Grade Editor tab: executive producers, the adviser and super admin only. */
+async function requireGradeManager(actor: Actor) {
   const access = await getPlatformAccess(actor.email);
-  if (!hasPlatformRole(access.role, "ASSOCIATE_PRODUCER")) {
+  if (!hasPlatformRole(access.role, "EXECUTIVE_PRODUCER")) {
     throw new Error("FORBIDDEN");
   }
   return access;
@@ -109,7 +110,7 @@ async function upsertLiveEntries(
 }
 
 export async function listParticipationGradeRequests(actor: Actor) {
-  const access = await requireProducer(actor);
+  const access = await requireGradeManager(actor);
 
   const requests = await prisma.participationGradeRequest.findMany({
     where: { status: "PENDING" },
@@ -206,7 +207,7 @@ export async function pendingParticipationOverlay(range: { start: Date; end: Dat
 }
 
 export async function submitParticipationGradeRequest(actor: Actor, cells: ProposedCell[]) {
-  await requireProducer(actor);
+  await requireGradeManager(actor);
 
   const proposed = cells.map(toProposed).filter((entry) => entry.dateKey);
   if (proposed.length === 0) {
@@ -322,7 +323,7 @@ export async function decideParticipationGradeRequest(
   actor: Actor,
   input: { requestId: string; approved: boolean }
 ) {
-  const access = await requireProducer(actor);
+  const access = await requireGradeManager(actor);
 
   await prisma.$transaction(async (tx) => {
     const request = await tx.participationGradeRequest.findUnique({
@@ -344,7 +345,7 @@ export async function decideParticipationGradeRequest(
     if (!review.ok) {
       throw new Error(
         review.reason === "self"
-          ? "Another producer has to approve these grades."
+          ? "Another executive producer has to approve these grades."
           : "FORBIDDEN"
       );
     }
@@ -429,7 +430,7 @@ async function notifyParticipationGradeRequest(input: {
       recipients,
       requesterName: input.requesterName,
       itemCount: input.itemCount,
-      reviewUrl: `${mainAppOrigin()}/participation`
+      reviewUrl: `${mainAppOrigin()}/grade-editor?view=participation`
     });
     return result.configured && result.sent > 0;
   } catch (error) {

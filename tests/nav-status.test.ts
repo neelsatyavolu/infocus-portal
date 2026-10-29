@@ -244,25 +244,33 @@ describe("GET /api/nav/status", () => {
     error.mockRestore();
   });
 
-  it("gives an associate producer meetings, people and sign-ups but no group or admin counts", async () => {
+  it("gives an associate producer meetings and sign-ups but no participation, group or admin counts", async () => {
     mocks.getPlatformAccess.mockResolvedValue({ role: "ASSOCIATE_PRODUCER" });
     mocks.canManageLivestreams.mockResolvedValue(true);
     const { body } = await call();
-    expect(body.data).toMatchObject({ liveMeetings: 1, participationApprovals: 2, livestreamSignups: 3, groupsNeedYou: null, accessRequests: null });
+    expect(body.data).toMatchObject({ liveMeetings: 1, participationApprovals: null, livestreamSignups: 3, groupsNeedYou: null, accessRequests: null });
     expect(mocks.prisma.meeting.count).toHaveBeenCalledWith({
       where: { AND: [{ OR: [{ access: "OPEN" }, { createdById: "u-abby" }] }, { status: "LIVE" }] }
     });
-    expect(mocks.prisma.participationGradeRequest.count).toHaveBeenCalledWith({
-      where: { status: "PENDING", requestedById: { not: "u-abby" } }
-    });
+    expect(mocks.prisma.participationGradeRequest.count).not.toHaveBeenCalled();
     expect(mocks.ensurePackageProgressDefaults).not.toHaveBeenCalled();
+  });
+
+  it("does not count participation for an associate who asks for it by name", async () => {
+    mocks.getPlatformAccess.mockResolvedValue({ role: "ASSOCIATE_PRODUCER" });
+    const { body } = await call("?parts=people");
+    expect(body.data).toMatchObject({ participationApprovals: null });
+    expect(mocks.prisma.participationGradeRequest.count).not.toHaveBeenCalled();
   });
 
   it("gives executives the groups that need them and pending access requests, but no grades dot", async () => {
     mocks.getPlatformAccess.mockResolvedValue({ role: "EXECUTIVE_PRODUCER" });
     mocks.prisma.packageProgressRow.findMany.mockResolvedValue([groupRow({ approval: { stage: "EXECUTIVE_REVIEW" } })]);
     const { body } = await call();
-    expect(body.data).toMatchObject({ groupsNeedYou: 1, accessRequests: 4, latestGradePublishedAt: null });
+    expect(body.data).toMatchObject({ groupsNeedYou: 1, accessRequests: 4, participationApprovals: 2, latestGradePublishedAt: null });
+    expect(mocks.prisma.participationGradeRequest.count).toHaveBeenCalledWith({
+      where: { status: "PENDING", requestedById: { not: "u-abby" } }
+    });
     expect(mocks.prisma.packageProgressRow.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { cycleNumber: 3 } }));
     expect(mocks.prisma.packageGrade.findFirst).not.toHaveBeenCalled();
   });

@@ -99,7 +99,8 @@ export function canReviewParticipationRequest(input: {
   requesterUserId: string;
   reviewerRole: PlatformRole | null;
 }): { ok: true } | { ok: false; reason: "forbidden" | "self" } {
-  if (!hasPlatformRole(input.reviewerRole, "ASSOCIATE_PRODUCER")) {
+  // Associate producers never approve (or see) participation.
+  if (!hasPlatformRole(input.reviewerRole, "EXECUTIVE_PRODUCER")) {
     return { ok: false, reason: "forbidden" };
   }
   if (input.reviewerUserId === input.requesterUserId) {

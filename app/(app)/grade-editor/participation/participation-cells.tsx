@@ -33,7 +33,7 @@ export function ScoreInput({
 }) {
   const pendingBy = pending ? pending.requestedBy.name ?? pending.requestedBy.email : null;
   const title = pending
-    ? `Waiting for another producer to approve${pendingBy ? ` · entered by ${pendingBy}` : ""}`
+    ? `Waiting for another executive producer to approve${pendingBy ? ` · entered by ${pendingBy}` : ""}`
     : undefined;
   const states = [pending ? "waiting for approval" : null, unsaved ? "not saved yet" : null].filter(Boolean).join(", ");
   return (

@@ -222,7 +222,7 @@ export function useParticipationWeek() {
         );
       } else if (queued > 0) {
         toast.success(
-          `Sent ${queued} docked score${queued === 1 ? "" : "s"} for the adviser or another producer to approve.${mailed}`
+          `Sent ${queued} docked score${queued === 1 ? "" : "s"} for the adviser or another executive producer to approve.${mailed}`
         );
       } else if (saved > 0) {
         toast.success("Participation saved.");

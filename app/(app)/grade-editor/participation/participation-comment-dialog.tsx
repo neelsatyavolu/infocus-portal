@@ -40,7 +40,7 @@ export function ParticipationCommentDialog({
     points === undefined
       ? "Enter a score for this day, then Save. A comment only saves with a score."
       : points < max
-        ? "Docked scores need another producer to approve before students see this."
+        ? "Docked scores need another executive producer to approve before students see this."
         : "Full marks post immediately. Save the week to keep this comment.";
 
   return (

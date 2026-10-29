@@ -81,7 +81,7 @@ async function createDraft(config: WordpressConfig, publication: StoryPublicatio
   const bylines = await writerBylines(config, context);
   return createWordpressDraft(config, {
     title: publication.title, categories: categoryId === null ? [] : [categoryId], writers: bylines.map((byline) => byline.id),
-    featuredMedia: mediaId, meta: storyMeta(publication.videoId, bylines[0]?.name)
+    featuredMedia: mediaId, meta: storyMeta(publication.videoId, bylines.map((byline) => byline.name))
   });
 }
 

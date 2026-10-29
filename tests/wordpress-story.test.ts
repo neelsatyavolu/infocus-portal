@@ -34,9 +34,9 @@ describe("story helpers", () => {
     expect(storySchedule("2026-10-27", now)).toEqual({ status: "publish", at: now });
   });
   it("embeds the video above the story and hides the thumbnail on the story page", () => {
-    expect(storyMeta(VIDEO, "Abby Lane")).toEqual({ video: youtubeEmbedCode(VIDEO), videolocation: "Above Story", featureimage: "Do Not Display",
-      writer: "Abby Lane" });
-    expect(storyMeta(VIDEO).writer).toBe("");
+    expect(storyMeta(VIDEO, ["Abby Lane", "Otto Reyes"])).toEqual({ video: youtubeEmbedCode(VIDEO), videolocation: "Above Story",
+      featureimage: "Do Not Display", writer: ["Abby Lane", "Otto Reyes"] });
+    expect(storyMeta(VIDEO).writer).toEqual([]);
     expect(youtubeThumbnailUrls(VIDEO)[0]).toBe(`https://i.ytimg.com/vi/${VIDEO}/maxresdefault.jpg`);
     expect(() => youtubeThumbnailUrls("../bad")).toThrow();
   });
@@ -132,7 +132,7 @@ describe("advanceWordpressStory", () => {
     const outcome = await advanceWordpressStory(publication, context, now);
     expect(mocks.upload).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ filename: `infocus-${VIDEO}.jpg`, title: "Downtown Game Shop" }));
     expect(mocks.draft).toHaveBeenCalledWith(expect.anything(),
-      { title: "Downtown Game Shop", categories: [6], writers: [31, 33], featuredMedia: 55, meta: storyMeta(VIDEO, "Abby Lane") });
+      { title: "Downtown Game Shop", categories: [6], writers: [31, 33], featuredMedia: 55, meta: storyMeta(VIDEO, ["Abby Lane", "Otto Reyes"]) });
     expect(mocks.createStaffName).toHaveBeenCalledExactlyOnceWith(expect.anything(), "Otto Reyes");
     expect(mocks.schedule).toHaveBeenCalledWith(expect.anything(), 900, { status: "future", dateGmt: "2026-10-27T16:05:00" });
     expect(outcome).toEqual({ status: "POSTED", postId: 900, url: "https://news.example.edu/downtown-game-shop/",
@@ -144,7 +144,8 @@ describe("advanceWordpressStory", () => {
     const toss = "InFocus reporters Abby Lane, Sage Ruiz, Remy Cole and Kai Typo have more.";
     mocks.createStaffName.mockResolvedValueOnce(33).mockResolvedValueOnce(34);
     await advanceWordpressStory(publication, { ...context, toss }, now);
-    expect(mocks.draft).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ writers: [31, 33, 32, 34] }));
+    expect(mocks.draft).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ writers: [31, 33, 32, 34],
+      meta: storyMeta(VIDEO, ["Abby Lane", "Otto Reyes", "Sage Ruiz", "Remy Marie Cole"]) }));
     expect(mocks.createStaffName.mock.calls.map(([, name]) => name)).toEqual(["Otto Reyes", "Remy Marie Cole"]);
   });
 

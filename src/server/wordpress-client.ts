@@ -91,7 +91,7 @@ export type WordpressPost = { id: number; link: string; status: string; meta?: R
 
 /** A draft, so a story whose SNO fields did not save is never published. */
 export async function createWordpressDraft(config: WordpressConfig, post: {
-  title: string; categories: number[]; writers: number[]; featuredMedia: number; meta: Record<string, string>;
+  title: string; categories: number[]; writers: number[]; featuredMedia: number; meta: Record<string, string | string[]>;
 }) {
   return wordpressRequest<WordpressPost>(config, "/wp/v2/posts?context=edit", {
     method: "POST",

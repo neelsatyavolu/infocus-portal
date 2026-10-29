@@ -14,6 +14,7 @@ import {
 import { applyTheme, type Theme } from "@/src/lib/theme";
 import { useTheme } from "@/src/lib/use-theme";
 import { HalloweenCells } from "./halloween-cells";
+import { ThanksgivingCells } from "./thanksgiving-cells";
 import { useSavedFlash } from "./use-saved-flash";
 
 type PreferenceState = {
@@ -82,7 +83,7 @@ function usePreferences() {
 
 /**
  * Settings → Appearance & playback: Theme and Default view, then the two playback switches, as one
- * 2×2 panel with one save status (plus the Halloween switches in season). Theme is a cookie shared
+ * 2×2 panel with one save status (plus the Halloween or Thanksgiving switches in season). Theme is a cookie shared
  * across the Portal hosts (applyTheme); the rest live in this browser's localStorage. `#playback`
  * still lands on the playback cells.
  */
@@ -141,6 +142,7 @@ export function AppearanceSection() {
             />
           </SettingsCell>
           <HalloweenCells onSaved={() => flashSaved("Saved")} />
+          <ThanksgivingCells onSaved={() => flashSaved("Saved")} />
         </SettingsGrid>
       </SettingsPanel>
     </SettingsSection>

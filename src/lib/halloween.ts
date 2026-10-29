@@ -1,5 +1,5 @@
 /**
- * Halloween season: from October 15 through November 1 (the viewer's local time) the Portal wears
+ * Halloween season: from October 15 through October 31 (the viewer's local time) the Portal wears
  * the InFocus Halloween 2026 Package colors and logos (`<html class="halloween">`, globals.css)
  * and the signed-in shell gets its visitors and cobwebs (components/halloween/).
  * Outside the season nothing changes. Each browser can turn the season, its sounds, its music or
@@ -13,7 +13,7 @@ export const HALLOWEEN_CHANGE_EVENT = "infocus-halloween-change";
 
 /** Inclusive month/day bounds (months are 0-based, like Date). */
 const SEASON_START = { month: 9, day: 15 };
-const SEASON_END = { month: 10, day: 1 };
+const SEASON_END = { month: 9, day: 31 };
 
 export type HalloweenPrefs = {
   /** The viewer turned the season off in this browser. */
@@ -76,7 +76,7 @@ export function parseHalloweenPrefs(raw: string | null | undefined): HalloweenPr
 
 /**
  * Runs in <head> before first paint, next to the theme script, so Halloween pages never flash
- * green. Same rule as isHalloweenSeason (Oct 15 – Nov 1) and the `off` preference.
+ * green. Same rule as isHalloweenSeason (Oct 15 – Oct 31) and the `off` preference.
  */
 export const HALLOWEEN_INIT_SCRIPT = `(function(){try{var d=new Date(),k=d.getMonth()*100+d.getDate();if(k<${SEASON_START.month * 100 + SEASON_START.day}||k>${SEASON_END.month * 100 + SEASON_END.day})return;var p=null;try{p=JSON.parse(localStorage.getItem("${HALLOWEEN_STORAGE_KEY}")||"null")}catch(e){}if(p&&p.off===true)return;document.documentElement.classList.add("${HALLOWEEN_CLASS}");}catch(e){}})();`;
 
@@ -102,6 +102,15 @@ export function readHalloweenPrefs(): HalloweenPrefs {
   }
 }
 
+/**
+ * Sets the <html> class from the saved preferences. Halloween steps aside while Thanksgiving is on
+ * (src/lib/thanksgiving.ts, whose class is named here to avoid an import cycle).
+ */
+export function applyHalloweenClass(prefs: HalloweenPrefs = readHalloweenPrefs()) {
+  const root = document.documentElement;
+  root.classList.toggle(HALLOWEEN_CLASS, !prefs.off && isHalloweenSeason(new Date()) && !root.classList.contains("thanksgiving"));
+}
+
 /** Saves the preferences, updates the <html> class and tells every listener in this tab. */
 export function writeHalloweenPrefs(next: HalloweenPrefs) {
   try {
@@ -109,6 +118,6 @@ export function writeHalloweenPrefs(next: HalloweenPrefs) {
   } catch {
     // Private windows can block storage; the choice still applies until the page reloads.
   }
-  document.documentElement.classList.toggle(HALLOWEEN_CLASS, !next.off && isHalloweenSeason(new Date()));
+  applyHalloweenClass(next);
   window.dispatchEvent(new CustomEvent(HALLOWEEN_CHANGE_EVENT, { detail: next }));
 }

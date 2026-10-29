@@ -10,13 +10,12 @@ import {
 } from "@/src/lib/halloween";
 
 describe("isHalloweenSeason", () => {
-  it("runs from October 15 through November 1", () => {
+  it("runs from October 15 through October 31", () => {
     expect(isHalloweenSeason(new Date(2026, 9, 14, 23, 59))).toBe(false);
     expect(isHalloweenSeason(new Date(2026, 9, 15, 0, 0))).toBe(true);
     expect(isHalloweenSeason(new Date(2026, 9, 26))).toBe(true);
-    expect(isHalloweenSeason(new Date(2026, 9, 31))).toBe(true);
-    expect(isHalloweenSeason(new Date(2026, 10, 1, 23, 59))).toBe(true);
-    expect(isHalloweenSeason(new Date(2026, 10, 2, 0, 0))).toBe(false);
+    expect(isHalloweenSeason(new Date(2026, 9, 31, 23, 59))).toBe(true);
+    expect(isHalloweenSeason(new Date(2026, 10, 1, 0, 0))).toBe(false);
   });
 
   it("is off the rest of the year", () => {
@@ -97,7 +96,7 @@ describe("HALLOWEEN_INIT_SCRIPT", () => {
   });
 
   it("matches isHalloweenSeason at the edges", () => {
-    for (const date of [new Date(2026, 9, 14), new Date(2026, 9, 15), new Date(2026, 10, 1), new Date(2026, 10, 2)]) {
+    for (const date of [new Date(2026, 9, 14), new Date(2026, 9, 15), new Date(2026, 9, 31), new Date(2026, 10, 1)]) {
       expect(run(date, null)).toBe(isHalloweenSeason(date));
     }
   });

@@ -25,6 +25,7 @@ import { useShellNav } from "@/components/shell/use-shell-nav";
 import { setClientCacheOwner } from "@/src/lib/client-cache";
 import { isRailRoute, isWideRoute } from "@/src/lib/sidebar-nav";
 import { useHalloweenActive } from "@/src/lib/use-halloween";
+import { useThanksgivingActive } from "@/src/lib/use-thanksgiving";
 import { cn } from "@/src/lib/utils";
 
 // The ✱ panel (assistant + messages), the ⌘K palette and View as load after the page, not with it.
@@ -38,6 +39,11 @@ const PhoneFolderChips = dynamic(() => import("@/components/shell/phone-folder-c
 const HalloweenGoodies = dynamic(() => import("@/components/halloween/halloween-goodies").then((m) => m.HalloweenGoodies), {
   ssr: false
 });
+// Thanksgiving season (or a super admin's preview) only (src/lib/thanksgiving.ts), the same way.
+const ThanksgivingGoodies = dynamic(
+  () => import("@/components/thanksgiving/thanksgiving-goodies").then((m) => m.ThanksgivingGoodies),
+  { ssr: false }
+);
 const CreateFolderDialog = dynamic(() => import("@/components/shell/create-folder-dialog").then((m) => m.CreateFolderDialog), {
   ssr: false
 });
@@ -80,6 +86,7 @@ export function AppShell({
   const chrome = !route.hideChrome && !embedded;
   const onMeetHost = useOnMeetHost();
   const halloween = useHalloweenActive();
+  const thanksgiving = useThanksgivingActive();
 
   // Page caches belong to one signed-in person (View as switches the person).
   setClientCacheOwner(currentUser.email ?? null);
@@ -279,6 +286,7 @@ export function AppShell({
           </>
         ) : null}
         {halloween && chrome && !onMeetHost ? <HalloweenGoodies /> : null}
+        {thanksgiving && chrome && !onMeetHost ? <ThanksgivingGoodies /> : null}
         {canViewAs && viewAsMounted ? (
           <ViewAsMenu currentUser={currentUser} canViewAs={canViewAs} viewingAs={viewingAs} open={viewAsOpen} onOpenChange={setViewAsOpen} />
         ) : null}

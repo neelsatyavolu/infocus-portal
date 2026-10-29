@@ -6,6 +6,7 @@ import { HalloweenFavicon } from "@/components/halloween/halloween-favicon";
 import { N3elAnalytics } from "@/components/n3el-analytics";
 import { PortalDomainLinks } from "@/components/portal-domain-links";
 import { HALLOWEEN_INIT_SCRIPT } from "@/src/lib/halloween";
+import { THANKSGIVING_INIT_SCRIPT } from "@/src/lib/thanksgiving";
 import { THEME_INIT_SCRIPT } from "@/src/lib/theme";
 import "./globals.css";
 
@@ -80,6 +81,7 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: HALLOWEEN_INIT_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: THANKSGIVING_INIT_SCRIPT }} />
       </head>
       <body className="font-sans bg-background text-foreground antialiased">
         {children}

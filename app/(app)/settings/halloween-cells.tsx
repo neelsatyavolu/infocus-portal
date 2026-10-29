@@ -9,7 +9,7 @@ function subscribeNever() {
 }
 
 /**
- * Settings → Appearance during the Halloween season (Oct 15 – Nov 1): turn the Halloween look and
+ * Settings → Appearance during the Halloween season (Oct 15 – Oct 31): turn the Halloween look and
  * visitors off in this browser, or just mute their sounds, the music, the surprise BOOs or the
  * hauntings. Renders
  * nothing the rest of the year.
@@ -33,7 +33,7 @@ export function HalloweenCells({ onSaved }: { onSaved: () => void }) {
       <SettingsCell
         inline
         title="Halloween"
-        description={`Pumpkin colors and visitors until Nov 1. ${smashed}, ${candy}.`}
+        description={`Pumpkin colors and visitors through Oct 31. ${smashed}, ${candy}.`}
         htmlFor="pref-halloween"
         className="min-h-16"
       >

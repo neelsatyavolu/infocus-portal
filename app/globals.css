@@ -158,7 +158,7 @@
 }
 
 /* ============================================================
-   Halloween (Oct 15 – Nov 1, src/lib/halloween.ts): the InFocus Halloween
+   Halloween (Oct 15 – Oct 31, src/lib/halloween.ts): the InFocus Halloween
    2026 Package. Pumpkin #FF7A1A replaces Green on Dark, Deep Pumpkin
    #B4440A replaces InFocus Green fills, Witch Purple #9B5CFF replaces
    Record Red. Ink, Soft White and Lexend are unchanged.
@@ -187,6 +187,38 @@
   --brand-green: #B4440A;
   --brand-green-deep: #8F3507;
   --brand-fill-hover: #8F3507;
+}
+
+/* ============================================================
+   Thanksgiving (November, src/lib/thanksgiving.ts): harvest colors.
+   Harvest Gold #F2A93B replaces Green on Dark, Maple #A4471C replaces
+   InFocus Green fills, Cranberry #C23A52 replaces Record Red. Ink, Soft
+   White, Lexend and the logos are unchanged.
+   ============================================================ */
+
+:root.thanksgiving {
+  --primary: 19 71% 38%;
+  --accent: 30 35% 13%;
+  --accent-foreground: 38 90% 80%;
+  --ring: 36 88% 59%;
+  --chart-1: 36 88% 59%;
+
+  --brand-green: #F2A93B;
+  --brand-green-deep: #DB8F22;
+  --brand-fill: #A4471C;
+  --brand-fill-hover: #B55322;
+  --brand-red: #C23A52;
+}
+
+/* Light: gold text deepens to Toasted Maple so it reads on white. */
+:root.thanksgiving.light {
+  --accent: 36 80% 93%;
+  --accent-foreground: 19 71% 28%;
+  --ring: 19 71% 38%;
+
+  --brand-green: #9A4A10;
+  --brand-green-deep: #7A3A0C;
+  --brand-fill-hover: #8A3B14;
 }
 
 /* Logos: the 2026 file carries .halloween-hide, its Halloween twin .halloween-show. */
@@ -505,6 +537,16 @@ video {
 .halloween .rem-pill-ok { color: #2BB36E; }
 .halloween.light .status-approved,
 .halloween.light .rem-pill-ok { color: #0B6E3E; }
+
+/* Thanksgiving versions of the same flat greens. */
+.thanksgiving .brand-gradient-3 { background: #5E2A10; }
+.thanksgiving .brand-gradient-5 { background: #7A3614; }
+.thanksgiving .av-purple { background: #7A2333; }
+.thanksgiving .av-blue   { background: #F2A93B; }
+.thanksgiving .status-approved,
+.thanksgiving .rem-pill-ok { color: #2BB36E; }
+.thanksgiving.light .status-approved,
+.thanksgiving.light .rem-pill-ok { color: #0B6E3E; }
 
 /* Timecode — Geist Mono is for data only */
 .timecode {

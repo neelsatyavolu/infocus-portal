@@ -56,7 +56,7 @@ export function HalloweenWelcome() {
         <DialogHeader>
           <DialogTitle className="text-xl">The Portal is haunted</DialogTitle>
           <DialogDescription>
-            From October 15 through November 1, InFocus Portal belongs to the things that go bump in the night.
+            From October 15 through October 31, InFocus Portal belongs to the things that go bump in the night.
           </DialogDescription>
         </DialogHeader>
         <ul className="space-y-3 text-sm">

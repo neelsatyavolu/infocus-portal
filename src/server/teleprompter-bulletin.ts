@@ -1,3 +1,5 @@
+import { dateKeyInTimeZone } from "@/src/lib/announcement-submission";
+import { relativizeShowDayDates } from "@/src/lib/announcement-relative-dates";
 import { loadCollegeVisitBulletinAnnouncement } from "@/src/lib/college-visits-sheet";
 import { mergeCollegeVisitIntoBulletin } from "@/src/lib/college-visits";
 import { formatAnnouncementsForTeleprompter } from "@/src/lib/teleprompter-announcement-formatting";
@@ -28,6 +30,9 @@ export async function loadA2Bulletin(showDate: Date, options: { pa?: boolean } =
   announcements: SubmittedAnnouncement[];
   autofill: BulletinAutofill;
 }> {
+  const showDateKey = dateKeyInTimeZone(showDate, TELEPROMPTER_TIME_ZONE);
+  const relativize = (list: SubmittedAnnouncement[]) =>
+    list.map((entry) => ({ ...entry, announcement: relativizeShowDayDates(entry.announcement, showDateKey) }));
   let selected: SubmittedAnnouncement[] = [];
   let announcementsFailed = false;
 
@@ -69,11 +74,12 @@ export async function loadA2Bulletin(showDate: Date, options: { pa?: boolean } =
 
   try {
     const formatted = await formatAnnouncementsForTeleprompter(merged);
-    const content = renderA2BulletinContent(formatted.announcements);
+    const announcements = relativize(formatted.announcements);
+    const content = renderA2BulletinContent(announcements);
     if (selected.length > 0 && !formatted.usedGemini) {
       return {
         content,
-        announcements: formatted.announcements,
+        announcements,
         autofill: {
           status: "warning",
           message:
@@ -85,7 +91,7 @@ export async function loadA2Bulletin(showDate: Date, options: { pa?: boolean } =
     if (announcementsFailed) {
       return {
         content,
-        announcements: formatted.announcements,
+        announcements,
         autofill: {
           status: "warning",
           message: "Submitted announcements could not be loaded, so A2 includes college visits only."
@@ -95,15 +101,16 @@ export async function loadA2Bulletin(showDate: Date, options: { pa?: boolean } =
 
     return {
       content,
-      announcements: formatted.announcements,
+      announcements,
       autofill: {
         status: "ok"
       }
     };
   } catch {
+    const announcements = relativize(merged);
     return {
-      content: renderA2BulletinContent(merged),
-      announcements: merged,
+      content: renderA2BulletinContent(announcements),
+      announcements,
       autofill: {
         status: "warning",
         message: "Announcements were loaded, but Gemini formatting failed, so A2 kept the original wording."

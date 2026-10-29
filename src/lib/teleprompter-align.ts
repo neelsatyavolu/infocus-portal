@@ -32,6 +32,15 @@ const LOOK_AHEAD_TOKENS = 60;
 /** The match must end in the last few heard words, or it's old news. */
 const FRESH_TOKENS = 3;
 const PACKAGE_NEXT_WORDS = 30;
+/**
+ * A pause this close to the end of a story (in script tokens) finishes it, if about as many words
+ * were said as were left: the last words were read but not recognized (a name, a handle).
+ */
+const END_SLACK_TOKENS = 8;
+/** With only this many tokens left, one unrecognized word before the pause finishes the story. */
+const END_ANY_TOKENS = 2;
+/** Near a story's end, its next story's first words need less proof. */
+const NEXT_START_WORDS = 8;
 
 const FUZZY = 0.6;
 const MISMATCH = -0.5;
@@ -46,6 +55,8 @@ export type TailMatch = {
   score: number;
   /** Matched words ÷ heard words spanned by the match. */
   ratio: number;
+  /** Heard words after the match's last one (unmatched). */
+  after: number;
 };
 
 /** Common words count less: "the" appears everywhere, a name or "robotics" pins the spot. */
@@ -134,7 +145,8 @@ export function alignTail(heard: string[], script: string[], weights: number[], 
     end: from + best.j - 1,
     matches: best.matches,
     score: best.score,
-    ratio: best.matches / (best.i - best.start + 1)
+    ratio: best.matches / (best.i - best.start + 1),
+    after: heard.length - 1 - best.i
   };
 }
 
@@ -162,6 +174,8 @@ export class ScriptFollower {
   /** Index into map.blocks of the story that tossed to a package, while waiting it out. */
   private packageBlock: number | null = null;
   private ghost = -1;
+  /** Settled heard tokens since the last match: words said that the script didn't account for. */
+  private heardSinceMatch = 0;
   /** Last script word read; -1 before the first. */
   cursor = -1;
   /** The word the screen keeps at the playhead. Only moves back on a re-anchor or a re-read. */
@@ -196,9 +210,35 @@ export class ScriptFollower {
     this.ghost = this.cursor;
     this.target = Math.max(0, Math.min(last, nextWord));
     this.heard = [];
+    this.heardSinceMatch = 0;
     this.history = [{ at: now, cursor: this.cursor }];
     this.lastMatchAt = now;
     this.packageBlock = null;
+  }
+
+  /**
+   * The anchor stopped talking (a pause, not a cut in long speech). Near the end of a story, with
+   * about as many words said as were left, the story is done and its last words just weren't
+   * recognized (a name, a handle): on to the next one now, not once the anchor starts reading it.
+   * Returns true when the target word changed.
+   */
+  endOfSpeech(now: number) {
+    if (this.cursor < 0 || this.mode(now) !== "follow") {
+      return false;
+    }
+    const block = this.map.blocks[this.wordBlock[this.cursor]];
+    if (!block || this.cursor >= block.lastWordIndex) {
+      return false;
+    }
+    const left = this.wordEndToken[block.lastWordIndex] - this.wordEndToken[this.cursor];
+    // Nothing said since the last match is a breath, not the end, however little is left.
+    if (left > END_SLACK_TOKENS || this.heardSinceMatch === 0 || (left > END_ANY_TOKENS && this.heardSinceMatch * 2 < left)) {
+      return false;
+    }
+    const before = this.target;
+    this.moveCursor(block.lastWordIndex, now);
+    this.updateTarget(now, false);
+    return this.target !== before;
   }
 
   mode(now: number): FollowMode {
@@ -223,7 +263,8 @@ export class ScriptFollower {
         return false;
       }
       this.heard = [...this.heard, ...tokens].slice(-TAIL_TOKENS);
-      this.commit(now);
+      const match = this.commit(now);
+      this.heardSinceMatch = match ? match.after : this.heardSinceMatch + tokens.length;
     } else {
       this.guess(tokens, now);
     }
@@ -255,6 +296,30 @@ export class ScriptFollower {
   }
 
   /**
+   * In the last few words of a story (one that doesn't toss to a package), two words from the
+   * start of the next story are enough: the anchor has moved on.
+   */
+  private nextStartRules(): Rules | null {
+    const blockIndex = this.cursor < 0 ? -1 : this.wordBlock[this.cursor];
+    const block = this.map.blocks[blockIndex];
+    const next = this.map.blocks[blockIndex + 1];
+    if (!block || !next || block.rollAfter) {
+      return null;
+    }
+    if (this.wordEndToken[block.lastWordIndex] - this.wordEndToken[this.cursor] > END_SLACK_TOKENS) {
+      return null;
+    }
+    const lastWord = Math.min(next.lastWordIndex, next.firstWordIndex + NEXT_START_WORDS - 1);
+    return {
+      lo: this.wordEndToken[next.firstWordIndex - 1] + 1,
+      hi: this.wordEndToken[lastWord] + 1,
+      minMatches: 2,
+      minScore: 1.4,
+      minRatio: 0.6
+    };
+  }
+
+  /**
    * Search tries the usual nearby match first: picking up right after banter needs no extra proof.
    * A long package also searches ahead, in case the story after it was cut.
    */
@@ -265,7 +330,9 @@ export class ScriptFollower {
         ? [this.rules("hold"), this.rules("search")]
         : longPackage
           ? [this.rules("package"), this.rules("search")]
-          : [this.rules(mode)];
+          : mode === "package"
+            ? [this.rules(mode)]
+            : [this.rules(mode), this.nextStartRules()];
     for (const rules of tries) {
       const match = rules ? alignTail(heard, this.tokens, this.weights, rules.lo, rules.hi) : null;
       if (rules && passes(match, rules)) {
@@ -279,22 +346,28 @@ export class ScriptFollower {
     const mode = this.mode(now);
     const match = this.bestMatch(mode, this.heard, now);
     if (!match) {
-      return;
+      return null;
     }
 
     const word = this.tokenWord[match.end];
     // Backward only for a clear re-read: six or more words in a row, nearly all matching.
     if (word < this.cursor && !(match.matches >= 6 && match.ratio >= 0.8)) {
-      return;
+      return null;
     }
 
     const jumped = word < this.cursor || mode === "search" || mode === "package";
+    this.moveCursor(word, now);
+    this.updateTarget(now, jumped);
+    return match;
+  }
+
+  private moveCursor(word: number, now: number) {
     this.cursor = word;
     this.ghost = word;
     this.lastMatchAt = now;
+    this.heardSinceMatch = 0;
     this.history = [...this.history.filter((entry) => now - entry.at <= SPEED_WINDOW_MS), { at: now, cursor: word }];
     this.packageBlock = this.tossedToPackage(word) ? this.wordBlock[word] : null;
-    this.updateTarget(now, jumped);
   }
 
   private guess(tokens: string[], now: number) {

@@ -310,6 +310,8 @@ export type ListenerOptions = {
   /** Each finished utterance, for voice commands. */
   onUtterance: (utterance: Utterance) => void;
   onLevel: (level: ListenerLevel) => void;
+  /** Each 16 kHz mono block as the speech model gets it, for a recording. */
+  onAudio: (block: Float32Array) => void;
 };
 
 /** Starts listening. Returns stop(); safe to call before startup finishes. */
@@ -376,7 +378,10 @@ export function startListener(options: ListenerOptions) {
       }
     });
     const { context, tap } = await openAudio(inputs);
-    tap.port.onmessage = ({ data }: MessageEvent<Float32Array>) => options.onLevel(transcriber.push(data));
+    tap.port.onmessage = ({ data }: MessageEvent<Float32Array>) => {
+      options.onAudio(data);
+      options.onLevel(transcriber.push(data));
+    };
     cleanup = () => {
       transcriber.stop();
       tap.port.onmessage = null;

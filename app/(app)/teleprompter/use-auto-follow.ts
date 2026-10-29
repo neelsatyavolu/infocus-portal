@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { ScriptFollower, type FollowMode } from "@/src/lib/teleprompter-align";
+import type { PrompterRecording, RecordingEvent } from "@/src/lib/teleprompter-recording";
 import type { ScriptWordMap } from "@/src/lib/teleprompter-script-words";
 import { parseVoiceCommand, type VoiceCommandResult } from "@/src/lib/teleprompter-voice-commands";
 import {
@@ -9,6 +10,7 @@ import {
   type MicChannel,
   type SpeechModelChoice
 } from "./teleprompter-listener";
+import { usePrompterRecording, type PrompterRecordingControls } from "./use-prompter-recording";
 
 /*
  * Auto follow for run mode: listens (teleprompter-listener.ts), feeds what it hears to a
@@ -23,7 +25,7 @@ const ON_KEY = "teleprompter-auto-follow-on";
 const DEFAULT_SETTINGS: AutoFollowSettings = { deviceId: "", channel: "mix", secondDeviceId: "", model: "fast" };
 const SYNC_MS = 200;
 const COMMAND_SHOWN_MS = 3000;
-/** After the wake word alone, the next utterance this soon is the command. */
+/** After the wake word alone (or a command cut off), the next utterance this soon finishes the command. */
 const WAKE_WINDOW_MS = 5000;
 const UNDO_DEPTH = 5;
 
@@ -84,6 +86,8 @@ export type AutoFollow = {
   targetRef: RefObject<number | null>;
   /** Follow from this word on (a manual jump, or a click on a word). */
   anchor: (wordIndex: number) => void;
+  /** "Record for tuning": the audio Auto hears and what it made of it, saved to InFocus Drive. */
+  recording: PrompterRecordingControls;
 };
 
 type CommandRefs = { paused: RefObject<boolean>; undo: RefObject<number[]>; target: RefObject<number | null> };
@@ -111,11 +115,13 @@ function runCommand(follower: ScriptFollower, action: Extract<VoiceCommandResult
 }
 
 export function useAutoFollow({
+  doc,
   wordMap,
   sections,
   enabled,
   wordAtPlayhead
 }: {
+  doc: { id: string; showDate: string | null };
   wordMap: ScriptWordMap;
   sections: Array<{ id: string; label: string; content: string }>;
   enabled: boolean;
@@ -132,11 +138,22 @@ export function useAutoFollow({
   const pausedRef = useRef(false);
   const undoRef = useRef<number[]>([]);
   const awakeUntilRef = useRef(0);
+  /** The wake word (and any start of a command) heard last, waiting for the rest. */
+  const pendingRef = useRef<string[]>([]);
   const wordAtPlayheadRef = useRef(wordAtPlayhead);
   const scriptRef = useRef({ wordMap, sections });
+  const recordingRef = useRef<PrompterRecording | null>(null);
+  const record = useCallback((event: RecordingEvent) => recordingRef.current?.log(event, performance.now()), []);
   useEffect(() => {
     wordAtPlayheadRef.current = wordAtPlayhead;
     scriptRef.current = { wordMap, sections };
+  });
+  const recording = usePrompterRecording({
+    recordingRef,
+    listening: enabled && status?.phase === "listening",
+    doc,
+    sections,
+    meta: { model: settings.model, channel: settings.channel, secondMicrophone: settings.secondDeviceId !== "" }
   });
 
   useEffect(() => {
@@ -163,13 +180,19 @@ export function useAutoFollow({
     pausedRef.current = false;
     undoRef.current = [];
 
+    let logged = "";
     const timer = window.setInterval(() => {
       const cursor = follower.cursor >= 0 ? follower.cursor : null;
       const mode = pausedRef.current ? "paused" : follower.mode(performance.now());
       setView((current) => (current.cursor === cursor && current.mode === mode ? current : { cursor, mode }));
+      const state = `${follower.cursor} ${follower.target} ${mode}`;
+      if (state !== logged) {
+        logged = state;
+        record({ type: "follow", cursor: follower.cursor, target: follower.target, mode });
+      }
     }, SYNC_MS);
     return () => window.clearInterval(timer);
-  }, [enabled, wordMap]);
+  }, [enabled, wordMap, record]);
 
   useEffect(() => {
     if (!enabled) {
@@ -180,28 +203,48 @@ export function useAutoFollow({
       deviceId: settings.deviceId,
       channel: settings.channel,
       secondDeviceId: settings.secondDeviceId,
-      onStatus: setStatus,
+      onStatus: (next) => {
+        setStatus(next);
+        const detail = next.phase === "error" ? next.message : next.phase === "listening" ? next.engine : undefined;
+        record({ type: "status", phase: next.phase, detail });
+      },
       onLevel: (level) => {
         levelRef.current = level;
       },
+      onAudio: (block) => recordingRef.current?.addAudio(block),
       onWords: ({ words, final }) => {
+        record({ type: "words", words, final });
         const follower = followerRef.current;
         if (follower && !pausedRef.current) {
           follower.hear(words, final, performance.now());
           targetRef.current = follower.target;
         }
       },
-      onUtterance: ({ words, afterPause }) => {
+      onUtterance: ({ words, afterPause, endedAtPause }) => {
+        record({ type: "utterance", words, afterPause, endedAtPause });
         const follower = followerRef.current;
         if (!follower) return;
         const now = performance.now();
-        const awake = now < awakeUntilRef.current;
+        const pending = now < awakeUntilRef.current ? pendingRef.current : null;
         awakeUntilRef.current = 0;
+        pendingRef.current = [];
         const context = { ...scriptRef.current, map: scriptRef.current.wordMap, cursor: follower.cursor };
-        const result = parseVoiceCommand(words, context, { afterPause, awake });
-        if (!result) return;
+        const result = parseVoiceCommand(pending ? [...pending, ...words] : words, context, { afterPause, awake: pending !== null });
+        if (!result) {
+          // The anchor stopped: if that was the end of a story whose last words weren't
+          // recognized, move on to the next one now.
+          if (endedAtPause && !pausedRef.current && follower.endOfSpeech(now)) {
+            targetRef.current = follower.target;
+            record({ type: "end-of-speech", target: follower.target });
+          }
+          return;
+        }
+        record({ type: "command", result });
         if (result.ok) runCommand(follower, result.action, { paused: pausedRef, undo: undoRef, target: targetRef });
-        if ("waiting" in result) awakeUntilRef.current = now + WAKE_WINDOW_MS;
+        if ("waiting" in result) {
+          awakeUntilRef.current = now + WAKE_WINDOW_MS;
+          pendingRef.current = result.pending;
+        }
         setCommand({ ...result, id: now });
       }
     });
@@ -209,15 +252,19 @@ export function useAutoFollow({
       stop();
       levelRef.current = null;
     };
-  }, [enabled, settings.model, settings.deviceId, settings.channel, settings.secondDeviceId]);
+  }, [enabled, settings.model, settings.deviceId, settings.channel, settings.secondDeviceId, record]);
 
-  const anchor = useCallback((wordIndex: number) => {
-    const follower = followerRef.current;
-    if (follower) {
-      follower.anchor(wordIndex, performance.now());
-      targetRef.current = follower.target;
-    }
-  }, []);
+  const anchor = useCallback(
+    (wordIndex: number) => {
+      const follower = followerRef.current;
+      if (follower) {
+        follower.anchor(wordIndex, performance.now());
+        targetRef.current = follower.target;
+        record({ type: "anchor", word: wordIndex });
+      }
+    },
+    [record]
+  );
 
   return {
     settings,
@@ -228,6 +275,7 @@ export function useAutoFollow({
     cursor: enabled ? view.cursor : null,
     levelRef,
     targetRef,
-    anchor
+    anchor,
+    recording
   };
 }

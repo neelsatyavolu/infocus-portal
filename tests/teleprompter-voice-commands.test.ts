@@ -149,6 +149,83 @@ describe("parseVoiceCommand", () => {
     expect(gotoWord("Teleprompter, go to spirit league.")).toBe(first("Spirit"));
   });
 
+  it("hears the wake word and commands through line-feed static", () => {
+    // What Moonshine and Whisper wrote for macOS voices with static and hum mixed in.
+    for (const text of [
+      "Telecom sure go to the top",
+      "Telecompture, go to the top.",
+      "Telecom chair, go to the top.",
+      "Telekomcha, go to the top.",
+      "Telecomster, go to the top.",
+      "Telephone sure go to the top",
+      "Telefecture, go to the top",
+      "Telepromza, go to the top.",
+      "Telegramcher go to the top",
+      "Hey Teller-Chromter, go to the top.",
+      "They tell a computer, go to the top.",
+      "Pay teleprompter, go to the top.",
+      "Stay teleprompter, go to the top.",
+      "Teleprompter, build of the top.",
+      "Teleprompter, built at the top.",
+      "Prompta, go to the top.",
+      "Promper, go to the top."
+    ]) {
+      expect(gotoWord(text), text).toBe(0);
+    }
+    for (const text of ["Teleprompter, Max.", "Telecompture next", "Teleprompter, skip this one", "Promter next announcement"]) {
+      expect(gotoWord(text), text).toBe(first("Robot"));
+    }
+    for (const text of ["Telecompture pod", "Teleprompter caused.", "Teleprompter, pause it", "Teleprompter, hold up", "Teleprompter, pausse"]) {
+      expect(say(text), text).toMatchObject({ ok: true, action: { kind: "pause" } });
+    }
+    for (const text of ["Teleprompter review", "Teleprompter. Re-zoom.", "Teleprompter, carry on", "Teleprompter, let's go"]) {
+      expect(say(text), text).toMatchObject({ ok: true, action: { kind: "resume" } });
+    }
+    for (const text of ["Telecomster undie", "Teleprompter, oops", "Teleprompter, not that one"]) {
+      expect(say(text), text).toMatchObject({ ok: true, action: { kind: "undo" } });
+    }
+    expect(gotoWord("Teleprompter, gillback")).toBe(first("Spirit"));
+    for (const text of ["Teleprompter, go to a free.", "Teleprompter, door to a3.", "Teleprompter go to a3"]) {
+      expect(gotoWord(text), text).toBe(first("The"));
+    }
+    const stories = map.blocks.filter((block) => block.sectionId === "s2");
+    expect(gotoWord("Teleprompter, announcement number two")).toBe(stories[1].firstWordIndex);
+    expect(gotoWord("Teleprompter, announcement to")).toBe(stories[1].firstWordIndex);
+    expect(gotoWord("Teleprompter, go to the anouncements")).toBe(first("College"));
+    const cursor = first("Ortiz.");
+    expect(say("Teleprompter, show up a little bit", cursor)).toMatchObject({ ok: true, label: "Up 2 lines" });
+  });
+
+  it("hears a command that's said twice over or after a stray word", () => {
+    expect(gotoWord("Teleprompter, hey teleprompter, go to the top")).toBe(0);
+    expect(gotoWord("You teleprompter go to the top")).toBe(0);
+    expect(gotoWord("Uh, okay, teleprompter, next")).toBe(first("Robot"));
+  });
+
+  it("hears a command mid-utterance without a full stop, but never a mention", () => {
+    expect(gotoWord("have a great day Vikings teleprompter go to the top")).toBe(0);
+    expect(gotoWord("thanks for watching telecom sure next")).toBe(first("Robot"));
+    expect(say("we have a teleprompter go to the top")).toBeNull();
+    expect(say("so the teleprompter go to the top")).toBeNull();
+    expect(say("I think our teleprompter go to the top")).toBeNull();
+    // Mid-utterance, only a command it understood: not a "didn't understand".
+    expect(say("I talked to teleprompter people yesterday")).toBeNull();
+    expect(say("great day Vikings teleprompter make me a sandwich")).toBeNull();
+  });
+
+  it("waits for the rest of a command cut off by a pause", () => {
+    const cut = say("Teleprompter, go to");
+    expect(cut).toMatchObject({ ok: false, waiting: true, pending: ["Teleprompter,", "go", "to"] });
+    const pending = cut && "waiting" in cut ? cut.pending : [];
+    const rest = parseVoiceCommand([...pending, "the", "second", "announcement."], context(), { awake: true });
+    const stories = map.blocks.filter((block) => block.sectionId === "s2");
+    expect(rest).toMatchObject({ ok: true, action: { kind: "goto", word: stories[1].firstWordIndex } });
+    expect(say("Teleprompter.")).toMatchObject({ waiting: true, pending: ["Teleprompter."] });
+    // The command after an earlier sentence in the same pending words still wins.
+    const late = parseVoiceCommand(["Vikings.", "Teleprompter", "go", "to", "the", "top"], context(), { awake: true });
+    expect(late).toMatchObject({ ok: true, action: { word: 0 } });
+  });
+
   it("doesn't take ordinary first words for the wake word", () => {
     for (const text of [
       "Promptly go to the top",
@@ -157,7 +234,13 @@ describe("parseVoiceCommand", () => {
       "Telepathy go back",
       "Computer go to the top",
       "Prompt the crew to go back",
-      "Temperature go to the top"
+      "Temperature go to the top",
+      "Telegram go to the top",
+      "Telecom go to the top",
+      "Telescope go to the top",
+      "Telemetry go to the top",
+      "Tell the story, go to the top",
+      "Telling everyone to go to the top"
     ]) {
       expect(say(text)).toBeNull();
     }
@@ -186,5 +269,16 @@ describe("parseVoiceCommand", () => {
     ]);
     expect(parseVoiceCommand(["Teleprompter,", "go", "to", "the", "top"], { map: scripted, sections: [], cursor: 3 })).toBeNull();
     expect(scripted.words.some((word) => word.mentionsWakeWord)).toBe(true);
+  });
+
+  it("ignores a command the anchor is reading from the script", () => {
+    const scripted = buildScriptWordMap([
+      { id: "a", label: "A1", content: "CAM 1\nIn coding club, students can tell a computer go to the top of a list.\nThat's all." }
+    ]);
+    const ctx = { map: scripted, sections: [], cursor: 4 };
+    expect(parseVoiceCommand("students can tell a computer go to the top of a list".split(" "), ctx)).toBeNull();
+    expect(parseVoiceCommand("Tell a computer, go to the top".split(" "), ctx)).toBeNull();
+    // Away from that line it's a command again.
+    expect(gotoWord("Tell a computer, go to the top")).toBe(0);
   });
 });

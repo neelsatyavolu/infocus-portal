@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { HighPassFilter, SpeechGate, StreamingTranscriber, agreedPrefix, levelDb, type TranscriptUpdate } from "@/src/lib/teleprompter-listen";
+import {
+  HighPassFilter,
+  SpeechGate,
+  StreamingTranscriber,
+  agreedPrefix,
+  levelDb,
+  splitWords,
+  type TranscriptUpdate,
+  type Utterance
+} from "@/src/lib/teleprompter-listen";
 
 const BLOCK = 1600;
 const SENTENCE = "Good morning Paly today is Friday the twenty third of October and this is InFocus News".split(" ");
@@ -47,6 +56,13 @@ describe("SpeechGate", () => {
   });
 });
 
+describe("splitWords", () => {
+  it("drops what the models write for sounds that aren't words", () => {
+    expect(splitWords(" [BLANK_AUDIO] Teleprompter (static) next ♪ *crackling* ")).toEqual(["Teleprompter", "next"]);
+    expect(splitWords("(upbeat music)")).toEqual([]);
+  });
+});
+
 describe("agreedPrefix", () => {
   it("counts leading words two reads agree on, ignoring case and punctuation", () => {
     expect(agreedPrefix(["Good", "morning,", "Paly"], ["good", "morning", "Pauly", "today"])).toBe(2);
@@ -76,7 +92,7 @@ describe("StreamingTranscriber", () => {
   });
 
   it("hands over each finished utterance, marking the ones said after a pause", async () => {
-    const utterances: Array<{ words: string[]; afterPause: boolean }> = [];
+    const utterances: Utterance[] = [];
     const transcriber = new StreamingTranscriber({
       blockSize: BLOCK,
       sampleRate: 16000,
@@ -90,11 +106,12 @@ describe("StreamingTranscriber", () => {
     }
     expect(utterances).toHaveLength(1);
     expect(utterances[0].afterPause).toBe(true);
+    expect(utterances[0].endedAtPause).toBe(true);
     expect(utterances[0].words.slice(0, 3)).toEqual(["Good", "morning", "Paly"]);
   });
 
   it("counts a cut at a short pause as after a pause, but not a forced cut", async () => {
-    const utterances: Array<{ words: string[]; afterPause: boolean }> = [];
+    const utterances: Utterance[] = [];
     const transcriber = new StreamingTranscriber({
       blockSize: BLOCK,
       sampleRate: 16000,
@@ -111,6 +128,8 @@ describe("StreamingTranscriber", () => {
       await settle();
     }
     expect(utterances.map((utterance) => utterance.afterPause)).toEqual([true, true, false]);
+    // Only the last one ends because the talking stopped; the others were cut.
+    expect(utterances.map((utterance) => utterance.endedAtPause)).toEqual([false, false, true]);
   });
 
   it("cuts long speech into reads of at most eight seconds", async () => {

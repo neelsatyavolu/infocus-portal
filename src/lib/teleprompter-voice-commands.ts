@@ -19,8 +19,11 @@ export type VoiceAction =
 export type VoiceCommandResult =
   | { ok: true; action: VoiceAction; label: string }
   | { ok: false; heard: string }
-  /** Only the wake word: the command should come in the next utterance. */
-  | { ok: false; heard: string; waiting: true };
+  /**
+   * Only the wake word, or the start of a command ("Teleprompter, go to…"): the rest should come
+   * in the next utterance. Parse `pending` followed by that utterance's words.
+   */
+  | { ok: false; heard: string; waiting: true; pending: string[] };
 
 export type VoiceCommandOptions = {
   /** The utterance began after a pause; if not (a cut out of long speech), its first word may be mid-sentence. */
@@ -36,7 +39,12 @@ export type VoiceContext = {
   cursor: number;
 };
 
-const FILLERS = new Set(["hey", "ok", "okay", "hi", "yo", "um", "uh", "so"]);
+const FILLERS = new Set([
+  "hey", "ok", "okay", "hi", "yo", "um", "uh", "so", "oh", "ah", "and", "alright", "well",
+  // What the models write for "hey" through static, and "you", a word they invent from noise.
+  "they", "pay", "stay", "hay", "he", "a", "you"
+]);
+const MAX_FILLERS = 3;
 const POLITE = new Set(["please", "can", "you", "could", "would", "now", "just"]);
 /** What people tack on after the command ("…go to the top, please", "…next, thank you"). */
 const TRAILING = new Set(["please", "now", "thanks", "thank", "you", "again", "ok", "okay", "real", "quick"]);
@@ -69,12 +77,12 @@ const TOP_FILLER = new Set([
 /** Beat names as people say them → the beat heading in the script (badge "A2 - Bulletin"). */
 const BEATS: Array<{ say: string[][]; beat: string }> = [
   { say: [["open"], ["opening"], ["intro"]], beat: "open" },
-  { say: [["bulletin"], ["announcements"], ["the", "announcements"]], beat: "bulletin" },
+  { say: [["bulletin"], ["announcements"]], beat: "bulletin" },
   { say: [["package"], ["packages"]], beat: "package" },
-  { say: [["thank", "yous"], ["thank", "you"], ["thanks"], ["thank", "you", "s"]], beat: "thanks" },
-  { say: [["closing"], ["close"], ["outro"], ["end"], ["sign", "off"]], beat: "closing" }
+  { say: [["thank", "yous"], ["thank", "you"], ["thanks"], ["thank", "you", "s"], ["thankyous"], ["thank", "use"]], beat: "thanks" },
+  { say: [["closing"], ["close"], ["outro"], ["end"], ["sign", "off"], ["signoff"], ["goodbye"]], beat: "closing" }
 ];
-const STOP_WORDS = new Set(["the", "a", "an", "of", "on", "in", "for", "to", "and", "about", "one", "with", "is", "at"]);
+const STOP_WORDS = new Set(["the", "a", "an", "of", "on", "in", "for", "to", "and", "about", "one", "with", "is", "at", "just"]);
 
 function tokensOf(words: string[]) {
   return words.flatMap((word) => normalizeSpokenWord(word));
@@ -106,32 +114,72 @@ function consonants(word: string) {
 }
 
 const TELEPROMPTER = consonants("teleprompter");
-/** "prompter", and "promter" as the models also write it. */
-const PROMPTER = new Set([consonants("prompter"), consonants("promter")]);
+/** "prompter", and "promter" / "promper" as the models also write it. */
+const PROMPTER = new Set([consonants("prompter"), consonants("promter"), consonants("promper")]);
+/** Spellings whose consonants are just "prompt", which on its own isn't the wake word. */
+const PROMPTER_SPELLINGS = new Set(["prompta", "prompto", "promptah"]);
+/**
+ * The wake word through static, as Moonshine and Whisper wrote it: "Telecom sure", "Telecompture",
+ * "Telecom chair", "Telekomcha", "Teller chromter", "tell a computer". "tel…", a "p"/"m"/"k"-like
+ * middle, and a "-ter" / "-ture" / "-cha" ending; "telephone", "telegram", "telescope",
+ * "telepathy" and "tell a story" don't fit.
+ */
+const LOOSE_TELEPROMPTER = /^tel[a-z]*[mpbkcgf][a-z]*(?:t|ch|sh|s|z|k)(?:[aeiou]{0,2}r[ae]?|r?[aeiou]{1,2}r?)$/;
+const LOOSE_MIN_LETTERS = 9;
+/** Words that start a command, so a garbled wake word never swallows the command after it. */
+const COMMAND_START = new Set([
+  "go", "to", "the", "next", "back", "pause", "stop", "resume", "undo", "jump", "skip", "take", "up", "down", "line",
+  "top", "please", "scroll", "move", "previous", "continue", "hold", "start", "restart", "announcement", "story"
+]);
+
+function looseWake(tokens: string[]) {
+  const letters = tokens.join("");
+  return (
+    tokens.slice(1).every((token) => !COMMAND_START.has(token)) &&
+    letters.length >= LOOSE_MIN_LETTERS &&
+    LOOSE_TELEPROMPTER.test(letters)
+  );
+}
 
 /**
  * How many words the wake word took: "teleprompter", or how the speech models split and spell
- * it ("tell a prompture", "telly promter", "tullipromter"), matched on its consonants; or a
- * plain "prompter" ("prompture", "promptor"), which must match exactly ("promptly" doesn't).
+ * it ("tell a prompture", "telly promter", "tullipromter"), matched on its consonants, or by the
+ * looser shape it takes through static ("telecom sure"); or a plain "prompter" ("prompture",
+ * "promptor"), which must match exactly ("promptly" doesn't).
  */
 function wakeLength(tokens: string[]) {
   for (let count = 1; count <= 3 && count <= tokens.length; count += 1) {
-    const sound = consonants(tokens.slice(0, count).join(""));
-    // "tl…" (or "trl…", as in "terylopromter"), so "the teleprompter" mid-sentence can't pass.
-    if ((/^tr?l/.test(sound) && editDistance(sound, TELEPROMPTER) <= 2) || PROMPTER.has(sound)) {
+    const words = tokens.slice(0, count);
+    const sound = consonants(words.join(""));
+    // "tl…" (or "trl…", as in "terylopromter"; "dl…" through static), so "the teleprompter"
+    // mid-sentence can't pass.
+    if ((/^[td]r?l/.test(sound) && editDistance(sound, TELEPROMPTER) <= 2) || PROMPTER.has(sound) || looseWake(words)) {
       return count;
+    }
+    if (count === 1 && PROMPTER_SPELLINGS.has(words[0])) {
+      return 1;
     }
   }
   return 0;
 }
 
-/** Where the command words start, after "hey" and the wake word; -1 if it isn't a command. */
+function skipFillers(tokens: string[], from: number) {
+  let index = from;
+  while (index - from < MAX_FILLERS && FILLERS.has(tokens[index] ?? "")) index += 1;
+  return index;
+}
+
+/** Where the command words start, after "hey" and the wake word (said once or twice); -1 if it isn't a command. */
 function afterWake(tokens: string[], awake: boolean) {
-  let index = 0;
-  while (index < 2 && FILLERS.has(tokens[index] ?? "")) index += 1;
+  const index = skipFillers(tokens, 0);
   const length = wakeLength(tokens.slice(index));
-  if (length > 0) return index + length;
-  return awake ? index : -1;
+  if (length === 0) {
+    return awake ? index : -1;
+  }
+  // "Teleprompter… hey teleprompter, go to the top."
+  const again = skipFillers(tokens, index + length);
+  const repeat = wakeLength(tokens.slice(again));
+  return repeat > 0 ? again + repeat : index + length;
 }
 
 function stripLeading(tokens: string[], words: Set<string>) {
@@ -148,7 +196,20 @@ function stripTrailing(tokens: string[], words: Set<string>) {
 
 function isTop(tokens: string[]) {
   const rest = tokens.filter((token) => !TOP_FILLER.has(token));
-  return rest.length > 0 && rest.length <= 2 && rest.every((token) => TOP_WORDS.has(token));
+  if (rest.length > 0 && rest.length <= 2 && rest.every((token) => TOP_WORDS.has(token))) {
+    return true;
+  }
+  // A misheard verb: "build of the top", "built at the top".
+  return tokens.length <= 5 && tokens.at(-2) === "the" && TOP_WORDS.has(tokens.at(-1) ?? "");
+}
+
+/** Same word, or (five letters or more) one letter off: "anouncement", "bulletins" for "bulletin". */
+function closeTo(token: string, word: string) {
+  return token === word || (word.length >= 5 && token.length >= 4 && editDistance(token, word) <= 1);
+}
+
+function sameAs(tokens: string[], phrase: string[]) {
+  return tokens.length === phrase.length && phrase.every((word, index) => closeTo(tokens[index], word));
 }
 
 function blockStart(map: ScriptWordMap, word: number) {
@@ -178,13 +239,24 @@ function gotoWord(word: number | null | undefined, label: string): VoiceAction |
   return word === null || word === undefined ? null : { kind: "goto", word, label };
 }
 
-/** "the second announcement", "announcement two", "the last story", "the first section". */
+/** Numbers as the models sometimes write them: "announcement to", "a free" (A3). */
+const NUMBER_SOUNDS: Record<string, string> = { to: "two", too: "two", for: "four", won: "one", tree: "three", free: "three", ate: "eight" };
+const NUMBER_WORDS = new Set(["number", "no", "num"]);
+
+/** "the second announcement", "announcement two", "announcement number 3", "the last story", "the first section". */
 function ordinalTarget(tokens: string[], context: VoiceContext): VoiceAction | null {
-  const words = tokens.filter((token) => !ARTICLES.has(token));
-  const noun = words.find((token) => STORY_WORDS.has(token) || SECTION_WORDS.has(token));
-  const position = words.find((token) => token in ORDINALS || token === "last");
-  if (!noun || !position || words.length > 3) {
+  const words = tokens.filter((token) => !ARTICLES.has(token) && !NUMBER_WORDS.has(token));
+  const nounAt = words.findIndex((token) => STORY_WORDS.has(token) || SECTION_WORDS.has(token));
+  const noun = words[nounAt];
+  const heardAfter = NUMBER_SOUNDS[words[nounAt + 1] ?? ""];
+  const position = words.find((token) => token in ORDINALS || token === "last") ?? heardAfter;
+  if (!noun || !position) {
     return null;
+  }
+  if (words.length > 3) {
+    // A misheard verb before it ("goes at a second announcement"), but not "the top of the second announcement".
+    const before = words.slice(0, -2);
+    return words.length > 4 || before.some((token) => TOP_WORDS.has(token) || token === "of") ? null : ordinalTarget(words.slice(-2), context);
   }
 
   if (SECTION_WORDS.has(noun)) {
@@ -201,23 +273,31 @@ function ordinalTarget(tokens: string[], context: VoiceContext): VoiceAction | n
   return gotoWord(story.firstWordIndex, `Announcement ${number}`);
 }
 
-/** "A3", "a three", "a 3". */
+/** Letters as the models write them when said alone. */
+const LETTER_SOUNDS: Record<string, string> = { ay: "a", eh: "a", be: "b", bee: "b", see: "c", sea: "c", dee: "d" };
+
+function labelSaid(tokens: string[]) {
+  return tokens.map((token, index) => (index === 0 ? LETTER_SOUNDS[token] : NUMBER_SOUNDS[token]) ?? token).join("");
+}
+
+/** "A3", "a three", "a 3", "a free"; also at the end of a misheard verb ("door to a3"). */
 function labelTarget(tokens: string[], context: VoiceContext): VoiceAction | null {
   // "a" stays: it's the letter in "A three".
-  const said = tokens.filter((token) => token !== "the" && !SECTION_WORDS.has(token)).join("");
-  if (!said) return null;
+  const words = tokens.filter((token) => token !== "the" && !SECTION_WORDS.has(token));
+  if (words.length === 0) return null;
+  const tries = [words, words.slice(-2), words.slice(-1)].map(labelSaid);
   const index = context.sections.findIndex((section) => {
     const match = section.label.toLowerCase().match(/^([a-z]+)(\d+)$/);
     const forms = [section.label.toLowerCase().replace(/\s+/g, "")];
     if (match) forms.push(`${match[1]}${numberToWords(Number(match[2])).replace(/\s+/g, "")}`);
-    return forms.includes(said);
+    return tries.some((said) => forms.includes(said));
   });
   return index >= 0 ? gotoWord(firstWordFrom(context.map, index), context.sections[index].label) : null;
 }
 
 function beatTarget(tokens: string[], context: VoiceContext): VoiceAction | null {
   const said = tokens.filter((token) => !ARTICLES.has(token));
-  const beat = BEATS.find((entry) => entry.say.some((phrase) => same(said, phrase)));
+  const beat = BEATS.find((entry) => entry.say.some((phrase) => sameAs(said, phrase)));
   if (!beat) return null;
   if (beat.beat === "bulletin") {
     const bulletin = bulletinSection(context);
@@ -254,17 +334,20 @@ function titleTarget(tokens: string[], context: VoiceContext): VoiceAction | nul
   return gotoWord(best.block.firstWordIndex, `“${firstWords}…”`);
 }
 
+/** "next", and what the models wrote for it through static. */
+const NEXT_WORDS = new Set(["next", "nex", "negst", "necks", "neck", "nest", "nests", "nix", "max"]);
+const NEXT_PHRASES = new Set(["skip", "skip it", "skip this", "skip ahead", "move on", "moving on", "next please"]);
+const BACK_PHRASES = new Set(["back", "bag", "pack", "previous", "go back", "go pack", "gillback", "go bag"]);
+
 function moveTarget(tokens: string[], context: VoiceContext): VoiceAction | null {
   const said = tokens.filter((token) => !ARTICLES.has(token) && token !== "one");
   const { map, cursor } = context;
   const current = blockStart(map, Math.max(0, cursor + 1));
+  const phrase = said.join(" ");
   const isNext =
-    ["next", "nex", "negst"].some((word) => same(said, [word])) || (said[0] === "next" && said.length === 2 && STORY_WORDS.has(said[1]));
-  const isBack =
-    same(said, ["back"]) ||
-    same(said, ["previous"]) ||
-    same(said, ["go", "back"]) ||
-    (said[0] === "previous" && said.length === 2 && STORY_WORDS.has(said[1]));
+    NEXT_PHRASES.has(phrase) ||
+    (NEXT_WORDS.has(said[0] ?? "") && (said.length === 1 || (said.length === 2 && STORY_WORDS.has(said[1]))));
+  const isBack = BACK_PHRASES.has(phrase) || (said[0] === "previous" && said.length === 2 && STORY_WORDS.has(said[1]));
   if (isNext) {
     const block = map.blocks[current + 1];
     return block ? gotoWord(block.firstWordIndex, "Next") : null;
@@ -301,12 +384,14 @@ const LITTLE_LINES = 2;
 const FEW_LINES = 3;
 
 /** "Go up a little bit", "down a line", "back two lines", "a bit lower". */
-function nudgeTarget(tokens: string[], context: VoiceContext): VoiceAction | null {
+function nudgeTarget(said: string[], context: VoiceContext): VoiceAction | null {
+  const isKnown = (token: string) => UP_WORDS.has(token) || DOWN_WORDS.has(token) || NUDGE_WORDS.has(token) || token in LINE_COUNTS;
+  // One misheard verb before it is fine: "show up a little bit".
+  const tokens = !isKnown(said[0] ?? "") && said.length > 1 ? said.slice(1) : said;
   const up = tokens.some((token) => UP_WORDS.has(token));
   const down = tokens.some((token) => DOWN_WORDS.has(token));
   const counts = tokens.filter((token) => token in LINE_COUNTS);
-  const known = tokens.every((token) => UP_WORDS.has(token) || DOWN_WORDS.has(token) || NUDGE_WORDS.has(token) || counts.includes(token));
-  if (up === down || !known || counts.length > 1) {
+  if (up === down || !tokens.every(isKnown) || counts.length > 1) {
     return null;
   }
   const lines = counts.length > 0 ? LINE_COUNTS[counts[0]] : tokens.includes("few") ? FEW_LINES : tokens.includes("line") ? 1 : LITTLE_LINES;
@@ -314,16 +399,37 @@ function nudgeTarget(tokens: string[], context: VoiceContext): VoiceAction | nul
   return gotoWord(lineStartFrom(context, up ? -lines : lines), label);
 }
 
-// Includes what the speech models were heard writing for these words ("cause" for pause).
-const PAUSE_WORDS = ["pause", "paws", "pose", "cause", "stop", "hold", "freeze", "wait", "hold on", "hold it"];
-const RESUME_WORDS = ["resume", "continue", "keep going", "go on", "start", "follow", "start following", "unpause", "play"];
-const UNDO_WORDS = ["undo", "and do", "andu", "undue", "on do", "cancel", "never mind", "nevermind", "undo that"];
+// Includes what the speech models were heard writing for these words, some through static
+// ("cause" and "pod" for pause, "review" and "re-zoom" for resume, "and do" for undo).
+const PAUSE_WORDS = [
+  "pause", "paws", "pose", "cause", "caused", "calls", "pod", "hot", "paused", "pauses", "stop", "hold", "freeze", "wait", "hold on", "hold it",
+  "hold up", "hang on", "wait a second", "wait a sec", "one second", "one sec", "stop scrolling", "stop following"
+];
+const RESUME_WORDS = [
+  "resume", "continue", "keep going", "go on", "start", "follow", "start following", "unpause", "play", "review", "rezoom",
+  "re zoom", "resumed", "resumee", "presume", "go ahead", "carry on", "keep scrolling", "start scrolling", "start again", "unfreeze",
+  "lets go"
+];
+const UNDO_WORDS = [
+  "undo", "and do", "andu", "undue", "on do", "undie", "andndo", "cancel", "never mind", "nevermind", "undo that", "oops", "whoops",
+  "wrong one", "not that", "not that one"
+];
+/** "Pause it", "stop that". */
+const CONTROL_TRAILING = new Set(["it", "that"]);
 
 function controlAction(tokens: string[]): VoiceAction | null {
-  const said = tokens.join(" ");
-  if (PAUSE_WORDS.includes(said)) return { kind: "pause" };
-  if (RESUME_WORDS.includes(said)) return { kind: "resume" };
-  if (UNDO_WORDS.includes(said)) return { kind: "undo" };
+  const trimmed = stripTrailing(tokens, CONTROL_TRAILING);
+  for (const said of new Set([tokens.join(" "), trimmed.join(" ")])) {
+    if (PAUSE_WORDS.includes(said)) return { kind: "pause" };
+    if (RESUME_WORDS.includes(said)) return { kind: "resume" };
+    if (UNDO_WORDS.includes(said)) return { kind: "undo" };
+  }
+  // One word a letter off: "pausse", "resum", "contineu".
+  if (trimmed.length === 1) {
+    const [word] = trimmed;
+    if (["pause", "freeze"].some((target) => closeTo(word, target))) return { kind: "pause" };
+    if (["resume", "continue", "unpause"].some((target) => closeTo(word, target))) return { kind: "resume" };
+  }
   return null;
 }
 
@@ -337,15 +443,45 @@ const ACTION_LABELS: Record<Exclude<VoiceAction["kind"], "goto">, string> = { pa
 export function parseVoiceCommand(words: string[], context: VoiceContext, options: VoiceCommandOptions = {}): VoiceCommandResult | null {
   const { afterPause = true, awake = false } = options;
   // The wake word may also start a new sentence inside the utterance: the crew often speaks right
-  // after the anchor ("…Vikings. Teleprompter, go to the top."). Never mid-sentence. A cut out of
-  // long speech may start mid-sentence, so its first word only counts after a pause.
+  // after the anchor ("…Vikings. Teleprompter, go to the top."). A cut out of long speech may
+  // start mid-sentence, so its first word only counts after a pause.
   const sentenceStarts = words.flatMap((word, index) => (index > 0 && /[.!?]["”']?$/.test(words[index - 1]) ? [index] : []));
   const starts = afterPause || awake ? [0, ...sentenceStarts] : sentenceStarts;
+  let fallback: VoiceCommandResult | null = null;
   for (const start of starts) {
     const result = parseSentence(words.slice(start), context, awake && start === 0);
-    if (result) return result;
+    if (result?.ok) return result;
+    fallback ??= result;
   }
-  return null;
+  // Through static the models often leave out the full stop ("…Vikings teleprompter go to the
+  // top"), so a wake word mid-sentence counts too, but only for a command it understood, and
+  // not after "the" / "a" / "to" and the like ("the teleprompter is slow, go to the top").
+  for (let index = 1; index < words.length; index += 1) {
+    const before = tokensOf([words[index - 1]]).at(-1) ?? "";
+    // Straight onto the wake word: "a teleprompter" mustn't pass as a "hey" before it.
+    const first = tokensOf([words[index]])[0] ?? "";
+    if (starts.includes(index) || MENTION_BEFORE.has(before) || FILLERS.has(first)) continue;
+    const result = parseSentence(words.slice(index), context, false);
+    if (result && (result.ok || "waiting" in result)) return result;
+  }
+  return fallback;
+}
+
+/** Words before "teleprompter" that make it a mention, not a call. */
+const MENTION_BEFORE = new Set([
+  "the", "a", "an", "our", "this", "that", "new", "my", "your", "their", "his", "her", "its", "to", "of", "for", "with", "on",
+  "at", "by", "from", "about", "in", "into", "no", "any", "some", "like", "is"
+]);
+/** All that came after the wake word was the start of a command: "Teleprompter, go to…". */
+const COMMAND_OPENERS = new Set(["go", "to", "the", "jump", "skip", "scroll", "take", "me", "move", "goto", "um", "uh"]);
+
+/** Words the script says here, so the anchor reading "…tell a computer go to the top" isn't a command. */
+const SCRIPT_ECHO_TOKENS = 4;
+
+function readFromScript(tokens: string[], nearby: VoiceContext["map"]["words"]) {
+  const heard = stripLeading(tokens, FILLERS).slice(0, SCRIPT_ECHO_TOKENS);
+  const script = ` ${nearby.flatMap((word) => word.tokens).join(" ")} `;
+  return heard.length >= 3 && script.includes(` ${heard.join(" ")} `);
 }
 
 function parseSentence(words: string[], context: VoiceContext, awake: boolean): VoiceCommandResult | null {
@@ -355,7 +491,7 @@ function parseSentence(words: string[], context: VoiceContext, awake: boolean): 
     return null;
   }
   const nearby = context.map.words.slice(Math.max(0, context.cursor - 5), Math.max(0, context.cursor + 40));
-  if (nearby.some((word) => word.mentionsWakeWord)) {
+  if (nearby.some((word) => word.mentionsWakeWord) || readFromScript(tokens, nearby)) {
     return null;
   }
 
@@ -363,12 +499,16 @@ function parseSentence(words: string[], context: VoiceContext, awake: boolean): 
   const rest = stripLeading(tokens.slice(start), POLITE);
   const trimmed = stripTrailing(rest, TRAILING);
   if (trimmed.length === 0) {
-    return awake ? { ok: false, heard } : { ok: false, heard, waiting: true };
+    return awake ? { ok: false, heard } : { ok: false, heard, waiting: true, pending: words };
   }
   // As said first ("go to the thank yous" ends in "you"), then without the trailing pleasantries.
   for (const command of trimmed.length < rest.length ? [rest, trimmed] : [rest]) {
     const found = commandAction(command, context);
     if (found) return { ok: true, action: found.action, label: found.label };
+  }
+  // A pause (or a crackle) cut the command off: the rest comes in the next utterance.
+  if (trimmed.every((token) => COMMAND_OPENERS.has(token))) {
+    return { ok: false, heard, waiting: true, pending: words };
   }
   return { ok: false, heard };
 }
@@ -391,6 +531,11 @@ function commandAction(rest: string[], context: VoiceContext): { action: VoiceAc
     return { action: { kind: "goto", word: 0, label: "Top" }, label: "Top" };
   }
   const found =
-    ordinalTarget(target, context) ?? labelTarget(target, context) ?? beatTarget(target, context) ?? titleTarget(target, context);
+    ordinalTarget(target, context) ??
+    labelTarget(target, context) ??
+    beatTarget(target, context) ??
+    titleTarget(target, context) ??
+    // A misheard verb in front: "notice spirit week", "coach of spirit week".
+    (target.length >= 3 ? titleTarget(target.slice(1), context) : null);
   return found?.kind === "goto" ? { action: found, label: found.label } : null;
 }

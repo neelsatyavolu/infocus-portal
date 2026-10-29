@@ -131,6 +131,81 @@ describe("ScriptFollower", () => {
     expect(follower.target).toBe(spirit);
   });
 
+  it("moves on at a pause when the last words of an announcement weren't recognized", () => {
+    const college = wordIndexOf("College");
+    const check = wordIndexOf("check");
+    const spirit = wordIndexOf("Spirit");
+    const follower = new ScriptFollower(map, college, 0);
+    const { now } = read(follower, college, check, 0);
+    expect(follower.cursor).toBe(check);
+    // "MaiaLearning for times." through static.
+    follower.hear(["mylar", "nerds", "fur", "dine"], true, now);
+    expect(follower.target).toBeLessThan(spirit);
+    expect(follower.endOfSpeech(now + 500)).toBe(true);
+    expect(follower.target).toBe(spirit);
+    expect(follower.cursor).toBe(spirit - 1);
+    // Reading on from there follows as usual.
+    follower.hear(rawWords(spirit, spirit + 2), true, now + 1500);
+    expect(follower.cursor).toBe(spirit + 2);
+  });
+
+  it("doesn't move on at a pause mid-announcement, or with the last words unsaid", () => {
+    const college = wordIndexOf("College");
+    const follower = new ScriptFollower(map, college, 0);
+    const { now } = read(follower, college, college + 2, 0);
+    follower.hear(["um", "uh"], true, now);
+    expect(follower.endOfSpeech(now + 500)).toBe(false);
+    expect(follower.cursor).toBe(college + 2);
+
+    const check = wordIndexOf("check");
+    const paused = new ScriptFollower(map, college, 0);
+    const read2 = read(paused, college, check, 0);
+    const target = paused.target;
+    // Three words left and none said: a breath, not the end.
+    expect(paused.endOfSpeech(read2.now)).toBe(false);
+    expect(paused.target).toBe(target);
+
+    // One word left ("times."), still unsaid: a breath too.
+    const spirit = wordIndexOf("Spirit");
+    const nearEnd = new ScriptFollower(map, college, 0);
+    nearEnd.hear(rawWords(college, spirit - 2), true, 0);
+    expect(nearEnd.cursor).toBe(spirit - 2);
+    expect(nearEnd.endOfSpeech(500)).toBe(false);
+    // Said, but not recognized: the end.
+    nearEnd.hear(["dines"], true, 1000);
+    expect(nearEnd.endOfSpeech(1500)).toBe(true);
+    expect(nearEnd.target).toBe(spirit);
+  });
+
+  it("doesn't move on at a pause after banter", () => {
+    const check = wordIndexOf("check");
+    const follower = new ScriptFollower(map, wordIndexOf("College"), 0);
+    const { now } = read(follower, wordIndexOf("College"), check, 0);
+    follower.hear(["mylar", "nerds", "fur", "dine"], true, now + 4000);
+    expect(follower.endOfSpeech(now + 4500)).toBe(false);
+  });
+
+  it("finishes a toss at a pause and waits out the package", () => {
+    const toss = wordIndexOf("The", wordIndexOf("library."));
+    const recycling = wordIndexOf("recycling.");
+    const follower = new ScriptFollower(map, toss, 0);
+    const { now } = read(follower, toss, recycling - 2, 0);
+    follower.hear(["sorts", "recyc"], true, now);
+    follower.endOfSpeech(now + 500);
+    expect(follower.mode(now + 500)).toBe("package");
+    expect(follower.target).toBe(recycling);
+  });
+
+  it("picks up the next announcement from its first two words when the last ones were lost", () => {
+    const college = wordIndexOf("College");
+    const spirit = wordIndexOf("Spirit");
+    const follower = new ScriptFollower(map, college, 0);
+    const { now } = read(follower, college, wordIndexOf("check"), 0);
+    follower.hear(["spirit", "week"], true, now);
+    expect(follower.cursor).toBe(spirit + 1);
+    expect(follower.target).toBeGreaterThan(spirit);
+  });
+
   it("stops at the end of the toss instead of leading into the next story", () => {
     const toss = wordIndexOf("The", wordIndexOf("library."));
     const follower = new ScriptFollower(map, toss, 0);

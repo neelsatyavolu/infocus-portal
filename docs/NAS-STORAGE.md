@@ -21,6 +21,8 @@ Package Storage/
       Final Cut/{file}.mp4
   Publishing Queue/
     {title}/{file}.mp4               ← custom packages added from the queue
+  Teleprompter Recordings/
+    {YYYY-MM-DD}/{HHMM-id}.wav|.json ← run mode "Record for tuning": audio + Auto follow log
 
 Package Cycles/
   {Project name}/                    ← producer Packages library

@@ -22,7 +22,7 @@ A full-screen scroll with a playhead arrow near the top. The top bar has a show 
 
 **Auto** is on when run mode opens (turn it off with the **F** key or the **Auto** button, and that computer remembers). It makes the prompter follow the anchor's voice: it listens through the computer's microphone, works out which line is being read, and keeps that line at the arrow. Lines already read fade. The tag in the top bar says what it's doing:
 
-- **Following**: it hears the script and is keeping up.
+- **Following**: it hears the script and is keeping up. When the anchor pauses at the end of a story, it moves on to the next one even if the last few words weren't recognized (a name, an `@` handle), and it also moves once it hears the first couple of words of the next story.
 - **Holding**: it hears talk that isn't the script (banter, an ad-lib) and stays still.
 - **Package**: the anchor finished a toss to `{ROLL PACKAGE}` (or another `ROLL`, `SOT`, `PKG` or `PLAY` cue). It waits there and moves when the anchor reads the start of the next story, so the package's own audio can't move it. After 15 seconds it also accepts a full sentence from later in the show, in case the next story was cut.
 - **Searching**: it lost the place for a few seconds and looks across the whole show; reading a sentence of script picks it back up.
@@ -36,23 +36,25 @@ Taking over by hand always works: Space stops the script where it is, and any ar
 
 ### Voice commands
 
-While Auto is on, the crew can steer by voice. Start with **"Teleprompter,"** (after a pause, or right after the anchor finishes a sentence), then one command. Pausing after "Teleprompter" is fine: the top bar shows **Listening for a command…** and the next thing said within 5 seconds is taken as the command. A "please" or "thank you" at the end is ignored.
+While Auto is on, the crew can steer by voice. Start with **"Teleprompter,"** (after a pause, or right after the anchor finishes a sentence), then one command. Pausing after "Teleprompter" (or after "Teleprompter, go to…") is fine: the top bar shows **Listening for a command…** and the next thing said within 5 seconds finishes the command. A "please" or "thank you" at the end is ignored. Commands are understood even when static garbles them; it knows the ways the speech model mishears "teleprompter" and the commands through a noisy line feed.
 
 | Say | Does |
 |---|---|
 | Teleprompter, go to the top (also: top, from the top, back to the top, start over, restart, the beginning) | Top of the show |
-| Teleprompter, go to the first (second, third, last) announcement | That announcement in the bulletin |
+| Teleprompter, go to the first (second, third, last) announcement / announcement number two | That announcement in the bulletin |
 | Teleprompter, go to A3 / the open / the announcements / the package / the thank yous / the closing | That section |
 | Teleprompter, go to spirit week | The story that starts with those words |
-| Teleprompter, next / back | Next story; back to the start of this one (or the one before) |
+| Teleprompter, next (skip, move on) / back (previous) | Next story; back to the start of this one (or the one before) |
 | Teleprompter, line back | Up a line |
 | Teleprompter, go up a little / go down a little | Up or down 2 lines ("a line", "a few lines" and "three lines" work too) |
-| Teleprompter, pause / resume | Hold still / follow again |
-| Teleprompter, undo | Undo the last jump |
+| Teleprompter, pause (stop, hold on, hang on) / resume (continue, keep going, go ahead) | Hold still / follow again |
+| Teleprompter, undo (oops, not that one) | Undo the last jump |
 
-The top bar shows what it did (**✓ Top**) or **? Didn't catch that** for a few seconds. "Teleprompter" only counts at the start of a sentence, so talking *about* the teleprompter ("the teleprompter is slow") does nothing, and while the script itself says "teleprompter" nearby, commands are ignored. "Prompter, …" also works.
+The top bar shows what it did (**✓ Top**) or **? Didn't catch that** for a few seconds. "Teleprompter" counts at the start of a sentence, or mid-sentence when a command it understands follows. Talking *about* the teleprompter ("the teleprompter is slow", "we have a teleprompter") does nothing, and while the script itself says "teleprompter" nearby, commands are ignored. "Prompter, …" also works.
 
-**Settings → Auto follow** picks the microphone, the channel (**Both**, or **Input 1** / **Input 2** on a two-input audio interface), a **Second microphone** (for example one USB mic per anchor; both are mixed together, and a two-input interface with **Both** does the same), and the model (**Fast**, the default, or **Accurate**, which is slower). The meter shows the input level; it turns green while it hears someone talking, and the white mark is where it starts counting sound as speech (it adjusts to the room by itself). If it says **Too loud**, the input is distorting: turn down the output the computer gets (for example the audio board's monitor out). Hum and short clicks of static are filtered out. Speech recognition runs in Chrome on that computer: audio isn't sent anywhere. Use Chrome; the first use asks for microphone permission.
+**Settings → Auto follow** picks the microphone, the channel (**Both**, or **Input 1** / **Input 2** on a two-input audio interface), a **Second microphone** (for example one USB mic per anchor; both are mixed together, and a two-input interface with **Both** does the same), and the model (**Fast**, the default, or **Accurate**, which is slower). The meter shows the input level; it turns green while it hears someone talking, and the white mark is where it starts counting sound as speech (it adjusts to the room by itself). If it says **Too loud**, the input is distorting: turn down the output the computer gets (for example the audio board's monitor out). Hum and short clicks of static are filtered out. Speech recognition runs in Chrome on that computer: audio isn't sent anywhere unless someone records (below). Use Chrome; the first use asks for microphone permission.
+
+**Settings → Auto follow → Record for tuning** records a show so Auto follow can be improved: anyone running the prompter can press **Start recording** while Auto is listening (tell the anchors first). The top bar shows **● REC** with the time while it records. **Stop and save** (or turning Auto off, leaving run mode, or an hour passing) uploads two files to InFocus Drive, in `Package Storage/Teleprompter Recordings/<date>/`: a `.wav` of exactly what the speech model heard, and a `.json` log of what it understood, where it was in the script, and every voice command. If Drive can't be reached, Settings offers **Try again**, **Save to this computer** and **Discard**, and a new recording can't start until one of those is done. If run mode was closed before the save failed, the files download to that computer instead. Closing the tab while a recording isn't saved yet asks first.
 
 | Key | Action |
 |---|---|

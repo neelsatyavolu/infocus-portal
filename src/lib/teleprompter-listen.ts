@@ -132,13 +132,19 @@ export function agreedPrefix(previous: string[], next: string[]) {
   return count;
 }
 
+/** What the models write for sounds that aren't words: "[BLANK_AUDIO]", "(static)", "*crackling*", "♪". */
+const NON_SPEECH = /\[[^\]]*\]|\([^)]*\)|\*[^*]*\*|[♪♫]+/g;
+
 export function splitWords(text: string) {
-  return text.trim().split(/\s+/).filter(Boolean);
+  return text.replace(NON_SPEECH, " ").trim().split(/\s+/).filter(Boolean);
 }
 
 export type TranscriptUpdate = { words: string[]; final: boolean };
-/** One finished utterance, all its words; `afterPause` unless it was cut out of long speech. */
-export type Utterance = { words: string[]; afterPause: boolean };
+/**
+ * One finished utterance, all its words. `afterPause` unless it was cut out of long speech;
+ * `endedAtPause` when the speaker stopped (rather than a cut).
+ */
+export type Utterance = { words: string[]; afterPause: boolean; endedAtPause: boolean };
 
 export type TranscriberOptions = {
   /** Samples per pushed block (100 ms at 16 kHz is 1600). */
@@ -151,7 +157,15 @@ export type TranscriberOptions = {
   onUtterance?: (utterance: Utterance) => void;
 };
 
-type Speech = { blocks: Float32Array[]; levels: number[]; committed: number; previous: string[]; ended: boolean; afterPause: boolean };
+type Speech = {
+  blocks: Float32Array[];
+  levels: number[];
+  committed: number;
+  previous: string[];
+  ended: boolean;
+  afterPause: boolean;
+  endedAtPause: boolean;
+};
 
 /** Reads are one at a time, so this is the fastest re-read; a slow model just reads less often. */
 const STEP_MS = 250;
@@ -212,7 +226,8 @@ export class StreamingTranscriber {
         committed: 0,
         previous: [],
         ended: false,
-        afterPause: event === "start" || this.cutAtPause
+        afterPause: event === "start" || this.cutAtPause,
+        endedAtPause: false
       };
       this.preroll = [];
       this.blocksSinceDecode = 0;
@@ -223,6 +238,7 @@ export class StreamingTranscriber {
       if (event === "end" || this.shouldCut(this.current)) {
         // A cut at a quiet block is a short pause between sentences or speakers, not mid-word.
         this.cutAtPause = event !== "end" && db < this.gate.thresholdDb;
+        this.current.endedAtPause = event === "end";
         this.finish(this.current);
         this.current = null;
       }
@@ -314,7 +330,7 @@ export class StreamingTranscriber {
     }
     this.options.onWords({ words: [], final: false });
     if (words.length > 0) {
-      this.options.onUtterance?.({ words, afterPause: utterance.afterPause });
+      this.options.onUtterance?.({ words, afterPause: utterance.afterPause, endedAtPause: utterance.endedAtPause });
     }
   }
 

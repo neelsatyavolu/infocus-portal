@@ -14,6 +14,7 @@ const PACKAGES_ROOT = "Package Cycles";
 const CYCLE_STORAGE_ROOT = "Package Storage";
 const CUSTOM_QUEUE_FOLDER = "Publishing Queue";
 const SHOW_UPLOAD_FOLDER = "Shows";
+const TELEPROMPTER_RECORDING_FOLDER = "Teleprompter Recordings";
 
 export type NasUploadSession = {
   provider: "NAS";
@@ -122,6 +123,11 @@ export function buildShowNasPath(input: { showDate: string; fileName: string; st
   const base = sanitizeSegment(rawName.replace(/\.[^/.]+$/, ""), "") || "show";
   const ext = sanitizeSegment((rawName.match(/\.([^.]+)$/)?.[1] || "mp4").toLowerCase(), "mp4").replace(/^\./, "");
   return [CYCLE_STORAGE_ROOT, SHOW_UPLOAD_FOLDER, input.showDate, `${base}-${input.stamp}.${ext}`].join("/");
+}
+
+/** Teleprompter Auto follow recordings: `Package Storage/Teleprompter Recordings/<YYYY-MM-DD>/<id>.<wav|json>`. */
+export function buildTeleprompterRecordingNasPath(input: { dateKey: string; recordingId: string; ext: "wav" | "json" }): string {
+  return [CYCLE_STORAGE_ROOT, TELEPROMPTER_RECORDING_FOLDER, input.dateKey, `${input.recordingId}.${input.ext}`].join("/");
 }
 
 export function isNasStorageEnabled(): boolean {

@@ -4,7 +4,9 @@ import type { FollowMode } from "@/src/lib/teleprompter-align";
 import type { VoiceCommandResult } from "@/src/lib/teleprompter-voice-commands";
 import { cn } from "@/src/lib/utils";
 import { SPEECH_MODELS, listMicrophones, type ListenerLevel, type ListenerStatus, type MicChannel } from "./teleprompter-listener";
+import { RecordingSection } from "./teleprompter-recording-panel";
 import type { AutoFollowSettings } from "./use-auto-follow";
+import type { PrompterRecordingControls } from "./use-prompter-recording";
 
 /*
  * Auto follow's pieces of run-mode chrome: the status tag in the top bar and the settings section
@@ -218,13 +220,15 @@ export function AutoFollowSettingsSection({
   settings,
   onChange,
   status,
-  levelRef
+  levelRef,
+  recording
 }: {
   enabled: boolean;
   settings: AutoFollowSettings;
   onChange: (update: (current: AutoFollowSettings) => AutoFollowSettings) => void;
   status: ListenerStatus | null;
   levelRef: RefObject<ListenerLevel | null>;
+  recording: PrompterRecordingControls;
 }) {
   const [mics, setMics] = useState<Array<{ id: string; label: string }>>([]);
   const listening = status?.phase === "listening";
@@ -321,6 +325,7 @@ export function AutoFollowSettingsSection({
         Voice: say <span className="text-soft-white">“Teleprompter, …”</span> go to the top · go to the second announcement · go
         to A3 / the closing · go to spirit week · next · back · line back · pause · resume · undo
       </p>
+      <RecordingSection recording={recording} />
     </div>
   );
 }

@@ -24,6 +24,7 @@ import {
 import { cn } from "@/src/lib/utils";
 import { followTargetY } from "./follow-target-y";
 import { AutoFollowButton, AutoFollowOverlay, AutoFollowSettingsSection, AutoFollowTag } from "./teleprompter-auto-follow-panel";
+import { RecordingTag } from "./teleprompter-recording-panel";
 import type { TeleprompterDoc, TeleprompterSection } from "./teleprompter-model";
 import { readAutoFollowOn, saveAutoFollowOn, useAutoFollow } from "./use-auto-follow";
 import { BAR_BUTTON_CLASS, BAR_CLASS, BAR_PANEL_TOP_CLASS, BAR_SELECT_CLASS, RUN_MODE_ROOT_CLASS } from "./teleprompter-run-mode-chrome";
@@ -379,8 +380,9 @@ export default function FullscreenRunMode({
     cursor: followCursor,
     levelRef: followLevelRef,
     targetRef: followTargetRef,
-    anchor: followFrom
-  } = useAutoFollow({ wordMap, sections: doc.sections, enabled: auto, wordAtPlayhead });
+    anchor: followFrom,
+    recording
+  } = useAutoFollow({ doc, wordMap, sections: doc.sections, enabled: auto, wordAtPlayhead });
   // Lines above the word being read fade (only while following).
   const reading = readingLineOf(wordMap, followCursor);
 
@@ -603,6 +605,7 @@ export default function FullscreenRunMode({
 
         {/* Status slot: following or paused, and how fast, readable from the operator's seat. */}
         <div className="flex shrink-0 items-center gap-2">
+          <RecordingTag state={recording.state} />
           <span role="status" className="flex">
             {auto ? (
               <AutoFollowTag status={followStatus} mode={followMode} command={followCommand} />
@@ -679,6 +682,7 @@ export default function FullscreenRunMode({
             onChange={setFollowSettings}
             status={followStatus}
             levelRef={followLevelRef}
+            recording={recording}
           />
           <div className="border-t border-[#2B302B] p-3">
             <div className="mb-2 flex items-center justify-between gap-3 text-[11px] font-medium uppercase tracking-[0.11em] text-[#DCE2DE]">

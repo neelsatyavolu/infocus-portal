@@ -9,14 +9,16 @@ Built by [Neel Satyavolu](https://n3el.dev). It runs in production for the class
 - **Package cycles**: Each group moves through pitch → proof of contact → A-roll/B-roll → initial cut → final cut. There's a three-stage approval chain (assigned producer → adviser → executive producers), deadlines, extension requests, and late penalties.
 - **Video review**: Frame-accurate comments on uploaded cuts, version history, and needs-changes / approve flows. Uploads are resumable and served from a self-hosted NAS ("InFocus Drive"), with an H.264 proxy for camera originals.
 - **Grades**: Check-in, livestream, participation, and final-cut scores that release per stage. There's a Grade Editor for producers and a gradebook for students.
-- **The Show**: Master calendar, anchor and cast rotation, show-manager rotation, and a publishing queue that auto-assigns finished packages to upcoming shows and schedules YouTube uploads.
-- **Teleprompter**: Script builder with AI-assisted announcement rewrites and a kiosk mode for the studio Mac.
-- **Portal assistant**: A chat assistant (Gemini, with Groq fallback) that answers from `docs/knowledge/` and looks up groups and grades with role-gated tools.
-- **Also included**: Announcements, class board, group messages, equipment checkout with passkeys, a shared password vault, web push and email notifications, and hourly database backups.
+- **The Show**: Master calendar, anchor and cast rotation, show-manager rotation, and a publishing queue that auto-assigns finished packages to upcoming shows, schedules YouTube uploads, and posts them to infocusnews.tv.
+- **Automatic editing**: A studio Mac running [InFocus Editor](https://github.com/neelsatyavolu/infocus-editor) cuts each recorded show. Producers watch the edit on the Editing tab, then approve and schedule it or send it back with notes.
+- **Teleprompter**: Script builder with AI reformatting, Auto follow (tracks the anchor's voice with speech recognition in Chrome), voice commands, and a kiosk mode for the studio Mac.
+- **Meetings**: Private video meetings for producers on their own `meet.` host, with notes taken on InFocus Drive.
+- **Portal assistant**: A chat assistant (NVIDIA NIM, with free OpenRouter models as fallback) that answers from `docs/knowledge/` and looks up groups and grades with role-gated tools.
+- **Also included**: Announcements, class board (posted to Slack three times a week), group messages, equipment checkout with passkeys, a shared password vault, web push and email notifications, the API behind the InFocus Portal iPhone app, and hourly database backups.
 
 ## Stack
 
-Next.js 15 (App Router) · React 19 · TypeScript · Prisma + Postgres · Tailwind + shadcn/ui · Inngest (background jobs) · Resend (email) · Web Push · Vitest. Deployed on Vercel.
+Next.js 16 (App Router) · React 19 · TypeScript · Prisma + Postgres · Tailwind + shadcn/ui · Inngest (background jobs) · Resend (email) · Web Push · Vitest. Deployed on Cloudflare Workers with OpenNext.
 
 ## Getting started
 
@@ -29,7 +31,7 @@ npm run db:push            # create the schema
 npm run dev
 ```
 
-Only `DATABASE_URL`, `APP_AUTH_SECRET`, and Google OAuth are needed to sign in. Every integration (Drive/NAS, Gemini, Slack, YouTube, R2 backups, web push) is optional and switches off when its variables are unset. See [`docs/ENVIRONMENT.md`](docs/ENVIRONMENT.md).
+Only `DATABASE_URL`, `APP_AUTH_SECRET`, and Google OAuth are needed to sign in. Every integration (Drive/NAS, the AI assistant, Slack, YouTube, R2 backups, web push, meetings) is optional and switches off when its variables are unset. See [`docs/ENVIRONMENT.md`](docs/ENVIRONMENT.md).
 
 Staff identities live in env vars, not in the code:
 
@@ -48,19 +50,21 @@ Staff identities live in env vars, not in the code:
 | Lint | `npm run lint` |
 | Tests | `npm run test` |
 | Build | `npm run build` |
+| Cloudflare build | `npm run cf:build` |
+
+Pushes to `master` deploy to Cloudflare Workers through [`.github/workflows/deploy-cloudflare.yml`](.github/workflows/deploy-cloudflare.yml). The build runs from a clean checkout because the OpenNext build embeds any local `.env` values into the Worker bundle.
 
 Class rules (roles, approval chain, grading, extensions) are in [`docs/class-rules-2026-27.md`](docs/class-rules-2026-27.md). The product documentation used by the assistant is in [`docs/knowledge/`](docs/knowledge/README.md).
 
 ## Privacy & analytics
 
-The site uses two cookieless page-view counters:
+The site uses cookieless page-view counters:
 
-- **Vercel Analytics and Speed Insights**: page views and performance metrics, collected by Vercel.
-- **n3el analytics**: a small script from `analytics.n3el.dev`, run by the developer. It sends only the hostname, the page path (query strings removed, IDs replaced, only the first two path segments kept), and the referring site. It sets no cookies, stores no IP addresses, and sends no names, emails, grades, or content. Guest review links (`/g/…`) are not counted.
+- **n3el analytics**: a small script from `analytics.n3el.dev`, run by the developer. It sends only the hostname, the page path (query strings removed, IDs replaced, only the first two path segments kept), and the referring site. It sets no cookies, stores no IP addresses, and sends no names, emails, grades, or content. - **Vercel Analytics and Speed Insights**: page views and performance metrics, collected by Vercel. These load only when the site is built on Vercel, so the Cloudflare deployment does not use them.
 
-Neither loads on guest review links (`/g/…`) or meeting pages (`/meet/…`, `/meet-scribe`).
+None of them load on guest review links (`/g/…`), meeting pages (`/meet/…`, `/meet-scribe`), or the Meetings host.
 
-Neither sets cookies or identifies visitors, so there is nothing to opt out of per account.
+None of them set cookies or identify visitors, so there is nothing to opt out of per account.
 
 ## Security
 

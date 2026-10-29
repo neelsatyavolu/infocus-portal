@@ -52,7 +52,7 @@ Apple App Review demo account (`src/lib/app-review.ts`): `APP_REVIEW_EMAIL` is t
 
 ## Slack
 
-`SLACK_BOT_TOKEN`, `SLACK_PROOF_OF_CONTACT_WEBHOOK_URL`, `SLACK_PROOF_OF_CONTACT_CHANNEL`, `SLACK_ANNOUNCEMENTS_CHANNEL`, `SLACK_CLASS_BOARD_CHANNEL` (channel ID for the Class Board standings post, Mon/Wed/Fri 7 PM Pacific; unset posts nothing. The bot needs `files:write` and, for @mentions, `users:read.email`).
+`SLACK_BOT_TOKEN`, `SLACK_PROOF_OF_CONTACT_WEBHOOK_URL`, `SLACK_PROOF_OF_CONTACT_CHANNEL`, `SLACK_ANNOUNCEMENTS_CHANNEL`, `SLACK_CLASS_BOARD_CHANNEL` (channel ID for the Class Board progress post, Mon/Wed/Fri 7 PM Pacific; unset posts nothing. The bot needs `files:write`).
 
 ## YouTube publishing
 

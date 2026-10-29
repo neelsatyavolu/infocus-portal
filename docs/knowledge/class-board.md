@@ -54,6 +54,6 @@ If the board fails to load, it shows **The board didn't load** with **Try again*
 
 When mirroring a Mac to the classroom TV, open the board in a full-screen browser. If black bars surround the entire mirrored desktop, choose the TV as the display to optimize for in macOS **System Settings → Displays**. The board can fill the browser viewport, but cannot change the mirrored display's resolution or remove bars outside that viewport. See [Apple's TV display instructions](https://support.apple.com/guide/mac-help/mchlp1206/mac).
 
-## Standings in Slack
+## Cycle progress in Slack
 
-Every Monday, Wednesday and Friday at 7:00 PM Pacific, the InFocus Slack bot posts the Class Board standings to the channel set in `SLACK_CLASS_BOARD_CHANNEL`. The message lists the top three places (🥇 🥈 🥉; packages tied on the board share a medal) with each package's topic and its members @mentioned, plus a **See the full board** link. It doesn't name the AP or show the status. A picture of the whole race (every package's place, stage dots and status) is attached. A member whose Portal email doesn't match a Slack account appears as plain text instead of a mention. Nothing is posted on a no-school day, when the cycle has no packages, or when no channel is set.
+Every Monday, Wednesday and Friday at 7:00 PM Pacific, the InFocus Slack bot posts **Cycle N Progress** to the channel set in `SLACK_CLASS_BOARD_CHANNEL`: the heading, a **See the full board** link, and a picture of the whole race (every package's place, stage dots and status). The message doesn't list packages, members or medals. Nothing is posted on a no-school day, when the cycle has no packages, or when no channel is set.

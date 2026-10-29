@@ -210,7 +210,7 @@ export function ClassBoardSlackImage({
             <div style={{ width: 14, height: 14, borderRadius: 999, background: RECORD_RED }} />
             CLASS BOARD
           </div>
-          <span style={{ fontSize: 46, fontWeight: 600, marginTop: 10 }}>{`Cycle ${cycleNumber} standings`}</span>
+          <span style={{ fontSize: 46, fontWeight: 600, marginTop: 10 }}>{`Cycle ${cycleNumber} Progress`}</span>
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 12 }}>
           <img src={wordmark} alt="" width={Math.round(54 * WORDMARK_RATIO)} height={54} />

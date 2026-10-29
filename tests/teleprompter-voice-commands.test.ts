@@ -79,6 +79,8 @@ describe("parseVoiceCommand", () => {
     expect(gotoWord("Teleprompter, go to the closing")).toBe(first("That"));
     expect(gotoWord("Teleprompter, go to the announcements")).toBe(first("College"));
     expect(gotoWord("Teleprompter, go to the package")).toBe(first("The"));
+    expect(gotoWord("Teleprompter, go to the toss")).toBe(first("The"));
+    expect(gotoWord("Teleprompter, go to the package toss")).toBe(first("The"));
     expect(gotoWord("Teleprompter, go to the open")).toBe(0);
   });
 

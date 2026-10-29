@@ -42,7 +42,7 @@ While Auto is on, the crew can steer by voice. Start with **"Teleprompter,"** (a
 |---|---|
 | Teleprompter, go to the top (also: top, from the top, back to the top, start over, restart, the beginning) | Top of the show |
 | Teleprompter, go to the first (second, third, last) announcement / announcement number two | That announcement in the bulletin |
-| Teleprompter, go to A3 / the open / the announcements / the package / the thank yous / the closing | That section |
+| Teleprompter, go to A3 / the open / the announcements / the package (or the toss) / the thank yous / the closing | That section |
 | Teleprompter, go to spirit week | The story that starts with those words |
 | Teleprompter, next (skip, move on) / back (previous) | Next story; back to the start of this one (or the one before) |
 | Teleprompter, line back | Up a line |

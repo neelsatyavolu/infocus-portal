@@ -78,7 +78,7 @@ const TOP_FILLER = new Set([
 const BEATS: Array<{ say: string[][]; beat: string }> = [
   { say: [["open"], ["opening"], ["intro"]], beat: "open" },
   { say: [["bulletin"], ["announcements"]], beat: "bulletin" },
-  { say: [["package"], ["packages"]], beat: "package" },
+  { say: [["package"], ["packages"], ["toss"], ["tosses"], ["package", "toss"]], beat: "package" },
   { say: [["thank", "yous"], ["thank", "you"], ["thanks"], ["thank", "you", "s"], ["thankyous"], ["thank", "use"]], beat: "thanks" },
   { say: [["closing"], ["close"], ["outro"], ["end"], ["sign", "off"], ["signoff"], ["goodbye"]], beat: "closing" }
 ];

@@ -73,6 +73,8 @@ export type ShowEditView = {
   stage: ShowEditStage | null;
   message: string | null;
   note: string | null;
+  /** "Re-set the anchors on the virtual set" was ticked for this edit. */
+  recomposite: boolean;
   /** The publish time picked with the instructions (ISO); null means the usual 8:30 AM on show day. */
   publishAt: string | null;
   outputNasPath: string | null;

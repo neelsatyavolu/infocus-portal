@@ -20,7 +20,7 @@ import {
 import { editSummaryStatus } from "@/src/lib/show-editor-views";
 import type { EditedShow } from "../show-roles/show-upload-dialog";
 import {
-  approveLine, AUTO_SCHEDULE_NOTE, DebugLogLinks, DetectedStructure, FixHistory, FlaggedDecisions, LINK_CLASS, pacificTime, RedoControl,
+  approveLine, AUTO_SCHEDULE_NOTE, DebugLogLinks, DetectedStructure, FixHistory, FlaggedDecisions, LINK_CLASS, pacificTime, RecompositeCheckbox, RedoControl,
   SendBackForm, sentLine, structureDecisions
 } from "./show-edit-parts";
 import { chaptersOf } from "@/src/lib/show-chapters";
@@ -141,7 +141,7 @@ function PublishTimeFields({ showDate, slot, disabled, onChange }: {
 function StartRow({ showDate, selected, selectionError, packages, announcements, busy, starting, online, onStart }: {
   showDate: string; selected: ShowEditSource[]; selectionError: string | null; packages: QueuedPackageView[];
   announcements: number | null; busy: boolean; starting: boolean; online: boolean;
-  onStart: (note: string, publish: PublishSlot | null) => void;
+  onStart: (note: string, publish: PublishSlot | null, recomposite: boolean) => void;
 }) {
   const packageLine = packageNote(packages);
   const announcementLine = announcementNote(announcements);
@@ -149,13 +149,14 @@ function StartRow({ showDate, selected, selectionError, packages, announcements,
   // Optional instructions for this edit; the editor follows them over the house rules.
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState("");
+  const [recomposite, setRecomposite] = useState(false);
   const [slot, setSlot] = useState<PublishSlot>({ date: showDate, time: SHOW_PUBLISH_TIME });
   // Only a changed, complete date and time is sent; otherwise the show keeps the usual time.
   const changed = open && slot.date && slot.time && (slot.date !== showDate || slot.time !== SHOW_PUBLISH_TIME) ? slot : null;
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="button" disabled={busy || selectionError !== null} onClick={() => onStart(open ? note.trim() : "", changed)}>
+        <Button type="button" disabled={busy || selectionError !== null} onClick={() => onStart(open ? note.trim() : "", changed, recomposite)}>
           {starting ? <Loader2 className="animate-spin" aria-hidden /> : <Wand2 aria-hidden />}
           Start automatic editing
         </Button>
@@ -184,6 +185,7 @@ function StartRow({ showDate, selected, selectionError, packages, announcements,
         </label>
       ) : null}
       {open ? <PublishTimeFields showDate={showDate} slot={slot} disabled={busy} onChange={setSlot} /> : null}
+      <RecompositeCheckbox checked={recomposite} disabled={busy} onChange={setRecomposite} />
       <InlineNote tone={announcementLine.tone === "warning" ? "warning" : "muted"}>
         {announcementLine.text}{" "}
         {announcementLine.tone === "warning" ? (
@@ -374,14 +376,21 @@ export function EditingShowView({ showDate, state, busyAction, send, onReview }:
             busy={busy}
             starting={busyAction === "start"}
             online={state.worker.online}
-            onStart={(note, publish) => void send(
-              { action: "start", date: showDate, sources: selected, ...(note ? { note } : {}), ...(publish ? { publish } : {}) },
+            onStart={(note, publish, recomposite) => void send(
+              {
+                action: "start", date: showDate, sources: selected, ...(note ? { note } : {}), ...(publish ? { publish } : {}),
+                ...(recomposite ? { recomposite: true } : {})
+              },
               "Automatic editing queued."
             )}
           />
         ) : null}
         {(job?.status === "FAILED" || job?.status === "REVIEW") && !sentToYouTube ? (
-          <RedoControl busy={busy} onRedo={(note) => send({ action: "redo", id: job.id, ...(note ? { note } : {}) }, "Starting the edit over.")} />
+          <RedoControl
+            busy={busy}
+            recomposite={job.recomposite}
+            onRedo={(note, recomposite) => send({ action: "redo", id: job.id, ...(note ? { note } : {}), recomposite }, "Starting the edit over.")}
+          />
         ) : null}
       </Panel>
       {job && (job.status === "REVIEW" || (job.status === "PUBLISHED" && sentToYouTube)) ? (

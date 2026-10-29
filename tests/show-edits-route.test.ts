@@ -148,6 +148,17 @@ describe("show edits route", () => {
     expect(mocks.start).not.toHaveBeenCalled();
   });
 
+  it("start and redo pass the re-composite checkbox through, and refuse anything but true or false", async () => {
+    mocks.start.mockResolvedValue({ id: "job1" });
+    mocks.redo.mockResolvedValue({ id: "job2" });
+    const sources = [{ path: "Shows/a.mov", role: "auto" }];
+    await POST(post({ action: "start", date: "2026-10-21", sources, recomposite: true }));
+    expect(mocks.start).toHaveBeenCalledWith(expect.objectContaining({ recomposite: true }));
+    await POST(post({ action: "redo", id: "job1", recomposite: false }));
+    expect(mocks.redo).toHaveBeenCalledWith(expect.objectContaining({ id: "job1", recomposite: false }));
+    expect((await POST(post({ action: "start", date: "2026-10-21", sources, recomposite: "yes" }))).status).toBe(400);
+  });
+
   it("redo takes an optional note of at most 500 characters", async () => {
     expect((await POST(post({ action: "redo", id: "job1", note: "x".repeat(501) }))).status).toBe(400);
     mocks.redo.mockResolvedValue({ id: "job2" });

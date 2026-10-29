@@ -1794,6 +1794,8 @@ model ShowEditJob {
   message         String?
   /// The producer's Redo note, passed to the agent as quoted data.
   note            String?
+  /// "Re-set the anchors on the virtual set": the editor cuts the anchors out and seats them on the clean set.
+  recomposite     Boolean   @default(false)
   /// When the show goes public, picked with the instructions; null means the usual 8:30 AM on show day.
   publishAt       DateTime?
   /// Where the current (or in-progress) version is uploaded; the poster sits beside it.

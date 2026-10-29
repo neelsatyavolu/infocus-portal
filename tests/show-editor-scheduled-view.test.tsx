@@ -9,7 +9,7 @@ const PUBLISH_AT = "2026-10-23T15:30:00.000Z";
 
 function job(overrides: Partial<ShowEditView> = {}): ShowEditView {
   return {
-    id: "job1", showDate: SHOW, sources: [], status: "PUBLISHED", stage: null, message: null, note: "Use the later open.", publishAt: null,
+    id: "job1", showDate: SHOW, sources: [], status: "PUBLISHED", stage: null, message: null, note: "Use the later open.", recomposite: false, publishAt: null,
     outputNasPath: "Package Storage/Shows/2026-10-23/edit.mp4",
     decisions: [
       { kind: "structure", detail: "1 recording: r1 program", flagged: false },

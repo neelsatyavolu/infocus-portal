@@ -34,7 +34,9 @@ describe("story helpers", () => {
     expect(storySchedule("2026-10-27", now)).toEqual({ status: "publish", at: now });
   });
   it("embeds the video above the story and hides the thumbnail on the story page", () => {
-    expect(storyMeta(VIDEO)).toEqual({ video: youtubeEmbedCode(VIDEO), videolocation: "Above Story", featureimage: "Do Not Display" });
+    expect(storyMeta(VIDEO, "Abby Lane")).toEqual({ video: youtubeEmbedCode(VIDEO), videolocation: "Above Story", featureimage: "Do Not Display",
+      writer: "Abby Lane" });
+    expect(storyMeta(VIDEO).writer).toBe("");
     expect(youtubeThumbnailUrls(VIDEO)[0]).toBe(`https://i.ytimg.com/vi/${VIDEO}/maxresdefault.jpg`);
     expect(() => youtubeThumbnailUrls("../bad")).toThrow();
   });
@@ -130,7 +132,7 @@ describe("advanceWordpressStory", () => {
     const outcome = await advanceWordpressStory(publication, context, now);
     expect(mocks.upload).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ filename: `infocus-${VIDEO}.jpg`, title: "Downtown Game Shop" }));
     expect(mocks.draft).toHaveBeenCalledWith(expect.anything(),
-      { title: "Downtown Game Shop", categories: [6], writers: [31, 33], featuredMedia: 55, meta: storyMeta(VIDEO) });
+      { title: "Downtown Game Shop", categories: [6], writers: [31, 33], featuredMedia: 55, meta: storyMeta(VIDEO, "Abby Lane") });
     expect(mocks.createStaffName).toHaveBeenCalledExactlyOnceWith(expect.anything(), "Otto Reyes");
     expect(mocks.schedule).toHaveBeenCalledWith(expect.anything(), 900, { status: "future", dateGmt: "2026-10-27T16:05:00" });
     expect(outcome).toEqual({ status: "POSTED", postId: 900, url: "https://news.example.edu/downtown-game-shop/",
@@ -149,7 +151,7 @@ describe("advanceWordpressStory", () => {
   it("posts without bylines when the package has no members", async () => {
     await advanceWordpressStory(publication, { ...context, writers: [] }, now);
     expect(mocks.staffNames).not.toHaveBeenCalled();
-    expect(mocks.draft).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ writers: [] }));
+    expect(mocks.draft).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ writers: [], meta: storyMeta(VIDEO) }));
   });
 
   it("files under News when the model's answer is unusable", async () => {

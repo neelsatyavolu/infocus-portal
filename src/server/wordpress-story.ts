@@ -1,6 +1,6 @@
 import { prisma } from "@/src/lib/prisma";
 import { buildCategoryMessages, FALLBACK_CATEGORY_SLUG, findStaffName, parseCategoryReply, pickableCategories, samePerson, storyMeta,
-  storySchedule, tossReporterNames, youtubeThumbnailUrls } from "@/src/lib/wordpress-story";
+  storySchedule, tossReporterNames, youtubeThumbnailUrls, type WordpressStaffName } from "@/src/lib/wordpress-story";
 import { createWordpressDraft, createWordpressStaffName, findWordpressPostByVideo, listWordpressCategories, listWordpressStaffNames,
   scheduleWordpressPost, uploadWordpressImage, wordpressConfig, WordpressError, type WordpressConfig } from "@/src/server/wordpress-client";
 import { workersAiConfig, workersAiJsonChat } from "@/src/server/workers-ai";
@@ -40,10 +40,7 @@ export async function advanceWordpressStory(publication: StoryPublication, conte
     let postId = publication.wordpressPostId;
     if (postId === null) {
       // A lost response can leave a draft this user already made for the video.
-      const draft = await findWordpressPostByVideo(config, publication.videoId) ?? await createWordpressDraft(config, {
-        title: publication.title, categories: categoryId === null ? [] : [categoryId], writers: await writerBylines(config, context),
-        featuredMedia: mediaId, meta: storyMeta(publication.videoId)
-      });
+      const draft = await findWordpressPostByVideo(config, publication.videoId) ?? await createDraft(config, publication, categoryId, mediaId, context);
       if (typeof draft.meta?.video !== "string" || !draft.meta.video.includes(publication.videoId)) {
         throw new StoryError(`infocusnews.tv did not save the video embed code, so draft ${draft.id} was left unpublished. SNO must let the API set story fields.`);
       }
@@ -80,6 +77,14 @@ async function chooseCategory(config: WordpressConfig, publication: StoryPublica
   return categories.find((category) => category.slug === FALLBACK_CATEGORY_SLUG)?.id ?? null;
 }
 
+async function createDraft(config: WordpressConfig, publication: StoryPublication, categoryId: number | null, mediaId: number, context: StoryContext) {
+  const bylines = await writerBylines(config, context);
+  return createWordpressDraft(config, {
+    title: publication.title, categories: categoryId === null ? [] : [categoryId], writers: bylines.map((byline) => byline.id),
+    featuredMedia: mediaId, meta: storyMeta(publication.videoId, bylines[0]?.name)
+  });
+}
+
 /**
  * Bylines for the members, adding one for anyone the site doesn't have yet, plus reporters the toss names who are not on the
  * roster. A toss name is only credited when the site or the Portal already knows the person, so a typo never becomes a byline.
@@ -88,8 +93,10 @@ async function writerBylines(config: WordpressConfig, context: StoryContext) {
   const fromToss = tossReporterNames(context.toss).filter((name) => !context.writers.some((member) => samePerson(member, name)));
   if (!context.writers.length && !fromToss.length) return [];
   const staffNames = await listWordpressStaffNames(config);
-  const ids: number[] = [];
-  for (const name of context.writers) ids.push(findStaffName(name, staffNames)?.id ?? await createWordpressStaffName(config, name));
+  const bylines: WordpressStaffName[] = [];
+  for (const name of context.writers) {
+    bylines.push(findStaffName(name, staffNames) ?? { id: await createWordpressStaffName(config, name), name });
+  }
   const unknown = fromToss.filter((name) => !findStaffName(name, staffNames));
   const users = unknown.length
     ? (await prisma.user.findMany({ where: { name: { not: null } }, select: { name: true } })).flatMap(({ name }) => name ? [{ id: 0, name }] : [])
@@ -97,10 +104,10 @@ async function writerBylines(config: WordpressConfig, context: StoryContext) {
   for (const name of fromToss) {
     const staff = findStaffName(name, staffNames);
     const user = staff ? null : findStaffName(name, users);
-    if (staff) ids.push(staff.id);
-    else if (user) ids.push(await createWordpressStaffName(config, user.name));
+    if (staff) bylines.push(staff);
+    else if (user) bylines.push({ id: await createWordpressStaffName(config, user.name), name: user.name });
   }
-  return [...new Set(ids)];
+  return bylines.filter((byline, index) => bylines.findIndex((other) => other.id === byline.id) === index);
 }
 
 async function uploadThumbnail(config: WordpressConfig, publication: StoryPublication) {

@@ -20,12 +20,13 @@ export function storySchedule(showDate: string, now = new Date()) {
 }
 
 /**
- * SNO Add Story fields: the Video/Embed box above the story, and the featured image
- * (the YouTube thumbnail) kept as the teaser image only ("Do Not Display on Story Page").
+ * SNO Add Story fields: the Video/Embed box above the story, the featured image
+ * (the YouTube thumbnail) kept as the teaser image only ("Do Not Display on Story Page"), and the first Writer's Name box.
  * The box gets the video's embed code (the API kept <iframe> code as of October 28, 2026; it once stripped it).
+ * SNO shows no byline while `writer` is empty; it holds one name, and the other writers' boxes are not in the API yet.
  */
-export function storyMeta(videoId: string) {
-  return { video: youtubeEmbedCode(videoId), videolocation: "Above Story", featureimage: "Do Not Display" };
+export function storyMeta(videoId: string, writer = "") {
+  return { video: youtubeEmbedCode(videoId), videolocation: "Above Story", featureimage: "Do Not Display", writer };
 }
 
 /** YouTube's thumbnails, best first. maxresdefault is missing for some low-resolution uploads. */

@@ -109,6 +109,34 @@ export function formatShowDateForScriptLine(showDate: Date, timeZone = TELEPROMP
   return `${weekday}, ${month} ${day}${ordinalSuffix(day)}, ${year}`;
 }
 
+const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+const WEEKDAY_PATTERN = /\b(next |every )?(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/gi;
+const CALENDAR_DATE_PATTERN =
+  /\b(Jan(uary)?|Feb(ruary)?|Mar(ch)?|Apr(il)?|May|June?|July?|Aug(ust)?|Sept?(ember)?|Oct(ober)?|Nov(ember)?|Dec(ember)?)\b|\b\d{1,2}\/\d{1,2}\b/;
+
+/**
+ * True when the text names its event only by weekday ("Thursday at lunch") and every
+ * such weekday, counted from the run window's start, falls before the show.
+ * Submitters often run an announcement through the end of the week past the event.
+ */
+function weekdayEventHasPassed(text: string, startKey: string | null, showEpochDay: number) {
+  if (!startKey || CALENDAR_DATE_PATTERN.test(text)) {
+    return false;
+  }
+
+  const startEpochDay = dateKeyToEpochDay(startKey);
+  // Epoch day 0 (1970-01-01) was a Thursday.
+  const startWeekday = (startEpochDay + 4) % 7;
+  const eventDays = [...text.matchAll(WEEKDAY_PATTERN)]
+    .filter((match) => !match[1])
+    .map((match) => {
+      const weekday = WEEKDAYS.indexOf(match[2].toLowerCase());
+      return startEpochDay + ((weekday - startWeekday + 7) % 7);
+    });
+
+  return eventDays.length > 0 && eventDays.every((day) => day < showEpochDay);
+}
+
 export function selectAnnouncementsForBulletin(params: {
   announcements: SubmittedAnnouncement[];
   showDate: Date;
@@ -128,6 +156,11 @@ export function selectAnnouncementsForBulletin(params: {
 
       if (announcement.isPermanent) {
         return { announcement, dayDelta: Number.MAX_SAFE_INTEGER };
+      }
+
+      const startKey = announcementDateKey(announcement.startDate, announcement.startDateIso);
+      if (weekdayEventHasPassed(announcement.announcement, startKey, showEpochDay)) {
+        return null;
       }
 
       if (params.pa) {

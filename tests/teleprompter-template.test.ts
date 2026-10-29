@@ -234,6 +234,51 @@ describe("selectAnnouncementsForBulletin", () => {
 
     expect(selected.map((entry) => entry.id)).toEqual(["native-show"]);
   });
+
+  describe("announcements that name a weekday", () => {
+    // Submitted Tuesday 10/27 to run through Friday 10/30; "Thursday" is 10/29.
+    const window = {
+      startDate: "2026-10-27",
+      startDateIso: "2026-10-27T12:00:00.000Z",
+      endDate: "2026-10-30",
+      endDateIso: "2026-10-30T12:00:00.000Z"
+    };
+    const friday = new Date("2026-10-30T12:00:00.000Z");
+    const wednesday = new Date("2026-10-28T12:00:00.000Z");
+
+    function selectIds(showDate: Date, announcement: string, pa?: boolean) {
+      return selectAnnouncementsForBulletin({
+        showDate,
+        pa,
+        announcements: [makeAnnouncement({ id: "a", ...window, announcement })]
+      }).map((entry) => entry.id);
+    }
+
+    it("drops one whose weekday has passed by the show", () => {
+      expect(selectIds(friday, "Come to the town hall Thursday at lunch.")).toEqual([]);
+      expect(selectIds(friday, "Come to the town hall Thursday at lunch.", true)).toEqual([]);
+    });
+
+    it("keeps one whose weekday is on or after the show", () => {
+      expect(selectIds(wednesday, "Come to the town hall Thursday at lunch.")).toEqual(["a"]);
+      expect(selectIds(friday, "The game is on Friday.")).toEqual(["a"]);
+    });
+
+    it("keeps one when any named weekday is still ahead", () => {
+      expect(selectIds(friday, "The drive runs Monday through Friday.")).toEqual(["a"]);
+    });
+
+    it("keeps next, every, and plural weekdays", () => {
+      expect(selectIds(friday, "The town hall is next Thursday.")).toEqual(["a"]);
+      expect(selectIds(friday, "The club meets every Thursday.")).toEqual(["a"]);
+      expect(selectIds(friday, "The club meets Thursdays at lunch.")).toEqual(["a"]);
+    });
+
+    it("keeps one that also gives a calendar date", () => {
+      expect(selectIds(friday, "The town hall is Thursday, November 5th.")).toEqual(["a"]);
+      expect(selectIds(friday, "The town hall is Thursday 11/5.")).toEqual(["a"]);
+    });
+  });
 });
 
 describe("formatShowDateForScriptLine", () => {

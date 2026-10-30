@@ -20,7 +20,7 @@ import {
 import { editSummaryStatus } from "@/src/lib/show-editor-views";
 import type { EditedShow } from "../show-roles/show-upload-dialog";
 import {
-  approveLine, AUTO_SCHEDULE_NOTE, DebugLogLinks, DetectedStructure, FixHistory, FlaggedDecisions, LINK_CLASS, pacificTime, RecompositeCheckbox, RedoControl,
+  approveLine, AUTO_SCHEDULE_NOTE, DebugLogLinks, DetectedStructure, FixHistory, FlaggedDecisions, LINK_CLASS, pacificTime, RECOMPOSITE_USED, RecompositeCheckbox, RedoControl,
   SendBackForm, sentLine, structureDecisions
 } from "./show-edit-parts";
 import { chaptersOf } from "@/src/lib/show-chapters";
@@ -361,6 +361,7 @@ export function EditingShowView({ showDate, state, busyAction, send, onReview }:
         {job?.note && !canStart ? (
           <p className="text-[13px] text-muted-foreground">Instructions: &ldquo;{job.note}&rdquo;</p>
         ) : null}
+        {job?.recomposite && !canStart ? <InlineNote tone="warning">{RECOMPOSITE_USED}</InlineNote> : null}
         {job?.publishAt && !canStart ? (
           <p className="text-[13px] text-muted-foreground">Goes public: {pacificTime.format(new Date(job.publishAt))} (picked with the instructions)</p>
         ) : null}

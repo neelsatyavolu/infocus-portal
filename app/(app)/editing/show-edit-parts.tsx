@@ -102,8 +102,10 @@ function NoteForm({
   );
 }
 
-export const RECOMPOSITE_LABEL = "Re-set the anchors on the virtual set";
-export const RECOMPOSITE_HELP = "Cuts the anchors out and seats them properly on the set. Slower edit.";
+export const RECOMPOSITE_LABEL = "Re-set the anchors on the virtual set (Experimental)";
+export const RECOMPOSITE_HELP =
+  "Fragile: cuts the anchors out and re-seats them on the set. Slower edit; check every shot before publishing.";
+export const RECOMPOSITE_USED = "Anchors re-set on the virtual set (experimental): check every shot before publishing.";
 
 /** "Re-set the anchors on the virtual set": the editor re-composites every shot onto the clean set. */
 export function RecompositeCheckbox({ checked, disabled, onChange }: {

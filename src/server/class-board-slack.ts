@@ -1,27 +1,11 @@
 import { buildClassBoardSlackText, classBoardSlackFileName } from "@/src/lib/class-board-slack";
 import { CLASS_BOARD_TIME_ZONE, pacificDateKey } from "@/src/lib/class-board";
 import { mainAppOrigin } from "@/src/lib/hosts";
-import { slackApi, slackApiJson, slackBotToken } from "@/src/lib/slack-api";
+import { slackBotToken } from "@/src/lib/slack-api";
 import { loadClassBoard } from "@/src/server/class-board";
 import { renderClassBoardSlackImage } from "@/src/server/class-board-slack-image";
 import { ensureSlackChannelJoined } from "@/src/server/slack-history";
-
-async function uploadToSlack(token: string, channel: string, fileName: string, bytes: Uint8Array, text: string) {
-  const ready = await slackApi("files.getUploadURLExternal", token, { filename: fileName, length: String(bytes.byteLength) });
-  const uploadUrl = typeof ready.upload_url === "string" ? ready.upload_url : "";
-  const fileId = typeof ready.file_id === "string" ? ready.file_id : "";
-  if (!ready.ok || !uploadUrl || !fileId) throw new Error(`Slack upload URL failed: ${ready.error ?? "unknown"}`);
-
-  const uploaded = await fetch(uploadUrl, { method: "POST", headers: { "Content-Type": "image/png" }, body: Buffer.from(bytes) });
-  if (!uploaded.ok) throw new Error(`Slack file upload failed: ${uploaded.status}`);
-
-  const done = await slackApiJson("files.completeUploadExternal", token, {
-    files: [{ id: fileId, title: fileName }],
-    channel_id: channel,
-    initial_comment: text
-  });
-  if (!done.ok) throw new Error(`Slack file share failed: ${done.error ?? "unknown"}`);
-}
+import { uploadFileToSlack } from "@/src/server/slack-upload";
 
 function imageStamp(now: Date) {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -57,6 +41,6 @@ export async function runClassBoardSlackPost(now = new Date()) {
   });
 
   await ensureSlackChannelJoined(token, channel);
-  await uploadToSlack(token, channel, classBoardSlackFileName(today), image, text);
+  await uploadFileToSlack({ token, channel, fileName: classBoardSlackFileName(today), contentType: "image/png", bytes: image, text });
   return { posted: true, cycleNumber: board.cycleNumber };
 }

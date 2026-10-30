@@ -37,6 +37,12 @@ function birthdayDateKey(year: number, month: number, day: number) {
   return `${year}-${String(month).padStart(2, "0")}-${String(safeDay).padStart(2, "0")}`;
 }
 
+/** Whether the real birthday (not the moved-back class day) falls on `dateKey`. */
+export function isBirthdayOn(birthday: { month: number; day: number }, dateKey: string) {
+  if (!isValidBirthday(birthday.month, birthday.day)) return false;
+  return birthdayDateKey(Number(dateKey.slice(0, 4)), birthday.month, birthday.day) === dateKey;
+}
+
 /** The nearest class day on or before `dateKey`, or null when none is within the lookback. */
 function celebrationDateKey(dateKey: string, isClassDay: (dateKey: string) => boolean) {
   for (let back = 0; back <= BIRTHDAY_LOOKBACK_DAYS; back += 1) {

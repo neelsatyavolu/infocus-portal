@@ -15,6 +15,7 @@ import { discoverYoutubePublications, publishYoutubePackage } from "@/src/server
 import { runPackageReviewReminders } from "@/src/server/package-review-reminders";
 import { runShowRolesConfirmReminders } from "@/src/server/show-roles-confirm";
 import { runShowEditReminders } from "@/src/server/show-editor-notify";
+import { runBirthdaySlackPost } from "@/src/server/birthday-slack";
 import { runClassBoardSlackPost } from "@/src/server/class-board-slack";
 import { MEETING_CALENDAR_EVENT, runMeetingCalendarJob } from "@/src/server/meetings-google-calendar";
 import { reticketScribes } from "@/src/server/meetings-housekeeping";
@@ -419,6 +420,18 @@ export const classBoardSlackStandings = inngest.createFunction(
   }
 );
 
+/** 00:00 Pacific: happy birthday in Slack #announcements for everyone born today. The event posts today's now (for testing). */
+export const birthdaySlackDaily = inngest.createFunction(
+  {
+    id: "birthday-slack-daily",
+    concurrency: 1
+  },
+  [{ cron: "TZ=America/Los_Angeles 0 0 * * *" }, { event: "birthdays/slack.requested" }],
+  async () => {
+    return runBirthdaySlackPost();
+  }
+);
+
 export const producerMeetingScheduleDaily = inngest.createFunction(
   {
     id: "producer-meeting-schedule-daily"
@@ -510,6 +523,7 @@ export const inngestFunctions = [
   showRolesConfirmReminders,
   showEditReminderDaily,
   classBoardSlackStandings,
+  birthdaySlackDaily,
   producerMeetingScheduleDaily,
   meetingInvitesSend,
   meetingsScribeReticket,

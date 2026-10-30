@@ -388,6 +388,7 @@ export function EditingShowView({ showDate, state, busyAction, send, onReview }:
         ) : null}
         {(job?.status === "FAILED" || job?.status === "REVIEW") && !sentToYouTube ? (
           <RedoControl
+            key={job.id}
             busy={busy}
             recomposite={job.recomposite}
             onRedo={(note, recomposite) => send({ action: "redo", id: job.id, ...(note ? { note } : {}), recomposite }, "Starting the edit over.")}

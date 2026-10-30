@@ -290,6 +290,29 @@ describe("show editor jobs", () => {
     expect(mocks.job.update).toHaveBeenCalledWith({ where: { id: "job1" }, data: { stage: "analyze", message: "Finding takes", heartbeatAt: NOW } });
   });
 
+  it("start keeps the producer's re-composite choice for the editor's brief", async () => {
+    await startShowEdit({ userId: "u1", showDate: SHOW, sources: [{ path: SRC, role: "auto" }], recomposite: true }, NOW);
+    expect(mocks.job.create).toHaveBeenCalledWith({ data: expect.objectContaining({ recomposite: true }) });
+  });
+
+  it("redo keeps the re-composite choice unless the producer changes it", async () => {
+    mocks.job.findUnique.mockResolvedValueOnce(job({ status: "REVIEW", recomposite: true }));
+    await redoShowEdit({ userId: "u1", id: "job1" }, NOW);
+    expect(mocks.job.create.mock.calls[0][0].data.recomposite).toBe(true);
+    mocks.job.findUnique.mockResolvedValueOnce(job({ status: "REVIEW", recomposite: true }));
+    await redoShowEdit({ userId: "u1", id: "job1", recomposite: false }, NOW);
+    expect(mocks.job.create.mock.calls[1][0].data.recomposite).toBe(false);
+  });
+
+  it("the brief carries the re-composite choice, false when it was never set", async () => {
+    mocks.job.findFirst.mockResolvedValueOnce(job({ recomposite: true }));
+    mocks.job.updateMany.mockResolvedValueOnce({ count: 1 });
+    expect((await claimNextShowEdit("dev1", NOW))!.brief.recomposite).toBe(true);
+    mocks.job.findFirst.mockResolvedValueOnce(job());
+    mocks.job.updateMany.mockResolvedValueOnce({ count: 1 });
+    expect((await claimNextShowEdit("dev1", NOW))!.brief.recomposite).toBe(false);
+  });
+
   it("redo copies the sources, roles and note", async () => {
     const sources = [{ path: SRC, role: "M" }, { path: "Shows/b.mov", role: "L" }];
     mocks.job.findUnique.mockResolvedValueOnce(job({ status: "REVIEW", sourcePaths: sources }));

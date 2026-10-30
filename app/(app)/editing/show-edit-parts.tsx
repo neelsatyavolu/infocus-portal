@@ -54,20 +54,22 @@ export function FlaggedDecisions({ decisions, failures, title = "Check these bef
 
 /** A text box with a submit button; Redo uses it for the note, Send back for what needs to change. */
 function NoteForm({
-  label, placeholder, max, submitLabel, busy, onSubmit, extra, optional = false
+  label, placeholder, max, submitLabel, busy, onSubmit, extra, initialChecked = false, optional = false
 }: {
   label: string;
   placeholder: string;
   max: number;
   submitLabel: string;
   busy: boolean;
-  onSubmit: (text: string, remember: boolean) => Promise<boolean>;
-  extra?: "remember";
+  onSubmit: (text: string, checked: boolean) => Promise<boolean>;
+  /** A checkbox beside the button: "remember for future shows", or the re-composite choice. */
+  extra?: "remember" | "recomposite";
+  initialChecked?: boolean;
   /** Can be sent empty. */
   optional?: boolean;
 }) {
   const [text, setText] = useState("");
-  const [remember, setRemember] = useState(false);
+  const [checked, setChecked] = useState(initialChecked);
   const id = `show-edit-${submitLabel.toLowerCase().replace(/\W+/g, "-")}`;
   return (
     <form
@@ -75,10 +77,10 @@ function NoteForm({
       onSubmit={(event) => {
         event.preventDefault();
         if (!optional && !text.trim()) return;
-        void onSubmit(text.trim(), remember).then((done) => {
+        void onSubmit(text.trim(), checked).then((done) => {
           if (done) {
             setText("");
-            setRemember(false);
+            setChecked(initialChecked);
           }
         });
       }}
@@ -87,7 +89,9 @@ function NoteForm({
       <Textarea id={id} rows={3} value={text} maxLength={max} placeholder={placeholder} onChange={(event) => setText(event.target.value)} />
       <div className="flex flex-wrap items-center justify-between gap-2">
         {extra === "remember" ? (
-          <Checkbox checked={remember} onCheckedChange={setRemember}>Remember this for future shows</Checkbox>
+          <Checkbox checked={checked} onCheckedChange={setChecked}>Remember this for future shows</Checkbox>
+        ) : extra === "recomposite" ? (
+          <RecompositeCheckbox checked={checked} disabled={busy} onChange={setChecked} />
         ) : <span />}
         <Button type="submit" variant="outline" disabled={busy || (!optional && !text.trim())}>
           {busy ? <Loader2 className="animate-spin" aria-hidden /> : null}
@@ -98,7 +102,26 @@ function NoteForm({
   );
 }
 
-export function RedoForm({ busy, onRedo }: { busy: boolean; onRedo: (note: string) => Promise<boolean> }) {
+export const RECOMPOSITE_LABEL = "Re-set the anchors on the virtual set (Experimental)";
+export const RECOMPOSITE_HELP =
+  "Fragile: cuts the anchors out and re-seats them on the set. Slower edit; check every shot before publishing.";
+export const RECOMPOSITE_USED = "Anchors re-set on the virtual set (experimental): check every shot before publishing.";
+
+/** "Re-set the anchors on the virtual set": the editor re-composites every shot onto the clean set. */
+export function RecompositeCheckbox({ checked, disabled, onChange }: {
+  checked: boolean; disabled?: boolean; onChange: (checked: boolean) => void;
+}) {
+  return (
+    <div>
+      <Checkbox checked={checked} disabled={disabled} onCheckedChange={onChange}>{RECOMPOSITE_LABEL}</Checkbox>
+      <span className="block pl-6 text-[12px] text-muted-foreground">{RECOMPOSITE_HELP}</span>
+    </div>
+  );
+}
+
+export function RedoForm({ busy, recomposite, onRedo }: {
+  busy: boolean; recomposite: boolean; onRedo: (note: string, recomposite: boolean) => Promise<boolean>;
+}) {
   return (
     <NoteForm
       label="Note for the editor (optional)"
@@ -106,7 +129,9 @@ export function RedoForm({ busy, onRedo }: { busy: boolean; onRedo: (note: strin
       max={SHOW_EDIT_NOTE_MAX}
       submitLabel="Redo the edit"
       busy={busy}
-      onSubmit={(note) => onRedo(note)}
+      onSubmit={(note, checked) => onRedo(note, checked)}
+      extra="recomposite"
+      initialChecked={recomposite}
       optional
     />
   );
@@ -134,7 +159,9 @@ export function sentLine(published: ShowEditPublished | null) {
 export const AUTO_SCHEDULE_NOTE = "If nobody approves, it's scheduled automatically at 8:00 AM on show day.";
 
 /** Redo automatic edit: throws this edit away and edits the show again, with an optional note. */
-export function RedoControl({ busy, onRedo }: { busy: boolean; onRedo: (note: string) => Promise<boolean> }) {
+export function RedoControl({ busy, recomposite, onRedo }: {
+  busy: boolean; recomposite: boolean; onRedo: (note: string, recomposite: boolean) => Promise<boolean>;
+}) {
   const [open, setOpen] = useState(false);
   return (
     <div className="space-y-2">
@@ -145,8 +172,9 @@ export function RedoControl({ busy, onRedo }: { busy: boolean; onRedo: (note: st
       {open ? (
         <RedoForm
           busy={busy}
-          onRedo={async (note) => {
-            const done = await onRedo(note);
+          recomposite={recomposite}
+          onRedo={async (note, checked) => {
+            const done = await onRedo(note, checked);
             if (done) setOpen(false);
             return done;
           }}

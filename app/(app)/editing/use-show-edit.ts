@@ -14,9 +14,9 @@ const IDLE_POLL_MS = 60_000;
 const LOAD_FALLBACK = "Could not load automatic editing.";
 
 export type EditAction =
-  | { action: "start"; date: string; sources: ShowEditSource[]; note?: string; publish?: { date: string; time: string } }
+  | { action: "start"; date: string; sources: ShowEditSource[]; note?: string; publish?: { date: string; time: string }; recomposite?: boolean }
   | { action: "cancel"; id: string }
-  | { action: "redo"; id: string; note?: string }
+  | { action: "redo"; id: string; note?: string; recomposite?: boolean }
   | { action: "fix"; id: string; text: string; remember: boolean }
   | { action: "approve"; id: string; publishAt: string }
   | { action: "pair"; backend: ShowEditBackend; deviceId: string }

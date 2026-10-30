@@ -41,11 +41,16 @@ const actionSchema = z.discriminatedUnion("action", [
     // Instructions for this edit (optional), passed to the editor as quoted data, like a Redo note.
     note: z.string().trim().max(SHOW_EDIT_NOTE_MAX).optional(),
     // A publish date and time (Pacific) picked with the instructions; without them, the usual 8:30 AM on show day.
-    publish: z.object({ date: dateKey, time: publishTime }).optional()
+    publish: z.object({ date: dateKey, time: publishTime }).optional(),
+    // "Re-set the anchors on the virtual set".
+    recomposite: z.boolean().optional()
   }),
   z.object({ action: z.literal("cancel"), id: jobId }),
   // The note for the editor is optional.
-  z.object({ action: z.literal("redo"), id: jobId, note: z.string().trim().max(SHOW_EDIT_NOTE_MAX).optional() }),
+  z.object({
+    action: z.literal("redo"), id: jobId, note: z.string().trim().max(SHOW_EDIT_NOTE_MAX).optional(),
+    recomposite: z.boolean().optional()
+  }),
   z.object({ action: z.literal("fix"), id: jobId, text: z.string().trim().min(1).max(SHOW_EDIT_FIX_MAX), remember: z.boolean() }),
   // Schedule the edit under review with Upload show's defaults, at the publish time the producer confirmed.
   z.object({
@@ -127,12 +132,14 @@ export async function POST(request: Request) {
         const invalid = sourceSelectionError(sources);
         if (invalid) return fail(invalid, 400);
         const publishAt = body.publish ? showPublishAt(body.publish.date, body.publish.time) : undefined;
-        return okNoStore(await startShowEdit({ userId, showDate: body.date, sources, note: body.note, publishAt }));
+        return okNoStore(await startShowEdit({
+          userId, showDate: body.date, sources, note: body.note, publishAt, recomposite: body.recomposite
+        }));
       }
       case "cancel":
         return okNoStore(await cancelShowEdit({ id: body.id }));
       case "redo":
-        return okNoStore(await redoShowEdit({ userId, id: body.id, note: body.note }));
+        return okNoStore(await redoShowEdit({ userId, id: body.id, note: body.note, recomposite: body.recomposite }));
       case "fix":
         return okNoStore(await requestShowFix({ userId, id: body.id, text: body.text, remember: body.remember }));
       case "approve":

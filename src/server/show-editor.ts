@@ -64,6 +64,8 @@ export type ShowEditBrief = {
   pastCards: PastShowCard[];
   packages: { title: string; nasPath: string; toss: string | null }[];
   note: string | null;
+  /** "Re-set the anchors on the virtual set" was ticked: the editor re-composites the anchors onto the clean set. */
+  recomposite: boolean;
   /** The producers' house rules from the Editing tab; null means the editor's built-in default. */
   houseRules: string | null;
   outputNasPath: string;
@@ -96,6 +98,7 @@ export function showEditView(job: ShowEditJob): ShowEditView {
     stage: (job.stage as ShowEditStage | null) ?? null,
     message: job.message,
     note: job.note,
+    recomposite: job.recomposite ?? false,
     publishAt: job.publishAt?.toISOString() ?? null,
     outputNasPath: job.outputNasPath,
     decisions: Array.isArray(job.decisions) ? (job.decisions as unknown as ShowEditDecision[]) : [],
@@ -137,7 +140,8 @@ async function refuseUnfinishedJob(showDate: string, exceptId?: string) {
 }
 
 export async function startShowEdit(
-  input: { userId: string; showDate: string; sources: ShowEditSource[]; note?: string; publishAt?: Date }, now = new Date()
+  input: { userId: string; showDate: string; sources: ShowEditSource[]; note?: string; publishAt?: Date; recomposite?: boolean },
+  now = new Date()
 ): Promise<ShowEditView> {
   const invalid = sourceSelectionError(input.sources);
   if (invalid) throw new ShowEditError(invalid, 400);
@@ -153,7 +157,7 @@ export async function startShowEdit(
   const job = await prisma.showEditJob.create({
     data: {
       showDate: input.showDate, sourcePaths: input.sources, note: input.note?.trim() || null,
-      publishAt: input.publishAt ?? null, createdById: input.userId
+      publishAt: input.publishAt ?? null, createdById: input.userId, ...(input.recomposite ? { recomposite: true } : {})
     }
   });
   return showEditView(job);
@@ -196,7 +200,9 @@ export async function cancelShowEdit(input: { id: string }, now = new Date()): P
   return showEditView(await requireJob(job.id).catch(() => job));
 }
 
-export async function redoShowEdit(input: { userId: string; id: string; note?: string }, now = new Date()): Promise<ShowEditView> {
+export async function redoShowEdit(
+  input: { userId: string; id: string; note?: string; recomposite?: boolean }, now = new Date()
+): Promise<ShowEditView> {
   const old = await requireJob(input.id);
   if (!["REVIEW", "FAILED", "CANCELLED"].includes(old.status)) {
     throw new ShowEditError("Redo is for an edit that finished, failed or was cancelled.", 409);
@@ -209,10 +215,10 @@ export async function redoShowEdit(input: { userId: string; id: string; note?: s
     });
   }
   const job = await prisma.showEditJob.create({
-    // A publish time picked with the first start carries over.
+    // A publish time picked with the first start carries over, and so does the re-composite choice unless changed.
     data: {
       showDate: old.showDate, sourcePaths: normalizeSources(old.sourcePaths), note: input.note?.trim() || null,
-      publishAt: old.publishAt, createdById: input.userId
+      publishAt: old.publishAt, createdById: input.userId, recomposite: input.recomposite ?? old.recomposite
     }
   });
   return showEditView(job);
@@ -422,6 +428,7 @@ async function buildClaim(job: ShowEditJob, paths: { outputNasPath: string; post
     pastCards,
     packages,
     note: job.note,
+    recomposite: job.recomposite ?? false,
     houseRules: settings.houseRules,
     ...paths
   };

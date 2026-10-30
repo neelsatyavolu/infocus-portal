@@ -13,6 +13,7 @@ import {
   queueLabel,
   type DayModel
 } from "@/components/master-calendar/calendar-model";
+import { birthdayLabel } from "@/src/lib/birthdays";
 import { scenicImageForDate } from "@/src/lib/master-calendar-cells";
 import { cn } from "@/src/lib/utils";
 
@@ -68,6 +69,7 @@ export function dayAccessibleLabel(day: DayModel, status: DayStatus) {
   parts.push(kindWords(day));
   if (day.anchorsNeeded) parts.push("anchors needed");
   if (day.paNeeded) parts.push("PA announcers needed");
+  if (day.birthdays.length > 0) parts.push(`birthday: ${day.birthdays.map(birthdayLabel).join(", ")}`);
   if (status.failed) parts.push("not saved");
   else if (status.saving) parts.push("saving");
   return parts.join(", ");
@@ -159,6 +161,9 @@ function summaryLines(day: DayModel, canEdit: boolean) {
     items.push({ label: "Spirit", value: <span className="text-[var(--brand-green)]">{day.spirit.theme}</span> });
     const crew = crewSummary(day.spirit);
     items.push({ label: "Crew", value: crew || <span className="text-muted-foreground">None yet</span> });
+  }
+  if (day.birthdays.length > 0) {
+    items.push({ label: "Bday", value: day.birthdays.map(birthdayLabel).join(", ") });
   }
   return items;
 }

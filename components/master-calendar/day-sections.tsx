@@ -8,6 +8,7 @@ import {
   queueLabel,
   type DayModel
 } from "@/components/master-calendar/calendar-model";
+import { birthdayLabel } from "@/src/lib/birthdays";
 import { scenicImageForDate } from "@/src/lib/master-calendar-cells";
 import { cn } from "@/src/lib/utils";
 
@@ -61,6 +62,16 @@ export function QueueSection({ day }: { day: DayModel }) {
   );
 }
 
+/** Birthdays celebrated this day, for viewers and editors alike (Settings → Profile sets them). */
+export function BirthdaysSection({ day }: { day: DayModel }) {
+  if (day.birthdays.length === 0) return null;
+  return (
+    <DaySection label="Birthdays">
+      <NamesList names={day.birthdays.map(birthdayLabel)} />
+    </DaySection>
+  );
+}
+
 export function SpiritThemeLine({ theme }: { theme: string }) {
   return <p className="text-sm font-medium text-[var(--brand-green)]">{theme}</p>;
 }
@@ -86,7 +97,13 @@ function NotesText({ html }: { html: string }) {
 export function DayReadSections({ day }: { day: DayModel }) {
   const isClassDay = day.kind === "NONE";
   const hasNotes = (isClassDay || day.kind === "HOLIDAY") && Boolean(day.displayHtml);
-  const hasSections = day.kind === "SHOW" || day.kind === "PA" || Boolean(day.spirit) || (isClassDay && !day.imageHidden) || hasNotes;
+  const hasSections =
+    day.kind === "SHOW" ||
+    day.kind === "PA" ||
+    Boolean(day.spirit) ||
+    (isClassDay && !day.imageHidden) ||
+    hasNotes ||
+    day.birthdays.length > 0;
   if (!hasSections) {
     return (
       <EmptyState
@@ -99,6 +116,8 @@ export function DayReadSections({ day }: { day: DayModel }) {
   }
   return (
     <>
+      <BirthdaysSection day={day} />
+
       {day.kind === "SHOW" ? (
         <>
           <DaySection label="Anchors">

@@ -23,6 +23,7 @@ import {
   type ScheduleKind
 } from "@/src/lib/school-schedule";
 import { spiritWeekCrewRoles, spiritWeekTheme } from "@/src/lib/spirit-week";
+import type { CalendarBirthday } from "@/src/lib/birthdays";
 
 type CalendarEntry = { date: string; content: string };
 
@@ -48,6 +49,7 @@ export type CalendarResponse = {
   members?: string[];
   showManagerPool?: string[];
   showManagers?: Record<string, ShowManagerAssignment>;
+  birthdays?: Record<string, CalendarBirthday[]>;
 };
 
 type PackageApprovalStatus = "IN_REVIEW" | "NEEDS_CHANGES" | "APPROVED" | "AIRED";
@@ -319,6 +321,8 @@ export type DayModel = {
   queue: QueuedCalendarPackage[];
   paNames: string[];
   spirit: SpiritDay | null;
+  /** Birthdays celebrated this day (moved here from a weekend or day off when `actualDate` is set). */
+  birthdays: CalendarBirthday[];
   imageHidden: boolean;
   /** Read-only notes HTML (class day notes, or the holiday text). */
   displayHtml: string;
@@ -345,6 +349,7 @@ function buildDayModel({
   rawContent,
   queuedPackages,
   showManager,
+  birthdays,
   todayKey,
   canEdit
 }: {
@@ -354,6 +359,7 @@ function buildDayModel({
   rawContent: string;
   queuedPackages: QueuedCalendarPackage[];
   showManager: ShowManagerAssignment | undefined;
+  birthdays: CalendarBirthday[];
   todayKey: string | null;
   canEdit: boolean;
 }): DayModel {
@@ -394,6 +400,7 @@ function buildDayModel({
     queue: isShow ? queuedPackages.filter((row) => row.date === dateKey) : [],
     paNames,
     spirit,
+    birthdays,
     imageHidden: isScenicImageDay(kind) && hasImageHidden(rawContent),
     displayHtml: isRichTextEmpty(notesHtml) ? "" : notesHtml,
     editorHtml: notesHtml,
@@ -408,6 +415,7 @@ export function buildDayModels({
   scheduleDays,
   queuedPackages,
   showManagers,
+  birthdays = {},
   todayKey,
   canEdit
 }: {
@@ -416,6 +424,7 @@ export function buildDayModels({
   scheduleDays: ScheduleDay[];
   queuedPackages: QueuedCalendarPackage[];
   showManagers: Record<string, ShowManagerAssignment>;
+  birthdays?: Record<string, CalendarBirthday[]>;
   todayKey: string | null;
   canEdit: boolean;
 }) {
@@ -433,6 +442,7 @@ export function buildDayModels({
           rawContent: entries[dateKey] ?? "",
           queuedPackages,
           showManager: showManagers[dateKey],
+          birthdays: birthdays[dateKey] ?? [],
           todayKey,
           canEdit
         })

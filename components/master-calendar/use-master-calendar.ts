@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
+import type { CalendarBirthday } from "@/src/lib/birthdays";
 import { restoreAssignedNamesInCalendarHtml, type CalendarCrewRole } from "@/src/lib/calendar-show-content";
 import {
   defaultTemplateForKind,
@@ -110,6 +111,7 @@ export function useMasterCalendar(initialData: CalendarResponse) {
   const [showManagers, setShowManagers] = useState<Record<string, ShowManagerAssignment>>(
     initialData.showManagers ?? {}
   );
+  const [birthdays, setBirthdays] = useState<Record<string, CalendarBirthday[]>>(initialData.birthdays ?? {});
   const [castBusyDate, setCastBusyDate] = useState<string | null>(null);
   const [savingNotes, setSavingNotes] = useState<string[]>([]);
   const [failedDates, setFailedDates] = useState<Record<string, DayFailure>>({});
@@ -161,6 +163,7 @@ export function useMasterCalendar(initialData: CalendarResponse) {
     setCastMembers(data.members ?? []);
     setShowManagerPool(data.showManagerPool ?? []);
     setShowManagers(data.showManagers ?? {});
+    setBirthdays(data.birthdays ?? {});
     setEntries(loadedEntries);
     knownAiredIdsRef.current = Object.fromEntries(
       Object.entries(loadedEntries).map(([dateKey, html]) => [dateKey, extractPackageIds(html)])
@@ -224,9 +227,10 @@ export function useMasterCalendar(initialData: CalendarResponse) {
       queuedPackages,
       members: castMembers,
       showManagerPool,
-      showManagers
+      showManagers,
+      birthdays
     });
-  }, [monthKey, canEdit, canViewCastCounts, entries, scheduleDays, queuedPackages, castMembers, showManagerPool, showManagers]);
+  }, [monthKey, canEdit, canViewCastCounts, entries, scheduleDays, queuedPackages, castMembers, showManagerPool, showManagers, birthdays]);
 
   useEffect(() => {
     return () => {
@@ -655,6 +659,7 @@ export function useMasterCalendar(initialData: CalendarResponse) {
     castMembers,
     showManagerPool,
     showManagers,
+    birthdays,
     canEdit,
     canViewCastCounts,
     castBusyDate,

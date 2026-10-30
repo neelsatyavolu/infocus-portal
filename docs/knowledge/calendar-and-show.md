@@ -28,6 +28,7 @@ Everyone signed in can view the calendar. Producers (associate producer and up) 
 - **PA days (Mondays):** **PA** (the two announcers).
 - **Spirit Week (Mon Oct 5 – Fri Oct 9):** the day's dress-up theme (for example, Tuesday is Salad dressing) and **Crew** counts (for example, "Brunch 1 · Lunch 3 · Editors 2"). Open the day to see the names.
 - **Class days:** a scenic photo and the day's notes.
+- **Birthdays (any school day):** **Bday** and the names of people whose birthday it is, from Settings → Profile → **Birthday**. A birthday on a weekend or a day off moves back to the nearest school day before it, with the real date beside the name (for example, "Otto (Sun, Nov 8)"). That can be in the month before (a Sunday, November 1 birthday shows on Friday, October 30). The Day panel lists them under **Birthdays** for everyone. Birthdays aren't written into the calendar cell or the Google Doc.
 - **Holidays and finals weeks:** the day's name (for example, **No School** or **Finals week**), or the notes a producer wrote for that day. A day off with its own notes also gets a **Holiday** tag on the month; the Day panel always shows the **Holiday** tag.
 - A tag also marks a day that breaks the usual pattern (for example, **Show** on a Tuesday).
 

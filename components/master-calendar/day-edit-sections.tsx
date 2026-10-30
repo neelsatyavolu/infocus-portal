@@ -11,7 +11,14 @@ import {
   type Anchor,
   type DayModel
 } from "@/components/master-calendar/calendar-model";
-import { DaySection, NAME_CHIP_CLASS, QueueSection, ScenicPreview, SpiritThemeLine } from "@/components/master-calendar/day-sections";
+import {
+  BirthdaysSection,
+  DaySection,
+  NAME_CHIP_CLASS,
+  QueueSection,
+  ScenicPreview,
+  SpiritThemeLine
+} from "@/components/master-calendar/day-sections";
 import { EditableHtmlBlock } from "@/components/master-calendar/editable-html-block";
 import type { CalendarCrewRole } from "@/src/lib/calendar-show-content";
 import { cn } from "@/src/lib/utils";
@@ -193,6 +200,8 @@ export default function DayEditSections({
 
   return (
     <>
+      <BirthdaysSection day={day} />
+
       {day.kind === "SHOW" ? (
         <>
           <DaySection

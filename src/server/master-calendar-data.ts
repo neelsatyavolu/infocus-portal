@@ -1,5 +1,6 @@
 import { type PlatformRole } from "@prisma/client";
 import { tallyAnchorPaCounts, type AnchorPaCountRow } from "@/src/lib/anchor-pa-counts";
+import { BIRTHDAY_LOOKBACK_DAYS, placeBirthdays, type CalendarBirthday } from "@/src/lib/birthdays";
 import {
   extractCalendarAnchors,
   extractCalendarPaAnnouncers,
@@ -12,6 +13,7 @@ import { isCustomQueuePackage } from "@/src/lib/publishing-queue";
 import { resolveScheduleDay, type ScheduleKind } from "@/src/lib/school-schedule";
 import { addDaysToDateKey, FIRST_SHOW_DATE } from "@/src/lib/show-assignment";
 import { spiritWeekDaysIn } from "@/src/lib/spirit-week";
+import { userDisplayName } from "@/src/lib/user-display";
 import {
   SHOW_MANAGER_ROLES,
   buildShowManagerPool,
@@ -50,6 +52,8 @@ export type MasterCalendarMonthData = {
   showManagers: Record<string, ShowManagerAssignment>;
   /** Spirit Week days this month: theme and crew lists (src/lib/spirit-week.ts). */
   spiritWeek: ReturnType<typeof spiritWeekDaysIn>;
+  /** Birthdays by the class day they're celebrated on (src/lib/birthdays.ts). */
+  birthdays: Record<string, CalendarBirthday[]>;
 };
 
 const MONTH_KEY_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -101,6 +105,8 @@ export async function loadMasterCalendarMonth(
   const { startKey, endKey } = parseMonthBounds(monthKey);
   const monthDateKeys = weekdayKeysInMonth(startKey, endKey);
   const queryStart = startKey < FIRST_SHOW_DATE ? startKey : FIRST_SHOW_DATE;
+  // Days off just past the month decide whether next month's birthdays move back into this one.
+  const birthdayLookaheadEnd = addDaysToDateKey(endKey, BIRTHDAY_LOOKBACK_DAYS);
 
   const [entries, calendarRows, queuedRows, users, assignments] = await Promise.all([
     prisma.masterCalendarEntry.findMany({
@@ -109,7 +115,7 @@ export async function loadMasterCalendarMonth(
       orderBy: { date: "asc" }
     }),
     prisma.schoolCalendarDay.findMany({
-      where: { date: { gte: queryStart, lt: endKey } },
+      where: { date: { gte: queryStart, lt: birthdayLookaheadEnd } },
       select: { date: true, kind: true, label: true }
     }),
     prisma.packageProgressRow.findMany({
@@ -127,7 +133,7 @@ export async function loadMasterCalendarMonth(
       orderBy: { queuedForAirAt: "desc" }
     }),
     prisma.user.findMany({
-      select: { name: true, nickname: true, email: true },
+      select: { name: true, nickname: true, email: true, birthdayMonth: true, birthdayDay: true },
       orderBy: [{ name: "asc" }, { email: "asc" }]
     }),
     prisma.platformRoleAssignment.findMany({
@@ -152,9 +158,10 @@ export async function loadMasterCalendarMonth(
       .map((row) => row.email)
   );
 
-  const overrideMap = new Map(
+  const lookaheadOverrides = new Map(
     calendarRows.map((row) => [row.date, { kind: row.kind as ScheduleKind, label: row.label }])
   );
+  const overrideMap = new Map([...lookaheadOverrides].filter(([date]) => date < endKey));
 
   const schedule: MasterCalendarScheduleDay[] = [];
   for (const dateKey of monthDateKeys) {
@@ -198,7 +205,20 @@ export async function loadMasterCalendarMonth(
     members,
     showManagerPool,
     showManagers,
-    spiritWeek: spiritWeekDaysIn(monthDateKeys)
+    spiritWeek: spiritWeekDaysIn(monthDateKeys),
+    birthdays: placeBirthdays({
+      people: users.flatMap((user) =>
+        user.birthdayMonth && user.birthdayDay
+          ? [{ name: userDisplayName(user, "Someone"), month: user.birthdayMonth, day: user.birthdayDay }]
+          : []
+      ),
+      startKey,
+      endKey,
+      isClassDay: (dateKey) => {
+        const weekday = new Date(`${dateKey}T00:00:00.000Z`).getUTCDay();
+        return weekday !== 0 && weekday !== 6 && resolveScheduleDay(dateKey, lookaheadOverrides).kind !== "HOLIDAY";
+      }
+    })
   };
 }
 

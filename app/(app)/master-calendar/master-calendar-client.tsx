@@ -119,10 +119,11 @@ export default function MasterCalendarClient({
         scheduleDays: cal.scheduleDays,
         queuedPackages: cal.queuedPackages,
         showManagers: cal.showManagers,
+        birthdays: cal.birthdays,
         todayKey,
         canEdit: cal.canEdit
       }),
-    [cal.weeks, cal.entries, cal.scheduleDays, cal.queuedPackages, cal.showManagers, todayKey, cal.canEdit]
+    [cal.weeks, cal.entries, cal.scheduleDays, cal.queuedPackages, cal.showManagers, cal.birthdays, todayKey, cal.canEdit]
   );
   const dayByKey = useMemo(() => new Map(days.map((day) => [day.dateKey, day])), [days]);
   const rows = useMemo(() => buildWeekSegments(cal.weeks, dayByKey), [cal.weeks, dayByKey]);

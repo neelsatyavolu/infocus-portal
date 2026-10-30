@@ -93,6 +93,9 @@ model User {
   email              String?
   name               String?
   nickname           String?
+  /// Birthday month (1–12) and day, set in Settings → Profile; no year is stored.
+  birthdayMonth      Int?             @db.SmallInt
+  birthdayDay        Int?             @db.SmallInt
   imageUrl           String?
   onboardingCompletedAt DateTime?
   createdAt          DateTime         @default(now())

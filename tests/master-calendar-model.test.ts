@@ -202,3 +202,21 @@ describe("queue labels", () => {
     expect(queueLabel({ groupTopic: "", cycleNumber: 0 })).toBe("Untitled");
   });
 });
+
+describe("birthdays on the day model", () => {
+  it("puts each day's birthdays on that day and leaves the rest empty", () => {
+    const birthdays = { "2026-11-06": [{ name: "Otto", actualDate: "2026-11-08" }] };
+    const days = buildDayModels({
+      weeks: WEEKS,
+      entries: {},
+      scheduleDays: novemberSchedule(),
+      queuedPackages: [],
+      showManagers: {},
+      birthdays,
+      todayKey: "2026-11-10",
+      canEdit: false
+    });
+    expect(days.find((day) => day.dateKey === "2026-11-06")?.birthdays).toEqual(birthdays["2026-11-06"]);
+    expect(days.find((day) => day.dateKey === "2026-11-05")?.birthdays).toEqual([]);
+  });
+});

@@ -139,7 +139,10 @@ export function AppShell({
     <TooltipProvider delayDuration={300}>
       <div
         className={cn(
-          route.hideChrome ? "h-dvh overflow-hidden" : "min-h-screen lg:h-screen lg:overflow-hidden",
+          // `relative` makes this the containing block for absolutely positioned elements (sr-only
+          // labels and the like) that would otherwise escape the inner scroller to the page and make
+          // the page scroll too: a second scrollbar beside the main one.
+          route.hideChrome ? "relative h-dvh overflow-hidden" : "min-h-screen lg:relative lg:h-screen lg:overflow-hidden",
           // Fixed bottom elements (page docks, the ✱ button, the upload toast) sit above the phone
           // tab bar; sticky panes sit below the top bar.
           phoneTabs.length > 0 ? "[--phone-tabbar-h:3.75rem] lg:[--phone-tabbar-h:0px]" : "",

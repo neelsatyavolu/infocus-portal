@@ -15,7 +15,9 @@ import { discoverYoutubePublications, publishYoutubePackage } from "@/src/server
 import { runPackageReviewReminders } from "@/src/server/package-review-reminders";
 import { runShowRolesConfirmReminders } from "@/src/server/show-roles-confirm";
 import { runShowEditReminders } from "@/src/server/show-editor-notify";
-import { runBirthdaySlackPost } from "@/src/server/birthday-slack";
+import { birthdayCardNames } from "@/src/lib/birthday-slack";
+import { findTodaysBirthdays, postBirthdayGif } from "@/src/server/birthday-slack";
+import { renderBirthdayGif } from "@/src/server/birthday-slack-gif";
 import { runClassBoardSlackPost } from "@/src/server/class-board-slack";
 import { MEETING_CALENDAR_EVENT, runMeetingCalendarJob } from "@/src/server/meetings-google-calendar";
 import { reticketScribes } from "@/src/server/meetings-housekeeping";
@@ -427,8 +429,15 @@ export const birthdaySlackDaily = inngest.createFunction(
     concurrency: 1
   },
   [{ cron: "TZ=America/Los_Angeles 0 0 * * *" }, { event: "birthdays/slack.requested" }],
-  async () => {
-    return runBirthdaySlackPost();
+  async ({ step }) => {
+    // Separate steps, so the Slack calls don't follow the render in one request (birthday-slack.ts).
+    const found = await step.run("find-birthdays", () => findTodaysBirthdays());
+    if (found.people.length === 0) return { posted: false, reason: found.reason };
+    const gif = await step.run("render-gif", async () => {
+      const bytes = await renderBirthdayGif(birthdayCardNames(found.people.map((person) => person.name)));
+      return Buffer.from(bytes).toString("base64");
+    });
+    return step.run("post-to-slack", () => postBirthdayGif(found.people, gif));
   }
 );
 

@@ -1,11 +1,21 @@
-import { birthdayCardNames, birthdayFirstName, birthdaySlackFileName, birthdaySlackText } from "@/src/lib/birthday-slack";
+import { birthdayFirstName, birthdaySlackFileName, birthdaySlackText, type BirthdaySlackPerson } from "@/src/lib/birthday-slack";
 import { isBirthdayOn } from "@/src/lib/birthdays";
 import { pacificDateKey } from "@/src/lib/class-board";
 import { prisma } from "@/src/lib/prisma";
 import { slackApi, slackBotToken, SLACK_ANNOUNCEMENTS_CHANNEL_DEFAULT } from "@/src/lib/slack-api";
-import { renderBirthdayGif } from "@/src/server/birthday-slack-gif";
 import { ensureSlackChannelJoined } from "@/src/server/slack-history";
 import { uploadFileToSlack } from "@/src/server/slack-upload";
+
+/*
+ * The midnight birthday post in #announcements. It runs as three Inngest steps (inngest-functions.ts):
+ * find today's birthdays, render the GIF (src/server/birthday-slack-gif.tsx), then post it. Rendering
+ * is ~20 s of pure CPU, and a deployed Worker's clock only moves on I/O, so a Slack call with a
+ * 5 s timeout made right after it times out at once. Each step is its own request with a fresh clock.
+ */
+
+function announcementsChannel() {
+  return process.env.SLACK_ANNOUNCEMENTS_CHANNEL?.trim() || SLACK_ANNOUNCEMENTS_CHANNEL_DEFAULT;
+}
 
 /** The person's Slack user id, or null when Slack doesn't know the email (or the bot can't look it up). */
 async function slackUserIdForEmail(token: string, email: string | null) {
@@ -21,14 +31,12 @@ async function slackUserIdForEmail(token: string, email: string | null) {
 }
 
 /**
- * Wishes everyone born today (Pacific) a happy birthday in #announcements: one message that tags
- * them, with the animated InFocus card. Birthdays come from Settings → Profile and post on the real
- * date, weekends included. Runs at 00:00 Pacific (inngest-functions.ts).
+ * Everyone born today (Pacific), from Settings → Profile. Birthdays post on the real date, weekends
+ * included, not the class day the Master Calendar moves them to.
  */
-export async function runBirthdaySlackPost(now = new Date()) {
+export async function findTodaysBirthdays(now = new Date()): Promise<{ people: BirthdaySlackPerson[]; reason?: string }> {
   const token = slackBotToken();
-  if (!token) return { posted: false, reason: "Slack not configured" };
-  const channel = process.env.SLACK_ANNOUNCEMENTS_CHANNEL?.trim() || SLACK_ANNOUNCEMENTS_CHANNEL_DEFAULT;
+  if (!token) return { people: [], reason: "Slack not configured" };
 
   const today = pacificDateKey(now);
   const users = await prisma.user.findMany({
@@ -39,21 +47,25 @@ export async function runBirthdaySlackPost(now = new Date()) {
   const born = users.filter(
     (user) => user.birthdayMonth && user.birthdayDay && isBirthdayOn({ month: user.birthdayMonth, day: user.birthdayDay }, today)
   );
-  if (born.length === 0) return { posted: false, reason: "no birthdays" };
+  if (born.length === 0) return { people: [], reason: "no birthdays" };
 
   const people = await Promise.all(
     born.map(async (user) => ({ name: birthdayFirstName(user), slackUserId: await slackUserIdForEmail(token, user.email) }))
   );
-  const names = people.map((person) => person.name);
-  const bytes = await renderBirthdayGif(birthdayCardNames(names));
+  return { people };
+}
 
+/** One message in #announcements that tags them, with the animated InFocus card (base64 GIF). */
+export async function postBirthdayGif(people: BirthdaySlackPerson[], gifBase64: string) {
+  const token = slackBotToken();
+  const channel = announcementsChannel();
   await ensureSlackChannelJoined(token, channel);
   await uploadFileToSlack({
     token,
     channel,
-    fileName: birthdaySlackFileName(names),
+    fileName: birthdaySlackFileName(people.map((person) => person.name)),
     contentType: "image/gif",
-    bytes,
+    bytes: new Uint8Array(Buffer.from(gifBase64, "base64")),
     text: birthdaySlackText(people)
   });
   return { posted: true, count: people.length };

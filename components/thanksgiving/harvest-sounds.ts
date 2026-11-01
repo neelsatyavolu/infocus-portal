@@ -5,7 +5,18 @@
 
 import { envelope, noiseBuffer, playThrough } from "@/components/halloween/spooky-sounds";
 
-export type HarvestSound = "gobble" | "bigGobble" | "chomp" | "rustle" | "yum" | "wind";
+export type HarvestSound =
+  | "gobble"
+  | "bigGobble"
+  | "chomp"
+  | "rustle"
+  | "yum"
+  | "wind"
+  | "bell"
+  | "snore"
+  | "glug"
+  | "fanfare"
+  | "snap";
 
 /** A turkey's "gobble-obble-obble": a buzzy voice warbling fast while it falls in pitch. */
 function gobbleAt(ctx: AudioContext, t: number, out: AudioNode, pitch: number, length: number, peak: number) {
@@ -112,13 +123,108 @@ function wind(ctx: AudioContext, t: number, out: AudioNode) {
   gust.start(t);
 }
 
+/** A dinner bell: a bright, ringing note struck three times. */
+function bell(ctx: AudioContext, t: number, out: AudioNode) {
+  [0, 0.28, 0.56].forEach((offset) => {
+    const start = t + offset;
+    [1568, 2350, 3920].forEach((frequency, i) => {
+      const partial = ctx.createOscillator();
+      partial.type = "sine";
+      partial.frequency.value = frequency;
+      partial.connect(envelope(out, start, 0.003, 0.9 - i * 0.2, 0.22 / (i + 1)));
+      partial.start(start);
+      partial.stop(start + 1);
+    });
+  });
+}
+
+/** A food-coma snore: a rumbly breath in, a sigh out, twice. */
+function snore(ctx: AudioContext, t: number, out: AudioNode) {
+  [0, 1.7].forEach((offset) => {
+    const start = t + offset;
+    const breath = ctx.createBufferSource();
+    breath.buffer = noiseBuffer(ctx, 1.1);
+    const throat = ctx.createBiquadFilter();
+    throat.type = "lowpass";
+    throat.frequency.value = 500;
+    const rattle = ctx.createOscillator();
+    rattle.frequency.value = 28;
+    const rattleDepth = ctx.createGain();
+    rattleDepth.gain.value = 260;
+    rattle.connect(rattleDepth).connect(throat.frequency);
+    breath.connect(throat).connect(envelope(out, start, 0.5, 1.05, 0.8));
+    breath.start(start);
+    rattle.start(start);
+    rattle.stop(start + 1.1);
+
+    const sigh = ctx.createBufferSource();
+    sigh.buffer = noiseBuffer(ctx, 0.6);
+    const air = ctx.createBiquadFilter();
+    air.type = "bandpass";
+    air.frequency.value = 1200;
+    sigh.connect(air).connect(envelope(out, start + 1.1, 0.1, 0.55, 0.25));
+    sigh.start(start + 1.1);
+  });
+}
+
+/** Gravy pouring: a few low, wet bubbles. */
+function glug(ctx: AudioContext, t: number, out: AudioNode) {
+  for (let i = 0; i < 5; i += 1) {
+    const start = t + i * 0.16 + Math.random() * 0.04;
+    const bubble = ctx.createOscillator();
+    bubble.type = "sine";
+    bubble.frequency.setValueAtTime(140 + Math.random() * 60, start);
+    bubble.frequency.exponentialRampToValueAtTime(420 + Math.random() * 120, start + 0.09);
+    bubble.connect(envelope(out, start, 0.005, 0.12, 0.6));
+    bubble.start(start);
+    bubble.stop(start + 0.14);
+  }
+}
+
+/** A pardon: a short brass "ta-da-daaa". */
+function fanfare(ctx: AudioContext, t: number, out: AudioNode) {
+  const notes: readonly (readonly [number, number, number])[] = [
+    [523, 0, 0.14],
+    [659, 0.15, 0.14],
+    [784, 0.3, 0.7]
+  ];
+  notes.forEach(([frequency, offset, length]) => {
+    const start = t + offset;
+    const horn = ctx.createOscillator();
+    horn.type = "sawtooth";
+    horn.frequency.value = frequency;
+    const tone = ctx.createBiquadFilter();
+    tone.type = "lowpass";
+    tone.frequency.value = 2200;
+    horn.connect(tone).connect(envelope(out, start, 0.02, length, 0.35));
+    horn.start(start);
+    horn.stop(start + length + 0.05);
+  });
+}
+
+/** A wishbone breaking: one dry crack. */
+function snap(ctx: AudioContext, t: number, out: AudioNode) {
+  const crack = ctx.createBufferSource();
+  crack.buffer = noiseBuffer(ctx, 0.08);
+  const filter = ctx.createBiquadFilter();
+  filter.type = "highpass";
+  filter.frequency.value = 1500;
+  crack.connect(filter).connect(envelope(out, t, 0.002, 0.07, 1));
+  crack.start(t);
+}
+
 const PLAYERS: Record<HarvestSound, (ctx: AudioContext, t: number, out: AudioNode) => void> = {
   gobble,
   bigGobble,
   chomp,
   rustle,
   yum,
-  wind
+  wind,
+  bell,
+  snore,
+  glug,
+  fanfare,
+  snap
 };
 
 /** `volume` scales the sound (1 for clicks, lower for visitors arriving on their own). */

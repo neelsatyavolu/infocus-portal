@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_THANKSGIVING_PREFS,
+  isBlackFriday,
   isThanksgivingDay,
   isThanksgivingOn,
   isThanksgivingSeason,
   matchThanksgivingSecret,
+  needsThanksgivingWelcome,
   parseThanksgivingPrefs,
   THANKSGIVING_INIT_SCRIPT
 } from "@/src/lib/thanksgiving";
@@ -36,6 +38,26 @@ describe("isThanksgivingDay", () => {
     expect(isThanksgivingDay(new Date(2028, 10, 23))).toBe(true);
     expect(isThanksgivingDay(new Date(2026, 10, 19))).toBe(false);
     expect(isThanksgivingDay(new Date(2026, 10, 27))).toBe(false);
+  });
+});
+
+describe("isBlackFriday", () => {
+  it("is the day after Thanksgiving", () => {
+    expect(isBlackFriday(new Date(2026, 10, 27))).toBe(true);
+    expect(isBlackFriday(new Date(2027, 10, 26))).toBe(true);
+    expect(isBlackFriday(new Date(2028, 10, 24))).toBe(true);
+    expect(isBlackFriday(new Date(2026, 10, 20))).toBe(false);
+    expect(isBlackFriday(new Date(2026, 10, 26))).toBe(false);
+  });
+});
+
+describe("needsThanksgivingWelcome", () => {
+  const november = new Date(2026, 10, 1);
+
+  it("shows once per browser each year", () => {
+    expect(needsThanksgivingWelcome(null, november)).toBe(true);
+    expect(needsThanksgivingWelcome("2025", november)).toBe(true);
+    expect(needsThanksgivingWelcome("2026", november)).toBe(false);
   });
 });
 
@@ -79,6 +101,10 @@ describe("matchThanksgivingSecret", () => {
     expect(matchThanksgivingSecret(typed("xgobble"))).toBe("gobble");
     expect(matchThanksgivingSecret(typed("pie"))).toBe("pie");
     expect(matchThanksgivingSecret(typed("thanks"))).toBe("thanks");
+    expect(matchThanksgivingSecret(typed("let's feast"))).toBe("feast");
+    expect(matchThanksgivingSecret(typed("nap"))).toBe("nap");
+    expect(matchThanksgivingSecret(typed("gravy"))).toBe("gravy");
+    expect(matchThanksgivingSecret(typed("grav"))).toBeNull();
     expect(matchThanksgivingSecret(typed("gobbl"))).toBeNull();
     expect(matchThanksgivingSecret(typed("pies"))).toBeNull();
   });

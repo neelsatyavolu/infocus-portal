@@ -122,8 +122,9 @@
   animation: tg-strut-ltr var(--tg-duration, 14s) linear both;
 }
 .tg-strut[data-direction="rtl"] { animation-name: tg-strut-rtl; }
-.tg-strut > svg { width: 100%; height: 100%; animation: tg-bob 0.5s ease-in-out infinite; transform-origin: 50% 100%; }
-.tg-strut[data-gone="true"] > svg { animation: tg-scurry 0.5s ease-in both; }
+.tg-strut .tg-hop { display: block; width: 100%; height: 100%; transform-origin: 50% 100%; }
+.tg-strut[data-clicked="true"] .tg-hop { animation: tg-hop 0.4s cubic-bezier(0.3, 0, 0.5, 1); }
+.tg-strut svg { display: block; width: 100%; height: 100%; animation: tg-bob 0.5s ease-in-out infinite; transform-origin: 50% 100%; }
 @keyframes tg-strut-ltr {
   from { left: -90px; }
   to   { left: calc(100vw + 10px); }
@@ -136,10 +137,148 @@
   0%, 100% { transform: translateY(0) rotate(-4deg); }
   50%      { transform: translateY(-4px) rotate(4deg); }
 }
-@keyframes tg-scurry {
-  0%   { transform: translateY(0) scale(1); opacity: 1; }
-  30%  { transform: translateY(-14px) scale(1.15); opacity: 1; }
-  100% { transform: translateY(10px) scale(0.6); opacity: 0; }
+@keyframes tg-hop {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  30%      { transform: translateY(-22px) scale(0.95, 1.08); }
+  70%      { transform: translateY(0) scale(1.08, 0.92); }
+}
+
+/* Five clicks on one turkey: a gold medal on its chest, and it walks free. */
+.tg-medal {
+  position: absolute;
+  left: 50%;
+  top: 60%;
+  width: 16px;
+  height: 16px;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #FFE3A3, #F2A93B 55%, #DB8F22);
+  box-shadow: 0 0 10px rgb(242 169 59 / 0.8);
+}
+.tg-medal::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  width: 10px;
+  height: 12px;
+  translate: -50% 0;
+  background: #C23A52;
+  clip-path: polygon(0 0, 100% 0, 75% 100%, 25% 100%);
+}
+
+/* The wishbone drifts down like a leaf, a little bigger and glowing. */
+.tg-wishbone { width: 46px; }
+.tg-wishbone svg { filter: drop-shadow(0 0 8px rgb(255 227 163 / 0.7)); }
+
+/* The feast ("feast" secret): a row of dishes rises along the bottom, then sinks away. */
+.tg-feast {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--phone-tabbar-h, 0px) + 8px);
+  display: flex;
+  gap: 6px;
+  translate: -50% 0;
+  animation: tg-feast var(--tg-lasts, 7s) ease-in-out both;
+}
+.tg-feast > svg { width: clamp(56px, 13vw, 104px); height: auto; filter: drop-shadow(0 4px 10px rgb(0 0 0 / 0.45)); }
+.tg-feast > svg:nth-child(odd) { animation: tg-steam 2.4s ease-in-out infinite; }
+@keyframes tg-feast {
+  0%   { transform: translateY(140%); }
+  10%  { transform: translateY(0); }
+  88%  { transform: translateY(0); }
+  100% { transform: translateY(140%); }
+}
+
+/* Food coma ("nap" secret): the room dims, a few Z's float up, and everyone wakes up. */
+.tg-nap {
+  position: absolute;
+  inset: 0;
+  animation: tg-nap var(--tg-lasts, 5s) ease-in-out both;
+}
+@keyframes tg-nap {
+  0%, 100% { background: rgb(15 17 15 / 0); }
+  18%, 80% { background: rgb(15 17 15 / 0.72); }
+  84%      { background: rgb(15 17 15 / 0.2); }
+  88%      { background: rgb(15 17 15 / 0.72); }
+}
+.tg-z {
+  position: absolute;
+  right: 18%;
+  bottom: 30%;
+  font: 700 calc(28px + var(--tg-i) * 14px) / 1 var(--font-display);
+  color: var(--brand-green);
+  opacity: 0;
+  animation: tg-z 2.2s ease-out calc(0.8s + var(--tg-i) * 0.7s) 2 both;
+}
+@keyframes tg-z {
+  0%   { transform: translate(0, 0) rotate(-10deg); opacity: 0; }
+  20%  { opacity: 1; }
+  100% { transform: translate(60px, -160px) rotate(12deg); opacity: 0; }
+}
+
+/* Gravy ("gravy" secret): it runs down from the top of the window and drops off. */
+.tg-drip {
+  position: absolute;
+  top: 0;
+  height: var(--tg-length, 160px);
+  border-radius: 0 0 999px 999px;
+  background: linear-gradient(to right, #6B3E1F, #9A5B2A 40%, #6B3E1F);
+  transform-origin: top;
+  animation: tg-drip var(--tg-lasts, 4s) cubic-bezier(0.4, 0, 0.6, 1) var(--tg-delay, 0ms) both;
+}
+.tg-drip::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 130%;
+  aspect-ratio: 1;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: #8A5428;
+}
+@keyframes tg-drip {
+  0%   { transform: scaleY(0); opacity: 1; }
+  55%  { transform: scaleY(1); opacity: 1; }
+  80%  { transform: scaleY(1) translateY(0); opacity: 1; }
+  100% { transform: scaleY(1) translateY(30vh); opacity: 0; }
+}
+
+/* The leaf pile (leaf-pile.tsx), once 100 leaves are caught: left of the assistant button. */
+.tg-pile {
+  position: absolute;
+  right: calc(max(1.25rem, env(safe-area-inset-right)) + 60px);
+  bottom: calc(var(--phone-tabbar-h, 0px) + max(1.25rem, env(safe-area-inset-bottom)) - 4px);
+  width: 84px;
+  height: 40px;
+  animation: tg-pile-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.tg-pile > span {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  pointer-events: none;
+}
+.tg-pile > span > svg { display: block; width: 100%; height: 100%; }
+.tg-pile:hover > span { animation: tg-steam 0.5s ease-in-out infinite; }
+@keyframes tg-pile-in {
+  from { transform: translateY(100%) scale(0.6); opacity: 0; }
+  to   { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* Jumping in: the pile's leaves burst up and out. */
+.tg-burst {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  animation: tg-burst var(--tg-duration, 1.6s) cubic-bezier(0.2, 0.6, 0.4, 1) both;
+}
+.tg-burst > svg { width: 100%; height: 100%; }
+@keyframes tg-burst {
+  0%   { transform: translate(0, 0) rotate(0); opacity: 1; }
+  45%  { transform: translate(calc(var(--tg-dx) * 0.6), var(--tg-dy)) rotate(calc(var(--tg-r) / 2)); opacity: 1; }
+  100% { transform: translate(var(--tg-dx), 60vh) rotate(var(--tg-r)); opacity: 0; }
 }
 
 /* The giant turkey (giant-turkey.tsx): above everything, click-through. One timeline over
@@ -250,7 +389,29 @@
   66%                { transform: translateY(65%); }
 }
 
+/* The first-visit welcome (thanksgiving-welcome.tsx). */
+.tg-welcome-art {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 12px;
+}
+.tg-welcome-art > svg { width: 44px; height: 44px; }
+.tg-welcome-art > svg:nth-child(2) { width: 72px; height: 72px; animation: tg-bob 1.2s ease-in-out infinite; transform-origin: 50% 100%; }
+.tg-welcome-secret {
+  border-left: 2px solid var(--brand-green);
+  padding-left: 10px;
+  color: hsl(var(--foreground));
+}
+.tg-welcome-secret kbd {
+  font: 600 12px/1 var(--font-mono-broadcast);
+  padding: 2px 5px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 3px;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .tg-welcome-art > svg,
   .tg-layer *,
   .tg-layer *::before,
   .tg-giant,

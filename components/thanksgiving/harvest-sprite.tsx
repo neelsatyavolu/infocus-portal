@@ -1,5 +1,15 @@
 import type { CSSProperties, MouseEvent } from "react";
-import { LeafSprite, PieSprite, TurkeySprite } from "./sprites";
+import {
+  CornSprite,
+  CranberrySprite,
+  LeafSprite,
+  PieSprite,
+  PotatoSprite,
+  RoastSprite,
+  RollsSprite,
+  TurkeySprite,
+  WishboneSprite
+} from "./sprites";
 
 type Side = "left" | "right";
 
@@ -8,8 +18,15 @@ export type Sprite =
   | { id: number; kind: "gust"; top: number; duration: number; variant: number; r: number }
   | { id: number; kind: "pie"; side: Side; top: number; gone: boolean }
   | { id: number; kind: "pierain"; left: number; duration: number; r: number }
-  | { id: number; kind: "strut"; rtl: boolean; duration: number; gone: boolean }
+  | { id: number; kind: "strut"; rtl: boolean; duration: number; clicks: number; pardoned: boolean }
+  | { id: number; kind: "wishbone"; left: number; duration: number; sway: number }
+  | { id: number; kind: "feast"; lasts: number }
+  | { id: number; kind: "nap"; lasts: number }
+  | { id: number; kind: "drip"; left: number; width: number; length: number; delay: number; lasts: number }
+  | { id: number; kind: "burst"; x: number; y: number; dx: number; dy: number; r: number; duration: number; variant: number }
   | { id: number; kind: "plus"; x: number; y: number; text: string };
+
+const DISHES = [CornSprite, CranberrySprite, RoastSprite, PotatoSprite, RollsSprite];
 
 /** Called with the sprite and where it was on screen when someone clicked it. */
 export type SpriteHit = (sprite: Sprite, at: DOMRect) => void;
@@ -66,13 +83,70 @@ export function HarvestSprite({ sprite, onHit }: { sprite: Sprite; onHit: Sprite
           type="button"
           className="tg-strut tg-hit"
           data-direction={sprite.rtl ? "rtl" : "ltr"}
-          data-gone={sprite.gone}
+          data-clicked={sprite.clicks > 0}
+          data-pardoned={sprite.pardoned}
           style={vars({ "--tg-duration": `${sprite.duration}s` })}
           onClick={hit}
-          aria-label="Say hi to the turkey"
+          aria-label={sprite.pardoned ? "A pardoned turkey" : "Say hi to the turkey"}
         >
-          <TurkeySprite />
+          <span key={sprite.clicks} className="tg-hop">
+            <TurkeySprite />
+          </span>
+          {sprite.pardoned ? <span className="tg-medal" aria-hidden /> : null}
         </button>
+      );
+    case "wishbone":
+      return (
+        <div
+          className="tg-leaf tg-wishbone"
+          style={{ left: sprite.left, ...vars({ "--tg-duration": `${sprite.duration}s`, "--tg-sway": `${sprite.sway}px` }) }}
+        >
+          <button type="button" className="tg-hit" onClick={hit} aria-label="Pull the wishbone">
+            <WishboneSprite />
+          </button>
+        </div>
+      );
+    case "feast":
+      return (
+        <div className="tg-feast" style={vars({ "--tg-lasts": `${sprite.lasts}ms` })}>
+          {DISHES.map((Dish, i) => (
+            <Dish key={i} />
+          ))}
+        </div>
+      );
+    case "nap":
+      return (
+        <div className="tg-nap" style={vars({ "--tg-lasts": `${sprite.lasts}ms` })}>
+          {["z", "z", "Z"].map((letter, i) => (
+            <span key={i} className="tg-z" style={vars({ "--tg-i": String(i) })}>
+              {letter}
+            </span>
+          ))}
+        </div>
+      );
+    case "drip":
+      return (
+        <div
+          className="tg-drip"
+          style={{
+            left: sprite.left,
+            width: sprite.width,
+            ...vars({ "--tg-length": `${sprite.length}px`, "--tg-delay": `${sprite.delay}ms`, "--tg-lasts": `${sprite.lasts}ms` })
+          }}
+        />
+      );
+    case "burst":
+      return (
+        <div
+          className="tg-burst"
+          style={{
+            left: sprite.x,
+            top: sprite.y,
+            ...vars({ "--tg-dx": `${sprite.dx}px`, "--tg-dy": `${sprite.dy}px`, "--tg-r": `${sprite.r}deg`, "--tg-duration": `${sprite.duration}s` })
+          }}
+        >
+          <LeafSprite variant={sprite.variant} />
+        </div>
       );
     case "plus":
       return (

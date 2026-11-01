@@ -83,3 +83,102 @@ export function PieSprite({ className }: { className?: string }) {
     </svg>
   );
 }
+
+const PLATE = "#D9DCD7";
+const PLATE_RIM = "#B7BCB8";
+
+function Plate() {
+  return (
+    <>
+      <ellipse cx="40" cy="46" rx="38" ry="10" fill={PLATE_RIM} />
+      <ellipse cx="40" cy="44" rx="34" ry="8" fill={PLATE} />
+    </>
+  );
+}
+
+/** A wishbone, for the rare visitor that grants a wish. */
+export function WishboneSprite({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 64 64" className={className} aria-hidden>
+      <path
+        d="M32 50 L32 40 Q30 30 22 20 Q16 12 12 6 M32 40 Q34 30 42 20 Q48 12 52 6"
+        stroke="#E8D9B8"
+        strokeWidth="6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+      <ellipse cx="32" cy="54" rx="7" ry="5" fill="#E8D9B8" />
+      <circle cx="12" cy="6" r="4" fill="#E8D9B8" />
+      <circle cx="52" cy="6" r="4" fill="#E8D9B8" />
+    </svg>
+  );
+}
+
+/** The feast, dish by dish: a roast turkey, corn, cranberry sauce, potatoes with gravy and rolls. */
+export function RoastSprite({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 80 56" className={className} aria-hidden>
+      <Plate />
+      <ellipse cx="40" cy="32" rx="24" ry="15" fill="#B8662A" />
+      <ellipse cx="36" cy="27" rx="13" ry="7" fill="#D48A45" opacity="0.7" />
+      <path d="M58 30 L70 22" stroke="#B8662A" strokeWidth="7" strokeLinecap="round" />
+      <path d="M22 30 L10 22" stroke="#B8662A" strokeWidth="7" strokeLinecap="round" />
+      <circle cx="71" cy="21" r="4" fill={SOFT_WHITE} />
+      <circle cx="9" cy="21" r="4" fill={SOFT_WHITE} />
+    </svg>
+  );
+}
+
+export function CornSprite({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 80 56" className={className} aria-hidden>
+      <Plate />
+      <g transform="rotate(-12 40 30)">
+        <ellipse cx="40" cy="30" rx="24" ry="9" fill={GOLD} />
+        {Array.from({ length: 7 }, (_, i) => (
+          <line key={i} x1={22 + i * 6} y1="23" x2={22 + i * 6} y2="37" stroke={GOLD_DEEP} strokeWidth="1.2" />
+        ))}
+        <path d="M16 30 Q8 20 4 28 Q8 34 16 32 Z" fill="#7A9A3A" />
+      </g>
+    </svg>
+  );
+}
+
+export function CranberrySprite({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 80 56" className={className} aria-hidden>
+      <Plate />
+      <rect x="26" y="14" width="28" height="28" rx="3" fill={CRANBERRY} />
+      <line x1="26" y1="22" x2="54" y2="22" stroke="#9E2C42" strokeWidth="1.5" />
+      <line x1="26" y1="32" x2="54" y2="32" stroke="#9E2C42" strokeWidth="1.5" />
+      <ellipse cx="34" cy="17" rx="4" ry="1.5" fill="#E2687E" opacity="0.7" />
+    </svg>
+  );
+}
+
+export function PotatoSprite({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 80 56" className={className} aria-hidden>
+      <Plate />
+      <path d="M18 40 Q16 20 40 16 Q64 20 62 40 Z" fill="#EFE6CF" />
+      <path d="M30 22 Q40 14 50 22 Q48 30 40 28 Q32 30 30 22 Z" fill="#8A5428" />
+      <path d="M44 27 Q46 34 44 38" stroke="#8A5428" strokeWidth="3" strokeLinecap="round" fill="none" />
+      <rect x="36" y="17" width="8" height="5" rx="1" fill="#F4D35E" />
+    </svg>
+  );
+}
+
+export function RollsSprite({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 80 56" className={className} aria-hidden>
+      <Plate />
+      {[24, 40, 56].map((x, i) => (
+        <g key={x}>
+          <ellipse cx={x} cy={i === 1 ? 28 : 34} rx="11" ry="9" fill="#C98A47" />
+          <path d={`M${x - 6} ${i === 1 ? 26 : 32} Q${x} ${i === 1 ? 22 : 28} ${x + 6} ${i === 1 ? 26 : 32}`} stroke="#E3B27A" strokeWidth="2" fill="none" />
+        </g>
+      ))}
+    </svg>
+  );
+}

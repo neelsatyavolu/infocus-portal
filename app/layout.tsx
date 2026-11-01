@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Lexend } from "next/font/google";
 import localFont from "next/font/local";
 import { Toaster } from "@/components/ui/sonner";
-import { HalloweenFavicon } from "@/components/halloween/halloween-favicon";
+import { SeasonSync } from "@/components/season-sync";
 import { N3elAnalytics } from "@/components/n3el-analytics";
 import { PortalDomainLinks } from "@/components/portal-domain-links";
 import { HALLOWEEN_INIT_SCRIPT } from "@/src/lib/halloween";
@@ -88,7 +88,7 @@ export default function RootLayout({
         <Toaster />
         <N3elAnalytics />
         <PortalDomainLinks />
-        <HalloweenFavicon />
+        <SeasonSync />
       </body>
     </html>
   );

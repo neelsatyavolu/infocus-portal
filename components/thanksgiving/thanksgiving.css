@@ -281,114 +281,6 @@
   100% { transform: translate(var(--tg-dx), 60vh) rotate(var(--tg-r)); opacity: 0; }
 }
 
-/* The giant turkey (giant-turkey.tsx): above everything, click-through. One timeline over
-   --tg-lasts (7.5 s): walk in from the right (0–18.7%), stare (to 56%), lunge to eat you (to
-   66.7%), back off (to 74.7%), walk out to the left. The sounds are timed to the same marks. */
-.tg-giant {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  pointer-events: none;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  animation: tg-giant-dim var(--tg-lasts, 7.5s) linear both;
-}
-@keyframes tg-giant-dim {
-  0%     { background: rgb(15 17 15 / 0); }
-  18.7%  { background: rgb(15 17 15 / 0.45); }
-  56%    { background: rgb(15 17 15 / 0.6); }
-  62%    { background: rgb(15 17 15 / 0.9); }
-  74.7%  { background: rgb(15 17 15 / 0.45); }
-  100%   { background: rgb(15 17 15 / 0); }
-}
-
-.tg-giant-walk {
-  width: min(96vw, 96vh);
-  height: min(96vw, 96vh);
-  animation: tg-giant-path var(--tg-lasts, 7.5s) linear both;
-}
-@keyframes tg-giant-path {
-  0%     { transform: translateX(110vw); animation-timing-function: cubic-bezier(0.2, 0.7, 0.3, 1); }
-  18.7%  { transform: translateX(0); }
-  74.7%  { transform: translateX(0); animation-timing-function: cubic-bezier(0.5, 0, 0.8, 0.4); }
-  100%   { transform: translateX(-120vw); }
-}
-
-/* Waddle while walking, stand still and tilt the head while staring, then the lunge. */
-.tg-giant-figure {
-  width: 100%;
-  height: 100%;
-  transform-origin: 50% 50%;
-  animation: tg-giant-body var(--tg-lasts, 7.5s) linear both;
-}
-.tg-giant-figure > svg { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 20px 40px rgb(0 0 0 / 0.5)); }
-@keyframes tg-giant-body {
-  0%     { transform: translateY(0) rotate(-3deg); }
-  4.7%   { transform: translateY(-2.5%) rotate(3deg); }
-  9.3%   { transform: translateY(0) rotate(-3deg); }
-  14%    { transform: translateY(-2.5%) rotate(3deg); }
-  18.7%  { transform: translateY(0) rotate(0); }
-  30%    { transform: translateY(0) rotate(0); }
-  34%    { transform: translateY(0) rotate(-6deg); }
-  44%    { transform: translateY(0) rotate(-6deg); }
-  48%    { transform: translateY(0) rotate(0); }
-  56%    { transform: translateY(0) scale(1); animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.6); }
-  61%    { transform: translateY(0) scale(3.4); }
-  66.7%  { transform: translateY(0) scale(3.4); animation-timing-function: cubic-bezier(0.2, 0.8, 0.4, 1); }
-  74.7%  { transform: translateY(0) scale(1) rotate(0); }
-  79.7%  { transform: translateY(-2.5%) rotate(-3deg); }
-  84.7%  { transform: translateY(0) rotate(3deg); }
-  89.7%  { transform: translateY(-2.5%) rotate(-3deg); }
-  94.7%  { transform: translateY(0) rotate(3deg); }
-  100%   { transform: translateY(-2.5%) rotate(-3deg); }
-}
-
-/* Inside the drawing (sprites.tsx): blink once while staring, pupils widen and the beak gapes for the bite. */
-.tg-giant .tg-eye,
-.tg-giant .tg-pupil,
-.tg-giant .tg-mouth,
-.tg-giant .tg-beak-top,
-.tg-giant .tg-beak-bottom {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation-duration: var(--tg-lasts, 7.5s);
-  animation-timing-function: linear;
-  animation-fill-mode: both;
-}
-.tg-giant .tg-eye { animation-name: tg-giant-blink; }
-.tg-giant .tg-pupil { animation-name: tg-giant-pupil; }
-.tg-giant .tg-mouth { animation-name: tg-giant-mouth; }
-.tg-giant .tg-beak-top { animation-name: tg-giant-beak-top; }
-.tg-giant .tg-beak-bottom { animation-name: tg-giant-beak-bottom; }
-@keyframes tg-giant-blink {
-  0%, 26%, 28.5%, 100% { transform: scaleY(1); }
-  27.2%                { transform: scaleY(0.1); }
-}
-@keyframes tg-giant-pupil {
-  0%, 26%, 28.5%, 50%, 74.7%, 100% { transform: scale(1); }
-  27.2%                            { transform: scaleY(0.1); }
-  56%, 66.7%                       { transform: scale(1.5); }
-}
-@keyframes tg-giant-mouth {
-  0%, 54%, 70%, 100% { transform: scale(0); }
-  58%, 62%           { transform: scale(1.6); }
-  64%                { transform: scale(0.2); }
-  66%                { transform: scale(1.3); }
-}
-@keyframes tg-giant-beak-top {
-  0%, 54%, 70%, 100% { transform: translateY(0); }
-  58%, 62%           { transform: translateY(-55%); }
-  64%                { transform: translateY(0); }
-  66%                { transform: translateY(-40%); }
-}
-@keyframes tg-giant-beak-bottom {
-  0%, 54%, 70%, 100% { transform: translateY(0); }
-  58%, 62%           { transform: translateY(85%); }
-  64%                { transform: translateY(0); }
-  66%                { transform: translateY(65%); }
-}
-
 /* The first-visit welcome (thanksgiving-welcome.tsx). */
 .tg-welcome-art {
   display: flex;
@@ -413,9 +305,7 @@
 @media (prefers-reduced-motion: reduce) {
   .tg-welcome-art > svg,
   .tg-layer *,
-  .tg-layer *::before,
-  .tg-giant,
-  .tg-giant * {
+  .tg-layer *::before {
     animation: none !important;
   }
 }

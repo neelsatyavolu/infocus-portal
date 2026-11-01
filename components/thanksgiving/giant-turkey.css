@@ -1,0 +1,293 @@
+/* The giant turkey (giant-turkey.tsx, drawings in giant-turkey-art.tsx). Above everything and
+   click-through. giant-turkey.tsx sets data-phase on a timer: in → strut → look → eat → swallow
+   → out. Transforms inside the drawings use view-box units (transform-box: view-box). */
+
+.tg-giant {
+  --tg-dim: 0.35;
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+  overflow: hidden;
+}
+.tg-giant::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #0F110F;
+  opacity: var(--tg-dim);
+  transition: opacity 0.8s ease;
+  animation: tg-dim-in 0.9s ease-out;
+}
+@keyframes tg-dim-in {
+  from { opacity: 0; }
+}
+.tg-giant[data-phase="strut"] { --tg-dim: 0.5; }
+.tg-giant[data-phase="look"] { --tg-dim: 0.55; }
+.tg-giant[data-phase="eat"] { --tg-dim: 0.8; }
+.tg-giant[data-phase="swallow"] { --tg-dim: 0.55; }
+.tg-giant[data-phase="out"] { --tg-dim: 0; }
+.tg-giant[data-phase="out"]::before { transition-duration: 1.8s; }
+
+/* The whole bird, standing on the bottom edge, as tall as the window allows. */
+.tg-giant-walker {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  height: min(94vh, 76vw);
+  aspect-ratio: 520 / 420;
+  translate: -48% 0;
+}
+.tg-giant[data-phase="in"] .tg-giant-walker { animation: tg-walk-in 1.8s cubic-bezier(0.25, 0.6, 0.35, 1) both; }
+.tg-giant[data-phase="out"] .tg-giant-walker { animation: tg-walk-out 2.2s cubic-bezier(0.5, 0, 0.85, 0.5) both; }
+@keyframes tg-walk-in {
+  from { transform: translateX(105vw); }
+  to   { transform: translateX(0); }
+}
+@keyframes tg-walk-out {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-135vw); }
+}
+
+.tg-giant-figure {
+  width: 100%;
+  height: 100%;
+  transition: transform 0.45s ease, filter 0.45s ease;
+}
+.tg-giant-figure > svg { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 24px 40px rgb(0 0 0 / 0.55)); }
+/* While the head is up close, the rest of the bird falls back out of focus. */
+.tg-giant[data-phase="eat"] .tg-giant-figure { transform: scale(0.94); filter: brightness(0.5) blur(2px); }
+
+.tg-giant .tgg-leg,
+.tg-giant .tgg-body,
+.tg-giant .tgg-head,
+.tg-giant .tgg-fan,
+.tg-giant .tgg-tail-folded,
+.tg-giant .tgg-snood,
+.tg-giant .tgg-wattle,
+.tg-giant .tgg-eye,
+.tg-giant .tgg-beak-bottom,
+.tg-giant .tgg-gulp {
+  transform-box: view-box;
+}
+
+/* Walking: legs swing from the hip, the body rises and falls, the head thrusts forward each step. */
+.tg-giant .tgg-leg-near { transform-origin: 206px 302px; }
+.tg-giant .tgg-leg-far { transform-origin: 238px 300px; }
+.tg-giant[data-phase="in"] .tgg-leg,
+.tg-giant[data-phase="out"] .tgg-leg { animation: tg-step 0.6s ease-in-out infinite; }
+.tg-giant[data-phase="in"] .tgg-leg-far,
+.tg-giant[data-phase="out"] .tgg-leg-far { animation-delay: -0.3s; }
+@keyframes tg-step {
+  0%, 100% { transform: rotate(-20deg); }
+  50%      { transform: rotate(18deg); }
+}
+.tg-giant[data-phase="in"] :is(.tgg-body, .tgg-tail-folded, .tgg-fan),
+.tg-giant[data-phase="out"] :is(.tgg-body, .tgg-tail-folded, .tgg-fan) { animation: tg-sway 0.3s ease-in-out infinite; }
+@keyframes tg-sway {
+  0%, 100% { translate: 0 0; }
+  50%      { translate: 0 -5px; }
+}
+.tg-giant .tgg-head { transform-origin: 185px 195px; transition: transform 0.5s cubic-bezier(0.3, 0, 0.2, 1); }
+.tg-giant[data-phase="in"] .tgg-head,
+.tg-giant[data-phase="out"] .tgg-head { animation: tg-head-bob 0.3s linear infinite; }
+@keyframes tg-head-bob {
+  0%   { transform: translate(7px, -2px); }
+  18%  { transform: translate(-8px, 1px); }
+  100% { transform: translate(7px, -2px); }
+}
+
+/* Strutting: the tail fans up, the feathers puff, the snood drops long and the wattle flushes. */
+.tg-giant .tgg-fan {
+  transform-origin: 322px 200px;
+  transform: scale(0.2, 0.08);
+  opacity: 0;
+  transition: transform 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.15), opacity 0.25s ease;
+}
+.tg-giant .tgg-tail-folded { transition: opacity 0.25s ease; }
+.tg-giant .tgg-body { transform-origin: 225px 214px; transition: transform 0.5s ease; }
+.tg-giant .tgg-snood { transform-origin: 63px 68px; transition: transform 0.5s ease; }
+.tg-giant .tgg-wattle { transform-origin: 72px 92px; transition: transform 0.5s ease, filter 0.5s ease; }
+.tg-giant:is([data-phase="strut"], [data-phase="look"], [data-phase="eat"], [data-phase="swallow"]) .tgg-fan { transform: scale(1); opacity: 1; }
+.tg-giant:is([data-phase="strut"], [data-phase="look"], [data-phase="eat"], [data-phase="swallow"]) .tgg-tail-folded { opacity: 0; }
+.tg-giant:is([data-phase="strut"], [data-phase="look"]) .tgg-body { transform: scale(1.05); }
+.tg-giant:is([data-phase="strut"], [data-phase="look"], [data-phase="eat"]) .tgg-snood { transform: scaleY(1.45); }
+.tg-giant:is([data-phase="strut"], [data-phase="look"], [data-phase="eat"]) .tgg-wattle { transform: scale(1.15); filter: saturate(1.35); }
+
+/* The gobble: the head drops and thrusts forward, shaking, with the beak open. */
+.tg-giant[data-phase="strut"] .tgg-head { animation: tg-gobble 1s ease-out 0.5s both; }
+@keyframes tg-gobble {
+  0%   { transform: translate(8px, 6px); }
+  14%  { transform: translate(-14px, 14px) rotate(-9deg); }
+  22%  { transform: translate(-10px, 10px) rotate(-6deg); }
+  30%  { transform: translate(-15px, 15px) rotate(-10deg); }
+  38%  { transform: translate(-10px, 10px) rotate(-6deg); }
+  46%  { transform: translate(-15px, 15px) rotate(-10deg); }
+  62%  { transform: translate(-6px, 8px) rotate(-3deg); }
+  100% { transform: translate(8px, 6px); }
+}
+.tg-giant .tgg-beak-bottom { transform-origin: 60px 92px; }
+.tg-giant[data-phase="strut"] .tgg-beak-bottom { animation: tg-gobble-beak 1s ease-out 0.5s both; }
+@keyframes tg-gobble-beak {
+  0%, 70%, 100% { transform: rotate(0); }
+  12%, 52%      { transform: rotate(16deg); }
+}
+
+/* Looking you over: the sharp, held head moves birds make, and a blink. */
+.tg-giant[data-phase="look"] .tgg-head { animation: tg-look 0.8s linear both; }
+@keyframes tg-look {
+  0%, 22%   { transform: translate(8px, 6px); }
+  24%, 52%  { transform: translate(2px, -4px) rotate(4deg); }
+  54%, 78%  { transform: translate(-6px, 0) rotate(-3deg); }
+  80%, 100% { transform: translate(-2px, -8px) rotate(5deg); }
+}
+.tg-giant .tgg-eye { transform-origin: 76px 76px; }
+.tg-giant[data-phase="look"] .tgg-eye { animation: tg-blink 0.8s linear both; }
+@keyframes tg-blink {
+  0%, 60%, 70%, 100% { transform: scaleY(1); }
+  65%                { transform: scaleY(0.1); }
+}
+
+/* Swallowing: beak up, a lump slides down the neck, then a shake to settle it. */
+.tg-giant .tgg-gulp { opacity: 0; }
+.tg-giant[data-phase="swallow"] .tgg-head { animation: tg-swallow 1.1s ease-in-out both; }
+@keyframes tg-swallow {
+  0%   { transform: rotate(0); }
+  25%  { transform: rotate(14deg); }
+  62%  { transform: rotate(14deg); }
+  70%  { transform: rotate(-5deg); }
+  78%  { transform: rotate(5deg); }
+  86%  { transform: rotate(-3deg); }
+  100% { transform: rotate(0); }
+}
+.tg-giant[data-phase="swallow"] .tgg-gulp { animation: tg-gulp 0.7s ease-in 0.3s both; }
+@keyframes tg-gulp {
+  from { opacity: 1; transform: translate(0, 0); }
+  to   { opacity: 0; transform: translate(62px, 66px) scale(1.2); }
+}
+
+/* Up close: the head, anchored at the beak tip, strikes the screen at each bite. The drawing's
+   beak tip is at (78, 388) of 600. */
+.tg-close {
+  --tg-size: min(120vmin, 1100px);
+  position: absolute;
+  width: 0;
+  height: 0;
+  z-index: 2;
+  transition: left 0.28s cubic-bezier(0.3, 0, 0.2, 1), top 0.28s cubic-bezier(0.3, 0, 0.2, 1);
+  animation: tg-close-in 0.45s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+.tg-close[data-leaving="true"] { animation: tg-close-out 0.55s cubic-bezier(0.5, 0, 0.9, 0.5) both; }
+@keyframes tg-close-in {
+  from { transform: translate(70vw, 60vh) rotate(14deg); }
+  to   { transform: translate(0, 0) rotate(0); }
+}
+@keyframes tg-close-out {
+  from { transform: translate(0, 0) rotate(0); }
+  to   { transform: translate(75vw, 70vh) rotate(16deg); }
+}
+.tg-close-strike {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  animation: tg-strike 0.42s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+.tg-close-strike > svg {
+  position: absolute;
+  width: var(--tg-size);
+  height: var(--tg-size);
+  left: calc(var(--tg-size) * -0.13);
+  top: calc(var(--tg-size) * -0.6467);
+  filter: drop-shadow(0 30px 60px rgb(0 0 0 / 0.6));
+}
+/* Draw back, then strike (contact at 72%, STRIKE_LEAD_MS in giant-turkey.tsx), then recoil. */
+@keyframes tg-strike {
+  0%   { transform: translate(8vmin, 6vmin) scale(0.9) rotate(5deg); }
+  55%  { transform: translate(11vmin, 8vmin) scale(0.86) rotate(7deg); }
+  72%  { transform: translate(0, 0) scale(1.02) rotate(0); }
+  82%  { transform: translate(-0.6vmin, -0.4vmin) scale(1.03) rotate(-1deg); }
+  100% { transform: translate(2vmin, 1.5vmin) scale(1) rotate(1deg); }
+}
+.tg-close .tgc-beak-bottom,
+.tg-close .tgc-beak-top,
+.tg-close .tgc-lid {
+  transform-box: view-box;
+  animation-duration: 0.42s;
+  animation-fill-mode: both;
+  animation-timing-function: ease-in-out;
+}
+.tg-close .tgc-beak-bottom { transform-origin: 214px 386px; animation-name: tg-jaw; }
+.tg-close .tgc-beak-top { transform-origin: 214px 345px; animation-name: tg-upper-jaw; }
+.tg-close .tgc-lid { transform-origin: 330px 232px; animation-name: tg-close-blink; }
+@keyframes tg-jaw {
+  0%, 74%, 100% { transform: rotate(0); }
+  35%, 66%      { transform: rotate(17deg); }
+}
+@keyframes tg-upper-jaw {
+  0%, 74%, 100% { transform: rotate(0); }
+  35%, 66%      { transform: rotate(-5deg); }
+}
+/* Birds shut their eyes as they strike. */
+@keyframes tg-close-blink {
+  0%, 60%, 90%, 100% { transform: scaleY(1); }
+  70%, 80%           { transform: scaleY(3.2) translateY(6px); }
+}
+
+/* Peck holes: punched in at the moment of contact, with a shock ring and crumbs of screen. */
+.tg-bites {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  transition: opacity 1.2s ease 0.6s;
+}
+.tg-giant[data-phase="out"] .tg-bites { opacity: 0; }
+.tg-bite {
+  position: absolute;
+  width: 22vmin;
+  height: 22vmin;
+  translate: -50% -50%;
+  animation: tg-bite-in 0.16s ease-out both;
+}
+.tg-bite > svg { width: 100%; height: 100%; overflow: visible; }
+.tg-bite::after {
+  content: "";
+  position: absolute;
+  inset: 30%;
+  border-radius: 50%;
+  border: 2px solid rgb(236 239 234 / 0.6);
+  animation: tg-shock 0.5s ease-out both;
+}
+@keyframes tg-bite-in {
+  from { transform: scale(0.45); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+@keyframes tg-shock {
+  from { transform: scale(0.6); opacity: 1; }
+  to   { transform: scale(2.6); opacity: 0; }
+}
+.tg-crumb {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--tg-size, 8px);
+  height: var(--tg-size, 8px);
+  background: #D8DCD6;
+  clip-path: polygon(0 20%, 60% 0, 100% 45%, 75% 100%, 10% 85%);
+  animation: tg-crumb 1.1s cubic-bezier(0.3, 0, 0.9, 0.6) var(--tg-delay, 0ms) both;
+}
+.tg-crumb[data-dark="true"] { background: #2A2D2A; }
+@keyframes tg-crumb {
+  0%   { transform: translate(0, 0) rotate(0); opacity: 1; }
+  80%  { opacity: 1; }
+  100% { transform: translate(var(--tg-dx, 40px), 50vh) rotate(var(--tg-r, 180deg)); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tg-giant,
+  .tg-giant *,
+  .tg-giant::before {
+    animation: none !important;
+    transition: none !important;
+  }
+}

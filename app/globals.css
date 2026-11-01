@@ -193,7 +193,8 @@
    Thanksgiving (November, src/lib/thanksgiving.ts): harvest colors.
    Harvest Gold #F2A93B replaces Green on Dark, Maple #A4471C replaces
    InFocus Green fills, Cranberry #C23A52 replaces Record Red. Ink, Soft
-   White, Lexend and the logos are unchanged.
+   White and Lexend are unchanged; the logos come from the InFocus Thanksgiving 2026
+   Package (public/thanksgiving/, same canvases as the 2026 files).
    ============================================================ */
 
 :root.thanksgiving {
@@ -221,9 +222,12 @@
   --brand-fill-hover: #8A3B14;
 }
 
-/* Logos: the 2026 file carries .halloween-hide, its Halloween twin .halloween-show. */
+/* Logos: the 2026 file carries .halloween-hide and .thanksgiving-hide, its seasonal twins
+   .halloween-show and .thanksgiving-show. */
 :root:not(.halloween) .halloween-show,
-:root.halloween .halloween-hide {
+:root.halloween .halloween-hide,
+:root:not(.thanksgiving) .thanksgiving-show,
+:root.thanksgiving .thanksgiving-hide {
   display: none !important;
 }
 

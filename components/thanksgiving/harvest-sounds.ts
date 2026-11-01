@@ -16,7 +16,9 @@ export type HarvestSound =
   | "snore"
   | "glug"
   | "fanfare"
-  | "snap";
+  | "snap"
+  | "peck"
+  | "gulp";
 
 /** A turkey's "gobble-obble-obble": a buzzy voice warbling fast while it falls in pitch. */
 function gobbleAt(ctx: AudioContext, t: number, out: AudioNode, pitch: number, length: number, peak: number) {
@@ -213,6 +215,48 @@ function snap(ctx: AudioContext, t: number, out: AudioNode) {
   crack.start(t);
 }
 
+/** A beak striking the screen: a hard knock, then glass and plastic crunching. */
+function peck(ctx: AudioContext, t: number, out: AudioNode) {
+  const knock = ctx.createOscillator();
+  knock.frequency.setValueAtTime(900, t);
+  knock.frequency.exponentialRampToValueAtTime(120, t + 0.05);
+  knock.connect(envelope(out, t, 0.002, 0.08, 1));
+  knock.start(t);
+  knock.stop(t + 0.1);
+
+  const buffer = noiseBuffer(ctx, 0.05);
+  for (let i = 0; i < 7; i += 1) {
+    const start = t + 0.01 + i * 0.022 + Math.random() * 0.012;
+    const shard = ctx.createBufferSource();
+    shard.buffer = buffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.value = 2500 + Math.random() * 4000;
+    filter.Q.value = 2;
+    shard.connect(filter).connect(envelope(out, start, 0.002, 0.045, 0.55 - i * 0.05));
+    shard.start(start);
+  }
+}
+
+/** A big swallow: a low, throaty gulp that drops in pitch. */
+function gulp(ctx: AudioContext, t: number, out: AudioNode) {
+  const throat = ctx.createOscillator();
+  throat.type = "sine";
+  throat.frequency.setValueAtTime(260, t);
+  throat.frequency.exponentialRampToValueAtTime(70, t + 0.28);
+  throat.connect(envelope(out, t, 0.02, 0.32, 1));
+  throat.start(t);
+  throat.stop(t + 0.35);
+
+  const wet = ctx.createBufferSource();
+  wet.buffer = noiseBuffer(ctx, 0.2);
+  const filter = ctx.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.value = 600;
+  wet.connect(filter).connect(envelope(out, t + 0.05, 0.02, 0.18, 0.4));
+  wet.start(t + 0.05);
+}
+
 const PLAYERS: Record<HarvestSound, (ctx: AudioContext, t: number, out: AudioNode) => void> = {
   gobble,
   bigGobble,
@@ -224,7 +268,9 @@ const PLAYERS: Record<HarvestSound, (ctx: AudioContext, t: number, out: AudioNod
   snore,
   glug,
   fanfare,
-  snap
+  snap,
+  peck,
+  gulp
 };
 
 /** `volume` scales the sound (1 for clicks, lower for visitors arriving on their own). */

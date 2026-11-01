@@ -72,7 +72,7 @@ export function ThanksgivingCells({ onSaved }: { onSaved: () => void }) {
           <SettingsCell
             inline
             title="Giant turkey"
-            description="Every few minutes it walks in and tries to eat you."
+            description="Every few minutes it walks in, gobbles and pecks holes in your screen."
             htmlFor="pref-thanksgiving-turkey"
             className="min-h-16"
           >

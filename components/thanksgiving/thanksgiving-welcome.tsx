@@ -11,7 +11,7 @@ const WELCOMED_KEY = "infocus-thanksgiving-welcome";
 
 const WHAT_HAPPENS = [
   ["Visitors drop by.", "Leaves fall, pies turn up at the edges and a turkey struts along the bottom. Catch the leaves and eat the pies; the Portal keeps count."],
-  ["Watch for the big one.", "Every few minutes a turkey as tall as the window walks in and tries to eat you."],
+  ["Watch for the big one.", "Every few minutes a wild turkey as tall as the window walks in, sizes you up and pecks holes in your screen."],
   ["You'll hear it.", "Rustles, gobbles and gusts of wind start after your first click."],
   ["Work still works.", "Everything stays clickable, and the big turkey stays away during videos, teleprompter run mode and dialogs."]
 ] as const;

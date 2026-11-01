@@ -13,14 +13,11 @@ const SOFT_WHITE = "#ECEFEA";
 const FEATHER_COLORS = [CRANBERRY, MAPLE, GOLD, BARK_LIGHT];
 const FEATHER_ANGLES = Array.from({ length: 11 }, (_, i) => -75 + i * 15);
 
-/**
- * A turkey facing you, tail fanned. The beak halves, the mouth and the eyes carry classes so the
- * giant turkey (thanksgiving.css) can blink, stare and open wide; the small one just struts.
- */
+/** A turkey facing you, tail fanned: the strutting visitor and the welcome's art. */
 export function TurkeySprite({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 200 200" className={className} aria-hidden>
-      <g className="tg-tail">
+      <g>
         {FEATHER_ANGLES.map((angle, i) => (
           <g key={angle} transform={`rotate(${angle} 100 128)`}>
             <ellipse cx="100" cy="52" rx="15" ry="50" fill={FEATHER_COLORS[i % FEATHER_COLORS.length]} />
@@ -37,16 +34,16 @@ export function TurkeySprite({ className }: { className?: string }) {
         <path d="M114 180 L114 194 M114 194 L106 198 M114 194 L114 199 M114 194 L122 198" />
       </g>
       <circle cx="100" cy="88" r="26" fill={BARK_LIGHT} />
-      <g className="tg-eyes">
-        <circle className="tg-eye" cx="89" cy="81" r="9" fill={SOFT_WHITE} />
-        <circle className="tg-eye" cx="111" cy="81" r="9" fill={SOFT_WHITE} />
-        <circle className="tg-pupil" cx="89" cy="82" r="4.5" fill={INK} />
-        <circle className="tg-pupil" cx="111" cy="82" r="4.5" fill={INK} />
+      <g>
+        <circle cx="89" cy="81" r="9" fill={SOFT_WHITE} />
+        <circle cx="111" cy="81" r="9" fill={SOFT_WHITE} />
+        <circle cx="89" cy="82" r="4.5" fill={INK} />
+        <circle cx="111" cy="82" r="4.5" fill={INK} />
       </g>
-      <ellipse className="tg-mouth" cx="100" cy="99" rx="9" ry="9" fill={INK} />
-      <path className="tg-beak-bottom" d="M93 97 L107 97 L100 109 Z" fill={GOLD_DEEP} />
-      <path className="tg-beak-top" d="M91 91 L109 91 L100 104 Z" fill={GOLD} />
-      <path className="tg-wattle" d="M104 97 Q115 108 108 124 Q101 116 103 103 Z" fill={CRANBERRY} />
+      <ellipse cx="100" cy="99" rx="9" ry="9" fill={INK} />
+      <path d="M93 97 L107 97 L100 109 Z" fill={GOLD_DEEP} />
+      <path d="M91 91 L109 91 L100 104 Z" fill={GOLD} />
+      <path d="M104 97 Q115 108 108 124 Q101 116 103 103 Z" fill={CRANBERRY} />
     </svg>
   );
 }

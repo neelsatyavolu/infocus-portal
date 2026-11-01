@@ -10,11 +10,11 @@ import { GiantTurkeyDefs, PeckHole, TurkeyCloseUp, WildTurkey } from "./giant-tu
 import { playHarvestSound, type HarvestSound } from "./harvest-sounds";
 import "./giant-turkey.css";
 
-/** Rare: the first one 45–90 s in, then one every 4–7 minutes. */
-const FIRST_VISIT_MIN_MS = 45_000;
-const FIRST_VISIT_SPREAD_MS = 45_000;
-const VISIT_MIN_MS = 4 * 60_000;
-const VISIT_SPREAD_MS = 3 * 60_000;
+/** Rare: the first one 10–20 minutes in, then one every 30–60 minutes ("gobble" calls one any time). */
+const FIRST_VISIT_MIN_MS = 10 * 60_000;
+const FIRST_VISIT_SPREAD_MS = 10 * 60_000;
+const VISIT_MIN_MS = 30 * 60_000;
+const VISIT_SPREAD_MS = 30 * 60_000;
 /** Not a good moment (sound locked, video playing, tab hidden, run mode, a dialog): check again soon. */
 const RETRY_MS = 2_000;
 const RUN_MODE_QUIET_MS = 60_000;

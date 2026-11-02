@@ -36,6 +36,8 @@ const ViewAsMenu = dynamic(() => import("@/components/view-as-menu").then((m) =>
 // Project pages only, so other pages never download them.
 const ProjectAssetsPanel = dynamic(() => import("@/components/shell/project-assets-panel").then((m) => m.ProjectAssetsPanel));
 const PhoneFolderChips = dynamic(() => import("@/components/shell/phone-folder-chips").then((m) => m.PhoneFolderChips));
+const PA_SCRIPT_PATH = "/announcements/pa";
+
 // Halloween season only (src/lib/halloween.ts), so the rest of the year never downloads it.
 const HalloweenGoodies = dynamic(() => import("@/components/halloween/halloween-goodies").then((m) => m.HalloweenGoodies), {
   ssr: false
@@ -88,6 +90,8 @@ export function AppShell({
   const onMeetHost = useOnMeetHost();
   const halloween = useHalloweenActive();
   const thanksgiving = useThanksgivingActive();
+  // No seasonal visitors (turkey, leaves, pumpkins) on the PA script page.
+  const seasonalDecor = chrome && !onMeetHost && !pathname.startsWith(PA_SCRIPT_PATH);
 
   // Page caches belong to one signed-in person (View as switches the person).
   setClientCacheOwner(currentUser.email ?? null);
@@ -290,8 +294,8 @@ export function AppShell({
             <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} audience={audience} />
           </>
         ) : null}
-        {halloween && chrome && !onMeetHost ? <HalloweenGoodies /> : null}
-        {thanksgiving && chrome && !onMeetHost ? <ThanksgivingGoodies /> : null}
+        {halloween && seasonalDecor ? <HalloweenGoodies /> : null}
+        {thanksgiving && seasonalDecor ? <ThanksgivingGoodies /> : null}
         {canViewAs && viewAsMounted ? (
           <ViewAsMenu currentUser={currentUser} canViewAs={canViewAs} viewingAs={viewingAs} open={viewAsOpen} onOpenChange={setViewAsOpen} />
         ) : null}

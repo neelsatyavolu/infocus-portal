@@ -65,7 +65,13 @@ const nextConfig: NextConfig = {
     }
   },
   experimental: {
-    optimizePackageImports: ["lucide-react"]
+    optimizePackageImports: ["lucide-react"],
+    // Tab switches: a page you saw in the last minute shows at once from the client cache
+    // (`dynamic`), and hovering or touching a sidebar / phone tab link fetches the whole page
+    // ahead of the click (`dynamicOnHover` + `unstable_dynamicOnHover` on those links), kept for
+    // `static`. Edits made through the Portal API drop the cache (use-router-cache-purge.ts).
+    staleTimes: { dynamic: 60, static: 60 },
+    dynamicOnHover: true
   }
 };
 

@@ -18,6 +18,7 @@ import { ViewAsNotice } from "@/components/shell/shell-notices";
 import { assistantAudienceFor, shellRoute } from "@/components/shell/shell-route";
 import { usePhoneDrawer } from "@/components/shell/use-phone-drawer";
 import { useProjectShell } from "@/components/shell/use-project-shell";
+import { useRouterCachePurge } from "@/components/shell/use-router-cache-purge";
 import { useShellCrumbs } from "@/components/shell/use-shell-crumbs";
 import { useOnMeetHost, useSlackCatchUp, useToastOffset } from "@/components/shell/use-shell-effects";
 import { useShellLink } from "@/components/shell/use-shell-link";
@@ -91,6 +92,7 @@ export function AppShell({
   // Page caches belong to one signed-in person (View as switches the person).
   setClientCacheOwner(currentUser.email ?? null);
   useSlackCatchUp(!sampleOnly);
+  useRouterCachePurge();
 
   const nav = useShellNav({ platformRole, sampleOnly, chrome, pathname, email: currentUser.email });
   const { isProducer, status, phoneTabs } = nav;

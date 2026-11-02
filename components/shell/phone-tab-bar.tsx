@@ -5,6 +5,7 @@ import { Menu } from "lucide-react";
 import type { NavSignals, SidebarNavItem } from "@/src/lib/sidebar-nav";
 import { cn } from "@/src/lib/utils";
 import { isNavItemActive, navIconFor } from "@/components/shell/nav-items";
+import { PREFETCH_PAGE_ON_HOVER } from "@/components/shell/nav-link-prefetch";
 import { TabSignal } from "@/components/shell/nav-signal";
 
 const TAB_CLASS =
@@ -50,6 +51,7 @@ export function PhoneTabBar({
           <Link
             key={tab.id}
             href={tab.href as never}
+            {...PREFETCH_PAGE_ON_HOVER}
             aria-current={active ? "page" : undefined}
             className={cn(TAB_CLASS, active ? "text-foreground" : "text-muted-foreground")}
           >

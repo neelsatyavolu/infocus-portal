@@ -8,6 +8,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import type { NavSignal, SidebarNavItem } from "@/src/lib/sidebar-nav";
 import { cn } from "@/src/lib/utils";
 import type { NavIcon } from "@/components/shell/nav-items";
+import { PREFETCH_PAGE_ON_HOVER } from "@/components/shell/nav-link-prefetch";
 import { NavCornerDot, NavStatusSlot } from "@/components/shell/nav-signal";
 
 /**
@@ -85,7 +86,12 @@ export function SidebarNavLink({
       {body}
     </a>
   ) : (
-    <Link href={item.href as never} className={className} aria-current={active ? "page" : undefined}>
+    <Link
+      href={item.href as never}
+      {...PREFETCH_PAGE_ON_HOVER}
+      className={className}
+      aria-current={active ? "page" : undefined}
+    >
       {body}
     </Link>
   );

@@ -1,4 +1,4 @@
-/* The giant turkey (giant-turkey.tsx, drawings in giant-turkey-art.tsx). Above everything and
+/* The giant turkey (giant-turkey.tsx, drawings in giant-turkey-art.tsx and turkey-close-up.tsx). Above everything and
    click-through. giant-turkey.tsx sets data-phase on a timer: in → strut → look → eat → swallow
    → out. Transforms inside the drawings use view-box units (transform-box: view-box). */
 
@@ -219,7 +219,7 @@
 }
 .tg-close .tgc-beak-bottom { transform-origin: 214px 386px; animation-name: tg-jaw; }
 .tg-close .tgc-beak-top { transform-origin: 214px 345px; animation-name: tg-upper-jaw; }
-.tg-close .tgc-lid { transform-origin: 330px 232px; animation-name: tg-close-blink; }
+.tg-close .tgc-lid { transform-origin: 299px 262px; transform: scaleX(0); animation-name: tg-close-blink; }
 @keyframes tg-jaw {
   0%, 74%, 100% { transform: rotate(0); }
   35%, 66%      { transform: rotate(17deg); }
@@ -228,10 +228,10 @@
   0%, 74%, 100% { transform: rotate(0); }
   35%, 66%      { transform: rotate(-5deg); }
 }
-/* Birds shut their eyes as they strike. */
+/* Birds draw the third eyelid across the eye, front to back, as they strike. */
 @keyframes tg-close-blink {
-  0%, 60%, 90%, 100% { transform: scaleY(1); }
-  70%, 80%           { transform: scaleY(3.2) translateY(6px); }
+  0%, 60%, 90%, 100% { transform: scaleX(0); }
+  70%, 80%           { transform: scaleX(1); }
 }
 
 /* Peck holes: punched in at the moment of contact, with a shock ring and crumbs of screen. */

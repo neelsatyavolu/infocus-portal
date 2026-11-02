@@ -1,264 +1,234 @@
 /**
- * The giant turkey's drawings (giant-turkey.tsx): a wild tom in profile, facing left, and a
- * close-up of its head for the bites. Groups carry `tgg-` / `tgc-` classes that giant-turkey.css
- * moves (legs, tail, head, snood, wattle, beak). Their gradients live once in GiantTurkeyDefs;
- * only one giant turkey is ever on screen.
+ * The giant turkey's drawings (giant-turkey.tsx): a wild tom in profile, facing left, and the
+ * peck holes it leaves. The close-up head is in turkey-close-up.tsx. Groups carry `tgg-` classes
+ * that giant-turkey.css moves (legs, tail, head, snood, wattle, beak); the gradients, feather
+ * shapes and clip live once in GiantTurkeyDefs (giant-turkey-defs.tsx), and where each feather and
+ * bump goes is worked out in turkey-geometry.ts.
  */
 
-const INK = "#0E0906";
-const FAN_ANGLES = Array.from({ length: 15 }, (_, i) => -70 + i * 10);
-const NECK_CARUNCLES: readonly (readonly [number, number, number])[] = [
-  [86, 104, 5],
-  [92, 114, 6],
-  [97, 126, 7.5],
-  [104, 139, 8],
-  [112, 151, 7],
-  [121, 160, 6.5]
-];
-const BEARD = [0, 1, 2, 3, 4, 5, 6, 7];
+import { memo } from "react";
+import {
+  BEARD,
+  BODY_FEATHERS,
+  BODY_OUTLINE,
+  FAN,
+  FAN_COVERTS,
+  FOLDED_COVERTS,
+  FOLDED_TAIL,
+  HEAD_BRISTLES,
+  HEAD_BUMPS,
+  NECK_BUMPS,
+  NECK_CARUNCLES,
+  PRIMARIES,
+  RUFF_FEATHERS,
+  SECONDARIES,
+  WING_COVERTS,
+  dotsPath,
+  flightPath,
+  seeded,
+  type Feather,
+  type Flight
+} from "./turkey-geometry";
 
-/** The shared gradients and patterns, rendered once in a hidden 0×0 svg next to the drawings. */
-export function GiantTurkeyDefs() {
+export { GiantTurkeyDefs } from "./giant-turkey-defs";
+export { TurkeyCloseUp } from "./turkey-close-up";
+
+const NECK_D = "M190 200 Q120 170 96 122 Q90 104 80 94 L104 84 Q114 102 124 120 Q146 152 196 172 Z";
+const NECK_SKIN = { light: dotsPath(NECK_BUMPS, -0.3, -0.3, 0.7), dark: dotsPath(NECK_BUMPS, 0.4, 0.5) };
+const HEAD_SKIN = dotsPath(HEAD_BUMPS);
+
+function Plume({ f }: { f: Feather }) {
+  return <use href={`#tgg-f-${f.look}`} transform={`translate(${f.x} ${f.y}) rotate(${f.angle}) scale(${f.scale})`} />;
+}
+
+function Upright({ id, x, y, angle, scale }: { id: string; x: number; y: number; angle: number; scale: number }) {
+  return <use href={`#${id}`} transform={`translate(${x} ${y}) rotate(${angle}) scale(${scale})`} />;
+}
+
+function Caruncle({ x, y, r }: { x: number; y: number; r: number }) {
   return (
-    <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden>
-      <defs>
-        <radialGradient id="tgg-body" cx="0.38" cy="0.32" r="0.8">
-          <stop offset="0" stopColor="#7A5530" />
-          <stop offset="0.35" stopColor="#4E3520" />
-          <stop offset="0.62" stopColor="#2F3A24" />
-          <stop offset="1" stopColor="#170F09" />
-        </radialGradient>
-        <pattern id="tgg-scales" width="14" height="10" patternUnits="userSpaceOnUse">
-          <path d="M0 10 Q7 1 14 10" fill="none" stroke={INK} strokeWidth="2.6" />
-          <path d="M0 8.6 Q7 0.4 14 8.6" fill="none" stroke="#C8904E" strokeWidth="0.9" opacity="0.75" />
-          <path d="M-7 5 Q0 -4 7 5 M7 5 Q14 -4 21 5" fill="none" stroke={INK} strokeWidth="2.6" />
-          <path d="M-7 3.6 Q0 -4.6 7 3.6 M7 3.6 Q14 -4.6 21 3.6" fill="none" stroke="#9FB06A" strokeWidth="0.7" opacity="0.45" />
-        </pattern>
-        <pattern id="tgg-bars" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(-62)">
-          <rect width="9" height="9" fill="#17110C" />
-          <rect width="9" height="3.6" fill="#E9E4D6" />
-        </pattern>
-        <linearGradient id="tgg-tail" x1="0" y1="1" x2="0" y2="0">
-          <stop offset="0" stopColor="#3A2414" />
-          <stop offset="0.7" stopColor="#7A4A26" />
-          <stop offset="1" stopColor="#8E5A30" />
-        </linearGradient>
-        <pattern id="tgg-tailbars" width="8" height="7" patternUnits="userSpaceOnUse">
-          <path d="M0 1 Q4 3 8 1" stroke={INK} strokeWidth="1.3" fill="none" opacity="0.7" />
-        </pattern>
-        <linearGradient id="tgg-skin" x1="0" y1="1" x2="0.3" y2="0">
-          <stop offset="0" stopColor="#B83E4E" />
-          <stop offset="0.55" stopColor="#C77A8F" />
-          <stop offset="1" stopColor="#9DB9DC" />
-        </linearGradient>
-        <radialGradient id="tgg-head" cx="0.45" cy="0.4" r="0.7">
-          <stop offset="0" stopColor="#F1F5FA" />
-          <stop offset="0.6" stopColor="#B9D0EC" />
-          <stop offset="1" stopColor="#7E9FCB" />
-        </radialGradient>
-        <linearGradient id="tgg-beak" x1="1" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#E6D7B4" />
-          <stop offset="1" stopColor="#8F7A57" />
-        </linearGradient>
-        <radialGradient id="tgg-red" cx="0.4" cy="0.35" r="0.75">
-          <stop offset="0" stopColor="#EE5A6A" />
-          <stop offset="0.55" stopColor="#C2283A" />
-          <stop offset="1" stopColor="#7E1420" />
-        </radialGradient>
-        <linearGradient id="tgg-leg" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#B9837A" />
-          <stop offset="0.5" stopColor="#DDB0A4" />
-          <stop offset="1" stopColor="#8E6159" />
-        </linearGradient>
-        <radialGradient id="tgg-hole" cx="0.5" cy="0.45" r="0.6">
-          <stop offset="0" stopColor="#000" />
-          <stop offset="0.8" stopColor="#050605" />
-          <stop offset="1" stopColor="#1C1F1C" />
-        </radialGradient>
-      </defs>
-    </svg>
+    <g>
+      <circle cx={x + r * 0.15} cy={y + r * 0.2} r={r * 1.08} fill="#4E0A14" opacity="0.5" />
+      <ellipse cx={x} cy={y} rx={r} ry={r * 0.82} fill="url(#tgc-carun-0)" />
+      <circle cx={x - r / 3} cy={y - r / 3} r={r / 3.6} fill="#FFD0D6" opacity="0.25" />
+    </g>
   );
 }
 
-function Leg({ className, hip }: { className: string; hip: readonly [number, number] }) {
-  const [x, y] = hip;
-  const ankle = y + 92;
+function FlightFeather({ f, width, secondary }: { f: Flight; width: number; secondary?: boolean }) {
+  const d = flightPath(f.length, width);
   return (
-    <g className={className}>
-      <path d={`M${x - 9} ${y} L${x - 11} ${ankle} L${x + 4} ${ankle} L${x + 8} ${y} Z`} fill="url(#tgg-leg)" />
-      {[0, 1, 2, 3, 4, 5, 6].map((i) => (
-        <path
-          key={i}
-          d={`M${x - 10} ${y + 22 + i * 10} Q${x - 3} ${y + 25 + i * 10} ${x + 6} ${y + 22 + i * 10}`}
-          stroke="#7E5650"
-          strokeWidth="1"
-          fill="none"
-        />
+    <g transform={`translate(${f.x} ${f.y}) rotate(${f.angle})`}>
+      <path d={d} fill="url(#tgg-wingbars)" stroke="#0A0705" strokeWidth="0.6" />
+      {secondary ? <path d={d} fill="#5A3C22" opacity="0.3" /> : null}
+      <path d={d} fill="url(#tgg-flight-shade)" />
+      <path d={`M2 0 L${f.length - 3} 0`} stroke="#CBB896" strokeOpacity="0.45" strokeWidth="0.9" />
+    </g>
+  );
+}
+
+function Wing() {
+  return (
+    <g>
+      <ellipse cx="272" cy="230" rx="96" ry="44" transform="rotate(18 272 230)" fill="url(#tgg-wing-shadow)" />
+      {PRIMARIES.map((f) => (
+        <FlightFeather key={`p${f.x}`} f={f} width={6} />
       ))}
-      <path d={`M${x + 5} ${y + 62} L${x + 17} ${y + 58}`} stroke="#6E4A44" strokeWidth="3.5" strokeLinecap="round" />
-      <g stroke="url(#tgg-leg)" strokeWidth="7" strokeLinecap="round" fill="none">
-        <path d={`M${x - 4} ${ankle} Q${x - 24} ${ankle + 2} ${x - 42} ${ankle + 7}`} />
-        <path d={`M${x - 4} ${ankle} Q${x - 19} ${ankle + 8} ${x - 31} ${ankle + 15}`} />
-        <path d={`M${x - 4} ${ankle} Q${x - 7} ${ankle + 10} ${x - 13} ${ankle + 17}`} />
-        <path d={`M${x - 4} ${ankle} L${x + 17} ${ankle + 5}`} />
+      {SECONDARIES.map((f) => (
+        <FlightFeather key={`s${f.x}`} f={f} width={7.5} secondary />
+      ))}
+      {WING_COVERTS.map((f) => (
+        <Plume key={`c${f.x}-${f.y}`} f={f} />
+      ))}
+    </g>
+  );
+}
+
+function Tail() {
+  return (
+    <>
+      <g className="tgg-fan">
+        {FAN.map(({ angle, scale }) => (
+          <Upright key={angle} id="tgg-f-tail" x={322} y={200} angle={angle} scale={scale} />
+        ))}
+        {FAN_COVERTS.map(({ angle, scale }) => (
+          <Upright key={`${angle}-${scale}`} id="tgg-f-covert" x={322} y={200} angle={angle} scale={scale} />
+        ))}
+      </g>
+      <g className="tgg-tail-folded">
+        {FOLDED_TAIL.map((angle) => (
+          <Upright key={angle} id="tgg-f-tail" x={300} y={205} angle={angle} scale={0.8} />
+        ))}
+        {FOLDED_COVERTS.map((angle) => (
+          <Upright key={angle} id="tgg-f-covert" x={300} y={205} angle={angle} scale={0.62} />
+        ))}
+      </g>
+    </>
+  );
+}
+
+function Body() {
+  return (
+    <g className="tgg-body">
+      <path d={BODY_OUTLINE} fill="#140E09" />
+      <g clipPath="url(#tgg-body-clip)">
+        {BODY_FEATHERS.map((f) => (
+          <Plume key={`${f.x}-${f.y}`} f={f} />
+        ))}
+        <rect x="90" y="100" width="290" height="230" fill="url(#tgg-shade-v)" />
+        <rect x="90" y="100" width="290" height="230" fill="url(#tgg-shade-h)" />
+        <ellipse cx="205" cy="150" rx="95" ry="34" fill="url(#tgg-gloss)" />
+      </g>
+      <Wing />
+      <g fill="none" strokeLinecap="round">
+        {BEARD.map((s) => (
+          <path key={s.d} d={s.d} stroke={s.light ? "#4A3420" : "#0A0705"} strokeWidth={s.width} />
+        ))}
       </g>
     </g>
   );
 }
 
-function TailFeather({ angle }: { angle: number }) {
+/** A toe along +x from the ankle: scaled skin, knuckles and a dark claw. */
+function Toe({ x, y, angle, length, fill }: { x: number; y: number; angle: number; length: number; fill: string }) {
+  const L = length;
+  const scales = Array.from({ length: Math.floor((L - 4) / 4.5) }, (_, k) => {
+    const s = 4 + k * 4.5;
+    return `M${s} -3.4 Q${s + 1.3} 0 ${s} 3.4`;
+  }).join("");
   return (
-    <g transform={`rotate(${angle} 322 200)`}>
-      <path d="M315 200 L308 52 Q322 32 336 52 L329 200 Z" fill="url(#tgg-tail)" />
-      <path d="M315 200 L308 52 Q322 32 336 52 L329 200 Z" fill="url(#tgg-tailbars)" />
-      <path d="M308 64 Q322 46 336 64 L336 76 Q322 58 308 76 Z" fill={INK} />
-      <path d="M308 52 Q322 32 336 52 L336 64 Q322 46 308 64 Z" fill="#D9B37A" />
+    <g transform={`translate(${x} ${y}) rotate(${angle})`}>
+      <path d={`M0 -4 Q${L * 0.33} -4.6 ${L * 0.5} -3.6 Q${L * 0.75} -3.8 ${L} -2.4 L${L} 2.4 Q${L * 0.75} 3.6 ${L * 0.5} 3.4 Q${L * 0.33} 4.4 0 4 Z`} fill={fill} />
+      <path d={scales} stroke="#5E3A35" strokeWidth="0.7" fill="none" opacity="0.75" />
+      <path d={`M${L - 0.5} -2.3 Q${L + 6} -2.2 ${L + 8} 2.8 Q${L + 4} 1.8 ${L - 0.5} 2.3 Z`} fill="url(#tgg-horn)" />
+    </g>
+  );
+}
+
+/** A leg from the hip: feathered thigh, scaled tarsus with its spur, and the foot. */
+function Leg({ className, hip, far = false }: { className: string; hip: readonly [number, number]; far?: boolean }) {
+  const [x, y] = hip;
+  const ankle = y + 92;
+  const fill = far ? "url(#tgg-leg-far)" : "url(#tgg-leg)";
+  const scutes = Array.from({ length: 10 }, (_, i) => `M${x - 9.6} ${y + 12 + i * 8.2} Q${x - 3} ${y + 15 + i * 8.2} ${x + 3} ${y + 13 + i * 8.2}`).join("");
+  const backScales = Array.from({ length: 16 }, (_, i) => `M${x + 3.2 + (i % 2) * 2.2} ${y + 14 + i * 4.8}a1.1 1.1 0 1 0 0.1 0`).join("");
+  return (
+    <g className={className}>
+      <path d={`M${x - 8} ${y} C${x - 9} ${y + 40} ${x - 11} ${y + 70} ${x - 10} ${ankle} L${x + 4} ${ankle} C${x + 5} ${y + 70} ${x + 7} ${y + 40} ${x + 8} ${y} Z`} fill={fill} />
+      <path d={scutes} stroke="#5E3A35" strokeWidth="0.9" fill="none" opacity="0.8" />
+      <path d={scutes} stroke="#F0CFC4" strokeWidth="0.6" fill="none" opacity="0.4" transform="translate(0 -1.2)" />
+      <path d={backScales} stroke="#6E4640" strokeWidth="0.5" fill="none" opacity="0.7" />
+      <path d={`M${x + 5} ${y + 60} Q${x + 11} ${y + 59} ${x + 15} ${y + 57} Q${x + 12} ${y + 63} ${x + 5} ${y + 67} Z`} fill="url(#tgg-horn)" />
+      <Toe x={x - 1} y={ankle + 1} angle={20} length={14} fill={fill} />
+      <Toe x={x - 4} y={ankle + 1} angle={150} length={24} fill={fill} />
+      <Toe x={x - 4} y={ankle + 1} angle={172} length={40} fill={fill} />
+      <Toe x={x - 4} y={ankle + 1} angle={160} length={33} fill={fill} />
+      <ellipse cx={x - 3} cy={ankle} rx="8" ry="5" fill={fill} />
+      {[-12, -5, 2, 9].map((dx, i) => (
+        <use key={dx} href="#tgg-f-c" transform={`translate(${x + dx} ${y - 8 + (i % 2) * 4}) rotate(${84 - i * 4}) scale(0.55)`} />
+      ))}
+    </g>
+  );
+}
+
+function Head() {
+  return (
+    <g className="tgg-head">
+      <path d={NECK_D} fill="url(#tgg-neck)" />
+      <path d={NECK_SKIN.dark} fill="#5A1A28" opacity="0.28" />
+      <path d={NECK_SKIN.light} fill="#FFE0E6" opacity="0.4" />
+      {NECK_CARUNCLES.map((c) => (
+        <Caruncle key={`${c.x}-${c.y}`} {...c} />
+      ))}
+      <ellipse className="tgg-gulp" cx="108" cy="122" rx="9" ry="7" fill="#C45466" />
+      {RUFF_FEATHERS.map((f) => (
+        <Plume key={`${f.x}-${f.y}`} f={f} />
+      ))}
+      <ellipse cx="82" cy="82" rx="25" ry="20" transform="rotate(-10 82 82)" fill="url(#tgg-head)" />
+      <ellipse cx="88" cy="96" rx="20" ry="10" fill="url(#tgg-cheek)" />
+      <path d={HEAD_SKIN} fill="#FFF" opacity="0.25" />
+      <path d={HEAD_BRISTLES} stroke="#1E1A16" strokeWidth="0.5" strokeLinecap="round" fill="none" opacity="0.6" />
+      <ellipse cx="95" cy="84" rx="2.4" ry="3" fill="#2A2C38" />
+      <circle cx="76" cy="76" r="5.4" fill="#5F7FAD" />
+      <circle cx="76" cy="76" r="4.8" fill="none" stroke="#3E5A86" strokeWidth="0.6" opacity="0.6" />
+      <g className="tgg-eye">
+        <circle cx="76" cy="76" r="3.7" fill="url(#tgg-iris)" />
+        <circle cx="76" cy="76" r="1.7" fill="#050302" />
+        <circle cx="74.9" cy="74.9" r="1" fill="#FFF" opacity="0.9" />
+      </g>
+      <path d="M61 89 L42 93 Q50 102 62 99 Z" fill="#4A0F18" />
+      <path className="tgg-beak-bottom" d="M60 91 Q50 92 43 93 Q50 98 61 97 Z" fill="#A8916A" />
+      <path d="M61 79 Q50 78 42 85 Q38 90 40 94 Q48 92 61 92 Z" fill="url(#tgg-beak)" />
+      <path d="M59 81 Q50 80 44 85" stroke="#F6EEDC" strokeWidth="1" fill="none" opacity="0.6" />
+      <path d="M61 92 Q50 91.5 40 94" stroke="#4A3C2C" strokeWidth="0.8" fill="none" />
+      <path d="M50.5 84.4 Q53 83 55.6 84" stroke="#3A2E22" strokeWidth="1.1" strokeLinecap="round" fill="none" />
+      <g className="tgg-snood">
+        <path d="M63 68 Q54 71 48 81 Q41 97 40 116 Q44 122 48 115 Q50 99 57 88 Q61 81 66 76 Z" fill="url(#tgg-red)" />
+        <path d="M58 76 Q61 78 63 75 M52 84 Q55 87 58 84 M47 93 Q50 96 53 93 M44 103 Q47 105 50 102 M42 112 Q45 114 47 111" stroke="#7E1420" strokeWidth="0.7" fill="none" opacity="0.6" />
+        <path d="M54 76 Q46 90 43 110" stroke="#FFA0AC" strokeWidth="1" fill="none" opacity="0.45" />
+      </g>
+      <g className="tgg-wattle">
+        <path d="M66 92 Q61 104 67 116 Q74 124 80 116 Q84 104 80 94 Z" fill="url(#tgc-carun-0)" />
+        <path d="M67 101 Q72 104 78 100 M68 109 Q73 112 79 108" stroke="#7E1420" strokeWidth="0.7" fill="none" opacity="0.55" />
+        <circle cx="72" cy="115" r="1.8" fill="#E06070" opacity="0.6" />
+      </g>
     </g>
   );
 }
 
 /** A wild tom in profile, facing left, standing on y=410 of a 520×420 box. */
-export function WildTurkey() {
+export const WildTurkey = memo(function WildTurkey() {
   return (
     <svg viewBox="0 0 520 420" aria-hidden>
-      <g className="tgg-fan">
-        {FAN_ANGLES.map((angle) => (
-          <TailFeather key={angle} angle={angle} />
-        ))}
-      </g>
-      <g className="tgg-tail-folded">
-        <path d="M296 196 Q372 214 410 300 Q400 316 388 314 Q352 256 298 246 Z" fill="url(#tgg-tail)" />
-        <path d="M296 196 Q372 214 410 300 Q400 316 388 314 Q352 256 298 246 Z" fill="url(#tgg-tailbars)" />
-        <path d="M398 290 Q406 300 410 300 Q400 316 388 314 Q392 300 398 290 Z" fill="#D9B37A" />
-        <path d="M390 278 Q398 290 398 290 Q392 300 388 314 L380 304 Q386 290 390 278 Z" fill={INK} />
-      </g>
-      <Leg className="tgg-leg tgg-leg-far" hip={[238, 300]} />
-      <g className="tgg-body">
-        <ellipse cx="225" cy="214" rx="126" ry="98" transform="rotate(-8 225 214)" fill="url(#tgg-body)" />
-        <ellipse cx="225" cy="214" rx="126" ry="98" transform="rotate(-8 225 214)" fill="url(#tgg-scales)" opacity="0.85" />
-        <ellipse cx="150" cy="214" rx="38" ry="58" fill="#C8904E" opacity="0.14" />
-        <ellipse cx="228" cy="288" rx="44" ry="30" fill="#24180F" />
-        <ellipse cx="228" cy="288" rx="44" ry="30" fill="url(#tgg-scales)" opacity="0.7" />
-        <path d="M150 168 Q232 136 322 178 Q348 206 332 246 Q300 264 240 260 Q184 252 160 220 Q146 194 150 168 Z" fill="#3E2C1B" />
-        <path
-          d="M150 168 Q232 136 322 178 Q348 206 332 246 Q300 264 240 260 Q184 252 160 220 Q146 194 150 168 Z"
-          fill="url(#tgg-scales)"
-          opacity="0.9"
-        />
-        <path d="M206 236 Q276 262 342 236 L348 252 Q284 286 210 256 Z" fill="url(#tgg-bars)" />
-        <path d="M248 218 Q300 230 338 218 L342 234 Q296 250 252 236 Z" fill="url(#tgg-bars)" opacity="0.85" />
-        <path d="M120 198 Q113 240 106 292 Q102 298 98 292 Q103 240 112 198 Z" fill={INK} />
-        <g stroke={INK} strokeLinecap="round" fill="none">
-          {BEARD.map((i) => (
-            <path key={i} d={`M${112 + i * 1.2} 202 Q${108 + i} ${248 + i * 2} ${98 + i * 1.6} ${296 - (i % 3) * 5}`} strokeWidth={i % 2 ? 1.6 : 2.4} />
-          ))}
-        </g>
-      </g>
+      <ellipse cx="236" cy="409" rx="150" ry="9" fill="url(#tgg-ground)" />
+      <Tail />
+      <Leg className="tgg-leg tgg-leg-far" hip={[238, 300]} far />
+      <Body />
       <Leg className="tgg-leg tgg-leg-near" hip={[206, 302]} />
-      <g className="tgg-head">
-        <path d="M190 200 Q120 170 96 122 Q90 104 80 94 L104 84 Q114 102 124 120 Q146 152 196 172 Z" fill="url(#tgg-skin)" />
-        {NECK_CARUNCLES.map(([cx, cy, r]) => (
-          <g key={`${cx}-${cy}`}>
-            <circle cx={cx} cy={cy} r={r} fill="url(#tgg-red)" />
-            <circle cx={cx - r / 3} cy={cy - r / 3} r={r / 3.5} fill="#F7A0AA" opacity="0.7" />
-          </g>
-        ))}
-        <ellipse className="tgg-gulp" cx="108" cy="122" rx="9" ry="7" fill="#C45466" />
-        <path d="M122 142 Q150 128 204 148 Q214 184 182 210 Q140 204 118 176 Q114 156 122 142 Z" fill="#2A1C11" />
-        <path d="M122 142 Q150 128 204 148 Q214 184 182 210 Q140 204 118 176 Q114 156 122 142 Z" fill="url(#tgg-scales)" opacity="0.85" />
-        <ellipse cx="82" cy="82" rx="26" ry="21" transform="rotate(-10 82 82)" fill="url(#tgg-head)" />
-        <path d="M80 62 L78 56 M86 62 L86 55 M92 64 L94 58 M98 68 L102 63 M74 64 L70 59" stroke="#2A2420" strokeWidth="0.9" strokeLinecap="round" opacity="0.7" />
-        <path d="M70 86 Q78 90 90 86 M74 94 Q84 97 94 92" stroke="#7E9FCB" strokeWidth="1" fill="none" opacity="0.6" />
-        <circle cx="76" cy="76" r="6.5" fill="#6F8DB6" />
-        <circle className="tgg-eye" cx="76" cy="76" r="5" fill="#2A1608" />
-        <circle cx="74.6" cy="74.4" r="1.7" fill="#fff" />
-        <path className="tgg-beak-bottom" d="M60 91 Q50 92 43 93 Q50 98 61 97 Z" fill="#AF9A72" />
-        <path className="tgg-beak-top" d="M61 79 Q50 78 42 85 Q38 90 40 94 Q48 92 61 92 Z" fill="url(#tgg-beak)" />
-        <ellipse cx="53" cy="84" rx="2.2" ry="1.2" fill="#5C4B33" />
-        <path className="tgg-snood" d="M63 68 Q54 71 48 81 Q41 97 40 116 Q44 122 48 115 Q50 99 57 88 Q61 81 66 76 Z" fill="url(#tgg-red)" />
-        <path className="tgg-wattle" d="M66 92 Q59 108 69 126 Q78 133 82 120 Q86 104 80 94 Z" fill="url(#tgg-red)" />
-      </g>
+      <Head />
     </svg>
   );
-}
-
-const CLOSE_CARUNCLES: readonly (readonly [number, number, number])[] = [
-  [392, 440, 20],
-  [428, 470, 24],
-  [470, 452, 18],
-  [410, 508, 22],
-  [458, 520, 26],
-  [508, 494, 20],
-  [372, 486, 16],
-  [440, 566, 22],
-  [500, 560, 18],
-  [540, 530, 16]
-];
-const BRISTLES = Array.from({ length: 18 }, (_, i) => i);
-
-/** The head up close, facing left, beak tip at (78, 388) of a 600×600 box (CLOSE_UP_TIP in the CSS). */
-export function TurkeyCloseUp() {
-  return (
-    <svg viewBox="0 0 600 600" aria-hidden>
-      <path d="M318 600 Q330 470 372 418 L560 376 Q610 480 600 600 Z" fill="url(#tgg-skin)" />
-      {CLOSE_CARUNCLES.map(([cx, cy, r]) => (
-        <g key={`${cx}-${cy}`}>
-          <circle cx={cx} cy={cy} r={r} fill="url(#tgg-red)" />
-          <circle cx={cx - r / 3} cy={cy - r / 3} r={r / 3.2} fill="#F7A0AA" opacity="0.65" />
-        </g>
-      ))}
-      <path className="tgc-wattle" d="M232 398 Q214 462 250 522 Q276 544 292 506 Q302 450 282 404 Z" fill="url(#tgg-red)" />
-      <path d="M180 300 Q190 190 300 160 Q420 140 480 220 Q522 300 472 380 Q420 440 320 430 Q222 420 192 382 Z" fill="url(#tgg-head)" />
-      <path
-        d="M250 330 Q300 350 360 336 M262 360 Q320 380 390 362 M300 400 Q350 410 420 392 M392 200 Q420 230 430 280"
-        stroke="#7E9FCB"
-        strokeWidth="2"
-        fill="none"
-        opacity="0.55"
-        strokeLinecap="round"
-      />
-      <g stroke="#1E1A16" strokeWidth="2" strokeLinecap="round" opacity="0.75">
-        {BRISTLES.map((i) => {
-          const x = 250 + i * 12;
-          const y = 186 - Math.sin((i / 17) * Math.PI) * 26;
-          return <path key={i} d={`M${x} ${y + 14} L${x + 3} ${y - 4}`} />;
-        })}
-      </g>
-      <circle cx="330" cy="262" r="38" fill="#6A86B0" />
-      <circle cx="330" cy="262" r="28" fill="#2B160A" />
-      <circle cx="330" cy="262" r="13" fill="#050302" />
-      <circle cx="319" cy="251" r="7" fill="#fff" opacity="0.92" />
-      <circle cx="340" cy="274" r="3" fill="#fff" opacity="0.5" />
-      <path className="tgc-lid" d="M290 250 Q330 214 370 250 Q330 232 290 250 Z" fill="#7E9FCB" />
-      <g className="tgc-beak-bottom">
-        <path d="M214 372 Q150 372 96 386 Q150 398 214 396 Z" fill="#6E2430" />
-        <path d="M204 380 Q160 381 124 388 Q160 392 204 388 Z" fill="#C25A6A" />
-        <path d="M216 390 Q152 394 98 392 Q148 416 216 406 Z" fill="#A8916A" />
-      </g>
-      <path className="tgc-beak-top" d="M212 316 Q150 308 112 336 Q88 356 78 388 Q100 374 128 372 Q170 368 216 376 Z" fill="url(#tgg-beak)" />
-      <path d="M204 322 Q150 318 116 342 Q98 358 88 376" stroke="#F3E8CE" strokeWidth="3" fill="none" opacity="0.6" />
-      <ellipse cx="176" cy="338" rx="9" ry="4" fill="#5C4B33" />
-      <path
-        className="tgc-snood"
-        d="M232 292 Q190 290 160 324 Q138 362 136 418 Q134 470 148 494 Q166 502 170 472 Q172 420 186 380 Q202 338 244 314 Z"
-        fill="url(#tgg-red)"
-      />
-      <path d="M170 330 Q160 360 156 400 M184 334 Q174 370 172 420" stroke="#8E1A26" strokeWidth="2" fill="none" opacity="0.5" />
-    </svg>
-  );
-}
-
-/** Seeded random numbers, so a bite keeps its shape across renders. */
-function seeded(seed: number) {
-  let s = seed >>> 0;
-  return () => {
-    s = (s + 0x6d2b79f5) >>> 0;
-    let t = s;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
+});
 
 /** A peck hole in the screen: a ragged hole with cracks running out from it. */
 export function PeckHole({ seed }: { seed: number }) {

@@ -10,15 +10,39 @@ import { THANKSGIVING_INIT_SCRIPT } from "@/src/lib/thanksgiving";
 import { THEME_INIT_SCRIPT } from "@/src/lib/theme";
 import "./globals.css";
 
-// Variable font: one file covers every weight the app uses (400–700).
-const lexend = Lexend({
-  subsets: ["latin"],
-  variable: "--font-lexend",
+// Geist for every word people read (body, UI, buttons). Variable: one file covers 400–700.
+const geistSans = localFont({
+  src: "../node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2",
+  variable: "--font-geist-sans",
+  adjustFontFallback: false,
+  fallback: ["ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "Roboto", "Helvetica", "Arial", "sans-serif"],
+  weight: "100 900",
   display: "swap"
 });
 
+// Geist Serif for page titles and hero headlines only (40px and up). Not preloaded: the
+// sans carries first paint.
+const geistSerif = localFont({
+  src: "../node_modules/geist/dist/fonts/geist-serif/GeistSerifVF.woff2",
+  variable: "--font-geist-serif",
+  adjustFontFallback: false,
+  fallback: ["Georgia", "Times New Roman", "serif"],
+  weight: "100 900",
+  display: "swap",
+  preload: false
+});
+
+// Lexend is the broadcast face: only on-air graphics (live overlays, story maker renders) use it,
+// so it is not preloaded and the Portal UI never references it.
+const lexend = Lexend({
+  subsets: ["latin"],
+  variable: "--font-lexend",
+  display: "swap",
+  preload: false
+});
+
 // Same file and settings as `geist/font/mono`, but not preloaded: it is data-only
-// (numbers, timecodes), so it shouldn't compete with Lexend on first paint.
+// (numbers, timecodes, code), so it shouldn't compete with Geist on first paint.
 const geistMono = localFont({
   src: "../node_modules/geist/dist/fonts/geist-mono/GeistMono-Variable.woff2",
   variable: "--font-geist-mono",
@@ -42,7 +66,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#0F110F"
+  themeColor: "#000000"
 };
 
 export const metadata: Metadata = {
@@ -75,7 +99,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`dark bg-background ${lexend.variable} ${geistMono.variable}`}
+      className={`dark bg-background ${geistSans.variable} ${geistSerif.variable} ${geistMono.variable} ${lexend.variable}`}
       suppressHydrationWarning
     >
       <head>

@@ -121,13 +121,13 @@ export default function PasswordsClient({ access }: { access: VaultAccess }) {
     );
   } else if (firstLoadFailed) {
     panel = (
-      <div className="rounded-md border border-border bg-card">
+      <div className="rounded-lg border border-line-strong bg-card">
         <ErrorState size="page" title="Couldn't load passwords" message={message} onRetry={() => void retry()} busy={retrying} />
       </div>
     );
   } else if (!entries.length) {
     panel = (
-      <div className="rounded-md border border-border bg-card">
+      <div className="rounded-lg border border-line-strong bg-card">
         <EmptyState
           size="page"
           icon={KeyRound}

@@ -45,7 +45,7 @@ export function PastIdeasMenu({ groups, className }: { groups: PastIdeasGroup[];
         {groups.map((group, groupIndex) => {
           const labelId = `${baseId}-${groupIndex}`;
           return (
-            <div key={group.month} className={cn(groupIndex > 0 && "mt-1 border-t border-border pt-1")}>
+            <div key={group.month} className={cn(groupIndex > 0 && "mt-1 border-t border-line pt-1")}>
               <p id={labelId} className={cn(fieldLabelClass, "px-2.5 pb-1 pt-2")}>
                 {group.month}
               </p>
@@ -57,23 +57,17 @@ export function PastIdeasMenu({ groups, className }: { groups: PastIdeasGroup[];
                       aria-current={item.active ? "page" : undefined}
                       onClick={() => setOpen(false)}
                       className={cn(
-                        "flex h-10 items-center justify-between gap-2 rounded-sm px-2.5 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--brand-green)] md:h-9",
+                        "flex h-10 items-center justify-between gap-2 rounded-md px-2.5 text-sm outline-none transition-colors duration-150 ease-[var(--ease-ui)] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--brand-green)] md:h-9",
                         item.active
-                          ? // Soft White ring: a green ring would vanish on the green row (DESIGN.md §10).
-                            "bg-[var(--brand-fill)] font-medium text-[var(--on-brand)] focus-visible:ring-[var(--on-brand)]"
+                          ? "bg-brand-tint font-medium text-foreground"
                           : "text-[var(--ink-text)] hover:bg-[var(--ink-3)] hover:text-foreground focus-visible:bg-[var(--ink-3)]"
                       )}
                     >
                       <span>{item.label}</span>
                       {item.latest ? (
-                        item.active ? (
-                          // A tinted tag would vanish on the green row, so the active row gets plain caps.
-                          <span className={cn(fieldLabelClass, "text-[var(--on-brand)]")}>Latest</span>
-                        ) : (
-                          <StatusTag tone="success" size="sm">
-                            Latest
-                          </StatusTag>
-                        )
+                        <StatusTag tone="success" size="sm">
+                          Latest
+                        </StatusTag>
                       ) : null}
                     </Link>
                   </li>

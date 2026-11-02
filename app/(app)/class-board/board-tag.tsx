@@ -16,7 +16,7 @@ const SIZE_CLASS = {
 } as const;
 
 /**
- * The kit's status tag (`.status-pill` + `.status-*`: 4px radius, caps label, tone tint, the same
+ * The kit's status tag (`.status-pill` + `.status-*`: a small sentence-case pill, tone tint, the same
  * tones as Groups tiles and the Livestream Tracker), sized in em from a board token so the TV can
  * scale it. `.status-pill` is unlayered CSS, so every override of its own properties (size,
  * padding, gap, alignment, wrapping) needs `!`.

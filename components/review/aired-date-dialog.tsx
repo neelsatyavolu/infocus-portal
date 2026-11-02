@@ -30,16 +30,16 @@ export function AiredDateDialog({
           <DialogDescription>Pick the date this video aired.</DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
-          <label htmlFor={inputId} className="text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">
+          <label htmlFor={inputId} className="text-[13px] font-medium text-muted-foreground">
             Air date
           </label>
           <Input id={inputId} type="date" value={value} onChange={(event) => onValueChange(event.target.value)} />
         </div>
         <DialogFooter>
-          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
             Cancel
           </Button>
-          <Button type="button" onClick={onConfirm} disabled={!value || saving}>
+          <Button type="button" variant="accent" onClick={onConfirm} disabled={!value || saving}>
             Mark as aired
           </Button>
         </DialogFooter>

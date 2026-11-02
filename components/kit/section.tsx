@@ -33,7 +33,7 @@ export function SectionHeader({
   className?: string;
 }) {
   const titleClass = cn(
-    "min-w-0 font-semibold tracking-[-0.01em] text-foreground",
+    "min-w-0 font-medium tracking-[-0.015em] text-foreground",
     Title === "h2" ? "text-lg leading-snug" : "text-base leading-snug"
   );
   const heading = collapsible ? (
@@ -43,11 +43,11 @@ export function SectionHeader({
         aria-expanded={collapsible.open}
         aria-controls={collapsible.controlsId}
         onClick={collapsible.onToggle}
-        className="-ml-1 inline-flex items-center gap-1.5 rounded-sm px-1 text-left hover:text-foreground"
+        className="-ml-1 inline-flex items-center gap-1.5 rounded-sm px-1 text-left transition-colors duration-150 ease-[var(--ease-ui)] hover:text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30"
       >
         <ChevronDown
           aria-hidden
-          className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform", !collapsible.open && "-rotate-90")}
+          className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-150 ease-[var(--ease-ui)]", !collapsible.open && "-rotate-90")}
         />
         {title}
       </button>
@@ -81,9 +81,9 @@ export function SectionHeader({
 }
 
 /**
- * An 11px caps label for a group of fields, tiles or list rows, with an optional right-aligned
+ * A 13px muted sentence-case label for a group of fields, tiles or list rows, with an optional right-aligned
  * end slot (a mono counter, a tag) and an optional hairline running to it. One baseline.
- * Also the list group label ("TODAY", "MATERIALS … 3 of 4 in").
+ * Also the list group label ("Today", "Materials … 3 of 4 in").
  */
 export function SectionLabel({
   children,
@@ -117,14 +117,14 @@ export function SectionLabel({
       <Label
         id={id}
         htmlFor={htmlFor}
-        className="shrink-0 text-[11px] font-medium uppercase leading-tight tracking-[0.11em] text-muted-foreground"
+        className="shrink-0 text-[13px] font-medium leading-tight text-muted-foreground"
       >
         {children}
       </Label>
       {count != null ? (
-        <span className="font-mono-broadcast text-[11px] tabular-nums text-muted-foreground">{count}</span>
+        <span className="font-mono-broadcast text-xs tabular-nums text-muted-foreground">{count}</span>
       ) : null}
-      {rule ? <span aria-hidden className="h-px min-w-4 flex-1 bg-border" /> : <span className="flex-1" />}
+      {rule ? <span aria-hidden className="h-px min-w-4 flex-1 bg-line" /> : <span className="flex-1" />}
       {end ? <span className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">{end}</span> : null}
     </Row>
   );

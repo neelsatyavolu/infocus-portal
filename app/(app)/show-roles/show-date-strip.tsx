@@ -23,7 +23,7 @@ function selectShow(event: MouseEvent<HTMLAnchorElement>, item: StripItem, href:
 /**
  * The upcoming shows as equal cells: they fill the column on desktop and scroll sideways inside
  * the strip (never the page) when there isn't room. The chosen show stays in the address (reload
- * and share keep it). The open show is marked like a tab: card fill and a 2px green underline.
+ * and share keep it). The open show is marked like a tab: card fill and a 2px brand underline.
  * `disabled` dims it and stops switching (while a save for the open show runs). `hrefFor` is each show's
  * address (The Show's by default; Editing keeps its own page and view).
  */
@@ -65,16 +65,16 @@ export function ShowDateStrip({
               aria-current={item.active ? "page" : undefined}
               onClick={(event) => selectShow(event, item, hrefFor(item.date))}
               className={cn(
-                "group relative flex h-16 min-w-0 flex-col justify-center gap-0.5 overflow-hidden rounded-md border border-border px-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+                "group relative flex h-16 min-w-0 flex-col justify-center gap-0.5 overflow-hidden rounded-lg border border-line-strong px-3 text-left transition-colors duration-150 ease-[var(--ease-ui)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
                 item.active
                   ? "bg-card after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-[var(--brand-green)]"
-                  : "hover:bg-[var(--ink-3)]"
+                  : "hover:bg-secondary"
               )}
             >
               <span
                 className={cn(
                   "truncate text-sm",
-                  item.active ? "font-semibold text-foreground" : "font-medium text-muted-foreground group-hover:text-foreground"
+                  item.active ? "font-medium text-foreground" : "font-medium text-muted-foreground group-hover:text-foreground"
                 )}
               >
                 {item.primary}

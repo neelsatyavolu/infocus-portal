@@ -30,13 +30,14 @@
   place-items: center;
   width: 36px;
   height: 36px;
-  border: 1px solid hsl(var(--border));
+  border: 1px solid var(--line-2);
   border-radius: var(--radius);
-  background: hsl(var(--card));
+  background: hsl(var(--secondary));
   color: hsl(var(--muted-foreground));
+  transition: background-color 150ms var(--ease-ui), color 150ms var(--ease-ui);
 }
 .hw-music[data-playing="true"] { color: var(--brand-green); }
-.hw-music:hover { background: var(--ink-3); }
+.hw-music:hover { background: var(--ink-3); color: hsl(var(--foreground)); }
 .hw-music > svg { width: 16px; height: 16px; }
 .hw-music[data-playing="true"] > svg { animation: hw-bob 1.6s ease-in-out infinite; }
 @keyframes hw-bob {
@@ -841,15 +842,19 @@
 .hw-welcome-art > svg { width: 52px; height: 52px; }
 .hw-welcome-art > svg:nth-child(2) { width: 60px; height: 68px; animation: hw-sway 2.6s ease-in-out infinite; }
 .hw-welcome-secret {
-  border-left: 2px solid var(--brand-green);
-  padding-left: 10px;
-  color: hsl(var(--foreground));
+  padding: 10px 12px;
+  border: 1px solid var(--line-2);
+  border-radius: 12px;
+  background: hsl(var(--secondary));
+  color: var(--ink-text);
 }
 .hw-welcome-secret kbd {
-  font: 600 12px/1 var(--font-mono-broadcast);
+  font: 500 12px/1 var(--font-mono-broadcast);
   padding: 2px 5px;
-  border: 1px solid hsl(var(--border));
-  border-radius: 3px;
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
 }
 
 @media (prefers-reduced-motion: reduce) {

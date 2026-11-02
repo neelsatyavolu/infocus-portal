@@ -37,10 +37,10 @@ export function ParticipationDayList({
 
   return (
     <div className="min-w-0 space-y-3">
-      <section aria-label={day ? `${WEEKDAY_NAMES[day.date.getDay()]} scores` : "Scores"} className="min-w-0 overflow-clip rounded-md border border-border bg-card">
+      <section aria-label={day ? `${WEEKDAY_NAMES[day.date.getDay()]} scores` : "Scores"} className="min-w-0 overflow-clip rounded-lg border border-line-strong bg-card">
         {columns.length > 0 ? (
           // Sticks under the top bar (overflow-clip, not hidden, so it can), keeping the day in view down a long roster.
-          <header className="sticky top-[var(--app-header-h,0px)] z-10 flex min-w-0 items-center gap-2 border-b border-border bg-card px-4 py-3">
+          <header className="sticky top-[var(--app-header-h,0px)] z-10 flex min-w-0 items-center gap-2 border-b border-line bg-card px-4 py-3">
             <SegmentedControl
               ariaLabel="Day"
               size="touch"
@@ -83,7 +83,7 @@ export function ParticipationDayList({
             ) : null}
           </header>
         ) : null}
-        <ul className="-mb-px grid min-w-0 md:grid-cols-2 md:[&>li:nth-child(odd)]:border-r md:[&>li:nth-child(odd)]:border-border">
+        <ul className="-mb-px grid min-w-0 md:grid-cols-2 md:[&>li:nth-child(odd)]:border-r md:[&>li:nth-child(odd)]:border-line">
           {students.map((student) => {
             const name = studentName(student);
             const key = day ? entryKey(student.id, day.dateKey) : "";
@@ -91,7 +91,7 @@ export function ParticipationDayList({
             const hasNote = day ? normalizeNote(drafts.notes[key]).length > 0 : false;
             const total = weekTotal(student.id, allDays, drafts);
             return (
-              <li key={student.id} className="flex min-h-14 min-w-0 items-center gap-2 border-b border-border px-4 py-2">
+              <li key={student.id} className="flex min-h-14 min-w-0 items-center gap-2 border-b border-line px-4 py-2">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[15px] text-foreground" title={student.email ?? undefined}>
                     {name}

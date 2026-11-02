@@ -101,7 +101,7 @@ export function TrySuggestions({
               onFocus={pause}
               onBlur={resume}
               className={cn(
-                "flex w-full items-center gap-3 rounded-md border border-border px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "flex w-full items-center gap-3 rounded-md border border-line-strong bg-card px-3 py-2 text-left text-sm text-[var(--ink-text)] transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30",
                 touch ? "min-h-11" : "min-h-9"
               )}
             >

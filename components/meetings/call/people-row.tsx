@@ -131,7 +131,7 @@ export function WaitingRow({
         <Button
           size="sm"
           variant={single ? "default" : "outline"}
-          className={cn(control, !single && "text-[var(--brand-green)]")}
+          className={cn(control, !single && "text-brand-green")}
           onClick={onAdmit}
         >
           Admit

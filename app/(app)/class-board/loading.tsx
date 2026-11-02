@@ -46,12 +46,12 @@ export default function ClassBoardLoading() {
       </div>
 
       <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <div aria-hidden="true" className="flex min-h-0 flex-col overflow-hidden rounded-md border border-border bg-card">
-          <div className="flex shrink-0 items-center border-b border-border px-4 py-2.5 lg:h-[var(--b-head-tall)] lg:py-0">
+        <div aria-hidden="true" className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-line-strong bg-card">
+          <div className="flex shrink-0 items-center border-b border-line px-4 py-2.5 lg:h-[var(--b-head-tall)] lg:py-0">
             <Skeleton className="h-[var(--b-label)] w-full" />
           </div>
           {Array.from({ length: LANE_ROWS }, (_, index) => (
-            <div key={index} className="flex min-h-14 flex-1 items-center gap-4 border-b border-border px-4 last:border-b-0">
+            <div key={index} className="flex min-h-14 flex-1 items-center gap-4 border-b border-line px-4 last:border-b-0">
               <Skeleton className="h-5 w-5 shrink-0" />
               <Skeleton className="h-4 w-1/3 md:w-1/5" />
               <Skeleton className="hidden h-1 flex-1 md:block" />
@@ -59,10 +59,10 @@ export default function ClassBoardLoading() {
             </div>
           ))}
         </div>
-        <div aria-hidden="true" className="hidden min-h-0 flex-col overflow-hidden rounded-md border border-border bg-card lg:flex">
+        <div aria-hidden="true" className="hidden min-h-0 flex-col overflow-hidden rounded-lg border border-line-strong bg-card lg:flex">
           {RAIL_HEADS.map((head, index) => (
             <div key={index} className={cn("flex flex-col", index === RAIL_HEADS.length - 1 && "flex-1")}>
-              <div className={cn("flex shrink-0 items-center border-b border-border px-4", head)}>
+              <div className={cn("flex shrink-0 items-center border-b border-line px-4", head)}>
                 <Skeleton className="h-[var(--b-label)] w-28" />
               </div>
               <div className="space-y-3 p-4">

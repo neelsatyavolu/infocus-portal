@@ -34,7 +34,7 @@ function firstLineOf(text: string) {
  * type in the dialog and it saves when the dialog closes; everyone else reads it there. Rendered
  * in edit mode, or in view mode when the note has text (the cell leaves empty ones out).
  *
- * Card mode: a key/value line (caps label, then the preview or "+ Add"), 40px.
+ * Card mode: a key/value line (label, then the preview or "+ Add"), 40px.
  * Table mode: the 16px icon then the preview on one 32px line. An empty note shrinks to a small
  * "+ icon" button, so a row with no notes stays one line.
  */
@@ -78,7 +78,7 @@ export function NoteField({
   }
 
   const buttonClass = cn(
-    "-ml-1.5 flex min-w-0 items-center rounded-md px-[5px] text-left text-[13px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
+    "-ml-1.5 flex min-w-0 items-center rounded-md px-[5px] text-left text-[13px] transition-colors duration-150 ease-[var(--ease-ui)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30 disabled:pointer-events-none disabled:opacity-50",
     LINE_HEIGHT,
     IN_ROW_HOVER,
     editing ? FIELD_BORDER : "border border-transparent"
@@ -166,7 +166,7 @@ export function NoteField({
                 </p>
               </div>
             ) : (
-              <div className="max-h-[60dvh] min-h-32 overflow-y-auto whitespace-pre-wrap break-words rounded-md border border-border px-3 py-2 text-sm leading-6 text-foreground">
+              <div className="max-h-[60dvh] min-h-32 overflow-y-auto whitespace-pre-wrap break-words rounded-lg border border-line-strong bg-card px-3 py-2 text-sm leading-6 text-[var(--ink-text)]">
                 {value}
               </div>
             )}

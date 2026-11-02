@@ -144,13 +144,13 @@ function AssetRow({
         aria-current={destination.active ? "page" : undefined}
         style={depth > 0 ? { paddingLeft: `${0.5 + depth * 0.75}rem` } : undefined}
         className={cn(
-          "flex h-8 min-w-0 items-center gap-2 rounded-md px-2 text-[13px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "flex h-8 min-w-0 items-center gap-2 rounded-md px-2 text-[13px] transition-colors duration-150 ease-[var(--ease-ui)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30",
           destination.active
-            ? "bg-[var(--brand-green)]/10 font-medium text-foreground"
-            : "text-muted-foreground hover:bg-[var(--ink-3)] hover:text-foreground"
+            ? "bg-secondary font-medium text-foreground"
+            : "text-muted-foreground hover:bg-secondary hover:text-foreground"
         )}
       >
-        <Icon className={cn("h-4 w-4 shrink-0", destination.active && "text-[var(--brand-green)]")} aria-hidden />
+        <Icon className={cn("h-4 w-4 shrink-0", destination.active && "text-brand-green")} aria-hidden />
         <span className="min-w-0 flex-1 truncate">{label}</span>
         {destination.count !== null ? (
           <span className="font-mono-broadcast text-[11px] tabular-nums text-muted-foreground">{destination.count}</span>
@@ -182,7 +182,7 @@ function SectionToggle({ label, count, open, onToggle }: { label: string; count?
       type="button"
       aria-expanded={open}
       onClick={onToggle}
-      className="flex h-8 w-full items-center gap-2 rounded-md px-2 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="flex h-8 w-full items-center gap-2 rounded-md px-2 text-xs font-medium text-muted-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30"
     >
       <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform", !open && "-rotate-90")} aria-hidden />
       <span className="flex-1 text-left">{label}</span>
@@ -244,10 +244,10 @@ export function ProjectAssetsPanel({
   return (
     <aside
       aria-label="Project assets"
-      className="hidden border-r border-border bg-[var(--ink)] lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col"
+      className="hidden border-r border-line bg-background lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col"
     >
-      <div className="flex h-14 shrink-0 items-center gap-1 border-b border-border pl-4 pr-2">
-        <h2 className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">Assets</h2>
+      <div className="flex h-14 shrink-0 items-center gap-1 border-b border-line pl-4 pr-2">
+        <h2 className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">Assets</h2>
         <IconButton label="Create folder" icon={Plus} size="sm" tooltip="bottom" onClick={onCreateFolder} />
         <IconButton
           label={treeOpen ? "Collapse assets" : "Expand assets"}
@@ -301,14 +301,14 @@ export function ProjectAssetsPanel({
                 <button
                   type="button"
                   onClick={onCreateFolder}
-                  className="flex h-8 w-full items-center gap-2 rounded-md px-2 text-[13px] text-muted-foreground transition-colors hover:bg-[var(--ink-3)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="flex h-8 w-full items-center gap-2 rounded-md px-2 text-[13px] text-muted-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30"
                 >
                   <FolderPlus className="h-4 w-4 shrink-0" aria-hidden />
                   No folders yet · Create one
                 </button>
               )}
             </div>
-            <ul className="mt-3 border-t border-border pt-3">
+            <ul className="mt-3 border-t border-line pt-3">
               <AssetRow destination={places.deleted} icon={Trash2} label="Recently Deleted" onLinkClick={onLinkClick} />
             </ul>
           </>
@@ -316,7 +316,7 @@ export function ProjectAssetsPanel({
       </nav>
 
       {canViewShareLinks ? (
-        <div className="shrink-0 border-t border-border p-2">
+        <div className="shrink-0 border-t border-line p-2">
           <SectionToggle label="Share links" open={linksOpen} onToggle={() => setLinksOpen((open) => !open)} />
           {linksOpen ? (
             shareLinks === null ? (
@@ -333,7 +333,7 @@ export function ProjectAssetsPanel({
                         type="button"
                         onClick={() => void copyShareLink(link.token)}
                         aria-label={`Copy ${label.toLowerCase()}`}
-                        className="flex h-8 w-full items-center gap-2 rounded-md px-2 text-[13px] text-muted-foreground transition-colors hover:bg-[var(--ink-3)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className="flex h-8 w-full items-center gap-2 rounded-md px-2 text-[13px] text-muted-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30"
                       >
                         <Link2 className="h-4 w-4 shrink-0" aria-hidden />
                         <span className="min-w-0 flex-1 truncate text-left">{label}</span>
@@ -353,9 +353,9 @@ export function ProjectAssetsPanel({
         </div>
       ) : null}
 
-      <div className="shrink-0 border-t border-border p-3">
+      <div className="shrink-0 border-t border-line p-3">
         <div className="mb-1.5 flex items-center justify-between gap-2">
-          <span className="inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">
+          <span className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground">
             <Cloud className="h-4 w-4" aria-hidden />
             Storage
           </span>
@@ -376,7 +376,7 @@ export function ProjectAssetsPanel({
             aria-valuenow={Math.round(usedPct)}
             className="h-1 overflow-hidden rounded-full bg-[var(--ink-3)]"
           >
-            <div className="h-full rounded-full bg-[var(--brand-green)] transition-all" style={{ width: `${usedPct}%` }} />
+            <div className="h-full rounded-full bg-[var(--brand-fill)] transition-all" style={{ width: `${usedPct}%` }} />
           </div>
         ) : (
           <Skeleton className={cn("h-1 w-full rounded-full", storage.state === "failed" && "motion-safe:animate-none")} />

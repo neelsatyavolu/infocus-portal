@@ -115,11 +115,11 @@ export function UploadProgressToast({ items }: UploadProgressToastProps) {
   const toast = (
     <section
       aria-label="Uploads"
-      className="fixed inset-x-4 bottom-[calc(var(--phone-tabbar-h,0px)+max(1.25rem,env(safe-area-inset-bottom))+3.5rem)] z-50 rounded-md border border-border bg-card p-4 sm:left-auto sm:right-[max(1.25rem,env(safe-area-inset-right))] sm:w-[360px]"
+      className="fixed inset-x-4 bottom-[calc(var(--phone-tabbar-h,0px)+max(1.25rem,env(safe-area-inset-bottom))+3.5rem)] z-50 rounded-lg border border-line-strong bg-popover p-4 sm:left-auto sm:right-[max(1.25rem,env(safe-area-inset-right))] sm:w-[360px]"
     >
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-foreground">Uploads in progress</p>
+          <p className="text-sm font-medium text-foreground">Uploads in progress</p>
           <p role="status" className="sr-only">
             {announcement}
           </p>
@@ -139,7 +139,7 @@ export function UploadProgressToast({ items }: UploadProgressToastProps) {
 
       <ul className="max-h-[360px] space-y-2 overflow-y-auto pr-1">
         {items.map((item) => (
-          <li key={item.id} className="rounded-md border border-border bg-background p-3">
+          <li key={item.id} className="rounded-md border border-line bg-card p-3">
             <div className="flex min-w-0 items-center gap-2">
               <p className="min-w-0 flex-1 truncate text-xs font-medium text-foreground" title={item.fileName}>
                 {item.fileName}

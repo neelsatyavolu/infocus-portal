@@ -26,7 +26,7 @@ const PINNED_PLAYER_CLASS = cn(
 // On a phone the controls step aside while the composer has focus, so the frame and the keyboard both fit.
 const HIDE_WHILE_COMPOSING_CLASS = "pointer-coarse:max-lg:portrait:group-has-[[data-review-composer]:focus]/review:hidden";
 const OVERLAY_PLATE_CLASS =
-  "absolute left-1/2 top-1/2 grid h-16 w-16 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-md bg-black/60 text-[var(--soft-white)]";
+  "absolute left-1/2 top-1/2 grid h-16 w-16 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-lg bg-black/60 text-[var(--soft-white)]";
 
 type Pin = { xPct: number; yPct: number };
 
@@ -73,7 +73,7 @@ function NotReady({
     body = <EmptyState icon={Film} title="Processing…" description="Refresh to check again." action={checkAgain} />;
   }
   return (
-    <div className="grid aspect-video min-h-48 w-full place-items-center rounded-md border border-dashed border-border bg-[var(--ink-2)]">
+    <div className="grid aspect-video min-h-48 w-full place-items-center rounded-lg border border-dashed border-line-strong bg-[var(--ink-2)]">
       {body}
     </div>
   );
@@ -136,7 +136,7 @@ export function ReviewPlayer({
     stageContent = (
       <div
         ref={canvasRef}
-        className="relative overflow-hidden rounded-md border border-border bg-black max-lg:portrait:rounded-none max-lg:portrait:border-0"
+        className="relative overflow-hidden rounded-lg border border-line bg-black max-lg:portrait:rounded-none max-lg:portrait:border-0"
         onClick={onCanvasClick}
       >
         <Image
@@ -194,7 +194,7 @@ export function ReviewPlayer({
   } else if (!isImageReview && version?.playbackUrl) {
     stageContent = (
       <>
-        <div className="relative overflow-hidden rounded-md border border-border bg-black max-lg:portrait:rounded-none max-lg:portrait:border-0">
+        <div className="relative overflow-hidden rounded-lg border border-line bg-black max-lg:portrait:rounded-none max-lg:portrait:border-0">
           <video
             key={version.id}
             ref={videoRef}
@@ -213,7 +213,7 @@ export function ReviewPlayer({
               type="button"
               aria-label="Play"
               onClick={() => void togglePlayback()}
-              className={cn(OVERLAY_PLATE_CLASS, "transition-colors hover:bg-black/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]")}
+              className={cn(OVERLAY_PLATE_CLASS, "transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-black/75 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--brand-green)]/60")}
             >
               <Play className="ml-0.5 h-7 w-7 fill-current" aria-hidden />
             </button>
@@ -293,7 +293,7 @@ export function ReviewPlayer({
             <Select value={String(playbackRate)} onValueChange={(value) => setPlaybackRate(Number(value))}>
               <SelectTrigger
                 aria-label="Playback speed"
-                className="h-8 w-auto gap-1 border-0 bg-transparent px-2 text-xs tabular-nums hover:bg-[var(--ink-3)] pointer-coarse:h-10"
+                className="h-8 w-auto gap-1 rounded-md border-0 bg-transparent px-2 font-mono text-xs tabular-nums transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)] pointer-coarse:h-10"
               >
                 <SelectValue />
               </SelectTrigger>
@@ -319,7 +319,7 @@ export function ReviewPlayer({
     <div
       ref={cardRef}
       className={cn(
-        "rounded-md border border-border bg-card p-2 sm:p-4 lg:flex lg:h-full lg:flex-col lg:justify-center",
+        "rounded-lg border border-line-strong bg-card p-2 sm:p-4 lg:flex lg:h-full lg:flex-col lg:justify-center",
         // Upright phones and tablets: flush, so the picture uses the column's full width.
         "max-lg:portrait:rounded-none max-lg:portrait:border-x-0 max-lg:portrait:p-0",
         PINNED_PLAYER_CLASS

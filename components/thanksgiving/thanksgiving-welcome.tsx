@@ -53,13 +53,13 @@ export function ThanksgivingWelcome() {
           <PieSprite />
         </div>
         <DialogHeader>
-          <DialogTitle className="text-xl">The Portal is stuffed</DialogTitle>
+          <DialogTitle className="text-[22px] font-medium tracking-[-0.015em]">The Portal is stuffed</DialogTitle>
           <DialogDescription>Through November 30, InFocus Portal is dressed for the harvest.</DialogDescription>
         </DialogHeader>
-        <ul className="space-y-3 text-sm">
+        <ul className="space-y-3 text-sm leading-relaxed">
           {WHAT_HAPPENS.map(([title, detail]) => (
             <li key={title}>
-              <span className="font-semibold text-foreground">{title}</span>{" "}
+              <span className="font-medium text-foreground">{title}</span>{" "}
               <span className="text-muted-foreground">{detail}</span>
             </li>
           ))}
@@ -70,13 +70,13 @@ export function ThanksgivingWelcome() {
         </p>
         <p className="text-xs text-muted-foreground">
           Too much? Turn the colors, sounds or the giant turkey off in{" "}
-          <Link href="/settings#appearance" className="underline underline-offset-2" onClick={close}>
+          <Link href="/settings#appearance" className="text-[var(--brand-green)] underline-offset-2 transition-colors duration-150 ease-[var(--ease-ui)] hover:underline" onClick={close}>
             Settings → Appearance
           </Link>
           .
         </p>
         <DialogFooter>
-          <Button onClick={close} className="w-full sm:w-auto">
+          <Button variant="accent" onClick={close} className="w-full sm:w-auto">
             Pass the gravy
           </Button>
         </DialogFooter>

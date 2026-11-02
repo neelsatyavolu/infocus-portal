@@ -28,7 +28,7 @@ export function StoryFrame({ showSafeZones, children }: { showSafeZones: boolean
   return (
     <div
       ref={frameRef}
-      className="relative mx-auto aspect-[9/16] w-full max-w-[min(100%,calc((100dvh-15rem)*9/16))] min-w-[240px] overflow-hidden rounded-md border border-border bg-[#0F110F]"
+      className="relative mx-auto aspect-[9/16] w-full max-w-[min(100%,calc((100dvh-15rem)*9/16))] min-w-[240px] overflow-hidden rounded-lg border border-line-strong bg-[#0F110F]"
     >
       <div
         className="absolute left-0 top-0 origin-top-left"
@@ -44,7 +44,7 @@ export function StoryFrame({ showSafeZones, children }: { showSafeZones: boolean
               className={cn("pointer-events-none absolute inset-x-0 grid place-items-center border-dashed border-[#F2A516] bg-[#F2A516]/25", position)}
               style={{ height: SAFE_PERCENT }}
             >
-              <span className="rounded bg-background px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.11em] text-brand-amber">
+              <span className="rounded-full bg-background px-2 py-0.5 text-[11px] font-medium text-brand-amber">
                 Instagram covers this
               </span>
             </div>

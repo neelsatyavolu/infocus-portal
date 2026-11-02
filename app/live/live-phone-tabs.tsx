@@ -25,7 +25,7 @@ export function LivePhoneTabs({ items, ariaLabel }: { items: LivePhoneTab[]; ari
     <nav
       aria-label={ariaLabel}
       className={cn(
-        "fixed inset-x-0 bottom-0 z-40 flex border-t border-border bg-[var(--ink)] pb-[env(safe-area-inset-bottom)] md:hidden",
+        "fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-background pb-[env(safe-area-inset-bottom)] md:hidden",
         HIDE_WHILE_TYPING
       )}
     >
@@ -38,8 +38,8 @@ export function LivePhoneTabs({ items, ariaLabel }: { items: LivePhoneTab[]; ari
             aria-pressed={item.active}
             onClick={item.onSelect}
             className={cn(
-              "flex h-[3.75rem] min-w-0 flex-1 flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
-              item.active ? "text-foreground" : "text-muted-foreground"
+              "flex h-[3.75rem] min-w-0 flex-1 flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors duration-150 ease-[var(--ease-ui)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-ring/30",
+              item.active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
             )}
           >
             <span className="relative flex">

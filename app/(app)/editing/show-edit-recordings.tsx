@@ -95,7 +95,7 @@ function RecordingPreview({ recording }: { recording: ShowRecording }) {
     <VideoPlayer
       src={url}
       preload="metadata"
-      className="max-w-xl rounded-md border border-border"
+      className="max-w-xl rounded-lg border border-line-strong"
       label={`Preview of ${recording.name}`}
       onError={() => setError(CANT_PLAY)}
     />
@@ -153,7 +153,7 @@ function FolderRows({ group, selected, disabled, notes, onChange, previewPath, o
         />
         <button
           type="button"
-          className="flex min-w-0 flex-1 items-center gap-1.5 text-left text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex min-h-8 min-w-0 flex-1 items-center gap-1.5 rounded-md px-1 text-left text-sm transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)]/60 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30"
           aria-expanded={open}
           onClick={() => setOpen(!open)}
         >
@@ -190,7 +190,7 @@ function ChosenSources({ selected, disabled, onChange }: { selected: ShowEditSou
       <ol className="space-y-1.5" aria-label="Chosen recordings, in order">
         {selected.map((source, index) => (
           <li key={source.path} className="flex min-w-0 flex-wrap items-center gap-2 text-sm">
-            <span className="w-5 font-mono text-[12px] text-muted-foreground">{index + 1}</span>
+            <span className="w-5 font-mono text-[12px] tabular-nums text-muted-foreground">{index + 1}</span>
             <span className="min-w-0 flex-1 truncate" title={source.path}>{fileName(source.path)}</span>
             <NativeSelect
               size="sm"
@@ -202,11 +202,11 @@ function ChosenSources({ selected, disabled, onChange }: { selected: ShowEditSou
             >
               {SHOW_EDIT_SOURCE_ROLES.map((role) => <option key={role} value={role}>{SHOW_EDIT_SOURCE_ROLE_LABELS[role]}</option>)}
             </NativeSelect>
-            <Button type="button" size="icon" variant="ghost" className="h-8 w-8" disabled={disabled || index === 0}
+            <Button type="button" size="icon-sm" variant="ghost" disabled={disabled || index === 0}
               aria-label={`Move ${fileName(source.path)} earlier`} onClick={() => move(index, -1)}>
               <ArrowUp aria-hidden />
             </Button>
-            <Button type="button" size="icon" variant="ghost" className="h-8 w-8" disabled={disabled || index === selected.length - 1}
+            <Button type="button" size="icon-sm" variant="ghost" disabled={disabled || index === selected.length - 1}
               aria-label={`Move ${fileName(source.path)} later`} onClick={() => move(index, 1)}>
               <ArrowDown aria-hidden />
             </Button>
@@ -261,7 +261,7 @@ export function RecordingPicker({ recordings, selected, disabled, onChange }: {
   const preview = { previewPath, onPreview: setPreviewPath };
   return (
     <div className="space-y-3">
-      <div role="group" aria-label="Recordings in the Shows folder" className="divide-y divide-border rounded-md border border-border">
+      <div role="group" aria-label="Recordings in the Shows folder" className="divide-y divide-line rounded-lg border border-line-strong">
         {groupsOf(recordings).map((group) =>
           group.folder === null ? (
             <LooseFiles key="loose" files={group.files} chosen={chosen} selected={selected} disabled={disabled}

@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { VideoPlayer } from "@/components/kit/video-player";
+import { Button } from "@/components/ui/button";
 import { chapterTime, type ShowChapter } from "@/src/lib/show-chapters";
 
 /**
@@ -50,7 +51,7 @@ export function EditedShowVideo({ videoUrl, posterUrl, label, chapters = [] }: {
         chapters={chapters}
         onError={onError}
         onLoadedMetadata={onLoadedMetadata}
-        className="rounded-md border border-border"
+        className="rounded-lg border border-line-strong"
         label={label}
       />
       {chapters.length > 1 ? (
@@ -58,14 +59,10 @@ export function EditedShowVideo({ videoUrl, posterUrl, label, chapters = [] }: {
           <ol className="flex flex-wrap gap-1.5">
             {chapters.map((chapter) => (
               <li key={`${chapter.start}-${chapter.title}`}>
-                <button
-                  type="button"
-                  onClick={() => jump(chapter.start)}
-                  className="rounded-md border border-border px-2 py-1 text-[13px] hover:bg-muted"
-                >
+                <Button type="button" variant="outline" size="sm" onClick={() => jump(chapter.start)} className="gap-1.5 px-2.5">
                   <span className="font-mono text-[12px] text-muted-foreground tabular-nums">{chapterTime(chapter.start)}</span>{" "}
                   {chapter.title}
-                </button>
+                </Button>
               </li>
             ))}
           </ol>

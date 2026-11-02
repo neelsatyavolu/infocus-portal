@@ -28,7 +28,7 @@ const SECTION_ACTION = "pointer-coarse:h-10";
 
 /** NamePicker's own trigger box (h-9, like Input), 40px on touch screens. */
 const PICKER_TRIGGER =
-  "flex h-9 w-full items-center justify-between gap-2 whitespace-nowrap rounded-md border border-input bg-transparent px-3 text-left text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 pointer-coarse:h-10";
+  "flex h-9 w-full items-center justify-between gap-2 whitespace-nowrap rounded-md border border-input bg-card px-3 text-left text-sm text-foreground transition-[border-color,box-shadow] duration-150 ease-[var(--ease-ui)] focus:outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50 pointer-coarse:h-10";
 
 /**
  * A name slot's trigger, named for screen readers by its slot ("Anchor 1: Abby"). Returned as a
@@ -128,11 +128,11 @@ function CrewChips({
   const { label, add } = CREW_LABELS[role];
   return (
     <div className="space-y-1.5">
-      <h4 className="text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">{label}</h4>
+      <h4 className="text-[13px] font-medium text-muted-foreground">{label}</h4>
       {!add ? <p className="text-xs text-muted-foreground">Add each person to a list below to sort them.</p> : null}
       <ul className="flex flex-wrap items-center gap-1.5">
         {names.map((name) => (
-          <li key={name} className={cn(NAME_CHIP_CLASS, "pr-0 pointer-coarse:h-10")}>
+          <li key={name} className={cn(NAME_CHIP_CLASS, "pr-0.5 pointer-coarse:h-10")}>
             {name}
             <button
               type="button"
@@ -140,7 +140,7 @@ function CrewChips({
               title={`Remove ${name}`}
               disabled={busy}
               onClick={() => onChange(names.filter((entry) => entry !== name))}
-              className="ml-0.5 grid h-8 w-8 place-items-center rounded-sm text-muted-foreground transition-colors hover:bg-[var(--ink-4)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 pointer-coarse:h-10 pointer-coarse:w-10"
+              className="ml-0.5 grid h-7 w-7 place-items-center rounded-full text-muted-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)] hover:text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/45 disabled:opacity-50 pointer-coarse:h-9 pointer-coarse:w-9"
             >
               <X className="h-4 w-4" aria-hidden />
             </button>
@@ -325,7 +325,7 @@ export default function DayEditSections({
             onPillClick={(pill, anchor) => actions.openPillRename(dateKey, pill, anchor)}
             className={cn(
               NOTES_TEXT_STYLES,
-              "min-h-24 rounded-md border border-input bg-background p-3 text-base outline-none sm:text-sm focus-visible:ring-2 focus-visible:ring-ring",
+              "min-h-24 rounded-md border border-input bg-card p-3 text-base outline-none transition-[border-color,box-shadow] duration-150 ease-[var(--ease-ui)] sm:text-sm focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30",
               "[&_.package-pill]:cursor-pointer empty:before:pointer-events-none empty:before:text-muted-foreground empty:before:content-[attr(data-placeholder)]"
             )}
           />

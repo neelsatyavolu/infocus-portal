@@ -18,7 +18,7 @@ type ResponseShape = {
  */
 type LoadFailure = { kind: "link" | "retry"; message: string };
 
-const STATE_BOX_CLASS = "rounded-md border border-border bg-card";
+const STATE_BOX_CLASS = "rounded-lg border border-line-strong bg-card";
 const RETRY_MESSAGE = "Could not load the announcements. Check your connection and try again.";
 
 /**

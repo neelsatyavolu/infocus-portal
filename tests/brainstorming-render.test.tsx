@@ -76,9 +76,9 @@ describe("DocLinkField", () => {
     const idle = html(<DocLinkField {...props} />);
     const idleSave = idle.match(/<button[^>]*type="submit"[^>]*>/)?.[0] ?? "";
     expect(idleSave).not.toContain('disabled=""');
-    expect(idleSave).toContain("border-input");
+    expect(idleSave).toContain("border-line-strong");
     const edited = html(<DocLinkField {...props} draft="https://docs.google.com/document/d/new" />);
-    expect(edited.match(/<button[^>]*type="submit"[^>]*>/)?.[0]).toContain("bg-primary");
+    expect(edited.match(/<button[^>]*type="submit"[^>]*>/)?.[0]).toContain("bg-cta");
     expect(html(<DocLinkField {...props} saving />).match(/<button[^>]*type="submit"[^>]*>/)?.[0]).toContain('disabled=""');
   });
 

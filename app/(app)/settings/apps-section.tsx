@@ -33,7 +33,7 @@ export function AppsSection() {
             <a
               key={link.href}
               href={link.href}
-              className="group flex h-full min-w-0 flex-col gap-1 px-4 py-4 transition-colors hover:bg-[var(--ink-3)] focus-visible:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring md:px-5"
+              className="group flex h-full min-w-0 flex-col gap-1 px-4 py-4 transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)] focus-visible:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring md:px-5"
             >
               <span className="flex items-center justify-between gap-3">
                 <span className="text-sm font-medium text-foreground">{link.title}</span>
@@ -48,7 +48,7 @@ export function AppsSection() {
           ))}
         </SettingsGrid>
         <dl className="flex flex-col gap-1 px-4 py-3 md:flex-row md:items-baseline md:gap-4 md:px-5">
-          <dt className="shrink-0 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">Weekly schedule</dt>
+          <dt className="shrink-0 text-[13px] font-medium text-muted-foreground">Weekly schedule</dt>
           <dd className="text-[13px] leading-snug text-[var(--ink-text)]">
             Mon PA · Tue/Thu class · Wed/Fri shows · holidays off (PAUSD calendar seeded)
           </dd>

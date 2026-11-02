@@ -108,7 +108,7 @@ export function SettingsLayout({
       <div className="lg:grid lg:grid-cols-[200px_minmax(0,1fr)] lg:gap-8">
         <nav
           aria-label="Sections"
-          className="sticky top-[var(--app-header-h,0px)] z-30 mb-6 overflow-x-auto border-b border-border bg-background [scrollbar-width:none] lg:top-24 lg:z-auto lg:mb-0 lg:self-start lg:overflow-visible lg:border-b-0 lg:bg-transparent [&::-webkit-scrollbar]:hidden"
+          className="sticky top-[var(--app-header-h,0px)] z-30 mb-6 overflow-x-auto border-b border-line bg-background [scrollbar-width:none] lg:top-24 lg:z-auto lg:mb-0 lg:self-start lg:overflow-visible lg:border-b-0 lg:bg-transparent [&::-webkit-scrollbar]:hidden"
         >
           <ul className="flex lg:flex-col lg:gap-0.5">
             {nav.map((item) => {
@@ -120,10 +120,10 @@ export function SettingsLayout({
                     onClick={() => setActive(item.id)}
                     aria-current={current ? "location" : undefined}
                     className={cn(
-                      "flex h-10 items-center gap-2 whitespace-nowrap border-b-2 px-3 text-sm transition-colors lg:h-9 lg:border-b-0 lg:border-l-2",
+                      "flex h-10 items-center gap-2 whitespace-nowrap border-b px-3 text-sm transition-colors duration-150 ease-[var(--ease-ui)] lg:h-9 lg:rounded-md lg:border-b-0",
                       current
-                        ? "border-[var(--brand-green)] font-medium text-foreground"
-                        : "border-transparent text-muted-foreground hover:text-foreground lg:hover:bg-[var(--ink-3)]",
+                        ? "border-[var(--brand-green)] font-medium text-foreground lg:bg-secondary"
+                        : "border-transparent text-muted-foreground hover:text-foreground lg:hover:bg-secondary",
                       item.tone === "danger" && "text-danger hover:text-danger"
                     )}
                   >
@@ -201,7 +201,7 @@ export function SettingsSection({
           <div className="flex min-h-8 flex-wrap items-center gap-2">
             <h2
               id={`${id}-title`}
-              className={cn("text-lg font-semibold tracking-[-0.01em] text-foreground", tone === "danger" && "text-danger")}
+              className={cn("text-lg font-medium tracking-[-0.015em] text-foreground", tone === "danger" && "text-danger")}
             >
               {title}
             </h2>
@@ -229,7 +229,7 @@ export function SettingsPanel({
   return (
     <div
       className={cn(
-        "divide-y divide-border overflow-hidden rounded-md border border-border bg-card",
+        "divide-y divide-line overflow-hidden rounded-lg border border-line-strong bg-card",
         tone === "danger" && "border-danger/40",
         className
       )}
@@ -308,7 +308,7 @@ export function SettingsGrid({ columns = 2, className, children }: { columns?: 2
     <div className="overflow-hidden">
       <div
         className={cn(
-          "-mb-px -mr-px grid *:border-b *:border-r *:border-border",
+          "-mb-px -mr-px grid *:border-b *:border-r *:border-line",
           columns === 3 ? "@2xl:grid-cols-2 @4xl:grid-cols-3" : "@2xl:grid-cols-2",
           className
         )}

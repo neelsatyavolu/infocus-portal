@@ -7,7 +7,7 @@ import { IconButton } from "@/components/kit/icon-button";
 import { cn } from "@/src/lib/utils";
 
 /** 11px caps label, shared by field rows and section labels on this page. */
-export const VAULT_LABEL_CLASS = "text-[11px] font-medium uppercase leading-tight tracking-[0.11em] text-muted-foreground";
+export const VAULT_LABEL_CLASS = "text-[13px] font-medium leading-tight text-muted-foreground";
 
 /**
  * Field rows for one login. A container query picks the layout from the space the list gets:
@@ -18,7 +18,7 @@ export const VAULT_LABEL_CLASS = "text-[11px] font-medium uppercase leading-tigh
 export function VaultFieldList({ children }: { children: ReactNode }) {
   return (
     <div className="@container min-w-0">
-      <div className="divide-y divide-border">{children}</div>
+      <div className="divide-y divide-line">{children}</div>
     </div>
   );
 }
@@ -87,5 +87,5 @@ export function SlotButton({
 
 /** "Hides after 30 s" under a revealed value. */
 export function HidesCaption() {
-  return <span className="mt-0.5 block text-[11px] text-muted-foreground">Hides after 30 s</span>;
+  return <span className="mt-0.5 block text-xs text-muted-foreground">Hides after 30 s</span>;
 }

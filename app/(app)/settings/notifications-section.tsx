@@ -29,7 +29,7 @@ function SendMeList({ channel, state }: { channel: ChannelKey; state: Notificati
   return (
     <div role="group" aria-labelledby={labelId}>
       <SendMeLabel id={labelId} note={enabled ? null : `when ${word} is on`} />
-      <ul className="mt-1 divide-y divide-border">
+      <ul className="mt-1 divide-y divide-line">
         {CATEGORIES.map((category) => {
           const id = `notify-${channel}-${category}`;
           return (

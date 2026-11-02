@@ -81,7 +81,7 @@ export function PackageOfCycleCard({
         <span className="inline-flex items-center gap-2">
           <Award
             aria-hidden
-            className={cn("h-4 w-4", awarded ? "text-[var(--brand-green)]" : "text-muted-foreground")}
+            className={cn("h-4 w-4", awarded ? "text-brand-green" : "text-muted-foreground")}
           />
           Package of the Cycle
         </span>
@@ -126,14 +126,14 @@ export function PackageOfCycleCard({
       ) : null}
 
       {awarded && members.length > 0 ? (
-        <div className="space-y-1.5 border-t border-border pt-3">
-          <h3 className="text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">Certificates</h3>
+        <div className="space-y-1.5 border-t border-line pt-3">
+          <h3 className="text-[13px] font-medium text-muted-foreground">Certificates</h3>
           <ul className="space-y-0.5">
             {members.map((member) => (
               <li key={member.userId}>
                 <a
                   href={certificateHref(rowId, member.userId)}
-                  className="inline-flex min-h-8 items-center gap-2 text-sm text-foreground transition-colors hover:text-[var(--brand-green)] max-sm:min-h-10"
+                  className="inline-flex min-h-8 items-center gap-2 rounded-md text-sm text-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:text-brand-green focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30 max-sm:min-h-10"
                 >
                   <Download aria-hidden className="h-4 w-4 shrink-0" />
                   {member.name || member.email || "Member"}

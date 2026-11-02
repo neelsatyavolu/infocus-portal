@@ -76,7 +76,7 @@ export function PanelHeader({
   return (
     <header
       className={cn(
-        "box-content flex shrink-0 items-stretch justify-between gap-2 border-b border-border px-4",
+        "box-content flex shrink-0 items-stretch justify-between gap-2 border-b border-line px-4",
         touch ? "h-14" : "h-12",
         safeAreaTop && "pt-[env(safe-area-inset-top)]"
       )}

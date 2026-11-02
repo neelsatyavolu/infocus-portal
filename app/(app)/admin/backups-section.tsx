@@ -153,7 +153,7 @@ export function BackupsSection({
                   <span className={COLUMN_LABEL_CLASS}>File</span>
                   <span />
                 </div>
-                <ul id={listId} aria-label="Backup files" className="divide-y divide-border border-border sm:border-t">
+                <ul id={listId} aria-label="Backup files" className="divide-y divide-line border-line sm:border-t">
                   {shown.map((dump) => {
                     // Both Download buttons say which backup, so screen readers can tell the rows apart.
                     const downloadLabel = `Download backup from ${new Date(dump.lastModified).toLocaleString()}`;

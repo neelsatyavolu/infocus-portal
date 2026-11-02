@@ -141,13 +141,13 @@ export function MissingGradesSheet({
           {people.length === 0 ? (
             <EmptyState size="inline" title="No people to show." />
           ) : (
-            <ul className="divide-y divide-border rounded-md border border-border">
+            <ul className="divide-y divide-line rounded-lg border border-line-strong">
               {people.map((person) => (
                 <li key={person.userId}>
                   <Checkbox
                     checked={isExcluded(person.userId)}
                     onCheckedChange={() => toggleExcluded(person.userId)}
-                    labelClassName="flex min-h-12 w-full items-center gap-3 px-3 py-2 hover:bg-[var(--ink-3)]"
+                    labelClassName="flex min-h-12 w-full items-center gap-3 px-3 py-2 transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)]/60"
                   >
                     <span className="min-w-0">
                       <span className="block truncate text-sm text-foreground">{personLabel(person)}</span>
@@ -169,7 +169,7 @@ export function MissingGradesSheet({
             <section key={group.cycleNumber} aria-labelledby={`missing-cycle-${group.cycleNumber}`} className="space-y-2">
               <div className="flex min-h-8 items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <h3 id={`missing-cycle-${group.cycleNumber}`} className="truncate text-sm font-semibold text-foreground">
+                  <h3 id={`missing-cycle-${group.cycleNumber}`} className="truncate text-sm font-medium text-foreground">
                     Cycle {group.cycleNumber}
                     {group.focus ? <span className="font-normal text-muted-foreground"> · {group.focus}</span> : null}
                   </h3>
@@ -194,7 +194,7 @@ export function MissingGradesSheet({
                   Open cycle {group.cycleNumber}
                 </Button>
               </div>
-              <ul className="divide-y divide-border rounded-md border border-border">
+              <ul className="divide-y divide-line rounded-lg border border-line-strong">
                 {group.entries.map(({ person, status }) => (
                   <li key={`${person.userId}-${status}`} className="flex min-h-12 items-center gap-3 px-3 py-1.5">
                     <span className="min-w-0 flex-1">

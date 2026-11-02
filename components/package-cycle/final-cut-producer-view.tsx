@@ -115,7 +115,7 @@ export function FinalCutProducerView({
             compact
           />
         ) : (
-          <section aria-label="Grading" className="rounded-md border border-border bg-card">
+          <section aria-label="Grading" className="rounded-lg border border-line-strong bg-card">
             <EmptyState icon={Award} title="Final Cut scoring is not available yet." />
           </section>
         )}

@@ -14,7 +14,7 @@ export type NewInvite = { email: string; name: string; userId: string | null };
 const TOUCH = "max-md:h-10";
 
 /** One heading style for the sheet's two sections ("Invited addresses", "Add an address"). */
-export const INVITES_SECTION_HEADING = "flex items-center gap-2 text-sm font-semibold text-foreground";
+export const INVITES_SECTION_HEADING = "flex items-center gap-2 text-[15px] font-medium tracking-[-0.01em] text-foreground";
 
 /**
  * "Add an address" (execs): email on its own row, then name and producer side by side, and the
@@ -44,7 +44,7 @@ export function AddInviteForm({
   }
 
   return (
-    <form onSubmit={submit} aria-labelledby="invite-add-title" className="space-y-4 rounded-md border border-border p-4">
+    <form onSubmit={submit} aria-labelledby="invite-add-title" className="space-y-4 rounded-lg border border-line-strong bg-card p-4">
       <h3 id="invite-add-title" className={INVITES_SECTION_HEADING}>
         Add an address
       </h3>

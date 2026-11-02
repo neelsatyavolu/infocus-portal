@@ -180,7 +180,7 @@ export function UploadPanel({ projectId, canUpload }: UploadPanelProps) {
               onChange={(event) => setTitle(event.target.value)}
               placeholder="Cut name (e.g. Promo v1)"
             />
-            <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-border bg-accent px-4 py-6 text-sm text-foreground">
+            <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-line-strong bg-card px-4 py-6 text-sm text-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-secondary">
               <UploadCloud className="h-4 w-4 text-muted-foreground" />
               <span>{file?.name ?? "Select a video file"}</span>
               <input
@@ -192,8 +192,8 @@ export function UploadPanel({ projectId, canUpload }: UploadPanelProps) {
             </label>
             {state === "uploading" ? (
               <div className="space-y-2">
-                <div className="h-2 w-full rounded-full bg-secondary">
-                  <div className="h-2 rounded-full bg-primary" style={{ width: `${progress}%` }} />
+                <div className="h-1.5 w-full rounded-full bg-secondary">
+                  <div className="h-1.5 rounded-full bg-[var(--brand-fill)]" style={{ width: `${progress}%` }} />
                 </div>
                 <p className="text-xs text-muted-foreground">Uploading... {progress}%</p>
               </div>

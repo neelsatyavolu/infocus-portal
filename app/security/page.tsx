@@ -49,7 +49,7 @@ export default function SecurityPage() {
             {points.map((point) => (
               <Panel key={point.title} as="article">
                 <IconTile icon={point.icon} tone="brand" size={36} />
-                <h2 className="mt-3 text-lg font-semibold leading-snug text-foreground">{point.title}</h2>
+                <h2 className="mt-3 text-lg font-medium leading-snug tracking-[-0.015em] text-foreground">{point.title}</h2>
                 <p className="mt-1 text-sm text-muted-foreground">{point.description}</p>
               </Panel>
             ))}

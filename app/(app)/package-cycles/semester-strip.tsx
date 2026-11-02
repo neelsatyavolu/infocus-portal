@@ -64,7 +64,7 @@ export function SemesterStrip({ savedCount, onSaved }: { savedCount: number; onS
       noValidate
       aria-labelledby="cycles-per-semester-label"
       onSubmit={(event) => void submit(event)}
-      className="@container/strip space-y-2 rounded-md border border-border bg-card p-4"
+      className="@container/strip space-y-2 rounded-lg border border-line-strong bg-card p-4"
     >
       <label id="cycles-per-semester-label" htmlFor="cycles-per-semester" className={fieldLabelClass}>
         Cycles this semester
@@ -104,7 +104,7 @@ export function SemesterStrip({ savedCount, onSaved }: { savedCount: number; onS
       {error ? <InlineError>Couldn&apos;t update the cycle count. {error}</InlineError> : null}
       {!error && savedMessage && !dirty ? (
         <p role="status" className="flex items-center gap-1.5 text-[13px] leading-snug text-muted-foreground">
-          <Check aria-hidden className="h-3.5 w-3.5 shrink-0 text-[var(--brand-green)]" />
+          <Check aria-hidden className="h-3.5 w-3.5 shrink-0 text-brand-green" />
           {savedMessage}
         </p>
       ) : null}

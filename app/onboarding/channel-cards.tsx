@@ -17,11 +17,11 @@ const categoryLabels: Record<CategoryKey, string> = {
   grades: "Grades"
 };
 
-const LABEL_CLASS = "text-[11px] font-medium uppercase leading-tight tracking-[0.11em] text-muted-foreground";
+const LABEL_CLASS = "text-[13px] font-medium leading-tight text-muted-foreground";
 const CARD_CLASS =
-  "flex min-w-0 flex-col overflow-hidden rounded-md border border-border bg-card @xl:row-span-3 @xl:grid @xl:grid-rows-subgrid @xl:gap-y-0";
+  "flex min-w-0 flex-col overflow-hidden rounded-lg border border-line-strong bg-card @xl:row-span-3 @xl:grid @xl:grid-rows-subgrid @xl:gap-y-0";
 // No vertical padding: the title's label fills the 56px row, so the whole header is a touch target.
-const HEADER_CLASS = cn(ENTRY_PAD_X, "flex min-h-14 items-center justify-between gap-3 border-b border-border");
+const HEADER_CLASS = cn(ENTRY_PAD_X, "flex min-h-14 items-center justify-between gap-3 border-b border-line");
 /** A 44px-tall hit area around the 20px master switch (DESIGN.md §10 touch targets). */
 const SWITCH_HIT_AREA = "relative after:absolute after:-inset-x-2 after:-inset-y-3";
 
@@ -61,7 +61,7 @@ function SendMeList({
       {!enabled ? (
         <p className="mt-1.5 text-[13px] leading-snug text-muted-foreground">{word} is off. Turn it on to choose what it sends.</p>
       ) : null}
-      <ul className="mt-1 divide-y divide-border">
+      <ul className="mt-1 divide-y divide-line">
         {CATEGORIES.map((category) => {
           const id = `onboarding-${channel}-${category}`;
           return (
@@ -115,7 +115,7 @@ export function ChannelCard({
       <div className={HEADER_CLASS}>
         <h3
           id={titleId}
-          className="flex min-w-0 flex-1 self-stretch text-base font-semibold leading-snug tracking-[-0.01em] text-foreground"
+          className="flex min-w-0 flex-1 self-stretch text-[15px] font-medium leading-snug tracking-[-0.01em] text-foreground"
         >
           <label htmlFor={switchId} className="flex min-h-14 flex-1 cursor-pointer items-center">
             {word}

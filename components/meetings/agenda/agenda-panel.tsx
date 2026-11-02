@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Check, ExternalLink, Loader2, Plus } from "lucide-react";
 import { AGENDA_TEXT_MAX, agendaProgress, cleanAgendaText } from "@/src/lib/meetings/agenda";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/src/lib/utils";
 import { SidePanel } from "../call/side-panel";
 import { agendaEditorHref } from "./agenda-button";
@@ -23,11 +24,11 @@ export function useCallAgenda(meetingId: string, agendaVersion: number, welcomeC
   return agenda;
 }
 
-const FOCUS = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]";
+const FOCUS = "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30";
 
 function Progress({ done, total }: { done: number; total: number }) {
   return (
-    <div className="space-y-1.5 border-b border-[var(--ink-4)] px-4 py-3">
+    <div className="space-y-1.5 border-b border-line px-4 py-3">
       <p className="text-sm text-[var(--ink-text)]">
         <span className="font-mono tabular-nums text-foreground">{done}</span> of{" "}
         <span className="font-mono tabular-nums text-foreground">{total}</span> done
@@ -40,7 +41,7 @@ function Progress({ done, total }: { done: number; total: number }) {
         aria-valuemax={total}
         aria-valuenow={done}
       >
-        <div className="h-full rounded-full bg-[var(--brand-green)] transition-[width]" style={{ width: total ? `${(done / total) * 100}%` : "0%" }} />
+        <div className="h-full rounded-full bg-brand-green transition-[width]" style={{ width: total ? `${(done / total) * 100}%` : "0%" }} />
       </div>
     </div>
   );
@@ -84,16 +85,11 @@ export function AgendaPanel({
         maxLength={AGENDA_TEXT_MAX}
         onChange={(e) => setDraft(e.target.value)}
         placeholder="Add an item"
-        className={cn("h-11 min-w-0 flex-1 rounded-md border border-input bg-transparent px-3 text-base text-foreground placeholder:text-muted-foreground", FOCUS)}
+        className={cn("h-11 min-w-0 flex-1 rounded-md border border-input bg-card px-3 text-base text-foreground placeholder:text-muted-foreground focus-visible:border-ring", FOCUS)}
       />
-      <button
-        type="submit"
-        disabled={adding || !cleanAgendaText(draft)}
-        aria-label="Add item"
-        className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground disabled:opacity-50", FOCUS)}
-      >
+      <Button type="submit" size="icon" disabled={adding || !cleanAgendaText(draft)} aria-label="Add item" className="h-11 w-11 shrink-0">
         {adding ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Plus className="h-4 w-4" aria-hidden />}
-      </button>
+      </Button>
     </form>
   );
 
@@ -113,7 +109,7 @@ export function AgendaPanel({
           <li key={item.id}>
             <label
               className={cn(
-                "flex min-h-11 cursor-pointer items-start gap-3 rounded-md px-2 py-2 hover:bg-[var(--ink-3)]",
+                "flex min-h-11 cursor-pointer items-start gap-3 rounded-md px-2 py-2 transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)]",
                 agenda.readOnly && "cursor-default hover:bg-transparent"
               )}
             >
@@ -128,8 +124,8 @@ export function AgendaPanel({
               <span
                 aria-hidden
                 className={cn(
-                  "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-sm border peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--brand-green)] peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-[var(--ink-2)]",
-                  item.done ? "border-[var(--brand-fill)] bg-primary text-primary-foreground" : "border-[var(--ink-5)]"
+                  "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-sm border peer-focus-visible:ring-[3px] peer-focus-visible:ring-ring/30",
+                  item.done ? "border-[var(--brand-fill)] bg-[var(--brand-fill)] text-on-brand" : "border-line-strong bg-card"
                 )}
               >
                 {item.done ? <Check className="h-3.5 w-3.5" /> : null}
@@ -155,7 +151,7 @@ export function AgendaPanel({
           href={agendaEditorHref(meetingId)}
           target="_blank"
           rel="noopener"
-          className={cn("inline-flex min-h-11 items-center gap-1.5 text-sm text-[var(--brand-green)] hover:underline", FOCUS)}
+          className={cn("inline-flex min-h-11 items-center gap-1.5 text-sm text-brand-green underline-offset-4 hover:underline", FOCUS)}
         >
           Edit agenda <ExternalLink className="h-3.5 w-3.5" aria-hidden />
           <span className="sr-only">(opens in a new tab)</span>

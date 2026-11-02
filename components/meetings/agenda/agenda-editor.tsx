@@ -136,7 +136,7 @@ export function AgendaComposer({ agenda }: { agenda: Agenda }) {
         maxLength={AGENDA_TEXT_MAX}
         onChange={(e) => setDraft(e.target.value)}
         placeholder="Add item"
-        className="h-11 min-w-0 flex-1 rounded-md border border-input bg-transparent px-3 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)] md:h-9 md:text-sm"
+        className="h-11 min-w-0 flex-1 rounded-md border border-input bg-card px-3 text-base text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30 md:h-9 md:text-sm"
       />
       <Button type="submit" className="h-11 md:h-9" disabled={adding || !cleanAgendaText(draft)}>
         {adding ? <Loader2 className="animate-spin" aria-hidden /> : <Plus aria-hidden />}

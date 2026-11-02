@@ -156,7 +156,7 @@ function StartRow({ showDate, selected, selectionError, packages, announcements,
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="button" disabled={busy || selectionError !== null} onClick={() => onStart(open ? note.trim() : "", changed, recomposite)}>
+        <Button type="button" variant="accent" disabled={busy || selectionError !== null} onClick={() => onStart(open ? note.trim() : "", changed, recomposite)}>
           {starting ? <Loader2 className="animate-spin" aria-hidden /> : <Wand2 aria-hidden />}
           Start automatic editing
         </Button>
@@ -189,13 +189,13 @@ function StartRow({ showDate, selected, selectionError, packages, announcements,
       <InlineNote tone={announcementLine.tone === "warning" ? "warning" : "muted"}>
         {announcementLine.text}{" "}
         {announcementLine.tone === "warning" ? (
-          <Link href={`/teleprompter?showDate=${showDate}` as never} className="underline underline-offset-2">Open the script</Link>
+          <Link href={`/teleprompter?showDate=${showDate}` as never} className="underline underline-offset-4">Open the script</Link>
         ) : null}
       </InlineNote>
       <InlineNote tone={packageLine.tone === "warning" ? "warning" : "muted"}>
         {packageLine.text}{" "}
         {packageLine.tone === "warning" ? (
-          <Link href="/publishing-queue" className="underline underline-offset-2">Open the Publishing Queue</Link>
+          <Link href="/publishing-queue" className="underline underline-offset-4">Open the Publishing Queue</Link>
         ) : null}
       </InlineNote>
       {!online ? <InlineNote>{OFFLINE_NOTE}</InlineNote> : null}
@@ -245,6 +245,7 @@ function ReviewActions({ state, job, busyAction, send, onReview }: {
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <Button
           type="button"
+          variant="accent"
           disabled={busy || !confirmed}
           onClick={() => approve && void send({ action: "approve", id: job.id, publishAt: approve.publishAt }, "Approved. Scheduled on YouTube.")}
         >

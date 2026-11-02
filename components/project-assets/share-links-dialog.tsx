@@ -194,7 +194,7 @@ export default function ShareLinksDialog({
           ) : shareLinks.length === 0 ? (
             <p className="py-3 text-sm text-muted-foreground">No share links yet.</p>
           ) : (
-            <ul className="max-h-[44vh] divide-y divide-border overflow-y-auto rounded-md border border-border">
+            <ul className="max-h-[44vh] divide-y divide-line overflow-y-auto rounded-lg border border-line-strong">
               {shareLinks.map((link) => (
                 <li key={link.id} className="flex min-h-14 flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2">
                   <span className="flex min-w-0 flex-1 items-center gap-2">

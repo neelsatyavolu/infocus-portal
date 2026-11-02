@@ -8,7 +8,7 @@ import { formatRoleLabel, type PlatformRole } from "./admin-types";
 const DEFAULT_CONTEXT = "People, access, producer roles, and how Portal is set up.";
 
 const LINK_CLASS =
-  "rounded-sm font-medium text-foreground underline decoration-[var(--ink-4)] underline-offset-4 transition-colors hover:decoration-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  "rounded-sm font-medium text-foreground underline decoration-[var(--ink-4)] underline-offset-4 transition-colors duration-150 ease-[var(--ease-ui)] hover:decoration-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30";
 
 function ContextLink({ target, onNavigate, children }: { target: string; onNavigate: (target: string) => void; children: ReactNode }) {
   return (

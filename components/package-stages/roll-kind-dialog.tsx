@@ -41,9 +41,9 @@ export function RollKindDialog({
               key={kind}
               type="button"
               onClick={() => onPick(kind)}
-              className="flex h-20 min-w-0 flex-col items-start justify-center gap-1 rounded-md border border-input px-4 text-left transition-colors hover:border-[var(--brand-green)] hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex h-20 min-w-0 flex-col items-start justify-center gap-1 rounded-lg border border-line-strong bg-card px-4 text-left transition-colors duration-150 ease-[var(--ease-ui)] hover:border-[var(--brand-green)] hover:bg-secondary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30"
             >
-              <span className="text-base font-semibold text-foreground">{rollKindLabel(kind)}</span>
+              <span className="text-base font-medium tracking-[-0.01em] text-foreground">{rollKindLabel(kind)}</span>
               <span className="text-[13px] text-muted-foreground">{detail}</span>
             </button>
           ))}

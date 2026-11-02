@@ -77,11 +77,11 @@ export function CopyTextButton({
                 size: size === "icon-sm" ? "icon" : (size ?? "default")
               }),
               size === "icon-sm" && "h-8 w-8",
-              copied && "text-[var(--brand-green)]",
+              copied && "text-brand-green",
               className
             )
           : cn(
-              "inline-flex min-h-10 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-border bg-secondary px-3 text-sm font-semibold text-foreground transition-transform hover:bg-accent active:scale-[0.96] disabled:opacity-50",
+              "inline-flex min-h-10 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-md border border-line-strong bg-secondary px-3 text-sm font-medium text-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)] disabled:opacity-50",
               className
             )
       }

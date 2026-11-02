@@ -28,11 +28,11 @@ export default function DragPreview({
     <div className="pointer-events-none fixed inset-0 z-[220]">
       <div
         ref={overlayRef}
-        className="w-[min(320px,calc(100vw-1.5rem))] rounded-md border border-border bg-card p-2"
+        className="w-[min(320px,calc(100vw-1.5rem))] rounded-lg border border-line-strong bg-popover p-2"
         style={{ transform: "translate3d(-9999px, -9999px, 0)" }}
       >
         <div className="flex items-center gap-3">
-          <div className="relative h-12 w-20 shrink-0 overflow-hidden rounded-sm bg-black">
+          <div className="relative h-12 w-20 shrink-0 overflow-hidden rounded-md bg-black">
             {preview.thumbnailUrl ? (
               <Image
                 src={preview.thumbnailUrl}
@@ -50,8 +50,8 @@ export default function DragPreview({
           </div>
 
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">Move asset</p>
-            <p className="truncate text-sm font-semibold text-foreground">{preview.title}</p>
+            <p className="truncate text-[12px] font-medium text-muted-foreground">Move asset</p>
+            <p className="truncate text-sm font-medium text-foreground">{preview.title}</p>
             <p className="truncate text-xs text-muted-foreground">
               {preview.itemCount > 1 ? `${preview.itemCount} selected items` : "1 item"}
               {targetFolderName ? ` → ${targetFolderName}` : " → Drop on a folder"}

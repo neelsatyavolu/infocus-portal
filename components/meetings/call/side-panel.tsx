@@ -39,13 +39,13 @@ export function SidePanel({
       aria-modal={mobile ? true : undefined}
       style={sheetStyle}
       className={cn(
-        "flex flex-col border-[var(--ink-4)] bg-[var(--ink-2)]",
+        "flex flex-col border-line bg-card",
         mobile
           ? "fixed inset-x-0 top-0 z-40 h-dvh overscroll-contain pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]"
           : "w-[360px] shrink-0 border-l"
       )}
     >
-      <header className="flex h-12 shrink-0 items-stretch justify-between gap-2 border-b border-[var(--ink-4)] pl-2 pr-1.5">
+      <header className="flex h-12 shrink-0 items-stretch justify-between gap-2 border-b border-line pl-2 pr-1.5">
         {tabs && activeTab ? (
           <>
             {/* The tabs replace the visible title; the heading (with People's head count) stays for screen readers. */}
@@ -53,7 +53,7 @@ export function SidePanel({
             <PanelTabList tabs={tabs} />
           </>
         ) : (
-          <h2 className="self-center pl-2 text-base font-semibold text-foreground">{title}</h2>
+          <h2 className="self-center pl-2 text-base font-medium tracking-[-0.01em] text-foreground">{title}</h2>
         )}
         <IconButton size={mobile ? "touch" : "md"} className="self-center" label={`Close ${title.toLowerCase()}`} onClick={onClose}>
           <X />
@@ -68,7 +68,7 @@ export function SidePanel({
         {children}
       </div>
       {footer ? (
-        <div className={cn("border-t border-[var(--ink-4)] p-4", mobile && "pb-[max(1rem,env(safe-area-inset-bottom))]")}>
+        <div className={cn("border-t border-line p-4", mobile && "pb-[max(1rem,env(safe-area-inset-bottom))]")}>
           {footer}
         </div>
       ) : null}

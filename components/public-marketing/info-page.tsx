@@ -29,8 +29,8 @@ function entryId(group: InfoGroup, entry: InfoEntry) {
  */
 function RowCard({ group }: { group: InfoGroup }) {
   return (
-    <div className="overflow-hidden rounded-md border border-border bg-card">
-      <div className="divide-y divide-border">
+    <div className="overflow-hidden rounded-lg border border-line-strong bg-card">
+      <div className="divide-y divide-line">
         {group.entries.map((entry) => {
           const id = entryId(group, entry);
           return (
@@ -42,7 +42,7 @@ function RowCard({ group }: { group: InfoGroup }) {
                 ANCHOR_OFFSET
               )}
             >
-              <h3 className="text-base font-semibold leading-snug text-foreground">{entry.title}</h3>
+              <h3 className="text-[15px] font-medium leading-snug tracking-[-0.01em] text-foreground">{entry.title}</h3>
               <div className="min-w-0 max-w-[60ch] text-[15px] leading-relaxed text-[var(--ink-text)]">{entry.body}</div>
             </div>
           );
@@ -52,13 +52,13 @@ function RowCard({ group }: { group: InfoGroup }) {
   );
 }
 
-const TOC_LINK = "flex min-h-8 items-center px-4 transition-colors hover:bg-[var(--ink-3)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring";
+const TOC_LINK = "flex min-h-8 items-center px-4 transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)]/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring";
 
 /** The rail's "On this page" list (lg and up): every group, every section in it, and the contact box. */
 function OnThisPage({ groups, contact }: { groups: InfoGroup[]; contact: InfoContact }) {
   return (
-    <nav aria-label="On this page" className="rounded-md border border-border bg-card py-3">
-      <p className="px-4 pb-2 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">On this page</p>
+    <nav aria-label="On this page" className="rounded-lg border border-line-strong bg-card py-3">
+      <p className="px-4 pb-2 text-[13px] font-medium text-muted-foreground">On this page</p>
       <ul className="space-y-1">
         {groups.map((group) => (
           <li key={group.id}>

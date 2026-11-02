@@ -48,7 +48,7 @@ export function CheckoutBatchPanel({
           </p>
         </div>
         <StatusAlert status={status} compact />
-        <Button type="submit" className="hidden h-10 w-full lg:inline-flex" disabled={busy || submitCount === 0}>
+        <Button type="submit" variant="accent" className="hidden h-10 w-full lg:inline-flex" disabled={busy || submitCount === 0}>
           {submitLabel(busy, submitCount)}
         </Button>
       </div>

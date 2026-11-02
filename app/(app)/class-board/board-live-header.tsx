@@ -30,7 +30,7 @@ const STALE_AFTER_MS = 2 * 60 * 1000;
 const COUNTDOWN_WARN_SECONDS = 600;
 
 /** Phone: its own block under a rule. lg: its children join the plate grid. */
-const FOCUS_BLOCK = "grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4 gap-y-1 border-t border-border pt-3 lg:contents";
+const FOCUS_BLOCK = "grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4 gap-y-1 border-t border-line pt-3 lg:contents";
 
 type LiveFocus = NonNullable<ReturnType<typeof classBoardLiveFocus>>;
 
@@ -113,7 +113,7 @@ export function BoardLiveHeader({
         <Link
           href={"/dashboard" as never}
           aria-label="InFocus Portal"
-          className={cn(PLATE_MARK, "min-h-10 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring")}
+          className={cn(PLATE_MARK, "min-h-10 rounded-md focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/45")}
         >
           <BoardWordmark className="h-8 lg:h-[calc(var(--b)*2.5)]" />
         </Link>
@@ -137,7 +137,7 @@ export function BoardLiveHeader({
       </div>
 
       <div className="min-w-0 lg:contents">
-        <p className={cn(BOARD_TEXT.label, "truncate text-[var(--brand-green)] lg:row-start-1", identityColumn)}>
+        <p className={cn(BOARD_TEXT.label, "truncate text-brand-green lg:row-start-1", identityColumn)}>
           Class Board
           <span className="text-muted-foreground">
             {" · "}
@@ -167,11 +167,11 @@ export function BoardLiveHeader({
 
 /** Period 1: what to work on, and how much class is left. */
 function ClassFocus({ focus }: { focus: LiveFocus }) {
-  const tone = focus.remainingSeconds <= COUNTDOWN_WARN_SECONDS ? "text-[var(--brand-amber)]" : "text-[var(--brand-green)]";
+  const tone = focus.remainingSeconds <= COUNTDOWN_WARN_SECONDS ? "text-[var(--brand-amber)]" : "text-brand-green";
   const fraction = Math.min(1, Math.max(0, focus.remainingFraction));
   return (
     <div className={FOCUS_BLOCK}>
-      <p className={cn(BOARD_TEXT.label, "col-start-1 row-start-1 min-w-0 truncate text-[var(--brand-green)] lg:col-[3/4]")}>
+      <p className={cn(BOARD_TEXT.label, "col-start-1 row-start-1 min-w-0 truncate text-brand-green lg:col-[3/4]")}>
         Class focus<span className="text-muted-foreground"> · {focus.detail}</span>
       </p>
       <p
@@ -207,7 +207,7 @@ function ClassFocus({ focus }: { focus: LiveFocus }) {
 function UpNext({ deadline }: { deadline: ClassBoardDeadline }) {
   return (
     <div className={FOCUS_BLOCK}>
-      <p className={cn(BOARD_TEXT.label, "col-span-2 row-start-1 flex min-w-0 items-baseline gap-[0.6em] text-[var(--brand-green)] lg:col-[3/5] lg:pr-[var(--b-inset)]")}>
+      <p className={cn(BOARD_TEXT.label, "col-span-2 row-start-1 flex min-w-0 items-baseline gap-[0.6em] text-brand-green lg:col-[3/5] lg:pr-[var(--b-inset)]")}>
         <span className="shrink-0">Up next</span>
         <BoardTag tone={dueTone(deadline.daysUntil)}>{relativeDaysLabel(deadline.daysUntil)}</BoardTag>
       </p>

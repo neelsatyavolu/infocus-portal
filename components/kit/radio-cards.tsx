@@ -3,7 +3,7 @@ import { cn } from "@/src/lib/utils";
 
 /**
  * A small choice drawn as equal-height option cards, on real radio inputs (keeps `required` and
- * form validation, arrow keys between options). The chosen card gets the green edge and tint.
+ * form validation, arrow keys between options). The chosen card gets the brand edge and tint.
  * Also the large two-option picker inside dialogs (A-roll vs B-roll): pass `onChange` and act on it.
  */
 export function RadioCards<T extends string>({
@@ -34,7 +34,7 @@ export function RadioCards<T extends string>({
     <fieldset className={cn("min-w-0", className)}>
       <legend
         className={cn(
-          "mb-2 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground",
+          "mb-2 text-[13px] font-medium text-muted-foreground",
           hideLegend && "sr-only"
         )}
       >
@@ -54,10 +54,10 @@ export function RadioCards<T extends string>({
             <label
               key={option.value}
               className={cn(
-                "relative flex h-full min-w-0 cursor-pointer flex-col justify-center gap-0.5 rounded-md border px-3 transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
-                size === "sm" ? "min-h-10 py-2" : "min-h-16 py-3",
-                checked ? "border-[var(--brand-green)] bg-[rgb(43_179_110/0.08)]" : "border-input hover:bg-[var(--ink-3)]",
-                option.disabled && "cursor-not-allowed opacity-50 hover:bg-transparent"
+                "relative flex h-full min-w-0 cursor-pointer flex-col justify-center gap-0.5 border px-3 transition-colors duration-150 ease-[var(--ease-ui)] has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/30",
+                size === "sm" ? "min-h-10 rounded-md py-2" : "min-h-16 rounded-lg py-3",
+                checked ? "border-[var(--brand-green)] bg-brand-tint" : "border-input bg-card hover:bg-secondary",
+                option.disabled && "cursor-not-allowed opacity-50 hover:bg-card"
               )}
             >
               <input
@@ -70,7 +70,7 @@ export function RadioCards<T extends string>({
                 onChange={() => onChange(option.value)}
                 className="sr-only"
               />
-              <span className={cn("text-sm text-foreground", checked ? "font-semibold" : "font-medium")}>{option.label}</span>
+              <span className={cn("text-sm text-foreground", "font-medium")}>{option.label}</span>
               {option.description ? <span className="text-[13px] leading-snug text-muted-foreground">{option.description}</span> : null}
             </label>
           );

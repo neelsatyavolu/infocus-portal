@@ -19,7 +19,7 @@ function formatDay(value: string | null) {
 /**
  * The shared cycle grade note (same for every producer) and Publish grades. Publish is the
  * page's primary action only when `publishPrimary` (every member has an official grade). Once
- * published, the PUBLISHED tag and the footer line say so; the Publish button goes away (it can't
+ * published, the Published tag and the footer line say so; the Publish button goes away (it can't
  * be undone here, and status is never a disabled button).
  */
 export function CycleGradeReleaseCard({
@@ -79,7 +79,8 @@ export function CycleGradeReleaseCard({
             {published ? null : (
               <Button
                 type="button"
-                variant={publishPrimary ? "default" : "outline"}
+                // Publishing is the brand moment, so the primary Publish is the accent button.
+                variant={publishPrimary ? "accent" : "outline"}
                 disabled={busy}
                 onClick={() => onPublish(draft)}
               >

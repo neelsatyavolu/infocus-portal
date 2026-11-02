@@ -46,8 +46,8 @@ function StageRow({ stage }: { stage: CycleCardStage }) {
     </>
   );
   const className = cn(
-    "flex h-8 min-w-0 items-center gap-2 rounded-sm px-2 text-[13px]",
-    active && "bg-[var(--ink-3)]",
+    "flex h-8 min-w-0 items-center gap-2 rounded-md px-2 text-[13px]",
+    active && "bg-secondary",
     // On shorter screens only the stage being worked on stays, so the card never crowds the menu.
     !active && "[@media(max-height:860px)]:hidden"
   );
@@ -57,7 +57,7 @@ function StageRow({ stage }: { stage: CycleCardStage }) {
         href={stage.href as never}
         className={cn(
           className,
-          "transition-colors hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          "transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-secondary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30"
         )}
       >
         {body}
@@ -96,11 +96,11 @@ function CycleSwitch({ choices, current }: { choices: number[]; current: number 
             disabled={selected}
             onClick={() => switchCycle(cycleNumber)}
             className={cn(
-              "rounded-sm px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-[0.11em] transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "rounded-md px-1.5 py-0.5 text-xs font-medium transition-colors duration-150 ease-[var(--ease-ui)]",
+              "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30",
               selected
-                ? "bg-[var(--ink-3)] text-foreground"
-                : "text-muted-foreground hover:bg-[var(--ink-3)] hover:text-foreground"
+                ? "bg-secondary text-foreground"
+                : "text-muted-foreground hover:bg-secondary hover:text-foreground"
             )}
           >
             {`Cycle ${cycleNumber}`}
@@ -123,16 +123,16 @@ export function SidebarCycleCard({ card, rail }: { card: CycleCard; rail: boolea
       aria-label={card.cycleNumber ? `Cycle ${card.cycleNumber}` : "This cycle"}
       className={cn("shrink-0 px-3 pb-3 [@media(max-height:700px)]:hidden", rail && "lg:hidden")}
     >
-      <div className="rounded-md border border-border bg-[var(--ink-2)] p-2">
+      <div className="rounded-lg border border-line-strong bg-card p-2">
         <div className="flex items-baseline justify-between gap-2 px-2 pb-1.5 pt-1">
           {card.cycleChoices ? (
             <CycleSwitch choices={card.cycleChoices} current={card.cycleNumber} />
           ) : (
-            <span className="text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">
+            <span className="text-xs font-medium text-muted-foreground">
               {card.cycleNumber ? `Cycle ${card.cycleNumber}` : "This cycle"}
             </span>
           )}
-          <span className="font-mono text-[11px] text-muted-foreground">
+          <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
             <span className="sr-only">Stages done: </span>
             {`${card.doneCount}/${card.segments.length}`}
           </span>

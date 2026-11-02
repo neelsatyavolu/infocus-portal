@@ -16,13 +16,13 @@ import { daysLabel, type RequestView } from "./request-view";
 const ROW_GRID = "@4xl:grid-cols-[minmax(0,1.6fr)_3.5rem_4.5rem_minmax(0,1.3fr)_7.5rem_1rem]";
 
 /** Label style for the column header and the Denied fold row. */
-export const LIST_LABEL = "text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground";
+export const LIST_LABEL = "text-[13px] font-medium text-muted-foreground";
 
 const NEW_LABEL = "Updated since your last visit";
 
 export function RequestListHeader() {
   return (
-    <div aria-hidden className={cn("hidden min-h-9 items-center gap-x-4 border-b border-border px-4 @4xl:grid", ROW_GRID, LIST_LABEL)}>
+    <div aria-hidden className={cn("hidden min-h-9 items-center gap-x-4 border-b border-line px-4 @4xl:grid", ROW_GRID, LIST_LABEL)}>
       <span>Group</span>
       <span className="text-right">Cycle</span>
       <span className="text-right">Days</span>
@@ -67,7 +67,7 @@ function Summary({ view, open, isNew }: { view: RequestView; open: boolean; isNe
       <span className="flex justify-end @4xl:justify-start">
         <StatusTag tone={view.status.tone}>{view.status.label}</StatusTag>
       </span>
-      <ChevronDown aria-hidden className={cn("h-4 w-4 text-muted-foreground transition-transform", open && "rotate-180")} />
+      <ChevronDown aria-hidden className={cn("h-4 w-4 text-muted-foreground transition-transform duration-150 ease-[var(--ease-ui)]", open && "rotate-180")} />
     </>
   );
 }
@@ -100,7 +100,7 @@ export function RequestRow({
     <li
       className={cn(
         "relative",
-        open && "before:absolute before:inset-y-0 before:left-0 before:z-[1] before:w-[3px] before:bg-[var(--brand-green)]"
+        open && "before:absolute before:inset-y-0 before:left-0 before:z-[1] before:w-0.5 before:bg-[var(--brand-green)]"
       )}
     >
       <button
@@ -113,9 +113,9 @@ export function RequestRow({
         className={cn(
           // Below lg the window scrolls under the sticky top bar, so J/K and auto-advance keep the
           // row clear of it (from lg the shell's own scroller has scroll-padding for that).
-          "relative grid min-h-14 w-full scroll-mb-[calc(var(--phone-tabbar-h,0px)+0.5rem)] max-lg:scroll-mt-[calc(var(--app-header-h,0px)+0.5rem)] grid-cols-[minmax(0,1fr)_auto_1rem] items-center gap-x-3 gap-y-0.5 px-4 py-2.5 text-left transition-colors hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring @4xl:gap-x-4",
+          "relative grid min-h-14 w-full scroll-mb-[calc(var(--phone-tabbar-h,0px)+0.5rem)] max-lg:scroll-mt-[calc(var(--app-header-h,0px)+0.5rem)] grid-cols-[minmax(0,1fr)_auto_1rem] items-center gap-x-3 gap-y-0.5 px-4 py-2.5 text-left transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring @4xl:gap-x-4",
           ROW_GRID,
-          open && "bg-[var(--ink-3)]"
+          open && "bg-secondary"
         )}
       >
         <Summary view={view} open={open} isNew={isNew} />

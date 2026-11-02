@@ -92,7 +92,7 @@ export function StageMessage({
   return (
     <div className={cn("space-y-5", !embedded && "route-enter")}>
       {header}
-      <section aria-label={title} className="rounded-md border border-border bg-card">
+      <section aria-label={title} className="rounded-lg border border-line-strong bg-card">
         {body}
       </section>
     </div>

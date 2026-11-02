@@ -50,11 +50,11 @@ export function ActivityPanel({
               <li
                 key={entry.id}
                 title={`You ${entry.verb} ${subject}`}
-                className="flex min-h-10 items-center gap-3 border-t border-border py-2 text-sm first:border-t-0"
+                className="flex min-h-10 items-center gap-3 border-t border-line py-2 text-sm first:border-t-0"
               >
                 <span className="line-clamp-2 min-w-0 flex-1 text-muted-foreground @md:line-clamp-1">
-                  <span className="font-semibold text-foreground">You</span> {entry.verb}{" "}
-                  <strong className="font-semibold text-foreground">{subject}</strong>
+                  <span className="font-medium text-foreground">You</span> {entry.verb}{" "}
+                  <strong className="font-medium text-foreground">{subject}</strong>
                 </span>
                 <time
                   dateTime={entry.createdAt}

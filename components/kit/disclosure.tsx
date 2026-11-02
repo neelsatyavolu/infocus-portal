@@ -14,7 +14,7 @@ function isBoolean(value: unknown): value is boolean {
  * A section whose body folds away: a full-width header row (chevron, label, mono count) with
  * optional h-8 actions that don't toggle it. The open state can be controlled, or remembered
  * per browser with `storageKey` (try/catch inside; falls back to `defaultOpen`).
- * `variant="row"` is a 40px caps row (folded lists); `section` is a real heading (`headingAs`,
+ * `variant="row"` is a 40px muted label row (folded lists); `section` is a real heading (`headingAs`,
  * h3 by default) whose text is the toggle button, so heading navigation still finds it.
  */
 export function Disclosure({
@@ -68,16 +68,16 @@ export function Disclosure({
       aria-controls={bodyId}
       onClick={toggle}
       className={cn(
-        "flex min-w-0 flex-1 items-center gap-2 rounded-sm text-left transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "flex min-w-0 flex-1 items-center gap-2 rounded-md text-left transition-colors duration-150 ease-[var(--ease-ui)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         row
-          ? "h-10 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground"
-          : "h-9 text-base font-semibold tracking-[-0.01em] text-foreground"
+          ? "h-10 text-[13px] font-medium text-muted-foreground"
+          : "h-9 text-base font-medium tracking-[-0.015em] text-foreground"
       )}
     >
-      <ChevronDown aria-hidden className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform", !open && "-rotate-90")} />
+      <ChevronDown aria-hidden className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-150 ease-[var(--ease-ui)]", !open && "-rotate-90")} />
       <span className="min-w-0 truncate">{summary}</span>
       {count != null ? (
-        <span className="font-mono-broadcast text-[11px] font-normal tabular-nums text-muted-foreground">{count}</span>
+        <span className="font-mono-broadcast text-xs font-normal tabular-nums text-muted-foreground">{count}</span>
       ) : null}
     </button>
   );
@@ -118,12 +118,12 @@ export function DisclosureToggle({
       aria-controls={controls}
       onClick={onToggle}
       className={cn(
-        "flex h-10 w-full items-center justify-center gap-1.5 text-[13px] text-muted-foreground transition-colors hover:bg-[var(--ink-3)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+        "flex h-10 w-full items-center justify-center gap-1.5 text-[13px] text-muted-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)]/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
         className
       )}
     >
       {open ? openLabel : closedLabel}
-      <ChevronDown aria-hidden className={cn("h-4 w-4 transition-transform", open && "rotate-180")} />
+      <ChevronDown aria-hidden className={cn("h-4 w-4 transition-transform duration-150 ease-[var(--ease-ui)]", open && "rotate-180")} />
     </button>
   );
 }

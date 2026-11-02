@@ -28,7 +28,7 @@ function SwitchLivestream({
     <div
       className={cn(
         buttonVariants({ variant: "outline" }),
-        "relative h-11 px-3 focus-within:ring-2 focus-within:ring-ring md:h-9",
+        "relative h-11 px-3 focus-within:ring-[3px] focus-within:ring-ring/30 md:h-9",
         disabled && "pointer-events-none opacity-50"
       )}
     >
@@ -66,8 +66,8 @@ function SwitchLivestream({
 }
 
 /**
- * The /live nameplate: a square Ink 2 plate with the green strip, like every Portal page header,
- * compact so the scoring surface fits on a laptop screen. Wordmark | eyebrow + status tags,
+ * The /live nameplate: a 12px card with a hairline, like every Portal page header, compact so
+ * the scoring surface fits on a laptop screen. Wordmark | eyebrow + status tags,
  * the event as the title, when and where | Switch livestream and Back.
  * Phones: wordmark and the two actions on one row, then the event.
  */
@@ -93,7 +93,7 @@ export function LiveHeader({
   const context = event ? eventContext(event) : "";
   return (
     <header className="brand-hero-panel grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 px-4 py-3 [grid-template-areas:'logo_actions'_'id_id'] md:grid-cols-[auto_minmax(0,1fr)_auto] md:gap-x-5 md:px-6 md:[grid-template-areas:'logo_id_actions']">
-      <div className="flex items-center [grid-area:logo] md:self-stretch md:border-r md:border-border md:pr-5">
+      <div className="flex items-center [grid-area:logo] md:self-stretch md:border-r md:border-line md:pr-5">
         <BrandWordmark className="h-5 w-auto shrink-0 object-contain md:h-7" priority />
       </div>
 

@@ -17,14 +17,17 @@ import {
 } from "./teleprompter-model";
 import { DocStatusTag, PaneHeader, ReformattingTag, STICKY_TOP, ToFillCount, UpdatedMark } from "./teleprompter-parts";
 
-/** Weekday caps over MM/DD in Geist Mono, so dates line up as a column. */
+/** Weekday ("Wed") over MM/DD in Geist Mono, so dates line up as a column. */
 function RailDate({ showDate }: { showDate: string | null }) {
   const parts = railDateParts(showDate);
   return (
     <span className="flex w-12 shrink-0 flex-col justify-center leading-none" aria-hidden={parts ? undefined : true}>
       {parts ? (
         <>
-          <span className="text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">{parts.weekday}</span>
+          <span className="text-xs font-medium text-muted-foreground">
+            {parts.weekday.charAt(0)}
+            {parts.weekday.slice(1).toLowerCase()}
+          </span>
           <span className="mt-1.5 font-mono-broadcast text-xs tabular-nums text-[var(--ink-text)]">{parts.date}</span>
         </>
       ) : (
@@ -110,9 +113,9 @@ export function ScriptRailList({
             <li
               key={doc.id}
               className={cn(
-                "group relative flex items-center border-b border-border transition-colors",
+                "group relative flex items-center border-b border-line transition-colors duration-150 ease-[var(--ease-ui)]",
                 selected
-                  ? "bg-[var(--ink-3)] before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-[var(--brand-green)]"
+                  ? "bg-brand-tint before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:bg-[var(--brand-green)]"
                   : "hover:bg-[var(--ink-3)]/60"
               )}
             >
@@ -129,7 +132,7 @@ export function ScriptRailList({
                 <RailDate showDate={doc.showDate} />
                 <span className="min-w-0 flex-1">
                   <span className="flex min-w-0 items-center gap-2">
-                    <span title={doc.title} className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
+                    <span title={doc.title} className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
                       {doc.title}
                     </span>
                     {updated ? <UpdatedMark age={formatAge(latestDocUpdate(doc), now)} /> : null}
@@ -163,7 +166,7 @@ export function ScriptRailList({
         <button
           type="button"
           onClick={onToggleShowAll}
-          className="flex h-10 w-full items-center justify-center text-xs font-medium text-muted-foreground transition-colors hover:bg-[var(--ink-3)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+          className="flex h-10 w-full items-center justify-center text-[13px] font-medium text-muted-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
         >
           {showAll ? "Show less" : `Show ${hiddenCount} more`}
         </button>
@@ -183,7 +186,7 @@ export function ScriptRailPane({
   children: ReactNode;
 }) {
   return (
-    <aside aria-label="Scripts" className="min-w-0 border-r border-border">
+    <aside aria-label="Scripts" className="min-w-0 border-r border-line">
       <div className={cn("sticky flex max-h-[calc(100dvh-var(--app-header-h,0px))] flex-col", STICKY_TOP)}>
         <PaneHeader
           label="Scripts"
@@ -216,21 +219,21 @@ export function ScriptSwitcherCard({
   trailing?: ReactNode;
 }) {
   return (
-    <div className={cn("flex items-center gap-2 border-b border-border", trailing ? "pr-4" : undefined)}>
+    <div className={cn("flex items-center gap-2 border-b border-line", trailing ? "pr-4" : undefined)}>
       <h2 className="sr-only">{doc.title}</h2>
       <button
         type="button"
         onClick={onOpen}
         aria-haspopup="dialog"
         className={cn(
-          "flex min-h-16 min-w-0 flex-1 items-center gap-3 py-2.5 pl-4 text-left transition-colors hover:bg-[var(--ink-3)]/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+          "flex min-h-16 min-w-0 flex-1 items-center gap-3 py-2.5 pl-4 text-left transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)]/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
           trailing ? "pr-2" : "pr-4"
         )}
       >
         <RailDate showDate={doc.showDate} />
         <span className="min-w-0 flex-1">
           <span className="sr-only">Change script. Open: </span>
-          <span title={doc.title} className="block truncate text-base font-semibold text-foreground">
+          <span title={doc.title} className="block truncate text-base font-medium text-foreground">
             {doc.title}
           </span>
           <DocMetaLine doc={doc} statusContext={statusContext} progress={progress} />

@@ -86,7 +86,7 @@ export function MeetingMenu({
               item.onSelect();
             }}
             className={cn(
-              "flex min-h-9 w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-[13px] outline-none transition-colors",
+              "flex min-h-9 w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] outline-none transition-colors duration-150 ease-[var(--ease-ui)]",
               item.tone === "danger"
                 ? "text-danger hover:bg-danger-tint focus-visible:bg-danger-tint"
                 : "text-foreground hover:bg-[var(--ink-3)] focus-visible:bg-[var(--ink-3)]"

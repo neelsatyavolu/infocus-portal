@@ -79,10 +79,10 @@ export const SCENIC_IMAGE_ALT = "Royalty-free scenic view";
 /** The usual week, under the month title. */
 export const WEEK_LEGEND = "Mondays PA · Wednesdays and Fridays shows · Tuesdays and Thursdays class · holidays off";
 
-/** Read-only notes and the notes field share one look: 13px text, pills as small green tags. */
+/** Read-only notes and the notes field share one look: 13px text, pills as small brand-tint badges. */
 const PILL_STYLES =
-  "[&_.package-pill]:inline-flex [&_.package-pill]:items-center [&_.package-pill]:rounded-sm [&_.package-pill]:border [&_.package-pill]:border-[rgb(43_179_110/0.30)] [&_.package-pill]:bg-[rgb(43_179_110/0.14)] [&_.package-pill]:px-1.5 [&_.package-pill]:text-xs [&_.package-pill]:font-medium [&_.package-pill]:text-[var(--brand-green)]";
-export const NOTES_TEXT_STYLES = `text-left text-[13px] leading-5 text-foreground [&_p]:mb-1 [&_p:last-child]:mb-0 [&_div]:mb-1 [&_strong]:font-semibold [&_em]:italic [&_a]:relative [&_a]:z-10 [&_a]:text-[var(--brand-green)] [&_a]:underline ${PILL_STYLES}`;
+  "[&_.package-pill]:inline-flex [&_.package-pill]:items-center [&_.package-pill]:rounded-full [&_.package-pill]:bg-brand-tint [&_.package-pill]:px-2 [&_.package-pill]:text-xs [&_.package-pill]:font-medium [&_.package-pill]:text-brand-green";
+export const NOTES_TEXT_STYLES = `text-left text-[13px] leading-5 text-foreground [&_p]:mb-1 [&_p:last-child]:mb-0 [&_div]:mb-1 [&_strong]:font-semibold [&_em]:italic [&_a]:relative [&_a]:z-10 [&_a]:text-brand-green [&_a]:underline-offset-4 [&_a]:underline ${PILL_STYLES}`;
 
 // ---------------------------------------------------------------------------------------------
 // Dates

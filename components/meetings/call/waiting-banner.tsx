@@ -33,7 +33,7 @@ export function WaitingBanner({
       role="status"
       aria-live="polite"
       className={cn(
-        "flex shrink-0 items-center gap-3 border-b border-l-[3px] border-[var(--ink-4)] border-l-[#F2A516] bg-[var(--ink-2)] pl-3 pr-2",
+        "flex shrink-0 items-center gap-3 border-b border-l-2 border-line border-l-[#F2A516] bg-card pl-3 pr-2",
         mobile ? "min-h-14 py-1.5" : "min-h-11 py-1.5",
         className
       )}

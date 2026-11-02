@@ -61,7 +61,7 @@ function WallClock() {
 
 /** Tags that open People keep the tag look, with a 44px hit area on touch screens. */
 const TAG_BUTTON =
-  "relative inline-flex shrink-0 rounded-sm transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--ink)] [@media(pointer:coarse)]:before:absolute [@media(pointer:coarse)]:before:-inset-x-1 [@media(pointer:coarse)]:before:-inset-y-3 [@media(pointer:coarse)]:before:content-['']";
+  "relative inline-flex shrink-0 rounded-full transition-opacity duration-150 ease-[var(--ease-ui)] hover:opacity-80 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/45 [@media(pointer:coarse)]:before:absolute [@media(pointer:coarse)]:before:-inset-x-1 [@media(pointer:coarse)]:before:-inset-y-3 [@media(pointer:coarse)]:before:content-['']";
 
 function StatusItemTag({ item, compact, onOpenPeople }: { item: CallStatusItem; compact: boolean; onOpenPeople: () => void }) {
   const iconOnly = item.quiet || (compact && item.short === null);
@@ -124,7 +124,7 @@ export function StatusRail({
       ))}
       {quality ? (
         <>
-          {status.length > 0 && !vertical ? <span aria-hidden className="mx-0.5 h-4 w-px shrink-0 bg-[var(--ink-4)]" /> : null}
+          {status.length > 0 && !vertical ? <span aria-hidden className="mx-0.5 h-4 w-px shrink-0 bg-line-strong" /> : null}
           <StatusItemTag item={quality} compact={compact} onOpenPeople={onOpenPeople} />
         </>
       ) : null}
@@ -147,7 +147,7 @@ export function ReconnectingNotice({ on, className }: { on: boolean; className?:
       {on ? (
         <span
           className={cn(
-            "inline-flex h-6 items-center gap-1.5 rounded-sm px-2.5 text-[11px] font-medium uppercase leading-none tracking-[0.11em]",
+            "inline-flex h-6 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium leading-none",
             OVERLAY_PLATE
           )}
         >
@@ -222,7 +222,7 @@ export function CallStatusBar({
   onOpenPeople: () => void;
 }) {
   return (
-    <header className="shrink-0 border-b border-[var(--ink-4)] bg-[var(--ink)] pt-[env(safe-area-inset-top)]">
+    <header className="shrink-0 border-b border-line bg-background pt-[env(safe-area-inset-top)]">
       {/*
         One flex row. The title gives way first: its shrink weight dwarfs the rail's, so it truncates
         down to its info icon (min-w-8) before any status tag moves. The tags stay whole and
@@ -234,11 +234,11 @@ export function CallStatusBar({
             type="button"
             onClick={onOpenDetails}
             className={cn(
-              "-ml-2 inline-flex max-w-full items-center gap-1.5 rounded-md px-2 text-foreground transition-colors hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]",
+              "-ml-2 inline-flex max-w-full items-center gap-1.5 rounded-md px-2 text-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/45",
               mobile ? "h-11" : "h-9"
             )}
           >
-            <span className="truncate text-sm font-semibold">{title}</span>
+            <span className="truncate text-sm font-medium">{title}</span>
             <Info className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
             <span className="sr-only">. Meeting details</span>
           </button>
@@ -247,7 +247,7 @@ export function CallStatusBar({
         <Lock role="img" aria-label="End-to-end encrypted" className="h-4 w-4 shrink-0 text-muted-foreground max-sm:hidden">
           <title>End-to-end encrypted</title>
         </Lock>
-        <span aria-hidden className="h-4 w-px shrink-0 bg-[var(--ink-4)]" />
+        <span aria-hidden className="h-4 w-px shrink-0 bg-line-strong" />
         <span className="shrink-0 whitespace-nowrap font-mono text-[13px] tabular-nums text-muted-foreground">
           {!mobile ? (
             <>

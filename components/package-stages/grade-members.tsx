@@ -30,7 +30,7 @@ export type MemberGradeRowsProps = {
 };
 
 const EMPTY_ENTRY = { quality: "", effort: "" };
-const CAPS = "text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground";
+const LABEL = "text-xs font-medium text-muted-foreground";
 
 function PartInput({
   value,
@@ -281,7 +281,7 @@ export function MemberGradeCards({
   onPenaltyChange
 }: MemberGradeRowsProps) {
   return (
-    <ul className="divide-y divide-border rounded-md border border-border">
+    <ul className="divide-y divide-line rounded-lg border border-line-strong bg-card">
       {members.map((member) => {
         const name = personLabel(member);
         const entry = draft[member.userId] ?? EMPTY_ENTRY;
@@ -295,7 +295,7 @@ export function MemberGradeCards({
                 {member.locked ? <LockedTag /> : null}
               </div>
               <div className="shrink-0 text-right">
-                <div className={CAPS}>Official</div>
+                <div className={LABEL}>Official</div>
                 <div className="font-mono-broadcast text-base font-medium tabular-nums text-foreground">
                   {formatPts(member.officialPoints)} <span className="text-[13px] text-muted-foreground">/ 50</span>
                 </div>
@@ -304,7 +304,7 @@ export function MemberGradeCards({
             {editable ? (
               <div className="grid grid-cols-3 items-end gap-3">
                 <label className="min-w-0 space-y-1">
-                  <span className={CAPS}>Quality /25</span>
+                  <span className={LABEL}>Quality /25</span>
                   <PartInput
                     touch
                     value={entry.quality}
@@ -313,7 +313,7 @@ export function MemberGradeCards({
                   />
                 </label>
                 <label className="min-w-0 space-y-1">
-                  <span className={CAPS}>Effort /25</span>
+                  <span className={LABEL}>Effort /25</span>
                   <PartInput
                     touch
                     value={entry.effort}
@@ -322,7 +322,7 @@ export function MemberGradeCards({
                   />
                 </label>
                 <div className="min-w-0 space-y-1">
-                  <div className={CAPS}>Yours /50</div>
+                  <div className={LABEL}>Yours /50</div>
                   <div className="flex h-10 items-center font-mono-broadcast tabular-nums text-foreground">
                     {total == null ? "—" : total.toFixed(1)}
                   </div>
@@ -330,7 +330,7 @@ export function MemberGradeCards({
               </div>
             ) : null}
             <div className="space-y-1">
-              <div className={CAPS}>Late penalty</div>
+              <div className={LABEL}>Late penalty</div>
               <LatePenalty
                 touch
                 member={member}
@@ -361,7 +361,7 @@ export function MemberGradeCompact({
   onPenaltyChange
 }: MemberGradeRowsProps) {
   return (
-    <ul className="divide-y divide-border rounded-md border border-border">
+    <ul className="divide-y divide-line rounded-lg border border-line-strong bg-card">
       {members.map((member) => {
         const name = personLabel(member);
         const entry = draft[member.userId] ?? EMPTY_ENTRY;
@@ -374,7 +374,7 @@ export function MemberGradeCompact({
                 {member.locked ? <LockedTag /> : null}
               </div>
               <div className="shrink-0 font-mono-broadcast text-sm tabular-nums text-foreground">
-                <span className={cn(CAPS, "mr-2 font-sans")}>Official</span>
+                <span className={cn(LABEL, "mr-2 font-sans")}>Official</span>
                 {formatPts(member.officialPoints)}
                 <span className="text-muted-foreground"> / 50</span>
               </div>
@@ -388,7 +388,7 @@ export function MemberGradeCompact({
               {editable ? (
                 <>
                   <label className="min-w-0 space-y-1">
-                    <span className={CAPS}>Q /25</span>
+                    <span className={LABEL}>Q /25</span>
                     <PartInput
                       touch
                       value={entry.quality}
@@ -397,7 +397,7 @@ export function MemberGradeCompact({
                     />
                   </label>
                   <label className="min-w-0 space-y-1">
-                    <span className={CAPS}>E /25</span>
+                    <span className={LABEL}>E /25</span>
                     <PartInput
                       touch
                       value={entry.effort}
@@ -408,7 +408,7 @@ export function MemberGradeCompact({
                 </>
               ) : null}
               <div className="min-w-0 space-y-1">
-                <div className={CAPS}>Late penalty</div>
+                <div className={LABEL}>Late penalty</div>
                 <LatePenalty
                   touch
                   member={member}

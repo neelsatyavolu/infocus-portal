@@ -58,13 +58,13 @@ export function ProofSlot({
   // Another slot is uploading: this one waits, dimmed.
   const blocked = busy && !uploading;
   const zoneTone = drop.dragging
-    ? "border-[var(--brand-green)] bg-[var(--brand-green)]/10 text-foreground"
-    : "border-input text-muted-foreground";
+    ? "border-[var(--brand-green)] bg-brand-tint text-foreground"
+    : "border-line-strong text-muted-foreground";
 
   return (
     <div
       {...drop.bind}
-      className="flex min-w-0 items-center gap-3 overflow-hidden rounded-md border border-border p-2 sm:flex-col sm:items-stretch sm:gap-0 sm:p-0"
+      className="flex min-w-0 items-center gap-3 overflow-hidden rounded-lg border border-line-strong bg-card p-2 sm:flex-col sm:items-stretch sm:gap-0 sm:p-0"
     >
       <div className="h-16 w-16 shrink-0 sm:h-36 sm:w-full">
         {proof ? (
@@ -85,7 +85,7 @@ export function ProofSlot({
               aria-hidden
               className={cn(
                 "grid h-full w-full place-items-center rounded-md border border-dashed sm:hidden",
-                canEdit ? zoneTone : "border-border text-muted-foreground",
+                canEdit ? zoneTone : "border-line-strong text-muted-foreground",
                 blocked && "opacity-50"
               )}
             >
@@ -98,7 +98,7 @@ export function ProofSlot({
                   disabled={busy}
                   onClick={pick}
                   className={cn(
-                    "flex h-full w-full flex-col items-center justify-center gap-2 rounded-md border border-dashed text-xs transition-colors hover:border-[var(--brand-green)]/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed",
+                    "flex h-full w-full flex-col items-center justify-center gap-2 rounded-md border border-dashed text-xs transition-colors duration-150 ease-[var(--ease-ui)] hover:border-[var(--brand-green)]/50 hover:bg-[var(--ink-3)]/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30 disabled:cursor-not-allowed",
                     zoneTone,
                     blocked && "opacity-50"
                   )}
@@ -110,7 +110,7 @@ export function ProofSlot({
                   </span>
                 </button>
               ) : (
-                <div className="grid h-full w-full place-items-center rounded-md border border-dashed border-border text-xs text-muted-foreground">
+                <div className="grid h-full w-full place-items-center rounded-md border border-dashed border-line-strong text-xs text-muted-foreground">
                   No proof yet
                 </div>
               )}
@@ -119,9 +119,9 @@ export function ProofSlot({
         )}
       </div>
 
-      <div className="flex min-w-0 flex-1 items-center gap-2 sm:h-11 sm:flex-none sm:border-t sm:border-border sm:pl-3 sm:pr-1">
+      <div className="flex min-w-0 flex-1 items-center gap-2 sm:h-11 sm:flex-none sm:border-t sm:border-line sm:pl-3 sm:pr-1">
         <div className="min-w-0 flex-1 sm:flex sm:items-center sm:gap-2">
-          <p className="shrink-0 text-[11px] font-medium uppercase leading-5 tracking-[0.11em] text-muted-foreground">Proof {slot}</p>
+          <p className="shrink-0 text-xs font-medium leading-5 text-muted-foreground">Proof {slot}</p>
           <p
             title={proof?.fileName}
             className={cn(

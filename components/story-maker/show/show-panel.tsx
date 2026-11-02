@@ -88,7 +88,7 @@ function SlideTabs({ api, current, locked }: { api: ShowStoryApi; current: numbe
   }
 
   return (
-    <div role="tablist" aria-label="Slides" className={cn("grid gap-0.5 rounded-md border border-input p-0.5", tabColumns(api.slides.length))}>
+    <div role="tablist" aria-label="Slides" className={cn("grid gap-0.5 rounded-md border border-input bg-card p-0.5", tabColumns(api.slides.length))}>
       {api.slides.map((slide, index) => {
         const selected = index === current;
         const name = showSlideName(slide, count);
@@ -109,14 +109,14 @@ function SlideTabs({ api, current, locked }: { api: ShowStoryApi; current: numbe
             onClick={() => api.setSlideIndex(index)}
             onKeyDown={(event) => onKeyDown(event, index)}
             className={cn(
-              "flex h-[34px] min-w-0 items-center gap-1.5 rounded-[4px] px-2.5 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:cursor-not-allowed md:h-[30px]",
+              "flex h-[34px] min-w-0 items-center gap-1.5 rounded-sm px-2.5 text-left text-sm transition-colors duration-150 ease-[var(--ease-ui)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50 disabled:cursor-not-allowed md:h-[30px]",
               lastTabSpan(index, api.slides.length),
               selected
-                ? "bg-[var(--brand-fill)] font-medium text-[var(--on-brand)]"
-                : "text-muted-foreground enabled:hover:bg-[var(--ink-3)] enabled:hover:text-foreground disabled:opacity-60"
+                ? "bg-secondary font-medium text-foreground ring-1 ring-inset ring-line-strong"
+                : "text-muted-foreground enabled:hover:bg-[var(--ink-3)]/60 enabled:hover:text-foreground disabled:opacity-60"
             )}
           >
-            <span className="font-mono-broadcast text-xs tabular-nums opacity-80">{index + 1}</span>
+            <span className="font-mono text-xs tabular-nums text-muted-foreground">{index + 1}</span>
             <span className="truncate">{name}</span>
           </button>
         );
@@ -132,8 +132,8 @@ function AnnouncementSources({ api }: { api: ShowStoryApi }) {
   }
   const source = api.story?.announcementSource === "teleprompter" ? "from the teleprompter script" : "scheduled for this day (no teleprompter script yet)";
   return (
-    <details className="rounded-md border border-border bg-background px-3 py-2 text-sm">
-      <summary className="cursor-pointer text-[var(--ink-text)]">
+    <details className="rounded-lg border border-line-strong bg-secondary px-3 py-2 text-sm">
+      <summary className="cursor-pointer text-[var(--ink-text)] transition-colors duration-150 ease-[var(--ease-ui)] hover:text-foreground">
         {announcements.length} {announcements.length === 1 ? "announcement" : "announcements"} {source}
       </summary>
       <ol className="mt-2 grid list-decimal gap-2 pl-5 text-xs leading-snug text-muted-foreground">
@@ -198,7 +198,7 @@ function AnnouncementFields({ api, locked }: SlideProps) {
         label={`Lines, one per announcement (up to ${MAX_POINTS})`}
         hint="Gemini writes a short line for each. Check every line against the original before posting."
         trailing={
-          <span className={cn("shrink-0 font-mono-broadcast text-[11px] tabular-nums", over ? "text-brand-amber" : "text-muted-foreground")}>
+          <span className={cn("shrink-0 font-mono text-xs tabular-nums", over ? "text-brand-amber" : "text-muted-foreground")}>
             {lineCount} / {MAX_POINTS}
           </span>
         }

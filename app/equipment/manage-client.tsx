@@ -95,7 +95,7 @@ export default function EquipmentManageClient() {
     if (!visited.has(resource)) return null;
     if (error && !data.loaded[resource] && resource !== "settings") {
       return (
-        <div className="rounded-md border border-border bg-card">
+        <div className="rounded-lg border border-line-strong bg-card">
           <ErrorState message={error} onRetry={() => retry(resource)} busy={data.loading[resource]} />
         </div>
       );
@@ -149,7 +149,7 @@ export default function EquipmentManageClient() {
 
       {bannerError || message ? (
         // One message slot, pinned under the top bar (opaque, so rows never show through a tint).
-        <div className="sticky top-[calc(var(--app-header-h,0px)+0.5rem)] z-30 space-y-2 rounded-md bg-background">
+        <div className="sticky top-[calc(var(--app-header-h,0px)+0.5rem)] z-30 space-y-2 rounded-lg bg-background">
           {bannerError ? (
             <Alert
               tone="danger"

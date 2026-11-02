@@ -32,7 +32,7 @@ export function DeleteAnnouncementDialog({
       error={error}
       onConfirm={onConfirm}
     >
-      <p className="max-h-60 overflow-y-auto whitespace-pre-wrap break-words rounded-md border border-border bg-muted/40 p-3 text-sm">
+      <p className="max-h-60 overflow-y-auto whitespace-pre-wrap break-words rounded-lg border border-line-strong bg-secondary p-3 text-sm text-[var(--ink-text)]">
         {entry?.announcement}
       </p>
     </ConfirmDialog>

@@ -23,7 +23,7 @@ function Dialog({ open, onOpenChange, children }) {
 const DialogTrigger = ({ children }) => children;
 const DialogPortal = ({ children }) => children;
 const DialogOverlay = ({ className, ...props }) => (
-  <div className={cn("fixed inset-0 bg-black/55", className)} {...props} />
+  <div className={cn("fixed inset-0 bg-black/60", className)} {...props} />
 );
 const DialogClose = ({ children }) => children;
 
@@ -45,7 +45,7 @@ const DialogFooter = ({ className, ...props }) => (
 );
 
 const DialogTitle = React.forwardRef(({ className, ...props }, ref) => (
-  <h2 ref={ref} className={cn("text-lg font-semibold leading-none tracking-tight", className)} {...props} />
+  <h2 ref={ref} className={cn("text-lg font-medium leading-none tracking-[-0.015em]", className)} {...props} />
 ));
 DialogTitle.displayName = "DialogTitle";
 

@@ -23,7 +23,7 @@ type ButtonSpec = {
   key: string;
   label: string;
   icon: LucideIcon;
-  variant: "default" | "outline" | "destructive-quiet";
+  variant: "accent" | "outline" | "destructive-quiet";
   onClick: () => void;
   disabled?: boolean;
   busy?: boolean;
@@ -37,7 +37,7 @@ type Cluster = { key: string; label: string; helper: string | null; buttons: But
  * secondary also full width (no ragged rows). From sm: one right-aligned row.
  */
 function ButtonRow({ buttons }: { buttons: ButtonSpec[] }) {
-  const secondaries = buttons.filter((button) => button.variant !== "default");
+  const secondaries = buttons.filter((button) => button.variant !== "accent");
   const lastOdd = secondaries.length % 2 === 1 ? secondaries[secondaries.length - 1]?.key : null;
   return (
     <div className="grid grid-cols-2 gap-2 sm:ml-auto sm:flex sm:shrink-0 sm:flex-wrap sm:items-center sm:justify-end">
@@ -49,7 +49,7 @@ function ButtonRow({ buttons }: { buttons: ButtonSpec[] }) {
           title={title}
           disabled={disabled || busy}
           onClick={onClick}
-          className={cn(CONTROL_HEIGHT.touch, "w-full sm:w-auto", (variant === "default" || key === lastOdd) && "col-span-2")}
+          className={cn(CONTROL_HEIGHT.touch, "w-full sm:w-auto", (variant === "accent" || key === lastOdd) && "col-span-2")}
         >
           {busy ? <Spinner /> : <Icon aria-hidden />}
           {label}
@@ -84,7 +84,7 @@ function clustersFor(view: RequestView, actions: RequestActions): Cluster[] {
           key: "agree",
           label: "I agree",
           icon: Check,
-          variant: primary === "agree" ? "default" : "outline",
+          variant: primary === "agree" ? "accent" : "outline",
           busy: memberBusy?.agreed === true,
           disabled: Boolean(memberBusy),
           onClick: () => actions.onMemberDecision(view, true)
@@ -113,7 +113,7 @@ function clustersFor(view: RequestView, actions: RequestActions): Cluster[] {
       key: "approve",
       label: "Approve",
       icon: Check,
-      variant: primary === "approve" ? "default" : "outline",
+      variant: primary === "approve" ? "accent" : "outline",
       disabled: !view.approveEnabled,
       title: view.approveEnabled ? undefined : "All group members must agree first",
       onClick: () => actions.onApprove(view, false)
@@ -156,18 +156,18 @@ export function RequestActionArea({ view, actions }: { view: RequestView; action
   if (clusters.length === 0) return null;
   const labelled = clusters.length > 1;
   return (
-    <div className="mt-5 border-t border-border">
+    <div className="mt-5 border-t border-line">
       {clusters.map((cluster) => (
         <div
           key={cluster.key}
           role="group"
           aria-label={cluster.label}
-          className="flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:gap-4 [&+&]:mt-4 [&+&]:border-t [&+&]:border-border"
+          className="flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:gap-4 [&+&]:mt-4 [&+&]:border-t [&+&]:border-line"
         >
           {labelled || cluster.helper ? (
             <div className="min-w-0 text-[13px] leading-snug text-muted-foreground">
               {labelled ? (
-                <p className="text-[11px] font-medium uppercase tracking-[0.11em] text-foreground">{cluster.label}</p>
+                <p className="text-[13px] font-medium text-foreground">{cluster.label}</p>
               ) : null}
               {cluster.helper ? <p className={cn(labelled && "mt-0.5")}>{cluster.helper}</p> : null}
             </div>

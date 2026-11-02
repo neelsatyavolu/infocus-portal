@@ -84,7 +84,7 @@ export function ScheduleView({
 
   if (!payload.events.length) {
     return (
-      <div className="rounded-md border border-border bg-card">
+      <div className="rounded-lg border border-line-strong bg-card">
         <EmptyState
           size="page"
           icon={Radio}
@@ -146,7 +146,7 @@ export function ScheduleView({
         meta={<MetaLine bits={bits} />}
       />
       {shown.length === 0 && filter !== "all" ? (
-        <div className="rounded-md border border-border bg-card">
+        <div className="rounded-lg border border-line-strong bg-card">
           <EmptyState
             size="inline"
             title={FILTER_EMPTY[filter]}

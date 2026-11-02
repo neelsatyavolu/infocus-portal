@@ -24,7 +24,7 @@ export function StageWorkspaceSkeleton({
       {embedded ? (
         <div
           aria-hidden
-          className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-card px-4 py-3"
+          className="flex flex-wrap items-center gap-3 rounded-lg border border-line-strong bg-card px-4 py-3"
         >
           <Skeleton className="h-5 w-24" />
           <Skeleton className="h-4 w-64 max-w-full" />
@@ -44,7 +44,7 @@ export function StageWorkspaceSkeleton({
       >
         <div
           className={cn(
-            "space-y-4 rounded-md border border-border bg-card p-4",
+            "space-y-4 rounded-lg border border-line-strong bg-card p-4",
             !embedded && "max-xl:order-3"
           )}
         >

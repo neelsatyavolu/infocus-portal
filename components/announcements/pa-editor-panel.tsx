@@ -113,10 +113,10 @@ export function PaEditorPanel({
   const busy = saving || loading || regenerating;
 
   return (
-    <section aria-labelledby="pa-script-title" className="flex min-w-0 flex-col rounded-md border border-border bg-card">
-      <div className="flex min-h-14 flex-wrap items-center gap-x-3 gap-y-2 border-b border-border px-4 py-3 md:px-5">
+    <section aria-labelledby="pa-script-title" className="flex min-w-0 flex-col rounded-lg border border-line-strong bg-card">
+      <div className="flex min-h-14 flex-wrap items-center gap-x-3 gap-y-2 border-b border-line px-4 py-3 md:px-5">
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          <h2 id="pa-script-title" className="text-base font-semibold leading-snug tracking-[-0.01em] text-foreground">
+          <h2 id="pa-script-title" className="text-[15px] font-medium leading-snug tracking-[-0.01em] text-foreground">
             Script
           </h2>
           <span role="status" aria-live="polite" className="inline-flex min-h-5 items-center">
@@ -159,7 +159,7 @@ export function PaEditorPanel({
       />
 
       {canEdit ? (
-        <div className="sticky bottom-[calc(var(--phone-tabbar-h,0px)+env(safe-area-inset-bottom))] z-10 flex min-h-14 flex-wrap items-center gap-x-3 gap-y-2 rounded-b-md border-t border-border bg-card py-2.5 pl-4 pr-16 md:pl-5 lg:bottom-0 xl:pr-5">
+        <div className="sticky bottom-[calc(var(--phone-tabbar-h,0px)+env(safe-area-inset-bottom))] z-10 flex min-h-14 flex-wrap items-center gap-x-3 gap-y-2 rounded-b-lg border-t border-line bg-card py-2.5 pl-4 pr-16 md:pl-5 lg:bottom-0 xl:pr-5">
           {failed ? (
             <InlineError className="min-w-0 flex-[1_1_14rem]">{failed.message}</InlineError>
           ) : (

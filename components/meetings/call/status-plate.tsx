@@ -55,7 +55,7 @@ export function CallPlate({
       </>
     ) : undefined;
   return (
-    <main className="flex min-h-dvh flex-col bg-[var(--ink)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] pt-[env(safe-area-inset-top)]">
+    <main className="flex min-h-dvh flex-col bg-background pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] pt-[env(safe-area-inset-top)]">
       <StatusPlate eyebrow={eyebrow} tag={tag} title={title} body={words} ariaLive={ariaLive} fullHeight={false} className="flex-1">
         {block}
       </StatusPlate>
@@ -63,11 +63,11 @@ export function CallPlate({
   );
 }
 
-/** The plate's data block: an Ink 3 box with a caps label (OPENS IN, DETAILS). */
+/** The plate's data block: a card with a small muted label ("Opens in", "Details"). */
 export function PlateData({ label, children, className }: { label?: string; children: ReactNode; className?: string }) {
   return (
-    <div className={cn("bg-[var(--ink-3)] p-4", className)}>
-      {label ? <p className="text-[11px] font-medium uppercase leading-none tracking-[0.11em] text-muted-foreground">{label}</p> : null}
+    <div className={cn("rounded-lg border border-line-strong bg-card p-4", className)}>
+      {label ? <p className="text-[13px] font-medium leading-none text-muted-foreground">{label}</p> : null}
       <div className={cn(label && "mt-2")}>{children}</div>
     </div>
   );

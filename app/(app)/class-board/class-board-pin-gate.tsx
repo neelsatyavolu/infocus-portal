@@ -91,8 +91,8 @@ export default function ClassBoardPinGate() {
         <div className="flex flex-col items-center text-center">
           <BoardWordmark alt="InFocus" className="h-10 [@media(max-height:640px)]:h-7" />
           <p className="eyebrow mt-6 [@media(max-height:640px)]:mt-3">Class Board</p>
-          <h1 className="display-md mt-1.5">Enter the 6-digit PIN</h1>
-          <p className="mt-2 text-sm text-[var(--ink-text)]">Opens this board on this browser for 30 days.</p>
+          <h1 className="mt-2 text-balance font-serif text-[40px] font-normal leading-none tracking-[-0.02em] [@media(max-height:640px)]:font-sans [@media(max-height:640px)]:text-[22px] [@media(max-height:640px)]:font-medium [@media(max-height:640px)]:tracking-[-0.015em]">Enter the 6-digit PIN</h1>
+          <p className="mt-3 text-sm text-[var(--ink-text)]">Opens this board on this browser for 30 days.</p>
         </div>
 
         <div>
@@ -101,8 +101,8 @@ export default function ClassBoardPinGate() {
               <span
                 key={index}
                 className={cn(
-                  "grid size-12 place-items-center rounded-md border border-input bg-card font-mono-broadcast text-2xl font-medium tabular-nums text-foreground [@media(max-height:640px)]:size-10 [@media(max-height:640px)]:text-xl",
-                  index === pin.length && !pending && "border-transparent ring-2 ring-[var(--brand-green)]"
+                  "grid size-12 place-items-center rounded-md border border-input bg-card transition-[border-color,box-shadow] duration-150 ease-[var(--ease-ui)] font-mono-broadcast text-2xl font-medium tabular-nums text-foreground [@media(max-height:640px)]:size-10 [@media(max-height:640px)]:text-xl",
+                  index === pin.length && !pending && "border-brand-green ring-[3px] ring-brand-green/30"
                 )}
               >
                 {pin[index] ?? null}
@@ -145,7 +145,7 @@ export default function ClassBoardPinGate() {
                 disabled={pending}
                 className={cn(
                   "h-16 w-full transition-transform active:scale-[0.96] [@media(max-height:640px)]:h-12",
-                  digit ? "text-2xl font-semibold tabular-nums" : "text-base"
+                  digit ? "font-mono text-2xl font-normal tabular-nums" : "text-sm"
                 )}
               >
                 {key === "clear" ? "Clear" : key === "back" ? (

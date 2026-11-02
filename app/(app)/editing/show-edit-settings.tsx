@@ -45,17 +45,17 @@ function AgentOrder({ order, disabled, onChange }: { order: ShowEditBackend[]; d
       <ol className="space-y-1" aria-label="AI account order">
         {order.map((backend, index) => (
           <li key={backend} className="flex items-center gap-1.5 text-sm">
-            <span className="w-5 font-mono text-[12px] text-muted-foreground">{index + 1}</span>
+            <span className="w-5 font-mono text-[12px] tabular-nums text-muted-foreground">{index + 1}</span>
             <span className="w-16">{SHOW_EDIT_BACKEND_LABELS[backend]}</span>
-            <Button type="button" size="icon" variant="ghost" className="h-8 w-8" disabled={disabled || index === 0}
+            <Button type="button" size="icon-sm" variant="ghost" disabled={disabled || index === 0}
               aria-label={`Move ${SHOW_EDIT_BACKEND_LABELS[backend]} up`} onClick={() => move(index, -1)}>
               <ArrowUp aria-hidden />
             </Button>
-            <Button type="button" size="icon" variant="ghost" className="h-8 w-8" disabled={disabled || index === order.length - 1}
+            <Button type="button" size="icon-sm" variant="ghost" disabled={disabled || index === order.length - 1}
               aria-label={`Move ${SHOW_EDIT_BACKEND_LABELS[backend]} down`} onClick={() => move(index, 1)}>
               <ArrowDown aria-hidden />
             </Button>
-            <Button type="button" size="icon" variant="ghost" className="h-8 w-8" disabled={disabled || order.length === 1}
+            <Button type="button" size="icon-sm" variant="ghost" disabled={disabled || order.length === 1}
               aria-label={`Don't use ${SHOW_EDIT_BACKEND_LABELS[backend]}`} onClick={() => onChange(order.filter((item) => item !== backend))}>
               <X aria-hidden />
             </Button>
@@ -141,7 +141,7 @@ export function HouseRulesForm({ settings, busy, onSave }: {
         {settings.houseRules === null ? " The editor is using its built-in rules (shown below)." : ""}
       </p>
       <Textarea id="show-editor-house-rules" rows={14} value={rules} maxLength={SHOW_EDITOR_HOUSE_RULES_MAX}
-        className="font-mono text-[12px]" onChange={(event) => setRules(event.target.value)} />
+        className="font-mono text-[12px] leading-[1.65]" onChange={(event) => setRules(event.target.value)} />
       <div className="flex flex-wrap gap-2">
         <Button type="submit" size="sm" variant="outline" disabled={busy}>Save rules</Button>
         {settings.houseRules !== null ? (

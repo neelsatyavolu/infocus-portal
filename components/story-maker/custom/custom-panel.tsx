@@ -102,16 +102,16 @@ function Swatches<T extends string>({ label, value, options, onChange }: {
               aria-pressed={selected}
               onClick={() => onChange(option.id)}
               className={cn(
-                "flex items-center gap-2 rounded-md border px-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "flex items-center gap-2 rounded-md border px-3 text-sm transition-colors duration-150 ease-[var(--ease-ui)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30",
                 TOUCH_HEIGHT,
                 selected
-                  ? "border-[var(--brand-green)] bg-[var(--ink-3)] font-medium text-foreground"
-                  : "border-input text-muted-foreground hover:bg-[var(--ink-3)] hover:text-foreground"
+                  ? "border-brand-green bg-brand-tint font-medium text-foreground"
+                  : "border-line-strong bg-secondary text-muted-foreground hover:bg-[var(--ink-3)] hover:text-foreground"
               )}
             >
-              <span className="h-4 w-4 rounded-[4px] border border-border" style={{ background: option.hex }} />
+              <span className="h-4 w-4 rounded-full border border-line-strong" style={{ background: option.hex }} />
               {option.name}
-              {selected ? <Check aria-hidden className="h-4 w-4 text-[var(--brand-green)]" /> : null}
+              {selected ? <Check aria-hidden className="h-4 w-4 text-brand-green" /> : null}
             </button>
           );
         })}
@@ -143,7 +143,7 @@ function TextProperties({ el, set }: { el: Extract<CustomElement, { kind: "text"
             value={Math.round(el.scale * 100)}
             aria-label="Text size"
             onChange={(event) => set({ scale: Number(event.target.value) / 100 }, `scale:${el.id}`)}
-            className={cn("w-full accent-[var(--brand-green)]", TOUCH_HEIGHT)}
+            className={cn("w-full accent-[var(--brand-fill)]", TOUCH_HEIGHT)}
           />
         </StoryField>
       </div>
@@ -345,7 +345,7 @@ export function CustomPanel({ api, issues }: { api: CustomLayoutApi; issues: rea
         tag={<CountBadge count={issues.length} tone="warning" srLabel={`${issues.length} to check`} />}
       >
         {issues.length === 0 ? (
-          <p className="flex items-center gap-2 text-sm text-[var(--brand-green)]">
+          <p className="flex items-center gap-2 text-sm text-brand-green">
             <CircleCheck className="h-4 w-4" />
             On brand
           </p>
@@ -361,7 +361,7 @@ export function CustomPanel({ api, issues }: { api: CustomLayoutApi; issues: rea
                     api.select(issue.elementId);
                     scrollToSection(SELECTED_ID);
                   }}
-                  className="flex min-h-10 w-full items-start gap-2 rounded-md border border-brand-amber/40 bg-brand-amber/10 px-3 py-2 text-left text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring enabled:hover:bg-brand-amber/15"
+                  className="flex min-h-10 w-full items-start gap-2 rounded-lg border border-brand-amber/30 bg-brand-amber/10 px-3 py-2 text-left text-sm text-foreground transition-colors duration-150 ease-[var(--ease-ui)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30 enabled:hover:bg-brand-amber/15"
                 >
                   <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-brand-amber" />
                   <span>{issue.message}</span>

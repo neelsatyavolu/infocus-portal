@@ -50,11 +50,11 @@ function IdeaSection({ category, ideas }: { category: IdeaCategory; ideas: IdeaS
     <section id={`ideas-${category}`} aria-labelledby={titleId} className="scroll-mt-[calc(var(--app-header-h,3.5rem)+1rem)]">
       <SectionHeader
         id={titleId}
-        // H2 above the 18px card titles (DESIGN.md: section 24px, card title 18px); the kit h2 is 18px.
-        title={<span className="text-xl md:text-2xl">{IDEA_CATEGORY_LABELS[category]}</span>}
+        // Section heading above the 16px card titles (Geist 500, 20–22px); the kit h2 is 18px.
+        title={<span className="text-xl font-medium tracking-[-0.015em] md:text-[22px]">{IDEA_CATEGORY_LABELS[category]}</span>}
         count={ideas.length}
         description={CATEGORY_HINTS[category]}
-        className="border-b border-border pb-2"
+        className="border-b border-line pb-2"
       />
       <div className={cn("mt-4", IDEA_GRID)}>
         {ideas.map((idea, index) => {
@@ -68,7 +68,7 @@ function IdeaSection({ category, ideas }: { category: IdeaCategory; ideas: IdeaS
 
 function IdeasEmpty({ title, text, action }: { title: string; text: string; action?: ReactNode }) {
   return (
-    <div className="rounded-md border border-border bg-card">
+    <div className="rounded-lg border border-line-strong bg-card">
       <EmptyState size="page" icon={Newspaper} title={title} description={text} action={action} className="md:py-12" />
     </div>
   );

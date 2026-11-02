@@ -65,10 +65,10 @@ function ReviewForm({ group, saved }: { group: ProducerFeedbackGroup; saved: () 
     }
   }
   return (
-    <form onSubmit={(e) => void submit(e)} className="space-y-5 rounded-md border border-border bg-card p-4 md:p-5">
+    <form onSubmit={(e) => void submit(e)} className="space-y-5 rounded-lg border border-line-strong bg-card p-4 md:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-base font-semibold text-foreground">{group.topic}</h2>
+          <h2 className="text-base font-medium tracking-[-0.01em] text-foreground">{group.topic}</h2>
           <p className="mt-0.5 text-sm text-muted-foreground">
             Associate producer: {group.producerName ?? "Not assigned"}
           </p>
@@ -119,7 +119,7 @@ function ReviewForm({ group, saved }: { group: ProducerFeedbackGroup; saved: () 
               }}
               placeholder="Use specific examples about the support and feedback your group received."
             />
-            <span className="block font-mono-broadcast text-[11px] tabular-nums text-muted-foreground">
+            <span className="block font-mono-broadcast text-xs tabular-nums text-muted-foreground">
               10–2,000 characters · {body.length}/2,000
             </span>
           </label>
@@ -132,7 +132,7 @@ function ReviewForm({ group, saved }: { group: ProducerFeedbackGroup; saved: () 
         </>
       )}
       {message && (
-        <p role="status" className="text-sm text-[var(--brand-green)]">
+        <p role="status" className="text-sm text-brand-green">
           {message}
         </p>
       )}
@@ -161,7 +161,7 @@ export default function ProducerFeedbackForm({
   return (
     <div className="space-y-5">
       {!groups.length ? (
-        <p className="rounded-md border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+        <p className="rounded-lg border border-dashed border-line-strong p-8 text-center text-sm text-muted-foreground">
           You’ll be able to leave feedback once you’re on a package group’s roster.
         </p>
       ) : (

@@ -67,8 +67,8 @@ function TableRow({ event, ctx }: { event: EventRow; ctx: EventContext }) {
       onClick={payload.canManage ? () => ctx.onEdit(event) : undefined}
       className={cn(
         gridClass(payload.canManage),
-        "min-h-16 border-t border-border py-3 transition-colors",
-        payload.canManage && "cursor-pointer hover:bg-[var(--ink-3)]"
+        "min-h-16 border-t border-line py-3 transition-colors duration-150 ease-[var(--ease-ui)]",
+        payload.canManage && "cursor-pointer hover:bg-[var(--ink-3)]/60"
       )}
     >
       <div className="flex min-w-0 items-center gap-3">
@@ -134,8 +134,8 @@ function EventCard({ event, ctx }: { event: EventRow; ctx: EventContext }) {
       // A mouse convenience for managers; the Edit button is the keyboard path.
       onClick={payload.canManage ? () => ctx.onEdit(event) : undefined}
       className={cn(
-        "flex h-full min-w-0 flex-col gap-3 rounded-md border border-border bg-card p-4 transition-colors",
-        payload.canManage && "cursor-pointer hover:bg-[var(--ink-3)]"
+        "flex h-full min-w-0 flex-col gap-3 rounded-lg border border-line-strong bg-card p-4 transition-colors duration-150 ease-[var(--ease-ui)]",
+        payload.canManage && "cursor-pointer hover:bg-secondary"
       )}
     >
       <div className="flex min-w-0 items-start gap-3">
@@ -211,7 +211,7 @@ function Rows({ events, ctx, table }: { events: EventRow[]; ctx: EventContext; t
   );
 }
 
-/** Caps group heading with a 16px leading icon, so its text lines up with the Earlier toggle's text after the chevron. */
+/** Group heading with a 16px leading icon, so its text lines up with the Earlier toggle's text after the chevron. */
 function GroupHeading({ icon, children, count, table }: { icon: ReactNode; children: ReactNode; count: number; table: boolean }) {
   return (
     <SectionLabel as="h2" count={count} className={cn("h-9", table && "px-4")}>
@@ -270,7 +270,7 @@ export function ScheduleList({
   let earlierGroup: ReactNode = null;
   if (earlier.length && filtered) {
     earlierGroup = (
-      <section aria-label="Earlier this semester" className={cn(showUpcoming && (table ? "border-t border-border" : "pt-3"))}>
+      <section aria-label="Earlier this semester" className={cn(showUpcoming && (table ? "border-t border-line" : "pt-3"))}>
         <GroupHeading icon={<History aria-hidden className={GROUP_ICON} />} count={earlier.length} table={table}>
           Earlier this semester
         </GroupHeading>
@@ -291,7 +291,7 @@ export function ScheduleList({
         }
         open={earlierOpen}
         onOpenChange={onEarlierOpenChange}
-        className={cn(table ? "border-t border-border px-4" : "pt-3")}
+        className={cn(table ? "border-t border-line px-4" : "pt-3")}
         bodyClassName={table ? "-mx-4 pt-0!" : "pt-0!"}
       >
         <Rows events={earlier} ctx={ctx} table={table} />
@@ -302,8 +302,8 @@ export function ScheduleList({
   return (
     <div ref={measure} className="min-w-0">
       {table ? (
-        <div className="overflow-hidden rounded-md border border-border bg-card">
-          <div aria-hidden className={cn(gridClass(ctx.payload.canManage), "h-10 border-b border-border")}>
+        <div className="overflow-hidden rounded-lg border border-line-strong bg-card">
+          <div aria-hidden className={cn(gridClass(ctx.payload.canManage), "h-10 border-b border-line")}>
             {TABLE_COLUMNS.map((label, index) => (
               <span key={index} className={cn(fieldLabelClass, label === "Hours" && "text-right")}>
                 {label}

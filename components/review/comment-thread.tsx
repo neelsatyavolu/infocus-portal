@@ -111,14 +111,14 @@ function Replies({
     return null;
   }
   return (
-    <ul className="mt-2 ml-8 space-y-2 border-l border-border pl-3">
+    <ul className="mt-2 ml-8 space-y-2 border-l border-line-strong pl-3">
       {replies.map((reply) => {
         const own = Boolean(permissions.currentUserId && reply.authorId === permissions.currentUserId);
         const editing = state.editingCommentId === reply.id;
         return (
           <li key={reply.id} className="group/reply min-w-0">
             <div className="flex min-h-8 min-w-0 items-center gap-2">
-              <span className="min-w-0 truncate text-[13px] font-semibold text-foreground">{reply.authorName}</span>
+              <span className="min-w-0 truncate text-[13px] font-medium text-foreground">{reply.authorName}</span>
               <span className="shrink-0 text-xs text-muted-foreground">
                 <RelativeAge iso={reply.createdAt} />
               </span>
@@ -243,20 +243,20 @@ export function CommentThreadCard({
       onClick={timeline && onFocus ? () => onFocus(thread) : undefined}
       aria-current={isSelected ? "true" : undefined}
       className={cn(
-        "group/thread relative min-w-0 rounded-md border p-3 transition-colors",
+        "group/thread relative min-w-0 rounded-lg border p-3 transition-colors duration-150 ease-[var(--ease-ui)]",
         timeline && cn("cursor-pointer", CARD_SCROLL_MARGIN_CLASS),
         isSelected
-          ? "border-[var(--brand-green)]/50 bg-[var(--ink-3)] before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:rounded-l-md before:bg-[var(--brand-green)]"
+          ? "border-[var(--brand-green)]/50 bg-brand-tint before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-full before:bg-[var(--brand-green)]"
           : isHighlighted
-            ? "border-[var(--brand-green)] bg-[var(--ink-2)]"
-            : cn("border-border bg-[var(--ink-2)]", timeline && "hover:bg-[var(--ink-3)]")
+            ? "border-[var(--brand-green)] bg-card"
+            : cn("border-line-strong bg-card", timeline && "hover:bg-secondary")
       )}
     >
       <div className="flex h-6 min-w-0 items-center gap-2">
         <span aria-hidden className="flex">
           <Avatar name={root.authorName} size={24} title="" />
         </span>
-        <span className="min-w-0 truncate text-[13px] font-semibold text-foreground">{root.authorName}</span>
+        <span className="min-w-0 truncate text-[13px] font-medium text-foreground">{root.authorName}</span>
         <span className="shrink-0 text-xs text-muted-foreground">
           <RelativeAge iso={root.createdAt} />
         </span>
@@ -271,14 +271,14 @@ export function CommentThreadCard({
             Resolved
           </StatusTag>
         ) : null}
-        <span className="shrink-0 font-mono-broadcast text-[11px] tabular-nums text-muted-foreground">#{number}</span>
+        <span className="shrink-0 font-mono text-[12px] tabular-nums text-muted-foreground">#{number}</span>
       </div>
 
       <div className="pl-8">
         {editing ? (
           <InlineEditor state={state} commentId={root.id} />
         ) : (
-          <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground">{root.body}</p>
+          <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-relaxed text-[var(--ink-text)]">{root.body}</p>
         )}
       </div>
 
@@ -297,7 +297,7 @@ export function CommentThreadCard({
               onFocus?.(thread);
             }}
             title={isImageReview ? "Show this pin" : "Jump to this moment"}
-            className="h-8 shrink-0 px-2 font-mono-broadcast text-xs font-medium tabular-nums text-[var(--brand-green)] hover:text-[var(--brand-green)] pointer-coarse:h-10"
+            className="h-8 shrink-0 px-2 font-mono text-xs font-medium tabular-nums text-brand-green hover:text-brand-green pointer-coarse:h-10"
           >
             {timeLabel}
           </Button>

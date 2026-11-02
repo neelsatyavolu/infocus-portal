@@ -79,7 +79,7 @@ export type FinalCutGradeCardData = {
 
 export type FinalCutScoreInput = { memberUserId: string; qualityPoints: number; effortPoints: number };
 
-const CAPS = "text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground";
+const LABEL = "text-[13px] font-medium text-muted-foreground";
 
 /** Deadline / Submitted / Deduction as three equal cells in one card. */
 function TimingStrip({ grade, compact }: { grade: FinalCutGradeCardData; compact: boolean }) {
@@ -108,10 +108,10 @@ function TimingStrip({ grade, compact }: { grade: FinalCutGradeCardData; compact
     }
   ];
   return (
-    <dl className="grid grid-cols-1 divide-y divide-border rounded-md border border-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+    <dl className="grid grid-cols-1 divide-y divide-line rounded-lg border border-line-strong sm:grid-cols-3 sm:divide-x sm:divide-y-0">
       {cells.map((cell) => (
         <div key={cell.label} className={cn("min-w-0", compact ? "px-3 py-2" : "px-4 py-3")}>
-          <dt className={CAPS}>{cell.label}</dt>
+          <dt className={LABEL}>{cell.label}</dt>
           <dd className="mt-1 text-sm font-medium text-foreground">{cell.value}</dd>
           <dd className={cn("text-muted-foreground", compact ? "text-xs leading-snug" : "text-[13px]")}>{cell.detail}</dd>
         </div>
@@ -120,11 +120,11 @@ function TimingStrip({ grade, compact }: { grade: FinalCutGradeCardData; compact
   );
 }
 
-/** Each executive producer's progress through the members, as tags after a GRADERS label. */
+/** Each executive producer's progress through the members, as tags after a Graders label. */
 function GraderProgress({ grade, scoringMembers }: { grade: FinalCutGradeCardData; scoringMembers: number }) {
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
-      <span className={CAPS}>Graders</span>
+      <span className={LABEL}>Graders</span>
       {grade.graders.length === 0 ? (
         <p className="text-[13px] text-muted-foreground">No executive producers are assigned yet.</p>
       ) : (

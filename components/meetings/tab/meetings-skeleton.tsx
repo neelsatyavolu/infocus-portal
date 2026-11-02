@@ -11,14 +11,14 @@ import { MEETING_ROW_GRID } from "./meeting-row-parts";
  */
 export function ListPanelSkeleton({ rows, description = false, actions = false }: { rows: number; description?: boolean; actions?: boolean }) {
   return (
-    <div aria-hidden className={cn("overflow-hidden rounded-md border border-border bg-card", HEADER_HIDDEN_WHEN_STACKED)}>
-      <div className="space-y-1.5 border-b border-border px-4 py-3 md:px-5">
+    <div aria-hidden className={cn("overflow-hidden rounded-lg border border-line-strong bg-card", HEADER_HIDDEN_WHEN_STACKED)}>
+      <div className="space-y-1.5 border-b border-line px-4 py-3 md:px-5">
         <div className="flex min-h-8 items-center">
           <Skeleton className="h-4 w-24" />
         </div>
         {description ? <Skeleton className="h-3 w-20" /> : null}
       </div>
-      <div className="divide-y divide-border">
+      <div className="divide-y divide-line">
         {Array.from({ length: rows }, (_, index) => (
           <div key={index} className={MEETING_ROW_GRID}>
             <div className="col-span-2 flex items-center gap-2 md:col-span-1 md:flex-col md:items-start md:gap-1.5 md:self-start md:pt-[3px]">

@@ -118,7 +118,7 @@ export function PitchingPanel({
       Unmark pitch
     </Button>
   ) : (
-    <Button type="button" disabled={saving} onClick={() => setFeedbackOpen(true)} className={TOUCH}>
+    <Button type="button" variant="accent" disabled={saving} onClick={() => setFeedbackOpen(true)} className={TOUCH}>
       {busy(saving)}
       Mark pitch complete
     </Button>
@@ -229,7 +229,7 @@ export function BrainstormingPanel({
     // Approving incomplete work is allowed, but it isn't the suggested next step.
     <Button
       type="button"
-      variant={ready ? "default" : "outline"}
+      variant={ready ? "accent" : "outline"}
       disabled={saving}
       onClick={() => setFeedbackOpen(true)}
       className={TOUCH}

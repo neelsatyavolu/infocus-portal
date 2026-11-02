@@ -67,7 +67,7 @@ export function RequestDialog({
           <KeyValueList
             dense
             labelWidth="6.5rem"
-            className="rounded-md border border-border px-3"
+            className="rounded-lg border border-line-strong bg-card px-3"
             items={[
               { label: "Livestream", value: event.title },
               {
@@ -101,7 +101,7 @@ export function RequestDialog({
             <Button type="button" variant="outline" className="max-sm:h-10" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" className="max-sm:h-10" disabled={busy}>
+            <Button type="submit" variant="accent" className="max-sm:h-10" disabled={busy}>
               {busy ? <Spinner /> : null}
               Request sign-up
             </Button>

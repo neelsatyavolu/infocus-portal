@@ -6,7 +6,7 @@ import { DayCell } from "@/components/master-calendar/day-cell";
 import { HolidayRunBar } from "@/components/master-calendar/holiday-run";
 import { cn } from "@/src/lib/utils";
 
-const LABEL_CLASS = "text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground";
+const LABEL_CLASS = "text-[12px] font-medium text-muted-foreground";
 
 /** Grid columns a run of days off spans (written out in full so Tailwind finds them). */
 const RUN_SPAN: Record<number, string> = {
@@ -76,7 +76,7 @@ export function MonthBoard({
       aria-busy={loading || undefined}
       className={cn("@container min-w-0 transition-opacity", loading && "opacity-60")}
     >
-      <div className="space-y-5 @min-[58rem]:grid @min-[58rem]:grid-cols-5 @min-[58rem]:gap-px @min-[58rem]:space-y-0 @min-[58rem]:overflow-hidden @min-[58rem]:rounded-md @min-[58rem]:border @min-[58rem]:border-border @min-[58rem]:bg-border">
+      <div className="space-y-5 @min-[58rem]:grid @min-[58rem]:grid-cols-5 @min-[58rem]:gap-px @min-[58rem]:space-y-0 @min-[58rem]:overflow-hidden @min-[58rem]:rounded-lg @min-[58rem]:border @min-[58rem]:border-line-strong @min-[58rem]:bg-line">
         {WEEKDAYS.map((weekday) => (
           <div key={weekday} aria-hidden className={cn("hidden h-8 items-center bg-card px-3 @min-[58rem]:flex", LABEL_CLASS)}>
             {weekday}
@@ -88,7 +88,7 @@ export function MonthBoard({
             type="button"
             onClick={() => setEarlierOpen(true)}
             className={cn(
-              "flex h-8 w-full items-center rounded-md border border-dashed border-border px-3 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring @min-[58rem]:hidden",
+              "flex h-8 w-full items-center rounded-md border border-dashed border-line-strong px-3 transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)] hover:text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/45 @min-[58rem]:hidden",
               LABEL_CLASS
             )}
           >
@@ -109,13 +109,13 @@ export function MonthBoard({
             <h2 className={cn("flex h-8 items-center gap-2 @min-[58rem]:hidden", LABEL_CLASS)}>
               {row.hasToday ? (
                 <>
-                  <span className="text-[var(--brand-green)]">This week</span>
+                  <span className="text-brand-green">This week</span>
                   <span aria-hidden>·</span>
                 </>
               ) : null}
               {row.label}
             </h2>
-            <div className="divide-y divide-border overflow-hidden rounded-md border border-border @min-[58rem]:contents @min-[58rem]:divide-y-0">
+            <div className="divide-y divide-line overflow-hidden rounded-lg border border-line-strong bg-card @min-[58rem]:contents @min-[58rem]:divide-y-0">
               {row.cells.map((segment) => {
                 if (segment.type === "blank") {
                   return <div key={segment.key} aria-hidden className="hidden bg-background @min-[58rem]:block" />;
@@ -123,7 +123,7 @@ export function MonthBoard({
                 if (segment.type === "run") {
                   return (
                     <div key={segment.key} className={cn("min-w-0 @min-[58rem]:grid", RUN_SPAN[segment.days.length])}>
-                      <div className="divide-y divide-border @min-[58rem]:hidden">{segment.days.map(renderDay)}</div>
+                      <div className="divide-y divide-line @min-[58rem]:hidden">{segment.days.map(renderDay)}</div>
                       <HolidayRunBar
                         days={segment.days}
                         label={segment.label}

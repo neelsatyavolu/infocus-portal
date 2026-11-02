@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/src/lib/utils";
 import type { StoryPhoto } from "./story-templates";
 
-/** 11px caps field label (DESIGN.md §10): the kit's field label. */
+/** 13px muted sentence-case field label: the kit's field label. */
 export const STORY_LABEL_CLASS = fieldLabelClass;
 /** Control heights: 40px touch targets on phones, 36px (default) or 32px (small) from md. */
 export const TOUCH_HEIGHT = "h-10 md:h-9";
@@ -83,7 +83,7 @@ export function Segmented({
       role="group"
       aria-label={label}
       className={cn(
-        "flex min-w-0 max-w-full gap-0.5 rounded-md border border-input p-0.5",
+        "flex min-w-0 max-w-full gap-0.5 rounded-md border border-input bg-card p-0.5",
         fullWidth ? "w-full" : "w-fit",
         size === "sm" ? TOUCH_HEIGHT_SM : TOUCH_HEIGHT
       )}
@@ -98,11 +98,11 @@ export function Segmented({
             title={option.label}
             onClick={() => onChange(option.value)}
             className={cn(
-              "h-full min-w-0 truncate whitespace-nowrap rounded-[4px] px-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+              "h-full min-w-0 truncate whitespace-nowrap rounded-sm px-3 text-sm transition-colors duration-150 ease-[var(--ease-ui)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50",
               fullWidth && "flex-1",
               active
-                ? "bg-[var(--brand-fill)] font-medium text-[var(--on-brand)]"
-                : "text-muted-foreground hover:bg-[var(--ink-3)] hover:text-foreground"
+                ? "bg-secondary font-medium text-foreground ring-1 ring-inset ring-line-strong"
+                : "text-muted-foreground hover:bg-[var(--ink-3)]/60 hover:text-foreground"
             )}
           >
             {option.label}
@@ -124,7 +124,7 @@ function Slider({ label, value, min, max, onChange }: { label: string; value: nu
         max={max}
         value={value}
         onChange={(event) => onChange(Number(event.target.value))}
-        className="h-10 w-full accent-[var(--brand-green)] md:h-8"
+        className="h-10 w-full accent-[var(--brand-fill)] md:h-8"
       />
     </label>
   );
@@ -171,8 +171,8 @@ export function PhotoInput({
         <span
           aria-hidden
           className={cn(
-            "grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-sm border text-muted-foreground",
-            photo ? "border-border bg-[var(--ink-3)]" : "border-dashed border-input"
+            "grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-md border text-muted-foreground",
+            photo ? "border-line-strong bg-secondary" : "border-dashed border-line-strong"
           )}
         >
           {photo ? <CropThumb photo={photo} /> : <ImagePlus className="h-4 w-4" />}
@@ -216,7 +216,7 @@ export function PhotoInput({
         />
       </div>
       {photo ? (
-        <div role="group" aria-label={`Crop ${label}`} className="grid gap-1 rounded-md border border-border bg-[var(--ink-2)] px-3 py-2">
+        <div role="group" aria-label={`Crop ${label}`} className="grid gap-1 rounded-lg border border-line-strong bg-secondary px-3 py-2">
           <Slider label="Left / right" value={photo.x} min={0} max={100} onChange={(x) => onChange({ ...photo, x })} />
           <Slider label="Up / down" value={photo.y} min={0} max={100} onChange={(y) => onChange({ ...photo, y })} />
           <Slider label="Zoom" value={photo.zoom} min={100} max={250} onChange={(zoom) => onChange({ ...photo, zoom })} />

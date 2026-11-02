@@ -66,7 +66,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
     "relative aspect-square w-auto shrink-0 px-0",
     CONTROL_HEIGHT[size],
     tone === "danger" && "text-danger hover:bg-danger-tint hover:text-danger",
-    on && "bg-[rgb(43_179_110/0.12)] text-[var(--brand-green)] hover:bg-[rgb(43_179_110/0.18)] hover:text-[var(--brand-green)]",
+    on && "bg-brand-tint text-brand-green hover:bg-brand-tint hover:text-brand-green",
     className
   );
   const content = (

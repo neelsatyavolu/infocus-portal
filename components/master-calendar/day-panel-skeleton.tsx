@@ -19,8 +19,8 @@ export function DaySectionsSkeleton() {
 /** The docked Day panel's shape: a header bar (date and tags), then its sections. */
 export function DayPanelSkeleton({ className }: { className?: string }) {
   return (
-    <div aria-hidden className={cn("flex-col overflow-hidden rounded-md border border-border bg-card", className)}>
-      <div className="space-y-2 border-b border-border p-4">
+    <div aria-hidden className={cn("flex-col overflow-hidden rounded-lg border border-line-strong bg-card", className)}>
+      <div className="space-y-2 border-b border-line p-4">
         <Skeleton className="h-5 w-44" />
         <Skeleton className="h-5 w-20" />
       </div>

@@ -22,10 +22,10 @@ export function TeleprompterShell({ children }: TeleprompterShellProps) {
   return (
     <TooltipProvider delayDuration={300}>
       <div className="flex min-h-screen flex-col bg-background text-foreground [--app-header-h:calc(3rem+env(safe-area-inset-top,0px))]">
-        <header className="sticky top-0 z-40 flex h-[var(--app-header-h)] shrink-0 items-center gap-3 border-b border-border bg-[var(--ink)] px-4 pt-[env(safe-area-inset-top,0px)] md:px-6">
+        <header className="sticky top-0 z-40 flex h-[var(--app-header-h)] shrink-0 items-center gap-3 border-b border-line bg-background px-4 pt-[env(safe-area-inset-top,0px)] md:px-6">
           <BrandWordmark className="h-6 w-auto object-contain" width={140} height={48} priority />
-          <span aria-hidden className="h-5 w-px shrink-0 bg-border" />
-          <span className="min-w-0 truncate text-[13px] font-semibold text-foreground">Teleprompter</span>
+          <span aria-hidden className="h-5 w-px shrink-0 bg-line-strong" />
+          <span className="min-w-0 truncate text-[13px] font-medium text-foreground">Teleprompter</span>
           <a
             href={dashboardUrl}
             className={cn(buttonVariants({ variant: "outline", size: "sm" }), "ml-auto shrink-0 max-sm:size-10 max-sm:px-0")}

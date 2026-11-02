@@ -124,8 +124,8 @@ export function IconTile({
         "grid shrink-0 place-items-center rounded-md",
         size === 32 ? "h-8 w-8" : size === 36 ? "h-9 w-9" : "h-10 w-10",
         size === 40 ? "[&>svg]:size-5" : "[&>svg]:size-4",
-        // A green tint (not --ink, which is white in Light mode and would vanish on a card).
-        tone === "brand" ? "bg-[var(--brand-green)]/10 text-[var(--brand-green)]" : "bg-[var(--ink-3)] text-muted-foreground",
+        // The brand tint (not --ink, which is white in Light mode and would vanish on a card); follows the season.
+        tone === "brand" ? "bg-brand-tint text-brand-green" : "bg-[var(--ink-3)] text-muted-foreground",
         className
       )}
     >

@@ -71,10 +71,10 @@ export function PhoneFolderChips({
           aria-current={place.active ? "page" : undefined}
           title={label}
           className={cn(
-            "inline-flex h-10 max-w-[220px] items-center gap-2 rounded-md border px-3 text-[13px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "inline-flex h-10 max-w-[220px] items-center gap-2 rounded-md border px-3 text-[13px] transition-colors duration-150 ease-[var(--ease-ui)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30",
             place.active
-              ? "border-[var(--brand-green)]/30 bg-[var(--brand-green)]/10 font-medium text-foreground"
-              : "border-border text-muted-foreground hover:bg-[var(--ink-3)] hover:text-foreground"
+              ? "border-line-strong bg-secondary font-medium text-foreground"
+              : "border-line text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
           )}
         >
           <Icon className={cn("h-4 w-4 shrink-0", place.active && "text-[var(--brand-green)]")} aria-hidden />
@@ -108,7 +108,7 @@ export function PhoneFolderChips({
       <button
         type="button"
         onClick={onCreateFolder}
-        className="grid h-10 w-10 shrink-0 place-items-center rounded-md border border-input text-muted-foreground transition-colors hover:bg-[var(--ink-3)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="grid h-10 w-10 shrink-0 place-items-center rounded-md border border-line-strong bg-secondary text-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30"
         title="Create folder"
         aria-label="Create folder"
       >

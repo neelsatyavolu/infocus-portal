@@ -58,19 +58,19 @@ export const HolidayRunBar = memo(function HolidayRunBar({
             onClick={(event) => onSelect(day.dateKey, event.detail === 0)}
             style={{ gridColumnStart: index + 1 }}
             className={cn(
-              "relative row-start-1 min-w-0 transition-colors hover:bg-[var(--ink-3)]",
-              "after:absolute after:inset-0 after:content-[''] focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-ring",
-              selected ? "bg-[var(--ink-3)] outline-2 -outline-offset-2 outline-[var(--brand-green)]" : "outline-none"
+              "relative row-start-1 min-w-0 transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)]",
+              "after:absolute after:inset-0 after:content-[''] focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-ring/60",
+              selected ? "bg-brand-tint outline-1 -outline-offset-1 outline-brand-green hover:bg-brand-tint" : "outline-none"
             )}
           />
         );
       })}
       {/* Drawn once over the day columns; clicks pass through to the day under the pointer. */}
       <div aria-hidden className="pointer-events-none relative col-span-full row-start-1 flex min-w-0 items-start gap-2 p-3">
-        <span className="flex h-6 shrink-0 items-center px-1 text-sm font-semibold leading-none tabular-nums text-foreground">
+        <span className="flex h-6 shrink-0 items-center px-1 text-sm font-medium leading-none tabular-nums text-foreground">
           {Number(first.dateKey.slice(8))}–{Number(last.dateKey.slice(8))}
         </span>
-        <span className="min-w-0 truncate text-[13px] font-semibold leading-6 text-muted-foreground">{label}</span>
+        <span className="min-w-0 truncate text-[13px] leading-6 text-muted-foreground">{label}</span>
         {failed ? (
           <span className="flex h-6 shrink-0 items-center">
             <StatusTag tone="danger">Not saved</StatusTag>

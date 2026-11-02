@@ -41,7 +41,7 @@ export function packageApprovalSteps(review: PackageReview, latestVersion: Revie
 
 const RULE: Record<ApprovalStep["state"], string> = {
   done: "border-[var(--brand-fill)]",
-  current: "border-[var(--brand-green)] bg-[rgb(43_179_110/0.08)]",
+  current: "border-[var(--brand-green)] bg-brand-tint",
   upcoming: "border-[var(--ink-4)]"
 };
 
@@ -81,15 +81,15 @@ export function ApprovalStrip({
             key={step.key}
             aria-current={step.state === "current" ? "step" : undefined}
             className={cn(
-              "flex min-h-8 min-w-0 items-center gap-2 border-l-[3px] px-2 py-1.5 sm:border-l-0 sm:border-t-[3px]",
+              "flex min-h-8 min-w-0 items-center gap-2 border-l-2 px-2 py-1.5 sm:border-l-0 sm:border-t-2",
               RULE[step.state]
             )}
           >
-            <span className="font-mono-broadcast text-[11px] tabular-nums text-muted-foreground">{step.number}</span>
+            <span className="font-mono text-[12px] tabular-nums text-muted-foreground">{step.number}</span>
             <span
               className={cn(
                 "min-w-0 truncate text-[13px] leading-tight",
-                step.state === "current" ? "font-semibold text-foreground" : step.state === "done" ? "text-foreground" : "text-muted-foreground"
+                step.state === "current" ? "font-medium text-foreground" : step.state === "done" ? "text-foreground" : "text-muted-foreground"
               )}
             >
               {step.label}
@@ -98,7 +98,7 @@ export function ApprovalStrip({
               <span
                 title={note}
                 className={cn(
-                  "ml-auto min-w-0 shrink-0 truncate text-[11px] font-medium uppercase leading-tight tracking-[0.11em] sm:shrink",
+                  "ml-auto min-w-0 shrink-0 truncate text-[12px] font-medium leading-tight sm:shrink",
                   toneTextClass(step.tone)
                 )}
               >
@@ -172,7 +172,7 @@ export function reviewDecisionButtons({
         <Button
           key="approve-anyway"
           type="button"
-          variant={packageReview.canApprove ? "outline" : "default"}
+          variant={packageReview.canApprove ? "outline" : "accent"}
           disabled={busy}
           onClick={handlers.onApproveAnyway}
         >
@@ -182,7 +182,7 @@ export function reviewDecisionButtons({
     }
     if (packageReview.canApprove) {
       buttons.push(
-        <Button key="approve" type="button" disabled={busy || !isLatest} onClick={handlers.onApprove}>
+        <Button key="approve" type="button" variant="accent" disabled={busy || !isLatest} onClick={handlers.onApprove}>
           {statusUpdating ? <Spinner /> : null}
           {version?.approvalStatus === "NEEDS_CHANGES" ? "Approve anyway" : "Approve"}
         </Button>
@@ -237,14 +237,14 @@ export function reviewDecisionButtons({
   ];
   if (status === "IN_REVIEW" || status === "NEEDS_CHANGES") {
     buttons.push(
-      <Button key="next" type="button" disabled={statusUpdating} onClick={() => handlers.onChangeStatus("APPROVED")}>
+      <Button key="next" type="button" variant="accent" disabled={statusUpdating} onClick={() => handlers.onChangeStatus("APPROVED")}>
         <Check aria-hidden />
         Approve v{version.versionNumber}
       </Button>
     );
   } else if (status === "APPROVED") {
     buttons.push(
-      <Button key="next" type="button" disabled={statusUpdating} onClick={handlers.onMarkAired}>
+      <Button key="next" type="button" variant="accent" disabled={statusUpdating} onClick={handlers.onMarkAired}>
         <Radio aria-hidden />
         Mark as aired…
       </Button>

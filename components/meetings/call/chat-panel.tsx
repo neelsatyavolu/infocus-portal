@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Lock, MessageSquare, Send, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/kit/empty-state";
+import { Button } from "@/components/ui/button";
 import { MEETING_CHAT_MAX_CHARS } from "@/src/lib/meetings/client/chat-crypto";
 import { pacificTimeLabel } from "@/src/lib/meetings/client/time";
 import { cn } from "@/src/lib/utils";
@@ -34,12 +35,12 @@ function Message({ message, header }: { message: ChatEntry; header: boolean }) {
       )}
       <p
         className={cn(
-          "max-w-full whitespace-pre-wrap break-words rounded-md px-3 py-2 text-sm",
+          "max-w-full whitespace-pre-wrap break-words rounded-lg px-3 py-2 text-sm",
           unreadable
-            ? "flex items-center gap-1.5 text-muted-foreground outline outline-1 outline-[var(--ink-4)]"
+            ? "flex items-center gap-1.5 text-muted-foreground outline outline-1 outline-line-strong"
             : message.own
-              ? "bg-[var(--brand-green)]/10 text-foreground"
-              : "bg-[var(--ink-3)] text-foreground"
+              ? "bg-brand-tint text-foreground"
+              : "bg-secondary text-foreground"
         )}
       >
         {unreadable ? <ShieldAlert className="h-3.5 w-3.5 shrink-0" aria-hidden /> : null}
@@ -105,16 +106,11 @@ export function ChatPanel({
             }}
             rows={1}
             placeholder="Message everyone"
-            className="min-h-11 flex-1 resize-none rounded-md border border-input bg-transparent px-3 py-2.5 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]"
+            className="min-h-11 flex-1 resize-none rounded-md border border-input bg-card px-3 py-2.5 text-base text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30"
           />
-          <button
-            type="submit"
-            disabled={!draft.trim() || sending}
-            aria-label="Send message"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground hover:bg-[var(--brand-fill-hover)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ink-2)]"
-          >
+          <Button type="submit" size="icon" disabled={!draft.trim() || sending} aria-label="Send message" className="h-11 w-11 shrink-0">
             <Send className="h-4 w-4" />
-          </button>
+          </Button>
         </form>
       }
     >

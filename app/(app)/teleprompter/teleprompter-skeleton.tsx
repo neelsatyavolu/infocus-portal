@@ -2,7 +2,7 @@ import { LoadingRegion, Skeleton, SkeletonText } from "@/components/kit/skeleton
 
 function SectionSkeleton() {
   return (
-    <div className="border-t border-border first:border-t-0">
+    <div className="border-t border-line first:border-t-0">
       <div className="flex h-12 items-center gap-3 px-4">
         <Skeleton className="h-4 w-4" />
         <Skeleton className="h-3.5 w-6" />
@@ -20,8 +20,8 @@ function SectionSkeleton() {
 /** The Rundown column's placeholder (80rem of workspace width and up). */
 function RundownSkeleton() {
   return (
-    <div className="hidden border-l border-border @min-[80rem]/tp:block">
-      <div className="flex h-14 items-center border-b border-border px-3">
+    <div className="hidden border-l border-line @min-[80rem]/tp:block">
+      <div className="flex h-14 items-center border-b border-line px-3">
         <Skeleton className="h-3 w-20" />
       </div>
       <div className="py-1">
@@ -44,13 +44,13 @@ function RundownSkeleton() {
 export function TeleprompterWorkspaceSkeleton() {
   return (
     <LoadingRegion label="Loading scripts" className="@container/tp">
-      <div className="grid overflow-clip rounded-md border border-border bg-card @min-[56rem]/tp:grid-cols-[18rem_minmax(0,1fr)] @min-[80rem]/tp:grid-cols-[minmax(18rem,1fr)_minmax(0,50rem)_minmax(15rem,1fr)]">
-        <div className="hidden border-r border-border @min-[56rem]/tp:block">
-          <div className="flex h-14 items-center border-b border-border px-3">
+      <div className="grid overflow-clip rounded-lg border border-line-strong bg-card @min-[56rem]/tp:grid-cols-[18rem_minmax(0,1fr)] @min-[80rem]/tp:grid-cols-[minmax(18rem,1fr)_minmax(0,50rem)_minmax(15rem,1fr)]">
+        <div className="hidden border-r border-line @min-[56rem]/tp:block">
+          <div className="flex h-14 items-center border-b border-line px-3">
             <Skeleton className="h-3 w-20" />
           </div>
           {Array.from({ length: 6 }, (_, index) => (
-            <div key={index} className="flex min-h-14 items-center gap-3 border-b border-border px-3 py-2.5">
+            <div key={index} className="flex min-h-14 items-center gap-3 border-b border-line px-3 py-2.5">
               <div className="w-12 space-y-1.5">
                 <Skeleton className="h-2.5 w-7" />
                 <Skeleton className="h-3 w-10" />
@@ -63,7 +63,7 @@ export function TeleprompterWorkspaceSkeleton() {
           ))}
         </div>
         <div className="min-w-0">
-          <div className="flex min-h-16 items-center gap-3 border-b border-border px-4 py-2.5 @min-[56rem]/tp:hidden">
+          <div className="flex min-h-16 items-center gap-3 border-b border-line px-4 py-2.5 @min-[56rem]/tp:hidden">
             <div className="w-12 space-y-1.5">
               <Skeleton className="h-2.5 w-7" />
               <Skeleton className="h-3 w-10" />
@@ -73,7 +73,7 @@ export function TeleprompterWorkspaceSkeleton() {
               <Skeleton className="h-3 w-24" />
             </div>
           </div>
-          <div className="flex h-12 items-center gap-2 border-b border-border px-4 @min-[56rem]/tp:h-14">
+          <div className="flex h-12 items-center gap-2 border-b border-line px-4 @min-[56rem]/tp:h-14">
             <div className="min-w-0 flex-1 space-y-2">
               <Skeleton className="hidden h-4 w-56 max-w-full @min-[56rem]/tp:block" />
               <Skeleton className="h-3 w-40" />

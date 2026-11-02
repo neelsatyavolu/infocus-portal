@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import type { ComponentType } from "react";
 import { KeyRound, ShieldCheck, UserPlus } from "lucide-react";
-import { fieldLabelClass } from "@/components/kit/field";
 import { StatusTag } from "@/components/kit/status-tag";
 import { PageHeader } from "@/components/page-header";
 import { requireUserId, syncUserProfile } from "@/src/lib/auth";
@@ -42,16 +41,16 @@ function roleSummary(isProducer: boolean, roles: ManagerAreaId[]) {
 /** Always open for everyone: a plain section with a real h2, under the areas list. */
 function HowManagerRolesWork() {
   return (
-    <section aria-labelledby="how-managers-work" className="rounded-md border border-border bg-card p-4 sm:p-5">
-      <h2 id="how-managers-work" className={fieldLabelClass}>
+    <section aria-labelledby="how-managers-work" className="rounded-lg border border-line-strong bg-card p-4 sm:p-5">
+      <h2 id="how-managers-work" className="text-[18px] font-medium leading-snug tracking-[-0.015em] text-foreground">
         How manager roles work
       </h2>
       <ol className="mt-4 grid gap-4 md:grid-cols-3 md:gap-5">
         {HOW_IT_WORKS.map(({ icon: Icon, title, text }, index) => (
-          <li key={title} className={cn("flex gap-3", index > 0 && "md:border-l md:border-border md:pl-5")}>
+          <li key={title} className={cn("flex gap-3", index > 0 && "md:border-l md:border-line md:pl-5")}>
             <Icon className="mt-0.5 h-4 w-4 shrink-0 text-[var(--brand-green)]" aria-hidden />
             <div>
-              <p className="text-sm font-semibold text-foreground">{title}</p>
+              <p className="text-sm font-medium text-foreground">{title}</p>
               <p className="mt-1 text-sm leading-relaxed text-[var(--ink-text)]">{text}</p>
             </div>
           </li>
@@ -95,9 +94,9 @@ export default async function ManagersPage() {
         <h2 id="manager-areas" className="sr-only">
           Areas
         </h2>
-        <div className="overflow-hidden rounded-md border border-border bg-card">
+        <div className="overflow-hidden rounded-lg border border-line-strong bg-card">
           <ManagerAreaColumns />
-          <ul className="divide-y divide-border">
+          <ul className="divide-y divide-line">
             {ordered.map((area) => (
               <ManagerAreaRow key={area.id} area={area} people={rosters[area.id]} yours={roles.includes(area.id)} />
             ))}

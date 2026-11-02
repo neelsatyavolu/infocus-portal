@@ -48,7 +48,7 @@ export function WeekSwitcher({
           value={weekIndex}
           disabled={empty}
           onChange={(event) => onWeekIndex(Number(event.target.value))}
-          className="h-full w-full min-w-0 appearance-none truncate rounded-none border border-input bg-transparent pl-3 pr-8 text-base text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm [&>option]:bg-popover [&>option]:text-popover-foreground"
+          className="h-full w-full min-w-0 appearance-none truncate rounded-none border border-input bg-card pl-3 pr-8 text-base text-foreground transition-colors duration-150 ease-[var(--ease-ui)] focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm [&>option]:bg-popover [&>option]:text-popover-foreground"
         >
           {empty ? <option value={0}>No weeks yet</option> : null}
           {weeks.map((entry, index) => (

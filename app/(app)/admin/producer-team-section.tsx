@@ -137,7 +137,7 @@ export function ProducerTeamSection({
     <section
       id="producer-team"
       aria-labelledby="producer-team-title"
-      className={cn("@container min-w-0 scroll-mt-24 rounded-md border border-border bg-card", className)}
+      className={cn("@container min-w-0 scroll-mt-24 rounded-lg border border-line-strong bg-card", className)}
     >
       <PanelHeader
         titleAs="h2"
@@ -145,13 +145,13 @@ export function ProducerTeamSection({
         title="Producer Team"
         count={roles.length}
         description="Producer roles for people in People. Add them to People first if they're missing."
-        className="border-b border-border px-4 py-3 md:px-5"
+        className="border-b border-line px-4 py-3 md:px-5"
       />
 
       {canManage ? (
         <form
           onSubmit={upsertRole}
-          className="grid gap-2 border-b border-border px-4 py-4 md:px-5 @lg:grid-cols-[minmax(0,1fr)_12rem_auto] @lg:items-center"
+          className="grid gap-2 border-b border-line px-4 py-4 md:px-5 @lg:grid-cols-[minmax(0,1fr)_12rem_auto] @lg:items-center"
         >
           <NativeSelect value={email} onChange={(event) => setEmail(event.target.value)} aria-label="Person">
             <option value="">Choose a person</option>
@@ -174,7 +174,7 @@ export function ProducerTeamSection({
           </p>
         </form>
       ) : (
-        <p className="flex items-center gap-2 border-b border-border px-4 py-3 text-[13px] text-muted-foreground md:px-5">
+        <p className="flex items-center gap-2 border-b border-line px-4 py-3 text-[13px] text-muted-foreground md:px-5">
           <UserCog className="h-4 w-4 shrink-0" aria-hidden="true" />
           Only the super admin or the adviser can add or remove producer roles.
         </p>
@@ -183,7 +183,7 @@ export function ProducerTeamSection({
       {groups.length === 0 ? (
         <p className="px-4 py-4 text-sm text-muted-foreground md:px-5">No producer roles assigned yet.</p>
       ) : (
-        <div className="divide-y divide-border">
+        <div className="divide-y divide-line">
           {groups.map((group) => (
             <div key={group.role} className="px-4 pb-1 pt-3 md:px-5">
               <SectionLabel as="h3" count={group.entries.length}>

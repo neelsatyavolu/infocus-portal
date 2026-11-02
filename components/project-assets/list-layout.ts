@@ -28,7 +28,7 @@ export const PHONE_ONLY = "@min-[36rem]:hidden";
 
 export const LIST_ROW = "flex min-h-14 items-center gap-3 px-3 py-2 @max-[36rem]:min-h-[4.5rem]";
 
-export const LIST_SHELL = "@container min-w-0 overflow-hidden rounded-md border border-border bg-card";
+export const LIST_SHELL = "@container min-w-0 overflow-hidden rounded-lg border border-line-strong bg-card";
 
 /**
  * In List view the toolbar's and selection bar's select-all box (the same 40px box as the rows')

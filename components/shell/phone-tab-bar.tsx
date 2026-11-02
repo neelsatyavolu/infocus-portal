@@ -8,7 +8,7 @@ import { isNavItemActive, navIconFor } from "@/components/shell/nav-items";
 import { TabSignal } from "@/components/shell/nav-signal";
 
 const TAB_CLASS =
-  "flex h-[3.75rem] min-w-0 flex-1 flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring";
+  "flex h-[3.75rem] min-w-0 flex-1 flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors duration-150 ease-[var(--ease-ui)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50";
 
 /**
  * The phone and tablet tab bar (below 1024px): the person's first four tabs plus More, which
@@ -40,7 +40,7 @@ export function PhoneTabBar({
   return (
     <nav
       aria-label="Main tabs"
-      className="fixed inset-x-0 bottom-0 z-40 flex border-t border-border bg-[var(--ink)] pb-[env(safe-area-inset-bottom)] lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-background pb-[env(safe-area-inset-bottom)] lg:hidden"
     >
       {tabs.map((tab) => {
         const Icon = navIconFor(tab.id, isProducer);
@@ -59,7 +59,7 @@ export function PhoneTabBar({
             </span>
             <span className="max-w-full truncate px-1">{tab.label}</span>
             {signal ? <span className="sr-only">{signal.label}</span> : null}
-            <span aria-hidden className={cn("h-0.5 w-4", active ? "bg-[var(--brand-green)]" : "bg-transparent")} />
+            <span aria-hidden className={cn("h-px w-4", active ? "bg-[var(--brand-green)]" : "bg-transparent")} />
           </Link>
         );
       })}
@@ -78,7 +78,7 @@ export function PhoneTabBar({
           ) : null}
         </span>
         More
-        <span aria-hidden className="h-0.5 w-4" />
+        <span aria-hidden className="h-px w-4" />
       </button>
     </nav>
   );

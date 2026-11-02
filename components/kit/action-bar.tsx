@@ -62,7 +62,7 @@ export function ActionBar({
 
 /** A short vertical hairline between groups of controls in an ActionBar or Toolbar. */
 export function ActionBarDivider({ className }: { className?: string }) {
-  return <span aria-hidden className={cn("h-5! w-px shrink-0 self-center bg-border", className)} />;
+  return <span aria-hidden className={cn("h-5! w-px shrink-0 self-center bg-line-strong", className)} />;
 }
 
 /**

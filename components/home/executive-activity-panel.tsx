@@ -13,7 +13,7 @@ export function ExecutiveActivityPanel({ entries, now, className }: { entries: A
       ) : entries.length === 0 ? (
         <EmptyLine>Nothing yet this cycle.</EmptyLine>
       ) : (
-        <ul aria-label="Recent class activity" className="divide-y divide-border">
+        <ul aria-label="Recent class activity" className="divide-y divide-line">
           {entries.map((entry) => (
             <ListRow
               key={entry.key}

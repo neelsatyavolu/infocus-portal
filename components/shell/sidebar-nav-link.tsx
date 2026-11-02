@@ -35,12 +35,12 @@ export function SidebarNavLink({
 }) {
   const line = signal?.line;
   const className = cn(
-    "relative flex w-full flex-col justify-center rounded-md px-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+    "relative flex w-full flex-col justify-center rounded-md px-2.5 text-sm font-medium transition-colors duration-150 ease-[var(--ease-ui)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30",
     line ? "min-h-10 gap-0.5 py-1.5 lg:min-h-9" : "h-10 lg:h-9",
     rail && "lg:h-9 lg:min-h-0 lg:items-center lg:px-0 lg:py-0",
     active
-      ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
-      : "text-muted-foreground hover:bg-[var(--ink-3)] hover:text-foreground"
+      ? "bg-secondary text-foreground [&>span:first-child>span:first-child>svg]:text-brand-green"
+      : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
   );
 
   const body = (
@@ -62,12 +62,10 @@ export function SidebarNavLink({
       </span>
       {line ? (
         <span className={cn("flex min-w-0 items-center gap-2 pl-[1.625rem] text-xs font-normal", rail && "lg:hidden")}>
-          <span className={cn("min-w-0 truncate", active ? "text-[var(--on-brand)] opacity-85" : "text-muted-foreground")}>
+          <span className={cn("min-w-0 truncate", "text-muted-foreground")}>
             {line.stageLabel}
           </span>
-          {/* Tinted tags would sit on the green fill of the active item: give them the sidebar's
-              own surface so warning text keeps its contrast (DESIGN §10: no small color on green). */}
-          <span className={cn("inline-flex shrink-0 rounded-sm", active && "bg-[var(--ink)]")}>
+          <span className="inline-flex shrink-0 rounded-full">
             <StatusTag tone={line.tag.tone}>
               {line.tag.label}
             </StatusTag>

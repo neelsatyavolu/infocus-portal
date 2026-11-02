@@ -12,10 +12,10 @@ import { PasswordSignInForm } from "./password-sign-in-form";
 
 function OrDivider() {
   return (
-    <div className="flex items-center gap-3 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">
-      <span aria-hidden className="h-px flex-1 bg-border" />
+    <div className="flex items-center gap-3 text-[13px] text-muted-foreground">
+      <span aria-hidden className="h-px flex-1 bg-line" />
       or
-      <span aria-hidden className="h-px flex-1 bg-border" />
+      <span aria-hidden className="h-px flex-1 bg-line" />
     </div>
   );
 }

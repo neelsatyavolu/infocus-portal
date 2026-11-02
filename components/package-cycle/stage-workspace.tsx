@@ -188,7 +188,8 @@ export function StageWorkspace({
   const uploadButton = canUpload ? (
     <Button
       type="button"
-      variant={embedded ? "outline" : "default"}
+      // The student page's one key action (submitting a cut) is the brand accent.
+      variant={embedded ? "outline" : "accent"}
       disabled={upload.uploading}
       onClick={upload.openUpload}
       className={TOUCH}
@@ -359,7 +360,7 @@ export function StageWorkspace({
             key: "open-review",
             dock: true,
             node: (
-              <Link href={latestReviewHref as never} className={cn(buttonVariants(), "px-5 font-semibold max-lg:px-3")}>
+              <Link href={latestReviewHref as never} className={cn(buttonVariants(), "px-5 max-lg:px-3")}>
                 <Play aria-hidden />
                 {`Open review · v${latestCut.versionNumber}`}
               </Link>

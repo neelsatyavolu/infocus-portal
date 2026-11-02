@@ -8,7 +8,7 @@ import { cn } from "@/src/lib/utils";
 
 /** Same box as Input and SelectTrigger (h-9, 3:1 control border, transparent fill, 2px focus ring). */
 const TRIGGER_CLASS =
-  "flex h-9 w-full items-center justify-between gap-2 whitespace-nowrap rounded-md border border-input bg-transparent px-3 text-left text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
+  "flex h-9 w-full items-center justify-between gap-2 whitespace-nowrap rounded-md border border-input bg-card px-3 text-left text-sm text-foreground transition-colors duration-150 ease-[var(--ease-ui)] focus:outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50";
 
 type Choice = { name: string; label: string; disabled: boolean };
 
@@ -124,9 +124,9 @@ export function NamePicker({
           align="start"
           sideOffset={4}
           collisionPadding={8}
-          className="z-50 w-[var(--radix-popover-trigger-width)] min-w-[12rem] max-w-[calc(100vw-1rem)] rounded-md border border-border bg-popover p-1 text-popover-foreground"
+          className="z-50 w-[var(--radix-popover-trigger-width)] min-w-[12rem] max-w-[calc(100vw-1rem)] rounded-lg border border-line-strong bg-popover p-1 text-popover-foreground"
         >
-          <div className="flex items-center gap-2 border-b border-border px-2 pb-1 focus-within:border-ring">
+          <div className="flex items-center gap-2 border-b border-line px-2 pb-1 focus-within:border-ring">
             <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
             <input
               autoFocus
@@ -160,7 +160,7 @@ export function NamePicker({
                   }}
                   onClick={() => pick(choice)}
                   className={cn(
-                    "relative flex min-h-9 w-full cursor-default select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm",
+                    "relative flex min-h-9 w-full cursor-default select-none items-center rounded-md py-1.5 pl-2 pr-8 text-sm",
                     index === activeIndex && "bg-[var(--ink-3)] text-foreground",
                     choice.disabled && "pointer-events-none opacity-50"
                   )}

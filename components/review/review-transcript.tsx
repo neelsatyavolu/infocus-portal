@@ -53,7 +53,7 @@ export function ReviewTranscript({
   return (
     <div className="space-y-2">
       <div className="flex min-h-8 items-center gap-2">
-        <p className="text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">Transcript · {label}</p>
+        <p className="text-[13px] font-medium text-muted-foreground">Transcript · {label}</p>
         <span className="flex-1" />
         <Button
           type="button"
@@ -75,13 +75,13 @@ export function ReviewTranscript({
               <button
                 type="button"
                 onClick={() => onSeek(segment.start)}
-                className="grid w-full grid-cols-[4.25rem_minmax(0,1fr)] gap-2 rounded-md px-1 py-1.5 text-left transition-colors hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="grid w-full grid-cols-[4.25rem_minmax(0,1fr)] gap-2 rounded-md px-1 py-1.5 text-left transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)]/60 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30"
                 title="Jump to this moment"
               >
-                <span className="pt-px font-mono-broadcast text-xs tabular-nums text-[var(--brand-green)]">
+                <span className="pt-px font-mono text-xs tabular-nums text-brand-green">
                   {formatTimecode(segment.start)}
                 </span>
-                <span className="text-sm text-foreground">{segment.text}</span>
+                <span className="text-sm text-[var(--ink-text)]">{segment.text}</span>
               </button>
             </li>
           ))}

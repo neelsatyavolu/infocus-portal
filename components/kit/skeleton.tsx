@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/src/lib/utils";
 
 /**
- * Loading placeholders shaped like the real page (DESIGN.md §10: Ink 3 blocks, pulsing opacity,
+ * Loading placeholders shaped like the real page (elevated blocks, pulsing opacity,
  * still under reduced motion). Use them in route loading.tsx files and in-page loads so nothing
  * jumps when data arrives. Wrap a whole loading view in <LoadingRegion>.
  */
@@ -11,7 +11,7 @@ export function Skeleton({ className, aspect }: { className?: string; aspect?: "
     <span
       aria-hidden
       className={cn(
-        "block rounded-sm bg-[var(--ink-3)] motion-safe:animate-pulse",
+        "block rounded-sm bg-secondary motion-safe:animate-pulse",
         aspect === "16/9" && "aspect-video w-full",
         aspect === "9/16" && "aspect-[9/16] w-full",
         aspect === "4/5" && "aspect-[4/5] w-full",
@@ -44,13 +44,13 @@ export function SkeletonText({ lines = 3, widths, className }: { lines?: number;
   );
 }
 
-/** The PageHeader plate: eyebrow, title, one line, and action blocks on the right. */
+/** The PageHeader: eyebrow, title, one line, and action blocks on the right. */
 export function PageHeaderSkeleton({ actions = 1, className }: { actions?: number; className?: string }) {
   return (
-    <div aria-hidden className={cn("brand-hero-panel flex flex-wrap items-end gap-x-6 gap-y-4 px-4 py-5 md:px-6", className)}>
+    <div aria-hidden className={cn("flex flex-wrap items-end gap-x-6 gap-y-4 pb-2 pt-1", className)}>
       <div className="min-w-0 flex-[1_1_320px] space-y-2.5">
         <Skeleton className="h-3 w-28" />
-        <Skeleton className="h-7 w-64 max-w-full" />
+        <Skeleton className="h-10 w-72 max-w-full" />
         <Skeleton className="h-4 w-96 max-w-full" />
       </div>
       {actions > 0 ? (
@@ -82,7 +82,7 @@ export function ToolbarSkeleton({ start = 3, end = 1 }: { start?: number; end?: 
 /** A Panel with a header line and `rows` rows. */
 export function PanelSkeleton({ rows = 3, className }: { rows?: number; className?: string }) {
   return (
-    <div aria-hidden className={cn("rounded-md border border-border bg-card p-4 md:p-5", className)}>
+    <div aria-hidden className={cn("rounded-lg border border-line-strong bg-card p-4 md:p-5", className)}>
       <div className="flex min-h-8 items-center justify-between gap-3">
         <Skeleton className="h-4 w-40" />
         <Skeleton className="h-8 w-20 rounded-md" />
@@ -112,7 +112,7 @@ export function CardGridSkeleton({
   return (
     <div aria-hidden className={className}>
       {Array.from({ length: count }, (_, index) => (
-        <span key={index} className={cn("block rounded-md border border-border bg-card motion-safe:animate-pulse", itemClassName)} />
+        <span key={index} className={cn("block rounded-lg border border-line-strong bg-card motion-safe:animate-pulse", itemClassName)} />
       ))}
     </div>
   );
@@ -121,7 +121,7 @@ export function CardGridSkeleton({
 /** List rows inside a bordered card (inbox, queues, people). */
 export function ListSkeleton({ rows = 6, leading = true, lines = 2, className }: { rows?: number; leading?: boolean; lines?: 1 | 2; className?: string }) {
   return (
-    <div aria-hidden className={cn("divide-y divide-border overflow-hidden rounded-md border border-border bg-card", className)}>
+    <div aria-hidden className={cn("divide-y divide-line overflow-hidden rounded-lg border border-line-strong bg-card", className)}>
       {Array.from({ length: rows }, (_, index) => (
         <div key={index} className="flex min-h-14 items-center gap-3 px-4 py-2.5">
           {leading ? <Skeleton className="h-8 w-8 shrink-0 rounded-md" /> : null}
@@ -147,8 +147,8 @@ export function TableSkeleton({
   className?: string;
 }) {
   return (
-    <div aria-hidden className={cn("overflow-hidden rounded-md border border-border bg-card", className)}>
-      <div className="flex h-10 items-center gap-4 border-b border-border px-3">
+    <div aria-hidden className={cn("overflow-hidden rounded-lg border border-line-strong bg-card", className)}>
+      <div className="flex h-10 items-center gap-4 border-b border-line px-3">
         {columns.map((_, index) => (
           <span key={index} className="flex-1">
             <Skeleton className="h-2.5 w-16" />
@@ -156,7 +156,7 @@ export function TableSkeleton({
         ))}
       </div>
       {Array.from({ length: rows }, (_, row) => (
-        <div key={row} className="flex h-12 items-center gap-4 border-b border-border px-3 last:border-b-0">
+        <div key={row} className="flex h-12 items-center gap-4 border-b border-line px-3 last:border-b-0">
           {columns.map((width, index) => (
             <span key={index} className="flex-1">
               <Skeleton className={cn("h-3.5", width)} />
@@ -168,12 +168,13 @@ export function TableSkeleton({
   );
 }
 
-/** The SegmentNav / stage bar: `count` cells with the top rule. */
+/** The SegmentNav / stage bar: `count` card cells with the stage bar on top. */
 export function SegmentNavSkeleton({ count = 4 }: { count?: number }) {
   return (
     <div aria-hidden className="grid grid-cols-2 gap-2 sm:flex">
       {Array.from({ length: count }, (_, index) => (
-        <div key={index} className="min-h-[3.75rem] flex-1 space-y-2 border-t-4 border-t-[var(--ink-4)] px-3 pt-2">
+        <div key={index} className="min-h-[3.75rem] flex-1 space-y-2 rounded-lg border border-line-strong bg-card px-3 pb-2.5 pt-2.5">
+          <span className="block h-0.5 w-full rounded-full bg-[var(--ink-4)]" />
           <Skeleton className="h-3.5 w-24" />
           <Skeleton className="h-4 w-16" />
         </div>

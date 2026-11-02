@@ -66,7 +66,7 @@ export function DocLinkField({
         <h3 className="shrink-0">
           <label
             htmlFor={inputId}
-            className="text-[11px] font-medium uppercase leading-tight tracking-[0.11em] text-muted-foreground"
+            className="text-[13px] font-medium leading-tight text-muted-foreground"
           >
             Brainstorm Google Doc
           </label>

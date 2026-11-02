@@ -37,9 +37,8 @@ function NameCell({ row }: { row: CompletionRow }) {
   );
 }
 
-/** Shaded segments: hours from livestreams someone is signed up for that haven't happened yet. */
-const SCHEDULED_FILL =
-  "bg-[var(--brand-green)]/25 bg-[repeating-linear-gradient(135deg,transparent_0_3px,rgb(0_0_0/0.18)_3px_6px)]";
+/** Lighter segments: hours from livestreams someone is signed up for that haven't happened yet. */
+const SCHEDULED_FILL = "bg-[var(--brand-fill)]/30";
 
 function scheduledLabel(row: CompletionRow) {
   const hours = row.scheduledHours ?? 0;

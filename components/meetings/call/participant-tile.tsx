@@ -100,15 +100,15 @@ export function ParticipantTile({
       aria-label={label}
       className={cn(
         // Camera tiles follow the theme; screens sit on dark like a video player (letterboxing).
-        "group relative h-full w-full overflow-hidden rounded-md",
-        isScreen ? "bg-[#0F110F]" : "bg-[var(--ink-2)]",
+        "group relative h-full w-full overflow-hidden rounded-lg",
+        isScreen ? "bg-black" : "bg-card",
         // Outline, not border: the speaker ring never shifts the layout.
         // Speaking (green) wins over a raised hand (amber); the amber hand badge stays visible either way.
         speaking && !isScreen
-          ? "outline outline-2 outline-[var(--brand-green)]"
+          ? "outline outline-2 outline-brand-green"
           : handPosition
             ? "outline outline-2 outline-[#F2A516]"
-            : "outline outline-1 outline-[var(--ink-4)]"
+            : "outline outline-1 outline-line-strong"
       )}
     >
       {failing ? (
@@ -136,12 +136,12 @@ export function ParticipantTile({
         onClick={onTogglePin}
         aria-label={pinned ? `Unpin ${label}` : `Pin ${label}`}
         className={cn(
-          "absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-[6px] transition-opacity focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]",
+          "absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-md transition-opacity duration-150 ease-[var(--ease-ui)] focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/45",
           // Touch screens have no hover: keep the pin reachable; hover devices reveal it on hover.
           pinned ? "opacity-100" : "opacity-70 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100"
         )}
       >
-        <span className="flex h-8 w-8 items-center justify-center rounded-[6px] bg-[#0F110F]/60 text-[var(--soft-white)]">
+        <span className="flex h-8 w-8 items-center justify-center rounded-md bg-black/60 text-[var(--soft-white)]">
           {pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
         </span>
       </button>
@@ -155,7 +155,7 @@ export function OverflowTile({ count, onClick }: { count: number; onClick: () =>
       type="button"
       onClick={onClick}
       aria-label={`${count} more people. Open the people list.`}
-      className="flex h-full w-full items-center justify-center rounded-md bg-[var(--ink-2)] font-mono text-2xl tabular-nums text-foreground outline outline-1 outline-[var(--ink-4)] hover:bg-[var(--ink-3)] focus-visible:outline-2 focus-visible:outline-[var(--brand-green)]"
+      className="flex h-full w-full items-center justify-center rounded-lg bg-card font-mono text-2xl tabular-nums text-foreground outline outline-1 outline-line-strong transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-secondary focus-visible:outline-2 focus-visible:outline-ring"
     >
       +{count}
     </button>

@@ -11,20 +11,20 @@ export function List({
   children,
   "aria-label": ariaLabel
 }: {
-  /** Caps label row above the rows, inside the card. */
+  /** Muted label row above the rows, inside the card. */
   label?: ReactNode;
   className?: string;
   children: ReactNode;
   "aria-label"?: string;
 }) {
   return (
-    <div className={cn("min-w-0 overflow-hidden rounded-md border border-border bg-card", className)}>
+    <div className={cn("min-w-0 overflow-hidden rounded-lg border border-line-strong bg-card", className)}>
       {label ? (
-        <div className="border-b border-border px-4 py-2 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">
+        <div className="border-b border-line px-4 py-2 text-[13px] font-medium text-muted-foreground">
           {label}
         </div>
       ) : null}
-      <ul aria-label={ariaLabel} className="divide-y divide-border">
+      <ul aria-label={ariaLabel} className="divide-y divide-line">
         {children}
       </ul>
     </div>
@@ -35,7 +35,7 @@ export function List({
  * The standard tappable row: leading tile, title with inline tags and a right meta on line 1,
  * a muted subtitle on line 2, and a trailing slot (tag, count, chevron, h-8 action). 56px tall
  * (64px with `size="lg"`). Renders a link (`href`), a button (`onClick`) or a plain row.
- * `active` = the selected row in a list/detail (Ink 3 fill and a 3px green bar).
+ * `active` = the selected row in a list/detail (brand tint and a 2px brand bar).
  * Put it inside <List> or any <ul>; it renders its own <li>.
  */
 export function ListRow({
@@ -133,8 +133,8 @@ export function ListRow({
     <li
       className={cn(
         "relative flex min-w-0 items-center",
-        interactive && "transition-colors hover:bg-[var(--ink-3)]",
-        active && "bg-[var(--ink-3)] before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-[var(--brand-green)]",
+        interactive && "transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)]",
+        active && "bg-brand-tint before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:bg-[var(--brand-green)]",
         className
       )}
     >
@@ -149,7 +149,7 @@ export function NavList({ label, className, children }: { label?: ReactNode; cla
   return (
     <nav aria-label={typeof label === "string" ? label : undefined} className={cn("min-w-0", className)}>
       {label ? (
-        <p className="px-2.5 pb-1.5 pt-3 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">{label}</p>
+        <p className="px-2.5 pb-1.5 pt-3 text-xs font-medium text-muted-foreground">{label}</p>
       ) : null}
       <ul className="space-y-0.5">{children}</ul>
     </nav>
@@ -179,8 +179,10 @@ export function NavListItem({
   title?: string;
 }) {
   const className = cn(
-    "flex h-9 w-full min-w-0 items-center gap-2.5 rounded-md pr-2.5 text-left text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&>svg]:size-4 [&>svg]:shrink-0",
-    active ? "bg-[var(--brand-fill)] text-[var(--on-brand)]" : "text-muted-foreground hover:bg-[var(--ink-3)] hover:text-foreground"
+    "flex h-9 w-full min-w-0 items-center gap-2.5 rounded-md pr-2.5 text-left text-[13px] font-medium transition-colors duration-150 ease-[var(--ease-ui)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/45 [&>svg]:size-4 [&>svg]:shrink-0",
+    active
+      ? "bg-secondary text-foreground [&>svg]:text-brand-green"
+      : "text-muted-foreground hover:bg-[var(--ink-3)]/60 hover:text-foreground"
   );
   const style = { paddingLeft: `${0.625 + depth * 0.875}rem` };
   const body = (

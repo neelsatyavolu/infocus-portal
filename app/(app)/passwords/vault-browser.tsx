@@ -94,7 +94,7 @@ export function revealVaultEntry(entryId: string) {
  */
 export function VaultBrowser(props: BrowserProps) {
   return (
-    <div className="overflow-clip rounded-md border border-border bg-card">
+    <div className="overflow-clip rounded-lg border border-line-strong bg-card">
       {props.layout === "accordion" ? <AccordionLayout {...props} /> : <SplitLayout {...props} />}
     </div>
   );
@@ -135,8 +135,8 @@ function SplitLayout({ access, layout, filters, canShare, selectedId, onSelect, 
     // h-8 chips row, plus its 1px rule). The detail header beside it takes the same height, so
     // their rules line up; on touch (or below lg) its website link is 40px, hence the taller value.
     <div className="grid grid-cols-[22rem_minmax(0,1fr)] [--vault-toolbar-h:6.75rem] lg:pointer-fine:[--vault-toolbar-h:6.3125rem]">
-      <div className="min-w-0 border-r border-border">
-        <div className="sticky top-[var(--app-header-h,0px)] z-10 flex min-h-[var(--vault-toolbar-h)] flex-col justify-center gap-2 border-b border-border bg-card p-3">
+      <div className="min-w-0 border-r border-line">
+        <div className="sticky top-[var(--app-header-h,0px)] z-10 flex min-h-[var(--vault-toolbar-h)] flex-col justify-center gap-2 border-b border-line bg-card p-3">
           <VaultSearch
             value={filters.query}
             onChange={filters.setQuery}
@@ -193,10 +193,10 @@ function AccordionLayout({ access, filters, canShare, selectedId, onSelect, vers
     // Only the search sticks (p-3 around an h-10 / md:h-9 field, plus its 1px rule), so a
     // phone keeps room for an open login; the chips and count scroll away with the list.
     <div className="[--vault-toolbar-h:4.0625rem] md:[--vault-toolbar-h:3.8125rem]">
-      <div className="sticky top-[var(--app-header-h,0px)] z-10 border-b border-border bg-card p-3">
+      <div className="sticky top-[var(--app-header-h,0px)] z-10 border-b border-line bg-card p-3">
         <VaultSearch value={filters.query} onChange={filters.setQuery} size="touch" onKeyDown={onSearchKeyDown} />
       </div>
-      <div className="flex min-h-12 min-w-0 items-center gap-3 border-b border-border px-3 py-1">
+      <div className="flex min-h-12 min-w-0 items-center gap-3 border-b border-line px-3 py-1">
         <FilterAndCount filters={filters} canShare={canShare} size="touch" />
       </div>
       {filters.visible.length ? (

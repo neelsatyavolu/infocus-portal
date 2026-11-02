@@ -269,7 +269,7 @@ export default function EquipmentCheckoutClient() {
           className={`lg:hidden ${ABOVE_PHONE_TABBAR}`}
           status={status ? <StatusLine status={status} /> : `${itemCountLabel(barcodes.length)} listed · up to 50`}
         >
-          <Button type="submit" form={FORM_ID} disabled={busy || submitCount === 0}>
+          <Button type="submit" variant="accent" form={FORM_ID} disabled={busy || submitCount === 0}>
             {submitLabel(busy, submitCount)}
           </Button>
         </StickyActionBar>

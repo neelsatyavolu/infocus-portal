@@ -44,7 +44,7 @@ function PeriodStepper({ scoreboard, dispatch }: Omit<CardProps, "now">) {
       >
         <ChevronLeft aria-hidden />
       </Button>
-      <span className="min-w-10 text-center text-2xl font-semibold sm:min-w-12">{periodLabel(scoreboard)}</span>
+      <span className="min-w-10 text-center text-2xl font-medium tabular-nums sm:min-w-12">{periodLabel(scoreboard)}</span>
       <Button
         type="button"
         variant="outline"
@@ -129,7 +129,7 @@ export function ClockCard({
               maxLength={24}
               placeholder="2nd half"
               onChange={(event) => dispatch({ type: "periodLabel", value: event.target.value })}
-              className="h-14 w-32 text-lg font-semibold md:w-40 md:text-lg"
+              className="h-14 w-32 text-lg font-medium md:w-40 md:text-lg"
             />
           ) : (
             <PeriodStepper scoreboard={scoreboard} dispatch={dispatch} />
@@ -151,8 +151,9 @@ export function ClockCard({
           >
             <Button
               type="button"
+              variant={running ? "outline" : "accent"}
               onClick={() => dispatch({ type: "clockToggle" })}
-              className={cn("h-11 w-36 shrink-0 text-base font-semibold md:h-14 md:w-40", running && KEY_CLASS)}
+              className={cn("h-11 w-36 shrink-0 text-base font-medium md:h-14 md:w-40", running && KEY_CLASS)}
               disabled={!running && countingDown && ms <= 0}
             >
               {running ? "Stop clock" : "Start clock"}

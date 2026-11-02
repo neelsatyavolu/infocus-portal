@@ -47,7 +47,7 @@ function SessionAvatar({
         title={decorative ? undefined : label}
         width={36}
         height={36}
-        className={cn("h-9 w-9 shrink-0 rounded-full border border-border object-cover", className)}
+        className={cn("h-9 w-9 shrink-0 rounded-full border border-line-strong object-cover", className)}
         referrerPolicy="no-referrer"
       />
     );
@@ -58,7 +58,7 @@ function SessionAvatar({
       title={decorative ? undefined : label}
       aria-hidden={decorative || undefined}
       className={cn(
-        "h-9 w-9 shrink-0 place-items-center rounded-full border border-border bg-card text-[13px] font-semibold text-muted-foreground",
+        "h-9 w-9 shrink-0 place-items-center rounded-full border border-line-strong bg-card text-[13px] font-medium text-muted-foreground",
         className ?? "grid"
       )}
     >
@@ -126,7 +126,7 @@ export async function MenuAccount() {
   const secondary = session.name && session.email ? session.email : null;
 
   return (
-    <div className="mt-2 space-y-3 border-t border-border pt-4 sm:hidden">
+    <div className="mt-2 space-y-3 border-t border-line pt-4 sm:hidden">
       <div className="flex min-w-0 items-center gap-3">
         <SessionAvatar person={session} decorative />
         <div className="min-w-0">

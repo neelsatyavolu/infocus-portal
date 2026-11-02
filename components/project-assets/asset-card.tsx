@@ -199,7 +199,7 @@ export function SelectBox({
       aria-label={`Select ${title}`}
       title={selected ? "Selected" : "Select"}
       className={cn(
-        "relative grid h-7 w-7 place-items-center rounded-sm bg-black/60 transition-opacity after:absolute after:-inset-1.5 after:content-[''] hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "relative grid h-7 w-7 place-items-center rounded-md bg-black/60 transition-opacity duration-150 ease-[var(--ease-ui)] after:absolute after:-inset-1.5 after:content-[''] hover:bg-black/80 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/45",
         selected ? "opacity-100" : "opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100",
         className
       )}
@@ -234,7 +234,7 @@ export function CommentCount({ count, className }: { count: number; className?: 
 
 /** The title link on a card or row: a real link, with a focus ring. */
 export const TITLE_LINK =
-  "rounded-sm text-sm font-semibold leading-5 text-foreground outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring";
+  "rounded-sm text-[15px] font-medium leading-5 tracking-[-0.005em] text-foreground outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/30";
 
 /**
  * An asset in the grid. Equal height in its row: thumbnail, then title + ⋯, a status slot (one
@@ -271,12 +271,12 @@ export const AssetCard = memo(function AssetCard({
         if (shouldOpenReview(event)) actions.openReview(item.reviewHref);
       }}
       className={cn(
-        "group relative flex h-full min-w-0 cursor-pointer flex-col overflow-hidden rounded-md border bg-card transition",
+        "group relative flex h-full min-w-0 cursor-pointer flex-col overflow-hidden rounded-lg border bg-card transition-[border-color,background-color,opacity,transform] duration-150 ease-[var(--ease-ui)]",
         dragging
           ? "scale-[0.985] border-[var(--brand-green)]/50 opacity-60"
           : selected
-            ? "border-[var(--brand-green)] bg-[var(--brand-green)]/[0.06]"
-            : "border-border hover:border-[var(--ink-4)]"
+            ? "border-[var(--brand-green)] bg-brand-tint"
+            : "border-line-strong hover:border-[var(--ink-4)]"
       )}
     >
       <AssetThumb

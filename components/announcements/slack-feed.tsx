@@ -84,7 +84,7 @@ function AuthorAvatar({ item }: { item: SlackAnnouncementItem }) {
           className={cn(size, "shrink-0 rounded-full object-cover")}
         />
       ) : (
-        <div className={cn(size, "grid shrink-0 place-items-center rounded-full av-gray text-[11px] font-bold")}>
+        <div className={cn(size, "grid shrink-0 place-items-center rounded-full av-gray text-[11px] font-medium")}>
           {initials(item.authorName)}
         </div>
       )}
@@ -126,7 +126,7 @@ function AnnouncementBody({ item }: { item: SlackAnnouncementItem }) {
                 href={`/api/slack/files/${file.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-10 min-w-0 items-center gap-3 rounded-md border border-border px-3 text-sm text-foreground transition-colors hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:h-11"
+                className="flex h-10 min-w-0 items-center gap-3 rounded-md border border-line-strong bg-card px-3 text-sm text-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:h-11"
               >
                 <FileText className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
                 <span className="min-w-0 flex-1 truncate font-medium">{file.title}</span>
@@ -155,7 +155,7 @@ function SlackPost({ item }: { item: SlackAnnouncementItem }) {
       <AuthorAvatar item={item} />
       <div className="min-w-0">
         <div className="flex min-h-8 min-w-0 items-center gap-2 sm:min-h-9 pointer-coarse:min-h-10">
-          <span className="min-w-0 truncate text-sm font-semibold text-foreground">{item.authorName}</span>
+          <span className="min-w-0 truncate text-sm font-medium text-foreground">{item.authorName}</span>
           <time
             dateTime={item.postedAt}
             className="shrink-0 font-mono-broadcast text-xs tabular-nums text-muted-foreground"
@@ -211,7 +211,7 @@ export function SlackFeed({ days }: { days: FeedDay[] }) {
           >
             {day.label}
           </SectionLabel>
-          <ol className="divide-y divide-border rounded-md border border-border bg-card">
+          <ol className="divide-y divide-line rounded-lg border border-line-strong bg-card">
             {day.items.map((item) => (
               <li key={item.id}>
                 <SlackPost item={item} />
@@ -244,10 +244,10 @@ export function SlackDayIndex({ days }: { days: FeedDay[] }) {
   return (
     <nav
       aria-labelledby="feed-days-title"
-      className="flex max-h-[calc(100dvh-var(--app-header-h,0px)-2rem)] min-w-0 flex-col rounded-md border border-border bg-card"
+      className="flex max-h-[calc(100dvh-var(--app-header-h,0px)-2rem)] min-w-0 flex-col rounded-lg border border-line-strong bg-card"
     >
-      <div className="flex min-h-12 shrink-0 items-center justify-between gap-3 border-b border-border px-4">
-        <h2 id="feed-days-title" className="text-base font-semibold leading-snug tracking-[-0.01em] text-foreground">
+      <div className="flex min-h-12 shrink-0 items-center justify-between gap-3 border-b border-line px-4">
+        <h2 id="feed-days-title" className="text-[15px] font-medium leading-snug tracking-[-0.01em] text-foreground">
           Days
         </h2>
         <span className="font-mono-broadcast text-[13px] tabular-nums text-muted-foreground">{days.length}</span>
@@ -255,7 +255,7 @@ export function SlackDayIndex({ days }: { days: FeedDay[] }) {
       <div className="min-h-0 flex-1 overflow-y-auto py-1">
         {months.map((month, index) => (
           <details key={`${month.label}-${index}`} open={index === 0} className="group">
-            <summary className="flex h-8 cursor-pointer list-none items-center gap-2 px-4 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+            <summary className="flex h-8 cursor-pointer list-none items-center gap-2 px-4 text-xs font-medium text-muted-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
               <ChevronRight aria-hidden className="h-3.5 w-3.5 shrink-0 transition-transform group-open:rotate-90" />
               <span className="min-w-0 flex-1 truncate">{month.label}</span>
               <span className="font-mono-broadcast tabular-nums">{month.posts}</span>
@@ -265,7 +265,7 @@ export function SlackDayIndex({ days }: { days: FeedDay[] }) {
                 <li key={day.id}>
                   <a
                     href={`#${day.id}`}
-                    className="flex h-8 items-center gap-2 pl-9 pr-4 text-[13px] text-[var(--ink-text)] transition-colors hover:bg-[var(--ink-3)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                    className="flex h-8 items-center gap-2 pl-9 pr-4 text-[13px] text-[var(--ink-text)] transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                   >
                     <span className="min-w-0 flex-1 truncate">{day.shortLabel}</span>
                     <span className="font-mono-broadcast text-[11px] tabular-nums text-muted-foreground">{day.items.length}</span>

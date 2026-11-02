@@ -13,7 +13,7 @@ import { DRAWER_ID } from "@/components/shell/use-phone-drawer";
 import type { ShellLinkClick } from "@/components/shell/use-shell-link";
 
 const SQUARE_BUTTON =
-  "grid h-10 w-10 shrink-0 place-items-center rounded-md text-foreground transition-colors hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  "grid h-10 w-10 shrink-0 place-items-center rounded-md text-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-secondary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30";
 
 /**
  * The 56px top bar, on the same line as the sidebar's brand row and the assets panel header.
@@ -55,7 +55,7 @@ export function AppTopBar({
   account: ReactNode;
 }) {
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background pt-[env(safe-area-inset-top)]">
+    <header className="sticky top-0 z-40 border-b border-line bg-background pt-[env(safe-area-inset-top)]">
       <div className="px-4 md:px-6">
         <div className={cn("mx-auto flex h-14 w-full min-w-0 items-center gap-2 md:gap-3", !wide && "max-w-[80rem]")}>
           {showMenuButton ? (
@@ -73,7 +73,7 @@ export function AppTopBar({
             <Link
               href="/dashboard"
               aria-label="InFocus Portal home"
-              className="-ml-1.5 grid h-10 w-10 shrink-0 place-items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
+              className="-ml-1.5 grid h-10 w-10 shrink-0 place-items-center rounded-md focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30 lg:hidden"
             >
               <HubIcon size={28} className="h-7 w-7" />
             </Link>
@@ -94,7 +94,7 @@ export function AppTopBar({
                 aria-keyshortcuts="Meta+K Control+K"
                 className={cn(
                   SQUARE_BUTTON,
-                  "md:flex md:h-9 md:w-56 md:items-center md:justify-start md:gap-2 md:border md:border-input md:px-3 md:text-muted-foreground md:hover:text-foreground"
+                  "md:flex md:h-9 md:w-56 md:items-center md:justify-start md:gap-2 md:border md:border-line-strong md:bg-card md:px-3 md:text-muted-foreground md:hover:bg-card md:hover:border-input md:hover:text-foreground"
                 )}
               >
                 <Search className="h-4 w-4 shrink-0" aria-hidden />

@@ -48,7 +48,7 @@ export function LimitedTextarea({
       aria-label={label}
       aria-describedby={describedBy}
       autoFocus={autoFocus}
-      className="w-full resize-y rounded-md border border-input bg-transparent px-3 py-2 text-base text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring md:text-sm"
+      className="w-full resize-y rounded-md border border-input bg-card px-3 py-2 text-base text-foreground outline-none transition-colors duration-150 ease-[var(--ease-ui)] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30 md:text-sm"
     />
   );
 }

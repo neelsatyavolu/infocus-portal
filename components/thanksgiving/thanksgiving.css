@@ -291,15 +291,19 @@
 .tg-welcome-art > svg { width: 44px; height: 44px; }
 .tg-welcome-art > svg:nth-child(2) { width: 72px; height: 72px; animation: tg-bob 1.2s ease-in-out infinite; transform-origin: 50% 100%; }
 .tg-welcome-secret {
-  border-left: 2px solid var(--brand-green);
-  padding-left: 10px;
-  color: hsl(var(--foreground));
+  padding: 10px 12px;
+  border: 1px solid var(--line-2);
+  border-radius: 12px;
+  background: hsl(var(--secondary));
+  color: var(--ink-text);
 }
 .tg-welcome-secret kbd {
-  font: 600 12px/1 var(--font-mono-broadcast);
+  font: 500 12px/1 var(--font-mono-broadcast);
   padding: 2px 5px;
-  border: 1px solid hsl(var(--border));
-  border-radius: 3px;
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
 }
 
 @media (prefers-reduced-motion: reduce) {

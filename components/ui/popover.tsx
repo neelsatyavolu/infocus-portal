@@ -9,7 +9,7 @@ const PopoverTrigger = PopoverPrimitive.Trigger;
 const PopoverAnchor = PopoverPrimitive.Anchor;
 const PopoverClose = PopoverPrimitive.Close;
 
-/** DESIGN.md §10 menu surface: Ink 2, 1px line, 6px radius, 13px text, portaled. */
+/** Menu surface: elevated level 2, strong hairline, 12px radius, 13px text, portaled. */
 const PopoverContent = React.forwardRef<
   React.ComponentRef<typeof PopoverPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>
@@ -21,7 +21,7 @@ const PopoverContent = React.forwardRef<
       sideOffset={sideOffset}
       collisionPadding={collisionPadding}
       className={cn(
-        "z-50 max-h-[var(--radix-popover-content-available-height)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-md border border-border bg-popover p-1 text-[13px] text-popover-foreground outline-none",
+        "z-50 max-h-[var(--radix-popover-content-available-height)] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-lg border border-line-strong bg-popover p-1 text-[13px] text-popover-foreground outline-none",
         className
       )}
       {...props}

@@ -10,7 +10,7 @@ export default function IdeasLoading() {
       <div aria-hidden className="brand-hero-panel flex flex-wrap items-end gap-x-6 gap-y-4 px-4 py-5 md:px-6">
         <div className="min-w-0 flex-[1_1_320px] space-y-2.5">
           <Skeleton className="h-3 w-28" />
-          <Skeleton className="h-7 w-80 max-w-full" />
+          <Skeleton className="h-10 w-80 max-w-full" />
           <Skeleton className="h-4 w-72 max-w-full" />
         </div>
         <div className="flex h-10 gap-px max-sm:w-full md:h-9">
@@ -23,7 +23,7 @@ export default function IdeasLoading() {
         <Skeleton className="h-3.5 w-full" />
         <Skeleton className="h-3.5 w-1/2" />
       </div>
-      <div aria-hidden className="space-y-1.5 border-b border-border pb-2">
+      <div aria-hidden className="space-y-1.5 border-b border-line pb-2">
         <Skeleton className="h-7 w-36" />
         <Skeleton className="h-4 w-40" />
       </div>

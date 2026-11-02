@@ -115,7 +115,7 @@ export function CalendarDaysPanel({
 
       <form
         onSubmit={add}
-        className={cn("grid gap-3 border-t border-border px-4 py-4 md:px-5 @xl:grid-cols-2 @xl:items-end", DAY_COLUMNS)}
+        className={cn("grid gap-3 border-t border-line px-4 py-4 md:px-5 @xl:grid-cols-2 @xl:items-end", DAY_COLUMNS)}
       >
         <Field label="Date" htmlFor="calendar-day-date">
           <Input
@@ -159,21 +159,21 @@ export function CalendarDaysPanel({
       </form>
 
       {loading ? (
-        <RowsSkeleton className="border-t border-border" />
+        <RowsSkeleton className="border-t border-line" />
       ) : groups.length === 0 ? (
-        <p className="border-t border-border px-4 py-4 text-sm text-muted-foreground md:px-5">
+        <p className="border-t border-line px-4 py-4 text-sm text-muted-foreground md:px-5">
           No upcoming days off or special days.
         </p>
       ) : (
         <>
-          <div aria-hidden="true" className={cn(DAY_GRID, "hidden border-t border-border px-4 py-2 @4xl:grid md:px-5")}>
+          <div aria-hidden="true" className={cn(DAY_GRID, "hidden border-t border-line px-4 py-2 @4xl:grid md:px-5")}>
             <span className={COLUMN_LABEL_CLASS}>Date</span>
             <span className={COLUMN_LABEL_CLASS}>What happens</span>
             <span className={COLUMN_LABEL_CLASS}>Name</span>
             <span className={COLUMN_LABEL_CLASS}>Source</span>
             <span />
           </div>
-          <ul aria-label="Upcoming days off and special days" className="divide-y divide-border border-t border-border">
+          <ul aria-label="Upcoming days off and special days" className="divide-y divide-line border-t border-line">
             {groups.map((group) => (
               <li key={`${group.from}-${group.source}`} className={cn(DAY_GRID, "px-4 py-2.5 text-sm md:px-5")}>
                 <span className="col-start-1 row-start-1 min-w-0 font-mono text-[13px] tabular-nums text-foreground">

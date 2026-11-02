@@ -154,7 +154,7 @@ export function SignatureSection({ state }: { state: SignatureState }) {
           ) : (
             <div className="space-y-3">
               <div
-                className={`${SIGNATURE_WIDTH_CLASS} flex items-center justify-center rounded-md border border-border bg-white p-6`}
+                className={`${SIGNATURE_WIDTH_CLASS} flex items-center justify-center rounded-lg border border-line-strong bg-white p-6`}
                 style={{ height: PAD_HEIGHT }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element -- a data URL from this account, not a remote image. */}
@@ -170,8 +170,8 @@ export function SignatureSection({ state }: { state: SignatureState }) {
               </SignatureActions>
             </div>
           )}
-          <div className="hidden min-w-0 border-l border-border pl-8 @4xl:block">
-            <p className="text-[11px] font-medium uppercase leading-tight tracking-[0.11em] text-muted-foreground">On the certificate</p>
+          <div className="hidden min-w-0 border-l border-line pl-8 @4xl:block">
+            <p className="text-[13px] font-medium leading-tight text-muted-foreground">On the certificate</p>
             <p className="mt-2 text-[13px] leading-snug text-muted-foreground">
               It&apos;s cropped to your ink, so the space around it doesn&apos;t matter. Until you draw one, your line stays
               blank.

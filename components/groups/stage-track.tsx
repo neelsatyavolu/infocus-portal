@@ -44,11 +44,10 @@ export type StageToggle = {
 type StageSize = "sm" | "touch";
 
 /**
- * The stage-cell label. Caps at 11px with light tracking so the longest short label ("A/B-roll")
- * fits a cell at the table's and a phone's width. Tracking stays tighter than the usual 0.11em
- * label style on purpose: at 0.08em three of the five labels were cut off.
+ * The stage-cell label: sentence case at 12px, so the longest short label ("A/B-roll") fits a
+ * cell at the table's and a phone's width.
  */
-const CELL_TEXT = "text-[11px] font-medium uppercase leading-none tracking-[0.02em]";
+const CELL_TEXT = "text-xs font-medium leading-none";
 const GRID_COLUMNS = (count: number) => ({ gridTemplateColumns: `repeat(${count}, minmax(0, 1fr))` });
 
 /**
@@ -102,7 +101,7 @@ export function StageToggleGroup({
       role="group"
       aria-label={ariaLabel}
       className={cn(
-        "grid min-w-0 divide-x divide-input overflow-hidden rounded-md border border-input",
+        "grid min-w-0 divide-x divide-line-strong overflow-hidden rounded-md border border-line-strong bg-card",
         size === "touch" ? "h-10" : "h-8",
         className
       )}
@@ -118,10 +117,10 @@ export function StageToggleGroup({
           title={stage.title}
           onClick={() => onToggle(stage.key)}
           className={cn(
-            "flex min-w-0 items-center justify-center px-px transition-colors focus-visible:relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+            "flex min-w-0 items-center justify-center px-px transition-colors duration-150 ease-[var(--ease-ui)] focus-visible:relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
             CELL_TEXT,
-            stage.done ? "bg-[var(--brand-fill)] text-[var(--on-brand)]" : "text-muted-foreground",
-            disabled ? "cursor-default" : stage.done ? "hover:bg-[var(--brand-fill-hover)]" : "hover:bg-[var(--ink-3)] hover:text-foreground"
+            stage.done ? "bg-brand-tint text-[var(--brand-green)]" : "text-muted-foreground",
+            disabled ? "cursor-default" : stage.done ? "hover:bg-[var(--brand-green)]/20" : "hover:bg-[var(--ink-3)] hover:text-foreground"
           )}
         >
           <StageCellContent label={stage.label} done={stage.done} size={size} />
@@ -161,9 +160,9 @@ export function StageStatusGroup({
             key={stage.key}
             title={state}
             className={cn(
-              "flex min-w-0 items-center justify-center rounded-[4px] px-px",
+              "flex min-w-0 items-center justify-center rounded-sm px-px",
               CELL_TEXT,
-              stage.done ? "bg-[var(--brand-green)]/[0.14] text-[var(--brand-green)]" : "text-muted-foreground"
+              stage.done ? "bg-brand-tint text-[var(--brand-green)]" : "text-muted-foreground"
             )}
           >
             <span className="sr-only">{state}</span>
@@ -176,7 +175,7 @@ export function StageStatusGroup({
 }
 
 /**
- * Stage totals on the same equal-column grid as StageToggleGroup: caps label, mono "8/12" and a
+ * Stage totals on the same equal-column grid as StageToggleGroup: label, mono "8/12" and a
  * 2px bar, so every count sits over the stage it counts.
  */
 export function StageTotals({

@@ -78,7 +78,7 @@ export default async function PublicationPage({ params }: { params: Promise<{ ro
       />
       {videoId ? (
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
-          <div className="overflow-hidden rounded-md border border-border bg-[var(--ink-2)]">
+          <div className="overflow-hidden rounded-lg border border-line-strong bg-card">
             <iframe
               src={`https://www.youtube.com/embed/${videoId}`}
               title={publication?.title || "Published package"}

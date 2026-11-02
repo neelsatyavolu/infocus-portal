@@ -83,14 +83,14 @@ export function MemberDetail({
   const empty = otherCycles.filter((cycle) => !noteFor(cycle.cycleNumber).trim());
 
   return (
-    <section aria-labelledby="member-detail-name" className="@container min-w-0 space-y-5 rounded-md border border-border bg-card p-4 md:p-5">
+    <section aria-labelledby="member-detail-name" className="@container min-w-0 space-y-5 rounded-lg border border-line-strong bg-card p-4 md:p-5">
       <header className="flex min-w-0 items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 id="member-detail-name" className="truncate text-lg font-semibold leading-snug tracking-[-0.01em] text-foreground">
+          <h2 id="member-detail-name" className="truncate text-[18px] font-medium leading-snug tracking-[-0.015em] text-foreground">
             {name}
           </h2>
           {member.email ? (
-            <p className="truncate font-mono-broadcast text-xs text-muted-foreground">{member.email}</p>
+            <p className="truncate font-mono text-xs text-muted-foreground">{member.email}</p>
           ) : null}
         </div>
         <div className="hidden shrink-0 items-center gap-3 lg:flex">
@@ -123,7 +123,7 @@ export function MemberDetail({
         </div>
 
         {!isGeneral || otherCycles.length > 0 ? (
-          <aside aria-label={`More notes for ${name}`} className="min-w-0 space-y-5 @3xl:border-l @3xl:border-border @3xl:pl-5">
+          <aside aria-label={`More notes for ${name}`} className="min-w-0 space-y-5 @3xl:border-l @3xl:border-line @3xl:pl-5">
             {!isGeneral ? (
               <NoteEditor
                 noteKey={memberNoteKey(member.id, MEMBER_GENERAL_CYCLE_NUMBER)}
@@ -139,11 +139,11 @@ export function MemberDetail({
             {otherCycles.length > 0 ? (
               <section aria-label={isGeneral ? "Cycles" : "Other cycles"} className="min-w-0">
                 <SectionLabel as="h3">{isGeneral ? "Cycles" : "Other cycles"}</SectionLabel>
-                <div className="divide-y divide-border">
+                <div className="divide-y divide-line">
                   {withNotes.map((cycle) => (
                     <div key={cycle.cycleNumber} className="min-w-0 py-3">
                       <div className="flex min-h-8 min-w-0 items-center gap-2">
-                        <span className="shrink-0 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">
+                        <span className="shrink-0 text-[12px] font-medium text-muted-foreground">
                           Cycle {cycleCode(cycle.cycleNumber)}
                         </span>
                         {cycle.focus?.trim() ? (

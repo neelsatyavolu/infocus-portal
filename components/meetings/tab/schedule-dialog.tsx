@@ -70,10 +70,10 @@ function AccessChoice({
             <label
               key={option}
               className={cn(
-                "flex h-10 min-w-0 cursor-pointer items-center justify-center rounded-md border px-3 text-center text-sm transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring md:h-9",
+                "flex h-10 min-w-0 cursor-pointer items-center justify-center rounded-md border px-3 text-center text-sm transition-colors duration-150 ease-[var(--ease-ui)] has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/30 md:h-9",
                 checked
-                  ? "border-[var(--brand-green)] bg-[var(--brand-green)]/10 font-medium text-foreground"
-                  : "border-input text-muted-foreground hover:bg-[var(--ink-3)] hover:text-foreground"
+                  ? "border-brand-green bg-brand-tint font-medium text-foreground"
+                  : "border-input bg-card text-muted-foreground hover:bg-[var(--ink-3)] hover:text-foreground"
               )}
             >
               <input
@@ -197,7 +197,7 @@ export function ScheduleDialog({
               <div className="space-y-1.5">
                 <Label htmlFor="meeting-duration">Duration</Label>
                 <Select value={duration} onValueChange={setDuration}>
-                  <SelectTrigger id="meeting-duration" className={cn("focus:ring-0 focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]", TOUCH)}>
+                  <SelectTrigger id="meeting-duration" className={cn("focus:ring-0 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30", TOUCH)}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

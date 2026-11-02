@@ -50,7 +50,7 @@ const SHEET_CLASS = "fixed inset-x-0 top-0 z-[70] flex flex-col overflow-hidden 
 // overlay dims the card and the layer sits on top. No shadow is allowed (DESIGN §14), so its edge
 // is the 3:1 control line (border-input): the card stays distinct where it overlaps page cards.
 const CARD_CLASS = cn(
-  "fixed z-[51] [body[data-scroll-locked]_&]:z-[45] flex flex-col overflow-hidden rounded-md border border-input bg-card",
+  "fixed z-[51] [body[data-scroll-locked]_&]:z-[45] flex flex-col overflow-hidden rounded-lg border border-line-strong bg-card",
   "motion-safe:animate-[card-enter_200ms_cubic-bezier(0.16,1,0.3,1)_both]",
   "right-[max(1.25rem,env(safe-area-inset-right))] bottom-[calc(var(--phone-tabbar-h,0px)+max(1.25rem,env(safe-area-inset-bottom)))]",
   "w-[min(28rem,calc(100vw-2.5rem))] h-[min(42.5rem,calc(100dvh-var(--app-header-h,0px)-var(--phone-tabbar-h,0px)-2.5rem))]"
@@ -328,7 +328,7 @@ export function AssistantPanel({
         {chat.cleared ? (
           <div
             role="status"
-            className="flex shrink-0 items-center justify-between gap-3 border-t border-border px-4 py-1 text-[13px] text-[var(--ink-text)]"
+            className="flex shrink-0 items-center justify-between gap-3 border-t border-line px-4 py-1 text-[13px] text-[var(--ink-text)]"
           >
             <span>Conversation cleared.</span>
             <Button

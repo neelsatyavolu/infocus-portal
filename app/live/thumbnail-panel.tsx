@@ -43,7 +43,7 @@ const FORMAT_OPTIONS: Array<{ value: ThumbnailFormat; label: ReactNode; ariaLabe
 
 const PREVIEW_DEBOUNCE_MS = 400;
 
-/** A caps label over one control; `wide` spans both columns of the form grid. */
+/** A label over one control; `wide` spans both columns of the form grid. */
 function FormField({ id, label, wide = false, children }: { id: string; label: string; wide?: boolean; children: ReactNode }) {
   return (
     <div className={cn("grid min-w-0 gap-1.5", wide && "col-span-2")}>
@@ -177,7 +177,7 @@ export function ThumbnailPanel({ event, scoreboard }: { event: LiveEventSummary;
             ) : null}
           </div>
 
-          <ActionDock aria-label="Thumbnail download" className="md:mt-auto md:border-t md:border-border md:pt-4">
+          <ActionDock aria-label="Thumbnail download" className="md:mt-auto md:border-t md:border-line md:pt-4">
             <a href={`/api/live/thumbnail?${params}&download=1`} className={cn(buttonVariants(), "h-11 w-full md:h-9")}>
               <Download aria-hidden />
               Download PNG
@@ -196,7 +196,7 @@ export function ThumbnailPanel({ event, scoreboard }: { event: LiveEventSummary;
           <div className="flex flex-1 items-center justify-center">
             <div
               className={cn(
-                "relative max-w-full overflow-hidden rounded-md bg-[var(--ink-3)]",
+                "relative max-w-full overflow-hidden rounded-lg border border-line-strong bg-secondary",
                 portrait ? "w-full md:h-[min(36rem,70dvh)] md:w-auto" : "w-full"
               )}
               style={{ aspectRatio: `${size.width} / ${size.height}` }}

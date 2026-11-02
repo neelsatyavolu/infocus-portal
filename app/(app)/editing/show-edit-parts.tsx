@@ -15,7 +15,7 @@ import {
 } from "@/src/lib/show-editor";
 import type { ShowEditDebugLog } from "@/src/lib/show-editor-debug-logs";
 
-export const LABEL_CLASS = "text-[11px] font-medium uppercase leading-tight tracking-[0.11em] text-muted-foreground";
+export const LABEL_CLASS = "text-[13px] font-medium leading-tight text-muted-foreground";
 
 export const pacificTime = new Intl.DateTimeFormat("en-US", {
   timeZone: "America/Los_Angeles", weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit"
@@ -44,8 +44,8 @@ export function FlaggedDecisions({ decisions, failures, title = "Check these bef
       {packageFlag ? (
         <p className="mt-2">
           Missing a package? Queue it with its final cut in the{" "}
-          <Link href="/publishing-queue" className="underline underline-offset-2">Publishing Queue</Link>, then press{" "}
-          <strong>Redo automatic edit</strong>.
+          <Link href="/publishing-queue" className="underline underline-offset-4">Publishing Queue</Link>, then press{" "}
+          <strong className="font-medium">Redo automatic edit</strong>.
         </p>
       ) : null}
     </Alert>
@@ -205,11 +205,11 @@ export function FixHistory({ conversation }: { conversation: ShowEditMessage[] }
   return (
     <ol className="space-y-2 text-sm" aria-label="Send-backs and replies">
       {conversation.map((entry, index) => (
-        <li key={index} className={entry.from === "producer" ? "rounded-md border border-border p-2.5" : "rounded-md bg-[var(--ink-2)] p-2.5"}>
+        <li key={index} className={entry.from === "producer" ? "rounded-lg border border-line-strong p-3" : "rounded-lg border border-line bg-secondary p-3"}>
           <div className={LABEL_CLASS}>
             {entry.from === "producer" ? "Producer" : `Editor${entry.version ? ` · v${entry.version}` : ""}`}
           </div>
-          <p className="mt-1 whitespace-pre-wrap">{entry.text}</p>
+          <p className="mt-1 whitespace-pre-wrap text-[var(--ink-text)]">{entry.text}</p>
         </li>
       ))}
     </ol>
@@ -238,7 +238,7 @@ export function DetectedStructure({ decisions }: { decisions: ShowEditDecision[]
 }
 
 const DEBUG_LOG_HINT = "Editor log and AI transcript for this run. Share it when reporting a problem.";
-export const LINK_CLASS = "inline-flex items-center gap-1.5 text-[var(--brand-green)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+export const LINK_CLASS = "inline-flex items-center gap-1.5 rounded-sm text-brand-green underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30";
 
 function DebugLogLink({ log, label }: { log: ShowEditDebugLog & { url: string }; label: string }) {
   return (
@@ -263,7 +263,7 @@ export function DebugLogLinks({ logs }: { logs: ShowEditDebugLog[] }) {
       <p className="text-muted-foreground">{DEBUG_LOG_HINT}</p>
       {earlier.length > 0 ? (
         <details className="group">
-          <summary className="inline-flex cursor-pointer list-none items-center gap-1 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+          <summary className="inline-flex cursor-pointer list-none items-center gap-1 rounded-sm text-muted-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30 [&::-webkit-details-marker]:hidden">
             <ChevronRight className="h-3.5 w-3.5 shrink-0 transition-transform group-open:rotate-90" aria-hidden />
             Earlier versions ({earlier.length})
           </summary>

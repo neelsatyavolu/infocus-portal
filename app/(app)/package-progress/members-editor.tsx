@@ -37,7 +37,7 @@ const MAX_MATCHES = 8;
  * is hovered or has its menu open (the row itself turns Ink 3 then).
  */
 export const MEMBER_CHIP_CLASS =
-  "inline-flex h-6 max-w-full items-center gap-0.5 rounded-sm bg-[var(--ink-3)] px-2 text-xs font-medium text-foreground group-hover/row:bg-[var(--ink-4)] group-data-[menu-open=true]/row:bg-[var(--ink-4)]";
+  "inline-flex h-6 max-w-full items-center gap-0.5 rounded-full bg-[var(--ink-3)] px-2.5 text-xs font-medium text-foreground group-hover/row:bg-[var(--ink-4)] group-data-[menu-open=true]/row:bg-[var(--ink-4)]";
 
 function pickFirstName(user: MembersEditorUser): string {
   const source = user.name?.trim() || user.email?.split("@")[0]?.trim() || "User";
@@ -166,7 +166,7 @@ export function MembersEditor({
 
   const picker = (
     <div onClick={stop} onPointerDown={stop} onContextMenu={stop} className="min-w-0">
-      <div className="flex h-10 items-center gap-2 border-b border-border px-3 focus-within:ring-2 focus-within:ring-inset focus-within:ring-ring md:h-9">
+      <div className="flex h-10 items-center gap-2 border-b border-line px-3 focus-within:ring-[3px] focus-within:ring-inset focus-within:ring-ring/30 md:h-9">
         <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
         <input
           ref={inputRef}
@@ -223,7 +223,7 @@ export function MembersEditor({
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => addMember(user.id)}
               className={cn(
-                "flex min-h-10 cursor-pointer flex-col justify-center gap-0.5 rounded-sm px-2 py-1.5",
+                "flex min-h-10 cursor-pointer flex-col justify-center gap-0.5 rounded-md px-2 py-1.5 transition-colors duration-150 ease-[var(--ease-ui)]",
                 active ? "bg-[var(--ink-3)]" : "hover:bg-[var(--ink-3)]"
               )}
             >
@@ -261,7 +261,7 @@ export function MembersEditor({
               type="button"
               aria-label={`Remove ${pickFirstName(user)}`}
               onClick={() => removeMember(user.id)}
-              className="relative grid h-5 w-5 shrink-0 place-items-center rounded-sm text-muted-foreground transition-colors hover:bg-[var(--ink-3)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring max-lg:after:absolute max-lg:after:-inset-2.5"
+              className="relative grid h-5 w-5 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)] hover:text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30 max-lg:after:absolute max-lg:after:-inset-2.5"
             >
               <X className="h-3 w-3" aria-hidden />
             </button>
@@ -281,7 +281,7 @@ export function MembersEditor({
           aria-label={addLabel}
           onClick={() => (open ? close() : setOpen(true))}
           // 24px to sit with the chips; the hit area grows to 40px tall on touch-size screens.
-          className="relative inline-flex h-6 items-center gap-1 rounded-sm px-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-[var(--ink-4)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring max-lg:after:absolute max-lg:after:-inset-x-1 max-lg:after:-inset-y-2"
+          className="relative inline-flex h-6 items-center gap-1 rounded-full px-2 text-xs font-medium text-muted-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-4)] hover:text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30 max-lg:after:absolute max-lg:after:-inset-x-1 max-lg:after:-inset-y-2"
         >
           <Plus className="h-4 w-4" aria-hidden />
           Add

@@ -45,11 +45,11 @@ const GRID_VIEWER = cn(
 );
 
 const ROW_PADDING = "px-4 py-4 md:px-5 @4xl:py-3";
-const HEADER_LABEL = "text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground";
+const HEADER_LABEL = "text-[13px] font-medium text-muted-foreground";
 
 function HeaderRow({ grid, canEdit }: { grid: string; canEdit: boolean }) {
   return (
-    <div aria-hidden className={cn(grid, "hidden items-center border-b border-border px-4 py-2.5 md:px-5 @4xl:grid")}>
+    <div aria-hidden className={cn(grid, "hidden items-center border-b border-line px-4 py-2.5 md:px-5 @4xl:grid")}>
       <span className={cn(HEADER_LABEL, "pl-8 [grid-area:topic]")}>Topic</span>
       <span className={cn(HEADER_LABEL, "[grid-area:members]")}>Members</span>
       <span className={cn(HEADER_LABEL, "[grid-area:producer]")}>Producer</span>
@@ -67,7 +67,7 @@ const SKELETON_LINE = "flex h-10 items-center @4xl:h-8";
 
 function SkeletonRow({ grid, canEdit }: { grid: string; canEdit: boolean }) {
   return (
-    <li aria-hidden className={cn(grid, ROW_PADDING, "border-b border-border last:border-b-0")}>
+    <li aria-hidden className={cn(grid, ROW_PADDING, "border-b border-line last:border-b-0")}>
       <div className={cn(SKELETON_LINE, "gap-2 [grid-area:topic]")}>
         <Skeleton className="h-3 w-5" />
         <Skeleton className="h-4 w-3/5" />
@@ -207,7 +207,7 @@ export function RosterList({
                     grid,
                     ROW_PADDING,
                     // The shared table row: Ink 3 on hover, and while its menu is open.
-                    "group/row border-b border-border transition-colors last:border-b-0 hover:bg-[var(--ink-3)]",
+                    "group/row border-b border-line transition-colors duration-150 ease-[var(--ease-ui)] last:border-b-0 hover:bg-[var(--ink-3)]",
                     menuOpen && "bg-[var(--ink-3)]",
                     clickToEdit && "cursor-pointer"
                   )}

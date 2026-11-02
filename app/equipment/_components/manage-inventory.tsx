@@ -254,7 +254,7 @@ export function ManageInventory({
             ) : (
               <div className="space-y-1.5 px-4 py-3">
                 <div className="flex items-start justify-between gap-3">
-                  <p className="min-w-0 break-words text-sm font-semibold text-foreground">{item.name}</p>
+                  <p className="min-w-0 break-words text-sm font-medium text-foreground">{item.name}</p>
                   {statusTag(item)}
                 </div>
                 <p className="break-all font-mono text-xs tabular-nums text-muted-foreground">{item.barcode}</p>

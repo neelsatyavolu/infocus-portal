@@ -63,7 +63,7 @@ const LANE_SCALE = [
  * alternate between two rows (first, third, fifth, seventh on top) and each can use two columns.
  */
 const GATE_LABEL = [
-  "whitespace-nowrap font-medium uppercase leading-[1.2] tracking-normal text-foreground",
+  "whitespace-nowrap font-medium leading-[1.2] text-foreground",
   "text-[length:min(max(11px,var(--b-label)),6.4cqw)] xl:text-[length:min(max(11px,var(--b-label)),3.2cqw)]"
 ].join(" ");
 const GATE_DATE = [
@@ -105,7 +105,7 @@ export function BoardRace({ gates, lanes }: { gates: ClassBoardGate[]; lanes: Cl
     <section
       aria-label="Package race"
       // Clipped only on lg: below it the page scrolls and the column heads stick to the top.
-      className="flex min-h-0 flex-col rounded-md border border-border bg-card lg:overflow-hidden"
+      className="flex min-h-0 flex-col rounded-lg border border-line-strong bg-card lg:overflow-hidden"
     >
       <RaceHeader gates={gates} />
       {lanes.length === 0 ? (
@@ -132,12 +132,12 @@ function RaceHeader({ gates }: { gates: ClassBoardGate[] }) {
     <div
       className={cn(
         LANE_GRID,
-        "sticky top-0 z-20 shrink-0 items-center gap-y-2 rounded-t-md border-b border-border bg-card py-2.5",
+        "sticky top-0 z-20 shrink-0 items-center gap-y-2 rounded-t-lg border-b border-line bg-card py-2.5",
         "md:gap-y-0 lg:static lg:h-[var(--b-head-tall)] lg:rounded-none lg:py-0"
       )}
     >
-      <span className={cn(BOARD_TEXT.label, "text-right")}>#</span>
-      <span className={BOARD_TEXT.label}>Package</span>
+      <span className={cn(BOARD_TEXT.label, "text-right text-muted-foreground")}>#</span>
+      <span className={cn(BOARD_TEXT.label, "text-muted-foreground")}>Package</span>
       <div
         className={cn(TRACK_CELL, "row-start-2 grid gap-y-0.5 [container-type:inline-size] md:row-start-auto xl:gap-y-0")}
         style={gridColumns(gates.length)}
@@ -154,7 +154,7 @@ function RaceHeader({ gates }: { gates: ClassBoardGate[] }) {
           </div>
         ))}
       </div>
-      <span className={cn(BOARD_TEXT.label, "hidden md:block")}>Status</span>
+      <span className={cn(BOARD_TEXT.label, "hidden text-muted-foreground md:block")}>Status</span>
     </div>
   );
 }
@@ -165,15 +165,15 @@ function Lane({ lane, gates }: { lane: ClassBoardLane; gates: ClassBoardGate[] }
       className={cn(
         LANE_GRID,
         LANE_SCALE,
-        "items-center gap-y-2 border-b border-border py-3 last:border-b-0 md:gap-y-0",
+        "items-center gap-y-2 border-b border-line py-3 last:border-b-0 md:gap-y-0",
         "lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:py-[calc(var(--b)*0.2)]",
-        lane.packageOfCycle && "bg-[var(--brand-green)]/[0.08]"
+        lane.packageOfCycle && "bg-brand-tint"
       )}
     >
       <p
         className={cn(
           "self-start text-right font-mono-broadcast text-[length:var(--lane-place)] font-medium leading-[1.15] tabular-nums md:self-center",
-          lane.place === 1 ? "text-[var(--brand-green)]" : "text-[var(--ink-text)]"
+          lane.place === 1 ? "text-brand-green" : "text-[var(--ink-text)]"
         )}
       >
         {lane.place}
@@ -181,7 +181,7 @@ function Lane({ lane, gates }: { lane: ClassBoardLane; gates: ClassBoardGate[] }
       <div className="min-w-0 [@container(max-height:2.15em)]:flex [@container(max-height:2.15em)]:items-baseline [@container(max-height:2.15em)]:gap-[0.6em]">
         <h2
           className={cn(
-            "line-clamp-2 break-words text-[length:var(--lane-title)] font-semibold leading-[1.2] text-foreground",
+            "line-clamp-2 break-words text-[length:var(--lane-title)] font-medium leading-[1.2] text-foreground",
             "[@container(max-height:3.6em)]:line-clamp-1",
             "[@container(max-height:2.15em)]:max-w-[62%] [@container(max-height:2.15em)]:shrink-0"
           )}

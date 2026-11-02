@@ -16,7 +16,7 @@ import { CURRENT_TINT, ClosedGroupRow, CurrentBar, CycleName, ScheduleColumns, S
 const COLUMN_COUNT = STAGE_FIELDS.length + 2;
 
 /** Row rules sit on the cells (this table separates its borders). */
-const ROW_RULE = "border-t border-border";
+const ROW_RULE = "border-t border-line";
 
 /**
  * One cycle as a table row: its date fields belong to a form that lives in the Save cell (the

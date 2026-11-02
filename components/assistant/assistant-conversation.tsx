@@ -77,7 +77,7 @@ export function AssistantConversation({
                 <div key={message.id} className="space-y-2">
                   {message.role === "user" ? (
                     <div className="flex justify-end">
-                      <p className="max-w-[85%] whitespace-pre-wrap break-words rounded-md bg-primary px-3 py-2 text-sm leading-relaxed text-primary-foreground">
+                      <p className="max-w-[85%] whitespace-pre-wrap break-words rounded-lg bg-brand-tint px-3 py-2 text-sm leading-relaxed text-foreground">
                         <span className="sr-only">You: </span>
                         {message.content}
                       </p>
@@ -135,7 +135,7 @@ function Welcome({
   return (
     <div className="space-y-5">
       <div className="space-y-2">
-        <h2 className="flex items-center gap-2 text-lg font-semibold leading-tight text-foreground">
+        <h2 className="flex items-center gap-2 text-lg font-medium leading-tight tracking-[-0.015em] text-foreground">
           <span aria-hidden className="text-2xl leading-none text-brand-green">
             ✱
           </span>
@@ -213,7 +213,7 @@ function AssistantRichText({ text }: { text: string }) {
 function renderInline(text: string) {
   return splitInlineBold(text).map((part, index) =>
     part.bold ? (
-      <strong key={index} className="font-semibold">
+      <strong key={index} className="font-medium text-foreground">
         {part.text}
       </strong>
     ) : (

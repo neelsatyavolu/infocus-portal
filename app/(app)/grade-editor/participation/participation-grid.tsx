@@ -44,8 +44,8 @@ export function weekTotal(userId: string, days: DayColumn[], drafts: GridCells) 
 }
 
 const TODAY_TINT = "bg-[var(--brand-green)]/5";
-/** The header cell stays opaque (it sticks over the rows), so the tint is layered on bg-card. */
-const TODAY_HEAD_TINT = "bg-linear-to-b from-[var(--brand-green)]/5 to-[var(--brand-green)]/5";
+/** The header cell stays opaque (it sticks over the rows), so the tint is mixed into the card color. */
+const TODAY_HEAD_TINT = "bg-[color-mix(in_oklab,var(--brand-green)_5%,var(--card))]";
 /**
  * The table scrolls in its own box, so the day headers stay in view. Its height is measured to end
  * just above the Save bar (TABLE_RESERVE_PX: the bar, its gap and a little room), so the page
@@ -86,8 +86,8 @@ export function ParticipationGrid({
   const fitHeight = useAvailableHeight(tableTop, TABLE_RESERVE_PX);
 
   return (
-    <div className="min-w-0 overflow-hidden rounded-md border border-border bg-card">
-      <ParticipationLegend offDays={offDayLabels} className="border-b border-border px-3 py-2.5" />
+    <div className="min-w-0 overflow-hidden rounded-lg border border-line-strong bg-card">
+      <ParticipationLegend offDays={offDayLabels} className="border-b border-line px-3 py-2.5" />
       <div ref={tableTop} aria-hidden />
       <TableShell
         stickyFirstColumn
@@ -127,11 +127,11 @@ export function ParticipationGrid({
                           Today
                         </StatusTag>
                       ) : (
-                        <span className="font-mono-broadcast tracking-normal tabular-nums">{column.date.getDate()}</span>
+                        <span className="font-mono-broadcast tabular-nums">{column.date.getDate()}</span>
                       )}
                     </span>
                     {column.graded ? (
-                      <span className="flex items-center gap-1 normal-case tracking-normal">
+                      <span className="flex items-center gap-1">
                         <span className="font-mono-broadcast tabular-nums">max {column.max}</span>
                         <Button
                           type="button"

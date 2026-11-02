@@ -100,9 +100,9 @@ export function RundownStrip({
                 onClick={() => onJump(item.id)}
                 aria-label={itemLabel(item)}
                 className={cn(
-                  "inline-flex max-w-[14rem] items-center gap-1.5 rounded-md border px-2.5 text-xs transition-colors hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "inline-flex max-w-[14rem] items-center gap-1.5 rounded-md border bg-secondary px-2.5 text-xs transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   touch ? "h-10 md:h-9" : "h-8 pointer-coarse:h-10",
-                  item.editing ? "border-[var(--brand-green)]/60" : "border-border"
+                  item.editing ? "border-[var(--brand-green)]/60" : "border-line-strong"
                 )}
               >
                 <span className="shrink-0 font-mono-broadcast font-medium tabular-nums text-foreground">{item.code}</span>
@@ -174,7 +174,7 @@ export function RundownColumn({
   onSetAllCollapsed: (collapsed: boolean) => void;
 }) {
   return (
-    <aside aria-label="Rundown" className="min-w-0 border-l border-border">
+    <aside aria-label="Rundown" className="min-w-0 border-l border-line">
       <div className={cn("sticky flex max-h-[calc(100dvh-var(--app-header-h,0px))] flex-col", STICKY_TOP)}>
         <PaneHeader
           label="Rundown"
@@ -191,7 +191,7 @@ export function RundownColumn({
                   type="button"
                   onClick={() => onJump(item.id)}
                   aria-label={itemLabel(item)}
-                  className="grid h-10 w-full grid-cols-[var(--tp-code-w,2ch)_minmax(0,1fr)_auto] items-center gap-2 px-3 text-left text-[13px] transition-colors hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                  className="grid h-10 w-full grid-cols-[var(--tp-code-w,2ch)_minmax(0,1fr)_auto] items-center gap-2 px-3 text-left text-[13px] transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)]/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                 >
                   <span className="truncate font-mono-broadcast text-xs font-medium tabular-nums text-foreground">{item.code}</span>
                   <span className="truncate text-[var(--ink-text)]">{item.beat ?? ""}</span>

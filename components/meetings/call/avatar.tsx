@@ -23,7 +23,7 @@ export function Avatar({ name, size = "md", className }: { name: string; size?: 
     <span
       aria-hidden
       className={cn(
-        "inline-flex shrink-0 items-center justify-center rounded-full bg-[var(--ink-4)] font-semibold text-foreground",
+        "inline-flex shrink-0 items-center justify-center rounded-full bg-[var(--ink-4)] font-medium text-foreground",
         SIZE[size],
         className
       )}

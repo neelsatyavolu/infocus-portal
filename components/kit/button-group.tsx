@@ -85,7 +85,7 @@ export function DateStepper({
           <span
             aria-live="polite"
             className={cn(
-              "inline-flex min-w-[9rem] items-center justify-center border border-input px-3 text-sm font-medium text-foreground tabular-nums",
+              "inline-flex min-w-[9rem] items-center justify-center border border-line-strong bg-card px-3 text-sm font-medium text-foreground tabular-nums",
               labelClassName
             )}
           >
@@ -150,7 +150,7 @@ export function PrevNextNav({
   const middle =
     children ??
     (position ? (
-      <span className="inline-flex items-center border border-input px-3 font-mono-broadcast text-[13px] tabular-nums text-muted-foreground">
+      <span className="inline-flex items-center border border-line-strong bg-card px-3 font-mono-broadcast text-[13px] tabular-nums text-muted-foreground">
         {position.index} / {position.total}
       </span>
     ) : null);
@@ -170,7 +170,7 @@ export function BackLink({ href, children, className }: { href: string; children
     <Link
       href={href as never}
       className={cn(
-        "inline-flex h-8 items-center gap-1.5 rounded-sm text-sm text-muted-foreground transition-colors hover:text-foreground",
+        "inline-flex h-8 items-center gap-1.5 rounded-md text-sm text-muted-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:text-foreground",
         className
       )}
     >

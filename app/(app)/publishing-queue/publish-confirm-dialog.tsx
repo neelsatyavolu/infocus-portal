@@ -50,6 +50,7 @@ export function PublishConfirmDialog({
           </Button>
           <Button
             type="button"
+            variant="accent"
             onClick={() => {
               if (row) onConfirm(row);
               onClose();

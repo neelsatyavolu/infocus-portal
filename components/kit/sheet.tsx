@@ -18,9 +18,9 @@ const SIDE: Record<"right" | "bottom" | "auto", string> = {
   right:
     "inset-y-0 right-0 h-dvh w-full border-l motion-safe:animate-[sheet-in-right_240ms_cubic-bezier(0.16,1,0.3,1)]",
   bottom:
-    "inset-x-0 bottom-0 max-h-[92dvh] w-full border-t motion-safe:animate-[sheet-in-bottom_240ms_cubic-bezier(0.16,1,0.3,1)]",
+    "inset-x-0 bottom-0 max-h-[92dvh] w-full rounded-t-lg border-t motion-safe:animate-[sheet-in-bottom_240ms_cubic-bezier(0.16,1,0.3,1)]",
   auto: cn(
-    "max-md:inset-x-0 max-md:bottom-0 max-md:max-h-[92dvh] max-md:w-full max-md:border-t max-md:motion-safe:animate-[sheet-in-bottom_240ms_cubic-bezier(0.16,1,0.3,1)]",
+    "max-md:inset-x-0 max-md:bottom-0 max-md:max-h-[92dvh] max-md:w-full max-md:rounded-t-lg max-md:border-t max-md:motion-safe:animate-[sheet-in-bottom_240ms_cubic-bezier(0.16,1,0.3,1)]",
     "md:inset-y-0 md:right-0 md:h-dvh md:w-full md:border-l md:motion-safe:animate-[sheet-in-right_240ms_cubic-bezier(0.16,1,0.3,1)]"
   )
 };
@@ -85,16 +85,16 @@ export function Sheet({
             if (!dismissOnOutside) event.preventDefault();
           }}
           className={cn(
-            "fixed z-50 flex flex-col border-border bg-card text-card-foreground outline-none",
+            "fixed z-50 flex flex-col border-line-strong bg-card text-card-foreground outline-none",
             SIDE[side],
             side !== "bottom" && WIDTH[width],
             className
           )}
         >
-          <div className="flex shrink-0 items-start gap-3 border-b border-border px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] md:px-5">
+          <div className="flex shrink-0 items-start gap-3 border-b border-line px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] md:px-5">
             <div className="min-w-0 flex-1">
               {eyebrow ? <p className="eyebrow mb-1">{eyebrow}</p> : null}
-              <DialogPrimitive.Title className="text-lg font-semibold leading-snug tracking-[-0.01em] text-foreground">
+              <DialogPrimitive.Title className="text-lg font-medium leading-snug tracking-[-0.015em] text-foreground">
                 {title}
               </DialogPrimitive.Title>
               {description ? (
@@ -105,7 +105,7 @@ export function Sheet({
             {hideClose ? null : (
               <DialogPrimitive.Close
                 aria-label="Close"
-                className="-mr-2 grid h-9 w-9 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-[var(--ink-3)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="-mr-2 grid h-9 w-9 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30"
               >
                 <X className="h-4 w-4" aria-hidden />
               </DialogPrimitive.Close>
@@ -113,7 +113,7 @@ export function Sheet({
           </div>
           <div className={cn("min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 md:px-5", bodyClassName)}>{children}</div>
           {footer ? (
-            <div className="shrink-0 border-t border-border px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:px-5">
+            <div className="shrink-0 border-t border-line px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:px-5">
               <ActionBar align="end" fullWidthOnPhone>
                 {footer}
               </ActionBar>

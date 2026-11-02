@@ -344,7 +344,7 @@ export default function ParticipationClient({ onDirtyChange }: { onDirtyChange?:
               {week.loading ? (
                 <ParticipationWeekSkeleton />
               ) : !data ? null : students.length === 0 ? (
-                <div className="rounded-md border border-border bg-card">
+                <div className="rounded-lg border border-line-strong bg-card">
                   <EmptyState
                     icon={Users}
                     title="No students found."
@@ -353,7 +353,7 @@ export default function ParticipationClient({ onDirtyChange }: { onDirtyChange?:
                 </div>
               ) : columns.length === 0 ? (
                 scheduleKnown ? (
-                  <div className="rounded-md border border-border bg-card">
+                  <div className="rounded-lg border border-line-strong bg-card">
                     <EmptyState
                       icon={CalendarOff}
                       title="No class days to grade this week."

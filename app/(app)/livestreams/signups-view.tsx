@@ -39,7 +39,7 @@ function RequestRow({
 }) {
   const name = personLabel(request.user);
   return (
-    <li className="grid min-w-0 gap-x-4 gap-y-2 border-t border-border px-4 py-3 md:grid-cols-[14rem_minmax(0,1fr)_4rem_11rem] md:items-center md:px-5">
+    <li className="grid min-w-0 gap-x-4 gap-y-2 border-t border-line px-4 py-3 md:grid-cols-[14rem_minmax(0,1fr)_4rem_11rem] md:items-center md:px-5">
       <div className="flex min-w-0 flex-wrap items-center gap-2">
         {isNew ? <StatusDot tone="new" label="New since your last visit" /> : null}
         <span className="truncate text-sm font-medium text-foreground" title={name}>
@@ -68,7 +68,7 @@ function RequestRow({
           aria-label={`Approve ${name}`}
           onClick={() => onReview(request, "APPROVED")}
         >
-          {pending === "APPROVED" ? <Spinner /> : <Check aria-hidden className="text-[var(--brand-green)]" />}
+          {pending === "APPROVED" ? <Spinner /> : <Check aria-hidden className="text-brand-green" />}
           Approve
         </Button>
         <Button
@@ -108,11 +108,11 @@ function GroupPanel({
     <section
       id={signupGroupId(group.key)}
       aria-label={group.title}
-      className="scroll-mt-24 overflow-hidden rounded-md border border-border bg-card"
+      className="scroll-mt-24 overflow-hidden rounded-lg border border-line-strong bg-card"
     >
       <header className="flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3 md:px-5">
         <div className="min-w-0">
-          <h2 className="flex min-w-0 items-center gap-2 text-base font-semibold leading-snug tracking-[-0.01em] text-foreground">
+          <h2 className="flex min-w-0 items-center gap-2 text-base font-medium leading-snug tracking-[-0.015em] text-foreground">
             <span className="truncate">{group.title}</span>
             {group.otherSemester ? <StatusTag>Other semester</StatusTag> : null}
           </h2>
@@ -184,7 +184,7 @@ export function SignupsView({
     // The pending count is on the Sign ups tab; the header line says what a decision does.
     <section aria-label="Sign-up requests" className="space-y-3">
       {groups.length === 0 ? (
-        <div className="rounded-md border border-border bg-card">
+        <div className="rounded-lg border border-line-strong bg-card">
           <EmptyState icon={CheckCircle2} title="No pending sign-ups." />
         </div>
       ) : (

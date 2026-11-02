@@ -25,7 +25,7 @@ const ITEM_INDENT = "pl-9 sm:pl-10";
 
 export function GradebookHeader() {
   return (
-    <div aria-hidden className={cn(ROW_GRID, ROW_PAD, LABEL_CLASS, "h-9 border-b border-border")}>
+    <div aria-hidden className={cn(ROW_GRID, ROW_PAD, LABEL_CLASS, "h-9 border-b border-line")}>
       <span>Item</span>
       <span className="text-right">Score</span>
       <span className="whitespace-nowrap">Out of</span>
@@ -63,7 +63,7 @@ export function GradeGroupRow({
         ROW_GRID,
         ROW_PAD,
         // A faint tint on hover (not Ink 3), so the bar's empty track stays visible.
-        "min-h-11 w-full border-b border-border py-2 text-left transition-colors hover:bg-foreground/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+        "min-h-11 w-full border-b border-line py-2 text-left transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-foreground/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50"
       )}
     >
       <span className={cn("flex min-w-0 items-center gap-2", depth === 1 && "pl-3 sm:pl-4")}>
@@ -71,7 +71,7 @@ export function GradeGroupRow({
           aria-hidden
           className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform", !open && "-rotate-90")}
         />
-        <span className="min-w-0 break-words text-sm font-semibold text-foreground">{title}</span>
+        <span className="min-w-0 break-words text-sm font-medium text-foreground">{title}</span>
         {/* Phones have no STATUS column, so the bar sits at the end of the title cell. */}
         <span aria-hidden className="ml-auto w-10 shrink-0 sm:hidden">
           <ProgressBar value={bar} size="xs" label={`${title} percent`} />
@@ -115,7 +115,7 @@ export function GradeItemRow({
   const fullName = sub ? `${name} (${sub})` : name;
   const status = statusOf(value, dirty);
   return (
-    <div className={cn(ROW_GRID, ROW_PAD, "min-h-12 border-b border-border/60 py-2")}>
+    <div className={cn(ROW_GRID, ROW_PAD, "min-h-12 border-b border-line py-2")}>
       <div className={cn("min-w-0", ITEM_INDENT)}>
         <label htmlFor={inputId} className="block break-words text-sm leading-snug text-foreground">
           {name}
@@ -147,10 +147,10 @@ export function GradeItemRow({
         }}
         className={cn(
           // 40px and 16px text on phones (touch, no iOS zoom); a real field border at rest, green once changed.
-          "h-10 w-full min-w-0 rounded-md border bg-transparent px-2 text-right font-mono-broadcast text-base tabular-nums transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-8 sm:text-sm",
+          "h-10 w-full min-w-0 rounded-md border bg-card px-2 text-right font-mono-broadcast text-base tabular-nums transition-colors duration-150 ease-[var(--ease-ui)] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30 sm:h-8 sm:text-sm",
           dirty
             ? "border-[var(--brand-green)] text-[var(--brand-green)]"
-            : "border-input text-foreground hover:border-foreground/60"
+            : "border-input text-foreground hover:border-foreground/40"
         )}
       />
       <label htmlFor={inputId} className="font-mono-broadcast text-sm tabular-nums text-muted-foreground">
@@ -163,7 +163,7 @@ export function GradeItemRow({
 
 /** "No weeks yet." inside an open group. */
 export function GradeGroupEmpty({ children }: { children: ReactNode }) {
-  return <p className={cn(ROW_PAD, ITEM_INDENT, "border-b border-border/60 py-3 text-sm text-muted-foreground")}>{children}</p>;
+  return <p className={cn(ROW_PAD, ITEM_INDENT, "border-b border-line py-3 text-sm text-muted-foreground")}>{children}</p>;
 }
 
 export function GradebookSkeletonRows({ rows = 8 }: { rows?: number }) {
@@ -171,7 +171,7 @@ export function GradebookSkeletonRows({ rows = 8 }: { rows?: number }) {
     <div role="status" aria-busy="true">
       <span className="sr-only">Loading gradebook…</span>
       {Array.from({ length: rows }, (_, index) => (
-        <div key={index} aria-hidden className={cn(ROW_GRID, ROW_PAD, "min-h-12 border-b border-border/60 py-2")}>
+        <div key={index} aria-hidden className={cn(ROW_GRID, ROW_PAD, "min-h-12 border-b border-line py-2")}>
           <span className={cn("min-w-0", index % 4 === 0 ? "" : ITEM_INDENT)}>
             <Skeleton className={cn("h-3.5", index % 3 === 1 ? "w-1/2" : "w-2/3")} />
           </span>

@@ -71,7 +71,7 @@ export function RowLead({
       )}
     >
       {caps ? (
-        <span className="max-w-full truncate text-[11px] font-medium uppercase leading-tight tracking-[0.11em] text-muted-foreground">
+        <span className="max-w-full truncate text-xs font-medium leading-tight text-muted-foreground">
           {label}
         </span>
       ) : (

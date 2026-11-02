@@ -33,7 +33,7 @@ export function ExecutiveReviewPanel({ rows, now, className }: { rows: ReviewQue
       ) : rows.length === 0 ? (
         <EmptyLine>Nothing waiting on a review.</EmptyLine>
       ) : (
-        <ul aria-label="Review queue" className="divide-y divide-border">
+        <ul aria-label="Review queue" className="divide-y divide-line">
           {shown.map((row) => {
             const deadline = deadlineSoonTag(row.dueAt, now);
             return (

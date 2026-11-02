@@ -30,8 +30,8 @@ export function GradePanel({ snapshot, className }: { snapshot: StudentDashboard
             <span
               className={
                 snapshot.letter
-                  ? "text-4xl font-semibold leading-none tracking-tight text-[var(--brand-green)]"
-                  : "text-4xl font-semibold leading-none tracking-tight text-muted-foreground"
+                  ? "font-serif text-[40px] font-normal leading-none tracking-[-0.02em] text-foreground"
+                  : "font-serif text-[40px] font-normal leading-none tracking-[-0.02em] text-muted-foreground"
               }
             >
               {snapshot.letter ?? "—"}

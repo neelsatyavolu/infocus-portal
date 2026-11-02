@@ -4,7 +4,7 @@ import { cn } from "@/src/lib/utils";
 
 /**
  * A letter grade with its percent. Never a box of its own (status is not a button-sized block):
- * - full: the Overview band cell. Caps label, a big letter, the mono percent. On phones it is one
+ * - full: the Overview band cell. Muted label, a big serif letter, the mono percent. On phones it is one
  *   row (letter left, label and percent stacked on the right).
  * - compact: one h-8 inline readout for a toolbar: a tag with the label, the letter, the percent.
  */
@@ -36,7 +36,7 @@ export function GradeBadge({
     return (
       <div className={cn("flex min-h-8 min-w-0 items-center gap-2.5", className)}>
         <StatusTag tone={tone}>{label}</StatusTag>
-        <span className={cn("text-2xl font-semibold leading-none tracking-[-0.02em]", letterClass)}>{letter ?? "—"}</span>
+        <span className={cn("text-2xl font-medium leading-none tracking-[-0.02em]", letterClass)}>{letter ?? "—"}</span>
         <span className="min-w-0 truncate text-sm">{pct}</span>
       </div>
     );
@@ -49,12 +49,12 @@ export function GradeBadge({
         className
       )}
     >
-      <p className="col-start-2 row-start-1 self-end text-[11px] font-medium uppercase leading-tight tracking-[0.11em] text-muted-foreground sm:col-start-1">
+      <p className="col-start-2 row-start-1 self-end text-[13px] font-medium leading-tight text-muted-foreground sm:col-start-1">
         {label}
       </p>
       <p
         className={cn(
-          "col-start-1 row-span-2 row-start-1 text-5xl font-semibold leading-none tracking-[-0.02em] sm:row-span-1 sm:row-start-2",
+          "col-start-1 row-span-2 row-start-1 font-serif text-5xl font-normal leading-none tracking-[-0.02em] tabular-nums sm:row-span-1 sm:row-start-2",
           letterClass
         )}
       >

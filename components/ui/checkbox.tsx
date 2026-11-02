@@ -18,7 +18,7 @@ type CheckboxProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, "type" | 
 
 /**
  * Brand checkbox on a real <input type="checkbox"> (keeps `required` and form validation):
- * 16px, 4px radius, 3:1 control border, InFocus Green when checked, a focus ring, and a
+ * 16px, 4px radius, 3:1 control border, the brand fill (InFocus Green or the season's) when checked, a focus ring, and a
  * tri-state "indeterminate" look.
  */
 const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
@@ -54,7 +54,7 @@ const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
             onChange?.(event);
             onCheckedChange?.(event.target.checked);
           }}
-          className="peer h-4 w-4 cursor-pointer appearance-none rounded-sm border border-input bg-transparent transition-colors checked:border-[var(--brand-fill)] checked:bg-[var(--brand-fill)] indeterminate:border-[var(--brand-fill)] indeterminate:bg-[var(--brand-fill)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+          className="peer h-4 w-4 cursor-pointer appearance-none rounded-[4px] border border-input bg-card transition-colors duration-150 ease-[var(--ease-ui)] hover:border-[var(--ink-5)] checked:border-[var(--brand-fill)] checked:bg-[var(--brand-fill)] indeterminate:border-[var(--brand-fill)] indeterminate:bg-[var(--brand-fill)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/45 disabled:cursor-not-allowed disabled:opacity-50"
           {...props}
         />
         <Check aria-hidden className="pointer-events-none absolute hidden h-3 w-3 text-[var(--on-brand)] peer-checked:block" strokeWidth={3} />

@@ -150,8 +150,8 @@ export function StudentGradebookPanel({
   }, [selectedUserId, refreshToken]);
 
   const list = (
-    <div className="flex min-h-0 flex-col overflow-hidden rounded-md border border-border bg-card lg:max-h-[calc(100dvh-var(--app-header-h,4rem)-2rem)]">
-      <div className="shrink-0 space-y-2 border-b border-border p-3">
+    <div className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-line-strong bg-card lg:max-h-[calc(100dvh-var(--app-header-h,4rem)-2rem)]">
+      <div className="shrink-0 space-y-2 border-b border-line p-3">
         <SearchField value={query} onChange={setQuery} placeholder="Find a reporter" size="touch" />
         <div className="flex items-center gap-2">
           <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
@@ -167,7 +167,7 @@ export function StudentGradebookPanel({
           <IconButton label="Refresh" icon={RotateCw} variant="outline" size="touch" busy={refreshing} onClick={onRefresh} />
         </div>
       </div>
-      <ul aria-label="Reporters" aria-busy={listLoading || undefined} className="min-h-0 flex-1 divide-y divide-border overflow-y-auto">
+      <ul aria-label="Reporters" aria-busy={listLoading || undefined} className="min-h-0 flex-1 divide-y divide-line overflow-y-auto">
         {listLoading ? (
           Array.from({ length: 8 }, (_, index) => (
             <li key={index} aria-hidden className="flex min-h-12 flex-col justify-center gap-1.5 px-4 py-2">
@@ -202,13 +202,13 @@ export function StudentGradebookPanel({
                   aria-current={active ? "true" : undefined}
                   onClick={() => onSelectUserId(person.userId)}
                   className={cn(
-                    "relative flex min-h-12 w-full flex-col items-start justify-center gap-0.5 px-4 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+                    "relative flex min-h-12 w-full flex-col items-start justify-center gap-0.5 px-4 py-2 text-left transition-colors duration-150 ease-[var(--ease-ui)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50",
                     active
-                      ? "bg-[var(--brand-green)]/[0.12] before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:bg-[var(--brand-green)]"
-                      : "hover:bg-[var(--ink-3)]"
+                      ? "bg-brand-tint before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:bg-[var(--brand-green)]"
+                      : "hover:bg-[var(--ink-3)]/60"
                   )}
                 >
-                  <span className="max-w-full truncate text-sm font-semibold text-foreground">
+                  <span className="max-w-full truncate text-sm font-medium text-foreground">
                     {person.name?.trim() || "Unnamed user"}
                   </span>
                   <span className="max-w-full truncate font-mono-broadcast text-[11px] text-muted-foreground" title={person.email ?? undefined}>
@@ -227,7 +227,7 @@ export function StudentGradebookPanel({
     <div className="min-w-0 space-y-4">
       {message ? <Alert tone="danger">{message}</Alert> : null}
       {!selectedUserId ? (
-        <div className="rounded-md border border-border bg-card">
+        <div className="rounded-lg border border-line-strong bg-card">
           <EmptyState icon={UserRound} title="Choose a reporter" description="Their gradebook appears here, the same one they see." />
         </div>
       ) : (

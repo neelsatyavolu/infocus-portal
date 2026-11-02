@@ -6,11 +6,11 @@ function Text({ content }: { content: Inline[] }) {
   return (
     <>
       {content.map((part, index) => {
-        if (part.type === "strong") return <strong key={index} className="font-semibold text-foreground">{part.text}</strong>;
-        if (part.type === "code") return <code key={index} className="rounded bg-muted px-1 py-0.5 font-mono text-[12.5px]">{part.text}</code>;
+        if (part.type === "strong") return <strong key={index} className="font-medium text-foreground">{part.text}</strong>;
+        if (part.type === "code") return <code key={index} className="rounded-sm border border-line bg-secondary px-1 py-0.5 font-mono text-[12.5px] text-foreground">{part.text}</code>;
         if (part.type === "link") {
           return (
-            <Link key={index} href={part.href as never} className="text-foreground underline underline-offset-2">
+            <Link key={index} href={part.href as never} className="text-brand-green underline-offset-4 hover:underline">
               {part.text}
             </Link>
           );
@@ -39,7 +39,7 @@ function BlockView({ block }: { block: Block }) {
   if (block.type === "list") return <List ordered={block.ordered} items={block.items} />;
   if (block.type === "heading") {
     const Tag = block.level === 1 ? "h2" : "h4";
-    return <Tag className="font-semibold text-foreground"><Text content={block.content} /></Tag>;
+    return <Tag className="text-[15px] font-medium tracking-[-0.005em] text-foreground"><Text content={block.content} /></Tag>;
   }
   return <p><Text content={block.content} /></p>;
 }
@@ -59,7 +59,7 @@ export function EditingHowToView({ markdown }: { markdown: string }) {
         <Panel
           key={section.heading?.text ?? `intro-${index}`}
           title={section.heading ? <Text content={section.heading.content} /> : undefined}
-          bodyClassName="space-y-3 text-sm leading-relaxed text-muted-foreground"
+          bodyClassName="space-y-3 text-[15px] leading-relaxed text-[var(--ink-text)] *:max-w-[65ch]"
         >
           {section.blocks.map((block, blockIndex) => <BlockView key={blockIndex} block={block} />)}
         </Panel>

@@ -33,10 +33,10 @@ function groupItems(items: MarketingNavItem[]) {
 
 function MenuLink({ item, active, onNavigate }: { item: MarketingNavItem; active: boolean; onNavigate: () => void }) {
   const className = cn(
-    "relative -mx-3 flex h-11 items-center gap-2 rounded-md px-3 text-[15px] transition-colors hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+    "relative -mx-3 flex h-11 items-center gap-2 rounded-md px-3 text-[15px] transition-colors duration-150 ease-[var(--ease-ui)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-ring/30",
     active
-      ? "font-medium text-foreground before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:bg-[var(--brand-green)]"
-      : "text-[var(--ink-text)] hover:text-foreground"
+      ? "bg-secondary font-medium text-foreground"
+      : "text-[var(--ink-text)] hover:bg-secondary/60 hover:text-foreground"
   );
 
   if (item.external) {
@@ -123,14 +123,14 @@ export function MarketingMobileNav({
       <div
         id={MENU_ID}
         hidden={!open}
-        className="absolute inset-x-0 top-full z-50 max-h-[calc(100dvh-3.5rem-env(safe-area-inset-top))] overflow-y-auto border-b border-border bg-background"
+        className="absolute inset-x-0 top-full z-50 max-h-[calc(100dvh-3.5rem-env(safe-area-inset-top))] overflow-y-auto border-b border-line bg-background"
       >
         <div className={cn(PUBLIC_CONTAINER, "pb-4 pt-2")}>
           <nav aria-label="Site">
             {sections.map((section) => (
               <div key={section.key} className="py-1">
                 {section.label ? (
-                  <p className="flex h-8 items-center text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">
+                  <p className="flex h-8 items-center text-xs font-medium text-muted-foreground">
                     {section.label}
                   </p>
                 ) : null}

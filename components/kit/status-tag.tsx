@@ -13,7 +13,7 @@ import {
 import { cn } from "@/src/lib/utils";
 
 /**
- * THE status tag (DESIGN.md §10): 4px radius, 11px caps label, tint by tone. Use it for every
+ * THE status tag: a small rounded pill, sentence-case label, tint by tone. Use it for every
  * status — stage, approval, revisions, locked, due, live, saved — beside a title or in a row's
  * status slot. Never put status in an actions row and never make it button-sized.
  * A <span>, so it can sit inside headings, paragraphs and the PageHeader eyebrow.
@@ -122,17 +122,17 @@ export function StatusDot({
 export type CountBadgeTone = "brand" | "onBrand" | "neutral" | "warning" | "danger" | "quiet";
 
 const COUNT_CLASS: Record<CountBadgeTone, string> = {
-  brand: "bg-[var(--brand-fill)] text-[var(--on-brand)]",
+  brand: "bg-[var(--brand-fill)] text-on-brand",
   onBrand: "bg-[var(--on-brand)] text-[var(--brand-fill)]",
-  neutral: "bg-[var(--ink-3)] text-foreground",
-  warning: "bg-[rgb(242_165_22/0.16)] text-[var(--brand-amber)]",
+  neutral: "bg-secondary text-foreground",
+  warning: "bg-[color-mix(in_srgb,var(--brand-amber)_16%,transparent)] text-[var(--brand-amber)]",
   danger: "bg-[var(--danger)] text-[var(--on-brand)]",
   quiet: "bg-transparent px-0 text-[var(--brand-green)]"
 };
 
 /**
  * A count for nav items, tabs, list headers and icon-button corners: Geist Mono, tabular,
- * 11px, 4px radius, "99+" past the cap. Renders nothing below 1 unless `showZero`.
+ * 11px, pill radius, "99+" past the cap. Renders nothing below 1 unless `showZero`.
  * `brand` for unread/needs-you, `onBrand` on an active green item, `neutral` for plain totals,
  * `quiet` for a bare green number (the mockup's sidebar counts).
  */
@@ -156,7 +156,7 @@ export function CountBadge({
   return (
     <span
       className={cn(
-        "inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-sm px-1 font-mono-broadcast text-[11px] font-medium leading-none tabular-nums",
+        "inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full px-1.5 font-mono-broadcast text-[11px] font-medium leading-none tabular-nums",
         COUNT_CLASS[tone],
         className
       )}

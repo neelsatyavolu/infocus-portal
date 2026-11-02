@@ -182,7 +182,7 @@ export default function LivestreamsClient({ initialData }: { initialData: Payloa
     return (
       <div className="space-y-5">
         <LivestreamsHeader data={null} view="schedule" refreshing={live.refreshing} onRefresh={refresh} onManagers={openManagers} onAddEvent={openCreate} />
-        <div className="rounded-md border border-border bg-card">
+        <div className="rounded-lg border border-line-strong bg-card">
           <ErrorState
             title="Couldn't load livestreams"
             message={live.loadError ?? "Failed to load"}

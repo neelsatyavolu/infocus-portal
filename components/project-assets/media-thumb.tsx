@@ -25,7 +25,7 @@ function UploadRing({
 }) {
   if (status === "PROCESSING") {
     return (
-      <span className={cn("font-semibold tracking-tight text-[var(--soft-white)]", compact ? "text-[11px]" : "text-base")}>
+      <span className={cn("font-medium tracking-[-0.01em] text-[var(--soft-white)]", compact ? "text-[11px]" : "text-base")}>
         Processing
       </span>
     );
@@ -52,13 +52,13 @@ function UploadRing({
         </svg>
         <span className="relative grid text-center">
           {compact ? null : (
-            <span className="text-[11px] font-medium uppercase tracking-[0.11em] text-[var(--soft-white)]/70">
+            <span className="text-[12px] font-medium text-[var(--soft-white)]/70">
               {uploadStatusLabel(status)}
             </span>
           )}
           <span
             className={cn(
-              "font-mono-broadcast font-semibold tabular-nums text-[var(--soft-white)]",
+              "font-mono font-medium tabular-nums text-[var(--soft-white)]",
               compact ? "text-[11px]" : "text-sm"
             )}
           >
@@ -115,7 +115,7 @@ export function AssetThumb({
   }
 
   return (
-    <div className={cn("relative shrink-0 overflow-hidden bg-black", card ? "w-full" : "w-20 rounded-sm @max-[36rem]:w-24")}>
+    <div className={cn("relative shrink-0 overflow-hidden bg-black", card ? "w-full" : "w-20 rounded-md @max-[36rem]:w-24")}>
       <a
         href={href}
         tabIndex={-1}

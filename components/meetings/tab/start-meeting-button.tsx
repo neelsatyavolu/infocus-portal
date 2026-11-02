@@ -45,7 +45,7 @@ export function StartMeetingButton({
               aria-label="More ways to start"
               className={cn(
                 "h-full rounded-l-none px-2",
-                variant === "default" ? "border-l border-[var(--brand-fill-hover)]" : "-ml-px"
+                variant === "default" ? "border-l border-cta-foreground/15" : "-ml-px"
               )}
             >
               <ChevronDown aria-hidden />

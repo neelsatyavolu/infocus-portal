@@ -42,7 +42,7 @@ export function ExecutiveShowsPanel({ rows, className }: { rows: ShowDayRow[] | 
               <GridListCell label="Day">
                 <Link
                   href="/master-calendar"
-                  className="font-medium text-foreground hover:text-[var(--brand-green)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="rounded-sm font-medium text-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:text-brand-green focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/45"
                 >
                   {row.dateLabel}
                 </Link>
@@ -65,7 +65,7 @@ export function ExecutiveShowsPanel({ rows, className }: { rows: ShowDayRow[] | 
                   row.packages.map((pkg, index) => (
                     <span key={pkg.id}>
                       {index > 0 ? ", " : null}
-                      <Link href="/publishing-queue" className="text-foreground hover:text-[var(--brand-green)]">
+                      <Link href="/publishing-queue" className="text-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:text-brand-green">
                         {pkg.title}
                       </Link>
                     </span>

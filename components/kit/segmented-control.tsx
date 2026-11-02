@@ -24,7 +24,7 @@ export type SegmentedOption<T extends string | number> = {
 
 /**
  * Joined one-of-N choice (Grid | List, Week | Pending, Who can join). The outer box is exactly
- * the row height, the active segment uses the InFocus Green fill, arrow keys move between
+ * the row height, the active segment is a raised elevated pill, arrow keys move between
  * segments (radiogroup), and it scrolls inside itself if the options don't fit.
  */
 export function SegmentedControl<T extends string | number>({
@@ -67,7 +67,7 @@ export function SegmentedControl<T extends string | number>({
       role={asLinks ? "group" : "radiogroup"}
       aria-label={ariaLabel}
       className={cn(
-        "max-w-full shrink-0 items-stretch gap-0.5 overflow-x-auto rounded-md border border-input p-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+        "max-w-full shrink-0 items-stretch gap-0.5 overflow-x-auto rounded-md border border-line-strong bg-card p-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
         fullWidth ? "flex w-full" : "inline-flex",
         CONTROL_HEIGHT[size],
         className
@@ -78,19 +78,19 @@ export function SegmentedControl<T extends string | number>({
         const label = typeof option.label === "string" ? option.label : undefined;
         const segmentClass = cn(
           // [&_svg]:size-4 also sizes element icons (`icon: <Moon />`), as the old Settings control did.
-          "inline-flex h-full shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-sm text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
+          "inline-flex h-full shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-sm text-sm transition-colors duration-150 ease-[var(--ease-ui)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
           iconOnly ? "aspect-square px-0" : size === "sm" ? "px-2.5" : "px-3",
           fullWidth && "flex-1",
           checked
-            ? "bg-[var(--brand-fill)] font-medium text-[var(--on-brand)]"
-            : "text-muted-foreground hover:bg-[var(--ink-3)] hover:text-foreground"
+            ? "bg-secondary font-medium text-foreground ring-1 ring-inset ring-line-strong"
+            : "text-muted-foreground hover:text-foreground"
         );
         const content = (
           <>
             {option.icon ? renderIcon(option.icon, "h-4 w-4") : null}
             {iconOnly ? <span className="sr-only">{option.ariaLabel ?? label}</span> : option.label}
             {option.count !== undefined ? (
-              <span className={cn("font-mono-broadcast text-[11px] tabular-nums", checked ? "opacity-80" : "text-muted-foreground")}>
+              <span className="font-mono-broadcast text-[11px] tabular-nums text-muted-foreground">
                 {formatCount(option.count)}
               </span>
             ) : null}

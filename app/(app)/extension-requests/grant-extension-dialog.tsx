@@ -191,7 +191,7 @@ export function GrantExtensionDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
               Cancel
             </Button>
-            <Button type="submit" disabled={!canGrant}>
+            <Button type="submit" variant="accent" disabled={!canGrant}>
               {saving ? <Spinner /> : null}
               Grant
             </Button>

@@ -19,8 +19,10 @@ export function AutoFollowButton({ on, onToggle }: { on: boolean; onToggle: () =
     <button
       type="button"
       className={cn(
-        "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-[12px] font-semibold uppercase tracking-[0.08em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B6E3E] pointer-coarse:h-9",
-        on ? "bg-[#0F110F] text-[#DCE2DE] hover:bg-[#252925]" : "text-[#0F110F] hover:bg-black/10"
+        "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-[13px] font-medium transition-colors duration-150 ease-[var(--ease-ui)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 pointer-coarse:h-9",
+        on
+          ? "bg-white/[0.10] text-[#FCFDFF] hover:bg-white/[0.14]"
+          : "text-[#A1A4A5] hover:bg-white/[0.08] hover:text-[#FCFDFF]"
       )}
       onClick={onToggle}
       aria-pressed={on}
@@ -32,15 +34,23 @@ export function AutoFollowButton({ on, onToggle }: { on: boolean; onToggle: () =
   );
 }
 
+/** Small sentence-case pills on the dark bar: state colors, tinted. */
+const TONE = {
+  ok: "bg-[#3DD68C]/15 text-[#3DD68C]",
+  warn: "bg-[#FFC53D]/15 text-[#FFC53D]",
+  danger: "bg-[#FF4D5E]/15 text-[#FF4D5E]",
+  neutral: "bg-white/[0.08] text-[#FCFDFF]"
+} as const;
+
 const MODE_TAGS: Record<FollowMode | "paused", { label: string; className: string }> = {
-  follow: { label: "Following", className: "bg-[#2BB36E]/35 text-[#073B20]" },
-  paused: { label: "Paused", className: "bg-[#F2A516]/35 text-[#4A2F00]" },
-  hold: { label: "Holding", className: "bg-black/10 text-[#0F110F]" },
-  package: { label: "Package", className: "bg-black/10 text-[#0F110F]" },
-  search: { label: "Searching", className: "bg-[#F2A516]/35 text-[#4A2F00]" }
+  follow: { label: "Following", className: TONE.ok },
+  paused: { label: "Paused", className: TONE.warn },
+  hold: { label: "Holding", className: TONE.neutral },
+  package: { label: "Package", className: TONE.neutral },
+  search: { label: "Searching", className: TONE.warn }
 };
 
-const TAG_CLASS = "inline-flex h-5 items-center rounded-sm px-2 text-[11px] font-medium uppercase leading-none tracking-[0.11em]";
+const TAG_CLASS = "inline-flex h-5 items-center rounded-full px-2 text-xs font-medium leading-none";
 
 export function AutoFollowTag({
   status,
@@ -55,31 +65,31 @@ export function AutoFollowTag({
   if (command && status?.phase === "listening") {
     if ("waiting" in command) {
       return (
-        <span className={cn(TAG_CLASS, "bg-[#2BB36E]/20 normal-case tracking-normal text-[#073B20]")} title={`Heard: ${command.heard}`}>
+        <span className={cn(TAG_CLASS, TONE.ok)} title={`Heard: ${command.heard}`}>
           Listening for a command…
         </span>
       );
     }
     return command.ok ? (
-      <span className={cn(TAG_CLASS, "bg-[#2BB36E]/35 normal-case tracking-normal text-[#073B20]")} title="Voice command">
+      <span className={cn(TAG_CLASS, TONE.ok)} title="Voice command">
         ✓ {command.label}
       </span>
     ) : (
-      <span className={cn(TAG_CLASS, "bg-[#F2A516]/35 normal-case tracking-normal text-[#4A2F00]")} title={`Heard: ${command.heard}`}>
+      <span className={cn(TAG_CLASS, TONE.warn)} title={`Heard: ${command.heard}`}>
         ? Didn&apos;t catch that
       </span>
     );
   }
   if (!status || status.phase === "starting") {
-    return <span className={cn(TAG_CLASS, "bg-black/10 text-[#0F110F]")}>Starting</span>;
+    return <span className={cn(TAG_CLASS, TONE.neutral)}>Starting</span>;
   }
   if (status.phase === "loading") {
     const percent = status.progress === null ? "" : ` ${Math.round(status.progress * 100)}%`;
-    return <span className={cn(TAG_CLASS, "bg-black/10 text-[#0F110F]")}>Loading{percent}</span>;
+    return <span className={cn(TAG_CLASS, TONE.neutral, "tabular-nums")}>Loading{percent}</span>;
   }
   if (status.phase === "error") {
     return (
-      <span className={cn(TAG_CLASS, "bg-[#E5484D]/30 text-[#5C0B0E]")} title={status.message}>
+      <span className={cn(TAG_CLASS, TONE.danger)} title={status.message}>
         Auto failed
       </span>
     );
@@ -136,21 +146,21 @@ export function AutoFollowOverlay({ status, onCancel }: { status: ListenerStatus
       role="alertdialog"
       aria-live="assertive"
       aria-label={heading}
-      className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-6 bg-[#0F110F]/95 px-8 text-center text-soft-white"
+      className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-6 bg-black/95 px-8 text-center text-soft-white"
     >
       <p
         className={cn(
-          "text-[clamp(2.5rem,8vw,6rem)] font-semibold uppercase leading-none tracking-[0.04em]",
-          failed ? "text-[#FF8A8E]" : startingUp ? "text-[#F2A516]" : "text-[#2BB36E]"
+          "text-[clamp(2.5rem,8vw,6rem)] font-medium uppercase leading-none tracking-[0.02em]",
+          failed ? "text-[#FF4D5E]" : startingUp ? "text-[#FFC53D]" : "text-[#3DD68C]"
         )}
       >
         {heading}
       </p>
-      <p className="max-w-2xl text-[clamp(1rem,2.4vw,1.6rem)] leading-snug text-[#DCE2DE]">{detail}</p>
+      <p className="max-w-2xl text-[clamp(1rem,2.4vw,1.6rem)] leading-snug text-[#A1A4A5]">{detail}</p>
       {status?.phase === "loading" ? (
-        <div className="h-3 w-full max-w-xl overflow-hidden rounded-sm bg-[#252925]" aria-hidden>
+        <div className="h-3 w-full max-w-xl overflow-hidden rounded-full bg-white/[0.08]" aria-hidden>
           <div
-            className={cn("h-full bg-[#F2A516] transition-[width] duration-300", progress === null && "w-1/3 animate-pulse")}
+            className={cn("h-full bg-[#FFC53D] transition-[width] duration-300", progress === null && "w-1/3 animate-pulse")}
             style={progress === null ? undefined : { width: `${Math.round(progress * 100)}%` }}
           />
         </div>
@@ -159,7 +169,7 @@ export function AutoFollowOverlay({ status, onCancel }: { status: ListenerStatus
         <button
           type="button"
           onClick={onCancel}
-          className="mt-2 inline-flex h-10 items-center rounded-md border border-[#2B302B] px-4 text-sm font-medium text-[#DCE2DE] transition-colors hover:bg-[#252925] hover:text-soft-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2BB36E]"
+          className="mt-2 inline-flex h-10 items-center rounded-md px-4 text-sm font-medium border border-white/[0.14] bg-[#111114] text-[#FCFDFF] transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[#1A1A1F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
         >
           {failed ? "Close, scroll by hand" : "Cancel, scroll by hand"}
         </button>
@@ -168,9 +178,9 @@ export function AutoFollowOverlay({ status, onCancel }: { status: ListenerStatus
   );
 }
 
-const LABEL_CLASS = "text-[11px] font-medium uppercase tracking-[0.11em] text-[#DCE2DE]";
+const LABEL_CLASS = "text-[13px] font-medium text-[#A1A4A5]";
 const SELECT_CLASS =
-  "mt-1.5 h-8 w-full min-w-0 rounded-md border border-[#2B302B] bg-[#252925] px-2 text-xs text-soft-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2BB36E] pointer-coarse:h-10";
+  "mt-1.5 h-8 w-full min-w-0 rounded-md border border-white/[0.14] bg-[#111114] px-2 text-[13px] text-[#FCFDFF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 pointer-coarse:h-10";
 const METER_FLOOR_DB = -70;
 
 function meterPercent(db: number) {
@@ -187,17 +197,17 @@ function LevelMeter({ levelRef }: { levelRef: RefObject<ListenerLevel | null> })
 
   return (
     <div className="mt-3">
-      <div className="relative h-2 overflow-hidden rounded-sm bg-[#252925]" aria-hidden>
+      <div className="relative h-2 overflow-hidden rounded-full bg-white/[0.08]" aria-hidden>
         <div
-          className={cn("h-full transition-[width] duration-100", level?.speaking ? "bg-[#2BB36E]" : "bg-[#6b736e]")}
+          className={cn("h-full transition-[width] duration-100", level?.speaking ? "bg-[#3DD68C]" : "bg-[#888E90]")}
           style={{ width: `${level ? meterPercent(level.db) : 0}%` }}
         />
-        {level ? <div className="absolute inset-y-0 w-px bg-soft-white" style={{ left: `${meterPercent(level.thresholdDb)}%` }} /> : null}
+        {level ? <div className="absolute inset-y-0 w-px bg-[#FCFDFF]" style={{ left: `${meterPercent(level.thresholdDb)}%` }} /> : null}
       </div>
       {level?.clipping ? (
-        <p className="mt-1 text-xs text-[#F2A516]">Too loud: the sound is distorting. Turn down the board&apos;s output to this computer.</p>
+        <p className="mt-1 text-xs text-[#FFC53D]">Too loud: the sound is distorting. Turn down the board&apos;s output to this computer.</p>
       ) : (
-        <p className="mt-1 text-xs text-[#DCE2DE]">{level ? (level.speaking ? "Hearing speech" : "Quiet") : "Not listening"}</p>
+        <p className="mt-1 text-xs text-[#A1A4A5]">{level ? (level.speaking ? "Hearing speech" : "Quiet") : "Not listening"}</p>
       )}
     </div>
   );
@@ -252,9 +262,9 @@ export function AutoFollowSettingsSection({
   }, [listening]);
 
   return (
-    <div className="border-t border-[#2B302B] p-3">
-      <p className={LABEL_CLASS}>Auto follow</p>
-      <p className={cn("mt-1.5 text-xs leading-snug", status?.phase === "error" && enabled ? "text-[#FF8A8E]" : "text-[#DCE2DE]")}>
+    <div className="border-t border-white/[0.06] p-3">
+      <p className="text-[13px] font-medium text-[#FCFDFF]">Auto follow</p>
+      <p className={cn("mt-1.5 text-xs leading-snug", status?.phase === "error" && enabled ? "text-[#FF4D5E]" : "text-[#A1A4A5]")}>
         {statusLine(status, enabled)}
       </p>
       <label className="mt-3 block">
@@ -318,11 +328,11 @@ export function AutoFollowSettingsSection({
         </select>
       </label>
       {enabled ? <LevelMeter levelRef={levelRef} /> : null}
-      <p className="mt-2 text-xs leading-snug text-[#DCE2DE]">
+      <p className="mt-2 text-xs leading-snug text-[#A1A4A5]">
         Click a word to follow from there. Any key or arrow takes over by hand.
       </p>
-      <p className="mt-2 text-xs leading-snug text-[#DCE2DE]">
-        Voice: say <span className="text-soft-white">“Teleprompter, …”</span> go to the top · go to the second announcement · go
+      <p className="mt-2 text-xs leading-snug text-[#A1A4A5]">
+        Voice: say <span className="text-[#FCFDFF]">“Teleprompter, …”</span> go to the top · go to the second announcement · go
         to A3 / the closing · go to spirit week · next · back · line back · pause · resume · undo
       </p>
       <RecordingSection recording={recording} />

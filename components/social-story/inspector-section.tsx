@@ -4,7 +4,7 @@ import { STORY_LABEL_CLASS } from "@/components/story-maker/story-fields";
 import { cn } from "@/src/lib/utils";
 
 /** Put sections inside this: hairlines between them, and no doubled padding at the card's edges. */
-export const INSPECTOR_BODY_CLASS = "divide-y divide-border";
+export const INSPECTOR_BODY_CLASS = "divide-y divide-line";
 /** The fields card; the phone action bar's jump button scrolls here. */
 export const FIELDS_ID = "story-fields";
 
@@ -17,7 +17,7 @@ export function InspectorCard({ children, className }: { children: ReactNode; cl
     <section
       id={FIELDS_ID}
       aria-label="Story text and photos"
-      className={cn("@container min-w-0 scroll-mt-20 rounded-md border border-border bg-card p-4 md:p-5", className)}
+      className={cn("@container min-w-0 scroll-mt-20 rounded-lg border border-line-strong bg-card p-4 md:p-6", className)}
     >
       {children}
     </section>
@@ -25,7 +25,7 @@ export function InspectorCard({ children, className }: { children: ReactNode; cl
 }
 
 /**
- * One block of the inspector: an 11px caps title, an optional mono count and status tag right
+ * One block of the inspector: a 13px muted title, an optional mono count and status tag right
  * after it, optional actions (h-8 from md) on the right, then the fields. The header wraps, so
  * actions drop under the title in a narrow card instead of running past its edge (as kit
  * PanelSection does).
@@ -59,7 +59,7 @@ export function InspectorSection({
       <div className="flex min-h-8 min-w-0 flex-wrap items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <h3 id={headingId} className={cn(STORY_LABEL_CLASS, "shrink-0")}>{title}</h3>
-          {count != null ? <span className="font-mono-broadcast text-[11px] tabular-nums text-muted-foreground">{count}</span> : null}
+          {count != null ? <span className="font-mono text-xs tabular-nums text-muted-foreground">{count}</span> : null}
           {tag}
         </div>
         {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}

@@ -636,14 +636,14 @@ export default function GradeEditorClient({ openParticipation = false }: { openP
             ) : (
               <section
                 aria-label={viewMode === "cycle" ? "Cycle grades" : "Total grades"}
-                className="relative flex min-w-0 flex-col overflow-hidden rounded-md border border-border bg-card lg:min-h-0 lg:flex-1"
+                className="relative flex min-w-0 flex-col overflow-hidden rounded-lg border border-line-strong bg-card lg:min-h-0 lg:flex-1"
               >
                 {panelBusy ? (
                   <span aria-hidden className="absolute inset-x-0 top-0 z-40 h-0.5 overflow-hidden bg-[var(--ink-3)]">
                     <span className="block h-full w-1/3 bg-[var(--brand-fill)] motion-safe:animate-[loading-bar_1s_ease-in-out_infinite]" />
                   </span>
                 ) : null}
-                <div className="shrink-0 space-y-3 border-b border-border p-4">
+                <div className="shrink-0 space-y-3 border-b border-line p-4">
                   <GradeEditorToolbar
                     viewMode={viewMode}
                     search={search}

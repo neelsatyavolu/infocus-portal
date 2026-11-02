@@ -142,7 +142,7 @@ export default function BrainstormingClient({ initial }: { initial?: InitialBrai
     );
   } else if (packages.length === 0) {
     body = (
-      <div className="rounded-md border border-border bg-card">
+      <div className="rounded-lg border border-line-strong bg-card">
         {canApprove ? (
           <EmptyState
             size="page"
@@ -214,7 +214,7 @@ export default function BrainstormingClient({ initial }: { initial?: InitialBrai
           loading ? (
             <>
               <span className="sr-only">Brainstorming</span>
-              <Skeleton className="h-7 w-64 max-w-full" />
+              <Skeleton className="h-10 w-64 max-w-full" />
             </>
           ) : active ? (
             packageTitle(active)

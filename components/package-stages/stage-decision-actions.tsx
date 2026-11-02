@@ -145,7 +145,7 @@ export function useStageDecisions({
       key: "approve-aroll",
       dock: true,
       node: (
-        <Button type="button" disabled={approving} onClick={() => setApproveKind("aroll")}>
+        <Button type="button" variant="accent" disabled={approving} onClick={() => setApproveKind("aroll")}>
           Approve A-roll/B-roll
         </Button>
       )
@@ -200,7 +200,7 @@ export function useStageDecisions({
         node: (
           <Button
             type="button"
-            variant={canDecide || approveOutline ? "outline" : "default"}
+            variant={canDecide || approveOutline ? "outline" : "accent"}
             disabled={approving}
             onClick={() => setApproveAnywayOpen(true)}
           >
@@ -216,7 +216,7 @@ export function useStageDecisions({
         node: (
           <Button
             type="button"
-            variant={approveOutline ? "outline" : "default"}
+            variant={approveOutline ? "outline" : "accent"}
             disabled={approving}
             onClick={() => setApproveKind("cut")}
             className="max-lg:px-3"
@@ -235,7 +235,7 @@ export function useStageDecisions({
       node: (
         <Button
           type="button"
-          variant={!queued && queuePrimary ? "default" : "outline"}
+          variant={!queued && queuePrimary ? "accent" : "outline"}
           disabled={queueing}
           onClick={() => void queue(!queued)}
         >

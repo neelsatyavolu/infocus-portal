@@ -94,17 +94,17 @@ export function EquipmentShell({ children, dashboardUrl }: EquipmentShellProps) 
     >
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-cta focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-cta-foreground"
       >
         Skip to content
       </a>
-      <header className="sticky top-0 z-40 shrink-0 border-b border-border bg-[var(--ink)] pt-[env(safe-area-inset-top)]">
+      <header className="sticky top-0 z-40 shrink-0 border-b border-line bg-background pt-[env(safe-area-inset-top)]">
         <div className="px-4 md:px-6">
           <div className="mx-auto flex h-14 w-full min-w-0 max-w-[80rem] items-center gap-3">
             <div className="flex min-w-0 shrink-0 items-center gap-3">
               <BrandWordmark className="h-6 w-auto object-contain" width={140} height={48} priority />
-              <span aria-hidden className="h-5 w-px bg-border" />
-              <span className="text-[13px] font-semibold text-foreground">Equipment</span>
+              <span aria-hidden className="h-5 w-px bg-line-strong" />
+              <span className="text-[13px] font-medium text-foreground">Equipment</span>
             </div>
 
             <nav aria-label="Equipment" className="ml-6 hidden h-14 items-stretch gap-6 lg:flex">
@@ -161,7 +161,7 @@ export function EquipmentShell({ children, dashboardUrl }: EquipmentShellProps) 
         >
           <Skeleton className="h-5 w-5" />
           <Skeleton className="h-2.5 w-12" />
-          <span className="h-0.5 w-4" />
+          <span className="h-px w-4" />
         </span>
       ) : null}
     </div>
@@ -174,13 +174,13 @@ function TopTab({ item, active }: { item: NavItem; active: boolean }) {
       href={item.href as never}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "relative inline-flex items-center px-0.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+        "relative inline-flex items-center px-0.5 text-sm transition-colors duration-150 ease-[var(--ease-ui)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50",
         active ? "font-medium text-foreground" : "text-muted-foreground hover:text-foreground"
       )}
     >
       {item.label}
-      {/* The 2px underline sits on the bar's bottom hairline, like HubTabs. */}
-      {active ? <span aria-hidden className="absolute inset-x-0 -bottom-px h-0.5 bg-[var(--brand-green)]" /> : null}
+      {/* The 1px brand underline sits on the bar's bottom hairline. */}
+      {active ? <span aria-hidden className="absolute inset-x-0 -bottom-px h-px bg-[var(--brand-green)]" /> : null}
     </Link>
   );
 }

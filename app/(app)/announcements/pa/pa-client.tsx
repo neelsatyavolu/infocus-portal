@@ -248,7 +248,7 @@ export default function PaClient({ initialData }: { initialData: PaResponse | nu
           <AnnouncementsToReadNote className="xl:hidden" />
         </div>
       ) : data ? (
-        <div className="rounded-md border border-border bg-card">
+        <div className="rounded-lg border border-line-strong bg-card">
           <EmptyState
             size="page"
             icon={Mic2}
@@ -268,7 +268,7 @@ export default function PaClient({ initialData }: { initialData: PaResponse | nu
           />
         </div>
       ) : error ? (
-        <div className="rounded-md border border-border bg-card">
+        <div className="rounded-lg border border-line-strong bg-card">
           <ErrorState size="page" title="Couldn't load the PA script" message={error} onRetry={() => void loadData()} />
         </div>
       ) : null}

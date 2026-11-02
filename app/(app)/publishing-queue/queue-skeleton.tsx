@@ -14,7 +14,7 @@ export function QueueSkeleton({ tiles = 3, rows = 6 }: { tiles?: 2 | 3; rows?: n
           <div
             key={index}
             className={cn(
-              "space-y-2 rounded-md border border-border bg-card p-4 max-sm:p-3",
+              "space-y-2 rounded-lg border border-line-strong bg-card p-4 max-sm:p-3",
               tiles === 3 && index === 2 && "max-sm:col-span-2"
             )}
           >
@@ -28,7 +28,7 @@ export function QueueSkeleton({ tiles = 3, rows = 6 }: { tiles?: 2 | 3; rows?: n
         <Skeleton className="h-5 w-40" />
         <Skeleton className="h-3.5 w-56 max-w-full" />
       </div>
-      <div aria-hidden className="divide-y divide-border overflow-hidden rounded-md border border-border bg-card">
+      <div aria-hidden className="divide-y divide-line overflow-hidden rounded-lg border border-line-strong bg-card">
         {Array.from({ length: rows }, (_, index) => (
           <div
             key={index}
@@ -38,8 +38,8 @@ export function QueueSkeleton({ tiles = 3, rows = 6 }: { tiles?: 2 | 3; rows?: n
               <Skeleton className="h-4 w-40" />
               <Skeleton className="h-3 w-20" />
             </div>
-            <Skeleton className="h-14 rounded-md" />
-            <Skeleton className={cn("h-14 rounded-md max-md:hidden", index % 2 === 1 && "opacity-50")} />
+            <Skeleton className="h-14 rounded-lg" />
+            <Skeleton className={cn("h-14 rounded-lg max-md:hidden", index % 2 === 1 && "opacity-50")} />
           </div>
         ))}
       </div>

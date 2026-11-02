@@ -23,7 +23,7 @@ export function ExecutiveLivestreamsPanel({ rows, className }: { rows: Livestrea
       ) : rows.length === 0 ? (
         <EmptyLine>No livestreams in the next two weeks.</EmptyLine>
       ) : (
-        <ul aria-label="Upcoming livestreams" className="divide-y divide-border">
+        <ul aria-label="Upcoming livestreams" className="divide-y divide-line">
           {shown.map((row) => (
             <ListRow
               key={row.id}

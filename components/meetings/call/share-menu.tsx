@@ -49,7 +49,7 @@ export function ShareMenu(props: {
             <>
               <MenuRow icon={<MonitorUp />} title="Share screen, window or tab" detail="Everyone sees what you pick" onSelect={run(props.onShare)} />
               {/* Indented to the row text (12px pad + 16px icon + 12px gap). */}
-              <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-md py-2 pl-10 pr-3 hover:bg-[var(--ink-3)]">
+              <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-md py-2 pl-10 pr-3 transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)]">
                 <span className="min-w-0">
                   <span className="block">Share sound</span>
                   <span className="block text-xs text-muted-foreground">Works best when you share a Chrome tab</span>

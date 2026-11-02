@@ -33,7 +33,7 @@ export function NoteCount({ length }: { length: number }) {
   return (
     <span
       className={cn(
-        "font-mono-broadcast text-[11px] tabular-nums",
+        "font-mono text-[12px] tabular-nums",
         length >= COUNT_WARN_FROM ? "text-[var(--brand-amber)]" : "text-muted-foreground"
       )}
     >
@@ -97,7 +97,7 @@ export function NoteField({
   );
 }
 
-/** A labelled note: caps label, cycle focus, save state and (near the limit) a count, then the field. */
+/** A labelled note: label, cycle focus, save state and (near the limit) a count, then the field. */
 export function NoteEditor({
   noteKey,
   label,
@@ -125,7 +125,7 @@ export function NoteEditor({
   return (
     <div className="min-w-0 space-y-2">
       <div className="flex min-h-6 min-w-0 items-center gap-2">
-        <label htmlFor={fieldId} className="shrink-0 text-[11px] font-medium uppercase leading-tight tracking-[0.11em] text-muted-foreground">
+        <label htmlFor={fieldId} className="shrink-0 text-[13px] font-medium leading-tight text-muted-foreground">
           <span aria-hidden>{label}</span>
           <span className="sr-only">{srLabel}</span>
         </label>

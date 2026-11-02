@@ -89,7 +89,7 @@ export function LiveImagePanel({ event, scoreboard, liveImage, offset, overlayUr
   return (
     <div className="grid gap-4">
       <section aria-labelledby="live-graphics-title" className="grid gap-2">
-        <h3 id="live-graphics-title" className="text-base font-semibold leading-snug tracking-[-0.01em] text-foreground">
+        <h3 id="live-graphics-title" className="text-base font-medium leading-snug tracking-[-0.015em] text-foreground">
           Graphics
         </h3>
         <div role="radiogroup" aria-labelledby="live-graphics-title" className="grid grid-cols-3 gap-3 md:grid-cols-6">
@@ -109,9 +109,9 @@ export function LiveImagePanel({ event, scoreboard, liveImage, offset, overlayUr
                 title={graphic.description}
                 onClick={() => queue(graphic.id)}
                 onKeyDown={(keyEvent) => onTileKey(keyEvent, index)}
-                className="flex h-full min-w-0 flex-col gap-2 rounded-md border border-border bg-card p-2 text-left transition-colors hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring aria-checked:border-[var(--brand-green)]"
+                className="flex h-full min-w-0 flex-col gap-2 rounded-lg border border-line-strong bg-card p-2 text-left transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-secondary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30 aria-checked:border-[var(--brand-green)] aria-checked:bg-brand-tint"
               >
-                <LiveStage background={FULL_FRAME.includes(graphic.id) ? "ink" : "checker"} className="pointer-events-none rounded-sm">
+                <LiveStage background={FULL_FRAME.includes(graphic.id) ? "ink" : "checker"} className="pointer-events-none rounded-md">
                   <LiveGraphic
                     graphic={graphic.id}
                     fields={drafts[graphic.id] ?? defaultGraphicFields(graphic.id, event)}
@@ -174,7 +174,7 @@ export function LiveImagePanel({ event, scoreboard, liveImage, offset, overlayUr
               <Button type="button" variant="outline" className="h-11 shrink-0 md:h-8" onClick={() => void clear()} disabled={busy || !liveImage}>
                 Clear
               </Button>
-              <Button type="button" className="h-11 shrink-0 md:h-8" onClick={() => void push()} disabled={busy}>
+              <Button type="button" variant="accent" className="h-11 shrink-0 md:h-8" onClick={() => void push()} disabled={busy}>
                 Push to OBS
               </Button>
             </ActionDock>
@@ -182,7 +182,7 @@ export function LiveImagePanel({ event, scoreboard, liveImage, offset, overlayUr
           footer={<p className="leading-snug">Only you see the queue. Viewers see nothing until you push.</p>}
         >
           <div className="grid gap-4">
-            <LiveStage background={FULL_FRAME.includes(queued) ? "ink" : "checker"} className="rounded-sm">
+            <LiveStage background={FULL_FRAME.includes(queued) ? "ink" : "checker"} className="rounded-lg">
               <div key={`${queued}-${queueNonce}`} className="lv-play">
                 <LiveGraphic graphic={queued} fields={fields} scoreboard={scoreboard} event={event} now={now} />
               </div>
@@ -234,7 +234,7 @@ export function LiveImagePanel({ event, scoreboard, liveImage, offset, overlayUr
           }
           footer={<ObsLink url={overlayUrl} hint={IMAGE_HINT} onRotate={onRotateKey} />}
         >
-          <LiveStage background="checker" className="rounded-sm">
+          <LiveStage background="checker" className="rounded-lg">
             <LiveImageLayer
               liveImage={liveImage}
               render={(image) => <LiveGraphic graphic={image.graphic} fields={image.fields} scoreboard={scoreboard} event={event} now={now} />}

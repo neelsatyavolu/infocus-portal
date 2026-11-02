@@ -11,7 +11,7 @@ const FOOTER_LINKS = [
 /** Slim public footer: the two App Store pages, on the same column edges as the header. */
 export function MarketingFooter({ active }: { active?: MarketingActive }) {
   return (
-    <footer className="border-t border-border">
+    <footer className="border-t border-line">
       <div
         className={cn(
           PUBLIC_CONTAINER,

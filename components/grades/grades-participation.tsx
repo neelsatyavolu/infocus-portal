@@ -63,7 +63,7 @@ export function GradesParticipation({
             type="button"
             onClick={() => onWeekIndex(pointerIndex)}
             aria-label={`View the week of ${shortDateFromKey(pointerWeek.weekStart)}`}
-            className="ml-auto inline-flex h-10 shrink-0 items-center rounded-sm text-xs font-medium text-[var(--brand-green)] transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-8"
+            className="ml-auto inline-flex h-10 shrink-0 items-center rounded-md text-xs font-medium text-[var(--brand-green)] underline-offset-4 transition-colors duration-150 ease-[var(--ease-ui)] hover:underline focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30 sm:h-8"
           >
             View
           </button>
@@ -96,7 +96,7 @@ export function GradesParticipation({
           {days.length === 0 ? (
             <p className="text-sm text-muted-foreground">No class days this week.</p>
           ) : (
-            <ul aria-label={`Class days, ${week.label}`} className="divide-y divide-border border-t border-border">
+            <ul aria-label={`Class days, ${week.label}`} className="divide-y divide-line border-t border-line">
               {days.map((day) => (
                 <DayRow key={day.date} day={day} />
               ))}

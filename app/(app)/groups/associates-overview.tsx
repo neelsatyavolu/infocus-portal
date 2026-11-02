@@ -119,7 +119,7 @@ export function AssociatesOverview({ associate }: { associate: AssociatePerforma
 
       <ScoreBreakdown associate={associate} />
 
-      <Disclosure summary="How this score works" className="rounded-md border border-border px-4" bodyClassName="space-y-2 pb-4 text-[13px] leading-relaxed text-muted-foreground">
+      <Disclosure summary="How this score works" className="rounded-lg border border-line-strong bg-card px-4" bodyClassName="space-y-2 pb-4 text-[13px] leading-relaxed text-muted-foreground">
         <p className="max-w-prose">
           The first response to brainstorming, A-roll/B-roll, and initial cut v1 counts once per group and stage. A response is a
           comment, submitted review, or approval by this associate. Unanswered work has a 48-hour grace period. Hours include nights
@@ -144,13 +144,13 @@ export function AssociatesOverview({ associate }: { associate: AssociatePerforma
         {associate.samples.length === 0 ? (
           <p className="text-sm text-muted-foreground">No reviewable work in this cycle yet.</p>
         ) : (
-          <ul className="divide-y divide-border rounded-md border border-border">
+          <ul className="divide-y divide-line rounded-lg border border-line-strong bg-card">
             {associate.samples.map((sample) => (
               <li key={`${sample.rowId}:${sample.stage}`} className="flex min-h-14 items-center justify-between gap-3 px-4 py-2.5">
                 <div className="min-w-0">
                   <Link
                     href={associateStageHref(sample.rowId, sample.stage) as never}
-                    className="inline-flex max-w-full items-center gap-1 text-sm font-medium hover:text-[var(--brand-green)]"
+                    className="inline-flex max-w-full items-center gap-1 text-sm font-medium transition-colors duration-150 ease-[var(--ease-ui)] hover:text-[var(--brand-green)]"
                   >
                     <span className="truncate">{sample.topic}</span>
                     <ArrowUpRight aria-hidden className="h-3.5 w-3.5 shrink-0" />
@@ -178,7 +178,7 @@ export function AssociatesOverview({ associate }: { associate: AssociatePerforma
         {associate.progress.groups.length === 0 ? (
           <p className="text-sm text-muted-foreground">No assigned groups in this cycle.</p>
         ) : (
-          <ul className="divide-y divide-border rounded-md border border-border">
+          <ul className="divide-y divide-line rounded-lg border border-line-strong bg-card">
             {associate.progress.groups.map((group) => (
               <li key={group.rowId} className="space-y-2 px-4 py-3">
                 <div className="flex items-baseline justify-between gap-3 text-sm">

@@ -192,7 +192,7 @@ function GuestBrandRow() {
   return (
     <div className="mb-4 flex h-10 items-center gap-3">
       <span className="wordmark text-foreground">InFocus Portal</span>
-      <span aria-hidden className="h-4 w-px bg-border" />
+      <span aria-hidden className="h-4 w-px bg-line-strong" />
       <span className="text-sm text-muted-foreground">Guest review</span>
     </div>
   );
@@ -205,10 +205,10 @@ function GuestBrandRow() {
 function GuestGate({ passcodeTried }: { passcodeTried: boolean }) {
   return (
     <main className="flex min-h-dvh items-center justify-center p-4 md:p-6">
-      <div className="w-full max-w-sm space-y-5 rounded-md border border-border bg-card p-6">
-        <div className="space-y-1.5">
+      <div className="w-full max-w-sm space-y-5 rounded-lg border border-line-strong bg-card p-6">
+        <div className="space-y-3">
           <p className="eyebrow">Guest review</p>
-          <h1 className="display-sm text-foreground">Protected review link</h1>
+          <h1 className="text-balance font-serif text-[40px] font-normal leading-none tracking-[-0.02em] text-foreground">Protected review link</h1>
           <p className="text-sm text-[var(--ink-text)]">This link may be revoked or expired, or it needs a valid passcode.</p>
         </div>
         {passcodeTried ? (

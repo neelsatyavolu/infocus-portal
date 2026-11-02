@@ -89,7 +89,7 @@ export function DangerZoneSection({ onReset }: { onReset: () => Promise<void> })
           </DialogHeader>
           <div className="space-y-2">
             <label htmlFor="reset-cycles-confirm" className="text-sm text-foreground">
-              Type <span className="font-mono font-semibold">{CONFIRM_TEXT}</span> to enable the button.
+              Type <span className="font-mono font-medium">{CONFIRM_TEXT}</span> to enable the button.
             </label>
             <Input
               id="reset-cycles-confirm"

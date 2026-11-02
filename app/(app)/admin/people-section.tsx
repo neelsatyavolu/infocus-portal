@@ -157,9 +157,9 @@ export function PeopleSection({
   const hiddenOnPhone = Math.max(0, filteredUsers.length - PHONE_VISIBLE);
 
   return (
-    <section id="people" aria-labelledby="people-title" className="min-w-0 scroll-mt-24 rounded-md border border-border bg-card">
+    <section id="people" aria-labelledby="people-title" className="min-w-0 scroll-mt-24 rounded-lg border border-line-strong bg-card">
       {/* Sticky to the page scroller (no inner scroll box), so there is one scrollbar. */}
-      <div className="sticky top-[var(--app-header-h,0px)] z-10 rounded-t-md border-b border-border bg-card">
+      <div className="sticky top-[var(--app-header-h,0px)] z-10 rounded-t-lg border-b border-line bg-card">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 md:px-5">
           {/* The kit panel header (same title and count as Producer Team); search sits beside it at touch size. */}
           <PanelHeader
@@ -169,7 +169,7 @@ export function PeopleSection({
             count={searching ? null : users.length}
             status={
               searching ? (
-                <span className="font-mono-broadcast text-[13px] tabular-nums text-muted-foreground">
+                <span className="font-mono text-[13px] tabular-nums text-muted-foreground">
                   {`${filteredUsers.length} of ${users.length}`}
                 </span>
               ) : null
@@ -190,7 +190,7 @@ export function PeopleSection({
           />
         </div>
         {filteredUsers.length > 0 ? (
-          <div aria-hidden="true" className={cn(ROW_GRID, "hidden border-t border-border px-4 py-2 sm:grid md:px-5")}>
+          <div aria-hidden="true" className={cn(ROW_GRID, "hidden border-t border-line px-4 py-2 sm:grid md:px-5")}>
             <span className={cn(COLUMN_LABEL_CLASS, "col-span-2")}>Person</span>
             <span className={cn(COLUMN_LABEL_CLASS, "px-2.5")}>Nickname</span>
             <span />
@@ -230,7 +230,7 @@ export function PeopleSection({
                 className={cn(
                   ROW_GRID,
                   // Top lines (not divide-y), so rows hidden on phones never leave a doubled edge.
-                  "group/row border-t border-border px-4 py-2.5 transition-colors first:border-t-0 last:rounded-b-md hover:bg-[var(--ink-3)]/40 md:px-5",
+                  "group/row border-t border-line px-4 py-2.5 transition-colors duration-150 ease-[var(--ease-ui)] first:border-t-0 last:rounded-b-lg hover:bg-[var(--ink-3)]/60 md:px-5",
                   index >= PHONE_VISIBLE && !showAllOnPhone && "max-sm:hidden"
                 )}
               >
@@ -287,7 +287,7 @@ export function PeopleSection({
           controls={listId}
           closedLabel={`Show ${hiddenOnPhone} more`}
           openLabel="Show fewer"
-          className="rounded-b-md border-t border-border sm:hidden"
+          className="rounded-b-lg border-t border-line sm:hidden"
         />
       ) : null}
 

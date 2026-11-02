@@ -25,7 +25,7 @@ export type MarketingActive =
  * Green on Dark per DESIGN.md, always underlined so a link never differs by color alone.
  */
 export const INLINE_LINK_CLASS =
-  "font-medium text-[var(--brand-green)] underline underline-offset-4 hover:text-foreground";
+  "font-medium text-brand-green underline underline-offset-4 transition-colors duration-150 ease-[var(--ease-ui)] hover:text-foreground";
 
 /** Anchor targets clear the sticky 56px header (plus a little air). */
 export const ANCHOR_OFFSET = "scroll-mt-20";

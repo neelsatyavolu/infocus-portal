@@ -22,7 +22,7 @@ type CastCountsDialogProps = {
 type RosterFilter = "all" | "no-anchors" | "no-pa";
 
 const COLUMN_COUNT = 3;
-const HEAD_CLASS = "h-8 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground";
+const HEAD_CLASS = "h-8 text-[12px] font-medium text-muted-foreground";
 
 function splitColumns<T>(items: T[], columnCount: number): T[][] {
   if (items.length === 0) return Array.from({ length: columnCount }, () => []);
@@ -65,9 +65,9 @@ function RosterTable({ rows }: { rows: AnchorPaCountRow[] }) {
         {rows.map((row) => {
           const noneYet = row.anchors === 0 && row.pa === 0;
           return (
-            <tr key={row.name} className="h-8 border-t border-border">
+            <tr key={row.name} className="h-8 border-t border-line">
               <td className="pr-2">
-                <span className={cn("block truncate", noneYet ? "text-muted-foreground" : "font-medium text-foreground")}>
+                <span className={cn("block truncate", noneYet ? "text-muted-foreground" : "text-foreground")}>
                   {row.name}
                 </span>
               </td>
@@ -159,7 +159,7 @@ export function CastCountsDialog({ open, onOpenChange }: CastCountsDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90dvh] max-w-3xl gap-5 overflow-y-auto sm:rounded-md">
+      <DialogContent className="max-h-[90dvh] max-w-3xl gap-5 overflow-y-auto sm:rounded-lg">
         <DialogHeader>
           <DialogTitle className="text-balance">Anchors & PA</DialogTitle>
           <DialogDescription className="text-pretty">

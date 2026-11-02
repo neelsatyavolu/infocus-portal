@@ -50,7 +50,7 @@ function MoveToFolder({ folderOptions, commonFolder, moving, onMoveTo }: FolderP
       <span
         title="Move to folder"
         className={cn(
-          "relative inline-flex w-10 shrink-0 items-center justify-center rounded-md border border-input text-foreground focus-within:ring-2 focus-within:ring-ring sm:hidden",
+          "relative inline-flex w-10 shrink-0 items-center justify-center rounded-md border border-line-strong bg-secondary text-foreground focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/30 sm:hidden",
           moving && "opacity-50"
         )}
       >
@@ -164,7 +164,7 @@ export function SelectionBar({
         // of both. With no tab bar (--phone-tabbar-h unset) the ×100 terms drop the lift and the
         // bar takes the safe area as bottom padding instead. m-0: the page's space-y margin
         // would otherwise lift the fixed bar off the tab bar.
-        "max-lg:fixed max-lg:inset-x-0 max-lg:bottom-[calc(var(--phone-tabbar-h,0px)_+_min(env(safe-area-inset-bottom,0px),var(--phone-tabbar-h,0px)*100))] max-lg:z-30 max-lg:m-0 max-lg:border-t max-lg:border-border max-lg:bg-background max-lg:px-4 max-lg:py-3 max-lg:pb-[max(0.75rem,calc(env(safe-area-inset-bottom,0px)_-_var(--phone-tabbar-h,0px)*100))] max-lg:pr-[calc(max(1.25rem,env(safe-area-inset-right))+3.5rem)]",
+        "max-lg:fixed max-lg:inset-x-0 max-lg:bottom-[calc(var(--phone-tabbar-h,0px)_+_min(env(safe-area-inset-bottom,0px),var(--phone-tabbar-h,0px)*100))] max-lg:z-30 max-lg:m-0 max-lg:border-t max-lg:border-line max-lg:bg-background max-lg:px-4 max-lg:py-3 max-lg:pb-[max(0.75rem,calc(env(safe-area-inset-bottom,0px)_-_var(--phone-tabbar-h,0px)*100))] max-lg:pr-[calc(max(1.25rem,env(safe-area-inset-right))+3.5rem)]",
         // From lg it stays in reach under the top bar. The 8px padding keeps scrolled cards off
         // its edges; the margins take it back out so it fills the toolbar's 36px slot (the page
         // stacks with space-y-5: 1.25rem = 0.75rem margin + 0.5rem padding on each side).

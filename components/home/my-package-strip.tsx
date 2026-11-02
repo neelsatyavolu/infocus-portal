@@ -27,11 +27,11 @@ export function MyPackageStrip({ upNext, peopleLine }: { upNext: DashboardUpNext
   return (
     <section
       aria-labelledby="home-my-package-title"
-      className="grid min-w-0 gap-4 rounded-md border border-border bg-card p-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] xl:gap-6"
+      className="grid min-w-0 gap-4 rounded-lg border border-line-strong bg-card p-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] xl:gap-6"
     >
       <div className="min-w-0">
         <div className="flex min-h-5 flex-wrap items-center gap-x-2 gap-y-1">
-          <p className="text-[11px] font-medium uppercase leading-tight tracking-[0.11em] text-muted-foreground">My package</p>
+          <p className="text-[13px] font-medium leading-tight text-muted-foreground">My package</p>
           {current ? (
             dueLabel ? <StatusTag tone={stageDueTone(stageDueDays(current.dueDate))}>{dueLabel}</StatusTag> : null
           ) : (
@@ -40,7 +40,7 @@ export function MyPackageStrip({ upNext, peopleLine }: { upNext: DashboardUpNext
             </StatusTag>
           )}
         </div>
-        <h2 id="home-my-package-title" title={topic} className="mt-1 truncate text-base font-semibold leading-snug tracking-[-0.01em] text-foreground">
+        <h2 id="home-my-package-title" title={topic} className="mt-1 truncate text-base font-medium leading-snug tracking-[-0.015em] text-foreground">
           {topic}
         </h2>
         <p className="line-clamp-2 text-[13px] leading-snug text-muted-foreground md:line-clamp-1">{peopleLine}</p>
@@ -51,7 +51,7 @@ export function MyPackageStrip({ upNext, peopleLine }: { upNext: DashboardUpNext
           label={progressLabel}
           segments={steps.map((step) => (step.tone === "done" ? "done" : step.tone === "current" ? "current" : "later"))}
         />
-        <p aria-hidden className="mt-1.5 truncate text-[11px] leading-tight text-muted-foreground sm:hidden">
+        <p aria-hidden className="mt-1.5 truncate text-[12px] leading-tight text-muted-foreground sm:hidden">
           {current ? (
             <>
               Stage {currentIndex + 1} of {steps.length} · <span className="font-medium text-foreground">{shortStageLabel(current.key)}</span>
@@ -60,7 +60,7 @@ export function MyPackageStrip({ upNext, peopleLine }: { upNext: DashboardUpNext
             `All ${steps.length} stages submitted`
           )}
         </p>
-        <ol aria-hidden className="mt-1.5 grid grid-cols-4 gap-1 text-[11px] leading-tight max-sm:hidden">
+        <ol aria-hidden className="mt-1.5 grid grid-cols-4 gap-1 text-[12px] leading-tight max-sm:hidden">
           {steps.map((step) => (
             <li
               key={step.key}

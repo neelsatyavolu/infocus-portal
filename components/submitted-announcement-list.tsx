@@ -51,14 +51,14 @@ function BucketSection({
   return (
     <section aria-labelledby={titleId}>
       <div className="flex min-h-10 min-w-0 items-center justify-between gap-3">
-        <h2 id={titleId} className="min-w-0 text-lg font-semibold leading-snug tracking-[-0.01em] text-foreground">
+        <h2 id={titleId} className="min-w-0 text-lg font-medium leading-snug tracking-[-0.015em] text-foreground">
           {collapsible ? (
             <button
               type="button"
               aria-expanded={expanded}
               aria-controls={bodyId}
               onClick={() => setOpen((current) => !current)}
-              className="inline-flex min-h-10 items-center gap-2 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="inline-flex min-h-10 items-center gap-2 rounded-md text-left focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30"
             >
               {title}
               {countTag}

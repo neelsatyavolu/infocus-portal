@@ -145,7 +145,7 @@ export function SuggestionCombobox<T>({
         <div
           // Clicking anywhere in the popover (including its scrollbar) keeps focus in the field.
           onMouseDown={(event) => event.preventDefault()}
-          className="absolute inset-x-0 top-full z-20 mt-1 max-h-64 overflow-y-auto rounded-md border border-border bg-card py-1"
+          className="absolute inset-x-0 top-full z-20 mt-1 max-h-64 overflow-y-auto rounded-lg border border-line-strong bg-popover p-1"
         >
           {ready ? (
             <ul id={listId} role="listbox" aria-label={listLabel}>
@@ -156,7 +156,7 @@ export function SuggestionCombobox<T>({
                   role="option"
                   aria-selected={index === active}
                   onClick={() => pick(option)}
-                  className="relative flex min-h-10 cursor-pointer flex-col justify-center gap-0.5 px-3 py-2 text-left transition-colors hover:bg-[var(--ink-3)] aria-selected:bg-[var(--ink-3)] aria-selected:before:absolute aria-selected:before:inset-y-0 aria-selected:before:left-0 aria-selected:before:w-[3px] aria-selected:before:bg-[var(--brand-green)]"
+                  className="relative flex min-h-10 cursor-pointer flex-col justify-center gap-0.5 overflow-hidden rounded-md px-3 py-2 text-left transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)] aria-selected:bg-[var(--ink-3)] aria-selected:before:absolute aria-selected:before:inset-y-0 aria-selected:before:left-0 aria-selected:before:w-[3px] aria-selected:before:bg-[var(--brand-green)]"
                 >
                   {renderOption(option)}
                 </li>

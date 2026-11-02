@@ -4,7 +4,7 @@ import { useEffect } from "react";
 
 /**
  * Last resort when the root layout itself crashes: globals.css and fonts may not be loaded,
- * so this page brings its own <html>, <body> and inline Ink / InFocus Green styles.
+ * so this page brings its own <html>, <body> and inline black canvas / white primary styles.
  */
 export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
@@ -20,14 +20,14 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
           display: "grid",
           placeItems: "center",
           padding: "24px",
-          background: "#0F110F",
-          color: "#ECEFEA",
-          fontFamily: "system-ui, -apple-system, Segoe UI, sans-serif"
+          background: "#000000",
+          color: "#FCFDFF",
+          fontFamily: "Geist, system-ui, -apple-system, Segoe UI, sans-serif"
         }}
       >
         <main role="alert" style={{ maxWidth: 420, width: "100%" }}>
-          <h1 style={{ fontSize: 22, fontWeight: 600, margin: "0 0 8px" }}>InFocus Portal hit an error</h1>
-          <p style={{ fontSize: 14, color: "#DCE2DE", margin: "0 0 16px" }}>
+          <h1 style={{ fontSize: 22, fontWeight: 500, letterSpacing: "-0.02em", margin: "0 0 8px" }}>InFocus Portal hit an error</h1>
+          <p style={{ fontSize: 14, color: "rgba(252,253,255,0.86)", margin: "0 0 16px" }}>
             Reload to try again.
             {error.digest ? ` Reference: ${error.digest}` : ""}
           </p>
@@ -39,9 +39,9 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
                 height: 36,
                 padding: "0 16px",
                 border: 0,
-                borderRadius: 6,
-                background: "#0B6E3E",
-                color: "#ECEFEA",
+                borderRadius: 8,
+                background: "#FCFDFF",
+                color: "#000000",
                 font: "inherit",
                 fontSize: 14,
                 fontWeight: 500,
@@ -58,9 +58,10 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
                 padding: "0 16px",
                 display: "inline-flex",
                 alignItems: "center",
-                border: "1px solid #6B726D",
-                borderRadius: 6,
-                color: "#ECEFEA",
+                border: "1px solid rgba(255,255,255,0.14)",
+                borderRadius: 8,
+                background: "#111114",
+                color: "#FCFDFF",
                 fontSize: 14,
                 textDecoration: "none"
               }}

@@ -65,10 +65,10 @@ function InviteList({
   onRemove: (invite: InviteRow) => void;
 }) {
   if (invites.length === 0) {
-    return <p className="rounded-md border border-border px-4 py-3 text-sm text-muted-foreground">No addresses yet.</p>;
+    return <p className="rounded-lg border border-line-strong bg-card px-4 py-3 text-sm text-muted-foreground">No addresses yet.</p>;
   }
   return (
-    <ul className="divide-y divide-border rounded-md border border-border">
+    <ul className="divide-y divide-line rounded-lg border border-line-strong bg-card">
       {invites.map((invite) => (
         <li
           key={invite.id}

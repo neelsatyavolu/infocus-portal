@@ -124,7 +124,7 @@ export default function EquipmentRequestClient() {
         className={`lg:hidden ${ABOVE_PHONE_TABBAR}`}
         status={status ? <StatusLine status={status} /> : `${selectedBarcodes.length} selected`}
       >
-        <Button type="submit" form={REQUEST_FORM_ID} disabled={busy}>
+        <Button type="submit" variant="accent" form={REQUEST_FORM_ID} disabled={busy}>
           {busy ? "Submitting…" : "Submit request"}
         </Button>
       </StickyActionBar>

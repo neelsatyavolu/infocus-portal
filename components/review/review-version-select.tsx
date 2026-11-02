@@ -69,7 +69,7 @@ export function ReviewVersionSelect({
                       New
                     </StatusTag>
                   ) : fresh > 0 ? (
-                    <span className="text-xs text-[var(--brand-green)]">{fresh} new</span>
+                    <span className="text-xs text-brand-green">{fresh} new</span>
                   ) : null}
                 </span>
                 <span className="text-xs text-muted-foreground">

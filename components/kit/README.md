@@ -1,9 +1,11 @@
 # InFocus Portal UI kit
 
-Shared building blocks for every Portal screen. They follow `DESIGN.md` §10, §13 and §14:
-square plates, 6px cards, 4px tags, 1px lines, no shadows or gradients, InFocus Green fills with
-Soft White text, Green on Dark for small marks, Lexend for words, Geist Mono (tabular) for data,
-semantic tokens only (so Light mode works), visible focus rings, and 40px touch targets on phones.
+Shared building blocks for every Portal screen. They follow `DESIGN.md` §10, §13 and §14: a
+true-black canvas, 12px cards with a strong hairline, 8px buttons and inputs, sentence-case pill
+tags, no shadows or gradients, a white primary button, the brand color (InFocus Green, or the
+season's) as the one accent, Geist for words, Geist Serif for page titles, Geist Mono (tabular) for
+data, semantic tokens only (so Light mode and the seasons work), visible focus rings, and 40px
+touch targets on phones.
 
 **Importing.** Import from the file (`@/components/kit/status-tag`) or from the barrel
 (`@/components/kit`). Client components on hot paths should import from the file. Files marked
@@ -35,7 +37,9 @@ server component.
    a page shares the same left and right edges.
 2. **Matched controls.** Controls in one row share one height (`h-9` by default, `h-8` small)
    and one family (primary plus outline or ghost), with 16px icons. Use at most one primary
-   (filled) button per view, and put it last. `ActionBar` and `Toolbar` hold every direct child
+   (white, `variant="default"`) button per view, and put it last. When the view's key action is
+   a brand moment (Submit, Send to queue, Start show, Approve), use `variant="accent"` (the brand
+   fill) instead of the primary, never beside it. `ActionBar` and `Toolbar` hold every direct child
    to the row height (Tailwind `*:h-9`, which beats a child's own `h-8`). Composite controls
    (`ButtonGroup`, `DateStepper`, `SegmentedControl`, `SearchField`) fill whatever height the row
    gives them. `FilterChips` sizes itself (it can wrap), so give it the row's `size`.
@@ -100,7 +104,7 @@ warning, `error` → danger. So `GroupTileStatusTone` plugs in directly.
 ## Status marks: `status-tag.tsx`
 
 ### StatusTag (alias StatusBadge)
-THE tag. A `<span>`, 20px tall (18px for `sm`), 11px caps, 4px radius, tinted by tone. Long
+THE tag. A `<span>`, 20px tall (18px for `sm`), a 12px sentence-case pill, tinted by tone. Long
 labels truncate and show the full label on hover.
 
 ```ts
@@ -111,7 +115,7 @@ labels truncate and show the full label on hover.
 ```tsx
 <StatusTag tone="danger">Revisions</StatusTag>
 <StatusTag tone={toneFromStatusClass(CYCLE_STAGE_STATUS_CLASS[s])} dot={s === "approved"}>{CYCLE_STAGE_STATUS_LABELS[s]}</StatusTag>
-<StatusTag tone="live">Live</StatusTag> {/* Ink tag with the one Record Red dot */}
+<StatusTag tone="live">Live</StatusTag> {/* neutral tag with the one Record Red dot */}
 ```
 
 ### StatusDot
@@ -123,7 +127,7 @@ The "something happened" mark for the sidebar rail, phone tabs, tabs and list ro
 `label` the dot is decorative, so say the meaning in nearby text.
 
 ### CountBadge
-A Geist Mono tabular count: 18px, 4px radius, caps at "99+". It renders nothing below 1 unless
+A Geist Mono tabular count: an 18px pill, caps at "99+". It renders nothing below 1 unless
 `showZero` is set.
 
 `{ count: number; max?: number = 99; tone?: "brand" | "onBrand" | "neutral" | "warning" | "danger" | "quiet" = "brand"; srLabel?: string; showZero?: boolean; className? }`
@@ -155,12 +159,13 @@ under reduced motion. Pass `label` only when nothing nearby says it is busy.
 ## Headers and sections
 
 ### PageHeader: `@/components/page-header`
-The square Ink 2 nameplate with the green strip. Backward compatible.
+The page header card (12px radius, strong hairline): eyebrow, a Geist Serif 40px title (sans
+18px for `compact`), one line of context. Backward compatible.
 
 `{ eyebrow?; status?; title: ReactNode; description?; actions?; size?: "compact" | "default" | "display"; className? }`
 
 - `status`: StatusTags in the eyebrow row, above the title.
-- `actions`: controls only, held to h-9 through ActionBar. One primary, last. On phones they
+- `actions`: controls only, held to h-9 through ActionBar. One primary (or accent), last. On phones they
   share the full width; square icon buttons stay square.
 - `size`: `compact` (py-4, smaller title) for tool pages; `display` for landing heroes.
 
@@ -183,8 +188,8 @@ line, h-8 actions on the right.
 `collapsible` turns the title into a disclosure button; you own the open state.
 
 ### SectionLabel: `section.tsx`
-An 11px caps label with an end slot, for field groups, list group labels and day headers
-("MATERIALS … 3 of 4 in").
+A 13px muted sentence-case label with an end slot, for field groups, list group labels and day
+headers ("Materials … 3 of 4 in").
 
 `{ children; end?; count?: number | null; rule?: boolean; as?: "div" | "h2" | "h3" | "h4" | "label" | "legend"; htmlFor?; id?; className? }`
 
@@ -193,7 +198,7 @@ With `as="legend"` the whole row is the `<legend>`; put it first in its `<fields
 
 ### Disclosure, DisclosureToggle: `disclosure.tsx` (client)
 - `Disclosure { summary; count?; actions?; open?; onOpenChange?; defaultOpen? = false; storageKey?; variant?: "row" | "section" = "row"; headingAs?: "h2" | "h3" | "h4" = "h3"; className?; bodyClassName?; children }`:
-  a section whose body folds away. `row` is a 40px caps row (folded lists); `section` is a real
+  a section whose body folds away. `row` is a 40px muted label row (folded lists); `section` is a real
   heading whose text is the toggle. Actions (h-8) never toggle it. Control `open`, or remember
   it per browser with `storageKey` (version it, e.g. `"grades:how:v1"`).
 - `DisclosureToggle { open; onToggle; closedLabel; openLabel; controls?; className? }`: a
@@ -274,7 +279,7 @@ A joined one-of-N choice.
 ```
 
 - The outer box is exactly the row height, so it lines up with buttons.
-- The active segment uses the green fill.
+- The active segment is a raised elevated pill with a strong hairline.
 - It is a radiogroup with ←/→/Home/End. Options with `href` render as links with aria-current.
 - It scrolls inside itself if the options don't fit.
 
@@ -291,7 +296,7 @@ Single-select chips with mono counts. They scroll sideways on phones and wrap fr
 - To remember the choice, keep `value` in `useRememberedState`.
 
 ### ViewTabs, ViewTabPanel: `view-tabs.tsx` (client)
-In-page tabs that look exactly like HubTabs (40px, 2px green underline).
+In-page tabs that look exactly like HubTabs (40px, 1px brand underline).
 
 - `ViewTabs { items: { value; label; count?; countTone?; countLabel?; dot?; dotLabel?; disabled?; title? }[]; value; onChange; ariaLabel; idPrefix?; size?: "md" | "lg"; className? }`
 - `ViewTabPanel { idPrefix; value; active; className?; children }`
@@ -330,7 +335,7 @@ Panel {
   tone?: "default" | "danger" | "brand"; as?: "section" | "div" | "article" | "form" = "section";
   id?; className?; bodyClassName?; "aria-label"?; children
 }
-PanelSection { title? (caps label); status?; actions?; id?; grow?: boolean; className?; children }  // inside <Panel divided>
+PanelSection { title? (muted label); status?; actions?; id?; grow?: boolean; className?; children }  // inside <Panel divided>
 PanelHeader  { title?; titleAs?; titleId?; eyebrow?; count?; status?; description?; actions?; className? }
 PanelFooter  { children; justify?: "between" | "end" | "start"; className? }
 PanelLink    { href; children; className? }  // the one "See all →" style
@@ -341,8 +346,8 @@ PanelLink    { href; children; className? }  // the one "See all →" style
 - `padding="none"` is for flush lists and tables; the header gets its own padding and a rule.
 - `id` also names the title `${id}-title` and labels the section with it (`as="div"` is not
   labelled, since a plain div can't carry a name).
-- `tone="danger"` draws a Danger-tinted edge (danger zones); `brand` a green edge for the one
-  item that needs attention.
+- `tone="danger"` draws a Danger-tinted edge (danger zones); `brand` a brand-colored edge for the
+  one item that needs attention.
 
 ```tsx
 <Panel id="media" title="Media" status={<StatusTag tone="success">Approved</StatusTag>} actions={<PanelLink href="/drive">Open</PanelLink>}>…</Panel>
@@ -357,7 +362,7 @@ link layer, so there is never a button inside an anchor.
 
 ### StatTile, StatGrid, MetricStrip: `stat-tile.tsx`
 - `StatTile { label; value; mono? = true; unit?; hint?; tag?; icon?; tone?; progress? (0–1 or null); loading?; href?; onClick?; pressed?; className? }`:
-  a caps label over a 22px mono value. With `href` or `onClick` the whole tile is the control;
+  a muted label over a 22px mono value. With `href` or `onClick` the whole tile is the control;
   with `onClick` + `pressed` it is a filter toggle.
 - `StatGrid { columns?: 2 | 3 | 4 | 5 | 6 = 4; className?; children }`: two tiles across on
   phones, `columns` across from lg, all equal height.
@@ -366,7 +371,7 @@ link layer, so there is never a button inside an anchor.
   KPI rows.
 
 ### KeyValueList, KeyValueRow: `key-value.tsx`
-A `<dl>` with caps labels in a fixed column and aligned values. Labels stack above values on
+A `<dl>` with muted labels in a fixed column and aligned values. Labels stack above values on
 phones.
 
 ```ts
@@ -383,11 +388,11 @@ KeyValueList { items?: { key?; label; value; mono?; trailing?; tone?; hidden? }[
   - `leading`: an Avatar or IconTile element, or an icon component drawn in a 32px tile.
   - `tags` sit right after the title; `meta` (a mono time or count) sits at the right of line 1.
   - `trailing` is a right column outside the link, so it can hold controls.
-  - `active` marks the selected row in a list/detail: an Ink 3 fill under the whole row, a 3px
-    green bar, and aria-current. `emphasized` is a SemiBold title for unread rows.
+  - `active` marks the selected row in a list/detail: the brand tint under the whole row, a 2px
+    brand bar, and aria-current. `emphasized` is a SemiBold title for unread rows.
 - `NavList { label?; className?; children }` and `NavListItem { href?; onClick?; icon?; label; active?; trailing?; depth?; title? }`:
   secondary navigation such as the Settings and Admin rails or a folder tree. The active item
-  uses the green fill and aria-current.
+  uses the elevated fill with a brand icon, and aria-current.
 
 ### DataTable, TableShell, GridList: `data-table.tsx`
 - `DataTable<T>`:
@@ -400,7 +405,7 @@ KeyValueList { items?: { key?; label; value; mono?; trailing?; tone?; hidden? }[
     empty?; loading?; skeletonRows? = 5; stickyFirstColumn?; minWidth?; maxHeight?; dense?; caption?; className? }
   ```
 
-  - Label-style header, 48px rows (40px `dense`), Ink 3 hover, mono right-aligned numbers, and a
+  - 13px muted sentence-case header, 48px rows (40px `dense`), hairline rows, a faint hover, mono right-aligned numbers, and a
     right-aligned actions column (h-8 buttons or an ActionMenu).
   - `groups` render one `<tbody>` per group with a header row.
   - `rowHref`: the first cell's link covers the whole row (with `stickyFirstColumn` it covers
@@ -414,7 +419,7 @@ KeyValueList { items?: { key?; label; value; mono?; trailing?; tone?; hidden? }[
 - `GridList { columns (grid-template-columns from md); header?: { label; align? }[]; className?; children; "aria-label"? }`,
   with `GridListRow { href?; onClick?; active?; sub?; className?; children }` and
   `GridListCell { label?; align?: "start" | "end"; mono?; className?; children }`: rows that share
-  one grid template, with a caps header from md. On phones each row stacks its cells and shows
+  one grid template, with a muted header from md. On phones each row stacks its cells and shows
   each cell's label. `sub` is a full-width second line aligned with the cells.
 
 ### Alert, InlineNote, InlineError: `alert.tsx`
@@ -443,7 +448,7 @@ KeyValueList { items?: { key?; label; value; mono?; trailing?; tone?; hidden? }[
 ### SegmentNav, StepList: `segment-nav.tsx`
 - `SegmentNav { items: SegmentItem[]; ariaLabel; columns?: 2–6; scrollOnPhone?; trailing?; className? }`, with
   `SegmentItem { key; index?; label; state: "done" | "current" | "upcoming" | "locked"; active?; href?; onSelect?; tag?; count?; countLabel?; meta?; title? }`:
-  the flat stage strip with a 4px top rule per cell. One look for the package stage bar, Home's
+  the stage strip: a row of 12px cards, each with a thin stage bar on top. One look for the package stage bar, Home's
   stage steps, a group's stage tabs, and (without hrefs) the read-only approval path.
   - `active` is the cell whose page is open (aria-current="page"). Without it, the `current`
     stage gets the tint and aria-current="step".
@@ -517,7 +522,7 @@ Sticky panes sit below `--app-header-h` (falls back to 0).
 - **ConfirmDialog** (`ui/confirm-dialog.tsx`): adds `children?` (a preview of what will be
   deleted), `busyLabel?` ("Deleting…") and `error?` (shown inside the dialog).
 - **Popover** (`ui/popover.tsx`, client): `Popover`, `PopoverTrigger`, `PopoverAnchor`,
-  `PopoverClose`, `PopoverContent` (the Ink 2 menu surface, portaled, start-aligned).
+  `PopoverClose`, `PopoverContent` (the elevated menu surface, 12px radius, portaled, start-aligned).
 
 ---
 
@@ -542,7 +547,9 @@ Sticky panes sit below `--app-header-h` (falls back to 0).
 - **CopyButton** (same component as `CopyTextButton`, `components/copy-text-button.tsx`):
   `{ text?; getText?; label? = "Copy"; copiedLabel? = "Copied"; size?: "sm" | "default" | "icon" | "icon-sm"; variant?: "outline" | "ghost" | "secondary"; onError?; className? }`.
   Without `size` or `variant` it keeps the old 40px look.
-- **Button** (`ui/button.tsx`): adds `size="icon-sm"`, a 32px square.
+- **Button** (`ui/button.tsx`): `default` is the white primary; `accent` is the brand fill
+  (InFocus Green, or the season's) for the page's single key action, used instead of `default`.
+  Adds `size="icon-sm"`, a 32px square.
 
 ---
 
@@ -558,7 +565,7 @@ Sticky panes sit below `--app-header-h` (falls back to 0).
   that shell's root so fixed bottom elements sit above it.
 - **StatusPlate** (`status-plate.tsx`): `{ eyebrow?; tag?; title; body?; children?; actions?; ariaLive?; fullHeight? = true; className? }`.
   A centred nameplate for a lobby, "the call ended", not found, access denied or maintenance.
-- **Toasts** (`ui/sonner.tsx`): brand-styled (Lexend, card surface, 6px radius). To lift them
+- **Toasts** (`ui/sonner.tsx`): brand-styled (Geist, card surface, strong hairline, no shadow). To lift them
   above a bottom bar, set `--toast-offset-bottom` or `--toast-offset-right` on `<html>`.
 - **UploadProgressToast** (`components/upload-progress-toast.tsx`): same props as before. It sits
   above the ✱ launcher, uses kit tags, counts and bars, and announces only "N of M uploaded"

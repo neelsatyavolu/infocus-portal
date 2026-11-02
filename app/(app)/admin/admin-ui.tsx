@@ -53,9 +53,8 @@ export function HealthLine({ tone, children }: { tone: Health["tone"]; children:
   );
 }
 
-/** Caps column labels over a grid list (shown from `sm`, the rows stack below it). */
-export const COLUMN_LABEL_CLASS =
-  "text-[11px] font-medium uppercase leading-tight tracking-[0.11em] text-muted-foreground";
+/** Sentence-case column labels over a grid list (shown from `sm`, the rows stack below it). */
+export const COLUMN_LABEL_CLASS = "text-[12px] font-medium leading-tight text-muted-foreground";
 
 /**
  * Every size="sm" control on Admin (row actions and section-header actions): 40px touch targets

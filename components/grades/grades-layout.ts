@@ -5,7 +5,7 @@
 
 /** The grade band's hairline grid: 2×2 from sm, four across only from xl (the sidebar takes 240px at lg). */
 export const BAND_GRID_CLASS =
-  "-mb-px -mr-px grid *:border-b *:border-r *:border-border *:p-4 sm:grid-cols-2 md:*:p-5 xl:grid-cols-[13rem_repeat(3,minmax(0,1fr))]";
+  "-mb-px -mr-px grid *:border-b *:border-r *:border-line *:p-4 sm:grid-cols-2 md:*:p-5 xl:grid-cols-[13rem_repeat(3,minmax(0,1fr))]";
 
 /**
  * Overview below the band, one flat grid of three cards (DOM order Packages, Livestream &
@@ -32,7 +32,7 @@ export const OVERVIEW_OTHER_CLASS = "xl:col-start-1 xl:row-start-2 xl:h-auto";
 /** Livestream & portfolio's body: its two parts stacked on phones, side by side from md. */
 export const OTHER_BODY_CLASS = "md:grid md:grid-cols-2";
 export const OTHER_LIVESTREAM_CLASS = "pb-4 md:pb-0 md:pr-5";
-export const OTHER_PORTFOLIO_CLASS = "border-t border-border pt-4 md:border-l md:border-t-0 md:pl-5 md:pt-0";
+export const OTHER_PORTFOLIO_CLASS = "border-t border-line pt-4 md:border-l md:border-t-0 md:pl-5 md:pt-0";
 
 /** The package row grid. */
 export const PACKAGE_ROW_CLASS =

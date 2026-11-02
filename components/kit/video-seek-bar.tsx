@@ -9,7 +9,7 @@ const pctOf = (value: number, max: number) => (max > 0 ? Math.max(0, Math.min(10
 
 /**
  * The shared player's seek bar. Always on a dark picture, so it draws in Soft White in both themes, with the
- * played part in InFocus Green. Chapters cut small gaps into the track; hovering shows the time (and chapter)
+ * played part in the brand color (InFocus Green, or the season's). Chapters cut small gaps into the track; hovering shows the time (and chapter)
  * under the pointer. A native range input on top keeps it keyboard- and screen-reader-friendly.
  */
 export function VideoSeekBar({ time, duration, buffered, chapters, onSeek }: {
@@ -49,7 +49,7 @@ export function VideoSeekBar({ time, duration, buffered, chapters, onSeek }: {
         aria-valuetext={`${chapterTime(time)} of ${chapterTime(duration)}`}
         className="peer absolute inset-0 z-10 h-full w-full cursor-pointer appearance-none opacity-0 disabled:cursor-default"
       />
-      <div className="pointer-events-none absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 overflow-hidden rounded-full bg-soft-white/20 transition-[height] group-hover/seek:h-1.5">
+      <div className="pointer-events-none absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 overflow-hidden rounded-full bg-soft-white/20 transition-[height] duration-150 ease-[var(--ease-ui)] group-hover/seek:h-1.5">
         {buffered.map((span) => (
           <div
             key={span.startPct}
@@ -70,7 +70,7 @@ export function VideoSeekBar({ time, duration, buffered, chapters, onSeek }: {
         ))}
       </div>
       <div
-        className="pointer-events-none absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 scale-0 rounded-full bg-soft-white transition-transform group-hover/seek:scale-100 peer-focus-visible:scale-100 peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--brand-green)]"
+        className="pointer-events-none absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 scale-0 rounded-full bg-soft-white transition-transform duration-150 ease-[var(--ease-ui)] group-hover/seek:scale-100 peer-focus-visible:scale-100 peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--brand-green)]"
         style={{ left: `${played}%` }}
       />
       {hover !== null ? (

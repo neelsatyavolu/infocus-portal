@@ -33,7 +33,7 @@ function Preview({ media, userName }: { media: LocalMedia; userName: string }) {
   const showVideo = media.videoOn && cameraTrack;
 
   return (
-    <div className="relative aspect-video w-full overflow-hidden rounded-md bg-[var(--ink-2)] outline outline-1 outline-[var(--ink-4)]">
+    <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-card outline outline-1 outline-line-strong">
       {showVideo ? (
         <VideoView track={cameraTrack} mirror={media.settings.mirror} />
       ) : (
@@ -45,7 +45,7 @@ function Preview({ media, userName }: { media: LocalMedia; userName: string }) {
       )}
 
       {micTrack ? (
-        <div title={micTestLabel(media.audioOn)} className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-[6px] bg-[#0F110F]/60">
+        <div title={micTestLabel(media.audioOn)} className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-md bg-black/60">
           <LevelMeter track={micTrack} compact />
         </div>
       ) : null}
@@ -93,7 +93,7 @@ function MeetingPlate({ meeting }: { meeting: MeetingDetail }) {
         <p className="eyebrow">{meeting.seriesKey === "producers" ? "InFocus Producer Meeting" : "Meeting"}</p>
         {status ? <StatusTag tone={status.tone}>{status.label}</StatusTag> : null}
       </div>
-      <h1 className="display-sm mt-2 text-foreground">{meeting.title}</h1>
+      <h1 className="mt-3 text-balance font-serif text-[40px] font-normal leading-none tracking-[-0.02em] text-foreground">{meeting.title}</h1>
       <p className="mt-1.5 text-sm text-[var(--ink-text)]">
         {pacificDayLabel(meeting.startsAt)} · {timeRange(meeting)} Pacific
       </p>
@@ -150,7 +150,7 @@ export function PreJoin({
         : null;
 
   return (
-    <div className="flex min-h-dvh flex-col bg-[var(--ink)]">
+    <div className="flex min-h-dvh flex-col bg-background">
       <PreJoinBar userName={userName} />
       <main className="flex flex-1 flex-col py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] md:justify-center md:py-10">
         <div className={cn(PREJOIN_CONTAINER, PREJOIN_GRID)}>
@@ -166,7 +166,7 @@ export function PreJoin({
               <p className="text-sm text-[var(--ink-text)]">This meeting {meeting.status === "ENDED" ? "has ended" : "was cancelled"}.</p>
             ) : (
               <div className="space-y-2">
-                <Button className="h-11 w-full" onClick={onJoin} disabled={joining}>
+                <Button variant="accent" className="h-11 w-full" onClick={onJoin} disabled={joining}>
                   {joining ? <Loader2 className="animate-spin" aria-hidden /> : null}
                   {directJoin ? "Join now" : "Ask to join"}
                 </Button>

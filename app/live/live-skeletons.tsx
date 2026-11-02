@@ -2,15 +2,15 @@ import { LoadingRegion, Skeleton } from "@/components/kit/skeleton";
 import { cn } from "@/src/lib/utils";
 import type { DashTab } from "./live-status";
 
-/** A card-shaped block (Ink 2 card, pulsing). */
+/** A card-shaped block (level 1 card, pulsing). */
 function Block({ className }: { className?: string }) {
-  return <span aria-hidden className={cn("block rounded-md border border-border bg-card motion-safe:animate-pulse", className)} />;
+  return <span aria-hidden className={cn("block rounded-lg border border-line-strong bg-card motion-safe:animate-pulse", className)} />;
 }
 
 /** A card with a 16:9 stage inside, for the broadcast previews. */
 function StageBlock({ className }: { className?: string }) {
   return (
-    <span aria-hidden className={cn("block rounded-md border border-border bg-card p-4", className)}>
+    <span aria-hidden className={cn("block rounded-lg border border-line-strong bg-card p-4", className)}>
       <Skeleton className="mb-4 h-3 w-24" />
       <Skeleton aspect="16/9" />
     </span>
@@ -40,7 +40,7 @@ export function LiveTabSkeleton({ tab }: { tab: DashTab }) {
         <div className="grid gap-4">
           <div className="grid grid-cols-3 gap-3 md:grid-cols-6">
             {Array.from({ length: 6 }, (_, index) => (
-              <span key={index} aria-hidden className="block rounded-md border border-border bg-card p-2">
+              <span key={index} aria-hidden className="block rounded-lg border border-line-strong bg-card p-2">
                 <Skeleton aspect="16/9" />
                 <Skeleton className="mt-2 h-3 w-3/4" />
               </span>

@@ -12,7 +12,7 @@ import { birthdayLabel } from "@/src/lib/birthdays";
 import { scenicImageForDate } from "@/src/lib/master-calendar-cells";
 import { cn } from "@/src/lib/utils";
 
-/** One Day panel section: an h-8 caps label row (one action or tag on the right) and its body. */
+/** One Day panel section: an h-8 label row (one action or tag on the right) and its body. */
 export function DaySection({
   label,
   labelId,
@@ -41,14 +41,14 @@ export function DaySection({
 
 function NamesText({ names, empty = "Not set" }: { names: string[]; empty?: string }) {
   const text = names.filter(Boolean).join(" & ");
-  return <p className={cn("text-sm", text ? "text-foreground" : "text-muted-foreground")}>{text || empty}</p>;
+  return <p className={cn("text-sm", text ? "text-[var(--ink-text)]" : "text-muted-foreground")}>{text || empty}</p>;
 }
 
 export function QueueSection({ day }: { day: DayModel }) {
   return (
     <DaySection label="Queue" count={day.queue.length > 0 ? day.queue.length : null}>
       {day.queue.length > 0 ? (
-        <ul className="divide-y divide-border rounded-md border border-border">
+        <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line-strong bg-card">
           {day.queue.map((row) => (
             <li key={row.id} className="flex min-h-9 items-center px-3 text-sm text-foreground">
               <span className="truncate">{queueLabel(row)}</span>
@@ -73,7 +73,7 @@ export function BirthdaysSection({ day }: { day: DayModel }) {
 }
 
 export function SpiritThemeLine({ theme }: { theme: string }) {
-  return <p className="text-sm font-medium text-[var(--brand-green)]">{theme}</p>;
+  return <p className="text-sm font-medium text-brand-green">{theme}</p>;
 }
 
 export function ScenicPreview({ day }: { day: DayModel }) {
@@ -84,7 +84,7 @@ export function ScenicPreview({ day }: { day: DayModel }) {
       src={scenicImageForDate(day.dateKey)}
       alt={SCENIC_IMAGE_ALT}
       loading="lazy"
-      className="h-28 w-full rounded-sm border border-border object-cover"
+      className="h-28 w-full rounded-lg border border-line-strong object-cover"
     />
   );
 }
@@ -172,7 +172,7 @@ export function DayReadSections({ day }: { day: DayModel }) {
 }
 
 /** A read-only name chip (crew lists). */
-export const NAME_CHIP_CLASS = "inline-flex h-8 items-center rounded-sm bg-[var(--ink-3)] px-2.5 text-[13px] text-foreground";
+export const NAME_CHIP_CLASS = "inline-flex h-8 items-center rounded-full border border-line-strong bg-secondary px-3 text-[13px] text-foreground";
 
 function NamesList({ names }: { names: string[] }) {
   if (names.length === 0) return <p className="text-sm text-muted-foreground">Not set</p>;

@@ -121,6 +121,7 @@ export function ProjectHeader({
       eyebrow={eyebrow}
       status={status}
       title={title}
+      size="display"
       description={<span className={deleted ? "block" : "block max-sm:truncate"}>{description}</span>}
       className="max-sm:flex-nowrap max-sm:items-start max-sm:gap-x-3 max-sm:[&>div:first-child]:basis-0 max-sm:[&>div:last-child]:w-auto max-sm:[&>div:last-child]:shrink-0 max-md:[&>div:last-child>*]:h-10"
       actions={actions}

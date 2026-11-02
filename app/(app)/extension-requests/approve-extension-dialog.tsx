@@ -98,7 +98,7 @@ export function ApproveExtensionDialog({
           {lockedTerms ? (
             <KeyValueList
               labelWidth="6rem"
-              className="rounded-md border border-border px-3"
+              className="rounded-lg border border-line-strong bg-card px-3"
               items={[
                 { label: "Days", value: `+${daysLabel(lockedTerms.grantedDays)}`, mono: true },
                 { label: "Students", value: lockedTerms.grantedUserIds.map(labelFor).join(", ") }
@@ -115,7 +115,7 @@ export function ApproveExtensionDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
               Cancel
             </Button>
-            <Button type="submit" disabled={!canConfirm}>
+            <Button type="submit" variant="accent" disabled={!canConfirm}>
               {saving ? <Spinner /> : null}
               {actionLabel}
             </Button>

@@ -36,7 +36,7 @@ export function LinkedPersonSelect({
       <SelectTrigger
         id={id}
         aria-label={label}
-        className={cn("h-9 w-full focus:ring-0 focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]", className)}
+        className={cn("h-9 w-full focus:ring-0 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30", className)}
       >
         <SelectValue placeholder={people ? "Not linked" : "Loading…"} />
       </SelectTrigger>

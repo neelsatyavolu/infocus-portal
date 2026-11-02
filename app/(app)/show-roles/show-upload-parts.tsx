@@ -84,7 +84,7 @@ export function PublicationTag({ status }: { status: string }) {
 /** 16:9 preview of the grabbed frame (local blob), or why there isn't one. */
 export function ThumbnailPreview({ file, capturing }: { file: Blob | null; capturing: boolean }) {
   return (
-    <div className="aspect-video w-full overflow-hidden rounded-md border border-border bg-[var(--ink-3)]">
+    <div className="aspect-video w-full overflow-hidden rounded-lg border border-line-strong bg-secondary">
       {file ? (
         <BlobImage file={file} />
       ) : (
@@ -135,7 +135,7 @@ export function PickView({
         </Alert>
       ) : null}
       {input}
-      <div className="flex flex-col items-center gap-3 rounded-md border border-dashed border-input px-4 py-8 text-center">
+      <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-line-strong bg-card px-4 py-8 text-center">
         <Film className="h-8 w-8 text-muted-foreground" aria-hidden />
         <Button type="button" onClick={onChoose} disabled={!configured}>
           <Upload aria-hidden />
@@ -294,7 +294,7 @@ export function StatusView({ publication }: { publication: Publication }) {
       {ACTIVE.has(publication.status) ? (
         <p className="text-[var(--ink-text)]">{STATUS_LABELS[publication.status]}</p>
       ) : null}
-      <div className="space-y-1 rounded-md border border-border p-3">
+      <div className="space-y-1 rounded-lg border border-line-strong bg-card p-3">
         <div className="font-medium">{publication.title}</div>
         <div className="text-[13px] text-muted-foreground">
           Goes public {pacificDateTime.format(new Date(publication.publishAt))} Pacific

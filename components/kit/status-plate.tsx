@@ -3,9 +3,9 @@ import { ActionBar } from "@/components/kit/action-bar";
 import { cn } from "@/src/lib/utils";
 
 /**
- * A centered square nameplate for whole-screen states outside the normal page flow: a meeting
+ * A centered card for whole-screen states outside the normal page flow: a meeting
  * lobby, "the call ended", opens-at, access denied, not found, maintenance, error boundaries.
- * The same plate as PageHeader (Ink 2, green strip), with an optional data block and actions.
+ * A 12px card with a serif title, with an optional data block and actions.
  * Server-safe; renders its own centering box (full viewport height by default).
  */
 export function StatusPlate({
@@ -42,8 +42,8 @@ export function StatusPlate({
             {tag}
           </div>
         ) : null}
-        <h1 className={cn("display-md text-foreground", (eyebrow || tag) && "mt-1.5")}>{title}</h1>
-        {body ? <div className="mt-2 text-sm leading-relaxed text-[var(--ink-text)]">{body}</div> : null}
+        <h1 className={cn("display-lg text-balance text-foreground", (eyebrow || tag) && "mt-2")}>{title}</h1>
+        {body ? <div className="mt-3 max-w-[65ch] text-[15px] leading-relaxed text-[var(--ink-text)]">{body}</div> : null}
         {children ? <div className="mt-5">{children}</div> : null}
         {actions ? (
           <ActionBar fullWidthOnPhone className="mt-6">

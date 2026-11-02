@@ -18,13 +18,13 @@ function SectionLabel({ label, rail }: { label: string; rail: boolean }) {
     <>
       <div
         className={cn(
-          "mt-[0.675rem] px-2.5 pb-1.5 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground",
+          "mt-4 px-2.5 pb-1.5 text-xs font-medium text-muted-foreground",
           rail && "lg:hidden"
         )}
       >
         {label}
       </div>
-      {rail ? <div aria-hidden className="mx-2 my-2 hidden border-t border-border lg:block" /> : null}
+      {rail ? <div aria-hidden className="mx-2 my-2 hidden border-t border-line lg:block" /> : null}
     </>
   );
 }
@@ -101,7 +101,7 @@ export function AppSidebar({
       role={modal ? "dialog" : undefined}
       aria-modal={modal ? true : undefined}
       className={cn(
-        "fixed inset-y-0 left-0 z-[60] flex h-dvh w-[min(240px,85vw)] flex-col border-r border-border bg-[var(--ink)] pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] transition-[transform,visibility] duration-200 ease-out lg:z-40",
+        "fixed inset-y-0 left-0 z-[60] flex h-dvh w-[min(240px,85vw)] flex-col border-r border-line bg-background pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] transition-[transform,visibility] duration-200 ease-out lg:z-40",
         rail && "lg:w-16",
         // Closed below 1024px: off screen and out of the tab order (visibility waits for the slide).
         drawerOpen ? "translate-x-0" : "-translate-x-full max-lg:invisible lg:translate-x-0"
@@ -109,7 +109,7 @@ export function AppSidebar({
     >
       <div
         className={cn(
-          "flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border px-3",
+          "flex h-14 shrink-0 items-center justify-between gap-2 border-b border-line px-3",
           rail && "lg:justify-center lg:px-0"
         )}
       >
@@ -122,7 +122,7 @@ export function AppSidebar({
         <button
           ref={closeButton}
           type="button"
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-[var(--ink-3)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30 lg:hidden"
           onClick={onDismissDrawer}
           aria-label="Close menu"
         >
@@ -151,7 +151,7 @@ export function AppSidebar({
       {footer ? (
         <nav
           aria-label="Admin and settings"
-          className={cn("shrink-0 border-t border-border px-3 py-2", rail && "lg:px-2")}
+          className={cn("shrink-0 border-t border-line px-3 py-2", rail && "lg:px-2")}
           onClick={closeOnLink}
         >
           <ul className="flex flex-col gap-0.5">{footer.items.map(renderItem)}</ul>

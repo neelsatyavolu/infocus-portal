@@ -66,13 +66,13 @@ export function RequestPanel({
       <form id={REQUEST_FORM_ID} onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col">
         <div className="space-y-4 p-4 md:p-5 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
           {selected.length === 0 ? (
-            <div className="rounded-md border border-border">
+            <div className="rounded-lg border border-line-strong">
               <EmptyState size="inline" icon={ClipboardList} title="No items selected." description="Add gear from the list." />
             </div>
           ) : (
             <ul
               aria-label="Selected items"
-              className="divide-y divide-border overflow-hidden rounded-md border border-border"
+              className="divide-y divide-line overflow-hidden rounded-lg border border-line-strong"
             >
               {selected.map((barcode) => {
                 const item = items.find((entry) => entry.barcode === barcode);
@@ -139,9 +139,9 @@ export function RequestPanel({
           <StatusAlert status={status} compact className="lg:hidden" />
         </div>
 
-        <div className="hidden shrink-0 space-y-3 border-t border-border p-4 md:p-5 lg:block">
+        <div className="hidden shrink-0 space-y-3 border-t border-line p-4 md:p-5 lg:block">
           <StatusAlert status={status} compact />
-          <Button type="submit" className="h-10 w-full" disabled={busy}>
+          <Button type="submit" variant="accent" className="h-10 w-full" disabled={busy}>
             {busy ? "Submitting…" : "Submit request"}
           </Button>
         </div>

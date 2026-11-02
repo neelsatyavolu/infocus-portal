@@ -144,7 +144,7 @@ function OnStreamCard({
     >
       <div className="grid gap-4 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] md:items-start lg:grid-cols-1">
         <div className="grid min-w-0 gap-3">
-          <LiveStage background="checker" className="rounded-sm">
+          <LiveStage background="checker" className="rounded-lg">
             <div className="lv-play">
               <Scorebug state={scoreboard} now={now} />
             </div>

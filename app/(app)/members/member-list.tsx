@@ -53,7 +53,7 @@ export function RosterHeader({
   className?: string;
 }) {
   return (
-    <div className={cn("flex min-w-0 flex-wrap items-center gap-2 border-b border-border px-4 py-3", className)}>
+    <div className={cn("flex min-w-0 flex-wrap items-center gap-2 border-b border-line px-4 py-3", className)}>
       <SearchField
         value={query}
         onChange={onQueryChange}
@@ -182,10 +182,10 @@ export function MemberList({
   listRef: RefObject<HTMLUListElement | null>;
 }) {
   return (
-    <div className="min-w-0 rounded-md border border-border bg-card lg:max-h-[inherit] lg:overflow-y-auto">
+    <div className="min-w-0 rounded-lg border border-line-strong bg-card lg:max-h-[inherit] lg:overflow-y-auto">
       <div className="lg:sticky lg:top-0 lg:z-10 lg:bg-card">{header}</div>
       {empty ?? (
-        <ul ref={listRef} aria-label="Members" className="divide-y divide-border">
+        <ul ref={listRef} aria-label="Members" className="divide-y divide-line">
           {members.map((member) => {
             const filled = filledTabs(member.id);
             const error = errorFor(member.id);
@@ -199,7 +199,7 @@ export function MemberList({
                 title={personLabel(member)}
                 subtitle={
                   <>
-                    {member.email ? <span className="font-mono-broadcast text-[11px]">{member.email}</span> : null}
+                    {member.email ? <span className="font-mono text-[12px]">{member.email}</span> : null}
                     <span className="sr-only">{`. ${coverageLabel(filled)}`}</span>
                   </>
                 }

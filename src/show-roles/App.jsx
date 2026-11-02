@@ -626,23 +626,23 @@ export default function App() {
       <div className="route-enter flex min-h-[60vh] items-center justify-center">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <div className="mb-2 flex items-center gap-2 text-primary">
-              <Shield className="h-5 w-5" />
-              <span className="text-xs uppercase tracking-[0.22em]">Secure Access</span>
+            <div className="mb-2 flex items-center gap-2 text-muted-foreground">
+              <Shield className="h-4 w-4 text-brand-green" />
+              <span className="text-[13px] font-medium">Secure Access</span>
             </div>
             <CardTitle>InFocus Show Roles Generator</CardTitle>
             <CardDescription>Sign in to access assignments and scheduling data.</CardDescription>
           </CardHeader>
           <CardContent>
             <Button
-              className="w-full rounded-xl font-semibold"
+              className="w-full"
               type="button"
               onClick={() => window.location.assign("/sign-in?returnTo=%2Fshow-roles")}
             >
               Sign in with Google
             </Button>
             {notice ? (
-              <Alert variant={notice.variant === "error" ? "destructive" : "default"} className="mt-4 border-primary/20">
+              <Alert variant={notice.variant === "error" ? "destructive" : "default"} className="mt-4">
                 {notice.variant === "error" ? <AlertCircle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
                 <AlertTitle>{notice.title}</AlertTitle>
                 <AlertDescription>{notice.description}</AlertDescription>
@@ -657,30 +657,28 @@ export default function App() {
   return (
     <div className="route-enter mx-auto w-full max-w-[1320px] space-y-4">
       {/* Hero */}
-      <section className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 md:px-7 md:py-6">
-        <div
-          className="pointer-events-none absolute -right-12 -top-32 h-[380px] w-[380px] rounded-full opacity-90"
-          style={{ background: "radial-gradient(circle, rgba(43,179,110,0.18) 0%, transparent 60%)" }}
-        />
-        <div className="relative flex flex-wrap items-start justify-between gap-4">
+      <section className="rounded-lg border border-line-strong bg-card p-5 md:px-7 md:py-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="eyebrow flex items-center gap-1.5">
               <Sparkles className="h-3 w-3" />
               Spring &apos;26 · Show Day
             </div>
-            <h1 className="display-md mt-2 text-foreground">Show Roles Generator</h1>
-            <p className="mt-1 max-w-xl text-sm text-muted-foreground">
+            <h1 className="mt-3 font-serif text-[40px] font-normal leading-none tracking-[-0.02em] text-foreground">
+              Show Roles Generator
+            </h1>
+            <p className="mt-3 max-w-xl text-sm text-muted-foreground">
               Auto-rotate crew roles per broadcast. Anchors come from the master calendar. Show days are{" "}
-              <strong className="text-foreground">Wednesday &amp; Friday</strong>.
+              <strong className="font-medium text-foreground">Wednesday &amp; Friday</strong>.
             </p>
           </div>
-          <div className="relative flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <ShadButton
               type="button"
               onClick={handleGenerateAssignments}
               disabled={saving || loadingHistory || !activeDate || members.length === 0}
             >
-              <Wand2 className="mr-2 h-4 w-4" />
+              <Wand2 aria-hidden />
               Generate Roles
             </ShadButton>
           </div>
@@ -699,14 +697,14 @@ export default function App() {
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
         {/* Main column */}
         <div className="min-w-0 space-y-4">
-          <section className="overflow-hidden rounded-2xl border border-border bg-card">
+          <section className="overflow-hidden rounded-lg border border-line-strong bg-card">
             {/* Card head */}
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-5 py-3.5">
-              <h2 className="font-display text-[22px] italic font-bold uppercase leading-none tracking-tight text-foreground">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-5 py-3.5">
+              <h2 className="text-lg font-medium leading-none tracking-[-0.015em] text-foreground">
                 {showStatus?.kind === "past" ? "Past Show" : "Active Show"}
               </h2>
-              <div className="flex items-center gap-2 font-mono-broadcast text-[11px] text-muted-foreground">
-                <span className="rounded-full border border-border bg-[var(--ink)] px-2.5 py-0.5 text-foreground">
+              <div className="flex items-center gap-2 font-mono-broadcast text-xs tabular-nums text-muted-foreground">
+                <span className="rounded-full border border-line-strong bg-secondary px-2.5 py-0.5 text-foreground">
                   Show #{history.shows.filter((show) => show.date <= activeDate).length}
                 </span>
                 <span>{filledRoles}/{ROLES.length} filled</span>
@@ -714,31 +712,31 @@ export default function App() {
             </div>
 
             {/* Show strip: date tile + show tabs */}
-            <div className="grid grid-cols-1 items-center gap-4 border-b border-border bg-[var(--ink)] px-5 py-4 md:grid-cols-[auto_1fr_auto]">
+            <div className="grid grid-cols-1 items-center gap-4 border-b border-line px-5 py-4 md:grid-cols-[auto_1fr_auto]">
               <div className="flex items-center gap-3.5">
-                <div className="w-[64px] flex-shrink-0 rounded-xl border border-border bg-[var(--ink-2)] py-2 text-center">
-                  <div className="font-display text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--brand-green)]">
+                <div className="w-[64px] flex-shrink-0 rounded-lg border border-line-strong bg-secondary py-2 text-center">
+                  <div className="text-xs font-medium text-brand-green">
                     {activeDateObj ? dayOfWeek(activeDateObj) : "—"}
                   </div>
-                  <div className="mt-0.5 font-display italic text-[28px] font-extrabold leading-none text-foreground">
+                  <div className="mt-1 text-[26px] font-medium leading-none tracking-[-0.02em] tabular-nums text-foreground">
                     {activeDateObj ? String(activeDateObj.getDate()).padStart(2, "0") : "—"}
                   </div>
-                  <div className="mt-0.5 text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+                  <div className="mt-1 text-xs text-muted-foreground">
                     {activeDateObj ? shortMonth(activeDateObj) : ""}
                   </div>
                 </div>
                 <div>
-                  <div className="font-display text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                  <div className="text-[13px] font-medium text-muted-foreground">
                     Broadcast Date
                   </div>
-                  <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[15px] font-semibold text-foreground">
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-[15px] font-medium text-foreground">
                     {activeDateObj ? formatReadableDate(activeDateObj) : "—"}
                     {showStatus ? (
                       <span
                         className={
                           showStatus.kind === "live"
-                            ? "inline-flex items-center gap-1.5 rounded-full border border-[rgb(238,58,42,0.3)] bg-[rgb(238,58,42,0.12)] px-2 py-0.5 font-display text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--brand-red)]"
-                            : "inline-flex items-center gap-1.5 rounded-full border border-[rgb(242,165,22,0.3)] bg-[rgb(242,165,22,0.12)] px-2 py-0.5 font-display text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--brand-amber)]"
+                            ? "inline-flex items-center gap-1.5 rounded-full border border-line-strong bg-secondary px-2 py-0.5 text-xs font-medium text-foreground"
+                            : "inline-flex items-center gap-1.5 rounded-full border border-[var(--brand-amber)]/30 bg-[var(--brand-amber)]/10 px-2 py-0.5 text-xs font-medium text-[var(--brand-amber)]"
                         }
                       >
                         {showStatus.kind === "live" ? <span className="rec-dot" /> : null}
@@ -750,7 +748,7 @@ export default function App() {
               </div>
               <div />
               {/* Show tabs */}
-              <div className="flex flex-wrap items-center gap-1 rounded-lg border border-border bg-[var(--ink)] p-1">
+              <div className="flex flex-wrap items-center gap-1 rounded-lg border border-line-strong bg-card p-1">
                 <CustomDropdown
                   ariaLabel="View show, including past shows"
                   value={activeDate}
@@ -775,8 +773,8 @@ export default function App() {
                       onClick={() => setViewDate(show.date)}
                       className={
                         isOn
-                          ? "rounded-md border border-border bg-[var(--ink-2)] px-3 py-1.5 text-xs font-semibold text-foreground"
-                          : "rounded-md border border-transparent px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                          ? "rounded-md border border-line-strong bg-secondary px-3 py-1.5 text-xs font-medium tabular-nums text-foreground"
+                          : "rounded-md border border-transparent px-3 py-1.5 text-xs font-medium tabular-nums text-muted-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:text-foreground"
                       }
                     >
                       {dateObj?.toLocaleDateString("en-US", { month: "short", day: "numeric" }) ?? show.date}
@@ -789,7 +787,7 @@ export default function App() {
                     setNewShowDate(formatDate(nextShowDate(parseDate(currentShowDate || formatDate(new Date())))));
                     setNewShowOpen(true);
                   }}
-                  className="rounded-md border border-transparent px-2.5 py-1.5 text-xs font-semibold text-[var(--brand-amber)] hover:bg-[rgb(242,165,22,0.10)]"
+                  className="rounded-md border border-transparent px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-secondary hover:text-foreground"
                 >
                   + New
                 </button>
@@ -797,22 +795,22 @@ export default function App() {
             </div>
 
             {/* Anchors row */}
-            <div className="grid grid-cols-1 gap-3 border-b border-border px-5 py-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 border-b border-line px-5 py-4 md:grid-cols-2">
               {[0, 1].map((slot) => {
                 const value = slot === 0 ? anchor1 : anchor2;
                 const av = PALETTE[(slot + 2) % PALETTE.length];
                 return (
-                  <div key={slot} className="flex items-center gap-3 rounded-xl border border-border bg-[var(--ink)] p-3.5">
-                    <div className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg border border-border bg-[var(--ink-2)] font-display text-[14px] italic font-extrabold text-[var(--brand-green)]">
+                  <div key={slot} className="flex items-center gap-3 rounded-lg border border-line-strong bg-background p-3.5">
+                    <div className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-md border border-line-strong bg-secondary font-mono-broadcast text-[13px] font-medium text-brand-green">
                       A{slot + 1}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="font-display text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--ink-5)]">
+                      <div className="text-[13px] font-medium text-muted-foreground">
                         Anchor {slot + 1}
                       </div>
                       <div className="mt-1 flex items-center gap-2.5">
                         {value ? (
-                          <div className={`grid h-7 w-7 place-items-center rounded-full text-[11px] font-bold ${av}`}>
+                          <div className={`grid h-7 w-7 place-items-center rounded-full text-[11px] font-medium ${av}`}>
                             {initials(value)}
                           </div>
                         ) : null}
@@ -833,66 +831,72 @@ export default function App() {
             </div>
 
             {/* Toolbar */}
-            <div className="flex flex-wrap items-center gap-2 border-b border-border px-5 py-3">
-              <button
+            <div className="flex flex-wrap items-center gap-2 border-b border-line px-5 py-3">
+              <ShadButton
                 type="button"
                 onClick={handleConfirmAll}
                 disabled={saving || loadingHistory}
-                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-[rgb(43,179,110,0.30)] bg-[rgb(43,179,110,0.10)] px-3 text-xs font-semibold text-[var(--brand-green)] transition hover:bg-[rgb(43,179,110,0.18)] disabled:opacity-50"
+                size="sm"
+                variant="outline"
               >
-                <CheckCheck className="h-3.5 w-3.5" />
+                <CheckCheck aria-hidden />
                 Confirm All
-              </button>
-              <button
+              </ShadButton>
+              <ShadButton
                 type="button"
                 onClick={() => {
                   setNewShowDate(formatDate(nextShowDate(parseDate(currentShowDate || formatDate(new Date())))));
                   setNewShowOpen(true);
                 }}
                 disabled={saving || loadingHistory}
-                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-[rgb(242,165,22,0.30)] bg-[rgb(242,165,22,0.12)] px-3 text-xs font-semibold text-[var(--brand-amber)] transition hover:bg-[rgb(242,165,22,0.20)] disabled:opacity-50"
+                size="sm"
+                variant="outline"
               >
-                <CalendarPlus className="h-3.5 w-3.5" />
+                <CalendarPlus aria-hidden />
                 New Show
-              </button>
-              <button
+              </ShadButton>
+              <ShadButton
                 type="button"
                 onClick={() => setAnchorHistoryOpen(true)}
                 disabled={loadingHistory}
-                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-[var(--ink)] px-3 text-xs font-semibold text-muted-foreground transition hover:text-foreground disabled:opacity-50"
+                size="sm"
+                variant="outline"
               >
-                <History className="h-3.5 w-3.5" />
+                <History aria-hidden />
                 Anchor History
-              </button>
+              </ShadButton>
               <div className="flex-1" />
-              <button
+              <ShadButton
                 type="button"
                 onClick={loadAppData}
                 disabled={loadingHistory || saving}
-                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-[var(--ink)] px-3 text-xs font-semibold text-muted-foreground transition hover:text-foreground disabled:opacity-50"
+                size="sm"
+                variant="ghost"
               >
-                <RefreshCcw className={`h-3.5 w-3.5 ${loadingHistory ? "animate-spin" : ""}`} />
+                <RefreshCcw aria-hidden className={loadingHistory ? "animate-spin" : undefined} />
                 Refresh
-              </button>
-              <button
+              </ShadButton>
+              <ShadButton
                 type="button"
                 onClick={handleImportClick}
                 disabled={saving || loadingHistory}
-                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-[var(--ink)] px-3 text-xs font-semibold text-muted-foreground transition hover:text-foreground disabled:opacity-50"
+                size="sm"
+                variant="ghost"
               >
-                <FileUp className="h-3.5 w-3.5" />
+                <FileUp aria-hidden />
                 Import JSON
-              </button>
-              <button
+              </ShadButton>
+              <ShadButton
                 type="button"
                 onClick={handleDownloadBackup}
                 disabled={loadingHistory}
-                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-[var(--ink)] px-3 text-xs font-semibold text-muted-foreground transition hover:text-foreground disabled:opacity-50"
+                size="sm"
+                variant="ghost"
               >
-                <Download className="h-3.5 w-3.5" />
+                <Download aria-hidden />
                 Backup
-              </button>
-              <button
+              </ShadButton>
+              <ShadButton
                 type="button"
                 onClick={() => {
                   const ok = window.confirm(
@@ -901,24 +905,25 @@ export default function App() {
                   if (ok) handleClearHistory();
                 }}
                 disabled={saving || loadingHistory}
-                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-[var(--ink)] px-3 text-xs font-semibold text-muted-foreground transition hover:text-[var(--brand-red)] disabled:opacity-50"
+                size="sm"
+                variant="destructive-quiet"
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <Trash2 aria-hidden />
                 Clear History
-              </button>
+              </ShadButton>
             </div>
 
             {/* Roles section */}
             <div className="px-5 py-5">
               <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
-                <h3 className="font-display text-[22px] italic font-bold uppercase leading-none tracking-tight text-foreground">
+                <h3 className="text-lg font-medium leading-none tracking-[-0.015em] text-foreground">
                   Role Assignments
                 </h3>
-                <div className="flex items-center gap-3 font-mono-broadcast text-[11px] text-muted-foreground">
+                <div className="flex items-center gap-3 font-mono-broadcast text-xs tabular-nums text-muted-foreground">
                   <span>
-                    <strong className="text-[var(--brand-green)]">{confirmedCount}</strong> / {ROLES.length} confirmed
+                    <strong className="font-medium text-brand-green">{confirmedCount}</strong> / {ROLES.length} confirmed
                   </span>
-                  <div className="h-1.5 w-32 overflow-hidden rounded-full bg-[var(--ink-2)]">
+                  <div className="h-1.5 w-32 overflow-hidden rounded-full bg-secondary">
                     <div className="h-full bg-[var(--brand-green)] transition-all" style={{ width: `${confirmPct}%` }} />
                   </div>
                 </div>
@@ -941,92 +946,96 @@ export default function App() {
                         : "";
 
                   const cardCls = [
-                    "relative flex flex-col gap-3 rounded-xl border bg-[var(--ink)] p-4 transition",
+                    "relative flex flex-col gap-3 overflow-hidden rounded-lg border bg-background p-4 transition-colors duration-150 ease-[var(--ease-ui)]",
                     status === "confirmed"
-                      ? "border-[rgb(43,179,110,0.40)] before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:rounded-t-xl before:bg-[var(--brand-green)] before:content-['']"
+                      ? "border-[var(--brand-green)]/40 before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:bg-[var(--brand-green)] before:content-['']"
                       : status === "empty"
-                        ? "border-dashed border-[var(--ink-3)]"
-                        : "border-border hover:border-[var(--ink-4)]",
+                        ? "border-dashed border-line-strong"
+                        : "border-line-strong hover:border-foreground/25",
                     isBackup ? "border-dashed" : "",
                   ].join(" ");
 
                   return (
                     <article key={role} className={cardCls}>
                       <div className="flex items-center justify-between">
-                        <span className="font-display text-[13px] italic font-extrabold tracking-wide text-[var(--ink-5)]">
+                        <span className="font-mono-broadcast text-xs tabular-nums text-muted-foreground">
                           {String(index + 1).padStart(2, "0")}
                         </span>
                         <span className={`status-pill ${badge.cls}`}>{badge.label}</span>
                       </div>
-                      <h4 className="font-display text-[20px] italic font-bold uppercase leading-none tracking-tight text-foreground">
+                      <h4 className="text-base font-medium leading-tight tracking-[-0.01em] text-foreground">
                         {role}
                       </h4>
                       {assignee ? (
-                        <div className="flex items-center gap-2.5 rounded-lg bg-[var(--ink-2)] p-2.5">
-                          <div className={`grid h-8 w-8 place-items-center rounded-full text-[12px] font-bold ${av}`}>
+                        <div className="flex items-center gap-2.5 rounded-md bg-secondary p-2.5">
+                          <div className={`grid h-8 w-8 place-items-center rounded-full text-[12px] font-medium ${av}`}>
                             {initials(assignee)}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <div className="text-sm font-semibold text-foreground">{assignee}</div>
+                            <div className="truncate text-sm font-medium text-foreground">{assignee}</div>
                           </div>
-                          <div className="font-mono-broadcast text-[10px] text-[var(--ink-5)]">
+                          <div className="font-mono-broadcast text-[11px] text-muted-foreground">
                             {lastLabel || "Assigned"}
                           </div>
                         </div>
                       ) : (
-                        <div className="rounded-lg border border-dashed border-[var(--ink-3)] bg-[var(--ink-2)] px-3 py-3 text-center text-xs text-[var(--ink-5)]">
+                        <div className="rounded-md border border-dashed border-line-strong px-3 py-3 text-center text-xs text-muted-foreground">
                           No member assigned yet
                         </div>
                       )}
                       <div className="flex gap-1.5">
                         {assignee ? (
                           <>
-                            <button
+                            <ShadButton
                               type="button"
                               disabled={saving}
                               onClick={() => handleRepick(role)}
-                              className="inline-flex flex-1 items-center justify-center gap-1 rounded-md border border-[rgb(242,165,22,0.30)] bg-[rgb(242,165,22,0.10)] px-2 py-1.5 text-[11px] font-semibold text-[var(--brand-amber)] transition hover:bg-[rgb(242,165,22,0.20)] disabled:opacity-50"
+                              size="sm"
+                              variant="outline"
+                              className="flex-1 px-2"
                             >
-                              <RotateCcw className="h-3 w-3" />
+                              <RotateCcw aria-hidden />
                               Re-pick
-                            </button>
-                            <button
+                            </ShadButton>
+                            <ShadButton
                               type="button"
                               disabled={saving}
                               onClick={() => {
                                 setManualRole(role);
                                 setManualOpen(true);
                               }}
-                              className="flex-1 rounded-md border border-border bg-[var(--ink-2)] px-2 py-1.5 text-[11px] font-semibold text-muted-foreground transition hover:border-[var(--ink-4)] hover:text-foreground disabled:opacity-50"
+                              size="sm"
+                              variant="outline"
+                              className="flex-1 px-2"
                             >
                               Manual
-                            </button>
-                            <button
+                            </ShadButton>
+                            <ShadButton
                               type="button"
                               disabled={saving}
                               onClick={() => handleToggleConfirm(role)}
-                              className={
-                                confirmed
-                                  ? "flex-1 rounded-md border border-[rgb(242,165,22,0.25)] bg-[var(--ink-2)] px-2 py-1.5 text-[11px] font-semibold text-[var(--brand-amber)] hover:border-[rgb(242,165,22,0.4)] disabled:opacity-50"
-                                  : "flex-1 rounded-md border border-[rgb(43,179,110,0.30)] bg-[rgb(43,179,110,0.10)] px-2 py-1.5 text-[11px] font-semibold text-[var(--brand-green)] hover:bg-[rgb(43,179,110,0.20)] disabled:opacity-50"
-                              }
+                              size="sm"
+                              variant={confirmed ? "ghost" : "outline"}
+                              className={confirmed ? "flex-1 px-2 text-muted-foreground" : "flex-1 px-2 text-brand-green"}
                             >
                               {confirmed ? "Unconfirm" : "✓ Confirm"}
-                            </button>
+                            </ShadButton>
                           </>
                         ) : (
-                          <button
+                          <ShadButton
                             type="button"
                             disabled={saving}
                             onClick={() => {
                               setManualRole(role);
                               setManualOpen(true);
                             }}
-                            className="inline-flex flex-1 items-center justify-center gap-1 rounded-md border border-border bg-[var(--ink-2)] px-2 py-1.5 text-[11px] font-semibold text-muted-foreground transition hover:border-[var(--ink-4)] hover:text-foreground disabled:opacity-50"
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 px-2"
                           >
-                            <Plus className="h-3 w-3" />
+                            <Plus aria-hidden />
                             Pick member
-                          </button>
+                          </ShadButton>
                         )}
                       </div>
                     </article>
@@ -1038,15 +1047,15 @@ export default function App() {
         </div>
 
         {/* Member pool sidebar */}
-        <aside className="lg:sticky lg:top-4 overflow-hidden rounded-2xl border border-border bg-card">
-          <div className="border-b border-border px-4 py-3.5">
-            <h3 className="font-display text-[18px] italic font-bold uppercase leading-none tracking-tight text-foreground">
+        <aside className="lg:sticky lg:top-4 overflow-hidden rounded-lg border border-line-strong bg-card">
+          <div className="border-b border-line px-4 py-3.5">
+            <h3 className="text-base font-medium leading-none tracking-[-0.01em] text-foreground">
               Member Pool
             </h3>
-            <p className="mt-1 font-mono-broadcast text-[11px] text-muted-foreground">
+            <p className="mt-2 font-mono-broadcast text-xs tabular-nums text-muted-foreground">
               {members.length} members · {pool.exempt.length} exempt · {pool.cooldown.length} on cooldown
             </p>
-            <p className="mt-1 text-[10px] text-muted-foreground">Last role before this show · 2-show cooldown</p>
+            <p className="mt-1 text-xs text-muted-foreground">Last role before this show · 2-show cooldown</p>
           </div>
           <div className="max-h-[680px] overflow-y-auto">
             {[
@@ -1056,41 +1065,41 @@ export default function App() {
               { key: "exempt", label: "Exempt", items: pool.exempt },
             ].map((section, sIdx) => (
               <div key={section.key} className="px-3 py-2">
-                <div className="flex items-center gap-2 px-1 py-1.5 font-display text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--ink-5)]">
-                  <Users className="h-3 w-3" />
+                <div className="flex items-center gap-2 px-1 py-1.5 text-[13px] font-medium text-muted-foreground">
+                  <Users className="h-3.5 w-3.5" />
                   {section.label}
-                  <span className="rounded-full border border-border bg-[var(--ink)] px-1.5 py-0 font-mono-broadcast text-[10px] text-muted-foreground">
+                  <span className="rounded-full bg-secondary px-1.5 py-0 font-mono-broadcast text-[11px] tabular-nums text-muted-foreground">
                     {section.items.length}
                   </span>
                 </div>
                 {section.items.length === 0 ? (
-                  <div className="px-2 pb-1 text-[11px] italic text-muted-foreground">No members</div>
+                  <div className="px-2 pb-1 text-xs text-muted-foreground">No members</div>
                 ) : (
                   section.items.map((entry, idx) => {
                     const av = PALETTE[(sIdx * 7 + idx) % PALETTE.length];
                     const rowCls = [
-                      "flex items-center gap-2 rounded-md px-2 py-1.5 text-foreground transition",
+                      "flex items-center gap-2 rounded-md px-2 py-1.5 text-foreground transition-colors duration-150 ease-[var(--ease-ui)]",
                       section.key === "assigned"
-                        ? "bg-[rgb(43,179,110,0.06)]"
+                        ? "bg-brand-tint"
                         : section.key === "exempt"
                           ? "opacity-60"
-                          : "hover:bg-[var(--ink)] light:hover:bg-foreground/5",
+                          : "hover:bg-secondary",
                     ].join(" ");
                     return (
                       <div key={entry.name} className={rowCls}>
-                        <div className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-[10px] font-bold ${av}`}>
+                        <div className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-[10px] font-medium ${av}`}>
                           {initials(entry.name)}
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="truncate text-[13px] font-medium" title={entry.name}>{entry.name}</div>
                           {section.key === "assigned" ? (
-                            <div className="truncate text-[9px] text-[var(--brand-green)]" title={roleOf[entry.name]}>
+                            <div className="truncate text-[11px] text-brand-green" title={roleOf[entry.name]}>
                               {roleOf[entry.name] ?? "Crew"}
                             </div>
                           ) : null}
                         </div>
                         <span
-                          className={`shrink-0 whitespace-nowrap font-mono-broadcast text-[10px] ${section.key === "cooldown" ? "text-[var(--brand-amber)]" : "text-muted-foreground"}`}
+                          className={`shrink-0 whitespace-nowrap font-mono-broadcast text-[11px] tabular-nums ${section.key === "cooldown" ? "text-[var(--brand-amber)]" : "text-muted-foreground"}`}
                           title={entry.recency == null ? "No earlier crew, anchor, or associate show-manager assignment in saved shows" : `Last role: ${entry.recency} show${entry.recency === 1 ? "" : "s"} before this show`}
                         >
                           {entry.recency == null ? "Never" : `${entry.recency} show${entry.recency === 1 ? "" : "s"} ago`}
@@ -1150,12 +1159,12 @@ export default function App() {
       >
         <div className="max-h-[60vh] overflow-y-auto">
           <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-card text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+            <thead className="sticky top-0 bg-card text-xs text-muted-foreground">
               <tr>
-                <th className="px-2 py-2 text-left font-display font-bold">Member</th>
-                <th className="px-2 py-2 text-right font-display font-bold">Times</th>
-                <th className="px-2 py-2 text-right font-display font-bold">Last Anchored</th>
-                <th className="px-2 py-2 text-center font-display font-bold">Non-anchor</th>
+                <th className="px-2 py-2 text-left font-medium">Member</th>
+                <th className="px-2 py-2 text-right font-medium">Times</th>
+                <th className="px-2 py-2 text-right font-medium">Last Anchored</th>
+                <th className="px-2 py-2 text-center font-medium">Non-anchor</th>
               </tr>
             </thead>
             <tbody>
@@ -1164,14 +1173,14 @@ export default function App() {
                 const lastDateObj = row.lastDate ? parseDate(row.lastDate) : null;
                 const lastLabel = lastDateObj ? formatReadableDate(lastDateObj) : "Never";
                 const rowCls = [
-                  "border-t border-border transition",
+                  "border-t border-line transition-colors duration-150 ease-[var(--ease-ui)]",
                   isSuggested
-                    ? "bg-[rgb(43,179,110,0.08)]"
+                    ? "bg-brand-tint"
                     : row.isNonAnchor
                       ? "opacity-60"
                       : row.isExempt
                         ? "opacity-50"
-                        : "hover:bg-[var(--ink)] light:hover:bg-foreground/5",
+                        : "hover:bg-secondary",
                 ].join(" ");
                 return (
                   <tr key={row.name} className={rowCls}>
@@ -1184,21 +1193,21 @@ export default function App() {
                         )}
                         <span className="font-medium text-foreground">{row.name}</span>
                         {isSuggested ? (
-                          <span className="rounded-md bg-[rgb(43,179,110,0.12)] px-1.5 py-0.5 font-display text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--brand-green)]">
+                          <span className="rounded-full bg-brand-tint px-2 py-0.5 text-[11px] font-medium text-brand-green">
                             Suggested
                           </span>
                         ) : null}
                         {row.isExempt ? (
-                          <span className="rounded-md border border-border px-1.5 py-0.5 font-display text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                          <span className="rounded-full border border-line-strong px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
                             Exempt
                           </span>
                         ) : null}
                       </div>
                     </td>
-                    <td className="px-2 py-2 text-right font-mono-broadcast text-[12px] text-foreground">
+                    <td className="px-2 py-2 text-right font-mono-broadcast text-xs tabular-nums text-foreground">
                       {row.count}
                     </td>
-                    <td className="px-2 py-2 text-right font-mono-broadcast text-[11px] text-muted-foreground">
+                    <td className="px-2 py-2 text-right font-mono-broadcast text-xs tabular-nums text-muted-foreground">
                       {lastLabel}
                     </td>
                     <td className="px-2 py-2 text-center">
@@ -1208,7 +1217,7 @@ export default function App() {
                         disabled={savingNonAnchors}
                         onChange={() => toggleNonAnchor(row.name)}
                         aria-label={`Mark ${row.name} as non-anchor`}
-                        className="h-4 w-4 cursor-pointer accent-[var(--brand-amber)]"
+                        className="h-4 w-4 cursor-pointer accent-[var(--brand-fill)]"
                       />
                     </td>
                   </tr>
@@ -1218,7 +1227,7 @@ export default function App() {
           </table>
         </div>
         <div className="mt-4 flex items-center justify-between">
-          <div className="font-mono-broadcast text-[11px] text-muted-foreground">
+          <div className="font-mono-broadcast text-xs tabular-nums text-muted-foreground">
             {nonAnchors.length} marked as non-anchor
           </div>
           <Button variant="ghost" onClick={() => setAnchorHistoryOpen(false)}>
@@ -1243,22 +1252,21 @@ export default function App() {
             min={formatDate(new Date())}
             value={newShowDate}
             onChange={(event) => setNewShowDate(event.target.value)}
-            className="interactive-surface"
           />
         </div>
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="ghost" onClick={() => setNewShowOpen(false)}>
             Cancel
           </Button>
-          <Button variant="warning" onClick={handleCreateNewShow}>
-            <Calendar className="mr-2 h-4 w-4" />
+          <Button onClick={handleCreateNewShow}>
+            <Calendar aria-hidden />
             Create show
           </Button>
         </div>
       </Modal>
 
       {(saving || loadingHistory) && (
-        <div className="fixed bottom-4 right-4 z-30 flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm text-foreground shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
+        <div className="fixed bottom-4 right-4 z-30 flex items-center gap-2 rounded-full border border-line-strong bg-card px-4 py-2 text-sm text-foreground">
           <LoaderCircle className="h-4 w-4 animate-spin" />
           {saving ? "Saving changes" : "Refreshing data"}
         </div>

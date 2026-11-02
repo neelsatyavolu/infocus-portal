@@ -63,12 +63,12 @@ export function CycleWinners({ data }: { data: WinnersResponse | null }) {
       <SectionHeader as="h2" id="package-of-cycle-title" title="Package of the Cycle" count={data.winners.length} />
       <CardGrid>
         {data.winners.map((winner) => (
-          <article key={winner.rowId} className="flex min-w-0 flex-col rounded-md border border-border bg-card p-4">
-            <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase leading-tight tracking-[0.11em] text-[var(--brand-green)]">
-              <Award aria-hidden className="h-3 w-3 shrink-0" />
+          <article key={winner.rowId} className="flex min-w-0 flex-col rounded-lg border border-line-strong bg-card p-4">
+            <p className="flex items-center gap-1.5 text-[13px] font-medium leading-tight text-brand-green">
+              <Award aria-hidden className="h-3.5 w-3.5 shrink-0" />
               Cycle {winner.cycleNumber}
             </p>
-            <h3 className="mt-1.5 text-base font-semibold leading-snug text-foreground">
+            <h3 className="mt-1.5 text-base font-medium leading-snug tracking-[-0.01em] text-foreground">
               {winner.headline ?? (winner.topic || "Untitled package")}
             </h3>
             {winner.headline && winner.topic ? (
@@ -82,7 +82,7 @@ export function CycleWinners({ data }: { data: WinnersResponse | null }) {
                       href={certificateHref(winner.rowId, member.userId)}
                       aria-label={`Download ${member.name}'s certificate`}
                       title={`Download ${member.name}'s certificate`}
-                      className={`${MEMBER_ROW} rounded-sm hover:text-[var(--brand-green)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
+                      className={`${MEMBER_ROW} rounded-md transition-colors duration-150 ease-[var(--ease-ui)] hover:text-brand-green focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30`}
                     >
                       <Download aria-hidden className="h-4 w-4 shrink-0" />
                       {member.name}

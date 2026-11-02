@@ -37,7 +37,7 @@ export function useRunModeModule() {
 }
 
 const PANEL_BUTTON_CLASS =
-  "inline-flex h-9 items-center rounded-md border border-[#2B302B] px-4 text-sm font-medium text-[#DCE2DE] transition-colors hover:bg-[#252925] hover:text-soft-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2BB36E]";
+  "inline-flex h-9 items-center rounded-md px-4 text-sm font-medium border border-white/[0.14] bg-[#111114] text-[#FCFDFF] transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[#1A1A1F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40";
 
 /**
  * What shows while run mode's code is still loading (or failed to load): the same dark stage and
@@ -66,8 +66,8 @@ export function RunModeLoading({ failed, onRetry, onClose }: { failed: boolean; 
         {failed ? (
           <div role="alert" className="max-w-sm space-y-4 text-center">
             <div className="space-y-1.5">
-              <p className="text-base font-semibold">Couldn&apos;t open run mode</p>
-              <p className="text-sm text-[#DCE2DE]">Check the connection and try again. If it keeps failing, reload the page.</p>
+              <p className="text-base font-medium">Couldn&apos;t open run mode</p>
+              <p className="text-sm text-[#A1A4A5]">Check the connection and try again. If it keeps failing, reload the page.</p>
             </div>
             <div className="flex justify-center gap-2">
               <button type="button" className={PANEL_BUTTON_CLASS} onClick={onRetry}>

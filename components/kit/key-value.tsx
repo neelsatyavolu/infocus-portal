@@ -23,7 +23,7 @@ function rowClass(layout: Layout, dense: boolean, divided: boolean) {
       ? "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-0.5 sm:grid-cols-[var(--kv-label)_minmax(0,1fr)_auto]"
       : "flex flex-col gap-0.5",
     dense ? "min-h-8 py-1" : "min-h-10 py-2",
-    divided && "border-t border-border first:border-t-0"
+    divided && "border-t border-line first:border-t-0"
   );
 }
 
@@ -50,7 +50,7 @@ export function KeyValueRow({
     <div className={cn(rowClass(layout, dense, divided), className)}>
       <dt
         className={cn(
-          "min-w-0 text-[11px] font-medium uppercase leading-tight tracking-[0.11em] text-muted-foreground",
+          "min-w-0 text-[13px] font-medium leading-tight text-muted-foreground",
           layout === "columns" && "col-span-2 sm:col-span-1"
         )}
       >
@@ -72,7 +72,7 @@ export function KeyValueRow({
 }
 
 /**
- * Aligned label / value pairs as a <dl>: caps labels in a fixed column, values lined up, an
+ * Aligned label / value pairs as a <dl>: muted labels in a fixed column, values lined up, an
  * optional trailing column for a tag or action. Labels stack above values on phones.
  * `stacked` always puts the label above (narrow rails, phone cards).
  */

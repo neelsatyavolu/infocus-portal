@@ -210,7 +210,7 @@ export function CallRoom({
   const toastOffsets = callToastOffsets(form, !mobile && panel !== null);
   const title = meeting?.title ?? "Meeting";
 
-  // The one primary area in the view; on a phone on its side it sits over the top of the stage.
+  // An elevated strip (not a white fill, so it never competes with Admit or Send); on a phone on its side it sits over the top of the stage.
   const audioBanner = audioBlocked ? (
     <button
       type="button"
@@ -220,10 +220,10 @@ export function CallRoom({
         setAudioBlocked(false);
       }}
       className={cn(
-        "flex min-h-11 shrink-0 items-center justify-center gap-2 bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-[var(--brand-fill-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--on-brand)]",
+        "flex min-h-11 shrink-0 items-center justify-center gap-2 border-b border-line bg-secondary px-3 py-2 text-sm font-medium text-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-ring/45",
       )}
     >
-      <Volume2 className="h-4 w-4" aria-hidden /> Tap to start audio
+      <Volume2 className="h-4 w-4 text-brand-green" aria-hidden /> Tap to start audio
     </button>
   ) : null;
 
@@ -275,7 +275,7 @@ export function CallRoom({
   // Portaled to <body>: the page-entrance wrapper (app/template.tsx) keeps a transform animation in
   // effect, which makes it the containing block for `fixed` children and collapsed the call to 0px.
   return createPortal(
-    <div className="fixed inset-0 flex touch-manipulation flex-col overflow-hidden overscroll-none bg-[var(--ink)]">
+    <div className="fixed inset-0 flex touch-manipulation flex-col overflow-hidden overscroll-none bg-background">
       <CallToastOffset bottom={toastOffsets.bottom} right={toastOffsets.right} />
       {form !== "rail" ? (
         <>
@@ -377,7 +377,7 @@ export function CallRoom({
         {form === "rail" ? (
           // Phone on its side: no top bar. Time, lock and status lead the rail; the six controls
           // never shrink, so Leave stays on screen however short the viewport is.
-          <div className="flex w-[calc(72px+env(safe-area-inset-right))] shrink-0 flex-col items-center gap-2 border-l border-[var(--ink-4)] bg-[var(--ink)] pb-[max(0.5rem,env(safe-area-inset-bottom))] pr-[env(safe-area-inset-right)] pt-[max(0.5rem,env(safe-area-inset-top))]">
+          <div className="flex w-[calc(72px+env(safe-area-inset-right))] shrink-0 flex-col items-center gap-2 border-l border-line bg-background pb-[max(0.5rem,env(safe-area-inset-bottom))] pr-[env(safe-area-inset-right)] pt-[max(0.5rem,env(safe-area-inset-top))]">
             <CallRailStatus title={title} since={joinedAt} items={phoneStatusItems(statusItems, 1)} onOpenPeople={openPeople} />
             <ControlsBar {...controls} />
           </div>

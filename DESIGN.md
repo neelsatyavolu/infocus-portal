@@ -5,7 +5,7 @@ The visual language of InFocus, Palo Alto High School's student broadcast networ
 **Where to look:**
 - Brand basics (everyone): sections 1–5 and 9
 - On-air graphics: sections 6–8
-- Websites and apps: section 10
+- Websites and apps: section 10 (Portal code: section 14)
 - Slides: section 11
 - Documents, email, social, and posters: section 12
 - Copy-paste tokens: section 13
@@ -54,7 +54,7 @@ Every "white" version of the logo (white wordmark, on-black, mono-white, white i
 
 | Token | Hex | Role |
 |---|---|---|
-| **Ink** | `#0F110F` | Primary dark. Plates, cards, TV standby, the "f"/"cus" of the logo. Use instead of pure black. |
+| **Ink** | `#0F110F` | Primary dark for on-air graphics, slides, print and email: plates, cards, TV standby, the "f"/"cus" of the logo. Use instead of pure black there. Screens use a true-black canvas instead (section 10). |
 | **InFocus Green** | `#0B6E3E` | Primary brand color. Role strips, panels, the logo's "in" and ring. Carries Soft White text. |
 | **Green on Dark** | `#2BB36E` | Brighter green for *text and small marks on Ink*: kickers, bullets, URLs. Never a large fill. |
 | **Record Red** | `#EE3A2A` | Accent only: the record dot and small "live" markers. Never text, never large areas. |
@@ -65,14 +65,17 @@ Every "white" version of the logo (white wordmark, on-black, mono-white, white i
 **Balance:** mostly Ink, a band of Green, one touch of Red. If red is in more than one spot on screen, it's too much.
 **Contrast:** Soft White on Ink (about 16:1) and on InFocus Green (about 5.5:1) both pass WCAG AA for text. Don't put Green-on-Dark text on InFocus Green.
 **Errors and delete buttons** don't use Record Red. Interfaces use the separate Danger colors in section 10.
+**Screens** (the Portal and other web interfaces) use these colors as accents on a true-black canvas, and swap them during the holiday seasons. See section 10.
 
 ---
 
 ## 3. Typography
 
-**Lexend** is the brand typeface (`02 Fonts`: Regular 400, Medium 500, SemiBold 600, Bold 700): every name, title, label and sentence. It's the only typeface in the on-air graphics.
+**Lexend** is the brand typeface (`02 Fonts`: Regular 400, Medium 500, SemiBold 600, Bold 700) for on-air graphics, slides, documents, email and social: every name, title, label and sentence. It's the only typeface in the on-air graphics.
 
-**Geist Mono** is the one allowed companion, for *data only* in software (the portal, teleprompter, dashboards): timecodes, timers, counts that change live, IDs and codes. Lexend's digits are all different widths and it has no tabular-figures option, so changing numbers set in Lexend shift side to side. See section 10 for exactly where each one goes. Install it on every editing computer first; the `Install … Graphics` files inside the InFocus 2026 Package folder do it for you.
+**Geist Mono** is the one allowed companion there, for *data only*: timecodes, timers, counts that change live, IDs and codes. Lexend's digits are all different widths and it has no tabular-figures option, so changing numbers set in Lexend shift side to side. Install both on every editing computer first; the `Install … Graphics` files inside the InFocus 2026 Package folder do it for you.
+
+**Screens use the Geist family instead:** Geist for words, Geist Serif for page titles, Geist Mono for data. Section 10 has the details. The table below is for on-air graphics, slides and print.
 
 | Use | Weight | Style |
 |---|---|---|
@@ -87,7 +90,7 @@ Keep it to two weights per graphic. Don't use italics, underlines, or all-caps f
 
 ## 4. Shape language
 
-- **Square corners.** Nameplates, plates, panels and cards have **square corners** everywhere: on air, on the web, on slides and on thumbnails. (Until Sept 2026 the plates had one curved corner. It was dropped because a single rounded edge looked odd.) The only round shapes are the logo itself and small dots: the record dot, bullets and status dots.
+- **Square corners.** Nameplates, plates, panels and cards have **square corners** on air, on slides and on thumbnails. (Until Sept 2026 the plates had one curved corner. It was dropped because a single rounded edge looked odd.) The only round shapes are the logo itself and small dots: the record dot, bullets and status dots. Screens have their own radius scale (section 10).
 - **The tile.** A square Ink tile holds the icon at the inner end of every nameplate.
 - **Stacked bars.** Ink plate on top (name), InFocus Green strip below (role), always the same width. The width is set by whichever text is longer.
 - **Flat color.** No gradients, bevels, drop shadows, or glass. Depth comes from the footage, not the graphic.
@@ -186,9 +189,9 @@ Show frame rate is 29.97 fps (59.94 for studio recordings).
 
 ## 9. Making something new
 
-1. Start from Ink, add one Green element, and use Red only once (or not at all).
-2. Use Lexend, with SemiBold for the main line and CAPS Medium for labels.
-3. Keep containers square. On screens, everyday controls can use one small, consistent radius (6px; see section 10), but never a single curved corner.
+1. Start from Ink, add one Green element, and use Red only once (or not at all). On screens, start from true black and let InFocus color be the one accent (section 10).
+2. Use Lexend, with SemiBold for the main line and CAPS Medium for labels. Screens use Geist in sentence case instead.
+3. Keep broadcast containers square. Screens use the radius scale in section 10, and never a single curved corner.
 4. Animate it in pieces with the easings above, and turn the icon when it appears.
 5. Check it on the actual footage or set, and at the size it'll really be seen (a TV on set is about half size).
 6. For show graphics, edit `graphics.html` and re-run the render scripts rather than editing renders by hand. See the package README.
@@ -197,73 +200,93 @@ Show frame rate is 29.97 fps (59.94 for studio recordings).
 
 ## 10. Web and interfaces (InFocus Portal, InFocus Drive, infocusnews.tv, dashboards)
 
-The colors, type, and flat style apply exactly as written above. The shape and motion rules were made for 1080p broadcast graphics, so on a screen people *use* they become **accents**, not something copied onto every element. The CSS in section 13 is the starting point for any new site.
+Screens people use get a quieter look than the on-air graphics: a true-black canvas, depth from small steps in brightness and thin hairlines, Geist type with a Geist Serif page title, and a white primary button. InFocus color is the one accent. It marks the accent button, links, focus rings, the selected tab and row, and small status marks. In a holiday season the same tokens swap it for the season's colors.
+
+The broadcast rules in sections 3–6 (Lexend, square plates, ALL CAPS kickers, the green strip) stay on air, on slides, in print and in email. They don't carry over to UI. The CSS in section 13 is the starting point for any new site.
 
 ### Surfaces and color
 
-Dark (Ink) is the default for InFocus interfaces. A light theme is allowed, for example for documents or when a user opts in.
+Dark is the default. Light is opt-in (Settings → Appearance in the Portal).
 
 | Role | Dark | Light |
 |---|---|---|
-| Page background | Ink `#0F110F` | Mist 20 `#F4F6F5` |
-| Card / panel | Ink 2 `#1A1D1A` | White `#FFFFFF` |
-| Hover / raised fill | Ink 3 `#252925` | `#E9EEEB` |
-| Lines and borders | `#2B302B` | `#D5DCD7` |
-| Primary text | Soft White `#ECEFEA` | Ink `#0F110F` |
-| Secondary text | Mist `#DCE2DE` | `#4B524D` |
-| Muted text (metadata, placeholders) | `#A3ABA6` | `#535A55` |
-| Primary fill (buttons, active state, header band) | InFocus Green `#0B6E3E` + Soft White text | InFocus Green `#0B6E3E` + Soft White text |
-| Green text, links, icons, small marks | Green on Dark `#2BB36E` | InFocus Green `#0B6E3E` |
-| Focus ring | Green on Dark `#2BB36E` | InFocus Green `#0B6E3E` |
+| Canvas | `#000000` | `#FCFCFD` |
+| Card (level 1) | `#0A0A0C` | `#FFFFFF` |
+| Elevated (level 2: secondary buttons, chips, menus, popovers) | `#111114` | `#F4F5F7` |
+| Hover fill | `#161619` | `#EEEEF0` |
+| Hairline (row dividers, nav edges) | white at 6% | black at 6% |
+| Strong hairline (card, input and button edges) | white at 14% | black at 12% |
+| Primary text | `#FCFDFF` | `#0A0A0C` |
+| Body text (long prose) | `#C4C6C8` | `#4B4E50` |
+| Muted text (metadata, labels, placeholders) | `#A1A4A5` | `#5F6366` |
+| Primary button | `#FCFDFF` fill, black text, hover `#E3E5EA` | `#0A0A0C` fill, `#FCFDFF` text, hover `#26262B` |
+| Accent fill (accent button, switches, progress) | InFocus Green `#0B6E3E` + Soft White, hover `#0E7D47` | InFocus Green `#0B6E3E` + Soft White, hover `#085A32` |
+| Brand text, links, icons, focus ring | Green on Dark `#2BB36E` | InFocus Green `#0B6E3E` |
+| Brand tint (selected row, success tag) | `#2BB36E` at 12% | `#0B6E3E` at 8% |
 | Warning (UI only) | Amber `#F2A516` | `#B45309` |
 | Record Red | `#EE3A2A`, dot only | `#EE3A2A`, dot only |
 
-- Green on Dark is only for text and small marks. It is never a button fill. Never put it on InFocus Green.
-- Record Red is only a tiny marker, like a "LIVE" dot or a new-item dot. Never use it for buttons, errors, or big areas.
-- A tint (the color at 10–18% opacity) is fine for a selected row or a success banner background.
+- **Depth is brightness plus a hairline.** Canvas, then card, then elevated. No shadows, glows, gradients, blur or glass. The one exception is a flat black scrim at 60% behind dialogs and over video that needs legible text.
+- **Keep brand color small**, about 3% of the screen at most. Big green panels, headers, bands and strips become cards.
+- Green on Dark is for text and small marks, never a fill. Never put it on InFocus Green.
+- Record Red is only a tiny marker, like a LIVE or rec dot. Never use it for buttons, errors or large areas.
+- Use tokens, not hexes, in UI chrome, so Light mode and the seasons work. Never hardcode the old green-tinted Inks (`#0F110F`, `#1A1D1A`, `#252925`) or the green hexes there. Hexes are fine inside on-air graphics, video overlays, canvases and OG images.
+
+### Seasons
+
+The holiday seasons swap the brand colors through the same tokens. Surfaces, text, type and the white primary button stay the same.
+
+| Season | When | Replaces Green on Dark | Replaces InFocus Green | Replaces Record Red |
+|---|---|---|---|---|
+| Halloween | Oct 15–31 | Pumpkin `#FF7A1A` (light: `#B4440A`) | Deep Pumpkin `#B4440A` | Witch Purple `#9B5CFF` |
+| Thanksgiving | November | Harvest Gold `#F2A93B` (light: `#9A4A10`) | Maple `#A4471C` | Cranberry `#C23A52` |
+
+- Approved and success tags stay green in every season so they never read as warnings.
+- The seasonal art (pumpkins, turkeys, bats, the seasonal logos, easter eggs and their animations) keeps its own look. Only the chrome around it (dialogs, buttons, cards) follows this section.
 
 ### Danger colors (errors, destructive actions, warning badges)
 Record Red is a *brand* color and stays reserved for the dot. For "something is wrong / this will delete something", interfaces use a separate **Danger** set: a cooler crimson that reads as an alert, not as InFocus branding.
 
 | Token | Hex | Use |
 |---|---|---|
-| **Danger** | `#C21F3A` | Destructive buttons (Delete, Remove, Revoke) with Soft White text, error text and icons on light backgrounds, danger badge fill, error input borders |
-| **Danger on Dark** | `#FF7A8A` | Error text, icons and borders on Ink backgrounds |
-| **Danger tint (light)** | `#FDECEE` | Background of error banners/alerts on light pages |
-| **Danger tint (dark)** | `#3A1218` | Background of error banners/alerts on Ink pages |
+| **Danger** | `#C21F3A` | The final destructive confirm with Soft White text, error text and icons on light backgrounds, error input borders |
+| **Danger on Dark** | `#FF7A8A` | Error text, icons and borders on dark backgrounds |
+| **Danger tint (light)** | `#FDECEE` | Background of error banners and danger tags on light pages |
+| **Danger tint (dark)** | `#2A0E13` | Background of error banners and danger tags on dark pages |
 
-All pass WCAG AA contrast: Soft White on Danger is about 5.1:1, Danger on white about 5.9:1, and Danger on Dark on Ink about 7.6:1.
+All pass WCAG AA contrast: Soft White on Danger is about 5.1:1, and Danger on white about 5.9:1.
 
-- **Destructive buttons:** use a Danger fill with Soft White text only for the final "are you sure?" confirm. Everywhere else, use a quiet button (Danger text, no fill) so pages aren't full of red.
+- **Destructive buttons:** use the Danger fill only for the final "are you sure?" confirm. Everywhere else, use the quiet destructive button (Danger text on the elevated surface) so pages aren't full of red.
 - **Errors:** always pair the color with an icon and words ("Couldn't save: …"). Never rely on color alone.
-- **Badges** ("Overdue", "Missing", "Failed"): use the Danger fill with Soft White text, or the tint background with Danger text. Keep them small.
+- **Tags** ("Overdue", "Missing", "Failed"): the Danger tint with Danger text.
 - Don't put Danger and Record Red next to each other, and don't use Danger for anything decorative.
 
 ### Type on the web
-- **Lexend** for everything people *read*: headings in SemiBold, body in Regular, and labels and eyebrow text in ALL CAPS Medium with wide tracking (+11–18%).
+- **Geist** for everything people read: body, labels, buttons, headings.
+- **Geist Serif** (Regular 400) for page titles and hero headlines only, at 40px or larger. Below 40px a heading is Geist Medium. Dense tool screens (teleprompter run mode, the review player, the grade editor grid) can use an 18–22px Geist title instead.
 - **Geist Mono for data that must line up or updates live:**
   - timecodes and durations (`00:12:48:15`, `4:32`)
   - countdowns and timers, including the teleprompter's clock, elapsed time and word/line counters
   - live counts and numbers in table columns
-  - IDs, codes and file names (`EP-0925`, checkout codes)
+  - IDs, codes, versions and file names (`EP-0925`, checkout codes)
 - Always turn on tabular figures (`font-variant-numeric: tabular-nums`).
-- **The teleprompter script itself stays in Lexend.** Lexend was designed for reading ease, and that's exactly what a prompter needs. Only its numbers and timers are mono.
-- **Static numbers inside sentences or headings stay Lexend** ("5 announcements", "Class of 2027"). Use mono only when the number is data to scan, compare or watch tick.
-- Match Geist Mono's size so its lowercase letters line up with Lexend's (usually about 0.9× the Lexend size). Use Regular or Medium, and never Mono for headings or buttons.
-- Anything else, like a third font, a serif, or a different mono, is off-brand.
+- **Static numbers inside sentences or headings stay Geist** ("5 announcements", "Class of 2027"). Use mono only when the number is data to scan, compare or watch tick. Never use mono for headings or buttons.
+- **Sentence case everywhere:** headings, buttons, menu items, labels, eyebrows, tags and table headers. No ALL CAPS tracked labels. The exceptions are the wordmark, LIVE and REC markers, keyboard keys, and anything rendered into video or on-air output (live overlays, scoreboards, lower thirds, OG images, the teleprompter script).
+- Two weights: Regular 400 for body, Medium 500 for headings, labels and buttons. Don't use SemiBold or Bold for emphasis.
+- Lexend, other serifs and other monos are off-brand in UI.
 
-| Style | Size / line height | Weight | Tracking |
+| Style | Size / line height | Font and weight | Tracking |
 |---|---|---|---|
-| Display (landing hero) | 48–56px / 1.05 | SemiBold 600 | −2% |
-| H1 (page title) | 32–36px / 1.1 | SemiBold 600 | −2% |
-| H2 (section) | 24–28px / 1.15 | SemiBold 600 | −1% |
-| H3 (card title) | 18–20px / 1.25 | SemiBold 600 | −1% |
-| Body | 15–16px / 1.5 (14px in dense tools) | Regular 400 | 0 |
-| Small / metadata | 13px / 1.4 | Regular 400 | 0 |
-| Label, eyebrow, table header, tag | 11–12px / 1.2, ALL CAPS | Medium 500 | +11% (labels) to +18% (eyebrows) |
+| Hero headline | 48–72px / 1.0 | Geist Serif 400 | −2% |
+| Page title (H1) | 40–48px / 1.0 | Geist Serif 400 | −2% |
+| Section heading (H2) | 18–22px / 1.3 | Geist 500 | −1.5% |
+| Card title (H3) | 15–16px / 1.4 | Geist 500 | −1% |
+| Body | 14–15px / 1.5 | Geist 400 | 0 |
+| Small, metadata, label, eyebrow, table header | 12–13px / 1.4 | Geist 500, muted | 0 |
+| Tag | 12px / 1.33 | Geist 500 | 0 |
 | Data | 0.9× neighbouring size | Geist Mono 400/500 | 0, tabular |
 
-Keep lines of body text under about 70 characters. Use sentence case for headings, buttons, and menu items.
+Keep lines of body text under about 65 characters.
 
 ### Spacing and layout
 - Use a 4px base: 4, 8, 12, 16, 24, 32, 48, 64, 96.
@@ -273,40 +296,51 @@ Keep lines of body text under about 70 characters. Use sentence case for heading
 - Design at phone width first. Wide tables scroll inside their own container, never the whole page.
 
 ### Corners
-- **Plates are square.** Hero/header banners, section title bars, featured cards and panels have square corners. No single curved corner, and no big rounded plates.
-- **Everyday UI uses one small radius: 6px** (4px for tiny tags). That covers buttons, text fields, dropdowns, checkboxes, tables, tags, tooltips, modals and small list cards.
-- Never round all four corners into a pill or blob. Circles are only for avatars, status dots, spinners, and toggle switches.
-- **The web nameplate:** a page header is a square Ink 2 plate with a 4px InFocus Green strip along the bottom. It's the lower third, flattened: an eyebrow, a SemiBold headline, and at most one line of Mist text.
+
+| Radius | Use |
+|---|---|
+| 6px | Small parts inside a control: menu items, segments, keyboard keys, skeleton bars |
+| 8px | Buttons, text fields, selects, tooltips |
+| 12px | Cards, panels, page headers, dialogs, popovers, media wells, alerts |
+| Full | Tags, badges, avatars, dots, switches, progress bars |
+
+- Never round only one corner.
+- Full-bleed pieces stay square: edge-to-edge bars, the sidebar, video that fills the viewport.
+- The square Ink plate with a green strip is a broadcast shape. On the web the page header is a 12px card.
 
 ### Components
 
 | Component | Recipe |
 |---|---|
-| **Primary button** | 36px tall (32 small, 40 large), 16px side padding, 6px radius, Lexend Medium 14px, InFocus Green fill, Soft White text. Hover `#0E7D47` (light `#085A32`). One per view. |
-| **Secondary / outline / ghost** | Same size. Outline: 1px line, transparent fill, Ink 3 on hover. Ghost: no border. |
-| **Quiet destructive** | Outline style with Danger text; tint on hover. |
+| **Primary button** | 36px tall (32 small, 40 large), 16px side padding, 8px radius, Geist Medium 14px. White fill with black text in Dark, black with white in Light. One per view, placed last. |
+| **Accent button** | Same shape, brand fill (InFocus Green, or the season's fill) with Soft White text. For the single most important action on a page: Submit, Send to queue, Start show, Approve. Use it *instead of* the primary, never beside it, and at most once per view. |
+| **Secondary / outline** | Same size. Elevated surface, 1px strong hairline, hover fill. Sits beside a primary. |
+| **Ghost** | Text only, hover fill. Toolbars, icon buttons, tertiary actions. |
+| **Quiet destructive** | Danger text on the elevated surface, Danger tint on hover. |
 | **Destructive confirm** | Danger fill, Soft White text. Only inside the "are you sure?" step. |
-| **Text field / select** | 36px tall, 6px radius, 1px field border (`#6B726D` dark / `#7F8782` light), transparent fill, 16px text on phones (prevents iOS zoom). Focus: 2px Green on Dark ring. Error: Danger border, and a message below with an icon. |
-| **Card** | Ink 2 on Ink (White on Mist 20 in light), 1px line, 6px radius, no shadow. |
-| **Table** | Header row in label style (caps, muted). 1px row lines, no zebra stripes. Numbers right-aligned in Geist Mono. The row hover is the Ink 3 fill. |
-| **Tag / badge** | 4px radius, 2px × 8px padding, label style 11px. Success: green tint + Green on Dark text. Warning: amber tint + amber. Danger: Danger tint + Danger text. Neutral: Ink 2 + Mist. |
-| **Tabs / nav** | Active item: InFocus Green fill with Soft White text (6px radius, like every other item) or a 2px green underline. Inactive items use muted text, with Ink 3 on hover. |
-| **Alert / banner** | Tint background, a 1px line in the same hue, an icon, and plain words. |
-| **Dialog** | Ink 2 panel, 6px radius, black scrim at 60% (no blur), title in H3 style. The primary action goes on the right. |
-| **Tooltip / menu** | Ink 2 with a 1px line, 6px radius, 13px text. |
-| **Empty state** | The icon (monochrome, 48–64px), one SemiBold line, one Mist line, and one primary button. |
-| **Loading** | Skeleton blocks in Ink 3 pulsing opacity, or a spinner. Turning the icon (±30°) is allowed for a full-page load. |
-| **LIVE / recording** | An Ink tag with the one Record Red dot, and the word LIVE in label style. |
+| **Link** | Brand text, underline on hover. |
+| **Text field / select** | 36px tall, 8px radius, 1px field border, card fill, 16px text on phones (prevents iOS zoom). Focus: a ring-colored border and a 3px ring at 30%. Error: Danger border, and a message below with an icon. |
+| **Card** | Card surface on the canvas, 1px strong hairline, 12px radius, no shadow. |
+| **Table** | Header cells 13px Geist Medium, muted, sentence case. Hairline row dividers, no zebra stripes. Numbers right-aligned in Geist Mono. Row hover is a faint fill; the selected row gets the brand tint. |
+| **Tag / badge** | A pill: 2px × 8px padding, Geist Medium 12px, sentence case, a 1px border in its tone. Success: brand tint and brand text. Warning: amber tint and amber. Danger: Danger tint and Danger text. Neutral: elevated surface and body text. Muted: no fill. |
+| **Eyebrow** | 13px Geist Medium, muted, sentence case, above a title. Brand-colored only when it marks something. |
+| **Tabs / nav** | Active: foreground text and a 1px brand underline. Inactive: muted text, foreground on hover. In a segmented control the active segment is an elevated pill with a strong hairline. |
+| **Alert / banner** | Tint background, a 1px line in the same hue, an icon, and plain words. 12px radius. |
+| **Dialog** | Card surface, strong hairline, 12px radius, black scrim at 60% (no blur), title in section-heading style. The primary action goes on the right. |
+| **Tooltip / menu** | Elevated surface with a strong hairline, 13px text. Tooltips 8px radius, menus and popovers 12px. |
+| **Empty state** | A monochrome icon (48–64px), one Geist Medium line, one muted line, and one primary button. |
+| **Loading** | Skeleton blocks in the elevated or hover fill with a pulsing opacity, or a spinner. Turning the icon (±30°) is allowed for a full-page load. |
+| **LIVE / recording** | A neutral tag with the one Record Red dot and the word Live. |
 
 ### Motion on the web
-- Use the same easing curves (section 5), but shorter: 150–300ms for UI, and up to about 600ms for a hero entrance.
-- Entrances are an 8px rise plus a fade on ease out. Things never fly in from off-screen.
+- Hover and focus changes take 150ms on `cubic-bezier(0.2, 0, 0, 1)`.
+- Entrances use the ease out curve from section 5: 150–300ms for UI, up to about 600ms for a hero. An entrance is an 8px rise plus a fade. Things never fly in from off-screen.
 - The icon turn (±30°) is for the logo only, like a loading state or page intro. Don't rotate other UI.
 - Respect "reduce motion" settings.
 
 ### Accessibility
-- Text contrast must pass WCAG AA: 4.5:1 for body text and 3:1 for large text. Every *text* pairing in this document passes when used as described.
-- The plain line color (`#2B302B` / `#D5DCD7`) is only for decorative dividers and card edges. Borders that show where a control is (text fields, checkboxes) need 3:1: use `#6B726D` on dark and `#7F8782` on light.
+- Text contrast must pass WCAG AA: 4.5:1 for body text and 3:1 for large text. Every *text* pairing in this section passes when used as described.
+- Hairlines are for decorative dividers and card edges. Borders that show where a control is (text fields, checkboxes) need 3:1 against their background.
 - Every control needs a visible focus ring. Touch targets are at least 40px (44px is better).
 - Status is never color alone: use an icon, a word, or both.
 
@@ -391,142 +425,178 @@ Use a dissolve (ease in-out) or a wipe between slides. Build bullets in one at a
 
 ## 13. Token reference
 
-Copy this into any new web project. The values match InFocus Portal and InFocus Drive exactly.
+Copy this into any new web project. The values match the InFocus Portal (`app/globals.css`).
 
 ```css
-/* Fonts: https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap */
+/* Fonts: Geist, Geist Serif and Geist Mono (the `geist` npm package, or Google Fonts) */
 :root {
   /* Brand */
-  --ink: #0F110F;            /* Ink */
-  --green: #0B6E3E;          /* InFocus Green: fills, Soft White text on it */
+  --green: #0B6E3E;          /* InFocus Green: the accent button, Soft White text on it */
   --green-hover: #0E7D47;
-  --green-on-dark: #2BB36E;  /* text and small marks on Ink */
+  --green-on-dark: #2BB36E;  /* text, links and small marks */
+  --brand-tint: rgb(43 179 110 / 0.12);
   --record-red: #EE3A2A;     /* the dot only */
-  --mist: #DCE2DE;
-  --soft-white: #ECEFEA;     /* every "white" on dark: text and logo, never #FFFFFF */
-  --on-brand: #ECEFEA;
+  --soft-white: #ECEFEA;     /* text on green and Danger fills, the logo's white */
 
   /* Danger */
   --danger: #C21F3A;
   --danger-text: #FF7A8A;
-  --danger-tint: #3A1218;
+  --danger-tint: #2A0E13;
 
   /* Surfaces (dark) */
-  --bg: #0F110F;
-  --surface: #1A1D1A;
-  --surface-hover: #252925;
-  --line: #2B302B;
-  --text: #ECEFEA;
-  --text-2: #DCE2DE;
-  --text-muted: #A3ABA6;
-  --accent-text: #2BB36E;    /* green text */
+  --bg: #000000;
+  --card: #0A0A0C;
+  --elevated: #111114;
+  --hover: #161619;
+  --line: rgba(255, 255, 255, 0.06);
+  --line-strong: rgba(255, 255, 255, 0.14);
+  --text: #FCFDFF;
+  --text-body: #C4C6C8;
+  --text-muted: #A1A4A5;
+  --cta: #FCFDFF;            /* primary button */
+  --cta-on: #000000;
+  --cta-hover: #E3E5EA;
   --focus: #2BB36E;
   --warning: #F2A516;
 
   /* Type */
-  --font-sans: "Lexend", system-ui, sans-serif;
+  --font-sans: "Geist", system-ui, sans-serif;
+  --font-serif: "Geist Serif", Georgia, serif;   /* page titles, 40px and up */
   --font-mono: "Geist Mono", ui-monospace, Menlo, monospace;
 
   /* Shape */
-  --radius: 6px;
-  --radius-sm: 4px;          /* plates and panels are square (no radius) */
+  --radius-sm: 6px;          /* parts inside a control */
+  --radius: 8px;             /* buttons, inputs */
+  --radius-lg: 12px;         /* cards, dialogs, popovers */
 
   /* Motion */
+  --ease-ui: cubic-bezier(0.2, 0, 0, 1);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   --ease-back-out: cubic-bezier(0.34, 1.56, 0.64, 1); /* the red dot only */
-  --duration: 200ms;
+  --duration: 150ms;
 }
 
 .light {
-  --bg: #F4F6F5;
-  --surface: #FFFFFF;
-  --surface-hover: #E9EEEB;
-  --line: #D5DCD7;
-  --text: #0F110F;
-  --text-2: #4B524D;
-  --text-muted: #535A55;
-  --accent-text: #0B6E3E;
-  --focus: #0B6E3E;
+  --bg: #FCFCFD;
+  --card: #FFFFFF;
+  --elevated: #F4F5F7;
+  --hover: #EEEEF0;
+  --line: rgba(0, 0, 0, 0.06);
+  --line-strong: rgba(0, 0, 0, 0.12);
+  --text: #0A0A0C;
+  --text-body: #4B4E50;
+  --text-muted: #5F6366;
+  --cta: #0A0A0C;
+  --cta-on: #FCFDFF;
+  --cta-hover: #26262B;
+  --green-on-dark: #0B6E3E;
   --green-hover: #085A32;
+  --brand-tint: rgb(11 110 62 / 0.08);
+  --focus: #0B6E3E;
   --danger-text: #C21F3A;
   --danger-tint: #FDECEE;
   --warning: #B45309;
 }
 
 body { background: var(--bg); color: var(--text); font: 400 15px/1.5 var(--font-sans); }
-.plate { background: var(--surface); border-bottom: 4px solid var(--green); } /* square corners */
-.eyebrow { font: 500 12px/1.2 var(--font-sans); letter-spacing: .18em; text-transform: uppercase; color: var(--accent-text); }
-.btn-primary { background: var(--green); color: var(--on-brand); border-radius: var(--radius); height: 36px; padding: 0 16px; font-weight: 500; }
+.card { background: var(--card); border: 1px solid var(--line-strong); border-radius: var(--radius-lg); }
+.page-title { font: 400 40px/1 var(--font-serif); letter-spacing: -0.02em; }
+.eyebrow { font: 500 13px/1.4 var(--font-sans); color: var(--text-muted); }
+.btn-primary { background: var(--cta); color: var(--cta-on); border-radius: var(--radius); height: 36px; padding: 0 16px; font-weight: 500; }
+.btn-accent { background: var(--green); color: var(--soft-white); border-radius: var(--radius); height: 36px; padding: 0 16px; font-weight: 500; }
+.tag { border-radius: 9999px; padding: 2px 8px; font: 500 12px/1.33 var(--font-sans); }
 .data { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .rec-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--record-red); }
 ```
 
-**Tailwind:** map these to theme colors (`ink`, `green`, `green-on-dark`, `mist`, `danger`, …). Set every `radius` step to 6px, and set the `shadow` scale to none. Use `font-sans` for Lexend and `font-mono` for Geist Mono.
+**Tailwind:** map these to theme colors (`background`, `card`, `secondary`, `line`, `line-strong`, `cta`, `brand-fill`, `brand-green`, `danger`, …). Set `radius-sm` to 6px, `radius-md` to 8px and `radius-lg`/`radius-xl` to 12px, and set the `shadow` scale to none. Use `font-sans` for Geist, `font-serif` for Geist Serif and `font-mono` for Geist Mono.
 
 ### Quick check
-If a screen or slide has any of the following, it's drifting from the brand:
-- a single rounded corner, or big rounded plates and panels
+If a screen or slide has any of the following, it's drifting from the brand.
+
+On air, on slides and in print:
+- a single rounded corner, or rounded plates and panels
 - pure `#FFFFFF` text or logo on dark (use Soft White `#ECEFEA`)
-- more than one spot of red
-- gradients or drop shadows
-- pill-shaped buttons
-- italics
 - any font other than Lexend (plus Geist Mono for data)
+
+On screens:
+- a green-tinted Ink canvas instead of true black, or hardcoded brand hexes in chrome
+- more than one white primary button, or an accent button next to a primary
+- big brand-colored panels, headers or bands
+- ALL CAPS tracked labels, eyebrows or tags
+- square cards, or pill-shaped buttons
+
+Everywhere:
+- more than one spot of red
+- gradients, glows or drop shadows
+- italics
 
 ---
 
 ## 14. InFocus Portal implementation
 
-How sections 2–5, 10 and 13 map to the Portal's code. Tokens live in `app/globals.css`; fonts load in `app/layout.tsx`; shared components are in `components/ui/`.
+How sections 10 and 13 map to the Portal's code. Tokens live in `app/globals.css`; fonts load in `app/layout.tsx`; shared components are in `components/ui/` and `components/kit/`.
 
 ### Color tokens
 
-Dark (Ink) is the default. Light is opt-in (Settings → Appearance, `<html class="light">`). Tokens marked "flips" change value in light mode.
+Dark is the default. Light is opt-in (Settings → Appearance, `<html class="light">`). Tokens marked "flips" change value in Light.
 
-| Brand color | CSS token | Tailwind class | Notes |
+| Role | CSS token | Tailwind class | Notes |
 |---|---|---|---|
-| Ink `#0F110F` | `--background` (dark), `--ink` (flips) | `bg-background`, `bg-[var(--ink)]` | Page canvas. `--card` / `--ink-2…4` are slightly raised Ink surfaces and lines. |
-| InFocus Green `#0B6E3E` | `--primary`, `--brand-fill` | `bg-primary text-primary-foreground`, `bg-[var(--brand-fill)] text-[var(--on-brand)]` | Primary buttons, active states, header bands. Always Soft White text. Hover `--brand-fill-hover`. |
-| Green on Dark `#2BB36E` | `--brand-green` (flips to `#0B6E3E` in light) | `text-brand-green`, `text-[var(--brand-green)]` | Text, links, icons, small marks, focus ring. Low-opacity tints (`/10`) are fine; never a solid large fill. |
-| Record Red `#EE3A2A` | `--brand-red` | `rec-dot rec-dot-red`, `bg-[var(--brand-red)]` on a dot | The rec dot and tiny LIVE markers only. `.status-live` is an Ink tag with the red dot. |
-| Soft White `#ECEFEA` | `--foreground` (dark), `--on-brand`, `--soft-white` | `text-foreground`, `text-soft-white`, `text-[var(--on-brand)]` | Primary text on dark and on green/Danger fills. Don't use `text-white` or `#fff`. |
-| Mist `#DCE2DE` | `--mist`, `--ink-text` (flips) | `text-[var(--ink-text)]`, `text-muted-foreground` (dimmer) | Secondary text on dark. |
-| Danger `#C21F3A` | `--danger`, `--destructive` | `bg-destructive text-destructive-foreground`, `bg-danger-fill` | Destructive fills with Soft White text. |
+| Canvas `#000` | `--background` (flips), `--ink` (flips) | `bg-background` | Page canvas. |
+| Card `#0A0A0C` | `--card` (flips), `--ink-2` | `bg-card border border-line-strong` | Level 1: cards, panels, dialogs, inputs. |
+| Elevated `#111114` | `--secondary`, `--popover` (flip) | `bg-secondary`, `bg-popover` | Level 2: secondary buttons, chips, menus. Hover is `bg-[var(--ink-3)]`. |
+| Hairlines | `--line`, `--line-2` (flip) | `border-line`, `border-line-strong` | Row dividers / card, input and button edges. `border-border` is close to `line-strong`. |
+| Text | `--foreground`, `--ink-text`, `--muted-foreground` (flip) | `text-foreground`, `text-[var(--ink-text)]`, `text-muted-foreground` | Primary, body prose, muted. Don't use `text-white` or `bg-black` on theme surfaces. |
+| Primary button | `--cta`, `--cta-on`, `--cta-hover` (flip) | `bg-cta text-cta-foreground hover:bg-cta-hover` | White in Dark, black in Light. |
+| InFocus Green `#0B6E3E` | `--brand-fill`, `--primary` | `bg-[var(--brand-fill)] text-on-brand hover:bg-[var(--brand-fill-hover)]`, `bg-primary` | The accent button, switches, progress. `--primary` is the brand fill, not the default button. |
+| Green on Dark `#2BB36E` | `--brand-green` (flips to `#0B6E3E`) | `text-brand-green` | Links, icons, small marks, focus ring. The name is historical: it is Pumpkin or Gold in a season. |
+| Brand tint | `--brand-tint` (flips) | `bg-brand-tint` | Selected rows, success tags. |
+| Record Red `#EE3A2A` | `--brand-red` | `rec-dot rec-dot-red`, `bg-brand-red` on a dot | The rec dot and LIVE markers only. |
+| Soft White `#ECEFEA` | `--on-brand`, `--soft-white` | `text-on-brand` | Text on brand and Danger fills. |
+| Danger `#C21F3A` | `--danger`, `--destructive` | `bg-destructive text-destructive-foreground`, `bg-danger-fill` | The final destructive confirm. |
 | Danger on Dark `#FF7A8A` | `--danger-text` (flips to `#C21F3A`) | `text-danger`, `border-danger` | Error text, icons, borders. |
-| Danger tints `#3A1218` / `#FDECEE` | `--danger-tint` (flips) | `bg-danger-tint` | Error banner backgrounds. |
+| Danger tints `#2A0E13` / `#FDECEE` | `--danger-tint` (flips) | `bg-danger-tint` | Error banners, danger tags. |
 
-Light theme: background is a very light Mist (`hsl(141 12% 96%)`), cards are white, text is Ink, and primary stays InFocus Green with Soft White text.
+**Seasons:** `<html class="halloween">` (`src/lib/halloween.ts`) and `<html class="thanksgiving">` (`src/lib/thanksgiving.ts`) override `--brand-green`, `--brand-fill`, `--brand-fill-hover`, `--brand-tint`, `--brand-red`, `--primary`, `--accent` and `--ring`, with separate Light values. Anything drawn with those tokens recolors itself. Hardcoded green hexes don't, so keep them out of UI chrome.
 
 ### Type
 
-- `font-sans` and `font-display` are **Lexend** (400/500/600/700, `next/font/google`). `font-mono` and `.timecode` are **Geist Mono**, for data only (section 10), with `tabular-nums`.
-- `.display-xl/lg/md/sm`: Lexend SemiBold, tight tracking, no italics, no forced caps.
-- `.eyebrow`: ALL CAPS Medium, +18% tracking, Green on Dark. Labels and badges: ALL CAPS Medium, +11% tracking.
+- `font-sans` is **Geist** (variable, 400–700), the default for all text. `font-serif`, `font-display` and `.display-xl`/`.display-lg` are **Geist Serif** 400 for page titles (40px and up). `font-mono`, `.font-mono-broadcast` and `.timecode` are **Geist Mono**, for data only, with `tabular-nums`. All three load locally from the `geist` package.
+- `.display-md` / `.display-sm`: Geist Medium 22px / 18px section headings.
+- `.eyebrow`: 13px Geist Medium, muted, sentence case. `.eyebrow-brand` uses the brand color.
+- `.status-pill` + `.status-*`: sentence-case 12px pills. New code uses `<StatusTag>` (`components/kit/status-tag.tsx`).
+- Live overlays, story graphics, OG images and thumbnails are on-air output and keep Lexend (sections 3 and 6).
 
 ### Shape
 
-- One small radius everywhere: every Tailwind radius (`rounded-md` … `rounded-3xl`) resolves to **6px**, `rounded-sm` to 4px. `rounded-full` is only for true circles (avatars, dots, spinners, switches, progress bars).
-- Plates are square: `.brand-hero-panel` / `.brand-hero-gradient` page heroes are square Ink plates with a 4px InFocus Green strip below (the lower third, flattened). The active sidebar item uses the normal 6px radius. (The `.arc-corner` classes were removed in Sept 2026.)
-- Flat color: every `shadow-*` / `drop-shadow-*` utility is flattened to nothing in the theme. There are no gradients and no glass (`backdrop-blur`). The legacy `.brand-gradient-*` and `.av-*` classes are now flat brand tones.
+- `rounded-sm` is 6px, `rounded-md` 8px (buttons, inputs), `rounded-lg` and `rounded-xl` 12px (cards, dialogs, popovers, wells), `rounded-2xl` and up 16px, `rounded-full` for pills and dots.
+- `.brand-hero-panel` / `.brand-hero-gradient` page heroes are 12px cards with a strong hairline, without a colored strip. `PageHeader` (`components/page-header.tsx`) uses the same card.
+- Flat: every `shadow-*` / `drop-shadow-*` utility resolves to nothing. No gradients or `backdrop-blur`. The legacy `.brand-gradient-*` and `.av-*` classes are flat tones.
 
 ### Buttons
 
+`components/ui/button.tsx`. Sizes: `default` h-9, `sm` h-8, `lg` h-10, `icon` 36px, `icon-sm` 32px. Links styled as buttons use `buttonVariants({ variant, size })`.
+
 | Variant | Use |
 |---|---|
-| `default` | Primary action: InFocus Green, Soft White text |
-| `destructive` | Solid Danger. Only for the final "are you sure?" confirm |
-| `destructive-quiet` | Danger text, no fill. Delete/Remove/Revoke everywhere else |
-| `outline` / `secondary` / `ghost` / `link` | Everything else (`link` is Green on Dark) |
+| `default` | The view's primary action: white with black text (inverted in Light). One per view. |
+| `accent` | The page's most important action, in the brand fill (season-aware). Use instead of `default`, never next to it. |
+| `outline` / `secondary` | Secondary actions: elevated surface and a strong hairline. |
+| `ghost` | Toolbars, icon buttons, tertiary actions. |
+| `destructive-quiet` | Danger text on the elevated surface. Delete, Remove and Revoke everywhere except the final confirm. |
+| `destructive` | Solid Danger. Only for the final "are you sure?" confirm. |
+| `link` | Brand text, underline on hover. |
 
 ### Motion
 
-The Tailwind defaults are the brand curves: `--default-transition-timing-function` is ease out `cubic-bezier(0.16, 1, 0.3, 1)` at 200ms, and `ease-in`, `ease-out`, `ease-in-out` are the section 5 curves. Card and route entrances run 280ms ease out; the Portal page swap (`.route-fade`) is a 150ms opacity-only fade. The rec dot fades in and out and never glows. Reduced motion disables the entrances and the dot animation.
+`--default-transition-duration` is 150ms and `--default-transition-timing-function` is `--ease-ui` (`cubic-bezier(0.2, 0, 0, 1)`), so hover and focus changes use `duration-150 ease-[var(--ease-ui)]`. `ease-in`, `ease-out` and `ease-in-out` are the section 5 curves. Card and route entrances run 280ms ease out; the Portal page swap (`.route-fade`) is a 150ms opacity-only fade. The rec dot fades in and out and never glows. Reduced motion turns off the entrances and the dot animation.
 
 ### Emails
 
-`src/lib/email-layout.ts` uses literal hexes (email clients don't support CSS variables), with the same roles as above, a Lexend font stack, and InFocus Green buttons with Soft White text (`#ECEFEA`).
+`src/lib/email-layout.ts` uses literal hexes (email clients don't support CSS variables) and follows section 12: the Ink card, a Lexend font stack, and InFocus Green buttons with Soft White text (`#ECEFEA`).
 
 ### Livestream graphics
 

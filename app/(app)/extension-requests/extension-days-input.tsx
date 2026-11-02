@@ -44,7 +44,7 @@ function ExtensionDaysInput({
 
 const DAYS_HINT = "0.1–30 days, one decimal (1.5 = 36 hours)";
 
-/** The Days field used by every dialog here: caps label, the input with a "days" suffix, the hint. */
+/** The Days field used by every dialog here: label, the input with a "days" suffix, the hint. */
 export function DaysField({
   id,
   value,

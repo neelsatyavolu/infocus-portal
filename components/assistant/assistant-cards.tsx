@@ -6,7 +6,6 @@ import { KeyValueList } from "@/components/kit/key-value";
 import { StatusTag } from "@/components/kit/status-tag";
 import { Button } from "@/components/ui/button";
 import type { AssistantPlacePreview } from "@/src/lib/assistant-places";
-import { cn } from "@/src/lib/utils";
 import type { ActionPreview, ActionState, PlaceState } from "@/components/assistant/assistant-stream";
 
 const DONE_FALLBACK = "Done.";
@@ -14,7 +13,7 @@ const ERROR_FALLBACK = "Could not make that change.";
 
 /**
  * Shared shell for the assistant's cards: a status slot, the title, a body, and a footer that
- * holds only actions or a note. Recessed (page Ink) against the Ink 2 panel, full column width.
+ * holds only actions or a note. Recessed (canvas) against the card panel, full column width.
  */
 function DecisionCard({
   status,
@@ -28,14 +27,14 @@ function DecisionCard({
   footer?: ReactNode;
 }) {
   return (
-    <section className="overflow-hidden rounded-md border border-border bg-background">
+    <section className="overflow-hidden rounded-lg border border-line-strong bg-background">
       <header className="px-4 pt-3">
         <div className="flex min-h-5 flex-wrap items-center gap-2">{status}</div>
         <p className="mt-1.5 text-sm font-medium text-foreground">{title}</p>
       </header>
       <div className="px-4 pb-3 pt-2">{children}</div>
       {footer ? (
-        <div className="flex min-h-12 items-center justify-end gap-2 border-t border-border px-4 py-2">{footer}</div>
+        <div className="flex min-h-12 items-center justify-end gap-2 border-t border-line px-4 py-2">{footer}</div>
       ) : null}
     </section>
   );
@@ -44,7 +43,7 @@ function DecisionCard({
 /** A dismissed card collapses to one quiet row. */
 function SkippedRow({ title }: { title: string }) {
   return (
-    <div className="flex min-h-10 items-center gap-2 rounded-md border border-border px-4 py-2 text-[13px] text-muted-foreground">
+    <div className="flex min-h-10 items-center gap-2 rounded-lg border border-line px-4 py-2 text-[13px] text-muted-foreground">
       <StatusTag tone="neutral">Skipped</StatusTag>
       <span className="min-w-0 truncate">{title}</span>
     </div>
@@ -108,7 +107,7 @@ export function ApprovalCard({
           variant="outline"
           onClick={onApprove}
           disabled={running}
-          className={cn(buttonClass, "text-brand-green hover:text-brand-green")}
+          className={buttonClass}
         >
           <Check aria-hidden />
           Approve
@@ -170,7 +169,7 @@ export function PlaceCard({
     <DecisionCard
       status={
         <>
-          <span className="text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">
+          <span className="text-xs font-medium text-muted-foreground">
             {switching ? "Switch cycle" : "I can show where that is"}
           </span>
           {opened ? (
@@ -191,7 +190,7 @@ export function PlaceCard({
               type="button"
               variant="outline"
               onClick={onGo}
-              className={cn(buttonClass, "text-brand-green hover:text-brand-green")}
+              className={buttonClass}
             >
               {switching ? "Switch" : "Take me there"}
               <GoIcon aria-hidden />

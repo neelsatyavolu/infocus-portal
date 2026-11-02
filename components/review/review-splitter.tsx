@@ -39,19 +39,19 @@ export function ReviewSplitter({
         onDoubleClick={onDoubleClick}
         onKeyDown={onKeyDown}
         className={cn(
-          "group/splitter relative h-full w-full cursor-col-resize touch-none rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          isResizing && "bg-[var(--brand-green)]/5"
+          "group/splitter relative h-full w-full cursor-col-resize touch-none rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30",
+          isResizing && "bg-brand-tint"
         )}
       >
         <span
           className={cn(
-            "pointer-events-none absolute bottom-2 left-1/2 top-2 w-px -translate-x-1/2 bg-border transition-colors",
+            "pointer-events-none absolute bottom-2 left-1/2 top-2 w-px -translate-x-1/2 bg-line-strong transition-colors duration-150 ease-[var(--ease-ui)]",
             isResizing ? "bg-[var(--brand-green)]" : "group-hover/splitter:bg-muted-foreground"
           )}
         />
         <span
           className={cn(
-            "pointer-events-none absolute left-1/2 top-1/2 h-12 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-sm transition-colors",
+            "pointer-events-none absolute left-1/2 top-1/2 h-12 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full transition-colors duration-150 ease-[var(--ease-ui)]",
             isResizing ? "bg-[var(--brand-green)]/70" : "bg-[var(--ink-4)] group-hover/splitter:bg-muted-foreground"
           )}
         />

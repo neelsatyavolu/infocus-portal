@@ -20,7 +20,7 @@ const CALENDAR_LIST_ID = "class-board-calendar-list";
  * Every rail row: the shared leading column, then the content, divided by a top rule (so a list
  * that shows only the rows that fit never ends on a doubled line).
  */
-const ROW_BASE = "grid items-center gap-x-4 border-t border-border px-4 py-2.5 first:border-t-0";
+const ROW_BASE = "grid items-center gap-x-4 border-t border-line px-4 py-2.5 first:border-t-0";
 /** Livestream rows: lead | title and crew | tags. */
 const STREAM_ROW = cn(ROW_BASE, "grid-cols-[var(--b-lead)_minmax(0,1fr)_auto]");
 /**
@@ -51,7 +51,7 @@ export function BoardRail({
   todayKey: string;
 }) {
   return (
-    <div className="flex min-h-0 flex-col overflow-hidden rounded-md border border-border bg-card md:grid md:grid-cols-2 md:grid-rows-[auto_1fr] lg:flex">
+    <div className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-line-strong bg-card md:grid md:grid-cols-2 md:grid-rows-[auto_1fr] lg:flex">
       <DueNext deadlines={deadlines} />
       {/*
         lg: a size container for what Due next leaves. The Livestreams list keeps --cal-rows
@@ -89,11 +89,11 @@ function RailSection({
     <section aria-labelledby={id} className={cn("flex min-w-0 flex-col", className)}>
       <div
         className={cn(
-          "flex shrink-0 items-center justify-between gap-3 border-b border-border px-4",
+          "flex shrink-0 items-center justify-between gap-3 border-b border-line px-4",
           tall ? "h-[var(--b-head-tall)]" : "h-[var(--b-head)]"
         )}
       >
-        <h2 id={id} className={BOARD_TEXT.label}>
+        <h2 id={id} className={cn(BOARD_TEXT.label, "text-foreground")}>
           {title}
         </h2>
         {meta ? <p className={cn(BOARD_TEXT.label, "min-w-0 truncate text-muted-foreground")}>{meta}</p> : null}
@@ -126,7 +126,7 @@ function DueNext({ deadlines }: { deadlines: ClassBoardDeadline[] }) {
               <span className="row-span-2 flex min-w-0 @md:row-span-1 lg:row-span-1">
                 <BoardTag tone={dueTone(deadline.daysUntil)}>{relativeDaysLabel(deadline.daysUntil)}</BoardTag>
               </span>
-              <p className={cn(BOARD_TEXT.body, "line-clamp-2 break-words font-semibold text-foreground")}>{deadline.label}</p>
+              <p className={cn(BOARD_TEXT.body, "line-clamp-2 break-words font-medium text-foreground")}>{deadline.label}</p>
               <p
                 className={cn(
                   BOARD_TEXT.meta,
@@ -160,7 +160,7 @@ function Livestreams({ items }: { items: ClassBoardLivestream[] }) {
       id="class-board-livestreams"
       title="Livestreams"
       meta={items.length > 0 ? <BoardRowCount listId={STREAM_LIST_ID} total={items.length} showTotal /> : "Next 14 days"}
-      className="border-t border-border md:col-start-1 md:row-start-2 lg:shrink-0"
+      className="border-t border-line md:col-start-1 md:row-start-2 lg:shrink-0"
     >
       {items.length === 0 ? (
         <RailEmpty>No livestreams in the next two weeks.</RailEmpty>
@@ -191,7 +191,7 @@ function LivestreamRow({ item }: { item: ClassBoardLivestream }) {
         <span className={cn(BOARD_TEXT.mono, "block text-foreground")}>{item.timeLabel}</span>
       </p>
       <div className="min-w-0">
-        <h3 className={cn(BOARD_TEXT.body, "truncate font-semibold text-foreground")}>{item.title}</h3>
+        <h3 className={cn(BOARD_TEXT.body, "truncate font-medium text-foreground")}>{item.title}</h3>
         <p className={cn(BOARD_TEXT.meta, "line-clamp-2 break-words text-[var(--ink-text)] lg:line-clamp-1")}>
           {item.crew === CREW_OPEN ? (
             CREW_OPEN
@@ -228,7 +228,7 @@ function Calendar({ days, todayKey }: { days: ClassBoardDay[]; todayKey: string 
       title="Calendar"
       meta={days.length > 0 ? <BoardRowCount listId={CALENDAR_LIST_ID} total={days.length} /> : "Next 14 days"}
       className={cn(
-        "border-t border-border md:col-start-2 md:row-[1/3] md:border-l md:border-t-0",
+        "border-t border-line md:col-start-2 md:row-[1/3] md:border-l md:border-t-0",
         "lg:min-h-0 lg:flex-1 lg:border-l-0 lg:border-t"
       )}
     >
@@ -256,12 +256,12 @@ function CalendarRow({ day, today }: { day: ClassBoardDay; today: boolean }) {
     <li
       aria-current={today ? "date" : undefined}
       className={cn(
-        "col-span-full grid grid-cols-subgrid items-center border-t border-border py-2.5 first:border-t-0 lg:overflow-hidden lg:py-[calc(var(--b)*0.2)]",
-        today && "bg-[var(--ink-3)]"
+        "col-span-full grid grid-cols-subgrid items-center border-t border-line py-2.5 first:border-t-0 lg:overflow-hidden lg:py-[calc(var(--b)*0.2)]",
+        today && "bg-brand-tint"
       )}
     >
       <p className="col-start-2 whitespace-nowrap font-mono-broadcast tabular-nums leading-none">
-        <span className={cn("text-[length:var(--b-mono)]", today ? "text-[var(--brand-green)]" : "text-muted-foreground")}>
+        <span className={cn("text-[length:var(--b-mono)]", today ? "text-brand-green" : "text-muted-foreground")}>
           {day.weekday}
         </span>
         <span className={cn("ml-[0.35em] text-[length:var(--b)] font-medium", off ? "text-muted-foreground" : "text-foreground")}>

@@ -24,7 +24,7 @@ import {
 } from "@/components/review/quick-grades";
 import type { QuickGradesState } from "@/components/review/use-quick-grades";
 
-const LABEL_CLASS = "text-[11px] font-medium uppercase leading-tight tracking-[0.11em] text-muted-foreground";
+const LABEL_CLASS = "text-[12px] font-medium leading-tight text-muted-foreground";
 const NUMBER_INPUT_CLASS = "h-9 px-2 text-right font-mono-broadcast tabular-nums";
 
 function cycleTitle(cycleNumber: number | null) {
@@ -42,7 +42,7 @@ function GradeRow({ row, state }: { row: QuickGradeRow; state: QuickGradesState 
   const editorId = `quick-grade-feedback-${row.userId}`;
 
   return (
-    <li className={cn("space-y-2.5 rounded-md border border-border p-3", row.disabled && "bg-[var(--ink-2)]")}>
+    <li className={cn("space-y-2.5 rounded-lg border border-line-strong p-3", row.disabled && "bg-secondary")}>
       <div className="flex min-h-8 min-w-0 items-center gap-2">
         <span className={cn("min-w-0 truncate text-sm font-medium", row.disabled ? "text-muted-foreground" : "text-foreground")}>
           {name}
@@ -117,7 +117,7 @@ function GradeRow({ row, state }: { row: QuickGradeRow; state: QuickGradesState 
         />
       </div>
       {editorOpen ? (
-        <div id={editorId} className="space-y-2 border-t border-border pt-2.5">
+        <div id={editorId} className="space-y-2 border-t border-line pt-2.5">
           <Textarea
             value={row.feedback}
             onChange={(event) => state.updateRow(row.userId, { feedback: event.target.value.slice(0, MAX_FEEDBACK_LENGTH) })}
@@ -164,7 +164,7 @@ export function QuickGradesBody({ state, peopleCount }: { state: QuickGradesStat
     return (
       <div role="status" aria-label="Loading grades…" className="space-y-2">
         {Array.from({ length: 4 }, (_, index) => (
-          <div key={index} className="space-y-2.5 rounded-md border border-border p-3">
+          <div key={index} className="space-y-2.5 rounded-lg border border-line-strong p-3">
             <Skeleton className="h-4 w-1/2" />
             <div className="grid grid-cols-3 gap-2">
               <Skeleton className="h-9 rounded-md" />
@@ -272,11 +272,11 @@ export function QuickGradesPanel({
   className?: string;
 }) {
   return (
-    <section id={id} aria-label="Quick grades" className={cn("flex min-h-0 flex-col rounded-md border border-border bg-card", className)}>
-      <div className="flex shrink-0 items-start gap-3 border-b border-border px-4 py-3">
+    <section id={id} aria-label="Quick grades" className={cn("flex min-h-0 flex-col rounded-lg border border-line-strong bg-card", className)}>
+      <div className="flex shrink-0 items-start gap-3 border-b border-line px-4 py-3">
         <div className="min-w-0 flex-1">
-          <p className={LABEL_CLASS}>Quick grades</p>
-          <h2 className="mt-0.5 flex items-center gap-2 text-base font-semibold text-foreground">
+          <p className="text-[13px] font-medium text-muted-foreground">Quick grades</p>
+          <h2 className="mt-0.5 flex items-center gap-2 text-[18px] font-medium tracking-[-0.015em] text-foreground">
             {cycleTitle(state.cycleNumber)}
             {state.loading ? <Spinner label="Loading grades" /> : null}
           </h2>
@@ -291,7 +291,7 @@ export function QuickGradesPanel({
         <QuickGradesBody state={state} peopleCount={peopleCount} />
       </div>
       {showFooter(state, peopleCount) ? (
-        <div className="shrink-0 border-t border-border px-4 py-3">
+        <div className="shrink-0 border-t border-line px-4 py-3">
           <QuickGradesFooter state={state} primary={primary} />
         </div>
       ) : null}

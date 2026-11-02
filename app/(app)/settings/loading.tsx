@@ -23,7 +23,7 @@ export default function Loading() {
     <LoadingRegion label="Loading settings" className="w-full space-y-6 lg:space-y-8">
       <PageHeaderSkeleton actions={0} />
       <div className="lg:grid lg:grid-cols-[200px_minmax(0,1fr)] lg:gap-8">
-        <div aria-hidden className="mb-6 flex h-10 items-center gap-6 overflow-hidden border-b border-border px-3 lg:hidden">
+        <div aria-hidden className="mb-6 flex h-10 items-center gap-6 overflow-hidden border-b border-line px-3 lg:hidden">
           {RAIL_WIDTHS.map((width, index) => (
             <Skeleton key={index} className={`h-3.5 shrink-0 ${width}`} />
           ))}

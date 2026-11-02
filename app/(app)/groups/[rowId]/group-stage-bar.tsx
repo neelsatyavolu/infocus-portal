@@ -26,13 +26,12 @@ function wordTone(status: CycleStageStatus): StatusTone {
 }
 
 /**
- * The page being viewed: the student bar's 8% green tint (a token, so it follows --brand-green in
- * Light mode) plus the tabs' 2px green underline. The top rule says where the work is, not which
- * page is open.
+ * The page being viewed: the brand tint (a token, so it follows the season and Light mode) plus
+ * the tabs' 1px brand underline. The top rule says where the work is, not which page is open.
  */
 const ACTIVE = cn(
-  "bg-brand-green/8",
-  "after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-[var(--brand-green)]"
+  "bg-brand-tint",
+  "after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-[var(--brand-green)]"
 );
 const FOCUS = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring";
 
@@ -87,7 +86,7 @@ function StageCellLink({ cell, changed }: { cell: StageCell; changed: boolean })
   const showWord = Boolean(word) && !(cell.key === "initial" && cell.status && REVIEW_STEP_STATUSES.has(cell.status));
   const tone = cell.status ? toneTextClass(wordTone(cell.status)) : undefined;
   const labelClass = cell.active
-    ? "font-semibold text-foreground"
+    ? "font-medium text-foreground"
     : cell.dimmed
       ? "text-muted-foreground"
       : "text-foreground";
@@ -97,7 +96,7 @@ function StageCellLink({ cell, changed }: { cell: StageCell; changed: boolean })
       aria-current={cell.active ? "page" : undefined}
       title={cell.title ?? (word ? `${cell.label} · ${word}` : cell.label)}
       className={cn(
-        "relative flex h-14 min-w-0 flex-col justify-center gap-1.5 px-1.5 pt-1 transition-colors sm:h-16 sm:px-3",
+        "relative flex h-14 min-w-0 flex-col justify-center gap-1.5 px-1.5 pt-1 transition-colors duration-150 ease-[var(--ease-ui)] sm:h-16 sm:px-3",
         FOCUS,
         cell.active ? ACTIVE : "hover:bg-[var(--ink-3)]"
       )}
@@ -105,7 +104,7 @@ function StageCellLink({ cell, changed }: { cell: StageCell; changed: boolean })
       <Strip segments={cell.segments} />
       <span
         className={cn(
-          "flex min-w-0 items-center gap-1.5 text-[11px] font-medium uppercase leading-none tracking-[0.11em]",
+          "flex min-w-0 items-center gap-1.5 text-xs font-medium leading-none",
           tone
         )}
       >
@@ -187,7 +186,7 @@ function StepMark({ step }: { step: ApprovalStep }) {
 export function ApprovalPath({ steps }: { steps: ApprovalStep[] }) {
   return (
     <nav aria-label="Initial Cut approval stages" className="flex min-w-0">
-      <ol className="flex h-10 max-w-full items-stretch gap-0.5 overflow-x-auto rounded-md border border-input p-0.5 [scrollbar-width:none] max-sm:w-full md:h-9 [&::-webkit-scrollbar]:hidden">
+      <ol className="flex h-10 max-w-full items-stretch gap-0.5 overflow-x-auto rounded-md border border-line-strong bg-card p-0.5 [scrollbar-width:none] max-sm:w-full md:h-9 [&::-webkit-scrollbar]:hidden">
         {steps.map((step) => (
           <li key={step.key} className="flex min-w-0 max-sm:flex-1">
             <Link
@@ -195,10 +194,10 @@ export function ApprovalPath({ steps }: { steps: ApprovalStep[] }) {
               aria-current={step.active ? "page" : undefined}
               title={`Stage ${step.number} · ${step.role}${step.meta ? ` · ${step.meta}` : ""}`}
               className={cn(
-                "inline-flex h-full min-w-0 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-sm px-3 text-sm transition-colors sm:justify-start",
+                "inline-flex h-full min-w-0 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-sm px-3 text-sm transition-colors duration-150 ease-[var(--ease-ui)] sm:justify-start",
                 FOCUS,
                 step.active
-                  ? "bg-brand-green/8 font-medium text-[var(--brand-green)]"
+                  ? "bg-brand-tint font-medium text-[var(--brand-green)]"
                   : "text-[var(--ink-text)] hover:bg-[var(--ink-3)] hover:text-foreground"
               )}
             >

@@ -32,14 +32,14 @@ export const EDITOR_CARDS_ONLY = "@min-[64.125rem]/dates:hidden";
 /** Remembers whether closed cycles are unfolded; the schedule and the card editor share it. */
 export const CLOSED_CYCLES_STORAGE_KEY = "cycle-dates:show-closed:v1";
 
-/** The current cycle's tint (DESIGN: a selected row is a 10–18% tint). */
-export const CURRENT_TINT = "bg-[var(--brand-green)]/10";
+/** The current cycle's tint (DESIGN: a selected row is the brand tint). */
+export const CURRENT_TINT = "bg-brand-tint";
 
-export const LABEL_TEXT = "text-[11px] font-medium uppercase leading-tight tracking-[0.11em] text-muted-foreground";
+export const LABEL_TEXT = "text-[13px] font-medium leading-tight text-muted-foreground";
 
-/** The 3px green bar at the left edge of the current cycle (the kit's active-row bar). */
+/** The 2px brand bar at the left edge of the current cycle (the kit's active-row bar). */
 export function CurrentBar() {
-  return <span aria-hidden className="absolute inset-y-0 left-0 w-[3px] bg-[var(--brand-green)]" />;
+  return <span aria-hidden className="absolute inset-y-0 left-0 w-0.5 bg-brand-green" />;
 }
 
 /** The S2 marker for cycles that belong to semester 2 (cycle 4 and later). */
@@ -58,7 +58,7 @@ export function CycleName({ cycle, section, tags }: { cycle: PackageCycle; secti
   return (
     <>
       <span className="flex min-h-5 min-w-0 items-baseline gap-1 whitespace-nowrap">
-        <span className="text-sm font-semibold leading-5 text-foreground">Cycle {cycle.cycleNumber}</span>
+        <span className="text-sm font-medium leading-5 text-foreground">Cycle {cycle.cycleNumber}</span>
         {month ? (
           <span title={month} className="min-w-0 truncate text-xs text-muted-foreground">
             · {month}
@@ -122,8 +122,8 @@ export function ScheduleHead({ actionsLabel }: { actionsLabel?: string }) {
  */
 export function ClosedGroupRow({ count, colSpan }: { count: number; colSpan: number }) {
   return (
-    <tr className="border-t border-border">
-      <th colSpan={colSpan} scope="rowgroup" className={cn(LABEL_TEXT, "border-t border-border py-2 pl-4 pr-3 text-left")}>
+    <tr className="border-t border-line">
+      <th colSpan={colSpan} scope="rowgroup" className={cn(LABEL_TEXT, "border-t border-line py-2 pl-4 pr-3 text-left")}>
         Closed <span className="ml-1 font-mono-broadcast font-normal tabular-nums">{count}</span>
       </th>
     </tr>

@@ -78,7 +78,7 @@ export function ManagersDialog({
           {/* min-w-0: DialogContent is a grid, and a native <select> is as wide as its longest option. */}
           <div className="min-w-0 space-y-4">
             {managers.length ? (
-              <ul className="max-h-72 divide-y divide-border overflow-y-auto rounded-md border border-border">
+              <ul className="max-h-72 divide-y divide-line overflow-y-auto rounded-lg border border-line-strong bg-card">
                 {managers.map((manager) => (
                   <li key={manager.id} className="flex min-h-14 items-center justify-between gap-3 px-3 py-2">
                     <div className="min-w-0">
@@ -99,7 +99,7 @@ export function ManagersDialog({
                 ))}
               </ul>
             ) : (
-              <p className="rounded-md border border-border px-3 py-4 text-center text-sm text-muted-foreground">No managers yet.</p>
+              <p className="rounded-lg border border-line-strong bg-card px-3 py-4 text-center text-sm text-muted-foreground">No managers yet.</p>
             )}
             {membersError && !members ? (
               <Alert

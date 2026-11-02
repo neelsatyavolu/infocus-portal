@@ -89,14 +89,14 @@ function QualityPanel({ associate, evaluate }: { associate: AssociatePerformance
         {quality.items.length > 0 ? (
           <Disclosure summary="Assessment evidence" count={quality.items.length} bodyClassName="space-y-3">
             {quality.items.map((item) => (
-              <article key={item.ref} className="rounded-md border border-border p-3 text-[13px]">
+              <article key={item.ref} className="rounded-lg border border-line-strong bg-card p-3 text-[13px]">
                 <div className="flex items-baseline justify-between gap-3">
                   <span className="min-w-0 truncate font-medium">
                     {associate.feedback.find((note) => note.id === item.noteId)?.topic ?? "Group feedback"} · {associateStageLabel(item.stage)}
                   </span>
                   <span className="shrink-0 font-mono-broadcast text-xs tabular-nums">{item.score}/100</span>
                 </div>
-                <blockquote className="mt-2 border-l-2 border-border pl-3 text-muted-foreground">“{item.quote}”</blockquote>
+                <blockquote className="mt-2 border-l-2 border-line-strong pl-3 text-muted-foreground">“{item.quote}”</blockquote>
                 <p className="mt-2 leading-relaxed">{item.reason}</p>
               </article>
             ))}
@@ -124,13 +124,13 @@ function GroupReviewsPanel({ groupFeedback }: { groupFeedback: AssociatePerforma
           Only executive producers can read these. The group is identified; the submitting member is not recorded. Each group counts once.
         </p>
         {groupFeedback.reviews.length === 0 ? (
-          <p className="rounded-md border border-dashed border-border p-5 text-center text-[13px] text-muted-foreground">
+          <p className="rounded-lg border border-dashed border-line-strong p-5 text-center text-[13px] text-muted-foreground">
             No group reviews for this cycle yet. Missing reviews do not reduce the score.
           </p>
         ) : (
           <ul className="space-y-3">
             {groupFeedback.reviews.map((review) => (
-              <li key={review.rowId} className="rounded-md border border-border p-4">
+              <li key={review.rowId} className="rounded-lg border border-line-strong bg-card p-4">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <h5 className="text-sm font-medium">{review.groupTopic}</h5>
                   <time className="text-xs text-muted-foreground" dateTime={review.updatedAt}>
@@ -161,11 +161,11 @@ function RecentFeedbackPanel({ feedback }: { feedback: AssociatePerformance["fee
         <p className="px-4 py-4 text-[13px] text-muted-foreground md:px-5">No written feedback recorded for these stages.</p>
       ) : (
         <>
-          <ul id="associate-recent-feedback" className="divide-y divide-border">
+          <ul id="associate-recent-feedback" className="divide-y divide-line">
             {shown.map((note) => (
               <li key={note.id} className="px-4 py-3 md:px-5">
                 <div className="flex flex-wrap items-baseline justify-between gap-2 text-xs text-muted-foreground">
-                  <Link className="hover:text-[var(--brand-green)]" href={associateStageHref(note.rowId, note.stage) as never}>
+                  <Link className="transition-colors duration-150 ease-[var(--ease-ui)] hover:text-[var(--brand-green)]" href={associateStageHref(note.rowId, note.stage) as never}>
                     {note.topic} · {associateStageLabel(note.stage)}
                   </Link>
                   <time dateTime={note.createdAt}>{new Date(note.createdAt).toLocaleDateString()}</time>
@@ -181,7 +181,7 @@ function RecentFeedbackPanel({ feedback }: { feedback: AssociatePerformance["fee
               controls="associate-recent-feedback"
               closedLabel={`Show all ${feedback.length}`}
               openLabel="Show fewer"
-              className="border-t border-border"
+              className="border-t border-line"
             />
           ) : null}
         </>

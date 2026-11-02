@@ -10,7 +10,7 @@ import { cn } from "@/src/lib/utils";
 import { MENU_SURFACE, MenuRow } from "../call/menu-row";
 import { OVERLAY_PLATE } from "../call/overlay";
 
-const FOCUS = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]";
+const FOCUS = "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/45";
 /** Fixed Danger on Dark: the overlay stays dark in Light mode, where --danger-text turns crimson. */
 const STOP_TEXT = "text-[#FF7A8A]";
 /** Below this tile width the shared actions fold into one menu (the time and cycle always show). */
@@ -31,7 +31,7 @@ function ControlButton({ label, tooltip, onClick, children }: { label: string; t
           aria-label={label}
           onClick={onClick}
           className={cn(
-            "flex h-11 w-11 shrink-0 items-center justify-center rounded-[6px] text-[var(--soft-white)] hover:bg-[#ECEFEA]/10 [&_svg]:size-5",
+            "flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-[var(--soft-white)] transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-white/10 [&_svg]:size-5",
             FOCUS
           )}
         >
@@ -57,7 +57,7 @@ function ForEveryoneMenu({ onChange, onStop }: { onChange: () => void; onStop: (
           type="button"
           aria-label="For everyone"
           className={cn(
-            "h-11 w-11 shrink-0 items-center justify-center rounded-[6px] text-[var(--soft-white)] hover:bg-[#ECEFEA]/10 [&_svg]:size-5",
+            "h-11 w-11 shrink-0 items-center justify-center rounded-md text-[var(--soft-white)] transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-white/10 [&_svg]:size-5",
             NARROW_ONLY,
             FOCUS
           )}
@@ -104,7 +104,7 @@ export function WatchHeader({
       <Clapperboard className="h-4 w-4 shrink-0" aria-hidden />
       <span className={cn("min-w-0 flex-1 truncate font-medium", small ? "text-xs" : "text-sm")}>{title}</span>
       {cycle !== null ? (
-        <span className="shrink-0 whitespace-nowrap rounded-[4px] bg-[#ECEFEA]/10 px-1.5 py-0.5 font-mono text-[11px] tabular-nums">
+        <span className="shrink-0 whitespace-nowrap rounded-full bg-white/10 px-2 py-0.5 font-mono text-[11px] tabular-nums">
           Cycle {cycle}
         </span>
       ) : null}
@@ -121,7 +121,7 @@ export function WatchHeader({
                   aria-label="Stop for everyone"
                   onClick={onStop}
                   className={cn(
-                    "flex h-11 shrink-0 items-center gap-1.5 rounded-[6px] px-3 text-sm font-medium hover:bg-[#ECEFEA]/10 [&_svg]:size-4",
+                    "flex h-11 shrink-0 items-center gap-1.5 rounded-md px-3 text-sm font-medium transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-white/10 [&_svg]:size-4",
                     STOP_TEXT,
                     FOCUS
                   )}
@@ -170,7 +170,7 @@ export function WatchControls(props: {
       value={Math.min(props.time, duration || 1)}
       disabled={!duration}
       onChange={(event) => props.onScrub(Number(event.target.value))}
-      className={cn(RANGE, "accent-[var(--brand-green)]", props.compact ? "min-w-0 flex-1" : "w-full", FOCUS)}
+      className={cn(RANGE, "accent-brand-green", props.compact ? "min-w-0 flex-1" : "w-full", FOCUS)}
     />
   );
   const time = (

@@ -1,4 +1,5 @@
 import { ANNOUNCEMENT_TIME_ZONE } from "@/src/lib/announcement-submission";
+import { replaceSlackEmoji } from "@/src/lib/slack-emoji";
 
 const SKIP_SUBTYPES = new Set([
   "channel_join",
@@ -22,6 +23,8 @@ export type SlackHistoryFile = {
   mimetype?: string;
   pretty_type?: string;
   size?: number;
+  original_w?: number;
+  original_h?: number;
 };
 
 export type SlackHistoryMessage = {
@@ -42,6 +45,8 @@ export type SlackFileAttachment = {
   id: string;
   title: string;
   prettyType: string | null;
+  /** Set for raster images Slack gave a size for; the feed shows these inline. */
+  image?: { width: number; height: number };
 };
 
 export type SlackAnnouncementItem = {
@@ -92,7 +97,7 @@ function pushTextParts(parts: SlackTextPart[], value: string) {
   let match: RegExpExecArray | null;
   while ((match = urlSplit.exec(value))) {
     if (match.index > last) {
-      parts.push({ type: "text", value: value.slice(last, match.index) });
+      parts.push({ type: "text", value: replaceSlackEmoji(value.slice(last, match.index)) });
     }
     let href = match[1];
     let trailing = "";
@@ -110,7 +115,7 @@ function pushTextParts(parts: SlackTextPart[], value: string) {
     last = match.index + match[0].length;
   }
   if (last < value.length) {
-    parts.push({ type: "text", value: value.slice(last) });
+    parts.push({ type: "text", value: replaceSlackEmoji(value.slice(last)) });
   }
 }
 
@@ -165,7 +170,14 @@ export function slackFileAttachments(files: SlackHistoryFile[] | undefined): Sla
     const id = file.id?.trim();
     if (!id) return [];
     const title = decodeSlackEntities(file.name?.trim() || file.title?.trim() || "Attachment");
-    return [{ id, title, prettyType: file.pretty_type ?? null }];
+    const attachment = { id, title, prettyType: file.pretty_type ?? null };
+    const width = file.original_w;
+    const height = file.original_h;
+    const isRaster = Boolean(file.mimetype?.startsWith("image/")) && file.mimetype !== "image/svg+xml";
+    if (isRaster && width && height && width > 0 && height > 0) {
+      return [{ ...attachment, image: { width, height } }];
+    }
+    return [attachment];
   });
 }
 

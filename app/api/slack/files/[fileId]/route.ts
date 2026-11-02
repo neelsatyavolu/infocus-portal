@@ -55,6 +55,8 @@ export async function GET(_request: Request, context: { params: Promise<{ fileId
     headers.set("Content-Disposition", `inline; filename="${filename}"`);
     const length = upstream.headers.get("content-length");
     if (length) headers.set("Content-Length", length);
+    // Images now load inline in the feed; let the browser reuse them instead of re-asking Slack each view.
+    headers.set("Cache-Control", "private, max-age=3600");
 
     return new Response(upstream.body, { status: 200, headers });
   } catch (error) {

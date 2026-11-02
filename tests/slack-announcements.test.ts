@@ -86,4 +86,35 @@ describe("slack announcement copy", () => {
     expect(item?.text).toBe("@channel Fill this out.");
     expect(item?.attachments).toEqual([{ id: "F123", title: "manager-form.pdf", prettyType: "PDF" }]);
   });
+
+  it("turns Slack emoji shortcodes into emoji", () => {
+    expect(slackMrkdwnToPlain("Done :white_check_mark: :birthday: Happy birthday")).toBe(
+      "Done \u2705\uFE0F \u{1F382}\uFE0F Happy birthday"
+    );
+    expect(slackMrkdwnToPlain(":+1::skin-tone-3: thanks :smiling_face_with_3_hearts:")).toBe(
+      "\u{1F44D}\u{1F3FC} thanks \u{1F970}\uFE0F"
+    );
+  });
+
+  it("leaves custom emoji, times and links alone", () => {
+    expect(slackMrkdwnToPlain("Meet at 6:17 :party-parrot:")).toBe("Meet at 6:17 :party-parrot:");
+    expect(slackMrkdwnParts("See https://example.com/:smile:/x")).toEqual([
+      { type: "text", value: "See " },
+      { type: "link", href: "https://example.com/:smile:/x", label: "https://example.com/:smile:/x" }
+    ]);
+  });
+
+  it("marks image attachments with their size", () => {
+    expect(
+      slackFileAttachments([
+        { id: "F9", name: "happy-birthday.gif", mimetype: "image/gif", pretty_type: "GIF", original_w: 480, original_h: 270 },
+        { id: "F8", name: "logo.svg", mimetype: "image/svg+xml", pretty_type: "SVG", original_w: 10, original_h: 10 },
+        { id: "F7", name: "photo.png", mimetype: "image/png", pretty_type: "PNG" }
+      ])
+    ).toEqual([
+      { id: "F9", title: "happy-birthday.gif", prettyType: "GIF", image: { width: 480, height: 270 } },
+      { id: "F8", title: "logo.svg", prettyType: "SVG" },
+      { id: "F7", title: "photo.png", prettyType: "PNG" }
+    ]);
+  });
 });

@@ -4,7 +4,7 @@ import { StatusTag } from "@/components/kit/status-tag";
 import { NEW_POST_TAG_CLASS } from "@/components/announcements/announcements-seen";
 import { buttonVariants } from "@/components/ui/button";
 import { dateKeyInTimeZone } from "@/src/lib/announcement-submission";
-import type { SlackAnnouncementItem } from "@/src/lib/slack-announcements";
+import type { SlackAnnouncementItem, SlackFileAttachment } from "@/src/lib/slack-announcements";
 import { cn } from "@/src/lib/utils";
 
 /** One day of the feed, with an anchor id built from the Pacific date (unique across years). */
@@ -70,8 +70,8 @@ function initials(name: string) {
 function AuthorAvatar({ item }: { item: SlackAnnouncementItem }) {
   const size = "h-8 w-8 sm:h-9 sm:w-9";
   return (
-    // Same height as the name line, so the avatar centres on it.
-    <div className="flex min-h-8 items-center sm:min-h-9 pointer-coarse:min-h-10">
+    // Same height as the name line and pinned to the top, so the avatar centres on the name, not the post.
+    <div className="flex min-h-8 items-center self-start sm:min-h-9 pointer-coarse:min-h-10">
       {item.authorImageUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -89,6 +89,56 @@ function AuthorAvatar({ item }: { item: SlackAnnouncementItem }) {
         </div>
       )}
     </div>
+  );
+}
+
+/** Largest box an inline image is drawn in; it keeps its shape inside it. */
+const IMAGE_MAX_WIDTH = 400;
+const IMAGE_MAX_HEIGHT = 320;
+
+function fitImage({ width, height }: { width: number; height: number }) {
+  const scale = Math.min(1, IMAGE_MAX_WIDTH / width, IMAGE_MAX_HEIGHT / height);
+  return { width: Math.max(1, Math.round(width * scale)), height: Math.max(1, Math.round(height * scale)) };
+}
+
+function AttachmentImage({ file, image }: { file: SlackFileAttachment; image: { width: number; height: number } }) {
+  const size = fitImage(image);
+  return (
+    <a
+      href={`/api/slack/files/${file.id}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={file.title}
+      className="block w-fit max-w-full overflow-hidden rounded-md border border-line bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={`/api/slack/files/${file.id}`}
+        alt={file.title}
+        width={size.width}
+        height={size.height}
+        loading="lazy"
+        decoding="async"
+        className="block h-auto max-w-full"
+      />
+      {NEW_TAB}
+    </a>
+  );
+}
+
+function AttachmentCard({ file }: { file: SlackFileAttachment }) {
+  return (
+    <a
+      href={`/api/slack/files/${file.id}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex h-10 w-full max-w-sm min-w-0 items-center gap-3 rounded-md border border-line-strong bg-card px-3 text-sm text-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:h-11"
+    >
+      <FileText className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+      <span className="min-w-0 flex-1 truncate font-medium">{file.title}</span>
+      {file.prettyType ? <StatusTag size="sm">{file.prettyType}</StatusTag> : null}
+      {NEW_TAB}
+    </a>
   );
 }
 
@@ -122,17 +172,7 @@ function AnnouncementBody({ item }: { item: SlackAnnouncementItem }) {
         <ul className="space-y-2">
           {item.attachments.map((file) => (
             <li key={file.id}>
-              <a
-                href={`/api/slack/files/${file.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex h-10 min-w-0 items-center gap-3 rounded-md border border-line-strong bg-card px-3 text-sm text-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:h-11"
-              >
-                <FileText className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-                <span className="min-w-0 flex-1 truncate font-medium">{file.title}</span>
-                {file.prettyType ? <StatusTag size="sm">{file.prettyType}</StatusTag> : null}
-                {NEW_TAB}
-              </a>
+              {file.image ? <AttachmentImage file={file} image={file.image} /> : <AttachmentCard file={file} />}
             </li>
           ))}
         </ul>

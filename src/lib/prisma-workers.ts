@@ -30,3 +30,14 @@ export function workersRequest(): WorkersRequest | null {
 export function pgAdapter(connectionString: string) {
   return new PrismaPg({ connectionString, max: 5, maxUses: 1 });
 }
+
+/**
+ * Every other host (local dev, scripts, the retired Vercel copy). Prisma's TypeScript engine
+ * (`engineType = "client"`) always needs an adapter. A small pool: Supabase's session pooler allows
+ * 15 clients in all and the Worker's Hyperdrive already holds up to 10.
+ */
+export function nodePgAdapter() {
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) throw new Error("DATABASE_URL is not set");
+  return new PrismaPg({ connectionString, max: 3 });
+}

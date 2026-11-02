@@ -9,9 +9,10 @@
  *
  * Run with: npx tsx prisma/seed-cycles-2026-27.ts
  */
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL, max: 1 }) });
 
 function date(value: string) {
   return new Date(`${value}T00:00:00.000Z`);

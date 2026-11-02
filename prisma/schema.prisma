@@ -2,6 +2,8 @@ generator client {
   provider        = "prisma-client-js"
   // One SQL query per findMany/include (LATERAL joins) instead of one per relation level.
   previewFeatures = ["relationJoins"]
+  // TypeScript query engine (no Rust engine): every PrismaClient needs a driver adapter.
+  engineType      = "client"
 }
 
 datasource db {

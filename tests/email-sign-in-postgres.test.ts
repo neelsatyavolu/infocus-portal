@@ -6,8 +6,9 @@ import { readFile } from "node:fs/promises";
 const state = vi.hoisted(() => ({ code: "" }));
 vi.mock("@/src/lib/prisma", async () => {
   const { PrismaClient } = await import("@prisma/client");
+  const { PrismaPg } = await import("@prisma/adapter-pg");
   const url = process.env.EMAIL_SIGN_IN_TEST_DATABASE_URL;
-  return { prisma: url ? new PrismaClient({ datasources: { db: { url } } }) : null };
+  return { prisma: url ? new PrismaClient({ adapter: new PrismaPg({ connectionString: url }) }) : null };
 });
 vi.mock("@/src/lib/platform-admin", () => ({
   normalizeEmail: (email: string) => email.trim().toLowerCase(),

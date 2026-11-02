@@ -17,8 +17,10 @@ describe("prisma export (real client, no database)", () => {
     expect(typeof prisma.user.findMany).toBe("function");
     expect(typeof prisma.$transaction).toBe("function");
     expect(prisma.user).toBe(prisma.user);
-    await expect(prisma.user.count()).rejects.toMatchObject({ name: "PrismaClientInitializationError" });
-    await expect(prisma.$queryRaw`SELECT 1`).rejects.toMatchObject({ name: "PrismaClientInitializationError" });
-    await expect(prisma.$transaction(async (tx) => tx.user.count())).rejects.toMatchObject({ name: "PrismaClientInitializationError" });
+    // Through the pg driver adapter a refused connection is a known request error (P1001).
+    const connectFailed = { name: expect.stringMatching(/^PrismaClient(Initialization|KnownRequest)Error$/) };
+    await expect(prisma.user.count()).rejects.toMatchObject(connectFailed);
+    await expect(prisma.$queryRaw`SELECT 1`).rejects.toMatchObject(connectFailed);
+    await expect(prisma.$transaction(async (tx) => tx.user.count())).rejects.toMatchObject(connectFailed);
   }, 30_000);
 });

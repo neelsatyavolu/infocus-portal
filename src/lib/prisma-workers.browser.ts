@@ -12,3 +12,7 @@ export function workersRequest(): WorkersRequest | null {
 export function pgAdapter(): never {
   throw new Error("pgAdapter is server-only");
 }
+
+export function nodePgAdapter(): never {
+  throw new Error("nodePgAdapter is server-only");
+}

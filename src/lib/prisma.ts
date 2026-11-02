@@ -1,6 +1,6 @@
 import { type Prisma, PrismaClient } from "@prisma/client";
 import { appReviewEmail } from "@/src/lib/app-review";
-import { pgAdapter, workersRequest, type WorkersRequest } from "@/src/lib/prisma-workers";
+import { nodePgAdapter, pgAdapter, workersRequest, type WorkersRequest } from "@/src/lib/prisma-workers";
 
 /**
  * The App Review demo account (src/lib/app-review.ts) never appears in people lists: rosters,
@@ -15,10 +15,11 @@ export function withoutAppReviewUser<T extends { where?: Prisma.UserWhereInput }
 
 // A query-only extension leaves every method's shape unchanged, so the client keeps its plain
 // PrismaClient type (code across the app passes it and its transactions as PrismaClient).
-// On Cloudflare Workers the client gets a driver adapter over that request's Hyperdrive connection.
+// Prisma's TypeScript engine always runs through a driver adapter: on Cloudflare Workers over that
+// request's Hyperdrive connection, elsewhere over DATABASE_URL.
 function createPrismaClient(connectionString?: string): PrismaClient {
   const base = new PrismaClient({
-    ...(connectionString ? { adapter: pgAdapter(connectionString) } : {}),
+    adapter: connectionString ? pgAdapter(connectionString) : nodePgAdapter(),
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
     // Image versions keep the whole file as base64 (up to ~13 MB) and every list/stage query that
     // includes versions would drag it along. Leave it out by default; the image route and project

@@ -1,6 +1,6 @@
 # Navigation
 
-Portal chrome is dark by default (Light is in Settings → Appearance & playback → Theme). Sidebar depends on role. On phones and tablets under 1024px, a tab bar sits at the bottom of the screen: Dashboard (or Packages, or Home for executives), then up to three of My package, Groups, The Show, Calendar and Grades (whichever you have, in that order), and **More**, which opens the full sidebar. The ✱ button sits just above it. The iPhone app keeps its own navigation instead.
+Portal chrome follows the device's light or dark setting (Settings → Appearance & playback → Theme can pin Light or Dark). Sidebar depends on role. On phones and tablets under 1024px, a tab bar sits at the bottom of the screen: Dashboard (or Packages, or Home for executives), then up to three of My package, Groups, The Show, Calendar and Grades (whichever you have, in that order), and **More**, which opens the full sidebar. The ✱ button sits just above it. The iPhone app keeps its own navigation instead.
 
 Sidebar category headings use compact spacing, with 0.675rem above each heading.
 

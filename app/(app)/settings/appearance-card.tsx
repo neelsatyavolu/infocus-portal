@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useSyncExternalStore, type ReactNode } from "react";
-import { LayoutGrid, List, Moon, Sun } from "lucide-react";
+import { LayoutGrid, List, Monitor, Moon, Sun } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import {
   SaveStatus,
@@ -11,8 +11,8 @@ import {
   SettingsPanel,
   SettingsSection
 } from "@/components/settings-layout";
-import { applyTheme, type Theme } from "@/src/lib/theme";
-import { useTheme } from "@/src/lib/use-theme";
+import { applyThemePreference, type ThemePreference } from "@/src/lib/theme";
+import { useThemePreference } from "@/src/lib/use-theme";
 import { HalloweenCells } from "./halloween-cells";
 import { ThanksgivingCells } from "./thanksgiving-cells";
 import { useSavedFlash } from "./use-saved-flash";
@@ -32,9 +32,10 @@ const defaults: PreferenceState = {
   defaultView: "grid"
 };
 
-const THEME_OPTIONS: { value: Theme; label: string; icon: ReactNode }[] = [
-  { value: "dark", label: "Dark", icon: <Moon /> },
-  { value: "light", label: "Light", icon: <Sun /> }
+const THEME_OPTIONS: { value: ThemePreference; label: string; icon: ReactNode }[] = [
+  { value: "system", label: "System", icon: <Monitor /> },
+  { value: "light", label: "Light", icon: <Sun /> },
+  { value: "dark", label: "Dark", icon: <Moon /> }
 ];
 
 const VIEW_OPTIONS: { value: PreferenceState["defaultView"]; label: string; icon: ReactNode }[] = [
@@ -83,12 +84,12 @@ function usePreferences() {
 
 /**
  * Settings → Appearance & playback: Theme and Default view, then the two playback switches, as one
- * 2×2 panel with one save status (plus the Halloween or Thanksgiving switches in season). Theme is a cookie shared
- * across the Portal hosts (applyTheme); the rest live in this browser's localStorage. `#playback`
+ * 2×2 panel with one save status (plus the Halloween or Thanksgiving switches in season). Theme (System, Light or Dark) is a
+ * cookie shared across the Portal hosts (applyThemePreference); the rest live in this browser's localStorage. `#playback`
  * still lands on the playback cells.
  */
 export function AppearanceSection() {
-  const theme = useTheme();
+  const themePreference = useThemePreference();
   const [prefs, save] = usePreferences();
   const [savedLabel, flashSaved] = useSavedFlash();
 
@@ -106,13 +107,13 @@ export function AppearanceSection() {
     >
       <SettingsPanel>
         <SettingsGrid>
-          <SettingsCell inline title="Theme" description="Dark is the default." className="min-h-16">
+          <SettingsCell inline title="Theme" description="System follows your device." className="min-h-16">
             <SegmentedControl
               label="Theme"
-              value={theme}
+              value={themePreference}
               options={THEME_OPTIONS}
               onChange={(next) => {
-                applyTheme(next);
+                applyThemePreference(next);
                 flashSaved("Saved");
               }}
             />

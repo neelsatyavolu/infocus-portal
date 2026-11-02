@@ -14,7 +14,8 @@
    important action, Green on Dark #2BB36E is text and small marks only,
    Record Red #EE3A2A is the rec dot / LIVE marker only.
    Errors and destructive actions use the separate Danger set.
-   Light mode is opt-in (Settings → Appearance): <html class="light">.
+   The theme follows the device (System) unless Settings → Appearance pins
+   Light or Dark; Light is <html class="light">. :root holds the dark values.
    ============================================================ */
 
 :root {

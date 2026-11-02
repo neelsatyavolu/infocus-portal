@@ -206,7 +206,7 @@ The broadcast rules in sections 3–6 (Lexend, square plates, ALL CAPS kickers, 
 
 ### Surfaces and color
 
-Dark is the default. Light is opt-in (Settings → Appearance in the Portal).
+The Portal follows the device's light or dark setting by default (System). Settings → Appearance can pin Light or Dark.
 
 | Role | Dark | Light |
 |---|---|---|
@@ -541,7 +541,7 @@ How sections 10 and 13 map to the Portal's code. Tokens live in `app/globals.css
 
 ### Color tokens
 
-Dark is the default. Light is opt-in (Settings → Appearance, `<html class="light">`). Tokens marked "flips" change value in Light.
+The theme follows the device by default (System); Settings → Appearance can pin Light or Dark (`<html class="light">` / `dark`). Tokens marked "flips" change value in Light.
 
 | Role | CSS token | Tailwind class | Notes |
 |---|---|---|---|

@@ -66,7 +66,11 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#000000"
+  // Browser chrome follows the device, like the System theme (the Light canvas is #FCFCFD).
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#FCFCFD" },
+    { media: "(prefers-color-scheme: dark)", color: "#000000" }
+  ]
 };
 
 export const metadata: Metadata = {

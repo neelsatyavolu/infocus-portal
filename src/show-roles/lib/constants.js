@@ -1,5 +1,6 @@
 export const ROLES = [
   "Show Director",
+  "Tech Director",
   "Teleprompter",
   "Floor Director",
 ];

@@ -78,6 +78,7 @@ describe("show roles assignment roster", () => {
   it("does not repick an EP or adviser into a role", () => {
     const assignments = {
       "Show Director": "Abby",
+      "Tech Director": "Sage",
       Teleprompter: "Kira",
       "Floor Director": "Iris"
     };

@@ -17,7 +17,7 @@ import {
   type Overview
 } from "@/app/(app)/show-roles/show-overview";
 
-const ROLES = ["Show Director", "Teleprompter", "Floor Director"];
+const ROLES = ["Show Director", "Tech Director", "Teleprompter", "Floor Director"];
 
 function overview(patch: Partial<Overview> = {}): Overview {
   return {
@@ -135,11 +135,11 @@ describe("roleStatus and rolesSummary", () => {
       assignments: { "Show Director": "Abby", Teleprompter: "Otto" },
       confirmed: { "Show Director": true, "Backup #1": true }
     });
-    expect(rolesSummary(partial)).toEqual({ tone: "neutral", label: "1/3 confirmed" });
+    expect(rolesSummary(partial)).toEqual({ tone: "neutral", label: "1/4 confirmed" });
 
     const all = Object.fromEntries(ROLES.map((role) => [role, true]));
     const full = overview({ assignments: { "Show Director": "Abby" }, confirmed: all });
-    expect(rolesSummary(full)).toEqual({ tone: "success", label: "3/3 confirmed" });
+    expect(rolesSummary(full)).toEqual({ tone: "success", label: "4/4 confirmed" });
   });
 });
 

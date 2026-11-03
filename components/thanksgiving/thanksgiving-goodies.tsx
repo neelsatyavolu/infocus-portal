@@ -18,10 +18,12 @@ import {
 import { useThanksgivingActive, useThanksgivingPrefs } from "@/src/lib/use-thanksgiving";
 import { GiantTurkey } from "./giant-turkey";
 import { HarvestSprite, type Sprite } from "./harvest-sprite";
+import { carryOverHarvestOnce, tallyHarvest } from "./harvest-tally";
+import { LeaderboardPopup } from "./leaderboard-popup";
 import { LeafPile } from "./leaf-pile";
 import { playHarvestSound, type HarvestSound } from "./harvest-sounds";
 import { LEAF_VARIANT_COUNT } from "./sprites";
-import { ThanksgivingWelcome } from "./thanksgiving-welcome";
+import { needsWelcome, ThanksgivingWelcome } from "./thanksgiving-welcome";
 import "./thanksgiving.css";
 
 type Visitor = "leaves" | "pie" | "strut" | "gust" | "wishbone";
@@ -133,6 +135,8 @@ function Harvest() {
   const [summons, setSummons] = useState(0);
   const { muted, leaves } = useThanksgivingPrefs();
   const [pileAway, setPileAway] = useState(false);
+  // Settled once: a browser that gets the welcome this visit sees the leaderboard popup next time.
+  const [welcoming] = useState(needsWelcome);
   const still = useMediaQuery("(prefers-reduced-motion: reduce)", false);
   const nextId = useRef(0);
   const timers = useRef(new Set<number>());
@@ -288,6 +292,11 @@ function Harvest() {
     return () => GESTURES.forEach((name) => window.removeEventListener(name, unlock, true));
   }, []);
 
+  // Leaves and pies this browser counted before the leaderboard existed join it once.
+  useEffect(() => {
+    void carryOverHarvestOnce();
+  }, []);
+
   // A greeting on Thanksgiving Day and a doorbuster on Black Friday (the welcome is its own dialog).
   useEffect(() => {
     const now = new Date();
@@ -402,6 +411,7 @@ function Harvest() {
       return;
     }
     sound("fanfare");
+    tallyHarvest("pardons");
     cheer(at, "Pardoned!");
     toast("Turkey pardoned", { description: "By the power vested in the InFocus Portal, this turkey walks free." });
   }
@@ -439,6 +449,7 @@ function Harvest() {
         remove(sprite.id);
         sound("rustle");
         const leaves = bump("leaves");
+        tallyHarvest("leaves");
         cheer(at, `+1 · ${leaves} leaves`);
         if (leaves === LEAF_PILE_AT) toast(`${leaves} leaves caught`, { description: "That's a real pile. It's in the corner now. Jump in." });
         else if (leaves % 25 === 0) toast(`${leaves} leaves caught`, { description: "Keep raking." });
@@ -449,6 +460,7 @@ function Harvest() {
         dismiss(sprite.id);
         sound("yum");
         const pies = bump("pies");
+        tallyHarvest("pies");
         cheer(at, `+1 · ${pies} pies`);
         if (pies % 10 === 0) toast(`${pies} pies eaten`, { description: "Save some for the anchors." });
         return;
@@ -458,6 +470,7 @@ function Harvest() {
       case "wishbone": {
         remove(sprite.id);
         sound("snap");
+        tallyHarvest("wishbones");
         cheer(at, "Snap!");
         toast("You got the bigger half", { description: pick(WISHES) });
         return;
@@ -477,6 +490,7 @@ function Harvest() {
         ))}
       </div>
       <ThanksgivingWelcome />
+      <LeaderboardPopup skip={welcoming} />
     </>
   );
 }

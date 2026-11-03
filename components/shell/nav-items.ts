@@ -16,6 +16,7 @@ import {
   ScrollText,
   Settings,
   Shield,
+  Trophy,
   UserCog,
   Users,
   UsersRound,
@@ -41,6 +42,7 @@ const NAV_ICONS: Record<SidebarNavItemId, NavIcon> = {
   announcements: Megaphone,
   ideas: Newspaper,
   managers: UserCog,
+  leaderboard: Trophy,
   drive: Cloud,
   teleprompter: ScrollText,
   admin: Shield,
@@ -53,13 +55,13 @@ export function navIconFor(id: SidebarNavItemId, isProducer: boolean): NavIcon {
 }
 
 /** Whether a sidebar or phone tab item is the page you're on (hub items stay lit on every tab). */
-export function isNavItemActive(item: SidebarNavItem, pathname: string, onMeetHost: boolean, isProducer: boolean) {
+export function isNavItemActive(item: SidebarNavItem, pathname: string, onMeetHost: boolean) {
   switch (item.id) {
     case "dashboard":
       return pathname.startsWith("/dashboard") || pathname.startsWith("/projects");
     case "my-package":
-      // A producer's /extension-requests is their approval queue, lit as Extension Requests only.
-      return isPackageRoute(pathname, { includeExtensionRequests: !isProducer });
+      // Everyone has their own Extension Requests link, so that page lights only that one.
+      return isPackageRoute(pathname, { includeExtensionRequests: false });
     case "meetings":
       return pathname.startsWith("/meetings") || (onMeetHost && pathname === "/");
     case "show":

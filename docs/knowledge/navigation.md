@@ -20,6 +20,7 @@ Tabs with no note are shown to everyone signed in.
 
 - Dashboard (students), Packages (associate producers) or Home (executive producers, the adviser and super admin; see dashboard-and-review.md)
 - My package: reporters, and any producer (associate, executive, or super admin) who is on a package roster. Opens the stage you are working on (the latest unlocked one) and shows the total unread feedback on this cycle's package.
+- Extension Requests (`/extension-requests`): reporters (students), to ask for more time and answer their group's requests. They see only requests for their own groups. A number shows how many are waiting on you.
 - Grades (`/grades`): reporters and associate producers. Hidden for executive producers, the adviser, and super admin.
 - Calendar: Master Calendar, with **Cycle Dates** (`/package-cycles`: stage dates for each cycle) as a tab in the top bar
 
@@ -28,7 +29,7 @@ Tabs with no note are shown to everyone signed in.
 - Groups, Package Cycle (roster)
 - People: Members
 - Meetings (opens `meet.infocusportal.com`). Calls open full screen at `meet.infocusportal.com/<id>` (see `meetings.md`)
-- Extension Requests: producers find it here; students find it in the stage bar on their package pages. A number shows how many requests are waiting on you.
+- Extension Requests: the producers' approval queue (students have their own link in the top group and in the stage bar). A number shows how many requests are waiting on you.
 - Grade Editor: executive producers, the adviser, and super admin. Participation is a tab inside it.
 
 **Class**
@@ -36,6 +37,7 @@ Tabs with no note are shown to everyone signed in.
 - Announcements, with **Submitted** (everyone can read; associate producers and up can delete; executive producers and super admin can invite outside viewers) and **PA** (assigned announcers and producers can edit) as tabs in the top bar
 - Ideas (`/ideas`: story ideas from Bay Area news and events, new every 2 days; see `ideas.md`)
 - Managers (opens **Manager tools**, one row per manager area: equipment, livestream, website, social media; see `managers.md`)
+- Leaderboard (`/thanksgiving`): only while the Thanksgiving theme is on (November). The class Thanksgiving leaderboard: everyone's leaves caught, pies eaten, wishbones snapped, giant turkey sightings and pardoned turkeys this year, one point each, most first.
 
 **Production**
 
@@ -57,7 +59,7 @@ Tabs with no note are shown to everyone signed in.
 
 - **My package**: unread feedback on this cycle's package. A second line names the stage with one tag when there is something to act on: **Revisions**, **Extension** (a student has an extension request to answer), or **Due today** / **Due tomorrow** / **Due Thu** when the stage closes within 72 hours and is still open.
 - **Groups** (executive producers, the adviser, and super admin): groups that need you, the same rule as the Groups page's Needs you.
-- **Extension Requests** (producers): requests waiting on you.
+- **Extension Requests**: requests waiting on you.
 - **Meetings** (producers): a red **Live** tag while a meeting you can see is live.
 - **Grade Editor** (executive producers, the adviser, and super admin): participation changes waiting for approval (not your own).
 - **Livestream Tracker** (producers and livestream managers): livestream sign-up requests waiting.

@@ -28,6 +28,7 @@ export type SidebarNavItemId =
   | "announcements"
   | "ideas"
   | "managers"
+  | "leaderboard"
   | "drive"
   | "teleprompter"
   | "admin"
@@ -61,6 +62,8 @@ export type SidebarNavContext = {
   sampleOnly: boolean;
   /** Where My package opens: the stage the person is working on (`myPackageHref`). */
   myPackageHref: string;
+  /** Thanksgiving is on in this browser (src/lib/thanksgiving.ts): the Leaderboard link shows. */
+  thanksgiving?: boolean;
 };
 
 export type HubTab = {
@@ -148,9 +151,11 @@ export function buildSidebarNav(context: SidebarNavContext): SidebarNavSection[]
   const sections = [
     section(null, [
       dashboard,
-      // The stage pages, the cycle guide and (for students) Extension Requests sit in the
-      // stage bar at the top of every package page (PackageStageNav).
+      // The stage pages and the cycle guide sit in the stage bar at the top of every package page
+      // (PackageStageNav). Students also get Extension Requests here, to ask for more time;
+      // producers find their approval queue under Producing.
       context.showCycleTabs && item("my-package", context.myPackageHref, "My package"),
+      !context.isProducer && item("extension-requests", "/extension-requests", "Extension Requests"),
       !context.canManageGrades && item("grades", "/grades", "Grades"),
       item("calendar", "/master-calendar", "Calendar")
     ]),
@@ -168,7 +173,8 @@ export function buildSidebarNav(context: SidebarNavContext): SidebarNavSection[]
     section("Class", [
       item("announcements", "/announcements", "Announcements"),
       item("ideas", "/ideas", "Ideas"),
-      item("managers", "/managers", "Managers")
+      item("managers", "/managers", "Managers"),
+      Boolean(context.thanksgiving) && item("leaderboard", "/thanksgiving", "Leaderboard")
     ]),
     // Livestreams is its own item for everyone; producers also get The Show (with Publishing Queue).
     section("Production", [
@@ -664,12 +670,10 @@ export function buildNavSignals(
   const groups = countSignal(status.groupsNeedYou, (count) => `${plural(count, "group needs", "groups need")} you`);
   if (groups) signals.groups = groups;
 
-  if (!options.showExtensionRequests) {
-    const requests = countSignal(status.extensionRequestsAwaiting, (count) =>
-      `${plural(count, "extension request", "extension requests")} waiting on you`
-    );
-    if (requests) signals["extension-requests"] = requests;
-  }
+  const requests = countSignal(status.extensionRequestsAwaiting, (count) =>
+    `${plural(count, "extension request", "extension requests")} waiting on you`
+  );
+  if (requests) signals["extension-requests"] = requests;
 
   if (status.liveMeetings && status.liveMeetings > 0) {
     signals.meetings = {

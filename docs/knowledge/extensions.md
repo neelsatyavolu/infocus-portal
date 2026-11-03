@@ -99,7 +99,8 @@ A producer who denies a request or grant must write a reason (⌘↵ / Ctrl+Ente
 Late penalties still apply after each student's own extended deadline (20%, then 30% after 14 more days).
 
 Producers reach this page from **Extension Requests** in the sidebar (under Producing). Students
-reach it from **Extension requests** in the stage bar at the top of their package pages. That link
+reach it from **Extension Requests** in the sidebar (just under My package) or **Extension requests**
+in the stage bar at the top of their package pages, and see only their own groups' requests. Each link
 shows a count of pending requests waiting on you: members who have not agreed yet, and producers
 who can decide (after full group agreement, or right away on an exec grant) and have not voted.
 Students also see an **Extension** tag under **My package** in the sidebar while a request needs

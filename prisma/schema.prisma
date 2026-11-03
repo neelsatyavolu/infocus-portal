@@ -165,6 +165,7 @@ model User {
   meetingsCreated         Meeting[] @relation("MeetingCreator")
   meetingParticipations   MeetingParticipant[] @relation("MeetingParticipants")
   signature               UserSignature?       @relation("UserSignatureOwner")
+  thanksgivingScores      ThanksgivingScore[]
 
   @@index([email])
 }
@@ -2240,4 +2241,23 @@ model GoogleCalendarCredential {
   connectedByUserId String?
   connectedAt       DateTime @default(now())
   updatedAt         DateTime @updatedAt
+}
+
+/// Thanksgiving leaderboard: what one person caught during one November (src/server/thanksgiving-scores.ts).
+model ThanksgivingScore {
+  id           String   @id @default(cuid())
+  userId       String
+  year         Int
+  leaves       Int      @default(0)
+  pies         Int      @default(0)
+  wishbones    Int      @default(0)
+  /// Giant turkeys that walked in on their own (a typed "gobble" doesn't count).
+  giantTurkeys Int      @default(0)
+  pardons      Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, year])
+  @@index([year])
 }

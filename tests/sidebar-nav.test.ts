@@ -63,7 +63,7 @@ function reachable(context: SidebarNavContext) {
 describe("buildSidebarNav", () => {
   it("gives a student a short sidebar grouped by job", () => {
     expect(ids(student)).toEqual([
-      { label: null, items: ["dashboard", "my-package", "grades", "calendar"] },
+      { label: null, items: ["dashboard", "my-package", "extension-requests", "grades", "calendar"] },
       { label: "Class", items: ["announcements", "ideas", "managers"] },
       { label: "Production", items: ["livestreams"] },
       { label: "Tools", items: ["drive", "teleprompter"] },
@@ -80,6 +80,14 @@ describe("buildSidebarNav", () => {
       { label: "Tools", items: ["drive", "teleprompter"] },
       { label: "footer", items: ["settings"] }
     ]);
+  });
+
+  it("adds the Thanksgiving leaderboard to Class while Thanksgiving is on", () => {
+    expect(ids({ ...student, thanksgiving: true })[1]).toEqual({
+      label: "Class",
+      items: ["announcements", "ideas", "managers", "leaderboard"]
+    });
+    expect(buildSidebarNav({ ...student, thanksgiving: true })[1].items.at(-1)?.href).toBe("/thanksgiving");
   });
 
   it("shows My package to a producer on a roster", () => {
@@ -223,35 +231,37 @@ describe("isNavItemActive", () => {
   const requests = buildSidebarNav(associate)
     .flatMap((navSection) => navSection.items)
     .find((navItem) => navItem.id === "extension-requests")!;
+  const studentRequests = buildSidebarNav(student)[0].items.find((navItem) => navItem.id === "extension-requests")!;
 
-  it("lights My package on every package page for a student, Extension Requests included", () => {
-    expect(isNavItemActive(myPackage, "/a-roll", false, false)).toBe(true);
-    expect(isNavItemActive(myPackage, "/extension-requests", false, false)).toBe(true);
+  it("lights My package on a student's stage pages and Extension Requests on its own page", () => {
+    expect(isNavItemActive(myPackage, "/a-roll", false)).toBe(true);
+    expect(isNavItemActive(myPackage, "/extension-requests", false)).toBe(false);
+    expect(isNavItemActive(studentRequests, "/extension-requests", false)).toBe(true);
   });
 
   it("lights only Extension Requests on a producer's approval queue", () => {
-    expect(isNavItemActive(myPackage, "/extension-requests", false, true)).toBe(false);
-    expect(isNavItemActive(requests, "/extension-requests", false, true)).toBe(true);
-    expect(isNavItemActive(myPackage, "/initial-cut", false, true)).toBe(true);
+    expect(isNavItemActive(myPackage, "/extension-requests", false)).toBe(false);
+    expect(isNavItemActive(requests, "/extension-requests", false)).toBe(true);
+    expect(isNavItemActive(myPackage, "/initial-cut", false)).toBe(true);
   });
 
   it("keeps a hub's link lit on every tab, and Meetings lit on the meet host's home", () => {
     const people = buildSidebarNav(associate).flatMap((navSection) => navSection.items).find((navItem) => navItem.id === "people")!;
     const meetings = buildSidebarNav(associate).flatMap((navSection) => navSection.items).find((navItem) => navItem.id === "meetings")!;
-    expect(isNavItemActive(people, "/members", false, true)).toBe(true);
-    expect(isNavItemActive(people, "/participation", false, true)).toBe(false);
-    expect(isNavItemActive(people, "/editing", false, true)).toBe(false);
-    expect(isNavItemActive(meetings, "/", true, true)).toBe(true);
-    expect(isNavItemActive(meetings, "/", false, true)).toBe(false);
+    expect(isNavItemActive(people, "/members", false)).toBe(true);
+    expect(isNavItemActive(people, "/participation", false)).toBe(false);
+    expect(isNavItemActive(people, "/editing", false)).toBe(false);
+    expect(isNavItemActive(meetings, "/", true)).toBe(true);
+    expect(isNavItemActive(meetings, "/", false)).toBe(false);
   });
 
   it("keeps The Show lit on Editing, as on the Publishing Queue", () => {
     const show = buildSidebarNav(associate).flatMap((navSection) => navSection.items).find((navItem) => navItem.id === "show")!;
     expect(show.href).toBe("/show-roles");
     for (const path of ["/show-roles", "/editing", "/publishing-queue", "/publishing-queue/row1"]) {
-      expect(isNavItemActive(show, path, false, true), path).toBe(true);
+      expect(isNavItemActive(show, path, false), path).toBe(true);
     }
-    expect(isNavItemActive(show, "/editing-other", false, true)).toBe(false);
+    expect(isNavItemActive(show, "/editing-other", false)).toBe(false);
     expect(isInHub("show", "/editing")).toBe(true);
   });
 });
@@ -511,8 +521,11 @@ describe("buildNavSignals", () => {
     expect(signals.admin).toMatchObject({ count: 5, label: "5 access requests waiting" });
   });
 
-  it("leaves Extension Requests to the stage bar for students", () => {
-    expect(buildNavSignals(navStatus({ extensionRequestsAwaiting: 2 }), options)["extension-requests"]).toBeUndefined();
+  it("counts requests waiting on a student on their own Extension Requests link", () => {
+    expect(buildNavSignals(navStatus({ extensionRequestsAwaiting: 2 }), options)["extension-requests"]).toMatchObject({
+      count: 2,
+      label: "2 extension requests waiting on you"
+    });
   });
 
   it("shows a new-grades dot only for grades published after the last visit", () => {

@@ -12,11 +12,12 @@ const WELCOMED_KEY = "infocus-thanksgiving-welcome";
 const WHAT_HAPPENS = [
   ["Visitors drop by.", "Leaves fall, pies turn up at the edges and a turkey struts along the bottom. Catch the leaves and eat the pies; the Portal keeps count."],
   ["Watch for the big one.", "Once in a while, a wild turkey as tall as the window walks in, sizes you up and pecks holes in your screen."],
+  ["Climb the board.", "Every leaf, pie, wishbone, giant turkey sighting and pardoned turkey counts on the class leaderboard (Leaderboard in the sidebar)."],
   ["You'll hear it.", "Rustles, gobbles and gusts of wind start after your first click."],
   ["Work still works.", "Everything stays clickable, and the big turkey stays away during videos, teleprompter run mode and dialogs."]
 ] as const;
 
-function needsWelcome(): boolean {
+export function needsWelcome(): boolean {
   try {
     return needsThanksgivingWelcome(window.localStorage.getItem(WELCOMED_KEY), new Date());
   } catch {

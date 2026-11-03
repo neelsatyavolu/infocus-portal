@@ -6,6 +6,7 @@ import type { HubTabWithStatus } from "@/components/hub-tabs";
 import { useGradesSeen } from "@/components/shell/nav-seen";
 import { hasRole } from "@/components/shell/shell-route";
 import { useNavStatus } from "@/components/shell/use-nav-status";
+import { useThanksgivingActive } from "@/src/lib/use-thanksgiving";
 import {
   buildCycleCard,
   buildHubTabs,
@@ -45,6 +46,7 @@ export function useShellNav({
   // Any producer (AP, EP, super admin) on a package roster works it as a student.
   const showCycleTabs = !isProducer || Boolean(pkg?.hasRow);
   const unlocked = pkg?.unlocked ?? null;
+  const thanksgiving = useThanksgivingActive();
   const navContext = useMemo(
     () => ({
       isProducer,
@@ -52,9 +54,10 @@ export function useShellNav({
       canManageGrades,
       canManageAdmin: canManageGrades,
       sampleOnly,
-      myPackageHref: myPackageHref(unlocked)
+      myPackageHref: myPackageHref(unlocked),
+      thanksgiving
     }),
-    [isProducer, showCycleTabs, canManageGrades, sampleOnly, unlocked]
+    [isProducer, showCycleTabs, canManageGrades, sampleOnly, unlocked, thanksgiving]
   );
   const sections = useMemo(() => buildSidebarNav(navContext), [navContext]);
   const phoneTabs = useMemo(() => (chrome ? buildPhoneTabs(navContext) : []), [chrome, navContext]);

@@ -6,6 +6,7 @@ import { mediaIsPlaying } from "@/components/halloween/halloween-music";
 import { runningSpookyAudio } from "@/components/halloween/spooky-sounds";
 import { isRunModeOpen, msSinceRunModeClosed } from "@/src/lib/run-mode-signal";
 import { useThanksgivingPrefs } from "@/src/lib/use-thanksgiving";
+import { tallyHarvest } from "./harvest-tally";
 import { GiantTurkeyDefs, PeckHole, TurkeyCloseUp, WildTurkey } from "./giant-turkey-art";
 import { playHarvestSound, type HarvestSound } from "./harvest-sounds";
 import "./giant-turkey.css";
@@ -121,7 +122,11 @@ export function GiantTurkey({ summons }: { summons: number }) {
         !isRunModeOpen() &&
         !document.querySelector("[role='dialog'], [role='alertdialog']") &&
         msSinceRunModeClosed() >= RUN_MODE_QUIET_MS;
-      if (ready) arrive();
+      if (ready) {
+        arrive();
+        // Only the turkeys that come on their own count for the leaderboard, not a typed "gobble".
+        tallyHarvest("giantTurkeys");
+      }
       timer = window.setTimeout(attempt, ready ? VISIT_MIN_MS + Math.random() * VISIT_SPREAD_MS : RETRY_MS);
     }, FIRST_VISIT_MIN_MS + Math.random() * FIRST_VISIT_SPREAD_MS);
     return () => window.clearTimeout(timer);

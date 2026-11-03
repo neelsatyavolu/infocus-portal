@@ -80,7 +80,7 @@ export function AppSidebar({
         <SidebarNavLink
           item={item}
           icon={navIconFor(item.id, isProducer)}
-          active={isNavItemActive(item, pathname, onMeetHost, isProducer)}
+          active={isNavItemActive(item, pathname, onMeetHost)}
           signal={signals[item.id]}
           rail={rail}
           railTooltips={rail && desktop}

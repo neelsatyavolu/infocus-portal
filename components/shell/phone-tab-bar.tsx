@@ -45,7 +45,7 @@ export function PhoneTabBar({
     >
       {tabs.map((tab) => {
         const Icon = navIconFor(tab.id, isProducer);
-        const active = isNavItemActive(tab, pathname, onMeetHost, isProducer);
+        const active = isNavItemActive(tab, pathname, onMeetHost);
         const signal = signals[tab.id];
         return (
           <Link

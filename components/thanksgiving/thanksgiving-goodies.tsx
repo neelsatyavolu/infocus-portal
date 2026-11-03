@@ -51,6 +51,10 @@ const BLACK_FRIDAY_KEY = "infocus-thanksgiving-black-friday";
 const FEAST_MS = 7_000;
 const NAP_MS = 5_500;
 const DRIP_MS = 4_000;
+/** A pardoned turkey's last steps off the edge (matches tg-strut-exit in thanksgiving.css). */
+const STRUT_EXIT_MS = 900;
+/** How long an unpardoned turkey burns at the edge before it crumbles away (matches tg-crumble). */
+const BURN_MS = 3_600;
 /** After someone jumps in, the pile is raked back up this much later. */
 const PILE_BACK_MS = 5 * 60_000;
 
@@ -67,6 +71,16 @@ const WISHES = [
   "May your pitch get approved the first time.",
   "May the batteries be charged when you need them.",
   "May your package make the show this week."
+] as const;
+
+/** What the viewer hears after walking a turkey into the oven. */
+const REPRIMANDS = [
+  "Five clicks. That's all it needed. Five.",
+  "It walked the whole screen hoping you'd notice. You didn't.",
+  "Extra crispy. Nobody ordered extra crispy.",
+  "That turkey had a medal fitting on Thursday.",
+  "The InFocus Portal is not angry. Just disappointed.",
+  "Next time, click the turkey. Pardons are free."
 ] as const;
 
 const between = (min: number, max: number) => min + Math.random() * (max - min);
@@ -144,6 +158,7 @@ function Harvest() {
       const id = (nextId.current += 1);
       setSprites((all) => [...all, make(id)]);
       later(() => remove(id), lifetimeMs);
+      return id;
     },
     [later, remove]
   );
@@ -188,6 +203,23 @@ function Harvest() {
     [later, sound, spawn]
   );
 
+  /** At the far edge a pardoned turkey walks off; any other turkey burns, and the viewer hears about it. */
+  const reachEdge = useCallback(
+    (id: number) => {
+      const turkey = onScreen.current.find((sprite) => sprite.id === id);
+      if (turkey?.kind !== "strut") return;
+      const phase = turkey.pardoned ? "free" : "burnt";
+      setSprites((all) => all.map((sprite) => (sprite.id === id && sprite.kind === "strut" ? { ...sprite, phase } : sprite)));
+      if (phase === "free") {
+        later(() => remove(id), STRUT_EXIT_MS);
+        return;
+      }
+      sound("sizzle");
+      toast("You let the turkey burn", { description: pick(REPRIMANDS) });
+    },
+    [later, remove, sound]
+  );
+
   const visit = useCallback(() => {
     if (document.hidden || isRunModeOpen()) return;
     let visitor = still ? "pie" : pickVisitor();
@@ -216,14 +248,18 @@ function Harvest() {
       case "strut": {
         const duration = between(12, 16);
         later(() => sound("gobble", AMBIENT_VOLUME), 1_800);
-        spawn((id) => ({ id, kind: "strut", rtl: Math.random() < 0.5, duration, clicks: 0, pardoned: false }), duration * 1000);
+        const id = spawn(
+          (id) => ({ id, kind: "strut", rtl: Math.random() < 0.5, duration, clicks: 0, pardoned: false, phase: "walk" }),
+          duration * 1000 + BURN_MS
+        );
+        later(() => reachEdge(id), duration * 1000);
         return;
       }
       case "gust":
         blowGust(14);
         return;
     }
-  }, [blowGust, dropLeaves, later, sound, spawn, still]);
+  }, [blowGust, dropLeaves, later, reachEdge, sound, spawn, still]);
 
   // The visitors' schedule.
   useEffect(() => {
@@ -352,6 +388,7 @@ function Harvest() {
 
   /** Each click makes the turkey hop and gobble; PARDON_CLICKS on one turkey pardons it. */
   function clickTurkey(turkey: Extract<Sprite, { kind: "strut" }>, at: DOMRect) {
+    if (turkey.phase === "burnt") return;
     if (turkey.pardoned) {
       sound("gobble");
       return;

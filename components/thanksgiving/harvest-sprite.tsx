@@ -13,12 +13,15 @@ import {
 
 type Side = "left" | "right";
 
+/** A strutting turkey walks to the far edge, then walks off free (pardoned) or burns where it stands. */
+export type StrutPhase = "walk" | "free" | "burnt";
+
 export type Sprite =
   | { id: number; kind: "leaf"; left: number; duration: number; sway: number; variant: number }
   | { id: number; kind: "gust"; top: number; duration: number; variant: number; r: number }
   | { id: number; kind: "pie"; side: Side; top: number; gone: boolean }
   | { id: number; kind: "pierain"; left: number; duration: number; r: number }
-  | { id: number; kind: "strut"; rtl: boolean; duration: number; clicks: number; pardoned: boolean }
+  | { id: number; kind: "strut"; rtl: boolean; duration: number; clicks: number; pardoned: boolean; phase: StrutPhase }
   | { id: number; kind: "wishbone"; left: number; duration: number; sway: number }
   | { id: number; kind: "feast"; lasts: number }
   | { id: number; kind: "nap"; lasts: number }
@@ -85,14 +88,22 @@ export function HarvestSprite({ sprite, onHit }: { sprite: Sprite; onHit: Sprite
           data-direction={sprite.rtl ? "rtl" : "ltr"}
           data-clicked={sprite.clicks > 0}
           data-pardoned={sprite.pardoned}
+          data-phase={sprite.phase}
           style={vars({ "--tg-duration": `${sprite.duration}s` })}
           onClick={hit}
-          aria-label={sprite.pardoned ? "A pardoned turkey" : "Say hi to the turkey"}
+          aria-label={sprite.phase === "burnt" ? "A burnt turkey" : sprite.pardoned ? "A pardoned turkey" : "Say hi to the turkey"}
         >
           <span key={sprite.clicks} className="tg-hop">
             <TurkeySprite />
           </span>
           {sprite.pardoned ? <span className="tg-medal" aria-hidden /> : null}
+          {sprite.phase === "burnt" ? (
+            <span className="tg-fire" aria-hidden>
+              <span />
+              <span />
+              <span />
+            </span>
+          ) : null}
         </button>
       );
     case "wishbone":

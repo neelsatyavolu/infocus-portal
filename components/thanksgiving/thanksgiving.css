@@ -125,13 +125,69 @@
 .tg-strut .tg-hop { display: block; width: 100%; height: 100%; transform-origin: 50% 100%; }
 .tg-strut[data-clicked="true"] .tg-hop { animation: tg-hop 0.4s cubic-bezier(0.3, 0, 0.5, 1); }
 .tg-strut svg { display: block; width: 100%; height: 100%; animation: tg-bob 0.5s ease-in-out infinite; transform-origin: 50% 100%; }
+/* The walk stops at the far edge; a pardoned turkey then walks off, any other one burns there. */
 @keyframes tg-strut-ltr {
   from { left: -90px; }
-  to   { left: calc(100vw + 10px); }
+  to   { left: calc(100vw - 86px); }
 }
 @keyframes tg-strut-rtl {
   from { left: calc(100vw + 10px); }
+  to   { left: 10px; }
+}
+.tg-strut[data-phase="free"] { animation: tg-strut-exit-ltr 0.9s linear both; }
+.tg-strut[data-phase="free"][data-direction="rtl"] { animation-name: tg-strut-exit-rtl; }
+@keyframes tg-strut-exit-ltr {
+  from { left: calc(100vw - 86px); }
+  to   { left: calc(100vw + 10px); }
+}
+@keyframes tg-strut-exit-rtl {
+  from { left: 10px; }
   to   { left: -90px; }
+}
+
+/* Not pardoned: it catches fire at the edge, chars black, then crumbles. */
+.tg-strut[data-phase="burnt"] {
+  left: calc(100vw - 86px);
+  cursor: default;
+  animation: tg-crumble 3.6s ease-in both;
+}
+.tg-strut[data-phase="burnt"][data-direction="rtl"] { left: 10px; }
+.tg-strut[data-phase="burnt"] svg {
+  animation: none;
+  filter: brightness(0.18) sepia(1) saturate(0.5);
+  transition: filter 1.2s ease-in;
+}
+@keyframes tg-crumble {
+  0%, 70% { opacity: 1; transform: none; }
+  100%    { opacity: 0; transform: translateY(8px) scale(0.9, 0.6); }
+}
+.tg-fire {
+  position: absolute;
+  inset: 10% 8% 0;
+  pointer-events: none;
+}
+.tg-fire > span {
+  position: absolute;
+  bottom: 0;
+  width: 38%;
+  height: 80%;
+  border-radius: 50% 50% 20% 20% / 70% 70% 30% 30%;
+  background: radial-gradient(ellipse at 50% 85%, #FFE3A3 0%, #F2A93B 35%, #D9481F 70%, transparent 72%);
+  transform-origin: 50% 100%;
+  mix-blend-mode: screen;
+  animation: tg-flicker 0.35s ease-in-out infinite alternate, tg-flame-out 3.6s ease-in both;
+}
+.tg-fire > span:nth-child(1) { left: 2%; height: 62%; animation-delay: -0.1s, 0s; }
+.tg-fire > span:nth-child(2) { left: 31%; height: 92%; animation-delay: -0.2s, 0s; }
+.tg-fire > span:nth-child(3) { left: 60%; height: 70%; animation-delay: 0s, 0s; }
+@keyframes tg-flicker {
+  from { transform: scale(0.9, 0.85) skewX(-4deg); }
+  to   { transform: scale(1.05, 1.1) skewX(4deg); }
+}
+@keyframes tg-flame-out {
+  0%   { opacity: 0; }
+  10%, 55% { opacity: 1; }
+  80%, 100% { opacity: 0; }
 }
 @keyframes tg-bob {
   0%, 100% { transform: translateY(0) rotate(-4deg); }

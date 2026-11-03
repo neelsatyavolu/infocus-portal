@@ -18,7 +18,8 @@ export type HarvestSound =
   | "fanfare"
   | "snap"
   | "peck"
-  | "gulp";
+  | "gulp"
+  | "sizzle";
 
 /** A turkey's "gobble-obble-obble": a buzzy voice warbling fast while it falls in pitch. */
 function gobbleAt(ctx: AudioContext, t: number, out: AudioNode, pitch: number, length: number, peak: number) {
@@ -257,6 +258,30 @@ function gulp(ctx: AudioContext, t: number, out: AudioNode) {
   wet.start(t + 0.05);
 }
 
+/** A turkey left to burn: a whoosh of flame, then fat crackling in the pan. */
+function sizzle(ctx: AudioContext, t: number, out: AudioNode) {
+  const whoosh = ctx.createBufferSource();
+  whoosh.buffer = noiseBuffer(ctx, 0.6);
+  const roar = ctx.createBiquadFilter();
+  roar.type = "lowpass";
+  roar.frequency.setValueAtTime(300, t);
+  roar.frequency.exponentialRampToValueAtTime(1800, t + 0.4);
+  whoosh.connect(roar).connect(envelope(out, t, 0.08, 0.55, 0.7));
+  whoosh.start(t);
+
+  const buffer = noiseBuffer(ctx, 0.03);
+  for (let i = 0; i < 26; i += 1) {
+    const start = t + 0.3 + Math.random() * 1.6;
+    const pop = ctx.createBufferSource();
+    pop.buffer = buffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type = "highpass";
+    filter.frequency.value = 2000 + Math.random() * 3000;
+    pop.connect(filter).connect(envelope(out, start, 0.002, 0.025, 0.25 + Math.random() * 0.35));
+    pop.start(start);
+  }
+}
+
 const PLAYERS: Record<HarvestSound, (ctx: AudioContext, t: number, out: AudioNode) => void> = {
   gobble,
   bigGobble,
@@ -270,7 +295,8 @@ const PLAYERS: Record<HarvestSound, (ctx: AudioContext, t: number, out: AudioNod
   fanfare,
   snap,
   peck,
-  gulp
+  gulp,
+  sizzle
 };
 
 /** `volume` scales the sound (1 for clicks, lower for visitors arriving on their own). */

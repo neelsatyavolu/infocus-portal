@@ -149,6 +149,11 @@ Semester 1 livestream points remain ungraded and excluded from totals until **No
 - A grant that covers only some members is private to them: uncovered students don't see it on
   `/extension-requests`, the Class Board (which shows whole-group grants only, `groupWideExtension`),
   or assistant lookups, and get no email.
+- One-off prize (2026): whoever is first on the Thanksgiving leaderboard at 11:59 PM Pacific on
+  Nov 4 wins a pre-approved extension for their whole package group in their current cycle
+  (`src/server/thanksgiving-contest.ts`): the group's longest whole-group grant plus 2 days, with
+  no member agreement or producer approvals. An exact tie gives each winner's group the prize. A
+  winner on no package group gets none automatically; an exec grants it by hand.
 - Past the extension deadline → **20%** reduction.
 - More than **14 days** past → **30%**, and a second revision cannot repair it.
 

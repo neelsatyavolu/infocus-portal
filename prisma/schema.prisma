@@ -2261,3 +2261,14 @@ model ThanksgivingScore {
   @@unique([userId, year])
   @@index([year])
 }
+
+/// The Thanksgiving leaderboard contest's result, written once when it closes (src/server/thanksgiving-contest.ts).
+model ThanksgivingContest {
+  year          Int      @id
+  /// Everyone ranked first at the close (more than one only on an exact tie).
+  winnerUserIds String[] @default([])
+  winningTotal  Int      @default(0)
+  /// The pre-approved prize extensions created for the winners' package groups.
+  grantIds      String[] @default([])
+  settledAt     DateTime @default(now())
+}

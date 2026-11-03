@@ -103,5 +103,10 @@ reach it from **Extension Requests** in the sidebar (just under My package) or *
 in the stage bar at the top of their package pages, and see only their own groups' requests. Each link
 shows a count of pending requests waiting on you: members who have not agreed yet, and producers
 who can decide (after full group agreement, or right away on an exec grant) and have not voted.
+The Thanksgiving leaderboard winner (first at 11:59 PM Pacific, Nov 4, 2026) gets a pre-approved
+extension for their whole group automatically: 2 days on top of the group's longest whole-group
+extension, listed on `/extension-requests` with the reason "Thanksgiving leaderboard prize" and
+emailed to the group like any approval.
+
 Students also see an **Extension** tag under **My package** in the sidebar while a request needs
 their answer (unless that line already shows **Revisions**).

@@ -4,20 +4,27 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { harvestYear, type RankedEntry } from "@/src/lib/thanksgiving-board";
+import { HARVEST_CONTEST, type ContestResult, type RankedEntry } from "@/src/lib/thanksgiving-board";
 import { cn } from "@/src/lib/utils";
+import { ContestBanner } from "./contest-banner";
 import { HarvestBoard } from "./harvest-board";
 import { carryOverHarvestOnce, flushHarvestTally } from "./harvest-tally";
 import { LeafSprite, PieSprite, TurkeySprite } from "./sprites";
 
-const SEEN_KEY = "infocus-thanksgiving-leaderboard-seen";
+/** New with the contest, so browsers that saw the plain leaderboard popup get this one too. */
+const SEEN_KEY = "infocus-thanksgiving-contest-seen";
 const TOP = 5;
 
-type Board = { rows: RankedEntry[]; viewerId: string };
+type Board = {
+  year: number;
+  rows: RankedEntry[];
+  viewerId: string;
+  contest: { closesAt: string; prizeDays: number; result: ContestResult | null };
+};
 
 function alreadySeen(): boolean {
   try {
-    return window.localStorage.getItem(SEEN_KEY) === String(harvestYear(new Date()));
+    return window.localStorage.getItem(SEEN_KEY) === String(HARVEST_CONTEST.year);
   } catch {
     return true;
   }
@@ -25,7 +32,7 @@ function alreadySeen(): boolean {
 
 function markSeen() {
   try {
-    window.localStorage.setItem(SEEN_KEY, String(harvestYear(new Date())));
+    window.localStorage.setItem(SEEN_KEY, String(HARVEST_CONTEST.year));
   } catch {
     // Storage blocked: alreadySeen() says yes, so it never repeats.
   }
@@ -39,29 +46,31 @@ async function fetchBoard(): Promise<Board | null> {
 }
 
 /**
- * Once per browser each November, after the welcome: the top of the Thanksgiving leaderboard and
- * where this person stands, with a link to the whole board. A browser getting the welcome this visit
- * (`skip`) sees it on its next visit instead, so the two never stack.
+ * Once per browser: the leaderboard contest in big letters (the prize, or its winner once it has
+ * closed), the top of the board and where this person stands, with a link to the whole board.
+ * Waits until the welcome is closed (`ready`), so the two never stack.
  */
-export function LeaderboardPopup({ skip }: { skip: boolean }) {
+export function LeaderboardPopup({ ready }: { ready: boolean }) {
   const [board, setBoard] = useState<Board | null>(null);
+  const [contestOpen, setContestOpen] = useState(false);
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    if (skip || alreadySeen()) return;
+    if (!ready || alreadySeen()) return;
     let cancelled = false;
     void (async () => {
       await carryOverHarvestOnce();
       await flushHarvestTally();
       const loaded = await fetchBoard().catch(() => null);
-      if (cancelled || !loaded) return;
+      if (cancelled || !loaded || loaded.year !== HARVEST_CONTEST.year) return;
       setBoard(loaded);
+      setContestOpen(Date.now() <= Date.parse(loaded.contest.closesAt));
       setOpen(true);
     })();
     return () => {
       cancelled = true;
     };
-  }, [skip]);
+  }, [ready]);
 
   function close() {
     markSeen();
@@ -77,7 +86,7 @@ export function LeaderboardPopup({ skip }: { skip: boolean }) {
 
   return (
     <Dialog open={open} onOpenChange={(next) => (next ? setOpen(true) : close())}>
-      <DialogContent className="max-w-md" hideClose>
+      <DialogContent className="max-w-lg" hideClose>
         <div className="tg-welcome-art" aria-hidden>
           <LeafSprite variant={2} />
           <TurkeySprite />
@@ -85,10 +94,13 @@ export function LeaderboardPopup({ skip }: { skip: boolean }) {
         </div>
         <DialogHeader>
           <DialogTitle className="text-[22px] font-medium tracking-[-0.015em]">The Thanksgiving leaderboard</DialogTitle>
-          <DialogDescription>
-            Leaves, pies, wishbones, giant turkey sightings and pardoned turkeys all count. {standing}
-          </DialogDescription>
+          <DialogDescription>{standing}</DialogDescription>
         </DialogHeader>
+        <ContestBanner
+          open={contestOpen}
+          result={board.contest.result}
+          viewerId={board.viewerId}
+        />
         {top.length > 0 ? (
           <HarvestBoard rows={top} viewerId={board.viewerId} compact />
         ) : (

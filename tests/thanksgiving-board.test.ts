@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   clampHarvest,
+  contestWinners,
   EMPTY_HARVEST,
+  HARVEST_CONTEST,
+  isContestOpen,
+  prizeGrantDays,
   harvestTotal,
   MAX_BATCH,
   rankBoard,
@@ -65,5 +69,30 @@ describe("rankBoard", () => {
   it("leaves out people who caught nothing", () => {
     expect(rankBoard([entry("Abby", {})])).toEqual([]);
     expect(harvestTotal(EMPTY_HARVEST)).toBe(0);
+  });
+});
+
+describe("the leaderboard contest", () => {
+  it("closes at 11:59 PM Pacific on November 4", () => {
+    expect(isContestOpen(new Date("2026-11-04T23:59:30-08:00"))).toBe(true);
+    expect(isContestOpen(new Date("2026-11-05T00:00:00-08:00"))).toBe(false);
+    expect(HARVEST_CONTEST.closesAt.toISOString()).toBe("2026-11-05T07:59:59.999Z");
+  });
+
+  it("is won by the total, and an exact tie shares the prize", () => {
+    const rows = rankBoard([
+      entry("Abby", { pies: 9 }),
+      entry("Otto", { leaves: 4, giantTurkeys: 1, wishbones: 5 }),
+      entry("Sage", { leaves: 3 })
+    ]);
+    expect(contestWinners(rows).map((row) => row.name)).toEqual(["Otto"]);
+    const tied = rankBoard([entry("Abby", { leaves: 2 }), entry("Otto", { pies: 2 }), entry("Sage", { leaves: 1 })]);
+    expect(contestWinners(tied).map((row) => row.name)).toEqual(["Abby", "Otto"]);
+  });
+
+  it("adds the prize on top of the group's longest whole-group extension", () => {
+    expect(prizeGrantDays([])).toBe(2);
+    expect(prizeGrantDays([1.5, 3])).toBe(5);
+    expect(prizeGrantDays([29.5])).toBe(30);
   });
 });

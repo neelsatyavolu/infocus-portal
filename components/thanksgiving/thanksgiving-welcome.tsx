@@ -37,12 +37,13 @@ function markWelcomed() {
  * The first time a browser opens the Portal each November: what the harvest theme does, a hint
  * that there are secrets to find, and where to turn things off (Settings → Appearance).
  */
-export function ThanksgivingWelcome() {
+export function ThanksgivingWelcome({ onClosed }: { onClosed?: () => void }) {
   const [open, setOpen] = useState(needsWelcome);
 
   function close() {
     markWelcomed();
     setOpen(false);
+    onClosed?.();
   }
 
   return (

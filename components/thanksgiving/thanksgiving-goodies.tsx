@@ -135,8 +135,8 @@ function Harvest() {
   const [summons, setSummons] = useState(0);
   const { muted, leaves } = useThanksgivingPrefs();
   const [pileAway, setPileAway] = useState(false);
-  // Settled once: a browser that gets the welcome this visit sees the leaderboard popup next time.
-  const [welcoming] = useState(needsWelcome);
+  // The leaderboard popup waits for the welcome (when there is one) to close.
+  const [welcomeDone, setWelcomeDone] = useState(() => !needsWelcome());
   const still = useMediaQuery("(prefers-reduced-motion: reduce)", false);
   const nextId = useRef(0);
   const timers = useRef(new Set<number>());
@@ -489,8 +489,8 @@ function Harvest() {
           <HarvestSprite key={sprite.id} sprite={sprite} onHit={hit} />
         ))}
       </div>
-      <ThanksgivingWelcome />
-      <LeaderboardPopup skip={welcoming} />
+      <ThanksgivingWelcome onClosed={() => setWelcomeDone(true)} />
+      <LeaderboardPopup ready={welcomeDone} />
     </>
   );
 }

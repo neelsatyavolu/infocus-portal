@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import { EmptyState } from "@/components/kit/empty-state";
 import { PageHeader } from "@/components/page-header";
+import { ContestBanner } from "@/components/thanksgiving/contest-banner";
 import { HarvestBoard } from "@/components/thanksgiving/harvest-board";
 import { TurkeySprite } from "@/components/thanksgiving/sprites";
 import { requireUserId } from "@/src/lib/auth";
+import { HARVEST_CONTEST, isContestOpen } from "@/src/lib/thanksgiving-board";
+import { loadHarvestContest, settleHarvestContest } from "@/src/server/thanksgiving-contest";
 import { loadHarvestBoard } from "@/src/server/thanksgiving-scores";
 
 export const metadata: Metadata = { title: "Leaderboard" };
@@ -14,7 +17,8 @@ export const metadata: Metadata = { title: "Leaderboard" };
  */
 export default async function ThanksgivingLeaderboardPage() {
   const userId = await requireUserId();
-  const board = await loadHarvestBoard();
+  await settleHarvestContest();
+  const [board, result] = await Promise.all([loadHarvestBoard(), loadHarvestContest()]);
 
   return (
     <div className="route-enter space-y-5">
@@ -23,6 +27,9 @@ export default async function ThanksgivingLeaderboardPage() {
         title="Leaderboard"
         description="Catch leaves, eat pies, snap wishbones, spot the giant turkey and pardon the ones that strut by (five clicks each). Every catch counts one."
       />
+      {board.year === HARVEST_CONTEST.year ? (
+        <ContestBanner open={isContestOpen(new Date())} result={result} viewerId={userId} />
+      ) : null}
       {board.rows.length > 0 ? (
         <section aria-label="Leaderboard">
           <HarvestBoard rows={board.rows} viewerId={userId} />

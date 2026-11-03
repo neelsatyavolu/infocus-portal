@@ -37,7 +37,7 @@ Tabs with no note are shown to everyone signed in.
 - Announcements, with **Submitted** (everyone can read; associate producers and up can delete; executive producers and super admin can invite outside viewers) and **PA** (assigned announcers and producers can edit) as tabs in the top bar
 - Ideas (`/ideas`: story ideas from Bay Area news and events, new every 2 days; see `ideas.md`)
 - Managers (opens **Manager tools**, one row per manager area: equipment, livestream, website, social media; see `managers.md`)
-- Leaderboard (`/thanksgiving`): only while the Thanksgiving theme is on (November). The class Thanksgiving leaderboard: everyone's leaves caught, pies eaten, wishbones snapped, giant turkey sightings and pardoned turkeys this year, one point each, most first.
+- Leaderboard (`/thanksgiving`): only while the Thanksgiving theme is on (November). The class Thanksgiving leaderboard: everyone's leaves caught, pies eaten, wishbones snapped, giant turkey sightings and pardoned turkeys this year, one point each, most first. Whoever is first at 11:59 PM Pacific on Wednesday, Nov 4, 2026 wins 2 extension days for their whole package group, shown in big letters at the top (then the winner). The board keeps counting afterwards.
 
 **Production**
 

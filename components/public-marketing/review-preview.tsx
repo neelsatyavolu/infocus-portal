@@ -8,25 +8,52 @@ const PLAYHEAD = 72;
 /** Made-up review notes (placeholder names only), pinned to moments in the cut. */
 const NOTES = [
   { at: 18, author: "Otto", text: "Hold the wide shot two more seconds before the cut" },
-  { at: 72, author: "Abby", text: "Name bar says Producer. Sage is the reporter on this one" },
+  { at: 72, author: "Abby", text: "Period 3 starts at 10:20, after brunch. The card says 10:05" },
   { at: 220, author: "Abby", text: "Music covers the voiceover here, bring it down 3 dB" }
+] as const;
+
+/** The made-up schedule on the paused card. Period 3 is the mistake the active note points at. */
+const SCHEDULE = [
+  { label: "Period 1", time: "8:25" },
+  { label: "Period 2", time: "9:20" },
+  { label: "Brunch", time: "10:10" },
+  { label: "Period 3", time: "10:05" }
 ] as const;
 
 const pct = (seconds: number) => `${((seconds / DURATION) * 100).toFixed(1)}%`;
 const clock = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 
-/** The paused frame: a dark picture with the on-air name bar (DESIGN.md §6) the active note is about. */
+/**
+ * The paused frame: the package's full-screen announcement card (DESIGN.md §6, Announcement), drawn
+ * at 1920 × 1080 proportions in container units so it scales with the frame. On-air colors are
+ * fixed hexes, as the graphic itself is (DESIGN.md §10 allows hexes inside on-air graphics).
+ */
 function Frame() {
   return (
-    <div className="relative aspect-video overflow-hidden rounded-md bg-linear-to-b from-[#1c1c20] to-black text-soft-white">
-      <span className="timecode absolute right-3 top-3 text-xs text-soft-white/70">00:01:12:08</span>
-      <div className="absolute bottom-[12%] left-[6%] flex items-stretch">
-        <span aria-hidden className="w-1 bg-[var(--brand-green)]" />
-        <div className="bg-black/85 px-3 py-2">
-          <p className="text-sm font-medium leading-tight sm:text-base">Sage</p>
-          <p className="text-xs leading-tight text-soft-white/70">Producer</p>
+    <div className="@container relative aspect-video overflow-hidden rounded-md bg-[#0F110F] font-[family-name:var(--font-lexend)] text-[#ECEFEA]">
+      <div className="absolute inset-x-[6.25cqw] top-[5cqw]">
+        <div className="flex items-center justify-between border-b-[max(1px,0.16cqw)] border-[#ECEFEA]/30 pb-[2cqw]">
+          <p className="flex items-center gap-[1cqw] text-[2cqw] font-bold uppercase tracking-[0.18em] text-[#2BB36E]">
+            <span aria-hidden className="size-[1.4cqw] rounded-full bg-[#EE3A2A]" />
+            Announcements
+          </p>
+          {/* eslint-disable-next-line @next/next/no-img-element -- a fixed 1200×321 brand PNG, no resizing needed */}
+          <img src="/brand/infocus-wordmark-white.png" alt="" width={1200} height={321} className="h-[3.6cqw] w-auto" />
         </div>
+        <p className="mt-[4cqw] text-[6cqw] font-semibold leading-none">New bell schedule</p>
+        <ul className="mt-[3.5cqw] w-[50cqw] space-y-[0.9cqw] text-[3.3cqw] leading-tight text-[#DCE2DE]">
+          {SCHEDULE.map((row) => (
+            <li key={row.label} className="flex items-center gap-[1.6cqw]">
+              <span aria-hidden className="size-[1cqw] shrink-0 rounded-full bg-[#2BB36E]" />
+              <span className="flex-1">{row.label}</span>
+              <span className="tabular-nums">{row.time}</span>
+            </li>
+          ))}
+        </ul>
       </div>
+      <span className="timecode absolute right-[1.6cqw] top-[1.2cqw] font-mono text-[max(10px,1.5cqw)] text-[#ECEFEA]/60">
+        00:01:12:08
+      </span>
     </div>
   );
 }

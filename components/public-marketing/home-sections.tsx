@@ -16,7 +16,7 @@ const NEW_TAB = <span className="sr-only"> (opens in a new tab)</span>;
  */
 export function HomeHero() {
   return (
-    <section aria-labelledby="home-title" className="pb-16 pt-8 md:pb-24 md:pt-16">
+    <section aria-labelledby="home-title" className="pb-16 pt-6 md:pb-20 md:pt-10">
       <p className="eyebrow">Palo Alto High School · Student broadcast</p>
 
       <h1 id="home-title" className="display-xl mt-5 max-w-[16ch]">
@@ -51,10 +51,7 @@ export function HomeHero() {
   );
 }
 
-/**
- * One numbered section: a small label in a left column, the heading (and an optional lede) beside
- * it, then the content under both. On phones the label sits above the heading.
- */
+/** One numbered section: a small label, the heading (and an optional lede), then the content, all on one left edge. */
 function HomeSection({
   id,
   number,
@@ -72,20 +69,16 @@ function HomeSection({
 }) {
   const titleId = `${id}-title`;
   return (
-    <section id={id} aria-labelledby={titleId} className={cn("border-t border-line py-16 md:py-24", ANCHOR_OFFSET)}>
-      <div className="grid gap-x-8 gap-y-3 md:grid-cols-[200px_minmax(0,1fr)]">
-        <p className="eyebrow md:pt-1">
-          <span className="timecode mr-3 text-brand-green">{number}</span>
-          {label}
-        </p>
-        <div>
-          <h2 id={titleId} className="display-md max-w-[26ch]">
-            {title}
-          </h2>
-          {lede ? <div className="mt-3 max-w-[60ch] text-[15px] leading-relaxed text-[var(--ink-text)]">{lede}</div> : null}
-        </div>
-      </div>
-      <div className="mt-8 md:mt-12">{children}</div>
+    <section id={id} aria-labelledby={titleId} className={cn("border-t border-line py-16 md:py-20", ANCHOR_OFFSET)}>
+      <p className="eyebrow">
+        <span className="timecode mr-2 text-brand-green">{number}</span>
+        {label}
+      </p>
+      <h2 id={titleId} className="display-md mt-3 max-w-[26ch]">
+        {title}
+      </h2>
+      {lede ? <div className="mt-3 max-w-[60ch] text-[15px] leading-relaxed text-[var(--ink-text)]">{lede}</div> : null}
+      <div className="mt-8">{children}</div>
     </section>
   );
 }

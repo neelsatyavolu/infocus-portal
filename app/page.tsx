@@ -9,7 +9,8 @@ export const metadata: Metadata = {
 
 /**
  * Public home page, one centered column: the hero (headline, one sentence, Open InFocus Portal and
- * Equipment, two text shortcuts), four one-line features, the apps, and a closing line.
+ * Submit an announcement, two text shortcuts, a still of the review screen), four one-line
+ * features, the apps, and a closing line.
  */
 export default function HomePage() {
   return (

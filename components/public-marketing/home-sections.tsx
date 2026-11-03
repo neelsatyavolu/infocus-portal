@@ -4,6 +4,7 @@ import { IconTile } from "@/components/kit/avatar";
 import { StatusTag } from "@/components/kit/status-tag";
 import { buttonVariants } from "@/components/ui/button";
 import { homeApps, homeEquipmentHref, homeFeatures } from "@/components/public-marketing/home-content";
+import { ReviewPreview } from "@/components/public-marketing/review-preview";
 import { ANCHOR_OFFSET, INLINE_LINK_CLASS } from "@/components/public-marketing/shared";
 import { cn } from "@/src/lib/utils";
 
@@ -14,14 +15,15 @@ const QUIET_LINK =
   "text-muted-foreground underline-offset-4 transition-colors duration-150 ease-[var(--ease-ui)] hover:text-foreground hover:underline";
 
 /**
- * The centered hero: one headline, one sentence, the page's one primary button with Submit an
- * announcement and Equipment beside it, and Master Calendar as a quiet text link.
+ * The centered hero: one headline, one sentence, Open InFocus Portal and Submit an announcement,
+ * then Master Calendar and Equipment as quiet text links, with a still of the review screen below.
  */
 export function HomeHero() {
   return (
     <section aria-labelledby="home-title" className="flex flex-col items-center text-center">
       <div className="eyebrow flex items-center gap-2">
-        <span className="rec-dot rec-dot-red" aria-hidden />
+        {/* Static: nothing on this page is live, so the rec dot doesn't fade here. */}
+        <span className="rec-dot rec-dot-red [animation:none]" aria-hidden />
         InFocus Portal
       </div>
 
@@ -41,45 +43,40 @@ export function HomeHero() {
         <Link href="/submit-announcement" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full sm:w-auto")}>
           Submit an announcement
         </Link>
+      </div>
+
+      <div className="mt-5 flex items-center gap-6 text-sm">
+        <Link href="/master-calendar" prefetch={false} className={QUIET_LINK}>
+          Master Calendar
+        </Link>
         {/* A plain <a> in the same tab: the equipment host is its own app. */}
-        <a href={homeEquipmentHref()} className={cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full sm:w-auto")}>
+        <a href={homeEquipmentHref()} className={QUIET_LINK}>
           Equipment
         </a>
       </div>
 
-      <Link href="/master-calendar" prefetch={false} className={cn(QUIET_LINK, "mt-5 text-sm")}>
-        Master Calendar
-      </Link>
+      <div className="mt-12 w-full text-left md:mt-16">
+        <ReviewPreview />
+      </div>
     </section>
   );
 }
 
-/** What the Portal does: four short items in one hairline-divided row (2 × 2 on phones). */
+/** What the Portal does: four short items in two columns, each under a hairline. */
 export function FeaturesStrip() {
   return (
     <section id="features" aria-labelledby="features-title" className={cn("space-y-5", ANCHOR_OFFSET)}>
       <h2 id="features-title" className={SECTION_TITLE}>
         Inside the Portal
       </h2>
-      <ul className="grid grid-cols-2 overflow-hidden rounded-lg border border-line-strong bg-card lg:grid-cols-4">
-        {homeFeatures.map((feature, index) => (
-          <li
-            key={feature.title}
-            className={cn(
-              "flex flex-col items-center gap-3 px-4 py-6 text-center",
-              index % 2 === 1 && "border-l border-line",
-              index >= 2 && "border-t border-line lg:border-t-0",
-              index === 2 && "lg:border-l"
-            )}
-          >
-            <IconTile icon={feature.icon} tone="brand" size={36} />
-            <div>
-              <h3 className="text-sm font-medium text-foreground">{feature.title}</h3>
-              <p className="mt-1 text-[13px] leading-snug text-muted-foreground">{feature.description}</p>
-            </div>
-          </li>
+      <dl className="grid gap-x-10 sm:grid-cols-2">
+        {homeFeatures.map((feature) => (
+          <div key={feature.title} className="border-t border-line py-4">
+            <dt className="text-sm font-medium text-foreground">{feature.title}</dt>
+            <dd className="mt-1 text-[13px] leading-snug text-muted-foreground">{feature.description}</dd>
+          </div>
         ))}
-      </ul>
+      </dl>
     </section>
   );
 }
@@ -97,7 +94,7 @@ export function AppsRow() {
             key={app.title}
             className="flex flex-col items-center gap-3 rounded-lg border border-line-strong bg-card px-4 py-6 text-center"
           >
-            <IconTile icon={app.icon} tone="brand" size={36} />
+            <IconTile icon={app.icon} size={36} />
             <div>
               <h3 className="text-sm font-medium text-foreground">{app.title}</h3>
               <p className="mt-1 text-[13px] leading-snug text-muted-foreground">{app.description}</p>

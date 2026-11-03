@@ -438,7 +438,7 @@ video {
   font-weight: 500;
   font-size: 0.8125rem;
   line-height: 1.4;
-  letter-spacing: -0.005em;
+  letter-spacing: 0;
   text-transform: none;
   color: hsl(var(--muted-foreground));
 }

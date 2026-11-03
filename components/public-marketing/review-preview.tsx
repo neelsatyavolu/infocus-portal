@@ -85,7 +85,7 @@ function NoteList() {
  */
 export function ReviewPreview() {
   return (
-    <figure
+    <div
       role="img"
       aria-label="A final cut in InFocus Portal review, with three notes pinned to timecodes in the video"
       className="overflow-hidden rounded-lg border border-line-strong bg-card"
@@ -104,6 +104,6 @@ export function ReviewPreview() {
         </div>
         <NoteList />
       </div>
-    </figure>
+    </div>
   );
 }

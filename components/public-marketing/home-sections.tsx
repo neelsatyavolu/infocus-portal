@@ -1,41 +1,35 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
-import { IconTile } from "@/components/kit/avatar";
 import { StatusTag } from "@/components/kit/status-tag";
 import { buttonVariants } from "@/components/ui/button";
-import { homeApps, homeEquipmentHref, homeFeatures } from "@/components/public-marketing/home-content";
+import { homeApps, homeFeatures, homeHeroFacts } from "@/components/public-marketing/home-content";
 import { ReviewPreview } from "@/components/public-marketing/review-preview";
 import { ANCHOR_OFFSET, INLINE_LINK_CLASS } from "@/components/public-marketing/shared";
 import { cn } from "@/src/lib/utils";
 
 const NEW_TAB = <span className="sr-only"> (opens in a new tab)</span>;
-/** Small centered section heading, shared by Features and Apps. */
-const SECTION_TITLE = "text-center text-[13px] font-medium text-muted-foreground";
-const QUIET_LINK =
-  "text-muted-foreground underline-offset-4 transition-colors duration-150 ease-[var(--ease-ui)] hover:text-foreground hover:underline";
 
 /**
- * The centered hero: one headline, one sentence, Open InFocus Portal and Submit an announcement,
- * then Master Calendar and Equipment as quiet text links, with a still of the review screen below.
+ * The hero, left-aligned: what InFocus is and what the Portal does, Open InFocus Portal and Submit
+ * an announcement, one line of facts, then a still of the review screen at full column width.
  */
 export function HomeHero() {
   return (
-    <section aria-labelledby="home-title" className="flex flex-col items-center text-center">
-      <div className="eyebrow flex items-center gap-2">
-        {/* Static: nothing on this page is live, so the rec dot doesn't fade here. */}
-        <span className="rec-dot rec-dot-red [animation:none]" aria-hidden />
-        InFocus Portal
-      </div>
+    <section aria-labelledby="home-title" className="pb-16 pt-8 md:pb-24 md:pt-16">
+      <p className="eyebrow">Palo Alto High School · Student broadcast</p>
 
-      <h1 id="home-title" className="display-xl mt-5 max-w-[14ch]">
-        InFocus News
+      <h1 id="home-title" className="display-xl mt-5 max-w-[16ch]">
+        Every InFocus story, from pitch to air
       </h1>
 
-      <p className="mt-5 max-w-[34rem] text-base leading-relaxed text-[var(--ink-text)] md:text-lg">
-        Palo Alto High School&apos;s student broadcast, and the workspace where we make it.
+      <p className="mt-6 max-w-[60ch] text-base leading-relaxed text-[var(--ink-text)] md:text-lg">
+        InFocus is Paly&apos;s student-run broadcast. The Portal is where the class makes it: each
+        package from pitch to final cut, feedback pinned to moments in the video, the show schedule, and
+        the announcements read on air.
       </p>
 
-      <div className="mt-8 flex w-full flex-col justify-center gap-3 sm:w-auto sm:flex-row">
+      <div className="mt-8 flex flex-col gap-3 sm:flex-row">
         <Link href="/dashboard" prefetch={false} className={cn(buttonVariants({ size: "lg" }), "w-full sm:w-auto")}>
           Open InFocus Portal
           <ArrowRight className="h-4 w-4" aria-hidden />
@@ -45,96 +39,124 @@ export function HomeHero() {
         </Link>
       </div>
 
-      <div className="mt-5 flex items-center gap-6 text-sm">
-        <Link href="/master-calendar" prefetch={false} className={QUIET_LINK}>
-          Master Calendar
-        </Link>
-        {/* A plain <a> in the same tab: the equipment host is its own app. */}
-        <a href={homeEquipmentHref()} className={QUIET_LINK}>
-          Equipment
-        </a>
-      </div>
+      <p className="mt-4 text-[13px] text-muted-foreground">{homeHeroFacts.join(" · ")}</p>
 
-      <div className="mt-12 w-full text-left md:mt-16">
+      <figure className="mt-12 md:mt-16">
         <ReviewPreview />
-      </div>
+        <figcaption className="mt-3 text-[13px] text-muted-foreground">
+          The review screen, with made-up notes. Each note is pinned to the moment in the cut it&apos;s about.
+        </figcaption>
+      </figure>
     </section>
   );
 }
 
-/** What the Portal does: four short items in two columns, each under a hairline. */
+/**
+ * One numbered section: a small label in a left column, the heading (and an optional lede) beside
+ * it, then the content under both. On phones the label sits above the heading.
+ */
+function HomeSection({
+  id,
+  number,
+  label,
+  title,
+  lede,
+  children
+}: {
+  id: string;
+  number: string;
+  label: string;
+  title: string;
+  lede?: ReactNode;
+  children: ReactNode;
+}) {
+  const titleId = `${id}-title`;
+  return (
+    <section id={id} aria-labelledby={titleId} className={cn("border-t border-line py-16 md:py-24", ANCHOR_OFFSET)}>
+      <div className="grid gap-x-8 gap-y-3 md:grid-cols-[200px_minmax(0,1fr)]">
+        <p className="eyebrow md:pt-1">
+          <span className="timecode mr-3 text-brand-green">{number}</span>
+          {label}
+        </p>
+        <div>
+          <h2 id={titleId} className="display-md max-w-[26ch]">
+            {title}
+          </h2>
+          {lede ? <div className="mt-3 max-w-[60ch] text-[15px] leading-relaxed text-[var(--ink-text)]">{lede}</div> : null}
+        </div>
+      </div>
+      <div className="mt-8 md:mt-12">{children}</div>
+    </section>
+  );
+}
+
+/** What the Portal does: four cells on one hairline grid. */
 export function FeaturesStrip() {
   return (
-    <section id="features" aria-labelledby="features-title" className={cn("space-y-5", ANCHOR_OFFSET)}>
-      <h2 id="features-title" className={SECTION_TITLE}>
-        Inside the Portal
-      </h2>
-      <dl className="grid gap-x-10 sm:grid-cols-2">
+    <HomeSection id="features" number="01" label="Inside the Portal" title="One place for the whole show">
+      <dl className="grid border-l border-t border-line sm:grid-cols-2 lg:grid-cols-4">
         {homeFeatures.map((feature) => (
-          <div key={feature.title} className="border-t border-line py-4">
-            <dt className="text-sm font-medium text-foreground">{feature.title}</dt>
-            <dd className="mt-1 text-[13px] leading-snug text-muted-foreground">{feature.description}</dd>
+          <div key={feature.title} className="border-b border-r border-line p-5 md:p-6">
+            <dt className="text-[15px] font-medium text-foreground">{feature.title}</dt>
+            <dd className="mt-2 text-sm leading-relaxed text-muted-foreground">{feature.description}</dd>
           </div>
         ))}
       </dl>
-    </section>
+    </HomeSection>
   );
 }
 
-/** The iPhone and Mac apps as three equal cards. Unreleased apps show a tag instead of a button. */
+/** The iPhone and Mac apps as hairline rows. Unreleased apps show a tag instead of a button. */
 export function AppsRow() {
   return (
-    <section id="apps" aria-labelledby="apps-title" className={cn("space-y-5", ANCHOR_OFFSET)}>
-      <h2 id="apps-title" className={SECTION_TITLE}>
-        Get the apps
-      </h2>
-      <ul className="grid gap-3 sm:grid-cols-3">
+    <HomeSection id="apps" number="02" label="Apps" title="On your iPhone and Mac">
+      <ul className="divide-y divide-line border-y border-line">
         {homeApps.map((app) => (
-          <li
-            key={app.title}
-            className="flex flex-col items-center gap-3 rounded-lg border border-line-strong bg-card px-4 py-6 text-center"
-          >
-            <IconTile icon={app.icon} size={36} />
-            <div>
-              <h3 className="text-sm font-medium text-foreground">{app.title}</h3>
-              <p className="mt-1 text-[13px] leading-snug text-muted-foreground">{app.description}</p>
+          <li key={app.title} className="flex items-center justify-between gap-4 py-4">
+            <div className="min-w-0">
+              <h3 className="text-[15px] font-medium text-foreground">{app.title}</h3>
+              <p className="mt-1 text-sm text-muted-foreground">{app.description}</p>
             </div>
-            {/* mt-auto keeps the buttons and tags on one line across the row. */}
-            <div className="mt-auto flex min-h-8 items-center pt-1">
-              {app.released ? (
-                <a
-                  href={app.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={cn(buttonVariants({ variant: "outline", size: "sm" }), "max-sm:h-10")}
-                >
-                  {app.action}
-                  <span className="sr-only">, {app.title}</span>
-                  <ArrowUpRight className="h-4 w-4" aria-hidden />
-                  {NEW_TAB}
-                </a>
-              ) : (
-                <StatusTag>Coming soon</StatusTag>
-              )}
-            </div>
+            {app.released ? (
+              <a
+                href={app.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(buttonVariants({ variant: "outline", size: "sm" }), "shrink-0 max-sm:h-10")}
+              >
+                {app.action}
+                <span className="sr-only">, {app.title}</span>
+                <ArrowUpRight className="h-4 w-4" aria-hidden />
+                {NEW_TAB}
+              </a>
+            ) : (
+              <StatusTag className="shrink-0">Coming soon</StatusTag>
+            )}
           </li>
         ))}
       </ul>
-    </section>
+    </HomeSection>
   );
 }
 
 /** Closing: where the stories are, and the Portal's public code. */
 export function HomeCloser() {
   return (
-    <section aria-label="Open source" className="flex flex-col items-center gap-4 text-center">
-      <p className="text-sm text-muted-foreground">
-        Watch our stories at{" "}
-        <a href="https://infocusnews.tv" className={INLINE_LINK_CLASS}>
-          infocusnews.tv
-        </a>
-        . The Portal is open source.
-      </p>
+    <HomeSection
+      id="open-source"
+      number="03"
+      label="Open source"
+      title="The Portal's code is public"
+      lede={
+        <p>
+          Watch the stories at{" "}
+          <a href="https://infocusnews.tv" className={INLINE_LINK_CLASS}>
+            infocusnews.tv
+          </a>
+          . The code that runs the Portal is on GitHub under the MIT license.
+        </p>
+      }
+    >
       <a
         href="https://github.com/neelsatyavolu/infocus-portal"
         target="_blank"
@@ -145,6 +167,6 @@ export function HomeCloser() {
         <ArrowUpRight className="h-4 w-4" aria-hidden />
         {NEW_TAB}
       </a>
-    </section>
+    </HomeSection>
   );
 }

@@ -8,19 +8,17 @@ export const metadata: Metadata = {
 };
 
 /**
- * Public home page, one centered column: the hero (headline, one sentence, Open InFocus Portal and
- * Submit an announcement, two text shortcuts, a still of the review screen), four one-line
- * features, the apps, and a closing line.
+ * Public home page, left-aligned on the page column: the hero (headline, what the Portal does,
+ * Open InFocus Portal and Submit an announcement, a line of facts, a still of the review screen),
+ * then three numbered sections: what's inside, the apps, and the open-source code.
  */
 export default function HomePage() {
   return (
     <MarketingPage active="home">
-      <div className="mx-auto flex max-w-[60rem] flex-col gap-16 pb-6 pt-10 md:gap-20 md:pt-20">
-        <HomeHero />
-        <FeaturesStrip />
-        <AppsRow />
-        <HomeCloser />
-      </div>
+      <HomeHero />
+      <FeaturesStrip />
+      <AppsRow />
+      <HomeCloser />
     </MarketingPage>
   );
 }

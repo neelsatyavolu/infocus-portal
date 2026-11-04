@@ -62,10 +62,10 @@ describe("listDisqualified", () => {
 });
 
 describe("the leaderboard contest", () => {
-  it("closes at 11:59 PM Pacific on November 4", () => {
-    expect(isContestOpen(new Date("2026-11-04T23:59:30-08:00"))).toBe(true);
-    expect(isContestOpen(new Date("2026-11-05T00:00:00-08:00"))).toBe(false);
-    expect(HARVEST_CONTEST.closesAt.toISOString()).toBe("2026-11-05T07:59:59.999Z");
+  it("closes at 11:59 PM Pacific on November 5", () => {
+    expect(isContestOpen(new Date("2026-11-05T23:59:30-08:00"))).toBe(true);
+    expect(isContestOpen(new Date("2026-11-06T00:00:00-08:00"))).toBe(false);
+    expect(HARVEST_CONTEST.closesAt.toISOString()).toBe("2026-11-06T07:59:59.999Z");
   });
 
   it("is won by the total, and an exact tie shares the prize", () => {

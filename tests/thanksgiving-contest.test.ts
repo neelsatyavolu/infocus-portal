@@ -34,8 +34,8 @@ vi.mock("@/src/lib/after-response", () => ({ afterResponse: (_: string, task: ()
 
 import { settleHarvestContest } from "@/src/server/thanksgiving-contest";
 
-const BEFORE = new Date("2026-11-04T22:00:00-08:00");
-const AFTER = new Date("2026-11-05T00:01:00-08:00");
+const BEFORE = new Date("2026-11-05T22:00:00-08:00");
+const AFTER = new Date("2026-11-06T00:01:00-08:00");
 
 function ranked(userId: string, total: number, rank: number) {
   return { userId, name: userId, leaves: total, pies: 0, wishbones: 0, giantTurkeys: 0, pardons: 0, total, rank };

@@ -59,15 +59,15 @@ export function harvestYear(now: Date): number {
 }
 
 /**
- * The 2026 contest: whoever is first on the board at 11:59 PM Pacific on November 4 wins a
+ * The 2026 contest: whoever is first on the board at 11:59 PM Pacific on November 5 wins a
  * pre-approved extension for their whole package group (src/server/thanksgiving-contest.ts).
  * Ranked by total, every kind of catch counting one. The board keeps counting afterwards.
  */
 export const HARVEST_CONTEST = {
   year: 2026,
-  /** 11:59 PM Pacific (PST, UTC−8) on Wednesday, November 4. */
-  closesAt: new Date("2026-11-04T23:59:59.999-08:00"),
-  closesLabel: "11:59 PM Wed, Nov 4",
+  /** 11:59 PM Pacific (PST, UTC−8) on Thursday, November 5. */
+  closesAt: new Date("2026-11-05T23:59:59.999-08:00"),
+  closesLabel: "11:59 PM Thu, Nov 5",
   prizeDays: 2
 } as const;
 

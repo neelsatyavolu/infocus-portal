@@ -13,7 +13,8 @@ const REASON_LABELS: Record<string, string> = {
   "too-fast": "clicks too close",
   "rate-limit": "over the rate limits",
   clock: "clock off",
-  "outdated-page": "old page"
+  "outdated-page": "old page",
+  duplicate: "sent twice"
 };
 
 function rejectedSummary(rejected: Record<string, number>) {

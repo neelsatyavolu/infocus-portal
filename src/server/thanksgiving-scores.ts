@@ -15,6 +15,7 @@ import {
   emptyRecent,
   flagReason,
   judgeCatches,
+  RECENT_LOG_MS,
   REGULAR_TIMING_SAMPLES,
   type CatchInput,
   type CatchVerdict
@@ -34,15 +35,17 @@ async function lockPlayer(tx: Tx, userId: string) {
 
 async function loadRecent(tx: Tx, userId: string, year: number, now: number) {
   const rows = await tx.thanksgivingCatch.findMany({
-    where: { userId, year, accepted: true, source: "play", caughtAt: { gte: new Date(now - DAY_MS - 60 * 60_000) } },
+    where: { userId, year, source: "play", caughtAt: { gte: new Date(now - DAY_MS - 60 * 60_000) } },
     orderBy: { caughtAt: "asc" },
-    select: { kind: true, caughtAt: true }
+    select: { kind: true, caughtAt: true, reactionMs: true, accepted: true }
   });
   const recent = emptyRecent();
   for (const row of rows) {
     const kind = row.kind as HarvestKind;
     if (!recent.kindTimes[kind]) continue;
     const at = row.caughtAt.getTime();
+    if (at >= now - RECENT_LOG_MS) recent.logged.push({ kind, at, reactionMs: row.reactionMs });
+    if (!row.accepted) continue;
     recent.kindTimes[kind].push(at);
     if (CLICK_KINDS.includes(kind)) recent.clickTimes.push(at);
   }

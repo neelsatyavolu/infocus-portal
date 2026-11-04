@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  BOT_REASONS,
   CATCH_RULES,
   emptyRecent,
   FLAG_AFTER_BOT_REJECTIONS,
   FLAG_AFTER_RATE_REJECTIONS,
   flagReason,
   judgeCatches,
+  RESEND_WINDOW_MS,
   type CatchInput
 } from "@/src/lib/thanksgiving-guard";
 
@@ -55,8 +57,28 @@ describe("judgeCatches", () => {
   });
 
   it("rejects clicks closer together than a person can click", () => {
-    const verdicts = judge([leaf(NOW - 5_000), leaf(NOW - 4_950), leaf(NOW - 4_700)]);
+    const verdicts = judge([leaf(NOW - 5_000, 2_500), leaf(NOW - 4_950, 3_100), leaf(NOW - 4_700, 1_900)]);
     expect(verdicts.map((verdict) => verdict.reason)).toEqual([null, "too-fast", null]);
+  });
+
+  it("marks a batch sent again (with a different clock offset) as duplicates, not bot clicks", () => {
+    const batch = [leaf(NOW - 6_000, 1_857), leaf(NOW - 4_500, 2_699), leaf(NOW - 3_000, 4_377)];
+    const first = judge(batch);
+    expect(first.every((verdict) => verdict.accepted)).toBe(true);
+    const recent = emptyRecent();
+    for (const verdict of first) {
+      recent.clickTimes.push(verdict.caughtAt.getTime());
+      recent.kindTimes.leaves.push(verdict.caughtAt.getTime());
+      recent.logged.push({ kind: "leaves", at: verdict.caughtAt.getTime(), reactionMs: verdict.reactionMs });
+    }
+    const again = judge(batch, { offsetMs: -750, recent });
+    expect(again.map((verdict) => verdict.reason)).toEqual(["duplicate", "duplicate", "duplicate"]);
+    expect(BOT_REASONS).not.toContain("duplicate");
+  });
+
+  it("still counts a different catch with the same reaction time once it's out of the re-send window", () => {
+    const verdicts = judge([leaf(NOW - 20_000, 2_000), leaf(NOW - 20_000 + RESEND_WINDOW_MS + 1, 2_000)]);
+    expect(verdicts.every((verdict) => verdict.accepted)).toBe(true);
   });
 
   it("caps each kind per minute, and counts what was already accepted", () => {

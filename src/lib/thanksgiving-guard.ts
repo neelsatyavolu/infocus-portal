@@ -33,7 +33,8 @@ export type RejectReason =
   | "too-fast"
   | "rate-limit"
   | "clock"
-  | "outdated-page";
+  | "outdated-page"
+  | "duplicate";
 
 export type CatchVerdict = {
   kind: HarvestKind;
@@ -81,13 +82,34 @@ export type RecentCatches = {
   clickTimes: number[];
   /** Times (ms) of accepted catches of each kind in the last day, oldest first, for the rates. */
   kindTimes: Record<HarvestKind, number[]>;
+  /** Catches already logged (accepted or not) in the last RECENT_LOG_MS, to spot a batch sent twice. */
+  logged: LoggedCatch[];
 };
+
+export type LoggedCatch = { kind: HarvestKind; at: number; reactionMs: number | null };
+
+/**
+ * A browser re-sends a batch when it thinks the first send failed, sometimes after the server
+ * saved it. Each send has its own clock offset, so the copy lands up to a second or so off the
+ * original, with the same kind and reaction time. Two real catches matching to the millisecond
+ * this close together are rare enough to count the second as the copy.
+ */
+export const RESEND_WINDOW_MS = 5_000;
+/** How far back logged catches are kept for the re-send check (a catch older than this is "clock"). */
+export const RECENT_LOG_MS = MAX_DELAY_MS + RESEND_WINDOW_MS;
 
 export function emptyRecent(): RecentCatches {
   return {
     clickTimes: [],
-    kindTimes: Object.fromEntries(HARVEST_KINDS.map((kind) => [kind, []])) as unknown as Record<HarvestKind, number[]>
+    kindTimes: Object.fromEntries(HARVEST_KINDS.map((kind) => [kind, []])) as unknown as Record<HarvestKind, number[]>,
+    logged: []
   };
+}
+
+function isResend(seen: readonly LoggedCatch[], kind: HarvestKind, at: number, reactionMs: number | null) {
+  return seen.some(
+    (item) => item.kind === kind && item.reactionMs === reactionMs && Math.abs(item.at - at) <= RESEND_WINDOW_MS
+  );
 }
 
 function countSince(times: readonly number[], since: number) {
@@ -125,6 +147,7 @@ export function judgeCatches({
     HarvestKind,
     number[]
   >;
+  const seen = [...recent.logged];
   const ordered = [...catches].sort((a, b) => a.at - b.at);
 
   return ordered.map((input) => {
@@ -141,6 +164,9 @@ export function judgeCatches({
 
     if (automation) return verdict("automation");
     if (!Number.isFinite(at) || at > now + FUTURE_SLACK_MS || at < now - MAX_DELAY_MS) return verdict("clock");
+    // Checked before click speed: a re-sent copy lands right next to its original.
+    if (isResend(seen, input.kind, at, reactionMs)) return verdict("duplicate");
+    seen.push({ kind: input.kind, at, reactionMs });
     if (rule.minAgeMs !== null) {
       if (reactionMs === null || !Number.isFinite(reactionMs) || reactionMs > MAX_AGE_MS) return verdict("no-reaction-time");
       if (reactionMs < rule.minAgeMs) return verdict("inhuman-reaction");
@@ -155,7 +181,7 @@ export function judgeCatches({
   });
 }
 
-/** Rejections that only a script produces (clock trouble and old pages are honest mistakes). */
+/** Rejections that only a script produces (clock trouble, old pages and re-sends are honest mistakes). */
 export const BOT_REASONS: readonly RejectReason[] = ["automation", "inhuman-reaction", "no-reaction-time", "too-fast"];
 /** Bot-like rejections since the last review that flag an account. */
 export const FLAG_AFTER_BOT_REJECTIONS = 5;

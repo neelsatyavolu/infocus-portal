@@ -158,12 +158,19 @@ export function judgeCatches({
 /** Rejections that only a script produces (clock trouble and old pages are honest mistakes). */
 export const BOT_REASONS: readonly RejectReason[] = ["automation", "inhuman-reaction", "no-reaction-time", "too-fast"];
 /** Bot-like rejections since the last review that flag an account. */
-export const FLAG_AFTER_BOT_REJECTIONS = 8;
+export const FLAG_AFTER_BOT_REJECTIONS = 5;
 /** Rate-limit rejections since the last review that flag an account. */
 export const FLAG_AFTER_RATE_REJECTIONS = 40;
 /** Click timing this even (coefficient of variation), over this many gaps, is a machine. */
-export const REGULAR_TIMING_CV = 0.1;
+export const REGULAR_TIMING_CV = 0.2;
 export const REGULAR_TIMING_SAMPLES = 30;
+/**
+ * A leaf takes 9–14 s to fall and is only fully on screen about half a second in. Catching nine
+ * in ten of the last 25+ within 1.5 s of appearing (each at a random spot along the top edge)
+ * is a script watching for new leaves, not a person.
+ */
+export const LEAF_SNIPE_MS = 1_500;
+export const LEAF_SNIPE_SAMPLES = 25;
 /** Gaps longer than this are breaks, not play, and don't count toward the timing check. */
 const PLAY_GAP_MS = 30_000;
 
@@ -182,12 +189,15 @@ export function flagReason({
   botRejections,
   rateRejections,
   clickTimes,
-  reactions
+  reactions,
+  leafReactions = []
 }: {
   botRejections: number;
   rateRejections: number;
   clickTimes: readonly number[];
   reactions: readonly number[];
+  /** Reaction times of the latest accepted leaf catches. */
+  leafReactions?: readonly number[];
 }): string | null {
   if (botRejections >= FLAG_AFTER_BOT_REJECTIONS) return `${botRejections} catches no person could make`;
   if (rateRejections >= FLAG_AFTER_RATE_REJECTIONS) return `${rateRejections} catches over the rate limits`;
@@ -200,6 +210,11 @@ export function flagReason({
   }
   if (reactions.length >= REGULAR_TIMING_SAMPLES && coefficientOfVariation(reactions) < REGULAR_TIMING_CV) {
     return "Reaction times all the same, like a script";
+  }
+  if (leafReactions.length >= LEAF_SNIPE_SAMPLES) {
+    const sorted = [...leafReactions].sort((a, b) => a - b);
+    const p90 = sorted[Math.floor(sorted.length * 0.9)];
+    if (p90 < LEAF_SNIPE_MS) return "Every leaf caught the moment it appeared, like a script";
   }
   return null;
 }

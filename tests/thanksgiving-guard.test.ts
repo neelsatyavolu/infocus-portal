@@ -113,6 +113,17 @@ describe("flagReason", () => {
     expect(flagReason({ botRejections: 0, rateRejections: 0, clickTimes: human, reactions: same })).toMatch(/Reaction times/);
   });
 
+  it("flags catching every leaf the moment it appears (an autoclicker watching the top edge)", () => {
+    // The pattern seen in production: 47 leaves, each caught 0.6–1.0 s after it appeared.
+    const sniped = Array.from({ length: 40 }, (_, i) => 600 + ((i * 97) % 430));
+    expect(flagReason({ botRejections: 0, rateRejections: 0, clickTimes: human, reactions: humanReactions, leafReactions: sniped })).toMatch(
+      /moment it appeared/
+    );
+    // A quick person still catches plenty of leaves partway down.
+    const quickHuman = Array.from({ length: 40 }, (_, i) => (i % 3 === 0 ? 900 + i * 10 : 2_000 + ((i * 733) % 9_000)));
+    expect(flagReason({ botRejections: 0, rateRejections: 0, clickTimes: human, reactions: quickHuman, leafReactions: quickHuman })).toBeNull();
+  });
+
   it("ignores long breaks when judging rhythm", () => {
     // Even gaps only because of 40-second breaks between catches: not play, so not judged.
     const breaks = Array.from({ length: 40 }, (_, i) => NOW + i * 40_000);

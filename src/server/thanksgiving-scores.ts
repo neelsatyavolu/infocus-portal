@@ -70,7 +70,7 @@ async function reviewPlayer(tx: Tx, userId: string, year: number) {
       where: { userId, year, accepted: true, source: "play", kind: { in: CLICK_KINDS }, receivedAt: { gt: since } },
       orderBy: { caughtAt: "desc" },
       take: REGULAR_TIMING_SAMPLES + 10,
-      select: { caughtAt: true, reactionMs: true }
+      select: { kind: true, caughtAt: true, reactionMs: true }
     })
   ]);
   const oldestFirst = [...latest].reverse();
@@ -78,7 +78,8 @@ async function reviewPlayer(tx: Tx, userId: string, year: number) {
     botRejections,
     rateRejections,
     clickTimes: oldestFirst.map((row) => row.caughtAt.getTime()),
-    reactions: oldestFirst.flatMap((row) => (row.reactionMs === null ? [] : [row.reactionMs]))
+    reactions: oldestFirst.flatMap((row) => (row.reactionMs === null ? [] : [row.reactionMs])),
+    leafReactions: oldestFirst.flatMap((row) => (row.kind === "leaves" && row.reactionMs !== null ? [row.reactionMs] : []))
   });
   if (reason) {
     await tx.thanksgivingScore.update({ where: { id: score.id }, data: { flaggedAt: new Date(), flagReason: reason } });

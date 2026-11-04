@@ -97,10 +97,14 @@ describe("wordpressConfig", () => {
 });
 
 describe("advanceWordpressStory", () => {
-  const publication = { id: "pub", title: "Downtown Game Shop", showDate: "2026-10-27", videoId: VIDEO,
+  const now = new Date("2026-10-26T20:00:00Z");
+  const publication = { id: "pub", title: "Downtown Game Shop", showDate: "2026-10-27", videoId: VIDEO, publishedAt: new Date("2026-10-26T19:50:00Z"),
     wordpressPostId: null, wordpressMediaId: null, wordpressCategoryId: null, wordpressAttempts: 0 };
   const context = { topic: "Card shop", toss: "A new card shop opened downtown.", writers: ["Abby Lane", "Otto Reyes"] };
-  const now = new Date("2026-10-26T20:00:00Z");
+  const fetchedThumbnails = () => vi.mocked(fetch).mock.calls.map(([url]) => String(url).split("/").pop());
+  const missingFullSize = () => vi.stubGlobal("fetch", vi.fn(async (url: string) => url.includes("maxresdefault")
+    ? new Response("missing", { status: 404 })
+    : new Response(new Uint8Array([1, 2, 3]), { headers: { "content-type": "image/jpeg" } })));
   const savedDraft = { id: 900, link: "https://news.example.edu/?p=900", status: "draft", meta: storyMeta(VIDEO) };
 
   beforeEach(() => {
@@ -108,9 +112,7 @@ describe("advanceWordpressStory", () => {
     vi.stubEnv("WORDPRESS_URL", "https://news.example.edu");
     vi.stubEnv("WORDPRESS_USERNAME", "portal");
     vi.stubEnv("WORDPRESS_APP_PASSWORD", "abcd efgh");
-    vi.stubGlobal("fetch", vi.fn(async (url: string) => url.includes("maxresdefault")
-      ? new Response("missing", { status: 404 })
-      : new Response(new Uint8Array([1, 2, 3]), { headers: { "content-type": "image/jpeg" } })));
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(new Uint8Array([1, 2, 3]), { headers: { "content-type": "image/jpeg" } })));
     mocks.update.mockResolvedValue({});
     mocks.categories.mockResolvedValue(CATEGORIES);
     mocks.ai.mockReturnValue({ accountId: "a", token: "t" });
@@ -138,6 +140,29 @@ describe("advanceWordpressStory", () => {
     expect(outcome).toEqual({ status: "POSTED", postId: 900, url: "https://news.example.edu/downtown-game-shop/",
       editUrl: "https://news.example.edu/wp-admin/post.php?post=900&action=edit", publishAt: new Date("2026-10-27T16:05:00Z") });
     expect(mocks.update).toHaveBeenCalledWith({ where: { id: "pub" }, data: { wordpressPostId: 900 } });
+  });
+
+  it("uses YouTube's full-size thumbnail as the featured image", async () => {
+    await advanceWordpressStory(publication, context, now);
+    expect(fetchedThumbnails()).toEqual(["maxresdefault.jpg"]);
+    expect(mocks.update).toHaveBeenCalledWith({ where: { id: "pub" }, data: { wordpressMediaId: 55 } });
+  });
+
+  it("waits for the full-size thumbnail instead of posting the small letterboxed one", async () => {
+    missingFullSize();
+    expect(await advanceWordpressStory(publication, context, now)).toBeNull();
+    expect(await advanceWordpressStory({ ...publication, publishedAt: null }, context, now)).toBeNull();
+    expect(fetchedThumbnails()).toEqual(["maxresdefault.jpg", "maxresdefault.jpg"]);
+    expect(mocks.upload).not.toHaveBeenCalled();
+    expect(mocks.draft).not.toHaveBeenCalled();
+    expect(mocks.update).not.toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ wordpressAttempts: expect.anything() }) }));
+  });
+
+  it("settles for the small thumbnail once YouTube has had two hours", async () => {
+    missingFullSize();
+    await advanceWordpressStory({ ...publication, publishedAt: new Date("2026-10-26T17:59:00Z") }, context, now);
+    expect(fetchedThumbnails()).toEqual(["maxresdefault.jpg", "hqdefault.jpg"]);
+    expect(mocks.draft).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ featuredMedia: 55 }));
   });
 
   it("adds reporters the toss names who are missing from the roster, when the site or the Portal knows them", async () => {

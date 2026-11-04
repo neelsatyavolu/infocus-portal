@@ -7,9 +7,11 @@ import { workersAiConfig, workersAiJsonChat } from "@/src/server/workers-ai";
 
 const MAX_ATTEMPTS = 5;
 const CATEGORY_MAX_TOKENS = 600;
+/** YouTube makes the full-size thumbnail some time after processing; until then only a small letterboxed one exists. */
+const FULL_THUMBNAIL_WAIT_MS = 2 * 60 * 60_000;
 
 type StoryPublication = {
-  id: string; title: string; showDate: string; videoId: string;
+  id: string; title: string; showDate: string; videoId: string; publishedAt: Date | null;
   wordpressPostId: number | null; wordpressMediaId: number | null; wordpressCategoryId: number | null; wordpressAttempts: number;
 };
 /** `writers`: the package members' names, for the story's bylines. */
@@ -34,7 +36,9 @@ export async function advanceWordpressStory(publication: StoryPublication, conte
   try {
     const categoryId = publication.wordpressCategoryId ?? await chooseCategory(config, publication, context);
     if (categoryId !== null && publication.wordpressCategoryId === null) await save({ wordpressCategoryId: categoryId });
-    const mediaId = publication.wordpressMediaId ?? await uploadThumbnail(config, publication);
+    const mediaId = publication.wordpressMediaId ?? await uploadThumbnail(config, publication, now);
+    // Still waiting on YouTube's full-size thumbnail: the next pass tries again, without using up an attempt.
+    if (mediaId === null) return null;
     if (publication.wordpressMediaId === null) await save({ wordpressMediaId: mediaId });
 
     let postId = publication.wordpressPostId;
@@ -110,13 +114,19 @@ async function writerBylines(config: WordpressConfig, context: StoryContext) {
   return bylines.filter((byline, index) => bylines.findIndex((other) => other.id === byline.id) === index);
 }
 
-async function uploadThumbnail(config: WordpressConfig, publication: StoryPublication) {
-  for (const url of youtubeThumbnailUrls(publication.videoId)) {
+/** The featured image's media ID, or null while it is still worth waiting for the full-size thumbnail. */
+async function uploadThumbnail(config: WordpressConfig, publication: StoryPublication, now: Date) {
+  // publishedAt is null on the pass that marks the video published, which is also its first moment on YouTube.
+  const publishedAt = publication.publishedAt ?? now;
+  const waiting = now.getTime() - publishedAt.getTime() < FULL_THUMBNAIL_WAIT_MS;
+  const urls = youtubeThumbnailUrls(publication.videoId);
+  for (const url of waiting ? urls.slice(0, 1) : urls) {
     const response = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(30_000) });
     if (!response.ok || !response.headers.get("content-type")?.startsWith("image/")) continue;
     return uploadWordpressImage(config, {
       bytes: await response.arrayBuffer(), filename: `infocus-${publication.videoId}.jpg`, title: publication.title
     });
   }
+  if (waiting) return null;
   throw new WordpressError("YouTube has no thumbnail for this video yet.");
 }

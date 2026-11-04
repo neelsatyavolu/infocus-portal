@@ -3,7 +3,8 @@ import { MAX_EXTENSION_DAYS } from "@/src/lib/package-extensions";
 /**
  * The Thanksgiving leaderboard (/thanksgiving): what each person caught this November, counted on
  * the server (ThanksgivingScore) so the class can compare. Browsers send what they caught in small
- * batches (components/thanksgiving/harvest-tally.ts); each batch is clamped here.
+ * batches (components/thanksgiving/harvest-tally.ts), and each catch is judged by the cheat
+ * checks in src/lib/thanksgiving-guard.ts.
  */
 
 export const HARVEST_KINDS = ["leaves", "pies", "wishbones", "giantTurkeys", "pardons"] as const;
@@ -20,27 +21,8 @@ export const HARVEST_LABELS: Record<HarvestKind, string> = {
 
 export const EMPTY_HARVEST: HarvestCounts = { leaves: 0, pies: 0, wishbones: 0, giantTurkeys: 0, pardons: 0 };
 
-/** Most of one kind a single batch may add (a batch covers a few seconds of play). */
-export const MAX_BATCH = 100;
-/** Most a browser's saved leaf or pie count may carry over the first time it joins the board. */
-export const MAX_CARRY_OVER = 2_000;
-
-function wholeNumber(value: unknown, max: number): number {
-  const n = Number(value);
-  return Number.isFinite(n) && n > 0 ? Math.min(Math.floor(n), max) : 0;
-}
-
-/** Turns a posted batch into safe whole numbers, each between 0 and `max`. */
-export function clampHarvest(input: Partial<Record<HarvestKind, unknown>> | null | undefined, max = MAX_BATCH): HarvestCounts {
-  return Object.fromEntries(HARVEST_KINDS.map((kind) => [kind, wholeNumber(input?.[kind], max)])) as HarvestCounts;
-}
-
 export function harvestTotal(counts: HarvestCounts): number {
   return HARVEST_KINDS.reduce((sum, kind) => sum + counts[kind], 0);
-}
-
-export function isEmptyHarvest(counts: HarvestCounts): boolean {
-  return harvestTotal(counts) === 0;
 }
 
 export type BoardEntry = HarvestCounts & { userId: string; name: string };

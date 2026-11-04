@@ -166,6 +166,7 @@ model User {
   meetingParticipations   MeetingParticipant[] @relation("MeetingParticipants")
   signature               UserSignature?       @relation("UserSignatureOwner")
   thanksgivingScores      ThanksgivingScore[]
+  thanksgivingCatches     ThanksgivingCatch[]
 
   @@index([email])
 }
@@ -2254,12 +2255,42 @@ model ThanksgivingScore {
   /// Giant turkeys that walked in on their own (a typed "gobble" doesn't count).
   giantTurkeys Int      @default(0)
   pardons      Int      @default(0)
+  /// Set when the cheat checks (src/lib/thanksgiving-guard.ts) or an exec flag the account: off the board, can't win.
+  flaggedAt    DateTime?
+  flagReason   String?
+  /// An exec cleared the flag; only rejections after this count toward a new one.
+  reviewClearedAt DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, year])
   @@index([year])
+}
+
+/// Every Thanksgiving catch a browser reported, with its verdict, for the cheat checks and leaderboard-over-time charts.
+model ThanksgivingCatch {
+  id         String   @id @default(cuid())
+  userId     String
+  year       Int
+  /// leaves | pies | wishbones | giantTurkeys | pardons
+  kind       String
+  /// 1 for a catch; more for a "carry-over" or "baseline" row.
+  count      Int      @default(1)
+  /// When it was caught (the browser's time, moved onto the server's clock).
+  caughtAt   DateTime
+  receivedAt DateTime @default(now())
+  /// How long the visitor had been on screen when it was caught; null for giant turkeys and bulk rows.
+  reactionMs Int?
+  /// play | carry-over (a browser's counts from before the board) | baseline (totals from before this log)
+  source     String   @default("play")
+  accepted   Boolean  @default(true)
+  /// Why it didn't count (src/lib/thanksgiving-guard.ts RejectReason).
+  reason     String?
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([year, caughtAt])
+  @@index([userId, year, caughtAt])
 }
 
 /// The Thanksgiving leaderboard contest's result, written once when it closes (src/server/thanksgiving-contest.ts).

@@ -1,12 +1,17 @@
 import type { Metadata } from "next";
+import { Alert } from "@/components/kit/alert";
 import { EmptyState } from "@/components/kit/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { ContestBanner } from "@/components/thanksgiving/contest-banner";
 import { HarvestBoard } from "@/components/thanksgiving/harvest-board";
+import { ReviewPanel } from "@/components/thanksgiving/review-panel";
 import { TurkeySprite } from "@/components/thanksgiving/sprites";
-import { requireUserId } from "@/src/lib/auth";
+import { requireUserId, syncUserProfile } from "@/src/lib/auth";
+import { getPlatformAccess } from "@/src/lib/platform-admin";
 import { HARVEST_CONTEST, isContestOpen } from "@/src/lib/thanksgiving-board";
+import { mayGrantExtensions } from "@/src/server/extension-requests";
 import { loadHarvestContest, settleHarvestContest } from "@/src/server/thanksgiving-contest";
+import { loadReviewRows, viewerFlag } from "@/src/server/thanksgiving-review";
 import { loadHarvestBoard } from "@/src/server/thanksgiving-scores";
 
 export const metadata: Metadata = { title: "Leaderboard" };
@@ -17,8 +22,16 @@ export const metadata: Metadata = { title: "Leaderboard" };
  */
 export default async function ThanksgivingLeaderboardPage() {
   const userId = await requireUserId();
+  const user = await syncUserProfile(userId);
+  const access = await getPlatformAccess(user.email);
+  const reviewer = mayGrantExtensions(access.role);
   await settleHarvestContest();
-  const [board, result] = await Promise.all([loadHarvestBoard(), loadHarvestContest()]);
+  const [board, result, flagged, review] = await Promise.all([
+    loadHarvestBoard(),
+    loadHarvestContest(),
+    viewerFlag(userId),
+    reviewer ? loadReviewRows() : null
+  ]);
 
   return (
     <div className="route-enter space-y-5">
@@ -29,6 +42,12 @@ export default async function ThanksgivingLeaderboardPage() {
       />
       {board.year === HARVEST_CONTEST.year ? (
         <ContestBanner open={isContestOpen(new Date())} result={result} viewerId={userId} />
+      ) : null}
+      {flagged ? (
+        <Alert tone="warning" title="You're off the board for now">
+          Some of your catches looked automated, so an exec is checking them. You can keep playing; if
+          it&apos;s all you, they&apos;ll put you back with everything you caught.
+        </Alert>
       ) : null}
       {board.rows.length > 0 ? (
         <section aria-label="Leaderboard">
@@ -41,6 +60,7 @@ export default async function ThanksgivingLeaderboardPage() {
           description="Catch a falling leaf or eat a pie and you're first."
         />
       )}
+      {review ? <ReviewPanel initialRows={review} /> : null}
     </div>
   );
 }

@@ -153,7 +153,9 @@ Semester 1 livestream points remain ungraded and excluded from totals until **No
   Nov 4 wins a pre-approved extension for their whole package group in their current cycle
   (`src/server/thanksgiving-contest.ts`): the group's longest whole-group grant plus 2 days, with
   no member agreement or producer approvals. An exact tie gives each winner's group the prize. A
-  winner on no package group gets none automatically; an exec grants it by hand.
+  winner on no package group gets none automatically; an exec grants it by hand. Accounts the
+  cheat checks flag (`src/lib/thanksgiving-guard.ts`), or an exec flags on `/thanksgiving`, can't
+  win until an exec clears them.
 - Past the extension deadline → **20%** reduction.
 - More than **14 days** past → **30%**, and a second revision cannot repair it.
 

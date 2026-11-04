@@ -40,7 +40,11 @@ function vars(values: Record<string, string>): CSSProperties {
 
 /** One visitor on the Thanksgiving layer. Clickable ones are buttons; the rest ignore the pointer. */
 export function HarvestSprite({ sprite, onHit }: { sprite: Sprite; onHit: SpriteHit }) {
-  const hit = (event: MouseEvent<HTMLElement>) => onHit(sprite, event.currentTarget.getBoundingClientRect());
+  // Only a real click or key press counts: a script calling .click() makes an untrusted event.
+  const hit = (event: MouseEvent<HTMLElement>) => {
+    if (!event.nativeEvent.isTrusted) return;
+    onHit(sprite, event.currentTarget.getBoundingClientRect());
+  };
 
   switch (sprite.kind) {
     case "leaf":

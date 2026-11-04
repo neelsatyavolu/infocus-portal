@@ -18,7 +18,7 @@ import {
 import { useThanksgivingActive, useThanksgivingPrefs } from "@/src/lib/use-thanksgiving";
 import { GiantTurkey } from "./giant-turkey";
 import { HarvestSprite, type Sprite } from "./harvest-sprite";
-import { carryOverHarvestOnce, tallyHarvest } from "./harvest-tally";
+import { carryOverHarvestOnce, tallyCatch } from "./harvest-tally";
 import { LeaderboardPopup } from "./leaderboard-popup";
 import { LeafPile } from "./leaf-pile";
 import { playHarvestSound, type HarvestSound } from "./harvest-sounds";
@@ -139,6 +139,8 @@ function Harvest() {
   const [welcomeDone, setWelcomeDone] = useState(() => !needsWelcome());
   const still = useMediaQuery("(prefers-reduced-motion: reduce)", false);
   const nextId = useRef(0);
+  /** When each visitor appeared, for the leaderboard's reaction-time check (harvest-tally.ts). */
+  const born = useRef(new Map<number, number>());
   const timers = useRef(new Set<number>());
   const keys = useRef<string[]>([]);
   const onScreen = useRef<Sprite[]>([]);
@@ -155,11 +157,15 @@ function Harvest() {
     timers.current.add(timer);
   }, []);
 
-  const remove = useCallback((id: number) => setSprites((all) => all.filter((sprite) => sprite.id !== id)), []);
+  const remove = useCallback((id: number) => {
+    born.current.delete(id);
+    setSprites((all) => all.filter((sprite) => sprite.id !== id));
+  }, []);
 
   const spawn = useCallback(
     (make: (id: number) => Sprite, lifetimeMs: number) => {
       const id = (nextId.current += 1);
+      born.current.set(id, Date.now());
       setSprites((all) => [...all, make(id)]);
       later(() => remove(id), lifetimeMs);
       return id;
@@ -411,7 +417,7 @@ function Harvest() {
       return;
     }
     sound("fanfare");
-    tallyHarvest("pardons");
+    tallyCatch("pardons", born.current.get(turkey.id));
     cheer(at, "Pardoned!");
     toast("Turkey pardoned", { description: "By the power vested in the InFocus Portal, this turkey walks free." });
   }
@@ -444,12 +450,14 @@ function Harvest() {
   }
 
   function hit(sprite: Sprite, at: DOMRect) {
+    // Read before the sprite is removed (removing forgets when it appeared).
+    const bornAt = born.current.get(sprite.id);
     switch (sprite.kind) {
       case "leaf": {
         remove(sprite.id);
         sound("rustle");
         const leaves = bump("leaves");
-        tallyHarvest("leaves");
+        tallyCatch("leaves", bornAt);
         cheer(at, `+1 · ${leaves} leaves`);
         if (leaves === LEAF_PILE_AT) toast(`${leaves} leaves caught`, { description: "That's a real pile. It's in the corner now. Jump in." });
         else if (leaves % 25 === 0) toast(`${leaves} leaves caught`, { description: "Keep raking." });
@@ -460,7 +468,7 @@ function Harvest() {
         dismiss(sprite.id);
         sound("yum");
         const pies = bump("pies");
-        tallyHarvest("pies");
+        tallyCatch("pies", bornAt);
         cheer(at, `+1 · ${pies} pies`);
         if (pies % 10 === 0) toast(`${pies} pies eaten`, { description: "Save some for the anchors." });
         return;
@@ -470,7 +478,7 @@ function Harvest() {
       case "wishbone": {
         remove(sprite.id);
         sound("snap");
-        tallyHarvest("wishbones");
+        tallyCatch("wishbones", bornAt);
         cheer(at, "Snap!");
         toast("You got the bigger half", { description: pick(WISHES) });
         return;

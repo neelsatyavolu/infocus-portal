@@ -1,30 +1,46 @@
 "use client";
 
 import { readThanksgivingPrefs } from "@/src/lib/thanksgiving";
-import { EMPTY_HARVEST, harvestYear, isEmptyHarvest, type HarvestCounts, type HarvestKind } from "@/src/lib/thanksgiving-board";
+import { harvestYear, type HarvestKind } from "@/src/lib/thanksgiving-board";
+import { MAX_CATCHES_PER_BATCH, type CatchInput } from "@/src/lib/thanksgiving-guard";
 
 /**
  * Sends what this browser catches to the Thanksgiving leaderboard (POST /api/thanksgiving), a
- * few seconds' worth at a time so a flurry of leaves is one request. Anything still waiting goes
- * out when the tab is hidden or closed. If a send fails, its catches wait for the next one.
+ * few seconds' worth at a time so a flurry of leaves is one request. Each catch goes with when it
+ * happened and how long its visitor had been on screen, which the server's cheat checks use
+ * (src/lib/thanksgiving-guard.ts). Anything still waiting goes out when the tab is hidden or
+ * closed. If a send fails for a passing reason, its catches wait for the next one.
  */
 
 const FLUSH_MS = 5_000;
+/** Beyond this much unsent play (a long time offline), the oldest catches are dropped. */
+const MAX_PENDING = 1_000;
 const CARRIED_KEY = "infocus-thanksgiving-board-carried";
 
-let pending: HarvestCounts = EMPTY_HARVEST;
+let pending: CatchInput[] = [];
 let timer: number | null = null;
 let listening = false;
 let carrying: Promise<void> | null = null;
 
-async function post(body: { add?: HarvestCounts; carryOver?: Pick<HarvestCounts, "leaves" | "pies"> }) {
+class SaveError extends Error {
+  constructor(readonly status: number) {
+    super(`Leaderboard save failed (${status})`);
+  }
+}
+
+/** Worth sending again later: offline, the server busy, or too many sends at once. */
+function retryable(error: unknown) {
+  return !(error instanceof SaveError) || error.status >= 500 || error.status === 429;
+}
+
+async function post(body: { catches?: CatchInput[]; carryOver?: { leaves: number; pies: number } }) {
   const response = await fetch("/api/thanksgiving", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ ...body, sentAt: Date.now(), automation: navigator.webdriver === true }),
     keepalive: true
   });
-  if (!response.ok) throw new Error(`Leaderboard save failed (${response.status})`);
+  if (!response.ok) throw new SaveError(response.status);
 }
 
 /** Sends everything waiting now. Resolves once it is saved (or has been put back to retry). */
@@ -33,15 +49,15 @@ export async function flushHarvestTally() {
     window.clearTimeout(timer);
     timer = null;
   }
-  if (isEmptyHarvest(pending)) return;
-  const batch = pending;
-  pending = EMPTY_HARVEST;
-  try {
-    await post({ add: batch });
-  } catch {
-    pending = Object.fromEntries(
-      Object.entries(pending).map(([kind, count]) => [kind, count + batch[kind as HarvestKind]])
-    ) as HarvestCounts;
+  while (pending.length > 0) {
+    const batch = pending.slice(0, MAX_CATCHES_PER_BATCH);
+    pending = pending.slice(batch.length);
+    try {
+      await post({ catches: batch });
+    } catch (error) {
+      if (retryable(error)) pending = [...batch, ...pending].slice(-MAX_PENDING);
+      return;
+    }
   }
 }
 
@@ -54,16 +70,30 @@ function listenForLeaving() {
   });
 }
 
-/** Counts one catch for the leaderboard. */
-export function tallyHarvest(kind: HarvestKind) {
-  pending = { ...pending, [kind]: pending[kind] + 1 };
+function queue(entry: CatchInput) {
+  pending = [...pending, entry].slice(-MAX_PENDING);
   listenForLeaving();
   if (timer === null) timer = window.setTimeout(() => void flushHarvestTally(), FLUSH_MS);
 }
 
 /**
+ * Counts one clicked catch for the leaderboard. `bornAt` is when its visitor appeared
+ * (Date.now() then); without it the catch isn't sent, since the server would take it for a script.
+ */
+export function tallyCatch(kind: Exclude<HarvestKind, "giantTurkeys">, bornAt: number | undefined) {
+  if (bornAt === undefined) return;
+  const at = Date.now();
+  queue({ kind, at, age: at - bornAt });
+}
+
+/** Counts a giant turkey that walked in on its own. */
+export function tallyGiantTurkey() {
+  queue({ kind: "giantTurkeys", at: Date.now(), age: null });
+}
+
+/**
  * Once per browser each year: bring the leaves and pies counted here before the leaderboard
- * existed. The server only ever raises a count to these numbers, so repeats are harmless.
+ * existed. The server takes it once per person and caps it, so repeats are harmless.
  */
 export function carryOverHarvestOnce(): Promise<void> {
   carrying ??= carryOver();

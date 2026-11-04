@@ -44,14 +44,14 @@ export default async function ThanksgivingLeaderboardPage() {
         <ContestBanner open={isContestOpen(new Date())} result={result} viewerId={userId} />
       ) : null}
       {flagged ? (
-        <Alert tone="warning" title="You're off the board for now">
-          Some of your catches looked automated, so an exec is checking them. You can keep playing; if
-          it&apos;s all you, they&apos;ll put you back with everything you caught.
+        <Alert tone="warning" title="You're disqualified for now">
+          Some of your catches looked automated, so you can&apos;t place or win while an exec checks them.
+          You can keep playing; if it&apos;s all you, they&apos;ll restore you with everything you caught.
         </Alert>
       ) : null}
-      {board.rows.length > 0 ? (
+      {board.rows.length > 0 || board.disqualified.length > 0 ? (
         <section aria-label="Leaderboard">
-          <HarvestBoard rows={board.rows} viewerId={userId} />
+          <HarvestBoard rows={board.rows} disqualified={board.disqualified} viewerId={userId} />
         </section>
       ) : (
         <EmptyState

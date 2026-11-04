@@ -27,6 +27,16 @@ export function harvestTotal(counts: HarvestCounts): number {
 
 export type BoardEntry = HarvestCounts & { userId: string; name: string };
 export type RankedEntry = BoardEntry & { total: number; rank: number };
+/** A flagged account (src/lib/thanksgiving-guard.ts): shown under the ranks, never ranked or a winner. */
+export type DisqualifiedEntry = BoardEntry & { total: number };
+
+/** Disqualified accounts with something caught, most first. */
+export function listDisqualified(entries: readonly BoardEntry[]): DisqualifiedEntry[] {
+  return entries
+    .map((entry) => ({ ...entry, total: harvestTotal(entry) }))
+    .filter((entry) => entry.total > 0)
+    .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
+}
 
 /**
  * Most goodies first (every kind counts one), then more pardons, then name. People who tie share

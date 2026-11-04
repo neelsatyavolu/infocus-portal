@@ -4,6 +4,7 @@ import {
   EMPTY_HARVEST,
   HARVEST_CONTEST,
   isContestOpen,
+  listDisqualified,
   prizeGrantDays,
   harvestTotal,
   rankBoard,
@@ -46,6 +47,17 @@ describe("rankBoard", () => {
   it("leaves out people who caught nothing", () => {
     expect(rankBoard([entry("Abby", {})])).toEqual([]);
     expect(harvestTotal(EMPTY_HARVEST)).toBe(0);
+  });
+});
+
+describe("listDisqualified", () => {
+  it("lists flagged accounts with something caught, most first, never ranked", () => {
+    const rows = listDisqualified([entry("Otto", { leaves: 3 }), entry("Abby", { leaves: 9, pies: 1 }), entry("Sage", {})]);
+    expect(rows.map((row) => [row.name, row.total])).toEqual([
+      ["Abby", 10],
+      ["Otto", 3]
+    ]);
+    expect(rows[0]).not.toHaveProperty("rank");
   });
 });
 

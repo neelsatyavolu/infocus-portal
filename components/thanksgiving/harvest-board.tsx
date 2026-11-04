@@ -1,6 +1,13 @@
 import type { ComponentType } from "react";
 import { Medal } from "lucide-react";
-import { HARVEST_KINDS, HARVEST_LABELS, type HarvestKind, type RankedEntry } from "@/src/lib/thanksgiving-board";
+import { StatusTag } from "@/components/kit/status-tag";
+import {
+  HARVEST_KINDS,
+  HARVEST_LABELS,
+  type DisqualifiedEntry,
+  type HarvestKind,
+  type RankedEntry
+} from "@/src/lib/thanksgiving-board";
 import { cn } from "@/src/lib/utils";
 import { LeafSprite, PieSprite, TurkeySprite, WishboneSprite } from "./sprites";
 
@@ -25,14 +32,17 @@ const NUMBER = "font-mono-broadcast tabular-nums";
 
 /**
  * The Thanksgiving leaderboard as a table: rank, name, total, then one column per kind of catch.
- * `compact` (the popup) keeps rank, name and total only. The viewer's row is marked.
+ * `compact` (the popup) keeps rank, name and total only. The viewer's row is marked. Disqualified
+ * accounts follow the ranks, unranked, with their total struck through.
  */
 export function HarvestBoard({
   rows,
+  disqualified = [],
   viewerId,
   compact = false
 }: {
   rows: readonly RankedEntry[];
+  disqualified?: readonly DisqualifiedEntry[];
   viewerId: string | null;
   compact?: boolean;
 }) {
@@ -86,6 +96,31 @@ export function HarvestBoard({
               </tr>
             );
           })}
+          {disqualified.map((row) => (
+            <tr key={row.userId} className="text-muted-foreground">
+              <td className={cn(NUMBER, "px-3 py-2")}>
+                <span aria-hidden>–</span>
+                <span className="sr-only">Not ranked</span>
+              </td>
+              <td className="max-w-[16rem] px-3 py-2">
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="truncate">{row.name}</span>
+                  {row.userId === viewerId ? <span className="text-xs">You</span> : null}
+                  <StatusTag tone="danger" size="sm" title="Caught by the leaderboard's cheat checks">
+                    Disqualified
+                  </StatusTag>
+                </span>
+              </td>
+              <td className={cn(NUMBER, "px-3 py-2 text-right line-through")}>{row.total}</td>
+              {compact
+                ? null
+                : HARVEST_KINDS.map((kind) => (
+                    <td key={kind} className={cn(NUMBER, "px-3 py-2 text-right line-through")}>
+                      {row[kind]}
+                    </td>
+                  ))}
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>

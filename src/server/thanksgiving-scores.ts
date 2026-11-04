@@ -3,7 +3,9 @@ import { prisma } from "@/src/lib/prisma";
 import {
   HARVEST_KINDS,
   harvestYear,
+  listDisqualified,
   rankBoard,
+  type DisqualifiedEntry,
   type HarvestKind,
   type RankedEntry
 } from "@/src/lib/thanksgiving-board";
@@ -171,17 +173,18 @@ export async function carryOverHarvest(userId: string, counts: { leaves: number;
   });
 }
 
-export type HarvestBoard = { year: number; rows: RankedEntry[] };
+export type HarvestBoard = { year: number; rows: RankedEntry[]; disqualified: DisqualifiedEntry[] };
 
 /**
- * Everyone who caught something this year, ranked; flagged accounts are left off (and so can't
- * win the contest). Names only: emails never reach the board.
+ * Everyone who caught something this year, ranked. Flagged accounts are disqualified: listed
+ * apart, never ranked, so they can't win the contest. Names only: emails never reach the board.
  */
 export async function loadHarvestBoard(now = new Date()): Promise<HarvestBoard> {
   const year = harvestYear(now);
   const scores = await prisma.thanksgivingScore.findMany({
-    where: { year, flaggedAt: null },
+    where: { year },
     select: {
+      flaggedAt: true,
       userId: true,
       leaves: true,
       pies: true,
@@ -191,11 +194,13 @@ export async function loadHarvestBoard(now = new Date()): Promise<HarvestBoard> 
       user: { select: { name: true, nickname: true } }
     }
   });
-  const rows = rankBoard(
-    scores.map(({ user, ...counts }) => ({
-      ...counts,
-      name: user.nickname?.trim() || user.name?.trim() || "Someone"
-    }))
-  );
-  return { year, rows };
+  const entries = scores.map(({ user, flaggedAt, ...counts }) => ({
+    entry: { ...counts, name: user.nickname?.trim() || user.name?.trim() || "Someone" },
+    flagged: flaggedAt !== null
+  }));
+  return {
+    year,
+    rows: rankBoard(entries.filter((item) => !item.flagged).map((item) => item.entry)),
+    disqualified: listDisqualified(entries.filter((item) => item.flagged).map((item) => item.entry))
+  };
 }

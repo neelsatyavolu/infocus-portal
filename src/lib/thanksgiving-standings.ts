@@ -2,7 +2,7 @@ import { HARVEST_CONTEST, type RankedEntry } from "@/src/lib/thanksgiving-board"
 
 /**
  * Words and numbers around the Thanksgiving leaderboard: how far each person moved since
- * yesterday, how far the viewer is from first, and the final hour's countdown and lead.
+ * yesterday, how far the viewer is from first, and the final hour's countdown.
  */
 
 /** Places climbed since 24 hours ago (negative: fell), or "new" for someone who wasn't on the board. */
@@ -39,12 +39,9 @@ export function viewerGapLine(rows: readonly RankedEntry[], viewerId: string): s
   return `You're ${points(gap)} behind ${leader.name} for first.`;
 }
 
-/** The final hour before the close, when the top bar counts down. */
-export const FINAL_HOUR_MS = 60 * 60_000;
-
+/** The final hour before the close (the dark hour), when the top bar counts down. */
 export function inFinalHour(now: number): boolean {
-  const close = HARVEST_CONTEST.closesAt.getTime();
-  return now > close - FINAL_HOUR_MS && now <= close;
+  return now >= HARVEST_CONTEST.hiddenFrom.getTime() && now <= HARVEST_CONTEST.closesAt.getTime();
 }
 
 /** "59:12", or "1:00:00" for a full hour; never below 0:00. */
@@ -54,16 +51,4 @@ export function formatCountdown(ms: number): string {
   const minutes = Math.floor((total % 3600) / 60);
   const seconds = String(total % 60).padStart(2, "0");
   return hours > 0 ? `${hours}:${String(minutes).padStart(2, "0")}:${seconds}` : `${minutes}:${seconds}`;
-}
-
-/** Who's ahead, for the countdown: "Abby leads Otto by 12", "Abby and Otto are tied at 40". */
-export function leadLine(rows: readonly RankedEntry[]): string {
-  const firsts = rows.filter((row) => row.rank === 1);
-  if (firsts.length === 0) return "Nobody's on the board yet";
-  if (firsts.length > 1) return `${nameList(firsts.map((row) => row.name))} are tied at ${firsts[0].total}`;
-  const [leader] = firsts;
-  const next = rows.find((row) => row.rank > 1);
-  if (!next) return `${leader.name} leads with ${points(leader.total)}`;
-  const gap = leader.total - next.total;
-  return gap === 0 ? `${leader.name} leads ${next.name} on pardons` : `${leader.name} leads ${next.name} by ${gap}`;
 }

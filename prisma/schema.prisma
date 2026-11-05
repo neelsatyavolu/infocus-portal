@@ -2303,7 +2303,9 @@ model ThanksgivingContest {
   /// Everyone ranked first at the close (more than one only on an exact tie).
   winnerUserIds String[] @default([])
   winningTotal  Int      @default(0)
-  /// The pre-approved prize extensions created for the winners' package groups.
+  /// The pre-approved prize extensions created for (or given away by) the winners.
   grantIds      String[] @default([])
   settledAt     DateTime @default(now())
+  /// When the winner was announced and the prize granted (src/server/thanksgiving-contest.ts); null until then.
+  revealedAt    DateTime?
 }

@@ -76,24 +76,72 @@ export function harvestYear(now: Date): number {
 
 /**
  * The 2026 contest: whoever is first on the board at 11:59 PM Pacific on November 5 wins a
- * pre-approved extension for their whole package group (src/server/thanksgiving-contest.ts).
- * Ranked by points (harvestTotal). The board keeps counting afterwards.
+ * pre-approved extension for a Cycle 2 package group (src/server/thanksgiving-contest.ts): their
+ * own, or, if theirs already turned in its Final Cut, a group still working that they pick
+ * (src/server/thanksgiving-prize.ts). Ranked by points (harvestTotal). The last hour is blind:
+ * students see only their own points until the winner is revealed at 8:00 AM Friday. The board
+ * keeps counting afterwards.
  */
 export const HARVEST_CONTEST = {
   year: 2026,
   /** 11:59 PM Pacific (PST, UTC−8) on Thursday, November 5. */
   closesAt: new Date("2026-11-05T23:59:59.999-08:00"),
   closesLabel: "11:59 PM Thu, Nov 5",
+  /** From here until the reveal, students see only their own points. */
+  hiddenFrom: new Date("2026-11-05T23:00:00-08:00"),
+  hiddenLabel: "11:00 PM",
+  /** 8:00 AM Pacific on Friday, November 6: the winner is announced on the Portal and in Slack. */
+  revealAt: new Date("2026-11-06T08:00:00-08:00"),
+  revealLabel: "8:00 AM Fri, Nov 6",
+  /** The prize goes to a group in this cycle. */
+  prizeCycle: 2,
   prizeDays: 2
 } as const;
 
-/** The contest once it has closed and been locked in. */
+/**
+ * Where a winner's prize went: their own Cycle 2 group, a group they gave it to, still to be
+ * picked (their group already turned in its Final Cut), or nowhere (not on a Cycle 2 group: an
+ * exec adds it by hand).
+ */
+export type PrizeStatus =
+  | { kind: "own-group" }
+  | { kind: "gifted"; to: string }
+  | { kind: "choosing" }
+  | { kind: "no-group" };
+
+/** The contest once the winner has been revealed. */
 export type ContestResult = {
-  winners: Array<{ userId: string; name: string }>;
+  winners: Array<{ userId: string; name: string; prize: PrizeStatus }>;
   total: number;
-  /** Winners with no package group this cycle, so no extension could be created for them. */
-  ungranted: string[];
 };
+
+/**
+ * open: the board is public. blind: the last hour, students see only their own points. closed:
+ * locked in, waiting for the reveal (still blind). revealed: the winner is out, the board public again.
+ */
+export type ContestPhase = "open" | "blind" | "closed" | "revealed";
+
+export function contestPhase(now: Date): ContestPhase {
+  const time = now.getTime();
+  if (time >= HARVEST_CONTEST.revealAt.getTime()) return "revealed";
+  if (time > HARVEST_CONTEST.closesAt.getTime()) return "closed";
+  if (time >= HARVEST_CONTEST.hiddenFrom.getTime()) return "blind";
+  return "open";
+}
+
+/** The viewer's own points, ranked or disqualified (0 when they haven't caught anything). */
+export function viewerPoints(
+  board: { rows: readonly { userId: string; total: number }[]; disqualified: readonly { userId: string; total: number }[] },
+  viewerId: string
+): number {
+  return [...board.rows, ...board.disqualified].find((entry) => entry.userId === viewerId)?.total ?? 0;
+}
+
+/** Students can't see the standings (the last hour, then until the reveal). */
+export function isBoardHidden(now: Date): boolean {
+  const phase = contestPhase(now);
+  return phase === "blind" || phase === "closed";
+}
 
 export function isContestOpen(now: Date): boolean {
   return now.getTime() <= HARVEST_CONTEST.closesAt.getTime();

@@ -4,7 +4,7 @@ import { handleRouteError } from "@/src/lib/api-errors";
 import { okUnmapped } from "@/src/lib/http";
 import { getPlatformAccess } from "@/src/lib/platform-admin";
 import { getRequestKey, limitByKey } from "@/src/lib/rate-limit";
-import { HARVEST_CONTEST, HARVEST_KINDS } from "@/src/lib/thanksgiving-board";
+import { contestPhase, HARVEST_CONTEST, HARVEST_KINDS, isBoardHidden, viewerPoints } from "@/src/lib/thanksgiving-board";
 import { MAX_CATCHES_PER_BATCH } from "@/src/lib/thanksgiving-guard";
 import { mayGrantExtensions } from "@/src/server/extension-requests";
 import { requireRealUserId } from "@/src/server/native-push-devices";
@@ -39,21 +39,33 @@ const postSchema = z.object({
 const POSTS_PER_MINUTE = 30;
 
 /**
- * The Thanksgiving leaderboard, which row is the viewer's, and the contest (its close, then its
- * winner). Execs also get the review list (who's flagged, and why).
+ * The Thanksgiving leaderboard, which row is the viewer's, their points, and the contest (its
+ * close, then its winner once revealed). From the dark last hour until the reveal, students get
+ * no rows (`hidden`), only their own points. Execs see everything, plus the review list.
  */
 export async function GET() {
   try {
     const userId = await requireUserId();
     const user = await syncUserProfile(userId);
     const access = await getPlatformAccess(user.email);
-    await settleHarvestContest();
-    const [board, result] = await Promise.all([loadHarvestBoard(), loadHarvestContest()]);
+    const admin = mayGrantExtensions(access.role);
+    const now = new Date();
+    await settleHarvestContest(now);
+    const [board, result] = await Promise.all([loadHarvestBoard(now), loadHarvestContest()]);
+    const hidden = isBoardHidden(now) && !admin;
     return okUnmapped({
       ...board,
+      ...(hidden ? { rows: [], disqualified: [] } : {}),
+      hidden,
       viewerId: userId,
-      contest: { closesAt: HARVEST_CONTEST.closesAt.toISOString(), prizeDays: HARVEST_CONTEST.prizeDays, result },
-      review: mayGrantExtensions(access.role) ? await loadReviewRows() : null
+      viewerTotal: viewerPoints(board, userId),
+      contest: {
+        closesAt: HARVEST_CONTEST.closesAt.toISOString(),
+        prizeDays: HARVEST_CONTEST.prizeDays,
+        phase: contestPhase(now),
+        result
+      },
+      review: admin ? await loadReviewRows() : null
     });
   } catch (error) {
     return handleRouteError(error);

@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { HARVEST_CONTEST, type RankedEntry } from "@/src/lib/thanksgiving-board";
+import { HARVEST_CONTEST } from "@/src/lib/thanksgiving-board";
 import { HARVEST_HOUR_WINDOW, inHarvestHourWindow } from "@/src/lib/thanksgiving-harvest-hour";
-import { FINAL_HOUR_MS, formatCountdown, inFinalHour, leadLine } from "@/src/lib/thanksgiving-standings";
+import { formatCountdown, inFinalHour } from "@/src/lib/thanksgiving-standings";
 import { cn } from "@/src/lib/utils";
 import { LeafSprite } from "./sprites";
 
@@ -16,7 +16,7 @@ const MAX_WAIT_MS = 60 * 60_000;
 
 /** The next moment this strip might have something to show (a window opening), or null after the last. */
 function nextWake(now: number): number | null {
-  const starts = [HARVEST_HOUR_WINDOW.from.getTime(), HARVEST_CONTEST.closesAt.getTime() - FINAL_HOUR_MS];
+  const starts = [HARVEST_HOUR_WINDOW.from.getTime(), HARVEST_CONTEST.hiddenFrom.getTime()];
   const upcoming = starts.filter((start) => start > now);
   return upcoming.length > 0 ? Math.min(...upcoming) : null;
 }
@@ -45,13 +45,13 @@ function usePoll(active: boolean, run: () => void) {
 
 /**
  * A strip under the top bar for the contest's big moments: harvest hour (everything counts double;
- * the server only reveals it once it has started) and the final hour before the close, with who's
- * ahead. Shows nothing the rest of the time.
+ * the server only reveals it once it has started) and the dark final hour before the close, with
+ * the viewer's own points (nobody sees the standings then). Shows nothing the rest of the time.
  */
 export function ContestCountdown() {
   const [now, setNow] = useState(() => Date.now());
   const [hourEndsAt, setHourEndsAt] = useState<number | null>(null);
-  const [lead, setLead] = useState<string | null>(null);
+  const [mine, setMine] = useState<string | null>(null);
 
   const harvestWindow = inHarvestHourWindow(now);
   const finalHour = inFinalHour(now);
@@ -78,18 +78,18 @@ export function ContestCountdown() {
     announced.current = true;
     toast("Harvest hour!", { description: "For the next hour every catch counts double. Go, go, go." });
   }, []);
-  const checkLead = useCallback(async () => {
-    const board = await fetchJson<{ rows: RankedEntry[] }>("/api/thanksgiving");
-    if (board) setLead(leadLine(board.rows));
+  const checkPoints = useCallback(async () => {
+    const board = await fetchJson<{ viewerTotal: number }>("/api/thanksgiving");
+    if (board) setMine(`You have ${board.viewerTotal} ${board.viewerTotal === 1 ? "point" : "points"}`);
   }, []);
   usePoll(harvestWindow && !harvestLive, checkHour);
-  usePoll(finalHour, checkLead);
+  usePoll(finalHour, checkPoints);
 
   if (!harvestLive && !finalHour) return null;
   const left = harvestLive ? (hourEndsAt ?? now) - now : HARVEST_CONTEST.closesAt.getTime() - now;
   const parts = harvestLive
     ? ["Harvest hour", "Everything counts double", `${formatCountdown(left)} left`]
-    : ["Final hour", `${formatCountdown(left)} left`, lead];
+    : ["Final hour", `${formatCountdown(left)} left`, "The board is dark", mine];
 
   return (
     // No live region: it ticks every second. The toast announces harvest hour.

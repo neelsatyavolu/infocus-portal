@@ -225,21 +225,20 @@ export async function loadHarvestBoard(now = new Date()): Promise<HarvestBoard> 
 }
 
 /**
- * Each ranked person's place 24 hours ago, from the catch log (accepted catches up to then, at
- * their kind's worth, doubled in harvest hour), ranked among the people ranked now. A person
- * missing from the result wasn't on the board then.
+ * The board as it stood at `at`, from the catch log (accepted catches up to then, at their kind's
+ * worth, doubled in harvest hour), for the people in `people` (normally those ranked now, so
+ * disqualified accounts stay off). Someone with nothing by then isn't on it.
  */
-export async function loadPastRanks(rows: readonly RankedEntry[], now = new Date()): Promise<Map<string, number>> {
-  if (rows.length === 0) return new Map();
-  const year = harvestYear(now);
-  const cutoff = new Date(now.getTime() - DAY_MS);
-  const userIds = rows.map((row) => row.userId);
+export async function loadBoardAt(people: readonly { userId: string; name: string }[], at: Date): Promise<RankedEntry[]> {
+  if (people.length === 0) return [];
+  const year = harvestYear(at);
+  const userIds = people.map((person) => person.userId);
   const hour = harvestHour();
-  const hourEnd = new Date(Math.min(hour.endsAt.getTime(), cutoff.getTime()));
+  const hourEnd = new Date(Math.min(hour.endsAt.getTime(), at.getTime()));
   const [sums, doubled] = await Promise.all([
     prisma.thanksgivingCatch.groupBy({
       by: ["userId", "kind"],
-      where: { year, accepted: true, userId: { in: userIds }, caughtAt: { lte: cutoff } },
+      where: { year, accepted: true, userId: { in: userIds }, caughtAt: { lte: at } },
       _sum: { count: true }
     }),
     hour.startsAt < hourEnd
@@ -250,20 +249,26 @@ export async function loadPastRanks(rows: readonly RankedEntry[], now = new Date
         })
       : Promise.resolve([])
   ]);
-  const past = new Map<string, BoardEntry>(
-    rows.map((row) => [row.userId, { ...EMPTY_HARVEST, bonus: 0, userId: row.userId, name: row.name }])
+  const board = new Map<string, BoardEntry>(
+    people.map((person) => [person.userId, { ...EMPTY_HARVEST, bonus: 0, userId: person.userId, name: person.name }])
   );
   for (const sum of sums) {
-    const entry = past.get(sum.userId);
+    const entry = board.get(sum.userId);
     const kind = sum.kind as HarvestKind;
-    if (entry && kind in KIND_POINTS) past.set(sum.userId, { ...entry, [kind]: entry[kind] + (sum._sum.count ?? 0) });
+    if (entry && kind in KIND_POINTS) board.set(sum.userId, { ...entry, [kind]: entry[kind] + (sum._sum.count ?? 0) });
   }
   for (const sum of doubled) {
-    const entry = past.get(sum.userId);
+    const entry = board.get(sum.userId);
     const kind = sum.kind as HarvestKind;
     if (!entry || !(kind in KIND_POINTS)) continue;
     const extra = (sum._sum.count ?? 0) * KIND_POINTS[kind] * (HARVEST_HOUR_MULTIPLIER - 1);
-    past.set(sum.userId, { ...entry, bonus: entry.bonus + extra });
+    board.set(sum.userId, { ...entry, bonus: entry.bonus + extra });
   }
-  return new Map(rankBoard([...past.values()]).map((row) => [row.userId, row.rank]));
+  return rankBoard([...board.values()]);
+}
+
+/** Each ranked person's place 24 hours ago (loadBoardAt). Someone missing wasn't on the board then. */
+export async function loadPastRanks(rows: readonly RankedEntry[], now = new Date()): Promise<Map<string, number>> {
+  const past = await loadBoardAt(rows, new Date(now.getTime() - DAY_MS));
+  return new Map(past.map((row) => [row.userId, row.rank]));
 }

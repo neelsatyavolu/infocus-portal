@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { EMPTY_HARVEST, HARVEST_CONTEST, rankBoard, type BoardEntry } from "@/src/lib/thanksgiving-board";
-import { formatCountdown, inFinalHour, leadLine, rankMove, viewerGapLine } from "@/src/lib/thanksgiving-standings";
+import { formatCountdown, inFinalHour, rankMove, viewerGapLine } from "@/src/lib/thanksgiving-standings";
 
 function board(...entries: Array<[string, number, number?]>) {
   return rankBoard(
@@ -38,21 +38,13 @@ describe("viewerGapLine", () => {
   });
 });
 
-describe("leadLine", () => {
-  it("names the leader, the runner-up and the gap", () => {
-    expect(leadLine(board(["Abby", 52], ["Otto", 40]))).toBe("Abby leads Otto by 12");
-    expect(leadLine(board(["Abby", 52]))).toBe("Abby leads with 52 points");
-    expect(leadLine(board(["Abby", 40], ["Otto", 40]))).toBe("Abby and Otto are tied at 40");
-    expect(leadLine([])).toBe("Nobody's on the board yet");
-  });
-});
-
 describe("final hour countdown", () => {
   const close = HARVEST_CONTEST.closesAt.getTime();
 
-  it("covers the hour before the close only", () => {
-    expect(inFinalHour(close - 60 * 60_000)).toBe(false);
-    expect(inFinalHour(close - 59 * 60_000)).toBe(true);
+  it("covers the dark hour before the close only (11:00 to 11:59 PM)", () => {
+    const dark = HARVEST_CONTEST.hiddenFrom.getTime();
+    expect(inFinalHour(dark - 1)).toBe(false);
+    expect(inFinalHour(dark)).toBe(true);
     expect(inFinalHour(close)).toBe(true);
     expect(inFinalHour(close + 1)).toBe(false);
   });

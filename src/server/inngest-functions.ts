@@ -424,16 +424,20 @@ export const classBoardSlackStandings = inngest.createFunction(
 );
 
 /**
- * Nov 1–6, every three hours except 3 AM Pacific (src/lib/thanksgiving-slack.ts HARVEST_SLACK_HOURS):
- * the Thanksgiving leaderboard's top five in Slack #announcements while the contest runs, then the
- * final standings at the midnight after it closes. The event posts one now (for testing).
+ * Nov 1–5, every three hours except 3 AM Pacific (src/lib/thanksgiving-slack.ts): the Thanksgiving
+ * leaderboard's top five in Slack #announcements until the board goes dark at 11 PM Thursday; then
+ * 8:00 AM Friday Nov 6, the winner with the final top five. The event posts one now (for testing).
  */
 export const thanksgivingSlackStandings = inngest.createFunction(
   {
     id: "thanksgiving-slack-standings",
     concurrency: 1
   },
-  [{ cron: "TZ=America/Los_Angeles 0 0,6,9,12,15,18,21 1-6 11 *" }, { event: "thanksgiving/slack.requested" }],
+  [
+    { cron: "TZ=America/Los_Angeles 0 0,6,9,12,15,18,21 1-5 11 *" },
+    { cron: "TZ=America/Los_Angeles 0 8 6 11 *" },
+    { event: "thanksgiving/slack.requested" }
+  ],
   async () => {
     return runHarvestSlackPost();
   }

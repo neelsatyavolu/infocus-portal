@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { HARVEST_CONTEST, type ContestResult, type RankedEntry } from "@/src/lib/thanksgiving-board";
+import { HARVEST_CONTEST, type ContestPhase, type ContestResult, type RankedEntry } from "@/src/lib/thanksgiving-board";
 import { cn } from "@/src/lib/utils";
 import { ContestBanner } from "./contest-banner";
 import { HarvestBoard } from "./harvest-board";
@@ -18,8 +18,11 @@ const TOP = 5;
 type Board = {
   year: number;
   rows: RankedEntry[];
+  /** The dark last hour until the reveal: no rows, only the viewer's points. */
+  hidden: boolean;
   viewerId: string;
-  contest: { closesAt: string; prizeDays: number; result: ContestResult | null };
+  viewerTotal: number;
+  contest: { closesAt: string; prizeDays: number; phase: ContestPhase; result: ContestResult | null };
 };
 
 function alreadySeen(): boolean {
@@ -52,7 +55,6 @@ async function fetchBoard(): Promise<Board | null> {
  */
 export function LeaderboardPopup({ ready }: { ready: boolean }) {
   const [board, setBoard] = useState<Board | null>(null);
-  const [contestOpen, setContestOpen] = useState(false);
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -64,7 +66,6 @@ export function LeaderboardPopup({ ready }: { ready: boolean }) {
       const loaded = await fetchBoard().catch(() => null);
       if (cancelled || !loaded || loaded.year !== HARVEST_CONTEST.year) return;
       setBoard(loaded);
-      setContestOpen(Date.now() <= Date.parse(loaded.contest.closesAt));
       setOpen(true);
     })();
     return () => {
@@ -80,9 +81,11 @@ export function LeaderboardPopup({ ready }: { ready: boolean }) {
   if (!board) return null;
   const mine = board.rows.find((row) => row.userId === board.viewerId) ?? null;
   const top = board.rows.slice(0, TOP);
-  const standing = mine
-    ? `You're #${mine.rank} of ${board.rows.length} with ${mine.total}.`
-    : "You're not on it yet. One leaf gets you there.";
+  const standing = board.hidden
+    ? `The standings are hidden for now. You have ${board.viewerTotal} ${board.viewerTotal === 1 ? "point" : "points"}.`
+    : mine
+      ? `You're #${mine.rank} of ${board.rows.length} with ${mine.total}.`
+      : "You're not on it yet. One leaf gets you there.";
 
   return (
     <Dialog open={open} onOpenChange={(next) => (next ? setOpen(true) : close())}>
@@ -96,12 +99,8 @@ export function LeaderboardPopup({ ready }: { ready: boolean }) {
           <DialogTitle className="text-[22px] font-medium tracking-[-0.015em]">The Thanksgiving leaderboard</DialogTitle>
           <DialogDescription>{standing}</DialogDescription>
         </DialogHeader>
-        <ContestBanner
-          open={contestOpen}
-          result={board.contest.result}
-          viewerId={board.viewerId}
-        />
-        {top.length > 0 ? (
+        <ContestBanner phase={board.contest.phase} result={board.contest.result} viewerId={board.viewerId} />
+        {board.hidden ? null : top.length > 0 ? (
           <HarvestBoard rows={top} viewerId={board.viewerId} compact />
         ) : (
           <p className="text-sm text-muted-foreground">Nobody&apos;s on the board yet. Be the first.</p>

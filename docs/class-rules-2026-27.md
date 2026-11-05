@@ -151,10 +151,13 @@ Semester 1 livestream points remain ungraded and excluded from totals until **No
   or assistant lookups, and get no email.
 - One-off prize (2026): whoever is first on the Thanksgiving leaderboard (by points: golden leaves
   count 5, and harvest hour, a secret hour between 4 and 8 PM on Nov 5, counts double) at 11:59 PM Pacific on
-  Nov 5 wins a pre-approved extension for their whole package group in their current cycle
-  (`src/server/thanksgiving-contest.ts`): the group's longest whole-group grant plus 2 days, with
-  no member agreement or producer approvals. An exact tie gives each winner's group the prize. A
-  winner on no package group gets none automatically; an exec grants it by hand. Accounts the
+  Nov 5 wins a pre-approved extension for a Cycle 2 package group (`src/server/thanksgiving-contest.ts`):
+  the group's longest whole-group grant plus 2 days, with no member agreement or producer approvals.
+  The last hour (from 11 PM) is blind: students see only their own points. The winner is revealed,
+  and the prize granted, at 8:00 AM Fri, Nov 6. It goes to the winner's own Cycle 2 group, unless
+  that group already turned in its Final Cut; then the winner picks a Cycle 2 group that hasn't
+  (`src/server/thanksgiving-prize.ts`, or an exec picks for them). An exact tie gives each winner the
+  prize. A winner on no Cycle 2 group gets none automatically; an exec grants it by hand. Accounts the
   cheat checks flag (`src/lib/thanksgiving-guard.ts`), or an exec flags on `/thanksgiving`, can't
   win until an exec clears them.
 - Past the extension deadline → **20%** reduction.

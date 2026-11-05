@@ -52,6 +52,11 @@ const ContestCountdown = dynamic(
   () => import("@/components/thanksgiving/contest-countdown").then((m) => m.ContestCountdown),
   { ssr: false }
 );
+// After the Thanksgiving contest's reveal: the winner picks who gets the prize (any theme).
+const PrizeChoiceDialog = dynamic(
+  () => import("@/components/thanksgiving/prize-choice-dialog").then((m) => m.PrizeChoiceDialog),
+  { ssr: false }
+);
 const CreateFolderDialog = dynamic(() => import("@/components/shell/create-folder-dialog").then((m) => m.CreateFolderDialog), {
   ssr: false
 });
@@ -302,6 +307,7 @@ export function AppShell({
         ) : null}
         {halloween && seasonalDecor ? <HalloweenGoodies /> : null}
         {thanksgiving && seasonalDecor ? <ThanksgivingGoodies /> : null}
+        {chrome && !onMeetHost && !sampleOnly ? <PrizeChoiceDialog /> : null}
         {canViewAs && viewAsMounted ? (
           <ViewAsMenu currentUser={currentUser} canViewAs={canViewAs} viewingAs={viewingAs} open={viewAsOpen} onOpenChange={setViewAsOpen} />
         ) : null}

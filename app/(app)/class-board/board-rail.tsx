@@ -47,6 +47,8 @@ export type BoardHarvest = {
   rows: Array<{ userId: string; name: string; total: number; rank: number }>;
   contestOpen: boolean;
   harvestHourLive: boolean;
+  /** The dark last hour until the reveal: no names, just when the winner comes out. */
+  hidden: boolean;
 };
 
 export function BoardRail({
@@ -65,7 +67,7 @@ export function BoardRail({
   return (
     <div className="flex min-h-0 flex-col overflow-hidden rounded-md border border-border bg-card md:grid md:grid-cols-2 md:grid-rows-[auto_1fr] lg:flex">
       <DueNext deadlines={deadlines} />
-      {harvest && harvest.rows.length > 0 ? <Leaderboard harvest={harvest} /> : null}
+      {harvest && (harvest.hidden || harvest.rows.length > 0) ? <Leaderboard harvest={harvest} /> : null}
       {/*
         lg: a size container for what Due next leaves. The Livestreams list keeps --cal-rows
         calendar days of room free (every school day, or the empty message) before it takes more
@@ -166,11 +168,13 @@ function DueNext({ deadlines }: { deadlines: ClassBoardDeadline[] }) {
  * under the rest of the rail.
  */
 function Leaderboard({ harvest }: { harvest: BoardHarvest }) {
-  const meta = harvest.harvestHourLive
-    ? "Harvest hour · 2× points"
-    : harvest.contestOpen
+  const meta = harvest.hidden
+    ? "Board is dark"
+    : harvest.harvestHourLive
+      ? "Harvest hour · 2× points"
+      : harvest.contestOpen
       ? `Closes ${HARVEST_CONTEST.closesLabel}`
-      : "Thanksgiving";
+        : "Thanksgiving";
   return (
     <RailSection
       id="class-board-leaderboard"
@@ -178,6 +182,7 @@ function Leaderboard({ harvest }: { harvest: BoardHarvest }) {
       meta={meta}
       className="thanksgiving-show border-t border-border md:col-span-2 md:row-start-3 lg:shrink-0"
     >
+      {harvest.hidden ? <RailEmpty>{`Standings are hidden. Winner revealed ${HARVEST_CONTEST.revealLabel}.`}</RailEmpty> : null}
       <ol>
         {harvest.rows.map((row) => (
           <li key={row.userId} className={HARVEST_ROW}>

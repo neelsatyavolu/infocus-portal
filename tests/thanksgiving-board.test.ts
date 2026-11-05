@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  contestPhase,
   contestWinners,
+  isBoardHidden,
+  viewerPoints,
   EMPTY_HARVEST,
   HARVEST_CONTEST,
   isContestOpen,
@@ -92,5 +95,29 @@ describe("the leaderboard contest", () => {
     expect(prizeGrantDays([])).toBe(2);
     expect(prizeGrantDays([1.5, 3])).toBe(5);
     expect(prizeGrantDays([29.5])).toBe(30);
+  });
+});
+
+describe("contest phases", () => {
+  it("goes open, dark at 11 PM, closed after 11:59 PM, revealed at 8 AM Friday", () => {
+    expect(contestPhase(new Date("2026-11-05T22:59:59-08:00"))).toBe("open");
+    expect(contestPhase(new Date("2026-11-05T23:00:00-08:00"))).toBe("blind");
+    expect(contestPhase(HARVEST_CONTEST.closesAt)).toBe("blind");
+    expect(contestPhase(new Date("2026-11-06T00:00:00-08:00"))).toBe("closed");
+    expect(contestPhase(new Date("2026-11-06T08:00:00-08:00"))).toBe("revealed");
+  });
+
+  it("hides the board from the dark hour until the reveal", () => {
+    expect(isBoardHidden(new Date("2026-11-05T22:00:00-08:00"))).toBe(false);
+    expect(isBoardHidden(new Date("2026-11-05T23:30:00-08:00"))).toBe(true);
+    expect(isBoardHidden(new Date("2026-11-06T07:59:00-08:00"))).toBe(true);
+    expect(isBoardHidden(new Date("2026-11-06T08:00:00-08:00"))).toBe(false);
+  });
+
+  it("finds the viewer's own points, ranked or disqualified", () => {
+    const board = { rows: [{ userId: "abby", total: 12 }], disqualified: [{ userId: "player-six", total: 7 }] };
+    expect(viewerPoints(board, "abby")).toBe(12);
+    expect(viewerPoints(board, "player-six")).toBe(7);
+    expect(viewerPoints(board, "otto")).toBe(0);
   });
 });

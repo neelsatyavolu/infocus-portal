@@ -7,6 +7,7 @@ import {
   type ClassBoardDeadline,
   type ClassBoardLivestream
 } from "@/src/lib/class-board";
+import { HARVEST_CONTEST } from "@/src/lib/thanksgiving-board";
 import { cn } from "@/src/lib/utils";
 import { CAPACITY_TONE, CREW_OPEN, dayKindTag, splitRoleLine } from "./board-format";
 import { BOARD_TEXT } from "./board-scale";
@@ -21,6 +22,8 @@ const CALENDAR_LIST_ID = "class-board-calendar-list";
  * that shows only the rows that fit never ends on a doubled line).
  */
 const ROW_BASE = "grid items-center gap-x-4 border-t border-border px-4 py-2.5 first:border-t-0";
+/** Leaderboard rows: place | name | points. */
+const HARVEST_ROW = cn(ROW_BASE, "grid-cols-[var(--b-lead)_minmax(0,1fr)_auto] lg:py-[calc(var(--b)*0.2)]");
 /** Livestream rows: lead | title and crew | tags. */
 const STREAM_ROW = cn(ROW_BASE, "grid-cols-[var(--b-lead)_minmax(0,1fr)_auto]");
 /**
@@ -39,20 +42,30 @@ const DUE_ROW = cn(
  * Tablet: Due next over Livestreams on the left, Calendar down the right. lg: one column; Due
  * next takes its rows, then Livestreams and Calendar share the rest (see below).
  */
+/** The Thanksgiving leaderboard's top five for the classroom (November only; page.tsx loads it). */
+export type BoardHarvest = {
+  rows: Array<{ userId: string; name: string; total: number; rank: number }>;
+  contestOpen: boolean;
+  harvestHourLive: boolean;
+};
+
 export function BoardRail({
   deadlines,
   livestreams,
   days,
-  todayKey
+  todayKey,
+  harvest = null
 }: {
   deadlines: ClassBoardDeadline[];
   livestreams: ClassBoardLivestream[];
   days: ClassBoardDay[];
   todayKey: string;
+  harvest?: BoardHarvest | null;
 }) {
   return (
     <div className="flex min-h-0 flex-col overflow-hidden rounded-md border border-border bg-card md:grid md:grid-cols-2 md:grid-rows-[auto_1fr] lg:flex">
       <DueNext deadlines={deadlines} />
+      {harvest && harvest.rows.length > 0 ? <Leaderboard harvest={harvest} /> : null}
       {/*
         lg: a size container for what Due next leaves. The Livestreams list keeps --cal-rows
         calendar days of room free (every school day, or the empty message) before it takes more
@@ -143,6 +156,39 @@ function DueNext({ deadlines }: { deadlines: ClassBoardDeadline[] }) {
           ))}
         </ol>
       )}
+    </RailSection>
+  );
+}
+
+/**
+ * The Thanksgiving leaderboard's top five, refreshed with the rest of the board. Hidden when this
+ * screen has the Thanksgiving theme off (.thanksgiving-show). On a tablet it spans both columns
+ * under the rest of the rail.
+ */
+function Leaderboard({ harvest }: { harvest: BoardHarvest }) {
+  const meta = harvest.harvestHourLive
+    ? "Harvest hour · 2× points"
+    : harvest.contestOpen
+      ? `Closes ${HARVEST_CONTEST.closesLabel}`
+      : "Thanksgiving";
+  return (
+    <RailSection
+      id="class-board-leaderboard"
+      title="Leaderboard"
+      meta={meta}
+      className="thanksgiving-show border-t border-border md:col-span-2 md:row-start-3 lg:shrink-0"
+    >
+      <ol>
+        {harvest.rows.map((row) => (
+          <li key={row.userId} className={HARVEST_ROW}>
+            <span className={cn(BOARD_TEXT.mono, row.rank === 1 ? "text-[var(--brand-green)]" : "text-muted-foreground")}>
+              {`#${row.rank}`}
+            </span>
+            <p className={cn(BOARD_TEXT.body, "truncate font-semibold text-foreground")}>{row.name}</p>
+            <p className={cn(BOARD_TEXT.mono, "text-right text-foreground")}>{row.total}</p>
+          </li>
+        ))}
+      </ol>
     </RailSection>
   );
 }

@@ -2,7 +2,7 @@ import { pacificDateKey, type ClassBoardModel } from "@/src/lib/class-board";
 import { cn } from "@/src/lib/utils";
 import { BoardLiveHeader } from "./board-live-header";
 import { BoardRace } from "./board-race";
-import { BoardRail } from "./board-rail";
+import { BoardRail, type BoardHarvest } from "./board-rail";
 import { BOARD_SCALE } from "./board-scale";
 
 /**
@@ -14,7 +14,7 @@ import { BOARD_SCALE } from "./board-scale";
  * clock sits over the rail. Below lg the board is its own scroll container (every ancestor is
  * overflow-hidden) and the sections stack: nameplate, race, Due next, Livestreams, Calendar.
  */
-export default function ClassBoardView({ board }: { board: ClassBoardModel }) {
+export default function ClassBoardView({ board, harvest = null }: { board: ClassBoardModel; harvest?: BoardHarvest | null }) {
   return (
     <div
       className={cn(
@@ -38,6 +38,7 @@ export default function ClassBoardView({ board }: { board: ClassBoardModel }) {
           livestreams={board.livestreams}
           days={board.days}
           todayKey={pacificDateKey(new Date(board.generatedAt))}
+          harvest={harvest}
         />
       </div>
     </div>

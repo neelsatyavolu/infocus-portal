@@ -47,6 +47,15 @@
   animation: tg-flutter 2.6s ease-in-out infinite;
 }
 .tg-leaf svg { display: block; width: 100%; height: auto; filter: drop-shadow(0 2px 3px rgb(15 17 15 / 0.35)); }
+/* The rare golden leaf: a little bigger, glowing, with a shimmer. */
+.tg-leaf-golden { width: 44px; }
+.tg-leaf-golden svg {
+  filter: drop-shadow(0 0 6px rgb(242 169 59 / 0.85)) drop-shadow(0 2px 3px rgb(15 17 15 / 0.35));
+  animation: tg-shimmer 1.2s ease-in-out infinite;
+}
+@keyframes tg-shimmer {
+  50% { filter: drop-shadow(0 0 12px rgb(255 233 168 / 0.95)) drop-shadow(0 2px 3px rgb(15 17 15 / 0.35)); }
+}
 @keyframes tg-drift {
   to { transform: translateY(calc(100vh + 90px)); }
 }

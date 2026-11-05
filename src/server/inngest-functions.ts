@@ -19,6 +19,7 @@ import { birthdayCardNames } from "@/src/lib/birthday-slack";
 import { findTodaysBirthdays, postBirthdayGif } from "@/src/server/birthday-slack";
 import { renderBirthdayGif } from "@/src/server/birthday-slack-gif";
 import { runClassBoardSlackPost } from "@/src/server/class-board-slack";
+import { runHarvestSlackPost } from "@/src/server/thanksgiving-slack";
 import { MEETING_CALENDAR_EVENT, runMeetingCalendarJob } from "@/src/server/meetings-google-calendar";
 import { reticketScribes } from "@/src/server/meetings-housekeeping";
 import { retryScribeRekey, SCRIBE_REKEY_RETRY_EVENT, SCRIBE_RETRY_DELAYS_MS } from "@/src/server/meetings-scribe";
@@ -422,6 +423,22 @@ export const classBoardSlackStandings = inngest.createFunction(
   }
 );
 
+/**
+ * Nov 1–6, every three hours except 3 AM Pacific (src/lib/thanksgiving-slack.ts HARVEST_SLACK_HOURS):
+ * the Thanksgiving leaderboard's top five in Slack #announcements while the contest runs, then the
+ * final standings at the midnight after it closes. The event posts one now (for testing).
+ */
+export const thanksgivingSlackStandings = inngest.createFunction(
+  {
+    id: "thanksgiving-slack-standings",
+    concurrency: 1
+  },
+  [{ cron: "TZ=America/Los_Angeles 0 0,6,9,12,15,18,21 1-6 11 *" }, { event: "thanksgiving/slack.requested" }],
+  async () => {
+    return runHarvestSlackPost();
+  }
+);
+
 /** 00:00 Pacific: happy birthday in Slack #announcements for everyone born today. The event posts today's now (for testing). */
 export const birthdaySlackDaily = inngest.createFunction(
   {
@@ -532,6 +549,7 @@ export const inngestFunctions = [
   showRolesConfirmReminders,
   showEditReminderDaily,
   classBoardSlackStandings,
+  thanksgivingSlackStandings,
   birthdaySlackDaily,
   producerMeetingScheduleDaily,
   meetingInvitesSend,

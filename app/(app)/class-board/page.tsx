@@ -2,7 +2,13 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/src/lib/auth";
 import { getPlatformRoleForEmail } from "@/src/lib/platform-admin";
+import { pacificDateKey } from "@/src/lib/class-board";
+import { isContestOpen } from "@/src/lib/thanksgiving-board";
+import { inHarvestHour } from "@/src/lib/thanksgiving-harvest-hour";
 import { loadClassBoard } from "@/src/server/class-board";
+import { harvestHour } from "@/src/server/thanksgiving-harvest-hour";
+import { loadHarvestBoard } from "@/src/server/thanksgiving-scores";
+import type { BoardHarvest } from "./board-rail";
 import { classBoardPinAllowsAccess } from "@/src/server/class-board-pin";
 import ClassBoardPinGate from "./class-board-pin-gate";
 import ClassBoardView from "./class-board-view";
@@ -14,7 +20,25 @@ export const metadata: Metadata = {
 export default async function ClassBoardPage() {
   const result = await loadClassBoardPage();
   if (result.kind === "pin") return <ClassBoardPinGate />;
-  return <ClassBoardView board={result.board} />;
+  return <ClassBoardView board={result.board} harvest={result.harvest} />;
+}
+
+const HARVEST_TOP = 5;
+
+/** In November (Pacific), the Thanksgiving leaderboard's top five. A failure leaves it off, never the board. */
+async function loadBoardHarvest(now = new Date()): Promise<BoardHarvest | null> {
+  if (pacificDateKey(now).slice(5, 7) !== "11") return null;
+  try {
+    const board = await loadHarvestBoard(now);
+    return {
+      rows: board.rows.slice(0, HARVEST_TOP).map(({ userId, name, total, rank }) => ({ userId, name, total, rank })),
+      contestOpen: isContestOpen(now),
+      harvestHourLive: inHarvestHour(harvestHour(), now)
+    };
+  } catch (error) {
+    console.error("class board: leaderboard failed to load", error);
+    return null;
+  }
 }
 
 async function loadClassBoardPage() {
@@ -24,8 +48,8 @@ async function loadClassBoardPage() {
       return { kind: "pin" } as const;
     }
     const platformRole = session?.email ? await getPlatformRoleForEmail(session.email) : null;
-    const board = await loadClassBoard(platformRole);
-    return { kind: "board", board } as const;
+    const [board, harvest] = await Promise.all([loadClassBoard(platformRole), loadBoardHarvest()]);
+    return { kind: "board", board, harvest } as const;
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") {
       redirect("/sign-in");

@@ -56,10 +56,12 @@ type KindRule = {
 /**
  * One visitor every 9–18 s per open window: leaves (40%, 3–6 at a time), pies (25%, at most 3 on
  * screen), a strutting turkey (20%, five clicks to pardon), a wishbone (3%), and a giant turkey
- * every 30–60 minutes. The caps sit well above that.
+ * every 30–60 minutes. About one falling leaf in 150 is golden (a few an hour per window). The
+ * caps sit well above that.
  */
 export const CATCH_RULES: Record<HarvestKind, KindRule> = {
   leaves: { minAgeMs: 200, perMinute: 40, perHour: 700, perDay: 2_500 },
+  goldenLeaves: { minAgeMs: 200, perMinute: 2, perHour: 15, perDay: 100 },
   pies: { minAgeMs: 200, perMinute: 8, perHour: 120, perDay: 500 },
   wishbones: { minAgeMs: 200, perMinute: 3, perHour: 15, perDay: 60 },
   // Five clicks on a turkey that walks in from the edge.

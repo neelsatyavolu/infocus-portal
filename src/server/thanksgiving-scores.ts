@@ -1,14 +1,19 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/src/lib/prisma";
 import {
+  EMPTY_HARVEST,
   HARVEST_KINDS,
   harvestYear,
+  KIND_POINTS,
   listDisqualified,
   rankBoard,
+  type BoardEntry,
   type DisqualifiedEntry,
   type HarvestKind,
   type RankedEntry
 } from "@/src/lib/thanksgiving-board";
+import { inHarvestHour, HARVEST_HOUR_MULTIPLIER, type HarvestHour } from "@/src/lib/thanksgiving-harvest-hour";
+import { harvestHour } from "@/src/server/thanksgiving-harvest-hour";
 import {
   BOT_REASONS,
   CATCH_RULES,
@@ -56,6 +61,13 @@ function acceptedCounts(verdicts: readonly CatchVerdict[]) {
   return Object.fromEntries(
     HARVEST_KINDS.map((kind) => [kind, verdicts.filter((verdict) => verdict.accepted && verdict.kind === kind).length])
   ) as Record<HarvestKind, number>;
+}
+
+/** Harvest hour's extra points: each accepted catch made during it counts again (thanksgiving-harvest-hour.ts). */
+export function harvestHourBonus(verdicts: readonly CatchVerdict[], hour: HarvestHour) {
+  return verdicts
+    .filter((verdict) => verdict.accepted && inHarvestHour(hour, verdict.caughtAt))
+    .reduce((sum, verdict) => sum + KIND_POINTS[verdict.kind] * (HARVEST_HOUR_MULTIPLIER - 1), 0);
 }
 
 /** Flags the account when its rejections or click timing look like a script (thanksgiving-guard.ts). */
@@ -122,10 +134,14 @@ export async function recordCatches(
       }))
     });
     const counts = acceptedCounts(verdicts);
+    const bonus = harvestHourBonus(verdicts, harvestHour());
     await tx.thanksgivingScore.upsert({
       where: { userId_year: { userId, year } },
-      create: { userId, year, ...counts },
-      update: Object.fromEntries(HARVEST_KINDS.map((kind) => [kind, { increment: counts[kind] }]))
+      create: { userId, year, ...counts, bonus },
+      update: {
+        ...Object.fromEntries(HARVEST_KINDS.map((kind) => [kind, { increment: counts[kind] }])),
+        bonus: { increment: bonus }
+      }
     });
     await reviewPlayer(tx, userId, year);
     const accepted = verdicts.filter((verdict) => verdict.accepted).length;
@@ -188,10 +204,12 @@ export async function loadHarvestBoard(now = new Date()): Promise<HarvestBoard> 
       flaggedAt: true,
       userId: true,
       leaves: true,
+      goldenLeaves: true,
       pies: true,
       wishbones: true,
       giantTurkeys: true,
       pardons: true,
+      bonus: true,
       user: { select: { name: true, nickname: true } }
     }
   });
@@ -204,4 +222,48 @@ export async function loadHarvestBoard(now = new Date()): Promise<HarvestBoard> 
     rows: rankBoard(entries.filter((item) => !item.flagged).map((item) => item.entry)),
     disqualified: listDisqualified(entries.filter((item) => item.flagged).map((item) => item.entry))
   };
+}
+
+/**
+ * Each ranked person's place 24 hours ago, from the catch log (accepted catches up to then, at
+ * their kind's worth, doubled in harvest hour), ranked among the people ranked now. A person
+ * missing from the result wasn't on the board then.
+ */
+export async function loadPastRanks(rows: readonly RankedEntry[], now = new Date()): Promise<Map<string, number>> {
+  if (rows.length === 0) return new Map();
+  const year = harvestYear(now);
+  const cutoff = new Date(now.getTime() - DAY_MS);
+  const userIds = rows.map((row) => row.userId);
+  const hour = harvestHour();
+  const hourEnd = new Date(Math.min(hour.endsAt.getTime(), cutoff.getTime()));
+  const [sums, doubled] = await Promise.all([
+    prisma.thanksgivingCatch.groupBy({
+      by: ["userId", "kind"],
+      where: { year, accepted: true, userId: { in: userIds }, caughtAt: { lte: cutoff } },
+      _sum: { count: true }
+    }),
+    hour.startsAt < hourEnd
+      ? prisma.thanksgivingCatch.groupBy({
+          by: ["userId", "kind"],
+          where: { year, accepted: true, source: "play", userId: { in: userIds }, caughtAt: { gte: hour.startsAt, lt: hourEnd } },
+          _sum: { count: true }
+        })
+      : Promise.resolve([])
+  ]);
+  const past = new Map<string, BoardEntry>(
+    rows.map((row) => [row.userId, { ...EMPTY_HARVEST, bonus: 0, userId: row.userId, name: row.name }])
+  );
+  for (const sum of sums) {
+    const entry = past.get(sum.userId);
+    const kind = sum.kind as HarvestKind;
+    if (entry && kind in KIND_POINTS) past.set(sum.userId, { ...entry, [kind]: entry[kind] + (sum._sum.count ?? 0) });
+  }
+  for (const sum of doubled) {
+    const entry = past.get(sum.userId);
+    const kind = sum.kind as HarvestKind;
+    if (!entry || !(kind in KIND_POINTS)) continue;
+    const extra = (sum._sum.count ?? 0) * KIND_POINTS[kind] * (HARVEST_HOUR_MULTIPLIER - 1);
+    past.set(sum.userId, { ...entry, bonus: entry.bonus + extra });
+  }
+  return new Map(rankBoard([...past.values()]).map((row) => [row.userId, row.rank]));
 }

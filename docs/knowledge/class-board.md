@@ -14,7 +14,7 @@ The board fills the browser window with no sidebar, top bar or assistant. On a T
 
 - **Nameplate** (top): the 2026 wordmark (Soft White on dark, color in light mode, links to Dashboard), **Class Board** with the number of packages, the cycle number as the title, and the cycle's focus on the line under it (up to two lines on phones). On the right, over the side column: the date (shortened on phones, such as Thu, Oct 15), a live clock, and **Updated 10:42 AM** (when the board last received data).
 - **Race** (left two thirds): every package as a lane.
-- **Right column**, one card in this order: **Due next**, **Livestreams**, **Calendar**.
+- **Right column**, one card in this order: **Due next**, **Leaderboard** (November only), **Livestreams**, **Calendar**.
 
 The race's column headings and the Due next heading are the same height, so their dividers form one line across the board.
 
@@ -41,6 +41,8 @@ Period 1 times come from [Paly’s public bell schedule](https://www.paly.net/ca
 ## Right column
 
 **Due next** lists the next seven stage dates still ahead, across cycles. The contact and filming stages are labeled **Proof of Contact & Brainstorming** and **A-roll & b-roll**. Each row has a countdown tag (**Today**, **in 1d**, **in 8d**; amber for today and tomorrow), the stage, then the date and cycle (for example Oct 17 · Cycle 3). In a narrow column (phones, tablets) the date and cycle sit under the stage. Cycle 1 Initial Cut Stage 2 is September 22, 2026, and Stage 3 is September 26, 2026. Future cycles automatically use the same seven-day and three-day offsets from their Final Cut deadline; changing Final Cut updates the reminders. Grading still uses the regular Initial Cut deadline. Dates already passed are left off.
+
+**Leaderboard** (November only, while the screen has the Thanksgiving theme on) shows the top five on the Thanksgiving leaderboard (`/thanksgiving`): place, name and points, first place in gold. Its heading says when the contest closes, **Harvest hour · 2× points** while harvest hour is on, and just **Thanksgiving** after the close. It refreshes with the rest of the board. On a tablet it spans both columns under the rest of the right column.
 
 **Livestreams** lists every scheduled event in the next 14 days: the day and start time, the title, the crew (or **Crew open**), the place, and public / unlisted / unconfirmed, with a tag for crew slots (**Full**, or **1 open**, **3 open** in amber, since open slots mean crew is needed) and a green **Started** tag once it has begun. Its heading counts them (for example **8 · Next 14 days**). On a TV or laptop the list gets the room the calendar doesn't need (at least one livestream) and shows each livestream that fits as a whole row; when some don't fit, the heading says how many are left off (for example **+4 more · Next 14 days**). Phones and tablets list them all.
 

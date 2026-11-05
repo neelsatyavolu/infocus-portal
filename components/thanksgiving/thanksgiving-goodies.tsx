@@ -43,6 +43,8 @@ const FIRST_VISIT_MS = 3_000;
 const VISIT_MIN_MS = 9_000;
 const VISIT_SPREAD_MS = 9_000;
 const PIE_STAYS_MS = 15_000;
+/** About one falling leaf in 150 is golden (worth 5 on the leaderboard), and it falls faster. */
+const GOLDEN_LEAF_CHANCE = 1 / 150;
 const MAX_PIES = 3;
 /** Visitors that arrive on their own are quieter than the sounds people click for. */
 const AMBIENT_VOLUME = 0.6;
@@ -181,11 +183,20 @@ function Harvest() {
   const dropLeaves = useCallback(
     (count: number) => {
       for (let i = 0; i < count; i += 1) {
-        const duration = between(9, 14);
+        const golden = Math.random() < GOLDEN_LEAF_CHANCE;
+        const duration = golden ? between(6, 8) : between(9, 14);
         later(
           () =>
             spawn(
-              (id) => ({ id, kind: "leaf", left: between(0.03, 0.95) * window.innerWidth, duration, sway: between(24, 60), variant: leafColor() }),
+              (id) => ({
+                id,
+                kind: "leaf",
+                left: between(0.03, 0.95) * window.innerWidth,
+                duration,
+                sway: between(24, 60),
+                variant: leafColor(),
+                golden
+              }),
               duration * 1000 + 100
             ),
           i * between(300, 800)
@@ -455,6 +466,13 @@ function Harvest() {
     switch (sprite.kind) {
       case "leaf": {
         remove(sprite.id);
+        if (sprite.golden) {
+          sound("bell");
+          tallyCatch("goldenLeaves", bornAt);
+          cheer(at, "+5 · Golden leaf!");
+          toast("Golden leaf!", { description: "That one's worth 5 on the leaderboard." });
+          return;
+        }
         sound("rustle");
         const leaves = bump("leaves");
         tallyCatch("leaves", bornAt);

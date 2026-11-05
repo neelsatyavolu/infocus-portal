@@ -12,7 +12,7 @@ import {
 } from "@/src/lib/thanksgiving-board";
 
 function entry(userId: string, counts: Partial<BoardEntry>): BoardEntry {
-  return { ...EMPTY_HARVEST, userId, name: userId, ...counts };
+  return { ...EMPTY_HARVEST, bonus: 0, userId, name: userId, ...counts };
 }
 
 describe("rankBoard", () => {
@@ -46,7 +46,16 @@ describe("rankBoard", () => {
 
   it("leaves out people who caught nothing", () => {
     expect(rankBoard([entry("Abby", {})])).toEqual([]);
-    expect(harvestTotal(EMPTY_HARVEST)).toBe(0);
+    expect(harvestTotal({ ...EMPTY_HARVEST, bonus: 0 })).toBe(0);
+  });
+
+  it("counts a golden leaf five and adds harvest hour's bonus", () => {
+    expect(harvestTotal({ ...EMPTY_HARVEST, leaves: 3, goldenLeaves: 2, bonus: 4 })).toBe(17);
+    const rows = rankBoard([entry("Abby", { leaves: 9 }), entry("Otto", { goldenLeaves: 2 })]);
+    expect(rows.map((row) => [row.name, row.total])).toEqual([
+      ["Otto", 10],
+      ["Abby", 9]
+    ]);
   });
 });
 

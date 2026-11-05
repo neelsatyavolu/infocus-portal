@@ -47,6 +47,11 @@ const ThanksgivingGoodies = dynamic(
   () => import("@/components/thanksgiving/thanksgiving-goodies").then((m) => m.ThanksgivingGoodies),
   { ssr: false }
 );
+// The contest's harvest-hour and final-hour strip under the top bar, the same way.
+const ContestCountdown = dynamic(
+  () => import("@/components/thanksgiving/contest-countdown").then((m) => m.ContestCountdown),
+  { ssr: false }
+);
 const CreateFolderDialog = dynamic(() => import("@/components/shell/create-folder-dialog").then((m) => m.CreateFolderDialog), {
   ssr: false
 });
@@ -209,6 +214,7 @@ export function AppShell({
                 showSearch={!sampleOnly}
                 onSearch={() => setPaletteOpen(true)}
                 tabs={nav.hubTabs ? <HubTabs tabs={nav.hubTabs} /> : undefined}
+                notice={thanksgiving && seasonalDecor ? <ContestCountdown /> : undefined}
                 account={
                   <AccountMenu
                     currentUser={currentUser}

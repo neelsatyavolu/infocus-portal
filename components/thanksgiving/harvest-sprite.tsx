@@ -2,6 +2,7 @@ import type { CSSProperties, MouseEvent } from "react";
 import {
   CornSprite,
   CranberrySprite,
+  GoldenLeafSprite,
   LeafSprite,
   PieSprite,
   PotatoSprite,
@@ -17,7 +18,7 @@ type Side = "left" | "right";
 export type StrutPhase = "walk" | "free" | "burnt";
 
 export type Sprite =
-  | { id: number; kind: "leaf"; left: number; duration: number; sway: number; variant: number }
+  | { id: number; kind: "leaf"; left: number; duration: number; sway: number; variant: number; golden?: boolean }
   | { id: number; kind: "gust"; top: number; duration: number; variant: number; r: number }
   | { id: number; kind: "pie"; side: Side; top: number; gone: boolean }
   | { id: number; kind: "pierain"; left: number; duration: number; r: number }
@@ -50,11 +51,11 @@ export function HarvestSprite({ sprite, onHit }: { sprite: Sprite; onHit: Sprite
     case "leaf":
       return (
         <div
-          className="tg-leaf"
+          className={sprite.golden ? "tg-leaf tg-leaf-golden" : "tg-leaf"}
           style={{ left: sprite.left, ...vars({ "--tg-duration": `${sprite.duration}s`, "--tg-sway": `${sprite.sway}px` }) }}
         >
-          <button type="button" className="tg-hit" onClick={hit} aria-label="Catch the leaf">
-            <LeafSprite variant={sprite.variant} />
+          <button type="button" className="tg-hit" onClick={hit} aria-label={sprite.golden ? "Catch the golden leaf" : "Catch the leaf"}>
+            {sprite.golden ? <GoldenLeafSprite /> : <LeafSprite variant={sprite.variant} />}
           </button>
         </div>
       );

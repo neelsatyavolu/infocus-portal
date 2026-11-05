@@ -37,7 +37,8 @@ export function AppTopBar({
   showSearch,
   onSearch,
   tabs,
-  account
+  account,
+  notice
 }: {
   crumbs: AppBreadcrumb[];
   onLinkClick: ShellLinkClick;
@@ -53,6 +54,8 @@ export function AppTopBar({
   /** The hub's tabs, shown in place of the breadcrumbs. */
   tabs?: ReactNode;
   account: ReactNode;
+  /** A full-width strip under the bar (the Thanksgiving contest countdown). */
+  notice?: ReactNode;
 }) {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background pt-[env(safe-area-inset-top)]">
@@ -106,6 +109,7 @@ export function AppTopBar({
           </div>
         </div>
       </div>
+      {notice}
       {pending ? (
         <span aria-hidden className="pointer-events-none absolute inset-x-0 -bottom-px h-0.5 overflow-hidden">
           <span className="block h-full w-1/3 bg-[var(--brand-green)] motion-safe:animate-[loading-bar_1s_ease-in-out_infinite]" />

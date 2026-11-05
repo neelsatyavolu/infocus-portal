@@ -65,6 +65,29 @@ export function LeafSprite({ variant = 0, className }: { variant?: number; class
   );
 }
 
+/** The rare golden leaf (worth 5 on the leaderboard): the maple leaf in shining gold with a glint. */
+export function GoldenLeafSprite({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 64 64" className={className} aria-hidden>
+      <defs>
+        <linearGradient id="tg-golden-leaf" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#FFE9A8" />
+          <stop offset="0.45" stopColor={GOLD} />
+          <stop offset="1" stopColor={GOLD_DEEP} />
+        </linearGradient>
+      </defs>
+      <path
+        d="M32 4 L36 16 L44 11 L42 24 L54 20 L50 30 L60 34 L48 40 L52 48 L38 44 L34 54 L32 56 L30 54 L26 44 L12 48 L16 40 L4 34 L14 30 L10 20 L22 24 L20 11 L28 16 Z"
+        fill="url(#tg-golden-leaf)"
+        stroke="#FFF4D1"
+        strokeWidth="1.2"
+      />
+      <path d="M32 14 L32 62 M32 34 L20 26 M32 34 L44 26 M32 42 L22 40 M32 42 L42 40" stroke={BARK} strokeWidth="1.4" opacity="0.45" fill="none" />
+      <path d="M20 16 L22 20 L26 22 L22 24 L20 28 L18 24 L14 22 L18 20 Z" fill="#FFFFFF" opacity="0.9" />
+    </svg>
+  );
+}
+
 /** A pumpkin pie with a dollop of cream. */
 export function PieSprite({ className }: { className?: string }) {
   return (

@@ -2255,6 +2255,10 @@ model ThanksgivingScore {
   /// Giant turkeys that walked in on their own (a typed "gobble" doesn't count).
   giantTurkeys Int      @default(0)
   pardons      Int      @default(0)
+  /// Golden leaves: rare, worth 5 points each (src/lib/thanksgiving-board.ts KIND_POINTS).
+  goldenLeaves Int      @default(0)
+  /// Extra points from catches made during harvest hour, when everything counts double.
+  bonus        Int      @default(0)
   /// Set when the cheat checks (src/lib/thanksgiving-guard.ts) or an exec flag the account: off the board, can't win.
   flaggedAt    DateTime?
   flagReason   String?
@@ -2273,7 +2277,7 @@ model ThanksgivingCatch {
   id         String   @id @default(cuid())
   userId     String
   year       Int
-  /// leaves | pies | wishbones | giantTurkeys | pardons
+  /// leaves | goldenLeaves | pies | wishbones | giantTurkeys | pardons
   kind       String
   /// 1 for a catch; more for a "carry-over" or "baseline" row.
   count      Int      @default(1)

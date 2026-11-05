@@ -12,7 +12,8 @@ import { HARVEST_CONTEST, isContestOpen } from "@/src/lib/thanksgiving-board";
 import { mayGrantExtensions } from "@/src/server/extension-requests";
 import { loadHarvestContest, settleHarvestContest } from "@/src/server/thanksgiving-contest";
 import { loadReviewRows, viewerFlag } from "@/src/server/thanksgiving-review";
-import { loadHarvestBoard } from "@/src/server/thanksgiving-scores";
+import { rankMove, viewerGapLine, type RankMove } from "@/src/lib/thanksgiving-standings";
+import { loadHarvestBoard, loadPastRanks } from "@/src/server/thanksgiving-scores";
 
 export const metadata: Metadata = { title: "Leaderboard" };
 
@@ -32,13 +33,18 @@ export default async function ThanksgivingLeaderboardPage() {
     viewerFlag(userId),
     reviewer ? loadReviewRows() : null
   ]);
+  const pastRanks = await loadPastRanks(board.rows);
+  const moves: Record<string, RankMove> = Object.fromEntries(
+    board.rows.map((row) => [row.userId, rankMove(row.rank, pastRanks.get(row.userId))])
+  );
+  const gapLine = flagged ? null : viewerGapLine(board.rows, userId);
 
   return (
     <div className="route-enter space-y-5">
       <PageHeader
         eyebrow={`Thanksgiving ${board.year}`}
         title="Leaderboard"
-        description="Catch leaves, eat pies, snap wishbones, spot the giant turkey and pardon the ones that strut by (five clicks each). Every catch counts one."
+        description="Catch leaves, eat pies, snap wishbones, spot the giant turkey and pardon the ones that strut by (five clicks each). Every catch counts one, a rare golden leaf counts five, and during harvest hour everything counts double."
       />
       {board.year === HARVEST_CONTEST.year ? (
         <ContestBanner open={isContestOpen(new Date())} result={result} viewerId={userId} />
@@ -51,7 +57,8 @@ export default async function ThanksgivingLeaderboardPage() {
       ) : null}
       {board.rows.length > 0 || board.disqualified.length > 0 ? (
         <section aria-label="Leaderboard">
-          <HarvestBoard rows={board.rows} disqualified={board.disqualified} viewerId={userId} />
+          {gapLine ? <p className="mb-3 text-sm font-medium text-foreground">{gapLine}</p> : null}
+          <HarvestBoard rows={board.rows} disqualified={board.disqualified} viewerId={userId} moves={moves} />
         </section>
       ) : (
         <EmptyState

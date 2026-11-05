@@ -7,25 +7,41 @@ import { MAX_EXTENSION_DAYS } from "@/src/lib/package-extensions";
  * checks in src/lib/thanksgiving-guard.ts.
  */
 
-export const HARVEST_KINDS = ["leaves", "pies", "wishbones", "giantTurkeys", "pardons"] as const;
+export const HARVEST_KINDS = ["leaves", "goldenLeaves", "pies", "wishbones", "giantTurkeys", "pardons"] as const;
 export type HarvestKind = (typeof HARVEST_KINDS)[number];
 export type HarvestCounts = Record<HarvestKind, number>;
 
 export const HARVEST_LABELS: Record<HarvestKind, string> = {
   leaves: "Leaves",
+  goldenLeaves: "Golden leaves",
   pies: "Pies",
   wishbones: "Wishbones",
   giantTurkeys: "Giant turkeys",
   pardons: "Pardons"
 };
 
-export const EMPTY_HARVEST: HarvestCounts = { leaves: 0, pies: 0, wishbones: 0, giantTurkeys: 0, pardons: 0 };
+export const EMPTY_HARVEST: HarvestCounts = { leaves: 0, goldenLeaves: 0, pies: 0, wishbones: 0, giantTurkeys: 0, pardons: 0 };
 
-export function harvestTotal(counts: HarvestCounts): number {
-  return HARVEST_KINDS.reduce((sum, kind) => sum + counts[kind], 0);
+/** Points per catch: a golden leaf (rare, and quick to fall) is worth five, everything else one. */
+export const KIND_POINTS: Record<HarvestKind, number> = {
+  leaves: 1,
+  goldenLeaves: 5,
+  pies: 1,
+  wishbones: 1,
+  giantTurkeys: 1,
+  pardons: 1
+};
+
+/**
+ * Points: each catch at its kind's worth, plus `bonus` (the extra points from catches made during
+ * harvest hour, which count double; src/lib/thanksgiving-harvest-hour.ts).
+ */
+export function harvestTotal(counts: HarvestCounts & { bonus: number }): number {
+  return HARVEST_KINDS.reduce((sum, kind) => sum + counts[kind] * KIND_POINTS[kind], counts.bonus);
 }
 
-export type BoardEntry = HarvestCounts & { userId: string; name: string };
+/** `bonus`: harvest hour's extra points (each catch then counts twice). */
+export type BoardEntry = HarvestCounts & { bonus: number; userId: string; name: string };
 export type RankedEntry = BoardEntry & { total: number; rank: number };
 /** A flagged account (src/lib/thanksgiving-guard.ts): shown under the ranks, never ranked or a winner. */
 export type DisqualifiedEntry = BoardEntry & { total: number };
@@ -39,7 +55,7 @@ export function listDisqualified(entries: readonly BoardEntry[]): DisqualifiedEn
 }
 
 /**
- * Most goodies first (every kind counts one), then more pardons, then name. People who tie share
+ * Most points first (harvestTotal), then more pardons, then name. People who tie share
  * a rank (1, 2, 2, 4). Nobody with nothing caught is listed.
  */
 export function rankBoard(entries: readonly BoardEntry[]): RankedEntry[] {
@@ -61,7 +77,7 @@ export function harvestYear(now: Date): number {
 /**
  * The 2026 contest: whoever is first on the board at 11:59 PM Pacific on November 5 wins a
  * pre-approved extension for their whole package group (src/server/thanksgiving-contest.ts).
- * Ranked by total, every kind of catch counting one. The board keeps counting afterwards.
+ * Ranked by points (harvestTotal). The board keeps counting afterwards.
  */
 export const HARVEST_CONTEST = {
   year: 2026,

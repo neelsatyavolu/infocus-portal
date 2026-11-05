@@ -9,7 +9,8 @@ import {
   type RankedEntry
 } from "@/src/lib/thanksgiving-board";
 import { cn } from "@/src/lib/utils";
-import { LeafSprite, PieSprite, TurkeySprite, WishboneSprite } from "./sprites";
+import type { RankMove } from "@/src/lib/thanksgiving-standings";
+import { GoldenLeafSprite, LeafSprite, PieSprite, TurkeySprite, WishboneSprite } from "./sprites";
 
 function LeafIcon({ className }: { className?: string }) {
   return <LeafSprite variant={1} className={className} />;
@@ -22,6 +23,7 @@ function PardonIcon({ className }: { className?: string }) {
 
 const KIND_ICONS: Record<HarvestKind, ComponentType<{ className?: string }>> = {
   leaves: LeafIcon,
+  goldenLeaves: GoldenLeafSprite,
   pies: PieSprite,
   wishbones: WishboneSprite,
   giantTurkeys: TurkeySprite,
@@ -30,21 +32,48 @@ const KIND_ICONS: Record<HarvestKind, ComponentType<{ className?: string }>> = {
 
 const NUMBER = "font-mono-broadcast tabular-nums";
 
+/** ▲3 / ▼1 / New since 24 hours ago; nothing when the place hasn't changed. */
+function MoveTag({ move }: { move: RankMove | undefined }) {
+  if (move === undefined || move === 0) return null;
+  if (move === "new") {
+    return (
+      <StatusTag tone="neutral" size="sm" className="ml-2" title="Not on the board 24 hours ago">
+        New
+      </StatusTag>
+    );
+  }
+  const up = move > 0;
+  return (
+    <span
+      className={cn(NUMBER, "ml-2 text-xs", up ? "text-[var(--brand-green)]" : "text-muted-foreground")}
+      title={`${up ? "Up" : "Down"} ${Math.abs(move)} since 24 hours ago`}
+    >
+      <span aria-hidden>{up ? "▲" : "▼"}</span>
+      {Math.abs(move)}
+      <span className="sr-only">{` ${up ? "up" : "down"} since yesterday`}</span>
+    </span>
+  );
+}
+
 /**
  * The Thanksgiving leaderboard as a table: rank, name, total, then one column per kind of catch.
  * `compact` (the popup) keeps rank, name and total only. The viewer's row is marked. Disqualified
- * accounts follow the ranks, unranked, with their total struck through.
+ * accounts follow the ranks, unranked, with their total struck through. Total is points (golden
+ * leaves count 5, harvest hour doubles); Bonus is harvest hour's extra. `moves` marks how far each
+ * ranked person moved since 24 hours ago.
  */
 export function HarvestBoard({
   rows,
   disqualified = [],
   viewerId,
-  compact = false
+  compact = false,
+  moves
 }: {
   rows: readonly RankedEntry[];
   disqualified?: readonly DisqualifiedEntry[];
   viewerId: string | null;
   compact?: boolean;
+  moves?: Readonly<Record<string, RankMove>>;
 }) {
   return (
     <div className="overflow-x-auto rounded-lg border border-border bg-card">
@@ -73,6 +102,11 @@ export function HarvestBoard({
                     </th>
                   );
                 })}
+            {compact ? null : (
+              <th scope="col" className="px-3 py-2 text-right font-medium" title="Harvest hour's extra points">
+                Bonus
+              </th>
+            )}
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
@@ -84,6 +118,7 @@ export function HarvestBoard({
                 <td className="max-w-[16rem] truncate px-3 py-2 font-medium text-foreground">
                   {row.name}
                   {mine ? <span className="ml-2 text-xs font-normal text-muted-foreground">You</span> : null}
+                  <MoveTag move={moves?.[row.userId]} />
                 </td>
                 <td className={cn(NUMBER, "px-3 py-2 text-right text-foreground")}>{row.total}</td>
                 {compact
@@ -93,6 +128,9 @@ export function HarvestBoard({
                         {row[kind]}
                       </td>
                     ))}
+                {compact ? null : (
+                  <td className={cn(NUMBER, "px-3 py-2 text-right text-[var(--ink-text)]")}>{row.bonus > 0 ? `+${row.bonus}` : 0}</td>
+                )}
               </tr>
             );
           })}
@@ -119,6 +157,7 @@ export function HarvestBoard({
                       {row[kind]}
                     </td>
                   ))}
+              {compact ? null : <td className={cn(NUMBER, "px-3 py-2 text-right line-through")}>{row.bonus}</td>}
             </tr>
           ))}
         </tbody>

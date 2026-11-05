@@ -26,10 +26,12 @@ export async function loadReviewRows(now = new Date()): Promise<ReviewRow[]> {
       select: {
         userId: true,
         leaves: true,
+        goldenLeaves: true,
         pies: true,
         wishbones: true,
         giantTurkeys: true,
         pardons: true,
+        bonus: true,
         flaggedAt: true,
         flagReason: true,
         user: { select: { name: true, nickname: true } }

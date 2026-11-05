@@ -13,9 +13,10 @@ import { HARVEST_KINDS, type HarvestKind } from "@/src/lib/thanksgiving-board";
  * - Clock: catches far in the future or older than half an hour don't count.
  * - Automation: a browser driven by WebDriver (Playwright, Selenium, Puppeteer) doesn't count.
  *
- * Rejected catches are kept with their reason. Enough bot-like rejections, or click timing more
- * regular than a person manages, flags the account: it leaves the board and can't win the
- * contest until an exec clears it.
+ * Rejected catches are kept with their reason. Going over a rate limit is a cooldown, not a ban:
+ * those catches don't count until the window rolls over. Enough bot-like rejections, or click
+ * timing more regular than a person manages, flags the account: it leaves the board and can't
+ * win the contest until an exec clears it.
  */
 
 export type CatchInput = {
@@ -185,8 +186,6 @@ export function judgeCatches({
 export const BOT_REASONS: readonly RejectReason[] = ["automation", "inhuman-reaction", "no-reaction-time", "too-fast"];
 /** Bot-like rejections since the last review that flag an account. */
 export const FLAG_AFTER_BOT_REJECTIONS = 5;
-/** Rate-limit rejections since the last review that flag an account. */
-export const FLAG_AFTER_RATE_REJECTIONS = 40;
 /** Click timing this even (coefficient of variation), over this many gaps, is a machine. */
 export const REGULAR_TIMING_CV = 0.2;
 export const REGULAR_TIMING_SAMPLES = 30;
@@ -213,20 +212,17 @@ function coefficientOfVariation(values: readonly number[]) {
  */
 export function flagReason({
   botRejections,
-  rateRejections,
   clickTimes,
   reactions,
   leafReactions = []
 }: {
   botRejections: number;
-  rateRejections: number;
   clickTimes: readonly number[];
   reactions: readonly number[];
   /** Reaction times of the latest accepted leaf catches. */
   leafReactions?: readonly number[];
 }): string | null {
   if (botRejections >= FLAG_AFTER_BOT_REJECTIONS) return `${botRejections} catches no person could make`;
-  if (rateRejections >= FLAG_AFTER_RATE_REJECTIONS) return `${rateRejections} catches over the rate limits`;
   const gaps = clickTimes
     .slice(1)
     .map((time, index) => time - clickTimes[index])

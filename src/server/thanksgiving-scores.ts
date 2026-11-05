@@ -66,11 +66,10 @@ async function reviewPlayer(tx: Tx, userId: string, year: number) {
   });
   if (!score || score.flaggedAt) return;
   const since = score.reviewClearedAt ?? new Date(0);
-  const [botRejections, rateRejections, latest] = await Promise.all([
+  const [botRejections, latest] = await Promise.all([
     tx.thanksgivingCatch.count({
       where: { userId, year, accepted: false, reason: { in: [...BOT_REASONS] }, receivedAt: { gt: since } }
     }),
-    tx.thanksgivingCatch.count({ where: { userId, year, accepted: false, reason: "rate-limit", receivedAt: { gt: since } } }),
     tx.thanksgivingCatch.findMany({
       where: { userId, year, accepted: true, source: "play", kind: { in: CLICK_KINDS }, receivedAt: { gt: since } },
       orderBy: { caughtAt: "desc" },
@@ -81,7 +80,6 @@ async function reviewPlayer(tx: Tx, userId: string, year: number) {
   const oldestFirst = [...latest].reverse();
   const reason = flagReason({
     botRejections,
-    rateRejections,
     clickTimes: oldestFirst.map((row) => row.caughtAt.getTime()),
     reactions: oldestFirst.flatMap((row) => (row.reactionMs === null ? [] : [row.reactionMs])),
     leafReactions: oldestFirst.flatMap((row) => (row.kind === "leaves" && row.reactionMs !== null ? [row.reactionMs] : []))

@@ -65,6 +65,12 @@ describe("recordCatches", () => {
     expect(mocks.scoreUpdate).not.toHaveBeenCalled();
   });
 
+  it("doesn't flag catches over the rate limits; they just don't count", async () => {
+    mocks.catchCount.mockImplementation(async ({ where }) => (where.reason === "rate-limit" ? 500 : 0));
+    await recordCatches("sage", { sentAt: t, automation: false, catches: [{ kind: "pies", at: t - 1_000, age: 2_000 }] }, NOW);
+    expect(mocks.scoreUpdate).not.toHaveBeenCalled();
+  });
+
   it("flags the account once bot-like rejections pile up", async () => {
     mocks.catchCount.mockImplementation(async ({ where }) => (where.reason === "rate-limit" ? 0 : 9));
     await recordCatches("otto", { sentAt: t, automation: true, catches: [{ kind: "leaves", at: t - 1_000, age: 900 }] }, NOW);

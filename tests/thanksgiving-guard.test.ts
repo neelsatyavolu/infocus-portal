@@ -4,7 +4,6 @@ import {
   CATCH_RULES,
   emptyRecent,
   FLAG_AFTER_BOT_REJECTIONS,
-  FLAG_AFTER_RATE_REJECTIONS,
   flagReason,
   judgeCatches,
   RESEND_WINDOW_MS,
@@ -117,38 +116,37 @@ describe("flagReason", () => {
   const humanReactions = humanPlay(40).map((entry) => entry.age ?? 0);
 
   it("leaves a person alone", () => {
-    expect(flagReason({ botRejections: 2, rateRejections: 5, clickTimes: human, reactions: humanReactions })).toBeNull();
+    expect(flagReason({ botRejections: 2, clickTimes: human, reactions: humanReactions })).toBeNull();
   });
 
-  it("flags repeated bot-like or over-the-limit catches", () => {
-    expect(flagReason({ botRejections: FLAG_AFTER_BOT_REJECTIONS, rateRejections: 0, clickTimes: [], reactions: [] })).toMatch(/no person/);
-    expect(flagReason({ botRejections: 0, rateRejections: FLAG_AFTER_RATE_REJECTIONS, clickTimes: [], reactions: [] })).toMatch(/rate limits/);
+  it("flags repeated bot-like catches", () => {
+    expect(flagReason({ botRejections: FLAG_AFTER_BOT_REJECTIONS, clickTimes: [], reactions: [] })).toMatch(/no person/);
   });
 
   it("flags clicks spaced like clockwork", () => {
     const clockwork = Array.from({ length: 40 }, (_, i) => NOW + i * 1_500 + (i % 2) * 20);
-    expect(flagReason({ botRejections: 0, rateRejections: 0, clickTimes: clockwork, reactions: humanReactions })).toMatch(/evenly spaced/);
+    expect(flagReason({ botRejections: 0, clickTimes: clockwork, reactions: humanReactions })).toMatch(/evenly spaced/);
   });
 
   it("flags the same reaction time every time", () => {
     const same = Array.from({ length: 40 }, (_, i) => 500 + (i % 3));
-    expect(flagReason({ botRejections: 0, rateRejections: 0, clickTimes: human, reactions: same })).toMatch(/Reaction times/);
+    expect(flagReason({ botRejections: 0, clickTimes: human, reactions: same })).toMatch(/Reaction times/);
   });
 
   it("flags catching every leaf the moment it appears (an autoclicker watching the top edge)", () => {
     // The pattern seen in production: 47 leaves, each caught 0.6–1.0 s after it appeared.
     const sniped = Array.from({ length: 40 }, (_, i) => 600 + ((i * 97) % 430));
-    expect(flagReason({ botRejections: 0, rateRejections: 0, clickTimes: human, reactions: humanReactions, leafReactions: sniped })).toMatch(
+    expect(flagReason({ botRejections: 0, clickTimes: human, reactions: humanReactions, leafReactions: sniped })).toMatch(
       /moment it appeared/
     );
     // A quick person still catches plenty of leaves partway down.
     const quickHuman = Array.from({ length: 40 }, (_, i) => (i % 3 === 0 ? 900 + i * 10 : 2_000 + ((i * 733) % 9_000)));
-    expect(flagReason({ botRejections: 0, rateRejections: 0, clickTimes: human, reactions: quickHuman, leafReactions: quickHuman })).toBeNull();
+    expect(flagReason({ botRejections: 0, clickTimes: human, reactions: quickHuman, leafReactions: quickHuman })).toBeNull();
   });
 
   it("ignores long breaks when judging rhythm", () => {
     // Even gaps only because of 40-second breaks between catches: not play, so not judged.
     const breaks = Array.from({ length: 40 }, (_, i) => NOW + i * 40_000);
-    expect(flagReason({ botRejections: 0, rateRejections: 0, clickTimes: breaks, reactions: humanReactions })).toBeNull();
+    expect(flagReason({ botRejections: 0, clickTimes: breaks, reactions: humanReactions })).toBeNull();
   });
 });

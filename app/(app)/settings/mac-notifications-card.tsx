@@ -133,7 +133,7 @@ function FollowsEmailList({ email }: { email: NotificationChannelState | null })
   return (
     <div role="group" aria-labelledby={labelId}>
       <SendMeLabel id={labelId} note={!email || email.emailEnabled ? "same as Email" : "when Email is on"} />
-      <ul className="mt-1 divide-y divide-line">
+      <ul className="mt-1 divide-y divide-border">
         {CATEGORIES.map((category) => {
           const on = Boolean(email?.[preferenceKeyMap.email[category]]);
           return (

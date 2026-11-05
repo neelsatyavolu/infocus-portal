@@ -233,7 +233,7 @@ const RUN_MODE_KEY_CONTROLS: Record<string, RunModeControl | undefined> = {
 };
 
 const RUN_MODE_TOUCH_BUTTON_CLASS =
-  "inline-flex h-11 w-11 touch-manipulation items-center justify-center rounded-md text-[#FCFDFF] transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-white/[0.08] active:bg-white/[0.08]";
+  "inline-flex h-11 w-11 touch-manipulation items-center justify-center rounded-md text-[#0F110F] hover:bg-black/10 active:bg-black/10";
 
 /** Positive px/s scrolls forward; reverse reads "REV 36" so direction never relies on a minus sign. */
 function formatRunSpeed(speed: number) {
@@ -252,7 +252,7 @@ const KEY_LEGEND: Array<{ keys: string; label: string }> = [
 
 function DarkKbd({ children }: { children: ReactNode }) {
   return (
-    <kbd className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-sm border border-white/[0.14] bg-[#111114] px-1 font-mono-broadcast text-[11px] font-medium leading-none text-[#FCFDFF]">
+    <kbd className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-sm border border-[#2B302B] bg-[#252925] px-1 font-mono-broadcast text-[11px] font-medium leading-none text-[#DCE2DE]">
       {children}
     </kbd>
   );
@@ -273,9 +273,9 @@ function ScaleSlider({
 }) {
   return (
     <label className="block">
-      <span className="flex items-center justify-between gap-3 text-[13px] font-medium text-[#A1A4A5]">
+      <span className="flex items-center justify-between gap-3 text-[11px] font-medium uppercase tracking-[0.11em] text-[#DCE2DE]">
         {label}
-        <span className="font-mono-broadcast text-xs tabular-nums text-[#FCFDFF]">
+        <span className="font-mono-broadcast text-xs normal-case tracking-normal tabular-nums text-[#ECEFEA]">
           {Math.round(value * 100)}%
         </span>
       </span>
@@ -286,7 +286,7 @@ function ScaleSlider({
         step="0.05"
         value={value}
         onChange={(event) => onChange(Number(event.target.value))}
-        className="mt-2 w-full accent-[var(--brand-green)]"
+        className="mt-2 w-full accent-[#2BB36E]"
       />
     </label>
   );
@@ -576,10 +576,10 @@ export default function FullscreenRunMode({
               </option>
             ))}
           </select>
-          <ChevronRight className="h-4 w-4 shrink-0 text-[#888E90]" aria-hidden />
+          <ChevronRight className="h-4 w-4 shrink-0 text-[#6b736e]" aria-hidden />
           <select
             aria-label="Section"
-            className={cn(BAR_SELECT_CLASS, "flex-1 font-mono-broadcast sm:max-w-[220px] sm:flex-none")}
+            className={cn(BAR_SELECT_CLASS, "flex-1 tracking-[0.11em] sm:max-w-[220px] sm:flex-none")}
             value={activeSectionId}
             disabled={sectionOptions.length === 0}
             onMouseDown={(event) => {
@@ -610,13 +610,13 @@ export default function FullscreenRunMode({
             {auto ? (
               <AutoFollowTag status={followStatus} mode={followMode} command={followCommand} />
             ) : paused ? (
-              <span className="inline-flex h-5 items-center rounded-full bg-[#FFC53D]/15 px-2 text-xs font-medium leading-none text-[#FFC53D]">
+              <span className="inline-flex h-5 items-center rounded-sm bg-[#F2A516]/35 px-2 text-[11px] font-medium uppercase leading-none tracking-[0.11em] text-[#4A2F00]">
                 Paused
               </span>
             ) : null}
           </span>
           {auto ? null : (
-            <span className="hidden font-mono-broadcast text-xs tabular-nums text-[#A1A4A5] sm:inline" title="Scroll speed">
+            <span className="hidden font-mono-broadcast text-xs tabular-nums text-[#3a413c] sm:inline" title="Scroll speed">
               {formatRunSpeed(speed)} px/s
             </span>
           )}
@@ -626,7 +626,7 @@ export default function FullscreenRunMode({
           <AutoFollowButton on={auto} onToggle={toggleAuto} />
           <button
             type="button"
-            className={cn(BAR_BUTTON_CLASS, settingsOpen && "bg-white/[0.08] text-[#FCFDFF]")}
+            className={cn(BAR_BUTTON_CLASS, settingsOpen && "bg-black/10")}
             onClick={() => setSettingsOpen((current) => !current)}
             aria-label="Settings"
             aria-expanded={settingsOpen}
@@ -649,12 +649,12 @@ export default function FullscreenRunMode({
 
       {auto ? <AutoFollowOverlay status={followStatus} onCancel={toggleAuto} /> : null}
       {settingsOpen ? (
-        <div className={cn("absolute right-2 z-30 w-72 rounded-lg border border-white/[0.14] bg-[#0A0A0C] text-[#FCFDFF]", BAR_PANEL_TOP_CLASS)}>
-          <div className="flex h-11 items-center justify-between gap-3 border-b border-white/[0.06] pl-3 pr-1.5 pointer-coarse:h-12">
-            <p className="text-sm font-medium">Settings</p>
+        <div className={cn("absolute right-2 z-30 w-72 rounded-md border border-[#2B302B] bg-[#1A1D1A] text-soft-white", BAR_PANEL_TOP_CLASS)}>
+          <div className="flex h-11 items-center justify-between gap-3 border-b border-[#2B302B] pl-3 pr-1.5 pointer-coarse:h-12">
+            <p className="text-sm font-semibold">Settings</p>
             <button
               type="button"
-              className="inline-flex h-7 items-center rounded-md px-2 text-[13px] font-medium text-[#A1A4A5] transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-white/[0.08] hover:text-[#FCFDFF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 pointer-coarse:h-10 pointer-coarse:px-3"
+              className="inline-flex h-7 items-center rounded-md px-2 text-xs font-medium text-[#DCE2DE] transition-colors hover:bg-[#252925] hover:text-soft-white pointer-coarse:h-10 pointer-coarse:px-3"
               onClick={() => setSettings(DEFAULT_RUN_MODE_SETTINGS)}
             >
               Reset
@@ -684,14 +684,14 @@ export default function FullscreenRunMode({
             levelRef={followLevelRef}
             recording={recording}
           />
-          <div className="border-t border-white/[0.06] p-3">
-            <div className="mb-2 flex items-center justify-between gap-3 text-[13px] font-medium text-[#A1A4A5]">
+          <div className="border-t border-[#2B302B] p-3">
+            <div className="mb-2 flex items-center justify-between gap-3 text-[11px] font-medium uppercase tracking-[0.11em] text-[#DCE2DE]">
               Keys
-              <span className="font-mono-broadcast text-xs tabular-nums text-[#FCFDFF]">
+              <span className="font-mono-broadcast text-xs normal-case tracking-normal tabular-nums text-[#ECEFEA]">
                 {formatRunSpeed(speed)} px/s
               </span>
             </div>
-            <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs text-[#A1A4A5]">
+            <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs text-[#DCE2DE]">
               {KEY_LEGEND.map((entry) => (
                 <div key={entry.keys} className="flex min-w-0 items-center gap-2">
                   <dt>
@@ -705,7 +705,7 @@ export default function FullscreenRunMode({
         </div>
       ) : null}
 
-      <div className="relative min-h-0 flex-1 overflow-hidden bg-black">
+      <div className="relative min-h-0 flex-1 overflow-hidden bg-[#0F110F]">
         <div
           className="pointer-events-none absolute left-16 z-20 md:left-20"
           style={{
@@ -757,7 +757,7 @@ export default function FullscreenRunMode({
 
       {/* Touch devices only: a bar under the script, so nothing covers it and
           mouse/keyboard displays look exactly as before. */}
-      <footer className="relative z-20 hidden shrink-0 items-center justify-center gap-2 border-t border-white/[0.06] bg-[#0A0A0C] px-2 py-1 pb-[max(0.25rem,env(safe-area-inset-bottom))] text-[#FCFDFF] pointer-coarse:flex">
+      <footer className="relative z-20 hidden shrink-0 items-center justify-center gap-2 border-t border-[#c5ccc8] bg-[#DCE2DE] px-2 py-1 pb-[max(0.25rem,env(safe-area-inset-bottom))] text-[#0F110F] pointer-coarse:flex">
         <button
           type="button"
           className={RUN_MODE_TOUCH_BUTTON_CLASS}

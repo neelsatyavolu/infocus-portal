@@ -17,7 +17,7 @@ export default function ProjectLoading() {
       >
         <div className="min-w-0 flex-[1_1_320px] space-y-2.5 max-sm:basis-0">
           <Skeleton className="h-3 w-[120px] max-w-full" />
-          <Skeleton className="h-10 w-[280px] max-w-full" />
+          <Skeleton className="h-7 w-[280px] max-w-full" />
           <Skeleton className="h-4 w-[220px] max-w-full" />
         </div>
         <div className="flex shrink-0 gap-2">
@@ -38,7 +38,7 @@ export default function ProjectLoading() {
         <Skeleton className="h-3 w-20" />
         <div className={TILE_GRID}>
           {Array.from({ length: 5 }, (_, index) => (
-            <span key={index} className="flex h-16 items-center gap-3 rounded-lg border border-line-strong bg-card px-3 sm:h-[72px]">
+            <span key={index} className="flex h-16 items-center gap-3 rounded-md border border-border bg-card px-3 sm:h-[72px]">
               <Skeleton className="h-9 w-9 shrink-0 rounded-md max-sm:hidden" />
               <span className="min-w-0 flex-1 space-y-2">
                 <Skeleton className="h-3.5 w-3/4" />
@@ -53,7 +53,7 @@ export default function ProjectLoading() {
         <Skeleton className="h-3 w-20" />
         <div className={TILE_GRID}>
           {Array.from({ length: 10 }, (_, index) => (
-            <span key={index} className="flex flex-col overflow-hidden rounded-lg border border-line-strong bg-card">
+            <span key={index} className="flex flex-col overflow-hidden rounded-md border border-border bg-card">
               <Skeleton aspect="16/9" className="rounded-none" />
               <span className="flex flex-col gap-1.5 p-3">
                 <span className="flex h-8 items-center max-sm:h-[3.25rem] max-sm:items-start max-sm:pt-1.5">

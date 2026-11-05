@@ -66,11 +66,11 @@ export default function WorkflowPage() {
                 <div className="flex items-center gap-3">
                   <span
                     aria-hidden
-                    className="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-line-strong bg-secondary font-mono text-sm font-medium tabular-nums text-foreground"
+                    className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-[var(--ink-3)] text-sm font-semibold text-foreground"
                   >
                     {step.step}
                   </span>
-                  <h2 className="min-w-0 text-lg font-medium leading-snug tracking-[-0.015em] text-foreground">
+                  <h2 className="min-w-0 text-lg font-semibold leading-snug text-foreground">
                     <span className="sr-only">{step.step}. </span>
                     {step.title}
                   </h2>

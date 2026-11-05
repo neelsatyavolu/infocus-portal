@@ -234,7 +234,7 @@ export function ShowUploadDialog({
       src={edited.videoUrl}
       poster={edited.posterUrl}
       preload="metadata"
-      className="rounded-lg border border-line-strong"
+      className="rounded-md border border-border"
       label="The edited show"
     />
   ) : (
@@ -302,12 +302,7 @@ export function ShowUploadDialog({
             <Button type="button" variant="outline" disabled={submitting} onClick={() => setPhase("pick")}>
               Choose a different file
             </Button>
-            <Button
-              type="button"
-              variant="accent"
-              disabled={submitting || capturing || !form?.title.trim()}
-              onClick={() => void schedule()}
-            >
+            <Button type="button" disabled={submitting || capturing || !form?.title.trim()} onClick={() => void schedule()}>
               {submitting ? <Loader2 className="animate-spin" aria-hidden /> : null}
               Schedule on YouTube
             </Button>

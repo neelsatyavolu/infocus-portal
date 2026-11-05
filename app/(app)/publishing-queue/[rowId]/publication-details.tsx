@@ -26,7 +26,7 @@ export function PublicationStatusPanel({ status, sentence }: { status: YoutubeSt
       <div className="flex min-w-0 items-center gap-4">
         <span
           className={cn(
-            "grid h-10 w-10 shrink-0 place-items-center rounded-md border border-line-strong bg-secondary",
+            "grid h-10 w-10 shrink-0 place-items-center rounded-md bg-[var(--ink-3)]",
             status === "failed" ? "text-danger" : "text-muted-foreground"
           )}
         >
@@ -67,7 +67,7 @@ export function PublishedDetails({
         Watch on YouTube
         <span className="sr-only"> (opens in a new tab)</span>
       </a>
-      <div className="border-t border-line pt-4">
+      <div className="border-t border-border pt-4">
         <PublicationEmbed code={youtubeEmbedCode(videoId)} />
       </div>
     </Panel>

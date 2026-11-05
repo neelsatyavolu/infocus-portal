@@ -40,7 +40,7 @@ export function ExecutiveGradingPanel({
       ) : rows.length === 0 ? (
         <EmptyLine>No Final Cuts waiting on grades.</EmptyLine>
       ) : (
-        <ul aria-label="Grading queue" className="divide-y divide-line">
+        <ul aria-label="Grading queue" className="divide-y divide-border">
           {shown.map((row) => (
             <ListRow
               key={row.key}

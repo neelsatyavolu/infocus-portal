@@ -52,7 +52,7 @@ export default async function AppSignInPage({ searchParams }: AppSignInPageProps
           <KeyValueList
             layout="stacked"
             divided={false}
-            items={[{ label: "Signs in as", value: <span className="font-medium">{who}</span> }]}
+            items={[{ label: "Signs in as", value: <span className="font-semibold">{who}</span> }]}
           />
           <p className="text-[13px] leading-snug text-muted-foreground">
             The InFocus app on this device will be signed in as this account. Only continue if you started sign-in

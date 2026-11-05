@@ -46,7 +46,7 @@ export function WhatIfRail({
   legend: ReactNode;
 }) {
   return (
-    <aside aria-label="Grade summary" className="flex min-w-0 flex-col rounded-lg border border-line-strong bg-card text-card-foreground">
+    <aside aria-label="Grade summary" className="flex min-w-0 flex-col rounded-md border border-border bg-card text-card-foreground">
       <div className="space-y-2 p-5">
         {loading ? (
           <div aria-hidden className="space-y-2.5">
@@ -60,7 +60,7 @@ export function WhatIfRail({
         {hasWhatIf ? <p className="text-xs text-muted-foreground">{official}</p> : null}
       </div>
 
-      <div className="border-t border-line p-5">
+      <div className="border-t border-border p-5">
         <p className={LABEL_CLASS}>How it&apos;s weighted</p>
         <ul className="mt-3 space-y-3">
           {categories.map((category) => {
@@ -87,7 +87,7 @@ export function WhatIfRail({
         </ul>
       </div>
 
-      <div className="space-y-3 border-t border-line p-5">
+      <div className="space-y-3 border-t border-border p-5">
         {/* Always rendered (disabled until something changes), so nothing shifts. */}
         <Button type="button" variant="outline" className="w-full" disabled={!hasWhatIf} onClick={onReset}>
           <RotateCcw aria-hidden />

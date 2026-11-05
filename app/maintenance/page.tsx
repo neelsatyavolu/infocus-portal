@@ -36,7 +36,7 @@ export default async function MaintenancePage() {
         <KeyValueList
           layout="stacked"
           items={[
-            { label: "Estimated return", value: <span className="font-medium">{HUB_MAINTENANCE_ETA}</span> },
+            { label: "Estimated return", value: <span className="font-semibold">{HUB_MAINTENANCE_ETA}</span> },
             { label: "What’s coming", value: "The same Portal, with everything where you left it." },
             { label: "Access", value: "Producers keep full access during the move." }
           ]}

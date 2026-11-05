@@ -5,7 +5,7 @@ import { cn } from "@/src/lib/utils";
 
 /** Table chrome as descendant styles, for hand-written <table>s (grids with inputs, grouped headers). */
 export const TABLE_CHROME =
-  "w-full border-collapse text-sm [&_th]:h-10 [&_th]:whitespace-nowrap [&_th]:border-b [&_th]:border-line [&_th]:px-3 [&_th]:text-left [&_th]:align-middle [&_th]:text-[13px] [&_th]:font-medium [&_th]:text-muted-foreground [&_td]:border-b [&_td]:border-line [&_td]:px-3 [&_td]:py-2.5 [&_td]:align-middle [&_tbody:last-of-type_tr:last-child_td]:border-b-0 [&_tbody_tr]:transition-colors [&_tbody_tr]:duration-150 [&_tbody_tr]:ease-[var(--ease-ui)] [&_tbody_tr:hover]:bg-[var(--ink-3)]/60";
+  "w-full border-collapse text-sm [&_th]:h-10 [&_th]:whitespace-nowrap [&_th]:border-b [&_th]:border-border [&_th]:px-3 [&_th]:text-left [&_th]:align-middle [&_th]:text-[11px] [&_th]:font-medium [&_th]:uppercase [&_th]:tracking-[0.11em] [&_th]:text-muted-foreground [&_td]:border-b [&_td]:border-border [&_td]:px-3 [&_td]:py-2.5 [&_td]:align-middle [&_tbody:last-of-type_tr:last-child_td]:border-b-0 [&_tbody_tr]:transition-colors [&_tbody_tr:hover]:bg-[var(--ink-3)]";
 
 const HIDE: Record<"sm" | "md" | "lg", string> = {
   sm: "max-sm:hidden",
@@ -44,7 +44,7 @@ export function TableShell({
 }) {
   return (
     <div
-      className={cn("min-w-0 overflow-auto rounded-lg border border-line-strong bg-card", className)}
+      className={cn("min-w-0 overflow-auto rounded-md border border-border bg-card", className)}
       style={maxHeight ? { maxHeight } : undefined}
     >
       <table
@@ -210,7 +210,7 @@ export function DataTable<T>({
                 <th
                   colSpan={span}
                   scope="rowgroup"
-                  className="h-9! bg-secondary text-[13px]! text-muted-foreground"
+                  className="h-9! bg-[var(--ink-2)] text-[11px]! text-muted-foreground"
                 >
                   {group.header}
                 </th>
@@ -273,16 +273,16 @@ export function DataTable<T>({
         {loading && total === 0 ? (
           <ListSkeleton rows={skeletonRows} leading={false} />
         ) : total === 0 ? (
-          <div className="rounded-lg border border-line-strong bg-card">
+          <div className="rounded-md border border-border bg-card">
             {empty ?? <p className="px-4 py-8 text-center text-sm text-muted-foreground">Nothing here yet.</p>}
           </div>
         ) : (
           allGroups.map((group) => (
             <section key={group.key} className="mb-4 last:mb-0">
               {group.header ? (
-                <h3 className="mb-2 text-[13px] font-medium text-muted-foreground">{group.header}</h3>
+                <h3 className="mb-2 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">{group.header}</h3>
               ) : null}
-              <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line-strong bg-card">
+              <ul className="divide-y divide-border overflow-hidden rounded-md border border-border bg-card">
                 {group.rows.map((row, index) => (
                   <li key={rowKey(row, index)} className="min-w-0">
                     {renderMobileRow(row, index)}
@@ -298,7 +298,7 @@ export function DataTable<T>({
 }
 
 /**
- * Rows that share one CSS grid template, with a muted header row from md. Below md each row
+ * Rows that share one CSS grid template, with a caps header row from md. Below md each row
  * stacks its cells and shows each cell's label. Lighter than a table for lists where a row is
  * one link or holds controls (rosters, queues, settings lists, the Managers areas).
  */
@@ -320,12 +320,12 @@ export function GridList({
   return (
     <div
       style={{ "--grid-cols": columns } as CSSProperties}
-      className={cn("min-w-0 overflow-hidden rounded-lg border border-line-strong bg-card", className)}
+      className={cn("min-w-0 overflow-hidden rounded-md border border-border bg-card", className)}
     >
       {header ? (
         <div
           aria-hidden
-          className="hidden h-10 items-center gap-x-4 border-b border-line px-4 text-[13px] font-medium text-muted-foreground md:grid md:grid-cols-[var(--grid-cols)]"
+          className="hidden h-10 items-center gap-x-4 border-b border-border px-4 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground md:grid md:grid-cols-[var(--grid-cols)]"
         >
           {header.map((cell, index) => (
             <span key={index} className={cn("min-w-0 truncate", cell.align === "end" && "text-right")}>
@@ -334,7 +334,7 @@ export function GridList({
           ))}
         </div>
       ) : null}
-      <ul aria-label={ariaLabel} className="divide-y divide-line">
+      <ul aria-label={ariaLabel} className="divide-y divide-border">
         {children}
       </ul>
     </div>
@@ -360,8 +360,8 @@ export function GridListRow({
 }) {
   const rowClass = cn(
     "relative flex min-w-0 flex-col gap-1.5 px-4 py-3 md:grid md:min-h-12 md:grid-cols-[var(--grid-cols)] md:items-center md:gap-x-4 md:gap-y-0 md:py-2",
-    (href || onClick) && "transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)]/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
-    active && "bg-brand-tint before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:bg-[var(--brand-green)]",
+    (href || onClick) && "transition-colors hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+    active && "bg-[var(--ink-3)] before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-[var(--brand-green)]",
     className
   );
   // Same side padding as the cells above, so the second line starts on their left edge.
@@ -411,7 +411,7 @@ export function GridListCell({
   return (
     <div className={cn("flex min-w-0 items-baseline gap-2 md:block", align === "end" && "md:text-right", className)}>
       {label ? (
-        <span className="w-24 shrink-0 text-xs font-medium text-muted-foreground md:sr-only">
+        <span className="w-24 shrink-0 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground md:sr-only">
           {label}
         </span>
       ) : null}

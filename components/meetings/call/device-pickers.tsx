@@ -9,7 +9,7 @@ import { saveDevicePref } from "@/src/lib/meetings/client/device-prefs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 /** Select triggers ring on any focus by default; Meetings shows rings for keyboard focus only. */
-export const TRIGGER_FOCUS = "focus:ring-0 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30";
+export const TRIGGER_FOCUS = "focus:ring-0 focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]";
 
 export function DevicePicker({ label, kind, device }: { label: string; kind: "mic" | "camera"; device: MediaDevice }) {
   const devices = useObservableAsValue(device.devices$, [] as MediaDeviceInfo[]);

@@ -262,18 +262,18 @@ export function AllGradesView({
         <section
           aria-labelledby={intro ? titleId : undefined}
           aria-label={intro ? undefined : "Gradebook"}
-          className="flex min-w-0 flex-col rounded-lg border border-line-strong bg-card text-card-foreground"
+          className="flex min-w-0 flex-col rounded-md border border-border bg-card text-card-foreground"
         >
           {/* With no title, the whole toolbar moves to the rail on wide containers. */}
           <div
             className={cn(
-              "flex flex-col gap-3 border-b border-line px-4 py-3 sm:flex-row sm:items-center md:px-5",
+              "flex flex-col gap-3 border-b border-border px-4 py-3 sm:flex-row sm:items-center md:px-5",
               !intro && "@4xl:hidden"
             )}
           >
             {intro ? (
               <div className="min-w-0 flex-1">
-                <h2 id={titleId} className="text-base font-medium leading-snug tracking-[-0.015em] text-foreground">
+                <h2 id={titleId} className="text-base font-semibold leading-snug tracking-[-0.01em] text-foreground">
                   {title}
                 </h2>
                 <p className="text-[13px] leading-snug text-muted-foreground">{description}</p>

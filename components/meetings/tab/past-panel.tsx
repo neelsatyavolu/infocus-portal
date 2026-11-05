@@ -57,7 +57,7 @@ export const PastPanel = memo(function PastPanel({ meetings, todayKey }: { meeti
         <EmptyState size="inline" title="No past meetings yet." className={ROW_INSET} />
       ) : (
         // The list is the container the rows' columns follow (PAST_ROW_GRID).
-        <ul className="@container divide-y divide-line">
+        <ul className="@container divide-y divide-border">
           {meetings.slice(0, shown).map((meeting) => {
             const tagged = meeting.notesStatus !== "NONE" || meeting.access !== "OPEN";
             return (
@@ -66,7 +66,7 @@ export const PastPanel = memo(function PastPanel({ meetings, todayKey }: { meeti
                   href={`/meetings/${encodeURIComponent(meeting.id)}` as never}
                   className={cn(
                     PAST_ROW_GRID,
-                    "transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)] focus-visible:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50"
+                    "transition-colors hover:bg-[var(--ink-3)] focus-visible:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                   )}
                 >
                   <RowLead

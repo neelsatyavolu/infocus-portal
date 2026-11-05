@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/src/lib/utils";
 
 const ITEM_CLASS =
-  "flex min-h-10 w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] text-foreground outline-none transition-colors duration-150 ease-[var(--ease-ui)] md:min-h-9 hover:bg-[var(--ink-3)] focus-visible:bg-[var(--ink-3)] [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-muted-foreground";
+  "flex min-h-10 w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-[13px] text-foreground outline-none transition-colors md:min-h-9 hover:bg-[var(--ink-3)] focus-visible:bg-[var(--ink-3)] [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-muted-foreground";
 
 /** "Abby Lane" → "AL"; the email's name when there is no name; "IF" when there is nothing. */
 export function accountInitials(name: string | null, email: string | null) {
@@ -86,7 +86,7 @@ export function AccountMenu({
           type="button"
           aria-label={`Account: ${name}${viewingAs ? " (viewing as)" : ""}`}
           aria-haspopup="menu"
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-full transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-secondary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30 md:h-9 md:w-9"
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-md transition-colors hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:h-9 md:w-9"
         >
           <Avatar
             name={currentUser.name}
@@ -124,13 +124,13 @@ export function AccountMenu({
             title=""
           />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[13px] font-medium text-foreground">{name}</p>
+            <p className="truncate text-[13px] font-semibold text-foreground">{name}</p>
             <p className="truncate text-xs text-muted-foreground">
               {viewingAs ? "Viewing as" : currentUser.email ?? "no-email"}
             </p>
           </div>
         </div>
-        <div role="separator" className="-mx-1 my-1 h-px bg-line" />
+        <div role="separator" className="-mx-1 my-1 h-px bg-border" />
         {canViewAs ? (
           <button
             type="button"
@@ -151,7 +151,7 @@ export function AccountMenu({
             Passwords
           </MenuLink>
         ) : null}
-        {canViewAs || showPasswords ? <div role="separator" className="-mx-1 my-1 h-px bg-line" /> : null}
+        {canViewAs || showPasswords ? <div role="separator" className="-mx-1 my-1 h-px bg-border" /> : null}
         <form action="/api/auth/sign-out?returnTo=/" method="post">
           <button type="submit" role="menuitem" tabIndex={-1} className={ITEM_CLASS}>
             <LogOut aria-hidden />

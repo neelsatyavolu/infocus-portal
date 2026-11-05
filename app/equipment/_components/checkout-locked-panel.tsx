@@ -18,12 +18,12 @@ export function CheckoutLockedPanel() {
     <Panel
       padding="none"
       aria-label="Checkout is locked"
-      bodyClassName="grid divide-y divide-line lg:grid-cols-[3fr_2fr] lg:divide-x lg:divide-y-0"
+      bodyClassName="grid divide-y divide-border lg:grid-cols-[3fr_2fr] lg:divide-x lg:divide-y-0"
     >
       <div className="flex min-w-0 flex-col items-start gap-4 p-4 md:p-5">
         <LockKeyhole aria-hidden className="h-10 w-10 text-muted-foreground" />
         <div className="space-y-1.5">
-          <h2 className="text-lg font-medium tracking-[-0.015em] text-foreground">Checkout is locked</h2>
+          <h2 className="text-lg font-semibold tracking-[-0.01em] text-foreground">Checkout is locked</h2>
           <p className="max-w-prose text-sm text-[var(--ink-text)]">
             An equipment manager or producer must sign in with their Portal Google account. Checkout locks automatically one hour
             after sign-in. This session is separate from the main Portal.

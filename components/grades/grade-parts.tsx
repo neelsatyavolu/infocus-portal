@@ -11,8 +11,8 @@ import { CHECK_IN_STAGES, PACKAGE_STAGE_LABELS, type CheckInStage } from "@/src/
 import type { GradebookCheckIn } from "@/src/lib/student-gradebook";
 import { cn } from "@/src/lib/utils";
 
-/** The 13px sentence-case label used for every small heading on this screen. */
-export const LABEL_CLASS = "text-[13px] font-medium leading-tight text-muted-foreground";
+/** The 11px caps label used for every small heading on this screen. */
+export const LABEL_CLASS = "text-[11px] font-medium uppercase leading-tight tracking-[0.11em] text-muted-foreground";
 
 /** Student-facing stage names (the package stage bar's), shortened to fit a tag. */
 const STAGE_SHORT: Record<CheckInStage, string> = {
@@ -32,7 +32,7 @@ export function NewTag() {
 }
 
 /**
- * One grade category in the Overview band: muted label with its mono weight beside it ("55%"; data,
+ * One grade category in the Overview band: caps label with its mono weight beside it ("55%"; data,
  * not a tag; left out for a grouping that isn't a weighted category), mono total, percent, a
  * one-line hint, bar.
  */
@@ -95,7 +95,7 @@ export function CategoryMeter({
   );
 }
 
-/** Muted label over a mono "value / max" (Final cut, Check-ins). */
+/** Caps label over a mono "value / max" (Final cut, Check-ins). */
 export function ScoreStat({
   label,
   value,
@@ -171,7 +171,7 @@ export function ClampText({ text, lines = 3, className }: { text: string; lines?
           type="button"
           aria-expanded={open}
           onClick={() => setOpen((value) => !value)}
-          className="mt-0.5 inline-flex h-10 items-center rounded-md text-xs font-medium text-[var(--brand-green)] transition-colors duration-150 ease-[var(--ease-ui)] hover:underline focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30 sm:h-8"
+          className="mt-0.5 inline-flex h-10 items-center rounded-sm sm:h-8 text-xs font-medium text-[var(--brand-green)] transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {open ? "Show less" : "Show more"}
         </button>

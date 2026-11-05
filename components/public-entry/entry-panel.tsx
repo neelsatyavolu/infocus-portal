@@ -25,7 +25,7 @@ export const ENTRY_FOOTER_CONTROL = cn(buttonVariants({ variant: "outline" }), E
 export const ENTRY_PAD_X = "px-4 md:px-6";
 
 /**
- * A card section for the entry pages: card surface, strong hairline, 12px radius, hairlines between an optional
+ * A card section for the entry pages: Ink 2, 1px line, 6px radius, hairlines between an optional
  * header (title + status tags), the body and an optional footer (a short note on the left, one
  * ENTRY_FOOTER_CONTROL on the right). `ref` + `tabIndex={-1}` let a page move focus to it.
  */
@@ -55,7 +55,7 @@ export function EntryPanel({
       ref={ref}
       tabIndex={tabIndex}
       aria-labelledby={titleId}
-      className={cn("min-w-0 divide-y divide-line rounded-lg border border-line-strong bg-card text-card-foreground", className)}
+      className={cn("min-w-0 divide-y divide-border rounded-md border border-border bg-card text-card-foreground", className)}
     >
       {title || status ? (
         <PanelHeader title={title} titleAs="h2" titleId={titleId} status={status} className={cn(ENTRY_PAD_X, "py-3")} />

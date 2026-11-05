@@ -142,7 +142,7 @@ export function DecisionBar({
       <section
         aria-label={heading}
         className={cn(
-          "flex min-w-0 flex-wrap items-center gap-x-4 gap-y-3 rounded-lg border border-line-strong bg-card px-4 py-3",
+          "flex min-w-0 flex-wrap items-center gap-x-4 gap-y-3 rounded-md border border-border bg-card px-4 py-3",
           // Only a bar with decisions stays in reach on desktop; a read-only one scrolls away.
           list.length > 0 && "z-20 lg:sticky lg:top-[var(--app-header-h,0px)]"
         )}

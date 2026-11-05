@@ -105,7 +105,7 @@ function GradeBand({
   const participation = estimated?.participation ?? { earned: 0, possible: 0 };
   const gradedWeeks = weeks.filter((week) => week.graded).length;
   return (
-    <section aria-labelledby="grades-band-title" className="overflow-hidden rounded-lg border border-line-strong bg-card">
+    <section aria-labelledby="grades-band-title" className="overflow-hidden rounded-md border border-border bg-card">
       <h2 id="grades-band-title" className="sr-only">
         Estimated grade
       </h2>

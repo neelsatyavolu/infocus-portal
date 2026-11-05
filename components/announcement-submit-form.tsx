@@ -32,11 +32,11 @@ const SECTION_CLASS = cn(ENTRY_PAD_X, "py-4 md:py-5");
 const RUN_ON_CARDS = RUN_ON_OPTIONS.map((option) => ({ value: option.value, label: option.label }));
 
 /**
- * The numbered step headings read as headings (15px medium), a step above the 13px muted
- * field labels underneath them.
+ * The numbered step headings read as headings (14px semibold, sentence case), so they don't
+ * match the 11px caps field labels underneath them.
  */
 function SectionTitle({ children }: { children: ReactNode }) {
-  return <span className="text-[15px] font-medium normal-case tracking-[-0.01em] text-foreground">{children}</span>;
+  return <span className="text-sm font-semibold normal-case tracking-normal text-foreground">{children}</span>;
 }
 
 type SubmitSuccess = {
@@ -165,7 +165,7 @@ export function AnnouncementSubmitForm({ compact = false }: { compact?: boolean 
     <form
       onSubmit={(event) => void onSubmit(event)}
       aria-label="Announcement request"
-      className="min-w-0 divide-y divide-line rounded-lg border border-line-strong bg-card"
+      className="min-w-0 divide-y divide-border rounded-md border border-border bg-card"
     >
       <FormSection title={<SectionTitle>1 · About you</SectionTitle>} cols={2} className={SECTION_CLASS}>
         <Field label="Email" htmlFor="announcement-email" required>
@@ -329,7 +329,6 @@ export function AnnouncementSubmitForm({ compact = false }: { compact?: boolean 
           ) : null}
           <Button
             type="submit"
-            variant="accent"
             disabled={submitting || !policyAgreed}
             className={cn(ENTRY_CONTROL, "w-full md:w-auto")}
           >

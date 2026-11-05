@@ -170,7 +170,7 @@ function StageStatus({ items }: { items: StageStatusItem[] }) {
             key={item.key}
             type="button"
             onClick={item.onClick}
-            className={cn("group flex rounded-full focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30", fit)}
+            className={cn("group flex rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", fit)}
           >
             {tag}
           </button>
@@ -214,7 +214,7 @@ function StageActions({
       <div
         role="group"
         aria-label="Story actions"
-        className="@container pointer-events-auto flex min-w-0 items-center gap-2 max-md:h-12 max-md:gap-1 max-md:rounded-lg max-md:border max-md:border-line-strong max-md:bg-card max-md:px-[3px]"
+        className="@container pointer-events-auto flex min-w-0 items-center gap-2 max-md:h-12 max-md:gap-1 max-md:rounded-md max-md:border max-md:border-border max-md:bg-card max-md:px-[3px]"
       >
         <IconButton
           label={previewOnScreen ? "Go to the fields" : "Back to the preview"}
@@ -267,7 +267,7 @@ export function StoryStage({
       </StageActions>
       <div className={cn(FRAME_COLUMN, "flex flex-col gap-3")}>
         <StageStatus items={status} />
-        <div ref={frameRef} className={cn("rounded-lg", dragging && "outline-dashed outline-2 outline-offset-2 outline-brand-green")}>
+        <div ref={frameRef} className={cn("rounded-md", dragging && "outline-dashed outline-2 outline-offset-2 outline-[var(--brand-green)]")}>
           <StoryFrame showSafeZones={showSafeZones}>{children}</StoryFrame>
         </div>
         <div className="grid gap-1">

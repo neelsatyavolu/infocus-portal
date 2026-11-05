@@ -2,15 +2,13 @@ import Link from "next/link";
 import type { ComponentType } from "react";
 import { ArrowRight, Camera, Globe, Lock, Radio } from "lucide-react";
 import { IconTile } from "@/components/kit/avatar";
+import { fieldLabelClass } from "@/components/kit/field";
 import { StatusTag } from "@/components/kit/status-tag";
 import { SocialIcon } from "@/components/story-maker/social-icons";
 import type { ManagerArea, ManagerAreaId, ManagerRosters } from "@/src/lib/managers";
 import { cn } from "@/src/lib/utils";
 
 const SHOWN_NAMES = 4;
-
-/** Sentence-case muted label for column names, area names and the Managers / Access terms. */
-const LABEL_CLASS = "block text-[12px] font-medium leading-tight text-muted-foreground";
 
 /**
  * Area | Managers | Access | arrow. The column header and every row share this template once the
@@ -56,7 +54,7 @@ export function ManagerAreaColumns() {
   return (
     <div
       aria-hidden
-      className={cn(LABEL_CLASS, "hidden h-10 items-center gap-x-4 border-b border-line px-4 @4xl:grid", AREA_COLUMNS)}
+      className={cn(fieldLabelClass, "hidden h-10 items-center gap-x-4 border-b border-border px-4 @4xl:grid", AREA_COLUMNS)}
     >
       {/* An empty cell over the icons, so "Area" sits over the area names. */}
       <span />
@@ -80,14 +78,14 @@ export function ManagerAreaRow({ area, people, yours }: { area: ManagerArea; peo
       className={cn(
         "group relative grid grid-cols-[2.5rem_minmax(0,1fr)_1rem] items-start gap-x-4 gap-y-3 px-4 py-4 @4xl:items-center @4xl:py-3",
         AREA_COLUMNS,
-        area.canOpen && "transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)]/60"
+        area.canOpen && "transition-colors hover:bg-[var(--ink-3)]"
       )}
     >
       <IconTile icon={ICONS[area.id]} tone={area.canOpen ? "brand" : "neutral"} />
 
       <div className="min-w-0">
         <div className="flex min-h-5 flex-wrap items-center gap-x-2 gap-y-1">
-          <p className={cn(LABEL_CLASS, area.canOpen && "text-brand-green")}>{area.title}</p>
+          <p className={cn(fieldLabelClass, area.canOpen && "text-[var(--brand-green)]")}>{area.title}</p>
           {yours ? (
             <StatusTag tone="success" size="sm">
               Your role
@@ -99,7 +97,7 @@ export function ManagerAreaRow({ area, people, yours }: { area: ManagerArea; peo
             </StatusTag>
           )}
         </div>
-        <h3 className="mt-1 text-[16px] font-medium leading-snug tracking-[-0.01em] text-foreground">
+        <h3 className="mt-1 text-base font-semibold leading-snug tracking-tight text-foreground">
           {area.canOpen ? (
             <Link
               href={area.href as never}
@@ -118,13 +116,13 @@ export function ManagerAreaRow({ area, people, yours }: { area: ManagerArea; peo
           beside values. Wide: the Managers and Access columns. */}
       <dl className="col-span-3 col-start-1 grid gap-y-3 text-sm leading-relaxed @md:col-span-2 @md:col-start-2 @md:gap-y-2 @4xl:col-span-2 @4xl:col-start-3 @4xl:row-start-1 @4xl:grid-cols-subgrid">
         <div className={PAIR}>
-          <dt className={cn(LABEL_CLASS, "@4xl:sr-only")}>Managers</dt>
+          <dt className={cn(fieldLabelClass, "@4xl:sr-only")}>Managers</dt>
           <dd className="min-w-0">
             <Names people={people} />
           </dd>
         </div>
         <div className={PAIR}>
-          <dt className={cn(LABEL_CLASS, "@4xl:sr-only")}>Access</dt>
+          <dt className={cn(fieldLabelClass, "@4xl:sr-only")}>Access</dt>
           <dd className="min-w-0 text-[var(--ink-text)]">{access}</dd>
         </div>
       </dl>

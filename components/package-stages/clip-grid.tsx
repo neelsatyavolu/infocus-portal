@@ -60,7 +60,7 @@ export function ClipGrid({
         if (items.length === 0) return null;
         return (
           <section key={group.key} aria-label={group.label} className="space-y-2">
-            <h3 className="flex items-center gap-2 text-[13px] font-medium text-muted-foreground">
+            <h3 className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">
               {group.label}
               <span className="font-mono-broadcast tabular-nums">{items.length}</span>
             </h3>
@@ -169,9 +169,9 @@ export function WatchClipDialog({
         <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
           <div className="min-w-0">
             {clip?.playbackUrl ? (
-              <VideoPlayer key={clip.id} src={clip.playbackUrl} label={clip.title} preload="auto" className="rounded-lg" />
+              <VideoPlayer key={clip.id} src={clip.playbackUrl} label={clip.title} preload="auto" className="rounded-md" />
             ) : (
-              <div className="grid aspect-video w-full place-items-center rounded-lg bg-black px-4 text-center text-sm text-[var(--soft-white)]/70">
+              <div className="grid aspect-video w-full place-items-center rounded-md bg-black px-4 text-center text-sm text-[var(--soft-white)]/70">
                 This clip is not ready to play yet.
               </div>
             )}

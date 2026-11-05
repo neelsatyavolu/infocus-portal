@@ -17,10 +17,10 @@ export function ChannelGrid({ children }: { children: ReactNode }) {
 export const HEADER_SWITCH_CLASS = "relative after:absolute after:-inset-3";
 
 const CARD_CLASS =
-  "flex min-w-0 flex-col overflow-hidden rounded-lg border border-line-strong bg-card @2xl:row-span-4 @2xl:grid @2xl:grid-rows-subgrid @2xl:gap-y-0";
-const HEADER_CLASS = "flex min-h-14 items-center justify-between gap-3 border-b border-line px-4 py-3 md:px-5";
+  "flex min-w-0 flex-col overflow-hidden rounded-md border border-border bg-card @2xl:row-span-4 @2xl:grid @2xl:grid-rows-subgrid @2xl:gap-y-0";
+const HEADER_CLASS = "flex min-h-14 items-center justify-between gap-3 border-b border-border px-4 py-3 md:px-5";
 const FOOTER_CLASS =
-  "mt-auto flex min-h-14 flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-line px-4 py-2.5 md:px-5";
+  "mt-auto flex min-h-14 flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-border px-4 py-2.5 md:px-5";
 
 /**
  * One channel (Email, Browser, {Mac|iPhone} app): title, an exception tag and the master switch
@@ -55,7 +55,7 @@ export function ChannelCard({
     <section id={id} aria-labelledby={titleId} className={CARD_CLASS}>
       <div className={HEADER_CLASS}>
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-          <h3 id={titleId} className="text-[15px] font-medium leading-snug tracking-[-0.01em] text-foreground">
+          <h3 id={titleId} className="text-base font-semibold leading-snug tracking-[-0.01em] text-foreground">
             {controlId ? (
               <label htmlFor={controlId} className="cursor-pointer">
                 {title}
@@ -81,7 +81,7 @@ export function ChannelCard({
 }
 
 /**
- * The Send me caption over a card's three category rows. `note` ("when Email is on") stays on the
+ * The SEND ME caption over a card's three category rows. `note` ("when Email is on") stays on the
  * same line and truncates rather than wraps, so a card whose channel is off keeps its rows level
  * with the other card.
  */
@@ -89,7 +89,7 @@ export function SendMeLabel({ id, note }: { id: string; note?: string | null }) 
   return (
     <p
       id={id}
-      className="flex min-w-0 gap-1.5 text-[13px] font-medium leading-tight text-muted-foreground"
+      className="flex min-w-0 gap-1.5 text-[11px] font-medium uppercase leading-tight tracking-[0.11em] text-muted-foreground"
     >
       <span className="shrink-0">Send me</span>
       {note ? <span className="min-w-0 truncate">· {note}</span> : null}

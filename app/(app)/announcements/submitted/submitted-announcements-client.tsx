@@ -228,7 +228,7 @@ export default function SubmittedAnnouncementsClient({ canInvite }: { canInvite:
           deletingId={deletingId}
           deleteDisabled={refreshing}
           empty={
-            <div className="rounded-lg border border-line-strong bg-card">
+            <div className="rounded-md border border-border bg-card">
               <EmptyState
                 size="page"
                 icon={Megaphone}
@@ -244,7 +244,7 @@ export default function SubmittedAnnouncementsClient({ canInvite }: { canInvite:
           }
         />
       ) : message ? (
-        <div className="rounded-lg border border-line-strong bg-card">
+        <div className="rounded-md border border-border bg-card">
           <ErrorState
             size="page"
             title="Couldn't load submitted announcements"

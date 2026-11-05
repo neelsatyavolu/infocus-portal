@@ -79,7 +79,7 @@ export function ProjectList({ projects, canDelete }: { projects: HomeProject[]; 
       stackBelow="sm"
       columns={canDelete ? [...COLUMNS, ACTIONS_COLUMN] : COLUMNS}
       renderMobileRow={(project) => (
-        <div className="relative flex min-h-14 items-center gap-3 px-4 py-2.5 transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-secondary">
+        <div className="relative flex min-h-14 items-center gap-3 px-4 py-2.5 transition-colors hover:bg-[var(--ink-3)]">
           <div className="min-w-0 flex-1">
             <Link
               href={projectHref(project) as never}

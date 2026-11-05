@@ -36,7 +36,7 @@ function Steps() {
         <li key={index} className="flex items-start gap-3">
           <span
             aria-hidden
-            className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-secondary font-mono text-[11px] tabular-nums text-foreground"
+            className="grid h-5 w-5 shrink-0 place-items-center rounded-sm bg-[var(--ink-3)] text-[11px] tabular-nums text-foreground"
           >
             {index + 1}
           </span>
@@ -201,7 +201,7 @@ export function VaultImportDialog({
               type="button"
               onClick={() => inputRef.current?.click()}
               disabled={busy === "parse"}
-              className="flex w-full flex-col items-center gap-2 rounded-lg border border-dashed border-line-strong bg-card px-4 py-10 text-sm text-muted-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:border-[var(--brand-green)]/50 hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
+              className="flex w-full flex-col items-center gap-2 rounded-md border border-dashed border-input px-4 py-10 text-sm text-muted-foreground transition-colors hover:border-[var(--brand-green)]/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
             >
               {busy === "parse" ? <Spinner label="Reading the file" /> : <FileUp className="h-6 w-6" aria-hidden />}
               Choose a .1pux or .csv export
@@ -228,15 +228,15 @@ export function VaultImportDialog({
               </span>
             </ActionBar>
 
-            <ul className="min-h-0 flex-1 divide-y divide-line overflow-y-auto rounded-lg border border-line-strong">
+            <ul className="min-h-0 flex-1 divide-y divide-border overflow-y-auto rounded-md border border-border">
               {visible.map((item) => {
                 const duplicate = existingKeys.has(duplicateKey(item.name, item.username));
                 return (
                   <li key={item.key}>
-                    <label className="grid cursor-pointer grid-cols-[1rem_minmax(0,1fr)_auto] items-center gap-3 px-3 py-2 transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)]/60">
+                    <label className="grid cursor-pointer grid-cols-[1rem_minmax(0,1fr)_auto] items-center gap-3 px-3 py-2 transition-colors hover:bg-[var(--ink-3)]">
                       <Checkbox checked={selected.has(item.key)} onCheckedChange={() => toggle(item.key)} />
                       <span className="min-w-0">
-                        <span className="block truncate text-sm font-medium text-foreground">{item.name}</span>
+                        <span className="block truncate text-sm font-semibold text-foreground">{item.name}</span>
                         <span className="block truncate text-xs text-muted-foreground">
                           {[item.username, item.url, item.folder].filter(Boolean).join(" · ") || "No username"}
                         </span>

@@ -64,9 +64,9 @@ export function DayPanel({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="space-y-2 border-b border-line p-4">
+      <header className="space-y-2 border-b border-border p-4">
         <div className="flex items-start justify-between gap-3">
-          <h2 id={TITLE_ID} className="min-w-0 pt-1 text-lg font-medium leading-tight tracking-[-0.015em] text-foreground">
+          <h2 id={TITLE_ID} className="min-w-0 pt-1 text-lg font-semibold leading-tight tracking-[-0.01em] text-foreground">
             {formatLongDate(day.dateKey)}
           </h2>
           <div className="-mr-1 flex shrink-0 items-center gap-1">
@@ -138,7 +138,7 @@ export function DockedDayPanel({ children, focusOnOpen = false }: { children: Re
       id={DAY_PANEL_ID}
       tabIndex={-1}
       aria-labelledby={TITLE_ID}
-      className="sticky flex flex-col overflow-hidden rounded-lg border border-line-strong bg-card outline-none"
+      className="sticky flex flex-col overflow-hidden rounded-md border border-border bg-card outline-none"
       style={{
         top: `calc(${HEADER_H} + 1rem)`,
         maxHeight: `calc(100dvh - ${HEADER_H} - ${TABBAR_H} - 2rem)`
@@ -163,7 +163,7 @@ export function DrawerDayPanel({ children }: { children: ReactNode }) {
       id={DAY_PANEL_ID}
       tabIndex={-1}
       aria-labelledby={TITLE_ID}
-      className="fixed right-0 z-30 flex w-80 max-w-full flex-col border-l border-line-strong bg-card outline-none motion-safe:animate-[sheet-in-right_240ms_cubic-bezier(0.16,1,0.3,1)]"
+      className="fixed right-0 z-30 flex w-80 max-w-full flex-col border-l border-border bg-card outline-none motion-safe:animate-[sheet-in-right_240ms_cubic-bezier(0.16,1,0.3,1)]"
       style={{ top: HEADER_H, bottom: TABBAR_H }}
     >
       {children}
@@ -185,7 +185,7 @@ export function SheetDayPanel({ children }: { children: ReactNode }) {
       id={DAY_PANEL_ID}
       tabIndex={-1}
       aria-labelledby={TITLE_ID}
-      className="fixed inset-x-0 z-30 flex flex-col border-t border-line-strong bg-card outline-none motion-safe:animate-[sheet-in-bottom_240ms_cubic-bezier(0.16,1,0.3,1)]"
+      className="fixed inset-x-0 z-30 flex flex-col border-t border-border bg-card outline-none motion-safe:animate-[sheet-in-bottom_240ms_cubic-bezier(0.16,1,0.3,1)]"
       style={{ top: HEADER_H, bottom: TABBAR_H }}
     >
       {children}

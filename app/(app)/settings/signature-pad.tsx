@@ -174,7 +174,7 @@ export function SignaturePad({
 
   return (
     <div className="space-y-3">
-      <div className={`${SIGNATURE_WIDTH_CLASS} relative overflow-hidden rounded-lg border border-line-strong bg-white`}>
+      <div className={`${SIGNATURE_WIDTH_CLASS} relative overflow-hidden rounded-md border border-border bg-white`}>
         <canvas
           ref={canvasRef}
           aria-label="Signature pad. Draw your signature with a mouse, trackpad, pen, or finger."
@@ -189,7 +189,7 @@ export function SignaturePad({
         {!hasInk ? (
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute bottom-3 left-6 text-xs font-medium text-neutral-500"
+            className="pointer-events-none absolute bottom-3 left-6 text-xs uppercase tracking-[0.14em] text-neutral-500"
           >
             Sign above the line
           </span>

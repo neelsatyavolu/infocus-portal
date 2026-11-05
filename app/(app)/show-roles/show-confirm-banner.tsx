@@ -21,7 +21,6 @@ export function ShowConfirmBanner({ busy, onConfirm }: { busy: boolean; onConfir
         <Button
           type="button"
           size="sm"
-          variant="accent"
           className="relative max-sm:flex-1 max-sm:after:absolute max-sm:after:-inset-1"
           disabled={busy}
           onClick={onConfirm}

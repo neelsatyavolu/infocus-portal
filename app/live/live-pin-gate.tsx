@@ -72,10 +72,10 @@ export default function LivePinGate({ signedIn }: { signedIn: boolean }) {
 
   return (
     <main className="flex min-h-dvh touch-manipulation items-center justify-center bg-background px-4 py-8 text-foreground [@media(max-height:700px)]:py-4">
-      <div className="w-full max-w-sm rounded-xl border border-line-strong bg-card p-6 [@media(max-height:700px)]:p-5">
+      <div className="w-full max-w-sm rounded-md border border-border bg-card p-6 [@media(max-height:700px)]:p-5">
         <BrandWordmark className="h-8 w-auto object-contain" priority />
         <p className="eyebrow mt-5">InFocus Live</p>
-        <h1 className="mt-2 font-serif text-[40px] font-normal leading-none tracking-[-0.02em] text-foreground">Livestream dashboard</h1>
+        <h1 className="display-sm mt-1">Livestream dashboard</h1>
 
         {signedIn ? (
           <Alert tone="warning" compact className="mt-4">
@@ -86,10 +86,10 @@ export default function LivePinGate({ signedIn }: { signedIn: boolean }) {
             <a href="/sign-in?returnTo=%2Flive" className={cn(buttonVariants(), "mt-5 h-11 w-full text-base")}>
               Sign in to the Portal
             </a>
-            <p className="mt-4 flex items-center gap-3 text-xs font-medium text-muted-foreground">
-              <span aria-hidden className="h-px flex-1 bg-line-strong" />
+            <p className="mt-4 flex items-center gap-3 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">
+              <span aria-hidden className="h-px flex-1 bg-border" />
               or enter the 6-digit PIN
-              <span aria-hidden className="h-px flex-1 bg-line-strong" />
+              <span aria-hidden className="h-px flex-1 bg-border" />
             </p>
           </>
         )}
@@ -103,9 +103,9 @@ export default function LivePinGate({ signedIn }: { signedIn: boolean }) {
               <span
                 key={index}
                 className={cn(
-                  "flex h-14 items-center justify-center rounded-md border bg-card font-mono-broadcast text-2xl font-medium tabular-nums",
+                  "flex h-14 items-center justify-center rounded-md border bg-background font-mono-broadcast text-2xl font-medium tabular-nums",
                   SHORT_SCREEN,
-                  index < pin.length ? "border-input text-foreground" : "border-line-strong text-muted-foreground",
+                  index < pin.length ? "border-input text-foreground" : "border-border text-muted-foreground",
                   index === pin.length && !pending && "border-b-2 border-b-[var(--brand-green)]"
                 )}
               >
@@ -134,7 +134,7 @@ export default function LivePinGate({ signedIn }: { signedIn: boolean }) {
               onClick={() => press(key)}
               disabled={pending}
               className={cn(
-                "h-14 rounded-md border border-line-strong bg-secondary font-medium tabular-nums text-foreground transition-[transform,background-color] duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30 active:scale-[0.96] disabled:opacity-60",
+                "h-14 rounded-md border border-border bg-[var(--ink-3)] font-semibold text-foreground transition-[transform,background-color] hover:bg-[var(--ink-4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96] disabled:opacity-60",
                 SHORT_SCREEN,
                 key === "clear" || key === "back" ? "text-sm" : "text-2xl"
               )}

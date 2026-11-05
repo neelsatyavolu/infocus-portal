@@ -5,47 +5,41 @@
 @custom-variant light (&:is(.light *));
 
 /* ============================================================
-   InFocus Portal tokens: the Blackletter system (DESIGN.md §10, §14)
-   with InFocus colors as the one accent.
-   True black canvas, luminance steps and translucent hairlines for depth,
-   Geist for words, Geist Serif for page titles, Geist Mono for data.
-   The default button is white on black (inverted in Light); InFocus Green
-   #0B6E3E (or the season's fill) is the accent button for the one most
-   important action, Green on Dark #2BB36E is text and small marks only,
-   Record Red #EE3A2A is the rec dot / LIVE marker only.
+   InFocus Design System 2026 tokens — dark (Ink) by default.
+   Ink #0F110F · InFocus Green #0B6E3E (fills, white text) ·
+   Green on Dark #2BB36E (text and small marks only) ·
+   Record Red #EE3A2A (the rec dot / LIVE marker only) · Mist #DCE2DE.
    Errors and destructive actions use the separate Danger set.
    The theme follows the device (System) unless Settings → Appearance pins
    Light or Dark; Light is <html class="light">. :root holds the dark values.
    ============================================================ */
 
 :root {
-  --radius: 8px;
+  --radius: 6px;
 
   /* Dark on :root — dark is the default, so pages render dark even before the class is set. */
-  --background: 0 0% 0%;          /* canvas #000000 */
-  --foreground: 220 100% 99%;     /* ink #FCFDFF */
-  --card: 240 9% 4%;              /* surface-card #0A0A0C */
-  --card-foreground: 220 100% 99%;
-  --popover: 240 8% 7%;           /* surface-elevated #111114 */
-  --popover-foreground: 220 100% 99%;
+  --background: 120 6% 6%;
+  --foreground: 96 14% 93%;
+  --card: 120 6% 9%;
+  --card-foreground: 96 14% 93%;
+  --popover: 120 6% 9%;
+  --popover-foreground: 96 14% 93%;
 
-  /* bg-primary / text-primary stay the brand fill (selected states, progress, switches).
-     The default Button uses the --cta tokens below instead. */
   --primary: 151 82% 24%;
   --primary-foreground: 96 14% 93%;
 
-  --secondary: 240 8% 7%;         /* surface-elevated #111114: secondary buttons, chips */
-  --secondary-foreground: 220 100% 99%;
-  --muted: 240 7% 6%;
-  --muted-foreground: 195 2% 64%; /* mute #A1A4A5 */
-  --accent: 151 40% 10%;          /* brand tint: hovered / selected rows */
+  --secondary: 120 5% 12%;
+  --secondary-foreground: 96 14% 93%;
+  --muted: 120 5% 10%;
+  --muted-foreground: 141 6% 66%;
+  --accent: 151 40% 13%;
   --accent-foreground: 150 45% 82%;
 
   --destructive: 350 72% 44%;
   --destructive-foreground: 96 14% 93%;
 
-  --border: 240 4% 13%;           /* hairline-strong on black (~white 14%) */
-  --input: 240 3% 24%;            /* field borders */
+  --border: 120 5% 18%;
+  --input: 137 3% 43%;        /* #6B726D — field borders need 3:1 (DESIGN.md §10) */
   --ring: 150 61% 43.5%;
 
   --chart-1: 150 61% 43.5%;
@@ -54,99 +48,77 @@
   --chart-4: 220 90% 60%;
   --chart-5: 280 70% 60%;
 
-  /* Primary call to action: the brightest pixel on the page (white with black text). */
-  --cta: #FCFDFF;
-  --cta-on: #000000;
-  --cta-hover: #E3E5EA;
-
-  /* Hairlines: --line for row dividers, --line-2 for card, input and button edges. */
-  --line: rgba(255, 255, 255, 0.06);
-  --line-2: rgba(255, 255, 255, 0.14);
-
   /* Brand — exposed for utilities */
   --brand-green: #2BB36E;       /* Green on Dark: text, links, icons, small marks. Never a large fill. */
   --brand-green-deep: #23955C;  /* Hover for green text/marks */
-  --brand-fill: #0B6E3E;        /* InFocus Green: the accent button, active states */
+  --brand-fill: #0B6E3E;        /* InFocus Green: buttons, active states, header bands */
   --brand-fill-hover: #0E7D47;
-  --brand-tint: rgb(43 179 110 / 0.12); /* selected rows, badges */
-  --on-brand: #ECEFEA;          /* Soft White: text on InFocus Green and Danger fills */
-  --soft-white: #ECEFEA;
+  --on-brand: #ECEFEA;          /* Soft White: text on InFocus Green and Danger fills (never pure #FFFFFF) */
+  --soft-white: #ECEFEA;        /* Text and logo white on dark surfaces */
   --brand-red: #EE3A2A;         /* Record Red: rec dot and LIVE markers only */
   --brand-amber: #F2A516;
   --mist: #DCE2DE;
 
   /* Danger — errors and destructive actions (never Record Red) */
   --danger: #C21F3A;            /* Fills with white text */
-  --danger-text: #FF7A8A;       /* Error text, icons, borders on black */
-  --danger-tint: #2A0E13;       /* Error banner backgrounds on black */
+  --danger-text: #FF7A8A;       /* Error text, icons, borders on Ink */
+  --danger-tint: #3A1218;       /* Error banner backgrounds on Ink */
 
-  /* Neutral luminance steps (the old Ink scale names, now neutral):
-     --ink canvas, --ink-2 card, --ink-3 hover / elevated, --ink-4 strong line, --ink-text body. */
-  --ink: #000000;
-  --ink-2: #0A0A0C;
-  --ink-3: #161619;
-  --ink-4: #26262B;
-  --ink-5: #6B6E70;
-  --ink-text: #C4C6C8;
+  --ink: #0F110F;
+  --ink-2: #1A1D1A;
+  --ink-3: #252925;
+  --ink-4: #343934;
+  --ink-5: #6B726D;
+  --ink-text: #DCE2DE;
   --paper: #FFFFFF;
-  --paper-2: #F4F5F7;
+  --paper-2: #F4F6F5;
 
-  /* Type families: Geist for words, Geist Serif for titles (40px+), Geist Mono for data. */
-  --font-display: var(--font-geist-serif), Georgia, "Times New Roman", serif;
+  /* Type families: Lexend for everything people read; Geist Mono for data only. */
+  --font-display: var(--font-lexend), system-ui, sans-serif;
   --font-mono-broadcast: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
-  --ease-ui: cubic-bezier(0.2, 0, 0, 1);
 }
 
 /* ============================================================
-   Light theme: the canvas inverts, the structure stays. The ink scale flips
-   with the theme: --ink is the base surface, --ink-2…4 are raised surfaces
-   and lines, --ink-text is supporting text. Green text deepens to InFocus
-   Green so it reads on white.
+   Light theme. The ink scale flips with the theme: --ink is the base
+   surface, --ink-2…4 are raised surfaces and lines, --ink-text is
+   supporting text. Green text deepens to InFocus Green so it reads on white.
    ============================================================ */
 
 :root.light {
   color-scheme: light;
 
-  --background: 240 20% 99%;      /* #FCFCFD */
-  --foreground: 240 9% 4%;        /* #0A0A0C */
+  --background: 141 12% 96%;
+  --foreground: 120 6% 6%;
   --card: 0 0% 100%;
-  --card-foreground: 240 9% 4%;
+  --card-foreground: 120 6% 6%;
   --popover: 0 0% 100%;
-  --popover-foreground: 240 9% 4%;
+  --popover-foreground: 120 6% 6%;
 
   --primary: 151 82% 24%;
   --primary-foreground: 96 14% 93%;
 
-  --secondary: 220 14% 96%;       /* #F4F5F7 */
-  --secondary-foreground: 240 9% 4%;
-  --muted: 220 14% 96%;
-  --muted-foreground: 200 4% 39%; /* #5F6366 */
-  --accent: 150 40% 94%;
+  --secondary: 141 10% 92%;
+  --secondary-foreground: 120 6% 6%;
+  --muted: 141 10% 94%;
+  --muted-foreground: 140 5% 34%;
+  --accent: 150 40% 92%;
   --accent-foreground: 151 82% 18%;
 
-  --border: 240 5% 90%;
-  --input: 210 5% 76%;
+  --border: 141 9% 85%;
+  --input: 143 3% 51%;        /* #7F8782 */
   --ring: 151 82% 24%;
-
-  --cta: #0A0A0C;
-  --cta-on: #FCFDFF;
-  --cta-hover: #26262B;
-
-  --line: rgba(0, 0, 0, 0.06);
-  --line-2: rgba(0, 0, 0, 0.12);
 
   --brand-green: #0B6E3E;
   --brand-green-deep: #085A32;
   --brand-fill-hover: #085A32;
-  --brand-tint: rgb(11 110 62 / 0.08);
   --brand-amber: #B45309;
   --danger-text: #C21F3A;
   --danger-tint: #FDECEE;
   --ink: #FFFFFF;
-  --ink-2: #F7F7F8;
-  --ink-3: #EEEEF0;
-  --ink-4: #DCDCE0;
-  --ink-text: #4B4E50;
+  --ink-2: #F1F4F2;
+  --ink-3: #E3E8E5;
+  --ink-4: #CDD4CF;
+  --ink-text: #4B524D;
 
   /* Dark-first markup uses the pale 50–300 tints as status text (text-amber-200 on
      black). On white they are unreadable, so in light mode they resolve to the
@@ -189,16 +161,15 @@
    Halloween (Oct 15 – Oct 31, src/lib/halloween.ts): the InFocus Halloween
    2026 Package. Pumpkin #FF7A1A replaces Green on Dark, Deep Pumpkin
    #B4440A replaces InFocus Green fills, Witch Purple #9B5CFF replaces
-   Record Red. Surfaces, Soft White and type are unchanged.
+   Record Red. Ink, Soft White and Lexend are unchanged.
    ============================================================ */
 
 :root.halloween {
   --primary: 21 89% 37%;
-  --accent: 21 40% 10%;
+  --accent: 21 40% 13%;
   --accent-foreground: 25 90% 82%;
   --ring: 25 100% 55%;
   --chart-1: 25 100% 55%;
-  --brand-tint: rgb(255 122 26 / 0.12);
 
   --brand-green: #FF7A1A;
   --brand-green-deep: #E8650F;
@@ -209,10 +180,9 @@
 
 /* Light: pumpkin text deepens to Deep Pumpkin so it reads on white. */
 :root.halloween.light {
-  --accent: 25 80% 94%;
+  --accent: 25 80% 93%;
   --accent-foreground: 21 89% 28%;
   --ring: 21 89% 37%;
-  --brand-tint: rgb(180 68 10 / 0.08);
 
   --brand-green: #B4440A;
   --brand-green-deep: #8F3507;
@@ -222,18 +192,17 @@
 /* ============================================================
    Thanksgiving (November, src/lib/thanksgiving.ts): harvest colors.
    Harvest Gold #F2A93B replaces Green on Dark, Maple #A4471C replaces
-   InFocus Green fills, Cranberry #C23A52 replaces Record Red. Surfaces, Soft
-   White and type are unchanged; the logos come from the InFocus Thanksgiving 2026
+   InFocus Green fills, Cranberry #C23A52 replaces Record Red. Ink, Soft
+   White and Lexend are unchanged; the logos come from the InFocus Thanksgiving 2026
    Package (public/thanksgiving/, same canvases as the 2026 files).
    ============================================================ */
 
 :root.thanksgiving {
   --primary: 19 71% 38%;
-  --accent: 30 35% 10%;
+  --accent: 30 35% 13%;
   --accent-foreground: 38 90% 80%;
   --ring: 36 88% 59%;
   --chart-1: 36 88% 59%;
-  --brand-tint: rgb(242 169 59 / 0.12);
 
   --brand-green: #F2A93B;
   --brand-green-deep: #DB8F22;
@@ -244,10 +213,9 @@
 
 /* Light: gold text deepens to Toasted Maple so it reads on white. */
 :root.thanksgiving.light {
-  --accent: 36 80% 94%;
+  --accent: 36 80% 93%;
   --accent-foreground: 19 71% 28%;
   --ring: 19 71% 38%;
-  --brand-tint: rgb(164 71 28 / 0.08);
 
   --brand-green: #9A4A10;
   --brand-green-deep: #7A3A0C;
@@ -299,23 +267,15 @@
   --color-danger-tint: var(--danger-tint);
   --color-mist: var(--mist);
   --color-soft-white: var(--soft-white);
-  --color-cta: var(--cta);
-  --color-cta-foreground: var(--cta-on);
-  --color-cta-hover: var(--cta-hover);
-  --color-line: var(--line);
-  --color-line-strong: var(--line-2);
-  --color-brand-tint: var(--brand-tint);
-  /* Radii: 6px tags and small controls, 8px buttons and inputs, 12px cards, wells and dialogs,
-     full for pills and dots (DESIGN.md §10). */
-  --radius-sm: 6px;
+  /* One small radius for everyday UI. No big curves: plates and heroes are square (DESIGN.md §4). */
+  --radius-sm: 4px;
   --radius-md: var(--radius);
-  --radius-lg: 12px;
-  --radius-xl: 12px;
-  --radius-2xl: 16px;
-  --radius-3xl: 16px;
-  --radius-4xl: 16px;
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-serif: var(--font-display);
+  --radius-lg: var(--radius);
+  --radius-xl: var(--radius);
+  --radius-2xl: var(--radius);
+  --radius-3xl: var(--radius);
+  --radius-4xl: var(--radius);
+  --font-sans: var(--font-lexend), system-ui, sans-serif;
   --font-display: var(--font-display);
   --font-mono: var(--font-mono-broadcast);
 }
@@ -340,13 +300,13 @@
   --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   --ease-back-out: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --default-transition-duration: 150ms;
-  --default-transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+  --default-transition-duration: 200ms;
+  --default-transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 html {
   color-scheme: dark;
-  background-color: #000000;
+  background-color: #0F110F;
   background-color: hsl(var(--background));
   -webkit-text-size-adjust: 100%;
 }
@@ -361,8 +321,6 @@ html {
 body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
-  font-feature-settings: "liga" 1, "calt" 1;
-  letter-spacing: -0.005em;
   min-height: 100vh;
   overflow-x: hidden;
   overscroll-behavior: none;
@@ -402,52 +360,38 @@ video {
   font-family: var(--font-mono-broadcast);
 }
 
-/* Headlines. display-xl / display-lg are Geist Serif at 40px and up (page titles, heroes),
-   weight 400, line-height 1. display-md / display-sm are Geist Medium section headings: the
-   serif never goes below 40px (DESIGN.md §10). */
+/* Headlines — Lexend SemiBold, tight tracking, sentence or title case */
 .display-xl,
-.display-lg {
-  font-family: var(--font-display);
-  font-style: normal;
-  font-weight: 400;
-  text-transform: none;
-  letter-spacing: -0.02em;
-  line-height: 1;
-  text-wrap: balance;
-  color: hsl(var(--foreground));
-}
+.display-lg,
 .display-md,
 .display-sm {
-  font-family: var(--font-sans);
+  font-family: var(--font-display);
   font-style: normal;
-  font-weight: 500;
+  font-weight: 600;
   text-transform: none;
-  letter-spacing: -0.02em;
-  line-height: 1.3;
-  text-wrap: balance;
+  letter-spacing: -0.015em;
+  line-height: 1.1;
   color: hsl(var(--foreground));
 }
-.display-xl { font-size: clamp(3rem, 3vw + 2rem, 4.5rem); }
-.display-lg { font-size: clamp(2.5rem, 1.5vw + 1.75rem, 3rem); }
-.display-md { font-size: 1.375rem; }
-.display-sm { font-size: 1.125rem; letter-spacing: -0.015em; }
+.display-xl { font-size: clamp(2.25rem, 2.5vw + 1.5rem, 3.5rem); letter-spacing: -0.02em; line-height: 1.05; }
+.display-lg { font-size: clamp(1.875rem, 1.5vw + 1.25rem, 2.75rem); letter-spacing: -0.02em; line-height: 1.08; }
+.display-md { font-size: clamp(1.375rem, 0.75vw + 1rem, 1.875rem); line-height: 1.15; }
+.display-sm { font-size: clamp(1.125rem, 0.4vw + 0.95rem, 1.375rem); line-height: 1.2; }
 
-/* Eyebrow / kicker: a small quiet label above a title. Sentence case, no tracking. */
+/* Eyebrow / kicker — ALL CAPS Medium, wide tracking, Green on Dark */
 .eyebrow {
-  font-family: var(--font-sans);
+  font-family: var(--font-display);
   font-weight: 500;
-  font-size: 0.8125rem;
-  line-height: 1.4;
-  letter-spacing: 0;
-  text-transform: none;
-  color: hsl(var(--muted-foreground));
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--brand-green);
 }
-.eyebrow-brand { color: var(--brand-green); }
 .eyebrow-ink { color: hsl(var(--foreground)); }
 .eyebrow-red { color: var(--danger-text); }
 .eyebrow-muted { color: hsl(var(--muted-foreground)); }
 
-/* Wordmark style (the InFocus logotype, not a label style) */
+/* Wordmark style */
 .wordmark {
   font-weight: 600;
   font-size: 14px;
@@ -455,39 +399,38 @@ video {
   text-transform: uppercase;
 }
 
-/* Status tags: small sentence-case pills (DESIGN.md badge-pill). */
+/* Status tags — ALL CAPS Medium labels, small square-ish corners */
 .status-pill {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font-family: var(--font-sans);
+  gap: 4px;
+  font-family: var(--font-display);
   font-weight: 500;
-  font-size: 0.75rem;
-  line-height: 1.33;
-  letter-spacing: 0;
-  text-transform: none;
-  padding: 2px 8px;
-  border-radius: 9999px;
+  font-size: 0.6875rem;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm, 4px);
   border: 1px solid transparent;
   white-space: nowrap;
 }
 .status-pill-sm {
-  font-size: 0.6875rem;
-  letter-spacing: 0;
-  padding: 1px 6px;
-  gap: 4px;
+  font-size: 0.625rem;
+  letter-spacing: 0.11em;
+  padding: 2px 6px;
+  gap: 3px;
 }
 /* Deprecated: status is a tag, never a button-sized block (the user flagged the old 40px "lg"
    blocks in page headers). Kept as a slightly larger tag so old markup still lines up; new code
    uses <StatusTag> from components/kit/status-tag.tsx. */
 .status-pill-lg {
   font-size: 0.75rem;
-  letter-spacing: 0;
-  padding: 2px 8px;
+  letter-spacing: 0.11em;
+  padding: 3px 8px;
   gap: 5px;
 }
-/* LIVE: a neutral tag with the one red dot, not a red fill. */
-.status-live      { background: hsl(var(--secondary)); color: hsl(var(--foreground)); border-color: var(--line-2); }
+/* LIVE: an Ink tag with the one red dot, not a red fill. */
+.status-live      { background: hsl(var(--card)); color: hsl(var(--foreground)); border-color: hsl(var(--border)); }
 .status-live::before {
   content: "";
   width: 6px;
@@ -495,13 +438,13 @@ video {
   border-radius: 50%;
   background: var(--brand-red);
 }
-.status-review    { background: hsl(var(--secondary)); color: hsl(var(--foreground)); border-color: var(--line-2); }
-.status-approved  { background: rgb(43 179 110 / 0.12); color: var(--brand-green); border-color: rgb(43 179 110 / 0.24); }
-.status-warn      { background: rgb(242 165 22 / 0.12); color: var(--brand-amber); border-color: rgb(242 165 22 / 0.30); }
-.status-danger    { background: var(--danger-tint); color: var(--danger-text); border-color: color-mix(in srgb, var(--danger-text) 30%, transparent); }
-.status-neutral   { background: hsl(var(--secondary)); color: var(--ink-text); border-color: var(--line-2); }
+.status-review    { background: hsl(var(--background)); color: hsl(var(--foreground)); border-color: hsl(var(--border)); }
+.status-approved  { background: rgb(43 179 110 / 0.14); color: var(--brand-green); border-color: rgb(43 179 110 / 0.30); }
+.status-warn      { background: rgb(242 165 22 / 0.16); color: var(--brand-amber); border-color: rgb(242 165 22 / 0.40); }
+.status-danger    { background: var(--danger-tint); color: var(--danger-text); border-color: color-mix(in srgb, var(--danger-text) 40%, transparent); }
+.status-neutral   { background: hsl(var(--card)); color: var(--ink-text); border-color: hsl(var(--border)); }
 /* Past, closed, later: quieter than neutral (no fill). */
-.status-muted     { background: transparent; color: hsl(var(--muted-foreground)); border-color: var(--line-2); }
+.status-muted     { background: transparent; color: hsl(var(--muted-foreground)); border-color: hsl(var(--border)); }
 
 /* REC / live dot — the one touch of Record Red */
 .rec-dot {
@@ -523,10 +466,10 @@ video {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 10px;
-  border-radius: 9999px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm, 4px);
   background: hsl(var(--secondary));
-  border: 1px solid var(--line-2);
+  border: 1px solid hsl(var(--border));
   color: hsl(var(--foreground));
   font-size: 12px;
   font-weight: 500;
@@ -535,20 +478,24 @@ video {
 
 /* Flat brand panels for project tiles (no gradients — DESIGN.md §4) */
 .brand-gradient-1 { background: var(--brand-fill); color: var(--on-brand); }
-.brand-gradient-2 { background: #111114; color: var(--on-brand); }
+.brand-gradient-2 { background: #1A1D1A; color: var(--on-brand); }
 .brand-gradient-3 { background: #08492A; color: var(--on-brand); }
-.brand-gradient-4 { background: #1C1C20; color: var(--on-brand); }
+.brand-gradient-4 { background: #252925; color: var(--on-brand); }
 .brand-gradient-5 { background: #0E5C36; color: var(--on-brand); }
 .brand-gradient-ink { background: var(--ink-2); }
 .brand-gradient-green { background: var(--brand-fill); color: var(--on-brand); }
 .brand-gradient-red { background: var(--danger); color: var(--on-brand); }
 
-/* Page hero panel: a card surface with a strong hairline (level 1). No colored strips. */
+/* Page hero — a square Ink plate with an InFocus Green strip below
+   (the lower-third nameplate, flattened for the web). */
 .brand-hero-gradient,
 .brand-hero-panel {
   background: hsl(var(--card));
-  border: 1px solid var(--line-2);
-  border-radius: 12px;
+  /* Only the green strip, even if markup adds `border`. */
+  border-width: 0 0 4px 0;
+  border-style: solid;
+  border-color: var(--brand-fill);
+  border-radius: 0;
 }
 
 /* Tile chrome — kept as a positioning hook; no blur orbs (flat color) */
@@ -579,10 +526,10 @@ video {
 
 /* Avatar palette — flat brand tones for initial badges */
 .av-green  { background: var(--brand-fill); color: var(--on-brand); }
-.av-red    { background: #DCE2DE; color: #0A0A0C; }
+.av-red    { background: #DCE2DE; color: #0F110F; }
 .av-purple { background: #08492A; color: var(--on-brand); }
-.av-blue   { background: #2BB36E; color: #0A0A0C; }
-.av-gray   { background: #2A2A2F; color: var(--on-brand); }
+.av-blue   { background: #2BB36E; color: #0F110F; }
+.av-gray   { background: #343934; color: var(--on-brand); }
 
 /* Halloween versions of the flat greens above (the 2026 tokens cover the rest). */
 .halloween .brand-gradient-3 { background: #6E2A06; }

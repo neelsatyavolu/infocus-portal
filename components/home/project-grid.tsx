@@ -28,14 +28,14 @@ export function ProjectGrid({ projects, canDelete }: { projects: HomeProject[]; 
       {projects.map((project) => (
         <article
           key={project.id}
-          className="relative flex h-full min-h-28 min-w-0 flex-col rounded-lg border border-line-strong bg-card p-4 transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-secondary"
+          className="relative flex h-full min-h-28 min-w-0 flex-col rounded-md border border-border bg-card p-4 transition-colors hover:border-[var(--brand-green)]/40 hover:bg-[var(--ink-3)]"
         >
-          <h3 className="flex min-w-0 items-start gap-2 text-[15px] font-medium leading-snug tracking-[-0.01em] text-foreground">
+          <h3 className="flex min-w-0 items-start gap-2 text-[15px] font-semibold leading-snug tracking-[-0.01em] text-foreground">
             <Folder className="mt-[3px] h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
             <Link
               href={`/projects/${project.id}` as never}
               title={project.name}
-              className="min-w-0 rounded-sm outline-none after:absolute after:inset-0 after:rounded-lg focus-visible:after:ring-[3px] focus-visible:after:ring-ring/45"
+              className="min-w-0 rounded-sm outline-none after:absolute after:inset-0 after:rounded-md focus-visible:after:ring-2 focus-visible:after:ring-ring"
             >
               <span className="line-clamp-2 break-words">{project.name}</span>
             </Link>

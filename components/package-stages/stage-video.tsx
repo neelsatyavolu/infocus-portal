@@ -48,7 +48,7 @@ export function StageVideo({
 }) {
   return (
     <div className="min-w-0 space-y-3">
-      <div className="overflow-hidden rounded-lg border border-line-strong bg-black">
+      <div className="overflow-hidden rounded-md border border-border bg-black">
         <div className="mx-auto w-full max-w-[calc(min(62dvh,36rem)*16/9)]">
           {item.playbackUrl ? (
             <VideoPlayer
@@ -70,7 +70,7 @@ export function StageVideo({
         </div>
       </div>
       <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
-        <h3 className="min-w-0 truncate text-base font-medium tracking-[-0.01em] text-foreground" title={title}>
+        <h3 className="min-w-0 truncate text-base font-semibold text-foreground" title={title}>
           {title}
         </h3>
         {status}

@@ -66,7 +66,7 @@ export function MediaThumb({
   const showImage = Boolean(src) && failedSrc !== src;
   const small = size !== "fill";
   return (
-    <div className={cn("relative aspect-video shrink-0 overflow-hidden bg-black", small ? "rounded-md" : "rounded-lg", THUMB_SIZE[size], className)}>
+    <div className={cn("relative aspect-video shrink-0 overflow-hidden rounded-sm bg-black", THUMB_SIZE[size], className)}>
       {showImage && src ? (
         <Image
           src={src}
@@ -95,7 +95,7 @@ export function MediaThumb({
 /**
  * A media card: 16:9 thumb on top, then a one-line title with a status slot and a muted meta
  * line. Renders as a link, a button or a plain card; equal height in grids. `highlight="new"`
- * adds the brand edge for something new since the last visit.
+ * adds the green edge for something new since the last visit.
  */
 export function MediaTile({
   thumbnailUrl,
@@ -131,10 +131,10 @@ export function MediaTile({
   className?: string;
 }) {
   const classes = cn(
-    "group flex h-full min-w-0 flex-col overflow-hidden rounded-lg border bg-card text-left text-card-foreground transition-colors duration-150 ease-[var(--ease-ui)]",
-    highlight ? "border-[var(--brand-green)]/60" : "border-line-strong",
-    highlight === "active" && "bg-brand-tint",
-    (href || onClick) && "hover:bg-secondary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/45",
+    "group flex h-full min-w-0 flex-col overflow-hidden rounded-md border bg-card text-left text-card-foreground transition-colors",
+    highlight ? "border-[var(--brand-green)]/60" : "border-border",
+    highlight === "active" && "bg-[rgb(43_179_110/0.08)]",
+    (href || onClick) && "hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
     className
   );
   const body = (

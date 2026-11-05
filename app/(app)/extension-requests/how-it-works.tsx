@@ -20,24 +20,24 @@ const STEPS = [
  */
 export function HowItWorks({ id }: { id: string }) {
   return (
-    <section id={id} aria-label="How extension requests work" className="rounded-lg border border-line-strong bg-card p-4 md:p-5">
+    <section id={id} aria-label="How extension requests work" className="rounded-md border border-border bg-card p-4 md:p-5">
       <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {STEPS.map((step, index) => (
           <li key={step.label} className="grid min-w-0 grid-cols-[1.5rem_minmax(0,1fr)] gap-x-3">
             <span
               aria-hidden
-              className="grid h-6 w-6 place-items-center rounded-full border border-line-strong bg-secondary font-mono text-[11px] font-medium tabular-nums text-muted-foreground"
+              className="grid h-6 w-6 place-items-center rounded-sm border border-[var(--ink-4)] font-mono-broadcast text-[11px] font-medium tabular-nums text-muted-foreground"
             >
               {index + 1}
             </span>
             <div className="min-w-0">
-              <p className="flex min-h-6 items-center text-sm font-medium text-foreground">{step.label}</p>
+              <p className="flex min-h-6 items-center text-sm font-semibold text-foreground">{step.label}</p>
               <p className="mt-0.5 text-[13px] leading-snug text-[var(--ink-text)]">{step.body}</p>
             </div>
           </li>
         ))}
       </ol>
-      <div className="mt-4 space-y-1.5 border-t border-line pt-3 text-[13px] leading-snug text-muted-foreground">
+      <div className="mt-4 space-y-1.5 border-t border-border pt-3 text-[13px] leading-snug text-muted-foreground">
         <p className="max-w-prose">
           Executive producers can grant directly or grant a pending request early; one more exec approves. A
           grant for some members stays private to them.

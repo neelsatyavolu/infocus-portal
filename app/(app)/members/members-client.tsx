@@ -327,7 +327,7 @@ export default function MembersClient({ initialData }: { initialData: MembersPay
       {notes.loading || (notes.data && !prefsLoaded) ? (
         <MembersBodySkeleton />
       ) : !notes.data ? null : members.length === 0 ? (
-        <div className="rounded-lg border border-line-strong bg-card">
+        <div className="rounded-md border border-border bg-card">
           <EmptyState icon={Users} title="No class members to show." description="Executives, the adviser and super admin aren't listed." />
         </div>
       ) : !personLayout ? (

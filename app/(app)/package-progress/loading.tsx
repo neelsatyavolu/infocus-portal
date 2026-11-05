@@ -8,7 +8,7 @@ export default function PackageProgressLoading() {
       <span className="sr-only">Loading the roster…</span>
       <PageHeaderSkeleton actions={2} />
       <ToolbarSkeleton start={3} end={3} />
-      <div className="overflow-hidden rounded-lg border border-line-strong bg-card">
+      <div className="overflow-hidden rounded-md border border-border bg-card">
         <RosterSkeleton />
       </div>
     </LoadingRegion>

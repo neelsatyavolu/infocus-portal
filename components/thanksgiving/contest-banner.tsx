@@ -44,7 +44,7 @@ export function ContestBanner({
       aria-label="Leaderboard contest"
       className={cn("rounded-lg border border-[var(--brand-green)] bg-[var(--brand-green)]/10 p-4 sm:p-5", className)}
     >
-      <p className="font-serif text-[32px] font-normal leading-[1.05] tracking-[-0.02em] text-foreground [text-wrap:balance] sm:text-[40px]">
+      <p className="text-[32px] font-semibold leading-[1.05] tracking-[-0.02em] text-foreground [text-wrap:balance] sm:text-[40px]">
         {headline}
       </p>
       <p className="mt-2 max-w-[65ch] text-sm leading-relaxed text-[var(--ink-text)]">{detail}</p>

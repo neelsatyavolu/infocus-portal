@@ -107,12 +107,12 @@ export function CustomDropdown({
         aria-label={ariaLabel}
         onClick={() => setOpen((current) => !current)}
         className={cn(
-          "flex h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-card px-3 text-left text-sm text-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-secondary focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-60",
+          "interactive-surface flex h-10 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 text-left text-sm text-foreground disabled:cursor-not-allowed disabled:opacity-60",
           buttonClassName,
         )}
       >
         <span className="truncate">{selected?.label ?? placeholder}</span>
-        <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform duration-150", open ? "rotate-180" : "")} />
+        <ChevronDown className={cn("h-4 w-4 text-slate-400 light:text-muted-foreground transition-transform", open ? "rotate-180" : "")} />
       </button>
 
       {open && panelPosition
@@ -120,7 +120,7 @@ export function CustomDropdown({
             <div
               ref={panelRef}
               className={cn(
-                "slide-in fixed z-[500] overflow-y-auto overscroll-contain rounded-lg border border-line-strong bg-popover p-1 text-popover-foreground",
+                "slide-in fixed z-[500] overflow-y-auto overscroll-contain rounded-xl border border-cyan-300/25 bg-[#0c1224]/98 light:bg-popover p-1.5 shadow-2xl backdrop-blur",
                 panelClassName,
               )}
               style={panelPosition}
@@ -133,8 +133,8 @@ export function CustomDropdown({
                     key={option.value}
                     type="button"
                     className={cn(
-                      "flex w-full items-center justify-between gap-3 rounded-md px-2.5 py-2 text-left text-sm transition-colors duration-150 ease-[var(--ease-ui)]",
-                      active ? "bg-brand-tint text-foreground" : "text-foreground/80 hover:bg-[var(--ink-3)] hover:text-foreground",
+                      "interactive-surface flex w-full items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-left text-sm",
+                      active ? "border-cyan-300/30 bg-cyan-400/15 text-cyan-100 light:text-cyan-800" : "text-slate-200 hover:text-foreground light:text-foreground/80 light:hover:text-foreground",
                     )}
                     onClick={() => {
                       onChange(option.value);
@@ -143,9 +143,9 @@ export function CustomDropdown({
                   >
                     <span className="truncate">
                       {option.label}
-                      {option.hint ? <span className="ml-2 text-xs text-muted-foreground">{option.hint}</span> : null}
+                      {option.hint ? <span className="ml-2 text-xs text-slate-400 light:text-muted-foreground">{option.hint}</span> : null}
                     </span>
-                    {active ? <Check className="h-3.5 w-3.5 text-brand-green" /> : null}
+                    {active ? <Check className="h-3.5 w-3.5 text-cyan-200 light:text-cyan-700" /> : null}
                   </button>
                 );
               })}

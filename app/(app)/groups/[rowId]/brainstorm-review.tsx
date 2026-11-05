@@ -4,15 +4,15 @@ import { ScrollStrip } from "@/components/kit/layout";
 import { PROOF_OF_CONTACT_SLOTS, type BrainstormProofView } from "@/src/lib/package-brainstorm";
 import { cn } from "@/src/lib/utils";
 
-const FRAME = "flex min-w-0 flex-col overflow-hidden rounded-lg border bg-card";
+const FRAME = "flex min-w-0 flex-col overflow-hidden rounded-md border bg-card";
 const LINK_FRAME = cn(
   FRAME,
-  "border-line-strong transition-colors duration-150 ease-[var(--ease-ui)] hover:border-[var(--ink-5)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30"
+  "border-border transition-colors hover:border-[var(--ink-5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 );
 /** Phones: a fixed-height strip tile. From sm: a portrait frame, so screenshots of texts fit uncropped. */
 const PREVIEW = "relative block h-[clamp(14rem,60vw,22rem)] w-full sm:aspect-[3/4] sm:h-auto sm:max-h-[min(45vh,24rem)]";
 const CAPTION = "flex min-h-9 min-w-0 items-center gap-2 border-t px-3 py-2";
-const LABEL = "shrink-0 text-xs font-medium leading-tight text-muted-foreground";
+const LABEL = "shrink-0 text-[11px] font-medium uppercase leading-tight tracking-[0.11em] text-muted-foreground";
 
 function Caption({
   label,
@@ -27,7 +27,7 @@ function Caption({
   dashed?: boolean;
 }) {
   return (
-    <span className={cn(CAPTION, dashed ? "border-dashed border-line-strong" : "border-line")}>
+    <span className={cn(CAPTION, dashed ? "border-dashed border-border" : "border-border")}>
       <span className={LABEL}>{label}</span>
       {name ? (
         <>
@@ -44,7 +44,7 @@ function Caption({
 
 function MissingTile({ label, icon, text }: { label: string; icon: ReactNode; text: string }) {
   return (
-    <div className={cn(FRAME, "border-dashed border-line-strong")}>
+    <div className={cn(FRAME, "border-dashed border-border")}>
       <span className={cn(PREVIEW, "grid place-items-center")}>
         <span className="flex flex-col items-center gap-2 text-sm text-muted-foreground">
           {icon}
@@ -91,7 +91,7 @@ export function BrainstormReview({ proofs, docUrl }: { proofs: BrainstormProofVi
         }
         return (
           <a key={slot} href={proof.imageUrl} target="_blank" rel="noreferrer" title={proof.fileName} className={LINK_FRAME}>
-            <span className={cn(PREVIEW, "bg-secondary")}>
+            <span className={cn(PREVIEW, "bg-muted")}>
               {/* The caption names the link, so the image itself is decorative here. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={proof.imageUrl} alt="" className="absolute inset-0 h-full w-full object-contain" />

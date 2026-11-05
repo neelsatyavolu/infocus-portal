@@ -7,7 +7,7 @@ import { Check, GripVertical, Trash2 } from "lucide-react";
 import { AGENDA_TEXT_MAX, cleanAgendaText, type MeetingAgendaItemView } from "@/src/lib/meetings/agenda";
 import { cn } from "@/src/lib/utils";
 
-const FOCUS = "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30";
+const FOCUS = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]";
 
 /**
  * Radix closes its sheet or dialog on Escape from a document capture listener, before the edit
@@ -61,8 +61,8 @@ export function AgendaRow({
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
-        "flex min-h-11 items-center gap-1 rounded-lg bg-card pr-1 outline outline-1 outline-line-strong",
-        isDragging && "relative z-10 outline-brand-green"
+        "flex min-h-11 items-center gap-1 rounded-md bg-card pr-1 outline outline-1 outline-border",
+        isDragging && "relative z-10 outline-2 outline-[var(--brand-green)]"
       )}
     >
       <button
@@ -74,7 +74,7 @@ export function AgendaRow({
         aria-label={`Move item ${index + 1}: ${item.text}`}
         title={readOnly ? undefined : "Drag to reorder"}
         className={cn(
-          "flex h-11 w-9 shrink-0 cursor-grab touch-none items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:text-foreground disabled:cursor-default disabled:opacity-40",
+          "flex h-11 w-9 shrink-0 cursor-grab touch-none items-center justify-center rounded-md text-muted-foreground hover:text-foreground disabled:cursor-default disabled:opacity-40",
           FOCUS
         )}
       >
@@ -97,7 +97,7 @@ export function AgendaRow({
               }
             }}
             aria-label="Agenda item"
-            className={cn("h-10 w-full rounded-md border border-input bg-card px-2 text-base text-foreground focus-visible:border-ring md:h-9 md:text-sm", FOCUS)}
+            className={cn("h-10 w-full rounded-md border border-input bg-transparent px-2 text-base text-foreground md:h-9 md:text-sm", FOCUS)}
           />
         </form>
       ) : (

@@ -127,7 +127,6 @@ export default function EditingClient({ initial, howTo }: { initial: LoadedOverv
         eyebrow={EYEBROW}
         status={state ? <EditorStatusTag worker={state.worker} devices={state.devices} /> : undefined}
         title="Editing"
-        size="display"
         description={view !== "show" ? undefined : showDate ? formatShowDateLabel(showDate) : fallbackTitle(requestedDate)}
       />
 

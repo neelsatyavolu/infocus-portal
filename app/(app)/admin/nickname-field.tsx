@@ -54,10 +54,10 @@ export function NicknameField({
         aria-label={`Nickname for ${personName}`}
         disabled={disabled}
         className={cn(
-          "h-8 w-full min-w-0 rounded-md border bg-transparent px-2.5 text-base text-foreground transition-colors duration-150 ease-[var(--ease-ui)] md:text-sm",
-          "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50",
+          "h-8 w-full min-w-0 rounded-md border bg-transparent px-2.5 text-base text-foreground transition-colors md:text-sm",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
           // Quiet at rest: no border and no placeholder until the row is hovered or the field focused.
-          "border-transparent placeholder:text-transparent hover:border-input focus:border-ring focus:placeholder:text-muted-foreground group-hover/row:placeholder:text-muted-foreground",
+          "border-transparent placeholder:text-transparent hover:border-input focus:border-input focus:placeholder:text-muted-foreground group-hover/row:placeholder:text-muted-foreground",
           // Phones: no hover and no column header, so the placeholder and a pencil say it is editable.
           "max-sm:h-10 max-sm:pr-8 max-sm:placeholder:text-muted-foreground",
           dirty && "border-input pr-[4.25rem] max-sm:pr-[4.75rem]"

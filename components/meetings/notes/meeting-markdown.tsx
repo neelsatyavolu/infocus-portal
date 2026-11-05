@@ -11,7 +11,7 @@ function Inline({ text }: { text: string }) {
     <>
       {splitInlineBold(text).map((part, i) =>
         part.bold ? (
-          <strong key={i} className="font-medium text-foreground">
+          <strong key={i} className="font-semibold text-foreground">
             {part.text}
           </strong>
         ) : (
@@ -24,10 +24,10 @@ function Inline({ text }: { text: string }) {
 
 export function MeetingMarkdown({ markdown }: { markdown: string }) {
   return (
-    <div className="max-w-[65ch] space-y-4 text-[15px] leading-relaxed text-[var(--ink-text)]">
+    <div className="space-y-4 text-sm leading-relaxed text-[var(--ink-text)]">
       {splitMarkdownSections(markdown).map((section, si) => (
         <section key={si} className="space-y-2">
-          {section.heading ? <h3 className="text-base font-medium tracking-[-0.01em] text-foreground">{section.heading}</h3> : null}
+          {section.heading ? <h3 className="text-base font-semibold text-foreground">{section.heading}</h3> : null}
           {parseAssistantReply(section.body).map((block, bi) =>
             block.type === "ul" ? (
               <ul key={bi} className="list-disc space-y-1 pl-5">

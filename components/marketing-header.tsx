@@ -30,14 +30,14 @@ function marketingNavItems(): MarketingNavItem[] {
   ];
 }
 
-/** Desktop nav link: plain text, with a 1px brand underline on the header's bottom line. */
+/** Desktop nav link: plain text, with the hub-tabs 2px green underline on the header's bottom line. */
 function DesktopNavLink({ item, active }: { item: MarketingNavItem; active: boolean }) {
   const className = cn(
-    "relative inline-flex h-14 items-center gap-1 whitespace-nowrap px-3 text-sm transition-colors duration-150 ease-[var(--ease-ui)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50",
+    "relative inline-flex h-14 items-center gap-1 whitespace-nowrap px-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
     active ? "font-medium text-foreground" : "text-muted-foreground hover:text-foreground"
   );
   const underline = active ? (
-    <span aria-hidden className="absolute inset-x-3 -bottom-px h-px bg-[var(--brand-green)]" />
+    <span aria-hidden className="absolute inset-x-3 -bottom-px h-0.5 bg-[var(--brand-green)]" />
   ) : null;
 
   if (item.external) {
@@ -70,7 +70,7 @@ export function MarketingHeader({ active = "home" }: MarketingHeaderProps) {
   const toolItems = items.filter((item) => item.group === "tools");
 
   return (
-    <header className="sticky top-0 z-50 border-b border-line bg-background pt-[env(safe-area-inset-top)]">
+    <header className="sticky top-0 z-50 border-b border-border bg-background pt-[env(safe-area-inset-top)]">
       <div className={cn(PUBLIC_CONTAINER, "flex h-14 items-center gap-3")}>
         <Link href="/" aria-label="InFocus Portal home" className="inline-flex shrink-0 items-center text-foreground">
           <BrandWordmark className="h-8 w-auto object-contain" priority />
@@ -80,7 +80,7 @@ export function MarketingHeader({ active = "home" }: MarketingHeaderProps) {
           {portalItems.map((item) => (
             <DesktopNavLink key={item.key} item={item} active={active === item.key} />
           ))}
-          <span aria-hidden className="mx-2 h-5 w-px bg-line-strong" />
+          <span aria-hidden className="mx-2 h-5 w-px bg-border" />
           {toolItems.map((item) => (
             <DesktopNavLink key={item.key} item={item} active={active === item.key} />
           ))}

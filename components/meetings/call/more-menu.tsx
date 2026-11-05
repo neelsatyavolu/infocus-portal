@@ -17,7 +17,7 @@ export type MoreTile = { id: string; label: string; icon: ReactNode; onSelect: (
 /** A desktop menu row. */
 export type MoreRowItem = { id: string; label: string; icon: ReactNode; onSelect: () => void };
 
-const FOCUS = "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/45";
+const FOCUS = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]";
 
 const SHORTCUT_LEGEND = [
   { combo: CALL_SHORTCUTS.mic, label: "Mic" },
@@ -65,7 +65,7 @@ function ActionTile({ tile, span, onSelect }: { tile: MoreTile; span: string; on
       onClick={onSelect}
       className={cn(
         span,
-        "relative flex h-[72px] min-w-0 flex-col items-center justify-center gap-1.5 rounded-lg border border-line-strong bg-secondary px-1 text-xs text-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)] [&_svg]:size-5 [&_svg]:shrink-0",
+        "relative flex h-[72px] min-w-0 flex-col items-center justify-center gap-1.5 rounded-md bg-[var(--ink-3)] px-1 text-xs text-foreground transition-colors hover:bg-[var(--ink-4)] [&_svg]:size-5 [&_svg]:shrink-0",
         FOCUS
       )}
     >
@@ -77,7 +77,7 @@ function ActionTile({ tile, span, onSelect }: { tile: MoreTile; span: string; on
 }
 
 /**
- * More. Desktop: a menu (Layout, then one group of rows: self view, audio and video settings,
+ * More. Desktop: a menu (LAYOUT, then one group of rows: self view, audio and video settings,
  * Meeting details, Host settings for hosts; then the keyboard shortcuts). Phones: a bottom sheet
  * with reactions, one grid of action tiles, then the layout.
  */
@@ -119,18 +119,18 @@ export function MoreMenu({
           <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/60" />
           <DialogPrimitive.Content
             onOpenAutoFocus={pointerSafeAutoFocus}
-            className="fixed inset-x-0 bottom-0 z-50 max-h-[80dvh] space-y-3 overflow-y-auto overscroll-contain rounded-t-xl border-t border-line-strong bg-popover pb-[max(0.75rem,env(safe-area-inset-bottom))] pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] pt-3 outline-none"
+            className="fixed inset-x-0 bottom-0 z-50 max-h-[80dvh] space-y-3 overflow-y-auto overscroll-contain border-t border-[var(--ink-4)] bg-[var(--ink-2)] pb-[max(0.75rem,env(safe-area-inset-bottom))] pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] pt-3 outline-none"
           >
             <DialogPrimitive.Title className="sr-only">More options</DialogPrimitive.Title>
             {onReact ? (
-              <div role="group" aria-label="Reactions" className="grid grid-cols-8 gap-1 border-b border-line pb-3">
+              <div role="group" aria-label="Reactions" className="grid grid-cols-8 gap-1 border-b border-[var(--ink-4)] pb-3">
                 {MEETING_REACTIONS.map((emoji) => (
                   <button
                     key={emoji}
                     type="button"
                     aria-label={`React ${emoji}`}
                     onClick={run(() => onReact(emoji))}
-                    className={cn("flex h-11 items-center justify-center rounded-md text-2xl transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)]", FOCUS)}
+                    className={cn("flex h-11 items-center justify-center rounded-md text-2xl hover:bg-[var(--ink-3)]", FOCUS)}
                   >
                     {emoji}
                   </button>

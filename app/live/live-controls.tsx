@@ -3,16 +3,16 @@ import { Check, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/src/lib/utils";
 
-/** The sentence-case label for fields and sub-sections inside a card (12px, muted). Card titles use the Panel title. */
-export const CARD_LABEL_CLASS = "text-xs font-medium leading-tight text-muted-foreground";
+/** The caps label for fields and sub-sections inside a card (11px, +11% tracking, muted). Card titles use the Panel title. */
+export const CARD_LABEL_CLASS = "text-[11px] font-medium uppercase leading-tight tracking-[0.11em] text-muted-foreground";
 
 export function CardLabel({ children, className }: { children: ReactNode; className?: string }) {
   return <span className={cn(CARD_LABEL_CLASS, className)}>{children}</span>;
 }
 
-/** Score keys, Stop clock: an elevated key with a hairline, so the one filled button per view stays the primary. */
+/** Score keys, Stop clock: an Ink 3 key, so the one green fill per view stays the primary. */
 export const KEY_CLASS =
-  "border border-line-strong bg-secondary text-foreground hover:bg-[var(--ink-3)] hover:text-foreground";
+  "border border-border bg-[var(--ink-3)] text-foreground hover:bg-[var(--ink-4)] hover:text-foreground";
 
 /**
  * A pressed / not-pressed chip with a constant label. Pressed is a tint (green, or amber for the
@@ -38,8 +38,8 @@ export function ToggleChip({
 }) {
   const on =
     tone === "amber"
-      ? "border-[var(--brand-amber)]/60 bg-[var(--brand-amber)]/12 text-[var(--brand-amber)] hover:bg-[var(--brand-amber)]/18"
-      : "border-[var(--brand-green)]/60 bg-brand-tint text-brand-green hover:bg-[var(--brand-green)]/18";
+      ? "border-[var(--brand-amber)] bg-[var(--brand-amber)]/15 text-[var(--brand-amber)] hover:bg-[var(--brand-amber)]/20"
+      : "border-[var(--brand-green)] bg-[var(--brand-green)]/15 text-[var(--brand-green)] hover:bg-[var(--brand-green)]/20";
   return (
     <button
       type="button"
@@ -48,8 +48,8 @@ export function ToggleChip({
       title={title}
       disabled={disabled}
       className={cn(
-        "inline-flex h-11 min-w-0 items-center justify-center gap-2 whitespace-nowrap rounded-md border px-3 text-sm font-medium transition-colors duration-150 ease-[var(--ease-ui)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30 disabled:pointer-events-none disabled:opacity-50",
-        pressed ? on : "border-line-strong bg-secondary text-foreground hover:bg-[var(--ink-3)]",
+        "inline-flex h-11 min-w-0 items-center justify-center gap-2 whitespace-nowrap rounded-md border px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
+        pressed ? on : "border-input text-foreground hover:bg-[var(--ink-3)]",
         className
       )}
     >
@@ -86,7 +86,7 @@ export function ActionDock({
       aria-label={ariaLabel}
       className={cn(
         "flex min-w-0 items-center gap-2",
-        "max-md:fixed max-md:inset-x-0 max-md:bottom-[calc(var(--phone-tabbar-h,0px)+env(safe-area-inset-bottom))] max-md:z-30 max-md:border-t max-md:border-line max-md:bg-card max-md:px-4 max-md:py-2",
+        "max-md:fixed max-md:inset-x-0 max-md:bottom-[calc(var(--phone-tabbar-h,0px)+env(safe-area-inset-bottom))] max-md:z-30 max-md:border-t max-md:border-border max-md:bg-card max-md:px-4 max-md:py-2",
         HIDE_WHILE_TYPING,
         className
       )}
@@ -127,7 +127,7 @@ export const ObsLink = memo(function ObsLink({
     <div className="grid w-full min-w-0 gap-2">
       <CardLabel>OBS Browser Source</CardLabel>
       <div className="flex min-w-0 items-center gap-2">
-        <code className="block h-11 min-w-0 flex-1 overflow-x-auto whitespace-nowrap rounded-md border border-line-strong bg-background px-3 font-mono-broadcast text-xs leading-[2.625rem] text-[var(--ink-text)] [scrollbar-width:none] md:h-9 md:leading-[2.125rem] [&::-webkit-scrollbar]:hidden">
+        <code className="block h-11 min-w-0 flex-1 overflow-x-auto whitespace-nowrap rounded-md border border-border bg-background px-3 font-mono-broadcast text-xs leading-[2.625rem] text-[var(--ink-text)] [scrollbar-width:none] md:h-9 md:leading-[2.125rem] [&::-webkit-scrollbar]:hidden">
           {url}
         </code>
         <Button type="button" variant="outline" className="h-11 shrink-0 md:h-9" onClick={() => void copy()}>
@@ -215,7 +215,7 @@ export function TapToEdit<T>({
         }}
         onBlur={() => (parse(text) === null ? setEditing(false) : commit())}
         className={cn(
-          "min-w-0 rounded-md border bg-card px-2 font-mono-broadcast font-medium tabular-nums leading-none text-foreground outline-none focus:border-ring focus:ring-[3px] focus:ring-ring/30",
+          "min-w-0 rounded-md border bg-background px-2 font-mono-broadcast font-medium tabular-nums leading-none text-foreground outline-none focus:ring-2 focus:ring-ring",
           invalid ? "border-danger" : "border-input",
           inputClassName
         )}
@@ -230,7 +230,7 @@ export function TapToEdit<T>({
       aria-label={`${label}: edit`}
       title={title}
       className={cn(
-        "inline-flex min-w-0 items-center justify-center rounded-md px-2 font-mono-broadcast font-medium tabular-nums leading-none transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)]/60 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30",
+        "inline-flex min-w-0 items-center justify-center rounded-md px-2 font-mono-broadcast font-medium tabular-nums leading-none transition-colors hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         className
       )}
     >

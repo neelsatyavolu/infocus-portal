@@ -33,7 +33,7 @@ export function GradesTabsSkeleton() {
 export function GradesOverviewSkeleton() {
   return (
     <div aria-hidden className="space-y-5">
-      <div className="overflow-hidden rounded-lg border border-line-strong bg-card">
+      <div className="overflow-hidden rounded-md border border-border bg-card">
         <div className={BAND_GRID_CLASS}>
           <div className="space-y-2.5">
             <Skeleton className="h-3 w-28" />
@@ -56,11 +56,11 @@ export function GradesOverviewSkeleton() {
 
       <div className={OVERVIEW_GRID_CLASS}>
         {/* Same h-full / xl:h-auto as the real Packages Panel, so the swap doesn't jump. */}
-        <div className={cn("h-full rounded-lg border border-line-strong bg-card", OVERVIEW_PACKAGES_CLASS)}>
-          <div className="flex min-h-14 items-center border-b border-line px-4 md:px-5">
+        <div className={cn("h-full rounded-md border border-border bg-card", OVERVIEW_PACKAGES_CLASS)}>
+          <div className="flex min-h-14 items-center border-b border-border px-4 md:px-5">
             <Skeleton className="h-4 w-24" />
           </div>
-          <div className="divide-y divide-line">
+          <div className="divide-y divide-border">
             {[0, 1, 2].map((row) => (
               <div key={row} className={PACKAGE_ROW_CLASS}>
                 <div className="col-span-2 space-y-2 sm:col-span-1">
@@ -81,12 +81,12 @@ export function GradesOverviewSkeleton() {
               </div>
             ))}
           </div>
-          <div className="flex min-h-12 items-center border-t border-line px-4 md:px-5">
+          <div className="flex min-h-12 items-center border-t border-border px-4 md:px-5">
             <Skeleton className="h-3 w-3/4" />
           </div>
         </div>
         {/* Livestream & portfolio: two parts, side by side from md like the real card. */}
-        <div className={cn("h-full rounded-lg border border-line-strong bg-card p-4 md:p-5", OVERVIEW_OTHER_CLASS)}>
+        <div className={cn("h-full rounded-md border border-border bg-card p-4 md:p-5", OVERVIEW_OTHER_CLASS)}>
           <div className="flex min-h-8 items-center">
             <Skeleton className="h-4 w-44" />
           </div>

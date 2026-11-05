@@ -147,7 +147,7 @@ export function VaultEntryFields({ entry, full, reveal }: { entry: VaultEntrySum
           }
           expanded={
             reveal.notes !== null ? (
-              <div className="rounded-lg border border-line-strong bg-background p-3">
+              <div className="rounded-md border border-border bg-background p-3">
                 <p className="whitespace-pre-wrap text-sm text-foreground [overflow-wrap:anywhere]">{reveal.notes}</p>
                 <HidesCaption />
               </div>

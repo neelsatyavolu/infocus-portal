@@ -57,7 +57,7 @@ export function RequestCatalog({
     );
   } else if (!loaded) {
     body = (
-      <LoadingRegion label="Loading equipment" className="divide-y divide-line">
+      <LoadingRegion label="Loading equipment" className="divide-y divide-border">
         {Array.from({ length: 6 }, (_, index) => (
           <div key={index} className={cn(ROW_GRID, "min-h-12 px-4 py-2 md:px-5")}>
             <Skeleton className={cn("h-3.5", index % 2 ? "w-1/2" : "w-2/3")} />
@@ -89,14 +89,14 @@ export function RequestCatalog({
           aria-hidden
           className={cn(
             ROW_GRID,
-            "sticky top-[var(--app-header-h,0px)] z-10 hidden h-10 border-b border-line bg-card px-4 text-[13px] font-medium text-muted-foreground sm:grid md:px-5"
+            "sticky top-[var(--app-header-h,0px)] z-10 hidden h-10 border-b border-border bg-card px-4 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground sm:grid md:px-5"
           )}
         >
           <span>Item</span>
           <span>Code</span>
           <span />
         </div>
-        <ul aria-label="Available equipment" className="divide-y divide-line">
+        <ul aria-label="Available equipment" className="divide-y divide-border">
           {filteredItems.map((item) => {
             const isSelected = selected.includes(item.barcode);
             return (
@@ -104,8 +104,8 @@ export function RequestCatalog({
                 key={item.id}
                 className={cn(
                   ROW_GRID,
-                  "min-h-12 px-4 py-2 transition-colors duration-150 ease-[var(--ease-ui)] last:rounded-b-lg md:px-5",
-                  isSelected && "bg-brand-tint"
+                  "min-h-12 px-4 py-2 transition-colors last:rounded-b-md md:px-5",
+                  isSelected && "bg-[var(--brand-green)]/10"
                 )}
               >
                 <div className="min-w-0">
@@ -121,7 +121,7 @@ export function RequestCatalog({
                   onClick={() => onToggle(item.barcode)}
                   className={cn(
                     "w-28 justify-self-end max-lg:h-10",
-                    isSelected && "border-[var(--brand-green)] text-brand-green hover:text-brand-green"
+                    isSelected && "border-[var(--brand-green)] text-[var(--brand-green)] hover:text-[var(--brand-green)]"
                   )}
                 >
                   {isSelected ? <Check aria-hidden /> : <Plus aria-hidden />}
@@ -144,7 +144,7 @@ export function RequestCatalog({
       count={loaded && !loadError ? items.length : null}
       padding="none"
     >
-      <div className="border-b border-line px-4 py-3 md:px-5">
+      <div className="border-b border-border px-4 py-3 md:px-5">
         <SearchField
           id="request-search"
           value={search}

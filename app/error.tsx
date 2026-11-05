@@ -12,7 +12,7 @@ export default function RootError({ error, reset }: { error: Error & { digest?: 
 
   return (
     <main className="grid min-h-dvh place-items-center bg-background px-6">
-      <section role="alert" className="w-full max-w-md space-y-3 rounded-lg border border-line-strong bg-card p-6">
+      <section role="alert" className="w-full max-w-md space-y-3 border border-[var(--ink-4)] bg-[var(--ink-2)] p-6">
         <div className="eyebrow">Something went wrong</div>
         <h1 className="display-sm text-foreground">This page didn&rsquo;t load</h1>
         {error.digest ? (

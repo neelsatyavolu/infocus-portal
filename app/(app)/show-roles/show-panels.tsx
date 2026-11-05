@@ -26,7 +26,7 @@ export type SavingTarget = "manager" | "anchors" | "confirm" | null;
 /** Panel actions are 32px; on phones the hit area grows to 40px without changing the look. */
 const PANEL_ACTION_HIT = "relative max-sm:after:absolute max-sm:after:-inset-1";
 
-const LABEL_CLASS = "text-[13px] font-medium leading-tight text-muted-foreground";
+const LABEL_CLASS = "text-[11px] font-medium uppercase leading-tight tracking-[0.11em] text-muted-foreground";
 const ROW_PAD = "px-4 md:px-5";
 const ROW_FOCUS = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring";
 
@@ -205,7 +205,7 @@ export function ShowRolesPanel({
       footer={footer}
       bodyClassName="@container"
     >
-      <dl className="divide-y divide-line">
+      <dl className="divide-y divide-border">
         {overview.roles.map((role) => {
           const assignee = overview.assignments[role];
           const tag = ROLE_TAG[roleStatus(assignee, overview.confirmed[role])];
@@ -268,7 +268,7 @@ function PackageRow({ row, index }: { row: OverviewPackage; index: number }) {
   return (
     <Link
       href={`/groups/${row.id}/final-cut` as never}
-      className={cn(rowClass, ROW_FOCUS, "transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)]/60")}
+      className={cn(rowClass, ROW_FOCUS, "transition-colors hover:bg-[var(--ink-3)]")}
     >
       <RowIndex value={index} />
       <span className="min-w-0 flex-1">
@@ -287,7 +287,7 @@ function PackageRow({ row, index }: { row: OverviewPackage; index: number }) {
 function OpenSlotRow({ index }: { index: number }) {
   return (
     <div className="flex h-full min-h-14 px-2 py-1.5 md:px-3">
-      <div className="flex min-w-0 flex-1 items-center gap-3 rounded-md border border-dashed border-line-strong px-[7px] text-muted-foreground">
+      <div className="flex min-w-0 flex-1 items-center gap-3 rounded-md border border-dashed border-[var(--ink-4)] px-[7px] text-muted-foreground">
         <RowIndex value={index} />
         <span className="min-w-0 flex-1 truncate text-sm">Open slot</span>
       </div>
@@ -333,7 +333,7 @@ export function PackagesPanel({
     >
       {cells.length > 0 ? (
         // 1px gaps over the line color draw the hairlines, in one column or two.
-        <ol className="grid gap-px bg-line @2xl:grid-cols-2">
+        <ol className="grid gap-px bg-border @2xl:grid-cols-2">
           {cells.map((cell, index) => (
             <li key={cell.key ?? index} className="min-w-0 bg-card @2xl:last:odd:col-span-2">
               {cell}

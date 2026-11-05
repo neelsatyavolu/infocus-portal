@@ -63,7 +63,7 @@ export const UpcomingPanel = memo(function UpcomingPanel({
           className={ROW_INSET}
         />
       ) : (
-        <ul className="divide-y divide-line">
+        <ul className="divide-y divide-border">
           {meetings.map((meeting) => {
             const opensAt = pacificTimeLabel(new Date(joinOpensAtMs(meeting)));
             return (

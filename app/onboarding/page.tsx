@@ -307,10 +307,10 @@ export default function OnboardingPage() {
           {submitError ? <Alert tone="danger" className="md:px-6">{submitError}</Alert> : null}
 
           {/* Sticky (not fixed) on phones so the keyboard never covers a field; inline from md. */}
-          <div className="sticky bottom-0 z-10 -mx-4 border-t border-line bg-background px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 md:static md:mx-0 md:border-t-0 md:bg-transparent md:p-0">
+          <div className="sticky bottom-0 z-10 -mx-4 border-t border-border bg-background px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 md:static md:mx-0 md:border-t-0 md:bg-transparent md:p-0">
             <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-end md:gap-4">
               {submitHint ? <p className="min-w-0 text-[13px] text-muted-foreground md:mr-auto">{submitHint}</p> : null}
-              <Button type="submit" variant="accent" disabled={!canSubmit || saving} className={cn(ENTRY_CONTROL, "w-full md:w-auto")}>
+              <Button type="submit" disabled={!canSubmit || saving} className={cn(ENTRY_CONTROL, "w-full md:w-auto")}>
                 {saving ? "Saving…" : "Finish onboarding"}
               </Button>
             </div>

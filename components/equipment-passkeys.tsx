@@ -162,7 +162,7 @@ export function EquipmentPasskeySettings() {
         ) : passkeys.length === 0 ? (
           <p className="text-sm text-muted-foreground">No passkeys yet.</p>
         ) : (
-          <ul aria-label="Your passkeys" className="-my-2 divide-y divide-line">
+          <ul aria-label="Your passkeys" className="-my-2 divide-y divide-border">
             {passkeys.map((passkey) => (
               <li key={passkey.id} className="flex min-h-12 items-center gap-3 py-2">
                 <div className="min-w-0 flex-1">

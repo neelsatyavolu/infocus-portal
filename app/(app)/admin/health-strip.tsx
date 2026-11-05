@@ -8,7 +8,7 @@ import type { Health } from "./admin-status";
 export type HealthItem = { key: string; label: string; health: Health; target: string };
 
 const CELL_CLASS =
-  "group min-w-0 bg-card px-3 py-3 text-left transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-secondary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-ring/30 sm:px-4 sm:py-3.5 md:px-5";
+  "group min-w-0 bg-card px-3 py-3 text-left transition-colors hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-4 sm:py-3.5 md:px-5";
 
 function Detail({ health }: { health: Health }) {
   if (health.code === "checking") return <Skeleton className="h-3.5 w-32 max-w-full" />;
@@ -32,7 +32,7 @@ export function HealthStrip({ items, onSelect }: { items: HealthItem[]; onSelect
     <SettingsSection id="admin-health" title="Status">
       <div
         className={cn(
-          "grid gap-px overflow-hidden rounded-lg border border-line-strong bg-line",
+          "grid gap-px overflow-hidden rounded-md border border-border bg-border",
           !single && "grid-cols-2 @5xl:grid-cols-4"
         )}
       >

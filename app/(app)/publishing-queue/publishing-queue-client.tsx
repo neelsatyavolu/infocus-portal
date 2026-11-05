@@ -271,7 +271,7 @@ export default function PublishingQueueClient({ canEdit, initialData }: { canEdi
                   ? "Packages without a show are listed above."
                   : emptyQueueSentence(canEdit, hasPast)
               }
-              className="rounded-lg border border-line-strong bg-card"
+              className="rounded-md border border-border bg-card"
             />
           )}
         </>

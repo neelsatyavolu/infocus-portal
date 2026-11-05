@@ -229,7 +229,7 @@ export function VaultEntryDialog({
                         onClick={() => setShowPassword((value) => !value)}
                         aria-label={showPassword ? "Hide password" : "Show password"}
                         title={showPassword ? "Hide password" : "Show password"}
-                        className="absolute right-0.5 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center md:h-8 md:w-8 rounded-sm text-muted-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className="absolute right-0.5 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center md:h-8 md:w-8 rounded-sm text-muted-foreground transition-colors hover:bg-[var(--ink-3)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         {showPassword ? <EyeOff className="h-4 w-4" aria-hidden /> : <Eye className="h-4 w-4" aria-hidden />}
                       </button>

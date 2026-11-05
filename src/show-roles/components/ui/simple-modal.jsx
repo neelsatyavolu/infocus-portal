@@ -26,7 +26,7 @@ export function Modal({ open, onClose, title, description, children, className }
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
       <button
         type="button"
-        className="absolute inset-0 bg-black/60"
+        className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"
         onClick={onClose}
         aria-label="Close dialog"
       />
@@ -34,19 +34,19 @@ export function Modal({ open, onClose, title, description, children, className }
         role="dialog"
         aria-modal="true"
         className={cn(
-          "card-enter relative z-[121] max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-lg border border-line-strong bg-card p-5 text-card-foreground",
+          "card-enter relative z-[121] max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-2xl border border-cyan-300/25 bg-card p-5 text-card-foreground shadow-2xl",
           className,
         )}
       >
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-lg font-medium leading-none tracking-[-0.015em]">{title}</h2>
+            <h2 className="text-lg font-semibold leading-none tracking-tight">{title}</h2>
             {description ? <p className="mt-2 text-sm text-muted-foreground">{description}</p> : null}
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-1 text-muted-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)] hover:text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/45"
+            className="rounded-md p-1 text-muted-foreground transition hover:bg-muted/60 hover:text-foreground"
             aria-label="Close dialog"
           >
             <X className="h-4 w-4" />

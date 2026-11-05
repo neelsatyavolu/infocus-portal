@@ -38,8 +38,8 @@ function TeamList({
   onSelect: (userId: string) => void;
 }) {
   return (
-    <nav aria-label="Associates" className="hidden w-60 shrink-0 flex-col overflow-y-auto border-r border-line md:flex">
-      <p className="px-4 pb-2 pt-4 text-xs font-medium text-muted-foreground">
+    <nav aria-label="Associates" className="hidden w-60 shrink-0 flex-col overflow-y-auto border-r border-border md:flex">
+      <p className="px-4 pb-2 pt-4 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">
         Team · <span className="font-mono-broadcast tabular-nums">{associates.length}</span>
       </p>
       <ul className="pb-2">
@@ -52,9 +52,9 @@ function TeamList({
                 aria-pressed={selected}
                 onClick={() => onSelect(associate.userId)}
                 className={cn(
-                  "relative flex h-14 w-full items-center justify-between gap-3 px-4 text-left transition-colors duration-150 ease-[var(--ease-ui)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+                  "relative flex h-14 w-full items-center justify-between gap-3 px-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
                   selected
-                    ? "bg-brand-tint before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-[var(--brand-green)]"
+                    ? "bg-[var(--ink-3)] before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-[var(--brand-green)]"
                     : "hover:bg-[var(--ink-3)]"
                 )}
               >
@@ -194,7 +194,7 @@ export default function AssociatesDialog({ cycles, activeCycleNumber, open, onOp
 
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="min-w-0">
-                <h3 className="text-lg font-medium tracking-[-0.015em] text-foreground">{associate.name}</h3>
+                <h3 className="text-lg font-semibold tracking-[-0.01em] text-foreground">{associate.name}</h3>
                 <p className="mt-1 text-[13px] text-muted-foreground">
                   {metrics.eligible} eligible stage {metrics.eligible === 1 ? "review" : "reviews"} · {associate.assignedGroups} assigned groups
                 </p>
@@ -202,7 +202,7 @@ export default function AssociatesDialog({ cycles, activeCycleNumber, open, onOp
               <StatTile label={scoreCaption(metrics)} value={metrics.score ?? "—"} unit="/100" className="w-44 shrink-0 p-3" />
             </div>
 
-            <div className="flex items-end justify-between gap-3 border-b border-line">
+            <div className="flex items-end justify-between gap-3 border-b border-border">
               <ViewTabs
                 ariaLabel="Associate detail views"
                 idPrefix={TAB_PREFIX}
@@ -234,10 +234,10 @@ export default function AssociatesDialog({ cycles, activeCycleNumber, open, onOp
           returnFocusRef.current?.focus();
         }}
         className="flex max-w-5xl flex-col gap-0 overflow-hidden p-0 sm:h-[85dvh] sm:max-h-[85dvh] sm:p-0 max-sm:h-[100dvh] max-sm:max-h-[100dvh] max-sm:w-screen max-sm:max-w-none max-sm:border-0">
-        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-b border-line px-5 py-4 pr-12">
+        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-b border-border px-5 py-4 pr-12">
           <DialogHeader className="space-y-1 text-left">
             <p className="eyebrow">Producer team</p>
-            <DialogTitle className="text-xl font-medium tracking-[-0.015em]">Associates</DialogTitle>
+            <DialogTitle className="text-xl">Associates</DialogTitle>
             <DialogDescription>
               Review habits, workload and feedback for one cycle at a time. Only executives and the adviser see this.
             </DialogDescription>

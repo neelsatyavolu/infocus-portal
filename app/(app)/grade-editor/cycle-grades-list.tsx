@@ -11,7 +11,7 @@ import { OverExtensionsTag, RowSaveMark, RowStatusTag } from "./row-fields";
 
 export function PhoneListSkeleton({ count = 8 }: { count?: number }) {
   return (
-    <ul aria-hidden className="divide-y divide-line">
+    <ul aria-hidden className="divide-y divide-border">
       {Array.from({ length: count }, (_, index) => (
         <li key={index} className="flex min-h-16 flex-col justify-center gap-2 px-4 py-3">
           <Skeleton className={cn("h-3.5", index % 2 ? "w-1/2" : "w-2/3")} />
@@ -60,7 +60,7 @@ export function CycleGradesList({
       aria-label="Reporters"
       inert={inert}
       aria-busy={inert || undefined}
-      className={cn("divide-y divide-line transition-opacity", inert && "opacity-60")}
+      className={cn("divide-y divide-border transition-opacity", inert && "opacity-60")}
     >
       {rows.map((row) => {
         const checkIns = cycleCheckInSummary(row.checkInScores);
@@ -72,13 +72,13 @@ export function CycleGradesList({
               type="button"
               onClick={() => onOpenRow(row.userId)}
               className={cn(
-                "flex min-h-16 w-full items-center gap-3 px-4 py-3 text-left transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)]/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50",
+                "flex min-h-16 w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
                 dirty && "bg-[var(--brand-amber)]/[0.07]"
               )}
             >
               <span className="min-w-0 flex-1">
                 <span className="flex min-w-0 items-center gap-1.5">
-                  <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{rowLabel(row)}</span>
+                  <span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">{rowLabel(row)}</span>
                   <RowStatusTag row={row} />
                 </span>
                 <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">

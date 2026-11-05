@@ -69,7 +69,7 @@ function CycleEditorCard({ row, today, onChange, onSave }: { row: EditorRow; tod
     <form
       aria-labelledby={titleId}
       onSubmit={submit}
-      className="flex h-full min-w-0 flex-col rounded-lg border border-line-strong bg-card text-card-foreground"
+      className="flex h-full min-w-0 flex-col rounded-md border border-border bg-card text-card-foreground"
     >
       <PanelHeader
         titleAs="h3"
@@ -198,7 +198,7 @@ export function CycleEditor({ saved, rows, sections, today, savingCycles, onSavi
 
   return (
     <div className={DATES_CONTAINER}>
-      <div className={cn(EDITOR_TABLE_ONLY, "overflow-x-auto overscroll-x-contain rounded-lg border border-line-strong bg-card")}>
+      <div className={cn(EDITOR_TABLE_ONLY, "overflow-x-auto overscroll-x-contain rounded-md border border-border bg-card")}>
         <EditorTable open={open} closed={closed} today={today} {...actions} />
       </div>
       <div className={cn("space-y-4", EDITOR_CARDS_ONLY)}>

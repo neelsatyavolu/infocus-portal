@@ -38,7 +38,7 @@ export function DevicePopover({ media, micTrack }: { media: LocalMedia; micTrack
         >
           <div className="grid gap-4">
             <AudioSettings media={media} showMeter={false} />
-            <div className="flex min-h-9 items-center gap-3 rounded-md border border-line-strong bg-card px-3 text-xs text-muted-foreground">
+            <div className="flex min-h-9 items-center gap-3 rounded-md bg-[var(--ink-3)] px-3 text-xs text-muted-foreground">
               <LevelMeter track={micTrack} />
               <span>{micTestLabel(media.audioOn)}</span>
             </div>

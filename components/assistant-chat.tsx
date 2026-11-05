@@ -123,7 +123,7 @@ export function AssistantChat({
         aria-controls={open ? PANEL_ID : undefined}
         title="Assistant and Messages"
         className={cn(
-          "fixed bottom-[calc(var(--phone-tabbar-h,0px)+max(1.25rem,env(safe-area-inset-bottom)))] right-[max(1.25rem,env(safe-area-inset-right))] z-50 grid h-12 w-12 place-items-center rounded-full border border-line-strong bg-secondary text-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30 motion-safe:active:scale-95",
+          "fixed bottom-[calc(var(--phone-tabbar-h,0px)+max(1.25rem,env(safe-area-inset-bottom)))] right-[max(1.25rem,env(safe-area-inset-right))] z-50 grid h-12 w-12 place-items-center rounded-md bg-primary text-primary-foreground transition hover:bg-[var(--brand-fill-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-safe:active:scale-95",
           // The open panel covers the corner, so the button steps aside until it closes.
           open && "hidden"
         )}
@@ -131,10 +131,11 @@ export function AssistantChat({
         <span aria-hidden className="text-2xl leading-none">
           ✱
         </span>
+        {/* On the green button the marks are Soft White (DESIGN.md §10: no green on green). */}
         {unread > 0 ? (
-          <CountBadge count={unread} tone="brand" className="absolute -right-1 -top-1 ring-2 ring-background" />
+          <CountBadge count={unread} tone="onBrand" className="absolute -right-1 -top-1 ring-2 ring-background" />
         ) : assistantNews ? (
-          <StatusDot className="absolute -right-0.5 -top-0.5 ring-2 ring-background" />
+          <StatusDot className="absolute -right-0.5 -top-0.5 bg-[var(--on-brand)] ring-2 ring-background" />
         ) : null}
       </button>
 

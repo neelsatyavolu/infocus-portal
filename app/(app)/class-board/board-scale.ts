@@ -10,7 +10,7 @@
  *
  * Tailwind only sees literal class names, so the tokens are spelled out here. The board root
  * (and the loading skeleton) carry BOARD_SCALE; children read the tokens with
- * a text size class that reads one of the --b tokens, or the BOARD_TEXT classes below.
+ * text-[length:var(--b-*)] or the BOARD_TEXT classes below.
  */
 export const BOARD_SCALE = [
   "[--b:15px] lg:[--b:clamp(13px,min(1.6dvh,1vw),26px)]",
@@ -38,19 +38,19 @@ export const BOARD_SCALE = [
 ].join(" ");
 
 export const BOARD_TEXT = {
-  /** Sentence-case Medium label: column heads, section titles, eyebrows, the date. */
-  label: "text-[length:var(--b-label)] font-medium leading-[1.2]",
+  /** ALL CAPS Medium label: column heads, section titles, eyebrows, the date. */
+  label: "text-[length:var(--b-label)] font-medium uppercase leading-[1.2] tracking-[0.12em]",
   /** Small Mist/muted lines: names, crew, places. */
   meta: "text-[length:var(--b-meta)] leading-[1.35]",
   body: "text-[length:var(--b)] leading-[1.3]",
-  /** Geist Mono data (dates, times), about 0.9× the Geist beside it. */
+  /** Geist Mono data (dates, times), about 0.9× the Lexend beside it. */
   mono: "font-mono-broadcast text-[length:var(--b-mono)] tabular-nums leading-[1.25]",
-  focus: "text-[length:var(--b-focus)] font-medium leading-[1.2] tracking-[-0.01em]",
-  h1: "text-[length:var(--b-h1)] font-medium leading-[1.1] tracking-[-0.02em]",
+  focus: "text-[length:var(--b-focus)] font-semibold leading-[1.2]",
+  h1: "text-[length:var(--b-h1)] font-semibold leading-[1.1] tracking-[-0.02em]",
   clock: "font-mono-broadcast text-[length:var(--b-clock)] font-medium leading-none tabular-nums",
   countdown: "font-mono-broadcast text-[length:var(--b-countdown)] font-medium leading-none tabular-nums",
-  /** A role name inside a line of names ("Anchors Sage · Otto"). */
-  role: "mr-[0.45em] text-[length:var(--b-label)] font-medium text-muted-foreground"
+  /** A role name inside a line of names ("ANCHORS Sage · Otto"). */
+  role: "mr-[0.45em] text-[length:var(--b-label)] font-medium uppercase tracking-[0.1em] text-muted-foreground"
 } as const;
 
 /**
@@ -62,4 +62,4 @@ export const PLATE_GRID = "lg:grid-cols-[auto_minmax(0,1fr)_minmax(0,1.15fr)_aut
 
 /** The nameplate's wordmark cell on lg: the three plate rows tall, with a rule on its right. */
 export const PLATE_MARK =
-  "flex shrink-0 items-center lg:self-stretch lg:border-r lg:border-line-strong lg:pl-[var(--b-inset)] lg:pr-4 lg:[grid-area:1/1/4/2]";
+  "flex shrink-0 items-center lg:self-stretch lg:border-r lg:border-[var(--ink-4)] lg:pl-[var(--b-inset)] lg:pr-4 lg:[grid-area:1/1/4/2]";

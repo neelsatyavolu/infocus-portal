@@ -120,7 +120,7 @@ function StageStatus({ cell }: { cell: StageCell }) {
 function ScheduleRow({ entry, today, soonest }: { entry: OrderedCycle; today: Date; soonest: Deadline | null }) {
   const current = entry.section === "current";
   return (
-    <tr className={cn("border-t border-line", current && CURRENT_TINT)}>
+    <tr className={cn("border-t border-border", current && CURRENT_TINT)}>
       <th scope="row" className="relative py-3 pl-4 pr-3 text-left align-top font-normal">
         {current ? <CurrentBar /> : null}
         <CycleName cycle={entry.cycle} section={entry.section} />
@@ -185,7 +185,7 @@ function CycleCard({ entry, today, soonest }: { entry: OrderedCycle; today: Date
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex min-h-6 items-center gap-2">
-              <h3 id={titleId} className="text-base font-medium leading-snug tracking-[-0.01em] text-foreground">
+              <h3 id={titleId} className="text-base font-semibold leading-snug tracking-[-0.01em] text-foreground">
                 Cycle {cycle.cycleNumber}
               </h3>
               <SemesterTag cycleNumber={cycle.cycleNumber} />
@@ -196,7 +196,7 @@ function CycleCard({ entry, today, soonest }: { entry: OrderedCycle; today: Date
             {SECTION_LABEL[section]}
           </StatusTag>
         </div>
-        <dl className="mt-3 divide-y divide-line border-t border-line">
+        <dl className="mt-3 divide-y divide-border border-t border-border">
           {STAGE_FIELDS.map((stage) => {
             const cell = stageCell(entry, stage, today, soonest);
             return (
@@ -221,7 +221,7 @@ function ScheduleList({ ordered, today, soonest }: ScheduleProps) {
   return (
     <div className={CARDS_ONLY}>
       {open.length > 0 ? (
-        <ul className="divide-y divide-line">
+        <ul className="divide-y divide-border">
           {open.map((entry) => (
             <CycleCard key={entry.cycle.cycleNumber} entry={entry} today={today} soonest={soonest} />
           ))}
@@ -232,10 +232,10 @@ function ScheduleList({ ordered, today, soonest }: ScheduleProps) {
           summary="Closed cycles"
           count={closed.length}
           storageKey={CLOSED_CYCLES_STORAGE_KEY}
-          className={cn("px-4", open.length > 0 && "border-t border-line")}
-          bodyClassName="-mx-4 border-t border-line pt-0"
+          className={cn("px-4", open.length > 0 && "border-t border-border")}
+          bodyClassName="-mx-4 border-t border-border pt-0"
         >
-          <ul className="divide-y divide-line">
+          <ul className="divide-y divide-border">
             {closed.map((entry) => (
               <CycleCard key={entry.cycle.cycleNumber} entry={entry} today={today} soonest={soonest} />
             ))}
@@ -253,7 +253,7 @@ function ScheduleList({ ordered, today, soonest }: ScheduleProps) {
 export function CycleSchedule({ ordered, today, soonest }: ScheduleProps) {
   return (
     <div className={DATES_CONTAINER}>
-      <div className="overflow-hidden rounded-lg border border-line-strong bg-card">
+      <div className="overflow-hidden rounded-md border border-border bg-card">
         {ordered.length === 0 ? (
           <EmptyState icon={CalendarClock} title="No cycles yet" description="Cycle dates show here once the semester has cycles." />
         ) : (

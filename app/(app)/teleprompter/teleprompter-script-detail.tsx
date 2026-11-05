@@ -102,7 +102,7 @@ function scrollUnderBand(target: HTMLElement, band: HTMLElement | null, onlyIfHi
 }
 
 /**
- * The page's one accent button. Unavailable (drawn as outline) with no sections or while an edit is
+ * The one filled button. Unavailable (drawn as outline) with no sections or while an edit is
  * open, since run mode shows saved text. aria-disabled instead of disabled, so it stays
  * focusable and its tooltip and description still say why.
  */
@@ -114,11 +114,11 @@ function RunButton({ disabledReason, onRun }: { disabledReason: string | null; o
       <TooltipTrigger asChild>
         <Button
           type="button"
-          variant={unavailable ? "outline" : "accent"}
+          variant={unavailable ? "outline" : "default"}
           aria-disabled={unavailable || undefined}
           aria-describedby={unavailable ? reasonId : undefined}
           onClick={unavailable ? undefined : onRun}
-          className={cn("shrink-0", unavailable && "cursor-not-allowed opacity-50 hover:bg-secondary")}
+          className={cn("shrink-0", unavailable && "cursor-not-allowed opacity-50 hover:bg-transparent")}
         >
           <Monitor />
           Run
@@ -284,7 +284,7 @@ export function ScriptDetail({ view, handlers }: { view: ScriptDetailView; handl
         />
       ) : null}
 
-      <div ref={bandRef} className={cn("sticky z-10 border-b border-line bg-card", STICKY_TOP)}>
+      <div ref={bandRef} className={cn("sticky z-10 border-b border-border bg-card", STICKY_TOP)}>
         {narrow ? (
           <RundownStrip
             touch
@@ -304,7 +304,7 @@ export function ScriptDetail({ view, handlers }: { view: ScriptDetailView; handl
                 <IconButton label="Show scripts" icon={PanelLeftOpen} className="-ml-2 pointer-coarse:h-10" onClick={handlers.onShowRail} />
               ) : null}
               <div className="min-w-0 flex-1">
-                <h2 title={doc.title} className="truncate text-lg font-medium leading-6 tracking-[-0.015em] text-foreground">
+                <h2 title={doc.title} className="truncate text-lg font-semibold leading-6 tracking-[-0.01em] text-foreground">
                   {doc.title}
                 </h2>
                 <DetailMeta doc={doc} now={now} statusContext={view.statusContext} docProgress={docProgress} />
@@ -316,7 +316,7 @@ export function ScriptDetail({ view, handlers }: { view: ScriptDetailView; handl
               </ActionBar>
             </div>
             {!layout.rundownColumn && hasSections ? (
-              <div className="border-t border-line">
+              <div className="border-t border-border">
                 <RundownStrip items={items} onJump={jumpTo} trailing={expandToggle} />
               </div>
             ) : null}

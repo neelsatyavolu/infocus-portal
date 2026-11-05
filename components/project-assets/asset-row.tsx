@@ -27,7 +27,7 @@ import { ApprovalTag, MediaStatusTag } from "@/components/project-assets/status-
 import { useDateZone } from "@/components/project-assets/use-hydrated";
 import { cn } from "@/src/lib/utils";
 
-const HEADER_CELL = "text-[12px] font-medium text-muted-foreground";
+const HEADER_CELL = "text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground";
 
 /**
  * Fixed so the columns before it line up with the header (Restore + Delete + ⋯ in Recently
@@ -52,7 +52,7 @@ function MediaStatus({ status, etaSeconds }: { status: Parameters<typeof MediaSt
 /** The List view's label row (hidden in the phone layout, where rows explain themselves). */
 export function AssetListHeader({ showPeople, deleted }: { showPeople: boolean; deleted: boolean }) {
   return (
-    <div aria-hidden className={cn(LIST_ROW, "hidden min-h-10! border-b border-line py-0 @min-[36rem]:flex", HEADER_CELL)}>
+    <div aria-hidden className={cn(LIST_ROW, "hidden min-h-10! border-b border-border py-0 @min-[36rem]:flex", HEADER_CELL)}>
       <span className={LIST_COLUMNS.check} />
       <span className={LIST_COLUMNS.thumb} />
       <span className={LIST_COLUMNS.name}>Name</span>
@@ -115,8 +115,8 @@ export const AssetRow = memo(function AssetRow({
       }}
       className={cn(
         LIST_ROW,
-        "group cursor-pointer transition-colors duration-150 ease-[var(--ease-ui)]",
-        dragging ? "opacity-60" : selected ? "bg-brand-tint" : "hover:bg-[var(--ink-3)]/60"
+        "group cursor-pointer transition-colors",
+        dragging ? "opacity-60" : selected ? "bg-[var(--brand-green)]/[0.06]" : "hover:bg-[var(--ink-3)]"
       )}
     >
       <span className={LIST_COLUMNS.check} data-prevent-review-open="true" onClick={stop}>

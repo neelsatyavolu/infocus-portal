@@ -40,7 +40,7 @@ export function WhereItStands({
       <p className="text-sm text-foreground">{nextStep}</p>
       {approvalSteps ? (
         <div className="space-y-3">
-          <h3 className="text-[13px] font-medium leading-tight text-muted-foreground">
+          <h3 className="text-[11px] font-medium uppercase leading-tight tracking-[0.11em] text-muted-foreground">
             Approval path
           </h3>
           <StepList

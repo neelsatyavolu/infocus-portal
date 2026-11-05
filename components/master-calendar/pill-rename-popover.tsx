@@ -40,14 +40,14 @@ export function PillRenamePopover({
       ref={containerRef}
       role="dialog"
       aria-labelledby={`${inputId}-label`}
-      className="fixed z-50 w-72 space-y-3 rounded-lg border border-line-strong bg-popover p-3 text-popover-foreground"
+      className="fixed z-50 w-72 space-y-3 rounded-md border border-border bg-popover p-3 text-popover-foreground"
       style={fixedPopoverStyle(anchor, SIZE)}
     >
       <div className="space-y-1">
         <label
           id={`${inputId}-label`}
           htmlFor={inputId}
-          className="block text-[13px] font-medium text-muted-foreground"
+          className="block text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground"
         >
           Rename pill
         </label>
@@ -64,7 +64,7 @@ export function PillRenamePopover({
               commit();
             }
           }}
-          className="h-9 w-full rounded-md border border-input bg-card px-3 text-base text-foreground outline-none transition-[border-color,box-shadow] duration-150 ease-[var(--ease-ui)] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30 sm:text-sm"
+          className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-base text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-sm"
         />
         <p id={`${inputId}-hint`} className="text-xs text-muted-foreground">
           The file name stays the same.

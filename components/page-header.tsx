@@ -4,14 +4,13 @@ import { cn } from "@/src/lib/utils";
 
 const TITLE_CLASS = {
   compact: "display-sm",
-  default: "font-serif text-[40px] font-normal leading-none tracking-[-0.02em] [text-wrap:balance]",
+  default: "display-md",
   display: "display-lg"
 } as const;
 
 /**
- * The page header card (12px radius, strong hairline): an optional eyebrow, the title (Geist
- * Serif, 40px; sans 18px for compact tool pages), one line of context, and at most one primary
- * action on the right.
+ * The page nameplate (DESIGN.md §10): a square Ink 2 plate with the green strip, an eyebrow,
+ * the title, one line of context, and at most one primary action on the right.
  *
  * - `status`: small StatusTags shown in the eyebrow row, next to the eyebrow. Status never goes
  *   in `actions` (rule 3).
@@ -42,7 +41,7 @@ export function PageHeader({
     <section
       className={cn(
         "brand-hero-panel flex flex-wrap items-end gap-x-6 gap-y-4 px-4 md:px-6",
-        size === "compact" ? "py-4" : "py-6",
+        size === "compact" ? "py-4" : "py-5",
         className
       )}
     >
@@ -53,8 +52,8 @@ export function PageHeader({
             {status ? <div className="flex flex-wrap items-center gap-1.5">{status}</div> : null}
           </div>
         ) : null}
-        <h1 className={cn(TITLE_CLASS[size], "min-w-0 break-words text-foreground", (eyebrow || status) && (size === "compact" ? "mt-1.5" : "mt-3"))}>{title}</h1>
-        {description ? <div className={cn("max-w-[65ch] text-[15px] leading-relaxed text-[var(--ink-text)]", size === "compact" ? "mt-1.5" : "mt-3")}>{description}</div> : null}
+        <h1 className={cn(TITLE_CLASS[size], "min-w-0 break-words text-foreground", (eyebrow || status) && "mt-1.5")}>{title}</h1>
+        {description ? <div className="mt-1.5 max-w-3xl text-sm text-[var(--ink-text)]">{description}</div> : null}
       </div>
       {actions ? (
         <ActionBar fullWidthOnPhone className="sm:justify-end">

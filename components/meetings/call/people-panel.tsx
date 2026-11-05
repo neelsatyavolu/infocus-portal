@@ -13,7 +13,7 @@ import { admitAll, admitOne, denyOne, hostAct } from "./host-actions";
 import { PeopleRow, WaitingRow, type RowSize } from "./people-row";
 import { SidePanel } from "./side-panel";
 
-/** A list with a 36px header: a small muted label + count, and at most one action for that list. */
+/** A list with a 36px header: caps label + count, and at most one action for that list. */
 function PeopleSection({
   label,
   count,
@@ -30,9 +30,9 @@ function PeopleSection({
   children: ReactNode;
 }) {
   return (
-    <section aria-label={label} className="border-b border-line py-2 last:border-b-0">
+    <section aria-label={label} className="border-b border-[var(--ink-4)] py-2 last:border-b-0">
       <div className={cn("flex items-center justify-between gap-2 pl-4 pr-2", touch ? "min-h-11" : "min-h-9")}>
-        <h3 className="flex items-center gap-2 text-[13px] font-medium text-muted-foreground">
+        <h3 className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">
           {label}
           <CallCount count={count} tone={tone} showZero />
         </h3>

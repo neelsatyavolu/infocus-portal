@@ -115,12 +115,12 @@ export default function TerminalScriptDialog({
               size="sm"
               variant="outline"
               onClick={() => void copyScript()}
-              className="absolute right-2 top-2"
+              className="absolute right-2 top-2 bg-card"
             >
               {scriptCopied ? <Check className="text-[var(--brand-green)]" aria-hidden /> : <Copy aria-hidden />}
               {scriptCopied ? "Copied" : "Copy"}
             </Button>
-            <pre className="max-h-[60vh] overflow-auto whitespace-pre-wrap break-all rounded-lg border border-line-strong bg-secondary px-4 py-4 pr-24 font-mono text-[13px] leading-[1.65] text-[var(--ink-text)]">
+            <pre className="max-h-[60vh] overflow-auto whitespace-pre-wrap break-all rounded-md border border-border bg-[var(--ink-3)] px-3 py-3 pr-24 font-mono-broadcast text-xs leading-relaxed text-foreground">
               <code>{scriptText}</code>
             </pre>
           </div>

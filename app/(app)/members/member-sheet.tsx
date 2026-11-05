@@ -27,10 +27,10 @@ export function MemberSheet({
   handlers: EditorHandlers;
 }) {
   return (
-    <section aria-label={`${tabTitle(activeTab)} notes`} className="min-w-0 rounded-lg border border-line-strong bg-card">
-      <div className="rounded-t-lg lg:sticky lg:top-[var(--app-header-h,0px)] lg:z-10 lg:bg-card">{header}</div>
+    <section aria-label={`${tabTitle(activeTab)} notes`} className="min-w-0 rounded-md border border-border bg-card">
+      <div className="rounded-t-md lg:sticky lg:top-[var(--app-header-h,0px)] lg:z-10 lg:bg-card">{header}</div>
       {empty ?? (
-        <ul aria-label="Members" className="divide-y divide-line">
+        <ul aria-label="Members" className="divide-y divide-border">
           {members.map((member) => {
             const name = personLabel(member);
             const noteKey = memberNoteKey(member.id, activeTab);
@@ -42,9 +42,9 @@ export function MemberSheet({
               >
                 <div className="flex min-w-0 items-start justify-between gap-2 md:flex-col md:justify-start md:pt-2">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-foreground">{name}</p>
+                    <p className="truncate text-sm font-semibold text-foreground">{name}</p>
                     {member.email ? (
-                      <p className="truncate font-mono text-[12px] text-muted-foreground">{member.email}</p>
+                      <p className="truncate font-mono-broadcast text-[11px] text-muted-foreground">{member.email}</p>
                     ) : null}
                   </div>
                   <span className="flex shrink-0 items-center gap-2">

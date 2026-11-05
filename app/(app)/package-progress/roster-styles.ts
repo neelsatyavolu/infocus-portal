@@ -9,10 +9,10 @@ export const LINE_HEIGHT = "min-h-10 @4xl:min-h-8";
 /** A line of read-only text (Members and Producer in view mode): 32px in cards too. */
 export const STATIC_LINE_HEIGHT = "min-h-8";
 
-const LABEL_TEXT = "text-[13px] font-medium text-muted-foreground";
+const LABEL_TEXT = "text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground";
 
 /**
- * Label for a card-mode key/value line, on the same centre line as the 40px value beside it
+ * Caps label for a card-mode key/value line, on the same centre line as the 40px value beside it
  * (32px in table mode, where the column header names the cell and the label becomes sr-only).
  */
 export const CELL_LABEL = `${LABEL_TEXT} leading-10 @4xl:leading-8`;

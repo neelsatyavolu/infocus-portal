@@ -201,9 +201,9 @@ export function MoveIntoVersionDialog({
       onCancel={onCancel}
       onSubmit={onSubmit}
     >
-      <dl className="grid grid-cols-[6rem_minmax(0,1fr)] items-baseline gap-x-3 rounded-lg border border-line-strong bg-secondary px-3 py-2.5">
-        <dt className="text-[13px] font-medium text-muted-foreground">Moving</dt>
-        <dd className="min-w-0 truncate text-sm font-medium text-foreground">{sourceTitle ?? "Selected package"}</dd>
+      <dl className="grid grid-cols-[6rem_minmax(0,1fr)] items-baseline gap-x-3 rounded-md border border-border px-3 py-2.5">
+        <dt className="text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">Moving</dt>
+        <dd className="min-w-0 truncate text-sm font-semibold text-foreground">{sourceTitle ?? "Selected package"}</dd>
       </dl>
       <Field label="Correct package" htmlFor="move-into-version-target">
         <Select value={targetId} onValueChange={onTargetChange} disabled={busy || candidates.length === 0}>

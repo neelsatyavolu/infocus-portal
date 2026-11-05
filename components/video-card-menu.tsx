@@ -170,7 +170,7 @@ function MenuSheet({
 }) {
   const rowClass = (item: MenuItem) =>
     cn(
-      "flex min-h-10 w-full items-center gap-3 rounded-md px-2 py-2 text-left text-sm outline-none transition-colors duration-150 ease-[var(--ease-ui)]",
+      "flex min-h-10 w-full items-center gap-3 rounded-sm px-2 py-2 text-left text-sm outline-none transition-colors",
       item.disabled
         ? "cursor-not-allowed opacity-50"
         : item.tone === "danger"
@@ -195,14 +195,14 @@ function MenuSheet({
       <div role="menu" aria-label={title} className="flex flex-col">
         {entries.map((entry, index) => {
           if (entry === "separator") {
-            return <div key={`separator-${index}`} role="separator" className="my-1 h-px bg-line" />;
+            return <div key={`separator-${index}`} role="separator" className="my-1 h-px bg-border" />;
           }
           if (!isItem(entry)) {
             return (
               <div
                 key={`label-${index}`}
                 role="presentation"
-                className="px-2 pb-1 pt-2 text-xs font-medium text-muted-foreground"
+                className="px-2 pb-1 pt-2 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground"
               >
                 {entry.label}
               </div>

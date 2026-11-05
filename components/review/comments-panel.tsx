@@ -198,7 +198,7 @@ export function CommentsPanel({
   };
 
   return (
-    <aside id={id} aria-label="Comments" className={cn("flex min-w-0 flex-col rounded-lg border border-line-strong bg-card", className)}>
+    <aside id={id} aria-label="Comments" className={cn("flex min-w-0 flex-col rounded-md border border-border bg-card", className)}>
       <ViewTabs<CommentsTab>
         ariaLabel="Comment views"
         idPrefix={TABS_ID}
@@ -228,7 +228,7 @@ export function CommentsPanel({
 
       {tab !== "TRANSCRIPT" ? (
         // The ⋯ menu (and "N new") wrap to their own line, right-aligned, when the panel is narrow.
-        <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-line px-4 py-2">
+        <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border px-4 py-2">
           <SegmentedControl<CommentFilter>
             ariaLabel="Filter comments"
             size="sm"

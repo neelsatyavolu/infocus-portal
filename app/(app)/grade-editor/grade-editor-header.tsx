@@ -158,7 +158,6 @@ export function GradeEditorHeader({
           {viewMode === "cycle" ? (
             <Button
               type="button"
-              variant="accent"
               onClick={onPublishAll}
               disabled={publishAllDisabled}
               title="Publish every scored, unpublished grade in this cycle (search and filters don't apply). Unsaved scores save first."

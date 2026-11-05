@@ -54,7 +54,7 @@ const AlertDialogFooter = ({ className, ...props }) => (
 );
 
 const AlertDialogTitle = React.forwardRef(({ className, ...props }, ref) => (
-  <h2 ref={ref} className={cn("text-lg font-medium tracking-[-0.015em]", className)} {...props} />
+  <h2 ref={ref} className={cn("text-lg font-semibold", className)} {...props} />
 ));
 AlertDialogTitle.displayName = "AlertDialogTitle";
 

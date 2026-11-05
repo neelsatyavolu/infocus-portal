@@ -125,7 +125,7 @@ export function ActionMenu({
 
   const itemClass = (item: MenuItem) =>
     cn(
-      "flex min-h-9 w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-[13px] outline-none transition-colors duration-150 ease-[var(--ease-ui)]",
+      "flex min-h-9 w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-[13px] outline-none transition-colors",
       item.disabled
         ? "cursor-not-allowed opacity-50"
         : item.tone === "danger"
@@ -184,11 +184,11 @@ export function ActionMenu({
       >
         {entries.map((entry, index) => {
           if (entry === "separator") {
-            return <div key={`separator-${index}`} role="separator" className="-mx-1 my-1 h-px bg-line" />;
+            return <div key={`separator-${index}`} role="separator" className="-mx-1 my-1 h-px bg-border" />;
           }
           if (!isItem(entry)) {
             return (
-              <div key={`label-${index}`} role="presentation" className="px-2 pb-1 pt-2 text-xs font-medium text-muted-foreground">
+              <div key={`label-${index}`} role="presentation" className="px-2 pb-1 pt-2 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">
                 {entry.label}
               </div>
             );

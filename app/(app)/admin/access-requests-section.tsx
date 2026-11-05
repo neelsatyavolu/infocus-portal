@@ -180,7 +180,7 @@ export function AccessRequestsSection({
               <span className={cn(COLUMN_LABEL_CLASS, "text-right")}>Requested</span>
               <span />
             </div>
-            <ul aria-label="Waiting for access" className="divide-y divide-line">
+            <ul aria-label="Waiting for access" className="divide-y divide-border">
               {pending.map((entry) => {
                 const deciding = decidingId === entry.id;
                 const who = entry.name ?? entry.email;
@@ -241,13 +241,13 @@ export function AccessRequestsSection({
             {/* Sticky inside the scroll box, so the columns stay named while the list scrolls. */}
             <div
               aria-hidden="true"
-              className={cn(ROW_GRID, "sticky top-0 z-[1] hidden border-b border-line bg-card py-2 @3xl:grid")}
+              className={cn(ROW_GRID, "sticky top-0 z-[1] hidden border-b border-border bg-card py-2 @3xl:grid")}
             >
               <span className={COLUMN_LABEL_CLASS}>Person</span>
               <span className={cn(COLUMN_LABEL_CLASS, "text-right")}>Reviewed</span>
               <span className={cn(COLUMN_LABEL_CLASS, "text-right")}>Decision</span>
             </div>
-            <ul aria-label="Reviewed access requests" className="divide-y divide-line">
+            <ul aria-label="Reviewed access requests" className="divide-y divide-border">
               {reviewed.map((entry) => {
                 const tag = STATUS_TAG[entry.status];
                 return (

@@ -13,16 +13,16 @@ function StatCell({ label, href, children }: { label: string; href?: string; chi
   return (
     <div
       className={cn(
-        "relative flex min-h-16 min-w-0 flex-col justify-start gap-1 px-3 py-3 first:rounded-bl-lg first:pl-4 last:rounded-br-lg md:px-5 md:first:pl-5",
-        href && "transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-secondary"
+        "relative flex min-h-16 min-w-0 flex-col justify-start gap-1 px-3 py-3 first:rounded-bl-md first:pl-4 last:rounded-br-md md:px-5 md:first:pl-5",
+        href && "transition-colors hover:bg-[var(--ink-3)]"
       )}
     >
-      <dt className="truncate text-[12px] font-medium leading-tight text-muted-foreground">{label}</dt>
+      <dt className="truncate text-[11px] font-medium uppercase leading-tight tracking-[0.11em] text-muted-foreground">{label}</dt>
       <dd className="min-w-0 text-sm leading-snug text-foreground">
         {href ? (
           <Link
             href={href as never}
-            className="outline-none after:absolute after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-ring/60"
+            className="outline-none after:absolute after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-ring"
           >
             {children}
           </Link>
@@ -70,7 +70,7 @@ export function MyPackagePanel({
       bodyClassName="flex flex-col gap-4"
     >
       <StageSteps steps={steps} />
-      <dl className="-mx-4 -mb-4 mt-auto grid grid-cols-3 divide-x divide-line border-t border-line md:-mx-5 md:-mb-5">
+      <dl className="-mx-4 -mb-4 mt-auto grid grid-cols-3 divide-x divide-border border-t border-border md:-mx-5 md:-mb-5">
         <StatCell label="Check-ins">
           <span className="font-mono-broadcast text-[13px] tabular-nums">
             {upNext.checkInsDone} / {upNext.checkInsTotal}

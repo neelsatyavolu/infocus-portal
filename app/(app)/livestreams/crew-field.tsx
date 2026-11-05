@@ -78,7 +78,7 @@ function MemberSearch({
         }}
       />
       {q ? (
-        <ul aria-label="Matching members" className="divide-y divide-line overflow-hidden rounded-lg border border-line-strong bg-card">
+        <ul aria-label="Matching members" className="divide-y divide-border rounded-md border border-border">
           {!members ? (
             <li className="flex h-10 items-center gap-2 px-3 text-sm text-muted-foreground">
               <Spinner />
@@ -93,7 +93,7 @@ function MemberSearch({
                     type="button"
                     disabled={onCrew}
                     onClick={() => add(member)}
-                    className="flex min-h-10 w-full items-center gap-3 px-3 text-left text-sm text-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)]/60 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-ring/30 disabled:cursor-default disabled:hover:bg-transparent md:min-h-9"
+                    className="flex min-h-10 w-full items-center gap-3 px-3 text-left text-sm text-foreground transition-colors hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:cursor-default disabled:hover:bg-transparent md:min-h-9"
                   >
                     <Plus aria-hidden className={cn("h-4 w-4 shrink-0 text-muted-foreground", onCrew && "invisible")} />
                     <span className={cn("min-w-0 flex-1 truncate", onCrew && "text-muted-foreground")}>{memberLabel(member)}</span>
@@ -190,13 +190,13 @@ export function CrewField({
       />
       {attendeeIds.length ? (
         <div className="space-y-2">
-          <div className="overflow-hidden rounded-lg border border-line-strong bg-card">
-            <div aria-hidden className="flex h-8 items-center gap-3 border-b border-line px-3">
+          <div className="overflow-hidden rounded-md border border-border">
+            <div aria-hidden className="flex h-8 items-center gap-3 border-b border-border px-3">
               <span className={cn(fieldLabelClass, "min-w-0 flex-1")}>Name</span>
               <span className={cn(fieldLabelClass, "w-28 shrink-0")}>Credit hours</span>
               <span className={REMOVE_SLOT} />
             </div>
-            <ul aria-label="Crew members" className="divide-y divide-line">
+            <ul aria-label="Crew members" className="divide-y divide-border">
               {attendeeIds.map((userId) => {
                 const name = nameFor(userId);
                 const bad = invalid.has(userId);

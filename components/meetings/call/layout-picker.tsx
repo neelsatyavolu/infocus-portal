@@ -15,7 +15,7 @@ export const LAYOUT_OPTIONS: ReadonlyArray<{ mode: LayoutMode; label: string; de
 export const LAYOUT_ALONE_HINT = "Layouts change once others join.";
 
 /**
- * Segmented radio group in the kit's look (one bordered box, the selected segment a raised pill,
+ * Segmented radio group in the kit's look (one bordered box, the selected segment in InFocus Green,
  * like the call's other segmented controls). ←/→ move the choice. Keyboard focus gets an inset ring, so focus never looks like
  * selection. While you're alone every layout looks the same, so the options are disabled with a hint.
  */
@@ -49,7 +49,7 @@ export function LayoutPicker({
         role="radiogroup"
         aria-label="Layout"
         aria-describedby="layout-hint"
-        className={cn("grid grid-cols-4 gap-0.5 rounded-md border border-line-strong bg-card p-0.5", size === "touch" ? "h-10" : "h-9")}
+        className={cn("grid grid-cols-4 gap-0.5 rounded-md border border-input p-0.5", size === "touch" ? "h-10" : "h-9")}
       >
         {LAYOUT_OPTIONS.map(({ mode, label, description }, index) => {
           const selected = layout === mode;
@@ -67,11 +67,11 @@ export function LayoutPicker({
               onPointerEnter={() => setHovered(mode)}
               onPointerLeave={() => setHovered(null)}
               className={cn(
-                "inline-flex min-w-0 items-center justify-center rounded-sm px-1.5 text-xs transition-colors duration-150 ease-[var(--ease-ui)]",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50",
+                "inline-flex min-w-0 items-center justify-center rounded-sm px-1.5 text-xs font-medium transition-colors",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--brand-green)]",
                 "disabled:cursor-not-allowed disabled:opacity-50",
                 selected
-                  ? "bg-secondary font-medium text-foreground ring-1 ring-inset ring-line-strong"
+                  ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
                   : "text-muted-foreground hover:bg-[var(--ink-3)] hover:text-foreground"
               )}
             >

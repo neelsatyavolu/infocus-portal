@@ -12,7 +12,7 @@ function CountCell({ cell }: { cell: Cell }) {
     <li>
       <Link
         href="/groups"
-        className="flex h-full min-w-0 flex-col justify-between gap-1 rounded-md px-3 py-2.5 transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-secondary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/45"
+        className="flex h-full min-w-0 flex-col justify-between gap-1 rounded-md px-3 py-2.5 transition-colors hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <span
           className={cn(
@@ -22,7 +22,7 @@ function CountCell({ cell }: { cell: Cell }) {
         >
           {cell.count}
         </span>
-        <span className="truncate text-[12px] text-muted-foreground">{cell.label}</span>
+        <span className="truncate text-xs text-muted-foreground">{cell.label}</span>
       </Link>
     </li>
   );
@@ -59,7 +59,7 @@ export function ExecutiveOverviewPanel({ overview, className }: { overview: Clas
           </ol>
           <ul
             aria-label="Groups that need a look"
-            className="grid grid-cols-2 gap-1 border-line max-lg:border-t max-lg:pt-3 lg:w-64 lg:border-l lg:pl-3"
+            className="grid grid-cols-2 gap-1 border-border max-lg:border-t max-lg:pt-3 lg:w-64 lg:border-l lg:pl-3"
           >
             <CountCell cell={{ key: "behind", label: "Behind schedule", count: overview.behind, danger: true }} />
             <CountCell cell={{ key: "revisions", label: "Revisions requested", count: overview.revisions, danger: true }} />

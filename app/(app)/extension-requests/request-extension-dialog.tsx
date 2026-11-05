@@ -106,7 +106,7 @@ export function RequestExtensionDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
               Cancel
             </Button>
-            <Button type="submit" variant="accent" disabled={submitting || cycleNumber === null}>
+            <Button type="submit" disabled={submitting || cycleNumber === null}>
               {submitting ? <Spinner /> : null}
               Submit request
             </Button>

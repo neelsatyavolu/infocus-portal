@@ -57,7 +57,7 @@ export function SelfPip({
       onClick={() => setCorner((c) => NEXT[c])}
       aria-label="Your camera. Tap to move it to another corner."
       className={cn(
-        "absolute z-10 overflow-hidden rounded-lg border border-line-strong bg-card focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/45",
+        "absolute z-10 overflow-hidden rounded-md border border-[var(--ink-4)] bg-[var(--ink-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]",
         landscape ? "h-20 w-32" : "h-32 w-24",
         handPosition ? "outline outline-2 outline-[#F2A516]" : undefined,
         cornerClass(corner, strip, landscape)

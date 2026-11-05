@@ -26,7 +26,7 @@ const DOCKED_CLASS =
 const LAUNCHER_GUTTER_CLASS = "max-lg:portrait:pr-[3.75rem]";
 const LAUNCHER_ROW_GUTTER_CLASS = "lg:pr-12";
 const TAG_CLASS =
-  "inline-flex h-6 min-w-0 shrink-0 items-center gap-1 rounded-full bg-brand-tint px-2 font-mono text-[12px] font-medium tabular-nums text-brand-green";
+  "inline-flex h-6 min-w-0 shrink-0 items-center gap-1 rounded-sm bg-[var(--brand-green)]/12 px-1.5 font-mono-broadcast text-[11px] font-medium tabular-nums text-[var(--brand-green)]";
 /** "Enter Send · Shift Enter New line" needs about this much room beside the tag and Send. */
 const HINTS_CLASS = "hidden min-w-0 flex-nowrap overflow-hidden @min-[29rem]:group-focus-within/composer:flex";
 const DESKTOP_MAX_HEIGHT_PX = 160;
@@ -112,7 +112,7 @@ export const CommentComposer = forwardRef<HTMLTextAreaElement, ComposerProps>(fu
       className={cn(
         "resize-none",
         touch ? "min-h-10 py-2" : "min-h-14",
-        timeline && "focus-visible:border-[var(--brand-green)]"
+        timeline && "border-[var(--brand-green)]/60 focus-visible:border-[var(--brand-green)]"
       )}
     />
   );
@@ -120,7 +120,7 @@ export const CommentComposer = forwardRef<HTMLTextAreaElement, ComposerProps>(fu
   return (
     <div
       className={cn(
-        "group/composer shrink-0 rounded-b-lg border-t border-line bg-card max-lg:portrait:rounded-none",
+        "group/composer shrink-0 border-t border-border bg-card",
         touch ? "px-4 py-2" : "space-y-2 px-4 py-3",
         DOCKED_CLASS,
         avoidLauncher && LAUNCHER_GUTTER_CLASS
@@ -186,7 +186,7 @@ export const CommentComposer = forwardRef<HTMLTextAreaElement, ComposerProps>(fu
 /** Shown instead of the composer when this viewer can't comment. Not docked. */
 export function ComposerClosed({ isGuest }: { isGuest: boolean }) {
   return (
-    <p className="flex shrink-0 items-center gap-2 rounded-b-lg border-t border-line bg-card px-4 py-3 text-[13px] text-muted-foreground">
+    <p className="flex shrink-0 items-center gap-2 border-t border-border bg-card px-4 py-3 text-[13px] text-muted-foreground">
       <Lock className="h-4 w-4 shrink-0" aria-hidden />
       {isGuest ? "This link is view-only." : "Associate review closes after Stage 1."}
     </p>

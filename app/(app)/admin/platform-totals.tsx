@@ -33,8 +33,8 @@ export function PlatformTotals({ stats, error }: { stats: PlatformStats | null; 
   const loading = stats === null && !error;
   return (
     <SettingsSection id="admin-totals" title="Platform totals">
-      <div className="overflow-hidden rounded-lg border border-line-strong bg-card" aria-busy={loading || undefined}>
-        <dl className="-mb-px -mr-px grid grid-cols-2 *:border-b *:border-r *:border-line @2xl:grid-cols-3 @5xl:grid-cols-6">
+      <div className="overflow-hidden rounded-md border border-border bg-card" aria-busy={loading || undefined}>
+        <dl className="-mb-px -mr-px grid grid-cols-2 *:border-b *:border-r *:border-border @2xl:grid-cols-3 @5xl:grid-cols-6">
           {cellsFor(stats).map(({ Icon, label, value, detail }) => (
             <div key={label} className="flex min-w-0 flex-col px-4 py-4 md:px-5">
               <dt className={cn(COLUMN_LABEL_CLASS, "flex items-center gap-1.5")}>
@@ -45,7 +45,7 @@ export function PlatformTotals({ stats, error }: { stats: PlatformStats | null; 
                 {value !== null ? (
                   <span className="block truncate font-mono text-[22px] font-medium leading-tight tabular-nums text-foreground">{value}</span>
                 ) : loading ? (
-                  <span aria-hidden="true" className="block h-7 w-16 rounded-md bg-[var(--ink-3)] motion-safe:animate-pulse" />
+                  <span aria-hidden="true" className="block h-7 w-16 rounded-sm bg-[var(--ink-3)] motion-safe:animate-pulse" />
                 ) : (
                   <span className="block font-mono text-[22px] font-medium leading-tight text-muted-foreground">—</span>
                 )}

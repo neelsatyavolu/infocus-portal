@@ -83,7 +83,7 @@ export const ChatComposer = forwardRef<
       ref={formRef}
       onSubmit={submit}
       className={cn(
-        "shrink-0 border-t border-line px-4 py-3",
+        "shrink-0 border-t border-border px-4 py-3",
         safeAreaBottom && "pb-[max(0.75rem,env(safe-area-inset-bottom))]"
       )}
     >
@@ -98,7 +98,7 @@ export const ChatComposer = forwardRef<
           aria-label={ariaLabel}
           disabled={busy}
           className={cn(
-            "max-h-32 min-w-0 flex-1 resize-none overscroll-contain rounded-md border border-input bg-card px-3 text-foreground transition-[border-color,box-shadow] duration-150 ease-[var(--ease-ui)] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30 disabled:opacity-60",
+            "max-h-32 min-w-0 flex-1 resize-none overscroll-contain rounded-md border border-input bg-transparent px-3 text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60",
             // One line is exactly the Send button's height: 44px (24 + 18 + 2) or 36px (20 + 14 + 2).
             touch ? "min-h-11 py-[9px] text-base leading-6" : "min-h-9 py-[7px] text-sm leading-5"
           )}

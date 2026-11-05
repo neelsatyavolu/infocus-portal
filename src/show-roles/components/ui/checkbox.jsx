@@ -9,7 +9,7 @@ const Checkbox = React.forwardRef(({ className, checked, onCheckedChange, ...pro
     checked={Boolean(checked)}
     onChange={(event) => onCheckedChange?.(event.target.checked)}
     className={cn(
-      "h-4 w-4 rounded-sm border border-line-strong bg-card accent-[var(--brand-fill)] disabled:cursor-not-allowed disabled:opacity-50",
+      "h-4 w-4 rounded border border-input bg-background text-secondary accent-[hsl(var(--secondary))] disabled:cursor-not-allowed disabled:opacity-50",
       className,
     )}
     {...props}

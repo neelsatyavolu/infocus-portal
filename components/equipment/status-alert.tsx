@@ -6,7 +6,7 @@ import { cn } from "@/src/lib/utils";
 
 const TONE = {
   error: { tone: "danger", icon: CircleAlert, text: "text-danger" },
-  success: { tone: "success", icon: CircleCheck, text: "text-brand-green" },
+  success: { tone: "success", icon: CircleCheck, text: "text-[var(--brand-green)]" },
   info: { tone: "neutral", icon: Info, text: "text-muted-foreground" }
 } as const;
 

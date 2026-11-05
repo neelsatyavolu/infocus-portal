@@ -23,8 +23,8 @@ export function SubmitShortcutHint({ action = "send", className }: { action?: st
   const isMac = useSyncExternalStore(subscribeNever, detectMac, () => true);
 
   return (
-    <span className={cn("text-xs text-muted-foreground", className)}>
-      <span className="font-mono">{isMac ? "⌘↵" : "Ctrl+Enter"}</span> to {action}
+    <span className={cn("text-[11px] text-muted-foreground", className)}>
+      {isMac ? "⌘↵" : "Ctrl+Enter"} to {action}
     </span>
   );
 }

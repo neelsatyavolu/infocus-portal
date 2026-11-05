@@ -1,7 +1,7 @@
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/src/lib/utils";
 
-/** A 32px section row: collapse chevron + sentence-case label + mono count. */
+/** A 32px section row: collapse chevron + caps label + mono count. */
 export function SectionBar({
   id,
   label,
@@ -24,11 +24,11 @@ export function SectionBar({
           aria-expanded={open}
           aria-controls={open ? id : undefined}
           onClick={onToggle}
-          className="-ml-1 inline-flex h-8 items-center gap-1.5 rounded-md px-1.5 text-[13px] font-medium text-muted-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30"
+          className="-ml-1 inline-flex h-8 items-center gap-1.5 rounded-sm px-1 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <ChevronDown aria-hidden className={cn("h-4 w-4 shrink-0 transition-transform", !open && "-rotate-90")} />
           {label}
-          <span className="font-mono text-[12px] tabular-nums text-muted-foreground">{count}</span>
+          <span className="font-mono-broadcast text-[11px] tabular-nums text-muted-foreground">{count}</span>
         </button>
       </h2>
     </div>

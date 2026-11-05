@@ -29,7 +29,7 @@ export default function GroupStageLoading() {
           ))}
         </div>
         {initial ? (
-          <div className="flex h-10 w-fit max-w-full items-center gap-0.5 rounded-md border border-line-strong bg-card p-0.5 max-sm:w-full md:h-9">
+          <div className="flex h-10 w-fit max-w-full items-center gap-0.5 rounded-md border border-input p-0.5 max-sm:w-full md:h-9">
             {Array.from({ length: 3 }, (_, index) => (
               <div key={index} className="flex h-full min-w-0 items-center px-3 max-sm:flex-1 max-sm:justify-center">
                 <Skeleton className="h-3 w-16 md:w-40" />

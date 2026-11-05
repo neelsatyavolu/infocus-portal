@@ -49,7 +49,7 @@ export function ShellBreadcrumbs({ crumbs, onLinkClick }: { crumbs: AppBreadcrum
                   title={crumb.label}
                   className={cn(
                     linkClass,
-                    "rounded-sm text-muted-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30"
+                    "rounded-sm text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   )}
                 >
                   <span className="truncate">{crumb.label}</span>
@@ -60,7 +60,7 @@ export function ShellBreadcrumbs({ crumbs, onLinkClick }: { crumbs: AppBreadcrum
                   onClick={(event) => onLinkClick(event, href)}
                   title={crumb.label}
                   aria-current="page"
-                  className={cn(linkClass, "rounded-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30")}
+                  className={cn(linkClass, "rounded-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring")}
                 >
                   <span className="truncate">{crumb.label}</span>
                 </Link>

@@ -75,7 +75,7 @@ export function VaultAccordion({
   }
 
   return (
-    <ul ref={listRef} aria-label="Logins" className="divide-y divide-line" onKeyDown={onListKeyDown}>
+    <ul ref={listRef} aria-label="Logins" className="divide-y divide-border" onKeyDown={onListKeyDown}>
       {entries.map((entry) => {
         const open = entry.id === expandedId;
         const bodyId = `vault-details-${entry.id}`;
@@ -85,7 +85,7 @@ export function VaultAccordion({
             className={cn(
               "relative",
               SCROLL_MARGINS,
-              open && "before:absolute before:inset-y-0 before:left-0 before:z-[1] before:w-[2px] before:bg-[var(--brand-green)]"
+              open && "before:absolute before:inset-y-0 before:left-0 before:z-[1] before:w-[3px] before:bg-[var(--brand-green)]"
             )}
           >
             <button
@@ -97,8 +97,8 @@ export function VaultAccordion({
               onClick={() => toggle(entry.id, open)}
               className={cn(
                 SCROLL_MARGINS,
-                "grid min-h-16 w-full grid-cols-[2.25rem_minmax(0,1fr)_auto_1rem] items-center gap-3 px-3 py-2 text-left transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)]/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring lg:pointer-fine:min-h-14",
-                open && "bg-brand-tint hover:bg-brand-tint"
+                "grid min-h-16 w-full grid-cols-[2.25rem_minmax(0,1fr)_auto_1rem] items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring lg:pointer-fine:min-h-14",
+                open && "bg-[var(--ink-3)]"
               )}
             >
               <VaultEntryRow entry={entry} />
@@ -112,7 +112,7 @@ export function VaultAccordion({
                 id={bodyId}
                 role="region"
                 aria-labelledby={rowId(entry.id)}
-                className="border-t border-line px-3 pb-3"
+                className="border-t border-border px-3 pb-3"
                 onKeyDown={(event) => {
                   if (event.key !== "Escape" || event.defaultPrevented) return;
                   event.preventDefault();

@@ -18,7 +18,7 @@ function EmptySlot({ className, children }: { className?: string; children: Reac
   return (
     <div
       className={cn(
-        "min-h-10 items-center justify-center rounded-lg border border-dashed border-line-strong px-3 text-center text-xs text-muted-foreground",
+        "min-h-10 items-center justify-center rounded-md border border-dashed border-border px-3 text-center text-xs text-muted-foreground",
         className
       )}
     >
@@ -85,16 +85,16 @@ function ShowRow({
       tabIndex={-1}
       {...dropProps}
       className={cn(
-        "grid scroll-mt-24 grid-cols-1 gap-x-3 gap-y-2 px-4 py-3 outline-none transition-[background-color,box-shadow,opacity] duration-150 ease-[var(--ease-ui)] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring md:grid-cols-2 xl:grid-cols-[13rem_minmax(0,1fr)_minmax(0,1fr)] xl:items-stretch",
-        dropHere && "bg-brand-tint ring-1 ring-inset ring-[var(--brand-green)]/60",
+        "grid scroll-mt-24 grid-cols-1 gap-x-3 gap-y-2 px-4 py-3 outline-none transition-[background-color,box-shadow,opacity] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring md:grid-cols-2 xl:grid-cols-[13rem_minmax(0,1fr)_minmax(0,1fr)] xl:items-stretch",
+        dropHere && "bg-primary/5 ring-2 ring-inset ring-[var(--brand-green)]/60",
         dragActive && !accepting && "opacity-60",
-        highlighted && !dropHere && "ring-1 ring-inset ring-[var(--brand-green)]"
+        highlighted && !dropHere && "ring-2 ring-inset ring-[var(--brand-green)]"
       )}
     >
       {/* Date column only from xl: below that (the full sidebar takes 240px from lg) it sits above the two slots, so they keep room for text. */}
       <div className="flex min-h-8 min-w-0 items-center justify-between gap-3 md:col-span-2 xl:col-span-1 xl:flex-col xl:items-start xl:justify-center xl:gap-1.5">
         <div className="min-w-0">
-          <h3 className="truncate text-[15px] font-medium leading-snug tracking-[-0.005em] text-foreground" title={show.dateLabel}>
+          <h3 className="truncate text-sm font-semibold leading-snug text-foreground" title={show.dateLabel}>
             {show.dateLabel}
           </h3>
           {subline ? (
@@ -172,7 +172,7 @@ export function ShowRundown({
   renderRow: (row: QueueRow) => ReactNode;
 }) {
   return (
-    <ol aria-label="Upcoming shows" className="divide-y divide-line overflow-hidden rounded-lg border border-line-strong bg-card">
+    <ol aria-label="Upcoming shows" className="divide-y divide-border overflow-hidden rounded-md border border-border bg-card">
       {shows.map((show) => (
         <ShowRow
           key={show.date}

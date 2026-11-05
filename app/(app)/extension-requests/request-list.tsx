@@ -13,7 +13,7 @@ import { LIST_LABEL, RequestListHeader, RequestRow } from "./request-row";
 import type { FilterValue, RequestView } from "./request-view";
 
 /** The list card is the container the rows' column layout queries (see ROW_GRID in request-row.tsx). */
-const CARD = "@container overflow-hidden rounded-lg border border-line-strong bg-card";
+const CARD = "@container overflow-hidden rounded-md border border-border bg-card";
 
 const FILTER_EMPTY: Record<FilterValue, string> = {
   "needs-you": "Nothing needs you right now.",
@@ -28,7 +28,7 @@ export function RequestListSkeleton() {
   return (
     <LoadingRegion label="Loading extension requests" className={CARD}>
       <RequestListHeader />
-      <div aria-hidden className="divide-y divide-line">
+      <div aria-hidden className="divide-y divide-border">
         {[0, 1, 2, 3].map((index) => (
           <div key={index} className="flex min-h-14 items-center gap-4 px-4 py-2.5">
             <div className="min-w-0 flex-1 space-y-2">
@@ -103,15 +103,15 @@ function DeniedFold({ views, open, onToggle, rowProps }: {
         onClick={onToggle}
         className={cn(
           LIST_LABEL,
-          "flex min-h-10 w-full items-center gap-2 px-4 text-left transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+          "flex min-h-10 w-full items-center gap-2 px-4 text-left transition-colors hover:bg-[var(--ink-3)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
         )}
       >
         Denied
-        <span className="font-mono tabular-nums">{views.length}</span>
-        <ChevronDown aria-hidden className={cn("ml-auto h-4 w-4 shrink-0 transition-transform duration-150 ease-[var(--ease-ui)]", open && "rotate-180")} />
+        <span className="font-mono-broadcast tabular-nums tracking-normal">{views.length}</span>
+        <ChevronDown aria-hidden className={cn("ml-auto h-4 w-4 shrink-0 transition-transform", open && "rotate-180")} />
       </button>
       {open ? (
-        <ul id={listId} aria-label="Denied extension requests" className="divide-y divide-line border-t border-line">
+        <ul id={listId} aria-label="Denied extension requests" className="divide-y divide-border border-t border-border">
           <Rows views={views} {...rowProps} />
         </ul>
       ) : null}
@@ -171,7 +171,7 @@ export function RequestList({
   return (
     <div className={CARD}>
       {shown.length > 0 || deniedOpen ? <RequestListHeader /> : null}
-      <ul aria-label="Extension requests" className="divide-y divide-line">
+      <ul aria-label="Extension requests" className="divide-y divide-border">
         <Rows views={shown} {...rowProps} />
         {denied.length > 0 ? (
           <DeniedFold views={denied} open={deniedOpen} onToggle={onToggleDenied} rowProps={rowProps} />

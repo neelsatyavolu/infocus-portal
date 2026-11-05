@@ -1,7 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
 import { FillViewport } from "@/components/kit/fill-viewport";
-import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/src/lib/utils";
 
 /**
@@ -58,7 +57,7 @@ export function ListDetail({
       className={cn(
         "grid min-w-0 items-start",
         lg ? "lg:grid-cols-[var(--list-w)_minmax(0,1fr)]" : "md:grid-cols-[var(--list-w)_minmax(0,1fr)]",
-        card ? "overflow-hidden rounded-lg border border-line-strong bg-card" : "gap-5",
+        card ? "overflow-hidden rounded-md border border-border bg-card" : "gap-5",
         className
       )}
     >
@@ -67,18 +66,18 @@ export function ListDetail({
           "min-w-0",
           showDetailOnPhone && (lg ? "max-lg:hidden" : "max-md:hidden"),
           stickyList && !card && STICKY_LIST[breakpoint],
-          card && (lg ? "lg:border-r lg:border-line" : "md:border-r md:border-line")
+          card && (lg ? "lg:border-r lg:border-border" : "md:border-r md:border-border")
         )}
       >
         {list}
       </FillViewport>
       <div className={cn("min-w-0", !showDetailOnPhone && (lg ? "max-lg:hidden" : "max-md:hidden"))}>
         {onBack ? (
-          <div className={cn("mb-3", lg ? "lg:hidden" : "md:hidden", card && "mb-0 border-b border-line px-2 py-1")}>
+          <div className={cn("mb-3", lg ? "lg:hidden" : "md:hidden", card && "mb-0 border-b border-border px-2 py-1")}>
             <button
               type="button"
               onClick={onBack}
-              className="inline-flex h-10 items-center gap-1.5 rounded-md pr-3 text-sm text-muted-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:text-foreground"
+              className="inline-flex h-10 items-center gap-1.5 rounded-md pr-3 text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
               <ArrowLeft className="h-4 w-4" aria-hidden />
               {backLabel}
@@ -218,7 +217,7 @@ export function JumpLinks({
           <li key={link.href} className="shrink-0">
             <a
               href={link.href}
-              className={cn(buttonVariants({ variant: "outline", size: "sm" }), "font-normal text-[var(--ink-text)] hover:text-foreground")}
+              className="inline-flex h-8 items-center rounded-md border border-input px-3 text-[13px] text-[var(--ink-text)] transition-colors hover:bg-[var(--ink-3)] hover:text-foreground"
             >
               {link.label}
             </a>

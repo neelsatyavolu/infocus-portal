@@ -27,11 +27,11 @@ export type SegmentItem = {
   title?: string;
 };
 
-const BAR: Record<SegmentState, string> = {
-  done: "bg-[var(--brand-fill)]",
-  current: "bg-[var(--brand-green)]",
-  upcoming: "bg-[var(--ink-4)]",
-  locked: "bg-[var(--ink-4)]"
+const STRIP: Record<SegmentState, string> = {
+  done: "border-t-[var(--brand-fill)]",
+  current: "border-t-[var(--brand-green)]",
+  upcoming: "border-t-[var(--ink-4)]",
+  locked: "border-t-[var(--ink-4)]"
 };
 
 const COLS: Record<number, string> = {
@@ -49,20 +49,18 @@ function Cell({ item, anyActive }: { item: SegmentItem; anyActive: boolean }) {
   // is a "step" (Home's strip links to stages without being on them).
   const ariaCurrent = item.active === true ? (item.href ? "page" : "true") : item.state === "current" ? "step" : undefined;
   const className = cn(
-    "flex h-full min-h-[3.75rem] min-w-0 flex-col gap-1.5 rounded-lg border px-3 pb-2.5 pt-2.5 text-left transition-colors duration-150 ease-[var(--ease-ui)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30",
-    active
-      ? "border-[var(--brand-green)]/40 bg-brand-tint"
-      : cn("border-line-strong bg-card", !locked && (item.href || item.onSelect) && "hover:bg-secondary"),
+    "flex h-full min-h-[3.75rem] min-w-0 flex-col justify-between gap-1.5 border-t-4 px-3 pb-2 pt-2 text-left transition-colors",
+    STRIP[item.state],
+    active ? "bg-[rgb(43_179_110/0.08)]" : !locked && (item.href || item.onSelect) && "hover:bg-[var(--ink-3)]",
     locked && "cursor-not-allowed opacity-50"
   );
   const body = (
     <>
-      <span aria-hidden className={cn("block h-0.5 w-full rounded-full", BAR[item.state])} />
-      <span className="mt-auto flex min-w-0 items-center gap-2">
+      <span className="flex min-w-0 items-center gap-2">
         {item.index !== undefined ? (
           <span className="font-mono-broadcast text-[11px] tabular-nums text-muted-foreground">{item.index}</span>
         ) : null}
-        <span className={cn("min-w-0 flex-1 truncate text-sm", active ? "font-medium text-foreground" : item.state === "upcoming" || locked ? "text-muted-foreground" : "text-foreground")}>
+        <span className={cn("min-w-0 flex-1 truncate text-sm", active ? "font-semibold text-foreground" : item.state === "upcoming" || locked ? "text-muted-foreground" : "text-foreground")}>
           {item.label}
         </span>
         {item.state === "done" && !item.tag ? (
@@ -108,7 +106,7 @@ function Cell({ item, anyActive }: { item: SegmentItem; anyActive: boolean }) {
 }
 
 /**
- * The stage strip (a row of 12px cards, each with a thin stage bar on top): the package stage
+ * The flat stage strip (4px top rule per cell, DESIGN.md's lower-third strip): the package stage
  * bar, the Home stage timeline, a group's stage tabs, and — without hrefs — the read-only
  * approval path (Stage 1 producer → Stage 2 adviser → Stage 3 executives). One look for all.
  * Two cells per row on phones (or one scrolling row with `scrollOnPhone`), all in a row from sm.
@@ -162,7 +160,7 @@ export function SegmentNav({
 export type StepState = "done" | "current" | "upcoming" | "blocked" | "skipped";
 
 const MARKER: Record<StepState, string> = {
-  done: "border-[var(--brand-fill)] bg-[var(--brand-fill)] text-on-brand",
+  done: "border-[var(--brand-fill)] bg-[var(--brand-fill)] text-[var(--on-brand)]",
   current: "border-[var(--brand-green)] text-[var(--brand-green)]",
   upcoming: "border-[var(--ink-4)] text-muted-foreground",
   blocked: "border-danger/60 text-danger",
@@ -171,7 +169,7 @@ const MARKER: Record<StepState, string> = {
 
 /**
  * Numbered steps down the page (the cycle guide, an approval chain with details, agreement →
- * approvals). A round mono marker per step on a connecting line, the title with a tag and a
+ * approvals). A square mono marker per step on a connecting line, the title with a tag and a
  * mono tally, then the body.
  */
 export function StepList({
@@ -197,11 +195,11 @@ export function StepList({
         const last = index === steps.length - 1;
         return (
           <li key={step.key ?? index} className="relative grid grid-cols-[1.5rem_minmax(0,1fr)] gap-x-3">
-            {!last ? <span aria-hidden className="absolute bottom-0 left-3 top-7 w-px -translate-x-1/2 bg-line-strong" /> : null}
+            {!last ? <span aria-hidden className="absolute bottom-0 left-3 top-7 w-px -translate-x-1/2 bg-border" /> : null}
             <span
               aria-hidden
               className={cn(
-                "relative mt-0.5 grid h-6 w-6 place-items-center rounded-full border font-mono-broadcast text-[11px] font-medium tabular-nums",
+                "relative mt-0.5 grid h-6 w-6 place-items-center rounded-sm border font-mono-broadcast text-[11px] font-medium tabular-nums",
                 MARKER[state]
               )}
             >
@@ -209,7 +207,7 @@ export function StepList({
             </span>
             <div className={cn("min-w-0", !last && "pb-5")}>
               <div className="flex min-h-7 min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                <p className={cn("text-sm font-medium", state === "upcoming" || state === "skipped" ? "text-[var(--ink-text)]" : "text-foreground")}>
+                <p className={cn("text-sm font-semibold", state === "upcoming" || state === "skipped" ? "text-[var(--ink-text)]" : "text-foreground")}>
                   <span className="sr-only">{`Step ${index + 1}${state === "done" ? ", done" : state === "current" ? ", current" : ""}: `}</span>
                   {step.title}
                 </p>

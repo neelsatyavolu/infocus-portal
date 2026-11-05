@@ -7,15 +7,15 @@ import { cn } from "@/src/lib/utils";
 export type AlertTone = "info" | "success" | "warning" | "danger" | "neutral";
 
 const TONE: Record<AlertTone, { box: string; icon: string; Icon: KitIcon }> = {
-  info: { box: "border-line-strong bg-card", icon: "text-brand-green", Icon: Info },
-  success: { box: "border-[var(--brand-green)]/30 bg-brand-tint", icon: "text-brand-green", Icon: CheckCircle2 },
+  info: { box: "border-[var(--brand-green)]/30 bg-[var(--brand-green)]/[0.06]", icon: "text-[var(--brand-green)]", Icon: Info },
+  success: { box: "border-[var(--brand-green)]/30 bg-[var(--brand-green)]/10", icon: "text-[var(--brand-green)]", Icon: CheckCircle2 },
   warning: { box: "border-[var(--brand-amber)]/40 bg-[var(--brand-amber)]/10", icon: "text-[var(--brand-amber)]", Icon: AlertTriangle },
   danger: { box: "border-danger/40 bg-danger-tint", icon: "text-danger", Icon: OctagonAlert },
-  neutral: { box: "border-line-strong bg-card", icon: "text-muted-foreground", Icon: Info }
+  neutral: { box: "border-border bg-card", icon: "text-muted-foreground", Icon: Info }
 };
 
 /**
- * THE banner (DESIGN.md §10): a 12px card with a 1px line (tinted for success/warning/danger), an icon, plain words,
+ * THE banner (DESIGN.md §10): tint background, a 1px line in the same hue, an icon, plain words,
  * and at most one h-8 action (Try again, View). Errors, warnings, View-as notices, rule callouts.
  * Uses theme tokens only, so it reads in Light mode (never text-amber-100).
  */
@@ -51,7 +51,7 @@ export function Alert({
     <div
       role={role ?? (tone === "danger" ? "alert" : "status")}
       className={cn(
-        "flex min-w-0 items-start gap-3 rounded-lg border text-foreground",
+        "flex min-w-0 items-start gap-3 rounded-md border text-foreground",
         compact ? "px-3 py-2 text-[13px]" : "px-4 py-3 text-sm",
         style.box,
         className
@@ -60,7 +60,7 @@ export function Alert({
       {shownIcon ? <span className={cn("mt-0.5 flex shrink-0 [&>svg]:size-4", style.icon)}>{shownIcon}</span> : null}
       <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div className="min-w-0 leading-snug">
-          {title ? <p className="font-medium">{title}</p> : null}
+          {title ? <p className="font-semibold">{title}</p> : null}
           {children ? <div className={cn(title && "mt-0.5 text-[var(--ink-text)]")}>{children}</div> : null}
         </div>
         {action ? (
@@ -75,7 +75,7 @@ export function Alert({
           onClick={onDismiss}
           aria-label={dismissLabel}
           className={cn(
-            "grid shrink-0 place-items-center rounded-md text-muted-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)] hover:text-foreground",
+            "grid shrink-0 place-items-center rounded-sm text-muted-foreground transition-colors hover:bg-[var(--ink-3)] hover:text-foreground",
             compact ? "-my-0.5 -mr-1 h-6 w-6" : "-my-1 -mr-2 h-8 w-8"
           )}
         >

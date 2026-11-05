@@ -6,7 +6,7 @@ import type { ControlSize } from "@/components/kit/action-bar";
 /**
  * The call's one-of-N choice (background, send/receive quality, the cut picker's filter): the
  * kit SegmentedControl at full width, 40px on phones and 36px from md so it matches the fields
- * beside it. Selected = a raised pill; ←/→ move the choice.
+ * beside it. Selected = InFocus Green fill; ←/→ move the choice.
  */
 export function Segmented<T extends string>({
   label,

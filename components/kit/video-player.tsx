@@ -26,11 +26,11 @@ type VideoPlayerProps = {
 };
 
 const CONTROL_BUTTON =
-  "grid h-8 w-8 shrink-0 place-items-center rounded-md text-soft-white/85 transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-soft-white/10 hover:text-soft-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)] pointer-coarse:h-10 pointer-coarse:w-10 [&_svg]:h-[18px] [&_svg]:w-[18px]";
+  "grid h-8 w-8 shrink-0 place-items-center rounded-md text-soft-white/85 transition-colors hover:bg-soft-white/10 hover:text-soft-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)] pointer-coarse:h-10 pointer-coarse:w-10 [&_svg]:h-[18px] [&_svg]:w-[18px]";
 
 /**
- * The Portal's video player (everywhere except the review page, which has its own timeline). A flat scrim
- * over the picture: brand progress, chapter marks, Geist Mono time, speed, picture in picture and full
+ * The Portal's video player (everywhere except the review page, which has its own timeline). A flat InFocus
+ * plate over the picture: green progress, chapter marks, Geist Mono time, speed, picture in picture and full
  * screen. Controls fade out while playing and come back on pointer movement or a key. Keys (once the player
  * has focus): Space/K play, J/L ±10 s, arrows ±5 s and volume, M mute, F full screen, 0–9 jump.
  */
@@ -84,7 +84,7 @@ export function VideoPlayer({
       }}
       onFocus={player.poke}
       className={cn(
-        "group/player relative aspect-video w-full overflow-hidden rounded-lg bg-black text-soft-white outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]",
+        "group/player relative aspect-video w-full overflow-hidden bg-black text-soft-white outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]",
         !showControls && "cursor-none",
         className,
         player.fullscreen && "aspect-auto h-full max-h-none max-w-none rounded-none border-0"
@@ -113,7 +113,7 @@ export function VideoPlayer({
       <CenterMark player={player} />
       <div
         className={cn(
-          "absolute inset-x-0 bottom-0 bg-black/60 px-2 pb-1.5 pt-1 transition-opacity duration-200 ease-[var(--ease-ui)] sm:px-3",
+          "absolute inset-x-0 bottom-0 bg-black/70 px-2 pb-1.5 pt-1 transition-opacity duration-200 sm:px-3",
           showControls ? "opacity-100" : "pointer-events-none opacity-0"
         )}
       >
@@ -149,16 +149,15 @@ function CenterMark({ player }: { player: VideoPlayerState }) {
       type="button"
       aria-label={player.ended ? "Replay" : "Play"}
       onClick={player.toggle}
-      className={cn(PLATE, "transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]")}
+      className={cn(PLATE, "border-b-[3px] border-primary transition-colors hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]")}
     >
       {player.ended ? <RotateCcw className="h-7 w-7" aria-hidden /> : <Play className="ml-0.5 h-7 w-7 fill-current" aria-hidden />}
     </button>
   );
 }
 
-// A round flat scrim in the middle of the picture.
-const PLATE =
-  "absolute left-1/2 top-1/2 grid h-16 w-16 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-black/60 text-soft-white";
+// A square plate with the lower-third's green strip under it (DESIGN.md: plates are square).
+const PLATE = "absolute left-1/2 top-1/2 grid h-16 w-16 -translate-x-1/2 -translate-y-1/2 place-items-center bg-black/65 text-soft-white";
 
 function ControlRow({ player, chapters, menuOpen, onMenuOpenChange }: {
   player: VideoPlayerState; chapters: ShowChapter[]; menuOpen: boolean; onMenuOpenChange: (open: boolean) => void;
@@ -261,7 +260,7 @@ function RateMenu({ rate, open, onOpenChange, onPick }: {
           onKeyDown={(event) => {
             if (event.key === "Escape") onOpenChange(false);
           }}
-          className="absolute bottom-full right-0 mb-2 min-w-24 rounded-lg border border-soft-white/15 bg-black/90 p-1"
+          className="absolute bottom-full right-0 mb-2 min-w-24 rounded-md border border-soft-white/15 bg-black/90 p-1"
         >
           {PLAYER_RATES.map((option) => (
             <button
@@ -275,7 +274,7 @@ function RateMenu({ rate, open, onOpenChange, onPick }: {
                 onOpenChange(false);
               }}
               className={cn(
-                "flex h-8 w-full items-center justify-between gap-3 rounded-sm px-2 font-mono-broadcast text-[13px] tabular-nums text-soft-white/85 hover:bg-soft-white/10 hover:text-soft-white focus-visible:bg-soft-white/10 focus-visible:outline-none pointer-coarse:h-10",
+                "flex h-8 w-full items-center justify-between gap-3 rounded-md px-2 font-mono-broadcast text-[13px] tabular-nums text-soft-white/85 hover:bg-soft-white/10 hover:text-soft-white focus-visible:bg-soft-white/10 focus-visible:outline-none pointer-coarse:h-10",
                 option === rate && "text-soft-white"
               )}
             >

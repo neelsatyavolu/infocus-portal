@@ -19,7 +19,7 @@ export type FilterChipOption<T extends string> = {
 
 /**
  * Single-select filter chips with mono counts (Needs you 3 · Pending 5 · All 12). The selected
- * chip is the raised surface with a strong hairline and ink text; the rest are quiet. One row that scrolls sideways on phones and wraps from sm.
+ * chip uses the InFocus Green fill. One row that scrolls sideways on phones and wraps from sm.
  * Chips match the other controls of their row: `md` (36px, default) beside h-9 buttons in a
  * Toolbar, `sm` (32px) in a panel header, `touch` 40px on phones and 36px from md.
  * The row sizes itself (`h-auto!`), so a parent ActionBar/Toolbar never clips it when it wraps.
@@ -62,11 +62,11 @@ export function FilterChips<T extends string>({
             title={option.title}
             onClick={() => onChange(option.value)}
             className={cn(
-              "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border px-3 text-[13px] font-medium transition-colors duration-150 ease-[var(--ease-ui)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/45",
+              "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border px-3 text-[13px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
               CONTROL_HEIGHT[size],
               active
-                ? "border-line-strong bg-[var(--ink-3)] text-foreground"
-                : "border-line text-muted-foreground hover:bg-secondary hover:text-foreground"
+                ? "border-transparent bg-[var(--brand-fill)] font-medium text-[var(--on-brand)]"
+                : "border-input text-[var(--ink-text)] hover:bg-[var(--ink-3)] hover:text-foreground"
             )}
           >
             {option.label}
@@ -74,7 +74,7 @@ export function FilterChips<T extends string>({
               <span
                 className={cn(
                   "font-mono-broadcast text-[11px] tabular-nums",
-                  active ? "text-[var(--ink-text)]" : option.tone ? toneTextClass(option.tone) : "text-muted-foreground"
+                  active ? "opacity-80" : option.tone ? toneTextClass(option.tone) : "text-muted-foreground"
                 )}
               >
                 {formatCount(option.count)}

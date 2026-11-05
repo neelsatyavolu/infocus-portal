@@ -24,7 +24,7 @@ function Mark({ label, you, tone, word }: { label: string; you: boolean; tone: "
       <span
         className={cn(
           "inline-flex shrink-0 items-center gap-1 text-xs font-medium",
-          tone === "ok" ? "text-brand-green" : tone === "no" ? "text-danger" : "text-muted-foreground"
+          tone === "ok" ? "text-[var(--brand-green)]" : tone === "no" ? "text-danger" : "text-muted-foreground"
         )}
       >
         <Icon aria-hidden className="h-4 w-4" />
@@ -202,7 +202,7 @@ export function RequestDetail({ view, panelId, labelledBy, actions }: {
   actions: RequestActions;
 }) {
   return (
-    <div id={panelId} role="region" aria-labelledby={labelledBy} className="border-t border-line px-4 py-4 md:py-5">
+    <div id={panelId} role="region" aria-labelledby={labelledBy} className="border-t border-border px-4 py-4 md:py-5">
       <div className="grid gap-5 md:grid-cols-2 md:gap-8">
         <section className="min-w-0 space-y-2">
           <SectionLabel as="h2">Request</SectionLabel>

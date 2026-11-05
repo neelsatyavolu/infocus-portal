@@ -17,7 +17,7 @@ export function EditingSkeleton() {
       <PageHeaderSkeleton actions={0} />
       <div aria-hidden className="grid auto-cols-[minmax(6.5rem,1fr)] grid-flow-col gap-2 overflow-hidden">
         {Array.from({ length: 8 }, (_, index) => (
-          <Skeleton key={index} className="h-16 rounded-lg" />
+          <Skeleton key={index} className="h-16 rounded-md" />
         ))}
       </div>
       <Skeleton className="h-9 w-72 rounded-md" />

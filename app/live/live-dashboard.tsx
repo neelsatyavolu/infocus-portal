@@ -477,7 +477,7 @@ export function LiveDashboard({ canRotateKey, signedIn }: { canRotateKey: boolea
         ) : null}
 
         {events?.length === 0 && !eventId ? (
-          <div className="rounded-lg border border-line-strong bg-card">
+          <div className="rounded-md border border-border bg-card">
             <EmptyState
               size="page"
               icon={Radio}

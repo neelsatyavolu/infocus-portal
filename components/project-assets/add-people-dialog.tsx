@@ -11,7 +11,7 @@ import { getMemberDisplayName } from "@/components/project-assets/format";
 import type { MediaTileItem, WorkspaceMemberOption } from "@/components/project-assets/types";
 
 function StateLine({ children }: { children: string }) {
-  return <p className="rounded-lg border border-line-strong bg-secondary px-3 py-2.5 text-sm text-muted-foreground">{children}</p>;
+  return <p className="rounded-md border border-border px-3 py-2.5 text-sm text-muted-foreground">{children}</p>;
 }
 
 /** Pick workspace members to put on a Final Cut video. Key it by media id so the search resets. */
@@ -83,11 +83,11 @@ export default function AddPeopleDialog({
               {filtered.length === 0 ? (
                 <StateLine>No members match your search.</StateLine>
               ) : (
-                <ul className="max-h-72 divide-y divide-line overflow-y-auto rounded-lg border border-line-strong">
+                <ul className="max-h-72 divide-y divide-border overflow-y-auto rounded-md border border-border">
                   {filtered.map((member) => {
                     const name = getMemberDisplayName(member);
                     return (
-                      <li key={member.userId} className="flex min-h-14 items-center gap-3 px-3 py-2 transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)]/60">
+                      <li key={member.userId} className="flex min-h-14 items-center gap-3 px-3 py-2">
                         <Avatar name={name} email={member.email} size={32} />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm text-foreground">{name}</span>

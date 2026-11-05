@@ -71,9 +71,9 @@ export function TemplateRail({ templates, currentId, onSelect, disabled = false,
                     disabled={disabled}
                     onClick={() => onSelect(template.id)}
                     className={cn(
-                      "flex h-9 w-full items-center gap-2.5 rounded-md px-3 text-left text-[13px] font-medium transition-colors duration-150 ease-[var(--ease-ui)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-60",
+                      "flex h-9 w-full items-center gap-2.5 rounded-md px-3 text-left text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60",
                       active
-                        ? "bg-brand-tint text-foreground [&_svg]:text-brand-green"
+                        ? "bg-[var(--brand-fill)] text-[var(--on-brand)]"
                         : "text-muted-foreground enabled:hover:bg-[var(--ink-3)] enabled:hover:text-foreground"
                     )}
                   >
@@ -103,7 +103,7 @@ function TemplateSelect({ templates, currentId, onSelect, disabled = false, clas
         <SelectValue placeholder="Pick a template">
           {current ? (
             <span className="flex min-w-0 items-center gap-2">
-              <TemplateIcon id={current.id} className="h-4 w-4 shrink-0 text-brand-green" />
+              <TemplateIcon id={current.id} className="h-4 w-4 shrink-0 text-[var(--brand-green)]" />
               <span className="truncate font-medium">{current.name}</span>
             </span>
           ) : null}
@@ -172,8 +172,8 @@ export function TemplateBar({
     <div className={cn("grid min-w-0 content-start gap-1.5 md:gap-3", className)}>
       <div className="flex min-h-10 min-w-0 items-center gap-2 md:min-h-9">
         <TemplateSelect templates={templates} currentId={template.id} onSelect={onSelect} disabled={disabled} className="min-w-0 flex-1 @min-[74rem]/story:hidden" />
-        <h2 className="sr-only @min-[74rem]/story:not-sr-only @min-[74rem]/story:flex @min-[74rem]/story:min-w-0 @min-[74rem]/story:flex-1 @min-[74rem]/story:items-center @min-[74rem]/story:gap-2 @min-[74rem]/story:text-base @min-[74rem]/story:font-medium @min-[74rem]/story:tracking-[-0.01em] @min-[74rem]/story:text-foreground">
-          <TemplateIcon id={template.id} className="h-4 w-4 shrink-0 text-brand-green" />
+        <h2 className="sr-only @min-[74rem]/story:not-sr-only @min-[74rem]/story:flex @min-[74rem]/story:min-w-0 @min-[74rem]/story:flex-1 @min-[74rem]/story:items-center @min-[74rem]/story:gap-2 @min-[74rem]/story:text-base @min-[74rem]/story:font-semibold @min-[74rem]/story:text-foreground">
+          <TemplateIcon id={template.id} className="h-4 w-4 shrink-0 text-[var(--brand-green)]" />
           <span className="truncate">{template.name}</span>
         </h2>
         {action}

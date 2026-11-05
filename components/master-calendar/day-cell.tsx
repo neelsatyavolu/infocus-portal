@@ -105,12 +105,12 @@ function CellLines({ items, past }: { items: Array<{ label: string; value: React
         className={cn(
           "space-y-1.5 text-[13px] leading-5",
           "@min-[10rem]/lines:grid @min-[10rem]/lines:grid-cols-[4rem_minmax(0,1fr)] @min-[10rem]/lines:gap-x-2 @min-[10rem]/lines:gap-y-1 @min-[10rem]/lines:space-y-0",
-          past ? "text-muted-foreground" : "text-[var(--ink-text)]"
+          past ? "text-muted-foreground" : "text-foreground"
         )}
       >
         {items.map((item) => (
           <div key={item.label} className="min-w-0 @min-[10rem]/lines:contents">
-            <dt className="text-[12px] font-medium leading-5 text-muted-foreground">{item.label}</dt>
+            <dt className="text-[11px] font-medium uppercase leading-5 tracking-[0.11em] text-muted-foreground">{item.label}</dt>
             <dd className="min-w-0 break-words">{item.value}</dd>
           </div>
         ))}
@@ -158,7 +158,7 @@ function summaryLines(day: DayModel, canEdit: boolean) {
     items.push({ label: "PA", value: <NamesValue names={day.paNames} needed={day.paNeeded} /> });
   }
   if (day.spirit) {
-    items.push({ label: "Spirit", value: <span className="text-brand-green">{day.spirit.theme}</span> });
+    items.push({ label: "Spirit", value: <span className="text-[var(--brand-green)]">{day.spirit.theme}</span> });
     const crew = crewSummary(day.spirit);
     items.push({ label: "Crew", value: crew || <span className="text-muted-foreground">None yet</span> });
   }
@@ -190,14 +190,14 @@ function DateButton({
       // detail 0: Enter or Space (or a screen reader), not a pointer click.
       onClick={(event) => onSelect(day.dateKey, event.detail === 0)}
       className={cn(
-        "flex shrink-0 flex-col items-center justify-center rounded-md font-medium tabular-nums leading-none outline-none",
-        "after:absolute after:inset-0 after:content-[''] focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-ring/60",
+        "flex shrink-0 flex-col items-center justify-center rounded-sm font-semibold tabular-nums leading-none outline-none",
+        "after:absolute after:inset-0 after:content-[''] focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-ring",
         "h-11 w-12 gap-1",
         "@min-[58rem]:h-6 @min-[58rem]:w-auto @min-[58rem]:min-w-6 @min-[58rem]:flex-row @min-[58rem]:gap-0 @min-[58rem]:px-1",
-        day.isToday ? "bg-[var(--brand-fill)] text-on-brand" : "text-foreground"
+        day.isToday ? "bg-[var(--brand-fill)] text-[var(--on-brand)]" : "text-foreground"
       )}
     >
-      <span className={cn("text-[11px] font-medium", "@min-[58rem]:hidden", !day.isToday && "text-muted-foreground")}>
+      <span className={cn("text-[11px] font-medium uppercase tracking-[0.11em]", "@min-[58rem]:hidden", !day.isToday && "text-muted-foreground")}>
         {WEEKDAYS[day.weekdayIndex].slice(0, 3)}
       </span>
       <span className={cn("text-lg", "@min-[58rem]:text-sm")}>{Number(day.dateKey.slice(8))}</span>
@@ -208,15 +208,15 @@ function DateButton({
 function cellSurface(day: DayModel, selected: boolean, showSelection: boolean) {
   const dayOff = day.kind === "HOLIDAY";
   return cn(
-    "relative grid min-w-0 items-start gap-x-3 px-3 py-2.5 transition-colors duration-150 ease-[var(--ease-ui)]",
+    "relative grid min-w-0 items-start gap-x-3 px-3 py-2.5 transition-colors",
     "min-h-14 grid-cols-[3rem_minmax(0,1fr)_auto]",
     "@min-[58rem]:grid-cols-[auto_minmax(0,1fr)] @min-[58rem]:content-start @min-[58rem]:gap-x-2 @min-[58rem]:gap-y-2 @min-[58rem]:p-3",
     // A day off is one line, so a week of them stays a short row.
     dayOff ? "bg-background @min-[58rem]:min-h-12" : "bg-card @min-[58rem]:min-h-24",
     "hover:bg-[var(--ink-3)]",
     showSelection && selected && [
-      "bg-brand-tint hover:bg-brand-tint before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:bg-brand-green before:content-['']",
-      "@min-[58rem]:before:hidden @min-[58rem]:outline-1 @min-[58rem]:-outline-offset-1 @min-[58rem]:outline-brand-green"
+      "bg-[var(--ink-3)] before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-[var(--brand-green)] before:content-['']",
+      "@min-[58rem]:before:hidden @min-[58rem]:outline-2 @min-[58rem]:-outline-offset-2 @min-[58rem]:outline-[var(--brand-green)]"
     ]
   );
 }
@@ -275,7 +275,7 @@ export const DayCell = memo(function DayCell({
             src={scenicImageForDate(day.dateKey)}
             alt={SCENIC_IMAGE_ALT}
             loading="lazy"
-            className={cn("hidden h-16 w-full rounded-md object-cover", "@min-[58rem]:col-span-2 @min-[58rem]:block")}
+            className={cn("hidden h-16 w-full rounded-sm object-cover", "@min-[58rem]:col-span-2 @min-[58rem]:block")}
           />
         ) : null}
         {hasText ? (
@@ -302,7 +302,7 @@ export const DayCell = memo(function DayCell({
       <div className={cn("col-start-3 row-start-1 flex items-center self-center", "@min-[58rem]:hidden")}>
         {showImage ? (
           // eslint-disable-next-line @next/next/no-img-element -- a remote royalty-free image (also used in the Google Doc)
-          <img src={scenicImageForDate(day.dateKey)} alt={SCENIC_IMAGE_ALT} loading="lazy" className="h-12 w-16 rounded-md object-cover" />
+          <img src={scenicImageForDate(day.dateKey)} alt={SCENIC_IMAGE_ALT} loading="lazy" className="h-12 w-16 rounded-sm object-cover" />
         ) : (
           <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden />
         )}

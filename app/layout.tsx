@@ -10,39 +10,15 @@ import { THANKSGIVING_INIT_SCRIPT } from "@/src/lib/thanksgiving";
 import { THEME_INIT_SCRIPT } from "@/src/lib/theme";
 import "./globals.css";
 
-// Geist for every word people read (body, UI, buttons). Variable: one file covers 400–700.
-const geistSans = localFont({
-  src: "../node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2",
-  variable: "--font-geist-sans",
-  adjustFontFallback: false,
-  fallback: ["ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "Roboto", "Helvetica", "Arial", "sans-serif"],
-  weight: "100 900",
-  display: "swap"
-});
-
-// Geist Serif for page titles and hero headlines only (40px and up). Not preloaded: the
-// sans carries first paint.
-const geistSerif = localFont({
-  src: "../node_modules/geist/dist/fonts/geist-serif/GeistSerifVF.woff2",
-  variable: "--font-geist-serif",
-  adjustFontFallback: false,
-  fallback: ["Georgia", "Times New Roman", "serif"],
-  weight: "100 900",
-  display: "swap",
-  preload: false
-});
-
-// Lexend is the broadcast face: only on-air graphics (live overlays, story maker renders) use it,
-// so it is not preloaded and the Portal UI never references it.
+// Variable font: one file covers every weight the app uses (400–700).
 const lexend = Lexend({
   subsets: ["latin"],
   variable: "--font-lexend",
-  display: "swap",
-  preload: false
+  display: "swap"
 });
 
 // Same file and settings as `geist/font/mono`, but not preloaded: it is data-only
-// (numbers, timecodes, code), so it shouldn't compete with Geist on first paint.
+// (numbers, timecodes), so it shouldn't compete with Lexend on first paint.
 const geistMono = localFont({
   src: "../node_modules/geist/dist/fonts/geist-mono/GeistMono-Variable.woff2",
   variable: "--font-geist-mono",
@@ -66,10 +42,10 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  // Browser chrome follows the device, like the System theme (the Light canvas is #FCFCFD).
+  // Browser chrome follows the device, like the System theme.
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#FCFCFD" },
-    { media: "(prefers-color-scheme: dark)", color: "#000000" }
+    { media: "(prefers-color-scheme: light)", color: "#F4F6F4" },
+    { media: "(prefers-color-scheme: dark)", color: "#0F110F" }
   ]
 };
 
@@ -103,7 +79,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`dark bg-background ${geistSans.variable} ${geistSerif.variable} ${geistMono.variable} ${lexend.variable}`}
+      className={`dark bg-background ${lexend.variable} ${geistMono.variable}`}
       suppressHydrationWarning
     >
       <head>

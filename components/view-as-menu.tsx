@@ -131,7 +131,7 @@ export function ViewAsMenu({
           </Alert>
         ) : null}
         <SearchField value={query} onChange={setQuery} placeholder="Search name or email" />
-        <div className="max-h-72 overflow-y-auto rounded-lg border border-line-strong bg-card">
+        <div className="max-h-72 overflow-y-auto rounded-md border border-border">
           {users == null && loadError ? (
             <div role="alert" className="flex flex-col items-center gap-3 px-3 py-8 text-center text-sm">
               <p className="flex items-center gap-1.5 text-danger">
@@ -151,14 +151,14 @@ export function ViewAsMenu({
           ) : filtered.length === 0 ? (
             <p className="px-3 py-8 text-center text-sm text-muted-foreground">No matching users.</p>
           ) : (
-            <ul className="divide-y divide-line">
+            <ul className="divide-y divide-border">
               {filtered.map((user) => (
                 <li key={user.id}>
                   <button
                     type="button"
                     disabled={savingId !== null}
                     onClick={() => void choose(user.id)}
-                    className="flex min-h-11 w-full items-center gap-2.5 px-3 py-1.5 text-left text-sm transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-secondary focus-visible:bg-secondary focus-visible:outline-none disabled:opacity-60"
+                    className="flex min-h-11 w-full items-center gap-2.5 px-3 py-1.5 text-left text-sm transition-colors hover:bg-[var(--ink-3)] focus-visible:bg-[var(--ink-3)] focus-visible:outline-none disabled:opacity-60"
                   >
                     <Avatar name={user.name} email={user.email} imageUrl={user.imageUrl} size={24} title="" />
                     <span className="min-w-0 flex-1">

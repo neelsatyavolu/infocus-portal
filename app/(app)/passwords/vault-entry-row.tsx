@@ -22,7 +22,7 @@ export function VaultEntryRow({ entry }: { entry: VaultEntrySummary }) {
     <>
       <SiteIcon name={entry.name} url={entry.url} />
       <span className="min-w-0">
-        <span className="block truncate text-sm font-medium text-foreground">{entry.name}</span>
+        <span className="block truncate text-sm font-semibold text-foreground">{entry.name}</span>
         <span className="block truncate text-xs text-muted-foreground">{secondaryLine(entry)}</span>
       </span>
       <span className="flex items-center justify-end gap-1.5">

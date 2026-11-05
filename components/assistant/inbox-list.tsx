@@ -63,7 +63,7 @@ export function InboxList({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="shrink-0 border-b border-line px-4 py-3">
+      <div className="shrink-0 border-b border-border px-4 py-3">
         <SearchField
           value={search}
           onChange={onSearch}
@@ -193,7 +193,7 @@ function InboxRow({
         data-chat-id={chatId ?? undefined}
         aria-busy={busy || undefined}
         className={cn(
-          "flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)]/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50",
+          "flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
           touch ? "min-h-16" : "min-h-14"
         )}
       >
@@ -203,7 +203,7 @@ function InboxRow({
             <span
               className={cn(
                 "min-w-0 flex-1 truncate text-sm text-foreground",
-                emphasized ? "font-medium" : "font-normal"
+                emphasized ? "font-semibold" : "font-medium"
               )}
             >
               {srPrefix ? <span className="sr-only">{srPrefix}</span> : null}
@@ -212,7 +212,7 @@ function InboxRow({
             {busy ? (
               <Spinner className="self-center text-muted-foreground" label="Opening" />
             ) : meta ? (
-              <span className="shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground">{meta}</span>
+              <span className="shrink-0 font-mono-broadcast text-[11px] tabular-nums text-muted-foreground">{meta}</span>
             ) : secondary === undefined ? (
               trailing
             ) : null}
@@ -241,7 +241,7 @@ function InboxSkeleton({ touch }: { touch: boolean }) {
     <div role="status" aria-label="Loading chats" className="py-1">
       {Array.from({ length: SKELETON_ROWS }, (_, index) => (
         <div key={index} className={cn("flex items-center gap-3 px-4 py-2.5", touch ? "min-h-16" : "min-h-14")}>
-          <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
+          <Skeleton className="h-8 w-8 shrink-0 rounded-md" />
           <div className="min-w-0 flex-1 space-y-2">
             <Skeleton className={cn("h-3.5", index % 3 === 1 ? "w-1/2" : "w-2/3")} />
             <Skeleton className="h-3 w-1/3" />

@@ -89,7 +89,7 @@ export function GradesOther({
   );
 }
 
-/** Muted label (+ New tag) on the left, mono points on the right, on one 24px line. */
+/** Caps label (+ New tag) on the left, mono points on the right, on one 24px line. */
 function PartHeader({ id, label, isNew, points }: { id: string; label: string; isNew: boolean; points: ReactNode }) {
   return (
     <div className="flex min-h-6 items-center gap-2">

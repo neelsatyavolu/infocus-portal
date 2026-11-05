@@ -95,10 +95,10 @@ export function PackagePickerPopover({
       ref={containerRef}
       role="dialog"
       aria-label="Insert a package"
-      className="fixed z-50 w-80 rounded-lg border border-line-strong bg-popover p-2 text-popover-foreground"
+      className="fixed z-50 w-80 rounded-md border border-border bg-popover p-2 text-popover-foreground"
       style={fixedPopoverStyle(anchor, SIZE)}
     >
-      <div className="flex h-9 items-center gap-2 rounded-md border border-input bg-card px-2.5 transition-[border-color,box-shadow] duration-150 ease-[var(--ease-ui)] focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/30">
+      <div className="flex h-9 items-center gap-2 rounded-md border border-input px-2.5 focus-within:ring-2 focus-within:ring-ring">
         <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
         <input
           autoFocus
@@ -163,7 +163,7 @@ export function PackagePickerPopover({
                     onSelect(option);
                   }}
                   className={cn(
-                    "flex min-h-10 cursor-default items-center gap-2 rounded-md px-2 py-1.5 outline-none transition-colors duration-150 ease-[var(--ease-ui)] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/60",
+                    "flex min-h-10 cursor-default items-center gap-2 rounded-sm px-2 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
                     index === activeIndex ? "bg-[var(--ink-3)]" : "hover:bg-[var(--ink-3)]"
                   )}
                 >

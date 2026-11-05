@@ -4,12 +4,12 @@ import { cva } from "class-variance-authority";
 import { cn } from "../../lib/utils";
 
 const alertVariants = cva(
-  "relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg+div]:translate-y-[-3px] [&>p]:leading-relaxed",
+  "relative w-full rounded-lg border p-4 shadow-[0_10px_24px_rgba(15,23,42,0.2)] [&>svg~*]:pl-7 [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg+div]:translate-y-[-3px] [&>p]:leading-relaxed",
   {
     variants: {
       variant: {
-        default: "border-line-strong bg-card text-foreground [&>svg]:text-brand-green",
-        destructive: "border-danger/30 bg-danger-tint text-danger",
+        default: "border-emerald-300/35 bg-emerald-400/10 text-emerald-100",
+        destructive: "border-rose-300/45 bg-rose-400/10 text-rose-200",
       },
     },
     defaultVariants: {

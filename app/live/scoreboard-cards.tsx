@@ -52,7 +52,7 @@ function parseScore(text: string) {
 function TimeoutPips({ left }: { left: number }) {
   return (
     <span className="inline-flex h-5 items-center gap-1.5" role="img" aria-label={`${left} timeouts left`}>
-      <span aria-hidden className="text-xs font-medium text-muted-foreground">
+      <span aria-hidden className="text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">
         TO
       </span>
       <span aria-hidden className="flex gap-0.5">
@@ -100,7 +100,7 @@ export function TeamCard({ scoreboard, dispatch, now, team }: CardProps & { team
             title="Team color"
             value={data.color}
             onChange={(event) => dispatch({ type: "team", team, color: event.target.value })}
-            className="h-11 w-11 shrink-0 cursor-pointer rounded-md border border-line-strong bg-card p-1"
+            className="h-11 w-11 shrink-0 cursor-pointer rounded-md border border-input bg-transparent p-1"
           />
           <Input
             id={`live-team-name-${team}`}
@@ -109,7 +109,7 @@ export function TeamCard({ scoreboard, dispatch, now, team }: CardProps & { team
             maxLength={MAX_TEAM_NAME}
             placeholder={side.toUpperCase()}
             onChange={(event) => dispatch({ type: "team", team, name: event.target.value })}
-            className="h-11 min-w-0 flex-1 text-base font-medium uppercase md:text-base"
+            className="h-11 min-w-0 flex-1 text-base font-semibold uppercase tracking-wide md:text-base"
           />
           <TapToEdit
             label={`${side} score`}
@@ -128,11 +128,11 @@ export function TeamCard({ scoreboard, dispatch, now, team }: CardProps & { team
               key={points}
               type="button"
               onClick={() => dispatch({ type: "score", team, delta: points })}
-              className={cn("h-14 min-w-0 flex-col gap-0.5 px-0.5 py-0 text-xl font-medium tabular-nums leading-none", KEY_CLASS)}
+              className={cn("h-14 min-w-0 flex-col gap-0.5 px-0.5 py-0 text-xl font-semibold leading-none", KEY_CLASS)}
             >
               +{points}
               {hint ? (
-                <span className="whitespace-normal text-center text-[11px] font-medium leading-tight text-muted-foreground">
+                <span className="whitespace-normal text-center text-[11px] font-medium uppercase leading-tight text-muted-foreground">
                   {hint}
                 </span>
               ) : null}
@@ -142,7 +142,7 @@ export function TeamCard({ scoreboard, dispatch, now, team }: CardProps & { team
             type="button"
             variant="outline"
             onClick={() => dispatch({ type: "score", team, delta: -1 })}
-            className="h-14 min-w-0 px-1 text-xl font-medium tabular-nums"
+            className="h-14 min-w-0 px-1 text-xl font-semibold"
           >
             −1
           </Button>
@@ -227,7 +227,7 @@ export function FootballCard({ scoreboard, dispatch, now }: CardProps) {
           </div>
           <div className="grid grid-cols-4 gap-2">
             <label className="relative block min-w-0">
-              <span className="pointer-events-none absolute left-2 top-1 text-[11px] font-medium leading-none text-muted-foreground">
+              <span className="pointer-events-none absolute left-2 top-1 text-[11px] font-medium uppercase leading-none tracking-[0.11em] text-muted-foreground">
                 To go
               </span>
               <Input
@@ -254,7 +254,7 @@ export function FootballCard({ scoreboard, dispatch, now }: CardProps) {
           </ToggleChip>
         </div>
         <p className="text-[13px] leading-snug text-muted-foreground">{FOOTBALL_HINT}</p>
-        <label className="flex min-h-11 items-center justify-between gap-3 border-t border-line pt-3 text-sm">
+        <label className="flex min-h-11 items-center justify-between gap-3 border-t border-border pt-3 text-sm">
           <span className="min-w-0">
             <span className="font-medium text-foreground">Touchdown animation</span>
             <span className="block text-[13px] leading-snug text-muted-foreground">Plays on +6. Tap −1 right after to cancel it.</span>
@@ -286,8 +286,8 @@ export function VolleyballCard({ scoreboard, dispatch, now, notice }: CardProps 
     >
       <div className="grid gap-3">
         <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-3 md:grid-cols-[auto_minmax(0,1fr)_auto]">
-          <span className="text-4xl font-medium tracking-[-0.02em] tabular-nums">Set {scoreboard.set}</span>
-          <span className="flex min-w-0 items-baseline justify-end gap-2 text-2xl font-medium tracking-[-0.015em] md:justify-center">
+          <span className="text-4xl font-semibold tracking-tight">Set {scoreboard.set}</span>
+          <span className="flex min-w-0 items-baseline justify-end gap-2 text-2xl font-semibold md:justify-center">
             <span className="sr-only">Sets won:</span>
             <span className="min-w-0 truncate">{home.name || "HOME"}</span>
             <span className="font-mono-broadcast font-medium tabular-nums">{home.sets}</span>
@@ -295,7 +295,7 @@ export function VolleyballCard({ scoreboard, dispatch, now, notice }: CardProps 
             <span className="font-mono-broadcast font-medium tabular-nums">{away.sets}</span>
             <span className="min-w-0 truncate">{away.name || "AWAY"}</span>
           </span>
-          <Button type="button" variant="accent" onClick={() => dispatch({ type: "endSet" })} className="col-span-2 h-14 text-base font-medium md:col-span-1 md:w-40">
+          <Button type="button" onClick={() => dispatch({ type: "endSet" })} className="col-span-2 h-14 text-base font-semibold md:col-span-1 md:w-40">
             End set {scoreboard.set}
           </Button>
         </div>

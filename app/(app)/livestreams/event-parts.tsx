@@ -50,10 +50,10 @@ export function DateChip({ iso, now }: { iso: string; now: Date }) {
     <span
       className={cn(
         "flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-md border leading-none",
-        today ? "border-[var(--brand-green)]/50 bg-brand-tint" : "border-line-strong bg-secondary"
+        today ? "border-[var(--brand-green)]/50 bg-[var(--brand-green)]/10" : "border-border"
       )}
     >
-      <span aria-hidden className="text-xs font-medium text-muted-foreground">
+      <span aria-hidden className="text-[10px] font-medium uppercase tracking-[0.11em] text-muted-foreground">
         {formatMonth(iso)}
       </span>
       <span aria-hidden className="mt-1 font-mono-broadcast text-[17px] font-medium tabular-nums text-foreground">
@@ -117,7 +117,7 @@ export function RequestsLink({ event, ctx, className }: { event: EventRow; ctx: 
         ctx.onOpenRequests(event);
       }}
       className={cn(
-        "inline-flex shrink-0 items-center rounded-sm text-[13px] font-medium text-brand-green underline-offset-4 transition-colors duration-150 ease-[var(--ease-ui)] hover:underline focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30 max-md:min-h-10",
+        "inline-flex shrink-0 items-center rounded-sm text-[13px] font-medium text-[var(--brand-green)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring max-md:min-h-10",
         className
       )}
     >

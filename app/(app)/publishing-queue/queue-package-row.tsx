@@ -33,7 +33,7 @@ function downloadFinalCut(rowId: string) {
   link.remove();
 }
 
-const ROW_BOX = "rounded-lg border border-line-strong bg-background p-2";
+const ROW_BOX = "rounded-md border border-border bg-background p-2";
 /** Jump targets (summary tiles) take focus, so keyboard users land where the page scrolled. */
 const FOCUS_TARGET = "outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
@@ -136,8 +136,8 @@ export function QueuePackageRow({
         href={packageHref as never}
         className={cn(
           ROW_BOX,
-          "grid h-full min-h-11 scroll-mt-24 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          highlighted && "ring-1 ring-[var(--brand-green)]"
+          "grid h-full min-h-11 scroll-mt-24 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 transition-colors hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          highlighted && "ring-2 ring-[var(--brand-green)]"
         )}
       >
         {thumb}
@@ -181,9 +181,9 @@ export function QueuePackageRow({
       className={cn(
         ROW_BOX,
         FOCUS_TARGET,
-        "grid h-full scroll-mt-24 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 transition-[opacity,box-shadow] duration-150 ease-[var(--ease-ui)]",
+        "grid h-full scroll-mt-24 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 transition-[opacity,box-shadow]",
         dragging && "opacity-50",
-        highlighted && "ring-1 ring-[var(--brand-green)]"
+        highlighted && "ring-2 ring-[var(--brand-green)]"
       )}
     >
       {/* The drag source: grip, thumbnail and text. The ⋯ menu sits outside it, so pressing it never starts a drag. */}

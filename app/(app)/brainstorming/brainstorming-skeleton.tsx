@@ -12,7 +12,7 @@ export const LOADING_LABEL = "Loading your packages…";
 export function BrainstormingBodySkeleton() {
   return (
     <div aria-hidden className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
-      <div className="flex flex-col gap-4 rounded-lg border border-line-strong bg-card p-4 max-xl:order-1">
+      <div className="flex flex-col gap-4 rounded-md border border-border bg-card p-4 max-xl:order-1">
         <div>
           <div className="flex min-h-8 items-center">
             <Skeleton className="h-4 w-24" />
@@ -24,9 +24,9 @@ export function BrainstormingBodySkeleton() {
             <Skeleton className="h-3 w-32" />
             <div className="grid gap-2 sm:grid-cols-3 sm:gap-3">
               {PROOF_OF_CONTACT_SLOTS.map((slot) => (
-                <div key={slot} className="flex items-center gap-3 rounded-lg border border-line-strong bg-card p-2 sm:block sm:p-0">
+                <div key={slot} className="flex items-center gap-3 rounded-md border border-border p-2 sm:block sm:p-0">
                   <Skeleton className="h-16 w-16 shrink-0 rounded-md sm:h-36 sm:w-full sm:rounded-none" />
-                  <div className="flex-1 sm:flex sm:h-11 sm:items-center sm:border-t sm:border-line sm:px-3">
+                  <div className="flex-1 sm:flex sm:h-11 sm:items-center sm:border-t sm:border-border sm:px-3">
                     <Skeleton className="h-3 w-24" />
                   </div>
                 </div>

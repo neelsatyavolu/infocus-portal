@@ -21,7 +21,7 @@ function ReviewLink({ href }: { href: string }) {
   return (
     <Link
       href={href as never}
-      className="inline-flex items-center gap-1 rounded-sm font-medium text-[var(--brand-green)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30"
+      className="inline-flex items-center gap-1 rounded-sm font-medium text-[var(--brand-green)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <Play className="h-3.5 w-3.5" aria-hidden />
       Open review
@@ -75,12 +75,12 @@ export function FeedbackNotes({
                 key={comment.id}
                 className={cn(
                   "min-w-0 border-l-2 pl-3",
-                  isNew ? "border-l-[var(--brand-green)]" : "border-l-line-strong",
+                  isNew ? "border-l-[var(--brand-green)]" : "border-l-border",
                   foldFrom !== undefined && index >= foldFrom && "max-xl:hidden"
                 )}
               >
                 <div className="flex min-h-8 min-w-0 items-center gap-2">
-                  <span className="min-w-0 truncate text-[13px] font-medium text-foreground">
+                  <span className="min-w-0 truncate text-[13px] font-semibold text-foreground">
                     {commentAuthorLabel(comment.author)}
                   </span>
                   <span className="shrink-0 text-xs text-muted-foreground">{formatCommentWhen(comment.createdAt)}</span>
@@ -144,7 +144,7 @@ export function FeedbackNotes({
             ) : null}
           </Button>
           {activityOpen ? (
-            <ul className="mt-1 divide-y divide-line">
+            <ul className="mt-1 divide-y divide-border">
               {notices.map((comment) => (
                 <li key={comment.id} className="flex min-h-9 min-w-0 flex-wrap items-center gap-x-2 gap-y-1 py-1.5 text-sm">
                   <span className="min-w-0 truncate font-medium text-foreground">{commentAuthorLabel(comment.author)}</span>
@@ -209,7 +209,7 @@ export function FeedbackComposer({
       <div>
         <label
           htmlFor={id}
-          className="text-[13px] font-medium leading-tight text-muted-foreground"
+          className="text-[11px] font-medium uppercase leading-tight tracking-[0.11em] text-muted-foreground"
         >
           {label}
         </label>

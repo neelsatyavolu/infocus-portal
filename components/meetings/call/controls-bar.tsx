@@ -101,7 +101,7 @@ function ReactionPicker({ onReact }: { onReact: (emoji: MeetingReaction) => void
               type="button"
               onClick={() => onReact(emoji)}
               aria-label={`React ${emoji}`}
-              className="flex h-11 w-11 items-center justify-center rounded-md text-2xl leading-none transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/45"
+              className="flex h-11 w-11 items-center justify-center rounded-md text-2xl leading-none hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]"
             >
               {emoji}
             </button>
@@ -307,7 +307,7 @@ export function ControlsBar(props: ControlsProps) {
     return (
       <nav
         aria-label="Call controls"
-        className="shrink-0 border-t border-line bg-background pb-[env(safe-area-inset-bottom)] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]"
+        className="shrink-0 border-t border-[var(--ink-4)] bg-[var(--ink)] pb-[env(safe-area-inset-bottom)] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]"
       >
         <div className="mx-auto grid h-16 max-w-sm grid-cols-6 place-items-center">
           <PhoneControls props={props} side="top" moreOpen={moreOpen} setMoreOpen={setMoreOpen} />
@@ -320,7 +320,7 @@ export function ControlsBar(props: ControlsProps) {
   return (
     <nav
       aria-label="Call controls"
-      className="shrink-0 border-t border-line bg-background pb-[env(safe-area-inset-bottom)] pl-[max(1.5rem,env(safe-area-inset-left))] pr-[max(1.5rem,env(safe-area-inset-right))]"
+      className="shrink-0 border-t border-[var(--ink-4)] bg-[var(--ink)] pb-[env(safe-area-inset-bottom)] pl-[max(1.5rem,env(safe-area-inset-left))] pr-[max(1.5rem,env(safe-area-inset-right))]"
     >
       <div className="flex h-[72px] items-center gap-4">
         <div aria-hidden className="hidden min-w-0 flex-1 lg:block" />

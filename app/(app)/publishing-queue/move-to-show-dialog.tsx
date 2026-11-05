@@ -86,8 +86,8 @@ export function MoveToShowDialog({
           </Alert>
         ) : null}
         {status === "published" ? <InlineNote>Moving it won&apos;t upload it again.</InlineNote> : null}
-        <div className="min-w-0 overflow-hidden rounded-lg border border-line-strong bg-card">
-          <ul aria-label="Shows" className="divide-y divide-line">
+        <div className="min-w-0 overflow-hidden rounded-md border border-border">
+          <ul aria-label="Shows" className="divide-y divide-border">
             {row && !row.queuedForShowDate ? (
               <ListRow
                 title="Next empty show"

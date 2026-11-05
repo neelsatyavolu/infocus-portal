@@ -7,7 +7,7 @@ import { cn } from "@/src/lib/utils";
 type Member = { userId: string; label: string };
 
 /**
- * Who an extension covers: a bordered list of 40px checkbox rows under a legend with a
+ * Who an extension covers: a bordered list of 40px checkbox rows under a caps legend with a
  * "2 of 3" count. Used by the Approve/Grant dialogs.
  */
 export function MemberChecklist({
@@ -32,7 +32,7 @@ export function MemberChecklist({
           {selected.length} of {members.length}
         </span>
       </legend>
-      <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line-strong bg-card">
+      <ul className="divide-y divide-border overflow-hidden rounded-md border border-border">
         {members.map((member) => (
           <li key={member.userId}>
             <Checkbox

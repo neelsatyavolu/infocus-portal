@@ -53,7 +53,7 @@ export function ThreadView({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className={cn("flex shrink-0 items-center gap-2 border-b border-line px-4", touch ? "h-14" : "h-12")}>
+      <div className={cn("flex shrink-0 items-center gap-2 border-b border-border px-4", touch ? "h-14" : "h-12")}>
         <Button
           type="button"
           variant="ghost"
@@ -66,7 +66,7 @@ export function ThreadView({
         </Button>
         <ChatTile kind={thread.chat.kind} name={thread.chat.title} />
         <div className="ml-1 min-w-0">
-          <h2 ref={titleRef} tabIndex={-1} className="truncate text-sm font-medium leading-tight text-foreground outline-none">
+          <h2 ref={titleRef} tabIndex={-1} className="truncate text-sm font-semibold leading-tight text-foreground outline-none">
             {thread.chat.title}
           </h2>
           <p className="truncate text-xs text-muted-foreground">{thread.chat.subtitle}</p>
@@ -82,11 +82,11 @@ export function ThreadView({
               {days.map((day) => (
                 <section key={day.key} aria-label={day.label} className="space-y-3">
                   <div className="flex items-center gap-3" aria-hidden>
-                    <span className="h-px flex-1 bg-line" />
-                    <span className="text-xs font-medium text-muted-foreground">
+                    <span className="h-px flex-1 bg-border" />
+                    <span className="text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">
                       {day.label}
                     </span>
-                    <span className="h-px flex-1 bg-line" />
+                    <span className="h-px flex-1 bg-border" />
                   </div>
                   {day.runs.map((run) => (
                     <div key={run.key} className={cn("flex flex-col gap-1", run.mine ? "items-end" : "items-start")}>
@@ -98,8 +98,8 @@ export function ThreadView({
                           <div
                             title={formatStamp(message.createdAt)}
                             className={cn(
-                              "max-w-[85%] whitespace-pre-wrap break-words rounded-lg border px-3 py-2 text-sm leading-relaxed text-foreground",
-                              run.mine ? "border-transparent bg-brand-tint" : "border-line bg-secondary"
+                              "max-w-[85%] whitespace-pre-wrap break-words rounded-md px-3 py-2 text-sm leading-relaxed",
+                              run.mine ? "bg-primary text-primary-foreground" : "bg-[var(--ink-3)] text-foreground"
                             )}
                           >
                             {message.body}
@@ -108,7 +108,7 @@ export function ThreadView({
                             </time>
                           </div>
                           {showsTimeAfter(run.messages, index) ? (
-                            <p aria-hidden className="font-mono text-[11px] tabular-nums text-muted-foreground">
+                            <p aria-hidden className="font-mono-broadcast text-[11px] tabular-nums text-muted-foreground">
                               {formatClock(message.createdAt)}
                             </p>
                           ) : null}

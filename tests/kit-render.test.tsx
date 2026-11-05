@@ -150,7 +150,7 @@ describe("layout pieces", () => {
         ]}
       />
     );
-    expect(markup.match(/rounded-lg border border-line-strong/g)?.length).toBe(1);
+    expect(markup.match(/rounded-md border/g)?.length).toBe(1);
     expect(markup).toContain("md:grid-cols-3");
     expect(markup).toContain("pts");
   });

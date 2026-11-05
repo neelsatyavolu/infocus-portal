@@ -29,12 +29,12 @@ export function IdeaCard({ idea, wide = "never", className }: { idea: IdeaSugges
   return (
     <article
       className={cn(
-        "row-span-4 grid grid-rows-subgrid gap-y-3 rounded-lg border border-line-strong bg-card p-4 sm:p-5",
+        "row-span-4 grid grid-rows-subgrid gap-y-3 rounded-md border border-border bg-card p-4 sm:p-5",
         layout?.card,
         className
       )}
     >
-      <h3 className="text-balance text-base font-medium leading-snug tracking-[-0.01em] text-foreground">{idea.title}</h3>
+      <h3 className="text-balance text-lg font-semibold leading-snug tracking-tight text-foreground">{idea.title}</h3>
       <p className="max-w-[68ch] text-[15px] leading-relaxed text-[var(--ink-text)]">{idea.pitch}</p>
       {/* Not a box of its own in a normal card (its two blocks are rows of the subgrid). */}
       <div className={cn("contents", layout?.side)}>
@@ -42,7 +42,7 @@ export function IdeaCard({ idea, wide = "never", className }: { idea: IdeaSugges
           <p className={cn(fieldLabelClass, "text-[var(--brand-green)]")}>Paly angle</p>
           <p className="mt-1 max-w-[68ch] text-sm leading-relaxed text-foreground">{idea.angle}</p>
         </div>
-        <div className="border-t border-line pt-3">
+        <div className="border-t border-border pt-3">
           <p className={fieldLabelClass}>Based on</p>
           <ul className="mt-1">
             {idea.sources.map((source) => (
@@ -51,7 +51,7 @@ export function IdeaCard({ idea, wide = "never", className }: { idea: IdeaSugges
                   href={source.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group flex min-h-10 items-start gap-1.5 rounded-sm py-2.5 text-sm leading-snug text-[var(--ink-text)] transition-colors duration-150 ease-[var(--ease-ui)] hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-green)] md:min-h-8 md:py-1.5"
+                  className="group flex min-h-10 items-start gap-1.5 rounded-sm py-2.5 text-sm leading-snug text-[var(--ink-text)] hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-green)] md:min-h-8 md:py-1.5"
                 >
                   <ArrowUpRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--brand-green)]" aria-hidden />
                   <span className="min-w-0">

@@ -216,7 +216,7 @@ export function Legend({ viewMode }: { viewMode: Exclude<ViewMode, "student" | "
   return (
     <p
       title={`${GRAMMAR_TEXT} Enter / Shift+Enter in a score box: next or previous row. ${rule}`}
-      className="flex min-w-0 shrink-0 items-center gap-3 overflow-hidden whitespace-nowrap border-t border-line px-4 py-2 text-xs text-muted-foreground"
+      className="flex min-w-0 shrink-0 items-center gap-3 overflow-hidden whitespace-nowrap border-t border-border px-4 py-2 text-xs text-muted-foreground"
     >
       <span className="inline-flex shrink-0 items-center gap-1.5">
         <Kbd>-</Kbd> ungraded

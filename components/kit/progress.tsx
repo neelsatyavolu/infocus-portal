@@ -66,7 +66,7 @@ export function ProgressBar({
         className={cn("block w-full overflow-hidden rounded-full bg-[var(--ink-3)]", size === "xs" ? "h-1" : "h-1.5")}
       >
         {percent !== null ? (
-          <span className={cn("block h-full rounded-full transition-[width] duration-200 ease-[var(--ease-ui)]", fill)} style={{ width: `${percent}%` }} />
+          <span className={cn("block h-full rounded-full transition-[width] duration-200", fill)} style={{ width: `${percent}%` }} />
         ) : null}
       </span>
       {caption || showValue ? (
@@ -105,7 +105,7 @@ export function ProgressSegments({
         <span
           key={index}
           className={cn(
-            "flex-1 rounded-full",
+            "flex-1 rounded-[1px]",
             size === "xs" ? "h-[3px]" : "h-1",
             state === "done" ? "bg-[var(--brand-fill)]" : state === "current" ? "bg-[var(--brand-green)]" : "bg-[var(--ink-4)]"
           )}

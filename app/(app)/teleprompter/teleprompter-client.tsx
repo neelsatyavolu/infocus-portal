@@ -486,7 +486,7 @@ export default function TeleprompterClient() {
     body = <TeleprompterWorkspaceSkeleton />;
   } else if (!hasDocs) {
     body = (
-      <div className="rounded-lg border border-line-strong bg-card">
+      <div className="rounded-md border border-border bg-card">
         {loadFailed ? (
           <ErrorState title="Couldn't load scripts" message={message} onRetry={requestRefresh} busy={loading} />
         ) : !activeWorkspaceId ? (
@@ -516,7 +516,7 @@ export default function TeleprompterClient() {
         inert={refreshing || undefined}
         style={{ "--tp-code-w": `${codeColumnCh(activeDoc?.sections ?? [])}ch` } as CSSProperties}
         className={cn(
-          "grid overflow-clip rounded-lg border border-line-strong bg-card transition-opacity duration-200",
+          "grid overflow-clip rounded-md border border-border bg-card transition-opacity duration-200",
           gridColumns,
           refreshing && "opacity-60"
         )}

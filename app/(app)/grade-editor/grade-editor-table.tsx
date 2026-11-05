@@ -32,7 +32,7 @@ export type HeaderGroup = {
 const ALIGN = { left: "text-left", center: "text-center", right: "text-right" } as const;
 
 /** Left hairline on the first cell of every group after the first, in header and body rows. */
-export const GROUP_START = "border-l border-line";
+export const GROUP_START = "border-l border-border";
 
 /**
  * The reporter column's width at the table's narrowest. Every <col> has a width, so on wide
@@ -59,7 +59,7 @@ export const SECOND_PINNED_HEAD = "lg:left-[176px] lg:z-30";
  */
 export const TABLE_CLASS = cn(
   "w-full table-fixed border-separate border-spacing-0 text-sm text-foreground",
-  "[&_td]:border-b [&_td]:border-line [&_td]:bg-card [&_tbody_tr:last-child>td]:border-b-0",
+  "[&_td]:border-b [&_td]:border-border [&_td]:bg-card [&_tbody_tr:last-child>td]:border-b-0",
   "[&_tbody_tr:hover>td]:bg-[var(--ink-3)]",
   "[&_tbody_tr[data-dirty]>td]:bg-[color-mix(in_srgb,var(--brand-amber)_7%,hsl(var(--card)))]",
   "[&_tbody_tr[data-dirty]:hover>td]:bg-[color-mix(in_srgb,var(--brand-amber)_7%,var(--ink-3))]",
@@ -112,7 +112,7 @@ export function GradeTableHead({ groups }: { groups: HeaderGroup[] }) {
               colSpan={group.columns.length}
               scope="colgroup"
               className={cn(
-                "sticky top-0 z-20 h-8 truncate bg-card px-2 text-left align-bottom text-[12px] font-medium text-[var(--ink-text)]",
+                "sticky top-0 z-20 h-8 truncate bg-card px-2 text-left align-bottom text-[11px] font-medium uppercase tracking-[0.11em] text-[var(--ink-text)]",
                 index === 0 && cn("left-0 z-30", REPORTER_INSET),
                 index > 0 && GROUP_START,
                 group.className
@@ -120,7 +120,7 @@ export function GradeTableHead({ groups }: { groups: HeaderGroup[] }) {
             >
               {group.label}
               {group.hint ? (
-                <span className="ml-2 font-normal text-muted-foreground">{group.hint}</span>
+                <span className="ml-2 font-normal normal-case tracking-normal text-muted-foreground">{group.hint}</span>
               ) : null}
             </th>
           ))}
@@ -133,7 +133,7 @@ export function GradeTableHead({ groups }: { groups: HeaderGroup[] }) {
                 scope="col"
                 title={col.title}
                 className={cn(
-                  "sticky top-8 z-20 h-9 truncate whitespace-nowrap border-b border-line-strong bg-card px-2 align-middle text-[12px] font-medium text-muted-foreground",
+                  "sticky top-8 z-20 h-9 truncate whitespace-nowrap border-b border-border bg-card px-2 align-middle text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground",
                   ALIGN[col.align ?? "left"],
                   groupIndex === 0 && colIndex === 0 && cn("left-0 z-30", REPORTER_INSET),
                   groupIndex > 0 && colIndex === 0 && GROUP_START,
@@ -142,7 +142,7 @@ export function GradeTableHead({ groups }: { groups: HeaderGroup[] }) {
               >
                 <span className="inline-flex max-w-full items-center gap-1 align-middle">
                   <span className="truncate">{col.label}</span>
-                  {col.sub ? <span className="font-normal text-muted-foreground/80">{col.sub}</span> : null}
+                  {col.sub ? <span className="font-normal normal-case tracking-normal text-muted-foreground/80">{col.sub}</span> : null}
                   {col.icon}
                 </span>
               </th>
@@ -173,7 +173,7 @@ export function ReporterCell({
         type="button"
         onClick={onOpen}
         title={`${name}: open gradebook`}
-        className="block max-w-full truncate rounded-sm text-left text-sm font-medium leading-tight text-foreground underline-offset-4 transition-colors duration-150 ease-[var(--ease-ui)] hover:text-[var(--brand-green)] hover:underline focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30"
+        className="block max-w-full truncate rounded-sm text-left text-sm font-semibold leading-tight text-foreground hover:text-[var(--brand-green)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         {name}
       </button>
@@ -215,7 +215,7 @@ export function LetterGradeTag({ percent, letter }: { percent: number | null; le
     <span
       role="img"
       aria-label={letter === null ? "No letter grade yet" : `Letter grade ${letter}`}
-      className={cn("grid h-6 w-6 shrink-0 place-items-center rounded-sm text-xs font-medium leading-none", gradeBadgeTone(percent))}
+      className={cn("grid h-6 w-6 shrink-0 place-items-center rounded-sm text-xs font-semibold leading-none", gradeBadgeTone(percent))}
     >
       {letter ?? "—"}
     </span>
@@ -296,9 +296,9 @@ function moveInColumn(input: HTMLInputElement, direction: 1 | -1) {
   }
 }
 
-/** A table field: strong hairline, card fill, focus ring (DESIGN.md §10). */
+/** A table field: 3:1 field border, transparent fill, focus ring (DESIGN.md §10). */
 export const FIELD_BOX =
-  "rounded-md border border-input bg-card font-medium tabular-nums text-foreground outline-none transition-colors duration-150 ease-[var(--ease-ui)] placeholder:text-muted-foreground hover:border-foreground/40 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50";
+  "rounded-md border border-input bg-transparent font-medium tabular-nums text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
 /** The same in Geist Mono, for numbers and dates. */
 export const MONO_FIELD = cn(FIELD_BOX, "font-mono-broadcast text-[13px]");
 

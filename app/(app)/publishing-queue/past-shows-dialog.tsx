@@ -53,7 +53,7 @@ export function PastShowsDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[85dvh] max-w-2xl flex-col gap-0 overflow-hidden p-0 sm:p-0">
-        <DialogHeader className="border-b border-line px-4 py-4 pr-12 sm:px-6">
+        <DialogHeader className="border-b border-border px-4 py-4 pr-12 sm:px-6">
           <DialogTitle>Past shows</DialogTitle>
           <DialogDescription>
             {canEdit
@@ -65,13 +65,13 @@ export function PastShowsDialog({
           {past.length === 0 ? (
             <EmptyState icon={History} title="No past shows yet." />
           ) : (
-            <ol aria-label="Past shows" className="divide-y divide-line">
+            <ol aria-label="Past shows" className="divide-y divide-border">
               {past.map((show) => {
                 const full = show.rows.length >= MAX_PACKAGES_PER_SHOW;
                 return (
                   <li key={show.date} className="space-y-2 py-4">
                     <div className="flex min-h-6 items-center justify-between gap-2">
-                      <h3 className="min-w-0 truncate text-[15px] font-medium tracking-[-0.005em] text-foreground">{show.label}</h3>
+                      <h3 className="min-w-0 truncate text-sm font-semibold text-foreground">{show.label}</h3>
                       {full ? (
                         <StatusTag size="sm">Full</StatusTag>
                       ) : (
@@ -92,7 +92,7 @@ export function PastShowsDialog({
             </ol>
           )}
         </div>
-        <DialogFooter className="border-t border-line px-4 py-3 sm:px-6">
+        <DialogFooter className="border-t border-border px-4 py-3 sm:px-6">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Close
           </Button>

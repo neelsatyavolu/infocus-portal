@@ -33,7 +33,7 @@ function SiteIconTile({ name, url, size }: { name: string; url: string | null; s
   const host = hostname(url);
   const [failed, setFailed] = useState(false);
   const dims = SIZE[size];
-  const tile = cn("grid shrink-0 place-items-center rounded-md border border-line-strong bg-secondary", dims.tile);
+  const tile = cn("grid shrink-0 place-items-center rounded-md border border-border bg-[var(--ink-3)]", dims.tile);
 
   if (WIFI_NAME.test(name)) {
     return (
@@ -45,7 +45,7 @@ function SiteIconTile({ name, url, size }: { name: string; url: string | null; s
 
   if (!host || failed) {
     return (
-      <span className={cn(tile, "text-sm font-medium text-foreground")} aria-hidden>
+      <span className={cn(tile, "text-sm font-semibold text-foreground")} aria-hidden>
         {name.trim().charAt(0).toUpperCase() || "?"}
       </span>
     );

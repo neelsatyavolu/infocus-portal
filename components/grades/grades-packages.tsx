@@ -56,7 +56,7 @@ export function GradesPackages({
       {cycles.length === 0 ? (
         <EmptyState icon={Layers} title="No cycles this semester yet." description="Cycle grades appear here once a cycle starts." />
       ) : (
-        <ul className="divide-y divide-line">
+        <ul className="divide-y divide-border">
           {cycles.map((cycle) => (
             <PackageRow
               key={cycle.cycleNumber}
@@ -100,7 +100,7 @@ function PackageRow({
           <span aria-hidden className="shrink-0 font-mono-broadcast text-xs tabular-nums text-muted-foreground">
             {cycleLabel(cycle.cycleNumber)}
           </span>
-          <h3 title={topic} className="line-clamp-2 min-w-0 text-sm font-medium leading-snug text-foreground">
+          <h3 title={topic} className="line-clamp-2 min-w-0 text-sm font-semibold leading-snug text-foreground">
             <span className="sr-only">{`Cycle ${cycle.cycleNumber}: `}</span>
             {topic}
           </h3>
@@ -129,7 +129,7 @@ function PackageRow({
         {feedbackHref ? (
           <Link
             href={feedbackHref as never}
-            className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md text-sm font-medium text-[var(--brand-green)] underline-offset-4 transition-colors duration-150 ease-[var(--ease-ui)] hover:underline focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30 sm:h-8"
+            className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-sm text-sm font-medium text-[var(--brand-green)] transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-8"
           >
             <MessageSquare aria-hidden className="h-4 w-4" />
             View package feedback
@@ -138,7 +138,7 @@ function PackageRow({
       </div>
 
       {note ? (
-        <div className="col-span-2 min-w-0 border-l-2 border-line-strong pl-3 sm:col-span-3">
+        <div className="col-span-2 min-w-0 border-l-2 border-border pl-3 sm:col-span-3">
           <p className={LABEL_CLASS}>Producer note</p>
           <ClampText text={note} lines={3} className="mt-1 text-sm text-foreground" />
         </div>

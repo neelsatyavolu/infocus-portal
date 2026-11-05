@@ -64,10 +64,10 @@ export function ReviewPanel({ initialRows }: { initialRows: ReviewRow[] }) {
           until you clear them.
         </p>
       </div>
-      <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
+      <div className="overflow-x-auto rounded-lg border border-border bg-card">
         <table className="w-full min-w-[40rem] text-sm">
           <thead>
-            <tr className="border-b border-line text-left text-xs text-muted-foreground">
+            <tr className="border-b border-border text-left text-xs text-muted-foreground">
               <th scope="col" className="px-3 py-2 font-medium">Name</th>
               <th scope="col" className="px-3 py-2 text-right font-medium">Total</th>
               <th scope="col" className="px-3 py-2 font-medium">Rejected catches</th>
@@ -75,7 +75,7 @@ export function ReviewPanel({ initialRows }: { initialRows: ReviewRow[] }) {
               <th scope="col" className="px-3 py-2"><span className="sr-only">Action</span></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-line">
+          <tbody className="divide-y divide-border">
             {rows.map((row) => (
               <tr key={row.userId}>
                 <td className="max-w-[14rem] truncate px-3 py-2 font-medium text-foreground">{row.name}</td>

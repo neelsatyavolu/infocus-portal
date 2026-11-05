@@ -55,13 +55,13 @@ export function ThanksgivingWelcome({ onClosed }: { onClosed?: () => void }) {
           <PieSprite />
         </div>
         <DialogHeader>
-          <DialogTitle className="text-[22px] font-medium tracking-[-0.015em]">The Portal is stuffed</DialogTitle>
+          <DialogTitle className="text-xl">The Portal is stuffed</DialogTitle>
           <DialogDescription>Through November 30, InFocus Portal is dressed for the harvest.</DialogDescription>
         </DialogHeader>
-        <ul className="space-y-3 text-sm leading-relaxed">
+        <ul className="space-y-3 text-sm">
           {WHAT_HAPPENS.map(([title, detail]) => (
             <li key={title}>
-              <span className="font-medium text-foreground">{title}</span>{" "}
+              <span className="font-semibold text-foreground">{title}</span>{" "}
               <span className="text-muted-foreground">{detail}</span>
             </li>
           ))}
@@ -72,13 +72,13 @@ export function ThanksgivingWelcome({ onClosed }: { onClosed?: () => void }) {
         </p>
         <p className="text-xs text-muted-foreground">
           Too much? Turn the colors, sounds or the giant turkey off in{" "}
-          <Link href="/settings#appearance" className="text-[var(--brand-green)] underline-offset-2 transition-colors duration-150 ease-[var(--ease-ui)] hover:underline" onClick={close}>
+          <Link href="/settings#appearance" className="underline underline-offset-2" onClick={close}>
             Settings → Appearance
           </Link>
           .
         </p>
         <DialogFooter>
-          <Button variant="accent" onClick={close} className="w-full sm:w-auto">
+          <Button onClick={close} className="w-full sm:w-auto">
             Pass the gravy
           </Button>
         </DialogFooter>

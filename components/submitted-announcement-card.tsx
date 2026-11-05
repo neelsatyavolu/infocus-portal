@@ -155,7 +155,7 @@ export function SubmittedAnnouncementCard({
   ].filter((item) => item !== null);
 
   return (
-    <article aria-label={name} className="flex h-full min-w-0 flex-col rounded-lg border border-line-strong bg-card text-card-foreground">
+    <article aria-label={name} className="flex h-full min-w-0 flex-col rounded-md border border-border bg-card text-card-foreground">
       <div className="flex min-w-0 flex-1 flex-col gap-3 p-4 md:p-5">
         <div className="flex min-h-5 min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
           {/* The sheet's free-text category can be long: it wraps instead of truncating. */}
@@ -175,19 +175,19 @@ export function SubmittedAnnouncementCard({
           )}
         </div>
 
-        <p className="whitespace-pre-wrap break-words text-[15px] leading-6 text-pretty text-[var(--ink-text)]">{entry.announcement}</p>
+        <p className="whitespace-pre-wrap break-words text-[15px] leading-6 text-pretty text-foreground">{entry.announcement}</p>
 
         {mediaNote || moreInfoNote ? (
           <dl className="grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-3 gap-y-1 text-[13px]">
             {mediaNote ? (
               <>
-                <dt className="text-xs font-medium text-muted-foreground">Media</dt>
+                <dt className="text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">Media</dt>
                 <dd className="break-words text-pretty text-[var(--ink-text)]">{mediaNote}</dd>
               </>
             ) : null}
             {moreInfoNote ? (
               <>
-                <dt className="text-xs font-medium text-muted-foreground">Notes</dt>
+                <dt className="text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">Notes</dt>
                 <dd className="break-words text-pretty text-[var(--ink-text)]">{moreInfoNote}</dd>
               </>
             ) : null}
@@ -195,7 +195,7 @@ export function SubmittedAnnouncementCard({
         ) : null}
       </div>
 
-      <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-3 border-t border-line px-4 py-3 md:px-5">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-3 border-t border-border px-4 py-3 md:px-5">
         <div className="min-w-0 flex-[1_1_14rem] text-[13px] leading-5">
           <p className="truncate">
             <span className="font-medium text-foreground">{submitter}</span>

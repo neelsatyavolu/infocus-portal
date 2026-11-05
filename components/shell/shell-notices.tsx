@@ -65,7 +65,7 @@ export function ViewAsNotice({
         </>
       }
     >
-      Viewing as <span className="font-medium">{name}</span>. What you do counts as them.
+      Viewing as <span className="font-semibold">{name}</span>. What you do counts as them.
     </Alert>
   );
 }

@@ -51,7 +51,7 @@ export default async function AnnouncementsPage() {
           <NewPostsMarker newestTs={items[0]?.ts ?? null} />
         </div>
       ) : error ? null : (
-        <div className="rounded-lg border border-line-strong bg-card">
+        <div className="rounded-md border border-border bg-card">
           <EmptyState
             size="page"
             icon={Megaphone}

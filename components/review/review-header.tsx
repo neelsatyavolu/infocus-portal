@@ -9,8 +9,8 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/src/lib/utils";
 
 /**
- * The review's header plate: PageHeader's compact plate (a 12px card with a strong hairline,
- * same padding and rhythm) with two extras the review needs, the version picker beside
+ * The review's header plate: PageHeader's compact plate (square Ink 2 nameplate with the green
+ * strip, same padding and rhythm) with two extras the review needs, the version picker beside
  * the title and the approval strip. Desktop, three rows so the video keeps its height: eyebrow +
  * status tags, title + picker, then the approval strip (or, without one, the line of context),
  * and the actions on the right (tools, a hairline, then the decisions with the one primary last;
@@ -104,9 +104,9 @@ export type ReviewToolsProps = {
   onRefresh: () => void;
 };
 
-/** The brand "on" tint (it follows the season) as a pressed IconButton. */
+/** The same green "on" tint as a pressed IconButton. */
 const GRADES_ON_CLASS =
-  "border-[var(--brand-green)]/40 bg-brand-tint text-brand-green hover:bg-brand-tint hover:text-brand-green";
+  "border-[var(--brand-green)]/40 bg-[rgb(43_179_110/0.12)] text-[var(--brand-green)] hover:bg-[rgb(43_179_110/0.18)] hover:text-[var(--brand-green)]";
 
 /** Download · Grades · Refresh as matched outline controls (desktop header, tablet toolbar). */
 export function reviewToolButtons({ downloadHref, showGrades, gradesOpen, onToggleGrades, onRefresh }: ReviewToolsProps): ReactNode[] {
@@ -220,7 +220,7 @@ export function ReviewDecisionCard({
     return null;
   }
   return (
-    <section aria-label="Review decision" className="space-y-3 rounded-lg border border-line-strong bg-card p-4 lg:hidden">
+    <section aria-label="Review decision" className="space-y-3 rounded-md border border-border bg-card p-4 lg:hidden">
       {approval}
       {helper ? <p className="text-sm text-[var(--ink-text)]">{helper}</p> : null}
       {hasDecisions ? (

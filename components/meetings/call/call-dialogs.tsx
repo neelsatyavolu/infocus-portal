@@ -53,7 +53,7 @@ function AccessValue({ meeting }: { meeting: MeetingSummary }) {
 function LinkField({ link }: { link: string }) {
   return (
     <div className="flex min-w-0 items-center gap-2">
-      <span className="block h-9 min-w-0 flex-1 truncate rounded-md border border-input bg-card px-3 font-mono text-xs leading-[2.125rem] text-[var(--ink-text)]">
+      <span className="block h-9 min-w-0 flex-1 truncate rounded-md border border-input px-3 font-mono text-xs leading-[2.125rem] text-[var(--ink-text)]">
         {link}
       </span>
       {/* Only the props CopyTextButton has always had; the class makes it the outline h-9 button. */}
@@ -124,7 +124,7 @@ export function MeetingDialog({
           {meeting ? (
             <KeyValueList
               labelWidth="7rem"
-              className="border-y border-line"
+              className="border-y border-border"
               items={[
                 { key: "link", label: "Link", value: <LinkField link={meetingUrl(meeting.id)} /> },
                 {

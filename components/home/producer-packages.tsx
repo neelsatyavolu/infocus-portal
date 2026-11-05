@@ -16,7 +16,7 @@ import type { SortValue, ViewValue } from "@/components/home/home-format";
 import type { DashboardActivityEntry, DashboardUpNext } from "@/src/server/dashboard-data";
 
 function EmptyBox({ children }: { children: ReactNode }) {
-  return <div className="flex min-h-48 items-center justify-center rounded-lg border border-line-strong bg-card">{children}</div>;
+  return <div className="flex min-h-48 items-center justify-center rounded-md border border-border bg-card">{children}</div>;
 }
 
 /**

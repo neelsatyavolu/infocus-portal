@@ -13,8 +13,9 @@ import {
 import { cn } from "@/src/lib/utils";
 import { STAGE_SHORT, type ExecutiveBucket, type GroupRowView } from "./group-row-model";
 
-// align-top: every header label (these and the stage labels over the totals) shares the first line.
-const HEAD_CELL = "px-3 pb-2 pt-3 align-top text-xs font-medium leading-tight text-muted-foreground";
+// align-top: every caps label (these and the stage labels over the totals) shares the first line.
+const HEAD_CELL =
+  "px-3 pb-2 pt-3 align-top text-[11px] font-medium uppercase leading-tight tracking-[0.11em] text-muted-foreground";
 
 function stageToggles(view: GroupRowView): StageToggle[] {
   return PACKAGE_STAGES.map((stage) => {
@@ -45,7 +46,7 @@ function TopicLink({ view, block = false }: { view: GroupRowView; block?: boolea
       href={view.href as never}
       data-group-tile=""
       className={cn(
-        "rounded-sm transition-colors duration-150 ease-[var(--ease-ui)] hover:text-[var(--brand-green)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "rounded-sm hover:text-[var(--brand-green)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         block && "flex min-h-10 min-w-0 items-center"
       )}
     >
@@ -75,7 +76,7 @@ function BucketLabel({ bucket, compact = false }: { bucket: ExecutiveBucket; com
   }`;
   return (
     <div className="flex min-w-0 items-center gap-2">
-      <span className="shrink-0 text-xs font-medium text-muted-foreground">
+      <span className="shrink-0 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">
         {compact ? (
           <>
             <span aria-hidden>EP</span>
@@ -85,7 +86,7 @@ function BucketLabel({ bucket, compact = false }: { bucket: ExecutiveBucket; com
           "Executive producer"
         )}
       </span>
-      <span className="min-w-0 truncate text-[13px] font-medium text-foreground" title={name}>
+      <span className="min-w-0 truncate text-[13px] font-semibold text-foreground" title={name}>
         {name}
       </span>
       <span className="ml-auto shrink-0 text-xs text-muted-foreground" title={countText}>
@@ -158,7 +159,7 @@ function ProgressTable({ buckets, totals, total, canEdit, locked, onToggle }: Pr
         <col className="w-28" />
       </colgroup>
       <thead>
-        <tr className="border-b border-line">
+        <tr className="border-b border-border">
           <th scope="col" className={`${HEAD_CELL} pl-4 md:pl-5`}>
             Package
           </th>
@@ -176,13 +177,13 @@ function ProgressTable({ buckets, totals, total, canEdit, locked, onToggle }: Pr
       </thead>
       {buckets.map((bucket) => (
         <tbody key={bucket.key}>
-          <tr className="border-b border-line bg-secondary/60">
+          <tr className="border-b border-border bg-muted/40">
             <th colSpan={4} scope="rowgroup" className="h-10 px-4 text-left font-normal md:px-5">
               <BucketLabel bucket={bucket} />
             </th>
           </tr>
           {bucket.views.map((view) => (
-            <tr key={view.key} className="border-b border-line transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)]/60">
+            <tr key={view.key} className="border-b border-border transition-colors hover:bg-[var(--ink-3)]/50">
               <th scope="row" className="py-2.5 pl-4 pr-3 text-left align-middle font-normal md:pl-5">
                 <div className="truncate text-sm font-medium text-foreground" title={view.topic}>
                   <TopicLink view={view} />
@@ -212,16 +213,16 @@ function ProgressTable({ buckets, totals, total, canEdit, locked, onToggle }: Pr
 function ProgressList({ buckets, totals, total, canEdit, locked, onToggle }: ProgressProps) {
   return (
     <div className="[&>section:last-child>ul]:border-b-0">
-      <div className="border-b border-line px-4 py-3">
+      <div className="border-b border-border px-4 py-3">
         <p className="sr-only">{totalsSummary(totals, total)}</p>
         <StageTotals totals={totals} total={total} aria-hidden />
       </div>
       {buckets.map((bucket) => (
         <section key={bucket.key} aria-label={`Executive producer ${bucket.executiveName ?? "Unassigned"}`}>
-          <div className="flex h-10 items-center border-b border-line bg-secondary/60 px-4">
+          <div className="flex h-10 items-center border-b border-border bg-muted/40 px-4">
             <BucketLabel bucket={bucket} compact />
           </div>
-          <ul className="divide-y divide-line border-b border-line">
+          <ul className="divide-y divide-border border-b border-border">
             {bucket.views.map((view) => (
               <li key={view.key} className="space-y-2 px-4 pb-3 pt-1">
                 <div className="flex min-w-0 items-center justify-between gap-3">

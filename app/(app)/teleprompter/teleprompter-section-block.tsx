@@ -70,7 +70,7 @@ function SectionTitle({ code, beat }: { code: string; beat: string | null }) {
       >
         {code}
       </span>
-      {beat ? <span className="min-w-0 truncate text-sm font-medium text-foreground">{beat}</span> : null}
+      {beat ? <span className="min-w-0 truncate text-sm font-semibold text-foreground">{beat}</span> : null}
     </>
   );
 }
@@ -127,7 +127,7 @@ function SectionEditor({ draft, dirty, working, onChange, onSave, onCancel, onRe
   return (
     <div ref={rootRef} className={cn("space-y-3 pb-4", BODY_INSET)} onKeyDown={handleKeyDown}>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-        <label htmlFor={`${id}-label`} className="text-[13px] font-medium text-muted-foreground">
+        <label htmlFor={`${id}-label`} className="text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">
           Label
         </label>
         <Input
@@ -140,7 +140,7 @@ function SectionEditor({ draft, dirty, working, onChange, onSave, onCancel, onRe
         <span className="text-xs text-muted-foreground">Labels like A1, A2, B1.</span>
       </div>
       <div>
-        <label htmlFor={`${id}-script`} className="mb-1.5 block text-[13px] font-medium text-muted-foreground">
+        <label htmlFor={`${id}-script`} className="mb-1.5 block text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">
           Script
         </label>
         <Textarea
@@ -179,7 +179,7 @@ function SectionEditor({ draft, dirty, working, onChange, onSave, onCancel, onRe
 /** A new section being written, appended after the last one. */
 export function NewSectionBlock(props: SectionEditorProps) {
   return (
-    <article aria-label="New section" className="border-t border-line first:border-t-0">
+    <article aria-label="New section" className="border-t border-border first:border-t-0">
       <div className={"flex h-12 items-center gap-2 pl-4 pr-3"}>
         <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
         <SectionTitle code={props.draft.label.trim() || "—"} beat="New section" />
@@ -255,7 +255,7 @@ export const SectionBlock = forwardRef<HTMLElement, SectionBlockProps>(function 
   }
 
   return (
-    <article ref={ref} aria-label={beat ? `${code} ${beat}` : code} className="border-t border-line first:border-t-0">
+    <article ref={ref} aria-label={beat ? `${code} ${beat}` : code} className="border-t border-border first:border-t-0">
       <div className={"relative flex h-12 items-center gap-2 pl-4 pr-2 sm:pr-3"}>
         {editing ? (
           <div className="flex h-9 min-w-0 flex-1 items-center gap-2">
@@ -271,7 +271,7 @@ export const SectionBlock = forwardRef<HTMLElement, SectionBlockProps>(function 
               onClick={onToggle}
               aria-expanded={open}
               aria-controls={bodyId}
-              className="-ml-1 flex h-9 min-w-0 flex-1 items-center gap-2 rounded-md pl-1 pr-2 pointer-coarse:h-10 text-left transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)]/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="-ml-1 flex h-9 min-w-0 flex-1 items-center gap-2 rounded-md pl-1 pr-2 pointer-coarse:h-10 text-left transition-colors hover:bg-[var(--ink-3)]/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Chevron className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
               <SectionTitle code={code} beat={beat} />

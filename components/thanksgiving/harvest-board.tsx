@@ -47,10 +47,10 @@ export function HarvestBoard({
   compact?: boolean;
 }) {
   return (
-    <div className="overflow-x-auto rounded-lg border border-line-strong bg-card">
+    <div className="overflow-x-auto rounded-lg border border-border bg-card">
       <table className="w-full min-w-0 text-sm">
         <thead>
-          <tr className="border-b border-line text-left text-xs text-muted-foreground">
+          <tr className="border-b border-border text-left text-xs text-muted-foreground">
             <th scope="col" className="w-12 px-3 py-2 font-medium">
               #
             </th>
@@ -75,7 +75,7 @@ export function HarvestBoard({
                 })}
           </tr>
         </thead>
-        <tbody className="divide-y divide-line">
+        <tbody className="divide-y divide-border">
           {rows.map((row) => {
             const mine = row.userId === viewerId;
             return (

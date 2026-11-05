@@ -23,7 +23,7 @@ function SiteLink({ url }: { url: string | null }) {
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex min-h-10 max-w-full items-center gap-1.5 rounded-sm text-sm text-muted-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:pointer-fine:min-h-0"
+      className="inline-flex min-h-10 max-w-full items-center gap-1.5 rounded-sm text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:pointer-fine:min-h-0"
     >
       <span className="truncate">{hostLabel(url)}</span>
       <ExternalLink className="h-4 w-4 shrink-0" aria-hidden />
@@ -82,7 +82,7 @@ function SharedTag({ entry }: { entry: VaultEntrySummary }) {
 function SavedLine({ entry }: { entry: VaultEntrySummary }) {
   const when = new Date(entry.updatedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
   return (
-    <p className="border-t border-line pt-3 text-xs text-muted-foreground" title={when}>
+    <p className="border-t border-border pt-3 text-xs text-muted-foreground" title={when}>
       Last saved
       <RelativeAge iso={entry.updatedAt} prefix=" " suffix=" ago" />
       {entry.updatedBy ? <> by {entry.updatedBy}</> : null}
@@ -93,10 +93,10 @@ function SavedLine({ entry }: { entry: VaultEntrySummary }) {
 /** The login's name, website and status tags, with Share / Edit on the right (pane only). */
 function DetailHeader({ entry, actions, className }: { entry: VaultEntrySummary; actions: ReactNode; className?: string }) {
   return (
-    <div className={cn("flex min-w-0 items-start gap-4 border-b border-line p-4 md:p-5", className)}>
+    <div className={cn("flex min-w-0 items-start gap-4 border-b border-border p-4 md:p-5", className)}>
       <SiteIcon name={entry.name} url={entry.url} size={40} />
       <div className="min-w-0 flex-1">
-        <h2 className="truncate text-lg font-medium leading-tight tracking-[-0.015em] text-foreground">{entry.name}</h2>
+        <h2 className="truncate text-lg font-semibold leading-tight text-foreground">{entry.name}</h2>
         <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
           <SiteLink url={entry.url} />
           <SharedTag entry={entry} />
@@ -184,7 +184,7 @@ export function VaultEntryDetail({
       <div className={cn("px-4 pb-4 md:px-5 md:pb-5", rail && "grid grid-cols-[minmax(0,40rem)_minmax(16rem,1fr)] gap-6")}>
         <div className="min-w-0">{body}</div>
         {rail ? (
-          <div className="min-w-0 border-l border-line pl-6 pt-4">
+          <div className="min-w-0 border-l border-border pl-6 pt-4">
             <VaultActivity entryId={entry.id} layout="rail" refreshKey={activityKey} />
           </div>
         ) : null}

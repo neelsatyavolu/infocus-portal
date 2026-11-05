@@ -187,7 +187,7 @@ export function ManageOut({
           return (
             <div className="space-y-1.5 px-4 py-3">
               <div className="flex items-start justify-between gap-3">
-                <p className="min-w-0 break-words text-sm font-medium text-foreground">{row.item.name}</p>
+                <p className="min-w-0 break-words text-sm font-semibold text-foreground">{row.item.name}</p>
                 {stateTag(row)}
               </div>
               <p className="text-[13px] text-[var(--ink-text)]">

@@ -82,7 +82,7 @@ export function PeoplePicker({
                 type="button"
                 onClick={() => toggle(id)}
                 aria-label={`Remove ${byId.get(id)?.name ?? "person"}`}
-                className="inline-flex h-7 items-center gap-1 rounded-full bg-brand-tint px-2.5 text-xs font-medium text-brand-green transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-brand-green/20 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30"
+                className="inline-flex h-7 items-center gap-1 rounded-sm bg-[var(--brand-green)]/15 px-2 text-xs text-[var(--brand-green)] hover:bg-[var(--brand-green)]/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]"
               >
                 {byId.get(id)?.name ?? "Unknown"}
                 <X className="h-3 w-3" aria-hidden />
@@ -92,7 +92,7 @@ export function PeoplePicker({
         </ul>
       ) : null}
       <SearchField value={query} onChange={setQuery} placeholder={`Search ${noun}`} />
-      <ul className="max-h-48 divide-y divide-line overflow-y-auto rounded-lg border border-line-strong bg-card" role="listbox" aria-multiselectable>
+      <ul className="max-h-48 divide-y divide-border overflow-y-auto rounded-md border border-border" role="listbox" aria-multiselectable>
         {matches.map((p) => {
           const on = selected.includes(p.id);
           return (
@@ -101,12 +101,12 @@ export function PeoplePicker({
                 type="button"
                 onClick={() => toggle(p.id)}
                 className={cn(
-                  "flex min-h-10 w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)] focus-visible:bg-[var(--ink-3)] focus-visible:outline-none",
+                  "flex min-h-10 w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-[var(--ink-3)] focus-visible:bg-[var(--ink-3)] focus-visible:outline-none",
                   on ? "text-foreground" : "text-[var(--ink-text)]"
                 )}
               >
                 {p.name}
-                {on ? <Check className="h-4 w-4 text-brand-green" aria-hidden /> : null}
+                {on ? <Check className="h-4 w-4 text-[var(--brand-green)]" aria-hidden /> : null}
               </button>
             </li>
           );

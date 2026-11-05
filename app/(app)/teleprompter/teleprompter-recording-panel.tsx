@@ -8,7 +8,7 @@ import type { PrompterRecordingControls, RecordingState } from "./use-prompter-r
  */
 
 const BUTTON_CLASS =
-  "inline-flex h-8 items-center rounded-md px-3 text-[13px] font-medium border border-white/[0.14] bg-[#111114] text-[#FCFDFF] transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[#1A1A1F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 disabled:pointer-events-none disabled:opacity-50 pointer-coarse:h-10";
+  "inline-flex h-8 items-center rounded-md border border-[#2B302B] px-3 text-xs font-medium text-[#DCE2DE] transition-colors hover:bg-[#252925] hover:text-soft-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2BB36E] disabled:pointer-events-none disabled:opacity-50 pointer-coarse:h-10";
 
 function clock(ms: number) {
   const seconds = Math.max(0, Math.floor(ms / 1000));
@@ -26,13 +26,13 @@ function useElapsed(state: RecordingState) {
   return state.phase === "recording" ? clock(now - state.startedAt) : "";
 }
 
-/** Top bar: a REC tag (the one caps marker) with the Record Red dot while recording. */
+/** Top bar: an Ink tag with the Record Red dot while recording. */
 export function RecordingTag({ state }: { state: RecordingState }) {
   const elapsed = useElapsed(state);
   if (state.phase === "recording") {
     return (
       <span
-        className="inline-flex h-5 items-center gap-1.5 rounded-full border border-white/[0.14] bg-[#111114] px-2 text-[11px] font-medium uppercase leading-none tracking-[0.08em] text-[#FCFDFF]"
+        className="inline-flex h-5 items-center gap-1.5 rounded-sm bg-[#0F110F] px-2 text-[11px] font-medium uppercase leading-none tracking-[0.11em] text-[#DCE2DE]"
         title="Recording for tuning Auto follow (Settings)"
       >
         <span className="rec-dot rec-dot-red" aria-hidden />
@@ -42,7 +42,7 @@ export function RecordingTag({ state }: { state: RecordingState }) {
   }
   if (state.phase === "saving") {
     return (
-      <span className="inline-flex h-5 items-center rounded-full bg-white/[0.08] px-2 text-xs font-medium leading-none tabular-nums text-[#FCFDFF]">
+      <span className="inline-flex h-5 items-center rounded-sm bg-black/10 px-2 text-[11px] font-medium uppercase leading-none tracking-[0.11em] text-[#0F110F]">
         Saving {Math.round(state.progress * 100)}%
       </span>
     );
@@ -65,13 +65,13 @@ export function RecordingSection({ recording }: { recording: PrompterRecordingCo
   const recordingNow = state.phase === "recording";
 
   return (
-    <div className="mt-4 border-t border-white/[0.06] pt-3">
-      <p className="text-[13px] font-medium text-[#FCFDFF]">Record for tuning</p>
-      <p className="mt-1.5 text-xs leading-snug text-[#A1A4A5]">
+    <div className="mt-4 border-t border-[#2B302B] pt-3">
+      <p className="text-[11px] font-medium uppercase tracking-[0.11em] text-[#DCE2DE]">Record for tuning</p>
+      <p className="mt-1.5 text-xs leading-snug text-[#DCE2DE]">
         Records what Auto hears and what it understood, and saves it to InFocus Drive so we can see where it slips. Tell the
         anchors before you start.
       </p>
-      <p className={cn("mt-1.5 text-xs leading-snug", state.phase === "failed" ? "text-[#FF4D5E]" : "text-[#FCFDFF]")} role="status">
+      <p className={cn("mt-1.5 text-xs leading-snug", state.phase === "failed" ? "text-[#FF8A8E]" : "text-soft-white")} role="status">
         {statusText(state, canStart, elapsed)}
       </p>
       <div className="mt-2 flex flex-wrap gap-2">

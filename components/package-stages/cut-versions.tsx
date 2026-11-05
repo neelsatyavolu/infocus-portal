@@ -59,7 +59,7 @@ export function CutVersions({
     const href = stageReviewHref(latest, true);
     return (
       <div className="space-y-3">
-        <div className="flex min-h-14 min-w-0 items-center gap-3 rounded-lg border border-line-strong bg-card px-3 py-2">
+        <div className="flex min-h-14 min-w-0 items-center gap-3 rounded-md border border-border px-3 py-2">
           <MediaThumb src={latest.thumbnailUrl} size="sm" />
           <span className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
             <span className="min-w-0 truncate text-sm font-medium text-foreground sm:flex-1" title={latest.title}>
@@ -123,8 +123,8 @@ function EarlierVersions({
 }) {
   return (
     <div className="space-y-2">
-      <h3 className="text-[13px] font-medium text-muted-foreground">Earlier versions</h3>
-      <ul className="divide-y divide-line rounded-lg border border-line-strong bg-card">
+      <h3 className="text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">Earlier versions</h3>
+      <ul className="divide-y divide-border rounded-md border border-border">
         {items.map((item) => {
           const href = stageReviewHref(item, true);
           return (

@@ -18,8 +18,8 @@ function PanelBlock({
   children: ReactNode;
 }) {
   return (
-    <div aria-hidden className={cn("flex h-full min-w-0 flex-col rounded-lg border border-line-strong bg-card", className)}>
-      <div className="flex min-h-14 items-center gap-2 border-b border-line px-4 py-3 md:px-5">
+    <div aria-hidden className={cn("flex h-full min-w-0 flex-col rounded-md border border-border bg-card", className)}>
+      <div className="flex min-h-14 items-center gap-2 border-b border-border px-4 py-3 md:px-5">
         <Skeleton className="h-4 w-24" />
         {tag ? <Skeleton className="h-5 w-16" /> : null}
         {action ? <Skeleton className={cn("ml-auto h-8 rounded-md", action)} /> : null}
@@ -43,7 +43,7 @@ function CastBlock() {
           <Skeleton className="h-3 w-40" />
         </div>
       </div>
-      <div className="@container space-y-3 border-t border-line px-4 py-4 md:px-5">
+      <div className="@container space-y-3 border-t border-border px-4 py-4 md:px-5">
         <div className="flex min-h-8 items-center gap-2">
           <Skeleton className="h-3 w-20" />
           <Skeleton className="h-5 w-28" />
@@ -63,7 +63,7 @@ function CastBlock() {
 function RolesBlock() {
   return (
     <PanelBlock action="w-32">
-      <div className="divide-y divide-line">
+      <div className="divide-y divide-border">
         {Array.from({ length: 5 }, (_, index) => (
           <div key={index} className="flex min-h-12 items-center gap-3 px-4 md:px-5">
             <Skeleton className="h-3 w-28" />
@@ -80,7 +80,7 @@ function RolesBlock() {
 function PackagesBlock() {
   return (
     <PanelBlock action="w-32" className="@container @3xl:col-span-2">
-      <div className="grid gap-px bg-line @2xl:grid-cols-2">
+      <div className="grid gap-px bg-border @2xl:grid-cols-2">
         {[0, 1].map((index) => (
           <div key={index} className="flex min-h-14 items-center gap-3 bg-card px-4 md:px-5">
             <Skeleton className="h-3 w-5" />
@@ -102,7 +102,7 @@ export function ShowSkeleton() {
       <PageHeaderSkeleton actions={2} />
       <div aria-hidden className="grid auto-cols-[minmax(6.5rem,1fr)] grid-flow-col gap-2 overflow-hidden">
         {Array.from({ length: 8 }, (_, index) => (
-          <Skeleton key={index} className="h-16 rounded-lg" />
+          <Skeleton key={index} className="h-16 rounded-md" />
         ))}
       </div>
       <div className="grid gap-5 @3xl:grid-cols-2">
@@ -118,7 +118,7 @@ export function ShowSkeleton() {
 export function GeneratorAppSkeleton() {
   return (
     <LoadingRegion label="Loading the generator">
-      <Skeleton className="h-[60vh] w-full rounded-lg" />
+      <Skeleton className="h-[60vh] w-full rounded-md" />
     </LoadingRegion>
   );
 }

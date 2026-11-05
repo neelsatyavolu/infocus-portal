@@ -128,7 +128,7 @@ function RequestPanel({
           </tbody>
         </TableShell>
       ) : (
-        <ul className="divide-y divide-line">
+        <ul className="divide-y divide-border">
           {request.items.map((item) => (
             <li key={`${item.userId}:${item.date}`} className="px-4 py-3">
               <div className="flex min-w-0 items-baseline justify-between gap-3">
@@ -183,11 +183,11 @@ export function ParticipationPending({
           <PanelSkeleton rows={2} />
         </div>
       ) : queue === null && error ? (
-        <div className="rounded-lg border border-line-strong bg-card">
+        <div className="rounded-md border border-border bg-card">
           <ErrorState title="Couldn't load pending requests" message={error} onRetry={onRetry} busy={loading} />
         </div>
       ) : !queue || queue.length === 0 ? (
-        <div className="rounded-lg border border-line-strong bg-card">
+        <div className="rounded-md border border-border bg-card">
           <EmptyState icon={Inbox} title="No pending participation grades." description="Full marks already posted." />
         </div>
       ) : (

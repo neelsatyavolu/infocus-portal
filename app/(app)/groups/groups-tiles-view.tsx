@@ -61,7 +61,7 @@ export function GroupsTilesSkeleton() {
 /** A cycle with no groups yet (both views). The page's only filled button, in this state only. */
 export function NoGroupsState({ cycleNumber }: { cycleNumber: number }) {
   return (
-    <div className="rounded-lg border border-line-strong bg-card">
+    <div className="rounded-md border border-border bg-card">
       <EmptyState
         size="page"
         icon={LayoutGrid}
@@ -103,7 +103,7 @@ export function GroupsTilesView({
   const { needsYou, assigned, other } = sections;
   if (filter !== "all" && needsYou.length + assigned.length + other.length === 0) {
     return (
-      <div className="rounded-lg border border-line-strong bg-card">
+      <div className="rounded-md border border-border bg-card">
         <EmptyState
           size="inline"
           icon={ListFilter}

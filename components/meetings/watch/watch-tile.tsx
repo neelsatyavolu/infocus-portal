@@ -23,7 +23,7 @@ type VideoWithSink = HTMLVideoElement & {
 /** Centered over the video, between the top and bottom plates. */
 function Note({ children }: { children: ReactNode }) {
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/70 p-4 text-center text-sm text-[var(--soft-white)]">
+    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#0F110F]/70 p-4 text-center text-sm text-[var(--soft-white)]">
       {children}
     </div>
   );
@@ -130,7 +130,7 @@ export function WatchTile({
     <div
       ref={containerRef}
       aria-label={cut ? `Watching together: ${cut.topic}, ${cut.label}` : "Watching together"}
-      className="@container group relative h-full w-full overflow-hidden rounded-lg bg-black outline outline-1 outline-line-strong"
+      className="@container group relative h-full w-full overflow-hidden rounded-md bg-[#0F110F] outline outline-1 outline-[var(--ink-4)]"
     >
       {src ? (
         <video

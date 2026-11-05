@@ -7,10 +7,10 @@ function FeedDaySkeleton({ rows }: { rows: number }) {
     <div className="space-y-2">
       <div className="flex h-6 items-center gap-2">
         <Skeleton className="h-3 w-40" />
-        <span className="h-px flex-1 bg-line" />
+        <span className="h-px flex-1 bg-border" />
         <Skeleton className="h-3 w-12" />
       </div>
-      <div className="divide-y divide-line rounded-lg border border-line-strong bg-card">
+      <div className="divide-y divide-border rounded-md border border-border bg-card">
         {Array.from({ length: rows }, (_, index) => (
           <div key={index} className="grid grid-cols-[2rem_minmax(0,1fr)] gap-x-3 p-4 sm:grid-cols-[2.25rem_minmax(0,1fr)] md:p-5">
             <Skeleton className="h-8 w-8 rounded-full sm:h-9 sm:w-9" />
@@ -87,7 +87,7 @@ export function SubmittedSectionsSkeleton() {
           <div className="@container">
             <div className="grid gap-3 @3xl:grid-cols-2">
               {Array.from({ length: cards }, (_, index) => (
-                <div key={index} className="flex min-h-48 flex-col rounded-lg border border-line-strong bg-card">
+                <div key={index} className="flex min-h-48 flex-col rounded-md border border-border bg-card">
                   <div className="flex-1 space-y-3 p-4 md:p-5">
                     <div className="flex gap-2">
                       <Skeleton className="h-5 w-24" />
@@ -95,7 +95,7 @@ export function SubmittedSectionsSkeleton() {
                     </div>
                     <SkeletonText lines={3} />
                   </div>
-                  <div className="flex items-center justify-between gap-3 border-t border-line px-4 py-3 md:px-5">
+                  <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-3 md:px-5">
                     <Skeleton className="h-3.5 w-40" />
                     <Skeleton className="h-10 w-16 rounded-md md:h-8" />
                   </div>
@@ -124,8 +124,8 @@ export function SubmittedPageSkeleton() {
 export function PaEditorSkeleton() {
   return (
     <div aria-hidden className={HUB_RAIL_GRID}>
-      <div className="rounded-lg border border-line-strong bg-card">
-        <div className="flex min-h-14 items-center justify-between gap-3 border-b border-line px-4 md:px-5">
+      <div className="rounded-md border border-border bg-card">
+        <div className="flex min-h-14 items-center justify-between gap-3 border-b border-border px-4 md:px-5">
           <div className="flex items-center gap-2">
             <Skeleton className="h-4 w-16" />
             <Skeleton className="h-5 w-24" />

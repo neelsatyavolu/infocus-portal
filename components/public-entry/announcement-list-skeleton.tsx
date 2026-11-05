@@ -19,7 +19,7 @@ export function AnnouncementListSkeleton() {
           <div className="@container mt-3">
             <div className="grid gap-3 @3xl:grid-cols-2">
               {Array.from({ length: cards }, (_, index) => (
-                <Skeleton key={index} className="h-24 rounded-lg" />
+                <Skeleton key={index} className="h-24 rounded-md" />
               ))}
             </div>
           </div>

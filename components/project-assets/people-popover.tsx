@@ -88,7 +88,7 @@ export function PeopleControl({
           </Button>
         </PopoverTrigger>
         <PopoverContent align="start" className="w-72 p-0" data-prevent-review-open="true">
-          <p className="px-3 pb-1 pt-3 text-[13px] font-medium text-muted-foreground">
+          <p className="px-3 pb-1 pt-3 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">
             People on this video
           </p>
           <div className="max-h-56 overflow-y-auto px-1">
@@ -99,7 +99,7 @@ export function PeopleControl({
                 {members.map((member) => {
                   const name = getMemberDisplayName(member);
                   return (
-                    <li key={member.userId} className="flex min-h-11 items-center gap-2.5 rounded-md px-2">
+                    <li key={member.userId} className="flex min-h-11 items-center gap-2.5 rounded-sm px-2">
                       <Avatar name={name} email={member.email} size={28} />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-[13px] text-foreground">{name}</span>
@@ -110,7 +110,7 @@ export function PeopleControl({
                         onClick={() => onRemove(member.userId)}
                         disabled={busy}
                         aria-label={`Remove ${name}`}
-                        className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-danger-tint hover:text-danger focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30 disabled:pointer-events-none disabled:opacity-40 [@media(hover:none)]:h-10 [@media(hover:none)]:w-10"
+                        className="grid h-8 w-8 shrink-0 place-items-center rounded-sm text-muted-foreground transition-colors hover:bg-danger-tint hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [@media(hover:none)]:h-10 [@media(hover:none)]:w-10"
                       >
                         <X className="h-4 w-4" aria-hidden />
                       </button>
@@ -120,7 +120,7 @@ export function PeopleControl({
               </ul>
             )}
           </div>
-          <div className="flex items-center justify-between gap-2 border-t border-line px-3 py-2">
+          <div className="flex items-center justify-between gap-2 border-t border-border px-3 py-2">
             <Button type="button" variant="outline" size="sm" onClick={onAddPeople} disabled={busy} className={TOUCH}>
               <UserPlus aria-hidden />
               Add people

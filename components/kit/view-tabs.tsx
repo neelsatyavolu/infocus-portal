@@ -26,7 +26,7 @@ export function viewTabIds(prefix: string, value: string) {
 }
 
 /**
- * In-page view tabs that look exactly like the shell's HubTabs (h-10, 1px brand underline) but
+ * In-page view tabs that look exactly like the shell's HubTabs (h-10, 2px green underline) but
  * switch local state instead of routes: role=tablist, ←/→/Home/End, the active tab scrolled into
  * view on phones, and an optional count or dot per tab. Pair with ViewTabPanel (same idPrefix).
  */
@@ -129,7 +129,7 @@ export function ViewTabPanel({
       aria-labelledby={ids.tab}
       hidden={!active}
       tabIndex={0}
-      className={cn("rounded-md focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30", className)}
+      className={cn("rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", className)}
     >
       {children}
     </div>

@@ -124,7 +124,7 @@ export function CommandPalette({
         <DialogDescription className="sr-only">
           Type to filter pages, use the arrow keys to choose one, and press Enter to open it.
         </DialogDescription>
-        <div className="flex h-12 items-center gap-2.5 border-b border-line px-4 pr-12">
+        <div className="flex h-12 items-center gap-2.5 border-b border-border px-4 pr-12">
           <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
           <input
             autoFocus
@@ -159,8 +159,8 @@ export function CommandPalette({
                   onMouseMove={() => setActiveIndex(index)}
                   onClick={() => go(place)}
                   className={cn(
-                    "flex min-h-12 cursor-pointer items-center gap-3 rounded-md px-3 py-1.5 transition-colors duration-150 ease-[var(--ease-ui)]",
-                    active ? "bg-secondary" : ""
+                    "flex min-h-12 cursor-pointer items-center gap-3 rounded-md px-3 py-1.5",
+                    active ? "bg-[var(--ink-3)]" : ""
                   )}
                 >
                   <span className="min-w-0 flex-1">
@@ -176,7 +176,7 @@ export function CommandPalette({
             })
           )}
         </ul>
-        <div className="hidden border-t border-line px-4 py-2 md:block">
+        <div className="hidden border-t border-border px-4 py-2 md:block">
           <KeyHints
             showOnTouch
             items={[

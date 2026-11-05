@@ -75,7 +75,7 @@ export function EmptyState({
       ) : null}
       <div className={cn("min-w-0 space-y-1", align === "center" && "max-w-md")}>
         {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
-        <p className={cn("font-semibold tracking-[-0.015em] text-balance text-foreground", page ? "text-lg" : "text-base")}>{title}</p>
+        <p className={cn("font-semibold text-foreground", page ? "text-lg" : "text-base")}>{title}</p>
         {description ? <div className="text-sm text-[var(--ink-text)]">{description}</div> : null}
         {meta ? <p className="pt-1 font-mono-broadcast text-xs tabular-nums text-muted-foreground">{meta}</p> : null}
       </div>

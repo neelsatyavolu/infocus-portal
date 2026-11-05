@@ -63,7 +63,7 @@ function CommandResults({ commands }: { commands: ShowEditorCommandView[] }) {
           </div>
           {command.output ? (
             <pre
-              className={`overflow-auto whitespace-pre-wrap rounded-lg border border-line bg-secondary p-3 font-mono text-[12px] leading-[1.65] text-[var(--ink-text)] ${command.kind === "logs" ? "max-h-64" : "max-h-32"}`}
+              className={`overflow-auto whitespace-pre-wrap rounded bg-[var(--ink-2)] p-2 font-mono text-[12px] ${command.kind === "logs" ? "max-h-64" : "max-h-32"}`}
               tabIndex={0}
               aria-label={`${SHOW_EDITOR_COMMAND_LABELS[command.kind]} output`}
             >
@@ -90,7 +90,7 @@ function MachineRow({
   const [confirmUnlink, setConfirmUnlink] = useState(false);
   const problems = device.health && !device.health.ok ? device.health.problems : [];
   return (
-    <li className="space-y-3 rounded-lg border border-line-strong p-4">
+    <li className="space-y-3 rounded-md border border-border p-3">
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-medium">{device.name}</span>
         {device.active ? <StatusTag tone="success">Active</StatusTag> : null}
@@ -108,7 +108,7 @@ function MachineRow({
       <MachineAiAccounts device={device} pairings={pairings} />
       <div className="flex flex-wrap gap-2">
         {!device.active ? (
-          <Button type="button" size="sm" variant="outline" disabled={busy} onClick={onActivate}>Make active</Button>
+          <Button type="button" size="sm" disabled={busy} onClick={onActivate}>Make active</Button>
         ) : null}
         {SHOW_EDITOR_COMMANDS.map((kind) => (
           <Button key={kind} type="button" size="sm" variant="outline" disabled={busy} onClick={() => onCommand(kind)}>
@@ -169,10 +169,10 @@ export function ConnectAiAccount({
         ))}
       </div>
       {showCommand && shown ? (
-        <div className="space-y-2 rounded-lg border border-line-strong p-4" aria-live="polite">
+        <div className="space-y-2 rounded-md border border-border p-3" aria-live="polite">
           <p className="text-sm">{PAIRING_COPY}</p>
           <div className="flex items-start gap-2">
-            <code className="min-w-0 flex-1 break-all rounded-md border border-line bg-secondary px-2.5 py-1.5 font-mono text-[12px] text-[var(--ink-text)]">{shown.command}</code>
+            <code className="min-w-0 flex-1 break-all rounded bg-[var(--ink-2)] px-2 py-1.5 font-mono text-[12px]">{shown.command}</code>
             <Button
               type="button"
               size="sm"

@@ -27,7 +27,7 @@ export default function MasterCalendarLoading() {
       </div>
 
       <div aria-hidden className="@container min-w-0">
-        <div className="space-y-5 @min-[58rem]:grid @min-[58rem]:grid-cols-5 @min-[58rem]:gap-px @min-[58rem]:space-y-0 @min-[58rem]:overflow-hidden @min-[58rem]:rounded-lg @min-[58rem]:border @min-[58rem]:border-line-strong @min-[58rem]:bg-line">
+        <div className="space-y-5 @min-[58rem]:grid @min-[58rem]:grid-cols-5 @min-[58rem]:gap-px @min-[58rem]:space-y-0 @min-[58rem]:overflow-hidden @min-[58rem]:rounded-md @min-[58rem]:border @min-[58rem]:border-border @min-[58rem]:bg-border">
           {Array.from({ length: WEEKDAY_COUNT }, (_, index) => (
             <div key={`head-${index}`} className="hidden h-8 items-center bg-card px-3 @min-[58rem]:flex">
               <Skeleton className="h-2.5 w-14" />
@@ -38,7 +38,7 @@ export default function MasterCalendarLoading() {
               <div className="flex h-8 items-center @min-[58rem]:hidden">
                 <Skeleton className="h-2.5 w-24" />
               </div>
-              <div className="divide-y divide-line overflow-hidden rounded-lg border border-line-strong @min-[58rem]:contents @min-[58rem]:divide-y-0">
+              <div className="divide-y divide-border overflow-hidden rounded-md border border-border @min-[58rem]:contents @min-[58rem]:divide-y-0">
                 {Array.from({ length: WEEKDAY_COUNT }, (_, day) => (
                   <div
                     key={day}

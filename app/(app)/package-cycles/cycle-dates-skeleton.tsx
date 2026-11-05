@@ -20,7 +20,7 @@ function Line({ width }: { width: string }) {
 export function CycleScheduleSkeleton() {
   return (
     <div aria-hidden className={DATES_CONTAINER}>
-      <div className="overflow-hidden rounded-lg border border-line-strong bg-card">
+      <div className="overflow-hidden rounded-md border border-border bg-card">
         <div className={TABLE_ONLY}>
           <div className={`${TABLE_GRID} items-end pb-2.5 pt-3`}>
             <span className="flex h-3.5 items-center pl-4 pr-3">
@@ -33,7 +33,7 @@ export function CycleScheduleSkeleton() {
             ))}
           </div>
           {Array.from({ length: ROWS }, (_, row) => (
-            <div key={row} className={`${TABLE_GRID} border-t border-line py-3`}>
+            <div key={row} className={`${TABLE_GRID} border-t border-border py-3`}>
               <span className="space-y-1 pl-4 pr-3">
                 <Line width="w-28" />
                 <Line width="w-16" />
@@ -47,7 +47,7 @@ export function CycleScheduleSkeleton() {
             </div>
           ))}
         </div>
-        <div className={cn("divide-y divide-line", CARDS_ONLY)}>
+        <div className={cn("divide-y divide-border", CARDS_ONLY)}>
           {Array.from({ length: ROWS }, (_, card) => (
             <div key={card} className="px-4 py-4">
               <div className="flex items-start justify-between gap-3">
@@ -57,7 +57,7 @@ export function CycleScheduleSkeleton() {
                 </span>
                 <Skeleton className="h-5 w-16" />
               </div>
-              <div className="mt-3 divide-y divide-line border-t border-line">
+              <div className="mt-3 divide-y divide-border border-t border-border">
                 {Array.from({ length: STAGE_COUNT }, (_, index) => (
                   <div key={index} className="flex items-start justify-between gap-4 py-2">
                     <Line width="w-32" />

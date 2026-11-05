@@ -5,7 +5,7 @@ import { cn } from "@/src/lib/utils";
 
 /**
  * The shared drag-and-drop surface around src/lib/use-file-drop.ts: spread its `bind`, pass
- * `dragging`, and the children get a dashed brand-colored outline and a "Drop to upload" overlay while
+ * `dragging`, and the children get a dashed green outline and a "Drop to upload" overlay while
  * files hover. Disabled zones show no overlay (use-file-drop already ignores the drop).
  */
 export function Dropzone({
@@ -25,15 +25,15 @@ export function Dropzone({
 }) {
   const active = dragging && !disabled;
   return (
-    <div {...bind} className={cn("relative min-w-0 rounded-lg", className)}>
+    <div {...bind} className={cn("relative min-w-0 rounded-md", className)}>
       {children}
       {active ? (
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 z-20 grid place-items-center rounded-lg border border-dashed border-[var(--brand-green)] bg-brand-tint"
+          className="pointer-events-none absolute inset-0 z-20 grid place-items-center rounded-md border-2 border-dashed border-[var(--brand-green)] bg-[rgb(43_179_110/0.10)]"
         >
-          <span className="inline-flex items-center gap-2 rounded-md border border-line-strong bg-card px-3 py-2 text-sm font-medium text-foreground">
-            <Upload className="h-4 w-4 text-brand-green" aria-hidden />
+          <span className="inline-flex items-center gap-2 rounded-md bg-card px-3 py-2 text-sm font-medium text-foreground">
+            <Upload className="h-4 w-4 text-[var(--brand-green)]" aria-hidden />
             {overlayLabel}
           </span>
         </div>

@@ -123,7 +123,7 @@ function TopicField({
           onCommit(latestValueRef.current);
         }}
         className={cn(
-          "-mx-2 min-h-10 whitespace-pre-wrap break-words rounded-md px-[7px] py-[7px] font-medium leading-6 text-foreground outline-none transition-colors duration-150 ease-[var(--ease-ui)] focus:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30 @4xl:min-h-8 @4xl:py-[3px]",
+          "-mx-2 min-h-10 whitespace-pre-wrap break-words rounded-md px-[7px] py-[7px] font-semibold leading-6 text-foreground outline-none focus:border-input focus-visible:ring-2 focus-visible:ring-ring @4xl:min-h-8 @4xl:py-[3px]",
           FIELD_TEXT,
           FIELD_BORDER
         )}
@@ -169,7 +169,7 @@ export function TopicCell({
       ) : (
         <p
           className={cn(
-            "min-w-0 flex-1 break-words py-2 font-medium leading-6 @4xl:py-1",
+            "min-w-0 flex-1 break-words py-2 font-semibold leading-6 @4xl:py-1",
             FIELD_TEXT,
             row.groupTopic ? "text-foreground" : "font-normal text-muted-foreground"
           )}
@@ -322,7 +322,7 @@ function ProducerSelect({
       }}
       wrapperClassName="-mx-2"
       className={cn(
-        "h-10 border-transparent pl-[7px] group-hover/row:border-input focus-visible:border-ring pointer-coarse:border-input @4xl:h-8",
+        "h-10 border-transparent pl-[7px] group-hover/row:border-input focus-visible:border-input pointer-coarse:border-input @4xl:h-8",
         // Options inside optgroups are not direct children, so NativeSelect's option colors miss them.
         "[&_optgroup]:bg-popover [&_optgroup]:text-popover-foreground [&_option]:bg-popover [&_option]:text-popover-foreground",
         !value && "text-[var(--brand-amber)]"
@@ -507,7 +507,7 @@ export function StatusCell({ status, topic }: { status: RowStatus; topic: string
           title="Open in Groups"
           onClick={(event) => event.stopPropagation()}
           className={cn(
-            "-mx-1.5 block min-w-0 rounded-md px-1.5 transition-colors duration-150 ease-[var(--ease-ui)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30",
+            "-mx-1.5 block min-w-0 rounded-md px-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             IN_ROW_HOVER
           )}
         >

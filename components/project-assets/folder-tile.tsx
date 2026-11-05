@@ -108,18 +108,18 @@ export const FolderTile = memo(function FolderTile(props: FolderTileProps) {
       onFocus={() => onPrefetch(folder.id)}
       {...dropTargetProps(props)}
       className={cn(
-        "group flex h-16 w-full min-w-0 items-center gap-3 rounded-lg border bg-card px-3 text-left transition-colors duration-150 ease-[var(--ease-ui)] sm:h-[72px]",
-        "hover:bg-secondary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30",
+        "group flex h-16 w-full min-w-0 items-center gap-3 rounded-md border bg-card px-3 text-left transition-colors sm:h-[72px]",
+        "hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         dragOver
-          ? "border-[var(--brand-green)] bg-brand-tint"
+          ? "border-[var(--brand-green)] bg-[var(--brand-green)]/10"
           : dragActive
             ? "border-dashed border-[var(--brand-green)]/60"
-            : "border-line-strong"
+            : "border-border"
       )}
     >
       <FolderIcon dragOver={dragOver} className="max-sm:hidden" />
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[15px] font-medium tracking-[-0.005em] text-foreground" title={folder.name}>
+        <span className="block truncate text-sm font-semibold text-foreground" title={folder.name}>
           {name}
         </span>
         <span className="mt-0.5 flex min-w-0 items-center gap-2 text-[13px] text-muted-foreground">
@@ -152,8 +152,8 @@ export const FolderRow = memo(function FolderRow(props: FolderTileProps & { show
         {...dropTargetProps(props)}
         className={cn(
           LIST_ROW,
-          "group w-full text-left transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)]/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/45",
-          dragOver ? "bg-brand-tint" : dragActive && "outline-dashed outline-1 -outline-offset-2 outline-[var(--brand-green)]/60"
+          "group w-full text-left transition-colors hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+          dragOver ? "bg-[var(--brand-green)]/10" : dragActive && "outline-dashed outline-1 -outline-offset-2 outline-[var(--brand-green)]/60"
         )}
       >
         <span aria-hidden className={LIST_COLUMNS.check} />
@@ -161,7 +161,7 @@ export const FolderRow = memo(function FolderRow(props: FolderTileProps & { show
           <FolderIcon dragOver={dragOver} />
         </span>
         <span className={LIST_COLUMNS.name}>
-          <span className="block truncate text-[15px] font-medium tracking-[-0.005em] text-foreground" title={folder.name}>
+          <span className="block truncate text-sm font-semibold text-foreground" title={folder.name}>
             {name}
           </span>
           <span className="mt-0.5 flex min-w-0 items-center gap-2 text-[13px] text-muted-foreground">

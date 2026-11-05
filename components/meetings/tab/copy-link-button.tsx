@@ -41,7 +41,7 @@ export function CopyLinkButton({ url, label = "Copy link", className }: { url: s
       size="sm"
       onClick={() => void copy()}
       aria-label={copied ? "Link copied" : label}
-      className={cn(copied && "text-brand-green", className)}
+      className={cn(copied && "text-[var(--brand-green)]", className)}
     >
       {copied ? <Check aria-hidden /> : <Link2 aria-hidden />}
       {copied ? "Copied" : label}

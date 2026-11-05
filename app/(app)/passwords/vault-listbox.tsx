@@ -37,7 +37,7 @@ export function VaultListbox({
       tabIndex={0}
       aria-activedescendant={vaultOptionId(selectedId)}
       onKeyDown={onKeyDown}
-      className="divide-y divide-line focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+      className="divide-y divide-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
     >
       {entries.map((entry) => {
         const selected = entry.id === selectedId;
@@ -49,9 +49,9 @@ export function VaultListbox({
             aria-selected={selected}
             onClick={() => onSelect(entry.id)}
             className={cn(
-              "relative grid h-14 cursor-pointer scroll-mt-[calc(var(--app-header-h,0px)+var(--vault-toolbar-h,0px))] scroll-mb-[var(--phone-tabbar-h,0px)] grid-cols-[2.25rem_minmax(0,1fr)_auto] items-center gap-3 px-3 transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)]/60",
+              "relative grid h-14 cursor-pointer scroll-mt-[calc(var(--app-header-h,0px)+var(--vault-toolbar-h,0px))] scroll-mb-[var(--phone-tabbar-h,0px)] grid-cols-[2.25rem_minmax(0,1fr)_auto] items-center gap-3 px-3 transition-colors hover:bg-[var(--ink-3)]",
               selected &&
-                "bg-brand-tint hover:bg-brand-tint before:absolute before:inset-y-0 before:left-0 before:w-[2px] before:bg-[var(--brand-green)]"
+                "bg-[var(--ink-3)] before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-[var(--brand-green)]"
             )}
           >
             <VaultEntryRow entry={entry} />

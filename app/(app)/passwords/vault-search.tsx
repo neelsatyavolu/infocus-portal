@@ -64,14 +64,14 @@ export function VaultSearch({
           }
           onKeyDown?.(event);
         }}
-        className="h-full w-full min-w-0 rounded-md border border-input bg-card pl-8 pr-9 text-base text-foreground transition-[border-color,box-shadow] duration-150 ease-[var(--ease-ui)] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30 md:text-sm [&::-webkit-search-cancel-button]:hidden"
+        className="h-full w-full min-w-0 rounded-md border border-input bg-transparent pl-8 pr-9 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:text-sm [&::-webkit-search-cancel-button]:hidden"
       />
       {value ? (
         <button
           type="button"
           onClick={clear}
           aria-label="Clear search"
-          className="absolute right-1 grid h-7 w-7 place-items-center rounded-sm text-muted-foreground transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)] hover:text-foreground"
+          className="absolute right-1 grid h-7 w-7 place-items-center rounded-sm text-muted-foreground transition-colors hover:bg-[var(--ink-3)] hover:text-foreground"
         >
           <X className="h-4 w-4" aria-hidden />
         </button>

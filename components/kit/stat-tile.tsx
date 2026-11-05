@@ -30,19 +30,19 @@ function StatContent({ label, value, mono = true, unit, hint, tag, icon, tone, p
     <>
       {/* Spans only (display: block where needed): the tile can be a <button>, which takes phrasing content. */}
       <span className="flex min-h-5 items-center justify-between gap-2">
-        <span className="flex min-w-0 items-center gap-1.5 text-[13px] font-medium leading-tight text-muted-foreground [&>svg]:size-3.5">
+        <span className="flex min-w-0 items-center gap-1.5 text-[11px] font-medium uppercase leading-tight tracking-[0.11em] text-muted-foreground [&>svg]:size-3.5">
           {icon ? renderIcon(icon, "h-3.5 w-3.5") : null}
           <span className="truncate">{label}</span>
         </span>
         {tag}
       </span>
       {loading ? (
-        <span aria-hidden className="mt-1 block h-7 w-16 rounded-sm bg-secondary motion-safe:animate-pulse" />
+        <span aria-hidden className="mt-1 block h-7 w-16 rounded-sm bg-[var(--ink-3)] motion-safe:animate-pulse" />
       ) : (
         <span
           className={cn(
             "mt-1 block min-w-0 truncate leading-tight",
-            mono ? "font-mono-broadcast text-[22px] font-medium tabular-nums tracking-[-0.02em]" : "text-xl font-medium tracking-[-0.015em]",
+            mono ? "font-mono-broadcast text-[22px] font-medium tabular-nums" : "text-xl font-semibold tracking-[-0.01em]",
             tone ? toneTextClass(tone) : "text-foreground"
           )}
         >
@@ -59,7 +59,7 @@ function StatContent({ label, value, mono = true, unit, hint, tag, icon, tone, p
 }
 
 /**
- * At-a-glance number tile: muted label, a big mono value, one muted line, an optional tag and
+ * At-a-glance number tile: caps label, a big mono value, one muted line, an optional tag and
  * bar. With `href` or `onClick` the whole tile is the control. Put tiles in a StatGrid so a row
  * is equal height.
  */
@@ -77,12 +77,11 @@ export function StatTile({
   className?: string;
 }) {
   const base = cn(
-    "flex h-full min-w-0 flex-col rounded-lg border bg-card p-4 text-left text-card-foreground",
-    pressed ? "border-[var(--brand-green)] bg-brand-tint" : "border-line-strong",
+    "flex h-full min-w-0 flex-col rounded-md border bg-card p-4 text-left text-card-foreground",
+    pressed ? "border-[var(--brand-green)] bg-[rgb(43_179_110/0.08)]" : "border-border",
     className
   );
-  const interactive =
-    "transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-secondary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30";
+  const interactive = "transition-colors hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
   if (href) {
     return (
       <Link href={href as never} className={cn(base, interactive)}>
@@ -149,13 +148,13 @@ export function MetricStrip({
 }) {
   const cols = columns ?? (Math.min(6, Math.max(2, items.length)) as 2 | 3 | 4 | 5 | 6);
   return (
-    <div className={cn("overflow-hidden rounded-lg border border-line-strong bg-card", className)}>
-      <div className={cn("-mb-px -mr-px grid grid-cols-2 *:border-b *:border-r *:border-line", STRIP_COLS[cols])}>
+    <div className={cn("overflow-hidden rounded-md border border-border bg-card", className)}>
+      <div className={cn("-mb-px -mr-px grid grid-cols-2 *:border-b *:border-r *:border-border", STRIP_COLS[cols])}>
         {items.map(({ key, href, title, ...body }, index) => {
           const cell = cn(
             "flex min-w-0 flex-col p-4",
             href &&
-              "transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50"
+              "transition-colors hover:bg-[var(--ink-3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
           );
           const content = <StatContent {...body} />;
           return href ? (

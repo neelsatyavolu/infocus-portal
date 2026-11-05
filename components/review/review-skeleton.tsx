@@ -38,7 +38,7 @@ export function ReviewSkeleton({ guest = false }: { guest?: boolean }) {
 
       <div aria-hidden className="flex flex-col gap-4 lg:grid lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_14px_minmax(320px,420px)] lg:gap-0">
         <div className="space-y-4 lg:min-h-0 lg:pr-2">
-          <div className="rounded-lg border border-line-strong bg-card p-2 sm:p-4 max-lg:portrait:rounded-none max-lg:portrait:border-x-0 max-lg:portrait:p-0 lg:flex lg:h-full lg:flex-col lg:justify-center">
+          <div className="rounded-md border border-border bg-card p-2 sm:p-4 max-lg:portrait:rounded-none max-lg:portrait:border-x-0 max-lg:portrait:p-0 lg:flex lg:h-full lg:flex-col lg:justify-center">
             <Skeleton aspect="16/9" className="rounded-md max-lg:portrait:rounded-none" />
             <div className="mt-2 space-y-2 px-1 sm:px-2 max-lg:portrait:pb-2">
               <Skeleton className="h-1.5 w-full rounded-full" />
@@ -58,20 +58,20 @@ export function ReviewSkeleton({ guest = false }: { guest?: boolean }) {
 
         <span className="hidden lg:block" />
 
-        <div className="flex min-h-[28rem] flex-col rounded-lg border border-line-strong bg-card lg:ml-2 lg:min-h-0">
-          <div className="flex h-10 items-center gap-6 border-b border-line px-4">
+        <div className="flex min-h-[28rem] flex-col rounded-md border border-border bg-card lg:ml-2 lg:min-h-0">
+          <div className="flex h-10 items-center gap-6 border-b border-border px-4">
             <Skeleton className="h-3.5 w-20" />
             <Skeleton className="h-3.5 w-16" />
             <Skeleton className="h-3.5 w-20" />
           </div>
-          <div className="flex items-center gap-2 border-b border-line px-4 py-2">
+          <div className="flex items-center gap-2 border-b border-border px-4 py-2">
             <Skeleton className="h-8 w-48 rounded-md" />
             <span className="flex-1" />
             <Skeleton className="h-8 w-8 rounded-md" />
           </div>
           <div className="flex-1 space-y-2 overflow-hidden px-4 py-3">
             {Array.from({ length: 4 }, (_, index) => (
-              <div key={index} className="rounded-lg border border-line p-3">
+              <div key={index} className="rounded-md border border-border p-3">
                 <div className="flex items-center gap-2">
                   <Skeleton className="h-6 w-6 rounded-full" />
                   <Skeleton className="h-3.5 w-24" />
@@ -85,7 +85,7 @@ export function ReviewSkeleton({ guest = false }: { guest?: boolean }) {
               </div>
             ))}
           </div>
-          <div className="space-y-2 border-t border-line px-4 py-3">
+          <div className="space-y-2 border-t border-border px-4 py-3">
             <Skeleton className="h-14 w-full rounded-md" />
             <div className="flex h-9 items-center justify-between">
               <Skeleton className="h-6 w-28" />

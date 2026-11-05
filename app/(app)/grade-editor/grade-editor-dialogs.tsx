@@ -65,7 +65,7 @@ export function FeedbackDialog({
             <SaveState state={saveState} errorLabel="Not saved" />
             <TextCounter id="grade-feedback-count" length={row.feedback.length} max={MAX_FEEDBACK_LENGTH} />
           </span>
-          <Button type="button" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={onClose}>
             Done
           </Button>
         </DialogFooter>
@@ -91,7 +91,7 @@ export function PublishHistoryDialog({
           <DialogDescription>{`${rowLabel(row)} · Cycle ${cycleNumber}`}</DialogDescription>
         </DialogHeader>
         {row.publicationHistory.length > 0 ? (
-          <ul className="divide-y divide-line rounded-lg border border-line-strong">
+          <ul className="divide-y divide-border rounded-md border border-border">
             {row.publicationHistory.map((event, index) => (
               <li key={`${event.eventType}-${event.occurredAt ?? index}`} className="flex min-h-10 items-center justify-between gap-3 px-3 py-2">
                 <StatusTag tone={event.eventType === "PUBLISHED" ? "success" : "warning"}>
@@ -187,7 +187,7 @@ export function TotalNotesDialog({
             <SaveState state={saveState} idleLabel="Saves automatically" errorLabel="Not saved" />
             <TextCounter id="grade-notes-count" length={notes.length} max={MAX_NOTES_LENGTH} />
           </span>
-          <Button type="button" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={onClose}>
             Done
           </Button>
         </DialogFooter>
@@ -214,7 +214,7 @@ export function ExtensionDepletedDialog({
           their available extensions to be fully used.
         </Alert>
         <DialogFooter>
-          <Button type="button" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={onClose}>
             OK
           </Button>
         </DialogFooter>

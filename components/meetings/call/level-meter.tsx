@@ -25,7 +25,7 @@ export function LevelMeter({ track, compact }: { track: MediaStreamTrack | undef
           className={cn(
             "rounded-full transition-[height,background-color] duration-100",
             compact ? "w-[3px]" : "w-1",
-            i < lit ? "bg-brand-green" : compact ? "bg-[var(--soft-white)]/50" : "bg-[var(--ink-4)]"
+            i < lit ? "bg-[var(--brand-green)]" : compact ? "bg-[var(--soft-white)]/50" : "bg-[var(--ink-4)]"
           )}
           style={{ height: compact ? (i < lit ? COMPACT_LIT_HEIGHTS[i] : "35%") : `${30 + i * 10}%` }}
         />

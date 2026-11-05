@@ -181,7 +181,7 @@ export function ProjectDialogs({
             <DialogDescription>{`You don't have permission to delete ${confirmAction?.label ?? "these videos"}.`}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button type="button" onClick={removal.closeConfirm}>
+            <Button type="button" variant="outline" onClick={removal.closeConfirm}>
               OK
             </Button>
           </DialogFooter>

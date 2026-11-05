@@ -89,7 +89,7 @@ export function CheckoutScanPanel({
           </div>
         </div>
 
-        <div className="space-y-2 border-t border-line pt-4">
+        <div className="space-y-2 border-t border-border pt-4">
           <Label htmlFor="item-code">Item code</Label>
           <div className="flex gap-2">
             <SuggestionCombobox
@@ -139,7 +139,7 @@ export function CheckoutScanPanel({
         </div>
 
         {listed.length > 0 ? (
-          <ul aria-label="Items to submit" className="divide-y divide-line overflow-hidden rounded-lg border border-line-strong">
+          <ul aria-label="Items to submit" className="divide-y divide-border overflow-hidden rounded-md border border-border">
             {listed.map((entry) => (
               <li key={entry} className="flex min-h-12 items-center gap-3 py-1.5 pl-3 pr-1.5">
                 <div className="min-w-0 flex-1">
@@ -161,7 +161,7 @@ export function CheckoutScanPanel({
             ))}
           </ul>
         ) : (
-          <div className="rounded-lg border border-line-strong">
+          <div className="rounded-md border border-border">
             <EmptyState size="inline" icon={ScanBarcode} title="Nothing listed yet." description="Scan or type a code to start." />
           </div>
         )}

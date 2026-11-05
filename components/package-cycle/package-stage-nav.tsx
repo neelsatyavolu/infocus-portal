@@ -48,19 +48,19 @@ function wordTone(status: CycleStageStatus): StatusTone {
   return stageStatusTone(status);
 }
 
-/** The open stage or page: the brand tint everywhere (follows the season and Light mode). */
-const ACTIVE_TINT = "bg-brand-tint";
+/** The open stage or page: the same 8% green tint everywhere (follows --brand-green in Light mode). */
+const ACTIVE_TINT = "bg-brand-green/8";
 
-/** In the strip, the open page also gets a 1px brand underline (the cell must be `relative`). */
+/** In the strip, the open page also gets Groups' 2px green underline (the cell must be `relative`). */
 const ACTIVE = cn(
   ACTIVE_TINT,
-  "after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-brand-green"
+  "after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-[var(--brand-green)]"
 );
 
 const LOCKED_HINT = "Unlocks when the previous stage is approved";
 
 const UTILITY_CELL =
-  "relative flex h-16 w-12 min-w-0 items-center justify-center gap-2 rounded-md px-2.5 text-sm transition-colors duration-150 ease-[var(--ease-ui)] xl:w-auto xl:justify-start xl:px-3";
+  "relative flex h-16 w-12 min-w-0 items-center justify-center gap-2 px-2.5 text-sm transition-colors xl:w-auto xl:justify-start xl:px-3";
 
 type Utility = { href: string; label: string; icon: LucideIcon; active: boolean; count?: number };
 
@@ -76,11 +76,11 @@ function UtilityCell({ href, label, icon: Icon, active, count }: Utility) {
           className={cn(
             UTILITY_CELL,
             active
-              ? cn(ACTIVE, "font-medium text-foreground")
+              ? cn(ACTIVE, "font-semibold text-foreground")
               : "text-muted-foreground hover:bg-[var(--ink-3)] hover:text-foreground"
           )}
         >
-          <Icon aria-hidden className={cn("h-4 w-4 shrink-0", active && "text-brand-green")} />
+          <Icon aria-hidden className={cn("h-4 w-4 shrink-0", active && "text-[var(--brand-green)]")} />
           <span className="hidden truncate xl:inline">{label}</span>
           {count ? (
             <CountBadge
@@ -105,10 +105,10 @@ function UtilityRowLink({ href, label, icon: Icon, active, count }: Utility) {
       aria-current={active ? "page" : undefined}
       className={cn(
         buttonVariants({ variant: "ghost", size: "sm" }),
-        active ? cn(ACTIVE_TINT, "font-medium text-foreground") : "text-muted-foreground"
+        active ? cn(ACTIVE_TINT, "font-semibold text-foreground") : "text-muted-foreground"
       )}
     >
-      <Icon aria-hidden className={cn("h-4 w-4", active && "text-brand-green")} />
+      <Icon aria-hidden className={cn("h-4 w-4", active && "text-[var(--brand-green)]")} />
       {label}
       {count ? <CountBadge count={count} tone="neutral" srLabel={`${count} awaiting`} /> : null}
     </Link>
@@ -191,7 +191,7 @@ export function PackageStageNav({
               <>
                 <span
                   className={cn(
-                    "flex min-w-0 items-center gap-1.5 text-xs font-medium leading-none",
+                    "flex min-w-0 items-center gap-1.5 text-[11px] font-medium uppercase leading-none tracking-[0.11em]",
                     toneTextClass(tone)
                   )}
                 >
@@ -203,13 +203,13 @@ export function PackageStageNav({
                       <span className="sr-only sm:hidden">{word}</span>
                     </>
                   ) : null}
-                  {marks("ml-auto sm:hidden")}
+                  {marks("ml-auto normal-case tracking-normal sm:hidden")}
                 </span>
                 <span className="flex min-w-0 items-center gap-1.5">
                   <span
                     className={cn(
                       "min-w-0 flex-1 truncate text-xs sm:text-sm",
-                      active ? "font-medium text-foreground" : locked ? "text-muted-foreground" : "text-foreground"
+                      active ? "font-semibold text-foreground" : locked ? "text-muted-foreground" : "text-foreground"
                     )}
                   >
                     <span className="md:hidden">{stage.short}</span>
@@ -220,7 +220,7 @@ export function PackageStageNav({
               </>
             );
             const className = cn(
-              "relative flex h-14 min-w-0 flex-col justify-center gap-1.5 border-t-2 px-1 transition-colors duration-150 ease-[var(--ease-ui)] sm:h-16 sm:px-3",
+              "relative flex h-14 min-w-0 flex-col justify-center gap-1.5 border-t-4 px-1 transition-colors sm:h-16 sm:px-3",
               ruleClass(status),
               active ? ACTIVE : !locked && "hover:bg-[var(--ink-3)]",
               locked && "cursor-not-allowed opacity-50"
@@ -246,7 +246,7 @@ export function PackageStageNav({
             );
           })}
         </ol>
-        <div className="flex shrink-0 items-center gap-2 border-l border-line pl-2 max-sm:hidden">
+        <div className="flex shrink-0 items-center gap-2 border-l border-border pl-2 max-sm:hidden">
           {utilities.map((utility) => (
             <UtilityCell key={utility.href} {...utility} />
           ))}

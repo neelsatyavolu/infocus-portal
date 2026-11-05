@@ -692,7 +692,7 @@ export function ProjectMediaTiles({
             />
             {sections.folders ? (
               viewMode === "list" ? (
-                <ul id="project-folders" className={cn(LIST_SHELL, "divide-y divide-line")}>
+                <ul id="project-folders" className={cn(LIST_SHELL, "divide-y divide-border")}>
                   {folderCards.map((folder) => (
                     <FolderRow key={folder.id} {...folderTileProps(folder)} showPeople={peopleColumn} />
                   ))}
@@ -728,7 +728,7 @@ export function ProjectMediaTiles({
               ) : viewMode === "list" ? (
                 <div id="project-assets" className={LIST_SHELL}>
                   <AssetListHeader showPeople={peopleColumn} deleted={scope === "deleted"} />
-                  <ul className="divide-y divide-line">
+                  <ul className="divide-y divide-border">
                     {assetItems.map((item) => {
                       const props = assetItemProps(item);
                       return props ? <AssetRow key={item.id} {...props} /> : null;

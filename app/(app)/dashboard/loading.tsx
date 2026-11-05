@@ -1,6 +1,6 @@
 import { LoadingRegion, PageHeaderSkeleton } from "@/components/kit/skeleton";
 
-const BLOCK = "block rounded-lg border border-line-strong bg-card motion-safe:animate-pulse";
+const BLOCK = "block rounded-md border border-border bg-card motion-safe:animate-pulse";
 
 /**
  * Home's loading view, shaped like the student grid (the largest group): the header plate, then

@@ -112,7 +112,7 @@ function ClipComments(props: StageCommentsProps & { mediaItemId: string }) {
   return (
     <section className={cn("space-y-3", props.className)}>
       <div className="flex min-h-8 items-center gap-2">
-        <h3 className="text-base font-medium tracking-[-0.01em] text-foreground">Feedback on this clip</h3>
+        <h3 className="text-base font-semibold text-foreground">Feedback on this clip</h3>
         {state.comments.length > 0 ? (
           <span className="font-mono-broadcast text-[13px] tabular-nums text-muted-foreground">
             {state.comments.length}

@@ -91,7 +91,7 @@ function FinalCutList({
       <EmptyState
         size="inline"
         title="No other final cuts are ready to add."
-        className="rounded-lg border border-line-strong px-3"
+        className="rounded-md border border-border px-3"
         action={
           <Button type="button" size="sm" variant="link" className="px-0" onClick={onUploadInstead}>
             Upload a video instead
@@ -107,10 +107,10 @@ function FinalCutList({
         <SearchField value={filter} onChange={setFilter} placeholder="Filter by topic or name" className="shrink-0" />
       ) : null}
       {shown.length === 0 ? (
-        <EmptyState size="inline" title="No final cuts match." className="rounded-lg border border-line-strong px-3" />
+        <EmptyState size="inline" title="No final cuts match." className="rounded-md border border-border px-3" />
       ) : (
-        <div className="min-h-0 min-w-0 flex-auto overflow-y-auto rounded-lg border border-line-strong bg-card">
-          <ul aria-label="Final cuts ready to add" className="divide-y divide-line">
+        <div className="min-h-0 min-w-0 flex-auto overflow-y-auto rounded-md border border-border">
+          <ul aria-label="Final cuts ready to add" className="divide-y divide-border">
             {shown.map((row) => {
               const busy = busyId === row.id;
               return (
@@ -123,7 +123,7 @@ function FinalCutList({
                   onClick={busy ? undefined : () => onAdd(row.id)}
                   meta={
                     busy ? undefined : (
-                      <span className="inline-flex items-center gap-1 text-[13px] font-medium text-brand-green">
+                      <span className="inline-flex items-center gap-1 text-[13px] font-medium text-[var(--brand-green)]">
                         <Plus className="h-4 w-4" aria-hidden />
                         Add
                       </span>
@@ -218,7 +218,7 @@ export function AddPackageDialog({
         hideClose={uploading}
         className="flex max-h-[85dvh] max-w-lg flex-col gap-0 overflow-hidden p-0 sm:p-0 [&>*]:min-w-0"
       >
-        <DialogHeader className="shrink-0 border-b border-line px-4 py-4 pr-12 sm:px-6">
+        <DialogHeader className="shrink-0 border-b border-border px-4 py-4 pr-12 sm:px-6">
           <DialogTitle>Add to publishing queue</DialogTitle>
           <DialogDescription>
             Packages with a final cut that are not already queued, or a video you upload. Each lands on the next empty show.
@@ -281,12 +281,12 @@ export function AddPackageDialog({
             ) : null}
           </div>
         )}
-        <DialogFooter className="shrink-0 border-t border-line px-4 py-3 sm:px-6">
+        <DialogFooter className="shrink-0 border-t border-border px-4 py-3 sm:px-6">
           <Button type="button" variant="outline" disabled={uploading} onClick={() => handleOpenChange(false)}>
             Close
           </Button>
           {tab === "upload" ? (
-            <Button type="button" variant="accent" disabled={!title.trim() || !file || uploading} onClick={() => void addCustom()}>
+            <Button type="button" disabled={!title.trim() || !file || uploading} onClick={() => void addCustom()}>
               {uploading ? <Loader2 className="motion-safe:animate-spin" aria-hidden /> : <Upload aria-hidden />}
               {uploading ? "Uploading…" : "Add custom package"}
             </Button>

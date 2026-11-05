@@ -110,7 +110,7 @@ export function LeaderboardPopup({ ready }: { ready: boolean }) {
           <Button variant="outline" onClick={close} className="w-full sm:w-auto">
             Back to work
           </Button>
-          <Link href="/thanksgiving" onClick={close} className={cn(buttonVariants({ variant: "accent" }), "w-full sm:w-auto")}>
+          <Link href="/thanksgiving" onClick={close} className={cn(buttonVariants({ variant: "default" }), "w-full sm:w-auto")}>
             See the whole board
           </Link>
         </DialogFooter>

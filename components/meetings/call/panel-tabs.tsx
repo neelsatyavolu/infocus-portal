@@ -122,7 +122,7 @@ function TabCount({ tabs, id }: { tabs: PanelTabsValue; id: CallPanelId }) {
   return <CallCount count={tabs.agendaLeft} tone="neutral" srLabel={`${tabs.agendaLeft} left`} />;
 }
 
-/** Tabs in the panel header: 48px tall, the active one with a 1px brand underline. */
+/** Tabs in the panel header: 48px tall, the active one with a 2px green underline. */
 export function PanelTabList({ tabs }: { tabs: PanelTabsValue }) {
   // A keyboard switch remounts the panel; put focus back on the (new) active tab.
   const { active: activeTab, takeFocusTab } = tabs;
@@ -160,13 +160,13 @@ export function PanelTabList({ tabs }: { tabs: PanelTabsValue }) {
             onClick={(event: MouseEvent<HTMLButtonElement>) => select(tab.id, event.detail === 0)}
             onKeyDown={(event) => onKeyDown(event, index)}
             className={cn(
-              "relative inline-flex h-12 shrink-0 items-center gap-1.5 px-2 text-sm transition-colors duration-150 ease-[var(--ease-ui)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50",
-              active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+              "relative inline-flex h-12 shrink-0 items-center gap-1.5 px-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--brand-green)]",
+              active ? "font-medium text-foreground" : "text-muted-foreground hover:text-foreground"
             )}
           >
             {tab.label}
             <TabCount tabs={tabs} id={tab.id} />
-            {active ? <span aria-hidden className="absolute inset-x-1 bottom-0 h-px bg-brand-green" /> : null}
+            {active ? <span aria-hidden className="absolute inset-x-1 bottom-0 h-0.5 bg-[var(--brand-green)]" /> : null}
           </button>
         );
       })}

@@ -55,7 +55,7 @@ export function ManageSettings({
           ) : data.managers.length === 0 ? (
             <p className="text-sm text-muted-foreground">No extra managers yet.</p>
           ) : (
-            <ul aria-label="Extra managers" className="-my-2 divide-y divide-line">
+            <ul aria-label="Extra managers" className="-my-2 divide-y divide-border">
               {data.managers.map((row) => {
                 const label = hubLabel(row.user);
                 return (

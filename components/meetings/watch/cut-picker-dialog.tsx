@@ -26,7 +26,7 @@ const FILTERS: ReadonlyArray<{ value: CutFilter; label: string }> = [
   { value: "initial", label: "Initial" },
   { value: "final", label: "Final" }
 ];
-const FOCUS = "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30";
+const FOCUS = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-green)]";
 /** Side padding shared by every band of the dialog, so their edges line up. */
 const BAND = "px-4 sm:px-6";
 
@@ -48,14 +48,14 @@ function VersionChip({
       onClick={onSelect}
       onDoubleClick={onStart}
       className={cn(
-        "inline-flex h-10 items-center gap-1.5 rounded-md border px-2.5 font-mono text-xs tabular-nums transition-colors duration-150 ease-[var(--ease-ui)] sm:h-8",
+        "inline-flex h-10 items-center gap-1.5 rounded-md border px-2.5 font-mono text-xs tabular-nums transition-colors sm:h-8",
         selected
-          ? "border-brand-green bg-brand-tint text-foreground"
-          : "border-line-strong bg-secondary text-foreground hover:bg-[var(--ink-3)]",
+          ? "border-transparent bg-primary text-primary-foreground"
+          : "border-border text-foreground hover:bg-[var(--ink-3)]",
         FOCUS
       )}
     >
-      <span className="font-medium">v{version.versionNumber}</span>
+      <span className="font-semibold">v{version.versionNumber}</span>
       {version.durationSeconds ? <span>· {formatWatchTime(version.durationSeconds)}</span> : null}
       {version.approved ? <Check className="h-3.5 w-3.5" aria-label="approved" /> : null}
     </button>
@@ -78,9 +78,9 @@ function GroupCard({
 }) {
   const kinds: MeetingCutKind[] = filter === "all" ? ["initial", "final"] : [filter];
   return (
-    <li className="flex min-w-0 flex-col gap-3 rounded-lg border border-line-strong bg-card p-4">
+    <li className="flex min-w-0 flex-col gap-3 rounded-md border border-border p-4">
       <div className="min-w-0">
-        <p className="truncate text-[15px] font-medium tracking-[-0.01em] text-foreground">{group.topic}</p>
+        <p className="truncate text-sm font-semibold text-foreground">{group.topic}</p>
         {group.members.length ? <p className="truncate text-xs text-muted-foreground">{group.members.join(", ")}</p> : null}
       </div>
       <div className="grid gap-2">
@@ -88,7 +88,7 @@ function GroupCard({
           const versions = group[kind];
           return (
             <div key={kind} className="grid grid-cols-[56px_minmax(0,1fr)] items-start gap-2">
-              <span className="flex h-10 items-center text-xs font-medium text-muted-foreground sm:h-8">
+              <span className="flex h-10 items-center text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground sm:h-8">
                 {KIND_LABEL[kind]}
               </span>
               {versions.length ? (
@@ -122,7 +122,7 @@ function CardsSkeleton() {
     <LoadingRegion label="Loading the package cuts">
       <div aria-hidden className="grid gap-3 md:grid-cols-2">
         {Array.from({ length: 6 }, (_, index) => (
-          <div key={index} className="space-y-3 rounded-lg border border-line-strong bg-card p-4">
+          <div key={index} className="space-y-3 rounded-md border border-border p-4">
             <Skeleton className="h-4 w-2/3" />
             <Skeleton className="h-3 w-1/2" />
             <div className="flex gap-1.5 pt-1">
@@ -273,7 +273,7 @@ export function CutPickerDialog({
 
         <div
           className={cn(
-            "flex shrink-0 flex-col gap-3 border-t border-line py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-between",
+            "flex shrink-0 flex-col gap-3 border-t border-border py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-between",
             BAND
           )}
         >

@@ -54,7 +54,7 @@ const APPROVAL_STAGES = [
 
 const [PITCHING, BRAINSTORMING, A_ROLL, STAGE_1, STAGE_2, STAGE_3, FINAL_CUT] = STAGES;
 
-const LINK = "text-brand-green underline-offset-4 transition-colors duration-150 ease-[var(--ease-ui)] hover:underline";
+const LINK = "text-[var(--brand-green)] underline-offset-2 hover:underline";
 /**
  * Prose spans its panel, so text, callouts and rows share the card's right edge. Lines stay
  * readable because the panels sit two across only from xl (where each column still holds a
@@ -114,13 +114,13 @@ const PLAIN_ROW = "grid-cols-1 md:grid-cols-[calc(14rem+1.25rem)_minmax(0,1fr)] 
  */
 function GuideList({ rows, numbered = false }: { rows: GuideRow[]; numbered?: boolean }) {
   return (
-    <ol className="divide-y divide-line">
+    <ol className="divide-y divide-border">
       {rows.map((row) => (
         <li key={row.key} className={`grid gap-x-3 gap-y-1 py-4 first:pt-0 last:pb-0 ${numbered ? NUMBERED_ROW : PLAIN_ROW}`}>
           {numbered ? (
-            <span className="font-mono text-xs leading-6 tabular-nums text-muted-foreground">{row.marker}</span>
+            <span className="font-mono-broadcast text-xs leading-6 tabular-nums text-muted-foreground">{row.marker}</span>
           ) : null}
-          <h3 className="text-sm font-medium leading-6 text-foreground">{row.title}</h3>
+          <h3 className="text-sm font-semibold leading-6 text-foreground">{row.title}</h3>
           <div className={numbered ? `${NUMBERED_TEXT} ${PROSE}` : PROSE}>
             {row.body}
           </div>

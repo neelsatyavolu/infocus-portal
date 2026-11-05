@@ -17,7 +17,7 @@ export default function PublicationEmbed({ code }: { code: string }) {
         readOnly
         value={code}
         onFocus={(event) => event.currentTarget.select()}
-        className="min-h-28 w-full resize-y rounded-md border border-input bg-card p-3 font-mono text-[13px] leading-relaxed text-[var(--ink-text)] transition-[border-color,box-shadow] duration-150 ease-[var(--ease-ui)] focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30"
+        className="min-h-28 w-full resize-y rounded-md border border-input bg-background p-3 font-mono-broadcast text-xs leading-relaxed text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       />
       <Button
         type="button"

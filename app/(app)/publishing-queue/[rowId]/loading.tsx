@@ -9,7 +9,7 @@ export default function PublicationLoading() {
   return (
     <LoadingRegion label="Loading the package" className="space-y-5">
       <PageHeaderSkeleton actions={1} />
-      <div aria-hidden className="flex min-w-0 items-center gap-4 rounded-lg border border-line-strong bg-card p-4 md:p-5">
+      <div aria-hidden className="flex min-w-0 items-center gap-4 rounded-md border border-border bg-card p-4 md:p-5">
         <Skeleton className="h-10 w-10 shrink-0 rounded-md" />
         <Skeleton className="h-4 w-72 max-w-full" />
       </div>

@@ -51,21 +51,21 @@ function GroupTileBase({
   return (
     <article
       className={cn(
-        "relative flex h-full min-w-0 flex-col gap-3 rounded-lg border p-4 transition-colors duration-150 ease-[var(--ease-ui)] hover:bg-[var(--ink-3)]/40",
+        "relative flex h-full min-w-0 flex-col gap-3 rounded-md border p-4 transition-colors hover:bg-[var(--ink-3)]/40",
         view.attention === "waiting" ? "bg-transparent" : "bg-card",
         view.attention === "needed"
           ? "border-[var(--brand-green)]/55 hover:border-[var(--brand-green)]/80"
-          : "border-line-strong hover:border-[var(--brand-green)]/45"
+          : "border-border hover:border-[var(--brand-green)]/45"
       )}
     >
       <div className="min-w-0">
         <div className="flex min-w-0 items-baseline gap-3">
-          <h3 className="min-w-0 flex-1 truncate text-[15px] font-medium leading-5 tracking-[-0.01em] text-foreground" title={view.topic}>
+          <h3 className="min-w-0 flex-1 truncate text-[15px] font-semibold leading-5 text-foreground" title={view.topic}>
             {view.href ? (
               <Link
                 href={view.href as never}
                 data-group-tile=""
-                className="after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-[var(--brand-green)]"
+                className="after:absolute after:inset-0 after:rounded-md focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-[var(--brand-green)]"
               >
                 {view.topic}
               </Link>
@@ -75,7 +75,7 @@ function GroupTileBase({
           </h3>
           <span
             title="Pending stage"
-            className="shrink-0 text-xs font-medium leading-5 text-foreground"
+            className="shrink-0 text-[11px] font-medium uppercase leading-5 tracking-[0.11em] text-foreground"
           >
             {view.pendingLabel}
           </span>

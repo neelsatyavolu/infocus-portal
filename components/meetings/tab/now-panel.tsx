@@ -41,8 +41,9 @@ export const NowPanel = memo(function NowPanel({
       count={meetings.length}
       padding="none"
       tone="brand"
+      className="bg-[var(--brand-green)]/[0.06]"
     >
-      <ul className="divide-y divide-line">
+      <ul className="divide-y divide-border">
         {meetings.map((meeting, index) => {
           const live = meeting.status === "LIVE";
           return (

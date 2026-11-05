@@ -59,10 +59,10 @@ export const HostSettingsSection = forwardRef<
 
   return (
     <section ref={ref} tabIndex={-1} aria-labelledby="host-settings-title" className="scroll-mt-4 outline-none">
-      <h3 id="host-settings-title" className="text-[13px] font-medium text-muted-foreground">
+      <h3 id="host-settings-title" className="text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">
         Host settings
       </h3>
-      <div className="mt-1 divide-y divide-line border-b border-line">
+      <div className="mt-1 divide-y divide-border border-b border-border">
         <SettingRow
           id="host-quick-access"
           label="Quick access"

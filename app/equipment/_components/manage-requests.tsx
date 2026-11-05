@@ -53,7 +53,7 @@ function RequestStateTag({ request }: { request: RequestRow }) {
   );
 }
 
-/** Approve / Deny for one request (the one accent in the view is Approve). */
+/** Approve / Deny for one request (the one primary in the view is Approve). */
 function DecisionButtons({
   request,
   busy,
@@ -71,7 +71,7 @@ function DecisionButtons({
         </Button>
       ) : null}
       {canApprove(request) ? (
-        <Button type="button" variant="accent" disabled={busy} onClick={() => onDecide(request.id, "approve")}>
+        <Button type="button" disabled={busy} onClick={() => onDecide(request.id, "approve")}>
           Approve
         </Button>
       ) : null}
@@ -131,7 +131,7 @@ function RequestDetail({
           <SectionLabel as="h3" className="mb-2">
             {itemCountLabel(request.items.length)}
           </SectionLabel>
-          <ul aria-label="Requested items" className="divide-y divide-line overflow-hidden rounded-lg border border-line-strong">
+          <ul aria-label="Requested items" className="divide-y divide-border overflow-hidden rounded-md border border-border">
             {request.items.map((entry) => {
               const style = ITEM_STATE[itemStatus(entry.item)];
               return (
@@ -211,7 +211,7 @@ export function ManageRequests({
   // With nothing to list, one full-width card (no empty detail column beside it).
   const empty =
     shown.length === 0 ? (
-      <div className="rounded-lg border border-line-strong bg-card">
+      <div className="rounded-md border border-border bg-card">
         {filter === "pending" ? (
           <EmptyState
             icon={Inbox}

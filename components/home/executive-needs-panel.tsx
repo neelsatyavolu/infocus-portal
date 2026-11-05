@@ -65,7 +65,7 @@ export function ExecutiveNeedsPanel({
     <Panel id="home-needs" title="Needs you" titleAs="h2" count={needs.length} padding="none" className={className}>
       {missing ? <InlineError className="px-4 pt-3 md:px-5">{`Couldn't load ${missing}. Reload the page to try again.`}</InlineError> : null}
       {needs.length > 0 ? (
-        <ul aria-label="Needs you" className="divide-y divide-line">
+        <ul aria-label="Needs you" className="divide-y divide-border">
           {needs.map((item) => {
             const urgency = needUrgency(item, now);
             return (

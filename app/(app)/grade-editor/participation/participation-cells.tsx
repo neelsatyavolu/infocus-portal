@@ -48,7 +48,7 @@ export function ScoreInput({
         aria-label={states ? `${label} (${states})` : label}
         title={title}
         className={cn(
-          "rounded-md border bg-card px-1 text-center font-mono-broadcast tabular-nums text-foreground transition-colors duration-150 ease-[var(--ease-ui)] focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30",
+          "rounded-md border bg-transparent px-1 text-center font-mono-broadcast tabular-nums text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           // No spin buttons: they eat the narrow field and push the digits off-centre on hover.
           "[appearance:textfield] [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none",
           size === "touch" ? "h-10 w-16 text-base" : "h-8 w-14 text-sm pointer-coarse:h-10 pointer-coarse:text-base",

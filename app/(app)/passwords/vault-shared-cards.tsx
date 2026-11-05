@@ -36,13 +36,13 @@ export function VaultSharedCards({
       {filters.visible.length ? (
         <CardGrid minItemWidth={CARD_MIN_WIDTH}>
           {filters.visible.map((entry) => (
-            <article key={entry.id} className="min-w-0 rounded-lg border border-line-strong bg-card">
+            <article key={entry.id} className="min-w-0 rounded-md border border-border bg-card">
               <VaultEntryDetail entry={entry} access="shared" variant="card" version={version} onAnnounce={onAnnounce} />
             </article>
           ))}
         </CardGrid>
       ) : (
-        <div className="rounded-lg border border-line-strong bg-card">
+        <div className="rounded-md border border-border bg-card">
           <EmptyState
             icon={SearchX}
             title={`No logins match “${q}”`}

@@ -31,7 +31,7 @@ export function MeetingInvitedPanel({ meeting, canEdit }: { meeting: MeetingDeta
   return (
     <Panel id="meeting-invited" title="Invited" titleAs="h2" count={meeting.invitees.length}>
       {meeting.invitees.length > 0 ? (
-        <ul className="divide-y divide-line">
+        <ul className="divide-y divide-border">
           {meeting.invitees.map((person) => (
             <li key={person.id} className="truncate py-2 text-sm text-foreground first:pt-0 last:pb-0">
               {person.name}

@@ -42,11 +42,11 @@ function VoiceIsolationEngineNote() {
   );
 }
 
-/** A small section heading, then the section's fields 16px apart (the same recipe in the dialog and the pre-join popover). */
+/** A caps label, then the section's fields 16px apart (the same recipe in the dialog and the pre-join popover). */
 export function SettingsSection({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section aria-label={title} className="grid content-start gap-4">
-      <h3 className="border-b border-line pb-2 text-[13px] font-medium leading-none text-muted-foreground">
+      <h3 className="border-b border-[var(--ink-4)] pb-2 text-[11px] font-medium uppercase leading-none tracking-[0.11em] text-muted-foreground">
         {title}
       </h3>
       {children}
@@ -83,7 +83,7 @@ export function AudioSettings({ media, showMeter = true }: { media: LocalMedia; 
       <DevicePicker label="Microphone" kind="mic" device={media.mic} />
       <SpeakerPicker value={media.speakerId} onChange={media.setSpeakerId} />
       {showMeter ? (
-        <div className="flex min-h-9 items-center gap-3 rounded-md border border-line-strong bg-card px-3 text-xs text-muted-foreground">
+        <div className="flex min-h-9 items-center gap-3 rounded-md bg-[var(--ink-3)] px-3 text-xs text-muted-foreground">
           <LevelMeter track={micTrack} />
           <span>{micTestLabel(media.audioOn)}</span>
         </div>
@@ -112,7 +112,7 @@ function CameraPreview({ media }: { media: LocalMedia }) {
   const camera$ = useMemo(() => (show ? media.camera.localMonitorTrack$ : NEVER), [show, media.camera]);
   const track = useObservableTrack(camera$);
   return (
-    <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-line-strong bg-card">
+    <div className="relative aspect-video w-full overflow-hidden rounded-md bg-[var(--ink-3)]">
       {show && track ? (
         <VideoView track={track} mirror={media.settings.mirror} />
       ) : (

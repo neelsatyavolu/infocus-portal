@@ -132,7 +132,7 @@ export function SchoolYearsPanel({
         description="Shows run Wednesday and Friday from the first show to the last day of school, except in second semester before its first show (S2 first show). PA runs on Mondays. Nothing is scheduled over the summer."
       />
 
-      <div aria-hidden="true" className={cn(YEAR_GRID, "hidden border-t border-line px-4 py-2 @4xl:grid md:px-5")}>
+      <div aria-hidden="true" className={cn(YEAR_GRID, "hidden border-t border-border px-4 py-2 @4xl:grid md:px-5")}>
         <span className={COLUMN_LABEL_CLASS}>Year</span>
         {FIELDS.map((field) => (
           <span key={field.key} className={COLUMN_LABEL_CLASS}>
@@ -142,7 +142,7 @@ export function SchoolYearsPanel({
         <span />
       </div>
 
-      <ul aria-label="School years" className="divide-y divide-line border-t border-line">
+      <ul aria-label="School years" className="divide-y divide-border border-t border-border">
         {years.map((year, index) => {
           const title = yearTitle(year);
           return (
@@ -186,7 +186,7 @@ export function SchoolYearsPanel({
         })}
       </ul>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-4 py-3 md:px-5">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-3 md:px-5">
         <Button type="button" variant="outline" onClick={addYear} className="max-sm:w-full">
           <Plus aria-hidden="true" />
           Add a school year

@@ -10,7 +10,7 @@ export const PANE_HEADER_HEIGHT = "h-14";
 /** Sticky panes sit right under the host's sticky top bar (AppShell or TeleprompterShell). */
 export const STICKY_TOP = "top-[var(--app-header-h,0px)]";
 
-/** A pane title bar: muted sentence-case label, optional mono count, right-aligned actions. */
+/** A pane title bar: caps label, optional mono count, right-aligned actions. */
 export function PaneHeader({
   label,
   count,
@@ -23,11 +23,11 @@ export function PaneHeader({
   className?: string;
 }) {
   return (
-    <div className={cn("flex shrink-0 items-center gap-2 border-b border-line px-3", PANE_HEADER_HEIGHT, className)}>
-      <p className="flex min-w-0 flex-1 items-baseline gap-2 text-[13px] font-medium text-muted-foreground">
+    <div className={cn("flex shrink-0 items-center gap-2 border-b border-border px-3", PANE_HEADER_HEIGHT, className)}>
+      <p className="flex min-w-0 flex-1 items-baseline gap-2 text-[11px] font-medium uppercase tracking-[0.11em] text-muted-foreground">
         <span className="truncate">{label}</span>
         {count !== undefined ? (
-          <span className="font-mono-broadcast text-xs tabular-nums text-[var(--ink-text)]">{count}</span>
+          <span className="font-mono-broadcast text-xs normal-case tracking-normal tabular-nums text-[var(--ink-text)]">{count}</span>
         ) : null}
       </p>
       {actions ? <div className="flex shrink-0 items-center gap-1">{actions}</div> : null}

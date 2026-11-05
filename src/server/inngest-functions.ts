@@ -15,6 +15,7 @@ import { discoverYoutubePublications, publishYoutubePackage } from "@/src/server
 import { runPackageReviewReminders } from "@/src/server/package-review-reminders";
 import { runShowRolesConfirmReminders } from "@/src/server/show-roles-confirm";
 import { runShowEditReminders } from "@/src/server/show-editor-notify";
+import { runAnchorReminders } from "@/src/server/anchor-reminders";
 import { birthdayCardNames } from "@/src/lib/birthday-slack";
 import { findTodaysBirthdays, postBirthdayGif } from "@/src/server/birthday-slack";
 import { renderBirthdayGif } from "@/src/server/birthday-slack-gif";
@@ -411,6 +412,34 @@ export const showEditReminderDaily = inngest.createFunction(
   }
 );
 
+/** 21:00 Pacific: remind each anchor of a show filmed tomorrow. */
+export const anchorRemindersNightBefore = inngest.createFunction(
+  {
+    id: "anchor-reminders-night-before",
+    concurrency: 1
+  },
+  {
+    cron: "TZ=America/Los_Angeles 0 21 * * *"
+  },
+  async () => {
+    return runAnchorReminders("night-before");
+  }
+);
+
+/** 08:00 Pacific: remind each anchor of a show filmed today. */
+export const anchorRemindersMorningOf = inngest.createFunction(
+  {
+    id: "anchor-reminders-morning-of",
+    concurrency: 1
+  },
+  {
+    cron: "TZ=America/Los_Angeles 0 8 * * *"
+  },
+  async () => {
+    return runAnchorReminders("morning-of");
+  }
+);
+
 /** 19:00 Pacific Monday, Wednesday and Friday: the Class Board standings in Slack. The event posts one now (for testing). */
 export const classBoardSlackStandings = inngest.createFunction(
   {
@@ -552,6 +581,8 @@ export const inngestFunctions = [
   packageReviewRemindersHourly,
   showRolesConfirmReminders,
   showEditReminderDaily,
+  anchorRemindersNightBefore,
+  anchorRemindersMorningOf,
   classBoardSlackStandings,
   thanksgivingSlackStandings,
   birthdaySlackDaily,

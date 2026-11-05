@@ -45,6 +45,7 @@ Browser push goes only to devices registered with **Browser** on in Settings →
 | Stage 2 approves | Executive producers and super admin, not the adviser (Stage 3) | Email and push |
 | Final Cut uploaded | Assigned producer and every Final Cut grader | Email and push |
 | Stage unreviewed for 12 hours | That stage's reviewers | Email and push (see below) |
+| Anchoring a show: 9 PM the night before it's filmed, and 8 AM on the filming day (1st period on the school day before it airs) | Each anchor listed on The Show for that date | Email and app push, linking to The Show |
 | Executive grants an extension | The other executives, adviser, and super admin | Email |
 | Extension approved | Each chosen student | Email |
 | Participation dock submitted | Executives, the adviser, and super admin (not the requester) | Email |

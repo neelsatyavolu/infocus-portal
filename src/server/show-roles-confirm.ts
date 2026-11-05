@@ -15,7 +15,7 @@ import { loadScheduleOverrides } from "@/src/server/show-schedule";
 import { findShowManagerEmail, resolveShowManagers } from "@/src/server/show-manager";
 import { ROLES } from "@/src/show-roles/lib/constants";
 
-async function loadShowRoleLines(dateKey: string) {
+async function loadShowRoles(dateKey: string) {
   const [entry, show] = await Promise.all([
     prisma.masterCalendarEntry.findUnique({ where: { date: dateKey }, select: { content: true } }),
     prisma.showRolesShow.findUnique({ where: { date: dateKey }, select: { assignments: true, anchors: true } })
@@ -29,7 +29,16 @@ async function loadShowRoleLines(dateKey: string) {
   const storedAnchors = Array.isArray(show?.anchors)
     ? show.anchors.filter((name): name is string => typeof name === "string" && name.length > 0)
     : [];
-  const anchors = calendarAnchors.length > 0 ? calendarAnchors : storedAnchors;
+  return { assignments, anchors: calendarAnchors.length > 0 ? calendarAnchors : storedAnchors };
+}
+
+/** The show's anchors as The Show lists them (display names). */
+export async function loadShowAnchorNames(dateKey: string) {
+  return (await loadShowRoles(dateKey)).anchors;
+}
+
+async function loadShowRoleLines(dateKey: string) {
+  const { assignments, anchors } = await loadShowRoles(dateKey);
   return [
     `Anchors: ${anchors.join(", ") || "not set"}`,
     ...ROLES.map((role) => `${role}: ${assignments[role] || "not set"}`)

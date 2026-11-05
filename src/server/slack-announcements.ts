@@ -7,6 +7,7 @@ import {
   serializeSlackAnnouncement,
   type SlackAnnouncementItem
 } from "@/src/lib/slack-announcements";
+import { readEdgeJson, writeEdgeJson } from "@/src/server/edge-json-cache";
 import { ensureSlackChannelJoined, loadSlackChannelHistory } from "@/src/server/slack-history";
 
 type SlackUserInfo = {
@@ -24,14 +25,18 @@ type SlackUserInfo = {
   };
 };
 
-let announcementCache: {
+type AnnouncementSnapshot = {
   at: number;
   configured: boolean;
   items: SlackAnnouncementItem[];
   error: string | null;
-} | null = null;
+};
+
+let announcementCache: AnnouncementSnapshot | null = null;
 
 const ANNOUNCEMENT_CACHE_MS = 20_000;
+/** Successful loads only, shared across Worker isolates (src/server/edge-json-cache.ts). */
+const ANNOUNCEMENT_EDGE_KEY = "slack-announcements";
 
 function displayName(user: NonNullable<SlackUserInfo["user"]>) {
   const profile = user.profile;
@@ -94,12 +99,16 @@ export async function loadSlackAnnouncements(options?: { refresh?: boolean }): P
   items: SlackAnnouncementItem[];
   error: string | null;
 }> {
-  if (
-    !options?.refresh &&
-    announcementCache &&
-    Date.now() - announcementCache.at < ANNOUNCEMENT_CACHE_MS
-  ) {
-    return announcementCache;
+  if (!options?.refresh) {
+    if (announcementCache && Date.now() - announcementCache.at < ANNOUNCEMENT_CACHE_MS) {
+      return announcementCache;
+    }
+    // Another isolate may have loaded them moments ago; Slack takes a few hundred ms per page view.
+    const shared = await readEdgeJson<AnnouncementSnapshot>(ANNOUNCEMENT_EDGE_KEY);
+    if (shared && Date.now() - shared.at < ANNOUNCEMENT_CACHE_MS) {
+      announcementCache = shared;
+      return shared;
+    }
   }
 
   const token = slackBotToken();
@@ -133,6 +142,7 @@ export async function loadSlackAnnouncements(options?: { refresh?: boolean }): P
 
     const next = { configured: true, items, error: null, at: Date.now() };
     announcementCache = next;
+    await writeEdgeJson(ANNOUNCEMENT_EDGE_KEY, next, ANNOUNCEMENT_CACHE_MS / 1000);
     return next;
   } catch (error) {
     console.error("slack announcements load failed", error);

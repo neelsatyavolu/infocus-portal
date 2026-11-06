@@ -3,6 +3,7 @@ import {
   classifyStreams,
   durationSeconds,
   isPublicShowVideo,
+  isShowCopy,
   mergeUpcoming,
   publicAnnouncements,
   seasonPlaylists,
@@ -101,6 +102,26 @@ describe("shows", () => {
       "Apply at [https://example.org/apply] by Monday.",
       "[Otto]"
     ])).toEqual(["Club Fair is Thursday.", "Blood drive Friday.", "Apply at https://example.org/apply by Monday."]);
+  });
+});
+
+describe("isShowCopy", () => {
+  const copy = (title: string, overrides: Partial<YoutubeVideo> = {}): YoutubeVideo => ({
+    id: "v1", snippet: { title }, status: { privacyStatus: "private", uploadStatus: "uploaded" }, ...overrides
+  });
+
+  it("matches any upload titled with the show's date, scheduled or private included", () => {
+    expect(isShowCopy(copy("InFocus News | Thursday, November 5th, 2026"), "2026-11-05")).toBe(true);
+    expect(isShowCopy(copy("InFocus Show November 5, 2026"), "2026-11-05")).toBe(true);
+    expect(isShowCopy(copy("InFocus News | Wednesday, November 4th, 2026"), "2026-11-05")).toBe(false);
+    expect(isShowCopy(copy("Homecoming spirit week"), "2026-11-05")).toBe(false);
+  });
+
+  it("ignores livestreams and failed or deleted uploads", () => {
+    const title = "InFocus News | Thursday, November 5th, 2026";
+    expect(isShowCopy(copy(title, { liveStreamingDetails: { scheduledStartTime: "2026-11-05T15:00:00Z" } }), "2026-11-05")).toBe(false);
+    expect(isShowCopy(copy(title, { status: { uploadStatus: "rejected" } }), "2026-11-05")).toBe(false);
+    expect(isShowCopy(copy(title, { status: { uploadStatus: "deleted" } }), "2026-11-05")).toBe(false);
   });
 });
 

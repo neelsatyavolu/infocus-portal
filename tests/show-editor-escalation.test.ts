@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("pg", () => ({ Client: class {} }));
 
 import {
-  escalationOf, escalationStep, isAutoStarted, portalChecks, publishSlotNotBefore, reviewDeadline, withEscalation
+  autoStartFallbackDue, escalationOf, escalationStep, isAutoStarted, portalChecks, publishSlotNotBefore, reviewDeadline, withEscalation
 } from "@/src/lib/show-editor-escalation";
 import { showEditTickWindow } from "@/src/lib/show-editor-tick-precheck";
 
@@ -104,6 +104,17 @@ describe("publishSlotNotBefore", () => {
   it("is the Pacific date and HH:MM, rounded up to the minute", () => {
     expect(publishSlotNotBefore(at("2026-10-23T15:20:30Z"))).toEqual({ publishDate: SHOW, publishTime: "08:21" });
     expect(publishSlotNotBefore(at("2026-10-24T06:50:00Z"))).toEqual({ publishDate: SHOW, publishTime: "23:50" });
+  });
+});
+
+describe("autoStartFallbackDue", () => {
+  it("is from 3:00 AM until the 8:00 AM deadline (Pacific) on show day", () => {
+    expect(autoStartFallbackDue(SHOW, at("2026-10-23T09:59:00Z"))).toBe(false);
+    expect(autoStartFallbackDue(SHOW, at("2026-10-23T10:00:00Z"))).toBe(true);
+    expect(autoStartFallbackDue(SHOW, at("2026-10-23T14:59:00Z"))).toBe(true);
+    expect(autoStartFallbackDue(SHOW, at("2026-10-23T15:00:00Z"))).toBe(false);
+    // The evening before is never in it.
+    expect(autoStartFallbackDue(SHOW, at("2026-10-23T04:00:00Z"))).toBe(false);
   });
 });
 

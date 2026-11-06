@@ -7,7 +7,8 @@ const mocks = vi.hoisted(() => ({
   user: vi.fn(), users: vi.fn(),
   recordings: vi.fn(),
   managers: vi.fn(), managerEmail: vi.fn(),
-  email: vi.fn(), push: vi.fn(), roles: vi.fn()
+  email: vi.fn(), push: vi.fn(), roles: vi.fn(),
+  youtubeCopy: vi.fn()
 }));
 
 vi.mock("@/src/lib/prisma", () => ({ prisma: {
@@ -22,8 +23,10 @@ vi.mock("@/src/server/show-schedule", () => ({ loadScheduleOverrides: async () =
 vi.mock("@/src/server/show-manager", () => ({ resolveShowManagers: mocks.managers, findShowManagerEmail: mocks.managerEmail }));
 vi.mock("@/src/lib/email", () => ({ sendBrandedEmails: mocks.email }));
 vi.mock("@/src/server/push-notify", () => ({ sendPushToUserIds: mocks.push }));
+vi.mock("@/src/server/show-youtube-copy", () => ({ showCopyOnYoutube: mocks.youtubeCopy }));
 
 import { nextUpcomingShowDate } from "@/src/lib/show-assignment";
+import { showPublishAt } from "@/src/lib/show-publication";
 import {
   notifyShowEdit, notifyShowEditEscalation, runShowEditAutoStart, runShowEditReminders, shortShowDate
 } from "@/src/server/show-editor-notify";
@@ -63,6 +66,7 @@ describe("show editor notifications and auto-start", () => {
     mocks.email.mockResolvedValue({ configured: true, sent: 2, failed: 0 });
     mocks.push.mockResolvedValue({ sent: 1, failed: 0 });
     mocks.roles.mockResolvedValue([]);
+    mocks.youtubeCopy.mockResolvedValue(false);
   });
 
   it("auto-start creates one job from every settled file named after the show, all on Auto", async () => {
@@ -105,6 +109,52 @@ describe("show editor notifications and auto-start", () => {
   it("auto-start skips a show already sent to YouTube", async () => {
     mocks.publication.mockResolvedValue({ status: "SCHEDULED" });
     await runShowEditAutoStart(NOW);
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+
+  it("auto-start skips a show someone uploaded to YouTube outside the Portal", async () => {
+    mocks.youtubeCopy.mockResolvedValue(true);
+    await runShowEditAutoStart(NOW);
+    expect(mocks.youtubeCopy).toHaveBeenCalledWith(NEXT_SHOW);
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+
+  it("with auto-start off, starts a show nobody edited only from 3 AM on show day", async () => {
+    // The afternoon before: the recordings are ready, but the fallback waits.
+    await runShowEditAutoStart(NOW, false);
+    expect(mocks.create).not.toHaveBeenCalled();
+
+    const early = showPublishAt(NEXT_SHOW, "03:05");
+    mocks.create.mockResolvedValue({ id: "auto1" });
+    mocks.roles.mockResolvedValue([{ email: "otto@example.edu" }, { email: "adviser@example.edu" }]);
+    await runShowEditAutoStart(early, false);
+    expect(mocks.create).toHaveBeenCalledWith({ data: expect.objectContaining({
+      showDate: NEXT_SHOW, createdById: "manager-id", checks: { autoStarted: true },
+      sourcePaths: [{ path: `Shows/${SHOW_NAME}.mov`, role: "auto" }],
+      message: "Started automatically at 3 AM: nobody had edited the show."
+    }) });
+    // Every producer and adviser is told it's being edited and will upload by itself.
+    expect(mocks.email).toHaveBeenCalledTimes(1);
+    const notice = mocks.email.mock.calls[0][0];
+    expect(notice.recipients).toEqual(expect.arrayContaining(["otto@example.edu", "adviser@example.edu"]));
+    expect(notice.subject).toMatch(/^Nobody edited the .* show, so it's being edited and uploaded automatically$/);
+    expect(notice.paragraphs.join(" ")).toContain(`${SHOW_NAME}.mov`);
+    expect(notice.idempotencyKey).toBe("show-edit/auto1/fallback-start");
+  });
+
+  it("an edit started by the auto-start setting sends no 3 AM notice", async () => {
+    await runShowEditAutoStart(NOW);
+    expect(mocks.create).toHaveBeenCalledTimes(1);
+    expect(mocks.email).not.toHaveBeenCalled();
+  });
+
+  it("the 3 AM fallback leaves a show alone that was edited or is already on YouTube", async () => {
+    const early = showPublishAt(NEXT_SHOW, "04:00");
+    mocks.jobs.mockResolvedValue([{ id: "mine", status: "REVIEW" }]);
+    await runShowEditAutoStart(early, false);
+    mocks.jobs.mockResolvedValue([]);
+    mocks.youtubeCopy.mockResolvedValue(true);
+    await runShowEditAutoStart(early, false);
     expect(mocks.create).not.toHaveBeenCalled();
   });
 

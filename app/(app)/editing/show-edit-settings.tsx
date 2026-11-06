@@ -90,7 +90,7 @@ export function EditorSettingsForm({ settings, busy, onSave }: {
     <div className="space-y-4">
       <SwitchRow
         id="show-editor-auto-start" label="Start editing by itself" disabled={busy} checked={settings.autoStart}
-        hint="When a new recording reaches the Shows folder on Drive, the edit of the next show starts without anyone pressing Start."
+        hint="When a new recording reaches the Shows folder on Drive, the edit of the next show starts without anyone pressing Start. Even when this is off, a show nobody has edited by 3 AM on show day starts by itself, unless it's already on YouTube."
         onChange={(value) => void onSave({ autoStart: value })}
       />
       <SwitchRow

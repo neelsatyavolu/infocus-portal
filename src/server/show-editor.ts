@@ -10,7 +10,7 @@ import {
 } from "@/src/lib/show-editor";
 import { showPublishAt } from "@/src/lib/show-publication";
 import { youtubeWatchUrl } from "@/src/lib/youtube-publication";
-import { portalChecks, publishSlotNotBefore } from "@/src/lib/show-editor-escalation";
+import { autoStartFallbackDue, portalChecks, publishSlotNotBefore } from "@/src/lib/show-editor-escalation";
 import {
   driveFileSize, editorDriveBaseUrl, listShowRecordings, mintEditorDownload, mintEditorUpload
 } from "@/src/server/show-editor-drive";
@@ -298,9 +298,10 @@ export async function recordHeartbeat(input: HeartbeatInput, now = new Date()): 
   const credentials = await deliverCredentials(deviceId, input.publicKey ?? device.publicKey, now);
   await applyCommandAcks(input.commandAcks ?? [], deviceId, now);
   const [settings, commands] = await Promise.all([loadEditorSettings(), takePendingCommands(deviceId, now)]);
-  if (settings.autoStart) {
+  // With auto-start off, only the 3–8 AM show-day fallback; Drive names which day is a show.
+  if (settings.autoStart || autoStartFallbackDue(pacificDateKey(now), now)) {
     try {
-      await runShowEditAutoStart(now);
+      await runShowEditAutoStart(now, settings.autoStart);
     } catch (error) {
       console.error("show editor: auto-start failed", error);
     }

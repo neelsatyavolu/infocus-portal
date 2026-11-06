@@ -37,6 +37,15 @@ export function reviewDeadline(showDate: string) {
   return showPublishAt(showDate, REVIEW_DEADLINE_TIME);
 }
 
+/** With auto-start off, a show nobody has started editing is started anyway from 3:00 AM Pacific on show day. */
+export const AUTO_START_FALLBACK_TIME = "03:00";
+
+/** From 3:00 AM until the 8:00 AM review deadline on show day: the window the fallback start runs in. */
+export function autoStartFallbackDue(showDate: string, now: Date) {
+  const at = now.getTime();
+  return at >= showPublishAt(showDate, AUTO_START_FALLBACK_TIME).getTime() && at < reviewDeadline(showDate).getTime();
+}
+
 /** This version's record; one for an earlier version doesn't count. */
 export function escalationOf(checks: unknown, version: number): ShowEditEscalation | null {
   const saved = recordOf(recordOf(checks).escalation);

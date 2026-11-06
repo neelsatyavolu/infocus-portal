@@ -9,7 +9,8 @@ import type { ShowEditDecision, ShowRecording } from "@/src/lib/show-editor";
 import { listShowRecordings } from "@/src/server/show-editor-drive";
 import { autoStartGroups, roleFromName, type AutoStartGroup } from "@/src/lib/show-editor-sources";
 import { editingHref } from "@/src/lib/show-editor-views";
-import { isAutoStarted } from "@/src/lib/show-editor-escalation";
+import { autoStartFallbackDue, isAutoStarted } from "@/src/lib/show-editor-escalation";
+import { showCopyOnYoutube } from "@/src/server/show-youtube-copy";
 import { findShowManagerEmail, resolveShowManagers } from "@/src/server/show-manager";
 import { loadScheduleOverrides } from "@/src/server/show-schedule";
 import { sendPushToUserIds } from "@/src/server/push-notify";
@@ -241,11 +242,13 @@ export function showEditAutoStartGroups(recordings: ShowRecording[], now = new D
 }
 
 /**
- * Auto-start on (setting, or SHOW_EDITOR_AUTO_START=1; called from the editors' heartbeats, at most every
- * 5 minutes): once every recording named after an upcoming show has settled on Drive, start that show's
- * edit with every file on Auto, unless the show already has an edit or was sent to YouTube.
+ * Called from the editors' heartbeats, at most every 5 minutes. With auto-start on (setting, or
+ * SHOW_EDITOR_AUTO_START=1): once every recording named after an upcoming show has settled on Drive, start
+ * that show's edit from them. With it off, only the fallback: from 3:00 to 8:00 AM on show day, a show nobody
+ * has started editing is started the same way. Either way never when the show already has an edit, was sent
+ * to YouTube from the Portal, or is on the channel some other way.
  */
-export async function runShowEditAutoStart(now: Date) {
+export async function runShowEditAutoStart(now: Date, autoStart = true) {
   // Several machines heartbeat; the settings row makes sure only one of them looks at Drive per 5 minutes.
   await prisma.showEditorSettings.upsert({ where: { id: "editor" }, update: {}, create: { id: "editor" } });
   const due = await prisma.showEditorSettings.updateMany({
@@ -255,12 +258,13 @@ export async function runShowEditAutoStart(now: Date) {
   if (due.count === 0) return;
 
   for (const group of showEditAutoStartGroups(await listShowRecordings(now), now)) {
-    if (!group.ready) continue;
+    if (!group.ready || (!autoStart && !autoStartFallbackDue(group.showDate, now))) continue;
     const [existing, publication] = await Promise.all([
       prisma.showEditJob.findMany({ where: { showDate: group.showDate }, select: { id: true, status: true } }),
       prisma.showPublication.findUnique({ where: { showDate: group.showDate } })
     ]);
     if (existing.length > 0 || (publication && publication.status !== "DRAFT")) continue;
+    if (await showCopyOnYoutube(group.showDate)) continue;
     const createdById = await autoStartUserId(group.showDate);
     if (!createdById) {
       console.error("show editor: auto-start has no show manager or adviser account", group.showDate);
@@ -268,12 +272,32 @@ export async function runShowEditAutoStart(now: Date) {
     }
     const sources = group.files.map((file) => ({ path: file.path, role: roleFromName(file.name) }));
     // createdById is the show manager's (or adviser's) account; autoStarted keeps the notices to the show manager.
-    await prisma.showEditJob.create({
+    const job = await prisma.showEditJob.create({
       data: {
-        showDate: group.showDate, sourcePaths: sources, createdById, message: "Started automatically when the recordings reached Drive.",
+        showDate: group.showDate, sourcePaths: sources, createdById,
+        message: autoStart ? "Started automatically when the recordings reached Drive." : "Started automatically at 3 AM: nobody had edited the show.",
         checks: { autoStarted: true }
       }
     });
+    if (!autoStart) await notifyFallbackStart(job.id, group.showDate, group.files.map((file) => file.name));
+  }
+}
+
+/** The 3 AM fallback started a show nobody had edited: every producer and adviser hears about it. Never throws. */
+async function notifyFallbackStart(jobId: string, showDate: string, fileNames: string[]) {
+  try {
+    const label = formatShowDateLabel(showDate);
+    const copy: Copy = {
+      subject: `Nobody edited the ${label} show, so it's being edited and uploaded automatically`,
+      heading: "Editing the show automatically",
+      lines: [
+        `Nobody had started editing the ${label} show by 3:00 AM, and it isn't on YouTube, so the Portal started an automatic edit from ${fileNames.join(", ")}.`,
+        "If nobody approves it by 8:00 AM, it's uploaded and scheduled on YouTube by itself. Open Editing to watch it once it's ready, then approve it or send it back."
+      ]
+    };
+    await deliver(await producerRecipients(), copy, showDate, `show-edit/${jobId}/fallback-start`);
+  } catch (error) {
+    console.error("show editor: fallback start notice failed", jobId, error);
   }
 }
 

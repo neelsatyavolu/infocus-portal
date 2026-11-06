@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  jobs: vi.fn(), updateMany: vi.fn(), publication: vi.fn(), schedule: vi.fn(), notify: vi.fn(), cron: vi.fn()
+  jobs: vi.fn(), updateMany: vi.fn(), publication: vi.fn(), schedule: vi.fn(), notify: vi.fn(), cron: vi.fn(),
+  youtubeCopy: vi.fn()
 }));
 
 vi.mock("@/src/lib/prisma", () => ({ prisma: {
@@ -14,10 +15,11 @@ vi.mock("@/src/server/show-editor", async (original) => ({
 }));
 vi.mock("@/src/server/show-editor-notify", () => ({ notifyShowEditEscalation: mocks.notify }));
 vi.mock("@/src/lib/cron-auth", () => ({ isCronRequest: mocks.cron }));
+vi.mock("@/src/server/show-youtube-copy", () => ({ showCopyOnYoutube: mocks.youtubeCopy }));
 
 import { POST } from "@/app/api/service/show-editor/tick/route";
 import { ShowEditError } from "@/src/server/show-editor";
-import { runShowEditEscalations } from "@/src/server/show-editor-escalation";
+import { ALREADY_ON_YOUTUBE, runShowEditEscalations } from "@/src/server/show-editor-escalation";
 
 // Friday 2026-10-23 airs; the 8:00 AM Pacific deadline is 15:00Z.
 const SHOW = "2026-10-23";
@@ -40,6 +42,18 @@ describe("approval escalation run", () => {
     mocks.publication.mockResolvedValue({ status: "DRAFT", nasPath: OUT });
     mocks.schedule.mockResolvedValue(new Date("2026-10-23T15:30:00Z"));
     mocks.notify.mockResolvedValue(undefined);
+    mocks.youtubeCopy.mockResolvedValue(false);
+  });
+
+  it("at 8 AM, never uploads a second copy of a show already on YouTube", async () => {
+    mocks.youtubeCopy.mockResolvedValue(true);
+    expect(await runShowEditEscalations(DEADLINE)).toEqual({ checked: 1, escalated: 0, scheduled: 0, failed: 0 });
+    expect(mocks.youtubeCopy).toHaveBeenCalledWith(SHOW);
+    expect(mocks.schedule).not.toHaveBeenCalled();
+    expect(mocks.updateMany).toHaveBeenCalledWith({
+      where: { id: "job1", status: "REVIEW", version: 1 },
+      data: { checks: { coversClean: true, escalation: { version: 1, producersAt: null, autoScheduledAt: null, autoScheduleError: ALREADY_ON_YOUTUBE } } }
+    });
   });
 
   it("looks at edits at Review for today's and tomorrow's show (Pacific)", async () => {

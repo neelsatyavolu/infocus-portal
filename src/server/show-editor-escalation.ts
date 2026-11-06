@@ -7,6 +7,9 @@ import {
 } from "@/src/lib/show-editor-escalation";
 import { isReviewedDraft, scheduleWithDefaults, ShowEditError } from "@/src/server/show-editor";
 import { notifyShowEditEscalation } from "@/src/server/show-editor-notify";
+import { showCopyOnYoutube } from "@/src/server/show-youtube-copy";
+
+export const ALREADY_ON_YOUTUBE = "The show is already on YouTube, so the edit wasn't uploaded again.";
 
 /**
  * Saves what was done in this version's `checks.escalation`, only while the job is still this version at
@@ -61,6 +64,9 @@ export async function runShowEditEscalations(now = new Date()) {
     if (!isReviewedDraft(job, publication)) continue;
     if (step === "escalate") {
       if (await escalate(job, now)) result.escalated += 1;
+    } else if (await showCopyOnYoutube(job.showDate)) {
+      // Someone uploaded the show outside the Portal: never post a second copy. Recorded so it's checked once.
+      await saveEscalation(job, { autoScheduleError: ALREADY_ON_YOUTUBE });
     } else if (await autoSchedule(job, now)) {
       result.scheduled += 1;
     } else {

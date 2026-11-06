@@ -89,6 +89,15 @@ function isPublic(video: YoutubeVideo) {
 }
 
 /** Public, finished uploads: scheduled, private, unlisted and still-processing videos stay hidden. */
+/**
+ * A copy of this show on the channel, uploaded through the Portal or not (scheduled and private ones count):
+ * a video whose title names the show's date, that isn't a livestream and hasn't failed or been deleted.
+ */
+export function isShowCopy(video: YoutubeVideo, showDate: string) {
+  if (video.liveStreamingDetails || ["failed", "rejected", "deleted"].includes(video.status?.uploadStatus ?? "")) return false;
+  return showDateFromTitle(video.snippet?.title ?? "") === showDate;
+}
+
 export function isPublicShowVideo(video: YoutubeVideo) {
   return isPublic(video) && video.status?.uploadStatus === "processed" && video.snippet?.liveBroadcastContent !== "upcoming";
 }

@@ -724,7 +724,25 @@ describe("show editor jobs", () => {
     mocks.job.findMany.mockResolvedValueOnce([]);
     mocks.autoStart.mockResolvedValue(undefined);
     await recordHeartbeat({ deviceId: "dev1", version: "0.1.0", busy: false, health: healthy }, NOW);
-    expect(mocks.autoStart).toHaveBeenCalledWith(NOW);
+    expect(mocks.autoStart).toHaveBeenCalledWith(NOW, true);
+  });
+
+  it("with auto-start off, heartbeat runs only the 3–8 AM show-day fallback", async () => {
+    mocks.settings.findUnique.mockResolvedValue({ autoStart: false, autoPublish: null, targetVersion: null, agentOrder: null, houseRules: null, updatedAt: NOW });
+    mocks.autoStart.mockResolvedValue(undefined);
+    // 4:00 AM Pacific (PDT) on Oct 21.
+    const early = new Date("2026-10-21T11:00:00Z");
+    mocks.job.findMany.mockResolvedValueOnce([]);
+    await recordHeartbeat({ deviceId: "dev1", version: "0.1.0", busy: false, health: healthy }, early);
+    expect(mocks.autoStart).toHaveBeenCalledWith(early, false);
+
+    mocks.autoStart.mockClear();
+    // 2:59 AM and 8:00 AM Pacific: outside the window.
+    for (const outside of [new Date("2026-10-21T09:59:00Z"), new Date("2026-10-21T15:00:00Z")]) {
+      mocks.job.findMany.mockResolvedValueOnce([]);
+      await recordHeartbeat({ deviceId: "dev1", version: "0.1.0", busy: false, health: healthy }, outside);
+    }
+    expect(mocks.autoStart).not.toHaveBeenCalled();
   });
 
   const machine = (overrides: Record<string, unknown>) => ({

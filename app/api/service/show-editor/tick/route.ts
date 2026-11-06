@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 /**
- * Approval escalation and the 8 AM auto-schedule (Bearer CRON_SECRET; public in middleware with the rest of
+ * Approval escalation and the 7 AM auto-schedule (Bearer CRON_SECRET; public in middleware with the rest of
  * /api/service/show-editor). Called in-process every minute by the Portal Worker's cron (worker.ts).
  */
 export async function POST(request: Request) {

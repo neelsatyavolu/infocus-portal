@@ -7,7 +7,7 @@ import {
 } from "@/src/lib/show-editor-escalation";
 import { showEditTickWindow } from "@/src/lib/show-editor-tick-precheck";
 
-// Friday 2026-10-23 airs; Pacific is UTC−7 (PDT), so the 8:00 AM deadline is 15:00Z.
+// Friday 2026-10-23 airs; Pacific is UTC−7 (PDT), so the 7:00 AM deadline is 14:00Z.
 const SHOW = "2026-10-23";
 const at = (iso: string) => new Date(iso);
 
@@ -18,8 +18,8 @@ function job(overrides: Record<string, unknown> = {}) {
 }
 
 describe("escalationStep", () => {
-  it("the deadline is 8:00 AM Pacific on show day", () => {
-    expect(reviewDeadline(SHOW).toISOString()).toBe("2026-10-23T15:00:00.000Z");
+  it("the deadline is 7:00 AM Pacific on show day", () => {
+    expect(reviewDeadline(SHOW).toISOString()).toBe("2026-10-23T14:00:00.000Z");
   });
 
   it("escalates an hour after it reached Review, even days before the show", () => {
@@ -43,10 +43,10 @@ describe("escalationStep", () => {
     expect(escalationStep(late, at("2026-10-23T07:00:00Z"))).toBe("escalate");
   });
 
-  it("finished after 7 AM on show day: no escalation, scheduled at 8:00", () => {
-    const morning = job({ finishedAt: at("2026-10-23T14:10:00Z") });
-    expect(escalationStep(morning, at("2026-10-23T14:59:00Z"))).toBe("none");
-    expect(escalationStep(morning, at("2026-10-23T15:00:00Z"))).toBe("auto-schedule");
+  it("finished after 6 AM on show day: no escalation, scheduled at 7:00", () => {
+    const morning = job({ finishedAt: at("2026-10-23T13:10:00Z") });
+    expect(escalationStep(morning, at("2026-10-23T13:59:00Z"))).toBe("none");
+    expect(escalationStep(morning, at("2026-10-23T14:00:00Z"))).toBe("auto-schedule");
   });
 
   it("already escalated: again an hour later; at the deadline it still auto-schedules, once", () => {
@@ -108,11 +108,11 @@ describe("publishSlotNotBefore", () => {
 });
 
 describe("autoStartFallbackDue", () => {
-  it("is from 3:00 AM until the 8:00 AM deadline (Pacific) on show day", () => {
+  it("is from 3:00 AM until the 7:00 AM deadline (Pacific) on show day", () => {
     expect(autoStartFallbackDue(SHOW, at("2026-10-23T09:59:00Z"))).toBe(false);
     expect(autoStartFallbackDue(SHOW, at("2026-10-23T10:00:00Z"))).toBe(true);
-    expect(autoStartFallbackDue(SHOW, at("2026-10-23T14:59:00Z"))).toBe(true);
-    expect(autoStartFallbackDue(SHOW, at("2026-10-23T15:00:00Z"))).toBe(false);
+    expect(autoStartFallbackDue(SHOW, at("2026-10-23T13:59:00Z"))).toBe(true);
+    expect(autoStartFallbackDue(SHOW, at("2026-10-23T14:00:00Z"))).toBe(false);
     // The evening before is never in it.
     expect(autoStartFallbackDue(SHOW, at("2026-10-23T04:00:00Z"))).toBe(false);
   });

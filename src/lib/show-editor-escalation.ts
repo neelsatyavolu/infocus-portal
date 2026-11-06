@@ -3,12 +3,12 @@ import { showPublishAt } from "@/src/lib/show-publication";
 
 /**
  * Approval at Review: an edit nobody has approved after an hour is escalated to every producer, again every
- * hour (never 2–6 AM Pacific) until someone acts, and at the deadline (8:00 AM Pacific on show day) it is
+ * hour (never 2–6 AM Pacific) until someone acts, and at the deadline (7:00 AM Pacific on show day) it is
  * scheduled with Upload show's defaults. What was sent lives in the job's `checks.escalation`, per version,
  * so a new version (after Send back) starts the clock again. Pure; the cron runs it (src/server/show-editor-escalation.ts).
  */
 
-export const REVIEW_DEADLINE_TIME = "08:00";
+export const REVIEW_DEADLINE_TIME = "07:00";
 export const ESCALATE_AFTER_MS = 60 * 60_000;
 /** No reminders from 2:00 to 6:00 AM Pacific. */
 const QUIET_FROM_HOUR = 2;
@@ -40,7 +40,7 @@ export function reviewDeadline(showDate: string) {
 /** With auto-start off, a show nobody has started editing is started anyway from 3:00 AM Pacific on show day. */
 export const AUTO_START_FALLBACK_TIME = "03:00";
 
-/** From 3:00 AM until the 8:00 AM review deadline on show day: the window the fallback start runs in. */
+/** From 3:00 AM until the 7:00 AM review deadline on show day: the window the fallback start runs in. */
 export function autoStartFallbackDue(showDate: string, now: Date) {
   const at = now.getTime();
   return at >= showPublishAt(showDate, AUTO_START_FALLBACK_TIME).getTime() && at < reviewDeadline(showDate).getTime();

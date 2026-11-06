@@ -12,7 +12,7 @@ Who can use it: associate producers and up. Everything happens on the **Editing*
 4. About 15 minutes later you get an email that it's ready. Watch it.
 5. Tick that the publish date and time are right, then press **Approve & schedule**, or **Send back** with what to change.
 
-If nobody starts an edit, the Portal starts one by itself at 3:00 AM on show day from the ticked recordings, unless the show is already on YouTube. If nobody approves the edit, it's scheduled on YouTube by itself at 8:00 AM on show day.
+If nobody starts an edit, the Portal starts one by itself at 3:00 AM on show day from the ticked recordings, unless the show is already on YouTube. If nobody approves the edit, it's scheduled on YouTube by itself at 7:00 AM on show day.
 
 ## 1. Before you record
 
@@ -47,12 +47,12 @@ It waits until a file has finished copying before renaming it. A file still name
    - **Preview** plays a file in the page. Some TriCaster files only play in Safari.
    - Tick or untick files, and change a file's role if it's wrong. **Ignore** leaves a file out.
    - Files with EDITED in the name, the untitled `InFocus Show.mov` and copies of another show are never ticked.
-4. To tell the editor something about this show, press **Add instructions** and type it, like "Use the later take of the open" or "Leave out the yearbook announcement". It follows these over the house rules, for this show only. To make something permanent, add it to the house rules in Settings. The same box has **Goes public** and **Time (Pacific)**: leave them on show day at 8:30 AM, or change them if this show goes public at another time. **Approve & schedule** and the 8:00 AM auto-schedule then use that time, and a redo keeps it.
+4. To tell the editor something about this show, press **Add instructions** and type it, like "Use the later take of the open" or "Leave out the yearbook announcement". It follows these over the house rules, for this show only. To make something permanent, add it to the house rules in Settings. The same box has **Goes public** and **Time (Pacific)**: leave them on show day at 8:30 AM, or change them if this show goes public at another time. **Approve & schedule** and the 7:00 AM auto-schedule then use that time, and a redo keeps it.
 5. Press **Start automatic editing**.
 
 If **Start editing by itself** is on (Settings), you don't need to press anything: the edit starts once the show's files have sat unchanged in Drive for 10 minutes.
 
-Even with it off, a show nobody has started editing by 3:00 AM on show day is started by itself, from the same recordings that would be ticked. It's skipped when the show already has an edit (of any kind) or is already on the InFocus YouTube channel, whether it was uploaded from the Portal or straight in YouTube Studio (a video whose title names the show's date). The Portal keeps checking until 8:00 AM, as long as an editing Mac is on. When it starts one this way, every producer and adviser gets an email and notification saying nobody started the show, so it's being edited and uploaded automatically.
+Even with it off, a show nobody has started editing by 3:00 AM on show day is started by itself, from the same recordings that would be ticked. It's skipped when the show already has an edit (of any kind) or is already on the InFocus YouTube channel, whether it was uploaded from the Portal or straight in YouTube Studio (a video whose title names the show's date). The Portal keeps checking until 7:00 AM, as long as an editing Mac is on. When it starts one this way, every producer and adviser gets an email and notification saying nobody started the show, so it's being edited and uploaded automatically.
 
 ## 4. While it edits
 
@@ -84,7 +84,7 @@ On the Editing tab:
 
 - At 6 PM the evening before the show, if it isn't scheduled yet, the starter and the show manager get a reminder.
 - After an hour with no answer, every producer gets an email and notification: **The <date> show still needs approval**. It repeats every hour (never between 2 and 6 AM) until someone approves, sends it back, redoes it or schedules it.
-- At 8:00 AM on show day it's scheduled on YouTube by itself (at least 15 minutes out), and the starter and show manager are told. An edit that reaches Review after 8:00 AM is scheduled as soon as it's ready. If the show is already on YouTube by then (uploaded some other way), the edit isn't uploaded again.
+- At 7:00 AM on show day it's scheduled on YouTube by itself (at least 15 minutes out), and the starter and show manager are told. An edit that reaches Review after 7:00 AM is scheduled as soon as it's ready. If the show is already on YouTube by then (uploaded some other way), the edit isn't uploaded again.
 - A send-back makes a new version, and the clock starts again.
 
 ## The editing Mac

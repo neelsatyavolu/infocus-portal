@@ -298,7 +298,7 @@ export async function recordHeartbeat(input: HeartbeatInput, now = new Date()): 
   const credentials = await deliverCredentials(deviceId, input.publicKey ?? device.publicKey, now);
   await applyCommandAcks(input.commandAcks ?? [], deviceId, now);
   const [settings, commands] = await Promise.all([loadEditorSettings(), takePendingCommands(deviceId, now)]);
-  // With auto-start off, only the 3–8 AM show-day fallback; Drive names which day is a show.
+  // With auto-start off, only the 3–7 AM show-day fallback; Drive names which day is a show.
   if (settings.autoStart || autoStartFallbackDue(pacificDateKey(now), now)) {
     try {
       await runShowEditAutoStart(now, settings.autoStart);
@@ -531,14 +531,14 @@ function defaultsProblem(defaults: ScheduleDefaults, now: Date) {
   return null;
 }
 
-/** The defaults, moved to `earliest` when their time is sooner (the 8 AM auto-schedule). */
+/** The defaults, moved to `earliest` when their time is sooner (the 7 AM auto-schedule). */
 function notBefore(defaults: ScheduleDefaults, earliest: Date | undefined): ScheduleDefaults {
   if (!earliest || showPublishAt(defaults.publishDate, defaults.publishTime).getTime() >= earliest.getTime()) return defaults;
   return { ...defaults, ...publishSlotNotBefore(earliest) };
 }
 
 /**
- * Schedules the show's draft with Upload show's defaults (auto-publish, Approve, and the 8 AM auto-schedule
+ * Schedules the show's draft with Upload show's defaults (auto-publish, Approve, and the 7 AM auto-schedule
  * with `earliest`); returns the publish time. With `confirmed` (Approve), the time the producer checked must
  * still be the one it would use. Refusals are plain ShowEditErrors.
  */

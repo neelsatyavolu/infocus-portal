@@ -185,7 +185,7 @@ function escalationCopy(job: NoticeJob, notice: ShowEditEscalationNotice): Copy 
         heading: "Still waiting for approval",
         lines: [
           `The automatic edit of the ${date} show has been ready for over an hour, and the show manager hasn't responded.`,
-          "If nobody approves it, it's scheduled automatically at 8:00 AM on show day. Watch it, then press Approve & schedule, or Send back if it needs changes."
+          "If nobody approves it, it's scheduled automatically at 7:00 AM on show day. Watch it, then press Approve & schedule, or Send back if it needs changes."
         ]
       };
     case "auto-scheduled":
@@ -193,7 +193,7 @@ function escalationCopy(job: NoticeJob, notice: ShowEditEscalationNotice): Copy 
         subject: `The ${date} show was scheduled automatically`,
         heading: "Scheduled automatically",
         lines: [
-          `The ${date} show was scheduled automatically because nobody approved it by 8:00 AM. It publishes at ${pacificClock.format(notice.publishAt)}.`,
+          `The ${date} show was scheduled automatically because nobody approved it by 7:00 AM. It publishes at ${pacificClock.format(notice.publishAt)}.`,
           "You can still change it in YouTube Studio."
         ]
       };
@@ -202,7 +202,7 @@ function escalationCopy(job: NoticeJob, notice: ShowEditEscalationNotice): Copy 
         subject: `The ${date} show couldn't be scheduled automatically`,
         heading: "Couldn't schedule it",
         lines: [
-          `Nobody approved the ${date} show by 8:00 AM, and scheduling it automatically failed: ${notice.reason}`,
+          `Nobody approved the ${date} show by 7:00 AM, and scheduling it automatically failed: ${notice.reason}`,
           "Open Editing and schedule it with Change details."
         ]
       };
@@ -244,7 +244,7 @@ export function showEditAutoStartGroups(recordings: ShowRecording[], now = new D
 /**
  * Called from the editors' heartbeats, at most every 5 minutes. With auto-start on (setting, or
  * SHOW_EDITOR_AUTO_START=1): once every recording named after an upcoming show has settled on Drive, start
- * that show's edit from them. With it off, only the fallback: from 3:00 to 8:00 AM on show day, a show nobody
+ * that show's edit from them. With it off, only the fallback: from 3:00 to 7:00 AM on show day, a show nobody
  * has started editing is started the same way. Either way never when the show already has an edit, was sent
  * to YouTube from the Portal, or is on the channel some other way.
  */
@@ -292,7 +292,7 @@ async function notifyFallbackStart(jobId: string, showDate: string, fileNames: s
       heading: "Editing the show automatically",
       lines: [
         `Nobody had started editing the ${label} show by 3:00 AM, and it isn't on YouTube, so the Portal started an automatic edit from ${fileNames.join(", ")}.`,
-        "If nobody approves it by 8:00 AM, it's uploaded and scheduled on YouTube by itself. Open Editing to watch it once it's ready, then approve it or send it back."
+        "If nobody approves it by 7:00 AM, it's uploaded and scheduled on YouTube by itself. Open Editing to watch it once it's ready, then approve it or send it back."
       ]
     };
     await deliver(await producerRecipients(), copy, showDate, `show-edit/${jobId}/fallback-start`);

@@ -30,7 +30,7 @@ async function escalate(job: ShowEditJob, now: Date) {
   return true;
 }
 
-/** The 8 AM deadline passed: schedule with Upload show's defaults, never sooner than 15 minutes from now. */
+/** The 7 AM deadline passed: schedule with Upload show's defaults, never sooner than 15 minutes from now. */
 async function autoSchedule(job: ShowEditJob, now: Date) {
   try {
     const publishAt = await scheduleWithDefaults(job.showDate, job.createdById, now, new Date(now.getTime() + AUTO_SCHEDULE_LEAD_MS));

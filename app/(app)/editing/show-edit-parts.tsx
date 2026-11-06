@@ -156,7 +156,7 @@ export function sentLine(published: ShowEditPublished | null) {
   return `Scheduled on YouTube for ${when}. Make changes in YouTube Studio.`;
 }
 
-export const AUTO_SCHEDULE_NOTE = "If nobody approves, it's scheduled automatically at 8:00 AM on show day.";
+export const AUTO_SCHEDULE_NOTE = "If nobody approves, it's scheduled automatically at 7:00 AM on show day.";
 
 /** Redo automatic edit: throws this edit away and edits the show again, with an optional note. */
 export function RedoControl({ busy, recomposite, onRedo }: {

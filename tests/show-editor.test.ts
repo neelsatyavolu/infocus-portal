@@ -727,7 +727,7 @@ describe("show editor jobs", () => {
     expect(mocks.autoStart).toHaveBeenCalledWith(NOW, true);
   });
 
-  it("with auto-start off, heartbeat runs only the 3–8 AM show-day fallback", async () => {
+  it("with auto-start off, heartbeat runs only the 3–7 AM show-day fallback", async () => {
     mocks.settings.findUnique.mockResolvedValue({ autoStart: false, autoPublish: null, targetVersion: null, agentOrder: null, houseRules: null, updatedAt: NOW });
     mocks.autoStart.mockResolvedValue(undefined);
     // 4:00 AM Pacific (PDT) on Oct 21.
@@ -737,8 +737,8 @@ describe("show editor jobs", () => {
     expect(mocks.autoStart).toHaveBeenCalledWith(early, false);
 
     mocks.autoStart.mockClear();
-    // 2:59 AM and 8:00 AM Pacific: outside the window.
-    for (const outside of [new Date("2026-10-21T09:59:00Z"), new Date("2026-10-21T15:00:00Z")]) {
+    // 2:59 AM and 7:00 AM Pacific: outside the window.
+    for (const outside of [new Date("2026-10-21T09:59:00Z"), new Date("2026-10-21T14:00:00Z")]) {
       mocks.job.findMany.mockResolvedValueOnce([]);
       await recordHeartbeat({ deviceId: "dev1", version: "0.1.0", busy: false, health: healthy }, outside);
     }
@@ -986,7 +986,7 @@ describe("show editor jobs", () => {
       expect(mocks.notify).toHaveBeenCalledWith(expect.anything(), "review");
     });
 
-    it("with earliest, a default time sooner than that moves to it (the 8 AM auto-schedule)", async () => {
+    it("with earliest, a default time sooner than that moves to it (the 7 AM auto-schedule)", async () => {
       // 8:20 AM Pacific on show day: 8:30 is under 15 minutes away, so it publishes at 8:35.
       const late = new Date("2026-10-21T15:20:00Z");
       const publishAt = await scheduleWithDefaults(SHOW, "u1", late, new Date(late.getTime() + 15 * 60_000));

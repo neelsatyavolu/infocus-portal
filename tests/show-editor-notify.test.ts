@@ -213,7 +213,7 @@ describe("show editor notifications and auto-start", () => {
       expect(sent.recipients).not.toContain("starter@example.edu");
       expect(sent.subject).toBe("The Fri, Oct 23 show still needs approval");
       expect(sent.paragraphs.join(" ")).toContain("the show manager hasn't responded");
-      expect(sent.paragraphs.join(" ")).toContain("scheduled automatically at 8:00 AM on show day");
+      expect(sent.paragraphs.join(" ")).toContain("scheduled automatically at 7:00 AM on show day");
       expect(sent.idempotencyKey).toBe("show-edit/job1/escalate/2/2026-10-23T05:00:00.000Z");
       expect(sent.ctaUrl).toMatch(/\/editing\?date=2026-10-23$/);
       expect(mocks.push).toHaveBeenCalledWith(["otto-id", "sage-id"], expect.anything());
@@ -223,7 +223,7 @@ describe("show editor notifications and auto-start", () => {
       await notifyShowEditEscalation(job({ showDate: "2026-10-23" }), { kind: "auto-scheduled", publishAt: new Date("2026-10-23T15:30:00Z") });
       const sent = mocks.email.mock.calls[0][0];
       expect(sent.recipients).toEqual(["starter@example.edu", "manager@example.edu"]);
-      expect(sent.paragraphs[0]).toBe("The Fri, Oct 23 show was scheduled automatically because nobody approved it by 8:00 AM. It publishes at 8:30 AM.");
+      expect(sent.paragraphs[0]).toBe("The Fri, Oct 23 show was scheduled automatically because nobody approved it by 7:00 AM. It publishes at 8:30 AM.");
     });
 
     it("a failed auto-schedule tells the starter, show manager and producers why", async () => {

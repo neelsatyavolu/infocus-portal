@@ -21,11 +21,11 @@ import { POST } from "@/app/api/service/show-editor/tick/route";
 import { ShowEditError } from "@/src/server/show-editor";
 import { ALREADY_ON_YOUTUBE, runShowEditEscalations } from "@/src/server/show-editor-escalation";
 
-// Friday 2026-10-23 airs; the 8:00 AM Pacific deadline is 15:00Z.
+// Friday 2026-10-23 airs; the 7:00 AM Pacific deadline is 14:00Z.
 const SHOW = "2026-10-23";
 const OUT = "Package Storage/Shows/2026-10-23/x.mp4";
 const NIGHT_BEFORE = new Date("2026-10-23T05:00:00Z");
-const DEADLINE = new Date("2026-10-23T15:00:00Z");
+const DEADLINE = new Date("2026-10-23T14:00:00Z");
 
 function job(overrides: Record<string, unknown> = {}) {
   return {
@@ -45,7 +45,7 @@ describe("approval escalation run", () => {
     mocks.youtubeCopy.mockResolvedValue(false);
   });
 
-  it("at 8 AM, never uploads a second copy of a show already on YouTube", async () => {
+  it("at 7 AM, never uploads a second copy of a show already on YouTube", async () => {
     mocks.youtubeCopy.mockResolvedValue(true);
     expect(await runShowEditEscalations(DEADLINE)).toEqual({ checked: 1, escalated: 0, scheduled: 0, failed: 0 });
     expect(mocks.youtubeCopy).toHaveBeenCalledWith(SHOW);
@@ -88,7 +88,7 @@ describe("approval escalation run", () => {
 
   it("at the deadline: schedules no sooner than 15 minutes out, marks it PUBLISHED and tells the starter and show manager", async () => {
     expect(await runShowEditEscalations(DEADLINE)).toEqual({ checked: 1, escalated: 0, scheduled: 1, failed: 0 });
-    expect(mocks.schedule).toHaveBeenCalledWith(SHOW, "u1", DEADLINE, new Date("2026-10-23T15:15:00Z"));
+    expect(mocks.schedule).toHaveBeenCalledWith(SHOW, "u1", DEADLINE, new Date("2026-10-23T14:15:00Z"));
     expect(mocks.updateMany).toHaveBeenCalledWith({
       where: { id: "job1", status: "REVIEW", version: 1 },
       data: expect.objectContaining({ status: "PUBLISHED", checks: expect.objectContaining({ escalation: expect.objectContaining({ autoScheduledAt: DEADLINE.toISOString() }) }) })

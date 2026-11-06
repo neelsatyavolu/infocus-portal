@@ -85,7 +85,7 @@ export function reviewNeededMail(input: {
     heading: `Ready for ${input.stageLabel}`,
     paragraphs: [`${label} is ready for ${input.stageLabel}.`, input.members ? `Members: ${input.members}` : "Open Groups to review."],
     ctaLabel: "Open in Groups",
-    pushTitle: input.stageLabel,
+    pushTitle: `Ready for ${input.stageLabel}`,
     pushBody: `${label} is ready for ${input.stageLabel}.`
   };
 }

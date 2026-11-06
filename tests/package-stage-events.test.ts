@@ -11,6 +11,7 @@ import {
   commentMail,
   finalCutUploadedMail,
   producerStagePath,
+  reviewNeededMail,
   studentStagePath
 } from "@/src/lib/package-stage-events";
 
@@ -50,6 +51,16 @@ describe("stage notification copy", () => {
     expect(mail.subject).toMatch(/brainstorming ready/);
     expect(mail.paragraphs[0]).toMatch(/three proof-of-contact/);
     expect(mail.pushTitle).toBe("Brainstorming ready");
+  });
+
+  it("gives review pushes a capitalized title", () => {
+    const mail = reviewNeededMail({
+      cycleNumber: 2,
+      topic: "Lee-Patel",
+      members: "Alex Lee, Sam Patel",
+      stageLabel: "executive review"
+    });
+    expect(mail.pushTitle).toBe("Ready for executive review");
   });
 
   it("keeps comment excerpts short", () => {

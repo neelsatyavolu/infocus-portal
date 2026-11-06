@@ -74,6 +74,8 @@ The variables below are only fallbacks:
 - `SHOW_EDITOR_AUTO_PUBLISH`: `1` turns auto-publish on while **Schedule clean edits by themselves** has never been saved. An edit with nothing flagged and every check passed is then scheduled with the Upload show defaults.
 - `SHOW_EDITOR_TARGET_VERSION`: a release tag (e.g. `v0.3.1`), used while **Editor version** is empty. Unset means machines follow the newest release.
 - `SHOW_EDITOR_REPO_URL`: the editor's git repository, used in the **Connect AI account** command (`uvx --from git+<repo> infocus-editor connect …`). Defaults to `https://github.com/neelsatyavolu/infocus-editor`; set it to run a fork.
+- `SHOW_EDITOR_GRAPHICS_TOKEN`: a read-only GitHub token (fine-grained, **Contents: Read** on the graphics repo only). Editing Macs ask `POST /api/service/show-editor/graphics` before each job and get a short-lived download link for the newest Graphics Source tarball on the repo's `graphics-source` release; the token itself never leaves the Portal. Unset means Macs keep the graphics they were installed with.
+- `SHOW_EDITOR_GRAPHICS_REPO`: `owner/name` of the graphics repo. Defaults to `neelsatyavolu/infocus-graphics`.
 
 The editor signs in to a Claude, Codex or Grok subscription, never an API key. **Connect AI account** gives a one-time code for one machine. The sign-in is sealed on the producer's computer to that machine's key, so the Portal only stores ciphertext and deletes it once the machine confirms it (or after an hour). The command and the link page use `APP_BASE_URL` as the Portal address.
 

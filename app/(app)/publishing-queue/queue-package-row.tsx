@@ -89,6 +89,7 @@ export function QueuePackageRow({
   const lastError = row.youtubePublication?.lastError;
   const linkToGroups = canEdit && !row.custom;
   const packageHref = `/publishing-queue/${row.id}`;
+  const noFinalCut = row.hasFinalCut === false;
 
   // Topic, headline and subtitle wrap in full (as before the redesign): phones can't hover for a tooltip.
   const text = (
@@ -114,6 +115,11 @@ export function QueuePackageRow({
         <StatusTag size="sm" tone={status.tone} srLabel="YouTube: " title={`YouTube: ${statusLabel}`}>
           {statusLabel}
         </StatusTag>
+        {noFinalCut ? (
+          <StatusTag size="sm" tone="warning" title="Holding its show; the show editor and YouTube wait for the final cut">
+            No final cut
+          </StatusTag>
+        ) : null}
         <span className="min-w-0 break-words">{queuePackageSubtitle(row)}</span>
       </p>
     </div>
@@ -157,9 +163,15 @@ export function QueuePackageRow({
       icon: Upload,
       disabled: busy,
       onSelect: () => onPublish?.(row),
-      hidden: !onPublish || Boolean(row.youtubePublication)
+      hidden: !onPublish || noFinalCut || Boolean(row.youtubePublication)
     },
-    { key: "download", label: "Download final cut", icon: Download, onSelect: () => downloadFinalCut(row.id) },
+    {
+      key: "download",
+      label: "Download final cut",
+      icon: Download,
+      onSelect: () => downloadFinalCut(row.id),
+      hidden: noFinalCut
+    },
     { key: "open", label: "Open package page", icon: ArrowUpRight, href: packageHref },
     "separator",
     {

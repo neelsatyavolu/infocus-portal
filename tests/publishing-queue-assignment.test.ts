@@ -275,6 +275,18 @@ describe("setQueuedForAir", () => {
     expect(row.queuedForShowDate).toBe("2026-10-06");
   });
 
+  it("queues a package that has no final cut yet", async () => {
+    mocks.findUniqueOrThrow.mockResolvedValue({
+      finalCutMediaItemId: null,
+      queuedForAirAt: null,
+      queuedForShowDate: null
+    });
+    mocks.findMany.mockResolvedValue([]);
+
+    const row = await setQueuedForAir("row_1", true, "2026-09-04");
+    expect(row.queuedForShowDate).toBe("2026-09-04");
+  });
+
   it("lets a producer manually stack a second package", async () => {
     mocks.findUniqueOrThrow.mockResolvedValue({
       finalCutMediaItemId: "media_1",

@@ -1,7 +1,7 @@
 import { prisma } from "@/src/lib/prisma";
 import { resolveThumbnailUrl } from "@/src/lib/media-playback";
 import { finalCutHeadline } from "@/src/lib/package-headline";
-import { isCustomQueuePackage } from "@/src/lib/publishing-queue";
+import { QUEUE_UPCOMING_SHOW_COUNT, isCustomQueuePackage } from "@/src/lib/publishing-queue";
 import { labeledUser, userDisplayName } from "@/src/lib/user-display";
 import { formatShowDateLabel, todayDateKey } from "@/src/lib/show-assignment";
 import { listUpcomingShowDays } from "@/src/server/show-schedule";
@@ -15,6 +15,7 @@ async function mapQueueRow(row: {
   groupType?: string | null;
   queuedForAirAt: Date | null;
   queuedForShowDate: string | null;
+  finalCutMediaItemId: string | null;
   youtubePublication: { status: string; videoId: string | null; publishedAt: Date | null; lastError: string | null } | null;
   assignedProducer: { name: string | null; nickname?: string | null; email: string | null } | null;
   members: Array<{ user: { name: string | null; nickname?: string | null; email: string | null } }>;
@@ -38,6 +39,7 @@ async function mapQueueRow(row: {
     custom: isCustomQueuePackage(row),
     queuedForAirAt: row.queuedForAirAt?.toISOString() ?? null,
     queuedForShowDate: row.queuedForShowDate,
+    hasFinalCut: Boolean(row.finalCutMediaItemId),
     youtubePublication: row.youtubePublication ? {
       ...row.youtubePublication,
       publishedAt: row.youtubePublication.publishedAt?.toISOString() ?? null
@@ -52,7 +54,16 @@ async function mapQueueRow(row: {
  * GET /api/package-cycle/queue after its access check (the Publishing Queue page loads it too,
  * for first paint). `canEdit` is for producers; candidates only ever go to them.
  */
-export async function loadPublishingQueue({ canEdit, wantCandidates }: { canEdit: boolean; wantCandidates: boolean }) {
+export async function loadPublishingQueue({
+  canEdit,
+  canHold,
+  wantCandidates
+}: {
+  canEdit: boolean;
+  /** EP, adviser or super admin: may hold a show day (it sets the calendar label). */
+  canHold: boolean;
+  wantCandidates: boolean;
+}) {
   const [rows, upcoming, candidates] = await Promise.all([
     prisma.packageProgressRow.findMany({
       where: { queuedForAirAt: { not: null } },
@@ -77,12 +88,11 @@ export async function loadPublishingQueue({ canEdit, wantCandidates }: { canEdit
       },
       orderBy: [{ queuedForShowDate: "asc" }, { queuedForAirAt: "desc" }]
     }),
-    listUpcomingShowDays(13),
+    listUpcomingShowDays(QUEUE_UPCOMING_SHOW_COUNT),
     wantCandidates
       ? prisma.packageProgressRow.findMany({
           where: {
             queuedForAirAt: null,
-            finalCutMediaItemId: { not: null },
             groupTopic: { not: "" }
           },
           include: {
@@ -96,6 +106,7 @@ export async function loadPublishingQueue({ canEdit, wantCandidates }: { canEdit
 
   return {
     canEdit,
+    canHold,
     publishingConfigured: Boolean(youtubePublishingConfig()),
     packages: await Promise.all(rows.map(mapQueueRow)),
     today: todayDateKey(),
@@ -109,6 +120,7 @@ export async function loadPublishingQueue({ canEdit, wantCandidates }: { canEdit
       cycleNumber: row.cycleNumber,
       groupTopic: row.groupTopic,
       custom: isCustomQueuePackage(row),
+      hasFinalCut: Boolean(row.finalCutMediaItemId),
       members: row.members.map((member) => userDisplayName(member.user) || member.user.email)
     }))
   };

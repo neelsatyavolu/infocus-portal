@@ -6,6 +6,8 @@ A Final Cut upload does **not** auto-queue. A producer clicks **Send to queue** 
 
 **Auto-assign** fills the next upcoming show that currently has no package. It skips **special shows** (a show day with a calendar name, like "Spirit Week Day 1 Recap"). Their names appear under the date, with a star. Producers can still drag a package onto one.
 
+**Hold** (EP, adviser, super admin): each upcoming show has a **Hold** button. Hold a show you will air without its file yet (a recap, say): give it a name (default "Recap") and it becomes a special show, so auto-assign skips it, and the name also appears on the master calendar. Packages already on it stay. Drag the package (or a custom upload) onto it once you have the file. **Release** on a special show clears its calendar name, so auto-assign can fill it again. It is the same calendar name as Admin → Calendar days.
+
 Producers can **drag** a package onto a show (by its thumbnail or title, on a computer). Max **2** packages per show. Auto-assign never stacks two on the same show. Each show shows its count (for example `1/2`).
 
 The header has **Managers** (producers), **Past shows**, and **Add package** (producers). After a show day has passed, that date leaves the live queue. **Past shows** opens those air dates (newest first) and their packages. Producers can still move, publish, download, or remove them there.
@@ -18,7 +20,7 @@ Summary tiles sit under the header. Click one to jump to what it counts:
 
 **Upcoming shows** lists every show day: the date (with a **Today** or **Next** tag on the first), its count, and its packages. An empty show reads **Drop a package here** (producers) or **No package yet**, and a show with one package has a **Room for one more** slot (producers). On a phone, an empty show is one line with an **Open** tag (**Empty** for producers on a regular show). Packages with no show are listed above it under **No show assigned**.
 
-Each package row shows the thumbnail, the topic (producers: it opens the package's Final Cut page, except on custom packages), the Final Cut headline when the students gave one, the cycle and members (**Custom** for a custom package), and a YouTube status tag (**Pending**, **Uploading**, **Processing**, **On YouTube**, **Failed**). A failed upload also shows its full error. Each row's **⋯** menu (producers) has:
+Each package row shows the thumbnail, the topic (producers: it opens the package's Final Cut page, except on custom packages), the Final Cut headline when the students gave one, the cycle and members (**Custom** for a custom package), and a YouTube status tag (**Pending**, **Uploading**, **Processing**, **On YouTube**, **Failed**). A package queued before its Final Cut is uploaded also shows a **No final cut** tag, and has no Publish or Download until the file is in; the show editor and YouTube skip it until then. A failed upload also shows its full error. Each row's **⋯** menu (producers) has:
 
 - **Move to another show…:** pick a show from the list (the keyboard and phone way to drag). Full shows are greyed out; the current one is marked.
 - **Publish to YouTube** (when YouTube publishing is configured, until the upload starts): after a confirmation, uploads the package now as unlisted instead of waiting for its air date.
@@ -26,7 +28,7 @@ Each package row shows the thumbnail, the topic (producers: it opens the package
 - **Open package page:** opens `/publishing-queue/<package>` with its YouTube status tag and air date and, once published, the video, the date it was published, **Watch on YouTube**, and the embed code with **Copy embed code**. **Back to Publishing Queue** returns to the queue.
 - **Remove from queue:** takes the package off the queue.
 
-**Add package** has two tabs. **Final cuts** lists packages with a Final Cut that are not queued yet (with a filter when the list is long); click **Add** on one, and the dialog stays open so you can add several. **Upload a video** queues any video with a title you type (cycle 0, not a roster group): click **Choose video**, then **Add custom package**. The file uploads to InFocus Drive. Each one lands on the next empty show, and a message names that show.
+**Add package** has two tabs. **Packages** lists packages that are not queued yet, including ones with no Final Cut yet (tagged **No final cut**; one holds its show until the file is uploaded) (with a filter when the list is long); click **Add** on one, and the dialog stays open so you can add several. **Upload a video** queues any video with a title you type (cycle 0, not a roster group): click **Choose video**, then **Add custom package**. The file uploads to InFocus Drive. Each one lands on the next empty show, and a message names that show.
 
 The Master Calendar and The Show list each show's queued packages.
 

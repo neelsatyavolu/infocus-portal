@@ -11,10 +11,10 @@ import type { QueueData } from "./queue-types";
 export const metadata: Metadata = { title: "Publishing Queue" };
 
 /** Same data as GET /api/package-cycle/queue (no candidates), so first paint matches the API. */
-async function loadInitialQueue(canEdit: boolean): Promise<QueueData | null> {
+async function loadInitialQueue(canEdit: boolean, canHold: boolean): Promise<QueueData | null> {
   try {
     // Display names and a JSON round trip, so the props match the API response exactly.
-    return asApiJson(await loadPublishingQueue({ canEdit, wantCandidates: false }));
+    return asApiJson(await loadPublishingQueue({ canEdit, canHold, wantCandidates: false }));
   } catch (error) {
     unstable_rethrow(error);
     // The client fetches instead and shows the API's error message.
@@ -33,5 +33,7 @@ export default async function PublishingQueuePage() {
     throw error;
   }
   const canEdit = hasPlatformRole(platformRole, "ASSOCIATE_PRODUCER");
-  return <PublishingQueueClient canEdit={canEdit} initialData={await loadInitialQueue(canEdit)} />;
+  // Holding a show day edits the calendar, so it follows the calendar's access (EP and up).
+  const canHold = hasPlatformRole(platformRole, "EXECUTIVE_PRODUCER");
+  return <PublishingQueueClient canEdit={canEdit} canHold={canHold} initialData={await loadInitialQueue(canEdit, canHold)} />;
 }

@@ -12,6 +12,7 @@ import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { MAX_PACKAGES_PER_SHOW } from "@/src/lib/publishing-queue";
 import { AddPackageDialog } from "./add-package-dialog";
+import { HoldShowDialog, type HoldTarget } from "./hold-show-dialog";
 import { MoveToShowDialog, type MoveTarget } from "./move-to-show-dialog";
 import { PastShowsDialog, pastRowAnchorId } from "./past-shows-dialog";
 import { PublishConfirmDialog, type PublishTarget } from "./publish-confirm-dialog";
@@ -55,7 +56,16 @@ const PANEL_JUMP_TARGET = "scroll-mt-24 outline-none focus-visible:ring-2 focus-
  * Publishing Queue. Producers: is every upcoming show covered, and is YouTube OK? Then fill or
  * move packages. Website managers (read-only): what is on YouTube, and where is the embed code?
  */
-export default function PublishingQueueClient({ canEdit, initialData }: { canEdit: boolean; initialData: QueueData | null }) {
+export default function PublishingQueueClient({
+  canEdit,
+  canHold = false,
+  initialData
+}: {
+  canEdit: boolean;
+  /** EP and up: may hold a show day (it names the day on the calendar). */
+  canHold?: boolean;
+  initialData: QueueData | null;
+}) {
   const queue = usePublishingQueue(initialData);
   const { rows, upcoming, today, publishingConfigured, busyId } = queue;
   const [addOpen, setAddOpen] = useState(false);
@@ -67,6 +77,7 @@ export default function PublishingQueueClient({ canEdit, initialData }: { canEdi
     open: false,
     target: null
   });
+  const [holdDialog, setHoldDialog] = useState<{ open: boolean; target: HoldTarget | null }>({ open: false, target: null });
   // A show date or row id, ringed for a moment after a jump from a summary tile.
   const [flash, setFlash] = useState<string | null>(null);
 
@@ -84,6 +95,15 @@ export default function PublishingQueueClient({ canEdit, initialData }: { canEdi
   const { summary } = view;
   const hasPast = view.past.length > 0;
   const lastShow = view.shows[view.shows.length - 1];
+  const showHold =
+    canEdit && canHold
+      ? {
+          busyDate: busyId?.startsWith("show:") ? busyId.slice("show:".length) : null,
+          onHold: (show: { date: string; dateLabel: string }) =>
+            setHoldDialog({ open: true, target: { date: show.date, dateLabel: show.dateLabel } }),
+          onRelease: (date: string) => void queue.setShowHold(date, null)
+        }
+      : undefined;
 
   function jump(elementId: string, key: string) {
     scrollToElement(elementId);
@@ -254,6 +274,7 @@ export default function PublishingQueueClient({ canEdit, initialData }: { canEdi
             <ShowRundown
               shows={view.shows}
               canEdit={canEdit}
+              hold={showHold}
               draggingId={drag.draggingId}
               overDate={drag.overDate}
               highlightDate={flash}
@@ -305,6 +326,14 @@ export default function PublishingQueueClient({ canEdit, initialData }: { canEdi
             onMove={move}
             onClose={() => setMoveDialog((current) => ({ ...current, open: false }))}
           />
+          {showHold ? (
+            <HoldShowDialog
+              open={holdDialog.open}
+              target={holdDialog.target}
+              onHold={(date, label) => void queue.setShowHold(date, label)}
+              onClose={() => setHoldDialog((current) => ({ ...current, open: false }))}
+            />
+          ) : null}
           <PublishConfirmDialog
             open={publishDialog.open}
             target={publishDialog.target}

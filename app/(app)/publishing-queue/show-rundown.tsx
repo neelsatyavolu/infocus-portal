@@ -1,8 +1,10 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Star } from "lucide-react";
+import { CalendarClock, CalendarMinus, Star } from "lucide-react";
+import { Spinner } from "@/components/kit/spinner";
 import { StatusTag } from "@/components/kit/status-tag";
+import { Button } from "@/components/ui/button";
 import { MAX_PACKAGES_PER_SHOW } from "@/src/lib/publishing-queue";
 import { cn } from "@/src/lib/utils";
 import type { QueueRow } from "./queue-types";
@@ -55,9 +57,37 @@ function OpenShowTag({ needsPackage }: { needsPackage: boolean }) {
   );
 }
 
+/** EP and up: hold a show day for a show without its file yet, or release it to auto-assign. */
+export type ShowHoldControls = {
+  busyDate: string | null;
+  onHold: (show: ShowView) => void;
+  onRelease: (date: string) => void;
+};
+
+function HoldButton({ show, hold }: { show: ShowView; hold: ShowHoldControls }) {
+  const busy = hold.busyDate === show.date;
+  const held = Boolean(show.specialName);
+  return (
+    <Button
+      type="button"
+      size="sm"
+      variant="ghost"
+      className="h-6 px-2 text-xs text-muted-foreground"
+      disabled={busy}
+      title={held ? "Release: auto-assign can fill this show again" : "Hold this show for one without a file yet"}
+      onClick={() => (held ? hold.onRelease(show.date) : hold.onHold(show))}
+    >
+      {busy ? <Spinner /> : held ? <CalendarMinus aria-hidden /> : <CalendarClock aria-hidden />}
+      {held ? "Release" : "Hold"}
+      <span className="sr-only">{` ${show.dateLabel}`}</span>
+    </Button>
+  );
+}
+
 function ShowRow({
   show,
   canEdit,
+  hold,
   dragActive,
   accepting,
   over,
@@ -67,6 +97,7 @@ function ShowRow({
 }: {
   show: ShowView;
   canEdit: boolean;
+  hold?: ShowHoldControls;
   dragActive: boolean;
   accepting: boolean;
   over: boolean;
@@ -127,6 +158,7 @@ function ShowRow({
           <span className={cn("flex", count === 0 && "max-md:hidden")}>
             <ShowCount count={count} />
           </span>
+          {hold ? <HoldButton show={show} hold={hold} /> : null}
         </div>
       </div>
 
@@ -155,6 +187,7 @@ function ShowRow({
 export function ShowRundown({
   shows,
   canEdit,
+  hold,
   draggingId,
   overDate,
   highlightDate,
@@ -164,6 +197,8 @@ export function ShowRundown({
 }: {
   shows: ShowView[];
   canEdit: boolean;
+  /** Only for people who can edit the calendar. */
+  hold?: ShowHoldControls;
   draggingId: string | null;
   overDate: string | null;
   highlightDate: string | null;
@@ -178,6 +213,7 @@ export function ShowRundown({
           key={show.date}
           show={show}
           canEdit={canEdit}
+          hold={hold}
           dragActive={canEdit && draggingId !== null}
           accepting={canEdit && canDropOn(show.date)}
           over={overDate === show.date}

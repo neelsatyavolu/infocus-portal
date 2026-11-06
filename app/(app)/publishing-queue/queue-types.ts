@@ -15,6 +15,8 @@ export type QueueRow = {
   custom?: boolean;
   queuedForAirAt: string | null;
   queuedForShowDate: string | null;
+  /** False while the package holds its show without a final cut. Missing (older replies) means it has one. */
+  hasFinalCut?: boolean;
   members: Array<string | null>;
   thumbnailUrl?: string | null;
   youtubePublication?: YoutubePublicationSummary | null;
@@ -31,6 +33,7 @@ export type Candidate = {
   cycleNumber: number;
   groupTopic: string;
   custom?: boolean;
+  hasFinalCut?: boolean;
   members: Array<string | null>;
 };
 

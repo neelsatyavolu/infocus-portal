@@ -6,6 +6,10 @@ export const CUSTOM_QUEUE_PROJECT_NAME = "Publishing Queue";
 /** Manual placement cap. Automatic assignment never stacks — it picks an empty show. */
 export const MAX_PACKAGES_PER_SHOW = 2;
 export const UNASSIGNED_SHOW_KEY = "unassigned";
+/** How many upcoming show days the queue lists (and can hold). */
+export const QUEUE_UPCOMING_SHOW_COUNT = 13;
+/** Longest name for a held day (the calendar label). */
+export const QUEUE_HOLD_LABEL_MAX = 60;
 
 export const QUEUE_SHOW_FULL_MESSAGE = `That show already has ${MAX_PACKAGES_PER_SHOW} packages.`;
 export const QUEUE_NO_EMPTY_SHOW_MESSAGE =

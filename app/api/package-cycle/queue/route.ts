@@ -22,9 +22,10 @@ export async function GET(request: Request) {
     // Website managers read the queue; only producers edit it or see unqueued packages.
     await requirePublishingViewer(user.id, access.role);
     const canEdit = hasPlatformRole(access.role, "ASSOCIATE_PRODUCER");
+    const canHold = hasPlatformRole(access.role, "EXECUTIVE_PRODUCER");
 
     const wantCandidates = canEdit && new URL(request.url).searchParams.get("candidates") === "1";
-    return ok(await loadPublishingQueue({ canEdit, wantCandidates }));
+    return ok(await loadPublishingQueue({ canEdit, canHold, wantCandidates }));
   } catch (error) {
     return handleRouteError(error);
   }

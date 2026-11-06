@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { Loader2, Plus, RotateCw, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Alert } from "@/components/kit/alert";
+import { StatusTag } from "@/components/kit/status-tag";
 import { EmptyState } from "@/components/kit/empty-state";
 import { Field } from "@/components/kit/field";
 import { ListRow } from "@/components/kit/list-row";
@@ -82,7 +83,7 @@ function FinalCutList({
           </Button>
         }
       >
-        Couldn&apos;t load final cuts.
+        Couldn&apos;t load packages.
       </Alert>
     );
   }
@@ -90,7 +91,7 @@ function FinalCutList({
     return (
       <EmptyState
         size="inline"
-        title="No other final cuts are ready to add."
+        title="No other packages to add."
         className="rounded-md border border-border px-3"
         action={
           <Button type="button" size="sm" variant="link" className="px-0" onClick={onUploadInstead}>
@@ -107,10 +108,10 @@ function FinalCutList({
         <SearchField value={filter} onChange={setFilter} placeholder="Filter by topic or name" className="shrink-0" />
       ) : null}
       {shown.length === 0 ? (
-        <EmptyState size="inline" title="No final cuts match." className="rounded-md border border-border px-3" />
+        <EmptyState size="inline" title="No packages match." className="rounded-md border border-border px-3" />
       ) : (
         <div className="min-h-0 min-w-0 flex-auto overflow-y-auto rounded-md border border-border">
-          <ul aria-label="Final cuts ready to add" className="divide-y divide-border">
+          <ul aria-label="Packages to add" className="divide-y divide-border">
             {shown.map((row) => {
               const busy = busyId === row.id;
               return (
@@ -118,6 +119,13 @@ function FinalCutList({
                   key={row.id}
                   title={<Wrapped>{row.groupTopic || "Untitled group"}</Wrapped>}
                   subtitle={<Wrapped>{queuePackageSubtitle(row)}</Wrapped>}
+                  tags={
+                    row.hasFinalCut === false ? (
+                      <StatusTag size="sm" tone="warning" title="It holds the show until the final cut is uploaded">
+                        No final cut
+                      </StatusTag>
+                    ) : undefined
+                  }
                   busy={busy}
                   disabled={uploading}
                   onClick={busy ? undefined : () => onAdd(row.id)}
@@ -143,7 +151,7 @@ function FinalCutList({
 }
 
 /**
- * Add package (producers): pick a ready final cut, or upload a titled video. Each lands on the
+ * Add package (producers): pick a package (marked if it has no final cut yet), or upload a titled video. Each lands on the
  * next empty show. The dialog can't close while an upload runs.
  */
 export function AddPackageDialog({
@@ -221,7 +229,8 @@ export function AddPackageDialog({
         <DialogHeader className="shrink-0 border-b border-border px-4 py-4 pr-12 sm:px-6">
           <DialogTitle>Add to publishing queue</DialogTitle>
           <DialogDescription>
-            Packages with a final cut that are not already queued, or a video you upload. Each lands on the next empty show.
+            Packages not already queued, or a video you upload. Each lands on the next empty show. One without a final cut
+            holds its show and is marked until the final cut is uploaded.
           </DialogDescription>
         </DialogHeader>
         <div className="shrink-0 px-4 pt-4 sm:px-6">
@@ -233,7 +242,7 @@ export function AddPackageDialog({
             options={[
             {
               value: "final-cuts",
-              label: "Final cuts",
+              label: "Packages",
               count: candidatesStatus === "ready" ? candidates.length : undefined,
                 disabled: uploading
               },

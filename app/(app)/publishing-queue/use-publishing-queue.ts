@@ -193,6 +193,29 @@ export function usePublishingQueue(initialData: QueueData | null) {
     }
   }
 
+  /** Hold (with a name) or release a show day; busyId is `show:<date>` meanwhile. */
+  async function setShowHold(date: string, label: string | null) {
+    setBusyId(`show:${date}`);
+    try {
+      const response =
+        label === null
+          ? await fetch(`${QUEUE_URL}/hold?date=${encodeURIComponent(date)}`, { method: "DELETE" })
+          : await fetch(`${QUEUE_URL}/hold`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ date, label })
+            });
+      const payload = await readBody<unknown>(response);
+      if (!response.ok) throw new Error(payload.error?.message ?? "Could not change that show.");
+      await reloadQuietly();
+      toast.success(label === null ? "Released. Auto-assign can fill it again." : `Held for ${label}.`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not change that show.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   /** After a custom upload: the dialog has closed, so this reloads (and caches) the plain queue. */
   async function afterCustomAdded(showDate: string | null) {
     await reloadQuietly();
@@ -214,6 +237,7 @@ export function usePublishingQueue(initialData: QueueData | null) {
     stopCandidates,
     updateQueue,
     publishNow,
+    setShowHold,
     afterCustomAdded
   };
 }

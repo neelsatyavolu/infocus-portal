@@ -48,7 +48,8 @@ export function defaultScheduleKind(utcDay: number): ScheduleKind {
   return "NONE";
 }
 
-function defaultKindForDateKey(dateKey: string): ScheduleKind {
+/** The weekday rule for a date, before any holiday or calendar override. */
+export function defaultKindForDateKey(dateKey: string): ScheduleKind {
   const kind = defaultScheduleKind(utcWeekdayFromDateKey(dateKey));
   if (kind === "SHOW" && dateKey < FIRST_SHOW_DATE) {
     return "NONE";

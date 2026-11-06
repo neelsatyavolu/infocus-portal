@@ -6,7 +6,7 @@ import { listUpcomingShowDays } from "@/src/server/show-schedule";
 export async function setQueuedForAir(rowId: string, queued: boolean, showDate?: string | null) {
   const row = await prisma.packageProgressRow.findUniqueOrThrow({
     where: { id: rowId },
-    select: { finalCutMediaItemId: true, queuedForAirAt: true, queuedForShowDate: true }
+    select: { queuedForAirAt: true, queuedForShowDate: true }
   });
   if (!queued) {
     return prisma.packageProgressRow.update({
@@ -14,9 +14,8 @@ export async function setQueuedForAir(rowId: string, queued: boolean, showDate?:
       data: { queuedForAirAt: null, queuedForShowDate: null }
     });
   }
-  if (!row.finalCutMediaItemId) {
-    throw new Error("A final cut is required before a package can join the publishing queue.");
-  }
+  // A package may hold its show before its final cut is in: the queue marks it, the show editor
+  // and YouTube skip it until the upload lands (they read the final cut at run time).
 
   const [upcoming, occupiedRows] = await Promise.all([
     listUpcomingShowDays(16),

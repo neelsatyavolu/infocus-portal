@@ -221,6 +221,7 @@ export default function PublishingQueueClient({
             summary={summary}
             canEdit={canEdit}
             publishingConfigured={publishingConfigured}
+            overflow={queue.overflow}
             onJumpToShow={(date) => jump(showAnchorId(date), date)}
             onJumpToUnassigned={() => scrollToElement(UNASSIGNED_ID)}
             onJumpToFailed={jumpToFailed}

@@ -5,6 +5,7 @@ import { AlertTriangle } from "lucide-react";
 import { StatTile } from "@/components/kit/stat-tile";
 import { StatusTag } from "@/components/kit/status-tag";
 import { MAX_PACKAGES_PER_SHOW } from "@/src/lib/publishing-queue";
+import { SHOWS_WITHOUT_PACKAGE_PER_SEMESTER, type OverflowProjection } from "@/src/lib/publishing-queue-projection";
 import { cn } from "@/src/lib/utils";
 import type { QueueSummary as Summary, ShowView } from "./queue-view-model";
 
@@ -185,10 +186,38 @@ function YoutubeTile({
   );
 }
 
+function shortDay(dateKey: string) {
+  return new Date(`${dateKey}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+/** Producers: packages the year will make with no show day left to air them. */
+function OverflowTile({ projection }: { projection: OverflowProjection }) {
+  const { overflow, projectedPackages, packagesLeftToAir, slotsLeft, averagePerCycle, cyclesInYear, lastDay } = projection;
+  return (
+    <StatTile
+      className={cn(TILE, "max-sm:col-span-2")}
+      label={<TileLabel short="Overflow" long="Projected overflow" />}
+      value={<Value>{overflow}</Value>}
+      tone={overflow > 0 ? "warning" : "success"}
+      hint={
+        <span
+          title={`About ${averagePerCycle} packages a cycle × ${cyclesInYear} cycles ≈ ${projectedPackages} this year. One package a show; named or held shows and ${SHOWS_WITHOUT_PACKAGE_PER_SEMESTER} lost shows a semester air none.`}
+        >
+          {joined([
+            overflow > 0 ? `won't air by ${shortDay(lastDay)}` : `every package airs by ${shortDay(lastDay)}`,
+            `${packagesLeftToAir} to air, ${slotsLeft} shows left`
+          ])}
+        </span>
+      }
+    />
+  );
+}
+
 /**
- * The at-a-glance strip: next show, open shows (producers) and YouTube. Producers: one row from
- * sm; on phones Next and Open share a row and YouTube takes the next. Website managers: two tiles
- * in one row. Tiles jump to what they count.
+ * The at-a-glance strip: next show, open shows (producers), YouTube and projected overflow
+ * (producers). Producers: two per row from sm, four from xl; on phones Next and Open share a row,
+ * YouTube and Overflow take a row each. Website managers: two tiles in one row. Tiles jump to what
+ * they count.
  */
 export function QueueSummary({
   summary,
@@ -197,11 +226,14 @@ export function QueueSummary({
   onJumpToShow,
   onJumpToUnassigned,
   onJumpToFailed,
-  onShowPublished
+  onShowPublished,
+  overflow
 }: {
   summary: Summary;
   canEdit: boolean;
   publishingConfigured: boolean | null;
+  /** Producers; null outside a school year or before any cycle has packages. */
+  overflow?: OverflowProjection | null;
   onJumpToShow: (date: string) => void;
   onJumpToUnassigned: () => void;
   onJumpToFailed: () => void;
@@ -209,7 +241,12 @@ export function QueueSummary({
   onShowPublished?: () => void;
 }) {
   return (
-    <div className={cn("grid grid-cols-2 gap-3 lg:gap-4 *:h-full", canEdit && "sm:grid-cols-3")}>
+    <div
+      className={cn(
+        "grid grid-cols-2 gap-3 lg:gap-4 *:h-full",
+        canEdit && (overflow ? "xl:grid-cols-4" : "sm:grid-cols-3")
+      )}
+    >
       <NextShowTile next={summary.next} canEdit={canEdit} onJump={onJumpToShow} />
       {canEdit ? <OpenShowsTile summary={summary} onJump={onJumpToShow} onJumpUnassigned={onJumpToUnassigned} /> : null}
       <YoutubeTile
@@ -219,6 +256,7 @@ export function QueueSummary({
         onJumpToFailed={onJumpToFailed}
         onShowPublished={onShowPublished}
       />
+      {canEdit && overflow ? <OverflowTile projection={overflow} /> : null}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { finalCutHeadline } from "@/src/lib/package-headline";
 import { QUEUE_UPCOMING_SHOW_COUNT, isCustomQueuePackage } from "@/src/lib/publishing-queue";
 import { labeledUser, userDisplayName } from "@/src/lib/user-display";
 import { formatShowDateLabel, todayDateKey } from "@/src/lib/show-assignment";
+import { loadOverflowProjection } from "@/src/server/publishing-queue-projection";
 import { listUpcomingShowDays } from "@/src/server/show-schedule";
 import { anchorModeForDate } from "@/src/show-roles/lib/anchors";
 import { youtubePublishingConfig } from "@/src/server/youtube-client";
@@ -64,7 +65,7 @@ export async function loadPublishingQueue({
   canHold: boolean;
   wantCandidates: boolean;
 }) {
-  const [rows, upcoming, candidates] = await Promise.all([
+  const [rows, upcoming, candidates, overflow] = await Promise.all([
     prisma.packageProgressRow.findMany({
       where: { queuedForAirAt: { not: null } },
       include: {
@@ -101,7 +102,14 @@ export async function loadPublishingQueue({
           orderBy: [{ cycleNumber: "desc" }, { rowOrder: "asc" }],
           take: 40
         })
-      : Promise.resolve([])
+      : Promise.resolve([]),
+    // A projection, so a failure leaves the tile out rather than failing the queue.
+    canEdit
+      ? loadOverflowProjection().catch((error: unknown) => {
+          console.error("Publishing Queue overflow projection failed", error);
+          return null;
+        })
+      : Promise.resolve(null)
   ]);
 
   return {
@@ -110,6 +118,7 @@ export async function loadPublishingQueue({
     publishingConfigured: Boolean(youtubePublishingConfig()),
     packages: await Promise.all(rows.map(mapQueueRow)),
     today: todayDateKey(),
+    overflow,
     upcomingShows: upcoming.map(({ date, label }) => ({
       date,
       label: label ? `${formatShowDateLabel(date)} · ${label}` : formatShowDateLabel(date),

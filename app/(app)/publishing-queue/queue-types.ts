@@ -1,3 +1,5 @@
+import type { OverflowProjection } from "@/src/lib/publishing-queue-projection";
+
 /** Shapes returned by GET /api/package-cycle/queue (app/api/package-cycle/queue/route.ts). */
 
 export type YoutubePublicationSummary = {
@@ -39,6 +41,8 @@ export type Candidate = {
 
 export type QueueData = {
   packages: QueueRow[];
+  /** Producers only: packages the year will make that no show day is left to air. */
+  overflow?: OverflowProjection | null;
   publishingConfigured?: boolean;
   today?: string;
   upcomingShows: UpcomingShow[];

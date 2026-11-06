@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { cachedValue, rememberValue } from "@/src/lib/client-cache";
 import type { NasUploadFields } from "@/src/lib/nas-upload-client";
+import type { OverflowProjection } from "@/src/lib/publishing-queue-projection";
 import { addedToShowMessage } from "./queue-view-model";
 import type { Candidate, CandidatesStatus, QueueData, QueueRow, UpcomingShow } from "./queue-types";
 
@@ -71,6 +72,7 @@ export function usePublishingQueue(initialData: QueueData | null) {
   const [rows, setRows] = useState<QueueRow[]>(initial?.packages ?? []);
   const [upcoming, setUpcoming] = useState<UpcomingShow[]>(initial?.upcomingShows ?? []);
   const [today, setToday] = useState<string | undefined>(initial?.today);
+  const [overflow, setOverflow] = useState<OverflowProjection | null>(initial?.overflow ?? null);
   const [publishingConfigured, setPublishingConfigured] = useState<boolean | null>(initial?.publishingConfigured ?? null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [candidatesStatus, setCandidatesStatus] = useState<CandidatesStatus>("idle");
@@ -84,6 +86,7 @@ export function usePublishingQueue(initialData: QueueData | null) {
     setRows(data.packages ?? []);
     setPublishingConfigured(data.publishingConfigured ?? null);
     setToday(data.today);
+    setOverflow(data.overflow ?? null);
     setUpcoming(data.upcomingShows ?? []);
     if (withCandidates) setCandidates(data.candidates ?? []);
   }, []);
@@ -226,6 +229,7 @@ export function usePublishingQueue(initialData: QueueData | null) {
     rows,
     upcoming,
     today,
+    overflow,
     publishingConfigured,
     candidates,
     candidatesStatus,

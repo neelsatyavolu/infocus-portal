@@ -32,7 +32,13 @@ export async function latestGraphicsSource(
   const release = await fetchImpl(`https://api.github.com/repos/${repo}/releases/tags/${RELEASE_TAG}`, {
     headers: { ...headers, accept: "application/vnd.github+json" }
   });
-  if (release.status === 404) return { version: null, reason: "The graphics repo has no Graphics Source release yet." };
+  if (release.status === 404) {
+    return { version: null, reason: "No Graphics Source release found: none published yet, a wrong SHOW_EDITOR_GRAPHICS_REPO, or a token without access to it." };
+  }
+  // A rate limit is passing: throw, so the Mac keeps its graphics for this job and asks again next time.
+  if (release.status === 429 || (release.status === 403 && release.headers.get("x-ratelimit-remaining") === "0")) {
+    throw new Error(`GitHub rate limit (${release.status})`);
+  }
   // A bad token is a setup problem, not an outage: answering 500 would only make every Mac retry.
   if (release.status === 401 || release.status === 403) {
     console.error(`show editor graphics: GitHub refused SHOW_EDITOR_GRAPHICS_TOKEN (${release.status})`);

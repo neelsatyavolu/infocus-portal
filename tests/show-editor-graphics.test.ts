@@ -58,6 +58,11 @@ describe("latestGraphicsSource", () => {
     expect(result).toMatchObject({ version: SHA_NEW, sha256: null });
   });
 
+  it("treats a rate-limited 403 as a passing failure, not a refused token", async () => {
+    const limited = vi.fn(async () => new Response("{}", { status: 403, headers: { "x-ratelimit-remaining": "0" } }));
+    await expect(latestGraphicsSource(limited as typeof fetch, ENV)).rejects.toThrow(/rate limit/);
+  });
+
   it("throws when GitHub fails", async () => {
     await expect(latestGraphicsSource(github([], { releaseStatus: 500 }) as typeof fetch, ENV)).rejects.toThrow(/500/);
     await expect(latestGraphicsSource(github([asset(SHA_NEW, "x")], { downloadStatus: 200 }) as typeof fetch, ENV))

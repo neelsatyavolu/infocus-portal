@@ -47,6 +47,12 @@ describe("latestGraphicsSource", () => {
     expect(await latestGraphicsSource(github([]) as typeof fetch, ENV)).toMatchObject({ version: null });
   });
 
+  it("answers a refused token with a reason, so Macs don't retry", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(await latestGraphicsSource(github([], { releaseStatus: 401 }) as typeof fetch, ENV))
+      .toEqual({ version: null, reason: "GitHub refused the Portal's graphics token." });
+  });
+
   it("leaves sha256 null when GitHub sends no digest", async () => {
     const result = await latestGraphicsSource(github([asset(SHA_NEW, "2026-11-06T00:00:00Z")]) as typeof fetch, ENV);
     expect(result).toMatchObject({ version: SHA_NEW, sha256: null });

@@ -33,6 +33,11 @@ export async function latestGraphicsSource(
     headers: { ...headers, accept: "application/vnd.github+json" }
   });
   if (release.status === 404) return { version: null, reason: "The graphics repo has no Graphics Source release yet." };
+  // A bad token is a setup problem, not an outage: answering 500 would only make every Mac retry.
+  if (release.status === 401 || release.status === 403) {
+    console.error(`show editor graphics: GitHub refused SHOW_EDITOR_GRAPHICS_TOKEN (${release.status})`);
+    return { version: null, reason: "GitHub refused the Portal's graphics token." };
+  }
   if (!release.ok) throw new Error(`GitHub release lookup failed: ${release.status}`);
 
   const assets = ((await release.json()) as { assets?: Asset[] }).assets ?? [];

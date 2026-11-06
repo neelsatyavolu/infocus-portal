@@ -79,15 +79,15 @@ export function harvestYear(now: Date): number {
  * pre-approved extension for a Cycle 2 package group (src/server/thanksgiving-contest.ts): their
  * own, or, if theirs already turned in its Final Cut, a group still working that they pick
  * (src/server/thanksgiving-prize.ts). Ranked by points (harvestTotal). The last hour is blind:
- * students see only their own points until the winner is revealed at 8:00 AM Friday. The board
- * keeps counting afterwards.
+ * everyone but the super admin sees only their own points until the winner is revealed at 8:00 AM
+ * Friday. The board keeps counting afterwards.
  */
 export const HARVEST_CONTEST = {
   year: 2026,
   /** 11:59 PM Pacific (PST, UTC−8) on Thursday, November 5. */
   closesAt: new Date("2026-11-05T23:59:59.999-08:00"),
   closesLabel: "11:59 PM Thu, Nov 5",
-  /** From here until the reveal, students see only their own points. */
+  /** From here until the reveal, everyone but the super admin sees only their own points. */
   hiddenFrom: new Date("2026-11-05T23:00:00-08:00"),
   hiddenLabel: "11:00 PM",
   /** 8:00 AM Pacific on Friday, November 6: the winner is announced on the Portal and in Slack. */
@@ -116,7 +116,7 @@ export type ContestResult = {
 };
 
 /**
- * open: the board is public. blind: the last hour, students see only their own points. closed:
+ * open: the board is public. blind: the last hour, people see only their own points. closed:
  * locked in, waiting for the reveal (still blind). revealed: the winner is out, the board public again.
  */
 export type ContestPhase = "open" | "blind" | "closed" | "revealed";
@@ -137,10 +137,15 @@ export function viewerPoints(
   return [...board.rows, ...board.disqualified].find((entry) => entry.userId === viewerId)?.total ?? 0;
 }
 
-/** Students can't see the standings (the last hour, then until the reveal). */
+/** The standings are dark (the last hour, then until the reveal): only the super admin sees them. */
 export function isBoardHidden(now: Date): boolean {
   const phase = contestPhase(now);
   return phase === "blind" || phase === "closed";
+}
+
+/** Whether this role sees the standings now: everyone while the board is public, only the super admin while it's dark. */
+export function seesBoard(now: Date, role: string | null | undefined): boolean {
+  return !isBoardHidden(now) || role === "SUPER_ADMIN";
 }
 
 export function isContestOpen(now: Date): boolean {

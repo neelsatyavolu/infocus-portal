@@ -9,7 +9,7 @@ import { ReviewPanel } from "@/components/thanksgiving/review-panel";
 import { TurkeySprite } from "@/components/thanksgiving/sprites";
 import { requireUserId, syncUserProfile } from "@/src/lib/auth";
 import { getPlatformAccess } from "@/src/lib/platform-admin";
-import { contestPhase, HARVEST_CONTEST, isBoardHidden, viewerPoints } from "@/src/lib/thanksgiving-board";
+import { contestPhase, HARVEST_CONTEST, isBoardHidden, seesBoard, viewerPoints } from "@/src/lib/thanksgiving-board";
 import { rankMove, viewerGapLine, type RankMove } from "@/src/lib/thanksgiving-standings";
 import { mayGrantExtensions } from "@/src/server/extension-requests";
 import { loadHarvestContest, settleHarvestContest } from "@/src/server/thanksgiving-contest";
@@ -22,8 +22,8 @@ export const metadata: Metadata = { title: "Leaderboard" };
 /**
  * Thanksgiving leaderboard: everyone's leaves, golden leaves, pies, wishbones, giant turkey
  * sightings and pardoned turkeys this November (src/lib/thanksgiving-board.ts). Open to everyone
- * signed in. From the dark last hour until the reveal, students see only their own points; execs
- * still see the board.
+ * signed in. While the board is dark (until the reveal) everyone sees only their own points except
+ * the super admin, who still sees the board.
  */
 export default async function ThanksgivingLeaderboardPage() {
   const userId = await requireUserId();
@@ -31,17 +31,17 @@ export default async function ThanksgivingLeaderboardPage() {
   const access = await getPlatformAccess(user.email);
   const reviewer = mayGrantExtensions(access.role);
   const now = new Date();
+  const dark = isBoardHidden(now);
+  const hidden = !seesBoard(now, access.role);
   await settleHarvestContest(now);
   const [board, result, flagged, review, choosers] = await Promise.all([
     loadHarvestBoard(now),
     loadHarvestContest(),
     viewerFlag(userId),
-    reviewer ? loadReviewRows() : null,
+    reviewer && !hidden ? loadReviewRows() : null,
     loadPrizeChoosers(userId, reviewer)
   ]);
   const options = choosers.length > 0 ? await loadPrizeOptions() : [];
-  const dark = isBoardHidden(now);
-  const hidden = dark && !reviewer;
   const pastRanks = hidden ? new Map<string, number>() : await loadPastRanks(board.rows, now);
   const moves: Record<string, RankMove> = Object.fromEntries(
     board.rows.map((row) => [row.userId, rankMove(row.rank, pastRanks.get(row.userId))])
@@ -63,9 +63,9 @@ export default async function ThanksgivingLeaderboardPage() {
           You can keep playing; if it&apos;s all you, they&apos;ll restore you with everything you caught.
         </Alert>
       ) : null}
-      {dark && reviewer ? (
-        <Alert tone="info" title="Students can't see the board right now">
-          Until the reveal at {HARVEST_CONTEST.revealLabel}, students see only their own points. You can still see everything.
+      {dark && !hidden ? (
+        <Alert tone="info" title="Only you can see the board right now">
+          Until the reveal at {HARVEST_CONTEST.revealLabel}, everyone else, execs included, sees only their own points.
         </Alert>
       ) : null}
       {hidden ? (

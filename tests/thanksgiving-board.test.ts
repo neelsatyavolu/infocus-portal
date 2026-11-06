@@ -3,6 +3,7 @@ import {
   contestPhase,
   contestWinners,
   isBoardHidden,
+  seesBoard,
   viewerPoints,
   EMPTY_HARVEST,
   HARVEST_CONTEST,
@@ -112,6 +113,18 @@ describe("contest phases", () => {
     expect(isBoardHidden(new Date("2026-11-05T23:30:00-08:00"))).toBe(true);
     expect(isBoardHidden(new Date("2026-11-06T07:59:00-08:00"))).toBe(true);
     expect(isBoardHidden(new Date("2026-11-06T08:00:00-08:00"))).toBe(false);
+  });
+
+  it("shows the dark board to the super admin only", () => {
+    const open = new Date("2026-11-05T22:00:00-08:00");
+    const dark = new Date("2026-11-05T23:30:00-08:00");
+    expect(seesBoard(open, "ASSOCIATE_PRODUCER")).toBe(true);
+    expect(seesBoard(open, null)).toBe(true);
+    expect(seesBoard(dark, "SUPER_ADMIN")).toBe(true);
+    for (const role of ["ADVISER", "EXECUTIVE_PRODUCER", "ASSOCIATE_PRODUCER", null] as const) {
+      expect(seesBoard(dark, role)).toBe(false);
+    }
+    expect(seesBoard(new Date("2026-11-06T08:00:00-08:00"), null)).toBe(true);
   });
 
   it("finds the viewer's own points, ranked or disqualified", () => {

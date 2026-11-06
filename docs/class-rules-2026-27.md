@@ -153,7 +153,8 @@ Semester 1 livestream points remain ungraded and excluded from totals until **No
   count 5, and harvest hour, a secret hour between 4 and 8 PM on Nov 5, counts double) at 11:59 PM Pacific on
   Nov 5 wins a pre-approved extension for a Cycle 2 package group (`src/server/thanksgiving-contest.ts`):
   the group's longest whole-group grant plus 2 days, with no member agreement or producer approvals.
-  The last hour (from 11 PM) is blind: students see only their own points. The winner is revealed,
+  The last hour (from 11 PM) is blind: everyone but the super admin, execs included, sees only
+  their own points. The winner is revealed,
   and the prize granted, at 8:00 AM Fri, Nov 6. It goes to the winner's own Cycle 2 group, unless
   that group already turned in its Final Cut; then the winner picks a Cycle 2 group that hasn't
   (`src/server/thanksgiving-prize.ts`, or an exec picks for them). An exact tie gives each winner the

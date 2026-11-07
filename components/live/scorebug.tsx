@@ -200,11 +200,18 @@ function FootballCenter({ state, now }: BugProps) {
           </div>
           <Team state={state} team={1} layout={layout} mirror />
         </div>
-        {down ? (
-          <span className={`lv-down ${flag ? "flag" : ""}`} style={{ left: downLeft }}>
-            {down}
-          </span>
-        ) : null}
+        {/* A flag is on the field, not on one team: the FLAG tab sits over both teams. */}
+        {flag
+          ? [96, 96 + layout.cell + 170].map((left) => (
+              <span key={left} className="lv-down flag" style={{ left }}>
+                {down}
+              </span>
+            ))
+          : down ? (
+              <span className="lv-down" style={{ left: downLeft }}>
+                {down}
+              </span>
+            ) : null}
         {touchdown ? <Touchdown key={tagKey(touchdown)} tag={touchdown} state={state} now={now} width={layout.cell * 2 + 170 + 56} /> : null}
       </div>
       {timeouts.length ? (

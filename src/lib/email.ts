@@ -120,7 +120,7 @@ export async function sendPreparedEmail(payload: {
   return result.data;
 }
 
-/** Resend accepts at most 50 addresses in `to` per email. */
+/** Resend accepts at most 50 addresses in `to` or `bcc` per email. */
 const MAX_RECIPIENTS_PER_EMAIL = 50;
 
 function uniqueRecipients(recipients: string[]) {
@@ -133,7 +133,8 @@ function uniqueRecipients(recipients: string[]) {
 }
 
 /**
- * Identical content goes out as one email with every recipient in `to` (split past 50).
+ * Identical content goes out as one email per batch of 50. A single recipient is in `to`;
+ * with more, `to` is the sender and the batch is in `bcc`, so no one sees the other addresses.
  * With `idempotencyKey`, Resend drops a repeat of the same batch for 24 hours (key + batch index).
  */
 async function sendToAll(recipients: string[], subject: string, text: string, html: string, idempotencyKey?: string) {
@@ -149,11 +150,11 @@ async function sendToAll(recipients: string[], subject: string, text: string, ht
   }
 
   const results = await Promise.allSettled(
-    batches.map(async (to, index) => {
+    batches.map(async (batch, index) => {
       const result = await mail.client.emails.send(
         {
           from: mail.from,
-          to,
+          ...(addresses.length === 1 ? { to: batch } : { to: mail.from, bcc: batch }),
           subject,
           text,
           html

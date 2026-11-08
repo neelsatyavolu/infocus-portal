@@ -63,6 +63,15 @@ export async function participantState(meetingId: string, userId: string) {
   return row?.state ?? null;
 }
 
+/** Inputs for decideAdmission: a removal is remembered in removedAt even after they knock again. */
+async function admissionInput(meetingId: string, userId: string) {
+  const row = await prisma.meetingParticipant.findUnique({
+    where: { meetingId_userId: { meetingId, userId } },
+    select: { state: true, removedAt: true }
+  });
+  return { previous: row?.state ?? null, excluded: Boolean(row?.removedAt) };
+}
+
 function isUniqueConflict(error: unknown) {
   return typeof error === "object" && error !== null && (error as { code?: unknown }).code === "P2002";
 }
@@ -84,8 +93,8 @@ export async function admitOrQueue(input: {
   const { meetingId, userId, now } = input;
   let metered = false;
   for (let attempt = 0; attempt < MAX_JOIN_ATTEMPTS; attempt += 1) {
-    const previous = await participantState(meetingId, userId);
-    const state = decideAdmission({ isHost: input.isHost, quickAccess: input.quickAccess, previous });
+    const { previous, excluded } = await admissionInput(meetingId, userId);
+    const state = decideAdmission({ isHost: input.isHost, quickAccess: input.quickAccess, previous, excluded });
     if (state === "ADMITTED" && !metered) {
       await input.beforeAdmit?.(previous);
       metered = true;
@@ -103,9 +112,12 @@ export async function admitOrQueue(input: {
       }
     }
 
+    // A denied producer's knock keeps the row DENIED (a host's Admit lifts DENIED), so a later
+    // join can't read it as a plain WAITING and let quick access in.
+    const stored = previous === "DENIED" && state === "WAITING" ? "DENIED" : state;
     const updated = await prisma.meetingParticipant.updateMany({
       where: { meetingId, userId, state: previous },
-      data: { state, lastJoinedAt: now }
+      data: { state: stored, lastJoinedAt: now }
     });
     if (updated.count === 1) return state;
   }
@@ -149,8 +161,8 @@ export async function joinMeeting(viewer: MeetingViewer, meetingId: string, now 
 
   // Everyone left a few minutes ago: someone who would be let in picks the meeting up again.
   if (isReopenable(meeting, now)) {
-    const previous = await participantState(meetingId, viewer.userId);
-    if (decideAdmission({ isHost, quickAccess: meeting.quickAccess, previous }) === "ADMITTED") {
+    const { previous, excluded } = await admissionInput(meetingId, viewer.userId);
+    if (decideAdmission({ isHost, quickAccess: meeting.quickAccess, previous, excluded }) === "ADMITTED") {
       await reopenMeeting(meetingId, now);
       meeting = (await loadJoinMeeting(meetingId)) ?? meeting;
     }

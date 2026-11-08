@@ -26,6 +26,19 @@ export function hasPlatformRole(role: PlatformRole | null, minimum: PlatformRole
   return platformRoleWeight[role] >= platformRoleWeight[minimum];
 }
 
+/**
+ * Removing an account takes its platform role away. Role managers may remove any role holder;
+ * anyone else only targets with no role or a role below their own (an EP may remove an AP).
+ */
+export function mayRemoveAccountWithRole(
+  callerRole: PlatformRole | null,
+  canManagePlatformRoles: boolean,
+  targetRole: PlatformRole | null
+) {
+  if (!targetRole || canManagePlatformRoles) return true;
+  return Boolean(callerRole) && platformRoleWeight[targetRole] < platformRoleWeight[callerRole as PlatformRole];
+}
+
 /** Student gradebook (`/grades`). Hidden for EP, adviser, and super admin. */
 export function seesStudentGrades(role: PlatformRole | null) {
   return !hasPlatformRole(role, "EXECUTIVE_PRODUCER");

@@ -182,6 +182,8 @@ async function deliverMemberMail(input: {
   const emails: string[] = [];
   const pushIds: string[] = [];
   for (const member of row.members) {
+    // A removed account (email cleared) stays on old rosters but gets no more mail or pushes.
+    if (!member.user.email) continue;
     if (input.excludeUserId && member.user.id === input.excludeUserId) continue;
     pushIds.push(member.user.id);
     const email = (member.user.notificationPreference?.notificationEmail ?? member.user.email)?.trim();

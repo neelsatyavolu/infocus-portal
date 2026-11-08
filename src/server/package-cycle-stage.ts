@@ -1026,8 +1026,56 @@ export async function completeCycleStageUpload(input: {
   /** Final Cut only: the anchor toss, saved once the upload finishes. */
   toss?: string;
 }) {
+  // A retried "complete" (the first response was lost) for a Final Cut already attached is a no-op.
+  if (input.slug === "final-cut") {
+    const attached = await prisma.packageProgressRow.findFirst({
+      where: { id: input.rowId, finalCutMediaItemId: input.mediaId, members: { some: { userId: input.userId } } },
+      select: { finalCutMediaItem: { select: { currentVersionId: true } } }
+    });
+    if (attached?.finalCutMediaItem?.currentVersionId === input.versionId) return;
+  }
+
+  // Same gate as init: a member of this row, with this stage open for upload.
+  const view = await loadCycleStageView({
+    userId: input.userId,
+    role: input.role,
+    slug: input.slug,
+    rowId: input.rowId
+  });
+  if (view.empty || !view.canUpload) {
+    throw new Error("FORBIDDEN");
+  }
+
+  const row = await prisma.packageProgressRow.findUniqueOrThrow({
+    where: { id: input.rowId },
+    include: { approval: true }
+  });
+  if (input.slug === "final-cut" && row.finalCutMediaItemId && !view.allowSecondFinalCut) {
+    throw new Error("CONFLICT");
+  }
+
+  // The version must be one the caller started through init for this row and stage:
+  // a new version of the row's Initial Cut, or a new item in this cycle's project.
+  const reusesInitialCut = input.slug === "initial-cut" && Boolean(row.initialCutMediaItemId);
+  if (reusesInitialCut && input.mediaId !== row.initialCutMediaItemId) {
+    throw new Error("NOT_FOUND");
+  }
   const version = await prisma.mediaVersion.findFirst({
-    where: { id: input.versionId, mediaItemId: input.mediaId }
+    where: {
+      id: input.versionId,
+      mediaItemId: input.mediaId,
+      createdById: input.userId,
+      ...(reusesInitialCut
+        ? {}
+        : {
+            versionNumber: 1,
+            mediaItem: {
+              createdById: input.userId,
+              deletedAt: null,
+              project: { name: `Cycle ${row.cycleNumber}` }
+            }
+          })
+    }
   });
   if (!version) {
     throw new Error("NOT_FOUND");
@@ -1043,11 +1091,6 @@ export async function completeCycleStageUpload(input: {
       currentVersionId: version.id,
       ...(input.slug === "initial-cut" ? { title: initialCutVersionTitle(version.versionNumber) } : {})
     }
-  });
-
-  const row = await prisma.packageProgressRow.findUniqueOrThrow({
-    where: { id: input.rowId },
-    include: { approval: true }
   });
 
   if (input.slug === "a-roll") {
@@ -1253,12 +1296,14 @@ function requireProducer(role: PlatformRole | null) {
   }
 }
 
-async function loadProgressMembers(rowId: string) {
+/** Loads the row's members for grading; only a producer who may act on this package gets them. */
+async function loadProgressMembers(rowId: string, actor: { role: PlatformRole | null; userId: string }) {
   const row = await prisma.packageProgressRow.findUnique({
     where: { id: rowId },
     select: {
       id: true,
       cycleNumber: true,
+      assignedProducerUserId: true,
       members: {
         select: {
           userId: true,
@@ -1280,6 +1325,9 @@ async function loadProgressMembers(rowId: string) {
     }
   });
   if (!row) throw new Error("NOT_FOUND");
+  if (!producerMayActOnPackage(actor.role, actor.userId, row)) {
+    throw new Error("FORBIDDEN");
+  }
   if (row.members.length === 0) {
     throw new Error("This package has no members to grade.");
   }
@@ -1323,11 +1371,12 @@ function notifyMembersGradesPublished(input: {
 export async function savePackageCycleGradeFeedback(input: {
   rowId: string;
   role: PlatformRole | null;
+  userId: string;
   feedback: string;
 }) {
   requireProducer(input.role);
   const feedback = normalizeCycleGradeFeedback(input.feedback);
-  const row = await loadProgressMembers(input.rowId);
+  const row = await loadProgressMembers(input.rowId, input);
 
   await prisma.$transaction(
     row.members.map((member) =>
@@ -1354,10 +1403,11 @@ export async function savePackageCycleGradeFeedback(input: {
 export async function publishPackageCycleGrades(input: {
   rowId: string;
   role: PlatformRole | null;
+  userId: string;
   feedback?: string;
 }) {
   requireProducer(input.role);
-  const row = await loadProgressMembers(input.rowId);
+  const row = await loadProgressMembers(input.rowId, input);
   const memberIds = row.members.map((member) => member.userId);
   const existing = await prisma.packageGrade.findMany({
     where: { cycleNumber: row.cycleNumber, userId: { in: memberIds } }

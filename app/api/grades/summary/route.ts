@@ -7,7 +7,7 @@ import { buildGradeSummary } from "@/src/server/student-grade-summary";
 
 /**
  * Weighted 2026-27 grade for the signed-in student, or for another student when
- * a producer passes ?userId=.
+ * an executive producer passes ?userId=.
  */
 export async function GET(request: Request) {
   try {
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     const requestedUserId = searchParams.get("userId");
 
     if (requestedUserId && requestedUserId !== userId) {
-      if (!hasPlatformRole(access.role, "ASSOCIATE_PRODUCER")) {
+      if (!hasPlatformRole(access.role, "EXECUTIVE_PRODUCER")) {
         throw new Error("FORBIDDEN");
       }
     }

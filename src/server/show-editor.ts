@@ -125,6 +125,13 @@ async function requireJob(id: string) {
   return job;
 }
 
+/** The job, only for the machine that claimed it: any other machine gets the same 404 as an unknown id. */
+async function requireOwnJob(id: string, deviceId: string) {
+  const job = await requireJob(id);
+  if (job.deviceId !== deviceId) throw new ShowEditError("That edit doesn't exist.", 404);
+  return job;
+}
+
 /** 409 once the show left DRAFT: from then on it is changed in YouTube Studio. */
 async function requireShowStillDraft(showDate: string) {
   const publication = await prisma.showPublication.findUnique({ where: { showDate } });
@@ -370,14 +377,24 @@ function outputPaths(showDate: string, now: Date) {
 async function queuedPackageRows(showDate: string) {
   const rows = await prisma.packageProgressRow.findMany({
     where: { queuedForAirAt: { not: null }, queuedForShowDate: showDate },
-    select: { groupTopic: true, finalCutToss: true, finalCutMediaItem: { select: { title: true, currentVersion: { select: { nasPath: true } } } } },
+    select: {
+      groupTopic: true,
+      finalCutToss: true,
+      queuedMediaVersionId: true,
+      finalCutMediaItem: { select: { title: true, currentVersion: { select: { id: true, nasPath: true } } } }
+    },
     orderBy: { queuedForAirAt: "asc" }
   });
-  return rows.map((row) => ({
-    title: row.finalCutMediaItem?.title?.trim() || row.groupTopic.trim(),
-    nasPath: row.finalCutMediaItem?.currentVersion?.nasPath ?? null,
-    toss: row.finalCutToss.trim() || null
-  }));
+  return rows.map((row) => {
+    const current = row.finalCutMediaItem?.currentVersion;
+    // A Final Cut replaced after the package was queued waits until a producer queues it again (as on YouTube).
+    const changedSinceQueued = Boolean(row.queuedMediaVersionId && current && current.id !== row.queuedMediaVersionId);
+    return {
+      title: row.finalCutMediaItem?.title?.trim() || row.groupTopic.trim(),
+      nasPath: changedSinceQueued ? null : current?.nasPath ?? null,
+      toss: row.finalCutToss.trim() || null
+    };
+  });
 }
 
 /** How many announcements the show's script reads in A2; null when the show has no script yet. */
@@ -480,17 +497,18 @@ export async function claimNextShowEdit(deviceId: string, now = new Date()): Pro
 }
 
 export async function reportShowEditProgress(
-  input: { id: string; stage: ShowEditStage; message: string }, now = new Date()
+  input: { id: string; deviceId: string; stage: ShowEditStage; message: string }, now = new Date()
 ): Promise<{ cancel: boolean }> {
   const job = await requireJob(input.id);
   // Requeued or ended while the Mac was still working on it: tell the Mac to stop.
   if (job.status !== "RUNNING") return { cancel: true };
+  if (job.deviceId !== input.deviceId) throw new ShowEditError("That edit doesn't exist.", 404);
   await prisma.showEditJob.update({ where: { id: job.id }, data: { stage: input.stage, message: input.message, heartbeatAt: now } });
   return { cancel: job.cancelRequested };
 }
 
-async function requireRunning(id: string) {
-  const job = await requireJob(id);
+async function requireRunning(id: string, deviceId: string) {
+  const job = await requireOwnJob(id, deviceId);
   if (job.status !== "RUNNING") throw new ShowEditError("This edit is no longer running.", 409);
   return job;
 }
@@ -513,8 +531,8 @@ function debugLogEntry(job: ShowEditJob, path: string | undefined, now: Date): S
   return { version: runVersion(job), path, at: now.toISOString() };
 }
 
-export async function showEditUploadTargets(id: string, now = new Date()) {
-  const job = await requireRunning(id);
+export async function showEditUploadTargets(id: string, deviceId: string, now = new Date()) {
+  const job = await requireRunning(id, deviceId);
   if (!job.outputNasPath || !job.posterNasPath) throw new ShowEditError("This edit has no output path yet.", 409);
   const [video, poster, log] = await Promise.all([
     mintEditorUpload(job.outputNasPath), mintEditorUpload(job.posterNasPath), mintEditorUpload(runLogPath(job, now))
@@ -574,13 +592,13 @@ async function autoPublish(job: ShowEditJob, input: { needsReview: boolean; chec
 }
 
 export async function completeShowEdit(input: {
-  id: string; outputNasPath: string; decisions: ShowEditDecision[]; checks: Record<string, unknown>;
+  id: string; deviceId: string; outputNasPath: string; decisions: ShowEditDecision[]; checks: Record<string, unknown>;
   needsReview: boolean; costUsd: number; agentSessionId: string; reply?: string;
   /** The full updated house rules after a remembered fix. */
   houseRules?: string;
   debugLogPath?: string;
 }, now = new Date()) {
-  const job = await requireRunning(input.id);
+  const job = await requireRunning(input.id, input.deviceId);
   if (input.outputNasPath !== job.outputNasPath) throw new ShowEditError("outputNasPath doesn't match this run's brief.", 409);
   const isFix = Boolean(job.pendingFix);
   if (isFix && !input.reply?.trim()) throw new ShowEditError("A fix needs a reply saying what changed.", 400);
@@ -618,8 +636,11 @@ export async function completeShowEdit(input: {
   return { ok: true as const };
 }
 
-export async function failShowEdit(input: { id: string; error: string; cancelled: boolean; debugLogPath?: string }, now = new Date()) {
-  const job = await requireJob(input.id);
+export async function failShowEdit(
+  input: { id: string; deviceId: string; error: string; cancelled: boolean; debugLogPath?: string }, now = new Date()
+) {
+  // Only the claiming machine may fail a run, or a fix queued for it (an unbound QUEUED edit is nobody's yet).
+  const job = await requireOwnJob(input.id, input.deviceId);
   const debugLog = debugLogEntry(job, input.debugLogPath, now);
   const checks = () => mergeDebugLog(job.checks, objectChecks(job.checks), debugLog) as Prisma.InputJsonValue;
   if (job.status !== "RUNNING" && job.status !== "QUEUED") {

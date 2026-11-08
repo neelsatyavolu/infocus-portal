@@ -35,8 +35,9 @@ vi.mock("@/src/lib/prisma", () => {
       update: mocks.userUpdate,
       delete: mocks.userDelete
     },
-    platformRoleAssignment: { deleteMany: mocks.roleDeleteMany },
-    allowedSignupEmail: { deleteMany: mocks.allowlistDeleteMany }
+    platformRoleAssignment: { deleteMany: mocks.roleDeleteMany, findUnique: async () => null },
+    allowedSignupEmail: { deleteMany: mocks.allowlistDeleteMany },
+    vaultEntryShare: { deleteMany: async () => ({ count: 0 }) }
   };
   return {
     prisma: {

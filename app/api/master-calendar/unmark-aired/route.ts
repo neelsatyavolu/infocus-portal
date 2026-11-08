@@ -1,10 +1,11 @@
 import { z } from "zod";
-import { ApprovalStatus } from "@prisma/client";
+import { ApprovalStatus, WorkspaceRole } from "@prisma/client";
 import { handleRouteError } from "@/src/lib/api-errors";
 import { requireUserId, syncUserProfile } from "@/src/lib/auth";
 import { ok } from "@/src/lib/http";
 import { getPlatformAccess, hasPlatformRole } from "@/src/lib/platform-admin";
 import { prisma } from "@/src/lib/prisma";
+import { requireMediaAccess } from "@/src/server/memberships";
 
 const payloadSchema = z.object({
   mediaItemId: z.string().cuid()
@@ -24,17 +25,13 @@ export async function POST(request: Request) {
 
     const parsed = payloadSchema.parse(await request.json());
 
-    const media = await prisma.mediaItem.findUnique({
-      where: { id: parsed.mediaItemId },
-      select: {
-        id: true,
-        currentVersionId: true,
-        deletedAt: true,
-        project: { select: { id: true, workspaceId: true } }
-      }
-    });
+    const { media } = await requireMediaAccess(
+      parsed.mediaItemId,
+      [WorkspaceRole.OWNER_ADMIN, WorkspaceRole.EDITOR, WorkspaceRole.REVIEWER],
+      { allowVisibility: true }
+    );
 
-    if (!media || media.deletedAt || !media.currentVersionId) {
+    if (media.deletedAt || !media.currentVersionId) {
       return ok({ reverted: false, reason: "not_found" });
     }
 

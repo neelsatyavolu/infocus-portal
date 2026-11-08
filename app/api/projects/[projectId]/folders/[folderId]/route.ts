@@ -1,7 +1,10 @@
 import { z } from "zod";
 import { handleRouteError } from "@/src/lib/api-errors";
+import { syncUserProfile } from "@/src/lib/auth";
 import { fail, ok } from "@/src/lib/http";
+import { getPlatformAccess } from "@/src/lib/platform-admin";
 import { prisma } from "@/src/lib/prisma";
+import { canManageProjectMedia } from "@/src/lib/rbac";
 import { requireProjectRole } from "@/src/server/memberships";
 
 const updateFolderSchema = z.object({
@@ -15,7 +18,13 @@ export async function PATCH(
   try {
     const payload = updateFolderSchema.parse(await request.json());
     const { projectId, folderId } = await params;
-    const { userId, project } = await requireProjectRole(projectId);
+    const { userId, project, membership } = await requireProjectRole(projectId);
+    const user = await syncUserProfile(userId);
+    const access = await getPlatformAccess(user.email);
+
+    if (!canManageProjectMedia(membership.role, access.role)) {
+      throw new Error("FORBIDDEN");
+    }
 
     const existing = await prisma.projectFolder.findFirst({
       where: {
@@ -74,7 +83,13 @@ export async function DELETE(
 ) {
   try {
     const { projectId, folderId } = await params;
-    const { userId, project } = await requireProjectRole(projectId);
+    const { userId, project, membership } = await requireProjectRole(projectId);
+    const user = await syncUserProfile(userId);
+    const access = await getPlatformAccess(user.email);
+
+    if (!canManageProjectMedia(membership.role, access.role)) {
+      throw new Error("FORBIDDEN");
+    }
 
     const folder = await prisma.projectFolder.findFirst({
       where: {

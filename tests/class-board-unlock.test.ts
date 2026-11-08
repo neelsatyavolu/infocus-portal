@@ -4,6 +4,7 @@ import { CLASS_BOARD_PIN_COOKIE_NAME, encryptClassBoardPin } from "@/src/lib/cla
 const m = vi.hoisted(() => ({
   findUnique: vi.fn(),
   update: vi.fn(),
+  updateMany: vi.fn(),
   set: vi.fn(),
   real: vi.fn(),
   role: vi.fn()
@@ -15,6 +16,7 @@ vi.mock("@/src/lib/prisma", () => ({
     programSetting: {
       findUnique: m.findUnique,
       update: m.update,
+      updateMany: m.updateMany,
       upsert: vi.fn()
     }
   }
@@ -47,6 +49,7 @@ describe("class board pin routes", () => {
     process.env.APP_AUTH_SECRET = SECRET;
     m.findUnique.mockResolvedValue(settings());
     m.update.mockResolvedValue(settings());
+    m.updateMany.mockResolvedValue({ count: 1 });
     m.real.mockResolvedValue({ email: "superadmin@example.edu" });
     m.role.mockResolvedValue("SUPER_ADMIN");
   });
@@ -71,7 +74,10 @@ describe("class board pin routes", () => {
     }));
     expect(response.status).toBe(401);
     expect(m.set).not.toHaveBeenCalled();
-    expect(m.update).toHaveBeenCalled();
+    expect(m.updateMany).toHaveBeenCalledWith({
+      where: { id: "singleton", classBoardPinFailures: { lt: 20 } },
+      data: { classBoardPinFailures: { increment: 1 } }
+    });
   });
 
   it("hides the pin from anyone who is not a super admin", async () => {

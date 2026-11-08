@@ -330,6 +330,13 @@ function shellSingleQuote(value: string) {
   return `'${value.replace(/'/g, "'\\''")}'`;
 }
 
+// Status line for the generated script. Media titles, folder names and the
+// project name are member-controlled, so they are passed to printf as a
+// single-quoted argument and never placed in a double-quoted string.
+function printfLine(message: string) {
+  return `printf '%s\\n' ${shellSingleQuote(message)}`;
+}
+
 // Browser-equivalent User-Agent so Bunny's edge serves the same fast path
 // it serves the in-browser download. Curl's default UA ("curl/8.x") triggers
 // Bunny throttling that drops ~60 MB/s downloads to ~4 MB/s; matching Chrome
@@ -357,7 +364,8 @@ export async function buildProjectDownloadScript(
   // their terminal scrollback. Keep them free of `!` characters — zsh runs
   // history expansion on interactive command lines before comment parsing.
   lines.push("# InFocus project download — paste this whole block into a Terminal window.");
-  lines.push(`# Project: ${manifest.archiveFileName}`);
+  // The project name is member-controlled, so it is printed from inside the
+  // heredoc below (single-quoted), never written onto this interactive part.
   lines.push(`# Files: ${manifest.entries.length}   Estimated size: ${totalMB} MB`);
   lines.push(`# Generated: ${generatedAt}`);
   lines.push(`# Signed URLs are valid for ${MANIFEST_SIGNED_URL_TTL_SECONDS / 3600} hours.`);
@@ -369,6 +377,7 @@ export async function buildProjectDownloadScript(
   lines.push("bash <<'INFOCUS_DOWNLOAD_EOF'");
   lines.push("set -euo pipefail");
   lines.push("");
+  lines.push(printfLine(`Project: ${manifest.archiveFileName}`));
   lines.push(`OUTDIR=${shellSingleQuote(sanitizedFolder)}`);
   lines.push(`OUTZIP=${shellSingleQuote(manifest.archiveFileName)}`);
   lines.push("TARGET_DIR=\"${HOME}/Downloads\"");
@@ -414,20 +423,16 @@ export async function buildProjectDownloadScript(
       const sizeMB = entry.sizeBytes !== null ? `${(entry.sizeBytes / 1024 / 1024).toFixed(1)} MB` : "size unknown";
       lines.push(`# [${videoIndex}/${manifest.entries.length}] ${entry.archivePath} (${sizeMB})`);
       lines.push(
-        `echo ">> [${videoIndex}/${manifest.entries.length}] Starting download for ${entry.archivePath} (${sizeMB})"`
+        printfLine(`>> [${videoIndex}/${manifest.entries.length}] Starting download for ${entry.archivePath} (${sizeMB})`)
       );
       lines.push(
         `curl "\${CURL_FLAGS[@]}" -o "$OUTDIR"/${shellSingleQuote(entry.archivePath)} ${shellSingleQuote(entry.signedUrl)}`
       );
-      lines.push(
-        `echo "   Completed download for ${entry.archivePath}"`
-      );
+      lines.push(printfLine(`   Completed download for ${entry.archivePath}`));
     } else {
       const sizeMB = `${(entry.sizeBytes / 1024 / 1024).toFixed(2)} MB`;
       lines.push(`# image: ${entry.archivePath} (${sizeMB})`);
-      lines.push(
-        `echo ">> Saving image ${entry.archivePath} (${sizeMB})"`
-      );
+      lines.push(printfLine(`>> Saving image ${entry.archivePath} (${sizeMB})`));
       // Inline base64 → decode to file. macOS and Linux both accept --decode.
       lines.push(
         `printf '%s' ${shellSingleQuote(entry.imageBase64)} | base64 --decode > "$OUTDIR"/${shellSingleQuote(entry.archivePath)}`

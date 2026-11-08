@@ -34,10 +34,17 @@ const publicationInclude = {
 
 type PublicationRow = Prisma.PackageProgressRowGetPayload<{ include: typeof publicationInclude }>;
 
-/** Pins the current Final Cut version for upload; null when it is not a ready video. */
+/** True when the Final Cut changed after a producer queued the package; it must be queued again to publish. */
+function finalCutChangedSinceQueued(row: PublicationRow) {
+  const source = row.finalCutMediaItem?.currentVersion;
+  return Boolean(row.queuedMediaVersionId && source && source.id !== row.queuedMediaVersionId);
+}
+
+/** Pins the current Final Cut version for upload; null when it is not a ready video or not the queued version. */
 async function createPublication(row: PublicationRow, showDate: string, channelId: string) {
   const source = row.finalCutMediaItem?.currentVersion;
   if (!source || source.status !== "READY" || source.sourceType !== "VIDEO" || row.finalCutMediaItem?.deletedAt) return null;
+  if (finalCutChangedSinceQueued(row)) return null;
   return prisma.youtubePublication.upsert({ where: { rowId: row.id }, update: {}, create: {
     rowId: row.id, title: finalCutHeadline(row.finalCutMediaItem) || row.groupTopic || "Untitled package", showDate,
     mediaVersionId: source.id, channelId
@@ -52,6 +59,7 @@ export async function startYoutubePublication(rowId: string): Promise<string | n
   if (!row) throw new Error("NOT_FOUND");
   if (!row.queuedForAirAt || !row.queuedForShowDate) return "Put this package on a show first.";
   if (row.youtubePublication) return "This package is already on its way to YouTube.";
+  if (finalCutChangedSinceQueued(row)) return "The final cut changed after this package was queued. Send it to the queue again to publish the new cut.";
   if (!await createPublication(row, row.queuedForShowDate, config.channelId)) return "The final cut is not ready to publish.";
   // The discover cron also picks up started uploads, so a failed send only delays the start.
   await inngest.send({ name: "youtube/publication.advance", data: { rowId } })

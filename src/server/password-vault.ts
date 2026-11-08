@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { isAppReviewEmail } from "@/src/lib/app-review";
 import { getRealSessionUser, getSessionUser } from "@/src/lib/auth";
 import { env } from "@/src/lib/env";
-import { getPlatformRoleForEmail, hasPlatformRole } from "@/src/lib/platform-admin";
+import { getPlatformRoleForEmail, hasPlatformRole, isEmailAllowedToUsePlatform } from "@/src/lib/platform-admin";
 import {
   normalizeVaultUrl,
   type VaultAccess,
@@ -42,6 +42,10 @@ export async function hasSharedVaultEntries(userId: string) {
 export async function getVaultActor(): Promise<VaultActor | null> {
   const [real, effective] = await Promise.all([getRealSessionUser(), getSessionUser()]);
   if (!real?.userId || !effective?.userId) return null;
+
+  // The cookie alone is not enough: a removed (deleted or email-blanked) account loses the vault.
+  const account = await prisma.user.findUnique({ where: { id: real.userId }, select: { email: true } });
+  if (!account?.email || !(await isEmailAllowedToUsePlatform(account.email))) return null;
 
   const [realRole, effectiveRole] = await Promise.all([
     getPlatformRoleForEmail(real.email),

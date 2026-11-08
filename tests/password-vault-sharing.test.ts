@@ -23,7 +23,11 @@ vi.mock("@/src/lib/env", () => ({ env: { PASSWORD_VAULT_KEY: m.key } }));
 vi.mock("@/src/lib/auth", () => ({ getRealSessionUser: m.real, getSessionUser: m.effective }));
 vi.mock("@/src/lib/platform-admin", async () => {
   const actual = await vi.importActual<typeof import("@/src/lib/platform-admin")>("@/src/lib/platform-admin");
-  return { hasPlatformRole: actual.hasPlatformRole, getPlatformRoleForEmail: m.role };
+  return {
+    hasPlatformRole: actual.hasPlatformRole,
+    getPlatformRoleForEmail: m.role,
+    isEmailAllowedToUsePlatform: async (email: string | null) => Boolean(email)
+  };
 });
 vi.mock("@/src/server/meetings-people", () => ({ producerUserIds: m.producers }));
 vi.mock("@/src/lib/rate-limit", () => ({ getRequestKey: () => "key", limitByKey: () => ({ allowed: true }) }));
@@ -37,7 +41,7 @@ vi.mock("@/src/lib/prisma", () => ({
     },
     vaultEntry: { findMany: m.entryFindMany, findFirst: m.entryFindFirst, findUnique: m.entryFindUnique },
     vaultAccessLog: { create: m.logCreate },
-    user: { findMany: m.userFindMany },
+    user: { findMany: m.userFindMany, findUnique: async ({ where }: { where: { id: string } }) => ({ email: `${where.id}@example.edu` }) },
     $transaction: m.transaction
   }
 }));

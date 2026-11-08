@@ -2,6 +2,7 @@ import { MediaStatus } from "@prisma/client";
 import { handleRouteError } from "@/src/lib/api-errors";
 import { ok } from "@/src/lib/http";
 import { prisma } from "@/src/lib/prisma";
+import { assertMayChangeCycleCut } from "@/src/server/cycle-cut-guard";
 import { requireMediaAccess } from "@/src/server/memberships";
 
 export async function PATCH(
@@ -11,7 +12,9 @@ export async function PATCH(
   try {
     const { mediaId, versionId } = await params;
 
-    const { media } = await requireMediaAccess(mediaId, undefined, { allowVisibility: true });
+    const { userId, media } = await requireMediaAccess(mediaId, undefined, { allowVisibility: true });
+
+    await assertMayChangeCycleCut(userId, media.id);
 
     const version = await prisma.mediaVersion.findUnique({
       where: {

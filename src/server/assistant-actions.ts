@@ -2,6 +2,7 @@ import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto
 import { PackageCategory } from "@prisma/client";
 import { z } from "zod";
 import { parseAccountInviteInput } from "@/src/lib/account-invite";
+import { revokeNasUsers } from "@/src/lib/drive-user-sync";
 import { sendAccessRequestDecisionEmail, sendAccountInviteEmail } from "@/src/lib/email";
 import { exclusiveProducerAssignment } from "@/src/lib/package-producer-assignment";
 import { hardcodedPlatformRole, normalizeEmail } from "@/src/lib/platform-admin";
@@ -1334,9 +1335,15 @@ export async function executeAssistantAction(params: {
     await prisma.$transaction(async (tx) => {
       if (existing.email) {
         await tx.platformRoleAssignment.deleteMany({ where: { email: existing.email } });
+        // Same revocation as DELETE /api/platform/users/[userId]: a leftover allowlist row lets them sign back in.
+        await tx.allowedSignupEmail.deleteMany({ where: { email: existing.email } });
       }
+      await tx.vaultEntryShare.deleteMany({ where: { userId: existing.id } });
       await tx.user.delete({ where: { id: existing.id } });
     });
+    if (existing.email) {
+      await revokeNasUsers([existing.email]);
+    }
     return { message: `Removed ${userDisplayName(existing) || existing.email || "that person"}.` };
   }
 

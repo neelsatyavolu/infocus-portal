@@ -23,7 +23,7 @@ export async function POST(request: Request) {
 
     const body = bodySchema.parse(await request.json());
     const created = await createPublicRequest(body);
-    return ok(created, 201);
+    return ok({ id: created.id, status: created.status }, 201);
   } catch (error) {
     return handleRouteError(error);
   }

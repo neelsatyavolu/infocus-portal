@@ -120,15 +120,12 @@ describe("sendNativePushToUserIds", () => {
 });
 
 describe("sendNativePushToEmails", () => {
-  it("matches account or notification email, ignoring case, among people with a Mac", async () => {
+  it("matches account email only, ignoring case, among people with a Mac", async () => {
     await sendNativePushToEmails([" Sage@Example.edu ", "sage@example.edu", "otto@example.edu"], { title: "T", body: "B" });
     expect(mocks.findUsers).toHaveBeenCalledWith({
       where: {
         nativePushDevices: { some: {} },
-        OR: [
-          { email: { in: ["sage@example.edu", "otto@example.edu"], mode: "insensitive" } },
-          { notificationPreference: { notificationEmail: { in: ["sage@example.edu", "otto@example.edu"], mode: "insensitive" } } }
-        ]
+        email: { in: ["sage@example.edu", "otto@example.edu"], mode: "insensitive" }
       },
       select: { id: true }
     });

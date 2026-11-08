@@ -20,6 +20,7 @@ export async function POST(request: Request) {
     const result = await savePackageCycleGradeFeedback({
       rowId: payload.rowId,
       role: access.role,
+      userId,
       feedback: payload.feedback
     });
     return ok(result);

@@ -29,14 +29,15 @@ describe("sendBrandedEmails", () => {
     mocks.send.mockResolvedValue({ data: { id: "email" }, error: null });
   });
 
-  it("sends one email addressed to every recipient", async () => {
+  it("sends one email with every recipient in bcc", async () => {
     const result = await sendBrandedEmails({
       ...content,
       recipients: ["abby@example.edu", "otto@example.edu", "Abby@example.edu "]
     });
 
     expect(mocks.send).toHaveBeenCalledTimes(1);
-    expect(mocks.send.mock.calls[0][0].to).toEqual(["abby@example.edu", "otto@example.edu"]);
+    expect(mocks.send.mock.calls[0][0].to).toBe("hub@example.edu");
+    expect(mocks.send.mock.calls[0][0].bcc).toEqual(["abby@example.edu", "otto@example.edu"]);
     expect(result).toEqual({ configured: true, sent: 2, failed: 0 });
   });
 
@@ -50,8 +51,8 @@ describe("sendBrandedEmails", () => {
     const result = await sendBrandedEmails({ ...content, recipients });
 
     expect(mocks.send).toHaveBeenCalledTimes(2);
-    expect(mocks.send.mock.calls[0][0].to).toHaveLength(50);
-    expect(mocks.send.mock.calls[1][0].to).toEqual(["student50@example.edu"]);
+    expect(mocks.send.mock.calls[0][0].bcc).toHaveLength(50);
+    expect(mocks.send.mock.calls[1][0].bcc).toEqual(["student50@example.edu"]);
     expect(result).toEqual({ configured: true, sent: 50, failed: 1 });
   });
 

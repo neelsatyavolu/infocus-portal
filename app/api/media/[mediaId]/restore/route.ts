@@ -1,6 +1,9 @@
 import { handleRouteError } from "@/src/lib/api-errors";
+import { syncUserProfile } from "@/src/lib/auth";
 import { ok } from "@/src/lib/http";
+import { getPlatformAccess } from "@/src/lib/platform-admin";
 import { prisma } from "@/src/lib/prisma";
+import { canManageProjectMedia } from "@/src/lib/rbac";
 import { recomputeForMediaItem } from "@/src/server/cycle-cut-status";
 import { requireMediaAccess } from "@/src/server/memberships";
 
@@ -10,7 +13,13 @@ export async function POST(
 ) {
   try {
     const { mediaId } = await params;
-    const { userId, media } = await requireMediaAccess(mediaId);
+    const { userId, media, membership } = await requireMediaAccess(mediaId);
+    const user = await syncUserProfile(userId);
+    const access = await getPlatformAccess(user.email);
+
+    if (!canManageProjectMedia(membership.role, access.role)) {
+      throw new Error("FORBIDDEN");
+    }
 
     const restored = await prisma.mediaItem.update({
       where: {

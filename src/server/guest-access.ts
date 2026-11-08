@@ -1,15 +1,21 @@
 import { GuestPermission } from "@prisma/client";
-import { isGuestLinkActive } from "@/src/lib/guest-links";
+import { isGuestLinkActive, parseGuestCredential, verifyGuestPasscodeProof } from "@/src/lib/guest-links";
 import { prisma } from "@/src/lib/prisma";
 
+/**
+ * `credential` is the link token, or for a passcode link the `<token>.<exp>.<sig>` credential the
+ * /g page issues after a correct passcode (`issueGuestCredential`). A passcode link refuses the
+ * bare token.
+ */
 export async function requireGuestLink(
-  token: string,
+  credential: string,
   options?: {
     projectId?: string;
     mediaVersionId?: string;
     requireComment?: boolean;
   }
 ) {
+  const { token, proof } = parseGuestCredential(credential);
   const link = await prisma.guestLink.findUnique({
     where: { token },
     include: {
@@ -38,6 +44,10 @@ export async function requireGuestLink(
   });
 
   if (!link || !isGuestLinkActive(link)) {
+    throw new Error("FORBIDDEN");
+  }
+
+  if (link.passcodeHash && !verifyGuestPasscodeProof(proof, { id: link.id, token, passcodeHash: link.passcodeHash })) {
     throw new Error("FORBIDDEN");
   }
 

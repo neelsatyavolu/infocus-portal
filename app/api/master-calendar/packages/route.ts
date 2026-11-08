@@ -3,6 +3,7 @@ import { requireUserId, syncUserProfile } from "@/src/lib/auth";
 import { fail, ok } from "@/src/lib/http";
 import { getPlatformAccess, hasPlatformRole } from "@/src/lib/platform-admin";
 import { prisma } from "@/src/lib/prisma";
+import { buildWorkspaceAccessWhere } from "@/src/server/workspace-access";
 
 const MAX_RESULTS = 20;
 
@@ -29,6 +30,9 @@ export async function GET(request: Request) {
     const items = await prisma.mediaItem.findMany({
       where: {
         deletedAt: null,
+        project: {
+          workspace: buildWorkspaceAccessWhere({ userId, platformRole: access.role, email: user.email })
+        },
         OR: [
           { title: { contains: query, mode: "insensitive" } },
           { project: { name: { contains: query, mode: "insensitive" } } }

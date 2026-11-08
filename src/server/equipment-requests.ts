@@ -60,10 +60,8 @@ export async function createPublicRequest(input: {
         create: items.map((item) => ({ itemId: item.id }))
       }
     },
-    include: {
-      student: true,
-      items: { include: { item: true } }
-    }
+    // Anonymous callers get an acknowledgement only, never the student record.
+    select: { id: true, status: true }
   });
 
   try {

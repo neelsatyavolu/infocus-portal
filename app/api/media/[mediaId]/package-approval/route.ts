@@ -2,7 +2,7 @@ import { z } from "zod";
 import { handleRouteError } from "@/src/lib/api-errors";
 import { requireUserId, syncUserProfile } from "@/src/lib/auth";
 import { fail, ok } from "@/src/lib/http";
-import { getPlatformAccess } from "@/src/lib/platform-admin";
+import { getPlatformAccess, hasPlatformRole } from "@/src/lib/platform-admin";
 import { getRequestKey, limitByKey } from "@/src/lib/rate-limit";
 import { requireMediaAccess } from "@/src/server/memberships";
 import {
@@ -85,6 +85,9 @@ export async function POST(request: Request, context: { params: Promise<{ mediaI
     const payload = payloadSchema.parse(await request.json());
 
     if (payload.action === "SUBMIT") {
+      if (!hasPlatformRole(access.role, "ASSOCIATE_PRODUCER")) {
+        throw new Error("FORBIDDEN");
+      }
       await submitForReview(rowId);
     } else if (payload.action === "UNAPPROVE") {
       await unapproveCut(rowId, { userId, email: user.email, role: access.role });

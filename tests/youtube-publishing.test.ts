@@ -52,6 +52,15 @@ describe("publication retries", () => {
     await advanceYoutubePublication("row", new Date("2026-09-19T12:00:00Z")).catch(() => undefined);
     expect(mocks.upsert).toHaveBeenLastCalledWith(expect.objectContaining({ create: expect.objectContaining({ title: "Airport" }) }));
   });
+  it("does not publish on the air date when the Final Cut changed after it was queued", async () => {
+    vi.clearAllMocks();
+    const version = { id: "v_swapped", status: "READY", sourceType: "VIDEO" };
+    mocks.row.mockResolvedValue({ id: "row", groupTopic: "Airport", queuedForAirAt: new Date(), queuedForShowDate: "2026-09-19",
+      queuedMediaVersionId: "v_queued", youtubePublication: null, finalCutMediaItem: { title: "Replacement", currentVersion: version } });
+    expect(await advanceYoutubePublication("row", new Date("2026-09-19T12:00:00Z"))).toEqual({ more: false });
+    expect(mocks.upsert).not.toHaveBeenCalled();
+    expect(mocks.token).not.toHaveBeenCalled();
+  });
   it("does not start future or removed packages", async () => {
     mocks.row.mockResolvedValue({ queuedForAirAt: null });
     await advanceYoutubePublication("row");
@@ -147,6 +156,17 @@ describe("manual publish", () => {
   it("404s an unknown package", async () => {
     mocks.row.mockResolvedValue(null);
     await expect(startYoutubePublication("row")).rejects.toThrow("NOT_FOUND");
+  });
+  it("publishes the version that was queued", async () => {
+    mocks.row.mockResolvedValue({ ...futureRow, queuedMediaVersionId: "v1" });
+    expect(await startYoutubePublication("row")).toBeNull();
+    expect(mocks.upsert).toHaveBeenCalledWith(expect.objectContaining({ create: expect.objectContaining({ mediaVersionId: "v1" }) }));
+  });
+  it("refuses a Final Cut that changed after the package was queued", async () => {
+    mocks.row.mockResolvedValue({ ...futureRow, queuedMediaVersionId: "v0_queued" });
+    expect(await startYoutubePublication("row")).toMatch(/changed after this package was queued/);
+    expect(mocks.upsert).not.toHaveBeenCalled();
+    expect(mocks.event).not.toHaveBeenCalled();
   });
 });
 

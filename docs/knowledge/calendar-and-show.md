@@ -51,7 +51,7 @@ For producers, an upcoming show or PA day with an empty slot says **Needed**, an
 
 A day that is saving shows **Saving…**; one that failed shows **Not saved**, and the reason appears in the Day panel (or at the top of the page when that day isn't open).
 
-In a notes box, type `[package]` to search package videos and insert a package pill. Adding a pill marks that video as aired on that date; removing it undoes that. Click a pill to rename it (the file name stays the same) or remove it.
+In a notes box, type `[package]` to search package videos and insert a package pill. The search lists only videos in workspaces you can see. Adding a pill marks that video as aired on that date (its current version must already be approved, and you need access to its workspace); removing it undoes that. Click a pill to rename it (the file name stays the same) or remove it.
 
 **Sync to Doc** (producers, in the header beside the month arrows) copies the month to the Master Calendar Google Doc. Edits also sync by themselves after a minute with no changes while the page is open, and a daily server pass catches anything left over. A tag in the header shows the state: **Not in Doc yet** (edits waiting to sync; it names the months when they are not the one you are viewing), **Syncing…**, **In Doc**, or **Sync failed** (the reason shows at the top of the page). The show manager (SM) and special show names appear in the Doc.
 

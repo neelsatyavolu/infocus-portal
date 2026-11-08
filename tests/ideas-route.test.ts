@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
   dates: vi.fn()
 }));
 
-vi.mock("@/src/lib/auth", () => ({ requireUserId: mocks.requireUserId }));
+vi.mock("@/src/lib/auth", () => ({ requireUserId: mocks.requireUserId, syncUserProfile: vi.fn(async () => ({})) }));
 vi.mock("@/src/server/ideas", () => ({ getIdeaBatch: mocks.batch, listIdeaRunDates: mocks.dates }));
 
 import { GET } from "@/app/api/ideas/route";

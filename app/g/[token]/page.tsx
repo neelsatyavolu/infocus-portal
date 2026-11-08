@@ -5,7 +5,7 @@ import { ReviewShell } from "@/components/review-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { resolvePlaybackUrl, resolveThumbnailUrl } from "@/src/lib/media-playback";
-import { isGuestLinkActive, verifyPasscode } from "@/src/lib/guest-links";
+import { isGuestLinkActive, issueGuestCredential, verifyPasscode } from "@/src/lib/guest-links";
 import { buildMediaVersionImageUrl } from "@/src/lib/media-assets";
 import { prisma } from "@/src/lib/prisma";
 import { userDisplayName } from "@/src/lib/user-display";
@@ -21,7 +21,9 @@ type GuestPageProps = {
  * nothing to review. These are deliberately not told apart, so the page never confirms that a
  * token exists, is active or has a passcode.
  */
-type GuestReviewLookup = { status: "ok"; mediaData: MediaReviewDto; permission: GuestPermission } | { status: "blocked" };
+type GuestReviewLookup =
+  | { status: "ok"; mediaData: MediaReviewDto; permission: GuestPermission; guestCredential: string }
+  | { status: "blocked" };
 
 async function getGuestReviewData(token: string, passcode?: string): Promise<GuestReviewLookup> {
   const link = await prisma.guestLink.findUnique({
@@ -123,6 +125,14 @@ async function getGuestReviewData(token: string, passcode?: string): Promise<Gue
   }
 
   const currentVersion = link.mediaVersion ?? mediaItem.currentVersion ?? mediaItem.versions[0];
+  // A version link shares that one version: never its siblings, their playback URLs or comments.
+  const versions = link.mediaVersion
+    ? mediaItem.versions.filter((version) => version.id === link.mediaVersion?.id)
+    : mediaItem.versions;
+  // Guest image URLs and comment requests carry this; a passcode link's API calls refuse the bare token.
+  const guestCredential = link.passcodeHash
+    ? issueGuestCredential({ id: link.id, token: link.token, passcodeHash: link.passcodeHash })
+    : token;
 
   const mediaData: MediaReviewDto = {
     mediaId: mediaItem.id,
@@ -137,7 +147,7 @@ async function getGuestReviewData(token: string, passcode?: string): Promise<Gue
     assignedPeople: [],
     currentVersionId: currentVersion?.id ?? "",
     versions: await Promise.all(
-      mediaItem.versions.map(async (version) => {
+      versions.map(async (version) => {
         const playbackUrl =
           version.sourceType === "VIDEO" && version.status === "READY"
             ? await resolvePlaybackUrl(version)
@@ -154,12 +164,12 @@ async function getGuestReviewData(token: string, passcode?: string): Promise<Gue
           playbackUrl,
           thumbnailUrl: await resolveThumbnailUrl(version),
           imageUrl:
-            version.sourceType === "IMAGE" ? buildMediaVersionImageUrl(mediaItem.id, version.id, token) : null,
+            version.sourceType === "IMAGE" ? buildMediaVersionImageUrl(mediaItem.id, version.id, guestCredential) : null,
           createdAt: version.createdAt.toISOString()
         };
       })
     ),
-    comments: mediaItem.versions.flatMap((version) =>
+    comments: versions.flatMap((version) =>
       version.comments.map((comment) => ({
         id: comment.id,
         mediaVersionId: comment.mediaVersionId,
@@ -181,7 +191,8 @@ async function getGuestReviewData(token: string, passcode?: string): Promise<Gue
   return {
     status: "ok",
     mediaData,
-    permission: link.permission
+    permission: link.permission,
+    guestCredential
   };
 }
 
@@ -253,7 +264,7 @@ export default async function GuestReviewPage({ params, searchParams }: GuestPag
       <GuestBrandRow />
       <ReviewShell
         data={lookup.mediaData}
-        guestToken={token}
+        guestToken={lookup.guestCredential}
         isGuest={lookup.permission === GuestPermission.VIEW}
         allowComment={lookup.permission === GuestPermission.COMMENT}
       />

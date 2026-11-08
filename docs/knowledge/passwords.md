@@ -28,7 +28,7 @@ Revealed passwords and notes hide again after 30 seconds, and when you switch lo
 
 Executive producers, advisers, and super admins see a **Share** button in a login's details, next to **Edit**. It opens **Share**: pick anyone with a Portal account who isn't a producer (producers already see every login), then **Save**. While a login is shared, a green tag with a people icon and the number of people shows on it in the list, and **Shared with N** in its details.
 
-People a login is shared with get **Passwords** in their account menu. Their Passwords page (**Shared with you**) shows a search box and one card per login shared with them. They can copy the username, password, and 2FA code and open the website. They can't see notes, add, edit, delete, import, or share. Their views are logged like everyone else's. Removing someone from Share takes the login away at once; with nothing left shared, the page shows Access restricted.
+People a login is shared with get **Passwords** in their account menu. Their Passwords page (**Shared with you**) shows a search box and one card per login shared with them. They can copy the username, password, and 2FA code and open the website. They can't see notes, add, edit, delete, import, or share. Their views are logged like everyone else's. Removing someone from Share takes the login away at once; with nothing left shared, the page shows Access restricted. Removing someone's account also removes every login shared with them.
 
 Changing who a login is shared with is logged as **Changed sharing**. Deleting a login also removes its shares.
 

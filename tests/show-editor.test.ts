@@ -74,7 +74,7 @@ function job(overrides: Record<string, unknown> = {}) {
     id: "job1", showDate: SHOW, sourcePaths: [SRC], status: "QUEUED", stage: null, message: null, note: null,
     outputNasPath: null, posterNasPath: null, decisions: null, checks: null, needsReview: false, costUsd: null,
     attempt: 0, error: null, createdById: "u1", cancelRequested: false, pendingFix: null, rememberFix: false,
-    agentSessionId: null, conversation: null, version: 1, claimedAt: null, heartbeatAt: null, finishedAt: null,
+    agentSessionId: null, conversation: null, version: 1, deviceId: "dev1", claimedAt: null, heartbeatAt: null, finishedAt: null,
     createdAt: new Date("2026-10-20T21:00:00Z"), updatedAt: NOW,
     ...overrides
   };
@@ -273,7 +273,7 @@ describe("show editor jobs", () => {
     await cancelShowEdit({ id: "job1" }, NOW);
     expect(mocks.job.update).toHaveBeenCalledWith({ where: { id: "job1" }, data: { cancelRequested: true } });
     mocks.job.findUnique.mockResolvedValueOnce(job({ status: "RUNNING", cancelRequested: true }));
-    expect(await reportShowEditProgress({ id: "job1", stage: "render", message: "Rendering" }, NOW)).toEqual({ cancel: true });
+    expect(await reportShowEditProgress({ id: "job1", deviceId: "dev1", stage: "render", message: "Rendering" }, NOW)).toEqual({ cancel: true });
   });
 
   it("cancels a queued job at once", async () => {
@@ -286,7 +286,7 @@ describe("show editor jobs", () => {
 
   it("progress records the stage and heartbeat", async () => {
     mocks.job.findUnique.mockResolvedValueOnce(job({ status: "RUNNING" }));
-    expect(await reportShowEditProgress({ id: "job1", stage: "analyze", message: "Finding takes" }, NOW)).toEqual({ cancel: false });
+    expect(await reportShowEditProgress({ id: "job1", deviceId: "dev1", stage: "analyze", message: "Finding takes" }, NOW)).toEqual({ cancel: false });
     expect(mocks.job.update).toHaveBeenCalledWith({ where: { id: "job1" }, data: { stage: "analyze", message: "Finding takes", heartbeatAt: NOW } });
   });
 
@@ -391,7 +391,7 @@ describe("show editor jobs", () => {
     const out = "Package Storage/Shows/2026-10-21/InFocus Show 2026-10-21-abc.mp4";
     mocks.job.findUnique.mockResolvedValueOnce(job({ status: "RUNNING", outputNasPath: out, costUsd: null }));
     await completeShowEdit({
-      id: "job1", outputNasPath: out, decisions: [{ kind: "name", detail: "Roster spelling", flagged: false }],
+      id: "job1", deviceId: "dev1", outputNasPath: out, decisions: [{ kind: "name", detail: "Roster spelling", flagged: false }],
       checks: { coversClean: true, loudness: [{ segment: "open", ok: true }] }, needsReview: false, costUsd: 3.5, agentSessionId: "sess-1"
     }, NOW);
     expect(mocks.attach).toHaveBeenCalledWith({ userId: "u1", showDate: SHOW, nasPath: out });
@@ -405,7 +405,7 @@ describe("show editor jobs", () => {
   it("complete rejects an outputNasPath that differs from the brief", async () => {
     mocks.job.findUnique.mockResolvedValueOnce(job({ status: "RUNNING", outputNasPath: "Package Storage/Shows/2026-10-21/a.mp4" }));
     await expect(completeShowEdit({
-      id: "job1", outputNasPath: "Package Storage/Shows/2026-10-21/b.mp4", decisions: [], checks: {}, needsReview: false, costUsd: 1, agentSessionId: "s"
+      id: "job1", deviceId: "dev1", outputNasPath: "Package Storage/Shows/2026-10-21/b.mp4", decisions: [], checks: {}, needsReview: false, costUsd: 1, agentSessionId: "s"
     }, NOW)).rejects.toMatchObject({ status: 409 });
     expect(mocks.attach).not.toHaveBeenCalled();
   });
@@ -417,7 +417,7 @@ describe("show editor jobs", () => {
       status: "RUNNING", outputNasPath: out, pendingFix: "Fix the card", version: 1, costUsd: 4, conversation: earlier
     }));
     await completeShowEdit({
-      id: "job1", outputNasPath: out, decisions: [], checks: { coversClean: true, loudness: [] }, needsReview: false,
+      id: "job1", deviceId: "dev1", outputNasPath: out, decisions: [], checks: { coversClean: true, loudness: [] }, needsReview: false,
       costUsd: 0.5, agentSessionId: "sess-1", reply: "Changed the Unity Day card, rebuilt as v2."
     }, NOW);
     expect(mocks.job.update).toHaveBeenCalledWith({ where: { id: "job1" }, data: expect.objectContaining({
@@ -429,7 +429,7 @@ describe("show editor jobs", () => {
   it("a fix without a reply is refused", async () => {
     mocks.job.findUnique.mockResolvedValueOnce(job({ status: "RUNNING", outputNasPath: "o.mp4", pendingFix: "Fix it" }));
     await expect(completeShowEdit({
-      id: "job1", outputNasPath: "o.mp4", decisions: [], checks: {}, needsReview: false, costUsd: 0, agentSessionId: "s"
+      id: "job1", deviceId: "dev1", outputNasPath: "o.mp4", decisions: [], checks: {}, needsReview: false, costUsd: 0, agentSessionId: "s"
     }, NOW)).rejects.toMatchObject({ status: 400 });
   });
 
@@ -437,14 +437,14 @@ describe("show editor jobs", () => {
     mocks.job.findUnique.mockResolvedValueOnce(job({ status: "RUNNING", outputNasPath: "o.mp4" }));
     mocks.attach.mockRejectedValue(new ShowUploadError("This show was already sent to YouTube.", 409));
     await expect(completeShowEdit({
-      id: "job1", outputNasPath: "o.mp4", decisions: [], checks: {}, needsReview: false, costUsd: 0, agentSessionId: "s"
+      id: "job1", deviceId: "dev1", outputNasPath: "o.mp4", decisions: [], checks: {}, needsReview: false, costUsd: 0, agentSessionId: "s"
     }, NOW)).rejects.toMatchObject({ status: 409 });
   });
 
   it("a failed fix goes back to REVIEW on the previous version", async () => {
     mocks.job.findUnique.mockResolvedValueOnce(job({ status: "RUNNING", pendingFix: "Fix it", outputNasPath: "new.mp4" }));
     mocks.publication.findUnique.mockResolvedValue({ status: "DRAFT", nasPath: "Package Storage/Shows/2026-10-21/old.mp4" });
-    await failShowEdit({ id: "job1", error: "The render failed", cancelled: false }, NOW);
+    await failShowEdit({ id: "job1", deviceId: "dev1", error: "The render failed", cancelled: false }, NOW);
     expect(mocks.job.update).toHaveBeenCalledWith({ where: { id: "job1" }, data: expect.objectContaining({
       status: "REVIEW", pendingFix: null, outputNasPath: "Package Storage/Shows/2026-10-21/old.mp4",
       posterNasPath: "Package Storage/Shows/2026-10-21/old.poster.jpg", error: "The render failed"
@@ -453,11 +453,11 @@ describe("show editor jobs", () => {
 
   it("a failed edit is FAILED and a cancelled one CANCELLED", async () => {
     mocks.job.findUnique.mockResolvedValueOnce(job({ status: "RUNNING" }));
-    await failShowEdit({ id: "job1", error: "No anchor shot found", cancelled: false }, NOW);
+    await failShowEdit({ id: "job1", deviceId: "dev1", error: "No anchor shot found", cancelled: false }, NOW);
     expect(mocks.job.update).toHaveBeenLastCalledWith({ where: { id: "job1" }, data: expect.objectContaining({ status: "FAILED", error: "No anchor shot found" }) });
     expect(mocks.notify).toHaveBeenCalledWith(expect.anything(), "failed");
     mocks.job.findUnique.mockResolvedValueOnce(job({ status: "RUNNING", cancelRequested: true }));
-    await failShowEdit({ id: "job1", error: "Cancelled", cancelled: true }, NOW);
+    await failShowEdit({ id: "job1", deviceId: "dev1", error: "Cancelled", cancelled: true }, NOW);
     expect(mocks.job.update).toHaveBeenLastCalledWith({ where: { id: "job1" }, data: expect.objectContaining({ status: "CANCELLED" }) });
   });
 
@@ -468,7 +468,7 @@ describe("show editor jobs", () => {
       outputNasPath: `Package Storage/Shows/2026-10-21/InFocus Show 2026-10-21-${stamp}.mp4`,
       posterNasPath: `Package Storage/Shows/2026-10-21/InFocus Show 2026-10-21-${stamp}.poster.jpg`
     }));
-    expect(await showEditUploadTargets("job1", NOW)).toEqual({
+    expect(await showEditUploadTargets("job1", "dev1", NOW)).toEqual({
       driveBaseUrl: "https://drive.example.org",
       video: { path: `Package Storage/Shows/2026-10-21/InFocus Show 2026-10-21-${stamp}.mp4`, token: expect.stringMatching(/^rw\./) },
       poster: { path: `Package Storage/Shows/2026-10-21/InFocus Show 2026-10-21-${stamp}.poster.jpg`, token: expect.stringMatching(/^rw\./) },
@@ -481,7 +481,7 @@ describe("show editor jobs", () => {
     mocks.job.findUnique.mockResolvedValueOnce(job({
       status: "RUNNING", claimedAt: NOW, pendingFix: "Fix the card", version: 2, outputNasPath: "o.mp4", posterNasPath: "o.poster.jpg"
     }));
-    const targets = await showEditUploadTargets("job1", NOW);
+    const targets = await showEditUploadTargets("job1", "dev1", NOW);
     expect(targets.log.path).toBe(`Package Storage/Shows/2026-10-21/editor-logs/job1-v3-${NOW.getTime().toString(36)}.tar.gz`);
   });
 
@@ -491,7 +491,7 @@ describe("show editor jobs", () => {
 
     it("complete stores a valid debugLogPath in checks next to the run's own checks", async () => {
       mocks.job.findUnique.mockResolvedValueOnce(job({ status: "RUNNING", outputNasPath: "o.mp4" }));
-      await completeShowEdit({ id: "job1", outputNasPath: "o.mp4", checks: { coversClean: true }, debugLogPath: LOG("job1-v1-abc.tar.gz"), ...finished }, NOW);
+      await completeShowEdit({ id: "job1", deviceId: "dev1", outputNasPath: "o.mp4", checks: { coversClean: true }, debugLogPath: LOG("job1-v1-abc.tar.gz"), ...finished }, NOW);
       expect(mocks.job.update.mock.calls[0][0].data.checks).toEqual({
         coversClean: true,
         debugLog: LOG("job1-v1-abc.tar.gz"),
@@ -510,9 +510,9 @@ describe("show editor jobs", () => {
       ];
       for (const debugLogPath of bad) {
         mocks.job.findUnique.mockResolvedValueOnce(job({ status: "RUNNING", outputNasPath: "o.mp4" }));
-        await expect(completeShowEdit({ id: "job1", outputNasPath: "o.mp4", checks: {}, debugLogPath, ...finished }, NOW)).rejects.toMatchObject({ status: 400 });
+        await expect(completeShowEdit({ id: "job1", deviceId: "dev1", outputNasPath: "o.mp4", checks: {}, debugLogPath, ...finished }, NOW)).rejects.toMatchObject({ status: 400 });
         mocks.job.findUnique.mockResolvedValueOnce(job({ status: "RUNNING" }));
-        await expect(failShowEdit({ id: "job1", error: "x", cancelled: false, debugLogPath }, NOW)).rejects.toMatchObject({ status: 400 });
+        await expect(failShowEdit({ id: "job1", deviceId: "dev1", error: "x", cancelled: false, debugLogPath }, NOW)).rejects.toMatchObject({ status: 400 });
       }
       expect(mocks.attach).not.toHaveBeenCalled();
       expect(mocks.job.update).not.toHaveBeenCalled();
@@ -525,7 +525,7 @@ describe("show editor jobs", () => {
         checks: { coversClean: false, debugLog: v1.path, debugLogs: [v1] }
       }));
       await completeShowEdit({
-        id: "job1", outputNasPath: "o2.mp4", checks: { coversClean: true }, reply: "Fixed.", debugLogPath: LOG("job1-v2-def.tar.gz"), ...finished
+        id: "job1", deviceId: "dev1", outputNasPath: "o2.mp4", checks: { coversClean: true }, reply: "Fixed.", debugLogPath: LOG("job1-v2-def.tar.gz"), ...finished
       }, NOW);
       expect(mocks.job.update.mock.calls[0][0].data.checks).toEqual({
         coversClean: true,
@@ -539,7 +539,7 @@ describe("show editor jobs", () => {
       mocks.job.findUnique.mockResolvedValueOnce(job({
         status: "RUNNING", pendingFix: "Fix it", version: 1, outputNasPath: "o2.mp4", checks: { coversClean: true, debugLog: v1.path, debugLogs: [v1] }
       }));
-      await failShowEdit({ id: "job1", error: "Render failed", cancelled: false, debugLogPath: LOG("job1-v2-def.tar.gz") }, NOW);
+      await failShowEdit({ id: "job1", deviceId: "dev1", error: "Render failed", cancelled: false, debugLogPath: LOG("job1-v2-def.tar.gz") }, NOW);
       expect(mocks.job.update).toHaveBeenCalledWith({ where: { id: "job1" }, data: expect.objectContaining({
         status: "REVIEW",
         checks: { coversClean: true, debugLog: LOG("job1-v2-def.tar.gz"), debugLogs: [v1, { version: 2, path: LOG("job1-v2-def.tar.gz"), at: NOW.toISOString() }] }
@@ -548,12 +548,12 @@ describe("show editor jobs", () => {
 
     it("a failed or cancelled edit records its log; one that already ended still keeps it", async () => {
       mocks.job.findUnique.mockResolvedValueOnce(job({ status: "RUNNING", cancelRequested: true }));
-      await failShowEdit({ id: "job1", error: "Cancelled", cancelled: true, debugLogPath: LOG("job1-v1-abc.tar.gz") }, NOW);
+      await failShowEdit({ id: "job1", deviceId: "dev1", error: "Cancelled", cancelled: true, debugLogPath: LOG("job1-v1-abc.tar.gz") }, NOW);
       expect(mocks.job.update).toHaveBeenLastCalledWith({ where: { id: "job1" }, data: expect.objectContaining({
         status: "CANCELLED", checks: { debugLog: LOG("job1-v1-abc.tar.gz"), debugLogs: [{ version: 1, path: LOG("job1-v1-abc.tar.gz"), at: NOW.toISOString() }] }
       }) });
       mocks.job.findUnique.mockResolvedValueOnce(job({ status: "FAILED" }));
-      await failShowEdit({ id: "job1", error: "late", cancelled: false, debugLogPath: LOG("job1-v1-def.tar.gz") }, NOW);
+      await failShowEdit({ id: "job1", deviceId: "dev1", error: "late", cancelled: false, debugLogPath: LOG("job1-v1-def.tar.gz") }, NOW);
       expect(mocks.job.update).toHaveBeenLastCalledWith({ where: { id: "job1" }, data: {
         checks: { debugLog: LOG("job1-v1-def.tar.gz"), debugLogs: [{ version: 1, path: LOG("job1-v1-def.tar.gz"), at: NOW.toISOString() }] }
       } });
@@ -561,10 +561,10 @@ describe("show editor jobs", () => {
 
     it("the old payload without debugLogPath stores checks as sent and leaves a failure's checks alone", async () => {
       mocks.job.findUnique.mockResolvedValueOnce(job({ status: "RUNNING", outputNasPath: "o.mp4" }));
-      await completeShowEdit({ id: "job1", outputNasPath: "o.mp4", checks: { coversClean: true }, ...finished }, NOW);
+      await completeShowEdit({ id: "job1", deviceId: "dev1", outputNasPath: "o.mp4", checks: { coversClean: true }, ...finished }, NOW);
       expect(mocks.job.update.mock.calls[0][0].data.checks).toEqual({ coversClean: true });
       mocks.job.findUnique.mockResolvedValueOnce(job({ status: "RUNNING", checks: { coversClean: true } }));
-      await failShowEdit({ id: "job1", error: "x", cancelled: false }, NOW);
+      await failShowEdit({ id: "job1", deviceId: "dev1", error: "x", cancelled: false }, NOW);
       expect(mocks.job.update.mock.calls[1][0].data).not.toHaveProperty("checks");
     });
 
@@ -705,7 +705,7 @@ describe("show editor jobs", () => {
     const out = "Package Storage/Shows/2026-10-21/v2.mp4";
     mocks.job.findUnique.mockResolvedValueOnce(job({ status: "RUNNING", outputNasPath: out, pendingFix: "Say Tomorrow", rememberFix: true }));
     await completeShowEdit({
-      id: "job1", outputNasPath: out, decisions: [], checks: {}, needsReview: false, costUsd: 0.4, agentSessionId: "claude:s1",
+      id: "job1", deviceId: "dev1", outputNasPath: out, decisions: [], checks: {}, needsReview: false, costUsd: 0.4, agentSessionId: "claude:s1",
       reply: "Changed the card.", houseRules: "1. Fresh graphics.\n13. Unity Day cards say Tomorrow."
     }, NOW);
     expect(mocks.settings.upsert).toHaveBeenCalledWith(expect.objectContaining({
@@ -715,7 +715,7 @@ describe("show editor jobs", () => {
 
   it("an edit without houseRules leaves the saved rules alone", async () => {
     mocks.job.findUnique.mockResolvedValueOnce(job({ status: "RUNNING", outputNasPath: "o.mp4" }));
-    await completeShowEdit({ id: "job1", outputNasPath: "o.mp4", decisions: [], checks: {}, needsReview: false, costUsd: 0, agentSessionId: "s" }, NOW);
+    await completeShowEdit({ id: "job1", deviceId: "dev1", outputNasPath: "o.mp4", decisions: [], checks: {}, needsReview: false, costUsd: 0, agentSessionId: "s" }, NOW);
     expect(mocks.settings.upsert).not.toHaveBeenCalled();
   });
 
@@ -804,7 +804,7 @@ describe("show editor jobs", () => {
       expect(mocks.job.updateMany).toHaveBeenCalledWith({ where: { status: "RUNNING", deviceId: "dev1" }, data: { heartbeatAt: NOW } });
       // And it can still finish it.
       mocks.job.findUnique.mockResolvedValueOnce(job({ status: "RUNNING", deviceId: "dev1", outputNasPath: "o.mp4" }));
-      await completeShowEdit({ id: "job1", outputNasPath: "o.mp4", decisions: [], checks: {}, needsReview: false, costUsd: 1, agentSessionId: "claude:s" }, NOW);
+      await completeShowEdit({ id: "job1", deviceId: "dev1", outputNasPath: "o.mp4", decisions: [], checks: {}, needsReview: false, costUsd: 1, agentSessionId: "claude:s" }, NOW);
       expect(mocks.job.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ status: "REVIEW" }) }));
     });
 
@@ -856,12 +856,12 @@ describe("show editor jobs", () => {
     it("auto-publishes only when the flag is on and checks pass", async () => {
       mocks.pubState.mockResolvedValue({ defaults });
       mocks.job.findUnique.mockResolvedValueOnce(job({ status: "RUNNING", outputNasPath: out }));
-      await completeShowEdit({ id: "job1", outputNasPath: out, decisions: [], checks: clean, needsReview: false, costUsd: 1, agentSessionId: "s" }, NOW);
+      await completeShowEdit({ id: "job1", deviceId: "dev1", outputNasPath: out, decisions: [], checks: clean, needsReview: false, costUsd: 1, agentSessionId: "s" }, NOW);
       expect(mocks.confirm).not.toHaveBeenCalled();
 
       vi.stubEnv("SHOW_EDITOR_AUTO_PUBLISH", "1");
       mocks.job.findUnique.mockResolvedValueOnce(job({ status: "RUNNING", outputNasPath: out }));
-      await completeShowEdit({ id: "job1", outputNasPath: out, decisions: [], checks: clean, needsReview: false, costUsd: 1, agentSessionId: "s" }, NOW);
+      await completeShowEdit({ id: "job1", deviceId: "dev1", outputNasPath: out, decisions: [], checks: clean, needsReview: false, costUsd: 1, agentSessionId: "s" }, NOW);
       expect(mocks.confirm).toHaveBeenCalledWith({
         userId: "u1", showDate: SHOW, title: "InFocus News", description: "Anchors …", publishDate: SHOW, publishTime: "08:30", seasonNumber: 31
       });
@@ -873,7 +873,7 @@ describe("show editor jobs", () => {
       mocks.settings.findUnique.mockResolvedValue({ autoStart: null, autoPublish: false, targetVersion: null, agentOrder: null, houseRules: null, updatedAt: NOW });
       mocks.pubState.mockResolvedValue({ defaults });
       mocks.job.findUnique.mockResolvedValueOnce(job({ status: "RUNNING", outputNasPath: out }));
-      await completeShowEdit({ id: "job1", outputNasPath: out, decisions: [], checks: clean, needsReview: false, costUsd: 1, agentSessionId: "s" }, NOW);
+      await completeShowEdit({ id: "job1", deviceId: "dev1", outputNasPath: out, decisions: [], checks: clean, needsReview: false, costUsd: 1, agentSessionId: "s" }, NOW);
       expect(mocks.confirm).not.toHaveBeenCalled();
     });
 
@@ -882,7 +882,7 @@ describe("show editor jobs", () => {
       mocks.pubState.mockResolvedValue({ defaults });
       mocks.job.findUnique.mockResolvedValueOnce(job({ status: "RUNNING", outputNasPath: out }));
       await completeShowEdit({
-        id: "job1", outputNasPath: out, decisions: [{ kind: "package", detail: "Placeholder", flagged: true }],
+        id: "job1", deviceId: "dev1", outputNasPath: out, decisions: [{ kind: "package", detail: "Placeholder", flagged: true }],
         checks: clean, needsReview: true, costUsd: 1, agentSessionId: "s"
       }, NOW);
       expect(mocks.confirm).not.toHaveBeenCalled();
@@ -893,7 +893,7 @@ describe("show editor jobs", () => {
       vi.stubEnv("SHOW_EDITOR_AUTO_PUBLISH", "1");
       mocks.job.findUnique.mockResolvedValueOnce(job({ status: "RUNNING", outputNasPath: out }));
       await completeShowEdit({
-        id: "job1", outputNasPath: out, decisions: [], checks: { coversClean: true, loudness: [{ segment: "throw", ok: false }] },
+        id: "job1", deviceId: "dev1", outputNasPath: out, decisions: [], checks: { coversClean: true, loudness: [{ segment: "throw", ok: false }] },
         needsReview: false, costUsd: 1, agentSessionId: "s"
       }, NOW);
       expect(mocks.confirm).not.toHaveBeenCalled();
@@ -981,7 +981,7 @@ describe("show editor jobs", () => {
       mocks.pubState.mockResolvedValue({ defaults: { ...defaults, seasonNumber: null } });
       mocks.job.findUnique.mockResolvedValueOnce(job({ status: "RUNNING", outputNasPath: out }));
       const clean = { coversClean: true, loudness: [{ segment: "open", ok: true }] };
-      await completeShowEdit({ id: "job1", outputNasPath: out, decisions: [], checks: clean, needsReview: false, costUsd: 1, agentSessionId: "s" }, NOW);
+      await completeShowEdit({ id: "job1", deviceId: "dev1", outputNasPath: out, decisions: [], checks: clean, needsReview: false, costUsd: 1, agentSessionId: "s" }, NOW);
       expect(mocks.confirm).not.toHaveBeenCalled();
       expect(mocks.notify).toHaveBeenCalledWith(expect.anything(), "review");
     });
@@ -1000,7 +1000,7 @@ describe("show editor jobs", () => {
 
     it("an auto-started job keeps that mark when the editor's complete replaces checks", async () => {
       mocks.job.findUnique.mockResolvedValueOnce(job({ status: "RUNNING", outputNasPath: out, checks: { autoStarted: true } }));
-      await completeShowEdit({ id: "job1", outputNasPath: out, decisions: [], checks: { coversClean: false }, needsReview: true, costUsd: 1, agentSessionId: "s" }, NOW);
+      await completeShowEdit({ id: "job1", deviceId: "dev1", outputNasPath: out, decisions: [], checks: { coversClean: false }, needsReview: true, costUsd: 1, agentSessionId: "s" }, NOW);
       expect(mocks.job.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ checks: { coversClean: false, autoStarted: true } }) }));
     });
 

@@ -6,14 +6,21 @@ import { listUpcomingShowDays } from "@/src/server/show-schedule";
 export async function setQueuedForAir(rowId: string, queued: boolean, showDate?: string | null) {
   const row = await prisma.packageProgressRow.findUniqueOrThrow({
     where: { id: rowId },
-    select: { queuedForAirAt: true, queuedForShowDate: true }
+    select: {
+      queuedForAirAt: true,
+      queuedForShowDate: true,
+      finalCutMediaItem: { select: { deletedAt: true, currentVersion: { select: { id: true, status: true } } } }
+    }
   });
   if (!queued) {
     return prisma.packageProgressRow.update({
       where: { id: rowId },
-      data: { queuedForAirAt: null, queuedForShowDate: null }
+      data: { queuedForAirAt: null, queuedForShowDate: null, queuedMediaVersionId: null }
     });
   }
+  // YouTube publishes only the version that was current when a producer queued (or re-queued) the package.
+  const currentCut = row.finalCutMediaItem?.deletedAt ? null : row.finalCutMediaItem?.currentVersion;
+  const queuedMediaVersionId = currentCut?.status === "READY" ? currentCut.id : null;
   // A package may hold its show before its final cut is in: the queue marks it, the show editor
   // and YouTube skip it until the upload lands (they read the final cut at run time).
 
@@ -41,7 +48,8 @@ export async function setQueuedForAir(rowId: string, queued: boolean, showDate?:
     where: { id: rowId },
     data: {
       queuedForAirAt: row.queuedForAirAt ?? new Date(),
-      queuedForShowDate: nextShow
+      queuedForShowDate: nextShow,
+      queuedMediaVersionId
     }
   });
 }

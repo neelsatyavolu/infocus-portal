@@ -3,7 +3,8 @@ import { handleRouteError } from "@/src/lib/api-errors";
 import { requireUserId, syncUserProfile } from "@/src/lib/auth";
 import { ok, okUnmapped } from "@/src/lib/http";
 import { NICKNAME_MAX_LENGTH, normalizeNickname } from "@/src/lib/user-display";
-import { getPlatformAccess } from "@/src/lib/platform-admin";
+import { getPlatformAccess, getPlatformRoleForEmail, hardcodedPlatformRole } from "@/src/lib/platform-admin";
+import { mayRemoveAccountWithRole } from "@/src/lib/platform-roles";
 import { revokeNasUsers } from "@/src/lib/drive-user-sync";
 import { prisma } from "@/src/lib/prisma";
 
@@ -87,6 +88,17 @@ export async function DELETE(
       throw new Error("NOT_FOUND");
     }
 
+    // Removing someone who holds a platform role takes that role away, so it needs role management.
+    if (existing.email) {
+      if (hardcodedPlatformRole(existing.email)) {
+        throw new Error("FORBIDDEN");
+      }
+      const targetRole = await getPlatformRoleForEmail(existing.email);
+      if (!mayRemoveAccountWithRole(access.role, access.canManagePlatformRoles, targetRole)) {
+        throw new Error("FORBIDDEN");
+      }
+    }
+
     // Creator/author relations use onDelete: SetNull, so deleting the user
     // preserves their work and orphans the creator field (shown as "Deleted user")
     // instead of blocking the deletion.
@@ -100,6 +112,10 @@ export async function DELETE(
           where: { email: existing.email }
         });
       }
+      // VaultEntryShare has no User relation, so shares are not cascaded.
+      await tx.vaultEntryShare.deleteMany({
+        where: { userId: targetUserId }
+      });
 
       await tx.user.delete({
         where: { id: targetUserId }

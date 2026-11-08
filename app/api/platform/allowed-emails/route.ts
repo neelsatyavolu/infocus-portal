@@ -5,7 +5,14 @@ import { handleRouteError } from "@/src/lib/api-errors";
 import { requireUserId, syncUserProfile } from "@/src/lib/auth";
 import { sendAccountInviteEmail } from "@/src/lib/email";
 import { ok } from "@/src/lib/http";
-import { getPlatformAccess, normalizeEmail } from "@/src/lib/platform-admin";
+import {
+  getPlatformAccess,
+  getPlatformRoleForEmail,
+  hardcodedPlatformRole,
+  normalizeEmail
+} from "@/src/lib/platform-admin";
+import { mayRemoveAccountWithRole } from "@/src/lib/platform-roles";
+import type { PlatformRole } from "@prisma/client";
 import { provisionNasUsers, revokeNasUsers } from "@/src/lib/drive-user-sync";
 import { prisma } from "@/src/lib/prisma";
 import { getRequestKey, limitByKey } from "@/src/lib/rate-limit";
@@ -193,6 +200,17 @@ async function revokeSignInGrants(email: string) {
   ]);
 }
 
+/** Removing someone takes their platform role away, so it is capped by the caller's own authority. */
+async function assertCanRemoveAccount(
+  email: string | null | undefined,
+  access: { role: PlatformRole | null; canManagePlatformRoles: boolean }
+) {
+  if (!email) return;
+  if (hardcodedPlatformRole(email)) throw new Error("FORBIDDEN");
+  const targetRole = await getPlatformRoleForEmail(email);
+  if (!mayRemoveAccountWithRole(access.role, access.canManagePlatformRoles, targetRole)) throw new Error("FORBIDDEN");
+}
+
 export async function DELETE(request: Request) {
   try {
     const userId = await requireUserId();
@@ -223,6 +241,7 @@ export async function DELETE(request: Request) {
       if (!target) {
         throw new Error("NOT_FOUND");
       }
+      await assertCanRemoveAccount(target.email, access);
       // Keep row for FK integrity; blank email revokes sign-in match.
       await prisma.user.update({
         where: { id: target.id },
@@ -230,6 +249,7 @@ export async function DELETE(request: Request) {
           email: null
         }
       });
+      await prisma.vaultEntryShare.deleteMany({ where: { userId: target.id } });
       if (target.email) {
         await revokeSignInGrants(target.email);
         await revokeNasUsers([target.email]);
@@ -237,6 +257,7 @@ export async function DELETE(request: Request) {
       return ok({ deleted: true });
     }
 
+    await assertCanRemoveAccount(email, access);
     const target = await prisma.user.findFirst({
       where: { email },
       select: { id: true }
@@ -251,6 +272,7 @@ export async function DELETE(request: Request) {
       where: { id: target.id },
       data: { email: null }
     });
+    await prisma.vaultEntryShare.deleteMany({ where: { userId: target.id } });
     await revokeSignInGrants(email);
     await revokeNasUsers([email]);
 

@@ -88,7 +88,10 @@ export async function sendNativePushToUserIds(userIds: string[], payload: Native
   }
 }
 
-/** Matches email recipients to Portal users by account email or notification email (any case). */
+/**
+ * Matches email recipients to Portal users by account email only (any case). A notification
+ * email is self-chosen and unverified, so it never decides whose devices get the push.
+ */
 export async function sendNativePushToEmails(emails: string[], payload: NativePushPayload) {
   const addresses = [...new Set(emails.map((email) => email.trim().toLowerCase()).filter(Boolean))];
   if (addresses.length === 0 || !isApnsConfigured()) return { sent: 0, failed: 0 };
@@ -97,10 +100,7 @@ export async function sendNativePushToEmails(emails: string[], payload: NativePu
     const users = await prisma.user.findMany({
       where: {
         nativePushDevices: { some: {} },
-        OR: [
-          { email: { in: addresses, mode: "insensitive" } },
-          { notificationPreference: { notificationEmail: { in: addresses, mode: "insensitive" } } }
-        ]
+        email: { in: addresses, mode: "insensitive" }
       },
       select: { id: true }
     });

@@ -6,7 +6,6 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { HARVEST_CONTEST, type ContestPhase, type ContestResult, type RankedEntry } from "@/src/lib/thanksgiving-board";
 import { cn } from "@/src/lib/utils";
-import { ContestBanner } from "./contest-banner";
 import { HarvestBoard } from "./harvest-board";
 import { carryOverHarvestOnce, flushHarvestTally } from "./harvest-tally";
 import { LeafSprite, PieSprite, TurkeySprite } from "./sprites";
@@ -49,8 +48,8 @@ async function fetchBoard(): Promise<Board | null> {
 }
 
 /**
- * Once per browser: the leaderboard contest in big letters (the prize, or its winner once it has
- * closed), the top of the board and where this person stands, with a link to the whole board.
+ * Once per browser: the top of the leaderboard and where this person stands, with a link to the
+ * whole board.
  * Waits until the welcome is closed (`ready`), so the two never stack.
  */
 export function LeaderboardPopup({ ready }: { ready: boolean }) {
@@ -99,7 +98,6 @@ export function LeaderboardPopup({ ready }: { ready: boolean }) {
           <DialogTitle className="text-[22px] font-medium tracking-[-0.015em]">The Thanksgiving leaderboard</DialogTitle>
           <DialogDescription>{standing}</DialogDescription>
         </DialogHeader>
-        <ContestBanner phase={board.contest.phase} result={board.contest.result} viewerId={board.viewerId} />
         {board.hidden ? null : top.length > 0 ? (
           <HarvestBoard rows={top} viewerId={board.viewerId} compact />
         ) : (

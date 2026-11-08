@@ -2,17 +2,16 @@ import type { Metadata } from "next";
 import { Alert } from "@/components/kit/alert";
 import { EmptyState } from "@/components/kit/empty-state";
 import { PageHeader } from "@/components/page-header";
-import { ContestBanner } from "@/components/thanksgiving/contest-banner";
 import { HarvestBoard } from "@/components/thanksgiving/harvest-board";
 import { PrizePanel } from "@/components/thanksgiving/prize-panel";
 import { ReviewPanel } from "@/components/thanksgiving/review-panel";
 import { TurkeySprite } from "@/components/thanksgiving/sprites";
 import { requireUserId, syncUserProfile } from "@/src/lib/auth";
 import { getPlatformAccess } from "@/src/lib/platform-admin";
-import { contestPhase, HARVEST_CONTEST, isBoardHidden, seesBoard, viewerPoints } from "@/src/lib/thanksgiving-board";
+import { HARVEST_CONTEST, isBoardHidden, seesBoard, viewerPoints } from "@/src/lib/thanksgiving-board";
 import { rankMove, viewerGapLine, type RankMove } from "@/src/lib/thanksgiving-standings";
 import { mayGrantExtensions } from "@/src/server/extension-requests";
-import { loadHarvestContest, settleHarvestContest } from "@/src/server/thanksgiving-contest";
+import { settleHarvestContest } from "@/src/server/thanksgiving-contest";
 import { loadPrizeChoosers, loadPrizeOptions } from "@/src/server/thanksgiving-prize";
 import { loadReviewRows, viewerFlag } from "@/src/server/thanksgiving-review";
 import { loadHarvestBoard, loadPastRanks } from "@/src/server/thanksgiving-scores";
@@ -34,9 +33,8 @@ export default async function ThanksgivingLeaderboardPage() {
   const dark = isBoardHidden(now);
   const hidden = !seesBoard(now, access.role);
   await settleHarvestContest(now);
-  const [board, result, flagged, review, choosers] = await Promise.all([
+  const [board, flagged, review, choosers] = await Promise.all([
     loadHarvestBoard(now),
-    loadHarvestContest(),
     viewerFlag(userId),
     reviewer && !hidden ? loadReviewRows() : null,
     loadPrizeChoosers(userId, reviewer)
@@ -55,7 +53,6 @@ export default async function ThanksgivingLeaderboardPage() {
         title="Leaderboard"
         description="Catch leaves, eat pies, snap wishbones, spot the giant turkey and pardon the ones that strut by (five clicks each). Every catch counts one, a rare golden leaf counts five, and during harvest hour everything counts double."
       />
-      {board.year === HARVEST_CONTEST.year ? <ContestBanner phase={contestPhase(now)} result={result} viewerId={userId} /> : null}
       <PrizePanel choosers={choosers} options={options} viewerId={userId} />
       {flagged ? (
         <Alert tone="warning" title="You're disqualified for now">

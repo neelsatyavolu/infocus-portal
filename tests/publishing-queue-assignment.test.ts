@@ -238,9 +238,40 @@ describe("setQueuedForAir", () => {
       where: { id: "row_1" },
       data: {
         queuedForAirAt: expect.any(Date),
-        queuedForShowDate: "2026-09-09"
+        queuedForShowDate: "2026-09-09",
+        queuedMediaVersionId: null
       }
     });
+  });
+
+  it("pins the ready Final Cut version that was current when queued", async () => {
+    mocks.findUniqueOrThrow.mockResolvedValue({
+      queuedForAirAt: null,
+      queuedForShowDate: null,
+      finalCutMediaItem: { deletedAt: null, currentVersion: { id: "ver_reviewed", status: "READY" } }
+    });
+    mocks.findMany.mockResolvedValue([]);
+
+    await setQueuedForAir("row_1", true);
+
+    expect(mocks.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ queuedMediaVersionId: "ver_reviewed" }) })
+    );
+  });
+
+  it("does not pin a Final Cut version that is still uploading", async () => {
+    mocks.findUniqueOrThrow.mockResolvedValue({
+      queuedForAirAt: null,
+      queuedForShowDate: null,
+      finalCutMediaItem: { deletedAt: null, currentVersion: { id: "ver_upload", status: "UPLOADING" } }
+    });
+    mocks.findMany.mockResolvedValue([]);
+
+    await setQueuedForAir("row_1", true);
+
+    expect(mocks.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ queuedMediaVersionId: null }) })
+    );
   });
 
   it("skips labeled special shows when auto-assigning", async () => {
@@ -324,7 +355,7 @@ describe("setQueuedForAir", () => {
     await setQueuedForAir("row_1", false);
     expect(mocks.update).toHaveBeenCalledWith({
       where: { id: "row_1" },
-      data: { queuedForAirAt: null, queuedForShowDate: null }
+      data: { queuedForAirAt: null, queuedForShowDate: null, queuedMediaVersionId: null }
     });
     expect(mocks.findMany).not.toHaveBeenCalled();
   });

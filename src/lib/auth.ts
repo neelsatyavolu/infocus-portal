@@ -279,11 +279,25 @@ export function sanitizeReturnTo(returnTo?: string | null, fallback = "/dashboar
   if (isTrustedReturnUrl(value)) {
     return new URL(value).toString();
   }
-  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+  // Backslashes and control characters (tab, newline) are dropped or turned into
+  // "/" by URL parsing, so "/\evil.example" would leave this origin.
+  if (!value || !value.startsWith("/") || value.startsWith("//") || /[\\\u0000-\u001f\u007f]/.test(value)) {
     return fallback;
   }
 
-  if (value.startsWith("/api/") || value === "/sign-in") {
+  // Resolve against a fixed origin: anything that lands elsewhere falls back.
+  const base = "https://return-to.invalid";
+  let resolved: URL;
+  try {
+    resolved = new URL(value, base);
+  } catch {
+    return fallback;
+  }
+  if (resolved.origin !== base) {
+    return fallback;
+  }
+
+  if (resolved.pathname.startsWith("/api/") || resolved.pathname === "/sign-in") {
     return fallback;
   }
 

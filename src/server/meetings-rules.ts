@@ -53,15 +53,20 @@ export function isMeetingOpen(status: MeetingStatus) {
  * - hosts are always let in;
  * - someone already admitted stays admitted (rejoin, refresh, second device);
  * - quick access lets a new or waiting producer in;
- * - a non-host never leaves DENIED or REMOVED for ADMITTED on their own: they knock again (WAITING).
+ * - a non-host never leaves DENIED or REMOVED for ADMITTED on their own: they knock again (WAITING),
+ *   and `excluded` (a host removed them earlier in this meeting) keeps quick access off for that knock.
  */
 export function decideAdmission(input: {
   isHost: boolean;
   quickAccess: boolean;
   previous: MeetingParticipantState | null;
+  /** A host removed them earlier in this meeting: only a host can let them back in. */
+  excluded?: boolean;
 }): "WAITING" | "ADMITTED" {
   if (input.isHost) return "ADMITTED";
   if (input.previous === "ADMITTED") return "ADMITTED";
-  if (input.quickAccess && (input.previous === null || input.previous === "WAITING")) return "ADMITTED";
+  if (input.quickAccess && !input.excluded && (input.previous === null || input.previous === "WAITING")) {
+    return "ADMITTED";
+  }
   return "WAITING";
 }

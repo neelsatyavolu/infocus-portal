@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => ({
   pin: vi.fn()
 }));
 
-vi.mock("@/src/lib/auth", () => ({ getSessionUser: mocks.session }));
+vi.mock("@/src/lib/auth", () => ({ getSessionUser: mocks.session, syncUserProfile: vi.fn(async () => ({})) }));
 vi.mock("@/src/lib/platform-admin", () => ({ getPlatformRoleForEmail: mocks.role }));
 vi.mock("@/src/server/class-board", () => ({ loadClassBoard: mocks.board }));
 vi.mock("@/src/server/class-board-pin", () => ({ classBoardPinAllowsAccess: mocks.pin }));

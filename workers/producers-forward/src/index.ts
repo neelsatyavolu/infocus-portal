@@ -71,7 +71,10 @@ export function resendPayload(parsed: ParsedEmail, recipients: readonly string[]
   const sender = displayName(parsed.from?.name || senderAddress);
   return {
     from: `${sender} via ${env.LIST_NAME} <${env.LIST_ADDRESS}>`,
-    to: [...recipients],
+    // The roster stays hidden: every copy shows only the list. The list's own copy comes back
+    // through Email Routing carrying FORWARDED_HEADER, and email() drops it.
+    to: [env.LIST_ADDRESS],
+    bcc: [...recipients],
     reply_to: [senderAddress],
     subject: parsed.subject?.trim() || "(no subject)",
     ...(parsed.html ? { html: parsed.html } : {}),

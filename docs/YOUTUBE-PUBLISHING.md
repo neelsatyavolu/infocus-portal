@@ -22,6 +22,7 @@ YouTube restricts uploads by affected unverified API projects to private visibil
 ## Behavior and recovery
 
 - Source version, title, channel and air date are pinned in `YoutubePublication`. The unique `rowId` prevents normal retries or requeueing from creating another publication. Transfer progress is queried from YouTube before each chunk, including recovery of a completed upload after a lost response. Final Cut storage must support HTTP byte ranges.
+- Queueing also pins the Final Cut version on the row (`PackageProgressRow.queuedMediaVersionId`), and a publication starts only from that version. Apply `prisma/migrations/20261108090000_queued_media_version/migration.sql` (`prisma db execute --file … --schema prisma/schema.prisma`) before deploying the code that reads it.
 - `uploadSessionUrl` is a secret. Never expose it in queue APIs, logs, support messages, or job outputs. Tokens also stay inside job steps.
 - A removed package does not advance. Moving an in-progress package to another air date stops it for reconciliation. Replacing/deleting the source during upload does not switch the pinned source to a different cut.
 - Transient failures retry on the next discovery pass. `FAILED` means operator action is needed; the card shows a sanitized explanation. Correct a channel/privacy/audit issue in YouTube or configuration, then set the existing publication back to `PROCESSING` if it has a `videoId`, or `UPLOADING` if resuming a valid session. Keep its existing video/session identity.

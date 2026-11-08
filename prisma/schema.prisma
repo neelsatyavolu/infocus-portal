@@ -901,6 +901,9 @@ model PackageProgressRow {
   queuedForAirAt DateTime?
   /// YYYY-MM-DD show this queued package is assigned to. Null when not queued.
   queuedForShowDate String?
+  /// Final Cut version that was current (and READY) when a producer queued the package. YouTube publishes
+  /// only this version; null when the package was queued before its Final Cut was in.
+  queuedMediaVersionId String?
   /// Anchor toss the group writes with its Final Cut. Feeds the show teleprompter.
   finalCutToss   String   @default("")
   /// Set once every Final Cut grader votes for this package. At most 2 per cycle.

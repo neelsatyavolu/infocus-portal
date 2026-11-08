@@ -100,7 +100,7 @@ describe("show editor service routes", () => {
     mocks.progress.mockResolvedValue({ cancel: true });
     const response = await progress(post({ stage: "render", message: "Rendering v1" }), params);
     expect(await response.json()).toEqual({ data: { cancel: true } });
-    expect(mocks.progress).toHaveBeenCalledWith({ id: "job1", stage: "render", message: "Rendering v1" });
+    expect(mocks.progress).toHaveBeenCalledWith({ id: "job1", deviceId: "legacy", stage: "render", message: "Rendering v1" });
   });
 
   it("complete rejects an outputNasPath that differs from the brief", async () => {
@@ -116,13 +116,13 @@ describe("show editor service routes", () => {
     mocks.complete.mockResolvedValue({ ok: true });
     const response = await complete(post({ ...goodComplete, reply: "Changed the card." }), params);
     expect(await response.json()).toEqual({ data: { ok: true } });
-    expect(mocks.complete).toHaveBeenCalledWith({ id: "job1", ...goodComplete, reply: "Changed the card." });
+    expect(mocks.complete).toHaveBeenCalledWith({ id: "job1", deviceId: "legacy", ...goodComplete, reply: "Changed the card." });
   });
 
   it("fail forwards the error and the cancelled flag", async () => {
     mocks.fail.mockResolvedValue({ ok: true });
     await failRoute(post({ error: "ffmpeg exited with an error", cancelled: false }), params);
-    expect(mocks.fail).toHaveBeenCalledWith({ id: "job1", error: "ffmpeg exited with an error", cancelled: false });
+    expect(mocks.fail).toHaveBeenCalledWith({ id: "job1", deviceId: "legacy", error: "ffmpeg exited with an error", cancelled: false });
   });
 
   it("complete and fail forward an optional debugLogPath and refuse an oversized one", async () => {
@@ -130,9 +130,9 @@ describe("show editor service routes", () => {
     mocks.complete.mockResolvedValue({ ok: true });
     mocks.fail.mockResolvedValue({ ok: true });
     await complete(post({ ...goodComplete, debugLogPath }), params);
-    expect(mocks.complete).toHaveBeenCalledWith({ id: "job1", ...goodComplete, debugLogPath });
+    expect(mocks.complete).toHaveBeenCalledWith({ id: "job1", deviceId: "legacy", ...goodComplete, debugLogPath });
     await failRoute(post({ error: "x", cancelled: true, debugLogPath }), params);
-    expect(mocks.fail).toHaveBeenCalledWith({ id: "job1", error: "x", cancelled: true, debugLogPath });
+    expect(mocks.fail).toHaveBeenCalledWith({ id: "job1", deviceId: "legacy", error: "x", cancelled: true, debugLogPath });
     expect((await failRoute(post({ error: "x", cancelled: false, debugLogPath: "x".repeat(513) }), params)).status).toBe(400);
   });
 

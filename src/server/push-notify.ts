@@ -23,7 +23,8 @@ export async function sendPushToUserIds(
   const subscriptions = await prisma.pushNotificationSubscription.findMany({
     where: {
       userId: { in: uniqueIds },
-      user: { notificationPreference: preferenceFilter }
+      // A removed account (email cleared) keeps its rows but gets no more pushes.
+      user: { email: { not: null }, notificationPreference: preferenceFilter }
     },
     select: { id: true, endpoint: true, p256dh: true, auth: true }
   });

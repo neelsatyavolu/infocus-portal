@@ -1,10 +1,12 @@
 import { z } from "zod";
-import { ApprovalStatus } from "@prisma/client";
+import { ApprovalStatus, WorkspaceRole } from "@prisma/client";
+import { isApprovalTransitionAllowed } from "@/src/lib/approval";
 import { handleRouteError } from "@/src/lib/api-errors";
 import { requireUserId, syncUserProfile } from "@/src/lib/auth";
 import { fail, ok } from "@/src/lib/http";
 import { getPlatformAccess, hasPlatformRole } from "@/src/lib/platform-admin";
 import { prisma } from "@/src/lib/prisma";
+import { requireMediaAccess } from "@/src/server/memberships";
 
 const payloadSchema = z.object({
   mediaItemId: z.string().cuid(),
@@ -28,17 +30,13 @@ export async function POST(request: Request) {
 
     const parsed = payloadSchema.parse(await request.json());
 
-    const media = await prisma.mediaItem.findUnique({
-      where: { id: parsed.mediaItemId },
-      select: {
-        id: true,
-        currentVersionId: true,
-        deletedAt: true,
-        project: { select: { id: true, workspaceId: true } }
-      }
-    });
+    const { media } = await requireMediaAccess(
+      parsed.mediaItemId,
+      [WorkspaceRole.OWNER_ADMIN, WorkspaceRole.EDITOR, WorkspaceRole.REVIEWER],
+      { allowVisibility: true }
+    );
 
-    if (!media || media.deletedAt) {
+    if (media.deletedAt) {
       return fail("Media not found.", 404);
     }
     if (!media.currentVersionId) {
@@ -53,6 +51,10 @@ export async function POST(request: Request) {
         where: { id: versionId },
         select: { approvalStatus: true, airedAt: true }
       });
+
+      if (!previous || !isApprovalTransitionAllowed(previous.approvalStatus, ApprovalStatus.AIRED)) {
+        throw new Error("BAD_REQUEST");
+      }
 
       const next = await tx.mediaVersion.update({
         where: { id: versionId },

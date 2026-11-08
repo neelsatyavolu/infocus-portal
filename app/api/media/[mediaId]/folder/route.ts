@@ -1,7 +1,10 @@
 import { z } from "zod";
 import { handleRouteError } from "@/src/lib/api-errors";
+import { syncUserProfile } from "@/src/lib/auth";
 import { ok } from "@/src/lib/http";
+import { getPlatformAccess } from "@/src/lib/platform-admin";
 import { prisma } from "@/src/lib/prisma";
+import { canManageProjectMedia } from "@/src/lib/rbac";
 import { recomputeForMediaItem } from "@/src/server/cycle-cut-status";
 import { requireMediaAccess } from "@/src/server/memberships";
 
@@ -16,7 +19,13 @@ export async function PATCH(
   try {
     const payload = updateMediaFolderSchema.parse(await request.json());
     const { mediaId } = await params;
-    const { userId, media } = await requireMediaAccess(mediaId);
+    const { userId, media, membership } = await requireMediaAccess(mediaId);
+    const user = await syncUserProfile(userId);
+    const access = await getPlatformAccess(user.email);
+
+    if (!canManageProjectMedia(membership.role, access.role)) {
+      throw new Error("FORBIDDEN");
+    }
 
     if (payload.folderId) {
       const folder = await prisma.projectFolder.findFirst({

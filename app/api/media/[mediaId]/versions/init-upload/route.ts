@@ -9,6 +9,7 @@ import {
 } from "@/src/lib/nas-storage";
 import { prisma } from "@/src/lib/prisma";
 import { getRequestKey, limitByKey } from "@/src/lib/rate-limit";
+import { assertMayChangeCycleCut } from "@/src/server/cycle-cut-guard";
 import { requireMediaAccess } from "@/src/server/memberships";
 
 const versionUploadSchema = z.object({
@@ -33,6 +34,8 @@ export async function POST(
     const { mediaId } = await params;
     const payload = versionUploadSchema.parse(await request.json());
     const { userId, media } = await requireMediaAccess(mediaId, undefined, { allowVisibility: true });
+
+    await assertMayChangeCycleCut(userId, media.id);
 
     const latest = await prisma.mediaVersion.findFirst({
       where: { mediaItemId: media.id },

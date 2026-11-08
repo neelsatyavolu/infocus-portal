@@ -132,7 +132,8 @@ export async function actOnParticipant(
         select: { state: true }
       });
       if (latest?.state === "ADMITTED") return removeOne(meeting, userId, now);
-      throw new Error("They aren't waiting to join.");
+      // A denied producer who knocks again stays DENIED; denying again just turns the knock away.
+      if (latest?.state !== "DENIED") throw new Error("They aren't waiting to join.");
     }
     await sendMeetingRoomEvent(meetingId, { t: "denied", uid: userId });
     return { state: "DENIED" as const };

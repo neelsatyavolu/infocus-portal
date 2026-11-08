@@ -89,7 +89,8 @@ describe("producers@", () => {
     const [url, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("https://api.resend.com/emails");
     const body = JSON.parse(String(init.body));
-    expect(body.to).toEqual(["abby@example.edu", "otto@example.edu", "sage@example.edu"]);
+    expect(body.to).toEqual(["producers@portal.test"]);
+    expect(body.bcc).toEqual(["abby@example.edu", "otto@example.edu", "sage@example.edu"]);
     expect(body.from).toBe("Parent Person via InFocus Producers <producers@portal.test>");
     expect(body.reply_to).toEqual(["parent@example.org"]);
     expect(body.subject).toBe("Interview request");
@@ -98,6 +99,15 @@ describe("producers@", () => {
     expect(body.headers[FORWARDED_HEADER]).toBe("1");
     expect(mail.forward).not.toHaveBeenCalled();
     expect(db.ended).toBe(1);
+  });
+
+  it("never shows the roster in To or Cc, so reply-all can't reach it", () => {
+    const payload = resendPayload({ headers: [], attachments: [], text: "hi" } as never, ["abby@example.edu", "otto@example.edu"], env, "parent@example.org");
+    expect(payload.to).toEqual(["producers@portal.test"]);
+    expect(payload).not.toHaveProperty("cc");
+    expect(payload.bcc).toEqual(["abby@example.edu", "otto@example.edu"]);
+    expect(payload.reply_to).toEqual(["parent@example.org"]);
+    expect(payload.headers[FORWARDED_HEADER]).toBe("1");
   });
 
   it("drops its own copy coming back through the list", async () => {

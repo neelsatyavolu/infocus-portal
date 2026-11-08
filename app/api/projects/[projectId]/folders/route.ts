@@ -1,7 +1,10 @@
 import { z } from "zod";
 import { handleRouteError } from "@/src/lib/api-errors";
+import { syncUserProfile } from "@/src/lib/auth";
 import { ok } from "@/src/lib/http";
+import { getPlatformAccess } from "@/src/lib/platform-admin";
 import { prisma } from "@/src/lib/prisma";
+import { canManageProjectMedia } from "@/src/lib/rbac";
 import { requireProjectRole } from "@/src/server/memberships";
 
 const createFolderSchema = z.object({
@@ -64,7 +67,13 @@ export async function POST(
   try {
     const payload = createFolderSchema.parse(await request.json());
     const { projectId } = await params;
-    const { userId, project } = await requireProjectRole(projectId);
+    const { userId, project, membership } = await requireProjectRole(projectId);
+    const user = await syncUserProfile(userId);
+    const access = await getPlatformAccess(user.email);
+
+    if (!canManageProjectMedia(membership.role, access.role)) {
+      throw new Error("FORBIDDEN");
+    }
 
     const folder = await prisma.projectFolder.create({
       data: {

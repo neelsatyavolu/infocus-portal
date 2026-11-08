@@ -6,6 +6,7 @@ import { getPlatformAccess } from "@/src/lib/platform-admin";
 import { canManageProjectMedia } from "@/src/lib/rbac";
 import { moveMediaIntoVersion } from "@/src/server/media-version-move";
 import { recomputeForProjectName } from "@/src/server/cycle-cut-status";
+import { assertMayChangeCycleCut } from "@/src/server/cycle-cut-guard";
 import { requireMediaAccess } from "@/src/server/memberships";
 
 const moveToVersionSchema = z.object({
@@ -26,6 +27,7 @@ export async function POST(
     if (!canManageProjectMedia(membership.role, access.role)) {
       throw new Error("FORBIDDEN");
     }
+    await assertMayChangeCycleCut(userId, payload.targetMediaId);
 
     const result = await moveMediaIntoVersion({
       sourceMediaId: mediaId,

@@ -26,6 +26,7 @@ import { useShellNav } from "@/components/shell/use-shell-nav";
 import { setClientCacheOwner } from "@/src/lib/client-cache";
 import { isRailRoute, isWideRoute } from "@/src/lib/sidebar-nav";
 import { useHalloweenActive } from "@/src/lib/use-halloween";
+import { useSeasonalGoodiesOn } from "@/src/lib/use-seasonal-goodies";
 import { useThanksgivingActive } from "@/src/lib/use-thanksgiving";
 import { cn } from "@/src/lib/utils";
 
@@ -100,8 +101,11 @@ export function AppShell({
   const onMeetHost = useOnMeetHost();
   const halloween = useHalloweenActive();
   const thanksgiving = useThanksgivingActive();
+  const goodiesOn = useSeasonalGoodiesOn();
   // No seasonal visitors (turkey, leaves, pumpkins) on the PA script page.
   const seasonalDecor = chrome && !onMeetHost && !pathname.startsWith(PA_SCRIPT_PATH);
+  // Settings → Appearance → Holiday extras can hide the visitors while keeping the season's colors.
+  const seasonalGoodies = seasonalDecor && goodiesOn;
 
   // Page caches belong to one signed-in person (View as switches the person).
   setClientCacheOwner(currentUser.email ?? null);
@@ -305,8 +309,8 @@ export function AppShell({
             <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} audience={audience} />
           </>
         ) : null}
-        {halloween && seasonalDecor ? <HalloweenGoodies /> : null}
-        {thanksgiving && seasonalDecor ? <ThanksgivingGoodies /> : null}
+        {halloween && seasonalGoodies ? <HalloweenGoodies /> : null}
+        {thanksgiving && seasonalGoodies ? <ThanksgivingGoodies /> : null}
         {chrome && !onMeetHost && !sampleOnly ? <PrizeChoiceDialog /> : null}
         {canViewAs && viewAsMounted ? (
           <ViewAsMenu currentUser={currentUser} canViewAs={canViewAs} viewingAs={viewingAs} open={viewAsOpen} onOpenChange={setViewAsOpen} />

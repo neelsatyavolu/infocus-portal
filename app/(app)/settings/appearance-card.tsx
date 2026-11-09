@@ -14,6 +14,7 @@ import {
 import { applyThemePreference, type ThemePreference } from "@/src/lib/theme";
 import { useThemePreference } from "@/src/lib/use-theme";
 import { HalloweenCells } from "./halloween-cells";
+import { SeasonalGoodiesCell } from "./seasonal-goodies-cell";
 import { ThanksgivingCells } from "./thanksgiving-cells";
 import { useSavedFlash } from "./use-saved-flash";
 
@@ -144,6 +145,7 @@ export function AppearanceSection() {
           </SettingsCell>
           <HalloweenCells onSaved={() => flashSaved("Saved")} />
           <ThanksgivingCells onSaved={() => flashSaved("Saved")} />
+          <SeasonalGoodiesCell onSaved={() => flashSaved("Saved")} />
         </SettingsGrid>
       </SettingsPanel>
     </SettingsSection>

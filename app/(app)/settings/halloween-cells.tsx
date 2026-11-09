@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { Switch } from "@/components/ui/switch";
 import { SettingsCell } from "@/components/settings-layout";
+import { useSeasonalGoodiesOn } from "@/src/lib/use-seasonal-goodies";
 import { isHalloweenSeason, readHalloweenPrefs, writeHalloweenPrefs, type HalloweenPrefs } from "@/src/lib/halloween";
 import { useHalloweenPrefs } from "@/src/lib/use-halloween";
 
@@ -17,6 +18,7 @@ function subscribeNever() {
 export function HalloweenCells({ onSaved }: { onSaved: () => void }) {
   const inSeason = useSyncExternalStore(subscribeNever, () => isHalloweenSeason(new Date()), () => false);
   const prefs = useHalloweenPrefs();
+  const goodiesOn = useSeasonalGoodiesOn();
 
   if (!inSeason) return null;
 
@@ -43,7 +45,7 @@ export function HalloweenCells({ onSaved }: { onSaved: () => void }) {
         <Switch
           id="pref-halloween-sounds"
           checked={!prefs.muted}
-          disabled={prefs.off}
+          disabled={prefs.off || !goodiesOn}
           onCheckedChange={(on) => update({ muted: !on })}
         />
       </SettingsCell>
@@ -57,7 +59,7 @@ export function HalloweenCells({ onSaved }: { onSaved: () => void }) {
         <Switch
           id="pref-halloween-music"
           checked={!prefs.musicOff}
-          disabled={prefs.off}
+          disabled={prefs.off || !goodiesOn}
           onCheckedChange={(on) => update({ musicOff: !on })}
         />
       </SettingsCell>
@@ -71,7 +73,7 @@ export function HalloweenCells({ onSaved }: { onSaved: () => void }) {
         <Switch
           id="pref-halloween-scares"
           checked={!prefs.scaresOff}
-          disabled={prefs.off}
+          disabled={prefs.off || !goodiesOn}
           onCheckedChange={(on) => update({ scaresOff: !on })}
         />
       </SettingsCell>
@@ -85,7 +87,7 @@ export function HalloweenCells({ onSaved }: { onSaved: () => void }) {
         <Switch
           id="pref-halloween-haunts"
           checked={!prefs.hauntsOff}
-          disabled={prefs.off}
+          disabled={prefs.off || !goodiesOn}
           onCheckedChange={(on) => update({ hauntsOff: !on })}
         />
       </SettingsCell>

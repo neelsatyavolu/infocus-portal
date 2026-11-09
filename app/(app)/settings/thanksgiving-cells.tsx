@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { Switch } from "@/components/ui/switch";
 import { SettingsCell } from "@/components/settings-layout";
+import { useSeasonalGoodiesOn } from "@/src/lib/use-seasonal-goodies";
 import {
   isThanksgivingSeason,
   readThanksgivingPrefs,
@@ -23,6 +24,7 @@ export function ThanksgivingCells({ onSaved }: { onSaved: () => void }) {
   const inSeason = useSyncExternalStore(subscribeNever, () => isThanksgivingSeason(new Date()), () => false);
   const canPreview = useCanPreviewSeasons();
   const prefs = useThanksgivingPrefs();
+  const goodiesOn = useSeasonalGoodiesOn();
 
   function update(change: Partial<Omit<ThanksgivingPrefs, "leaves" | "pies">>) {
     writeThanksgivingPrefs({ ...readThanksgivingPrefs(), ...change });
@@ -65,7 +67,7 @@ export function ThanksgivingCells({ onSaved }: { onSaved: () => void }) {
             <Switch
               id="pref-thanksgiving-sounds"
               checked={!prefs.muted}
-              disabled={prefs.off}
+              disabled={prefs.off || !goodiesOn}
               onCheckedChange={(on) => update({ muted: !on })}
             />
           </SettingsCell>
@@ -79,7 +81,7 @@ export function ThanksgivingCells({ onSaved }: { onSaved: () => void }) {
             <Switch
               id="pref-thanksgiving-turkey"
               checked={!prefs.turkeyOff}
-              disabled={prefs.off}
+              disabled={prefs.off || !goodiesOn}
               onCheckedChange={(on) => update({ turkeyOff: !on })}
             />
           </SettingsCell>

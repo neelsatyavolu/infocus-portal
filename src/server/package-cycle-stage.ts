@@ -105,13 +105,13 @@ async function preferredStudentCycle() {
   }
 }
 
-/** The student's cycle and, while they may switch, the two cycles to pick from (studentCycleChoice). */
+/** The student's cycle and, while they may switch, the cycles to pick from (studentCycleChoice). */
 export async function resolveStudentCycleChoice(userId: string, cycles?: CycleList) {
   const active = await resolveActiveCycleNumber(null, cycles);
   if (active <= 1) return { cycleNumber: active, choices: null };
   const [rows, preferred] = await Promise.all([
     prisma.packageProgressRow.findMany({
-      where: { cycleNumber: { in: [active - 1, active] }, members: { some: { userId } } },
+      where: { cycleNumber: { lte: active }, members: { some: { userId } } },
       select: { cycleNumber: true, finalCutMediaItemId: true, finalCut: true }
     }),
     preferredStudentCycle()
@@ -155,8 +155,8 @@ export async function loadStudentCycleRow(userId: string, cycleNumber: number) {
 
 /**
  * The student's row on their own cycle (resolveStudentCycleNumber + loadStudentCycleRow).
- * When the previous cycle decides which one that is, both cycles' rows load in one query and the
- * previous row's Final Cut (and the sidebar's cycle switch) picks, instead of a check and then a
+ * When earlier cycles decide which one that is, every row up to the active cycle loads in one query and
+ * their Final Cuts (and the sidebar's cycle switch) pick, instead of a check and then a
  * second read.
  */
 async function loadStudentStageRow(userId: string, requested?: number | null) {
@@ -166,7 +166,7 @@ async function loadStudentStageRow(userId: string, requested?: number | null) {
   }
   const [rows, preferred] = await Promise.all([
     prisma.packageProgressRow.findMany({
-      where: { cycleNumber: { in: [active - 1, active] }, members: { some: { userId } } },
+      where: { cycleNumber: { lte: active }, members: { some: { userId } } },
       include: STAGE_ROW_INCLUDE
     }),
     preferredStudentCycle()

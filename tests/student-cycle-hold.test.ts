@@ -48,4 +48,24 @@ describe("studentCycleChoice", () => {
     });
     expect(studentCycleChoice(2, [held, next], 5)).toEqual({ cycleNumber: 1, choices: [1, 2] });
   });
+
+  it("offers every earlier cycle whose Final Cut is still missing", () => {
+    const cycle1 = { ...held, cycleNumber: 1 };
+    const cycle2 = { ...held, cycleNumber: 2 };
+    expect(studentCycleChoice(3, [cycle1, cycle2], null)).toEqual({ cycleNumber: 2, choices: [1, 2] });
+    expect(studentCycleChoice(3, [cycle1, cycle2], 1)).toEqual({ cycleNumber: 1, choices: [1, 2] });
+    expect(studentCycleChoice(3, [cycle1, cycle2, { ...next, cycleNumber: 3 }], 3)).toEqual({
+      cycleNumber: 3,
+      choices: [1, 2, 3]
+    });
+  });
+
+  it("offers an older missing cycle even once the previous one is in", () => {
+    const cycle1 = { ...held, cycleNumber: 1 };
+    const cycle2 = { ...held, cycleNumber: 2, finalCut: true };
+    expect(studentCycleChoice(3, [cycle1, cycle2, { ...next, cycleNumber: 3 }], null)).toEqual({
+      cycleNumber: 3,
+      choices: [1, 3]
+    });
+  });
 });

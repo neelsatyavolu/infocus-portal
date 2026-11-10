@@ -401,7 +401,7 @@ export function assistantPlacePreview(input: {
 
 /**
  * The assistant's "switch my cycle" card, from the student's studentCycleChoice: only a student
- * held on the previous cycle who is also on the new roster may switch, and only to one of the two.
+ * still owing an earlier Final Cut may switch, and only to one of their choices.
  */
 export function assistantCycleSwitch(
   choice: { cycleNumber: number; choices: number[] | null },
@@ -411,7 +411,7 @@ export function assistantCycleSwitch(
     return { error: `You only have Cycle ${choice.cycleNumber} to work on, so there is no cycle to switch to.` };
   }
   if (!choice.choices.includes(requested)) {
-    return { error: `You can switch between ${choice.choices.map((n) => `Cycle ${n}`).join(" and ")}.` };
+    return { error: `You can switch between ${new Intl.ListFormat("en").format(choice.choices.map((n) => `Cycle ${n}`))}.` };
   }
   if (requested === choice.cycleNumber) {
     return { result: { alreadyOn: true, cycleNumber: requested } };

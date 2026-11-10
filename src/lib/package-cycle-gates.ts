@@ -73,17 +73,23 @@ type StudentCycleRow = { cycleNumber: number; finalCutMediaItemId: string | null
 
 /**
  * The cycle a student's tabs show. A student held on the previous cycle (its Final Cut is not in)
- * who is also on the active cycle's roster may switch between the two (`choices`); `preferred`
- * (the cookie) opens the active one.
+ * opens on it by default. They may switch (`choices`) between every earlier cycle whose Final Cut
+ * is still missing, the default one, and the active cycle when they are on its roster; `preferred`
+ * (the cookie) opens one of those.
  */
 export function studentCycleChoice(activeCycleNumber: number, rows: StudentCycleRow[], preferred: number | null) {
   const previousRow = rows.find((row) => row.cycleNumber === activeCycleNumber - 1) ?? null;
-  const heldCycle = studentCycleNumber(activeCycleNumber, previousRow);
-  const choices =
-    heldCycle !== activeCycleNumber && rows.some((row) => row.cycleNumber === activeCycleNumber)
-      ? [heldCycle, activeCycleNumber]
-      : null;
-  return { cycleNumber: choices && preferred === activeCycleNumber ? activeCycleNumber : heldCycle, choices };
+  const defaultCycle = studentCycleNumber(activeCycleNumber, previousRow);
+  const owed = rows
+    .filter((row) => row.cycleNumber < activeCycleNumber && !row.finalCutMediaItemId && !row.finalCut)
+    .map((row) => row.cycleNumber);
+  const onActiveRoster = rows.some((row) => row.cycleNumber === activeCycleNumber);
+  const options = [...new Set([...owed, defaultCycle, ...(onActiveRoster ? [activeCycleNumber] : [])])].sort(
+    (a, b) => a - b
+  );
+  const choices = options.length > 1 ? options : null;
+  const cycleNumber = choices && preferred !== null && choices.includes(preferred) ? preferred : defaultCycle;
+  return { cycleNumber, choices };
 }
 
 export function parseApprovalStage(value: PackageApprovalStage | string | null | undefined): PackageApprovalStage | null {

@@ -6,7 +6,7 @@ Answers come from the Portal docs (this folder plus the class rules, Drive stora
 
 If you ask **where** a page, tab, or package is, a card appears: **I can show where that is**, with **Take me there**. It only offers pages in your sidebar; ask for one you cannot open and it says that page is not in your sidebar. For a package, students go to that stage's page under **My package**, and producers go to the package in **Groups** at its current stage. A student on one package can just say “my package.” **Not now** skips it.
 
-A student held on the previous cycle (its Final Cut is not in) who is also on a group in the new cycle can ask the assistant to switch cycles, for example “switch me to Cycle 3” or “go back to Cycle 2.” A **Switch cycle** card appears; **Switch** does the same thing as the cycle switch on the sidebar's cycle card and reloads the page. Anyone else is told they only have one cycle to work on.
+A student with more than one cycle to work on (an earlier cycle whose Final Cut is not in, plus their current one) can ask the assistant to switch cycles, for example “switch me to Cycle 3” or “go back to Cycle 2.” A **Switch cycle** card appears; **Switch** does the same thing as the cycle switch on the sidebar's cycle card and reloads the page. Anyone else is told they only have one cycle to work on.
 
 What it can look up depends on role:
 

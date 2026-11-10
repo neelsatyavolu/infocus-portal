@@ -82,7 +82,7 @@ export function switchCycle(cycleNumber: number) {
   window.location.reload();
 }
 
-/** "Cycle 2 | Cycle 3" for a student still owing the previous Final Cut while on the new roster. */
+/** "Cycle 1 | Cycle 2 | Cycle 3" for a student still owing an earlier Final Cut. */
 function CycleSwitch({ choices, current }: { choices: number[]; current: number | null }) {
   return (
     <div role="group" aria-label="Cycle to work on" className="flex gap-0.5">

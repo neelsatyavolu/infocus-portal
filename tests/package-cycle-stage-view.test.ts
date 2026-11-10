@@ -77,14 +77,14 @@ describe("loadCycleStageView: student rows", () => {
     ]);
   });
 
-  it("loads both cycles' rows in one query and stays on the previous cycle until its Final Cut is in", async () => {
+  it("loads every row up to the active cycle in one query and stays on the previous cycle until its Final Cut is in", async () => {
     mocks.rowFindMany.mockResolvedValue([row(1), row(2)]);
 
     const view = await loadCycleStageView({ userId: "u-abby", role: null, slug: "a-roll" });
 
     expect(mocks.rowFindMany).toHaveBeenCalledTimes(1);
     expect(mocks.rowFindMany.mock.calls[0][0].where).toEqual({
-      cycleNumber: { in: [1, 2] },
+      cycleNumber: { lte: 2 },
       members: { some: { userId: "u-abby" } }
     });
     expect(mocks.rowFindFirst).not.toHaveBeenCalled();

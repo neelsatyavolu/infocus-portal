@@ -309,7 +309,7 @@ export type NavPackageStatus = {
   /** On a package roster for the person's current cycle. */
   hasRow: boolean;
   cycleNumber: number | null;
-  /** The two cycles a student held on the previous one may switch between (studentCycleChoice). */
+  /** The cycles a student still owing an earlier Final Cut may switch between (studentCycleChoice). */
   cycleChoices?: number[] | null;
   unlocked: PackageUnlocked;
   statuses: Record<PackageStageSlug, CycleStageStatus> | null;

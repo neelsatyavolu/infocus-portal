@@ -34,6 +34,7 @@ export function GroupsToolbar({
   showFilters,
   cycles,
   activeCycleNumber,
+  allCyclesValue,
   currentCycle,
   onCycleChange,
   refreshing,
@@ -49,6 +50,8 @@ export function GroupsToolbar({
   showFilters: boolean;
   cycles: CycleTab[];
   activeCycleNumber: number;
+  /** The picker value for "All cycles"; that view has no Tiles/Progress switch. */
+  allCyclesValue: number;
   currentCycle: number;
   onCycleChange: (cycleNumber: number) => void;
   refreshing: boolean;
@@ -59,7 +62,9 @@ export function GroupsToolbar({
 }) {
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-x-3">
-      <SegmentedControl ariaLabel="View" size="touch" value={viewMode} onChange={onViewModeChange} options={VIEW_OPTIONS} />
+      {activeCycleNumber === allCyclesValue ? null : (
+        <SegmentedControl ariaLabel="View" size="touch" value={viewMode} onChange={onViewModeChange} options={VIEW_OPTIONS} />
+      )}
       {showFilters ? (
         <FilterChips
           ariaLabel="Filter groups"
@@ -80,6 +85,7 @@ export function GroupsToolbar({
         <CyclePicker
           cycles={cycles}
           value={activeCycleNumber}
+          leadingOptions={[{ value: allCyclesValue, label: "All cycles" }]}
           currentCycle={currentCycle}
           onChange={onCycleChange}
           className="max-sm:min-w-0 max-sm:max-w-none max-sm:flex-1"

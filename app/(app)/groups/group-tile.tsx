@@ -15,7 +15,7 @@ import type { GroupRowView } from "./group-row-model";
 type Tag = { key: string; label: string; tone: StatusToneInput };
 
 /** The tile's own status first; a grade the viewer still owes leads, a neutral grade state trails. */
-function tileTags(view: GroupRowView): Tag[] {
+export function tileTags(view: GroupRowView): Tag[] {
   const status: Tag = { key: "status", label: view.tileStatus.label, tone: view.tileStatus.tone };
   const schedule: Tag[] = view.schedule ? [{ key: "schedule", label: view.schedule.label, tone: view.schedule.tone }] : [];
   const grades: Tag[] = view.gradesPill ? [{ key: "grades", label: view.gradesPill.label, tone: view.gradesPill.tone }] : [];

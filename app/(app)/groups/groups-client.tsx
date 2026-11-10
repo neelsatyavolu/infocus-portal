@@ -18,6 +18,7 @@ import { writeGroupOrder } from "@/src/lib/keyboard-nav";
 import { PACKAGE_CATEGORY_LABELS, PACKAGE_STAGES, type PackageStage } from "@/src/lib/package-stages";
 import { requestNavStatusRefresh } from "@/src/lib/sidebar-nav";
 import { cn } from "@/src/lib/utils";
+import { AllCyclesSkeleton, AllCyclesView } from "./all-cycles-view";
 import AssociatesDialog from "./associates-dialog";
 import { GroupProgressSkeleton, GroupProgressView } from "./group-progress-view";
 import {
@@ -29,6 +30,7 @@ import {
   toggleRowStage,
   toSavePayload,
   withQueuedSave,
+  type CycleDates,
   type CycleTab,
   type GroupRow,
   type GroupRowView,
@@ -37,12 +39,19 @@ import {
 } from "./group-row-model";
 import { GroupsTilesSkeleton, GroupsTilesView, NoGroupsState, type TileSections } from "./groups-tiles-view";
 import { GroupsToolbar, type GroupsFilter } from "./groups-toolbar";
+import { outstandingByCycle } from "./outstanding-packages";
 import { useGroupsPrefs } from "./use-groups-prefs";
 
 export type { GroupsPayload } from "./group-row-model";
 
 type CycleSnapshot = { cycles: CycleTab[]; rows: GroupRow[] };
 type PageMessage = { text: string; retry: boolean };
+type CycleRows = { cycleNumber: number; dates: CycleDates | null; rows: GroupRow[] };
+
+/** The Cycle picker's "All cycles" choice (cycle numbers start at 1). */
+const ALL_CYCLES = 0;
+/** All cycles loads this many cycles at a time, to go easy on the database pool. */
+const ALL_CYCLES_BATCH = 2;
 
 const EXECUTIVE_ROLES = new Set<PlatformRole>(["ADVISER", "EXECUTIVE_PRODUCER", "SUPER_ADMIN"]);
 /** How often time-based tags ("Behind by 2d", "Due in 5H") are recomputed while the page is open. */
@@ -63,6 +72,22 @@ async function fetchCycle(cycleNumber?: number) {
     throw new Error(payload.error?.message ?? "Failed to load groups.");
   }
   return payload.data;
+}
+
+/** Every cycle up to the current one (later cycles have nothing to grade or queue yet). */
+async function fetchAllCycles(cycleNumbers: number[]): Promise<CycleRows[]> {
+  const results: CycleRows[] = [];
+  for (let start = 0; start < cycleNumbers.length; start += ALL_CYCLES_BATCH) {
+    const batch = await Promise.all(
+      cycleNumbers.slice(start, start + ALL_CYCLES_BATCH).map(async (cycleNumber) => {
+        const data = await fetchCycle(cycleNumber);
+        const dates = data.cycles.find((cycle) => cycle.cycleNumber === cycleNumber)?.dates ?? null;
+        return { cycleNumber, dates, rows: data.rows };
+      })
+    );
+    results.push(...batch);
+  }
+  return results;
 }
 
 /** The sidebar's Groups count (Needs you) is server-side; ask it to refetch after a change here. */
@@ -102,6 +127,10 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
   const [filter, setFilter] = useState<GroupsFilter>("all");
   const [associatesOpen, setAssociatesOpen] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  const [allCycles, setAllCycles] = useState(false);
+  const [allCycleRows, setAllCycleRows] = useState<CycleRows[] | null>(null);
+  const [allFetching, setAllFetching] = useState(false);
+  const allSeqRef = useRef(0);
   const { viewMode, setViewMode, otherOpen, setOtherOpen, lastCycle, setLastCycle, lastCycleLoaded } = useGroupsPrefs();
 
   const rowsRef = useRef(rows);
@@ -160,8 +189,36 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
     }
   }, []);
 
+  const loadAllCycles = useCallback(async (cycleNumbers: number[]) => {
+    const seq = allSeqRef.current + 1;
+    allSeqRef.current = seq;
+    setAllFetching(true);
+    setMessage(null);
+    try {
+      const data = await fetchAllCycles(cycleNumbers);
+      if (seq !== allSeqRef.current) return;
+      setAllCycleRows(data);
+    } catch (error) {
+      if (seq !== allSeqRef.current) return;
+      setMessage({ text: error instanceof Error ? error.message : "Failed to load groups.", retry: true });
+    } finally {
+      if (seq === allSeqRef.current) setAllFetching(false);
+    }
+  }, []);
+
+  const pastCycleNumbers = useMemo(
+    () => cycles.map((cycle) => cycle.cycleNumber).filter((cycleNumber) => cycleNumber <= currentCycle),
+    [cycles, currentCycle]
+  );
+
   function selectCycle(next: number) {
     setLastCycle(next);
+    if (next === ALL_CYCLES) {
+      setAllCycles(true);
+      void loadAllCycles(pastCycleNumbers);
+      return;
+    }
+    setAllCycles(false);
     if (next === activeCycleNumberRef.current) return;
     activeCycleNumberRef.current = next;
     setActiveCycleNumber(next);
@@ -178,9 +235,13 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
   // effect below loads it).
   const [cycleRestoreChecked, setCycleRestoreChecked] = useState(false);
   const [restoredCycle, setRestoredCycle] = useState<number | null>(null);
+  const [restoredAll, setRestoredAll] = useState(false);
   if (lastCycleLoaded && !cycleRestoreChecked) {
     setCycleRestoreChecked(true);
-    if (lastCycle !== null && lastCycle !== activeCycleNumber && cycles.some((c) => c.cycleNumber === lastCycle)) {
+    if (lastCycle === ALL_CYCLES) {
+      setAllCycles(true);
+      setRestoredAll(true);
+    } else if (lastCycle !== null && lastCycle !== activeCycleNumber && cycles.some((c) => c.cycleNumber === lastCycle)) {
       setActiveCycleNumber(lastCycle);
       setRestoredCycle(lastCycle);
     }
@@ -195,7 +256,21 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
     void load(restoredCycle);
   }, [restoredCycle, loadCycle]);
 
+  useEffect(() => {
+    if (!restoredAll) return;
+    async function load(cycleNumbers: number[]) {
+      await loadAllCycles(cycleNumbers);
+    }
+    void load(pastCycleNumbers);
+    // Once, on restore; later changes to the cycle list don't reload.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restoredAll, loadAllCycles]);
+
   function refresh() {
+    if (allCycles) {
+      void loadAllCycles(pastCycleNumbers);
+      return;
+    }
     void loadCycle(activeCycleNumberRef.current, "refresh");
   }
 
@@ -298,6 +373,20 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
     return [...built].sort((a, b) => (a.attention === "needed" ? 0 : 1) - (b.attention === "needed" ? 0 : 1));
   }, [rows, rowsCycleDates, now, platformRole, currentUserId, producerCategory, isExecutiveRole]);
 
+  const allGroups = useMemo(() => {
+    if (!allCycleRows) return null;
+    const viewer = { platformRole, currentUserId, producerCategory };
+    const items = allCycleRows.flatMap(({ cycleNumber, dates, rows: cycleRows }) => {
+      const context = { platformRole, currentUserId, cycleDates: dates, now: new Date(now) };
+      return visibleGroupRows(cycleRows, viewer).map((row, index) => ({
+        cycleNumber,
+        view: buildGroupRowView(row, index, context)
+      }));
+    });
+    return outstandingByCycle(items);
+  }, [allCycleRows, now, platformRole, currentUserId, producerCategory]);
+  const allCount = allGroups?.reduce((sum, group) => sum + group.packages.length, 0) ?? 0;
+
   const stats = useMemo(
     () => ({
       total: views.length,
@@ -334,6 +423,13 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
 
   // Save the order on screen so a group's page can step to the previous or next one.
   const orderKey = useMemo(() => {
+    if (allCycles) {
+      if (!allGroups) return null;
+      return allGroups
+        .flatMap((group) => group.packages.map((item) => item.view.row.id))
+        .filter((id): id is string => Boolean(id))
+        .join(",");
+    }
     if (awaitingRows) return null;
     // A filter shows Other expanded (see GroupsTilesView), whatever the remembered fold.
     const otherShown = otherOpen || filter !== "all";
@@ -345,7 +441,7 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
       .map((view) => view.row.id)
       .filter((id): id is string => Boolean(id))
       .join(",");
-  }, [awaitingRows, viewMode, buckets, sections, otherOpen, filter]);
+  }, [allCycles, allGroups, awaitingRows, viewMode, buckets, sections, otherOpen, filter]);
 
   useEffect(() => {
     if (orderKey === null) return;
@@ -386,11 +482,15 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
   ];
 
   const showFilters =
+    !allCycles &&
     viewMode === "cards" && !awaitingRows && stats.total > 0 && filterOptions.filter((option) => !option.hidden).length > 1;
   const noGroups = !awaitingRows && stats.total === 0;
 
   const focus = activeCycle?.focus?.trim();
-  const description = (
+  const allDescription = allGroups
+    ? `${allCount} package${allCount === 1 ? "" : "s"} not yet graded and queued · oldest first`
+    : null;
+  const description = allCycles ? allDescription : (
     awaitingRows
       ? [focus]
       : [
@@ -440,7 +540,10 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
     ) : undefined;
 
   let content: ReactNode = null;
-  if (awaitingRows) {
+  if (allCycles) {
+    if (allGroups) content = <AllCyclesView groups={allGroups} cycles={cycles} />;
+    else if (allFetching) content = <AllCyclesSkeleton />;
+  } else if (awaitingRows) {
     if (fetching) content = viewMode === "chart" ? <GroupProgressSkeleton canEdit={canEdit} /> : <GroupsTilesSkeleton />;
   } else if (noGroups) {
     content = <NoGroupsState cycleNumber={activeCycleNumber} />;
@@ -473,10 +576,10 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
   return (
     <div ref={boardRef} className="route-enter space-y-5">
       <PageHeader
-        eyebrow={`Producer view · ${cycleLabel(activeCycleNumber)}`}
+        eyebrow={`Producer view · ${allCycles ? "All cycles" : cycleLabel(activeCycleNumber)}`}
         status={
           <>
-            {isExecutiveRole && !awaitingRows && stats.needsYou > 0 ? (
+            {isExecutiveRole && !allCycles && !awaitingRows && stats.needsYou > 0 ? (
               <StatusTag tone="warning">{`${stats.needsYou} need${stats.needsYou === 1 ? "s" : ""} you`}</StatusTag>
             ) : null}
             <SaveState state={saving ? "saving" : "idle"} />
@@ -496,10 +599,11 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
         filterOptions={filterOptions}
         showFilters={showFilters}
         cycles={cycles}
-        activeCycleNumber={activeCycleNumber}
+        activeCycleNumber={allCycles ? ALL_CYCLES : activeCycleNumber}
+        allCyclesValue={ALL_CYCLES}
         currentCycle={currentCycle}
         onCycleChange={selectCycle}
-        refreshing={fetching}
+        refreshing={allCycles ? allFetching : fetching}
         onRefresh={refresh}
         phoneMenu={phoneMenu}
         phoneMenuTriggerRef={phoneMenuTriggerRef}
@@ -510,7 +614,7 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
           tone="danger"
           action={
             message.retry ? (
-              <Button type="button" variant="outline" size="sm" disabled={fetching} onClick={refresh}>
+              <Button type="button" variant="outline" size="sm" disabled={allCycles ? allFetching : fetching} onClick={refresh}>
                 Try again
               </Button>
             ) : undefined

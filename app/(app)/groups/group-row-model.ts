@@ -87,6 +87,7 @@ export type GroupRow = {
   queuedForAir?: boolean;
   finalCutGraded?: boolean;
   finalCutGradesPublished?: boolean;
+  finalCutSubmittedAt?: string | null;
   finalCutScoredByUserIds?: string[];
 };
 

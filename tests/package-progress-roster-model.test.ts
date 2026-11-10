@@ -9,6 +9,7 @@ import {
   filterCounts,
   matchesFilter,
   mergeRosterUsers,
+  reportersWithoutGroup,
   rowStatus,
   serializeRows,
   withoutClientKey,
@@ -187,5 +188,23 @@ describe("row helpers", () => {
   it("ignores ids and client keys when comparing rows, and never posts a client key", () => {
     expect(serializeRows([row({ id: "x", clientKey: "new-1" })])).toBe(serializeRows([row()]));
     expect(withoutClientKey(row({ clientKey: "new-1" })).clientKey).toBeUndefined();
+  });
+});
+
+describe("reportersWithoutGroup", () => {
+  const abby = { userId: "u-abby", name: "Abby", email: "abby@example.edu" };
+  const otto = { userId: "u-otto", name: "Otto", email: "otto@example.edu" };
+  const sage = { userId: "u-sage", name: "Sage", email: "sage@example.edu" };
+
+  it("lists reporters no row links as a member, in order", () => {
+    const rows: ProgressRow[] = [
+      { ...DEFAULT_ROW, memberUserIds: ["u-otto"] },
+      { ...DEFAULT_ROW, memberUserIds: [] }
+    ];
+    expect(reportersWithoutGroup([abby, otto, sage], rows)).toEqual([abby, sage]);
+  });
+
+  it("returns everyone when no rows have members", () => {
+    expect(reportersWithoutGroup([abby, otto], [])).toEqual([abby, otto]);
   });
 });

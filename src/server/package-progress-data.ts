@@ -15,6 +15,7 @@ import { previousTeammatesByUserFromGroups } from "@/src/lib/consecutive-groupma
 import { normalizeEmail, PLATFORM_SUPER_ADMIN_EMAIL } from "@/src/lib/platform-admin";
 import { getCycleNumbers } from "@/src/server/program-settings";
 import { labeledUser, userDisplayName } from "@/src/lib/user-display";
+import { isExcludedFromGrading, loadNonGradableEmails } from "@/src/lib/gradable-roster";
 
 export function buildMissingProgressRows(cycleNumbers: number[]) {
   return cycleNumbers.flatMap((cycleNumber) =>
@@ -130,6 +131,31 @@ export async function loadAssignableExecutiveProducers() {
     loadSuperAdminAssignable()
   ]);
   return mergeAssignableUsers(executives, superAdmin);
+}
+
+export type ClassReporter = { userId: string; name: string | null; email: string | null };
+
+/**
+ * Class members who aren't producers: everyone on the gradable roster (the Members list) minus
+ * associate producers. The Package Cycle page lists the ones not in any group this cycle.
+ */
+export async function loadClassReporters(): Promise<ClassReporter[]> {
+  const [users, nonGradableEmails, producerAssignments] = await Promise.all([
+    prisma.user.findMany({
+      select: { id: true, name: true, nickname: true, email: true },
+      orderBy: [{ name: "asc" }, { email: "asc" }]
+    }),
+    loadNonGradableEmails(),
+    prisma.platformRoleAssignment.findMany({
+      where: { role: PlatformRole.ASSOCIATE_PRODUCER },
+      select: { email: true }
+    })
+  ]);
+  const producerEmails = new Set(producerAssignments.map((entry) => normalizeEmail(entry.email)).filter(Boolean));
+  return users
+    .filter((user) => !isExcludedFromGrading(user, nonGradableEmails))
+    .filter((user) => !producerEmails.has(normalizeEmail(user.email)))
+    .map((user) => ({ userId: user.id, name: userDisplayName(user) || user.name, email: user.email }));
 }
 
 /** Executive producers and the super-admin each enter a final-cut score. */

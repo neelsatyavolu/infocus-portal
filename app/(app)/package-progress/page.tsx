@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentAppUser } from "@/src/lib/current-app-user";
 import { canEditPackageCycle, hasPlatformRole } from "@/src/lib/platform-admin";
-import { loadPackageProgressData } from "@/src/server/package-progress-data";
+import { loadClassReporters, loadPackageProgressData } from "@/src/server/package-progress-data";
 import PackageProgressClient, { type PackageProgressPayload } from "./package-progress-client";
 
 export const metadata: Metadata = { title: "Package Cycle" };
@@ -23,11 +23,12 @@ export default async function PackageProgressPage() {
       redirect("/access-denied");
     }
 
-    const data = await loadPackageProgressData();
+    const [data, reporters] = await Promise.all([loadPackageProgressData(), loadClassReporters()]);
     initialData = {
       canEdit: canEditPackageCycle(platformRole),
       canAssignProducer: canEditPackageCycle(platformRole),
       ...data,
+      reporters,
       rows: data.rows
     };
 

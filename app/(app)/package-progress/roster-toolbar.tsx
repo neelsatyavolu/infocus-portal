@@ -8,8 +8,10 @@ import { IconButton } from "@/components/kit/icon-button";
 import { CyclePicker } from "@/components/kit/pickers";
 import { SegmentedControl } from "@/components/kit/segmented-control";
 import { Skeleton } from "@/components/kit/skeleton";
+import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { ROSTER_FILTER_LABELS, ROSTER_FILTERS, type CycleTab, type RosterFilter } from "./roster-model";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ROSTER_FILTER_LABELS, ROSTER_FILTERS, type AssignedUser, type CycleTab, type RosterFilter } from "./roster-model";
 
 export type RosterMode = "view" | "edit";
 
@@ -111,6 +113,7 @@ export function RosterFilters({
   counts,
   withMembers,
   withProducer,
+  withoutGroup,
   showMine,
   onChange
 }: {
@@ -119,6 +122,8 @@ export function RosterFilters({
   counts: Record<RosterFilter, number>;
   withMembers: number;
   withProducer: number;
+  /** Reporters (not producers) who aren't a member of any group this cycle. */
+  withoutGroup: AssignedUser[];
   /** "Assigned to me" needs to know who is signed in. */
   showMine: boolean;
   onChange: (filter: RosterFilter) => void;
@@ -156,7 +161,33 @@ export function RosterFilters({
         <span className="sr-only">, </span>
         <span className="font-mono-broadcast tabular-nums text-foreground">{withProducer}</span> with a producer
       </p>
+      {withoutGroup.length > 0 ? <WithoutGroupList people={withoutGroup} /> : null}
     </>
+  );
+}
+
+/** "3 not in a group": opens the names of reporters no group lists as a member this cycle. */
+function WithoutGroupList({ people }: { people: AssignedUser[] }) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button type="button" variant="outline" size="sm" className="h-10 md:h-9">
+          <span className="font-mono-broadcast tabular-nums">{people.length}</span> not in a group
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-0">
+        <p className="border-b border-border px-3 py-2 text-xs text-muted-foreground">
+          Reporters who aren&apos;t in any group this cycle
+        </p>
+        <ul aria-label="Not in a group" className="py-1">
+          {people.map((person) => (
+            <li key={person.userId} className="truncate px-3 py-1.5">
+              {person.name?.trim() || person.email?.split("@")[0] || "Unnamed"}
+            </li>
+          ))}
+        </ul>
+      </PopoverContent>
+    </Popover>
   );
 }
 

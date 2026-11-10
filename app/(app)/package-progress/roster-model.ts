@@ -104,6 +104,8 @@ export type PackageProgressPayload = {
   producers?: AssignableProducer[];
   executives?: AssignableProducer[];
   previousTeammatesByUser?: Record<string, string[]>;
+  /** Class members who aren't producers (APs, EPs and staff left out). */
+  reporters?: AssignedUser[];
   rows: PayloadRow[];
 };
 
@@ -235,6 +237,12 @@ export function assignedProducerOf(
 
 export function hasProducer(row: ProgressRow) {
   return Boolean(row.assignedProducerUserId) || Boolean(row.assignedExecutiveProducerUserId);
+}
+
+/** Reporters not linked as a member of any row, in the order given. */
+export function reportersWithoutGroup(reporters: AssignedUser[], rows: ProgressRow[]): AssignedUser[] {
+  const placed = new Set(rows.flatMap((row) => row.memberUserIds ?? []));
+  return reporters.filter((reporter) => !placed.has(reporter.userId));
 }
 
 export function hasMembers(row: ProgressRow) {

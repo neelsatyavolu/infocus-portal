@@ -23,6 +23,7 @@ import {
   isRosterFilter,
   matchesFilter,
   ROSTER_FILTER_LABELS,
+  reportersWithoutGroup,
   rowStatus,
   type FilterContext,
   type PackageProgressPayload,
@@ -274,6 +275,7 @@ export default function PackageProgressClient({
               counts={counts}
               withMembers={list.filter(hasMembers).length}
               withProducer={list.filter(hasProducer).length}
+              withoutGroup={reportersWithoutGroup(roster.reporters, list)}
               showMine={Boolean(viewerUserId)}
               onChange={changeFilter}
             />

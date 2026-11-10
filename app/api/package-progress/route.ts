@@ -10,6 +10,7 @@ import {
   ensurePackageProgressDefaults,
   loadAssignableExecutiveProducers,
   loadAssignableProducers,
+  loadClassReporters,
   loadPackageProgressData
 } from "@/src/server/package-progress-data";
 import { serializeProofs } from "@/src/lib/package-brainstorm";
@@ -145,12 +146,16 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const requestedCycleNumber = parseCycleNumber(searchParams.get("cycle"));
-    const data = await loadPackageProgressData(requestedCycleNumber);
+    const [data, reporters] = await Promise.all([
+      loadPackageProgressData(requestedCycleNumber),
+      loadClassReporters()
+    ]);
 
     return ok({
       canEdit: canEditPackageCycle(access.role),
       canAssignProducer: canEditPackageCycle(access.role),
-      ...data
+      ...data,
+      reporters
     });
   } catch (error) {
     if (error instanceof Error && error.message === "BAD_REQUEST") {

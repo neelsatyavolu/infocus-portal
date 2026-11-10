@@ -10,6 +10,7 @@ import {
   stageSnapshot,
   withoutClientKey,
   type AssignableProducer,
+  type AssignedUser,
   type CycleTab,
   type PackageProgressPayload,
   type PayloadRow,
@@ -63,6 +64,7 @@ export function useRosterData(initialData?: PackageProgressPayload) {
   const [fetchedUsers, setFetchedUsers] = useState<RosterUser[]>([]);
   const [producers, setProducers] = useState<AssignableProducer[]>(initialData?.producers ?? []);
   const [executives, setExecutives] = useState<AssignableProducer[]>(initialData?.executives ?? []);
+  const [reporters, setReporters] = useState<AssignedUser[]>(initialData?.reporters ?? []);
   const [previousTeammatesByUser, setPreviousTeammatesByUser] = useState<Record<string, string[]>>(
     initialData?.previousTeammatesByUser ?? {}
   );
@@ -165,6 +167,7 @@ export function useRosterData(initialData?: PackageProgressPayload) {
     setCanAssignProducer(Boolean(data.canAssignProducer));
     setProducers(data.producers ?? []);
     setExecutives(data.executives ?? []);
+    setReporters(data.reporters ?? []);
     setPreviousTeammatesByUser(data.previousTeammatesByUser ?? {});
     setStageById(stageSnapshot(data.rows));
     loadedCycleRef.current = data.activeCycleNumber;
@@ -468,6 +471,7 @@ export function useRosterData(initialData?: PackageProgressPayload) {
     users,
     producers,
     executives,
+    reporters,
     previousTeammatesByUser,
     canEdit,
     canAssignProducer,

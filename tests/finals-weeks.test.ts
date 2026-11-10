@@ -125,7 +125,7 @@ describe("syncing finals weeks", () => {
       skipDuplicates: true
     });
     expect(m.update).toHaveBeenCalledWith({
-      where: { date: { in: days }, source: { in: ["feed", "config"] } },
+      where: { date: { in: days }, source: { in: ["feed", "config", "bell"] } },
       data: { kind: "HOLIDAY", label: "Finals week", source: "feed" }
     });
     expect(m.remove).toHaveBeenCalledWith({ where: { date: { in: ["2026-11-30"] }, source: "feed" } });

@@ -31,7 +31,8 @@ const SOURCE_LABELS: Record<string, string> = {
   seed: "Built in",
   manual: "Set by hand",
   feed: "From Paly's calendar",
-  config: "From the school year"
+  config: "From the school year",
+  bell: "From Paly's bell schedule"
 };
 
 export function kindLabel(kind: string) {

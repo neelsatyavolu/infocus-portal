@@ -1,4 +1,5 @@
 import { pacificDateKey } from "@/src/lib/deadlines";
+import { BELL_FEED_SOURCE, planNoClassSync } from "@/src/lib/no-class-days";
 import { orderSchoolYears, type CalendarSyncStatus, type SchoolYear } from "@/src/lib/program-config";
 import { prisma } from "@/src/lib/prisma";
 import {
@@ -10,7 +11,7 @@ import {
 } from "@/src/lib/school-year-days";
 import { addDaysToDateKey } from "@/src/lib/show-assignment";
 import { applyFinalsWeeks } from "@/src/server/finals-calendar-sync";
-import { fetchPalyBellFeed, parsePalySchoolDays } from "@/src/server/paly-bell-schedule";
+import { fetchPalyBellFeed, parsePalyNoPeriodOneDates, parsePalySchoolDays } from "@/src/server/paly-bell-schedule";
 import { getProgramConfig, updateProgramConfig } from "@/src/server/program-settings";
 
 /** How far ahead the generated calendar reaches. */
@@ -53,12 +54,42 @@ export async function applySchoolYears(years: readonly SchoolYear[], now = new D
 }
 
 /**
+ * Marks the Mondays, Tuesdays and Thursdays Paly's bell schedule runs without 1st period (when
+ * InFocus meets) as no-class days, so they are worth no participation and get no PA. Runs after
+ * finals, so a finals week keeps its own rows. Hand-set days are never touched.
+ */
+export async function applyNoClassDays(ics: string, now = new Date()) {
+  const existing = await prisma.schoolCalendarDay.findMany({ select: { date: true, source: true } });
+  const plan = planNoClassSync({ noPeriodOneDates: parsePalyNoPeriodOneDates(ics), existing, today: pacificDateKey(now) });
+
+  if (plan.upsert.length > 0) {
+    await prisma.schoolCalendarDay.createMany({
+      data: plan.upsert.map((day) => ({ ...day, source: BELL_FEED_SOURCE })),
+      skipDuplicates: true
+    });
+    for (const kind of new Set(plan.upsert.map((day) => day.kind))) {
+      const days = plan.upsert.filter((day) => day.kind === kind);
+      await prisma.schoolCalendarDay.updateMany({
+        where: { date: { in: days.map((day) => day.date) }, source: BELL_FEED_SOURCE },
+        data: { kind, label: days[0].label }
+      });
+    }
+  }
+  if (plan.remove.length > 0) {
+    await prisma.schoolCalendarDay.deleteMany({ where: { date: { in: plan.remove }, source: BELL_FEED_SOURCE } });
+  }
+
+  return { written: plan.upsert.length, removed: plan.remove.length };
+}
+
+/**
  * The daily calendar sync, also run by Sync now in Admin → Configuration:
  * 1. reads Paly's bell schedule,
  * 2. saves a new school year the first time the schedule lists one,
  * 3. writes summer and pre-first-show days from the school years,
- * 4. marks finals weeks.
- * When Paly's calendar cannot be read, steps 2 and 4 are skipped and the status says why.
+ * 4. marks finals weeks,
+ * 5. marks class days without 1st period as no class.
+ * When Paly's calendar cannot be read, steps 2, 4 and 5 are skipped and the status says why.
  */
 export async function syncSchoolCalendar(now = new Date()): Promise<CalendarSyncStatus> {
   let ics: string | null = null;
@@ -93,6 +124,12 @@ export async function syncSchoolCalendar(now = new Date()): Promise<CalendarSync
     } catch (error) {
       console.error("School calendar sync could not apply finals weeks", error);
       message = "Paly's calendar was read, but its finals days could not be understood.";
+    }
+    try {
+      await applyNoClassDays(ics, now);
+    } catch (error) {
+      console.error("School calendar sync could not apply no-class days", error);
+      message ||= "Paly's calendar was read, but its days without 1st period could not be understood.";
     }
   }
 

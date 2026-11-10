@@ -86,6 +86,47 @@ export function parsePalyFinalsDates(ics: string): string[] {
   return [...dates].sort();
 }
 
+const LISTS_PERIODS = /\b(?:\d(?:st|nd|rd|th)\s*Period|Period\s*\d)/i;
+const LISTS_PERIOD_ONE = /\b(?:1(?:st)?\s*Period|First\s+Period|Period\s*1\b)/i;
+
+/**
+ * Dates (YYYY-MM-DD) whose bell schedule lists periods but not 1st period, e.g. a Monday on the
+ * "(0, 5-7, PRIME)" schedule. InFocus is 1st period, so it does not meet. A date with no bell
+ * schedule, a cancelled one or one that lists no periods is not counted: there is no evidence.
+ */
+export function parsePalyNoPeriodOneDates(ics: string): string[] {
+  const calendar = new ICAL.Component(ICAL.parse(ics));
+  if (calendar.name !== "vcalendar") throw new Error("Invalid bell schedule feed");
+  const byDate = new Map<string, { priority: number; texts: string[] }>();
+
+  for (const component of calendar.getAllSubcomponents("vevent")) {
+    const event = new ICAL.Event(component);
+    if (event.isRecurrenceException()) continue;
+    const recurring = event.isRecurring();
+    const iterator = event.iterator();
+    // A weekly rule covers one school year at most. Bound it in case a rule has no end.
+    for (let count = 0; count < 400; count += 1) {
+      const occurrence = iterator.next();
+      if (!occurrence) break;
+      const details = event.getOccurrenceDetails(occurrence);
+      const date = details.startDate.toString().slice(0, 10);
+      const item = details.item;
+      const priority = item.isRecurrenceException() ? 2 : recurring ? 0 : 1;
+      const cancelled = item.component.getFirstPropertyValue("status") === "CANCELLED";
+      const text = cancelled ? "" : `${item.summary ?? ""} ${(item.description ?? "").replace(/<[^>]*>/g, " ")}`;
+      const current = byDate.get(date);
+      if (!current || priority > current.priority) byDate.set(date, { priority, texts: [text] });
+      else if (priority === current.priority) current.texts.push(text);
+      if (!recurring) break;
+    }
+  }
+
+  return [...byDate]
+    .filter(([, { texts }]) => texts.every((text) => LISTS_PERIODS.test(text) && !LISTS_PERIOD_ONE.test(text)))
+    .map(([date]) => date)
+    .sort();
+}
+
 /**
  * Every date (YYYY-MM-DD) that has a bell schedule. Used only for the first and last day of a
  * school year: the feed is not a reliable list of days off.

@@ -1,5 +1,6 @@
 import { pacificDateKey } from "@/src/lib/deadlines";
 import { FINALS_FEED_SOURCE, FINALS_WEEK_LABEL, planFinalsSync } from "@/src/lib/finals-weeks";
+import { BELL_FEED_SOURCE } from "@/src/lib/no-class-days";
 import { prisma } from "@/src/lib/prisma";
 import { SCHOOL_YEAR_SOURCE } from "@/src/lib/school-year-days";
 import { fetchPalyBellFeed, parsePalyFinalsDates } from "@/src/server/paly-bell-schedule";
@@ -21,7 +22,7 @@ export async function applyFinalsWeeks(ics: string, now = new Date()) {
       skipDuplicates: true
     });
     await prisma.schoolCalendarDay.updateMany({
-      where: { date: { in: plan.upsert }, source: { in: [FINALS_FEED_SOURCE, SCHOOL_YEAR_SOURCE] } },
+      where: { date: { in: plan.upsert }, source: { in: [FINALS_FEED_SOURCE, SCHOOL_YEAR_SOURCE, BELL_FEED_SOURCE] } },
       data: day
     });
   }

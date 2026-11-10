@@ -36,6 +36,11 @@ import { useRosterData } from "./use-roster-data";
 export type { PackageProgressPayload } from "./roster-model";
 
 const FILTER_STORAGE_KEY = "package-progress:filter:v1";
+const MODE_STORAGE_KEY = "package-progress:mode:v1";
+
+function isRosterMode(value: unknown): value is RosterMode | null {
+  return value === null || value === "view" || value === "edit";
+}
 
 /**
  * Rows a chosen filter showed stay on screen until the filter, the cycle or the data (load,
@@ -87,6 +92,21 @@ export default function PackageProgressClient({
   const [sessionFilter, setSessionFilter] = useState<RosterFilter | null>(null);
   const filter = sessionFilter ?? storedFilter;
   const [pinned, setPinned] = useState<PinnedFilter | null>(null);
+  // View or Edit, as last picked in this browser. Editors open in Edit until they pick View.
+  const [storedMode, setStoredMode, modeLoaded] = useRememberedState<RosterMode | null>(
+    MODE_STORAGE_KEY,
+    null,
+    isRosterMode
+  );
+  const modeRestoredRef = useRef(false);
+  useEffect(() => {
+    if (!modeLoaded || !canEdit || modeRestoredRef.current) return;
+    modeRestoredRef.current = true;
+    async function restore() {
+      await roster.enterView();
+    }
+    if (storedMode === "view") void restore();
+  }, [modeLoaded, canEdit, storedMode, roster]);
 
   // One clock per load, so time-based statuses ("Pending Review for 3h") hold still between refreshes.
   // The first render uses the server's time, then this device's once hydrated.
@@ -192,6 +212,7 @@ export default function PackageProgressClient({
 
   function changeMode(mode: RosterMode) {
     menus.close();
+    setStoredMode(mode);
     if (mode === "edit") roster.enterEdit();
     else void roster.enterView();
   }

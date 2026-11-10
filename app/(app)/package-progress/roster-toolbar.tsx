@@ -172,7 +172,10 @@ function WithoutGroupList({ people }: { people: AssignedUser[] }) {
     <Popover>
       <PopoverTrigger asChild>
         <Button type="button" variant="outline" size="sm" className="h-10 md:h-9">
-          <span className="font-mono-broadcast tabular-nums">{people.length}</span> not in a group
+          {/* One flex item, so the button's gap doesn't widen the space after the number. */}
+          <span>
+            <span className="font-mono-broadcast tabular-nums">{people.length}</span> not in a group
+          </span>
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-64 p-0">

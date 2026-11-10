@@ -45,18 +45,38 @@ describe("adjusted livestream credit", () => {
     expect(await completedLivestreamHoursForUser("student", semesterForDate(at))).toBe(4.25);
   });
   it("keeps individual and batch official grades consistent", async () => {
-    const releasedAt = new Date("2026-11-30T08:00:00Z");
+    const releasedAt = new Date("2026-12-04T08:00:00Z");
     expect(await resolveLivestreamPointsForUser("student", releasedAt)).toBe(21);
     expect((await resolveLivestreamPointsByUserIds(["student"], releasedAt)).get("student")).toBe(21);
   });
-  it.each([at, new Date("2026-11-30T07:59:59.999Z")])("excludes points before November 30 Pacific while preserving hours (%s)", async (now) => {
+  it.each([at, new Date("2026-12-04T07:59:59.999Z")])("excludes unfinished students before two weeks before semester end while preserving hours (%s)", async (now) => {
     expect(await resolveLivestreamPointsForUser("student", now)).toBeNull();
     expect((await resolveLivestreamPointsByUserIds(["student"], now)).get("student")).toBeNull();
     expect(await completedLivestreamHoursForUser("student", semesterForDate(now))).toBe(4.25);
     expect((await completedLivestreamHoursByUserIds(["student"], semesterForDate(now))).get("student")).toBe(4.25);
   });
-  it("preserves Semester 2 grading and gives non-attendees zero after release", async () => {
-    const now = new Date("2027-02-01T12:00:00Z");
+  it("grades students who finished their hours right away", async () => {
+    db.livestreamAttendee.findMany.mockResolvedValue([
+      { userId: "student", creditHours: null, event: { hours: 11, startsAt: at } }
+    ]);
+    expect(await resolveLivestreamPointsForUser("student", at)).toBe(40);
+    expect((await resolveLivestreamPointsByUserIds(["student", "otto"], at))).toEqual(new Map([["student", 40], ["otto", null]]));
+  });
+  it("grades managers with 4 managed livestreams right away", async () => {
+    db.livestreamManager.findMany.mockResolvedValue([{ userId: "sage" }]);
+    db.livestreamEvent.findMany.mockResolvedValue(
+      Array.from({ length: 4 }, () => ({ managerUserId: "sage", hours: 2, startsAt: at }))
+    );
+    expect(await resolveLivestreamPointsForUser("sage", at)).toBe(40);
+    db.livestreamEvent.findMany.mockResolvedValue(
+      Array.from({ length: 3 }, () => ({ managerUserId: "sage", hours: 2, startsAt: at }))
+    );
+    expect(await resolveLivestreamPointsForUser("sage", at)).toBeNull();
+  });
+  it("releases Semester 2 two weeks before it ends (May 20 Pacific) and gives non-attendees zero", async () => {
+    db.livestreamAttendee.findMany.mockResolvedValue([]);
+    expect(await resolveLivestreamPointsForUser("student", new Date("2027-05-20T06:59:59.999Z"))).toBeNull();
+    const now = new Date("2027-05-20T07:00:00Z");
     db.livestreamAttendee.findMany.mockResolvedValue([]);
     expect(await resolveLivestreamPointsForUser("student", now)).toBe(0);
     expect((await resolveLivestreamPointsByUserIds(["student"], now)).get("student")).toBe(0);
@@ -89,7 +109,7 @@ describe("adjusted livestream credit", () => {
     expect(data.rows.map((row: { userId: string }) => row.userId)).toEqual(["student", "ap"]);
   });
   it("grades livestream managers at 10 points per managed livestream, capped at 4", async () => {
-    const releasedAt = new Date("2026-11-30T08:00:00Z");
+    const releasedAt = new Date("2026-12-04T08:00:00Z");
     db.livestreamManager.findMany.mockResolvedValue([{ userId: "sage" }]);
     const managed = (count: number, hours: number | null = 2) =>
       Array.from({ length: count }, () => ({ managerUserId: "sage", hours, startsAt: at }));
@@ -118,7 +138,7 @@ describe("adjusted livestream credit", () => {
   });
   it("leaves grades ungraded until a completed event exists", async () => {
     db.livestreamEvent.count.mockResolvedValue(0);
-    const releasedAt = new Date("2026-11-30T08:00:00Z");
+    const releasedAt = new Date("2026-12-04T08:00:00Z");
     expect(await resolveLivestreamPointsForUser("student", releasedAt)).toBeNull();
     expect((await resolveLivestreamPointsByUserIds(["student"], releasedAt)).get("student")).toBeNull();
   });

@@ -113,7 +113,7 @@ Executive producers and the adviser can override each check-in with 0–5 points
 
 **Livestreams** are tracked natively at `/livestreams` (schedule, completion, sign-ups). Full credit is **8 completed hours per semester** (5 pts/hour → 40 pts). Partial scales linearly: 4h = 20 pts. Hours come from attendees on `COMPLETED` events in the current semester window (S1 Aug 13–Dec 18, S2 Jan 5–Jun 3). Appointed livestream managers are graded on managed livestreams instead: 10 pts per `COMPLETED` event they manage (event hours > 0), capped at 4 events = 40 pts. The Completion roster hides execs only (EP, adviser, super admin); associate producers are listed and still need livestream credit. Producers and appointed livestream managers edit the tracker; all members can view the schedule. All signed-in members, including producers, can request sign-ups except appointed livestream managers (even if they are also producers).
 
-Semester 1 livestream points remain ungraded and excluded from totals until **November 30 at midnight Pacific**. Completed hours remain visible in Grade Editor and student grade views. On release, the existing hours-to-points rule applies; a semester with no completed events remains ungraded. Semester 2 release timing is unchanged.
+Livestream points count as soon as a student meets the requirement (8 hours, or 4 managed livestreams for appointed managers). Everyone else stays ungraded and excluded from totals until **two weeks before the semester ends, at midnight Pacific** (S1: December 4; S2: May 20), when their points post whether or not they finished. Completed hours remain visible in Grade Editor and student grade views. A semester with no completed events remains ungraded.
 
 ## Revisions
 

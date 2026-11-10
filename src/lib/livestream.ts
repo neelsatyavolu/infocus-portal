@@ -90,12 +90,18 @@ export function isDateInSemester(date: Date, semester: AcademicSemester) {
   return t >= semester.start.getTime() && t <= semester.end.getTime();
 }
 
-/** S1 grades begin November 30 at midnight Pacific (PST); S2 timing is unchanged. */
+/**
+ * Livestream grades post for everyone two weeks before the semester ends, at midnight Pacific
+ * (S1: December 4, PST; S2: May 20, PDT). Students who finish earlier are graded right away.
+ */
+export function livestreamGradeDeadline(semester: AcademicSemester) {
+  const end = semester.end;
+  const pacificMidnightUtcHour = semester.term === 1 ? 8 : 7;
+  return new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate() - 14, pacificMidnightUtcHour));
+}
+
 export function livestreamGradesReleased(at: Date, semester = semesterForDate(at)) {
-  const release = semester.term === 1
-    ? Date.UTC(semester.academicYearStart, 10, 30, 8)
-    : semester.start.getTime();
-  return at.getTime() >= release;
+  return at.getTime() >= livestreamGradeDeadline(semester).getTime();
 }
 
 /** Fraction of full credit from completed hours (0–1). */

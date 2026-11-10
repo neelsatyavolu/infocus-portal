@@ -7,6 +7,7 @@ import {
   semesterForDate,
   type AcademicSemester
 } from "@/src/lib/livestream";
+import { MAX_LIVESTREAM_POINTS } from "@/src/lib/grading";
 import { prisma } from "@/src/lib/prisma";
 
 /**
@@ -39,38 +40,16 @@ export async function completedLivestreamHoursForUser(
 }
 
 /**
- * Livestream points for the weighted grade. Null until release and at least one COMPLETED
- * livestream exists in the semester (so an empty tracker is not a silent 0%).
- * Once tracking has started, hours scale to MAX_LIVESTREAM_POINTS (8h = 40 pts).
- * Appointed livestream managers are graded on managed livestreams instead (4 = 40 pts).
+ * Livestream points for the weighted grade. A student who has met the requirement (8 hours, or
+ * 4 managed livestreams for appointed managers) is graded right away; everyone else stays null
+ * until two weeks before the semester ends, then gets whatever they have. Null while the semester
+ * has no COMPLETED livestream (so an empty tracker is not a silent 0%).
  */
 export async function resolveLivestreamPointsForUser(
   userId: string,
   at: Date = new Date()
 ): Promise<number | null> {
-  const semester = semesterForDate(at);
-  if (!livestreamGradesReleased(at, semester)) {
-    return null;
-  }
-
-  const completedCount = await prisma.livestreamEvent.count({
-    where: {
-      status: "COMPLETED",
-      startsAt: { gte: semester.start, lte: semester.end }
-    }
-  });
-  if (completedCount === 0) {
-    return null;
-  }
-
-  const managed = await managedLivestreamCountsByUserIds([userId], semester);
-  const managedCount = managed.get(userId);
-  if (managedCount !== undefined) {
-    return livestreamPointsFromManagedCount(managedCount);
-  }
-
-  const hours = await completedLivestreamHoursForUser(userId, semester);
-  return livestreamPointsFromHours(hours);
+  return (await resolveLivestreamPointsByUserIds([userId], at)).get(userId) ?? null;
 }
 
 /** Same rules as resolveLivestreamPointsForUser, batched for a roster. */
@@ -87,10 +66,6 @@ export async function resolveLivestreamPointsByUserIds(
   }
 
   const semester = semesterForDate(at);
-  if (!livestreamGradesReleased(at, semester)) {
-    return result;
-  }
-
   const completedCount = await prisma.livestreamEvent.count({
     where: {
       status: "COMPLETED",
@@ -101,18 +76,20 @@ export async function resolveLivestreamPointsByUserIds(
     return result;
   }
 
+  const released = livestreamGradesReleased(at, semester);
   const [hoursByUser, managedByUser] = await Promise.all([
     completedLivestreamHoursByUserIds(userIds, semester),
     managedLivestreamCountsByUserIds(userIds, semester)
   ]);
   for (const userId of userIds) {
     const managedCount = managedByUser.get(userId);
-    result.set(
-      userId,
+    const points =
       managedCount !== undefined
         ? livestreamPointsFromManagedCount(managedCount)
-        : livestreamPointsFromHours(hoursByUser.get(userId) ?? 0)
-    );
+        : livestreamPointsFromHours(hoursByUser.get(userId) ?? 0);
+    if (released || points >= MAX_LIVESTREAM_POINTS) {
+      result.set(userId, points);
+    }
   }
   return result;
 }

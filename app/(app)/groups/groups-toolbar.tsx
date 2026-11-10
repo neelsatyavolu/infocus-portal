@@ -8,6 +8,7 @@ import { IconButton } from "@/components/kit/icon-button";
 import { ActionMenu, visibleMenuEntries, type MenuEntry } from "@/components/kit/menu";
 import { CyclePicker } from "@/components/kit/pickers";
 import { SegmentedControl } from "@/components/kit/segmented-control";
+import { cn } from "@/src/lib/utils";
 import type { CycleTab } from "./group-row-model";
 import type { ViewMode } from "./use-groups-prefs";
 
@@ -60,9 +61,11 @@ export function GroupsToolbar({
   /** The ⋯ button, so a dialog opened from the menu can return focus to it. */
   phoneMenuTriggerRef: RefObject<HTMLButtonElement | null>;
 }) {
+  // All cycles has no view switch or chips, so the picker leads the row instead of floating right.
+  const allCycles = activeCycleNumber === allCyclesValue;
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-x-3">
-      {activeCycleNumber === allCyclesValue ? null : (
+      {allCycles ? null : (
         <SegmentedControl ariaLabel="View" size="touch" value={viewMode} onChange={onViewModeChange} options={VIEW_OPTIONS} />
       )}
       {showFilters ? (
@@ -78,9 +81,9 @@ export function GroupsToolbar({
       {/* Phones: flex-basis 0, so this cluster takes the rest of the first line and never wraps it. */}
       <ActionBar
         size="touch"
-        align="end"
+        align={allCycles ? "start" : "end"}
         aria-label="Cycle and refresh"
-        className="ml-auto max-sm:min-w-0 max-sm:flex-1 max-sm:flex-nowrap"
+        className={cn(allCycles ? "" : "ml-auto", "max-sm:min-w-0 max-sm:flex-1 max-sm:flex-nowrap")}
       >
         <CyclePicker
           cycles={cycles}

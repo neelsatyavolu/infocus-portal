@@ -34,18 +34,25 @@ export function AllCyclesSkeleton() {
   );
 }
 
-/** One package: cycle code, topic and people on the left, its status tags on the right. */
+/**
+ * One package. Wide screens use fixed columns (cycle code, topic and people, pending stage,
+ * status tags), all centred on the row, so stages and tags line up from row to row. Narrower
+ * screens stack the tags under the topic, with the stage beside the title.
+ */
+const ROW_GRID = "lg:grid lg:grid-cols-[2.25rem_minmax(0,1fr)_6rem_22rem] lg:items-center lg:gap-x-4";
+const STAGE_TEXT = "text-[11px] font-medium uppercase leading-5 tracking-[0.11em] text-muted-foreground";
+
 function PackageRow({ item }: { item: OutstandingPackage }) {
   const { view } = item;
   return (
-    <li className="relative flex min-w-0 flex-col gap-2 px-4 py-3 transition-colors hover:bg-[var(--ink-3)]/40 md:flex-row md:items-center md:gap-4">
+    <li className={`relative flex min-w-0 flex-col gap-2 px-4 py-3 transition-colors hover:bg-[var(--ink-3)]/40 ${ROW_GRID}`}>
       <span
         title={cycleLabel(item.cycleNumber)}
-        className="shrink-0 font-mono-broadcast text-xs tabular-nums text-muted-foreground max-md:hidden"
+        className="font-mono-broadcast text-xs tabular-nums text-muted-foreground max-lg:hidden"
       >
         C{String(item.cycleNumber).padStart(2, "0")}
       </span>
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0">
         <div className="flex min-w-0 items-baseline gap-3">
           <h3 className="min-w-0 flex-1 truncate text-[15px] font-semibold leading-5 text-foreground" title={view.topic}>
             {view.href ? (
@@ -60,9 +67,7 @@ function PackageRow({ item }: { item: OutstandingPackage }) {
               view.topic
             )}
           </h3>
-          <span className="shrink-0 text-[11px] font-medium uppercase leading-5 tracking-[0.11em] text-muted-foreground" title="Pending stage">
-            {view.pendingLabel}
-          </span>
+          <span className={`shrink-0 lg:hidden ${STAGE_TEXT}`}>{view.pendingLabel}</span>
         </div>
         <p className="mt-0.5 truncate text-[13px] leading-5 text-muted-foreground">
           {view.memberNames}
@@ -72,7 +77,10 @@ function PackageRow({ item }: { item: OutstandingPackage }) {
           EP {view.epName}
         </p>
       </div>
-      <div className="flex min-w-0 flex-wrap items-center gap-1.5 md:max-w-[50%] md:justify-end">
+      <span title="Pending stage" className={`truncate max-lg:hidden ${STAGE_TEXT}`}>
+        {view.pendingLabel}
+      </span>
+      <div className="flex min-w-0 flex-wrap items-center gap-1.5">
         {tileTags(view).map((tag) => (
           <StatusTag key={tag.key} tone={tag.tone}>
             {tag.label}

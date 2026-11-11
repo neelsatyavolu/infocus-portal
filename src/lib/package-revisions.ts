@@ -1,3 +1,4 @@
+import type { PlatformRole } from "@prisma/client";
 import { MAX_FINAL_CUT_POINTS } from "@/src/lib/grading";
 import { clampFinalCutScore, type FinalCutMemberScore } from "@/src/lib/package-final-cut-scores";
 import { officialFinalCutPoints } from "@/src/lib/package-review-mail";
@@ -64,6 +65,20 @@ export function groupAllowsSecondFinalCut(
   grades: Array<{ awardedFinalCutPoints: number | null; revisionCount: number }>
 ) {
   return grades.some((grade) => isEligibleForSecondRevision(grade.awardedFinalCutPoints, grade.revisionCount));
+}
+
+/** Executive producers, the adviser and super admins may reopen a group's Final Cut. */
+export function mayReopenFinalCut(role: PlatformRole | null) {
+  return role === "EXECUTIVE_PRODUCER" || role === "ADVISER" || role === "SUPER_ADMIN";
+}
+
+/**
+ * An executive reopened the Final Cut: the group's next upload is a new version of the same cut, so
+ * the original turn-in date, existing scores and revision count stay. The below-75% second revision
+ * keeps its own rules (new cut, 75% cap) whenever it applies.
+ */
+export function finalCutReopened(input: { hasFinalCut: boolean; resubmitAllowed: boolean; secondRevision: boolean }) {
+  return input.hasFinalCut && input.resubmitAllowed && !input.secondRevision;
 }
 
 /**

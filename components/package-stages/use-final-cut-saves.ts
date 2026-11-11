@@ -21,7 +21,7 @@ async function postJson(url: string, body: unknown) {
 
 /**
  * Final Cut saves: member scores (with the "Saved. …" preview line), the anchors' toss, the
- * shared cycle grade note and Publish Grades. Each reloads the stage quietly afterwards, so
+ * shared cycle grade note, Publish Grades and an executive reopening the cut. Each reloads the stage quietly afterwards, so
  * typed-but-unsaved scores survive (FinalCutGradeCard resets them only when saved scores change).
  */
 export function useFinalCutSaves({ rowId, reload }: { rowId: string | null; reload: () => Promise<void> }) {
@@ -30,6 +30,7 @@ export function useFinalCutSaves({ rowId, reload }: { rowId: string | null; relo
   const [publishingGrades, setPublishingGrades] = useState(false);
   const [tossOpen, setTossOpen] = useState(false);
   const [savingToss, setSavingToss] = useState(false);
+  const [reopenOpen, setReopenOpen] = useState(false);
 
   async function saveGrade(scores: FinalCutScoreInput[]) {
     if (!rowId) return;
@@ -70,6 +71,18 @@ export function useFinalCutSaves({ rowId, reload }: { rowId: string | null; relo
     } finally {
       setSavingToss(false);
     }
+  }
+
+  /** Throws on failure so the confirm dialog stays open. */
+  async function reopenFinalCut() {
+    if (!rowId) return;
+    const { response, payload } = await postJson("/api/package-cycle/final-cut-reopen", { rowId });
+    if (!response.ok) {
+      toast.error(payload.error?.message ?? "Could not reopen the Final Cut.");
+      throw new Error("REOPEN_FAILED");
+    }
+    toast.success("Final Cut reopened. The group can upload a new version.");
+    await reload();
   }
 
   async function saveCycleFeedback(feedback: string) {
@@ -113,6 +126,9 @@ export function useFinalCutSaves({ rowId, reload }: { rowId: string | null; relo
     savingToss,
     saveGrade,
     saveToss,
+    reopenOpen,
+    setReopenOpen,
+    reopenFinalCut,
     saveCycleFeedback,
     publishCycleGrades
   };

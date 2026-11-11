@@ -897,6 +897,8 @@ model PackageProgressRow {
   extension      Boolean  @default(false)
   /// True after stage 1 approve on Initial Cut v1 until a v2 is uploaded.
   awaitingRevisedInitialCut Boolean @default(false)
+  /// An executive reopened the Final Cut: the group may upload one new version of it. Cleared by that upload.
+  finalCutResubmitAllowed Boolean @default(false)
   /// Set when a producer clicks Send to queue. Null = not on the publishing queue.
   queuedForAirAt DateTime?
   /// YYYY-MM-DD show this queued package is assigned to. Null when not queued.

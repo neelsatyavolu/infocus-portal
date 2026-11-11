@@ -38,8 +38,10 @@ import { sendGradeEmails } from "@/src/lib/email";
 import { gradePercentage, gradeTotal } from "@/src/lib/package-grades";
 import {
   capAwardedForRevision,
+  finalCutReopened,
   groupAllowsSecondFinalCut,
   isEligibleForSecondRevision,
+  mayReopenFinalCut,
   memberGradeLocked,
   nextMemberRevisionCount,
   previewFinalCutOfficial
@@ -732,7 +734,15 @@ export async function loadCycleStageView(input: {
       ? loadViewerEmail(input).then((email) => loadApprovalView(row.id, { userId: input.userId, role, email }))
       : null
   ]);
-  const allowSecondFinalCut = groupAllowsSecondFinalCut(existingGrades);
+  const secondRevision = groupAllowsSecondFinalCut(existingGrades);
+  const reopened =
+    input.slug === "final-cut" &&
+    finalCutReopened({
+      hasFinalCut: Boolean(row.finalCutMediaItemId),
+      resubmitAllowed: row.finalCutResubmitAllowed,
+      secondRevision
+    });
+  const allowSecondFinalCut = secondRevision || reopened;
   const canUpload =
     isMember &&
     studentCanUpload(input.slug, row, { stage: approvalStage }, { allowSecondFinalCut }) &&
@@ -798,6 +808,12 @@ export async function loadCycleStageView(input: {
     unlocked,
     canUpload,
     allowSecondFinalCut,
+    finalCutReopened: reopened,
+    canReopenFinalCut:
+      input.slug === "final-cut" &&
+      Boolean(row.finalCutMediaItemId) &&
+      mayReopenFinalCut(role) &&
+      !allowSecondFinalCut,
     canComment:
       isProducer && !(input.slug === "initial-cut" && associateReviewClosed(role, approvalStage)),
     cutApproval,
@@ -862,11 +878,23 @@ export async function initCycleStageUpload(input: {
       initialCutMediaItem: {
         include: { versions: { orderBy: { versionNumber: "desc" }, take: 1, select: { versionNumber: true } } }
       },
+      finalCutMediaItem: {
+        include: { versions: { orderBy: { versionNumber: "desc" }, take: 1, select: { versionNumber: true } } }
+      },
       approval: { select: { stage: true } }
     }
   });
 
-  if (input.slug === "final-cut" && row.finalCutMediaItemId) {
+  // A reopened Final Cut takes a new version of the same item, like every Initial Cut after the first.
+  const reuseMediaItemId =
+    input.slug === "initial-cut"
+      ? row.initialCutMediaItemId
+      : view.finalCutReopened
+        ? row.finalCutMediaItemId
+        : null;
+  const reusedItem = input.slug === "initial-cut" ? row.initialCutMediaItem : row.finalCutMediaItem;
+
+  if (input.slug === "final-cut" && row.finalCutMediaItemId && !view.finalCutReopened) {
     const existingGrades = await prisma.packageGrade.findMany({
       where: {
         cycleNumber: row.cycleNumber,
@@ -889,10 +917,7 @@ export async function initCycleStageUpload(input: {
     throw new Error("BAD_REQUEST");
   }
   const rollKind = input.slug === "a-roll" && isRollKind(input.rollKind) ? input.rollKind : null;
-  const nextVersion =
-    input.slug === "initial-cut" && row.initialCutMediaItemId
-      ? (row.initialCutMediaItem?.versions[0]?.versionNumber ?? 1) + 1
-      : 1;
+  const nextVersion = reuseMediaItemId ? (reusedItem?.versions[0]?.versionNumber ?? 1) + 1 : 1;
   const mediaTitle =
     input.slug === "initial-cut"
       ? initialCutVersionTitle(nextVersion)
@@ -903,14 +928,16 @@ export async function initCycleStageUpload(input: {
     ? `${CYCLE_STAGE_FOLDERS["a-roll"]}/${rollKindFolder(rollKind)}`
     : CYCLE_STAGE_FOLDERS[input.slug];
 
-  if (input.slug === "initial-cut" && row.initialCutMediaItemId) {
-    const transition = applyInitialCutUpload({
-      currentStage: row.approval?.stage ?? "DRAFT",
-      awaitingRevisedInitialCut: row.awaitingRevisedInitialCut,
-      nextVersionNumber: nextVersion
-    });
-    if (!transition.ok) {
-      throw new Error("CONFLICT");
+  if (reuseMediaItemId) {
+    if (input.slug === "initial-cut") {
+      const transition = applyInitialCutUpload({
+        currentStage: row.approval?.stage ?? "DRAFT",
+        awaitingRevisedInitialCut: row.awaitingRevisedInitialCut,
+        nextVersionNumber: nextVersion
+      });
+      if (!transition.ok) {
+        throw new Error("CONFLICT");
+      }
     }
 
     if (!isNasStorageEnabled()) {
@@ -928,7 +955,7 @@ export async function initCycleStageUpload(input: {
     const nasSession = await nasMintUploadSession(nasPath);
     const version = await prisma.mediaVersion.create({
       data: {
-        mediaItemId: row.initialCutMediaItemId,
+        mediaItemId: reuseMediaItemId,
         versionNumber: nextVersion,
         bunnyVideoId: nasSession.videoId,
         bunnyLibraryId: "nas",
@@ -946,12 +973,12 @@ export async function initCycleStageUpload(input: {
       createdById: input.userId
     });
     await prisma.mediaItem.update({
-      where: { id: row.initialCutMediaItemId },
+      where: { id: reuseMediaItemId },
       data: { title: mediaTitle, folderId: folder.id }
     });
 
     return {
-      mediaId: row.initialCutMediaItemId,
+      mediaId: reuseMediaItemId,
       versionId: version.id,
       nextVersion,
       upload: nasSession
@@ -1055,9 +1082,14 @@ export async function completeCycleStageUpload(input: {
   }
 
   // The version must be one the caller started through init for this row and stage:
-  // a new version of the row's Initial Cut, or a new item in this cycle's project.
-  const reusesInitialCut = input.slug === "initial-cut" && Boolean(row.initialCutMediaItemId);
-  if (reusesInitialCut && input.mediaId !== row.initialCutMediaItemId) {
+  // a new version of the row's Initial Cut or reopened Final Cut, or a new item in this cycle's project.
+  const reusedMediaItemId =
+    input.slug === "initial-cut"
+      ? row.initialCutMediaItemId
+      : view.finalCutReopened
+        ? row.finalCutMediaItemId
+        : null;
+  if (reusedMediaItemId && input.mediaId !== reusedMediaItemId) {
     throw new Error("NOT_FOUND");
   }
   const version = await prisma.mediaVersion.findFirst({
@@ -1065,7 +1097,7 @@ export async function completeCycleStageUpload(input: {
       id: input.versionId,
       mediaItemId: input.mediaId,
       createdById: input.userId,
-      ...(reusesInitialCut
+      ...(reusedMediaItemId
         ? {}
         : {
             versionNumber: 1,
@@ -1111,10 +1143,12 @@ export async function completeCycleStageUpload(input: {
       data: {
         finalCutMediaItemId: input.mediaId,
         finalCut: true,
+        finalCutResubmitAllowed: false,
         ...(input.toss !== undefined ? { finalCutToss: normalizeToss(input.toss) } : {})
       }
     });
-    if (replacing) {
+    // A reopened cut keeps its scores (executives edit them); a second revision is scored afresh.
+    if (replacing && !view.finalCutReopened) {
       await prisma.packageFinalCutScore.deleteMany({ where: { rowId: row.id } });
     }
     afterResponse("notifyFinalCutUploaded", () => notifyFinalCutUploaded(row.id));

@@ -59,6 +59,9 @@ export type StageView = {
   unlocked?: boolean;
   canUpload?: boolean;
   allowSecondFinalCut?: boolean;
+  /** An executive reopened the Final Cut: the next upload is a new version of it. */
+  finalCutReopened?: boolean;
+  canReopenFinalCut?: boolean;
   canComment?: boolean;
   canApproveAroll?: boolean;
   cutApproval?: StageCutApproval | null;

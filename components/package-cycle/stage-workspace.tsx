@@ -68,7 +68,10 @@ function dropHint(slug: CycleStageSlug, hasMedia: boolean, withRule: boolean) {
   return rule ? `${rule} ${hint}` : hint;
 }
 
-function finalCutRule(allowSecondFinalCut: boolean | undefined) {
+function finalCutRule(allowSecondFinalCut: boolean | undefined, reopened?: boolean) {
+  if (reopened) {
+    return "An executive producer reopened this Final Cut. Your upload becomes a new version of it, and your original turn-in date still counts.";
+  }
   return allowSecondFinalCut
     ? "Second revision: you can replace this Final Cut. The quality score is capped at 75%. Late turn-in is a separate 20%/30% penalty."
     : "You can only upload Final Cut once unless the first grade is below 75%.";
@@ -283,7 +286,7 @@ export function StageWorkspace({
   if (slug === "final-cut" && canUpload && !studentPage) {
     callouts.push(
       <Alert key="rule" tone="warning">
-        {finalCutRule(view.allowSecondFinalCut)}
+        {finalCutRule(view.allowSecondFinalCut, view.finalCutReopened)}
       </Alert>
     );
   }
@@ -325,6 +328,16 @@ export function StageWorkspace({
         cancelLabel="Not yet"
         tone="default"
         onConfirm={upload.finalCutConfirm.onConfirm}
+      />
+      <ConfirmDialog
+        open={saves.reopenOpen}
+        onOpenChange={saves.setReopenOpen}
+        title="Let this group resubmit?"
+        description="The group can upload one new version of its Final Cut. Its original turn-in date still counts, and existing scores stay until you change them."
+        confirmLabel="Allow resubmit"
+        cancelLabel="Cancel"
+        tone="default"
+        onConfirm={saves.reopenFinalCut}
       />
       {decisions.dialogs}
       <UploadProgressToast items={upload.uploadItems} />
@@ -370,7 +383,19 @@ export function StageWorkspace({
     const actions: DecisionAction[] = [
       ...openReview,
       ...decisions.actions,
-      ...(uploadButton ? [{ key: "upload", node: uploadButton }] : [])
+      ...(uploadButton ? [{ key: "upload", node: uploadButton }] : []),
+      ...(view.canReopenFinalCut
+        ? [
+            {
+              key: "reopen-final-cut",
+              node: (
+                <Button variant="outline" onClick={() => saves.setReopenOpen(true)}>
+                  Allow resubmit
+                </Button>
+              )
+            }
+          ]
+        : [])
     ];
     // GroupStageShell's open stage cell names the status, except Locked (that cell only dims) and
     // A/B-roll (that cell only knows Approved or Locked), so the bar tags those and the new-clips count.
@@ -499,7 +524,7 @@ export function StageWorkspace({
                 : null
             }
             rule={canUpload ? uploadRule(slug, media.length > 0) : null}
-            warning={slug === "final-cut" && canUpload ? finalCutRule(view.allowSecondFinalCut) : null}
+            warning={slug === "final-cut" && canUpload ? finalCutRule(view.allowSecondFinalCut, view.finalCutReopened) : null}
           />
           {whatAirs ? <div className="min-w-0 max-xl:order-4">{whatAirs}</div> : null}
           {feedbackPanel}

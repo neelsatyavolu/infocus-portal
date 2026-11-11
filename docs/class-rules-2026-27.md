@@ -123,6 +123,7 @@ Livestream points count as soon as a student meets the requirement (8 hours, or 
 - Once that cut is submitted, **every executive producer** scores **each member** of the group: **quality out of 25** and **effort out of 25** (50 total). A member's official score is the average of the executives' totals, rounded to the nearest tenth. Associate producers do not grade. Late 20%/30% is a separate turn-in penalty, applied per member. On the Final Cut tab an executive producer can replace a member's automatic penalty with 5/10/15/20/30% (`PackageProgressMember.latePenaltyPercent`, null = automatic). This recomputes an already graded member's official score.
 - Scores entered before Sept 26, 2026 as one group score out of 50 stay as they were. EPs can re-score those groups per member.
 - Revisions are per member. After the first graded final cut, if **any member** scores **below 75%**, the group can upload one second revision. Members below 75% are re-scored, capped at **37/50**; members at 75% or above keep their grade. The late penalty still applies and is not removed by the second revision.
+- Separately, an executive producer, the adviser or the super admin can reopen a submitted Final Cut (**Allow resubmit**, `PackageProgressRow.finalCutResubmitAllowed`). The group's next upload becomes a new version of the same cut: the original turn-in date still counts for lateness, existing scores and revision count stay, and no 75% cap applies. The upload clears the flag. When the below-75% second revision applies, it takes precedence.
 
 ## Extensions
 

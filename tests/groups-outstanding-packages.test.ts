@@ -8,9 +8,10 @@ function item(cycleNumber: number, topic: string, row: Partial<GroupRow> = {}) {
 }
 
 describe("isOutstandingPackage", () => {
-  it("is done only when graded and queued", () => {
-    expect(isOutstandingPackage({ finalCutGraded: true, queuedForAir: true })).toBe(false);
-    expect(isOutstandingPackage({ finalCutGraded: true, queuedForAir: false })).toBe(true);
+  it("is done only when graded, grades published and queued", () => {
+    expect(isOutstandingPackage({ finalCutGraded: true, finalCutGradesPublished: true, queuedForAir: true })).toBe(false);
+    expect(isOutstandingPackage({ finalCutGraded: true, queuedForAir: true })).toBe(true);
+    expect(isOutstandingPackage({ finalCutGraded: true, finalCutGradesPublished: true, queuedForAir: false })).toBe(true);
     expect(isOutstandingPackage({ finalCutGraded: false, queuedForAir: true })).toBe(true);
     expect(isOutstandingPackage({})).toBe(true);
   });
@@ -21,7 +22,7 @@ describe("outstandingByCycle", () => {
     const result = outstandingByCycle([
       item(3, "Zoo", {}),
       item(2, "Late cut", { finalCutSubmittedAt: "2026-10-05T00:00:00Z" }),
-      item(2, "Done", { finalCutGraded: true, queuedForAir: true }),
+      item(2, "Done", { finalCutGraded: true, finalCutGradesPublished: true, queuedForAir: true }),
       item(2, "No cut yet", {}),
       item(2, "Early cut", { finalCutSubmittedAt: "2026-10-01T00:00:00Z" }),
       item(1, "Old", { queuedForAir: true })
@@ -31,6 +32,8 @@ describe("outstandingByCycle", () => {
   });
 
   it("returns nothing when every package is finished", () => {
-    expect(outstandingByCycle([item(1, "Done", { finalCutGraded: true, queuedForAir: true })])).toEqual([]);
+    expect(
+      outstandingByCycle([item(1, "Done", { finalCutGraded: true, finalCutGradesPublished: true, queuedForAir: true })])
+    ).toEqual([]);
   });
 });

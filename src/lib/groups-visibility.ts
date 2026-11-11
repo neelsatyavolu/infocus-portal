@@ -52,12 +52,23 @@ type PrimaryGroupRow = {
   approvalStage?: string | null;
   queuedForAir?: boolean;
   finalCutGraded?: boolean;
+  finalCutGradesPublished?: boolean;
 };
+
+/** A package is wrapped up once its Final Cut is graded, those grades are published, and it is queued to air. */
+export function isPackageWrappedUp(row: {
+  queuedForAir?: boolean;
+  finalCutGraded?: boolean;
+  finalCutGradesPublished?: boolean;
+}) {
+  return Boolean(row.queuedForAir && row.finalCutGraded && row.finalCutGradesPublished);
+}
 
 /**
  * Groups tiles: assigned packages stay expanded. Execs, super-admin, and the
  * adviser also keep Initial Cut Stage 3 and Final Cut out of Other groups
- * until the Final Cut is both graded and queued.
+ * until the package is wrapped up (graded, grades published, queued); a graded
+ * Final Cut whose grades aren't published stays in review at any approval stage.
  * The adviser also keeps Stage 2 (adviser review) expanded.
  */
 export function isPrimaryGroupForViewer(
@@ -70,7 +81,8 @@ export function isPrimaryGroupForViewer(
   if (role !== "EXECUTIVE_PRODUCER" && role !== "SUPER_ADMIN" && role !== "ADVISER") {
     return false;
   }
-  if (row.queuedForAir && row.finalCutGraded) return false;
+  if (isPackageWrappedUp(row)) return false;
+  if (row.finalCutGraded) return true;
   if (row.approvalStage === "EXECUTIVE_REVIEW" || row.approvalStage === "APPROVED") {
     return true;
   }

@@ -1,3 +1,4 @@
+import { isPackageWrappedUp } from "@/src/lib/groups-visibility";
 import type { GroupRowView } from "./group-row-model";
 
 /** A package on the All cycles list, with the cycle it belongs to. */
@@ -5,9 +6,9 @@ export type OutstandingPackage = { cycleNumber: number; view: GroupRowView };
 
 export type OutstandingCycle = { cycleNumber: number; packages: OutstandingPackage[] };
 
-/** Done for the All cycles list once every member is graded and the package is queued to air. */
-export function isOutstandingPackage(row: { finalCutGraded?: boolean; queuedForAir?: boolean }) {
-  return !(row.finalCutGraded && row.queuedForAir);
+/** On the All cycles list until it is graded, its grades are published, and it is queued to air. */
+export function isOutstandingPackage(row: Parameters<typeof isPackageWrappedUp>[0]) {
+  return !isPackageWrappedUp(row);
 }
 
 function submittedTime(item: OutstandingPackage) {

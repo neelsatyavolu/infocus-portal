@@ -488,7 +488,7 @@ export default function GroupsClient({ initialData }: { initialData: GroupsPaylo
 
   const focus = activeCycle?.focus?.trim();
   const allDescription = allGroups
-    ? `${allCount} package${allCount === 1 ? "" : "s"} not yet graded and queued · oldest first`
+    ? `${allCount} package${allCount === 1 ? "" : "s"} not yet graded, published and queued · oldest first`
     : null;
   const description = allCycles ? allDescription : (
     awaitingRows

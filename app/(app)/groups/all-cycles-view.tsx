@@ -102,7 +102,7 @@ export function AllCyclesView({ groups, cycles }: { groups: OutstandingCycle[]; 
         <EmptyState
           size="page"
           icon={CircleCheck}
-          title="Every package is graded and queued"
+          title="Every package is graded, published and queued"
           description="Nothing is left over from any cycle."
         />
       </div>

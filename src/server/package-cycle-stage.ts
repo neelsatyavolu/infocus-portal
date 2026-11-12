@@ -53,7 +53,7 @@ import { parseClipComment } from "@/src/lib/package-clip-comments";
 import { finalCutTurnInDateKey, finalCutDeadlinePassed } from "@/src/lib/deadlines";
 import { finalCutHeadline } from "@/src/lib/package-headline";
 import { normalizeToss } from "@/src/lib/package-toss";
-import { loadPackageOfCyclePanel } from "@/src/server/package-of-cycle";
+import { loadPackageOfCyclePanel, packageOfCycleReleased } from "@/src/server/package-of-cycle";
 import { isRollKind, parseRollTitle, rollKindFolder, titledWithRollKind, type RollKind } from "@/src/lib/package-roll-kind";
 import { prisma } from "@/src/lib/prisma";
 import { labeledUser, userDisplayName } from "@/src/lib/user-display";
@@ -699,7 +699,7 @@ export async function loadCycleStageView(input: {
           : [];
   const reviewVersionIds = rawMedia.map((item) => item.versionId).filter((id): id is string => Boolean(id));
   // These reads only depend on `row` (and the role), so run them together instead of one after another.
-  const [existingGrades, stageNotes, reviewComments, media, finalCutGrade, packageOfCycle, cutApproval] = await Promise.all([
+  const [existingGrades, stageNotes, reviewComments, media, finalCutGrade, packageOfCyclePanel, cutApproval, awardReleased] = await Promise.all([
     input.slug === "final-cut"
       ? prisma.packageGrade.findMany({
           where: {
@@ -732,8 +732,12 @@ export async function loadCycleStageView(input: {
       : null,
     isProducer && input.slug === "initial-cut"
       ? loadViewerEmail(input).then((email) => loadApprovalView(row.id, { userId: input.userId, role, email }))
-      : null
+      : null,
+    row.packageOfCycleAt && !canGradeFinalCut(role) ? packageOfCycleReleased(row.cycleNumber) : true
   ]);
+  // Before an executive releases the cycle, only the graders see the award (members, APs and the banner wait).
+  const showAward = canGradeFinalCut(role) || awardReleased;
+  const packageOfCycle = showAward ? packageOfCyclePanel : null;
   const secondRevision = groupAllowsSecondFinalCut(existingGrades);
   const reopened =
     input.slug === "final-cut" &&
@@ -828,7 +832,7 @@ export async function loadCycleStageView(input: {
       groupTopic: row.groupTopic,
       headline: finalCutHeadline(row.finalCutMediaItem),
       toss: row.finalCutToss,
-      packageOfCycleAt: row.packageOfCycleAt?.toISOString() ?? null,
+      packageOfCycleAt: showAward ? (row.packageOfCycleAt?.toISOString() ?? null) : null,
       proofOfContact: row.proofOfContact,
       aRollBRoll: row.aRollBRoll,
       aRollNeedsChanges,

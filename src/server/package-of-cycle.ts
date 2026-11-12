@@ -13,6 +13,26 @@ function memberName(user: { name: string | null; nickname: string | null }) {
   return user.nickname?.trim() || user.name?.trim() || "Member";
 }
 
+/** True once an executive released this cycle's winners to everyone. */
+export async function packageOfCycleReleased(cycleNumber: number) {
+  const cycle = await prisma.packageCycle.findUnique({
+    where: { cycleNumber },
+    select: { packageOfCycleReleasedAt: true }
+  });
+  return Boolean(cycle?.packageOfCycleReleasedAt);
+}
+
+/** An executive (Final Cut grader) releases a cycle's winners to everyone, or takes them back. */
+export async function setPackageOfCycleRelease(input: { cycleNumber: number; role: PlatformRole | null; released: boolean }) {
+  if (!canGradeFinalCut(input.role)) throw new Error("FORBIDDEN");
+  const packageOfCycleReleasedAt = input.released ? new Date() : null;
+  await prisma.packageCycle.upsert({
+    where: { cycleNumber: input.cycleNumber },
+    create: { cycleNumber: input.cycleNumber, packageOfCycleReleasedAt },
+    update: { packageOfCycleReleasedAt }
+  });
+}
+
 export type PackageOfCyclePanel = {
   canVote: boolean;
   myVote: boolean;
@@ -122,13 +142,31 @@ export type PackageOfCycleWinner = {
   topic: string;
   headline: string | null;
   awardedAt: string;
+  /** False while only the graders can see it. */
+  released: boolean;
   members: Array<{ userId: string; name: string }>;
 };
 
-/** Every winner, newest cycle first, for the Package Cycles page (everyone). */
-export async function loadPackageOfCycleWinners(): Promise<PackageOfCycleWinner[]> {
+async function releasedCycleNumbers() {
+  const cycles = await prisma.packageCycle.findMany({
+    where: { packageOfCycleReleasedAt: { not: null } },
+    select: { cycleNumber: true }
+  });
+  return new Set(cycles.map((cycle) => cycle.cycleNumber));
+}
+
+/**
+ * Winners, newest cycle first, for the Package Cycles page. Executives (graders) see every
+ * winner; everyone else only cycles an executive released.
+ */
+export async function loadPackageOfCycleWinners(role: PlatformRole | null): Promise<PackageOfCycleWinner[]> {
+  const released = await releasedCycleNumbers();
+  const seesUnreleased = canGradeFinalCut(role);
   const rows = await prisma.packageProgressRow.findMany({
-    where: { packageOfCycleAt: { not: null } },
+    where: {
+      packageOfCycleAt: { not: null },
+      ...(seesUnreleased ? {} : { cycleNumber: { in: [...released] } })
+    },
     orderBy: [{ cycleNumber: "desc" }, { packageOfCycleAt: "asc" }],
     select: {
       id: true,
@@ -148,6 +186,7 @@ export async function loadPackageOfCycleWinners(): Promise<PackageOfCycleWinner[
     topic: row.groupTopic.trim(),
     headline: finalCutHeadline(row.finalCutMediaItem),
     awardedAt: row.packageOfCycleAt!.toISOString(),
+    released: released.has(row.cycleNumber),
     members: row.members.map((member) => ({ userId: member.userId, name: memberName(member.user) }))
   }));
 }
@@ -188,6 +227,8 @@ export async function loadCertificateData(input: {
   ]);
   const member = row?.members[0];
   if (!row?.packageOfCycleAt || !member) throw new Error("NOT_FOUND");
+  // Before release, a certificate would leak the result, so only the graders can make one.
+  if (!canGradeFinalCut(input.role) && !(await packageOfCycleReleased(row.cycleNumber))) throw new Error("NOT_FOUND");
 
   return {
     // A certificate is formal, so it prints the full name rather than the nickname.

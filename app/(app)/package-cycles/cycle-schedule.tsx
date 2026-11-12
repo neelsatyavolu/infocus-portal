@@ -31,6 +31,7 @@ import {
   SemesterTag,
   TABLE_ONLY
 } from "./cycle-parts";
+import { ReleaseWinnersButton, type WinnerRelease } from "./release-winners-button";
 
 type StageCell = {
   date: Date | null;
@@ -41,7 +42,8 @@ type StageCell = {
   isSoonest: boolean;
 };
 
-type ScheduleProps = { ordered: OrderedCycle[]; today: Date; soonest: Deadline | null };
+type ScheduleProps = { ordered: OrderedCycle[]; today: Date; soonest: Deadline | null; release?: WinnerRelease };
+type RowProps = { entry: OrderedCycle; today: Date; soonest: Deadline | null; release?: WinnerRelease };
 
 function stageCell(entry: OrderedCycle, stage: StageField, today: Date, soonest: Deadline | null): StageCell {
   const date = parseDateKey(entry.cycle[stage.key]);
@@ -117,13 +119,17 @@ function StageStatus({ cell }: { cell: StageCell }) {
   return <span className="font-mono-broadcast text-xs leading-5 tabular-nums text-muted-foreground">{countdown}</span>;
 }
 
-function ScheduleRow({ entry, today, soonest }: { entry: OrderedCycle; today: Date; soonest: Deadline | null }) {
+function ScheduleRow({ entry, today, soonest, release }: RowProps) {
   const current = entry.section === "current";
   return (
     <tr className={cn("border-t border-border", current && CURRENT_TINT)}>
       <th scope="row" className="relative py-3 pl-4 pr-3 text-left align-top font-normal">
         {current ? <CurrentBar /> : null}
-        <CycleName cycle={entry.cycle} section={entry.section} />
+        <CycleName
+          cycle={entry.cycle}
+          section={entry.section}
+          tags={<ReleaseWinnersButton cycleNumber={entry.cycle.cycleNumber} release={release} />}
+        />
       </th>
       {STAGE_FIELDS.map((stage) => {
         const cell = stageCell(entry, stage, today, soonest);
@@ -143,7 +149,7 @@ function ScheduleRow({ entry, today, soonest }: { entry: OrderedCycle; today: Da
 }
 
 /** From 45rem: one row per cycle, one equal column per stage, so dates line up across cycles. */
-function ScheduleTable({ ordered, today, soonest }: ScheduleProps) {
+function ScheduleTable({ ordered, today, soonest, release }: ScheduleProps) {
   const open = ordered.filter((entry) => entry.section !== "closed");
   const closed = ordered.filter((entry) => entry.section === "closed");
   return (
@@ -155,7 +161,7 @@ function ScheduleTable({ ordered, today, soonest }: ScheduleProps) {
         {open.length > 0 ? (
           <tbody>
             {open.map((entry) => (
-              <ScheduleRow key={entry.cycle.cycleNumber} entry={entry} today={today} soonest={soonest} />
+              <ScheduleRow key={entry.cycle.cycleNumber} entry={entry} today={today} soonest={soonest} release={release} />
             ))}
           </tbody>
         ) : null}
@@ -163,7 +169,7 @@ function ScheduleTable({ ordered, today, soonest }: ScheduleProps) {
           <tbody>
             <ClosedGroupRow count={closed.length} colSpan={STAGE_FIELDS.length + 1} />
             {closed.map((entry) => (
-              <ScheduleRow key={entry.cycle.cycleNumber} entry={entry} today={today} soonest={soonest} />
+              <ScheduleRow key={entry.cycle.cycleNumber} entry={entry} today={today} soonest={soonest} release={release} />
             ))}
           </tbody>
         ) : null}
@@ -173,7 +179,7 @@ function ScheduleTable({ ordered, today, soonest }: ScheduleProps) {
 }
 
 /** Below 45rem: one block per cycle, stage name on the left, date and status on the right. */
-function CycleCard({ entry, today, soonest }: { entry: OrderedCycle; today: Date; soonest: Deadline | null }) {
+function CycleCard({ entry, today, soonest, release }: RowProps) {
   const { cycle, section } = entry;
   const current = section === "current";
   const month = cycleMonth(cycle);
@@ -189,6 +195,7 @@ function CycleCard({ entry, today, soonest }: { entry: OrderedCycle; today: Date
                 Cycle {cycle.cycleNumber}
               </h3>
               <SemesterTag cycleNumber={cycle.cycleNumber} />
+              <ReleaseWinnersButton cycleNumber={cycle.cycleNumber} release={release} />
             </div>
             {month ? <p className="text-xs text-muted-foreground">{month}</p> : null}
           </div>
@@ -215,7 +222,7 @@ function CycleCard({ entry, today, soonest }: { entry: OrderedCycle; today: Date
   );
 }
 
-function ScheduleList({ ordered, today, soonest }: ScheduleProps) {
+function ScheduleList({ ordered, today, soonest, release }: ScheduleProps) {
   const open = ordered.filter((entry) => entry.section !== "closed");
   const closed = ordered.filter((entry) => entry.section === "closed");
   return (
@@ -223,7 +230,7 @@ function ScheduleList({ ordered, today, soonest }: ScheduleProps) {
       {open.length > 0 ? (
         <ul className="divide-y divide-border">
           {open.map((entry) => (
-            <CycleCard key={entry.cycle.cycleNumber} entry={entry} today={today} soonest={soonest} />
+            <CycleCard key={entry.cycle.cycleNumber} entry={entry} today={today} soonest={soonest} release={release} />
           ))}
         </ul>
       ) : null}
@@ -237,7 +244,7 @@ function ScheduleList({ ordered, today, soonest }: ScheduleProps) {
         >
           <ul className="divide-y divide-border">
             {closed.map((entry) => (
-              <CycleCard key={entry.cycle.cycleNumber} entry={entry} today={today} soonest={soonest} />
+              <CycleCard key={entry.cycle.cycleNumber} entry={entry} today={today} soonest={soonest} release={release} />
             ))}
           </ul>
         </Disclosure>
@@ -250,7 +257,7 @@ function ScheduleList({ ordered, today, soonest }: ScheduleProps) {
  * The read-only schedule in one bordered card: a table from 45rem, cycle blocks below it (the
  * editor's wider switch point is explained at DATES_CONTAINER).
  */
-export function CycleSchedule({ ordered, today, soonest }: ScheduleProps) {
+export function CycleSchedule({ ordered, today, soonest, release }: ScheduleProps) {
   return (
     <div className={DATES_CONTAINER}>
       <div className="overflow-hidden rounded-md border border-border bg-card">
@@ -258,8 +265,8 @@ export function CycleSchedule({ ordered, today, soonest }: ScheduleProps) {
           <EmptyState icon={CalendarClock} title="No cycles yet" description="Cycle dates show here once the semester has cycles." />
         ) : (
           <>
-            <ScheduleTable ordered={ordered} today={today} soonest={soonest} />
-            <ScheduleList ordered={ordered} today={today} soonest={soonest} />
+            <ScheduleTable ordered={ordered} today={today} soonest={soonest} release={release} />
+            <ScheduleList ordered={ordered} today={today} soonest={soonest} release={release} />
           </>
         )}
       </div>

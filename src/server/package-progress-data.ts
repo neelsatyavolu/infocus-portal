@@ -301,7 +301,7 @@ export async function loadPackageProgressData(requestedCycleNumber?: number | nu
 
   const activeCycleNumber = requestedCycleNumber ?? activeCycleNumberFor(cycles);
 
-  const [rows, producers, executives, previousCycleRows, finalCutGrades] = await Promise.all([
+  const [rows, producers, executives, previousCycleRows, finalCutGrades, releaseState] = await Promise.all([
     prisma.packageProgressRow.findMany({
       where: { cycleNumber: activeCycleNumber },
       orderBy: { rowOrder: "asc" },
@@ -364,8 +364,14 @@ export async function loadPackageProgressData(requestedCycleNumber?: number | nu
     prisma.packageGrade.findMany({
       where: { cycleNumber: activeCycleNumber, awardedFinalCutPoints: { not: null } },
       select: { userId: true, awardedFinalCutPoints: true, revisionCount: true, publishedAt: true }
+    }),
+    prisma.packageCycle.findUnique({
+      where: { cycleNumber: activeCycleNumber },
+      select: { packageOfCycleReleasedAt: true }
     })
   ]);
+  // Winners stay with the graders (Final Cut panel) until an executive releases the cycle.
+  const packageOfCycleReleased = Boolean(releaseState?.packageOfCycleReleasedAt);
 
   const readiness = rows.length ? await prisma.auditLog.findMany({
     where: {
@@ -476,7 +482,7 @@ export async function loadPackageProgressData(requestedCycleNumber?: number | nu
         row.members.length > 0 &&
         row.members.every((member) => gradedAndPublished.has(member.userId)),
       finalCutSubmittedAt: row.finalCutMediaItem?.createdAt.toISOString() ?? null,
-      packageOfCycleAt: row.packageOfCycleAt?.toISOString() ?? null,
+      packageOfCycleAt: packageOfCycleReleased ? (row.packageOfCycleAt?.toISOString() ?? null) : null,
       finalCutScoredByUserIds: gradersDoneWithGroup(
         row.finalCutScores,
         membersAwaitingFinalCutScores(

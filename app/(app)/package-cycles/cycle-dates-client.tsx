@@ -39,7 +39,7 @@ import { CycleDatesColumns } from "./cycle-dates-columns";
 import { CycleScheduleSkeleton } from "./cycle-dates-skeleton";
 import { CycleEditor } from "./cycle-editor";
 import { CycleSchedule } from "./cycle-schedule";
-import { CycleWinners, hasWinners, useCycleWinners } from "./cycle-winners";
+import { CycleWinners, hasWinners, releaseStateByCycle, useCycleWinners } from "./cycle-winners";
 import { SemesterStrip } from "./semester-strip";
 
 const CYCLES_CACHE_KEY = "package-cycles";
@@ -97,7 +97,11 @@ export default function CycleDatesClient({ initialData }: { initialData: Package
   const [editLayout, setEditLayout] = useState<EditLayout>({ open: [], closed: [] });
   const [savingCycles, setSavingCycles] = useState<number[]>([]);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
-  const winners = useCycleWinners();
+  const { data: winners, releasing, setReleased } = useCycleWinners();
+  const release = useMemo(
+    () => ({ state: releaseStateByCycle(winners), busyCycle: releasing, onSet: (cycle: number, value: boolean) => void setReleased(cycle, value) }),
+    [winners, releasing, setReleased]
+  );
 
   const applyData = useCallback((data: PackageCyclesResponse) => {
     setSchedule((previous) => withServerCycles(previous, data.cycles));
@@ -222,7 +226,7 @@ export default function CycleDatesClient({ initialData }: { initialData: Package
       />
     );
   } else {
-    body = <CycleSchedule ordered={ordered} today={today} soonest={soonest} />;
+    body = <CycleSchedule ordered={ordered} today={today} soonest={soonest} release={release} />;
   }
 
   return (

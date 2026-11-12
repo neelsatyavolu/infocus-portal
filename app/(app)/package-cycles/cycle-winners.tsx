@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Award, Download } from "lucide-react";
+import { toast } from "sonner";
+import { StatusTag } from "@/components/kit/status-tag";
 import { CardGrid } from "@/components/kit/layout";
 import { SectionHeader } from "@/components/kit/section";
 import { certificateHref } from "@/components/package-cycle/package-of-cycle-card";
@@ -11,8 +13,18 @@ import type { PackageOfCycleWinner } from "@/src/server/package-of-cycle";
 export type WinnersResponse = {
   viewerUserId: string;
   canDownloadAll: boolean;
+  /** Executives release each cycle's winners to everyone. */
+  canRelease?: boolean;
   winners: PackageOfCycleWinner[];
 };
+
+/** Cycle number → released, for every cycle with a winner (executives only; empty for everyone else). */
+export function releaseStateByCycle(data: WinnersResponse | null) {
+  const state = new Map<number, boolean>();
+  if (!data?.canRelease) return state;
+  for (const winner of data.winners) state.set(winner.cycleNumber, winner.released);
+  return state;
+}
 
 const WINNERS_CACHE_KEY = "package-of-cycle-winners";
 const MEMBER_ROW = "inline-flex min-h-10 items-center gap-1.5 text-sm text-foreground md:min-h-0";
@@ -42,7 +54,44 @@ export function useCycleWinners() {
     };
   }, []);
 
-  return data;
+  const [releasing, setReleasing] = useState<number | null>(null);
+
+  /** Releases a cycle's winners to everyone, or hides them again (executives). */
+  const setReleased = useCallback(async (cycleNumber: number, released: boolean) => {
+    setReleasing(cycleNumber);
+    try {
+      const response = await fetch("/api/package-cycle/package-of-cycle/release", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cycleNumber, released })
+      });
+      const body = (await response.json().catch(() => ({}))) as { error?: { message?: string } };
+      if (!response.ok) {
+        toast.error(body.error?.message ?? "Couldn't change who sees the winners.");
+        return;
+      }
+      setData((previous) => {
+        if (!previous) return previous;
+        const next = {
+          ...previous,
+          winners: previous.winners.map((winner) => (winner.cycleNumber === cycleNumber ? { ...winner, released } : winner))
+        };
+        rememberValue(WINNERS_CACHE_KEY, next);
+        return next;
+      });
+      toast.success(
+        released
+          ? `Cycle ${cycleNumber}'s Package of the Cycle is now public.`
+          : `Cycle ${cycleNumber}'s Package of the Cycle is hidden again. Only executives can see it.`
+      );
+    } catch {
+      toast.error("Couldn't change who sees the winners. Check your connection and try again.");
+    } finally {
+      setReleasing(null);
+    }
+  }, []);
+
+  return { data, releasing, setReleased };
 }
 
 /** True when there is at least one winner to show. */
@@ -53,6 +102,7 @@ export function hasWinners(data: WinnersResponse | null): data is WinnersRespons
 /**
  * Package of the Cycle winners, newest cycle first, in the same section style as Stage dates.
  * Each winner downloads their own certificate; producers (canDownloadAll) download anyone's.
+ * Executives also see unreleased cycles, tagged Not released.
  * Renders nothing until someone wins. The grid fits its box: one column in the side rail.
  */
 export function CycleWinners({ data }: { data: WinnersResponse | null }) {
@@ -64,10 +114,17 @@ export function CycleWinners({ data }: { data: WinnersResponse | null }) {
       <CardGrid>
         {data.winners.map((winner) => (
           <article key={winner.rowId} className="flex min-w-0 flex-col rounded-md border border-border bg-card p-4">
-            <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase leading-tight tracking-[0.11em] text-[var(--brand-green)]">
-              <Award aria-hidden className="h-3 w-3 shrink-0" />
-              Cycle {winner.cycleNumber}
-            </p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase leading-tight tracking-[0.11em] text-[var(--brand-green)]">
+                <Award aria-hidden className="h-3 w-3 shrink-0" />
+                Cycle {winner.cycleNumber}
+              </p>
+              {winner.released ? null : (
+                <StatusTag tone="neutral" title="Only executives see this until it's released on the cycle's row">
+                  Not released
+                </StatusTag>
+              )}
+            </div>
             <h3 className="mt-1.5 text-base font-semibold leading-snug text-foreground">
               {winner.headline ?? (winner.topic || "Untitled package")}
             </h3>

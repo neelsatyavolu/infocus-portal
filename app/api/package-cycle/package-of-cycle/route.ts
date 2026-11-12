@@ -2,6 +2,7 @@ import { z } from "zod";
 import { handleRouteError } from "@/src/lib/api-errors";
 import { requireUserId, syncUserProfile } from "@/src/lib/auth";
 import { ok } from "@/src/lib/http";
+import { canGradeFinalCut } from "@/src/lib/package-final-cut-scores";
 import { getPlatformAccess, hasPlatformRole } from "@/src/lib/platform-admin";
 import {
   loadPackageOfCyclePanel,
@@ -9,7 +10,7 @@ import {
   setPackageOfCycleVote
 } from "@/src/server/package-of-cycle";
 
-/** All winners for the Package Cycles page (every signed-in user). */
+/** Winners for the Package Cycles page: released cycles for everyone, every cycle for executives. */
 export async function GET() {
   try {
     const userId = await requireUserId();
@@ -19,7 +20,9 @@ export async function GET() {
       viewerUserId: userId,
       // Producers can download any winner's certificate; members only their own.
       canDownloadAll: hasPlatformRole(access.role, "ASSOCIATE_PRODUCER"),
-      winners: await loadPackageOfCycleWinners()
+      // Executives release each cycle's winners to everyone from Cycle Dates.
+      canRelease: canGradeFinalCut(access.role),
+      winners: await loadPackageOfCycleWinners(access.role)
     });
   } catch (error) {
     return handleRouteError(error);

@@ -895,16 +895,18 @@ model ProgramSetting {
 }
 
 model PackageCycle {
-  id                 String    @id @default(cuid())
-  cycleNumber        Int       @unique
-  focus              String    @default("")
-  pitchingDate       DateTime?
-  proofOfContactDate DateTime?
-  aRollBRollDate     DateTime?
-  initialCutDate     DateTime?
-  finalCutDate       DateTime?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  id                       String    @id @default(cuid())
+  cycleNumber              Int       @unique
+  focus                    String    @default("")
+  pitchingDate             DateTime?
+  proofOfContactDate       DateTime?
+  aRollBRollDate           DateTime?
+  initialCutDate           DateTime?
+  finalCutDate             DateTime?
+  /// When an executive released this cycle's Package of the Cycle winners to everyone. Null = graders only.
+  packageOfCycleReleasedAt DateTime?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
 
   @@index([cycleNumber])
 }

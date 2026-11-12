@@ -46,4 +46,4 @@ Pitching has no student upload; the producer mark on Groups is the check-in sign
 
 **Approved for Final Cut**: when Stage 3 approves the Initial Cut, members get an email and push reminding them to upload the Final Cut (with the cycle's Final Cut due date when one is set; groups with an approved extension get no date) and linking straight to `/final-cut`. Until the Final Cut is uploaded, **Where it stands** on the Initial Cut page says so and its main button is **Go to Final Cut**.
 
-**Package of the Cycle**: when a group's package wins, its Final Cut page shows a banner with **Download certificate** (a printable PNG with the member's full name, the package headline, and the cycle).
+**Package of the Cycle**: when a group's package wins and an executive releases that cycle's winners, its Final Cut page shows a banner with **Download certificate** (a printable PNG with the member's full name, the package headline, and the cycle).

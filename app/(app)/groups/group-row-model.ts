@@ -7,8 +7,7 @@ import {
   groupTileStatus,
   type GroupTileStatus
 } from "@/src/lib/group-tile-status";
-import { groupScheduleStatus, type GroupScheduleInput, type GroupScheduleStatus } from "@/src/lib/group-schedule";
-import { extensionDueIn } from "@/src/lib/package-extensions";
+import { groupNextDueLabel, groupScheduleStatus, type GroupScheduleInput, type GroupScheduleStatus } from "@/src/lib/group-schedule";
 import { producerMayActOnPackage } from "@/src/lib/package-producer-assignment";
 import type { BrainstormProofView } from "@/src/lib/package-brainstorm";
 import {
@@ -125,6 +124,8 @@ export type GroupRowView = {
   gradesPill: GroupTileStatus | null;
   schedule: GroupScheduleStatus | null;
   extensionLabel: string | null;
+  /** "Initial 2 due in 3d": the next stage still ahead of its (extended) deadline. */
+  nextDueLabel: string | null;
   checkIns: number;
   memberNames: string;
   apName: string;
@@ -168,11 +169,11 @@ export function cycleHasDeadlines(dates: CycleDates | null | undefined) {
   return Boolean(dates && Object.values(dates).some(Boolean));
 }
 
-function scheduleFor(row: GroupRow, approvalStage: string, dates: CycleDates | null, now: Date) {
+function scheduleInputFor(row: GroupRow, approvalStage: string, dates: CycleDates | null, now: Date): GroupScheduleInput | null {
   // Once Final Cut is turned in there is nothing left to be on track or behind for.
   if (!dates || row.finalCut) return null;
   const state = { ...row, approvalStage };
-  return groupScheduleStatus({
+  return {
     dates: {
       pitching: dateOrNull(dates.pitching),
       proofOfContact: dateOrNull(dates.proofOfContact),
@@ -191,7 +192,7 @@ function scheduleFor(row: GroupRow, approvalStage: string, dates: CycleDates | n
     },
     extensionDays: row.extensionDays ?? 0,
     now
-  });
+  };
 }
 
 function tileStatusFor(row: GroupRow) {
@@ -231,16 +232,11 @@ function gradesPillFor(row: GroupRow, ctx: RowViewContext) {
   });
 }
 
-function extensionLabelFor(row: GroupRow, ctx: RowViewContext) {
+function extensionLabelFor(row: GroupRow) {
   if (!row.extension) return null;
-  const dueIn =
-    ctx.cycleDates && !row.finalCut
-      ? extensionDueIn(dateOrNull(ctx.cycleDates.finalCut), row.extensionDays ?? 0, ctx.now)
-      : null;
-  // Quiet text on the tile ("4d extension · due in 3d"), not a tag.
+  // Quiet text on the tile ("4d extension"), not a tag; the next-due line sits beside it.
   const days = row.extensionDays ?? 0;
-  const label = days > 0 ? `${days}d extension` : "Extension";
-  return dueIn ? `${label} · due in ${dueIn.toLowerCase()}` : label;
+  return days > 0 ? `${days}d extension` : "Extension";
 }
 
 function contactLineFor(row: GroupRow) {
@@ -257,6 +253,7 @@ export function buildGroupRowView(row: GroupRow, index: number, ctx: RowViewCont
     row.initialCutReviewStage
   );
   const navState = { ...row, approvalStage };
+  const scheduleInput = scheduleInputFor(row, approvalStage, ctx.cycleDates, ctx.now);
   const pendingSlug = pendingGroupNavSlug(navState);
   const segments = GROUP_NAV_SLUGS.map((slug) => {
     const done = groupNavTabDone(slug, navState);
@@ -279,8 +276,9 @@ export function buildGroupRowView(row: GroupRow, index: number, ctx: RowViewCont
     attention: viewerAttention(ctx.platformRole, ctx.currentUserId, row),
     tileStatus: tileStatusFor(row),
     gradesPill: gradesPillFor(row, ctx),
-    schedule: scheduleFor(row, approvalStage, ctx.cycleDates, ctx.now),
-    extensionLabel: extensionLabelFor(row, ctx),
+    schedule: scheduleInput ? groupScheduleStatus(scheduleInput) : null,
+    extensionLabel: extensionLabelFor(row),
+    nextDueLabel: scheduleInput ? groupNextDueLabel(scheduleInput) : null,
     checkIns: checkInPointsForCycle(row),
     memberNames: members.length === 0 ? "No members" : members.map(firstName).join(", "),
     apName: producerDisplayName(row.assignedProducer) ?? "—",

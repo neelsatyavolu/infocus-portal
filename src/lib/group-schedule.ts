@@ -4,7 +4,8 @@ import type { GroupTileStatusTone } from "@/src/lib/group-tile-status";
 import { effectiveDeadline } from "@/src/lib/package-extensions";
 import { parseDateKeyUtc } from "@/src/lib/show-assignment";
 
-const DAY_MS = 24 * 60 * 60 * 1000;
+const HOUR_MS = 60 * 60 * 1000;
+const DAY_MS = 24 * HOUR_MS;
 
 const CYCLE_DATE_STAGES = ["pitching", "proofOfContact", "aRollBRoll", "initialCut", "finalCut"] as const;
 
@@ -70,4 +71,33 @@ export function groupScheduleStatus(input: GroupScheduleInput): GroupScheduleSta
   return daysBehind > 0
     ? { label: `Behind by ${daysBehind}d`, tone: "danger", daysBehind }
     : { label: "On track", tone: "approved", daysBehind: 0 };
+}
+
+const NEXT_DUE_LABELS: Record<ScheduleStage, string> = {
+  pitching: "Pitch",
+  proofOfContact: "Contact",
+  aRollBRoll: "A/B-roll",
+  initialStage1: "Initial 1",
+  initialStage2: "Initial 2",
+  initialStage3: "Initial 3",
+  finalCut: "Final Cut"
+};
+
+/**
+ * Groups tile "next item" line: the earliest unapproved stage whose deadline (shifted by the
+ * group's extension) hasn't closed yet, e.g. "Initial 2 due in 3d". Missed deadlines are the
+ * Behind chip's job, so they're skipped. Null when nothing is still ahead.
+ */
+export function groupNextDueLabel(input: GroupScheduleInput): string | null {
+  const dates = scheduleDates(input.dates);
+  for (const stage of SCHEDULE_STAGES) {
+    const deadline = effectiveDeadline(dates[stage], input.extensionDays);
+    if (input.done[stage] || !deadline) continue;
+    const closesAt = stage === "finalCut" ? finalCutClosesAt(deadline) : deadlineClosesAt(deadline);
+    const leftMs = closesAt.getTime() - input.now.getTime();
+    if (leftMs <= 0) continue;
+    const dueIn = leftMs >= DAY_MS ? `${Math.floor(leftMs / DAY_MS)}d` : `${Math.ceil(leftMs / HOUR_MS)}h`;
+    return `${NEXT_DUE_LABELS[stage]} due in ${dueIn}`;
+  }
+  return null;
 }

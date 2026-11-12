@@ -2,7 +2,7 @@
 
 import { memo } from "react";
 import Link from "next/link";
-import { Hourglass } from "lucide-react";
+import { CalendarClock, Hourglass } from "lucide-react";
 import { StatusTag } from "@/components/kit/status-tag";
 import type { StatusToneInput } from "@/components/kit/tone";
 import { StageTrack } from "@/components/groups/stage-track";
@@ -107,6 +107,12 @@ function GroupTileBase({
           <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
             <Hourglass className="h-3.5 w-3.5" aria-hidden />
             {view.extensionLabel}
+          </span>
+        ) : null}
+        {view.nextDueLabel ? (
+          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+            <CalendarClock className="h-3.5 w-3.5" aria-hidden />
+            {view.nextDueLabel}
           </span>
         ) : null}
         {canNotes || canApprovePitch ? (

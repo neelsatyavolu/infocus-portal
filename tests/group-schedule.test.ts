@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { groupScheduleStatus, type GroupScheduleInput } from "@/src/lib/group-schedule";
+import { groupNextDueLabel, groupScheduleStatus, type GroupScheduleInput } from "@/src/lib/group-schedule";
 
 const day = (key: string) => new Date(`${key}T00:00:00.000Z`);
 
@@ -64,5 +64,26 @@ describe("groupScheduleStatus", () => {
     expect(
       groupScheduleStatus(input({ dates: { pitching: null, proofOfContact: null, aRollBRoll: null, initialCut: null, finalCut: null } }))
     ).toBeNull();
+  });
+});
+
+describe("groupNextDueLabel", () => {
+  const through = (count: number) => {
+    const keys = ["pitching", "proofOfContact", "aRollBRoll", "initialStage1", "initialStage2", "initialStage3", "finalCut"] as const;
+    return Object.fromEntries(keys.map((key, i) => [key, i < count])) as GroupScheduleInput["done"];
+  };
+
+  it("names the next stage still ahead of its deadline, skipping missed ones", () => {
+    // Pitch and Contact are overdue (the Behind chip covers them); A/B-roll closes 11:59 PM PDT Oct 14.
+    expect(groupNextDueLabel(input())).toBe("A/B-roll due in 2d");
+  });
+
+  it("shifts the deadline by the extension", () => {
+    expect(groupNextDueLabel(input({ done: through(3), extensionDays: 3 }))).toBe("Initial 1 due in 12d");
+  });
+
+  it("switches to hours inside the last day and is null once everything is approved", () => {
+    expect(groupNextDueLabel(input({ done: through(2), now: new Date("2026-10-15T00:00:00.000Z") }))).toBe("A/B-roll due in 7h");
+    expect(groupNextDueLabel(input({ done: through(7) }))).toBeNull();
   });
 });

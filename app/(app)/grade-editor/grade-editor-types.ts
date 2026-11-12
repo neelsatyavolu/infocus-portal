@@ -138,7 +138,6 @@ export type CycleFilter = "all" | "to-publish" | "not-entered" | "missed" | "rep
 export const MAX_PACKAGE_PER_CYCLE = 50;
 export const MAX_CHECK_INS_PER_CYCLE = 20;
 export const MAX_LIVESTREAM = 40;
-export const MAX_FINAL = 100;
 export const MAX_FEEDBACK_LENGTH = 2000;
 export const MAX_NOTES_LENGTH = 5000;
 

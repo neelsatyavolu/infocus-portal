@@ -4,7 +4,7 @@ import type { TotalsAdjustments } from "@/src/lib/grade-editor-csv";
 import { gradeScoreInput, parseGradeScore } from "@/src/lib/grade-score";
 import { REQUIRED_LIVESTREAM_HOURS } from "@/src/lib/livestream";
 import { cn } from "@/src/lib/utils";
-import { MAX_FINAL, MAX_LIVESTREAM, type TotalsCycleEntry, type TotalsRow } from "./grade-editor-types";
+import { MAX_LIVESTREAM, type TotalsCycleEntry, type TotalsRow } from "./grade-editor-types";
 import { clampNonNegative, nextCycleOverrides } from "./grade-editor-utils";
 import { MONO_FIELD, ScoreInput } from "./grade-editor-table";
 
@@ -144,32 +144,6 @@ export function LivestreamField({
         }}
       />
     </span>
-  );
-}
-
-export function FinalField({
-  row,
-  adjustments,
-  update,
-  size = "sm"
-}: {
-  row: TotalsRow;
-  adjustments: TotalsAdjustments;
-  update: Update;
-  size?: Size;
-}) {
-  return (
-    <ScoreInput
-      label={`${studentLabel(row)} final score`}
-      value={gradeScoreInput(adjustments.final)}
-      max={null}
-      size={size}
-      navKey="total-final"
-      onChange={(raw) => {
-        const score = parseGradeScore(raw, MAX_FINAL);
-        if (score !== undefined) update({ final: score });
-      }}
-    />
   );
 }
 

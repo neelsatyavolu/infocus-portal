@@ -12,7 +12,8 @@ import { emailLocalPart, letterGrade, personLabel } from "./grade-editor-utils";
 import { LetterGradeTag, PercentReadout, PointsReadout } from "./grade-editor-table";
 import { LimitedTextarea, TextCounter } from "./limited-textarea";
 import { SheetStepButtons } from "./sheet-step-buttons";
-import { CheckInsTotalField, CycleTotalField, ExtraField, FinalField, LivestreamField } from "./totals-fields";
+import { PortfolioCell, usePortfolioGrades } from "./portfolio-column";
+import { CheckInsTotalField, CycleTotalField, ExtraField, LivestreamField } from "./totals-fields";
 import type { TotalsRowView } from "./totals-grades-table";
 
 function Line({ label, children, title }: { label: string; children: ReactNode; title?: string }) {
@@ -33,7 +34,8 @@ export function TotalsRowSheet({
   onClose,
   onPrevious,
   onNext,
-  onOpenGradebook
+  onOpenGradebook,
+  onPortfolioSaved
 }: {
   view: TotalsRowView;
   notesState: SaveStateValue;
@@ -44,8 +46,15 @@ export function TotalsRowSheet({
   onNext: (() => void) | null;
   /** Opens this reporter in the Student view (the name in the desktop table does the same). */
   onOpenGradebook: () => void;
+  /** After a Portfolio score saves (reload totals so the grade follows it). */
+  onPortfolioSaved: () => void;
 }) {
   const { row, adjustments, summary, edited } = view;
+  const portfolio = usePortfolioGrades();
+  const savePortfolio = async (points: number | null) => {
+    await portfolio.save(row.userId, points);
+    onPortfolioSaved();
+  };
   const update = (patch: Partial<TotalsAdjustments>) => onUpdateAdjustment(row.userId, patch);
   const letter = summary.totalPct === null ? null : letterGrade(summary.totalPct);
 
@@ -102,8 +111,8 @@ export function TotalsRowSheet({
           <Line label="Participation" title={PARTICIPATION_HINT}>
             <PointsReadout earned={row.participationEarned} possible={row.participationPossible} />
           </Line>
-          <Line label="Final (out of 100)">
-            <FinalField row={row} adjustments={adjustments} update={update} size="touch" />
+          <Line label="Portfolio (out of 100, saves)">
+            <PortfolioCell name={personLabel(row)} entry={portfolio.byUserId.get(row.userId)} onSave={savePortfolio} />
           </Line>
           <Line label="Extra (earned / possible)">
             <ExtraField row={row} adjustments={adjustments} update={update} size="touch" />

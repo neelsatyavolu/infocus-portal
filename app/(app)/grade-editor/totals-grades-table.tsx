@@ -8,7 +8,6 @@ import { StatusTag } from "@/components/kit/status-tag";
 import { Skeleton } from "@/components/kit/skeleton";
 import { cn } from "@/src/lib/utils";
 import {
-  MAX_FINAL,
   MAX_LIVESTREAM,
   MAX_PACKAGE_PER_CYCLE,
   PARTICIPATION_HINT,
@@ -35,7 +34,7 @@ import {
   type HeaderGroup
 } from "./grade-editor-table";
 import { PORTFOLIO_COLUMN, PortfolioCell, usePortfolioGrades, type PortfolioEntry } from "./portfolio-column";
-import { CheckInsTotalField, CycleTotalField, ExtraField, FinalField, LivestreamField } from "./totals-fields";
+import { CheckInsTotalField, CycleTotalField, ExtraField, LivestreamField } from "./totals-fields";
 
 function totalsGroups(cycles: CycleTab[]): HeaderGroup[] {
   return [
@@ -59,7 +58,6 @@ function totalsGroups(cycles: CycleTab[]): HeaderGroup[] {
         { label: "Check-ins", width: 96, align: "right" as const },
         { label: "Livestream", sub: `/${MAX_LIVESTREAM}`, width: 120, align: "right" as const },
         { label: "Participation", title: "Graded days in weeks that have ended", width: 108, align: "right" as const },
-        { label: "Final", sub: `/${MAX_FINAL}`, width: 80, align: "right" as const },
         PORTFOLIO_COLUMN,
         { label: "Extra", title: "Earned / possible", width: 112, align: "right" as const }
       ]
@@ -204,9 +202,6 @@ function TotalsGradeRow({
       </td>
       <td className={NUM_CELL}>
         <PointsReadout stacked earned={row.participationEarned} possible={row.participationPossible} title={PARTICIPATION_HINT} />
-      </td>
-      <td className={NUM_CELL}>
-        <FinalField row={row} adjustments={adjustments} update={update} />
       </td>
       <td className={NUM_CELL}>
         <PortfolioCell name={personLabel(row)} entry={portfolio} onSave={onSavePortfolio} />

@@ -771,6 +771,7 @@ export default function GradeEditorClient({ openParticipation = false }: { openP
           onPrevious={stepSheet(sheetNeighbors.previous)}
           onNext={stepSheet(sheetNeighbors.next)}
           onOpenGradebook={() => goToStudentView(sheetTotalsView.row.userId)}
+          onPortfolioSaved={() => void totals.loadTotals({ silent: true })}
         />
       ) : null}
 

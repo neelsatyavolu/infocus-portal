@@ -20,7 +20,10 @@ function studentLabel(row: TotalsRow) {
   return row.name ?? "Student";
 }
 
-/** One cycle: the official score (read-only, red when missed) or a dashed temporary override. */
+/**
+ * One cycle: the official score (read-only), or a dashed temporary override. A missed cycle's
+ * 0 can be overridden too (what-if); its box shows the official 0 in red until something is typed.
+ */
 export function CycleTotalField({
   row,
   entry,
@@ -34,21 +37,39 @@ export function CycleTotalField({
   update: Update;
   size?: Size;
 }) {
+  const override = adjustments.cycleOverrides[entry.cycleNumber];
+  const onChange = (raw: string) => {
+    const nextOverrides = nextCycleOverrides(adjustments.cycleOverrides, entry.cycleNumber, raw);
+    if (nextOverrides) update({ cycleOverrides: nextOverrides });
+  };
+  if (entry.missing && entry.totalPoints !== null) {
+    return (
+      <ScoreInput
+        label={`${studentLabel(row)} Cycle ${entry.cycleNumber} what-if score`}
+        value={override ?? ""}
+        max={null}
+        dashed
+        size={size}
+        placeholder={String(entry.totalPoints)}
+        className="placeholder:text-danger"
+        navKey={`total-cycle-${entry.cycleNumber}`}
+        title="No approved Final Cut by the deadline. Type a temporary what-if score for this page and the CSV; clear it to restore 0"
+        onChange={onChange}
+      />
+    );
+  }
   if (entry.totalPoints !== null) {
     return (
       <span
         className={cn(
-          "grid w-12 place-items-center font-mono-broadcast text-[13px] font-medium tabular-nums",
-          size === "touch" ? "h-10" : "h-8",
-          entry.missing ? "text-danger" : "text-foreground"
+          "grid w-12 place-items-center font-mono-broadcast text-[13px] font-medium tabular-nums text-foreground",
+          size === "touch" ? "h-10" : "h-8"
         )}
-        title={entry.missing ? "No approved Final Cut by the deadline" : undefined}
       >
         {entry.totalPoints}
       </span>
     );
   }
-  const override = adjustments.cycleOverrides[entry.cycleNumber];
   return (
     <ScoreInput
       label={`${studentLabel(row)} Cycle ${entry.cycleNumber} score`}
@@ -58,10 +79,7 @@ export function CycleTotalField({
       size={size}
       navKey={`total-cycle-${entry.cycleNumber}`}
       title="Temporary score for this page and the CSV. Enter points, - for ungraded, or \ for exempt"
-      onChange={(raw) => {
-        const nextOverrides = nextCycleOverrides(adjustments.cycleOverrides, entry.cycleNumber, raw);
-        if (nextOverrides) update({ cycleOverrides: nextOverrides });
-      }}
+      onChange={onChange}
     />
   );
 }

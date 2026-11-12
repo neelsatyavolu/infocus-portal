@@ -51,10 +51,11 @@ export function packageSubtotal(
 ): PointsSummary {
   return entries.reduce<PointsSummary>(
     (summary, entry) => {
+      const override = overrides[entry.cycleNumber];
       const points =
-        entry.totalPoints !== null
-          ? entry.totalPoints
-          : parseOverride(overrides[entry.cycleNumber], maxPerCycle);
+        override !== undefined
+          ? parseOverride(override, maxPerCycle)
+          : entry.totalPoints;
       if (points === null) return summary;
       return { earned: summary.earned + points, possible: summary.possible + maxPerCycle };
     },

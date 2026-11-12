@@ -127,3 +127,16 @@ it("leaves the percentage and letter blank when all scores are excluded", () => 
   });
   expect(csv.split("\n")[1]).toBe("Student,,—,Exempt,0/0,—,0,0,0,0,,,");
 });
+
+
+it("uses a what-if override in place of a missed cycle's official 0", () => {
+  const csv = buildTotalGradesCsv({
+    cycles: [{ cycleNumber: 1 }],
+    rows: [{
+      name: "Student", email: null, participationEarned: 0, participationPossible: 0,
+      cycleTotals: [{ cycleNumber: 1, totalPoints: 0 }],
+      adjustments: { ...defaultTotalsAdjustments(), cycleOverrides: { 1: "45" } }
+    }]
+  });
+  expect(csv.split("\n")[1]?.split(",")[2]).toBe("45");
+});

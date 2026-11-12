@@ -46,6 +46,12 @@ describe("packageSubtotal", () => {
     expect(packageSubtotal(entries, { 2: "-", 3: "\\" }, 50)).toEqual({ earned: 42, possible: 50 });
     expect(packageSubtotal(entries, { 2: "99" }, 50)).toEqual({ earned: 92, possible: 100 });
   });
+
+  it("lets a what-if override replace an official score (a missed 0)", () => {
+    const missed = [{ cycleNumber: 1, totalPoints: 0, finalCutState: null }];
+    expect(packageSubtotal(missed, {}, 50)).toEqual({ earned: 0, possible: 50 });
+    expect(packageSubtotal(missed, { 1: "45" }, 50)).toEqual({ earned: 45, possible: 50 });
+  });
 });
 
 describe("editorWeightedPercentage", () => {

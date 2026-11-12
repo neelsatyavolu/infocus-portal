@@ -317,7 +317,8 @@ export function ScoreInput({
   inputMode = "decimal",
   disabled,
   onFocus,
-  onBlur
+  onBlur,
+  className
 }: {
   value: string;
   onChange: (raw: string) => void;
@@ -337,6 +338,7 @@ export function ScoreInput({
   disabled?: boolean;
   onFocus?: () => void;
   onBlur?: () => void;
+  className?: string;
 }) {
   function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key !== "Enter" || !navKey) return;
@@ -363,7 +365,8 @@ export function ScoreInput({
           "shrink-0 px-1 text-center",
           size === "touch" ? "h-10 text-base md:text-[13px]" : "h-8",
           dashed && "border-dashed",
-          width
+          width,
+          className
         )}
       />
       {max !== null ? <span className="font-mono-broadcast text-xs tabular-nums text-muted-foreground">/{max}</span> : null}

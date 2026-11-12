@@ -164,9 +164,9 @@ export function buildTotalGradesCsv({
     const cycleValues = cycles.map((cycle) => {
       const entry = row.cycleTotals.find((item) => item.cycleNumber === cycle.cycleNumber);
       const override = row.adjustments.cycleOverrides[cycle.cycleNumber];
-      const value = entry?.totalPoints ?? (override === undefined
-        ? entry?.finalCutState ?? null
-        : parseGradeScore(override, MAX_PACKAGE_PER_CYCLE) ?? null);
+      const value = override !== undefined
+        ? parseGradeScore(override, MAX_PACKAGE_PER_CYCLE) ?? null
+        : entry?.totalPoints ?? entry?.finalCutState ?? null;
 
       if (typeof value === "number") {
         packageSum += value;

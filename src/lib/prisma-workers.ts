@@ -33,8 +33,8 @@ export function pgAdapter(connectionString: string) {
 
 /**
  * Every other host (local dev, scripts, the retired Vercel copy). Prisma's TypeScript engine
- * (`engineType = "client"`) always needs an adapter. A small pool: Supabase's session pooler allows
- * 15 clients in all and the Worker's Hyperdrive already holds up to 10.
+ * (`engineType = "client"`) always needs an adapter. A small pool: local scripts share the production
+ * database (PlanetScale Postgres) with the Worker's Hyperdrive, which holds up to 20 connections.
  */
 export function nodePgAdapter() {
   const connectionString = process.env.DATABASE_URL;

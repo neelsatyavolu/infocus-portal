@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   description: "How InFocus Portal and the InFocus apps handle your information."
 };
 
-const UPDATED = "October 2, 2026";
+const UPDATED = "November 12, 2026";
 
 type Section = { title: string; points: string[] };
 
@@ -40,7 +40,7 @@ const portal: Section[] = [
   {
     title: "Services that process it",
     points: [
-      "Hosting and database: Vercel and Supabase. Uploaded media: the InFocus Drive server run by the class. Backups: Cloudflare R2.",
+      "Hosting and database: Cloudflare and PlanetScale. Uploaded media: the InFocus Drive server run by the class. Backups: Cloudflare R2.",
       "Email: Resend. Notifications: Apple Push Notification service and your browser's push service.",
       "AI features (the Portal assistant and script formatting) send the text you ask about to Google Gemini or Groq to produce a reply.",
       "Finished packages and shows are published to the InFocus YouTube channel by the class.",

@@ -25,6 +25,23 @@ export function tileTags(view: GroupRowView): Tag[] {
     : [status, ...schedule, ...grades];
 }
 
+/** "Initial Cut Version 3 Needs Revisions" → "Initial Cut V3 Needs Revisions". */
+export function shortVersionLabel(label: string) {
+  return label.replace(/\bVersion (\d+)\b/, "V$1");
+}
+
+/** On a narrow tile, a cut's "Version 3" shortens to "V3" so the tag leaves room beside it. */
+function TagLabel({ label }: { label: string }) {
+  const short = shortVersionLabel(label);
+  if (short === label) return label;
+  return (
+    <>
+      <span className="@max-[28rem]:hidden">{label}</span>
+      <span className="hidden @max-[28rem]:inline">{short}</span>
+    </>
+  );
+}
+
 /**
  * A group on the Groups board, kept compact so an assigned producer sees 4–5 groups at once.
  * The title is a stretched link to the group's pending stage, so the whole card opens it (J/K +
@@ -97,10 +114,10 @@ function GroupTileBase({
 
       <StageTrack segments={view.segments} />
 
-      <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-2">
+      <div className="@container flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-2">
         {tileTags(view).map((tag) => (
-          <StatusTag key={tag.key} tone={tag.tone}>
-            {tag.label}
+          <StatusTag key={tag.key} tone={tag.tone} title={tag.label}>
+            <TagLabel label={tag.label} />
           </StatusTag>
         ))}
         {view.extensionLabel ? (

@@ -312,3 +312,11 @@ describe("withQueuedSave", () => {
     expect(first[0]?.rows).toBe(cycleA);
   });
 });
+
+describe("shortVersionLabel", () => {
+  it("shortens a cut version for narrow tiles and leaves other labels alone", async () => {
+    const { shortVersionLabel } = await import("@/app/(app)/groups/group-tile");
+    expect(shortVersionLabel("Initial Cut Version 3 Needs Revisions")).toBe("Initial Cut V3 Needs Revisions");
+    expect(shortVersionLabel("Final Cut Submitted")).toBe("Final Cut Submitted");
+  });
+});

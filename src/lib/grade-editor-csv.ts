@@ -2,6 +2,7 @@ import { gradeScoreLabel, numericGradeScore, parseGradeScore, type GradeScore } 
 import type { GradeScoreState } from "@prisma/client";
 import { editorWeightedPercentage } from "@/src/lib/grade-editor-summary";
 import { MAX_CHECK_IN_POINTS_PER_CYCLE } from "@/src/lib/package-stages";
+import { csvLine } from "@/src/lib/csv";
 
 const MAX_PACKAGE_PER_CYCLE = 50;
 const MAX_LIVESTREAM = 40;
@@ -25,7 +26,6 @@ type CycleCsvRow = {
   teamworkPoints: number | null;
   feedback: string;
   turnedInDate: string | null;
-  extensionsRemaining: number;
   published: boolean;
   revised: boolean;
 };
@@ -76,19 +76,6 @@ function letterGrade(percentage: number) {
   return "F";
 }
 
-function csvValue(value: string | number | null | undefined) {
-  if (value === null || value === undefined) return "";
-
-  const text = String(value);
-  if (!/[",\n\r]/.test(text)) return text;
-
-  return `"${text.replaceAll("\"", "\"\"")}"`;
-}
-
-function csvLine(values: Array<string | number | null | undefined>) {
-  return values.map(csvValue).join(",");
-}
-
 function rowName(name: string | null) {
   return name?.trim() || "Unnamed user";
 }
@@ -110,7 +97,6 @@ export function buildCycleGradesCsv({
       "Total Points",
       "Percentage",
       "Turned In Date",
-      "Extensions Remaining",
       "Published",
       "Revised",
       "Feedback"
@@ -130,7 +116,6 @@ export function buildCycleGradesCsv({
         total,
         total === null ? null : ((total / MAX_PACKAGE_PER_CYCLE) * 100).toFixed(1),
         row.turnedInDate,
-        row.extensionsRemaining,
         row.published ? "Yes" : "No",
         row.revised ? "Yes" : "No",
         row.feedback

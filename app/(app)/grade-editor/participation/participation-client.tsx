@@ -13,6 +13,7 @@ import { SegmentedControl } from "@/components/kit/segmented-control";
 import { Spinner } from "@/components/kit/spinner";
 import { CountBadge, StatusTag } from "@/components/kit/status-tag";
 import { StickyActionBar } from "@/components/kit/sticky-action-bar";
+import { ExportCsvButton } from "@/components/kit/export-csv-button";
 import { PageHeader } from "@/components/page-header";
 import { isNameSortKey, nameSortMenuEntries, useIsApplePlatform, useMounted } from "@/components/people/people-ui";
 import { Button } from "@/components/ui/button";
@@ -238,6 +239,7 @@ export default function ParticipationClient({ onDirtyChange }: { onDirtyChange?:
         eyebrow="Classroom · 35% of grade"
         title="Participation"
         description="Full marks post now. Docked scores wait for the adviser or another executive producer to approve."
+        actions={<ExportCsvButton href="/api/participation/export" title="Every saved participation score, all weeks" />}
       />
 
       {!ready ? (

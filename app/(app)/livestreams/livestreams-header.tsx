@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Plus, Radio, RotateCw, Users } from "lucide-react";
+import { Download, Plus, Radio, RotateCw, Users } from "lucide-react";
 import { IconButton } from "@/components/kit/icon-button";
 import { ActionMenu } from "@/components/kit/menu";
+import { ExportCsvButton } from "@/components/kit/export-csv-button";
 import { PageHeader } from "@/components/page-header";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { REQUIRED_LIVESTREAM_HOURS, REQUIRED_MANAGED_LIVESTREAMS } from "@/src/lib/livestream";
@@ -103,6 +104,13 @@ export function LivestreamsHeader({
             <Radio aria-hidden />
             Live dashboard
           </Link>
+          {data.canViewCompletion ? (
+            <ExportCsvButton
+              href="/api/livestreams/export"
+              title="Livestream hours per student this semester"
+              className={cn(PHONE_HEIGHT, "max-sm:hidden")}
+            />
+          ) : null}
           {manage ? (
             <ActionMenu
               label="More actions"
@@ -111,7 +119,14 @@ export function LivestreamsHeader({
               items={[
                 { key: "refresh", label: "Refresh", icon: RotateCw, onSelect: onRefresh, disabled: refreshing },
                 { key: "managers", label: "Managers", icon: Users, onSelect: onManagers, hidden: !data.canAppointManagers },
-                { key: "live", label: "Live dashboard", icon: Radio, href: "/live" }
+                { key: "live", label: "Live dashboard", icon: Radio, href: "/live" },
+                {
+                  key: "export",
+                  label: "Export CSV",
+                  icon: Download,
+                  href: "/api/livestreams/export",
+                  hidden: !data.canViewCompletion
+                }
               ]}
             />
           ) : null}

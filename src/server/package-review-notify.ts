@@ -43,7 +43,7 @@ function appUrl(path: string) {
   return `${origin}${suffix}`;
 }
 
-function memberNames(
+export function memberNames(
   members: Array<{ user: { name: string | null; nickname?: string | null; email: string | null } }>
 ) {
   return members
@@ -52,7 +52,7 @@ function memberNames(
     .join(", ");
 }
 
-async function loadProgressRow(progressRowId: string) {
+export async function loadProgressRow(progressRowId: string) {
   return prisma.packageProgressRow.findUnique({
     where: { id: progressRowId },
     include: {
@@ -63,7 +63,7 @@ async function loadProgressRow(progressRowId: string) {
   });
 }
 
-async function resolveProducerRecipients(kind: ReviewMailKind, row: NonNullable<Awaited<ReturnType<typeof loadProgressRow>>>) {
+export async function resolveProducerRecipients(kind: ReviewMailKind, row: NonNullable<Awaited<ReturnType<typeof loadProgressRow>>>) {
   const assignedProducerEmail = row.assignedProducer?.email ?? row.assignedExecutiveProducer?.email ?? null;
   const assignedProducerUserId = row.assignedProducer?.id ?? row.assignedExecutiveProducer?.id ?? null;
 
@@ -106,7 +106,7 @@ async function resolveProducerRecipients(kind: ReviewMailKind, row: NonNullable<
   return { emails, userIds: [...userIds] };
 }
 
-async function deliverProducerMail(input: {
+export async function deliverProducerMail(input: {
   emails: string[];
   userIds: string[];
   content: PackageMailContent;
@@ -137,7 +137,7 @@ async function deliverProducerMail(input: {
   }
 }
 
-async function claimReviewNotice(input: {
+export async function claimReviewNotice(input: {
   progressRowId: string;
   stage: PackageApprovalStage;
   mediaVersionId: string;

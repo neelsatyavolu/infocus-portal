@@ -1,6 +1,6 @@
 import { sendBrandedEmails } from "@/src/lib/email";
 import { mainAppOrigin } from "@/src/lib/hosts";
-import { extensionRequestVisibleTo } from "@/src/lib/package-extensions";
+import { extensionRequestVisibleTo, isGroupConsentComplete } from "@/src/lib/package-extensions";
 import {
   normalizeEmail,
   PACKAGE_ADVISER_EMAIL,
@@ -103,6 +103,133 @@ export async function notifyExecsOfExtensionGrant(requestId: string) {
     });
   } catch (error) {
     console.error("extension grant exec email failed", error);
+  }
+}
+
+/**
+ * A student filed a request: email the groupmates who still need to agree (the requester
+ * agreed by filing it). Producers hear about it once everyone has agreed.
+ */
+export async function notifyGroupOfExtensionRequest(requestId: string) {
+  const grant = await loadGrant(requestId);
+  if (!grant || grant.status !== "PENDING" || grant.producerGranted) return null;
+
+  const agreed = new Set(
+    (await prisma.packageExtensionMemberConsent.findMany({
+      where: { requestId, agreed: true },
+      select: { userId: true }
+    })).map((consent) => consent.userId)
+  );
+  const waiting = (grant.progressRow?.members ?? []).filter(
+    (member) => member.user.email && !agreed.has(member.user.id) && member.user.id !== grant.user.id
+  );
+  const recipients = memberEmails(waiting);
+  if (recipients.length === 0) return null;
+
+  const { topic } = grantSummary(grant);
+  const requester = userDisplayName(grant.user) || "A groupmate";
+  try {
+    return await sendBrandedEmails({
+      recipients,
+      subject: `${requester} asked for a ${dayLabel(grant.requestedDays)} extension for Cycle ${grant.cycleNumber}`,
+      heading: "Your group asked for an extension",
+      paragraphs: [
+        `${requester} asked producers for a ${dayLabel(grant.requestedDays)} extension on your Cycle ${grant.cycleNumber} package${topic}.`,
+        ...(grant.reason ? [`Reason: ${grant.reason}`] : []),
+        "Every member has to agree before producers can review it. Declining denies the request."
+      ],
+      ctaLabel: "Agree or decline",
+      ctaUrl: extensionRequestsUrl(),
+      idempotencyKey: `extension-request-created/${requestId}`
+    });
+  } catch (error) {
+    console.error("extension request group email failed", error);
+    return null;
+  }
+}
+
+/**
+ * Producers who can vote on a student request: the group's assigned producer and every exec
+ * (EP, adviser, super admin), minus members of the group.
+ */
+export function extensionDeciderEmails(input: {
+  execEmails: Array<string | null | undefined>;
+  assignedProducerEmail?: string | null;
+  memberEmails: Array<string | null | undefined>;
+}) {
+  const members = new Set(input.memberEmails.map((email) => normalizeEmail(email)).filter(Boolean));
+  return [
+    ...new Set(
+      [input.assignedProducerEmail, ...input.execEmails, PLATFORM_SUPER_ADMIN_EMAIL, PACKAGE_ADVISER_EMAIL]
+        .map((email) => normalizeEmail(email))
+        .filter((email) => email && !members.has(email))
+    )
+  ];
+}
+
+/**
+ * Once every member has agreed to a student request, email the producers who can approve it.
+ * Does nothing while anyone still has to agree, or once the request is decided.
+ */
+export async function notifyProducersOfAgreedExtension(requestId: string) {
+  const request = await prisma.packageExtensionRequest.findUnique({
+    where: { id: requestId },
+    select: {
+      status: true,
+      producerGranted: true,
+      cycleNumber: true,
+      requestedDays: true,
+      reason: true,
+      memberConsents: { select: { userId: true, agreed: true } },
+      progressRow: {
+        select: {
+          groupTopic: true,
+          assignedProducer: { select: { email: true } },
+          members: { select: { userId: true, user: { select: { email: true } } } }
+        }
+      }
+    }
+  });
+  if (!request || request.status !== "PENDING" || request.producerGranted || !request.progressRow) return null;
+  const members = request.progressRow.members;
+  if (
+    !isGroupConsentComplete({
+      memberUserIds: members.map((member) => member.userId),
+      consents: request.memberConsents
+    })
+  ) {
+    return null;
+  }
+
+  const assignments = await prisma.platformRoleAssignment.findMany({
+    where: { role: { in: ["EXECUTIVE_PRODUCER", "SUPER_ADMIN", "ADVISER"] } },
+    select: { email: true }
+  });
+  const recipients = extensionDeciderEmails({
+    execEmails: assignments.map((entry) => entry.email),
+    assignedProducerEmail: request.progressRow.assignedProducer?.email,
+    memberEmails: members.map((member) => member.user.email)
+  });
+  if (recipients.length === 0) return null;
+
+  const topic = request.progressRow.groupTopic ? ` (“${request.progressRow.groupTopic}”)` : "";
+  try {
+    return await sendBrandedEmails({
+      recipients,
+      subject: `Review a ${dayLabel(request.requestedDays)} extension request for Cycle ${request.cycleNumber}`,
+      heading: "Extension request ready for review",
+      paragraphs: [
+        `Every member of a Cycle ${request.cycleNumber} group${topic} agreed to ask for a ${dayLabel(request.requestedDays)} extension.`,
+        ...(request.reason ? [`Reason: ${request.reason}`] : []),
+        "Two producers must approve it before it takes effect."
+      ],
+      ctaLabel: "Review request",
+      ctaUrl: extensionRequestsUrl(),
+      idempotencyKey: `extension-request-agreed/${requestId}`
+    });
+  } catch (error) {
+    console.error("extension request producer email failed", error);
+    return null;
   }
 }
 

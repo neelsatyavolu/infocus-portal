@@ -24,11 +24,7 @@ import { officialFinalCutPoints } from "@/src/lib/package-review-mail";
 import { capAwardedForRevision } from "@/src/lib/package-revisions";
 import {
   calculateExtensionDays,
-  calculateExtensionsRemaining,
-  effectiveAppliedDays,
   parseDateInput,
-  sanitizeFreeExtensionDays,
-  STARTING_EXTENSION_DAYS,
   toDateKey
 } from "@/src/lib/extensions";
 import { isExcludedFromGrading, loadNonGradableEmails } from "@/src/lib/gradable-roster";
@@ -55,8 +51,7 @@ const saveGradeSchema = z.object({
   finalCutState: z.enum(["UNGRADED", "EXEMPT"]).nullable().optional(),
   teamworkPoints: z.number().int().min(0).max(MAX_TEAMWORK_POINTS).optional().default(0),
   feedback: z.string().max(2000).optional(),
-  turnedInDate: z.string().nullable().optional(),
-  freeExtensionDays: z.number().int().min(0).max(STARTING_EXTENSION_DAYS).optional()
+  turnedInDate: z.string().nullable().optional()
 });
 
 const setPublishSchema = z.object({
@@ -70,8 +65,7 @@ const setTurnedInDateSchema = z.object({
   action: z.literal("setTurnedInDate"),
   cycleNumber: z.number().int().min(1).max(8),
   userId: z.string().min(1),
-  turnedInDate: z.string().nullable(),
-  freeExtensionDays: z.number().int().min(0).max(STARTING_EXTENSION_DAYS).optional()
+  turnedInDate: z.string().nullable()
 });
 
 const setTotalNotesSchema = z.object({
@@ -110,27 +104,14 @@ function serializeGradeHistory(events: Array<{ eventType: "PUBLISHED" | "REVISED
 function buildExtensionDetails({
   finalCutDate,
   turnedInDate,
-  extensionDaysApplied,
-  freeExtensionDays,
   extensionExempt
 }: {
   finalCutDate: Date | null;
   turnedInDate: Date | null;
-  extensionDaysApplied: number;
-  freeExtensionDays: number | null | undefined;
   extensionExempt: boolean;
 }) {
-  const calculatedDays = calculateExtensionDays(finalCutDate, turnedInDate);
-  const normalizedFreeDays = sanitizeFreeExtensionDays(freeExtensionDays);
-
   return {
-    calculatedDays,
-    freeDays: normalizedFreeDays,
-    chargedDays: effectiveAppliedDays({
-      extensionDaysApplied,
-      extensionExempt,
-      freeExtensionDays: normalizedFreeDays
-    }),
+    calculatedDays: calculateExtensionDays(finalCutDate, turnedInDate),
     exempt: extensionExempt
   };
 }
@@ -148,8 +129,6 @@ function serializeGrade(grade: {
   revisedAt: Date | null;
   feedback: string;
   turnedInDate: Date | null;
-  extensionDaysApplied: number;
-  freeExtensionDays: number;
   extensionExempt: boolean;
   publishedAt: Date | null;
   publicationHistory: Array<{
@@ -162,8 +141,6 @@ function serializeGrade(grade: {
   const extensionDetails = buildExtensionDetails({
     finalCutDate: options?.finalCutDate ?? null,
     turnedInDate: grade.turnedInDate,
-    extensionDaysApplied: grade.extensionDaysApplied,
-    freeExtensionDays: grade.freeExtensionDays,
     extensionExempt: grade.extensionExempt
   });
 
@@ -182,7 +159,6 @@ function serializeGrade(grade: {
     revisedAt: toIso(grade.revisedAt),
     feedback: grade.feedback,
     turnedInDate: toDateKey(grade.turnedInDate),
-    freeExtensionDays: grade.freeExtensionDays,
     extensionDetails,
     published: Boolean(grade.publishedAt),
     publishedAt: toIso(grade.publishedAt),
@@ -206,19 +182,6 @@ async function ensureDefaultCycles() {
       }))
     });
   }
-}
-
-async function getExtensionsRemainingForUser(userId: string) {
-  const entries = await prisma.packageGrade.findMany({
-    where: { userId },
-    select: {
-      extensionDaysApplied: true,
-      freeExtensionDays: true,
-      extensionExempt: true
-    }
-  });
-
-  return calculateExtensionsRemaining(entries);
 }
 
 async function notifyGradeUser(
@@ -521,7 +484,7 @@ export async function GET(request: Request) {
 
     const activeCycleNumber = parseCycleNumber(searchParams.get("cycle"));
 
-    const [users, cycles, cycleGrades, publishedGrades, extensionUsageRows] = await Promise.all([
+    const [users, cycles, cycleGrades, publishedGrades] = await Promise.all([
       prisma.user.findMany({
         select: {
           id: true,
@@ -563,7 +526,6 @@ export async function GET(request: Request) {
           feedback: true,
           turnedInDate: true,
           extensionDaysApplied: true,
-          freeExtensionDays: true,
           extensionExempt: true,
           publishedAt: true,
           publicationHistory: {
@@ -586,14 +548,6 @@ export async function GET(request: Request) {
           teamworkPoints: true,
           finalCutPoints: true
         }
-      }),
-      prisma.packageGrade.findMany({
-      select: {
-          userId: true,
-          extensionDaysApplied: true,
-          freeExtensionDays: true,
-          extensionExempt: true
-        }
       })
     ]);
 
@@ -611,21 +565,6 @@ export async function GET(request: Request) {
     });
     const cycleGradeByUser = new Map(cycleGrades.map((entry) => [entry.userId, entry]));
     const cycleAverageMap = new Map<number, { sum: number; count: number }>();
-    const extensionUsageByUser = new Map<
-      string,
-      Array<{ extensionDaysApplied: number; freeExtensionDays: number; extensionExempt: boolean }>
-    >();
-
-    for (const row of extensionUsageRows) {
-      const rows = extensionUsageByUser.get(row.userId) ?? [];
-      rows.push({
-        extensionDaysApplied: row.extensionDaysApplied,
-        freeExtensionDays: row.freeExtensionDays,
-        extensionExempt: row.extensionExempt
-      });
-      extensionUsageByUser.set(row.userId, rows);
-    }
-
     for (const grade of publishedGrades) {
       if (grade.finalCutState) continue;
       const total = grade.finalCutPoints;
@@ -661,12 +600,9 @@ export async function GET(request: Request) {
       rows: gradableUsers.map((entry) => {
         const grade = cycleGradeByUser.get(entry.id);
         const totalPoints = grade?.finalCutState ? null : grade?.awardedFinalCutPoints ?? null;
-        const usageRows = extensionUsageByUser.get(entry.id) ?? [];
         const extensionDetails = buildExtensionDetails({
           finalCutDate: cycles.find((cycle) => cycle.cycleNumber === activeCycleNumber)?.finalCutDate ?? null,
           turnedInDate: grade?.turnedInDate ?? null,
-          extensionDaysApplied: grade?.extensionDaysApplied ?? 0,
-          freeExtensionDays: grade?.freeExtensionDays ?? 0,
           extensionExempt: Boolean(grade?.extensionExempt)
         });
 
@@ -692,12 +628,10 @@ export async function GET(request: Request) {
           revisedAt: toIso(grade?.revisedAt ?? null),
           feedback: grade?.feedback ?? "",
           turnedInDate: toDateKey(grade?.turnedInDate ?? null),
-          freeExtensionDays: grade?.freeExtensionDays ?? 0,
           extensionDetails,
           published: Boolean(grade?.publishedAt),
           publishedAt: toIso(grade?.publishedAt ?? null),
-          publicationHistory: serializeGradeHistory(grade?.publicationHistory ?? []),
-          extensionsRemaining: calculateExtensionsRemaining(usageRows)
+          publicationHistory: serializeGradeHistory(grade?.publicationHistory ?? [])
         };
       })
     });
@@ -808,16 +742,11 @@ export async function POST(request: Request) {
           revisedAt: true,
           feedback: true,
           turnedInDate: true,
-          freeExtensionDays: true,
           publishedAt: true
         }
       });
       const turnedInDate =
         payload.turnedInDate === undefined ? (existing?.turnedInDate ?? null) : parseDateInput(payload.turnedInDate);
-      const freeExtensionDays =
-        payload.freeExtensionDays === undefined
-          ? sanitizeFreeExtensionDays(existing?.freeExtensionDays ?? 0)
-          : sanitizeFreeExtensionDays(payload.freeExtensionDays);
 
       const cycle = await prisma.packageCycle.findUnique({
         where: { cycleNumber: payload.cycleNumber },
@@ -863,8 +792,7 @@ export async function POST(request: Request) {
         (existing.finalCutState ?? null) !== finalCutState ||
         existing.effortPoints !== payload.effortPoints ||
         existing.teamworkPoints !== payload.teamworkPoints ||
-        existing.feedback !== nextFeedback ||
-        sanitizeFreeExtensionDays(existing?.freeExtensionDays ?? 0) !== freeExtensionDays;
+        existing.feedback !== nextFeedback;
       const pointsChanged =
         !existing ||
         (existing.finalCutState ?? null) !== finalCutState ||
@@ -893,7 +821,6 @@ export async function POST(request: Request) {
             ...(revisedPublishedGrade ? { publishedAt: null } : {}),
             feedback: nextFeedback,
             turnedInDate,
-            freeExtensionDays,
             ...(turnedInChanged
               ? {
                   extensionDaysApplied: calculatedDays,
@@ -916,7 +843,6 @@ export async function POST(request: Request) {
             feedback: nextFeedback,
             turnedInDate,
             extensionDaysApplied: calculatedDays,
-            freeExtensionDays,
             extensionExempt: false
           },
           select: {
@@ -949,7 +875,6 @@ export async function POST(request: Request) {
             feedback: true,
             turnedInDate: true,
             extensionDaysApplied: true,
-            freeExtensionDays: true,
             extensionExempt: true,
             publishedAt: true,
             publicationHistory: {
@@ -972,11 +897,7 @@ export async function POST(request: Request) {
         );
       }
 
-      const extensionsRemaining = await getExtensionsRemainingForUser(payload.userId);
-      return ok({
-        ...serializeGrade(updated, { finalCutDate: cycle?.finalCutDate ?? null }),
-        extensionsRemaining
-      });
+      return ok(serializeGrade(updated, { finalCutDate: cycle?.finalCutDate ?? null }));
     }
 
     if (payload.action === "setTurnedInDate") {
@@ -999,7 +920,6 @@ export async function POST(request: Request) {
           feedback: true,
           turnedInDate: true,
           extensionDaysApplied: true,
-          freeExtensionDays: true,
           extensionExempt: true,
           publishedAt: true,
           publicationHistory: {
@@ -1010,10 +930,6 @@ export async function POST(request: Request) {
       });
 
       const turnedInDate = parseDateInput(payload.turnedInDate);
-      const freeExtensionDays =
-        payload.freeExtensionDays === undefined
-          ? sanitizeFreeExtensionDays(existing?.freeExtensionDays ?? 0)
-          : sanitizeFreeExtensionDays(payload.freeExtensionDays);
       const cycle = await prisma.packageCycle.findUnique({
         where: { cycleNumber: payload.cycleNumber },
         select: {
@@ -1037,7 +953,6 @@ export async function POST(request: Request) {
         },
         update: {
           turnedInDate,
-          freeExtensionDays,
           ...(turnedInChanged
             ? {
                 extensionDaysApplied: calculatedDays,
@@ -1056,7 +971,6 @@ export async function POST(request: Request) {
           feedback: "",
           turnedInDate,
           extensionDaysApplied: calculatedDays,
-          freeExtensionDays,
           extensionExempt: false,
           publishedAt: null
         },
@@ -1074,7 +988,6 @@ export async function POST(request: Request) {
           feedback: true,
           turnedInDate: true,
           extensionDaysApplied: true,
-          freeExtensionDays: true,
           extensionExempt: true,
           publishedAt: true,
           publicationHistory: {
@@ -1084,11 +997,7 @@ export async function POST(request: Request) {
         }
       });
 
-      const extensionsRemaining = await getExtensionsRemainingForUser(payload.userId);
-      return ok({
-        ...serializeGrade(updated, { finalCutDate: cycle?.finalCutDate ?? null }),
-        extensionsRemaining
-      });
+      return ok(serializeGrade(updated, { finalCutDate: cycle?.finalCutDate ?? null }));
     }
 
     if (payload.action === "setTotalNotes") {
@@ -1123,7 +1032,6 @@ export async function POST(request: Request) {
           feedback: "",
           turnedInDate: null,
           extensionDaysApplied: 0,
-          freeExtensionDays: 0,
           extensionExempt: false,
           publishedAt: null
         },
@@ -1141,7 +1049,6 @@ export async function POST(request: Request) {
           feedback: true,
           turnedInDate: true,
           extensionDaysApplied: true,
-          freeExtensionDays: true,
           extensionExempt: true,
           publishedAt: true,
           publicationHistory: {
@@ -1155,11 +1062,7 @@ export async function POST(request: Request) {
         where: { cycleNumber: payload.cycleNumber },
         select: { finalCutDate: true }
       });
-      const extensionsRemaining = await getExtensionsRemainingForUser(payload.userId);
-      return ok({
-        ...serializeGrade(updated, { finalCutDate: cycle?.finalCutDate ?? null }),
-        extensionsRemaining
-      });
+      return ok(serializeGrade(updated, { finalCutDate: cycle?.finalCutDate ?? null }));
     }
 
     const existing = await prisma.packageGrade.findUnique({
@@ -1194,7 +1097,6 @@ export async function POST(request: Request) {
           feedback: "",
           turnedInDate: null,
           extensionDaysApplied: 0,
-          freeExtensionDays: 0,
           extensionExempt: false,
           publishedAt
         },
@@ -1226,7 +1128,6 @@ export async function POST(request: Request) {
           feedback: true,
           turnedInDate: true,
           extensionDaysApplied: true,
-          freeExtensionDays: true,
           extensionExempt: true,
           publishedAt: true,
           publicationHistory: {
@@ -1249,17 +1150,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const [extensionsRemaining, cycle] = await Promise.all([
-      getExtensionsRemainingForUser(payload.userId),
-      prisma.packageCycle.findUnique({
-        where: { cycleNumber: payload.cycleNumber },
-        select: { finalCutDate: true }
-      })
-    ]);
-    return ok({
-      ...serializeGrade(updated, { finalCutDate: cycle?.finalCutDate ?? null }),
-      extensionsRemaining
+    const cycle = await prisma.packageCycle.findUnique({
+      where: { cycleNumber: payload.cycleNumber },
+      select: { finalCutDate: true }
     });
+    return ok(serializeGrade(updated, { finalCutDate: cycle?.finalCutDate ?? null }));
   } catch (error) {
     return handleRouteError(error);
   }

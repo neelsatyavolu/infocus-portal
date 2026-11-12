@@ -1,4 +1,11 @@
-import { HARVEST_CONTEST, HARVEST_KINDS, HARVEST_LABELS, type HarvestCounts, type HarvestKind } from "@/src/lib/thanksgiving-board";
+import {
+  HARVEST_CONTEST,
+  HARVEST_KINDS,
+  HARVEST_LABELS,
+  harvestContestFor,
+  type HarvestCounts,
+  type HarvestKind
+} from "@/src/lib/thanksgiving-board";
 
 /**
  * The Thanksgiving leaderboard's top five, posted to Slack as a picture every three hours while
@@ -11,8 +18,9 @@ import { HARVEST_CONTEST, HARVEST_KINDS, HARVEST_LABELS, type HarvestCounts, typ
 /** How long after the reveal its post may still go out (a late or retried run). */
 const FINAL_POST_GRACE_MS = 60 * 60_000;
 
-/** "standings" before the board goes dark, "final" for the reveal post, else null. */
+/** "standings" before the board goes dark, "final" for the reveal post, else null (also in a year with no contest). */
 export function harvestSlackPostKind(now: Date): "standings" | "final" | null {
+  if (!harvestContestFor(now)) return null;
   const time = now.getTime();
   if (time < HARVEST_CONTEST.hiddenFrom.getTime()) return "standings";
   const reveal = HARVEST_CONTEST.revealAt.getTime();

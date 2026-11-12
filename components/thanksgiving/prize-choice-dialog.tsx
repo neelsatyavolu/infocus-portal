@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { HARVEST_CONTEST } from "@/src/lib/thanksgiving-board";
+import { HARVEST_CONTEST, harvestContestFor } from "@/src/lib/thanksgiving-board";
 import { PrizePicker, type PrizeChooser, type PrizeOption } from "./prize-picker";
 
 /** Asked only from the reveal through November. */
@@ -22,7 +22,7 @@ export function PrizeChoiceDialog() {
 
   useEffect(() => {
     const now = Date.now();
-    if (now < HARVEST_CONTEST.revealAt.getTime() || now >= ASK_UNTIL.getTime()) return;
+    if (!harvestContestFor(new Date(now)) || now < HARVEST_CONTEST.revealAt.getTime() || now >= ASK_UNTIL.getTime()) return;
     let cancelled = false;
     void (async () => {
       try {

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/src/lib/auth";
 import { getPlatformRoleForEmail } from "@/src/lib/platform-admin";
 import { pacificDateKey } from "@/src/lib/class-board";
-import { isBoardHidden, isContestOpen } from "@/src/lib/thanksgiving-board";
+import { isBoardHidden, isContestOpen, isLeaderboardOpen } from "@/src/lib/thanksgiving-board";
 import { inHarvestHour } from "@/src/lib/thanksgiving-harvest-hour";
 import { loadClassBoard } from "@/src/server/class-board";
 import { harvestHour } from "@/src/server/thanksgiving-harvest-hour";
@@ -25,9 +25,12 @@ export default async function ClassBoardPage() {
 
 const HARVEST_TOP = 5;
 
-/** In November (Pacific), the Thanksgiving leaderboard's top five. A failure leaves it off, never the board. */
+/**
+ * In November (Pacific) of a contest year, until the winner is revealed, the Thanksgiving
+ * leaderboard's top five. A failure leaves it off, never the board.
+ */
 async function loadBoardHarvest(now = new Date()): Promise<BoardHarvest | null> {
-  if (pacificDateKey(now).slice(5, 7) !== "11") return null;
+  if (pacificDateKey(now).slice(5, 7) !== "11" || !isLeaderboardOpen(now)) return null;
   const base = { contestOpen: isContestOpen(now), harvestHourLive: inHarvestHour(harvestHour(), now) };
   // The classroom screen is public: nothing to load while the board is dark.
   if (isBoardHidden(now)) return { ...base, rows: [], hidden: true };

@@ -24,7 +24,6 @@ import { SheetStepButtons } from "./sheet-step-buttons";
 import type { CycleRowHandlers, CycleRowState } from "./cycle-grades-table";
 import {
   CheckInField,
-  OverExtensionsTag,
   PublishButton,
   RowSaveMark,
   RowStatusTag,
@@ -86,7 +85,6 @@ export function CycleRowSheet({
       headerExtra={
         <>
           <RowStatusTag row={row} size="md" />
-          <OverExtensionsTag row={row} size="md" />
           <RowSaveMark saving={state.savingUserId === row.userId} dirty={dirty} failed={state.failedUserId === row.userId} size="md" />
         </>
       }

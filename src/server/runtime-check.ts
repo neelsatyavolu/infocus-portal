@@ -68,7 +68,7 @@ const CHECKS: Record<string, () => Promise<string | void>> = {
     const pem = privateKey.export({ type: "pkcs8", format: "pem" }).toString();
     if (buildProviderToken({ keyId: "K", teamId: "T", privateKey: pem }, Date.now()).split(".").length !== 3) throw new Error("bad token");
   },
-  // The hourly backup gzips its dump in one call (src/server/hub-backup.ts).
+  // node:zlib gzip works on Workers (the hourly backup itself streams through CompressionStream).
   gzip: async () => {
     const input = Buffer.alloc(GZIP_BYTES, "a");
     if (gunzipSync(gzipSync(input)).length !== input.length) throw new Error("gzip mismatch");

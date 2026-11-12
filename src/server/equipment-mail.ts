@@ -1,4 +1,5 @@
 import { sendBrandedEmails } from "@/src/lib/email";
+import { formatPacificWindowTime } from "@/src/lib/equipment-request-window";
 import { equipmentAppOrigin } from "@/src/lib/hosts";
 import {
   PACKAGE_ADVISER_EMAIL,
@@ -43,6 +44,8 @@ export async function sendEquipmentRequestEmails(input: {
   studentId: string;
   email: string;
   items: Array<{ name: string; barcode: string }>;
+  pickupAt?: Date | null;
+  returnAt?: Date | null;
 }) {
   const recipients = await listEquipmentManagerEmails();
   const studentLabel = input.studentName.trim() || input.studentId;
@@ -58,10 +61,55 @@ export async function sendEquipmentRequestEmails(input: {
     paragraphs: [
       `${studentLabel} (${input.studentId}) requested ${countLabel}.`,
       `Email: ${input.email}`,
+      ...windowParagraphs(input.pickupAt, input.returnAt),
       itemList
     ],
     ctaLabel: "Review requests",
     ctaUrl: `${origin}/equipment/manage`
+  });
+}
+
+function windowParagraphs(pickupAt?: Date | null, returnAt?: Date | null) {
+  if (!pickupAt && !returnAt) return [];
+  return [`Pickup: ${formatPacificWindowTime(pickupAt)} · Return: ${formatPacificWindowTime(returnAt)} (Pacific)`];
+}
+
+/** Emails the requester when a manager approves or denies their request (denials list each item's reason). */
+export async function sendEquipmentDecisionEmail(input: {
+  requestId: string;
+  email: string;
+  studentName: string | null;
+  decision: "APPROVED" | "DENIED";
+  pickupAt: Date | null;
+  returnAt: Date | null;
+  items: Array<{ name: string; barcode: string; reason?: string | null }>;
+}) {
+  const email = input.email.trim();
+  if (!email) return null;
+  const origin = equipmentAppOrigin().replace(/\/+$/, "");
+  const greeting = input.studentName?.trim() ? `Hi ${input.studentName.trim()},` : "Hi,";
+  const approved = input.decision === "APPROVED";
+  const itemLines = input.items.map((item) => {
+    const label = `${item.name} (${item.barcode})`;
+    const reason = item.reason?.trim();
+    return !approved && reason ? `${label}: ${reason}` : label;
+  });
+
+  return sendBrandedEmails({
+    recipients: [email],
+    subject: approved ? "Your equipment request was approved" : "Your equipment request was denied",
+    heading: approved ? "Equipment request approved" : "Equipment request denied",
+    paragraphs: [
+      greeting,
+      approved
+        ? "Your equipment request was approved. These items are held for you; bring your student ID to pick them up."
+        : "Your equipment request was denied.",
+      ...windowParagraphs(input.pickupAt, input.returnAt),
+      ...(approved ? itemLines : itemLines.map((line) => `Denied: ${line}`))
+    ],
+    ctaLabel: approved ? "View equipment" : "Request again",
+    ctaUrl: `${origin}/equipment`,
+    idempotencyKey: `equipment-decision:${input.requestId}:${input.decision}`
   });
 }
 

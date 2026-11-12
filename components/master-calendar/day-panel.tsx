@@ -4,6 +4,7 @@ import { Fragment, useEffect, useRef, type ReactNode, type RefObject } from "rea
 import { createPortal } from "react-dom";
 import { ChevronLeft, ChevronRight, PanelRightClose, X } from "lucide-react";
 import { Alert } from "@/components/kit/alert";
+import { AnchorSlotRequest } from "@/components/master-calendar/anchor-slot-request";
 import { IconButton } from "@/components/kit/icon-button";
 import { DAY_PANEL_ID, formatLongDate, type DayFailure, type DayModel } from "@/components/master-calendar/calendar-model";
 import { dayTags } from "@/components/master-calendar/day-cell";
@@ -107,6 +108,7 @@ export function DayPanel({
         ) : (
           <DayReadSections day={day} />
         )}
+        {day.kind === "SHOW" ? <AnchorSlotRequest showDate={day.dateKey} /> : null}
       </div>
     </div>
   );

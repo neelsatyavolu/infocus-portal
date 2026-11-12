@@ -27,8 +27,10 @@ vi.mock("@/src/lib/bunny-utils", () => ({
 import {
   resolveOriginalDownloadUrl,
   resolvePlaybackUrl,
-  resolveThumbnailUrl
+  resolveThumbnailUrl,
+  resolveThumbnailUrls
 } from "@/src/lib/media-playback";
+import { serializeMediaRows } from "@/src/server/media-json";
 
 const FILE_URL =
   "https://drive.infocusportal.com/api/service/file?path=Package%20Storage%2FCycle%201%2FJeffDay.mov&token=tok";
@@ -64,5 +66,50 @@ describe("NAS media playback URLs", () => {
     const url = await resolveOriginalDownloadUrl(nasVersion);
     expect(url).toBe(FILE_URL);
     expect(url).not.toContain("web=1");
+  });
+});
+
+describe("bounded poster minting", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  function trackConcurrency() {
+    const stats = { inFlight: 0, peak: 0 };
+    mocks.nasMintDownloadUrl.mockImplementation(async () => {
+      stats.inFlight += 1;
+      stats.peak = Math.max(stats.peak, stats.inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 2));
+      stats.inFlight -= 1;
+      return FILE_URL;
+    });
+    return stats;
+  }
+
+  it("mints each version once and at most five at a time", async () => {
+    const stats = trackConcurrency();
+    const versions = Array.from({ length: 30 }, (_, i) => ({ ...nasVersion, id: `v${i % 20}` }));
+    const posters = await resolveThumbnailUrls(versions);
+    expect(mocks.nasMintDownloadUrl).toHaveBeenCalledTimes(20);
+    expect(stats.peak).toBeLessThanOrEqual(5);
+    expect(posters.size).toBe(20);
+  });
+
+  it("does not mint currentVersion a second time when serializing rows", async () => {
+    const stats = trackConcurrency();
+    const rows = Array.from({ length: 10 }, (_, i) => {
+      const versions = [1, 2, 3].map((n) => ({
+        ...nasVersion,
+        id: `m${i}v${n}`,
+        sourceType: "VIDEO",
+        storageSizeBytes: BigInt(n)
+      }));
+      return { id: `m${i}`, versions, currentVersion: versions[2] };
+    });
+    const json = await serializeMediaRows(rows);
+    expect(mocks.nasMintDownloadUrl).toHaveBeenCalledTimes(30);
+    expect(stats.peak).toBeLessThanOrEqual(5);
+    expect(json[0].currentVersion?.thumbnailUrl).toContain("/api/service/thumbnail");
+    expect(json[0].versions[0].storageSizeBytes).toBe(1);
   });
 });

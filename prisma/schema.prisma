@@ -93,100 +93,100 @@ enum HubChatKind {
 }
 
 model User {
-  id                 String           @id
-  email              String?
-  name               String?
-  nickname           String?
+  id                                  String                          @id
+  email                               String?
+  name                                String?
+  nickname                            String?
   /// Birthday month (1–12) and day, set in Settings → Profile; no year is stored.
-  birthdayMonth      Int?             @db.SmallInt
-  birthdayDay        Int?             @db.SmallInt
-  imageUrl           String?
-  onboardingCompletedAt DateTime?
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
-  memberships        WorkspaceMember[]
-  createdWorkspaces  Workspace[]      @relation("WorkspaceCreator")
-  createdProjects    Project[]        @relation("ProjectCreator")
-  createdFolders     ProjectFolder[]  @relation("ProjectFolderCreator")
-  mediaItems         MediaItem[]      @relation("MediaItemCreator")
-  deletedMediaItems  MediaItem[]      @relation("MediaItemDeletedBy")
-  mediaItemAssignments MediaItemAssignment[]
-  mediaVersions      MediaVersion[]   @relation("MediaVersionCreator")
-  comments           ReviewComment[]  @relation("CommentAuthor")
-  commentResolutions ReviewComment[]  @relation("CommentResolver")
-  commentMentions    CommentMention[]
-  announcements      Announcement[]      @relation("AnnouncementAuthor")
-  announcementComments AnnouncementComment[] @relation("AnnouncementCommentAuthor")
-  announcementMentions AnnouncementMention[] @relation("AnnouncementMentionUser")
-  announcementLikes  AnnouncementLike[]  @relation("AnnouncementLikeUser")
-  announcementReads  AnnouncementRead[]  @relation("AnnouncementReadUser")
-  notificationPreference NotificationPreference? @relation("UserNotificationPreference")
-  pushSubscriptions  PushNotificationSubscription[] @relation("PushSubscriptionUser")
-  nativePushDevices  NativePushDevice[] @relation("NativePushDeviceUser")
-  packageGrades      PackageGrade[]
-  packageTotalNote   PackageTotalNote?
-  packageProgressMemberships PackageProgressMember[]
-  packageProgressAssignments PackageProgressRow[] @relation("AssignedPackageProducer")
-  packageProgressExecutiveAssignments PackageProgressRow[] @relation("AssignedPackageExecutive")
-  packageApprovalSignoffs PackageApprovalSignoff[] @relation("PackageApprovalActor")
-  participationEntries ParticipationEntry[] @relation("ParticipationSubject")
-  participationGradeRequests ParticipationGradeRequest[] @relation("ParticipationGradeRequester")
-  participationGradeReviews  ParticipationGradeRequest[] @relation("ParticipationGradeReviewer")
-  participationGradeRequestItems ParticipationGradeRequestItem[] @relation("ParticipationGradeRequestStudent")
-  portfolioGrade     PortfolioGrade?      @relation("PortfolioSubject")
-  extensionRequests  PackageExtensionRequest[] @relation("ExtensionRequester")
-  extensionApprovals PackageExtensionApproval[] @relation("ExtensionApprover")
-  extensionMemberConsents PackageExtensionMemberConsent[] @relation("ExtensionMemberConsent")
-  approvalEvents     ApprovalEvent[]  @relation("ApprovalActor")
-  guestLinks         GuestLink[]      @relation("GuestLinkCreator")
-  activityEvents     ActivityEvent[]  @relation("ActivityActor")
-  auditLogs          AuditLog[]       @relation("AuditActor")
-  invites            WorkspaceInvite[] @relation("InviteCreator")
-  visibleWorkspaces  WorkspaceVisibilityMember[] @relation("WorkspaceVisibilityUser")
-  teleprompterDocs   TeleprompterDoc[] @relation("TeleprompterDocCreator")
-  livestreamEventsManaged LivestreamEvent[] @relation("LivestreamEventManager")
-  livestreamAttendances   LivestreamAttendee[]
-  livestreamManager       LivestreamManager?
-  publishingManager       PublishingManager?
-  equipmentManager        EquipmentManager?
-  socialMediaManager      SocialMediaManager?
-  equipmentPasskeys       EquipmentPasskey[]
-  livestreamSignups       LivestreamSignupRequest[]
-  livestreamSignupsReviewed LivestreamSignupRequest[] @relation("LivestreamSignupReviewer")
-  packageProofUploads     PackageProofOfContact[] @relation("PackageProofUploader")
-  packageFinalCutScores   PackageFinalCutScore[] @relation("PackageFinalCutGrader")
-  packageFinalCutScoresReceived PackageFinalCutScore[] @relation("PackageFinalCutMember")
-  packageOfCycleVotes     PackageOfCycleVote[]
-  packageStageComments    PackageStageComment[] @relation("PackageStageCommentAuthor")
-  packageStageCommentReads PackageStageCommentRead[] @relation("PackageStageCommentReader")
-  memberProducerNotes     MemberProducerNote[]
-  hubChatMemberships      HubChatMember[]
-  hubChatMessages         HubChatMessage[] @relation("HubChatMessageAuthor")
-  meetingsCreated         Meeting[] @relation("MeetingCreator")
-  meetingParticipations   MeetingParticipant[] @relation("MeetingParticipants")
-  signature               UserSignature?       @relation("UserSignatureOwner")
-  thanksgivingScores      ThanksgivingScore[]
-  thanksgivingCatches     ThanksgivingCatch[]
+  birthdayMonth                       Int?                            @db.SmallInt
+  birthdayDay                         Int?                            @db.SmallInt
+  imageUrl                            String?
+  onboardingCompletedAt               DateTime?
+  createdAt                           DateTime                        @default(now())
+  updatedAt                           DateTime                        @updatedAt
+  memberships                         WorkspaceMember[]
+  createdWorkspaces                   Workspace[]                     @relation("WorkspaceCreator")
+  createdProjects                     Project[]                       @relation("ProjectCreator")
+  createdFolders                      ProjectFolder[]                 @relation("ProjectFolderCreator")
+  mediaItems                          MediaItem[]                     @relation("MediaItemCreator")
+  deletedMediaItems                   MediaItem[]                     @relation("MediaItemDeletedBy")
+  mediaItemAssignments                MediaItemAssignment[]
+  mediaVersions                       MediaVersion[]                  @relation("MediaVersionCreator")
+  comments                            ReviewComment[]                 @relation("CommentAuthor")
+  commentResolutions                  ReviewComment[]                 @relation("CommentResolver")
+  commentMentions                     CommentMention[]
+  announcements                       Announcement[]                  @relation("AnnouncementAuthor")
+  announcementComments                AnnouncementComment[]           @relation("AnnouncementCommentAuthor")
+  announcementMentions                AnnouncementMention[]           @relation("AnnouncementMentionUser")
+  announcementLikes                   AnnouncementLike[]              @relation("AnnouncementLikeUser")
+  announcementReads                   AnnouncementRead[]              @relation("AnnouncementReadUser")
+  notificationPreference              NotificationPreference?         @relation("UserNotificationPreference")
+  pushSubscriptions                   PushNotificationSubscription[]  @relation("PushSubscriptionUser")
+  nativePushDevices                   NativePushDevice[]              @relation("NativePushDeviceUser")
+  packageGrades                       PackageGrade[]
+  packageTotalNote                    PackageTotalNote?
+  packageProgressMemberships          PackageProgressMember[]
+  packageProgressAssignments          PackageProgressRow[]            @relation("AssignedPackageProducer")
+  packageProgressExecutiveAssignments PackageProgressRow[]            @relation("AssignedPackageExecutive")
+  packageApprovalSignoffs             PackageApprovalSignoff[]        @relation("PackageApprovalActor")
+  participationEntries                ParticipationEntry[]            @relation("ParticipationSubject")
+  participationGradeRequests          ParticipationGradeRequest[]     @relation("ParticipationGradeRequester")
+  participationGradeReviews           ParticipationGradeRequest[]     @relation("ParticipationGradeReviewer")
+  participationGradeRequestItems      ParticipationGradeRequestItem[] @relation("ParticipationGradeRequestStudent")
+  portfolioGrades                     PortfolioGrade[]                @relation("PortfolioSubject")
+  extensionRequests                   PackageExtensionRequest[]       @relation("ExtensionRequester")
+  extensionApprovals                  PackageExtensionApproval[]      @relation("ExtensionApprover")
+  extensionMemberConsents             PackageExtensionMemberConsent[] @relation("ExtensionMemberConsent")
+  approvalEvents                      ApprovalEvent[]                 @relation("ApprovalActor")
+  guestLinks                          GuestLink[]                     @relation("GuestLinkCreator")
+  activityEvents                      ActivityEvent[]                 @relation("ActivityActor")
+  auditLogs                           AuditLog[]                      @relation("AuditActor")
+  invites                             WorkspaceInvite[]               @relation("InviteCreator")
+  visibleWorkspaces                   WorkspaceVisibilityMember[]     @relation("WorkspaceVisibilityUser")
+  teleprompterDocs                    TeleprompterDoc[]               @relation("TeleprompterDocCreator")
+  livestreamEventsManaged             LivestreamEvent[]               @relation("LivestreamEventManager")
+  livestreamAttendances               LivestreamAttendee[]
+  livestreamManager                   LivestreamManager?
+  publishingManager                   PublishingManager?
+  equipmentManager                    EquipmentManager?
+  socialMediaManager                  SocialMediaManager?
+  equipmentPasskeys                   EquipmentPasskey[]
+  livestreamSignups                   LivestreamSignupRequest[]
+  livestreamSignupsReviewed           LivestreamSignupRequest[]       @relation("LivestreamSignupReviewer")
+  packageProofUploads                 PackageProofOfContact[]         @relation("PackageProofUploader")
+  packageFinalCutScores               PackageFinalCutScore[]          @relation("PackageFinalCutGrader")
+  packageFinalCutScoresReceived       PackageFinalCutScore[]          @relation("PackageFinalCutMember")
+  packageOfCycleVotes                 PackageOfCycleVote[]
+  packageStageComments                PackageStageComment[]           @relation("PackageStageCommentAuthor")
+  packageStageCommentReads            PackageStageCommentRead[]       @relation("PackageStageCommentReader")
+  memberProducerNotes                 MemberProducerNote[]
+  hubChatMemberships                  HubChatMember[]
+  hubChatMessages                     HubChatMessage[]                @relation("HubChatMessageAuthor")
+  meetingsCreated                     Meeting[]                       @relation("MeetingCreator")
+  meetingParticipations               MeetingParticipant[]            @relation("MeetingParticipants")
+  signature                           UserSignature?                  @relation("UserSignatureOwner")
+  thanksgivingScores                  ThanksgivingScore[]
+  thanksgivingCatches                 ThanksgivingCatch[]
 
   @@index([email])
 }
 
 model Workspace {
-  id             String           @id @default(cuid())
-  name           String
-  slug           String           @unique
-  visibility     WorkspaceVisibility @default(MANAGERS_AND_ADMINS)
-  createdById    String?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  createdBy      User?             @relation("WorkspaceCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  members        WorkspaceMember[]
+  id                String                      @id @default(cuid())
+  name              String
+  slug              String                      @unique
+  visibility        WorkspaceVisibility         @default(MANAGERS_AND_ADMINS)
+  createdById       String?
+  createdAt         DateTime                    @default(now())
+  updatedAt         DateTime                    @updatedAt
+  createdBy         User?                       @relation("WorkspaceCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  members           WorkspaceMember[]
   visibilityMembers WorkspaceVisibilityMember[]
-  projects       Project[]
-  teleprompterDocs TeleprompterDoc[]
-  invites        WorkspaceInvite[]
-  activityEvents ActivityEvent[]
-  auditLogs      AuditLog[]
+  projects          Project[]
+  teleprompterDocs  TeleprompterDoc[]
+  invites           WorkspaceInvite[]
+  activityEvents    ActivityEvent[]
+  auditLogs         AuditLog[]
 
   @@index([createdById])
 }
@@ -207,12 +207,12 @@ model WorkspaceMember {
 }
 
 model WorkspaceVisibilityMember {
-  id          String      @id @default(cuid())
+  id          String    @id @default(cuid())
   workspaceId String
   userId      String
-  createdAt   DateTime    @default(now())
-  workspace   Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  user        User        @relation("WorkspaceVisibilityUser", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User      @relation("WorkspaceVisibilityUser", fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([workspaceId, userId])
   @@index([workspaceId])
@@ -230,7 +230,7 @@ model WorkspaceInvite {
   createdById String?
   createdAt   DateTime      @default(now())
   workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  createdBy   User?          @relation("InviteCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdBy   User?         @relation("InviteCreator", fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([workspaceId, email])
 }
@@ -271,25 +271,25 @@ model SchoolCalendarDay {
 }
 
 model PlatformAccessRequest {
-  id            String                      @id @default(cuid())
-  email         String                      @unique
-  name          String?
-  status        PlatformAccessRequestStatus @default(PENDING)
-  requestedAt   DateTime                    @default(now())
-  decidedAt     DateTime?
+  id             String                      @id @default(cuid())
+  email          String                      @unique
+  name           String?
+  status         PlatformAccessRequestStatus @default(PENDING)
+  requestedAt    DateTime                    @default(now())
+  decidedAt      DateTime?
   decidedByEmail String?
-  createdAt     DateTime                    @default(now())
-  updatedAt     DateTime                    @updatedAt
+  createdAt      DateTime                    @default(now())
+  updatedAt      DateTime                    @updatedAt
 
   @@index([status, requestedAt])
 }
 
 model Announcement {
-  id          String               @id @default(cuid())
+  id          String                @id @default(cuid())
   content     String
   createdById String?
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
   createdBy   User?                 @relation("AnnouncementAuthor", fields: [createdById], references: [id], onDelete: SetNull)
   mentions    AnnouncementMention[]
   comments    AnnouncementComment[]
@@ -320,7 +320,7 @@ model AnnouncementComment {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
-  author         User?         @relation("AnnouncementCommentAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  author         User?        @relation("AnnouncementCommentAuthor", fields: [authorId], references: [id], onDelete: SetNull)
 
   @@index([announcementId, createdAt])
   @@index([authorId, createdAt])
@@ -377,20 +377,20 @@ model AnnouncementSubmission {
 }
 
 model NotificationPreference {
-  id             String   @id @default(cuid())
-  userId         String   @unique
-  emailEnabled   Boolean  @default(true)
-  notificationEmail String?
-  browserEnabled Boolean  @default(false)
-  emailAnnouncementsEnabled   Boolean @default(true)
-  emailCommentsEnabled        Boolean @default(true)
-  emailGradesEnabled          Boolean @default(false)
-  browserAnnouncementsEnabled Boolean @default(true)
-  browserCommentsEnabled      Boolean @default(true)
-  browserGradesEnabled        Boolean @default(false)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  user           User     @relation("UserNotificationPreference", fields: [userId], references: [id], onDelete: Cascade)
+  id                          String   @id @default(cuid())
+  userId                      String   @unique
+  emailEnabled                Boolean  @default(true)
+  notificationEmail           String?
+  browserEnabled              Boolean  @default(false)
+  emailAnnouncementsEnabled   Boolean  @default(true)
+  emailCommentsEnabled        Boolean  @default(true)
+  emailGradesEnabled          Boolean  @default(false)
+  browserAnnouncementsEnabled Boolean  @default(true)
+  browserCommentsEnabled      Boolean  @default(true)
+  browserGradesEnabled        Boolean  @default(false)
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+  user                        User     @relation("UserNotificationPreference", fields: [userId], references: [id], onDelete: Cascade)
 }
 
 /// An executive producer's drawn signature (Settings → Signature). Prints on Package of the Cycle certificates.
@@ -473,22 +473,22 @@ model IdeaBatch {
 }
 
 model Project {
-  id             String          @id @default(cuid())
-  workspaceId    String
-  name           String
-  description    String?
-  storageBytes   BigInt          @default(0)
-  storageUpdatedAt DateTime?
-  createdById    String?
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  workspace      Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  createdBy      User?            @relation("ProjectCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  mediaItems     MediaItem[]
-  folders        ProjectFolder[]
-  guestLinks     GuestLink[]
-  activityEvents ActivityEvent[]
-  auditLogs      AuditLog[]
+  id                  String               @id @default(cuid())
+  workspaceId         String
+  name                String
+  description         String?
+  storageBytes        BigInt               @default(0)
+  storageUpdatedAt    DateTime?
+  createdById         String?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  workspace           Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy           User?                @relation("ProjectCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  mediaItems          MediaItem[]
+  folders             ProjectFolder[]
+  guestLinks          GuestLink[]
+  activityEvents      ActivityEvent[]
+  auditLogs           AuditLog[]
   packageProgressRows PackageProgressRow[]
 
   @@index([workspaceId, createdAt])
@@ -502,7 +502,7 @@ model ProjectFolder {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  createdBy   User?        @relation("ProjectFolderCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdBy   User?       @relation("ProjectFolderCreator", fields: [createdById], references: [id], onDelete: SetNull)
   mediaItems  MediaItem[]
 
   @@unique([projectId, name])
@@ -520,15 +520,15 @@ model PaScript {
 }
 
 model TeleprompterDoc {
-  id          String               @id @default(cuid())
+  id          String                @id @default(cuid())
   workspaceId String?
   showDate    DateTime?
   title       String
-  orderIndex  Int                  @default(0)
+  orderIndex  Int                   @default(0)
   createdById String?
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
-  workspace   Workspace?           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  workspace   Workspace?            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdBy   User?                 @relation("TeleprompterDocCreator", fields: [createdById], references: [id], onDelete: SetNull)
   sections    TeleprompterSection[]
 
@@ -551,27 +551,27 @@ model TeleprompterSection {
 }
 
 model MediaItem {
-  id               String          @id @default(cuid())
-  projectId        String
-  folderId         String?
-  title            String
-  createdById      String?
-  deletedById      String?
-  deletedAt        DateTime?
-  currentVersionId String?         @unique
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-  project          Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  folder           ProjectFolder?  @relation(fields: [folderId], references: [id], onDelete: SetNull)
-  createdBy        User?            @relation("MediaItemCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  deletedBy        User?           @relation("MediaItemDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
-  versions         MediaVersion[]  @relation("MediaItemVersions")
-  currentVersion   MediaVersion?   @relation("CurrentMediaVersion", fields: [currentVersionId], references: [id], onDelete: SetNull)
+  id                String                   @id @default(cuid())
+  projectId         String
+  folderId          String?
+  title             String
+  createdById       String?
+  deletedById       String?
+  deletedAt         DateTime?
+  currentVersionId  String?                  @unique
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+  project           Project                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  folder            ProjectFolder?           @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  createdBy         User?                    @relation("MediaItemCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  deletedBy         User?                    @relation("MediaItemDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
+  versions          MediaVersion[]           @relation("MediaItemVersions")
+  currentVersion    MediaVersion?            @relation("CurrentMediaVersion", fields: [currentVersionId], references: [id], onDelete: SetNull)
   memberAssignments MediaItemAssignment[]
-  activityEvents   ActivityEvent[]
-  auditLogs        AuditLog[]
-  initialCutForRows PackageProgressRow[] @relation("InitialCutMedia")
-  finalCutForRows   PackageProgressRow[] @relation("FinalCutMedia")
+  activityEvents    ActivityEvent[]
+  auditLogs         AuditLog[]
+  initialCutForRows PackageProgressRow[]     @relation("InitialCutMedia")
+  finalCutForRows   PackageProgressRow[]     @relation("FinalCutMedia")
   approvalSignoffs  PackageApprovalSignoff[] @relation("ApprovalSignoffMedia")
   cycleStageLinks   PackageStageMedia[]
 
@@ -581,13 +581,13 @@ model MediaItem {
 }
 
 model MediaItemAssignment {
-  id         String    @id @default(cuid())
+  id          String    @id @default(cuid())
   mediaItemId String
-  userId     String
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  mediaItem  MediaItem @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  mediaItem   MediaItem @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([mediaItemId, userId])
   @@index([mediaItemId, createdAt])
@@ -621,7 +621,7 @@ model MediaVersion {
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
   mediaItem        MediaItem       @relation("MediaItemVersions", fields: [mediaItemId], references: [id], onDelete: Cascade)
-  createdBy        User?            @relation("MediaVersionCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdBy        User?           @relation("MediaVersionCreator", fields: [createdById], references: [id], onDelete: SetNull)
   comments         ReviewComment[]
   approvalEvents   ApprovalEvent[]
   guestLinks       GuestLink[]
@@ -679,60 +679,60 @@ model CommentMention {
 }
 
 model ApprovalEvent {
-  id            String         @id @default(cuid())
+  id             String         @id @default(cuid())
   mediaVersionId String
-  status        ApprovalStatus
-  note          String?
-  changedById   String?
-  createdAt     DateTime       @default(now())
-  mediaVersion  MediaVersion   @relation(fields: [mediaVersionId], references: [id], onDelete: Cascade)
-  changedBy     User?           @relation("ApprovalActor", fields: [changedById], references: [id], onDelete: SetNull)
+  status         ApprovalStatus
+  note           String?
+  changedById    String?
+  createdAt      DateTime       @default(now())
+  mediaVersion   MediaVersion   @relation(fields: [mediaVersionId], references: [id], onDelete: Cascade)
+  changedBy      User?          @relation("ApprovalActor", fields: [changedById], references: [id], onDelete: SetNull)
 
   @@index([mediaVersionId, createdAt])
   @@index([changedById])
 }
 
 model GuestLink {
-  id            String          @id @default(cuid())
-  token         String          @unique
-  projectId     String?
+  id             String          @id @default(cuid())
+  token          String          @unique
+  projectId      String?
   mediaVersionId String?
-  permission    GuestPermission @default(COMMENT)
-  passcodeHash  String?
-  expiresAt     DateTime?
-  revokedAt     DateTime?
-  createdById   String?
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-  project       Project?        @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  mediaVersion  MediaVersion?   @relation(fields: [mediaVersionId], references: [id], onDelete: Cascade)
-  createdBy     User?            @relation("GuestLinkCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  permission     GuestPermission @default(COMMENT)
+  passcodeHash   String?
+  expiresAt      DateTime?
+  revokedAt      DateTime?
+  createdById    String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  project        Project?        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  mediaVersion   MediaVersion?   @relation(fields: [mediaVersionId], references: [id], onDelete: Cascade)
+  createdBy      User?           @relation("GuestLinkCreator", fields: [createdById], references: [id], onDelete: SetNull)
   activityEvents ActivityEvent[]
-  auditLogs     AuditLog[]
+  auditLogs      AuditLog[]
 
   @@index([projectId])
   @@index([mediaVersionId])
 }
 
 model ActivityEvent {
-  id            String         @id @default(cuid())
-  workspaceId   String
-  projectId     String?
-  mediaItemId   String?
+  id             String         @id @default(cuid())
+  workspaceId    String
+  projectId      String?
+  mediaItemId    String?
   mediaVersionId String?
-  commentId     String?
-  guestLinkId   String?
-  actorId       String?
-  type          String
-  payload       Json?
-  createdAt     DateTime       @default(now())
-  workspace     Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  project       Project?       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  mediaItem     MediaItem?     @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
-  mediaVersion  MediaVersion?  @relation(fields: [mediaVersionId], references: [id], onDelete: Cascade)
-  comment       ReviewComment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  guestLink     GuestLink?     @relation(fields: [guestLinkId], references: [id], onDelete: Cascade)
-  actor         User?          @relation("ActivityActor", fields: [actorId], references: [id], onDelete: SetNull)
+  commentId      String?
+  guestLinkId    String?
+  actorId        String?
+  type           String
+  payload        Json?
+  createdAt      DateTime       @default(now())
+  workspace      Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  project        Project?       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  mediaItem      MediaItem?     @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
+  mediaVersion   MediaVersion?  @relation(fields: [mediaVersionId], references: [id], onDelete: Cascade)
+  comment        ReviewComment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  guestLink      GuestLink?     @relation(fields: [guestLinkId], references: [id], onDelete: Cascade)
+  actor          User?          @relation("ActivityActor", fields: [actorId], references: [id], onDelete: SetNull)
 
   @@index([workspaceId, createdAt])
   @@index([projectId, createdAt])
@@ -743,26 +743,26 @@ model ActivityEvent {
 }
 
 model AuditLog {
-  id            String         @id @default(cuid())
-  workspaceId   String
-  projectId     String?
-  mediaItemId   String?
+  id             String         @id @default(cuid())
+  workspaceId    String
+  projectId      String?
+  mediaItemId    String?
   mediaVersionId String?
-  commentId     String?
-  guestLinkId   String?
-  actorId       String?
-  action        String
-  targetType    String
-  targetId      String
-  metadata      Json?
-  createdAt     DateTime       @default(now())
-  workspace     Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  project       Project?       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  mediaItem     MediaItem?     @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
-  mediaVersion  MediaVersion?  @relation(fields: [mediaVersionId], references: [id], onDelete: Cascade)
-  comment       ReviewComment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  guestLink     GuestLink?     @relation(fields: [guestLinkId], references: [id], onDelete: Cascade)
-  actor         User?          @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  commentId      String?
+  guestLinkId    String?
+  actorId        String?
+  action         String
+  targetType     String
+  targetId       String
+  metadata       Json?
+  createdAt      DateTime       @default(now())
+  workspace      Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  project        Project?       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  mediaItem      MediaItem?     @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
+  mediaVersion   MediaVersion?  @relation(fields: [mediaVersionId], references: [id], onDelete: Cascade)
+  comment        ReviewComment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  guestLink      GuestLink?     @relation(fields: [guestLinkId], references: [id], onDelete: Cascade)
+  actor          User?          @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
 
   @@index([workspaceId, createdAt])
   @@index([targetType, targetId])
@@ -794,6 +794,47 @@ model ShowRolesConfirmation {
   updatedAt      DateTime  @updatedAt
 }
 
+enum AnchorSlotRequestKind {
+  DROP
+  SWAP
+}
+
+enum AnchorSlotRequestStatus {
+  PENDING
+  APPROVED
+  DENIED
+  CANCELLED
+}
+
+/// An anchor asking to drop or swap a show slot. requestedAt records when notice was given (48-hour rule).
+model AnchorSlotRequest {
+  id             String                  @id @default(cuid())
+  showDate       String
+  userId         String
+  kind           AnchorSlotRequestKind
+  swapWithUserId String?
+  reason         String                  @default("")
+  status         AnchorSlotRequestStatus @default(PENDING)
+  lateNotice     Boolean                 @default(false)
+  requestedAt    DateTime                @default(now())
+  decidedAt      DateTime?
+  decidedById    String?
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  @@index([showDate, status])
+  @@index([userId, createdAt])
+}
+
+/// Fixed-window rate-limit counters shared by every Worker isolate.
+model RateLimitBucket {
+  key     String   @id
+  count   Int      @default(0)
+  resetAt DateTime
+
+  @@index([resetAt])
+}
+
 model ShowRolesNonAnchor {
   name      String   @id
   createdAt DateTime @default(now())
@@ -810,14 +851,14 @@ model MasterCalendarEntry {
 }
 
 model MasterCalendarSyncState {
-  id               String   @id @default(cuid())
-  monthKey         String   @unique
-  lastEditedAt     DateTime
-  lastSyncedAt     DateTime?
+  id                String    @id @default(cuid())
+  monthKey          String    @unique
+  lastEditedAt      DateTime
+  lastSyncedAt      DateTime?
   lastSyncAttemptAt DateTime?
-  lastSyncError    String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  lastSyncError     String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   @@index([lastEditedAt])
   @@index([lastSyncedAt])
@@ -854,90 +895,90 @@ model ProgramSetting {
 }
 
 model PackageCycle {
-  id                 String   @id @default(cuid())
-  cycleNumber        Int      @unique
-  focus              String   @default("")
+  id                 String    @id @default(cuid())
+  cycleNumber        Int       @unique
+  focus              String    @default("")
   pitchingDate       DateTime?
   proofOfContactDate DateTime?
   aRollBRollDate     DateTime?
   initialCutDate     DateTime?
   finalCutDate       DateTime?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   @@index([cycleNumber])
 }
 
 model PackageProgressRow {
-  id             String   @id @default(cuid())
-  cycleNumber    Int
-  rowOrder       Int
-  groupMembers   String   @default("")
-  groupTopic     String   @default("")
-  groupType      String   @default("")
-  category       PackageCategory?
+  id                              String                    @id @default(cuid())
+  cycleNumber                     Int
+  rowOrder                        Int
+  groupMembers                    String                    @default("")
+  groupTopic                      String                    @default("")
+  groupType                       String                    @default("")
+  category                        PackageCategory?
   /// Executive-assigned associate producer for this package group.
-  assignedProducerUserId String?
+  assignedProducerUserId          String?
   /// Executive producer responsible for this package group.
   assignedExecutiveProducerUserId String?
-  projectId      String?
+  projectId                       String?
   /// One media item per cut, matching the Initial Cut / Final Cut folders.
   /// The initial cut item carries v1 (initial) and v2 (revised) as versions so
   /// associate producer feedback threads across the revision.
-  initialCutMediaItemId String?
-  finalCutMediaItemId   String?
-  pitching       Boolean  @default(false)
-  proofOfContact Boolean  @default(false)
-  aRollBRoll     Boolean  @default(false)
-  initialCut     Boolean  @default(false)
-  initialCutManual Boolean @default(false)
-  revisedInitialCut Boolean @default(false)
-  finalCut       Boolean  @default(false)
-  finalCutManual Boolean  @default(false)
-  extension      Boolean  @default(false)
+  initialCutMediaItemId           String?
+  finalCutMediaItemId             String?
+  pitching                        Boolean                   @default(false)
+  proofOfContact                  Boolean                   @default(false)
+  aRollBRoll                      Boolean                   @default(false)
+  initialCut                      Boolean                   @default(false)
+  initialCutManual                Boolean                   @default(false)
+  revisedInitialCut               Boolean                   @default(false)
+  finalCut                        Boolean                   @default(false)
+  finalCutManual                  Boolean                   @default(false)
+  extension                       Boolean                   @default(false)
   /// True after stage 1 approve on Initial Cut v1 until a v2 is uploaded.
-  awaitingRevisedInitialCut Boolean @default(false)
+  awaitingRevisedInitialCut       Boolean                   @default(false)
   /// An executive reopened the Final Cut: the group may upload one new version of it. Cleared by that upload.
-  finalCutResubmitAllowed Boolean @default(false)
+  finalCutResubmitAllowed         Boolean                   @default(false)
   /// Set when a producer clicks Send to queue. Null = not on the publishing queue.
-  queuedForAirAt DateTime?
+  queuedForAirAt                  DateTime?
   /// YYYY-MM-DD show this queued package is assigned to. Null when not queued.
-  queuedForShowDate String?
+  queuedForShowDate               String?
   /// Final Cut version that was current (and READY) when a producer queued the package. YouTube publishes
   /// only this version; null when the package was queued before its Final Cut was in.
-  queuedMediaVersionId String?
+  queuedMediaVersionId            String?
   /// Anchor toss the group writes with its Final Cut. Feeds the show teleprompter.
-  finalCutToss   String   @default("")
+  finalCutToss                    String                    @default("")
   /// Set once every Final Cut grader votes for this package. At most 2 per cycle.
-  packageOfCycleAt DateTime?
-  youtubePublication YoutubePublication?
+  packageOfCycleAt                DateTime?
+  youtubePublication              YoutubePublication?
   /// Brainstorm Google Doc for this package (script lives in the same doc later).
-  brainstormDocUrl String @default("")
+  brainstormDocUrl                String                    @default("")
   /// Producer roster notes: people this package might interview.
-  possibleInterviews String @default("")
+  possibleInterviews              String                    @default("")
   /// Producer roster notes: possible package ideas.
-  possibleIdeas String @default("")
+  possibleIdeas                   String                    @default("")
   /// @deprecated Prefer stageNotes / assigned producer. Kept for legacy rows.
-  notes          String   @default("")
-  stageNotes     Json?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  members        PackageProgressMember[]
-  proofOfContacts PackageProofOfContact[]
-  approval       PackageApproval?
-  extensionRequests PackageExtensionRequest[]
-  project        Project?    @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  assignedProducer User? @relation("AssignedPackageProducer", fields: [assignedProducerUserId], references: [id], onDelete: SetNull)
-  assignedExecutiveProducer User? @relation("AssignedPackageExecutive", fields: [assignedExecutiveProducerUserId], references: [id], onDelete: SetNull)
-  initialCutMediaItem MediaItem? @relation("InitialCutMedia", fields: [initialCutMediaItemId], references: [id], onDelete: SetNull)
-  finalCutMediaItem   MediaItem? @relation("FinalCutMedia", fields: [finalCutMediaItemId], references: [id], onDelete: SetNull)
-  stageMedia          PackageStageMedia[]
-  reviewNotices       PackageReviewNotice[]
-  finalCutScores      PackageFinalCutScore[]
-  packageOfCycleVotes PackageOfCycleVote[]
-  stageComments       PackageStageComment[]
-  stageCommentReads   PackageStageCommentRead[]
-  hubChats            HubChat[]
+  notes                           String                    @default("")
+  stageNotes                      Json?
+  createdAt                       DateTime                  @default(now())
+  updatedAt                       DateTime                  @updatedAt
+  members                         PackageProgressMember[]
+  proofOfContacts                 PackageProofOfContact[]
+  approval                        PackageApproval?
+  extensionRequests               PackageExtensionRequest[]
+  project                         Project?                  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  assignedProducer                User?                     @relation("AssignedPackageProducer", fields: [assignedProducerUserId], references: [id], onDelete: SetNull)
+  assignedExecutiveProducer       User?                     @relation("AssignedPackageExecutive", fields: [assignedExecutiveProducerUserId], references: [id], onDelete: SetNull)
+  initialCutMediaItem             MediaItem?                @relation("InitialCutMedia", fields: [initialCutMediaItemId], references: [id], onDelete: SetNull)
+  finalCutMediaItem               MediaItem?                @relation("FinalCutMedia", fields: [finalCutMediaItemId], references: [id], onDelete: SetNull)
+  stageMedia                      PackageStageMedia[]
+  reviewNotices                   PackageReviewNotice[]
+  finalCutScores                  PackageFinalCutScore[]
+  packageOfCycleVotes             PackageOfCycleVote[]
+  stageComments                   PackageStageComment[]
+  stageCommentReads               PackageStageCommentRead[]
+  hubChats                        HubChat[]
 
   @@index([cycleNumber, rowOrder])
   @@index([queuedForAirAt])
@@ -949,27 +990,27 @@ model PackageProgressRow {
 }
 
 model PackageProgressMember {
-  id        String             @id @default(cuid())
-  rowId     String
-  userId    String
+  id                 String             @id @default(cuid())
+  rowId              String
+  userId             String
   /// Exec override of this member's Final Cut late penalty (5/10/15/20/30). Null = automatic.
   latePenaltyPercent Int?
-  createdAt DateTime           @default(now())
-  row       PackageProgressRow @relation(fields: [rowId], references: [id], onDelete: Cascade)
-  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt          DateTime           @default(now())
+  row                PackageProgressRow @relation(fields: [rowId], references: [id], onDelete: Cascade)
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([rowId, userId])
   @@index([userId])
 }
 
 model HubChat {
-  id           String        @id @default(cuid())
+  id           String              @id @default(cuid())
   kind         HubChatKind
   packageRowId String?
   /// DIRECT pair, sorted `userIdA:userIdB`.
   directKey    String?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
   packageRow   PackageProgressRow? @relation(fields: [packageRowId], references: [id], onDelete: Cascade)
   members      HubChatMember[]
   messages     HubChatMessage[]
@@ -1007,15 +1048,15 @@ model HubChatMessage {
 }
 
 model PackageProofOfContact {
-  id               String   @id @default(cuid())
+  id               String             @id @default(cuid())
   rowId            String
   slot             Int
   fileName         String
   mimeType         String
   imageBase64      String
   uploadedByUserId String
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
   row              PackageProgressRow @relation(fields: [rowId], references: [id], onDelete: Cascade)
   uploadedBy       User               @relation("PackageProofUploader", fields: [uploadedByUserId], references: [id], onDelete: Cascade)
 
@@ -1026,22 +1067,22 @@ model PackageProofOfContact {
 
 /// One executive producer's true quality score for a package's final cut.
 model PackageFinalCutScore {
-  id           String   @id @default(cuid())
-  rowId        String
-  graderUserId String
+  id            String             @id @default(cuid())
+  rowId         String
+  graderUserId  String
   /// Group member this score is for. Null = legacy whole-group score out of 50.
-  memberUserId String?
+  memberUserId  String?
   /// Quality + effort (or the legacy whole-group score).
-  points       Float
+  points        Float
   /// Out of 25. Null on legacy whole-group scores.
   qualityPoints Float?
   /// Out of 25. Null on legacy whole-group scores.
-  effortPoints Float?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  row          PackageProgressRow @relation(fields: [rowId], references: [id], onDelete: Cascade)
-  grader       User               @relation("PackageFinalCutGrader", fields: [graderUserId], references: [id], onDelete: Cascade)
-  member       User?              @relation("PackageFinalCutMember", fields: [memberUserId], references: [id], onDelete: Cascade)
+  effortPoints  Float?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  row           PackageProgressRow @relation(fields: [rowId], references: [id], onDelete: Cascade)
+  grader        User               @relation("PackageFinalCutGrader", fields: [graderUserId], references: [id], onDelete: Cascade)
+  member        User?              @relation("PackageFinalCutMember", fields: [memberUserId], references: [id], onDelete: Cascade)
 
   @@unique([rowId, graderUserId, memberUserId])
   @@index([rowId])
@@ -1063,30 +1104,30 @@ model PackageOfCycleVote {
 }
 
 model PackageStageComment {
-  id        String   @id @default(cuid())
-  rowId     String
+  id           String             @id @default(cuid())
+  rowId        String
   /// Group stage slug: pitching | brainstorming | a-roll | initial-cut | final-cut
-  stage     String
-  authorId  String
-  body      String
+  stage        String
+  authorId     String
+  body         String
   /// Set when a group member or the package's producer marks the note handled; null = open.
   resolvedAt   DateTime?
   resolvedById String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  row       PackageProgressRow @relation(fields: [rowId], references: [id], onDelete: Cascade)
-  author    User               @relation("PackageStageCommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  row          PackageProgressRow @relation(fields: [rowId], references: [id], onDelete: Cascade)
+  author       User               @relation("PackageStageCommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([rowId, stage, createdAt])
   @@index([authorId])
 }
 
 model PackageStageCommentRead {
-  id         String   @id @default(cuid())
+  id         String             @id @default(cuid())
   userId     String
   rowId      String
   stage      String
-  lastReadAt DateTime @default(now())
+  lastReadAt DateTime           @default(now())
   user       User               @relation("PackageStageCommentReader", fields: [userId], references: [id], onDelete: Cascade)
   row        PackageProgressRow @relation(fields: [rowId], references: [id], onDelete: Cascade)
 
@@ -1102,40 +1143,40 @@ enum GradeScoreState {
 
 model PackageGrade {
   /// Null preserves normal scoring; explicit states exclude earned and possible points.
-  finalCutState GradeScoreState?
-  pitchingState GradeScoreState?
-  proofOfContactState GradeScoreState?
-  aRollBRollState GradeScoreState?
-  initialCutState GradeScoreState?
-  id           String   @id @default(cuid())
-  cycleNumber  Int
-  userId       String
-  finalCutPoints Float  @default(0)
+  finalCutState           GradeScoreState?
+  pitchingState           GradeScoreState?
+  proofOfContactState     GradeScoreState?
+  aRollBRollState         GradeScoreState?
+  initialCutState         GradeScoreState?
+  id                      String                     @id @default(cuid())
+  cycleNumber             Int
+  userId                  String
+  finalCutPoints          Float                      @default(0)
   /// Averaged executive true score before late penalty. Null = not graded this way.
-  awardedFinalCutPoints Float?
+  awardedFinalCutPoints   Float?
   /// Null uses automatic check-in credit; overrides apply only after the stage deadline.
-  pitchingPoints Float?
-  proofOfContactPoints Float?
-  aRollBRollPoints Float?
-  initialCutPoints Float?
-  previousFinalCutPoints Int?
-  revisionCount Int     @default(0)
-  unrevisedPenaltyApplied Boolean @default(false)
-  effortPoints Int      @default(0)
-  teamworkPoints Int    @default(0)
-  previousEffortPoints Int?
-  previousTeamworkPoints Int?
-  revisedAt    DateTime?
-  feedback     String   @default("")
-  turnedInDate DateTime?
-  extensionDaysApplied Int @default(0)
-  freeExtensionDays Int @default(0)
-  extensionExempt Boolean @default(false)
-  publishedAt  DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  publicationHistory PackageGradeHistoryEvent[]
+  pitchingPoints          Float?
+  proofOfContactPoints    Float?
+  aRollBRollPoints        Float?
+  initialCutPoints        Float?
+  previousFinalCutPoints  Int?
+  revisionCount           Int                        @default(0)
+  unrevisedPenaltyApplied Boolean                    @default(false)
+  effortPoints            Int                        @default(0)
+  teamworkPoints          Int                        @default(0)
+  previousEffortPoints    Int?
+  previousTeamworkPoints  Int?
+  revisedAt               DateTime?
+  feedback                String                     @default("")
+  turnedInDate            DateTime?
+  extensionDaysApplied    Int                        @default(0)
+  freeExtensionDays       Int                        @default(0)
+  extensionExempt         Boolean                    @default(false)
+  publishedAt             DateTime?
+  createdAt               DateTime                   @default(now())
+  updatedAt               DateTime                   @updatedAt
+  user                    User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  publicationHistory      PackageGradeHistoryEvent[]
 
   @@unique([cycleNumber, userId])
   @@index([cycleNumber, publishedAt])
@@ -1235,15 +1276,15 @@ enum ParticipationGradeRequestStatus {
 /// A producer-submitted batch of participation scores. Live ParticipationEntry
 /// rows are written only after a *different* producer approves.
 model ParticipationGradeRequest {
-  id            String                           @id @default(cuid())
+  id            String                          @id @default(cuid())
   requestedById String
-  status        ParticipationGradeRequestStatus  @default(PENDING)
+  status        ParticipationGradeRequestStatus @default(PENDING)
   reviewedById  String?
   reviewedAt    DateTime?
-  createdAt     DateTime                         @default(now())
-  updatedAt     DateTime                         @updatedAt
-  requestedBy   User                             @relation("ParticipationGradeRequester", fields: [requestedById], references: [id], onDelete: Cascade)
-  reviewedBy    User?                            @relation("ParticipationGradeReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  createdAt     DateTime                        @default(now())
+  updatedAt     DateTime                        @updatedAt
+  requestedBy   User                            @relation("ParticipationGradeRequester", fields: [requestedById], references: [id], onDelete: Cascade)
+  reviewedBy    User?                           @relation("ParticipationGradeReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
   items         ParticipationGradeRequestItem[]
 
   @@index([status, createdAt])
@@ -1266,12 +1307,19 @@ model ParticipationGradeRequestItem {
 
 model PortfolioGrade {
   id        String   @id @default(cuid())
-  userId    String   @unique
-  points    Int      @default(0)
+  userId    String
+  /// Semester label from semesterForDate(), e.g. "2026-27 S1".
+  semester  String
+  /// Null until graded (a student can submit a link first).
+  points    Int?
   feedback  String   @default("")
+  /// Optional link the student submits for this semester's portfolio.
+  link      String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User     @relation("PortfolioSubject", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, semester])
 }
 
 enum ExtensionRequestStatus {
@@ -1281,28 +1329,28 @@ enum ExtensionRequestStatus {
 }
 
 model PackageExtensionRequest {
-  id            String                     @id @default(cuid())
-  userId        String
+  id              String                          @id @default(cuid())
+  userId          String
   /// Package group this request covers. Null only for legacy pre-group rows.
-  progressRowId String?
-  cycleNumber   Int
+  progressRowId   String?
+  cycleNumber     Int
   /// Days requested, to one decimal place (1.5 = 36 hours).
-  requestedDays Float
+  requestedDays   Float
   /// Days the first approving producer granted. Null means requestedDays (legacy rows).
-  grantedDays   Float?
+  grantedDays     Float?
   /// Members the extension covers. Empty means the whole group.
-  grantedUserIds String[]                  @default([])
+  grantedUserIds  String[]                        @default([])
   /// An exec granted this directly: no member agreement, and a second exec must approve.
-  producerGranted Boolean                  @default(false)
-  reason        String                     @default("")
-  status        ExtensionRequestStatus     @default(PENDING)
-  decidedAt     DateTime?
-  createdAt     DateTime                   @default(now())
-  updatedAt     DateTime                   @updatedAt
-  user          User                       @relation("ExtensionRequester", fields: [userId], references: [id], onDelete: Cascade)
-  progressRow   PackageProgressRow?        @relation(fields: [progressRowId], references: [id], onDelete: Cascade)
-  approvals     PackageExtensionApproval[]
-  memberConsents PackageExtensionMemberConsent[]
+  producerGranted Boolean                         @default(false)
+  reason          String                          @default("")
+  status          ExtensionRequestStatus          @default(PENDING)
+  decidedAt       DateTime?
+  createdAt       DateTime                        @default(now())
+  updatedAt       DateTime                        @updatedAt
+  user            User                            @relation("ExtensionRequester", fields: [userId], references: [id], onDelete: Cascade)
+  progressRow     PackageProgressRow?             @relation(fields: [progressRowId], references: [id], onDelete: Cascade)
+  approvals       PackageExtensionApproval[]
+  memberConsents  PackageExtensionMemberConsent[]
 
   @@index([userId, cycleNumber])
   @@index([progressRowId, cycleNumber])
@@ -1364,11 +1412,11 @@ enum PackageGradeHistoryEventType {
 }
 
 model PackageGradeHistoryEvent {
-  id            String                      @id @default(cuid())
+  id             String                       @id @default(cuid())
   packageGradeId String
-  eventType     PackageGradeHistoryEventType
-  occurredAt    DateTime                    @default(now())
-  packageGrade  PackageGrade                @relation(fields: [packageGradeId], references: [id], onDelete: Cascade)
+  eventType      PackageGradeHistoryEventType
+  occurredAt     DateTime                     @default(now())
+  packageGrade   PackageGrade                 @relation(fields: [packageGradeId], references: [id], onDelete: Cascade)
 
   @@index([packageGradeId, occurredAt])
 }
@@ -1414,31 +1462,31 @@ enum EquipmentCheckoutStatus {
 }
 
 model EquipmentSetting {
-  id                 String   @id @default(cuid())
+  id                   String   @id @default(cuid())
   checkoutPasscodeHash String?
-  adminEmails        Json?
-  metadata           Json?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  adminEmails          Json?
+  metadata             Json?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   @@map("equipment_settings")
 }
 
 model EquipmentStudent {
-  id            String               @id @default(cuid())
-  studentId     String               @unique
-  name          String?
-  email         String?
-  firstName     String?
-  lastName      String?
-  lastSyncedAt  DateTime?
-  createdAt     DateTime             @default(now())
-  updatedAt     DateTime             @updatedAt
-  checkedOutItems EquipmentItem[]    @relation("EquipmentItemCheckedOutBy")
-  heldItems     EquipmentItem[]      @relation("EquipmentItemOnHoldFor")
-  checkouts     EquipmentCheckout[]
-  requests      EquipmentRequest[]
-  reservations  EquipmentReservation[]
+  id              String                 @id @default(cuid())
+  studentId       String                 @unique
+  name            String?
+  email           String?
+  firstName       String?
+  lastName        String?
+  lastSyncedAt    DateTime?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  checkedOutItems EquipmentItem[]        @relation("EquipmentItemCheckedOutBy")
+  heldItems       EquipmentItem[]        @relation("EquipmentItemOnHoldFor")
+  checkouts       EquipmentCheckout[]
+  requests        EquipmentRequest[]
+  reservations    EquipmentReservation[]
 
   @@index([email])
   @@map("equipment_students")
@@ -1457,21 +1505,21 @@ model EquipmentItemGroup {
 }
 
 model EquipmentItem {
-  id                 String                   @id @default(cuid())
+  id                 String                     @id @default(cuid())
   name               String
-  barcode            String                   @unique
+  barcode            String                     @unique
   retailValueCents   Int?
-  checkedOut         Boolean                  @default(false)
+  checkedOut         Boolean                    @default(false)
   checkedOutById     String?
   checkedOutAt       DateTime?
   onHoldForStudentId String?
   holdRequestId      String?
   metadata           Json?
   archivedAt         DateTime?
-  createdAt          DateTime                 @default(now())
-  updatedAt          DateTime                 @updatedAt
-  checkedOutBy       EquipmentStudent?        @relation("EquipmentItemCheckedOutBy", fields: [checkedOutById], references: [id], onDelete: SetNull)
-  onHoldForStudent   EquipmentStudent?        @relation("EquipmentItemOnHoldFor", fields: [onHoldForStudentId], references: [id], onDelete: SetNull)
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+  checkedOutBy       EquipmentStudent?          @relation("EquipmentItemCheckedOutBy", fields: [checkedOutById], references: [id], onDelete: SetNull)
+  onHoldForStudent   EquipmentStudent?          @relation("EquipmentItemOnHoldFor", fields: [onHoldForStudentId], references: [id], onDelete: SetNull)
   checkouts          EquipmentCheckout[]
   requestItems       EquipmentRequestItem[]
   reservationItems   EquipmentReservationItem[]
@@ -1484,21 +1532,21 @@ model EquipmentItem {
 }
 
 model EquipmentCheckout {
-  id                String                 @id @default(cuid())
-  studentIdRef      String
-  itemId            String
-  status            EquipmentCheckoutStatus @default(CHECKED_OUT)
-  checkoutAt        DateTime               @default(now())
-  returnAt          DateTime?
-  dueAt             DateTime?
-  lateReminderSent  Boolean                @default(false)
+  id                 String                  @id @default(cuid())
+  studentIdRef       String
+  itemId             String
+  status             EquipmentCheckoutStatus @default(CHECKED_OUT)
+  checkoutAt         DateTime                @default(now())
+  returnAt           DateTime?
+  dueAt              DateTime?
+  lateReminderSent   Boolean                 @default(false)
   lastLateReminderAt DateTime?
-  fineWarningSent   Boolean                @default(false)
-  metadata          Json?
-  createdAt         DateTime               @default(now())
-  updatedAt         DateTime               @updatedAt
-  student           EquipmentStudent       @relation(fields: [studentIdRef], references: [id], onDelete: Restrict)
-  item              EquipmentItem          @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  fineWarningSent    Boolean                 @default(false)
+  metadata           Json?
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+  student            EquipmentStudent        @relation(fields: [studentIdRef], references: [id], onDelete: Restrict)
+  item               EquipmentItem           @relation(fields: [itemId], references: [id], onDelete: Restrict)
 
   @@index([studentIdRef, checkoutAt])
   @@index([itemId, checkoutAt])
@@ -1507,18 +1555,21 @@ model EquipmentCheckout {
 }
 
 model EquipmentRequest {
-  id             String                 @id @default(cuid())
-  studentIdRef   String
-  email          String
-  status         EquipmentRequestStatus @default(PENDING)
-  note           String?
-  processedBy    String?
-  processedAt    DateTime?
-  metadata       Json?
-  createdAt      DateTime               @default(now())
-  updatedAt      DateTime               @updatedAt
-  student        EquipmentStudent       @relation(fields: [studentIdRef], references: [id], onDelete: Restrict)
-  items          EquipmentRequestItem[]
+  id           String                 @id @default(cuid())
+  studentIdRef String
+  email        String
+  status       EquipmentRequestStatus @default(PENDING)
+  note         String?
+  /// When the student plans to pick the gear up and bring it back.
+  pickupAt     DateTime?
+  returnAt     DateTime?
+  processedBy  String?
+  processedAt  DateTime?
+  metadata     Json?
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+  student      EquipmentStudent       @relation(fields: [studentIdRef], references: [id], onDelete: Restrict)
+  items        EquipmentRequestItem[]
 
   @@index([studentIdRef, createdAt])
   @@index([status, createdAt])
@@ -1526,15 +1577,15 @@ model EquipmentRequest {
 }
 
 model EquipmentRequestItem {
-  id          String            @id @default(cuid())
-  requestId   String
-  itemId      String
-  approved    Boolean?
-  denied      Boolean?
+  id           String           @id @default(cuid())
+  requestId    String
+  itemId       String
+  approved     Boolean?
+  denied       Boolean?
   deniedReason String?
-  createdAt   DateTime          @default(now())
-  request     EquipmentRequest  @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  item        EquipmentItem     @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  createdAt    DateTime         @default(now())
+  request      EquipmentRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  item         EquipmentItem    @relation(fields: [itemId], references: [id], onDelete: Restrict)
 
   @@unique([requestId, itemId])
   @@index([itemId])
@@ -1542,21 +1593,21 @@ model EquipmentRequestItem {
 }
 
 model EquipmentReservation {
-  id             String                     @id @default(cuid())
-  studentIdRef   String
-  studentName    String
-  email          String
-  pickupAt       DateTime
-  returnAt       DateTime
-  status         EquipmentReservationStatus @default(PENDING)
-  reason         String?
-  processedBy    String?
-  processedAt    DateTime?
-  metadata       Json?
-  createdAt      DateTime                   @default(now())
-  updatedAt      DateTime                   @updatedAt
-  student        EquipmentStudent           @relation(fields: [studentIdRef], references: [id], onDelete: Restrict)
-  items          EquipmentReservationItem[]
+  id           String                     @id @default(cuid())
+  studentIdRef String
+  studentName  String
+  email        String
+  pickupAt     DateTime
+  returnAt     DateTime
+  status       EquipmentReservationStatus @default(PENDING)
+  reason       String?
+  processedBy  String?
+  processedAt  DateTime?
+  metadata     Json?
+  createdAt    DateTime                   @default(now())
+  updatedAt    DateTime                   @updatedAt
+  student      EquipmentStudent           @relation(fields: [studentIdRef], references: [id], onDelete: Restrict)
+  items        EquipmentReservationItem[]
 
   @@index([studentIdRef, pickupAt])
   @@index([status, pickupAt])
@@ -1588,13 +1639,13 @@ model EquipmentAdminUser {
 }
 
 model EquipmentAuditLog {
-  id          String   @id @default(cuid())
-  actor       String?
-  action      String
-  targetType  String?
-  targetId    String?
-  metadata    Json?
-  createdAt   DateTime @default(now())
+  id         String   @id @default(cuid())
+  actor      String?
+  action     String
+  targetType String?
+  targetId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
 
   @@index([createdAt])
   @@index([targetType, targetId])
@@ -1636,24 +1687,24 @@ enum LivestreamSignupStatus {
 
 /// One livestream / production event on the master schedule.
 model LivestreamEvent {
-  id            String                  @id @default(cuid())
+  id            String                    @id @default(cuid())
   title         String
   /// When the event itself begins. Thumbnails, countdowns and public listings read this.
   startsAt      DateTime
   /// When the crew should arrive. Null on events saved before the field existed.
   arrivesAt     DateTime?
-  location      String                  @default("")
-  status        LivestreamEventStatus   @default(SCHEDULED)
-  availability  LivestreamAvailability  @default(UNCONFIRMED)
+  location      String                    @default("")
+  status        LivestreamEventStatus     @default(SCHEDULED)
+  availability  LivestreamAvailability    @default(UNCONFIRMED)
   /// Credit hours awarded to each confirmed attendee when status is COMPLETED.
   hours         Float?
   /// Open crew slots (default 4). Used for full / 1 left / 2+ capacity colours.
-  capacity      Int                     @default(4)
-  notes         String                  @default("")
+  capacity      Int                       @default(4)
+  notes         String                    @default("")
   managerUserId String?
-  createdAt     DateTime                @default(now())
-  updatedAt     DateTime                @updatedAt
-  manager       User?                   @relation("LivestreamEventManager", fields: [managerUserId], references: [id], onDelete: SetNull)
+  createdAt     DateTime                  @default(now())
+  updatedAt     DateTime                  @updatedAt
+  manager       User?                     @relation("LivestreamEventManager", fields: [managerUserId], references: [id], onDelete: SetNull)
   attendees     LivestreamAttendee[]
   signups       LivestreamSignupRequest[]
   graphics      LivestreamGraphics?
@@ -1681,12 +1732,12 @@ model LivestreamGraphics {
 model LivestreamAttendee {
   /// Null uses the event default; zero removes individual credit.
   creditHours Float?
-  id        String          @id @default(cuid())
-  eventId   String
-  userId    String
-  createdAt DateTime        @default(now())
-  event     LivestreamEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String          @id @default(cuid())
+  eventId     String
+  userId      String
+  createdAt   DateTime        @default(now())
+  event       LivestreamEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([eventId, userId])
   @@index([userId])
@@ -1717,37 +1768,37 @@ model YoutubeCredential {
 
 /// One upload per package. Snapshot the source so retries never switch video versions.
 model YoutubePublication {
-  id              String   @id @default(cuid())
-  rowId           String   @unique
-  status          String   @default("UPLOADING")
-  title           String
-  showDate        String
-  mediaVersionId  String
-  channelId       String
-  sourceSize      BigInt?
+  id                  String                    @id @default(cuid())
+  rowId               String                    @unique
+  status              String                    @default("UPLOADING")
+  title               String
+  showDate            String
+  mediaVersionId      String
+  channelId           String
+  sourceSize          BigInt?
   /// Secret resumable session URL. Never expose via APIs, logs, or Inngest step results.
-  uploadSessionUrl String?
-  videoId         String?  @unique
-  publishedAt     DateTime?
-  lastError       String?
+  uploadSessionUrl    String?
+  videoId             String?                   @unique
+  publishedAt         DateTime?
+  lastError           String?
   /// infocusnews.tv story: null = not posted automatically (WordPress unset), PENDING, POSTED, FAILED.
   wordpressStatus     String?
   wordpressPostId     Int?
   wordpressMediaId    Int?
   wordpressCategoryId Int?
   wordpressUrl        String?
-  wordpressAttempts   Int      @default(0)
+  wordpressAttempts   Int                       @default(0)
   wordpressError      String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  row             PackageProgressRow @relation(fields: [rowId], references: [id], onDelete: Cascade)
-  emails          YoutubePublicationEmail[]
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+  row                 PackageProgressRow        @relation(fields: [rowId], references: [id], onDelete: Cascade)
+  emails              YoutubePublicationEmail[]
 
   @@index([status])
 }
 
 model YoutubePublicationEmail {
-  id              String   @id @default(cuid())
+  id              String             @id @default(cuid())
   publicationId   String
   recipient       String
   recipientUserId String
@@ -1915,17 +1966,17 @@ model ShowEditorDevice {
 
 /// Editor settings producers change on The Show (one row). Null falls back to the SHOW_EDITOR_* env vars.
 model ShowEditorSettings {
-  id            String   @id @default("editor")
-  autoStart     Boolean?
-  autoPublish   Boolean?
+  id                   String    @id @default("editor")
+  autoStart            Boolean?
+  autoPublish          Boolean?
   /// Release tag the editor installs (e.g. "v0.3.1"); null follows the newest release.
-  targetVersion String?
+  targetVersion        String?
   /// Order the editor tries AI subscriptions in, e.g. ["claude", "codex"].
-  agentOrder    Json?
+  agentOrder           Json?
   /// House rules the editor follows instead of asking; null uses the editor's built-in default.
-  houseRules    String?
-  updatedById   String?
-  updatedAt     DateTime @updatedAt
+  houseRules           String?
+  updatedById          String?
+  updatedAt            DateTime  @updatedAt
   /// Auto-start looks at Drive at most every 5 minutes (from any machine's heartbeat).
   lastAutoStartCheckAt DateTime?
 }
@@ -2005,31 +2056,33 @@ model LivestreamSignupRequest {
 }
 
 model EquipmentPasskey {
-  id        String @id
-  userId    String
-  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  publicKey Bytes
-  counter   BigInt @default(0)
-  label     String
-  createdAt DateTime @default(now())
+  id         String    @id
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  publicKey  Bytes
+  counter    BigInt    @default(0)
+  label      String
+  createdAt  DateTime  @default(now())
   lastUsedAt DateTime?
+
   @@index([userId])
 }
 
 model EquipmentPasskeyChallenge {
-  id        String @id
+  id        String   @id
   challenge String
   purpose   String
   origin    String
   userId    String?
   expiresAt DateTime
+
   @@index([expiresAt])
 }
 
 /// Shared producer password vault. Secrets are AES-256-GCM ciphertext
 /// (src/lib/vault-crypto.ts, PASSWORD_VAULT_KEY); only name and url are plain.
 model VaultEntry {
-  id             String   @id
+  id             String            @id
   name           String
   url            String?
   usernameCipher String?
@@ -2038,8 +2091,8 @@ model VaultEntry {
   notesCipher    String?
   createdById    String?
   updatedById    String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
   shares         VaultEntryShare[]
 
   @@index([name])
@@ -2111,22 +2164,22 @@ enum MeetingAccess {
 
 /// Producer video meeting (E2EE room on the meeting-room Worker; notes by the Drive Scribe).
 model Meeting {
-  id               String   @id @default(cuid())
+  id               String               @id @default(cuid())
   title            String
   startsAt         DateTime
-  durationMinutes  Int      @default(60)
+  durationMinutes  Int                  @default(60)
   /// "producers" for the default recurring series; null for one-off meetings.
   seriesKey        String?
   /// Pacific date key of the slot the series generated (never changes when moved).
   occurrenceKey    String?
-  status           MeetingStatus @default(SCHEDULED)
-  access           MeetingAccess @default(OPEN)
+  status           MeetingStatus        @default(SCHEDULED)
+  access           MeetingAccess        @default(OPEN)
   createdById      String?
   /// OPEN: who gets the start push (empty = all producers). INVITE_ONLY: the only producers (besides the creator) allowed in.
-  inviteeUserIds   String[] @default([])
-  quickAccess      Boolean  @default(false)
-  notesEnabled     Boolean  @default(true)
-  keyEpoch         Int      @default(0)
+  inviteeUserIds   String[]             @default([])
+  quickAccess      Boolean              @default(false)
+  notesEnabled     Boolean              @default(true)
+  keyEpoch         Int                  @default(0)
   /// AES-256-GCM (key derived from APP_AUTH_SECRET) of the current 32-byte meeting key. Cleared when the meeting ends.
   keyCiphertext    String?
   startedAt        DateTime?
@@ -2134,33 +2187,33 @@ model Meeting {
   /// How it ended. EMPTY (everyone left) can be reopened for 15 minutes; HOST and STALE are final.
   endedReason      MeetingEndReason?
   /// Bumped on each reopen; room tickets carry it so the room tells the runs apart.
-  roomGeneration   Int      @default(0)
+  roomGeneration   Int                  @default(0)
   /// Unused since 2026-10-04 (replaced by the 15- and 5-minute reminders).
   startNotifiedAt  DateTime?
   /// Push reminders claimed (15 and 5 minutes before startsAt). Cleared when the meeting moves.
   reminder15SentAt DateTime?
   reminder5SentAt  DateTime?
   /// > 0: this one-off meeting gets a Google Calendar event (it was scheduled ahead). Name kept from the .ics era.
-  calendarSequence Int      @default(0)
+  calendarSequence Int                  @default(0)
   /// Its Google Calendar event (one-off meetings only).
   googleEventId    String?
-  notesStatus      MeetingNotesStatus @default(NONE)
-  notesSummary     String?  @db.Text
+  notesStatus      MeetingNotesStatus   @default(NONE)
+  notesSummary     String?              @db.Text
   /// Drive folder holding transcript.md / transcript.json / summary.md.
   notesDrivePath   String?
   /// Every READY notes part's Drive folder, in order (a long or restarted meeting has several).
-  notesDrivePaths  String[] @default([])
+  notesDrivePaths  String[]             @default([])
   /// The current Scribe session ("part"), 1 for the first; callbacks for older parts don't change notesStatus.
-  notesPart        Int      @default(0)
+  notesPart        Int                  @default(0)
   /// When notesStatus last changed (stuck PROCESSING/RECORDING sweeper).
   notesStatusAt    DateTime?
   /// Why notes FAILED, when the Portal marked them (e.g. stuck processing).
   notesError       String?
   /// Last Scribe start (restarts are at most one per 10 minutes).
   scribeStartedAt  DateTime?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  createdBy        User?    @relation("MeetingCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  createdBy        User?                @relation("MeetingCreator", fields: [createdById], references: [id], onDelete: SetNull)
   participants     MeetingParticipant[]
   agendaItems      MeetingAgendaItem[]
 
@@ -2170,18 +2223,18 @@ model Meeting {
 }
 
 model MeetingParticipant {
-  id            String   @id @default(cuid())
+  id            String                  @id @default(cuid())
   meetingId     String
   userId        String
   state         MeetingParticipantState @default(WAITING)
   /// The room handed host to them after the last host left (they host the rest of the meeting).
-  promotedHost  Boolean  @default(false)
-  firstJoinedAt DateTime @default(now())
-  lastJoinedAt  DateTime @default(now())
+  promotedHost  Boolean                 @default(false)
+  firstJoinedAt DateTime                @default(now())
+  lastJoinedAt  DateTime                @default(now())
   removedAt     DateTime?
-  updatedAt     DateTime @updatedAt
-  meeting       Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
-  user          User     @relation("MeetingParticipants", fields: [userId], references: [id], onDelete: Cascade)
+  updatedAt     DateTime                @updatedAt
+  meeting       Meeting                 @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user          User                    @relation("MeetingParticipants", fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([meetingId, userId])
   @@index([userId])
@@ -2209,16 +2262,16 @@ model MeetingAgendaItem {
 
 /// Email addresses that get calendar invites (.ics) for a meeting series.
 model MeetingInviteEmail {
-  id             String    @id @default(cuid())
-  seriesKey      String    @default("producers")
+  id            String    @id @default(cuid())
+  seriesKey     String    @default("producers")
   /// Lowercased.
-  email          String
-  name           String?
-  addedById      String?
+  email         String
+  name          String?
+  addedById     String?
   /// The producer this address belongs to (invite-only meetings email only their people).
-  userId         String?
-  createdAt      DateTime  @default(now())
-  lastInvitedAt  DateTime?
+  userId        String?
+  createdAt     DateTime  @default(now())
+  lastInvitedAt DateTime?
 
   @@unique([seriesKey, email])
   @@unique([seriesKey, userId])
@@ -2251,27 +2304,27 @@ model GoogleCalendarCredential {
 
 /// Thanksgiving leaderboard: what one person caught during one November (src/server/thanksgiving-scores.ts).
 model ThanksgivingScore {
-  id           String   @id @default(cuid())
-  userId       String
-  year         Int
-  leaves       Int      @default(0)
-  pies         Int      @default(0)
-  wishbones    Int      @default(0)
+  id              String    @id @default(cuid())
+  userId          String
+  year            Int
+  leaves          Int       @default(0)
+  pies            Int       @default(0)
+  wishbones       Int       @default(0)
   /// Giant turkeys that walked in on their own (a typed "gobble" doesn't count).
-  giantTurkeys Int      @default(0)
-  pardons      Int      @default(0)
+  giantTurkeys    Int       @default(0)
+  pardons         Int       @default(0)
   /// Golden leaves: rare, worth 5 points each (src/lib/thanksgiving-board.ts KIND_POINTS).
-  goldenLeaves Int      @default(0)
+  goldenLeaves    Int       @default(0)
   /// Extra points from catches made during harvest hour, when everything counts double.
-  bonus        Int      @default(0)
+  bonus           Int       @default(0)
   /// Set when the cheat checks (src/lib/thanksgiving-guard.ts) or an exec flag the account: off the board, can't win.
-  flaggedAt    DateTime?
-  flagReason   String?
+  flaggedAt       DateTime?
+  flagReason      String?
   /// An exec cleared the flag; only rejections after this count toward a new one.
   reviewClearedAt DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, year])
   @@index([year])
@@ -2304,13 +2357,13 @@ model ThanksgivingCatch {
 
 /// The Thanksgiving leaderboard contest's result, written once when it closes (src/server/thanksgiving-contest.ts).
 model ThanksgivingContest {
-  year          Int      @id
+  year          Int       @id
   /// Everyone ranked first at the close (more than one only on an exact tie).
-  winnerUserIds String[] @default([])
-  winningTotal  Int      @default(0)
+  winnerUserIds String[]  @default([])
+  winningTotal  Int       @default(0)
   /// The pre-approved prize extensions created for (or given away by) the winners.
-  grantIds      String[] @default([])
-  settledAt     DateTime @default(now())
+  grantIds      String[]  @default([])
+  settledAt     DateTime  @default(now())
   /// When the winner was announced and the prize granted (src/server/thanksgiving-contest.ts); null until then.
   revealedAt    DateTime?
 }

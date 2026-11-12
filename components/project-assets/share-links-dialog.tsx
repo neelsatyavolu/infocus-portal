@@ -94,7 +94,8 @@ export default function ShareLinksDialog({
       });
 
       if (!response.ok) {
-        fail("Failed to create share link.");
+        const failure = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
+        fail(failure?.error?.message || "Failed to create share link.");
         return;
       }
 

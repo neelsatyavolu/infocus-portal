@@ -1,14 +1,21 @@
 import {
+  AbortMultipartUploadCommand,
+  CompleteMultipartUploadCommand,
+  CreateMultipartUploadCommand,
   DeleteObjectsCommand,
   GetObjectCommand,
   ListObjectsV2Command,
   PutObjectCommand,
-  S3Client
+  S3Client,
+  UploadPartCommand
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import {
+  BACKUP_PART_BYTES,
+  createPartSplitter,
   type BackupObject,
   type BackupStore,
+  type BackupUpload,
   type R2BackupConfig,
   LATEST_BACKUP_KEY,
   isHubBackupDumpKey,
@@ -68,6 +75,9 @@ export function createR2Store(config: R2BackupConfig): R2BackupStore {
         })
       );
     },
+    upload(key, contentType) {
+      return createMultipartUpload(client, bucket, key, contentType);
+    },
     async delete(keys) {
       if (keys.length === 0) return;
       await client.send(
@@ -102,6 +112,65 @@ export function createR2Store(config: R2BackupConfig): R2BackupStore {
         }),
         { expiresIn: expiresSeconds }
       );
+    }
+  };
+}
+
+/**
+ * Streams an object to R2: equal-size parts go up as they fill, so memory holds about one part.
+ * A dump smaller than one part is a single PutObject.
+ */
+function createMultipartUpload(client: S3Client, bucket: string, key: string, contentType: string): BackupUpload {
+  let uploadId: string | null = null;
+  const parts: Array<{ ETag: string; PartNumber: number }> = [];
+
+  const sendPart = async (body: Uint8Array) => {
+    if (!uploadId) {
+      const created = await client.send(
+        new CreateMultipartUploadCommand({ Bucket: bucket, Key: key, ContentType: contentType })
+      );
+      if (!created.UploadId) throw new Error("R2 did not start the multipart upload");
+      uploadId = created.UploadId;
+    }
+    const PartNumber = parts.length + 1;
+    const result = await client.send(
+      new UploadPartCommand({
+        Bucket: bucket,
+        Key: key,
+        UploadId: uploadId,
+        PartNumber,
+        Body: body,
+        ContentLength: body.length
+      })
+    );
+    if (!result.ETag) throw new Error(`R2 returned no ETag for part ${PartNumber}`);
+    parts.push({ ETag: result.ETag, PartNumber });
+  };
+  const splitter = createPartSplitter(BACKUP_PART_BYTES, sendPart);
+
+  return {
+    write: (chunk) => splitter.push(chunk),
+    async complete() {
+      const rest = splitter.rest();
+      if (!uploadId) {
+        await client.send(
+          new PutObjectCommand({ Bucket: bucket, Key: key, Body: rest, ContentType: contentType, ContentLength: rest.length })
+        );
+        return;
+      }
+      if (rest.length > 0) await sendPart(rest);
+      await client.send(
+        new CompleteMultipartUploadCommand({
+          Bucket: bucket,
+          Key: key,
+          UploadId: uploadId,
+          MultipartUpload: { Parts: parts }
+        })
+      );
+    },
+    async abort() {
+      if (!uploadId) return;
+      await client.send(new AbortMultipartUploadCommand({ Bucket: bucket, Key: key, UploadId: uploadId }));
     }
   };
 }

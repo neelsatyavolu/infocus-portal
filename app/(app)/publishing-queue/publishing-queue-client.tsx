@@ -8,6 +8,7 @@ import { Panel } from "@/components/kit/panel";
 import { SectionHeader } from "@/components/kit/section";
 import { Spinner } from "@/components/kit/spinner";
 import { CountBadge, StatusTag } from "@/components/kit/status-tag";
+import { ExportCsvButton } from "@/components/kit/export-csv-button";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { MAX_PACKAGES_PER_SHOW } from "@/src/lib/publishing-queue";
@@ -189,6 +190,7 @@ export default function PublishingQueueClient({
                 <span className="font-mono-broadcast text-xs tabular-nums text-muted-foreground">{view.past.length}</span>
               ) : null}
             </Button>
+            <ExportCsvButton href="/api/package-cycle/queue/export" title="Every queued package, past shows included" />
             {canEdit ? (
               <Button type="button" onClick={openAdd}>
                 <Plus aria-hidden />

@@ -36,8 +36,12 @@ export function handleRouteError(error: unknown) {
       return fail("Something went wrong on the server. Try again.", 500);
     }
 
+    // Routes throw friendly messages on purpose, so the message still goes back; log it too so
+    // anything unexpected shows up in Workers Logs.
+    console.error("Unhandled route error", { name: error.name, message: error.message, stack: error.stack });
     return fail(error.message, 400);
   }
 
+  console.error("Unhandled non-Error route failure", error);
   return fail("Unexpected server error", 500);
 }

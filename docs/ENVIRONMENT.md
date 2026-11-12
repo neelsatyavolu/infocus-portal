@@ -8,7 +8,7 @@ Put these in `.env` (never commit it). Only the **Required** group is needed to 
 |---|---|
 | `DATABASE_URL` | Postgres connection string |
 | `DIRECT_URL` | Direct (non-pooled) Postgres URL for Prisma, if you use a pooler |
-| `APP_AUTH_SECRET` | Long random string; signs session JWTs |
+| `APP_AUTH_SECRET` | Long random string; signs session JWTs. Personal calendar feed links (`/api/calendar/<token>.ics`) are signed with a key derived from it (label `infocus-calendar-feed/v1`), so changing it breaks every subscribed calendar link |
 | `APP_BASE_URL`, `NEXT_PUBLIC_APP_URL` | e.g. `http://localhost:3000` |
 | `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` | Google sign-in |
 

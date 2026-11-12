@@ -256,6 +256,6 @@ describe("equipment manage routes", () => {
     );
 
     expect(response.status).toBe(409);
-    expect(mocks.denyRequest).toHaveBeenCalledWith("req_1");
+    expect(mocks.denyRequest).toHaveBeenCalledWith("req_1", { reason: undefined, itemReasons: undefined });
   });
 });

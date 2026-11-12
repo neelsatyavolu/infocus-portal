@@ -1,5 +1,5 @@
 import { prisma } from "@/src/lib/prisma";
-import { harvestTotal, harvestYear } from "@/src/lib/thanksgiving-board";
+import { harvestTotal, harvestYear, isLeaderboardOpen } from "@/src/lib/thanksgiving-board";
 import { BOT_REASONS } from "@/src/lib/thanksgiving-guard";
 
 export type ReviewRow = {
@@ -16,9 +16,11 @@ export type ReviewRow = {
 
 /**
  * For execs on /thanksgiving: everyone with a score, flagged first then by most rejected
- * catches, so a cheater stands out before the contest closes.
+ * catches, so a cheater stands out before the contest closes. Empty once the winner is revealed
+ * (or in a year with no contest): there is nothing left to win.
  */
 export async function loadReviewRows(now = new Date()): Promise<ReviewRow[]> {
+  if (!isLeaderboardOpen(now)) return [];
   const year = harvestYear(now);
   const [scores, rejections] = await Promise.all([
     prisma.thanksgivingScore.findMany({
@@ -71,9 +73,11 @@ export async function loadReviewRows(now = new Date()): Promise<ReviewRow[]> {
 
 /**
  * An exec flags an account (off the board, can't win) or clears it. Clearing also forgives the
- * rejections so far, so the same history doesn't flag it again on the next batch.
+ * rejections so far, so the same history doesn't flag it again on the next batch. Only while the
+ * contest runs.
  */
 export async function setReviewFlag(userId: string, flagged: boolean, by: string, now = new Date()) {
+  if (!isLeaderboardOpen(now)) throw new Error("FORBIDDEN");
   const year = harvestYear(now);
   const score = await prisma.thanksgivingScore.findUnique({ where: { userId_year: { userId, year } }, select: { id: true } });
   if (!score) throw new Error("NOT_FOUND");

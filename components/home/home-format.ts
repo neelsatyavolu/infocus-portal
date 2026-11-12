@@ -58,13 +58,6 @@ export function stageDueTone(days: number | null): DueTone {
   return "neutral";
 }
 
-/** Extension days left: warning at 0, danger when overdrawn, otherwise no tone. */
-export function extensionsTone(remaining: number): DueTone | undefined {
-  if (remaining < 0) return "danger";
-  if (remaining === 0) return "warning";
-  return undefined;
-}
-
 export function plural(count: number, word: string, pluralWord = `${word}s`) {
   return `${count} ${count === 1 ? word : pluralWord}`;
 }

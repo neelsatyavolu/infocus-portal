@@ -14,6 +14,7 @@ export type StudentGradebookExtras = {
   livestreamHours: number;
   requiredLivestreamHours: number;
   portfolioFeedback: string;
+  portfolioLink: string | null;
   checkIns: GradebookCheckIn[];
 };
 
@@ -33,8 +34,8 @@ export async function loadGradebookExtras(
       select: { date: true, points: true, notes: true }
     }),
     prisma.portfolioGrade.findUnique({
-      where: { userId },
-      select: { feedback: true }
+      where: { userId_semester: { userId, semester: semester.label } },
+      select: { feedback: true, link: true }
     }),
     completedLivestreamHoursForUser(userId, semester),
     loadScheduleOverrides()
@@ -55,6 +56,7 @@ export async function loadGradebookExtras(
     livestreamHours,
     requiredLivestreamHours: REQUIRED_LIVESTREAM_HOURS,
     portfolioFeedback: portfolio?.feedback ?? "",
+    portfolioLink: portfolio?.link ?? null,
     checkIns:
       checkIns ??
       cycleNumbers.map((cycleNumber) => ({

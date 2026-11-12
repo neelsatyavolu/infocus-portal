@@ -19,7 +19,9 @@ import { prisma } from "@/src/lib/prisma";
 import { getRequestKey, limitByKey } from "@/src/lib/rate-limit";
 import {
   notifyExecsOfExtensionGrant,
-  notifyGroupOfExtensionDecision
+  notifyGroupOfExtensionDecision,
+  notifyGroupOfExtensionRequest,
+  notifyProducersOfAgreedExtension
 } from "@/src/server/extension-grant-notify";
 import {
   mayDecideExtensionRequest,
@@ -342,6 +344,7 @@ export async function POST(request: Request) {
       return extensionRequest;
     });
 
+    afterResponse("notifyGroupOfExtensionRequest", () => notifyGroupOfExtensionRequest(created.id));
     return ok({ id: created.id }, 201);
   } catch (error) {
     return handleRouteError(error);
@@ -414,6 +417,7 @@ export async function PATCH(request: Request) {
         return ok({ status: "DENIED" as const });
       }
 
+      afterResponse("notifyProducersOfAgreedExtension", () => notifyProducersOfAgreedExtension(payload.requestId));
       return ok({ status: "PENDING" as const });
     }
 

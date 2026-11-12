@@ -66,7 +66,8 @@ In a notes box, type `[package]` to search package videos and insert a package p
 - Randomize uses registered class members, never advisers, EPs, or super admin. EPs and super admin can be picked by hand on the calendar. Advisers are not in the calendar dropdowns.
 - Randomize also skips that week's PA announcers (for both shows that week) and anyone marked **Non-anchor** in the generator's Anchor History.
 - Someone picked by hand in the first week (days 1–7) or from day 22 on stays out of Randomize for that month, even if you remove them later. **Wipe anchors** clears this.
-- Dropping an anchor slot needs 48 hours' notice. This is a class rule; the Portal does not enforce it.
+- Dropping an anchor slot needs 48 hours' notice, counted to 12:00 AM Pacific on the show day. An anchor asks to drop or swap from the show day's Day panel on the Master Calendar (**Your anchor slot**; producers also have it in the Show Roles Generator): on an upcoming show they anchor, **Can't make it?** offers **Drop my slot** or **Swap with a classmate** (pick the classmate), with an optional reason. A request made later than that is marked **Late notice**. The show manager (the adviser when no manager resolves) gets an email and notification.
+- Producers (associate producer and up) see every pending request in the generator under **Anchor requests**, with **Approve** and **Deny**; nobody decides their own request. Approving a swap puts the classmate in that anchor slot; approving a drop empties the slot for the show manager to fill. Both change the calendar and The Show for that date. The requester (and, on a swap, the classmate) gets an email and notification with the decision. While it waits, **Your anchor slot** shows it as **Pending** (and **Late notice** when it was), and the anchor can **Withdraw** it.
 
 **PA announcers:** Randomize picks from people who are not anchoring that month (and are not marked Non-anchor).
 
@@ -109,6 +110,8 @@ Opened from **Open generator** on The Show's Show roles card. The generator open
 Crew roles are Show Director, Tech Director, Teleprompter, and Floor Director, plus Backup #1 and #2. There is no Graphics Director: shows are edited automatically (see Editing). **Generate Roles** auto-assigns them. It skips EPs, advisers, and super admin; they stay in the manual picker. Each role has **Re-pick**, **Manual**, and a confirm toggle; **Confirm All** confirms every role.
 
 Other buttons: **New Show**, **Anchor History** (times anchored, last anchored, and a **Non-anchor** checkbox that keeps someone out of Randomize), **Refresh**, **Import JSON**, **Backup**, and **Clear History** (deletes all saved shows except the current one; cannot be undone).
+
+Saving sends only the shows you changed or deleted. If someone else changed one of those shows since your page loaded, the save is refused with **Someone else changed this — reload to see their changes.** Reload (or wait for the page to refresh) and make the change again. Shows you didn't touch are never deleted by your save, and **Non-anchor** checkboxes change only the person you clicked.
 
 The show selector includes every saved date, including past shows; the latest four dates also have quick tabs. Selecting a date displays its saved assignments and confirmations. The Member Pool shows each person's last crew, anchor, or associate show-manager assignment as **1 show ago**, **2 shows ago**, etc., or **Never** when none is recorded before the selected show. Counts use saved show dates before the selected date, not calendar days or future assignments. Crew members, anchors, and associate producers who were show manager in the previous two shows are on cooldown, with their counts highlighted in amber. Show-manager duty uses the calendar's resolved rotation or manual override. Backup assignments do not count toward cooldown. The generator opens on the next show after today and only accepts new shows on Wednesday or Friday school days, so seeded no-school days (such as Friday, October 2, 2026) are skipped. It does not accept special shows on other weekdays.
 
@@ -191,3 +194,7 @@ A code works once and lasts 10 minutes. The Portal never sees the sign-in itself
 - **AI account order:** which subscription the editor tries first, then next.
 
 **House rules:** decisions the editor follows instead of asking. It starts from the editor's built-in rules; **Save rules** stores your version, and remembered fixes are added to it. **Go back to the built-in rules** drops your version.
+
+## Calendar feed (Settings)
+
+Settings → **Subscribe to my calendar** gives each person a private `webcal://` link (**Copy link**, **Subscribe**) for Apple Calendar, Google Calendar or Outlook. The feed lists their package stage deadlines for every cycle they're in (moved by their own approved extension), the days they anchor, read PA announcements or have a show role, and livestreams they signed up for or are on the crew of (pending sign-ups say so). Show days and livestreams go back 60 days. Calendar apps refresh it on their own schedule. Anyone with the link can read it; there is no per-person reset yet.

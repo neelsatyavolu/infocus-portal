@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { CalendarPlus, Hourglass, Plus } from "lucide-react";
+import { ExportCsvButton } from "@/components/kit/export-csv-button";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { ApproveExtensionDialog } from "./approve-extension-dialog";
@@ -138,6 +139,9 @@ export default function ExtensionRequestsClient({ viewer }: { viewer: Viewer }) 
         }
         actions={
           <>
+            {viewer.isProducer ? (
+              <ExportCsvButton href="/api/extensions/requests/export" title="Every request with its decision and days" />
+            ) : null}
             <Button type="button" variant={requestVariant} onClick={openRequest}>
               <CalendarPlus aria-hidden />
               Request extension

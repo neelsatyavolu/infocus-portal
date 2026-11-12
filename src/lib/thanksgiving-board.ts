@@ -99,6 +99,24 @@ export const HARVEST_CONTEST = {
 } as const;
 
 /**
+ * The contest configured for `now`'s year, or null. Only 2026 has one: in any other year the
+ * leaves still fall and count, but nothing contest-specific (leaderboard page, cheat review,
+ * prize, Slack posts) runs.
+ */
+export function harvestContestFor(now: Date): typeof HARVEST_CONTEST | null {
+  return harvestYear(now) === HARVEST_CONTEST.year ? HARVEST_CONTEST : null;
+}
+
+/**
+ * The leaderboard (its sidebar link, /thanksgiving, the Class Board top five, the popup and the
+ * countdown strip) shows only in a contest year, until the winner is revealed.
+ */
+export function isLeaderboardOpen(now: Date): boolean {
+  const contest = harvestContestFor(now);
+  return contest !== null && now.getTime() < contest.revealAt.getTime();
+}
+
+/**
  * Where a winner's prize went: their own Cycle 2 group, a group they gave it to, still to be
  * picked (their group already turned in its Final Cut), or nowhere (not on a Cycle 2 group: an
  * exec adds it by hand).

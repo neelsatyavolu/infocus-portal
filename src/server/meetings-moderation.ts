@@ -10,6 +10,8 @@ import { rekeyMeetingScribe, stopMeetingScribe } from "@/src/server/meetings-scr
 
 export type ParticipantAction = "admit" | "deny" | "remove";
 
+const ROOM_EVENT_BATCH_SIZE = 5;
+
 async function requireHostOfOpenMeeting(viewer: MeetingViewer, meetingId: string) {
   const meeting = await prisma.meeting.findUnique({
     where: { id: meetingId },
@@ -159,7 +161,18 @@ export async function admitAllWaiting(viewer: MeetingViewer, meetingId: string) 
     where: { meetingId, state: "WAITING", userId: { in: userIds } },
     data: { state: "ADMITTED" }
   });
-  await Promise.all(userIds.map((uid) => sendMeetingRoomEvent(meetingId, { t: "admitted", uid })));
+  // The room takes one uid per event; five at a time keeps under Workers' 6 outbound connections.
+  const failed: string[] = [];
+  for (let start = 0; start < userIds.length; start += ROOM_EVENT_BATCH_SIZE) {
+    const batch = userIds.slice(start, start + ROOM_EVENT_BATCH_SIZE);
+    const sent = await Promise.all(batch.map((uid) => sendMeetingRoomEvent(meetingId, { t: "admitted", uid })));
+    batch.forEach((uid, index) => {
+      if (!sent[index]) failed.push(uid);
+    });
+  }
+  if (failed.length > 0) {
+    console.error("Admit all: room did not get every admitted event", { meetingId, failed: failed.length, of: userIds.length });
+  }
   return { admitted: userIds.length };
 }
 

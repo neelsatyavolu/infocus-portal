@@ -42,7 +42,6 @@ export function useCycleGrades({
   const [savingAll, setSavingAll] = useState(false);
   const [publishingAll, setPublishingAll] = useState(false);
   const [savingCheckIn, setSavingCheckIn] = useState(false);
-  const [extensionDepletedWarning, setExtensionDepletedWarning] = useState<{ userName: string; remaining: number } | null>(null);
   const autosaveTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const pendingAutosaveUserIdsRef = useRef<Set<string>>(new Set());
   const autosaveRunningRef = useRef(false);
@@ -257,7 +256,6 @@ export function useCycleGrades({
     const row = rowsRef.current.find((entry) => entry.userId === userId);
     if (!row) return false;
     const cycleNumber = activeCycleNumberRef.current;
-    const previousSaved = savedRowMapRef.current.get(userId);
 
     try {
       setSavingUserId(userId);
@@ -295,14 +293,7 @@ export function useCycleGrades({
         pendingAutosaveUserIdsRef.current.delete(userId);
       }
 
-      const turnedInDateChanged = (previousSaved?.turnedInDate ?? null) !== (data.turnedInDate ?? null);
       const rowEntry = sameCycle ? (rowsRef.current.find((r) => r.userId === userId) ?? row) : row;
-      if (turnedInDateChanged && data.extensionsRemaining < 0) {
-        setExtensionDepletedWarning({
-          userName: rowEntry.name?.trim() || "Unnamed user",
-          remaining: data.extensionsRemaining
-        });
-      }
 
       if (sameCycle) {
         setRows((current) => current.map((entry) => (entry.userId === userId ? applyMutationToRow(entry, data) : entry)));
@@ -469,8 +460,6 @@ export function useCycleGrades({
     busy,
     dirtyUserIds,
     hasUnsavedChanges,
-    extensionDepletedWarning,
-    dismissExtensionDepletedWarning: () => setExtensionDepletedWarning(null),
     loadCycle,
     reloadCycle: (options?: { silent?: boolean }) => loadCycle(requestedCycleRef.current, options),
     updateRowAndAutosave,

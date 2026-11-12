@@ -67,7 +67,7 @@ function payload({
   return {
     role: "ASSOCIATE_PRODUCER",
     isAdmin: false,
-    summary: { publishedCycleCount: 0, averageTotal: null, averagePercentage: null, extensionsRemaining: null },
+    summary: { publishedCycleCount: 0, averageTotal: null, averagePercentage: null },
     estimated,
     cycles,
     gradebook: {

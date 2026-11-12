@@ -33,9 +33,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     const signup = await prisma.livestreamSignupRequest.findUnique({
       where: { id: signupId },
-      include: {
-        event: { include: { _count: { select: { attendees: true } } } }
-      }
+      select: { id: true, status: true, eventId: true, userId: true }
     });
     if (!signup) {
       throw new Error("NOT_FOUND");
@@ -44,57 +42,57 @@ export async function PATCH(request: Request, context: RouteContext) {
       return fail("This request was already reviewed.", 400);
     }
 
+    const reviewed = { status: body.status, reviewedAt: new Date(), reviewedByUserId: user.id };
+
     if (body.status === "APPROVED") {
-      if (signup.event.status === "CANCELLED") {
-        return fail("Cannot approve a signup for a cancelled event.", 400);
-      }
-      if (signup.event._count.attendees >= signup.event.capacity) {
-        return fail("This livestream is full.", 400);
-      }
+      // Lock the event row so two approvals can't both take the last slot.
+      const outcome = await prisma.$transaction(async (tx) => {
+        const [event] = await tx.$queryRaw<Array<{ status: string; capacity: number }>>`
+          SELECT "status"::text AS "status", "capacity" FROM "LivestreamEvent" WHERE "id" = ${signup.eventId} FOR UPDATE`;
+        if (!event) return { error: "NOT_FOUND" as const };
+        if (event.status === "CANCELLED") return { error: "CANCELLED" as const };
 
-      const updated = await prisma.$transaction(async (tx) => {
-        await tx.livestreamAttendee.upsert({
-          where: {
-            eventId_userId: { eventId: signup.eventId, userId: signup.userId }
-          },
-          create: { eventId: signup.eventId, userId: signup.userId },
-          update: {}
-        });
+        const [attendees, alreadyAttending] = await Promise.all([
+          tx.livestreamAttendee.count({ where: { eventId: signup.eventId } }),
+          tx.livestreamAttendee.findUnique({
+            where: { eventId_userId: { eventId: signup.eventId, userId: signup.userId } },
+            select: { id: true }
+          })
+        ]);
+        if (!alreadyAttending && attendees >= event.capacity) return { error: "FULL" as const };
 
-        return tx.livestreamSignupRequest.update({
-          where: { id: signupId },
-          data: {
-            status: "APPROVED",
-            reviewedAt: new Date(),
-            reviewedByUserId: user.id
-          }
+        const claimed = await tx.livestreamSignupRequest.updateMany({
+          where: { id: signupId, status: "PENDING" },
+          data: reviewed
         });
+        if (claimed.count === 0) return { error: "REVIEWED" as const };
+
+        if (!alreadyAttending) {
+          await tx.livestreamAttendee.create({ data: { eventId: signup.eventId, userId: signup.userId } });
+        }
+        return { error: null };
       });
 
-      return ok({
-        id: updated.id,
-        status: updated.status,
-        eventId: updated.eventId,
-        userId: updated.userId,
-        reviewedAt: updated.reviewedAt?.toISOString() ?? null
+      if (outcome.error === "NOT_FOUND") throw new Error("NOT_FOUND");
+      if (outcome.error === "CANCELLED") return fail("Cannot approve a signup for a cancelled event.", 400);
+      if (outcome.error === "FULL") return fail("This livestream is full.", 400);
+      if (outcome.error === "REVIEWED") return fail("This request was already reviewed.", 400);
+    } else {
+      const claimed = await prisma.livestreamSignupRequest.updateMany({
+        where: { id: signupId, status: "PENDING" },
+        data: reviewed
       });
+      if (claimed.count === 0) {
+        return fail("This request was already reviewed.", 400);
+      }
     }
 
-    const denied = await prisma.livestreamSignupRequest.update({
-      where: { id: signupId },
-      data: {
-        status: "DENIED",
-        reviewedAt: new Date(),
-        reviewedByUserId: user.id
-      }
-    });
-
     return ok({
-      id: denied.id,
-      status: denied.status,
-      eventId: denied.eventId,
-      userId: denied.userId,
-      reviewedAt: denied.reviewedAt?.toISOString() ?? null
+      id: signup.id,
+      status: reviewed.status,
+      eventId: signup.eventId,
+      userId: signup.userId,
+      reviewedAt: reviewed.reviewedAt.toISOString()
     });
   } catch (error) {
     return handleRouteError(error);

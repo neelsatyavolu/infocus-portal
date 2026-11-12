@@ -8,14 +8,6 @@ import { prisma } from "@/src/lib/prisma";
 const DATE_KEY_PATTERN = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export const STARTING_EXTENSION_DAYS = 14;
-
-type ExtensionUsageEntry = {
-  extensionDaysApplied: number;
-  extensionExempt: boolean;
-  freeExtensionDays?: number | null;
-};
-
 export function toDateKey(value: Date | null | undefined) {
   return value ? value.toISOString().slice(0, 10) : null;
 }
@@ -52,19 +44,6 @@ export function sanitizeFreeExtensionDays(value: number | null | undefined) {
   }
 
   return Math.max(0, Math.round(value ?? 0));
-}
-
-export function effectiveAppliedDays(entry: ExtensionUsageEntry) {
-  if (entry.extensionExempt) {
-    return 0;
-  }
-
-  return Math.max(0, entry.extensionDaysApplied - sanitizeFreeExtensionDays(entry.freeExtensionDays));
-}
-
-export function calculateExtensionsRemaining(entries: ExtensionUsageEntry[]) {
-  const used = entries.reduce((sum, entry) => sum + effectiveAppliedDays(entry), 0);
-  return STARTING_EXTENSION_DAYS - used;
 }
 
 export async function getAdminEmailSet() {

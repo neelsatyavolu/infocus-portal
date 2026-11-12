@@ -25,7 +25,7 @@ export async function runConfiguredHubBackup(): Promise<HubBackupResult> {
   return runHubBackup({
     now: new Date(),
     config,
-    dumpSql: () => collectPublicTableDumpFromEnv(),
+    dumpSql: (write) => collectPublicTableDumpFromEnv(write),
     store: createR2Store(config)
   });
 }

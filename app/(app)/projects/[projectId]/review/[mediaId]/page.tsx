@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { WorkspaceRole } from "@prisma/client";
 import { ProjectShellBridge } from "@/components/project-shell-bridge";
 import { ReviewShell } from "@/components/review-shell";
+import { afterResponse } from "@/src/lib/after-response";
 import { prisma } from "@/src/lib/prisma";
 import { getMediaReviewData } from "@/src/server/media-review";
 import { reconcileProjectMediaStatuses } from "@/src/server/media-reconcile";
@@ -49,7 +50,7 @@ export default async function ReviewPage({
   ]);
 
   if (hasPendingVersions) {
-    void reconcileProjectMediaStatuses(projectId).catch(() => undefined);
+    afterResponse("reconcileProjectMediaStatuses", () => reconcileProjectMediaStatuses(projectId));
   }
 
   if (!review) {

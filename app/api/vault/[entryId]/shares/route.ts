@@ -1,7 +1,8 @@
 import { handleRouteError } from "@/src/lib/api-errors";
 import { okNoStore } from "@/src/lib/http";
 import { vaultShareSchema } from "@/src/lib/password-vault-schema";
-import { getRequestKey, limitByKey } from "@/src/lib/rate-limit";
+import { getRequestKey } from "@/src/lib/rate-limit";
+import { checkSharedRateLimit } from "@/src/server/shared-rate-limit";
 import {
   assertJsonRequest,
   listVaultEntryShares,
@@ -27,7 +28,7 @@ export async function PUT(request: Request, { params }: Context) {
   try {
     const actor = await requireVaultSharer();
     assertJsonRequest(request);
-    if (!limitByKey(getRequestKey(request, `vault:write:${actor.userId}`), { max: 30, windowMs: 60_000 }).allowed) {
+    if (!(await checkSharedRateLimit(getRequestKey(request, `vault:write:${actor.userId}`), { max: 30, windowMs: 60_000 })).allowed) {
       throw new Error("TOO_MANY_REQUESTS");
     }
     const { entryId } = await params;

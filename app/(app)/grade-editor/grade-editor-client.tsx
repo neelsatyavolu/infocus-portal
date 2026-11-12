@@ -66,7 +66,6 @@ const FeedbackDialog = dynamic(() => import("./grade-editor-dialogs").then((m) =
 const PublishHistoryDialog = dynamic(() => import("./grade-editor-dialogs").then((m) => m.PublishHistoryDialog), { ssr: false });
 const ExtensionExceptionDialog = dynamic(() => import("./grade-editor-dialogs").then((m) => m.ExtensionExceptionDialog), { ssr: false });
 const TotalNotesDialog = dynamic(() => import("./grade-editor-dialogs").then((m) => m.TotalNotesDialog), { ssr: false });
-const ExtensionDepletedDialog = dynamic(() => import("./grade-editor-dialogs").then((m) => m.ExtensionDepletedDialog), { ssr: false });
 
 const TAB_ID_PREFIX = "grade-editor";
 
@@ -74,8 +73,7 @@ const FILTER_EMPTY: Record<Exclude<CycleFilter, "all">, string> = {
   "to-publish": "Nothing unpublished. All caught up.",
   "not-entered": "Every reporter has a score.",
   missed: "No missed Final Cuts.",
-  republish: "No revised grades waiting to be published again.",
-  "over-extensions": "No one is over their extensions."
+  republish: "No revised grades waiting to be published again."
 };
 
 function downloadFile(fileName: string, csv: string) {
@@ -486,8 +484,7 @@ export default function GradeEditorClient({ openParticipation = false }: { openP
           reporterCount: grades.rows.length,
           publishedCount,
           averageTotal: activeCycleAverage?.averageTotal ?? null,
-          averagePercentage: activeCycleAverage?.averagePercentage ?? null,
-          overExtensions: filterCounts["over-extensions"]
+          averagePercentage: activeCycleAverage?.averagePercentage ?? null
         }
       : null;
 
@@ -718,6 +715,7 @@ export default function GradeEditorClient({ openParticipation = false }: { openP
                       handlers={totalsHandlers}
                       loading={totalsTableLoading}
                       empty={emptyNode()}
+                      onPortfolioSaved={() => void totals.loadTotals({ silent: true })}
                     />
                   ) : (
                     <TotalsGradesList views={visibleTotalsViews} loading={totalsTableLoading} empty={emptyNode()} onOpenRow={setSheetUserId} />
@@ -807,10 +805,6 @@ export default function GradeEditorClient({ openParticipation = false }: { openP
           onChange={(notes) => totals.updateNotes(notesView.row.userId, notes)}
           onClose={() => setTotalsNotesUserId(null)}
         />
-      ) : null}
-
-      {grades.extensionDepletedWarning ? (
-        <ExtensionDepletedDialog warning={grades.extensionDepletedWarning} onClose={grades.dismissExtensionDepletedWarning} />
       ) : null}
     </div>
   );

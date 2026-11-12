@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { HARVEST_CONTEST } from "@/src/lib/thanksgiving-board";
+import { HARVEST_CONTEST, isLeaderboardOpen } from "@/src/lib/thanksgiving-board";
 import { HARVEST_HOUR_WINDOW, inHarvestHourWindow } from "@/src/lib/thanksgiving-harvest-hour";
 import { formatCountdown, inFinalHour } from "@/src/lib/thanksgiving-standings";
 import { cn } from "@/src/lib/utils";
@@ -43,12 +43,17 @@ function usePoll(active: boolean, run: () => void) {
   }, [active, run]);
 }
 
+/** Only while a contest runs (isLeaderboardOpen): no strip, timers or polling in any other year. */
+export function ContestCountdown() {
+  return isLeaderboardOpen(new Date()) ? <ContestCountdownStrip /> : null;
+}
+
 /**
  * A strip under the top bar for the contest's big moments: harvest hour (everything counts double;
  * the server only reveals it once it has started) and the dark final hour before the close, with
  * the viewer's own points (nobody sees the standings then). Shows nothing the rest of the time.
  */
-export function ContestCountdown() {
+function ContestCountdownStrip() {
   const [now, setNow] = useState(() => Date.now());
   const [hourEndsAt, setHourEndsAt] = useState<number | null>(null);
   const [mine, setMine] = useState<string | null>(null);

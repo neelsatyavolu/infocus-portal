@@ -34,8 +34,8 @@ export async function loadPrizeOptions(): Promise<PrizeOption[]> {
 }
 
 /** Winners still to pick: just the viewer (if it's them), or all of them for an exec. */
-export async function loadPrizeChoosers(viewerId: string, admin: boolean): Promise<PrizeChooser[]> {
-  const result = await loadHarvestContest();
+export async function loadPrizeChoosers(viewerId: string, admin: boolean, now = new Date()): Promise<PrizeChooser[]> {
+  const result = await loadHarvestContest(now);
   if (!result) return [];
   return result.winners
     .filter((winner) => winner.prize.kind === "choosing" && (admin || winner.userId === viewerId))
@@ -46,7 +46,7 @@ export async function loadPrizeChoosers(viewerId: string, admin: boolean): Promi
 export async function givePrize(input: { winnerId: string; rowId: string; byUserId: string; admin: boolean; now?: Date }) {
   const { winnerId, rowId, byUserId, admin, now = new Date() } = input;
   if (!admin && byUserId !== winnerId) throw new Error("Only the winner can choose where their prize goes.");
-  const choosers = await loadPrizeChoosers(winnerId, true);
+  const choosers = await loadPrizeChoosers(winnerId, true, now);
   const winner = choosers.find((chooser) => chooser.userId === winnerId);
   if (!winner) throw new Error("This prize has already been given.");
 

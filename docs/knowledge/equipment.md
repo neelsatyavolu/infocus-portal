@@ -24,9 +24,9 @@ Passcodes and passkey unlock are no longer accepted for checkout. Existing main 
 
 Anyone with the URL. No Portal login.
 
-Open `/equipment/request`. Pick one or more available items (search by name or code; **Add** marks an item **Selected**), then give your name, student ID and email under **Your request** (beside the list on a computer, below it on a phone) and select **Submit request**. On a phone the Submit button stays at the bottom of the screen. Producers and appointed equipment managers get an email. Approving a request **holds** those items for that student ID; checking out with the matching student email + code completes the hold. Nobody else can take a held item.
+Open `/equipment/request`. Pick one or more available items (search by name or code; **Add** marks an item **Selected**), then give your name, student ID, email, and when you plan to **Pickup** and **Return** the gear (Pacific time) under **Your request** (beside the list on a computer, below it on a phone) and select **Submit request**. Pickup can't be in the past and Return must be after Pickup. (Requests from the iPhone app may leave both times out.) On a phone the Submit button stays at the bottom of the screen. Producers and appointed equipment managers get an email. Approving a request **holds** those items for that student ID; checking out with the matching student email + code completes the hold. Nobody else can take a held item.
 
-Requests show **Pending**, **Approved**, **Denied**, or **Fulfilled** (approved and every held item checked out). **Approve** only appears while every item is still in, unheld, and not archived. A manager can still **Deny** an approved request while none of its items are out; that releases its holds.
+Requests show **Pending**, **Approved**, **Denied**, or **Fulfilled** (approved and every held item checked out). **Approve** only appears while every item is still in, unheld, and not archived. A manager can still **Deny** an approved request while none of its items are out; that releases its holds. The student is emailed (at the email on the request) when their request is approved or denied; a denial email lists each item with the reason the manager gave.
 
 ## Manage
 
@@ -35,9 +35,11 @@ Portal sign-in (same account as the rest of Portal; Google, email code, or a reg
 | Tab | What it does |
 |---|---|
 | Out | Who has what, since when, held vs out, and whether an SD card was taken with the checkout batch. Filter **All**, **Out**, **Held** or **Overdue** (items out 72 hours or more, tagged Overdue). Force-return an out item. Release a hold that has not been checked out. |
-| Requests | A list of requests (pending first) beside the open request. Filter **All** or **Pending**; J/K moves through the list. Approve or deny the whole request. Approve holds the items. On a phone, tap a request to open it. |
+| Requests | A list of requests (pending first) beside the open request. Filter **All** or **Pending**; J/K moves through the list. Approve or deny the whole request. Approve holds the items. The list and the open request show the planned **Pickup** and **Return** (Pacific). Before **Deny**, an optional **Reason if denied** (up to 500 characters) is saved on each item and emailed to the student; denied items show it afterwards. On a phone, tap a request to open it. |
 | Inventory | Add items (name + code). Find an item with the filter box. Edit name/code in the row (Enter saves, Esc cancels). Archive only if the item is in (not out, not held). |
 | Settings | Register or remove your Touch ID/passkeys for dashboard sign-in. Appoint or remove extra managers (producers only): find a member, choose them in the list, then press **Add**. |
+
+The **Inventory** tab's toolbar has **Export inventory** (every item: status, borrower, hold, retail value, times checked out) and **Export checkouts** (the full checkout history, newest first), both CSV downloads for anyone who can open Manage.
 
 When there are any, the **Out** tab shows a count of overdue items and the **Requests** tab a count of pending requests. **Refresh** (in the page header) reloads the open tab and both counts; the counts also update when you come back to the browser window. The header shows when the data was last loaded (for example **Updated 3:42 PM**). Each result (Item returned, Request approved, …) shows as a short message under the tabs, which stays pinned below the top bar while you scroll. If Approve or Deny fails, the error shows inside the open request instead (on a phone, also in the bar at the bottom of the screen). The browser remembers the last tab and the Out and Requests filters.
 

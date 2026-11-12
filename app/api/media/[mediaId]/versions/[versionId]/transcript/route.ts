@@ -1,8 +1,8 @@
 import { handleRouteError } from "@/src/lib/api-errors";
 import { ok } from "@/src/lib/http";
 import { prisma } from "@/src/lib/prisma";
-import { limitByKey } from "@/src/lib/rate-limit";
 import { requireMediaAccess } from "@/src/server/memberships";
+import { checkSharedRateLimit } from "@/src/server/shared-rate-limit";
 import { generateTranscript, readCachedTranscript, TranscriptError } from "@/src/server/media-transcript";
 
 // Streams the video to Gemini and waits for the transcript.
@@ -45,7 +45,7 @@ export async function POST(
     if (cached) {
       return ok({ transcript: cached });
     }
-    if (!limitByKey(`transcript:${userId}`, GENERATE_LIMIT).allowed) {
+    if (!(await checkSharedRateLimit(`transcript:${userId}`, GENERATE_LIMIT)).allowed) {
       throw new Error("TOO_MANY_REQUESTS");
     }
     return ok({ transcript: await generateTranscript(version) });

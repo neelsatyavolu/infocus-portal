@@ -1,7 +1,8 @@
 import { ZodError } from "zod";
 import { handleRouteError } from "@/src/lib/api-errors";
 import { fail, ok } from "@/src/lib/http";
-import { getRequestKey, limitByKey } from "@/src/lib/rate-limit";
+import { getRequestKey } from "@/src/lib/rate-limit";
+import { checkSharedRateLimit } from "@/src/server/shared-rate-limit";
 import {
   createAnnouncementSubmission,
   parseAnnouncementSubmitPayload
@@ -9,7 +10,10 @@ import {
 
 export async function POST(request: Request) {
   try {
-    const rate = limitByKey(getRequestKey(request, "announcements:submit"), { max: 8, windowMs: 60 * 60 * 1000 });
+    const rate = await checkSharedRateLimit(getRequestKey(request, "announcements:submit"), {
+      max: 8,
+      windowMs: 60 * 60 * 1000
+    });
     if (!rate.allowed) {
       throw new Error("TOO_MANY_REQUESTS");
     }

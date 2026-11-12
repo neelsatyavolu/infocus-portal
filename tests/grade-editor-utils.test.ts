@@ -38,12 +38,10 @@ function gradeRow(overrides: Partial<GradeRow> = {}): GradeRow {
     revisedAt: null,
     feedback: "",
     turnedInDate: null,
-    freeExtensionDays: 0,
-    extensionDetails: { calculatedDays: 0, freeDays: 0, chargedDays: 0, exempt: false },
+    extensionDetails: { calculatedDays: 0, exempt: false },
     published: false,
     publishedAt: null,
     publicationHistory: [],
-    extensionsRemaining: 3,
     ...overrides
   };
 }
@@ -204,7 +202,7 @@ describe("row status", () => {
 describe("cycle filters", () => {
   const rows = [
     gradeRow({ userId: "abby", effortPoints: 40 }),
-    gradeRow({ userId: "otto", effortPoints: 30, revised: true, extensionsRemaining: -2 }),
+    gradeRow({ userId: "otto", effortPoints: 30, revised: true }),
     gradeRow({ userId: "sage", finalCutMissing: true }),
     gradeRow({ userId: "rowan", finalCutState: "EXEMPT" }),
     gradeRow({ userId: "kai", effortPoints: 45, published: true })
@@ -218,7 +216,6 @@ describe("cycle filters", () => {
     expect(ids("not-entered")).toEqual(["sage"]);
     expect(ids("missed")).toEqual(["sage"]);
     expect(ids("republish")).toEqual(["otto"]);
-    expect(ids("over-extensions")).toEqual(["otto"]);
   });
 
   it("narrows Not entered to the people the missing report lists for the cycle", () => {
@@ -232,8 +229,7 @@ describe("cycle filters", () => {
       "to-publish": 2,
       "not-entered": 1,
       missed: 1,
-      republish: 1,
-      "over-extensions": 1
+      republish: 1
     });
     expect(cycleFilterCounts(rows, new Set())["not-entered"]).toBe(0);
   });

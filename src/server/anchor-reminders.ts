@@ -1,4 +1,7 @@
+import { extractCalendarPaAnnouncers } from "@/src/lib/calendar-show-content";
 import { castDisplayNames } from "@/src/lib/name-sort";
+import { paDateLabel, paTimeLabel, resolvePaPeople } from "@/src/lib/pa-script";
+import { resolveScheduleDay } from "@/src/lib/school-schedule";
 import { sendBrandedEmails } from "@/src/lib/email";
 import { mainAppOrigin } from "@/src/lib/hosts";
 import { pacificDateKey } from "@/src/lib/meetings/schedule";
@@ -107,4 +110,68 @@ export async function runAnchorReminders(kind: AnchorReminderKind, now = new Dat
   }
   if (missing.length > 0) console.error("anchor reminder: no email for anchor", filmingDay, missing);
   return { sent, kind, filmingDay, shows, missing };
+}
+
+function paReminderCopy(kind: AnchorReminderKind, name: string, paDate: string) {
+  const when = kind === "night-before" ? "tomorrow" : "today";
+  return {
+    subject: kind === "night-before" ? "You're reading the PA tomorrow" : "You're reading the PA today",
+    heading: kind === "night-before" ? "PA announcements tomorrow" : "PA announcements today",
+    paragraphs: [
+      `Hi ${name},`,
+      `You're reading the PA announcements ${when} (${paDateLabel(paDate)}), at the ${paTimeLabel(paDate).toLowerCase()}. The script is on the PA page.`
+    ]
+  };
+}
+
+/** PA announcer name → email: the anchor directory first, then the PA page's own name match. */
+async function resolvePaEmails(names: string[], directory: Map<string, string>) {
+  const unresolved = names.filter((name) => !directory.has(name));
+  const users =
+    unresolved.length > 0 ? await prisma.user.findMany({ select: { id: true, name: true, nickname: true, email: true } }) : [];
+  const matched = resolvePaPeople(unresolved, users);
+  const emailById = new Map(users.map((user) => [user.id, normalizeEmail(user.email)]));
+  return names.map((name) => {
+    const direct = directory.get(name);
+    if (direct) return direct;
+    const person = matched[unresolved.indexOf(name)];
+    return (person && emailById.get(person.id)) || null;
+  });
+}
+
+/**
+ * Same timing as the anchors (9 PM the night before, 8 AM the day of): email (with the app push)
+ * each PA announcer named on the master calendar for the PA day, read at the start of 2nd period.
+ */
+export async function runPaAnnouncerReminders(kind: AnchorReminderKind, now = new Date()) {
+  const today = pacificDateKey(now);
+  const paDate = kind === "night-before" ? addDaysToDateKey(today, 1) : today;
+  const overrides = await loadScheduleOverrides(paDate, paDate);
+  if (resolveScheduleDay(paDate, overrides).kind !== "PA") return { sent: 0, kind, paDate, reason: "no PA" };
+
+  const entry = await prisma.masterCalendarEntry.findUnique({ where: { date: paDate }, select: { content: true } });
+  const names = extractCalendarPaAnnouncers(entry?.content ?? "").slice(0, 2);
+  if (names.length === 0) return { sent: 0, kind, paDate, reason: "no announcers" };
+
+  const emails = await resolvePaEmails(names, await loadAnchorEmailDirectory());
+  const missing: string[] = [];
+  let sent = 0;
+  for (const [index, name] of names.entries()) {
+    const email = emails[index];
+    if (!email) {
+      missing.push(name);
+      continue;
+    }
+    const result = await sendBrandedEmails({
+      recipients: [email],
+      ...paReminderCopy(kind, name, paDate),
+      ctaLabel: "Open the PA script",
+      ctaUrl: `${mainAppOrigin()}/announcements/pa`,
+      idempotencyKey: `pa-reminder/${paDate}/${kind}/${email}`
+    });
+    if (result.sent > 0) sent += 1;
+    else console.error("PA reminder: email not sent", paDate, kind, result);
+  }
+  if (missing.length > 0) console.error("PA reminder: no email for announcer", paDate, missing);
+  return { sent, kind, paDate, missing };
 }

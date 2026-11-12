@@ -5,7 +5,6 @@ import type { MediaReviewDto } from "@/src/lib/types";
  * quick-grades-panel.tsx and the state in use-quick-grades.ts.
  */
 
-export const MAX_FREE_EXTENSION_DAYS = 14;
 export const MAX_FEEDBACK_LENGTH = 2000;
 
 export type QuickGradeApiRow = {
@@ -16,18 +15,14 @@ export type QuickGradeApiRow = {
   teamworkPoints: number | null;
   feedback: string;
   turnedInDate: string | null;
-  freeExtensionDays: number;
   extensionDetails: {
     calculatedDays: number;
-    freeDays: number;
-    chargedDays: number;
     exempt: boolean;
   };
   published: boolean;
   publishedAt: string | null;
   totalPoints: number | null;
   percentage: number | null;
-  extensionsRemaining: number;
 };
 
 export type QuickGradeRow = QuickGradeApiRow & {
@@ -73,12 +68,6 @@ export function normalizeQuickGradePoints(input: string, maxValue: number) {
   return Math.max(0, Math.min(maxValue, Math.round(parsed)));
 }
 
-/** Clamped 0–14; not a number is 0. */
-export function normalizeFreeExtensionDays(input: string) {
-  const parsed = Number(input);
-  return Number.isFinite(parsed) ? Math.max(0, Math.min(MAX_FREE_EXTENSION_DAYS, Math.round(parsed))) : 0;
-}
-
 export function quickGradePersonLabel(row: Pick<QuickGradeRow, "name" | "email">) {
   return row.name?.trim() || row.email || "Unnamed user";
 }
@@ -91,8 +80,7 @@ export function quickGradeRowsEqual(current: QuickGradeRow, baseline?: QuickGrad
     (current.effortPoints ?? null) === (baseline.effortPoints ?? null) &&
     (current.teamworkPoints ?? null) === (baseline.teamworkPoints ?? null) &&
     current.feedback === baseline.feedback &&
-    (current.turnedInDate ?? null) === (baseline.turnedInDate ?? null) &&
-    current.freeExtensionDays === baseline.freeExtensionDays
+    (current.turnedInDate ?? null) === (baseline.turnedInDate ?? null)
   );
 }
 
@@ -130,13 +118,6 @@ export function quickGradeRevisionDeadlineLabel(rows: QuickGradeRow[]) {
   return earliestPublishedAt ? formatQuickGradeRevisionDeadline(earliestPublishedAt) : null;
 }
 
-/** "danger" when over, "warning" at 2 or fewer days left, "success" otherwise. */
-export function extensionDaysTone(remaining: number) {
-  if (remaining < 0) return "danger" as const;
-  if (remaining <= 2) return "warning" as const;
-  return "success" as const;
-}
-
 /** The assigned people, each matched to their grade row; people the API doesn't grade are disabled. */
 export function buildQuickGradeRows(
   assignedPeople: MediaReviewDto["assignedPeople"],
@@ -162,13 +143,11 @@ export function buildQuickGradeRows(
       teamworkPoints: null,
       feedback: "",
       turnedInDate: null,
-      freeExtensionDays: 0,
-      extensionDetails: { calculatedDays: 0, freeDays: 0, chargedDays: 0, exempt: false },
+      extensionDetails: { calculatedDays: 0, exempt: false },
       published: false,
       publishedAt: null,
       totalPoints: null,
       percentage: null,
-      extensionsRemaining: 14,
       disabled: true,
       disabledReason: "Admin users are not gradable here."
     };
@@ -210,8 +189,8 @@ export type QuickGradeSaveResult = {
 };
 
 /**
- * Saves every changed, complete row; for incomplete rows, saves only a changed turned-in date or
- * free-extension count. `sharedTurnedInDate` (when not null) applies to every row. Throws on the
+ * Saves every changed, complete row; for incomplete rows, saves only a changed turned-in date.
+ * `sharedTurnedInDate` (when not null) applies to every row. Throws on the
  * first failure with the API's message or "Failed to save {name}.".
  */
 export async function saveQuickGradeRows(input: {
@@ -235,10 +214,9 @@ export async function saveQuickGradeRows(input: {
     const effectiveTurnedInDate = input.sharedTurnedInDate !== null ? input.sharedTurnedInDate || null : row.turnedInDate;
     const turnedInDateChanged = (row.turnedInDate ?? null) !== (effectiveTurnedInDate ?? null);
     const baseline = savedByUser.get(row.userId);
-    const freeExtensionDaysChanged = row.freeExtensionDays !== (baseline?.freeExtensionDays ?? 0);
 
     if (row.effortPoints === null || row.teamworkPoints === null) {
-      if (!turnedInDateChanged && !freeExtensionDaysChanged) {
+      if (!turnedInDateChanged) {
         skippedIncompleteCount += 1;
         continue;
       }
@@ -247,8 +225,7 @@ export async function saveQuickGradeRows(input: {
           action: "setTurnedInDate",
           cycleNumber: input.cycleNumber,
           userId: row.userId,
-          turnedInDate: effectiveTurnedInDate,
-          freeExtensionDays: row.freeExtensionDays
+          turnedInDate: effectiveTurnedInDate
         },
         `Failed to save ${quickGradePersonLabel(row)}.`
       );
@@ -269,8 +246,7 @@ export async function saveQuickGradeRows(input: {
         effortPoints: row.effortPoints,
         teamworkPoints: row.teamworkPoints,
         feedback: row.feedback,
-        turnedInDate: effectiveTurnedInDate,
-        freeExtensionDays: row.freeExtensionDays
+        turnedInDate: effectiveTurnedInDate
       },
       `Failed to save ${quickGradePersonLabel(row)}.`
     );

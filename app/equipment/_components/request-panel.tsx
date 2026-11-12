@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { FormStatus } from "@/components/equipment/equipment-api";
 import { StatusAlert } from "@/components/equipment/status-alert";
+import { isoToPacificWallTime } from "@/src/lib/meetings/client/time";
+import { cn } from "@/src/lib/utils";
 import type { PublicItem } from "./request-catalog";
 
 export const REQUEST_FORM_ID = "equipment-request-form";
@@ -17,6 +19,9 @@ export type RequestFields = {
   studentName: string;
   studentId: string;
   email: string;
+  /** Pacific wall times from datetime-local inputs, "2026-11-17T15:30". */
+  pickupAt: string;
+  returnAt: string;
 };
 
 const FIELD = "h-10 md:h-9";
@@ -48,6 +53,7 @@ export function RequestPanel({
   status: FormStatus;
   busy: boolean;
 }) {
+  const minPickup = isoToPacificWallTime(new Date().toISOString());
   return (
     <Panel
       id="your-request"
@@ -133,6 +139,33 @@ export function RequestPanel({
               required
               className={FIELD}
             />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="request-pickup">Pickup (Pacific)</Label>
+              <Input
+                id="request-pickup"
+                type="datetime-local"
+                value={form.pickupAt}
+                min={minPickup}
+                onChange={(event) => onFormChange("pickupAt", event.target.value)}
+                required
+                className={cn(FIELD, "font-mono text-sm tabular-nums")}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="request-return">Return (Pacific)</Label>
+              <Input
+                id="request-return"
+                type="datetime-local"
+                value={form.returnAt}
+                min={form.pickupAt || minPickup}
+                onChange={(event) => onFormChange("returnAt", event.target.value)}
+                required
+                className={cn(FIELD, "font-mono text-sm tabular-nums")}
+              />
+            </div>
           </div>
 
           {/* Phones: the result shows here (and, as a short line, beside Submit in the action bar). */}

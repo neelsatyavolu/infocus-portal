@@ -138,14 +138,6 @@ export function formatLongDate(value: string | null) {
   return `${monthName} ${day}${getDaySuffix(day)}, ${year}`;
 }
 
-export function extensionExceptionSummary(row: Pick<GradeRow, "extensionDetails">) {
-  if (row.extensionDetails.freeDays <= 0) {
-    return null;
-  }
-
-  return `${row.extensionDetails.calculatedDays} late day${row.extensionDetails.calculatedDays === 1 ? "" : "s"}, ${row.extensionDetails.freeDays} free, ${row.extensionDetails.chargedDays} charged`;
-}
-
 export function formatHistoryTimestamp(value: string | null) {
   if (!value) {
     return "Unknown time";
@@ -221,14 +213,6 @@ export function needsRepublish(row: GradeRow) {
   return row.revised && !row.published;
 }
 
-export function isOverExtensions(row: GradeRow) {
-  return row.extensionsRemaining < 0;
-}
-
-export function overExtensionsTitle(row: GradeRow) {
-  return `${row.extensionsRemaining} extension day${Math.abs(row.extensionsRemaining) === 1 ? "" : "s"} left, all cycles`;
-}
-
 export type RowStatus = { label: string; tone: StatusTone; title: string };
 
 /**
@@ -283,14 +267,12 @@ export function cycleFilterMatches(row: GradeRow, filter: CycleFilter, notEntere
       return isMissedFinalCut(row);
     case "republish":
       return needsRepublish(row);
-    case "over-extensions":
-      return isOverExtensions(row);
     default:
       return true;
   }
 }
 
-export const CYCLE_FILTERS: CycleFilter[] = ["all", "to-publish", "not-entered", "missed", "republish", "over-extensions"];
+export const CYCLE_FILTERS: CycleFilter[] = ["all", "to-publish", "not-entered", "missed", "republish"];
 
 export function isCycleFilter(value: unknown): value is CycleFilter {
   return typeof value === "string" && (CYCLE_FILTERS as string[]).includes(value);
@@ -302,8 +284,7 @@ export function cycleFilterCounts(rows: GradeRow[], notEnteredIds: ReadonlySet<s
     "to-publish": 0,
     "not-entered": 0,
     missed: 0,
-    republish: 0,
-    "over-extensions": 0
+    republish: 0
   };
   for (const row of rows) {
     for (const filter of CYCLE_FILTERS) {

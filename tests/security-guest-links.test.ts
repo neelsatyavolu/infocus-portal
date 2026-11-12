@@ -12,8 +12,18 @@ vi.mock("@/src/lib/media-playback", () => ({
   resolveThumbnailUrl: vi.fn(async () => null)
 }));
 vi.mock("@/components/review-shell", () => ({ ReviewShell: () => null }));
+const jar = vi.hoisted(() => ({ value: undefined as string | undefined }));
+vi.mock("next/headers", () => ({
+  cookies: async () => ({ get: () => (jar.value === undefined ? undefined : { value: jar.value }) })
+}));
+const rate = vi.hoisted(() => ({ allowed: true }));
+vi.mock("@/src/server/shared-rate-limit", () => ({
+  checkSharedRateLimit: vi.fn(async () => ({ allowed: rate.allowed, remaining: 0 }))
+}));
 
 import GuestReviewPage from "@/app/g/[token]/page";
+import { POST as unlock } from "@/app/g/[token]/unlock/route";
+import { checkSharedRateLimit } from "@/src/server/shared-rate-limit";
 import { GET as getImage } from "@/app/api/media/[mediaId]/versions/[versionId]/image/route";
 import { ReviewShell } from "@/components/review-shell";
 import { GUEST_PASSCODE_PROOF_TTL_MS, hashPasscode, issueGuestCredential } from "@/src/lib/guest-links";
@@ -86,10 +96,11 @@ function shellProps(node: React.ReactNode): { data: MediaReviewDto; guestToken?:
   return shellProps(node.props.children);
 }
 
-async function renderPage(passcode?: string) {
+async function renderPage(proofCookie?: string, searchParams: { error?: string } = {}) {
+  jar.value = proofCookie;
   const tree = await GuestReviewPage({
     params: Promise.resolve({ token: TOKEN }),
-    searchParams: Promise.resolve(passcode ? { passcode } : {})
+    searchParams: Promise.resolve(searchParams)
   });
   return shellProps(tree);
 }
@@ -100,6 +111,8 @@ const credentialFor = (link: ReturnType<typeof guestLink>, now?: number) =>
 
 beforeEach(() => {
   vi.clearAllMocks();
+  jar.value = undefined;
+  rate.allowed = true;
   vi.stubEnv("APP_AUTH_SECRET", "test-secret-for-guest-proofs");
   vi.stubGlobal("React", React);
   db.guestLink.findUnique.mockImplementation(async () => guestLink());
@@ -171,7 +184,7 @@ describe("guest link passcode is enforced on every guest path", () => {
     db.guestLink.findUnique.mockImplementation(async () => link);
 
     expect(await renderPage()).toBeNull();
-    const props = await renderPage("4321");
+    const props = await renderPage(credentialFor(link));
     expect(props?.guestToken).toMatch(new RegExp(`^${TOKEN}\\.\\d+\\.`));
     await expect(requireGuestLink(props!.guestToken!)).resolves.toBeTruthy();
     const imageUrl = props!.data.versions[0].imageUrl!;
@@ -206,5 +219,61 @@ describe("version-scoped guest link page", () => {
     const props = await renderPage();
     expect(props?.data.versions.map((v) => v.id)).toEqual(["ver_later_draft", "ver_shared"]);
     expect(props?.data.comments).toHaveLength(2);
+  });
+});
+
+describe("guest passcode unlock", () => {
+  function submit(passcode: string | null, ip = "203.0.113.9") {
+    const form = new FormData();
+    if (passcode !== null) form.set("passcode", passcode);
+    return unlock(
+      new Request(`https://portal.example.edu/g/${TOKEN}/unlock`, {
+        method: "POST",
+        headers: { "cf-connecting-ip": ip },
+        body: form
+      }),
+      { params: Promise.resolve({ token: TOKEN }) }
+    );
+  }
+
+  beforeEach(() => {
+    db.guestLink.findUnique.mockImplementation(async () => passcodeLink());
+  });
+
+  it("sets a link-scoped proof cookie on the right passcode and keeps it out of the URL", async () => {
+    const response = await submit("4321");
+    expect(response.status).toBe(303);
+    expect(response.headers.get("location")).toBe(`https://portal.example.edu/g/${TOKEN}`);
+    const cookie = response.headers.get("set-cookie") ?? "";
+    expect(cookie).toMatch(/infocus_guest_proof=/);
+    expect(cookie).toMatch(new RegExp(`Path=/g/${TOKEN}`));
+    expect(cookie).toMatch(/HttpOnly/i);
+    expect(cookie).not.toContain("4321");
+
+    const value = decodeURIComponent(cookie.split(";")[0].split("=")[1]);
+    expect(await renderPage(value)).not.toBeNull();
+  });
+
+  it("sends a wrong passcode back with an error and no cookie", async () => {
+    const response = await submit("0000");
+    expect(response.headers.get("location")).toBe(`https://portal.example.edu/g/${TOKEN}?error=passcode`);
+    expect(response.headers.get("set-cookie")).toBeNull();
+  });
+
+  it("limits attempts per link and address, even with the right passcode", async () => {
+    rate.allowed = false;
+    const response = await submit("4321");
+    expect(response.headers.get("location")).toBe(`https://portal.example.edu/g/${TOKEN}?error=limit`);
+    expect(response.headers.get("set-cookie")).toBeNull();
+    expect(checkSharedRateLimit).toHaveBeenCalledWith(`guest-passcode:${TOKEN}:203.0.113.9`, {
+      max: 5,
+      windowMs: 15 * 60 * 1000
+    });
+  });
+
+  it("ignores ?passcode= in the URL and refuses a cookie for another link", async () => {
+    expect(await renderPage(undefined, { error: "passcode" })).toBeNull();
+    const other = issueGuestCredential({ id: "link_other", token: "tok_other_link_000", passcodeHash: hashPasscode("4321") });
+    expect(await renderPage(other)).toBeNull();
   });
 });

@@ -1,10 +1,14 @@
-import { gzipSync } from "node:zlib";
 import { Client } from "pg";
 import { workersRequest } from "@/src/lib/prisma-workers";
 
 export const LATEST_BACKUP_KEY = "hub/latest.json";
 export const BACKUP_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 export const MAX_UNCOMPRESSED_BYTES = 50 * 1024 * 1024;
+/** R2 multipart parts: every part but the last must be the same size, and at least 5 MiB. */
+export const BACKUP_PART_BYTES = 6 * 1024 * 1024;
+/** Rows fetched per cursor round trip. Tables with base64/bytea columns go one row at a time (images reach ~13 MB). */
+const DUMP_BATCH_ROWS = 200;
+const DUMP_HEAVY_BATCH_ROWS = 1;
 export const HUB_BACKUP_DUMP_KEY = /^hub\/\d{4}-\d{2}-\d{2}T\d{4}Z\.sql\.gz$/;
 
 export type R2BackupConfig = {
@@ -39,11 +43,22 @@ export type DumpSequence = {
   lastValue: string | number;
 };
 
+/** A streamed object write: chunks go up as they come, nothing is held whole in memory. */
+export type BackupUpload = {
+  write: (chunk: Uint8Array) => Promise<void>;
+  complete: () => Promise<void>;
+  abort: () => Promise<void>;
+};
+
 export type BackupStore = {
   list: () => Promise<BackupObject[]>;
   put: (key: string, body: Buffer | string, contentType?: string) => Promise<void>;
   delete: (keys: string[]) => Promise<void>;
+  upload: (key: string, contentType: string) => BackupUpload;
 };
+
+/** Writes one piece of the SQL dump, in order. */
+export type DumpWriter = (text: string) => Promise<void>;
 
 export type HubBackupResult =
   | { ok: false; skipped: true; reason: "not_configured" }
@@ -151,40 +166,52 @@ export function csvEscape(value: unknown): string {
   return text;
 }
 
-export function buildSqlDump(input: { at: Date; tables: DumpTable[]; sequences: DumpSequence[] }): string {
-  const lines: string[] = [
-    `-- InFocus Portal backup ${input.at.toISOString()}`,
+export function sqlDumpHeader(at: Date): string {
+  return [
+    `-- InFocus Portal backup ${at.toISOString()}`,
     "-- Schema comes from Prisma migrations in the matching git revision.",
     "SET session_replication_role = replica;",
+    "",
     ""
-  ];
+  ].join("\n");
+}
 
+export function sqlCopyStart(table: string, columns: string[]): string {
+  return `COPY ${quoteIdent(table)} (${columns.map(quoteIdent).join(", ")}) FROM stdin WITH (FORMAT csv, HEADER true);\n${columns.join(",")}\n`;
+}
+
+export function sqlCopyRow(row: unknown[]): string {
+  return `${row.map((cell) => csvEscape(cell)).join(",")}\n`;
+}
+
+export const SQL_COPY_END = "\\.\n\n";
+
+export function sqlDumpFooter(sequences: DumpSequence[]): string {
+  let text = "";
+  for (const sequence of sequences) {
+    const value = typeof sequence.lastValue === "number" ? sequence.lastValue : Number(sequence.lastValue);
+    text += `SELECT setval('${quoteIdent(sequence.name)}', ${Number.isFinite(value) ? value : 1}, true);\n`;
+  }
+  if (sequences.length > 0) {
+    text += "\n";
+  }
+  return `${text}SET session_replication_role = DEFAULT;\n`;
+}
+
+/** The whole dump as one string (tests and small tools); the backup itself streams the same pieces. */
+export function buildSqlDump(input: { at: Date; tables: DumpTable[]; sequences: DumpSequence[] }): string {
+  let sql = sqlDumpHeader(input.at);
   for (const table of input.tables) {
     if (table.name === "_prisma_migrations") {
       continue;
     }
-    const quotedTable = quoteIdent(table.name);
-    const quotedCols = table.columns.map(quoteIdent).join(", ");
-    lines.push(`COPY ${quotedTable} (${quotedCols}) FROM stdin WITH (FORMAT csv, HEADER true);`);
-    lines.push(table.columns.join(","));
+    sql += sqlCopyStart(table.name, table.columns);
     for (const row of table.rows) {
-      lines.push(row.map((cell) => csvEscape(cell)).join(","));
+      sql += sqlCopyRow(row);
     }
-    lines.push("\\.");
-    lines.push("");
+    sql += SQL_COPY_END;
   }
-
-  for (const sequence of input.sequences) {
-    const value = typeof sequence.lastValue === "number" ? sequence.lastValue : Number(sequence.lastValue);
-    lines.push(`SELECT setval('${quoteIdent(sequence.name)}', ${Number.isFinite(value) ? value : 1}, true);`);
-  }
-
-  if (input.sequences.length > 0) {
-    lines.push("");
-  }
-  lines.push("SET session_replication_role = DEFAULT;");
-  lines.push("");
-  return lines.join("\n");
+  return sql + sqlDumpFooter(input.sequences);
 }
 
 export function sanitizeBackupError(message: string): string {
@@ -198,10 +225,88 @@ function latestPayload(input: LatestBackupStatus): Buffer {
   return Buffer.from(`${JSON.stringify(input)}\n`, "utf8");
 }
 
+/**
+ * Splits a byte stream into parts of exactly `partBytes` (the last one may be shorter), so memory
+ * holds about one part at a time.
+ */
+export function createPartSplitter(partBytes: number, onPart: (part: Uint8Array) => Promise<void>) {
+  let chunks: Uint8Array[] = [];
+  let buffered = 0;
+  const drain = () => {
+    const all = new Uint8Array(buffered);
+    let offset = 0;
+    for (const chunk of chunks) {
+      all.set(chunk, offset);
+      offset += chunk.length;
+    }
+    chunks = [];
+    buffered = 0;
+    return all;
+  };
+  return {
+    async push(chunk: Uint8Array) {
+      chunks.push(chunk);
+      buffered += chunk.length;
+      while (buffered >= partBytes) {
+        const all = drain();
+        const rest = all.slice(partBytes);
+        if (rest.length > 0) {
+          chunks = [rest];
+          buffered = rest.length;
+        }
+        await onPart(all.subarray(0, partBytes));
+      }
+    },
+    /** What is left after the last full part. */
+    rest() {
+      return drain();
+    }
+  };
+}
+
+/** Gzips what `produce` writes straight into `upload`; returns the compressed byte count. */
+async function gzipInto(
+  upload: BackupUpload,
+  produce: (write: (bytes: Uint8Array<ArrayBuffer>) => Promise<void>) => Promise<void>
+) {
+  const gzip = new CompressionStream("gzip");
+  const writer = gzip.writable.getWriter();
+  const reader = gzip.readable.getReader();
+  let compressed = 0;
+  const pump = (async () => {
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) return;
+        compressed += value.length;
+        await upload.write(value);
+      }
+    } catch (error) {
+      await reader.cancel(error).catch(() => undefined);
+      throw error;
+    }
+  })();
+  pump.catch(() => undefined);
+
+  try {
+    await produce(async (bytes) => {
+      await writer.ready;
+      await writer.write(bytes);
+    });
+    await writer.close();
+  } catch (error) {
+    await writer.abort(error).catch(() => undefined);
+    await pump.catch(() => undefined);
+    throw error;
+  }
+  await pump;
+  return compressed;
+}
+
 export async function runHubBackup(opts: {
   now: Date;
   config: R2BackupConfig | null;
-  dumpSql: () => Promise<string>;
+  dumpSql: (write: DumpWriter) => Promise<void>;
   store: BackupStore;
 }): Promise<HubBackupResult> {
   if (!opts.config) {
@@ -224,14 +329,27 @@ export async function runHubBackup(opts: {
   };
 
   try {
-    const sql = await opts.dumpSql();
-    if (Buffer.byteLength(sql, "utf8") > MAX_UNCOMPRESSED_BYTES) {
-      return writeFailure("Uncompressed dump exceeds 50 MB");
-    }
-
-    const gzipped = gzipSync(Buffer.from(sql, "utf8"));
     const key = hubBackupDumpKey(opts.now);
-    await opts.store.put(key, gzipped, "application/gzip");
+    const upload = opts.store.upload(key, "application/gzip");
+    const encoder = new TextEncoder();
+    let uncompressed = 0;
+    let bytes: number;
+    try {
+      bytes = await gzipInto(upload, (writeBytes) =>
+        opts.dumpSql(async (text) => {
+          const encoded = encoder.encode(text);
+          uncompressed += encoded.length;
+          if (uncompressed > MAX_UNCOMPRESSED_BYTES) {
+            throw new Error("Uncompressed dump exceeds 50 MB");
+          }
+          await writeBytes(encoded);
+        })
+      );
+      await upload.complete();
+    } catch (error) {
+      await upload.abort().catch(() => undefined);
+      throw error;
+    }
 
     const listed = await opts.store.list();
     const stale = objectsToDelete(listed, opts.now);
@@ -241,11 +359,11 @@ export async function runHubBackup(opts: {
 
     await opts.store.put(
       LATEST_BACKUP_KEY,
-      latestPayload({ ok: true, at, key, bytes: gzipped.length, error: null }),
+      latestPayload({ ok: true, at, key, bytes, error: null }),
       "application/json"
     );
 
-    return { ok: true, key, bytes: gzipped.length };
+    return { ok: true, key, bytes };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Backup failed";
     return writeFailure(message);
@@ -330,19 +448,28 @@ export function backupDatabaseUrls(source: BackupDbEnv = envBackupUrls()): strin
   return urls;
 }
 
-export async function collectPublicTableDumpFromEnv(source: BackupDbEnv = envBackupUrls()): Promise<string> {
+export async function collectPublicTableDumpFromEnv(
+  write: DumpWriter,
+  source: BackupDbEnv = envBackupUrls()
+): Promise<void> {
   const urls = backupDatabaseUrls(source);
   if (urls.length === 0) {
     throw new Error("No database URL configured");
   }
 
+  let wrote = false;
+  const tracked: DumpWriter = (text) => {
+    wrote = true;
+    return write(text);
+  };
   let lastError: unknown;
   for (const url of urls) {
     try {
-      return await collectPublicTableDump(url);
+      return await collectPublicTableDump(url, tracked);
     } catch (error) {
       lastError = error;
-      if (!isRetryableBackupDbError(error)) {
+      // Once part of the dump has gone out, another URL would repeat it.
+      if (wrote || !isRetryableBackupDbError(error)) {
         throw error;
       }
     }
@@ -351,7 +478,8 @@ export async function collectPublicTableDumpFromEnv(source: BackupDbEnv = envBac
   throw lastError instanceof Error ? lastError : new Error("Database dump failed");
 }
 
-export async function collectPublicTableDump(connectionString: string): Promise<string> {
+/** Streams every public table through a cursor inside one REPEATABLE READ snapshot. */
+export async function collectPublicTableDump(connectionString: string, write: DumpWriter): Promise<void> {
   const client = new Client(pgDumpClientOptions(connectionString));
   await client.connect();
   try {
@@ -363,27 +491,25 @@ export async function collectPublicTableDump(connectionString: string): Promise<
        ORDER BY table_name`
     );
 
-    const dumpTables: DumpTable[] = [];
+    await write(sqlDumpHeader(new Date()));
     for (const { table_name: name } of tables.rows) {
-      const columns = await client.query<{ column_name: string }>(
-        `SELECT column_name
+      if (name === "_prisma_migrations") {
+        continue;
+      }
+      const columns = await client.query<{ column_name: string; data_type: string }>(
+        `SELECT column_name, data_type
          FROM information_schema.columns
          WHERE table_schema = 'public' AND table_name = $1
          ORDER BY ordinal_position`,
         [name]
       );
       const columnNames = columns.rows.map((row) => row.column_name);
-      if (columnNames.length === 0) {
-        dumpTables.push({ name, columns: [], rows: [] });
-        continue;
+      await write(sqlCopyStart(name, columnNames));
+      if (columnNames.length > 0) {
+        const heavy = columns.rows.some((row) => row.data_type === "bytea" || /base64/i.test(row.column_name));
+        await streamTableRows(client, name, columnNames, heavy ? DUMP_HEAVY_BATCH_ROWS : DUMP_BATCH_ROWS, write);
       }
-      const quotedCols = columnNames.map(quoteIdent).join(", ");
-      const result = await client.query(`SELECT ${quotedCols} FROM ${quoteIdent(name)}`);
-      dumpTables.push({
-        name,
-        columns: columnNames,
-        rows: result.rows.map((row) => columnNames.map((column) => row[column]))
-      });
+      await write(SQL_COPY_END);
     }
 
     const sequences = await client.query<{ sequencename: string; last_value: string | number | null }>(
@@ -394,14 +520,14 @@ export async function collectPublicTableDump(connectionString: string): Promise<
     );
     await client.query("COMMIT");
 
-    return buildSqlDump({
-      at: new Date(),
-      tables: dumpTables,
-      sequences: sequences.rows.map((row) => ({
-        name: row.sequencename,
-        lastValue: row.last_value ?? 1
-      }))
-    });
+    await write(
+      sqlDumpFooter(
+        sequences.rows.map((row) => ({
+          name: row.sequencename,
+          lastValue: row.last_value ?? 1
+        }))
+      )
+    );
   } catch (error) {
     try {
       await client.query("ROLLBACK");
@@ -412,6 +538,20 @@ export async function collectPublicTableDump(connectionString: string): Promise<
   } finally {
     await client.end();
   }
+}
+
+async function streamTableRows(client: Client, table: string, columns: string[], batchRows: number, write: DumpWriter) {
+  const cursor = "hub_backup_rows";
+  await client.query(`DECLARE ${cursor} NO SCROLL CURSOR FOR SELECT ${columns.map(quoteIdent).join(", ")} FROM ${quoteIdent(table)}`);
+  for (;;) {
+    const batch = await client.query<Record<string, unknown>>(`FETCH ${batchRows} FROM ${cursor}`);
+    if (batch.rows.length > 0) {
+      await write(batch.rows.map((row) => sqlCopyRow(columns.map((column) => row[column]))).join(""));
+    }
+    if (batch.rows.length < batchRows) break;
+  }
+  // On failure the caller's ROLLBACK drops the cursor.
+  await client.query(`CLOSE ${cursor}`);
 }
 
 export function backupDatabaseUrl(): string {

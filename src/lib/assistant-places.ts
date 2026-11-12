@@ -237,7 +237,7 @@ export const ASSISTANT_PLACES: readonly AssistantPlace[] = [
     id: "class-board",
     label: "Class Board",
     href: "/class-board",
-    hint: "Not in the sidebar. Open /class-board",
+    hint: "Left sidebar, under Class",
     aliases: ["class board", "master dashboard", "classroom display"],
     audiences: ALL
   },

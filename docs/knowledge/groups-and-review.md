@@ -20,7 +20,7 @@ Anchored to the package row, not a single file:
 |---|---|---|
 | Stage 1 | Assigned producer (AP or assigned EP/super-admin). If no one is assigned, no one can approve Stage 1; assign a producer on `/package-progress` first. | Initial cut |
 | Stage 2 | Adviser only | Latest initial cut (the adviser decides if it needs a revision) |
-| Stage 3 | Two distinct executive producers (three if marked controversial). Adviser does not count. Portal has no button to mark a package controversial. | Latest initial cut |
+| Stage 3 | Two distinct executive producers (three if marked controversial). Adviser does not count. On the **Initial 3** tab, executive producers and the super admin have a **Controversial** switch in the decision bar (until the cut is approved); when on it reads **Needs 3 executive approvals**. Turning it off when two executives have already approved approves the cut. | Latest initial cut |
 
 A stage left unreviewed for 12 hours emails its reviewers, and again every 12 hours after (see notifications.md).
 

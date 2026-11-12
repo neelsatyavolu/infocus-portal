@@ -61,10 +61,7 @@ describe("loadMyGrades", () => {
         previousTeamworkPoints: null,
         revisedAt: null,
         feedback: "Nice pacing",
-        publishedAt: new Date("2026-09-30T12:00:00.000Z"),
-        extensionDaysApplied: 0,
-        freeExtensionDays: 0,
-        extensionExempt: false
+        publishedAt: new Date("2026-09-30T12:00:00.000Z")
       }
     ]);
     mocks.mediaFindMany.mockResolvedValue([
@@ -127,7 +124,6 @@ describe("loadMyGrades", () => {
 
     expect(result.isAdmin).toBe(true);
     expect(result.cycles[0]).toMatchObject({ published: false, totalPoints: null, feedback: null });
-    expect(result.summary.extensionsRemaining).toBeNull();
   });
 });
 

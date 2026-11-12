@@ -191,7 +191,7 @@ export default function CycleInformationPage() {
                 Man-on-the-street packages are prohibited from being your primary package for a cycle. If you would like to produce one, please contact a producer first.
               </Alert>
               <Alert tone="neutral" role="note" className={CALLOUT}>
-                For any packages with content that may be controversial, all executive producers must also approve before the package can move forward.
+                If an executive producer flags a package as controversial, three executive producers (instead of two) must approve it at Stage 3 before it can move forward.
               </Alert>
             </div>
             <p className={PROSE}>

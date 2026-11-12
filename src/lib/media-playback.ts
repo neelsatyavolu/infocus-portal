@@ -1,5 +1,6 @@
 import { createPlaybackToken } from "@/src/lib/bunny";
 import { thumbnailFromPlaybackUrl } from "@/src/lib/bunny-utils";
+import { mapWithConcurrency } from "@/src/lib/map-with-concurrency";
 import {
   isNasVideoId,
   nasDeriveThumbnailUrl,
@@ -66,6 +67,21 @@ export async function resolveThumbnailUrl(version: VersionLike): Promise<string 
   } catch {
     return null;
   }
+}
+
+/** Drive mints per listing page: Workers allow 6 outbound connections at once. */
+const THUMBNAIL_MINT_CONCURRENCY = 5;
+
+/**
+ * Posters for many versions at once, keyed by version id: each id is resolved once and at most
+ * five Drive mints run at a time (a page of 40 media can hold 100+ versions).
+ */
+export async function resolveThumbnailUrls<V extends VersionLike & { id: string }>(
+  versions: readonly V[]
+): Promise<Map<string, string | null>> {
+  const unique = [...new Map(versions.map((version) => [version.id, version])).values()];
+  const urls = await mapWithConcurrency(unique, THUMBNAIL_MINT_CONCURRENCY, (version) => resolveThumbnailUrl(version));
+  return new Map(unique.map((version, index) => [version.id, urls[index]]));
 }
 
 export async function resolveOriginalDownloadUrl(version: VersionLike): Promise<string | null> {

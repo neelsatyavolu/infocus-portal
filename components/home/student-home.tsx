@@ -88,7 +88,7 @@ export function StudentHome({
             upNext={upNext}
             steps={steps}
             unreadFeedback={snapshot ? snapshot.unreadFeedback : null}
-            extensions={snapshot ? { remaining: snapshot.extensionsRemaining, bank: snapshot.extensionBank } : null}
+            extension={snapshot ? snapshot.extension : null}
             className="md:col-span-2"
           />
           <GradePanel snapshot={snapshot} />

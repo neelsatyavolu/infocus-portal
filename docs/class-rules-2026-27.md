@@ -150,22 +150,10 @@ Livestream points count as soon as a student meets the requirement (8 hours, or 
 - A grant that covers only some members is private to them: uncovered students don't see it on
   `/extension-requests`, the Class Board (which shows whole-group grants only, `groupWideExtension`),
   or assistant lookups, and get no email.
-- One-off prize (2026): whoever is first on the Thanksgiving leaderboard (by points: golden leaves
-  count 5, and harvest hour, a secret hour between 4 and 8 PM on Nov 5, counts double) at 11:59 PM Pacific on
-  Nov 5 wins a pre-approved extension for a Cycle 2 package group (`src/server/thanksgiving-contest.ts`):
-  the group's longest whole-group grant plus 2 days, with no member agreement or producer approvals.
-  The last hour (from 11 PM) is blind: everyone but the super admin, execs included, sees only
-  their own points. The winner is revealed,
-  and the prize granted, at 8:00 AM Fri, Nov 6. It goes to the winner's own Cycle 2 group, unless
-  that group already turned in its Final Cut; then the winner picks a Cycle 2 group that hasn't
-  (`src/server/thanksgiving-prize.ts`, or an exec picks for them). An exact tie gives each winner the
-  prize. A winner on no Cycle 2 group gets none automatically; an exec grants it by hand. Accounts the
-  cheat checks flag (`src/lib/thanksgiving-guard.ts`), or an exec flags on `/thanksgiving`, can't
-  win until an exec clears them.
 - Past the extension deadline → **20%** reduction.
 - More than **14 days** past → **30%**, and a second revision cannot repair it.
 
-Legacy pool code still exists in `src/lib/extensions.ts` and `/extensions`; the new flow is `/extension-requests`.
+The pool is gone from the code too: nothing shows or charges extension days against a bank (`/extensions` redirects to `/extension-requests`). The old `PackageGrade` columns (`freeExtensionDays`, `extensionDaysApplied`, `extensionExempt`) stay in the schema; `src/lib/extensions.ts` now holds only date, late-day and admin-email helpers.
 
 ## Weekly schedule (2026–27)
 
@@ -206,7 +194,7 @@ Subdomains:
 - Generator cooldown covers the previous two saved shows before the selected date. Crew roles, anchoring, and show-manager duty by an associate producer all count; backup roles do not. Member recency uses the same assignments and counts shows, not days.
 - Each show has one **show manager**. Default is a rotation through executive producers (including super-admin) and associate producers, first-name order from the first air date. Producers can override a date on The Show or the master calendar; later automatic days restart from the next person in the pool so the following show is not a duplicate. **Use rotation** / **Auto** clears the override. The adviser is not in the pool. The resolved name is on SHOW cells and in the Google Doc (SM).
 - People assigned to that week’s PA are excluded from random anchors for both shows that week (Wednesday and Friday). Same people do not PA and anchor in the same week.
-- Dropping an anchor slot requires **48 hours** notice (`hasSufficientAnchorNotice`).
+- Dropping an anchor slot requires **48 hours** notice (`hasSufficientAnchorNotice`, counted to 12:00 AM Pacific on the show day). Drop / swap requests go through producers (`src/server/anchor-slot-requests.ts`); later requests are recorded as late notice.
 - Executives (and the adviser / super admin) can open **Anchors & PA** on the master calendar to see how many times each person has been assigned to anchor or PA.
 
 `/api/show-roles/anchor-suggestion` returns read-only guidance for the master calendar. `/api/show-roles/show-manager` saves a per-show manager override. The publishing queue auto-assigns a package to the next upcoming show that has none yet. Producers can drag packages onto a show (max 2). Automatic assignment never stacks two packages on the same show.

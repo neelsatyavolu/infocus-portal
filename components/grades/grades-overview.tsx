@@ -70,6 +70,8 @@ export function GradesOverview({
           requiredHours={requiredHours}
           portfolioPoints={estimated?.portfolio.points ?? null}
           portfolioFeedback={gradebook?.portfolioFeedback ?? ""}
+          portfolioLink={gradebook?.portfolioLink ?? null}
+          semesterLabel={gradebook?.semester.label}
           newKeys={newKeys}
           className={OVERVIEW_OTHER_CLASS}
         />

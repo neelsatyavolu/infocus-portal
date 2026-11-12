@@ -15,6 +15,8 @@ import { prisma } from "@/src/lib/prisma";
 import { ensureProjectFolderPath } from "@/src/server/cycle-project-folders";
 import { setQueuedForAir } from "@/src/server/publishing-queue";
 
+const COMPLETABLE_STATUSES = new Set<MediaStatus>([MediaStatus.UPLOADING, MediaStatus.PROCESSING, MediaStatus.READY]);
+
 async function ensurePublishingQueueProject() {
   const existing = await prisma.project.findFirst({ where: { name: CUSTOM_QUEUE_PROJECT_NAME } });
   if (existing) return existing;
@@ -109,57 +111,73 @@ export async function completeCustomQueueUpload(input: {
 
   const version = await prisma.mediaVersion.findFirst({
     where: { id: input.versionId, mediaItemId: input.mediaId, storageProvider: "NAS" },
-    include: { mediaItem: { select: { projectId: true, createdById: true } } }
+    include: {
+      mediaItem: {
+        select: { projectId: true, createdById: true, deletedAt: true, project: { select: { name: true } } }
+      }
+    }
   });
-  if (!version) {
+  if (!version || version.mediaItem.deletedAt) {
     throw new Error("NOT_FOUND");
   }
   const ownerId = version.createdById ?? version.mediaItem.createdById;
   if (ownerId && ownerId !== input.userId) {
     throw new Error("FORBIDDEN");
   }
-
-  await prisma.mediaVersion.update({
-    where: { id: version.id },
-    data: { status: MediaStatus.READY, storageSyncedAt: new Date() }
-  });
-  await prisma.mediaItem.update({
-    where: { id: input.mediaId },
-    data: { currentVersionId: version.id, title }
-  });
+  // Only uploads started by initCustomQueueUpload land here; any other media must go through its own flow.
+  if (version.mediaItem.project.name !== CUSTOM_QUEUE_PROJECT_NAME) {
+    throw new Error("FORBIDDEN");
+  }
+  // READY covers a retried complete; a failed upload can't be queued.
+  if (!COMPLETABLE_STATUSES.has(version.status)) {
+    throw new Error("CONFLICT");
+  }
 
   const existing = await prisma.packageProgressRow.findFirst({
     where: { finalCutMediaItemId: input.mediaId }
   });
-  if (existing) {
-    if (!isCustomQueuePackage(existing)) {
-      throw new Error("CONFLICT");
-    }
-    if (existing.groupTopic !== title) {
-      await prisma.packageProgressRow.update({
-        where: { id: existing.id },
-        data: { groupTopic: title }
-      });
-    }
-    return setQueuedForAir(existing.id, true);
+  if (existing && !isCustomQueuePackage(existing)) {
+    throw new Error("CONFLICT");
   }
 
-  const last = await prisma.packageProgressRow.aggregate({
-    where: { cycleNumber: CUSTOM_QUEUE_CYCLE_NUMBER },
-    _max: { rowOrder: true }
-  });
+  const rowId = await prisma.$transaction(async (tx) => {
+    await tx.mediaVersion.update({
+      where: { id: version.id },
+      data: { status: MediaStatus.READY, storageSyncedAt: new Date() }
+    });
+    await tx.mediaItem.update({
+      where: { id: input.mediaId },
+      data: { currentVersionId: version.id, title }
+    });
 
-  const row = await prisma.packageProgressRow.create({
-    data: {
-      cycleNumber: CUSTOM_QUEUE_CYCLE_NUMBER,
-      rowOrder: (last._max.rowOrder ?? 0) + 1,
-      groupTopic: title,
-      groupType: CUSTOM_QUEUE_GROUP_TYPE,
-      projectId: version.mediaItem.projectId,
-      finalCut: true,
-      finalCutMediaItemId: input.mediaId
+    if (existing) {
+      if (existing.groupTopic !== title) {
+        await tx.packageProgressRow.update({
+          where: { id: existing.id },
+          data: { groupTopic: title }
+        });
+      }
+      return existing.id;
     }
+
+    const last = await tx.packageProgressRow.aggregate({
+      where: { cycleNumber: CUSTOM_QUEUE_CYCLE_NUMBER },
+      _max: { rowOrder: true }
+    });
+    const row = await tx.packageProgressRow.create({
+      data: {
+        cycleNumber: CUSTOM_QUEUE_CYCLE_NUMBER,
+        rowOrder: (last._max.rowOrder ?? 0) + 1,
+        groupTopic: title,
+        groupType: CUSTOM_QUEUE_GROUP_TYPE,
+        projectId: version.mediaItem.projectId,
+        finalCut: true,
+        finalCutMediaItemId: input.mediaId
+      }
+    });
+    return row.id;
   });
 
-  return setQueuedForAir(row.id, true);
+  // After the commit: queueing reads the now-READY current version.
+  return setQueuedForAir(rowId, true);
 }

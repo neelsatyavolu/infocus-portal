@@ -12,6 +12,8 @@ import { getPlatformRoleForEmail } from "@/src/lib/platform-admin";
 import { unresolvedFinalCutPoints } from "@/src/lib/package-revisions";
 import { checkInGradeForProgress, checkInOverrides, cycleCheckInDates } from "@/src/lib/package-stages";
 import { prisma } from "@/src/lib/prisma";
+import { semesterForDate } from "@/src/lib/livestream";
+import { portfolioPointsOrNull } from "@/src/lib/portfolio";
 import { participationPointsForDate } from "@/src/lib/school-schedule";
 import { resolveLivestreamPointsForUser } from "@/src/server/livestream-credit";
 import { getCycleNumbers } from "@/src/server/program-settings";
@@ -53,7 +55,9 @@ export async function buildGradeSummary(
         }
       }),
       prisma.participationEntry.findMany({ where: { userId } }),
-      prisma.portfolioGrade.findUnique({ where: { userId } }),
+      prisma.portfolioGrade.findUnique({
+        where: { userId_semester: { userId, semester: semesterForDate().label } }
+      }),
       prisma.packageCycle.findMany({
         where: { cycleNumber: { in: cycleNumbers } },
         select: {
@@ -171,7 +175,7 @@ export async function buildGradeSummary(
     livestreamPoints: effectiveLivestream,
     participationEarned,
     participationPossible,
-    portfolioPoints: portfolio ? portfolio.points : null
+    portfolioPoints: portfolioPointsOrNull(portfolio?.points)
   };
 
   // A student with nothing gradeable yet has no grade, not a zero.
@@ -190,7 +194,7 @@ export async function buildGradeSummary(
     livestreamPoints: effectiveLivestream,
     participationEarned,
     participationPossible,
-    portfolioPoints: portfolio?.points ?? null,
+    portfolioPoints: portfolioPointsOrNull(portfolio?.points),
     maxPortfolioPoints: MAX_PORTFOLIO_POINTS,
     percentage,
     letter: percentage === null ? null : letterGrade(percentage)

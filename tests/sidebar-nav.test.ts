@@ -64,7 +64,7 @@ describe("buildSidebarNav", () => {
   it("gives a student a short sidebar grouped by job", () => {
     expect(ids(student)).toEqual([
       { label: null, items: ["dashboard", "my-package", "extension-requests", "grades", "calendar"] },
-      { label: "Class", items: ["announcements", "ideas", "managers"] },
+      { label: "Class", items: ["announcements", "ideas", "managers", "class-board"] },
       { label: "Production", items: ["livestreams"] },
       { label: "Tools", items: ["drive", "teleprompter"] },
       { label: "footer", items: ["settings"] }
@@ -75,19 +75,27 @@ describe("buildSidebarNav", () => {
     expect(ids(associate)).toEqual([
       { label: null, items: ["dashboard", "grades", "calendar"] },
       { label: "Producing", items: ["groups", "package-progress", "people", "meetings", "extension-requests"] },
-      { label: "Class", items: ["announcements", "ideas", "managers"] },
+      { label: "Class", items: ["announcements", "ideas", "managers", "class-board"] },
       { label: "Production", items: ["show", "livestreams"] },
       { label: "Tools", items: ["drive", "teleprompter"] },
       { label: "footer", items: ["settings"] }
     ]);
   });
 
-  it("adds the Thanksgiving leaderboard to Class while Thanksgiving is on", () => {
-    expect(ids({ ...student, thanksgiving: true })[1]).toEqual({
+  it("adds the Thanksgiving leaderboard to Class while Thanksgiving is on and the contest runs", () => {
+    const duringContest = { ...student, thanksgiving: true, now: new Date("2026-11-03T12:00:00-08:00") };
+    expect(ids(duringContest)[1]).toEqual({
       label: "Class",
-      items: ["announcements", "ideas", "managers", "leaderboard"]
+      items: ["announcements", "ideas", "managers", "class-board", "leaderboard"]
     });
-    expect(buildSidebarNav({ ...student, thanksgiving: true })[1].items.at(-1)?.href).toBe("/thanksgiving");
+    expect(buildSidebarNav(duringContest)[1].items.at(-1)?.href).toBe("/thanksgiving");
+  });
+
+  it("drops the leaderboard after the reveal and in a year with no contest", () => {
+    const leaderboard = (now: Date) =>
+      buildSidebarNav({ ...student, thanksgiving: true, now })[1].items.some((entry) => entry.id === "leaderboard");
+    expect(leaderboard(new Date("2026-11-06T08:00:00-08:00"))).toBe(false);
+    expect(leaderboard(new Date("2027-11-03T12:00:00-08:00"))).toBe(false);
   });
 
   it("shows My package to a producer on a roster", () => {

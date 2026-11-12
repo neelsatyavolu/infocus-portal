@@ -48,6 +48,8 @@ const publicRoutePatterns = [
   /^\/api\/auth\/sign-out$/,
   // InFocus Mac app: code + PKCE verifier for a session (no session yet; see src/server/app-sign-in.ts).
   /^\/api\/auth\/app\/token$/,
+  // Personal calendar feed: the signed token in the path is the credential (src/server/calendar-feed-token.ts).
+  /^\/api\/calendar\/[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.ics$/,
   // Public InFocus iPhone app: shows, livestreams, show announcements, alert sign-up (src/server/public-feed.ts).
   /^\/api\/public\/(?:shows|live|news-devices)(?:\/.*)?$/,
   // Vercel Cron (CRON_SECRET bearer, checked in the handler).

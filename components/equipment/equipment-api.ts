@@ -32,8 +32,10 @@ export type RequestRow = {
   status: "PENDING" | "APPROVED" | "DENIED";
   email: string;
   createdAt: string;
+  pickupAt?: string | null;
+  returnAt?: string | null;
   student: StudentRef | null;
-  items: Array<{ id: string; item: EquipmentItem }>;
+  items: Array<{ id: string; deniedReason?: string | null; item: EquipmentItem }>;
 };
 
 export type HubUser = {

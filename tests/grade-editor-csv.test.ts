@@ -18,7 +18,6 @@ describe("grade editor CSV exports", () => {
           teamworkPoints: 14,
           feedback: "Strong package, \"clean\" edit\nNeeds tighter standup.",
           turnedInDate: "2026-05-04",
-          extensionsRemaining: 3,
           published: true,
           revised: false
         },
@@ -29,7 +28,6 @@ describe("grade editor CSV exports", () => {
           teamworkPoints: 10,
           feedback: "",
           turnedInDate: null,
-          extensionsRemaining: -1,
           published: false,
           revised: true
         }
@@ -37,9 +35,9 @@ describe("grade editor CSV exports", () => {
     });
 
     expect(csv).toBe([
-      "Cycle,Name,Email,Final Cut Points,Teamwork Points,Total Points,Percentage,Turned In Date,Extensions Remaining,Published,Revised,Feedback",
-      "2,Ada Lovelace,ada@example.com,23,14,23,46.0,2026-05-04,3,Yes,No,\"Strong package, \"\"clean\"\" edit\nNeeds tighter standup.\"",
-      "2,Unnamed user,,,10,,,,-1,No,Yes,"
+      "Cycle,Name,Email,Final Cut Points,Teamwork Points,Total Points,Percentage,Turned In Date,Published,Revised,Feedback",
+      "2,Ada Lovelace,ada@example.com,23,14,23,46.0,2026-05-04,Yes,No,\"Strong package, \"\"clean\"\" edit\nNeeds tighter standup.\"",
+      "2,Unnamed user,,,10,,,,No,Yes,"
     ].join("\n"));
   });
 

@@ -8,10 +8,12 @@ import { Button } from "@/components/ui/button";
 import { errorText, readJson, sendJson, type FormStatus } from "@/components/equipment/equipment-api";
 import { StatusLine } from "@/components/equipment/status-alert";
 import { ABOVE_PHONE_TABBAR } from "@/components/equipment/sticky-bar";
+import { REQUEST_WINDOW_MESSAGES, validateRequestWindow } from "@/src/lib/equipment-request-window";
+import { pacificWallTimeToIso } from "@/src/lib/meetings/client/time";
 import { RequestCatalog, type PublicItem } from "./_components/request-catalog";
 import { REQUEST_FORM_ID, RequestPanel, type RequestFields } from "./_components/request-panel";
 
-const EMPTY_FORM: RequestFields = { studentName: "", studentId: "", email: "" };
+const EMPTY_FORM: RequestFields = { studentName: "", studentId: "", email: "", pickupAt: "", returnAt: "" };
 
 export default function EquipmentRequestClient() {
   const [items, setItems] = useState<PublicItem[]>([]);
@@ -61,6 +63,18 @@ export default function EquipmentRequestClient() {
       return;
     }
 
+    const pickupAt = pacificWallTimeToIso(form.pickupAt);
+    const returnAt = pacificWallTimeToIso(form.returnAt);
+    if (!pickupAt || !returnAt) {
+      setStatus({ type: "error", text: "Choose a pickup and a return time." });
+      return;
+    }
+    const windowError = validateRequestWindow({ pickupAt: new Date(pickupAt), returnAt: new Date(returnAt) });
+    if (windowError) {
+      setStatus({ type: "error", text: REQUEST_WINDOW_MESSAGES[windowError] });
+      return;
+    }
+
     setBusy(true);
     setStatus(null);
     try {
@@ -68,7 +82,9 @@ export default function EquipmentRequestClient() {
         studentName: form.studentName.trim(),
         studentId: form.studentId.trim(),
         email: form.email.trim(),
-        barcodes: selectedBarcodes
+        barcodes: selectedBarcodes,
+        pickupAt,
+        returnAt
       });
       setStatus({ type: "success", text: "Request submitted." });
       setSelectedBarcodes([]);

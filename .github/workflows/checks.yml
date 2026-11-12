@@ -1,4 +1,5 @@
-# Typecheck + lint on every push. Vercel builds skip these to deploy faster (next.config.ts).
+# Typecheck, lint, tests and a secret scan on every push and PR. The Cloudflare deploy workflow
+# skips type checking to ship faster (next.config.ts) and Next.js builds never lint, so this is the gate.
 name: Checks
 
 on:
@@ -20,3 +21,15 @@ jobs:
       - run: npx next typegen
       - run: npm run typecheck
       - run: npm run lint
+      - run: npm test
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # Free for repositories owned by a personal account; an organization would need GITLEAKS_LICENSE.
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,5 +1,4 @@
 import type { PlatformRole } from "@prisma/client";
-import { calculateExtensionsRemaining } from "@/src/lib/extensions";
 import {
   packageCategoryScore,
   participationCategoryScore,
@@ -92,10 +91,7 @@ function loadGradeSources(userId: string, role: PlatformRole | null) {
         previousTeamworkPoints: true,
         revisedAt: true,
         feedback: true,
-        publishedAt: true,
-        extensionDaysApplied: true,
-        freeExtensionDays: true,
-        extensionExempt: true
+        publishedAt: true
       }
     }),
     prisma.mediaItem.findMany({
@@ -235,8 +231,7 @@ export async function loadMyGrades(userId: string, role: PlatformRole | null) {
     summary: {
       publishedCycleCount: myPublishedTotals.length,
       averageTotal: myAverageTotal,
-      averagePercentage: myAverageTotal === null ? null : gradePercentage(myAverageTotal),
-      extensionsRemaining: isAdmin ? null : calculateExtensionsRemaining(myGrades)
+      averagePercentage: myAverageTotal === null ? null : gradePercentage(myAverageTotal)
     },
     estimated: {
       percentage: gradeSummary.percentage,

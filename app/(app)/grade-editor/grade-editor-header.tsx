@@ -15,7 +15,6 @@ export type CycleStats = {
   publishedCount: number;
   averageTotal: number | null;
   averagePercentage: number | null;
-  overExtensions: number;
 };
 
 function joinParts(parts: Array<string | null | false>) {
@@ -24,8 +23,7 @@ function joinParts(parts: Array<string | null | false>) {
 
 /**
  * The page plate: eyebrow + status tags (save state, temporary edits), the view's title, one line
- * of context (in a cycle: the Final Cut date, the published count and the average; phones drop
- * only the over-extensions count, which their filter chip shows), and the actions: Missing
+ * of context (in a cycle: the Final Cut date, the published count and the average), and the actions: Missing
  * grades, plus Publish all (the one primary) in a
  * cycle. On phones both actions share one row (shorter Missing label, no Send icon).
  */
@@ -124,13 +122,6 @@ export function GradeEditorHeader({
                 ? "—"
                 : `${stats.averageTotal.toFixed(1)}/${MAX_PACKAGE_PER_CYCLE} (${formatPercent(stats.averagePercentage)})`}
             </span>
-            {/* Phones leave this out: the Over extensions filter chip shows the same count. */}
-            {stats.overExtensions > 0 ? (
-              <span className="max-sm:hidden">
-                {" · "}
-                <span title="Used more extension days than they have, across all cycles">{stats.overExtensions} over extensions</span>
-              </span>
-            ) : null}
           </>
         ) : null}
       </span>

@@ -7,7 +7,9 @@ import {
   viewerPoints,
   EMPTY_HARVEST,
   HARVEST_CONTEST,
+  harvestContestFor,
   isContestOpen,
+  isLeaderboardOpen,
   listDisqualified,
   prizeGrantDays,
   harvestTotal,
@@ -96,6 +98,21 @@ describe("the leaderboard contest", () => {
     expect(prizeGrantDays([])).toBe(2);
     expect(prizeGrantDays([1.5, 3])).toBe(5);
     expect(prizeGrantDays([29.5])).toBe(30);
+  });
+});
+
+describe("contest years", () => {
+  it("has a contest only in its configured year", () => {
+    expect(harvestContestFor(new Date("2026-11-15T12:00:00-08:00"))).toBe(HARVEST_CONTEST);
+    expect(harvestContestFor(new Date("2027-11-03T12:00:00-08:00"))).toBeNull();
+  });
+
+  it("opens the leaderboard in the contest year until the reveal, and never in a year without one", () => {
+    expect(isLeaderboardOpen(new Date("2026-11-01T09:00:00-08:00"))).toBe(true);
+    expect(isLeaderboardOpen(new Date(HARVEST_CONTEST.revealAt.getTime() - 1))).toBe(true);
+    expect(isLeaderboardOpen(HARVEST_CONTEST.revealAt)).toBe(false);
+    expect(isLeaderboardOpen(new Date("2026-11-20T12:00:00-08:00"))).toBe(false);
+    expect(isLeaderboardOpen(new Date("2027-11-03T12:00:00-08:00"))).toBe(false);
   });
 });
 

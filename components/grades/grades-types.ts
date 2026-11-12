@@ -46,6 +46,8 @@ export type GradebookPayload = {
   livestreamHours: number;
   requiredLivestreamHours: number;
   portfolioFeedback: string;
+  /** The student's own link for this semester (null when none). Older payloads omit it. */
+  portfolioLink?: string | null;
   checkIns: GradebookCheckIn[];
 };
 
@@ -56,7 +58,6 @@ export type GradesMePayload = {
     publishedCycleCount: number;
     averageTotal: number | null;
     averagePercentage: number | null;
-    extensionsRemaining: number | null;
   };
   estimated?: EstimatedPayload;
   cycles: GradeTile[];

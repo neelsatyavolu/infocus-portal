@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { Alert } from "@/components/kit/alert";
 import { EmptyState } from "@/components/kit/empty-state";
 import { PageHeader } from "@/components/page-header";
@@ -8,7 +9,7 @@ import { ReviewPanel } from "@/components/thanksgiving/review-panel";
 import { TurkeySprite } from "@/components/thanksgiving/sprites";
 import { requireUserId, syncUserProfile } from "@/src/lib/auth";
 import { getPlatformAccess } from "@/src/lib/platform-admin";
-import { HARVEST_CONTEST, isBoardHidden, seesBoard, viewerPoints } from "@/src/lib/thanksgiving-board";
+import { HARVEST_CONTEST, isBoardHidden, isLeaderboardOpen, seesBoard, viewerPoints } from "@/src/lib/thanksgiving-board";
 import { rankMove, viewerGapLine, type RankMove } from "@/src/lib/thanksgiving-standings";
 import { mayGrantExtensions } from "@/src/server/extension-requests";
 import { settleHarvestContest } from "@/src/server/thanksgiving-contest";
@@ -22,7 +23,9 @@ export const metadata: Metadata = { title: "Leaderboard" };
  * Thanksgiving leaderboard: everyone's leaves, golden leaves, pies, wishbones, giant turkey
  * sightings and pardoned turkeys this November (src/lib/thanksgiving-board.ts). Open to everyone
  * signed in. While the board is dark (until the reveal) everyone sees only their own points except
- * the super admin, who still sees the board.
+ * the super admin, who still sees the board. Once the winner is revealed (or in a year with no
+ * contest) the page is gone, except for a winner still picking a group for their prize, or an exec
+ * picking for them: they get just that.
  */
 export default async function ThanksgivingLeaderboardPage() {
   const userId = await requireUserId();
@@ -30,6 +33,7 @@ export default async function ThanksgivingLeaderboardPage() {
   const access = await getPlatformAccess(user.email);
   const reviewer = mayGrantExtensions(access.role);
   const now = new Date();
+  if (!isLeaderboardOpen(now)) return <PrizeOnlyPage userId={userId} reviewer={reviewer} now={now} />;
   const dark = isBoardHidden(now);
   const hidden = !seesBoard(now, access.role);
   await settleHarvestContest(now);
@@ -88,6 +92,19 @@ export default async function ThanksgivingLeaderboardPage() {
         />
       )}
       {review ? <ReviewPanel initialRows={review} /> : null}
+    </div>
+  );
+}
+
+async function PrizeOnlyPage({ userId, reviewer, now }: { userId: string; reviewer: boolean; now: Date }) {
+  await settleHarvestContest(now);
+  const choosers = await loadPrizeChoosers(userId, reviewer, now);
+  if (choosers.length === 0) redirect("/dashboard");
+  const options = await loadPrizeOptions();
+  return (
+    <div className="route-enter space-y-5">
+      <PageHeader eyebrow={`Thanksgiving ${HARVEST_CONTEST.year}`} title="Leaderboard prize" />
+      <PrizePanel choosers={choosers} options={options} viewerId={userId} />
     </div>
   );
 }

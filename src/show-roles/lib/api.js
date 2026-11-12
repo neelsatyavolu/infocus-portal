@@ -6,6 +6,39 @@ const DATA_ENDPOINT = "/api/show-roles/data";
 const MEMBERS_ENDPOINT = "/api/show-roles/members";
 const NON_ANCHORS_ENDPOINT = "/api/show-roles/non-anchors";
 
+const CONFLICT_MESSAGE = "Someone else changed this — reload to see their changes.";
+
+// What this tab last loaded from (or saved to) the server, per show date and for non-anchors.
+// Saves send only the difference from this, so a stale tab never replaces the whole list.
+let showBaseline = new Map();
+let nonAnchorBaseline = new Set();
+
+function showContent(show) {
+  return {
+    assignments: show?.assignments && typeof show.assignments === "object" ? show.assignments : {},
+    anchors: Array.isArray(show?.anchors) ? show.anchors : [],
+    confirmed: show?.confirmed && typeof show.confirmed === "object" ? show.confirmed : {},
+  };
+}
+
+/** Deep equality for JSON values; object key order is ignored (the database reorders keys). */
+function jsonEqual(left, right) {
+  if (left === right) return true;
+  if (left === null || right === null || typeof left !== "object" || typeof right !== "object") return false;
+  if (Array.isArray(left) || Array.isArray(right)) {
+    if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) return false;
+    return left.every((value, index) => jsonEqual(value, right[index]));
+  }
+  const leftKeys = Object.keys(left).filter((key) => left[key] !== undefined);
+  const rightKeys = Object.keys(right).filter((key) => right[key] !== undefined);
+  if (leftKeys.length !== rightKeys.length) return false;
+  return leftKeys.every((key) => Object.prototype.hasOwnProperty.call(right, key) && jsonEqual(left[key], right[key]));
+}
+
+function rememberShows(shows) {
+  showBaseline = new Map(shows.map((show) => [show.date, showContent(show)]));
+}
+
 async function parseJson(response) {
   const contentType = response.headers.get("content-type") || "";
   if (contentType.includes("application/json")) {
@@ -64,6 +97,7 @@ export async function loadHistory() {
 
     const payload = await parseJson(response);
     const history = normalizeHistory(payload || { shows: [] });
+    rememberShows(history.shows);
     writeLocalHistory(history);
     return history;
   } catch (error) {
@@ -80,6 +114,19 @@ export async function loadHistory() {
 
 export async function saveHistory(history) {
   const normalized = normalizeHistory(history);
+  const currentDates = new Set(normalized.shows.map((show) => show.date));
+  const changed = normalized.shows.filter((show) => !jsonEqual(showBaseline.get(show.date), showContent(show)));
+  const deletedDates = [...showBaseline.keys()].filter((date) => !currentDates.has(date));
+
+  if (changed.length === 0 && deletedDates.length === 0) {
+    writeLocalHistory(normalized);
+    return normalized;
+  }
+
+  const base = {};
+  for (const date of [...changed.map((show) => show.date), ...deletedDates]) {
+    base[date] = showBaseline.get(date) ?? null;
+  }
 
   const response = await fetch(DATA_ENDPOINT, {
     method: "POST",
@@ -87,7 +134,11 @@ export async function saveHistory(history) {
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(normalized),
+    body: JSON.stringify({
+      shows: changed.map((show) => ({ date: show.date, ...showContent(show) })),
+      base,
+      deletedDates,
+    }),
   });
 
   const payload = await parseJson(response);
@@ -100,11 +151,24 @@ export async function saveHistory(history) {
     throw new Error("Access denied.");
   }
 
+  if (response.status === 409) {
+    throw new Error(payload?.error || CONFLICT_MESSAGE);
+  }
+
   if (!response.ok || payload?.success !== true) {
     throw new Error(payload?.error || "Failed to save data.");
   }
 
-  const saved = normalizeHistory({ shows: payload.shows ?? normalized.shows });
+  const savedByDate = new Map(
+    (Array.isArray(payload.shows) ? payload.shows : []).map((show) => [show.date, show]),
+  );
+  const saved = normalizeHistory({
+    shows: normalized.shows.map((show) => savedByDate.get(show.date) ?? show),
+  });
+  const nextBaseline = new Map(showBaseline);
+  for (const date of deletedDates) nextBaseline.delete(date);
+  for (const show of changed) nextBaseline.set(show.date, showContent(savedByDate.get(show.date) ?? show));
+  showBaseline = nextBaseline;
   writeLocalHistory(saved);
   return saved;
 }
@@ -143,7 +207,9 @@ export async function loadNonAnchors() {
 
     const payload = await parseJson(response);
     const list = Array.isArray(payload?.nonAnchors) ? payload.nonAnchors : [];
-    return list.filter((value) => typeof value === "string");
+    const names = list.filter((value) => typeof value === "string");
+    nonAnchorBaseline = new Set(names);
+    return names;
   } catch (error) {
     if (error instanceof Error && error.message.toLowerCase().includes("session")) {
       throw error;
@@ -156,12 +222,15 @@ export async function saveNonAnchors(nonAnchors) {
   const list = Array.isArray(nonAnchors)
     ? nonAnchors.filter((value) => typeof value === "string" && value.length > 0)
     : [];
+  const next = new Set(list);
+  const add = list.filter((name) => !nonAnchorBaseline.has(name));
+  const remove = [...nonAnchorBaseline].filter((name) => !next.has(name));
 
   const response = await fetch(NON_ANCHORS_ENDPOINT, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ nonAnchors: list }),
+    body: JSON.stringify({ add, remove }),
   });
 
   const payload = await parseJson(response);
@@ -172,5 +241,7 @@ export async function saveNonAnchors(nonAnchors) {
     throw new Error(payload?.error || "Failed to save non-anchors.");
   }
 
-  return Array.isArray(payload.nonAnchors) ? payload.nonAnchors : list;
+  const saved = Array.isArray(payload.nonAnchors) ? payload.nonAnchors : list;
+  nonAnchorBaseline = new Set(saved);
+  return saved;
 }

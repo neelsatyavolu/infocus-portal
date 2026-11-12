@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const db = vi.hoisted(() => ({
   packageApproval: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
   packageProgressRow: { findUnique: vi.fn(), update: vi.fn() },
-  packageApprovalSignoff: { deleteMany: vi.fn(), create: vi.fn() },
+  packageApprovalSignoff: { deleteMany: vi.fn(), create: vi.fn(), findMany: vi.fn() },
   mediaVersion: { updateMany: vi.fn(), update: vi.fn(), findFirst: vi.fn() },
   mediaItem: { findUnique: vi.fn() },
   user: { findUnique: vi.fn() },
@@ -25,7 +25,14 @@ async function runAfterResponse() {
   for (const task of tasks) await task();
 }
 
-import { approveAnyway, recordDecision, unapproveCut, submitCutReview } from "@/src/server/package-approval-service";
+import {
+  approveAnyway,
+  mayFlagControversial,
+  recordDecision,
+  setControversial,
+  unapproveCut,
+  submitCutReview
+} from "@/src/server/package-approval-service";
 
 const actor = { userId: "ap", email: "ap@example.com", role: "ASSOCIATE_PRODUCER" as const };
 const versions = [
@@ -221,5 +228,37 @@ describe("approveAnyway", () => {
     expect(db.packageApprovalSignoff.create).not.toHaveBeenCalled();
     expect(deferred).toHaveLength(0);
     expect(notify.notifyPackageReview).not.toHaveBeenCalled();
+  });
+});
+
+describe("setControversial", () => {
+  it("lets only executive producers and the super admin flag a package", () => {
+    expect(mayFlagControversial("EXECUTIVE_PRODUCER")).toBe(true);
+    expect(mayFlagControversial("SUPER_ADMIN")).toBe(true);
+    expect(mayFlagControversial("ADVISER")).toBe(false);
+    expect(mayFlagControversial("ASSOCIATE_PRODUCER")).toBe(false);
+    expect(mayFlagControversial(null)).toBe(false);
+  });
+
+  it("flags a Stage 3 package without approving it on two executive votes", async () => {
+    db.packageApproval.update.mockResolvedValue({ id: "approval", stage: "EXECUTIVE_REVIEW", controversial: true });
+    db.packageApprovalSignoff.findMany.mockResolvedValue([{ userId: "ep" }, { userId: "ep2" }]);
+    await setControversial("row", true);
+    expect(db.packageApproval.update).toHaveBeenCalledTimes(1);
+    expect(db.packageApproval.update).toHaveBeenCalledWith({ where: { id: "approval" }, data: { controversial: true } });
+  });
+
+  it("approves a Stage 3 package that already has two executive votes when the flag is cleared", async () => {
+    db.packageApproval.update.mockResolvedValue({ id: "approval", stage: "EXECUTIVE_REVIEW", controversial: false });
+    db.packageApprovalSignoff.findMany.mockResolvedValue([{ userId: "ep" }, { userId: "ep2" }]);
+    await setControversial("row", false);
+    expect(db.packageApproval.update).toHaveBeenLastCalledWith({ where: { id: "approval" }, data: { stage: "APPROVED" } });
+  });
+
+  it("leaves a package before Stage 3 where it is", async () => {
+    db.packageApproval.update.mockResolvedValue({ id: "approval", stage: "ADVISER_REVIEW", controversial: false });
+    await setControversial("row", false);
+    expect(db.packageApprovalSignoff.findMany).not.toHaveBeenCalled();
+    expect(db.packageApproval.update).toHaveBeenCalledTimes(1);
   });
 });

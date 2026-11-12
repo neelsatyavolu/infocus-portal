@@ -18,6 +18,9 @@ import { ListDetailSkeleton, LoadingRegion } from "@/components/kit/skeleton";
 import { StatusTag } from "@/components/kit/status-tag";
 import { StickyActionBar } from "@/components/kit/sticky-action-bar";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { formatPacificWindowTime } from "@/src/lib/equipment-request-window";
 import type { RequestRow } from "@/components/equipment/equipment-api";
 import {
   ITEM_STATE,
@@ -38,6 +41,7 @@ import { ABOVE_PHONE_TABBAR } from "@/components/equipment/sticky-bar";
 
 type RequestFilter = "pending" | "all";
 type Decision = "approve" | "deny";
+type DecideFn = (id: string, action: Decision, reason?: string) => void;
 
 function isRequestFilter(value: unknown): value is RequestFilter {
   return value === "pending" || value === "all";
@@ -57,16 +61,24 @@ function RequestStateTag({ request }: { request: RequestRow }) {
 function DecisionButtons({
   request,
   busy,
+  denyReason,
   onDecide
 }: {
   request: RequestRow;
   busy: boolean;
-  onDecide: (id: string, action: Decision) => void;
+  /** Deny only: emailed to the requester with the decision. */
+  denyReason: string;
+  onDecide: DecideFn;
 }) {
   return (
     <>
       {canDeny(request) ? (
-        <Button type="button" variant="destructive-quiet" disabled={busy} onClick={() => onDecide(request.id, "deny")}>
+        <Button
+          type="button"
+          variant="destructive-quiet"
+          disabled={busy}
+          onClick={() => onDecide(request.id, "deny", denyReason.trim() || undefined)}
+        >
           Deny
         </Button>
       ) : null}
@@ -83,13 +95,17 @@ function RequestDetail({
   request,
   busy,
   error,
+  denyReason,
+  onDenyReasonChange,
   onDecide
 }: {
   request: RequestRow;
   busy: boolean;
   /** Why the last Approve / Deny on this request failed. */
   error: string | null;
-  onDecide: (id: string, action: Decision) => void;
+  denyReason: string;
+  onDenyReasonChange: (value: string) => void;
+  onDecide: DecideFn;
 }) {
   const hasActions = canApprove(request) || canDeny(request);
   // Why a button is missing, or (when both can show) what they do.
@@ -107,7 +123,7 @@ function RequestDetail({
             {hasActions ? (
               // Phones get these in the sticky action bar instead.
               <ActionBar align="end" className="ml-auto hidden lg:flex">
-                <DecisionButtons request={request} busy={busy} onDecide={onDecide} />
+                <DecisionButtons request={request} busy={busy} denyReason={denyReason} onDecide={onDecide} />
               </ActionBar>
             ) : null}
           </>
@@ -124,7 +140,9 @@ function RequestDetail({
           items={[
             { label: "Student ID", value: request.student?.studentId ?? "—", mono: true },
             { label: "Email", value: request.email },
-            { label: "Requested", value: formatShortDateTime(request.createdAt) }
+            { label: "Requested", value: formatShortDateTime(request.createdAt) },
+            { label: "Pickup", value: formatPacificWindowTime(request.pickupAt), mono: true },
+            { label: "Return", value: formatPacificWindowTime(request.returnAt), mono: true }
           ]}
         />
         <div>
@@ -139,6 +157,9 @@ function RequestDetail({
                   <div className="min-w-0 flex-1">
                     <p className="break-words text-sm text-foreground">{entry.item.name}</p>
                     <p className="break-all font-mono text-xs tabular-nums text-muted-foreground">{entry.item.barcode}</p>
+                    {entry.deniedReason ? (
+                      <p className="mt-0.5 break-words text-xs text-muted-foreground">Denied: {entry.deniedReason}</p>
+                    ) : null}
                   </div>
                   <StatusTag tone={style.tone}>{style.label}</StatusTag>
                 </li>
@@ -146,6 +167,19 @@ function RequestDetail({
             })}
           </ul>
         </div>
+        {canDeny(request) ? (
+          <div className="space-y-2">
+            <Label htmlFor={`deny-reason-${request.id}`}>Reason if denied (optional)</Label>
+            <Textarea
+              id={`deny-reason-${request.id}`}
+              value={denyReason}
+              maxLength={500}
+              rows={2}
+              placeholder="Emailed to the student with the decision."
+              onChange={(event) => onDenyReasonChange(event.target.value)}
+            />
+          </div>
+        ) : null}
       </div>
     </Panel>
   );
@@ -165,13 +199,14 @@ export function ManageRequests({
   active: boolean;
   busy: boolean;
   /** Resolves to the error message, or null when the change was saved. */
-  onDecide: (id: string, action: Decision) => Promise<string | null>;
+  onDecide: (id: string, action: Decision, reason?: string) => Promise<string | null>;
 }) {
   // Every request shows by default (pending first, as before); Pending narrows to the queue.
   const [filter, setFilter] = useRememberedState<RequestFilter>("equipment:manage:request-filter:v1", "all", isRequestFilter);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [phoneDetail, setPhoneDetail] = useState(false);
   const [decisionError, setDecisionError] = useState<{ id: string; message: string } | null>(null);
+  const [denyReasons, setDenyReasons] = useState<Record<string, string>>({});
 
   const sorted = useMemo(() => sortRequests(requests), [requests]);
   const pending = useMemo(() => sorted.filter((row) => row.status === "PENDING"), [sorted]);
@@ -191,9 +226,9 @@ export function ManageRequests({
   }
 
   /** Saves one decision; a failure stays on that request. Resolves true when it saved. */
-  async function decide(id: string, action: Decision) {
+  async function decide(id: string, action: Decision, reason?: string) {
     setDecisionError(null);
-    const error = await onDecide(id, action);
+    const error = await onDecide(id, action, reason);
     if (error) setDecisionError({ id, message: error });
     return error === null;
   }
@@ -235,7 +270,9 @@ export function ManageRequests({
           key={request.id}
           title={studentLabel(request.student)}
           tags={<RequestStateTag request={request} />}
-          subtitle={`${itemCountLabel(request.items.length)} · ${formatShortDate(request.createdAt)}`}
+          subtitle={`${itemCountLabel(request.items.length)} · ${formatShortDate(request.createdAt)}${
+            request.pickupAt ? ` · Pickup ${formatPacificWindowTime(request.pickupAt)}` : ""
+          }`}
           active={selected?.id === request.id}
           onClick={() => {
             setSelectedId(request.id);
@@ -274,7 +311,9 @@ export function ManageRequests({
                 request={selected}
                 busy={busy}
                 error={selectedError}
-                onDecide={(id, action) => void decide(id, action)}
+                denyReason={denyReasons[selected.id] ?? ""}
+                onDenyReasonChange={(value) => setDenyReasons((current) => ({ ...current, [selected.id]: value }))}
+                onDecide={(id, action, reason) => void decide(id, action, reason)}
               />
             ) : null
           }
@@ -293,9 +332,10 @@ export function ManageRequests({
           <DecisionButtons
             request={selected}
             busy={busy}
-            onDecide={(id, action) => {
+            denyReason={denyReasons[selected.id] ?? ""}
+            onDecide={(id, action, reason) => {
               // On phones, a saved decision returns to the list (the result shows in the message under the tabs).
-              void decide(id, action).then((saved) => {
+              void decide(id, action, reason).then((saved) => {
                 if (saved) setPhoneDetail(false);
               });
             }}

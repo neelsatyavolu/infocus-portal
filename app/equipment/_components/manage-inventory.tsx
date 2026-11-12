@@ -3,6 +3,7 @@
 import { useMemo, useState, type FormEvent, type KeyboardEvent } from "react";
 import { Check, PackageOpen, Pencil, Plus, SearchX } from "lucide-react";
 import { Toolbar } from "@/components/kit/action-bar";
+import { ExportCsvButton } from "@/components/kit/export-csv-button";
 import { DataTable, type DataColumn } from "@/components/kit/data-table";
 import { EmptyState } from "@/components/kit/empty-state";
 import { Panel } from "@/components/kit/panel";
@@ -219,6 +220,22 @@ export function ManageInventory({
               ) : null}
               {ARCHIVE_RULE}
             </span>
+          }
+          end={
+            <>
+              <ExportCsvButton
+                href="/api/equipment/manage/export?kind=inventory"
+                label="Export inventory"
+                title="Every item and where it is now (CSV)"
+                className="max-md:h-10"
+              />
+              <ExportCsvButton
+                href="/api/equipment/manage/export?kind=checkouts"
+                label="Export checkouts"
+                title="Full checkout history, newest first (CSV)"
+                className="max-md:h-10"
+              />
+            </>
           }
         />
         <DataTable

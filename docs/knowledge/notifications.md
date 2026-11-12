@@ -44,10 +44,17 @@ Browser push goes only to devices registered with **Browser** on in Settings →
 | Stage 1 approves | The adviser (Stage 2) | Email and push |
 | Stage 2 approves | Executive producers and super admin, not the adviser (Stage 3) | Email and push |
 | Final Cut uploaded | Assigned producer and every Final Cut grader | Email and push |
-| Stage unreviewed for 12 hours | That stage's reviewers | Email and push (see below) |
+| Stage due tomorrow and not turned in: pitch (not yet marked by a producer), proof of contact, A-roll/B-roll, Initial Cut, or Final Cut | Each group member whose own deadline (after their approved extension days) is tomorrow | Email and push at 7:30 AM Pacific, once per group, stage and due date (see **Deadline reminders** below) |
+| Initial Cut, A-roll/B-roll, Final Cut grading, or a participation dock waiting 12 hours | Whoever has to act | Email and push (see **Review reminders** below) |
 | Anchoring a show: 9 PM the night before it's filmed, and 8 AM on the filming day (1st period on the school day before it airs) | Each anchor listed on The Show for that date | Email and app push, linking to The Show |
+| Reading the PA: 9 PM the night before the PA day, and 8 AM on the PA day (read at the start of 2nd period) | Each PA announcer on the master calendar for that day | Email and app push, linking to the PA script |
+| Show filmed, roles not confirmed | That show's show manager | Email once 1st period on the filming day ends, then every 3 hours until someone confirms on The Show (none 9 PM to 7 AM) |
+| Tomorrow's show had an automatic edit but isn't scheduled on YouTube (6 PM Pacific) | Whoever started the edit and the show manager | Email, once |
+| Student asks for an extension | Groupmates who still need to agree | Email |
+| Every group member agreed to an extension request | The group's assigned producer, executives, adviser, and super admin (not anyone in the group) | Email |
 | Executive grants an extension | The other executives, adviser, and super admin | Email |
-| Extension approved | Each chosen student | Email |
+| Extension approved or denied | Students the terms cover (the whole group unless a producer picked members); a denial includes the reason | One email |
+| Short of 8 livestream hours, in the two weeks before livestream grades post (S1: Dec 4; S2: May 20) | Students under 8 completed hours, not appointed livestream managers and not executives | Email at 8 AM Pacific on Fridays: hours done, hours still needed, and upcoming livestreams with open slots |
 | Participation dock submitted | Executives, the adviser, and super admin (not the requester) | Email |
 | Equipment request; item out 72 hours | Equipment managers; borrower and managers daily | Email (see `equipment.md`) |
 | Package ready on YouTube | Website managers | Email that the infocusnews.tv story is scheduled, with a link to review it; or, if it couldn't be posted, the watch link and embed code (see `publishing-queue.md`) |
@@ -65,19 +72,34 @@ Browser push goes only to devices registered with **Browser** on in Settings →
 
 ## Review reminders
 
-If an Initial Cut stage sits unreviewed for 12 hours, its reviewers get an email and push: the assigned associate producer for Stage 1, the adviser for Stage 2, and every executive producer and super admin who hasn't approved yet for Stage 3. The reminder repeats every 12 hours until the stage is reviewed. The clock starts at the latest upload or the previous stage's approval. Packages sent back for revisions (waiting on the students) are skipped, and only the active and later cycles are checked. An hourly job sends them.
+An hourly job nags whoever is holding work up, 12 hours after it started waiting and again every 12 hours until they act:
+
+- **Initial Cut**: the assigned associate producer for Stage 1, the adviser for Stage 2, and every executive producer and super admin who hasn't approved yet for Stage 3. The clock starts at the latest upload or the previous stage's approval. Packages sent back for revisions (waiting on the students) are skipped.
+- **A-roll/B-roll**: the assigned producer, while footage waits for approval (it scores 0/5 until approved). The clock starts at the latest upload; producer feedback after that upload means the students owe the next move, so it stops.
+- **Final Cut grading**: each Final Cut grader (executive producers and super admin) who hasn't scored every member yet, counted from the latest Final Cut upload.
+- **Participation docks**: the adviser, the other executives, and super admin (not whoever submitted them), while docked scores wait for approval. Email only.
+
+Email and push, except participation (email only). Initial Cut and A-roll cover the active and later cycles; Final Cut grading also covers the cycle before the active one.
+
+## Deadline reminders
+
+At 7:30 AM Pacific, every group member whose pitch, proof of contact, A-roll/B-roll, Initial Cut, or Final Cut is due tomorrow gets an email and push if the group hasn't turned it in yet. Each member's own approved extension days move their deadline, so a member with an extension gets it the day before their own deadline instead. Turned in means: the pitch marked by a producer, all three proof-of-contact images and the brainstorm doc, any A-roll/B-roll upload (approval is the producer's job), or an Initial or Final Cut upload. It goes out once per group, stage, and due date, whatever the Email switches say.
 
 ## Slack
 
 - **Announcements** on `/announcements` are read from the class Slack announcements channel.
 - **Proof of contact**: each proof upload posts to the class proof-of-contact Slack channel as the Portal bot (members, topic, cycle, and the proof images), replacing that package's earlier post.
 - Opening Portal refreshes Slack announcements and reposts any missing proof-of-contact posts (at most once a minute).
+- **Class Board standings**: 7 PM Pacific Monday, Wednesday, and Friday, the Class Board standings as an image in the class board channel.
+- **Birthdays**: 12:00 AM Pacific, a happy birthday with an animated card in #announcements for everyone born that day (see Settings → Profile above).
+- **Thanksgiving leaderboard**: Nov 1–5, every three hours except 3 AM Pacific, the leaderboard's top five in #announcements until the board goes dark at 11 PM Thursday; then 8 AM Friday Nov 6, the winner with the final top five.
 
 ## Scheduled jobs you might notice
 
-- **Hourly**: review reminders (above) and a database backup (Admin → System → Backups, kept 7 days).
+- **Hourly**: review reminders (above) and a database backup (Admin → System → Backups, kept 7 days). From 7:30 AM to 8:30 PM Pacific, the show manager's role-confirm reminder (every 3 hours until confirmed).
 - **Every minute**: meeting reminders, 15 and 5 minutes before the start (see `meetings.md`). Meeting calendar changes reach Google Calendar in the background.
 - **Every 10 minutes**: alerts for the public InFocus iPhone app (new show, new story, a stream going live; see `iphone-apps.md`).
 - **Every 15 minutes**: Portal checks for queued packages and shows due to upload to YouTube on their air date. While an upload is in progress it checks every minute until it finishes. Starting a show upload begins right away.
-- **Daily**: the next 21 days of InFocus Producer Meetings are added to Meetings; equipment overdue emails (morning, Pacific); any Master Calendar edits not yet copied to the Google Doc are synced; media left in trash for 7 days is deleted for good; older versions of a video are removed once its current version is a week old.
+- **Daily**: deadline reminders (7:30 AM Pacific); anchor and PA reminders (9 PM and 8 AM Pacific); the unscheduled show-edit reminder (6 PM Pacific); Slack birthdays (midnight Pacific); the next 21 days of InFocus Producer Meetings are added to Meetings; equipment overdue emails (morning, Pacific); any Master Calendar edits not yet copied to the Google Doc are synced; media left in trash for 7 days is deleted for good; older versions of a video are removed once its current version is a week old.
+- **Weekly**: livestream hours reminders, Fridays 8 AM Pacific, only in the two weeks before livestream grades post. Slack Class Board standings Monday, Wednesday, and Friday at 7 PM Pacific.
 - **Every 2 days**: a new set of story ideas on the Ideas tab, written in the afternoon (4:30pm Pacific in daylight time, 3:30pm in standard time). Nobody is notified; see `ideas.md`.

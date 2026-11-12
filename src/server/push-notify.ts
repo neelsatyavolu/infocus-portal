@@ -1,6 +1,9 @@
 import { isWebPushConfigured, sendWebPush } from "@/src/lib/web-push";
 import { prisma } from "@/src/lib/prisma";
 
+/** Like src/lib/apns.ts: Workers allow 6 outbound connections at once. */
+const SEND_BATCH_SIZE = 5;
+
 export type PushCategory = "browser" | "comments" | "grades";
 
 export async function sendPushToUserIds(
@@ -33,18 +36,24 @@ export async function sendPushToUserIds(
     return { sent: 0, failed: 0 };
   }
 
-  const results = await Promise.all(
-    subscriptions.map((subscription) =>
-      sendWebPush(
-        {
-          endpoint: subscription.endpoint,
-          p256dh: subscription.p256dh,
-          auth: subscription.auth
-        },
-        payload
-      ).then((result) => ({ id: subscription.id, result }))
-    )
-  );
+  const results: Array<{ id: string; result: Awaited<ReturnType<typeof sendWebPush>> }> = [];
+  for (let start = 0; start < subscriptions.length; start += SEND_BATCH_SIZE) {
+    const batch = subscriptions.slice(start, start + SEND_BATCH_SIZE);
+    results.push(
+      ...(await Promise.all(
+        batch.map((subscription) =>
+          sendWebPush(
+            {
+              endpoint: subscription.endpoint,
+              p256dh: subscription.p256dh,
+              auth: subscription.auth
+            },
+            payload
+          ).then((result) => ({ id: subscription.id, result }))
+        )
+      ))
+    );
+  }
 
   const staleIds = results.filter((entry) => entry.result.stale).map((entry) => entry.id);
   if (staleIds.length > 0) {

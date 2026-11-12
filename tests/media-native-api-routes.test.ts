@@ -25,6 +25,8 @@ vi.mock("@/src/server/memberships", () => ({
 
 vi.mock("@/src/lib/media-playback", () => ({
   resolveThumbnailUrl: mocks.resolveThumbnailUrl,
+  resolveThumbnailUrls: async (versions: Array<{ id: string }>) =>
+    new Map(await Promise.all(versions.map(async (version) => [version.id, await mocks.resolveThumbnailUrl(version)] as const))),
   resolvePlaybackUrl: vi.fn()
 }));
 

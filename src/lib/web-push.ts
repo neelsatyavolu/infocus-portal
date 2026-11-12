@@ -12,6 +12,9 @@ type StoredPushSubscription = {
   auth: string;
 };
 
+/** Socket timeout per push service request, so one slow endpoint can't hold the whole send. */
+const WEB_PUSH_TIMEOUT_MS = 8_000;
+
 let configured = false;
 
 function ensureConfigured() {
@@ -57,7 +60,8 @@ export async function sendWebPush(
           auth: subscription.auth
         }
       },
-      JSON.stringify(payload)
+      JSON.stringify(payload),
+      { timeout: WEB_PUSH_TIMEOUT_MS }
     );
 
     return { ok: true as const, stale: false };

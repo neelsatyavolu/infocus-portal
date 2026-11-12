@@ -164,7 +164,7 @@ export function ReporterCell({
   name: string;
   email: string | null;
   onOpen: () => void;
-  /** Marks after the email on line 2 (Unsaved, Saving, Over extensions). */
+  /** Marks after the email on line 2 (Unsaved, Saving). */
   children?: ReactNode;
 }) {
   return (

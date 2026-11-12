@@ -7,17 +7,13 @@ import { EmptyState } from "@/components/kit/empty-state";
 import { Sheet } from "@/components/kit/sheet";
 import { Skeleton } from "@/components/kit/skeleton";
 import { Spinner } from "@/components/kit/spinner";
-import { StatusTag } from "@/components/kit/status-tag";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { MAX_EFFORT_POINTS, MAX_TEAMWORK_POINTS } from "@/src/lib/package-grades";
 import { cn } from "@/src/lib/utils";
 import {
-  extensionDaysTone,
   MAX_FEEDBACK_LENGTH,
-  MAX_FREE_EXTENSION_DAYS,
-  normalizeFreeExtensionDays,
   normalizeQuickGradePoints,
   quickGradePersonLabel,
   type QuickGradeRow
@@ -47,16 +43,6 @@ function GradeRow({ row, state }: { row: QuickGradeRow; state: QuickGradesState 
         <span className={cn("min-w-0 truncate text-sm font-medium", row.disabled ? "text-muted-foreground" : "text-foreground")}>
           {name}
         </span>
-        {!row.disabled && !row.extensionDetails.exempt ? (
-          <StatusTag
-            size="sm"
-            tone={extensionDaysTone(row.extensionsRemaining)}
-            title="Extension days remaining (out of 14)"
-            className="font-mono! normal-case! tracking-normal! tabular-nums"
-          >
-            {`${row.extensionsRemaining}d`}
-          </StatusTag>
-        ) : null}
         <span className="flex-1" />
         <Button
           type="button"
@@ -72,7 +58,7 @@ function GradeRow({ row, state }: { row: QuickGradeRow; state: QuickGradesState 
         </Button>
       </div>
       {row.disabled ? <p className="text-xs text-muted-foreground">{row.disabledReason}</p> : null}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2">
         <Input
           type="number"
           min={0}
@@ -101,18 +87,6 @@ function GradeRow({ row, state }: { row: QuickGradeRow; state: QuickGradesState 
               teamworkPoints: normalizeQuickGradePoints(event.target.value, MAX_TEAMWORK_POINTS)
             })
           }
-          className={NUMBER_INPUT_CLASS}
-        />
-        <Input
-          type="number"
-          min={0}
-          max={MAX_FREE_EXTENSION_DAYS}
-          step={1}
-          inputMode="numeric"
-          aria-label={`Free extension days for ${name}`}
-          value={row.freeExtensionDays}
-          disabled={inputsDisabled}
-          onChange={(event) => state.updateRow(row.userId, { freeExtensionDays: normalizeFreeExtensionDays(event.target.value) })}
           className={NUMBER_INPUT_CLASS}
         />
       </div>
@@ -166,8 +140,7 @@ export function QuickGradesBody({ state, peopleCount }: { state: QuickGradesStat
         {Array.from({ length: 4 }, (_, index) => (
           <div key={index} className="space-y-2.5 rounded-md border border-border p-3">
             <Skeleton className="h-4 w-1/2" />
-            <div className="grid grid-cols-3 gap-2">
-              <Skeleton className="h-9 rounded-md" />
+            <div className="grid grid-cols-2 gap-2">
               <Skeleton className="h-9 rounded-md" />
               <Skeleton className="h-9 rounded-md" />
             </div>
@@ -181,10 +154,9 @@ export function QuickGradesBody({ state, peopleCount }: { state: QuickGradesStat
   }
   return (
     <div className="space-y-2">
-      <div aria-hidden className="grid grid-cols-3 gap-2 px-3">
+      <div aria-hidden className="grid grid-cols-2 gap-2 px-3">
         <span className={cn(LABEL_CLASS, "text-right")}>Effort /{MAX_EFFORT_POINTS}</span>
         <span className={cn(LABEL_CLASS, "text-right")}>Teamwork /{MAX_TEAMWORK_POINTS}</span>
-        <span className={cn(LABEL_CLASS, "text-right")}>Free ext</span>
       </div>
       <ul className="space-y-2">
         {state.rows.map((row) => (

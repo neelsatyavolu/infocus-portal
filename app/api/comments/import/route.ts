@@ -2,11 +2,14 @@ import { z } from "zod";
 import { handleRouteError } from "@/src/lib/api-errors";
 import { canComment } from "@/src/lib/rbac";
 import { parseImportedCommentsCsv } from "@/src/lib/comment-import-csv";
-import { ok } from "@/src/lib/http";
+import { fail, ok } from "@/src/lib/http";
 import { prisma } from "@/src/lib/prisma";
 import { getRequestKey, limitByKey } from "@/src/lib/rate-limit";
 import { DEFAULT_REVIEW_FPS } from "@/src/lib/timecode";
 import { requireCommentActor } from "@/src/server/comment-access";
+
+/** One import is one review's notes; more than this is almost certainly the wrong file. */
+const MAX_IMPORTED_COMMENTS = 1000;
 
 const importCommentsRequestSchema = z.object({
   mediaVersionId: z.string().cuid(),
@@ -41,25 +44,28 @@ export async function POST(request: Request) {
       throw new Error("BAD_REQUEST");
     }
 
-    const createdComments = await prisma.$transaction(async (tx) => {
-      const created = [];
+    if (parsed.comments.length > MAX_IMPORTED_COMMENTS) {
+      return fail(
+        `This CSV has ${parsed.comments.length} comments. Import at most ${MAX_IMPORTED_COMMENTS} at a time.`,
+        400
+      );
+    }
 
-      for (const imported of parsed.comments) {
-        const comment = await tx.reviewComment.create({
-          data: {
-            mediaVersionId: context.mediaVersion.id,
-            authorId: context.actorId,
-            targetType: "TIMECODE",
-            timeSeconds: imported.timeSeconds,
-            frameNumber: imported.frameNumber,
-            body: imported.body,
-            createdAt: imported.createdAt
-          }
-        });
-        created.push(comment);
-      }
-
-      await tx.activityEvent.create({
+    // "Commented At" keeps the original review's history; a clock-skewed or future date is clamped to now.
+    const now = new Date();
+    const [createdComments] = await prisma.$transaction([
+      prisma.reviewComment.createManyAndReturn({
+        data: parsed.comments.map((imported) => ({
+          mediaVersionId: context.mediaVersion.id,
+          authorId: context.actorId,
+          targetType: "TIMECODE" as const,
+          timeSeconds: imported.timeSeconds,
+          frameNumber: imported.frameNumber,
+          body: imported.body,
+          createdAt: imported.createdAt > now ? now : imported.createdAt
+        }))
+      }),
+      prisma.activityEvent.create({
         data: {
           workspaceId: context.workspaceId,
           projectId: context.projectId,
@@ -68,13 +74,12 @@ export async function POST(request: Request) {
           actorId: context.actorId,
           type: "comment.import",
           payload: {
-            importedCount: created.length,
+            importedCount: parsed.comments.length,
             skippedCount: parsed.skippedCount
           }
         }
-      });
-
-      await tx.auditLog.create({
+      }),
+      prisma.auditLog.create({
         data: {
           workspaceId: context.workspaceId,
           projectId: context.projectId,
@@ -85,16 +90,14 @@ export async function POST(request: Request) {
           targetType: "MediaVersion",
           targetId: context.mediaVersion.id,
           metadata: {
-            importedCount: created.length,
+            importedCount: parsed.comments.length,
             skippedCount: parsed.skippedCount,
             totalRows: parsed.totalRows,
             fps: DEFAULT_REVIEW_FPS
           }
         }
-      });
-
-      return created;
-    });
+      })
+    ]);
 
     return ok(
       {

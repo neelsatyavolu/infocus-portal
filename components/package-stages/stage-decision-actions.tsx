@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { Send } from "lucide-react";
 import { toast } from "sonner";
 import { Spinner } from "@/components/kit/spinner";
+import { ControversialToggle } from "@/components/package-stages/controversial-toggle";
 import { ApproveFeedbackDialog } from "@/components/package-cycle/approve-feedback-dialog";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -30,6 +31,8 @@ export type DecisionAction = { key: string; node: ReactNode; dock?: boolean };
  * - Initial Cut: Submit review (needs revisions) · Approve (or Approve anyway), Unapprove, and
  *   Approve anyway → "Send to Stage 2" confirm (never shown together with the Approve decision).
  *   Shown only on the tab for the package's current review stage.
+ *   On the Stage 3 tab, executive producers and the super admin also get a Controversial switch
+ *   (three executive approvals instead of two) until the cut is approved.
  * - Final Cut: Send to queue / Remove from queue once a Final Cut exists.
  * On phones only the main decision pair docks (Submit review + Approve, or the one approve).
  */
@@ -57,6 +60,7 @@ export function useStageDecisions({
   const [approving, setApproving] = useState(false);
   const [approveAnywayOpen, setApproveAnywayOpen] = useState(false);
   const [queueing, setQueueing] = useState(false);
+  const [settingControversial, setSettingControversial] = useState(false);
   const row = view?.row;
 
   async function approveAroll(feedback: string) {
@@ -119,6 +123,25 @@ export function useStageDecisions({
     }
   }
 
+  async function setControversial(controversial: boolean) {
+    if (!row) return;
+    setSettingControversial(true);
+    try {
+      const response = await postJson(`/api/package-progress/${row.id}/approval`, {
+        action: "SET_CONTROVERSIAL",
+        controversial
+      });
+      if (!response.ok) {
+        toast.error("Could not update the controversial flag.");
+        return;
+      }
+      toast.success(controversial ? "Flagged controversial. Needs 3 executive approvals." : "No longer controversial.");
+      await reload();
+    } finally {
+      setSettingControversial(false);
+    }
+  }
+
   async function queue(queued: boolean) {
     if (!row) return;
     setQueueing(true);
@@ -175,6 +198,18 @@ export function useStageDecisions({
           >
             Needs revisions
           </Button>
+        )
+      });
+    }
+    if (approval?.canSetControversial && (reviewStage ?? approvalStageToReviewStage(approval.stage)) === 3) {
+      actions.push({
+        key: "controversial",
+        node: (
+          <ControversialToggle
+            checked={Boolean(approval.controversial)}
+            disabled={settingControversial || approving}
+            onChange={(next) => void setControversial(next)}
+          />
         )
       });
     }

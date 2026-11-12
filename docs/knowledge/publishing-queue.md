@@ -46,3 +46,5 @@ Emails go to the managers assigned when the video becomes ready. Adding a manage
 Removing a manager also cancels any still-pending emails to them. Already delivered emails and their unlisted YouTube links cannot be recalled.
 
 If the queue's **YouTube** tile says **Not set up**, an administrator must complete [YouTube setup](../YOUTUBE-PUBLISHING.md). An expired upload session or uncertain email delivery needs administrator reconciliation to avoid duplicates.
+
+**Export CSV** on the publishing queue downloads every queued and past show with its packages (producers and website managers).

@@ -18,10 +18,8 @@ import {
 } from "./grade-editor-types";
 import {
   isMissedFinalCut,
-  isOverExtensions,
   latePenalizedPoints,
   isRowFilledIn,
-  overExtensionsTitle,
   formatPercent,
   publishBlockedReason,
   rowLabel,
@@ -225,16 +223,6 @@ export function RowStatusTag({ row, size = "sm" }: { row: GradeRow; size?: "sm" 
   return (
     <StatusTag tone={status.tone} size={size} title={status.title}>
       {status.label}
-    </StatusTag>
-  );
-}
-
-/** Season-wide: used more extension days than they have. Shown beside the reporter. */
-export function OverExtensionsTag({ row, size = "sm" }: { row: GradeRow; size?: "sm" | "md" }) {
-  if (!isOverExtensions(row)) return null;
-  return (
-    <StatusTag tone="warning" size={size} title={overExtensionsTitle(row)}>
-      Over ext.
     </StatusTag>
   );
 }

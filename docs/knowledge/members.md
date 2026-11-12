@@ -15,3 +15,5 @@ A list of class members (not EP, adviser, or super admin) with **general** notes
 - Notes are shared: every producer who can open Members reads and edits the same note. Students never see them.
 
 To let someone sign in, use **Add person** at the top of Admin Dashboard (**Overview** or **People** tab). To put them on a package, use Package Cycle.
+
+**Export CSV** at the top of Members downloads the member list (associate producers and up).

@@ -34,6 +34,7 @@ import {
   tableMinWidth,
   type HeaderGroup
 } from "./grade-editor-table";
+import { PORTFOLIO_COLUMN, PortfolioCell, usePortfolioGrades, type PortfolioEntry } from "./portfolio-column";
 import { CheckInsTotalField, CycleTotalField, ExtraField, FinalField, LivestreamField } from "./totals-fields";
 
 function totalsGroups(cycles: CycleTab[]): HeaderGroup[] {
@@ -59,6 +60,7 @@ function totalsGroups(cycles: CycleTab[]): HeaderGroup[] {
         { label: "Livestream", sub: `/${MAX_LIVESTREAM}`, width: 120, align: "right" as const },
         { label: "Participation", title: "Graded days in weeks that have ended", width: 108, align: "right" as const },
         { label: "Final", sub: `/${MAX_FINAL}`, width: 80, align: "right" as const },
+        PORTFOLIO_COLUMN,
         { label: "Extra", title: "Earned / possible", width: 112, align: "right" as const }
       ]
     },
@@ -106,15 +108,23 @@ export function TotalsGradesTable({
   cycles,
   handlers,
   loading,
-  empty
+  empty,
+  onPortfolioSaved
 }: {
   views: TotalsRowView[];
   cycles: CycleTab[];
   handlers: TotalsRowHandlers;
   loading: boolean;
   empty: ReactNode;
+  /** After a Portfolio score saves (reload totals so Final and the grade follow it). */
+  onPortfolioSaved?: () => void;
 }) {
   const groups = totalsGroups(cycles);
+  const portfolio = usePortfolioGrades();
+  const savePortfolio = async (userId: string, points: number | null) => {
+    await portfolio.save(userId, points);
+    onPortfolioSaved?.();
+  };
   const showEmpty = !loading && views.length === 0;
   return (
     <>
@@ -125,7 +135,15 @@ export function TotalsGradesTable({
           {loading && views.length === 0 ? (
             <SkeletonRows columns={columnCount(groups)} />
           ) : (
-            views.map((view) => <TotalsGradeRow key={view.row.userId} view={view} handlers={handlers} />)
+            views.map((view) => (
+              <TotalsGradeRow
+                key={view.row.userId}
+                view={view}
+                handlers={handlers}
+                portfolio={portfolio.byUserId.get(view.row.userId)}
+                onSavePortfolio={(points) => savePortfolio(view.row.userId, points)}
+              />
+            ))
           )}
         </tbody>
       </table>
@@ -134,7 +152,17 @@ export function TotalsGradesTable({
   );
 }
 
-function TotalsGradeRow({ view, handlers }: { view: TotalsRowView; handlers: TotalsRowHandlers }) {
+function TotalsGradeRow({
+  view,
+  handlers,
+  portfolio,
+  onSavePortfolio
+}: {
+  view: TotalsRowView;
+  handlers: TotalsRowHandlers;
+  portfolio: PortfolioEntry | undefined;
+  onSavePortfolio: (points: number | null) => Promise<void>;
+}) {
   const { row, adjustments, summary, edited } = view;
   const update = (patch: Partial<TotalsAdjustments>) => handlers.onUpdateAdjustment(row.userId, patch);
   const hasNotes = Boolean(row.notes.trim());
@@ -179,6 +207,9 @@ function TotalsGradeRow({ view, handlers }: { view: TotalsRowView; handlers: Tot
       </td>
       <td className={NUM_CELL}>
         <FinalField row={row} adjustments={adjustments} update={update} />
+      </td>
+      <td className={NUM_CELL}>
+        <PortfolioCell name={personLabel(row)} entry={portfolio} onSave={onSavePortfolio} />
       </td>
       <td className={NUM_CELL}>
         <ExtraField row={row} adjustments={adjustments} update={update} />

@@ -2,6 +2,7 @@ import type { PlatformRole } from "@prisma/client";
 import { pacificDateKey } from "@/src/lib/deadlines";
 import { teleprompterAppOrigin } from "@/src/lib/hosts";
 import { meetingsHomeUrl } from "@/src/lib/meetings/links";
+import { isLeaderboardOpen } from "@/src/lib/thanksgiving-board";
 import type { StageCommentUnread } from "@/src/lib/package-stage-comments";
 import type { CycleStageStatus } from "@/src/lib/package-stage-status";
 
@@ -28,6 +29,7 @@ export type SidebarNavItemId =
   | "announcements"
   | "ideas"
   | "managers"
+  | "class-board"
   | "leaderboard"
   | "drive"
   | "teleprompter"
@@ -62,8 +64,13 @@ export type SidebarNavContext = {
   sampleOnly: boolean;
   /** Where My package opens: the stage the person is working on (`myPackageHref`). */
   myPackageHref: string;
-  /** Thanksgiving is on in this browser (src/lib/thanksgiving.ts): the Leaderboard link shows. */
+  /**
+   * Thanksgiving is on in this browser (src/lib/thanksgiving.ts): the Leaderboard link shows, in a
+   * contest year until the winner is revealed (isLeaderboardOpen).
+   */
   thanksgiving?: boolean;
+  /** The time the leaderboard window is checked against (tests); defaults to now. */
+  now?: Date;
 };
 
 export type HubTab = {
@@ -174,7 +181,11 @@ export function buildSidebarNav(context: SidebarNavContext): SidebarNavSection[]
       item("announcements", "/announcements", "Announcements"),
       item("ideas", "/ideas", "Ideas"),
       item("managers", "/managers", "Managers"),
-      Boolean(context.thanksgiving) && item("leaderboard", "/thanksgiving", "Leaderboard")
+      // Open to anyone signed in (the classroom screen also unlocks it with a PIN).
+      item("class-board", "/class-board", "Class Board"),
+      Boolean(context.thanksgiving) &&
+        isLeaderboardOpen(context.now ?? new Date()) &&
+        item("leaderboard", "/thanksgiving", "Leaderboard")
     ]),
     // Livestreams is its own item for everyone; producers also get The Show (with Publishing Queue).
     section("Production", [

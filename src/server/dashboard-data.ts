@@ -1,5 +1,4 @@
 import { isAppReviewEmail } from "@/src/lib/app-review";
-import { calculateExtensionsRemaining, STARTING_EXTENSION_DAYS } from "@/src/lib/extensions";
 import {
   buildUserNameCandidates,
   extractMentionUserIds,
@@ -8,6 +7,11 @@ import {
 import { pacificDateKey } from "@/src/lib/deadlines";
 import { MAX_FINAL_CUT_POINTS } from "@/src/lib/grading";
 import { MAX_CHECK_IN_POINTS_PER_CYCLE } from "@/src/lib/package-stages";
+import {
+  approvedExtensionDaysFor,
+  extensionRequestVisibleTo,
+  type ExtensionGrant
+} from "@/src/lib/package-extensions";
 import type { PlatformRole } from "@prisma/client";
 import { prisma } from "@/src/lib/prisma";
 import { labeledUser, userDisplayName } from "@/src/lib/user-display";
@@ -77,10 +81,68 @@ export type StudentDashboardSnapshot = {
     possible: number;
     days: DashboardWeekDay[];
   } | null;
-  extensionsRemaining: number;
-  extensionBank: number;
+  extension: DashboardExtensionStatus | null;
   unreadFeedback: number;
 };
+
+/**
+ * The student's extension on their current cycle: approved days that cover them, and whether a
+ * request is still pending ("awaiting-you" when they haven't agreed to it yet). Null when they
+ * are on no package group this cycle.
+ */
+export type DashboardExtensionStatus = {
+  approvedDays: number;
+  pending: "awaiting-you" | "pending" | null;
+};
+
+type ExtensionStatusRow = {
+  extension: boolean;
+  extensionRequests: Array<
+    ExtensionGrant & {
+      status: "PENDING" | "APPROVED" | "DENIED";
+      producerGranted: boolean;
+      memberConsents: Array<{ userId: string; agreed: boolean }>;
+    }
+  >;
+};
+
+export function studentExtensionStatus(row: ExtensionStatusRow | null, userId: string): DashboardExtensionStatus | null {
+  if (!row) return null;
+  const approved = row.extensionRequests.filter((request) => request.status === "APPROVED");
+  const pending = row.extensionRequests.filter(
+    (request) => request.status === "PENDING" && extensionRequestVisibleTo(request, userId)
+  );
+  const awaitingYou = pending.some(
+    (request) =>
+      !request.producerGranted &&
+      !request.memberConsents.some((consent) => consent.userId === userId && consent.agreed)
+  );
+  return {
+    approvedDays: approvedExtensionDaysFor({ extension: row.extension, extensionRequests: approved }, userId),
+    pending: awaitingYou ? "awaiting-you" : pending.length > 0 ? "pending" : null
+  };
+}
+
+async function loadStudentExtensionStatus(userId: string, cycleNumber: number) {
+  const row = await prisma.packageProgressRow.findFirst({
+    where: { cycleNumber, members: { some: { userId } } },
+    select: {
+      extension: true,
+      extensionRequests: {
+        where: { status: { in: ["APPROVED", "PENDING"] } },
+        select: {
+          status: true,
+          requestedDays: true,
+          grantedDays: true,
+          grantedUserIds: true,
+          producerGranted: true,
+          memberConsents: { select: { userId: true, agreed: true } }
+        }
+      }
+    }
+  });
+  return studentExtensionStatus(row, userId);
+}
 
 export function snapshotPackageTotals(
   finalCutPoints: Array<number | null>,
@@ -113,7 +175,7 @@ function sumGraded(values: Array<number | null>) {
 
 export function pickCurrentParticipationWeek<T extends { weekStart: string }>(
   weeks: T[],
-  today = new Date().toISOString().slice(0, 10)
+  today = pacificDateKey(new Date())
 ): T | null {
   if (weeks.length === 0) {
     return null;
@@ -351,14 +413,12 @@ export async function loadStudentDashboardSnapshot(
   // Extensions, unread feedback and the gradebook extras don't depend on the grade summary; load
   // them alongside it. The extras only use cycle numbers and check-ins for their `checkIns`, which
   // the snapshot never reads, so they don't wait for the summary.
-  const [gradeSummary, extras, extensionRows, unread] = await Promise.all([
+  const cycleNumber = resolveStudentCycleNumber(userId);
+  const [gradeSummary, extras, extension, unread] = await Promise.all([
     buildGradeSummary(userId, undefined, known),
     loadGradebookExtras(userId, [], []),
-    prisma.packageGrade.findMany({
-      where: { userId },
-      select: { extensionDaysApplied: true, extensionExempt: true, freeExtensionDays: true }
-    }),
-    resolveStudentCycleNumber(userId).then((cycleNumber) => loadStageCommentUnread(userId, cycleNumber))
+    cycleNumber.then((cycle) => loadStudentExtensionStatus(userId, cycle)),
+    cycleNumber.then((cycle) => loadStageCommentUnread(userId, cycle))
   ]);
   const thisWeek = pickCurrentParticipationWeek(extras.weeks);
 
@@ -392,8 +452,7 @@ export async function loadStudentDashboardSnapshot(
             }))
         }
       : null,
-    extensionsRemaining: calculateExtensionsRemaining(extensionRows),
-    extensionBank: STARTING_EXTENSION_DAYS,
+    extension,
     unreadFeedback: Object.values(unread).reduce((sum, count) => sum + count, 0)
   };
 }

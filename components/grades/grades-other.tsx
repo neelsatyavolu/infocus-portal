@@ -6,6 +6,7 @@ import { ProgressBar } from "@/components/kit/progress";
 import { ClampText, LABEL_CLASS, NewTag } from "@/components/grades/grade-parts";
 import { formatHours, weightLabel } from "@/components/grades/grade-math";
 import { OTHER_BODY_CLASS, OTHER_LIVESTREAM_CLASS, OTHER_PORTFOLIO_CLASS } from "@/components/grades/grades-layout";
+import { PortfolioLinkForm } from "@/components/grades/portfolio-link-form";
 import { LIVESTREAM_SEEN_KEY, PORTFOLIO_SEEN_KEY } from "@/components/grades/grades-seen";
 import {
   GRADE_WEIGHTS,
@@ -26,6 +27,8 @@ export function GradesOther({
   requiredHours,
   portfolioPoints,
   portfolioFeedback,
+  portfolioLink,
+  semesterLabel,
   newKeys,
   className
 }: {
@@ -34,6 +37,8 @@ export function GradesOther({
   requiredHours: number;
   portfolioPoints: number | null;
   portfolioFeedback: string;
+  portfolioLink: string | null;
+  semesterLabel?: string;
   newKeys: ReadonlySet<string>;
   /** Grid placement from the Overview (grades-layout.ts). */
   className?: string;
@@ -84,6 +89,7 @@ export function GradesOther({
         {portfolioFeedback.trim() ? (
           <ClampText text={portfolioFeedback} lines={4} className="mt-3 text-sm text-foreground" />
         ) : null}
+        <PortfolioLinkForm key={portfolioLink ?? ""} initialLink={portfolioLink} semesterLabel={semesterLabel} />
       </section>
     </Panel>
   );

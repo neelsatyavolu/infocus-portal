@@ -275,7 +275,9 @@ export function useReviewComments({ initialComments, guestToken }: { initialComm
           body: JSON.stringify({ mediaVersionId, csvText })
         });
         if (!response.ok) {
-          throw new Error("Failed");
+          const failure = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
+          toast.error(failure?.error?.message || "Could not import comments from CSV.");
+          return;
         }
         const payload = await response.json();
         const imported = ((payload.data.comments ?? []) as CreatedComment[]).map(asLocalComment);

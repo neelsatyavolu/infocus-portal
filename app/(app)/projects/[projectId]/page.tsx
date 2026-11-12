@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ProjectMediaTiles } from "@/components/project-media-tiles";
 import { ProjectShellBridge } from "@/components/project-shell-bridge";
-import { resolveThumbnailUrl } from "@/src/lib/media-playback";
+import { resolveThumbnailUrls } from "@/src/lib/media-playback";
+import { afterResponse } from "@/src/lib/after-response";
 import { syncUserProfile } from "@/src/lib/auth";
 import { buildMediaVersionImageUrl } from "@/src/lib/media-assets";
 import { getPlatformAccess, hasPlatformRole } from "@/src/lib/platform-admin";
@@ -93,7 +94,7 @@ async function getProjectRouteData(params: {
   ]);
 
   if (hasPendingVersions) {
-    void reconcileProjectMediaStatuses(params.projectId).catch(() => undefined);
+    afterResponse("reconcileProjectMediaStatuses", () => reconcileProjectMediaStatuses(params.projectId));
   }
 
   return {
@@ -155,6 +156,10 @@ export default async function ProjectPage({ params, searchParams }: ProjectPageP
   const canManageVersionMeta = membership.role !== "REVIEWER";
   const selectedFolder = shellData.folders.find((folder) => folder.id === folderIdValue) ?? null;
   const isFinalCutFolderSelected = Boolean(selectedFolder && isFinalCutFolderName(selectedFolder.name));
+  // One Drive mint per video version, at most five at a time.
+  const posters = await resolveThumbnailUrls(
+    mediaPage.items.flatMap((media) => media.versions.filter((version) => version.sourceType !== "IMAGE"))
+  );
 
   return (
     <>
@@ -214,7 +219,7 @@ export default async function ProjectPage({ params, searchParams }: ProjectPageP
                 thumbnailUrl:
                   version.sourceType === "IMAGE"
                     ? buildMediaVersionImageUrl(media.id, version.id)
-                    : await resolveThumbnailUrl(version),
+                    : posters.get(version.id) ?? null,
                 durationSeconds: version.durationSeconds ?? null,
                 createdAt: version.createdAt.toISOString(),
                 createdByName: version.createdBy

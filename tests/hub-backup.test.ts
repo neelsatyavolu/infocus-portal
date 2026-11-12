@@ -1,3 +1,4 @@
+import { gunzipSync } from "node:zlib";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/src/lib/prisma", () => ({
@@ -9,6 +10,7 @@ import {
   BACKUP_RETENTION_MS,
   LATEST_BACKUP_KEY,
   buildSqlDump,
+  createPartSplitter,
   csvEscape,
   hubBackupDumpKey,
   isHubBackupDumpKey,
@@ -189,7 +191,10 @@ describe("runHubBackup", () => {
     const result = await runHubBackup({
       now: new Date("2026-09-02T15:00:12.000Z"),
       config,
-      dumpSql: async () => "-- dump\n",
+      dumpSql: async (write) => {
+        await write("-- dump\n");
+        await write("COPY rest\n");
+      },
       store
     });
 
@@ -199,7 +204,7 @@ describe("runHubBackup", () => {
     }
     expect(result.key).toBe("hub/2026-09-02T1500Z.sql.gz");
     expect(result.bytes).toBeGreaterThan(0);
-    expect(store.has("hub/2026-09-02T1500Z.sql.gz")).toBe(true);
+    expect(gunzipSync(store.body("hub/2026-09-02T1500Z.sql.gz")!).toString("utf8")).toBe("-- dump\nCOPY rest\n");
     expect(store.has("hub/2026-08-01T0000Z.sql.gz")).toBe(false);
     expect(JSON.parse(store.text(LATEST_BACKUP_KEY))).toMatchObject({
       ok: true,
@@ -235,11 +240,76 @@ describe("runHubBackup", () => {
     const result = await runHubBackup({
       now: new Date("2026-09-02T15:00:12.000Z"),
       config,
-      dumpSql: async () => "x".repeat(50 * 1024 * 1024 + 1),
+      dumpSql: async (write) => {
+        const chunk = "x".repeat(1024 * 1024);
+        for (let i = 0; i <= 50; i += 1) await write(chunk);
+      },
       store
     });
     expect(result.ok).toBe(false);
     expect(JSON.parse(store.text(LATEST_BACKUP_KEY)).error).toMatch(/50 MB/i);
+    expect(store.aborted).toEqual(["hub/2026-09-02T1500Z.sql.gz"]);
+    expect(store.has("hub/2026-09-02T1500Z.sql.gz")).toBe(false);
+  });
+
+  it("aborts the upload and records failure when the dump throws midway", async () => {
+    const store = memoryStore();
+    const result = await runHubBackup({
+      now: new Date("2026-09-02T15:00:12.000Z"),
+      config,
+      dumpSql: async (write) => {
+        await write("-- partial\n");
+        throw new Error("connection reset");
+      },
+      store
+    });
+    expect(result).toEqual({ ok: false, error: "connection reset" });
+    expect(store.aborted).toEqual(["hub/2026-09-02T1500Z.sql.gz"]);
+    expect(JSON.parse(store.text(LATEST_BACKUP_KEY))).toMatchObject({ ok: false, error: "connection reset" });
+  });
+
+  it("records failure when the upload itself fails", async () => {
+    const base = memoryStore();
+    const store: BackupStore = {
+      ...base,
+      upload: () => ({
+        write: async () => {
+          throw new Error("R2 part failed");
+        },
+        complete: async () => undefined,
+        abort: async () => undefined
+      })
+    };
+    const result = await runHubBackup({
+      now: new Date("2026-09-02T15:00:12.000Z"),
+      config,
+      dumpSql: async (write) => {
+        for (let i = 0; i < 200; i += 1) await write(`${i}-${"y".repeat(4096)}\n`);
+      },
+      store
+    });
+    expect(result.ok).toBe(false);
+    expect(JSON.parse(base.text(LATEST_BACKUP_KEY)).error).toContain("R2 part failed");
+  });
+});
+
+describe("createPartSplitter", () => {
+  it("emits equal-size parts and keeps the remainder", async () => {
+    const parts: number[][] = [];
+    const splitter = createPartSplitter(4, async (part) => {
+      parts.push([...part]);
+    });
+    await splitter.push(Uint8Array.from([1, 2, 3]));
+    await splitter.push(Uint8Array.from([4, 5, 6, 7, 8, 9, 10, 11]));
+    await splitter.push(Uint8Array.from([12]));
+    expect(parts).toEqual([
+      [1, 2, 3, 4],
+      [5, 6, 7, 8],
+      [9, 10, 11, 12]
+    ]);
+    expect([...splitter.rest()]).toEqual([]);
+    await splitter.push(Uint8Array.from([13]));
+    expect([...splitter.rest()]).toEqual([13]);
   });
 });
 
@@ -312,7 +382,10 @@ describe("sanitizeBackupError", () => {
 function memoryStore(seed: Array<BackupObject & { body?: string | Buffer }> = []): BackupStore & {
   has: (key: string) => boolean;
   text: (key: string) => string;
+  body: (key: string) => Buffer | undefined;
+  aborted: string[];
 } {
+  const aborted: string[] = [];
   const objects = new Map<string, { lastModified: Date; bytes: number; body: Buffer }>();
   for (const item of seed) {
     const body = Buffer.from(item.body ?? "");
@@ -331,8 +404,27 @@ function memoryStore(seed: Array<BackupObject & { body?: string | Buffer }> = []
       const buffer = Buffer.isBuffer(body) ? body : Buffer.from(body);
       objects.set(key, { lastModified: new Date(), bytes: buffer.length, body: buffer });
     },
+    upload(key) {
+      const chunks: Buffer[] = [];
+      return {
+        async write(chunk) {
+          chunks.push(Buffer.from(chunk));
+        },
+        async complete() {
+          const body = Buffer.concat(chunks);
+          objects.set(key, { lastModified: new Date(), bytes: body.length, body });
+        },
+        async abort() {
+          aborted.push(key);
+        }
+      };
+    },
     async delete(keys) {
       for (const key of keys) objects.delete(key);
+    },
+    aborted,
+    body(key) {
+      return objects.get(key)?.body;
     },
     has(key) {
       return objects.has(key);

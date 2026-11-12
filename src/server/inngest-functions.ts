@@ -15,7 +15,14 @@ import { discoverYoutubePublications, publishYoutubePackage } from "@/src/server
 import { runPackageReviewReminders } from "@/src/server/package-review-reminders";
 import { runShowRolesConfirmReminders } from "@/src/server/show-roles-confirm";
 import { runShowEditReminders } from "@/src/server/show-editor-notify";
-import { runAnchorReminders } from "@/src/server/anchor-reminders";
+import { runAnchorReminders, runPaAnnouncerReminders } from "@/src/server/anchor-reminders";
+import { runStageDeadlineReminders } from "@/src/server/stage-deadline-reminders";
+import {
+  runARollReviewReminders,
+  runFinalCutGradingReminders,
+  runParticipationDockReminders
+} from "@/src/server/stage-review-reminders";
+import { selectLivestreamHoursReminders, sendLivestreamHoursReminders } from "@/src/server/livestream-hours-reminders";
 import { birthdayCardNames } from "@/src/lib/birthday-slack";
 import { findTodaysBirthdays, postBirthdayGif } from "@/src/server/birthday-slack";
 import { renderBirthdayGif } from "@/src/server/birthday-slack-gif";
@@ -379,8 +386,57 @@ export const packageReviewRemindersHourly = inngest.createFunction(
   {
     cron: "0 * * * *"
   },
+  async ({ step }) => {
+    // One step each, so a slow or failing kind doesn't hold up (or re-send) the others.
+    return {
+      initialCut: await step.run("initial-cut", () => runPackageReviewReminders()),
+      aRoll: await step.run("a-roll", () => runARollReviewReminders()),
+      finalCut: await step.run("final-cut-grading", () => runFinalCutGradingReminders()),
+      participation: await step.run("participation-docks", () => runParticipationDockReminders())
+    };
+  }
+);
+
+/** 07:30 Pacific: remind group members of a stage due tomorrow (after their own extension) that isn't turned in. */
+export const stageDeadlineRemindersDaily = inngest.createFunction(
+  {
+    id: "stage-deadline-reminders-daily",
+    concurrency: 1
+  },
+  {
+    cron: "TZ=America/Los_Angeles 30 7 * * *"
+  },
   async () => {
-    return runPackageReviewReminders();
+    return runStageDeadlineReminders();
+  }
+);
+
+const LIVESTREAM_REMINDER_BATCH = 15;
+
+/** 08:00 Pacific Fridays, in the two weeks before livestream grades post: students short of the required hours. */
+export const livestreamHoursRemindersWeekly = inngest.createFunction(
+  {
+    id: "livestream-hours-reminders-weekly",
+    concurrency: 1
+  },
+  {
+    cron: "TZ=America/Los_Angeles 0 8 * * 5"
+  },
+  async ({ step }) => {
+    const selected = await step.run("select", () => selectLivestreamHoursReminders());
+    if (!selected.semesterLabel) return { sent: 0, reason: "outside the reminder window" };
+    let sent = 0;
+    for (let start = 0; start < selected.nudges.length; start += LIVESTREAM_REMINDER_BATCH) {
+      const batch = await step.run(`send-${start}`, () =>
+        sendLivestreamHoursReminders({
+          nudges: selected.nudges.slice(start, start + LIVESTREAM_REMINDER_BATCH),
+          events: selected.events,
+          semesterLabel: selected.semesterLabel!
+        })
+      );
+      sent += batch.sent;
+    }
+    return { sent, due: selected.nudges.length };
   }
 );
 
@@ -412,7 +468,7 @@ export const showEditReminderDaily = inngest.createFunction(
   }
 );
 
-/** 21:00 Pacific: remind each anchor of a show filmed tomorrow. */
+/** 21:00 Pacific: remind each anchor of a show filmed tomorrow, and tomorrow's PA announcers. */
 export const anchorRemindersNightBefore = inngest.createFunction(
   {
     id: "anchor-reminders-night-before",
@@ -421,12 +477,15 @@ export const anchorRemindersNightBefore = inngest.createFunction(
   {
     cron: "TZ=America/Los_Angeles 0 21 * * *"
   },
-  async () => {
-    return runAnchorReminders("night-before");
+  async ({ step }) => {
+    return {
+      anchors: await step.run("anchors", () => runAnchorReminders("night-before")),
+      pa: await step.run("pa-announcers", () => runPaAnnouncerReminders("night-before"))
+    };
   }
 );
 
-/** 08:00 Pacific: remind each anchor of a show filmed today. */
+/** 08:00 Pacific: remind each anchor of a show filmed today, and today's PA announcers. */
 export const anchorRemindersMorningOf = inngest.createFunction(
   {
     id: "anchor-reminders-morning-of",
@@ -435,8 +494,11 @@ export const anchorRemindersMorningOf = inngest.createFunction(
   {
     cron: "TZ=America/Los_Angeles 0 8 * * *"
   },
-  async () => {
-    return runAnchorReminders("morning-of");
+  async ({ step }) => {
+    return {
+      anchors: await step.run("anchors", () => runAnchorReminders("morning-of")),
+      pa: await step.run("pa-announcers", () => runPaAnnouncerReminders("morning-of"))
+    };
   }
 );
 
@@ -579,6 +641,8 @@ export const inngestFunctions = [
   hubDbBackupHourly,
   refreshAssociateFeedbackDaily,
   packageReviewRemindersHourly,
+  stageDeadlineRemindersDaily,
+  livestreamHoursRemindersWeekly,
   showRolesConfirmReminders,
   showEditReminderDaily,
   anchorRemindersNightBefore,

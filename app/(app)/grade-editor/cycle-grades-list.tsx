@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/kit/skeleton";
 import { cn } from "@/src/lib/utils";
 import { MAX_PACKAGE_PER_CYCLE, type GradeRow, type TotalsRow } from "./grade-editor-types";
 import { emailLocalPart, isMissedFinalCut, latePenalizedPoints, rowLabel } from "./grade-editor-utils";
-import { OverExtensionsTag, RowSaveMark, RowStatusTag } from "./row-fields";
+import { RowSaveMark, RowStatusTag } from "./row-fields";
 
 export function PhoneListSkeleton({ count = 8 }: { count?: number }) {
   return (
@@ -84,7 +84,6 @@ export function CycleGradesList({
                 <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
                   <span className="truncate font-mono-broadcast">{emailLocalPart(row.email)}</span>
                   <RowSaveMark saving={savingUserId === row.userId} dirty={dirty} failed={failedUserId === row.userId} />
-                  <OverExtensionsTag row={row} />
                 </span>
                 <span className="mt-1 block truncate font-mono-broadcast text-xs tabular-nums text-[var(--ink-text)]">
                   Final {finalLabel(row)} · Check-ins{" "}

@@ -19,6 +19,7 @@ import {
   sumReleasedCheckIns,
   type CheckInProgressSnapshot
 } from "@/src/lib/package-stages";
+import { portfolioPointsOrNull } from "@/src/lib/portfolio";
 import { prisma } from "@/src/lib/prisma";
 import { completedLivestreamHoursByUserIds, resolveLivestreamPointsByUserIds } from "@/src/server/livestream-credit";
 
@@ -104,7 +105,7 @@ export async function loadGradeEditorCredits(input: {
           }
         }),
     prisma.portfolioGrade.findMany({
-      where: { userId: { in: input.userIds } },
+      where: { userId: { in: input.userIds }, semester: semesterForDate(now).label },
       select: { userId: true, points: true }
     }),
     resolveLivestreamPointsByUserIds(input.userIds, now),
@@ -222,7 +223,7 @@ export async function loadGradeEditorCredits(input: {
   for (const portfolio of portfolios) {
     const credits = byUserId.get(portfolio.userId);
     if (credits) {
-      credits.portfolioPoints = portfolio.points;
+      credits.portfolioPoints = portfolioPointsOrNull(portfolio.points);
     }
   }
 

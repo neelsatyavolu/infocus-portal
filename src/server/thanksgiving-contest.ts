@@ -5,6 +5,7 @@ import {
   contestPhase,
   contestWinners,
   HARVEST_CONTEST,
+  harvestContestFor,
   type ContestResult,
   type PrizeStatus
 } from "@/src/lib/thanksgiving-board";
@@ -75,6 +76,7 @@ async function revealHarvestContest(winnerUserIds: readonly string[], now: Date)
  * once both have happened it is one lookup.
  */
 export async function settleHarvestContest(now = new Date()) {
+  if (!harvestContestFor(now)) return;
   const phase = contestPhase(now);
   if (phase === "open" || phase === "blind") return;
   const year = HARVEST_CONTEST.year;
@@ -97,8 +99,9 @@ export function prizeStatusFor(winnerId: string, grants: readonly ResultGrant[],
   return onPrizeCycleGroup ? { kind: "choosing" } : { kind: "no-group" };
 }
 
-/** The revealed result, or null before the reveal. */
-export async function loadHarvestContest(): Promise<ContestResult | null> {
+/** The revealed result, or null before the reveal or in a year with no contest. */
+export async function loadHarvestContest(now = new Date()): Promise<ContestResult | null> {
+  if (!harvestContestFor(now)) return null;
   const contest = await prisma.thanksgivingContest.findUnique({ where: { year: HARVEST_CONTEST.year } });
   if (!contest?.revealedAt) return null;
   const [users, grants, groups] = await Promise.all([

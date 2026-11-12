@@ -36,7 +36,6 @@ import {
   FeedbackButton,
   HistoryButton,
   LockedColumnIcon,
-  OverExtensionsTag,
   PublishButton,
   RowSaveMark,
   RowStatusTag,
@@ -228,7 +227,6 @@ function CycleGradeRow({
     <tr data-dirty={dirty || undefined}>
       <ReporterCell name={name} email={row.email} onOpen={() => handlers.onOpenStudent(row.userId)}>
         <RowSaveMark saving={state.savingUserId === row.userId} dirty={dirty} failed={state.failedUserId === row.userId} />
-        <OverExtensionsTag row={row} />
       </ReporterCell>
       <td className={cn(CELL, GROUP_START)}>
         <span className="inline-flex items-center gap-1">

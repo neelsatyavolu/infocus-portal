@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireUserId, syncUserProfile } from "@/src/lib/auth";
 import { getPlatformAccess, hasPlatformRole } from "@/src/lib/platform-admin";
 import { prisma } from "@/src/lib/prisma";
+import { nonAnchorsSaveSchema } from "@/src/server/show-roles-save";
 
 function json(payload: Record<string, unknown>, status = 200) {
   return NextResponse.json(payload, {
@@ -54,30 +55,30 @@ export async function POST(request: NextRequest) {
     return accessError;
   }
 
-  const body = await request.json().catch(() => null);
-  if (!body || !Array.isArray((body as { nonAnchors?: unknown[] }).nonAnchors)) {
-    return json({ error: "Invalid data format. Expected { nonAnchors: string[] }." }, 400);
+  const parsed = nonAnchorsSaveSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) {
+    return json({ error: "Invalid save request. Reload the page and try again." }, 400);
   }
-
-  const incoming = (body as { nonAnchors: unknown[] }).nonAnchors
-    .filter((value): value is string => typeof value === "string" && value.length > 0);
+  const add = [...new Set(parsed.data.add)];
+  const remove = parsed.data.remove.filter((name) => !add.includes(name));
 
   try {
-    await prisma.$transaction(async (tx) => {
-      await tx.showRolesNonAnchor.deleteMany({
-        where: incoming.length > 0 ? { name: { notIn: incoming } } : undefined
-      });
-
-      for (const name of incoming) {
+    // Only the names this tab toggled change; a stale list can't erase anyone else's.
+    const records = await prisma.$transaction(async (tx) => {
+      if (remove.length > 0) {
+        await tx.showRolesNonAnchor.deleteMany({ where: { name: { in: remove } } });
+      }
+      for (const name of add) {
         await tx.showRolesNonAnchor.upsert({
           where: { name },
           create: { name },
           update: {}
         });
       }
+      return tx.showRolesNonAnchor.findMany({ orderBy: { name: "asc" } });
     });
 
-    return json({ success: true, nonAnchors: incoming });
+    return json({ success: true, nonAnchors: records.map((record) => record.name) });
   } catch (error) {
     console.error("Show roles non-anchors POST failed:", error);
     return json({ error: "Internal server error" }, 500);

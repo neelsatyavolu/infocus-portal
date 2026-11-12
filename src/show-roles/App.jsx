@@ -22,6 +22,7 @@ import {
   Wand2,
 } from "lucide-react";
 
+import { AnchorRequests } from "./components/anchor-requests";
 import { Alert, AlertDescription, AlertTitle } from "./components/ui/alert";
 import { Button } from "./components/ui/button";
 import { Button as ShadButton } from "@/components/ui/button";
@@ -694,6 +695,8 @@ export default function App() {
           <AlertDescription>{notice.description}</AlertDescription>
         </Alert>
       ) : null}
+
+      {activeDate ? <AnchorRequests showDate={activeDate} /> : null}
 
       {/* Layout: main + member pool sidebar */}
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">

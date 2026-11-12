@@ -4,7 +4,8 @@ import { handleRouteError } from "@/src/lib/api-errors";
 import { generateGuestToken, hashPasscode } from "@/src/lib/guest-links";
 import { ok } from "@/src/lib/http";
 import { prisma } from "@/src/lib/prisma";
-import { getRequestKey, limitByKey } from "@/src/lib/rate-limit";
+import { getRequestKey } from "@/src/lib/rate-limit";
+import { checkSharedRateLimit } from "@/src/server/shared-rate-limit";
 import { requireUserId, syncUserProfile } from "@/src/lib/auth";
 
 const createGuestLinkSchema = z
@@ -12,7 +13,7 @@ const createGuestLinkSchema = z
     projectId: z.string().cuid().optional(),
     mediaVersionId: z.string().cuid().optional(),
     permission: z.enum(["VIEW", "COMMENT"]).default("COMMENT"),
-    passcode: z.string().min(4).max(40).optional(),
+    passcode: z.string().min(6, "Passcodes need at least 6 characters.").max(40, "Passcodes can be at most 40 characters.").optional(),
     expiresAt: z.string().datetime().optional()
   })
   .superRefine((value, ctx) => {
@@ -33,7 +34,7 @@ const createGuestLinkSchema = z
 
 export async function POST(request: Request) {
   try {
-    const rate = limitByKey(getRequestKey(request, "guest-links:create"), {
+    const rate = await checkSharedRateLimit(getRequestKey(request, "guest-links:create"), {
       max: 30,
       windowMs: 60 * 1000
     });
@@ -45,7 +46,11 @@ export async function POST(request: Request) {
     const userId = await requireUserId();
     await syncUserProfile(userId);
 
-    const payload = createGuestLinkSchema.parse(await request.json());
+    const parsed = createGuestLinkSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      throw new Error(parsed.error.issues[0]?.message ?? "BAD_REQUEST");
+    }
+    const payload = parsed.data;
 
     let workspaceId: string;
     let projectId: string | undefined = payload.projectId;

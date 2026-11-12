@@ -11,6 +11,7 @@ import { useMediaQuery, useRememberedState } from "@/components/kit/remembered-s
 import { SegmentedControl } from "@/components/kit/segmented-control";
 import { Spinner } from "@/components/kit/spinner";
 import { StatusTag } from "@/components/kit/status-tag";
+import { ExportCsvButton } from "@/components/kit/export-csv-button";
 import { PageHeader } from "@/components/page-header";
 import { isNameSortKey, useMounted } from "@/components/people/people-ui";
 import { Button } from "@/components/ui/button";
@@ -291,6 +292,7 @@ export default function MembersClient({ initialData }: { initialData: MembersPay
                 ariaLabel="Cycles"
                 className="max-sm:min-w-0 max-sm:max-w-none max-md:h-10!"
               />
+              <ExportCsvButton href="/api/members/export" title="Every member with their general and cycle notes" className="max-md:h-10" />
             </>
           ) : null
         }

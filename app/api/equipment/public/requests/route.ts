@@ -8,7 +8,10 @@ const bodySchema = z.object({
   studentName: z.string().trim().min(1),
   studentId: z.string().trim().min(1),
   email: z.string().trim().min(1),
-  barcodes: z.array(z.string().trim().min(1)).min(1)
+  barcodes: z.array(z.string().trim().min(1)).min(1),
+  /** ISO instants from the form's Pacific wall times; both or neither (checked in createPublicRequest). */
+  pickupAt: z.string().datetime({ offset: true }).optional().nullable(),
+  returnAt: z.string().datetime({ offset: true }).optional().nullable()
 });
 
 export async function POST(request: Request) {
@@ -22,7 +25,11 @@ export async function POST(request: Request) {
     }
 
     const body = bodySchema.parse(await request.json());
-    const created = await createPublicRequest(body);
+    const created = await createPublicRequest({
+      ...body,
+      pickupAt: body.pickupAt ? new Date(body.pickupAt) : null,
+      returnAt: body.returnAt ? new Date(body.returnAt) : null
+    });
     return ok({ id: created.id, status: created.status }, 201);
   } catch (error) {
     return handleRouteError(error);

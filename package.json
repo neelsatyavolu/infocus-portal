@@ -43,11 +43,9 @@
     "@sapphi-red/web-noise-suppressor": "^0.4.1",
     "@simplewebauthn/browser": "^13.3.0",
     "@simplewebauthn/server": "^13.3.3",
-    "@types/web-push": "^3.6.4",
     "@vercel/analytics": "^1.6.1",
     "@vercel/speed-insights": "^1.3.1",
     "class-variance-authority": "^0.7.1",
-    "client-zip": "^2.5.0",
     "clsx": "^2.1.1",
     "emojibase-data": "^18.0.0",
     "fast-png": "8.0.0",
@@ -74,7 +72,6 @@
     "tailwind-merge": "^2.6.0",
     "tus-js-client": "^4.3.1",
     "web-push": "^3.6.7",
-    "webrtc-adapter": "^9.0.6",
     "zod": "^3.24.1"
   },
   "devDependencies": {
@@ -85,6 +82,7 @@
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
     "@types/sanitize-html": "^2.16.0",
+    "@types/web-push": "^3.6.4",
     "@types/ws": "^8.18.2",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.19.0",

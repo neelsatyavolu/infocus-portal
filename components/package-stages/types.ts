@@ -49,6 +49,10 @@ export type StageCutApproval = {
   canAct: boolean;
   canUnapprove: boolean;
   canApproveAnyway?: boolean;
+  /** Stage 3 needs three executive approvals instead of two. */
+  controversial?: boolean;
+  /** Executive producers and the super admin, until the cut is approved. */
+  canSetControversial?: boolean;
   stage: string;
 };
 

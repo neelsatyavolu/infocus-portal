@@ -1,19 +1,21 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { GuestPermission } from "@prisma/client";
 import { Alert } from "@/components/kit/alert";
 import { ReviewShell } from "@/components/review-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { resolvePlaybackUrl, resolveThumbnailUrl } from "@/src/lib/media-playback";
-import { isGuestLinkActive, issueGuestCredential, verifyPasscode } from "@/src/lib/guest-links";
+import { isGuestLinkActive, parseGuestCredential, verifyGuestPasscodeProof } from "@/src/lib/guest-links";
 import { buildMediaVersionImageUrl } from "@/src/lib/media-assets";
 import { prisma } from "@/src/lib/prisma";
 import { userDisplayName } from "@/src/lib/user-display";
 import { MediaReviewDto } from "@/src/lib/types";
+import { GUEST_PROOF_COOKIE } from "./guest-proof-cookie";
 
 type GuestPageProps = {
   params: Promise<{ token: string }>;
-  searchParams: Promise<{ passcode?: string }>;
+  searchParams: Promise<{ error?: string }>;
 };
 
 /**
@@ -25,7 +27,7 @@ type GuestReviewLookup =
   | { status: "ok"; mediaData: MediaReviewDto; permission: GuestPermission; guestCredential: string }
   | { status: "blocked" };
 
-async function getGuestReviewData(token: string, passcode?: string): Promise<GuestReviewLookup> {
+async function getGuestReviewData(token: string, proofCookie?: string): Promise<GuestReviewLookup> {
   const link = await prisma.guestLink.findUnique({
     where: { token },
     include: {
@@ -113,8 +115,11 @@ async function getGuestReviewData(token: string, passcode?: string): Promise<Gue
     return { status: "blocked" };
   }
 
+  // A passcode link opens only with the signed proof the unlock form set as a cookie.
   if (link.passcodeHash) {
-    if (!passcode || !verifyPasscode(passcode, link.passcodeHash)) {
+    const proof = proofCookie ? parseGuestCredential(proofCookie) : null;
+    const passcodeLink = { id: link.id, token: link.token, passcodeHash: link.passcodeHash };
+    if (!proof || proof.token !== link.token || !verifyGuestPasscodeProof(proof.proof, passcodeLink)) {
       return { status: "blocked" };
     }
   }
@@ -130,9 +135,7 @@ async function getGuestReviewData(token: string, passcode?: string): Promise<Gue
     ? mediaItem.versions.filter((version) => version.id === link.mediaVersion?.id)
     : mediaItem.versions;
   // Guest image URLs and comment requests carry this; a passcode link's API calls refuse the bare token.
-  const guestCredential = link.passcodeHash
-    ? issueGuestCredential({ id: link.id, token: link.token, passcodeHash: link.passcodeHash })
-    : token;
+  const guestCredential = link.passcodeHash && proofCookie ? proofCookie : token;
 
   const mediaData: MediaReviewDto = {
     mediaId: mediaItem.id,
@@ -210,10 +213,11 @@ function GuestBrandRow() {
 }
 
 /**
- * The one page every blocked link gets (same GET form and ?passcode= as before). After a passcode
- * was tried, an alert covers every reason it can fail, since the page doesn't say which.
+ * The one page every blocked link gets. The passcode is POSTed to ./unlock (never put in the URL),
+ * which comes back with ?error=passcode or ?error=limit. A failed try gets one alert covering every
+ * reason, since the page doesn't say which.
  */
-function GuestGate({ passcodeTried }: { passcodeTried: boolean }) {
+function GuestGate({ token, error }: { token: string; error: "passcode" | "limit" | null }) {
   return (
     <main className="flex min-h-dvh items-center justify-center p-4 md:p-6">
       <div className="w-full max-w-sm space-y-5 rounded-md border border-border bg-card p-6">
@@ -222,12 +226,17 @@ function GuestGate({ passcodeTried }: { passcodeTried: boolean }) {
           <h1 className="display-sm text-foreground">Protected review link</h1>
           <p className="text-sm text-[var(--ink-text)]">This link may be revoked or expired, or it needs a valid passcode.</p>
         </div>
-        {passcodeTried ? (
+        {error === "passcode" ? (
           <Alert tone="danger" compact>
             That passcode didn&apos;t work, or this link has expired or been revoked.
           </Alert>
         ) : null}
-        <form method="GET" className="space-y-3">
+        {error === "limit" ? (
+          <Alert tone="danger" compact>
+            Too many attempts. Wait 15 minutes, then try the passcode again.
+          </Alert>
+        ) : null}
+        <form method="POST" action={`/g/${encodeURIComponent(token)}/unlock`} className="space-y-3">
           <label htmlFor="guest-passcode" className="sr-only">
             Passcode
           </label>
@@ -238,7 +247,7 @@ function GuestGate({ passcodeTried }: { passcodeTried: boolean }) {
             placeholder="Enter passcode"
             autoComplete="off"
             autoFocus
-            aria-invalid={passcodeTried || undefined}
+            aria-invalid={error === "passcode" || undefined}
           />
           <Button type="submit" className="w-full">
             Open link
@@ -251,12 +260,13 @@ function GuestGate({ passcodeTried }: { passcodeTried: boolean }) {
 
 export default async function GuestReviewPage({ params, searchParams }: GuestPageProps) {
   const { token } = await params;
-  const { passcode } = await searchParams;
+  const { error } = await searchParams;
+  const proofCookie = (await cookies()).get(GUEST_PROOF_COOKIE)?.value;
 
-  const lookup = await getGuestReviewData(token, passcode);
+  const lookup = await getGuestReviewData(token, proofCookie);
 
   if (lookup.status !== "ok") {
-    return <GuestGate passcodeTried={Boolean(passcode)} />;
+    return <GuestGate token={token} error={error === "passcode" || error === "limit" ? error : null} />;
   }
 
   return (

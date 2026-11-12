@@ -23,6 +23,7 @@ import { assertValidCycleNumber, setCyclesPerSemester } from "@/src/server/progr
 import { setQueuedForAir } from "@/src/server/publishing-queue";
 import { listUpcomingShows } from "@/src/server/show-schedule";
 import { MAX_PORTFOLIO_POINTS } from "@/src/lib/grading";
+import { currentPortfolioSemester, portfolioSemesterSchema } from "@/src/lib/portfolio";
 import { isExcludedFromGrading, loadNonGradableEmails } from "@/src/lib/gradable-roster";
 import { calculateExtensionDays, parseDateInput, sanitizeFreeExtensionDays } from "@/src/lib/extensions";
 import {
@@ -166,6 +167,8 @@ export function isClearGradeRequest(args: Record<string, unknown>) {
 
 const setPortfolioPayload = z.object({
   userId: z.string().min(1),
+  /** Semester label the score is for; filled with the current one when the preview is made. */
+  semester: portfolioSemesterSchema.optional(),
   points: z.number().int().min(0).max(MAX_PORTFOLIO_POINTS),
   feedback: z.string().trim().max(1200).optional()
 });
@@ -950,6 +953,7 @@ export async function proposeAssistantAction(
       const person = pickOne(await loadDirectory(), query, "person");
       const parsed = setPortfolioPayload.parse({
         userId: person.userId,
+        semester: currentPortfolioSemester(),
         points,
         feedback: args.feedback
       });
@@ -957,6 +961,7 @@ export async function proposeAssistantAction(
         preview: createAssistantActionPreview(actorUserId, "set_portfolio", parsed, "Set portfolio grade", [
           { label: "Person", value: person.name },
           { label: "Portfolio", value: `${parsed.points}/100` },
+          ...(parsed.semester ? [{ label: "Semester", value: parsed.semester }] : []),
           ...(parsed.feedback ? [{ label: "Feedback", value: parsed.feedback }] : [])
         ])
       };
@@ -1457,10 +1462,11 @@ export async function executeAssistantAction(params: {
     if (isExcludedFromGrading(target, nonGradableEmails)) {
       throw new Error("That person is not on the gradebook.");
     }
+    const semester = payload.semester ?? currentPortfolioSemester();
     await prisma.portfolioGrade.upsert({
-      where: { userId: payload.userId },
+      where: { userId_semester: { userId: payload.userId, semester } },
       update: { points: payload.points, feedback: payload.feedback ?? "" },
-      create: { userId: payload.userId, points: payload.points, feedback: payload.feedback ?? "" }
+      create: { userId: payload.userId, semester, points: payload.points, feedback: payload.feedback ?? "" }
     });
     return { message: `Set ${userDisplayName(target)} portfolio to ${payload.points}/100.` };
   }

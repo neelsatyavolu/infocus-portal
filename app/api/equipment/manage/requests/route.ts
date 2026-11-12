@@ -9,7 +9,10 @@ import { approveRequest, denyRequest } from "@/src/server/equipment-requests";
 
 const bodySchema = z.object({
   id: z.string().min(1),
-  action: z.enum(["approve", "deny"])
+  action: z.enum(["approve", "deny"]),
+  /** Deny only: why, sent to the requester (applies to every item unless itemReasons names it). */
+  reason: z.string().trim().max(500).optional(),
+  itemReasons: z.record(z.string().min(1), z.string().trim().max(500)).optional()
 });
 
 async function requireManager() {
@@ -39,7 +42,9 @@ export async function POST(request: Request) {
   try {
     await requireManager();
     const body = bodySchema.parse(await request.json());
-    const updated = body.action === "approve" ? await approveRequest(body.id) : await denyRequest(body.id);
+    const updated = body.action === "approve"
+        ? await approveRequest(body.id)
+        : await denyRequest(body.id, { reason: body.reason, itemReasons: body.itemReasons });
     return ok(updated);
   } catch (error) {
     return handleRouteError(error);

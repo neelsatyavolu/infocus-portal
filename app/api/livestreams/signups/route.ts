@@ -130,14 +130,24 @@ export async function POST(request: Request) {
             reviewedByUserId: null
           }
         })
-      : await prisma.livestreamSignupRequest.create({
-          data: {
-            eventId: event.id,
-            userId,
-            availableFullEvent: body.availableFullEvent ?? true,
-            note: body.note ?? ""
-          }
-        });
+      : await prisma.livestreamSignupRequest
+          .create({
+            data: {
+              eventId: event.id,
+              userId,
+              availableFullEvent: body.availableFullEvent ?? true,
+              note: body.note ?? ""
+            }
+          })
+          .catch(async (error: unknown) => {
+            // A double submit: the other request created the row first, so hand back that one.
+            if ((error as { code?: string } | null)?.code !== "P2002") throw error;
+            const created = await prisma.livestreamSignupRequest.findUnique({
+              where: { eventId_userId: { eventId: event.id, userId } }
+            });
+            if (!created) throw error;
+            return created;
+          });
 
     return ok(
       {

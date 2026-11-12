@@ -188,10 +188,10 @@ export default function EquipmentManageClient() {
             loaded={data.loaded.requests}
             active={tab === "requests"}
             busy={busy}
-            onDecide={(id, action) =>
+            onDecide={(id, action, reason) =>
               // An error shows in the open request, beside its buttons (and in the phone's action bar).
               act(
-                () => sendJson("/api/equipment/manage/requests", "POST", { id, action }),
+                () => sendJson("/api/equipment/manage/requests", "POST", { id, action, ...(reason ? { reason } : {}) }),
                 action === "approve" ? "Request approved." : "Request denied.",
                 "Could not update request.",
                 "requests",

@@ -1,6 +1,5 @@
 "use client";
 
-import { Alert } from "@/components/kit/alert";
 import { KeyValueList } from "@/components/kit/key-value";
 import { SaveState, StatusTag, type SaveStateValue } from "@/components/kit/status-tag";
 import { Button } from "@/components/ui/button";
@@ -14,7 +13,6 @@ import {
 } from "@/components/ui/dialog";
 import { MAX_FEEDBACK_LENGTH, MAX_NOTES_LENGTH, type GradeRow, type TotalsRow } from "./grade-editor-types";
 import {
-  extensionExceptionSummary,
   formatHistoryTimestamp,
   formatLongDate,
   historyEventLabel,
@@ -133,9 +131,6 @@ export function ExtensionExceptionDialog({
           <DialogTitle>Extension exception</DialogTitle>
           <DialogDescription>{`${rowLabel(row)} · Cycle ${cycleNumber}`}</DialogDescription>
         </DialogHeader>
-        <Alert tone="warning" compact>
-          {extensionExceptionSummary(row) ?? "No free extension-day exception is applied."}
-        </Alert>
         <KeyValueList
           columns={2}
           labelWidth="7rem"
@@ -143,8 +138,6 @@ export function ExtensionExceptionDialog({
             { label: "Final Cut", value: formatLongDate(finalCutDate) },
             { label: "Turned in", value: formatLongDate(row.turnedInDate) },
             { label: "Late days", value: row.extensionDetails.calculatedDays, mono: true },
-            { label: "Free days", value: row.extensionDetails.freeDays, mono: true },
-            { label: "Charged days", value: row.extensionDetails.chargedDays, mono: true },
             { label: "Exempt", value: row.extensionDetails.exempt ? "Yes" : "No" }
           ]}
         />
@@ -189,33 +182,6 @@ export function TotalNotesDialog({
           </span>
           <Button type="button" variant="outline" onClick={onClose}>
             Done
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-export function ExtensionDepletedDialog({
-  warning,
-  onClose
-}: {
-  warning: { userName: string; remaining: number };
-  onClose: () => void;
-}) {
-  return (
-    <Dialog open onOpenChange={closeOnDismiss(onClose)}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>No extensions remaining</DialogTitle>
-        </DialogHeader>
-        <Alert tone="danger" title={warning.userName}>
-          This student has exhausted their extension days ({warning.remaining} remaining). The updated turn-in date caused
-          their available extensions to be fully used.
-        </Alert>
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={onClose}>
-            OK
           </Button>
         </DialogFooter>
       </DialogContent>

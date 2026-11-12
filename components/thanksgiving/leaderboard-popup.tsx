@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { HARVEST_CONTEST, type ContestPhase, type ContestResult, type RankedEntry } from "@/src/lib/thanksgiving-board";
+import { HARVEST_CONTEST, isLeaderboardOpen, type ContestPhase, type ContestResult, type RankedEntry } from "@/src/lib/thanksgiving-board";
 import { cn } from "@/src/lib/utils";
 import { HarvestBoard } from "./harvest-board";
 import { carryOverHarvestOnce, flushHarvestTally } from "./harvest-tally";
@@ -57,7 +57,7 @@ export function LeaderboardPopup({ ready }: { ready: boolean }) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    if (!ready || alreadySeen()) return;
+    if (!ready || alreadySeen() || !isLeaderboardOpen(new Date())) return;
     let cancelled = false;
     void (async () => {
       await carryOverHarvestOnce();

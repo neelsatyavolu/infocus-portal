@@ -7,6 +7,7 @@ import { PinsSection, useAccessPin } from "./access-pins";
 import { AboutSection } from "./about-section";
 import { AppearanceSection } from "./appearance-card";
 import { AppsSection } from "./apps-section";
+import { CalendarFeedSection } from "./calendar-feed-section";
 import { MacAppSection } from "./mac-app-card";
 import { useAppNotifications } from "./mac-notifications-card";
 import { NotificationsSection } from "./notifications-section";
@@ -115,6 +116,7 @@ export default function SettingsPage() {
     ...(signature.visible ? [{ id: "signature", label: "Signature", status: statuses.signature }] : []),
     { id: "mac-app", label: "InFocus for Mac" },
     { id: "apps", label: "Apps & links" },
+    { id: "calendar", label: "Calendar feed" },
     { id: "about", label: "About" }
   ];
 
@@ -137,6 +139,7 @@ export default function SettingsPage() {
         {signature.visible ? <SignatureSection state={signature} /> : null}
         <MacAppSection />
         <AppsSection />
+        <CalendarFeedSection />
         <AboutSection />
       </SettingsLayout>
     </div>

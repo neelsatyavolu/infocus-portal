@@ -143,6 +143,11 @@ function actorOwnsPackage(
   return Promise.resolve(true);
 }
 
+/** Who may flag a package controversial (three Stage 3 approvals): executive producers and the super admin. */
+export function mayFlagControversial(role: PlatformRole | null) {
+  return role === "EXECUTIVE_PRODUCER" || role === "SUPER_ADMIN";
+}
+
 export type ApprovalActorContext = {
   userId: string;
   email: string | null;
@@ -172,6 +177,7 @@ export async function loadApprovalView(progressRowId: string, actor: ApprovalAct
     progressRowId,
     stage: approval.stage,
     controversial: approval.controversial,
+    canSetControversial: mayFlagControversial(actor.role) && approval.stage !== "APPROVED",
     socialMedia: approval.socialMedia,
     remainingExecutiveSignoffs: remainingExecutiveSignoffs(state),
     canAct: canAct && !state.signoffs.some((entry) =>
@@ -608,9 +614,23 @@ export async function submitCutReview(
 export async function setControversial(progressRowId: string, controversial: boolean) {
   const approval = await getOrCreateApproval(progressRowId);
 
-  return prisma.packageApproval.update({
-    where: { id: approval.id },
-    data: { controversial }
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.packageApproval.update({
+      where: { id: approval.id },
+      data: { controversial }
+    });
+    if (updated.stage !== "EXECUTIVE_REVIEW") return updated;
+
+    // Clearing the flag can leave Stage 3 with enough executive approvals already: advance it,
+    // as the approval that reached the count would have.
+    const approvers = await tx.packageApprovalSignoff.findMany({
+      where: { approvalId: approval.id, stage: "EXECUTIVE_REVIEW", approved: true },
+      select: { userId: true }
+    });
+    if (new Set(approvers.map((entry) => entry.userId)).size < requiredExecutiveSignoffs(controversial)) {
+      return updated;
+    }
+    return tx.packageApproval.update({ where: { id: approval.id }, data: { stage: "APPROVED" } });
   });
 }
 

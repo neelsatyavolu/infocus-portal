@@ -2,11 +2,10 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { Panel } from "@/components/kit/panel";
 import { StatusTag } from "@/components/kit/status-tag";
-import { toneTextClass } from "@/components/kit/tone";
-import { extensionsTone } from "@/components/home/home-format";
+import { formatHours } from "@/components/home/home-format";
 import { StageSteps } from "@/components/home/stage-steps";
 import type { HomeStageStep } from "@/src/lib/home-stages";
-import type { DashboardUpNext } from "@/src/server/dashboard-data";
+import type { DashboardExtensionStatus, DashboardUpNext } from "@/src/server/dashboard-data";
 import { cn } from "@/src/lib/utils";
 
 function StatCell({ label, href, children }: { label: string; href?: string; children: ReactNode }) {
@@ -34,32 +33,53 @@ function StatCell({ label, href, children }: { label: string; href?: string; chi
   );
 }
 
+function ExtensionValue({ extension }: { extension: DashboardExtensionStatus }) {
+  const pending =
+    extension.pending === "awaiting-you" ? (
+      <StatusTag tone="warning">Awaiting you</StatusTag>
+    ) : extension.pending === "pending" ? (
+      <StatusTag tone="neutral">Pending</StatusTag>
+    ) : null;
+
+  if (extension.approvedDays <= 0) {
+    return pending ?? <span className="text-muted-foreground">None</span>;
+  }
+
+  return (
+    <>
+      <span className="font-mono-broadcast text-[13px] tabular-nums">+{formatHours(extension.approvedDays)}</span>{" "}
+      <span className="text-muted-foreground max-sm:sr-only">{extension.approvedDays === 1 ? "day" : "days"}</span>
+      {pending ? <> {pending}</> : null}
+    </>
+  );
+}
+
 /**
  * The student's package progress: the four stages as links, then a strip of three numbers
- * pinned to the bottom edge (check-ins, unread feedback, extension days). The topic and the
+ * pinned to the bottom edge (check-ins, unread feedback, this cycle's approved extension days
+ * plus any pending request). The topic and the
  * people are in the page header above it, and the stage strip marks the current stage, so the
  * panel's header is just its name: one title row, like Grade beside it, so both bodies start
  * on one line.
  * The strip is flush with the Panel's edges (its negative margins mirror Panel's
  * `p-4 md:p-5`); labels sit on one top line in every cell, and phones get the short value
- * text so nothing wraps. `unreadFeedback` and `extensions` are null when the snapshot
- * couldn't be loaded.
+ * text so nothing wraps. `unreadFeedback` and `extension` are null when the snapshot
+ * couldn't be loaded (`extension` also when the student is on no group this cycle).
  */
 export function MyPackagePanel({
   upNext,
   steps,
   unreadFeedback,
-  extensions,
+  extension,
   className
 }: {
   upNext: DashboardUpNext;
   steps: HomeStageStep[];
   unreadFeedback: number | null;
-  extensions: { remaining: number; bank: number } | null;
+  extension: DashboardExtensionStatus | null;
   className?: string;
 }) {
   const current = steps.find((step) => step.tone === "current") ?? null;
-  const extensionTone = extensions ? extensionsTone(extensions.remaining) : undefined;
 
   return (
     <Panel
@@ -89,16 +109,7 @@ export function MyPackagePanel({
           )}
         </StatCell>
         <StatCell label="Extensions" href="/extension-requests">
-          {extensions ? (
-            <>
-              <span className={cn("font-mono-broadcast text-[13px] tabular-nums", extensionTone && toneTextClass(extensionTone))}>
-                {extensions.remaining} / {extensions.bank}
-              </span>{" "}
-              <span className="text-muted-foreground max-sm:sr-only">days left</span>
-            </>
-          ) : (
-            <span className="text-muted-foreground">—</span>
-          )}
+          {extension ? <ExtensionValue extension={extension} /> : <span className="text-muted-foreground">—</span>}
         </StatCell>
       </dl>
     </Panel>

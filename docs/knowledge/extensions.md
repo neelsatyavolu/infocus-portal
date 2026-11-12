@@ -116,3 +116,5 @@ choice can't be undone.
 
 Students also see an **Extension** tag under **My package** in the sidebar while a request needs
 their answer (unless that line already shows **Revisions**).
+
+Producers can download every extension request, with its decisions and days, from **Export CSV** on `/extension-requests`. Students cannot export.

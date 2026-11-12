@@ -157,24 +157,21 @@ const FILTER_LABELS: Record<CycleFilter, string> = {
   "to-publish": "Unpublished",
   "not-entered": "Not entered",
   missed: "Missed",
-  republish: "Revised",
-  "over-extensions": "Over extensions"
+  republish: "Revised"
 };
 
 const FILTER_TITLES: Partial<Record<CycleFilter, string>> = {
   "to-publish": "Scored and not published (Revised included): the rows Publish all will publish",
   "not-entered": "No Final Cut score yet (exempt is excused)",
   missed: "No approved Final Cut by the deadline",
-  republish: "Changed after publishing and not published again",
-  "over-extensions": "Used more extension days than they have, across all cycles"
+  republish: "Changed after publishing and not published again"
 };
 
 /** Count tones: the same tone as the matching row tag. */
 const FILTER_TONES: Partial<Record<CycleFilter, (typeof STATUS_TONE)[keyof typeof STATUS_TONE]>> = {
   "not-entered": STATUS_TONE.notEntered,
   missed: STATUS_TONE.missed,
-  republish: STATUS_TONE.revised,
-  "over-extensions": "warning"
+  republish: STATUS_TONE.revised
 };
 
 /** Row 2 (cycle view): filter chips with live counts. The legend is the panel's footer. */

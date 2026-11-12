@@ -40,11 +40,8 @@ export type GradeRow = {
   revisedAt: string | null;
   feedback: string;
   turnedInDate: string | null;
-  freeExtensionDays: number;
   extensionDetails: {
     calculatedDays: number;
-    freeDays: number;
-    chargedDays: number;
     exempt: boolean;
   };
   published: boolean;
@@ -53,7 +50,6 @@ export type GradeRow = {
     eventType: "PUBLISHED" | "REVISED";
     occurredAt: string | null;
   }>;
-  extensionsRemaining: number;
 };
 
 export type AdminGradesPayload = {
@@ -128,18 +124,16 @@ export type GradeMutationPayload = Pick<
   | "revisedAt"
   | "feedback"
   | "turnedInDate"
-  | "freeExtensionDays"
   | "extensionDetails"
   | "published"
   | "publishedAt"
-  | "extensionsRemaining"
 >;
 
 export type ViewMode = "cycle" | "total" | "student" | "participation";
 export type SortBy = "firstName" | "lastName";
 
 /** Which rows of a cycle the table shows. */
-export type CycleFilter = "all" | "to-publish" | "not-entered" | "missed" | "republish" | "over-extensions";
+export type CycleFilter = "all" | "to-publish" | "not-entered" | "missed" | "republish";
 
 export const MAX_PACKAGE_PER_CYCLE = 50;
 export const MAX_CHECK_INS_PER_CYCLE = 20;

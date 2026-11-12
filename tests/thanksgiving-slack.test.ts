@@ -51,6 +51,11 @@ describe("harvestSlackPostKind", () => {
     expect(harvestSlackPostKind(new Date(REVEAL))).toBe("final");
     expect(harvestSlackPostKind(new Date("2026-11-06T12:00:00-08:00"))).toBeNull();
   });
+
+  it("posts nothing in a year with no contest", () => {
+    expect(harvestSlackPostKind(new Date("2027-11-03T09:00:00-08:00"))).toBeNull();
+    expect(harvestSlackPostKind(new Date("2027-11-06T08:00:00-08:00"))).toBeNull();
+  });
 });
 
 describe("Slack copy", () => {

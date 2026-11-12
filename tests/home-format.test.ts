@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   createProjectErrorMessage,
   dashboardHref,
-  extensionsTone,
   formatDueTagLabel,
   formatHours,
   formatShortDueDate,
@@ -120,14 +119,6 @@ describe("formatDueTagLabel", () => {
   it("returns null for missing or invalid dates", () => {
     expect(formatDueTagLabel(null, NOW)).toBeNull();
     expect(formatDueTagLabel("not-a-date", NOW)).toBeNull();
-  });
-});
-
-describe("extensionsTone", () => {
-  it("warns at zero days left and is danger when overdrawn", () => {
-    expect(extensionsTone(2)).toBeUndefined();
-    expect(extensionsTone(0)).toBe("warning");
-    expect(extensionsTone(-1)).toBe("danger");
   });
 });
 

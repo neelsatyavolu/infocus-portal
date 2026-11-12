@@ -152,7 +152,9 @@ describe("equipment kiosk routes", () => {
       studentName: "Ada Lovelace",
       studentId: "95012345",
       email: "ada@pausd.us",
-      barcodes: ["CAM-1"]
+      barcodes: ["CAM-1"],
+      pickupAt: null,
+      returnAt: null
     });
   });
 });

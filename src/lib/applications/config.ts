@@ -98,7 +98,7 @@ export const DEFAULT_APPLICATION_CONFIG: ApplicationConfig = {
   rubric: [
     { key: "vision", label: "Vision", description: "Short answer 1: a specific, realistic change with a concrete plan" },
     { key: "ownership", label: "Ownership", description: "Short answer 2: owns the mistake, clear actions, what they learned" },
-    { key: "spotting", label: "Spotting problems", description: "Rough cut: catches the real issues, including the important ones, not just nitpicks" },
+    { key: "spotting", label: "Spotting problems", description: "Rough cut: catches the real story problems (structure, angle, interviews, what's missing) and how the package could be better, not just technical nitpicks" },
     { key: "judgment", label: "Prioritization & judgment", description: "Rough cut: the top-3 summary picks the right fixes; the air decision is sound" },
     { key: "communication", label: "Communication", description: "Rough cut: notes are clear, specific, actionable and respectful to the reporter" }
   ],

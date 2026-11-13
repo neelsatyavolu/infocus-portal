@@ -151,7 +151,7 @@ export function RoundSettingsForm({ initial, readOnly }: { initial: RoundSetting
           <Field label="Context" htmlFor="cut-context" span={2} hint='e.g. "Features package, 2:40, airs Friday. The reporter has one more day."'>
             <Textarea id="cut-context" rows={2} value={config.roughCut.context} onChange={(e) => setCut({ context: e.target.value })} />
           </Field>
-          <Field label="Answer key (reviewers only)" htmlFor="cut-key" span={2} hint="The real problems in the cut, with timestamps. The AI read scores notes against this.">
+          <Field label="Answer key (reviewers only)" htmlFor="cut-key" span={2} hint="Mainly the story problems (structure, angle, interviews, what's missing) and how the package could be improved, plus any technical ones, with timestamps. The AI read scores notes against this and weights story notes most.">
             <Textarea id="cut-key" rows={5} value={config.roughCut.answerKey} onChange={(e) => setCut({ answerKey: e.target.value })} />
           </Field>
           <LinesField label="Note categories" value={config.roughCut.categories} onChange={(categories) => setCut({ categories })} />

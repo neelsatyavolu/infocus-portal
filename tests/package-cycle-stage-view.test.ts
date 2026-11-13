@@ -7,7 +7,8 @@ const mocks = vi.hoisted(() => ({
   rowFindUnique: vi.fn(),
   commentFindMany: vi.fn(),
   userFindUnique: vi.fn(),
-  loadApprovalView: vi.fn()
+  loadApprovalView: vi.fn(),
+  workTurnInClosedAfter: vi.fn(async (): Promise<string | null> => null)
 }));
 
 vi.mock("@/src/lib/prisma", () => ({
@@ -28,6 +29,9 @@ vi.mock("@/src/server/package-progress-data", () => ({
 vi.mock("@/src/server/package-approval-service", () => ({
   getOrCreateApproval: vi.fn(),
   loadApprovalView: mocks.loadApprovalView
+}));
+vi.mock("@/src/server/program-settings", () => ({
+  getWorkTurnInClosedAfter: mocks.workTurnInClosedAfter
 }));
 vi.mock("@/src/lib/media-card-urls", () => ({
   resolveCardMediaUrls: async () => ({ thumbnailUrl: null, playbackUrl: null })
@@ -116,6 +120,27 @@ describe("loadCycleStageView: student rows", () => {
 
     expect(mocks.rowFindMany).not.toHaveBeenCalled();
     expect(view.empty ? null : view.row.cycleNumber).toBe(1);
+  });
+
+  it("stops new uploads after the semester's last turn-in day, but lets a started upload finish", async () => {
+    mocks.ensureDefaults.mockResolvedValue([{ cycleNumber: 1, finalCutDate: LATER }]);
+    mocks.rowFindFirst.mockResolvedValue(row(1));
+    mocks.rowFindUnique.mockResolvedValue(row(1));
+    mocks.workTurnInClosedAfter.mockResolvedValue("2026-12-13");
+
+    const closed = await loadCycleStageView({ userId: "u-abby", role: null, slug: "a-roll" });
+    const finishing = await loadCycleStageView({
+      userId: "u-abby",
+      role: null,
+      slug: "a-roll",
+      rowId: "row-1",
+      ignoreTurnInCutoff: true
+    });
+
+    expect(closed.canUpload).toBe(false);
+    expect(closed.empty ? null : closed.workTurnInClosedAfter).toBe("2026-12-13");
+    expect(finishing.canUpload).toBe(true);
+    mocks.workTurnInClosedAfter.mockResolvedValue(null);
   });
 });
 

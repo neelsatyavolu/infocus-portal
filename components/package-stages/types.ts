@@ -63,6 +63,8 @@ export type StageView = {
   unlocked?: boolean;
   canUpload?: boolean;
   allowSecondFinalCut?: boolean;
+  /** The semester's last turn-in day when it has passed and this member could otherwise upload. */
+  workTurnInClosedAfter?: string | null;
   /** An executive reopened the Final Cut: the next upload is a new version of it. */
   finalCutReopened?: boolean;
   canReopenFinalCut?: boolean;

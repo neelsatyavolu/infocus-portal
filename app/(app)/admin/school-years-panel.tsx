@@ -16,15 +16,19 @@ const FIELDS = [
   { key: "firstDay", label: "First day of school" },
   { key: "firstShowDate", label: "First show" },
   { key: "secondSemesterFirstShowDate", label: "S2 first show" },
-  { key: "lastDay", label: "Last day of school" }
+  { key: "lastDay", label: "Last day of school" },
+  { key: "firstSemesterLastWorkDay", label: "S1 last turn-in" },
+  { key: "secondSemesterLastWorkDay", label: "S2 last turn-in" }
 ] as const;
 
 /**
- * Year | four dates | remove, spread across the panel so it lines up with the footer buttons.
- * From @4xl only: the tracks need about 800px, and the row is narrower than that at @3xl.
+ * Year | six dates | remove, spread across the panel so it lines up with the footer buttons.
+ * From @6xl only: the tracks need about 1100px; narrower rows stack.
  */
+const WORK_DAY_KEYS = new Set<string>(["firstSemesterLastWorkDay", "secondSemesterLastWorkDay"]);
+
 const YEAR_GRID =
-  "grid grid-cols-[minmax(0,1fr)_2.5rem] gap-x-3 gap-y-3 @4xl:grid-cols-[8rem_repeat(4,minmax(9rem,1fr))_2.5rem] @4xl:items-center";
+  "grid grid-cols-[minmax(0,1fr)_2.5rem] gap-x-3 gap-y-3 @6xl:grid-cols-[7rem_repeat(6,minmax(9rem,1fr))_2.5rem] @6xl:items-center";
 
 function yearTitle(year: SchoolYear) {
   const start = Number(year.firstDay.slice(0, 4));
@@ -33,7 +37,19 @@ function yearTitle(year: SchoolYear) {
 
 /** Compares years by their values (key order differs between the server and a new row). */
 function yearsKey(years: readonly SchoolYear[]) {
-  return years.map((year) => [year.firstDay, year.firstShowDate, year.secondSemesterFirstShowDate ?? "", year.lastDay, year.source].join("|")).join(";");
+  return years
+    .map((year) =>
+      [
+        year.firstDay,
+        year.firstShowDate,
+        year.secondSemesterFirstShowDate ?? "",
+        year.lastDay,
+        year.firstSemesterLastWorkDay ?? "",
+        year.secondSemesterLastWorkDay ?? "",
+        year.source
+      ].join("|")
+    )
+    .join(";");
 }
 
 /**
@@ -73,8 +89,9 @@ export function SchoolYearsPanel({
   const needsCheck = years.some((year) => year.source === "feed");
 
   function change(index: number, key: (typeof FIELDS)[number]["key"], value: string) {
-    // A cleared second-semester first show is left out, so second semester has shows from its start.
-    const next = key === "secondSemesterFirstShowDate" && !value ? undefined : value;
+    // A cleared S2 first show is left out, so second semester has shows from its start. A cleared
+    // last turn-in day is saved as null, so turn-in stays open (absent would take the default).
+    const next = value || (key === "secondSemesterFirstShowDate" ? undefined : WORK_DAY_KEYS.has(key) ? null : value);
     setYears((current) => current.map((year, at) => (at === index ? { ...year, [key]: next } : year)));
   }
 
@@ -88,6 +105,12 @@ export function SchoolYearsPanel({
         firstShowDate: addDaysToDateKey(last.firstShowDate, 364),
         ...(last.secondSemesterFirstShowDate
           ? { secondSemesterFirstShowDate: addDaysToDateKey(last.secondSemesterFirstShowDate, 364) }
+          : {}),
+        ...(last.firstSemesterLastWorkDay
+          ? { firstSemesterLastWorkDay: addDaysToDateKey(last.firstSemesterLastWorkDay, 364) }
+          : {}),
+        ...(last.secondSemesterLastWorkDay
+          ? { secondSemesterLastWorkDay: addDaysToDateKey(last.secondSemesterLastWorkDay, 364) }
           : {}),
         lastDay: addDaysToDateKey(last.lastDay, 364),
         source: "manual"
@@ -129,10 +152,10 @@ export function SchoolYearsPanel({
             {needsCheck ? <StatusTag tone="warning">Check dates</StatusTag> : null}
           </>
         }
-        description="Shows run Wednesday and Friday from the first show to the last day of school, except in second semester before its first show (S2 first show). PA runs on Mondays. Nothing is scheduled over the summer."
+        description="Shows run Wednesday and Friday from the first show to the last day of school, except in second semester before its first show (S2 first show). PA runs on Mondays. Nothing is scheduled over the summer. After a last turn-in day (11:59 PM Pacific), students can't upload stage work or brainstorm material until the next semester starts; leave it blank to keep turn-in open."
       />
 
-      <div aria-hidden="true" className={cn(YEAR_GRID, "hidden border-t border-border px-4 py-2 @4xl:grid md:px-5")}>
+      <div aria-hidden="true" className={cn(YEAR_GRID, "hidden border-t border-border px-4 py-2 @6xl:grid md:px-5")}>
         <span className={COLUMN_LABEL_CLASS}>Year</span>
         {FIELDS.map((field) => (
           <span key={field.key} className={COLUMN_LABEL_CLASS}>
@@ -159,8 +182,8 @@ export function SchoolYearsPanel({
                 ) : null}
               </div>
               {FIELDS.map((field) => (
-                <label key={field.key} className="col-span-2 flex min-w-0 flex-col gap-1.5 @4xl:col-span-1 @4xl:row-start-1">
-                  <span className={cn(COLUMN_LABEL_CLASS, "@4xl:sr-only")}>
+                <label key={field.key} className="col-span-2 flex min-w-0 flex-col gap-1.5 @6xl:col-span-1 @6xl:row-start-1">
+                  <span className={cn(COLUMN_LABEL_CLASS, "@6xl:sr-only")}>
                     {field.label}
                     <span className="sr-only"> {title}</span>
                   </span>
@@ -172,7 +195,7 @@ export function SchoolYearsPanel({
                   />
                 </label>
               ))}
-              <div className="col-start-2 row-start-1 flex justify-end @4xl:col-start-6">
+              <div className="col-start-2 row-start-1 flex justify-end @6xl:col-start-8">
                 {years.length > 1 ? (
                   <RemoveButton
                     label={`Remove ${title}`}

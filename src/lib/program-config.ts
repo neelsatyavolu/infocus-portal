@@ -18,6 +18,13 @@ export const schoolYearSchema = z
     firstShowDate: dateKey,
     /** First show of second semester. Earlier Wednesdays and Fridays in second semester are not show days. */
     secondSemesterFirstShowDate: dateKey.optional(),
+    /**
+     * Last day students can turn in work in first semester (closes 11:59:59 PM Pacific); turn-in
+     * reopens at the S2 first show. Null = cleared on purpose (no cutoff).
+     */
+    firstSemesterLastWorkDay: dateKey.nullable().optional(),
+    /** Last day students can turn in work in second semester (closes 11:59:59 PM Pacific). Null = no cutoff. */
+    secondSemesterLastWorkDay: dateKey.nullable().optional(),
     /** "feed" when the Portal read the year from Paly's calendar and nobody has confirmed it yet. */
     source: z.enum(["manual", "feed"]).default("manual")
   })
@@ -29,6 +36,20 @@ export const schoolYearSchema = z
       !year.secondSemesterFirstShowDate ||
       (year.firstShowDate < year.secondSemesterFirstShowDate && year.secondSemesterFirstShowDate <= year.lastDay),
     { message: "The second semester's first show must fall after the first show and by the last day of school." }
+  )
+  .refine(
+    (year) =>
+      !year.firstSemesterLastWorkDay ||
+      (year.firstDay <= year.firstSemesterLastWorkDay &&
+        (!year.secondSemesterFirstShowDate || year.firstSemesterLastWorkDay < year.secondSemesterFirstShowDate)),
+    { message: "The first semester's last turn-in day must fall after the first day of school and before the S2 first show." }
+  )
+  .refine(
+    (year) =>
+      !year.secondSemesterLastWorkDay ||
+      ((!year.secondSemesterFirstShowDate || year.secondSemesterFirstShowDate <= year.secondSemesterLastWorkDay) &&
+        year.secondSemesterLastWorkDay <= year.lastDay),
+    { message: "The second semester's last turn-in day must fall between the S2 first show and the last day of school." }
   );
 
 export type SchoolYear = z.infer<typeof schoolYearSchema>;
@@ -39,6 +60,7 @@ export const DEFAULT_SCHOOL_YEARS: readonly SchoolYear[] = [
     lastDay: "2027-06-03",
     firstShowDate: FIRST_SHOW_DATE,
     secondSemesterFirstShowDate: "2027-01-08",
+    firstSemesterLastWorkDay: "2026-12-13",
     source: "manual"
   }
 ];
@@ -69,11 +91,18 @@ function withDefaultSecondSemester(year: SchoolYear): SchoolYear {
   return fallback ? { ...year, secondSemesterFirstShowDate: fallback } : year;
 }
 
+/** A year saved before the turn-in cutoff existed takes the default year's first-semester cutoff (null stays cleared). */
+function withDefaultLastWorkDay(year: SchoolYear): SchoolYear {
+  if (year.firstSemesterLastWorkDay !== undefined) return year;
+  const fallback = DEFAULT_SCHOOL_YEARS.find((entry) => entry.firstDay === year.firstDay)?.firstSemesterLastWorkDay;
+  return fallback ? { ...year, firstSemesterLastWorkDay: fallback } : year;
+}
+
 /** Stored JSON → config. Anything unreadable falls back to the defaults instead of breaking a page. */
 export function parseProgramConfig(value: unknown): ProgramConfig {
   const parsed = programConfigSchema.safeParse(value ?? {});
   const config = parsed.success ? parsed.data : programConfigSchema.parse({});
-  return { ...config, schoolYears: config.schoolYears.map(withDefaultSecondSemester) };
+  return { ...config, schoolYears: config.schoolYears.map((year) => withDefaultLastWorkDay(withDefaultSecondSemester(year))) };
 }
 
 /** Oldest first. Throws BAD_REQUEST when two years overlap. */

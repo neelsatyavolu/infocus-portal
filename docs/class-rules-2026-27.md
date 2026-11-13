@@ -53,6 +53,7 @@ cut's chain stuck at `DRAFT`.
 
 ### How students upload
 
+- **Last turn-in day** — set per semester in Admin → School years (2026–27 S1: **December 13, 11:59:59 PM Pacific**). After it, members cannot start stage uploads or change brainstorm material until the S2 first show (`src/lib/work-turn-in.ts`); an upload already started may finish.
 - **Initial Cut folder** — one media item per package. `v1` is the first initial cut;
   each revision after producer or adviser feedback adds a version.
   Using versions here keeps that feedback threaded across revisions.

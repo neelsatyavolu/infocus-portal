@@ -48,6 +48,7 @@ import { approvalStageToReviewStage } from "@/src/lib/group-tile-status";
 import type { CycleStageSlug } from "@/src/lib/package-cycle-gates";
 import { PRODUCER_FEEDBACK_ENABLED } from "@/src/lib/producer-feedback";
 import { cn } from "@/src/lib/utils";
+import { workTurnInClosedMessage } from "@/src/lib/work-turn-in";
 
 function uploadLabel(slug: CycleStageSlug, view: StageView) {
   if (slug === "a-roll") return "Upload videos";
@@ -524,7 +525,13 @@ export function StageWorkspace({
                 : null
             }
             rule={canUpload ? uploadRule(slug, media.length > 0) : null}
-            warning={slug === "final-cut" && canUpload ? finalCutRule(view.allowSecondFinalCut, view.finalCutReopened) : null}
+            warning={
+              view.workTurnInClosedAfter
+                ? workTurnInClosedMessage(view.workTurnInClosedAfter)
+                : slug === "final-cut" && canUpload
+                  ? finalCutRule(view.allowSecondFinalCut, view.finalCutReopened)
+                  : null
+            }
           />
           {whatAirs ? <div className="min-w-0 max-xl:order-4">{whatAirs}</div> : null}
           {feedbackPanel}

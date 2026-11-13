@@ -6,6 +6,7 @@ import { producerMayActOnPackage } from "@/src/lib/package-producer-assignment";
 import { APPROVAL_COMMENT_PREFIX } from "@/src/lib/package-stage-comments";
 import { brainstormNeedsChanges } from "@/src/lib/package-stage-status";
 import { labeledUser } from "@/src/lib/user-display";
+import { assertWorkTurnInOpen } from "@/src/server/program-settings";
 
 export const brainstormRowInclude = {
   members: {
@@ -87,11 +88,13 @@ export async function requireBrainstormViewer(rowId: string, userId: string, ema
   return result;
 }
 
+/** A member changing their own brainstorm material, while the semester's turn-in is still open. */
 export async function requireBrainstormMember(rowId: string, userId: string, email: string | null) {
   const result = await loadBrainstormRowAccess(rowId, userId, email);
   if (!result.isMember) {
     throw new Error("FORBIDDEN");
   }
+  await assertWorkTurnInOpen();
   return result;
 }
 

@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 import { parseProgramConfig, type ProgramConfig } from "@/src/lib/program-config";
 import { SEMESTER_TWO_CYCLE_NUMBERS } from "@/src/lib/package-grades";
 import { prisma } from "@/src/lib/prisma";
+import { workTurnInClosedAfter, workTurnInClosedMessage } from "@/src/lib/work-turn-in";
 
 export const DEFAULT_CYCLES_PER_SEMESTER = 3;
 export const MIN_CYCLES_PER_SEMESTER = 1;
@@ -125,4 +126,18 @@ export async function updateProgramConfig(patch: Partial<ProgramConfig>): Promis
     create: { id: SETTING_ID, cyclesPerSemester: DEFAULT_CYCLES_PER_SEMESTER, config }
   });
   return next;
+}
+
+/** The last turn-in day when students can no longer turn in work right now, else null. */
+export async function getWorkTurnInClosedAfter(now = new Date()) {
+  const { schoolYears } = await getProgramConfig();
+  return workTurnInClosedAfter(schoolYears, now);
+}
+
+/** Throws a friendly error when the semester's last turn-in day has passed. */
+export async function assertWorkTurnInOpen(now = new Date()) {
+  const closedAfter = await getWorkTurnInClosedAfter(now);
+  if (closedAfter) {
+    throw new Error(workTurnInClosedMessage(closedAfter));
+  }
 }

@@ -70,6 +70,8 @@ import { loadStageCommentUnread } from "@/src/server/package-stage-comments";
 import { notifyARollUploaded, notifyFinalCutUploaded, notifyPackageReview } from "@/src/server/package-review-notify";
 import { ensurePackageProgressDefaults, loadRequiredFinalCutGraders } from "@/src/server/package-progress-data";
 import { ensureCycleMediaFolder } from "@/src/server/cycle-project-folders";
+import { getWorkTurnInClosedAfter } from "@/src/server/program-settings";
+import { workTurnInClosedMessage } from "@/src/lib/work-turn-in";
 
 export function lastName(name: string | null | undefined) {
   const parts = (name ?? "").trim().split(/\s+/);
@@ -647,6 +649,8 @@ export async function loadCycleStageView(input: {
   rowId?: string | null;
   cycleNumber?: number | null;
   reviewStage?: 1 | 2 | 3 | null;
+  /** Finishing an upload that started before the semester's last turn-in day closed. */
+  ignoreTurnInCutoff?: boolean;
 }) {
   const [role, row] = await Promise.all([
     input.role,
@@ -747,10 +751,14 @@ export async function loadCycleStageView(input: {
       secondRevision
     });
   const allowSecondFinalCut = secondRevision || reopened;
-  const canUpload =
+  const stageOpenForUpload =
     isMember &&
     studentCanUpload(input.slug, row, { stage: approvalStage }, { allowSecondFinalCut }) &&
     (input.slug !== "initial-cut" || approvalStage !== "APPROVED");
+  // Admin → School years: after the semester's last turn-in day, members cannot start new uploads.
+  const workTurnInClosedAfter =
+    stageOpenForUpload && !input.ignoreTurnInCutoff ? await getWorkTurnInClosedAfter() : null;
+  const canUpload = stageOpenForUpload && !workTurnInClosedAfter;
   // Counts and "new" flags go on the hydrated cards (same order and ids as rawMedia).
   if (media.length > 0) {
     const countByClip = new Map<string, number>();
@@ -811,6 +819,7 @@ export async function loadCycleStageView(input: {
     isProducer,
     unlocked,
     canUpload,
+    workTurnInClosedAfter,
     allowSecondFinalCut,
     finalCutReopened: reopened,
     canReopenFinalCut:
@@ -871,6 +880,9 @@ export async function initCycleStageUpload(input: {
     slug: input.slug,
     rowId: input.rowId
   });
+  if (!view.empty && view.workTurnInClosedAfter) {
+    throw new Error(workTurnInClosedMessage(view.workTurnInClosedAfter));
+  }
   if (view.empty || !view.canUpload) {
     throw new Error("FORBIDDEN");
   }
@@ -1066,12 +1078,14 @@ export async function completeCycleStageUpload(input: {
     if (attached?.finalCutMediaItem?.currentVersionId === input.versionId) return;
   }
 
-  // Same gate as init: a member of this row, with this stage open for upload.
+  // Same gate as init: a member of this row, with this stage open for upload. An upload that
+  // started before the last turn-in day closed may still finish.
   const view = await loadCycleStageView({
     userId: input.userId,
     role: input.role,
     slug: input.slug,
-    rowId: input.rowId
+    rowId: input.rowId,
+    ignoreTurnInCutoff: true
   });
   if (view.empty || !view.canUpload) {
     throw new Error("FORBIDDEN");

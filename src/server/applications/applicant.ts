@@ -19,8 +19,9 @@ function editWindow(viewer: ApplicationsViewer, round: ApplicationRound, applica
   const window = viewer.isReviewer
     ? { opened: true, deadline: round.dueAt, beforeDeadline: true, canEdit: true }
     : windowState({ status: round.status, opensAt: round.opensAt, dueAt: round.dueAt, extensionUntil: application?.extensionUntil });
-  // Once a release is set, decisions are frozen, so nobody can change or add an application.
-  return round.releaseAt ? { ...window, canEdit: false } : window;
+  // Once a release is set, decisions are frozen, so applicants can't change or add an application.
+  // A reviewer's preview is a mock test copy, so it stays usable.
+  return round.releaseAt && !viewer.isReviewer ? { ...window, canEdit: false } : window;
 }
 
 /** The applicant's own decision, only once released. */
@@ -95,7 +96,7 @@ async function loadForEdit(viewer: ApplicationsViewer, roundId: string) {
   const round = await getRoundOrThrow(roundId);
   const application = await prisma.application.findUnique({ where: { roundId_userId: { roundId, userId: viewer.userId } } });
   if (!viewer.isReviewer && !application && !visibleToApplicants(round)) throw new Error("NOT_FOUND");
-  const window = { ...editWindow(viewer, round, application), released: Boolean(round.releaseAt) };
+  const window = { ...editWindow(viewer, round, application), released: Boolean(round.releaseAt) && !viewer.isReviewer };
   return { round, application, window };
 }
 
@@ -165,7 +166,7 @@ export async function unsubmitApplication(viewer: ApplicationsViewer, roundId: s
   if (!application || application.status !== "SUBMITTED") throw new Error("There's no submitted application to unsubmit.");
   if (!round.allowUnsubmit && !viewer.isReviewer) throw new Error("This application can't be unsubmitted.");
   if (!window.canEdit) throw new Error(closedMessage(window.deadline));
-  if (round.releaseAt) throw new Error("Decisions are already set for release.");
+  if (round.releaseAt && !viewer.isReviewer) throw new Error("Decisions are already set for release.");
   await prisma.application.update({ where: { id: application.id }, data: { status: "DRAFT" } });
   await audit(round.id, application.id, viewer.userId, "application.unsubmit", { version: application.version });
 }

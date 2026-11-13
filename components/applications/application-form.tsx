@@ -268,7 +268,7 @@ function EditableApplication({ view }: { view: MyApplicationView }) {
                 </ul>
               </Alert>
             ) : null}
-            <div className="space-y-4 border-t border-border pt-4">
+            <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-t border-border pt-4">
               <Checkbox
                 checked={attested}
                 onCheckedChange={(on) => {
@@ -278,7 +278,7 @@ function EditableApplication({ view }: { view: MyApplicationView }) {
               >
                 {config.attestation}
               </Checkbox>
-              <Button onClick={submit} disabled={submitting || problems.length > 0}>
+              <Button className="shrink-0" onClick={submit} disabled={submitting || problems.length > 0}>
                 <Send aria-hidden />
                 {submitting ? "Submitting…" : "Submit application"}
               </Button>

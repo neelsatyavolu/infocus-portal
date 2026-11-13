@@ -9,6 +9,7 @@ import {
   participationApprovalMailRecipients,
   participationCellKey,
   splitParticipationChanges,
+  unchangedParticipationEntries,
   type ProposedParticipationEntry
 } from "@/src/lib/participation-grade-requests";
 import { getPlatformAccess, hasPlatformRole, normalizeEmail } from "@/src/lib/platform-admin";
@@ -57,7 +58,7 @@ async function dropPendingCells(
   exceptRequestId?: string
 ) {
   if (cells.length === 0) {
-    return;
+    return 0;
   }
 
   const overlapping = await tx.participationGradeRequestItem.findMany({
@@ -74,7 +75,7 @@ async function dropPendingCells(
     select: { id: true, requestId: true }
   });
   if (overlapping.length === 0) {
-    return;
+    return 0;
   }
 
   await tx.participationGradeRequestItem.deleteMany({
@@ -88,6 +89,7 @@ async function dropPendingCells(
       await tx.participationGradeRequest.delete({ where: { id: requestId } });
     }
   }
+  return overlapping.length;
 }
 
 async function upsertLiveEntries(
@@ -223,18 +225,19 @@ export async function submitParticipationGradeRequest(actor: Actor, cells: Propo
     }
   });
 
-  const changed = changedParticipationEntries(
-    proposed,
-    liveRows.map((entry) => ({
-      userId: entry.userId,
-      dateKey: toDateKey(entry.date) ?? "",
-      points: entry.points,
-      notes: entry.notes
-    }))
-  );
+  const live = liveRows.map((entry) => ({
+    userId: entry.userId,
+    dateKey: toDateKey(entry.date) ?? "",
+    points: entry.points,
+    notes: entry.notes
+  }));
+  const changed = changedParticipationEntries(proposed, live);
+  // A cell saved back to its live score withdraws any pending dock there (the grid showed the dock).
+  const revertedToLive = unchangedParticipationEntries(proposed, live);
 
   if (changed.length === 0) {
-    return { saved: 0, pending: false as const, itemCount: 0, requestId: null as string | null, emailed: false };
+    const withdrawn = await prisma.$transaction((tx) => dropPendingCells(tx, revertedToLive));
+    return { saved: withdrawn, pending: false as const, itemCount: 0, requestId: null as string | null, emailed: false };
   }
 
   const overrides = await loadScheduleOverrides();
@@ -246,6 +249,7 @@ export async function submitParticipationGradeRequest(actor: Actor, cells: Propo
   );
 
   const result = await prisma.$transaction(async (tx) => {
+    await dropPendingCells(tx, revertedToLive);
     if (autoApply.length > 0) {
       await upsertLiveEntries(tx, autoApply);
       await dropPendingCells(tx, autoApply);

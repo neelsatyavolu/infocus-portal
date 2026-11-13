@@ -6,7 +6,8 @@ import {
   participationApprovalMailRecipients,
   participationItemsChanged,
   participationNeedsApproval,
-  splitParticipationChanges
+  splitParticipationChanges,
+  unchangedParticipationEntries
 } from "@/src/lib/participation-grade-requests";
 
 describe("changedParticipationEntries", () => {
@@ -46,6 +47,23 @@ describe("changedParticipationEntries", () => {
       []
     );
     expect(changed).toEqual([{ userId: "a", dateKey: "2026-08-18", points: 0, notes: "Absent" }]);
+  });
+});
+
+describe("unchangedParticipationEntries", () => {
+  it("returns cells put back to their live score, so a pending dock there can be withdrawn", () => {
+    const unchanged = unchangedParticipationEntries(
+      [
+        { userId: "a", dateKey: "2026-08-18", points: 20, notes: "" },
+        { userId: "a", dateKey: "2026-08-20", points: 0, notes: "Absent" },
+        { userId: "b", dateKey: "2026-08-18", points: 20, notes: "" }
+      ],
+      [
+        { userId: "a", dateKey: "2026-08-18", points: 20, notes: "" },
+        { userId: "a", dateKey: "2026-08-20", points: 20, notes: "" }
+      ]
+    );
+    expect(unchanged).toEqual([{ userId: "a", dateKey: "2026-08-18", points: 20, notes: "" }]);
   });
 });
 

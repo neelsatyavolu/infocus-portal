@@ -53,6 +53,22 @@ export function changedParticipationEntries(
   });
 }
 
+/**
+ * Cells that already match their live score. The grid shows a pending dock in place of the live
+ * score, so saving one of these means the editor put the cell back: its pending dock is withdrawn.
+ */
+export function unchangedParticipationEntries(
+  proposed: ProposedParticipationEntry[],
+  live: LiveParticipationEntry[]
+): ProposedParticipationEntry[] {
+  const changed = new Set(
+    changedParticipationEntries(proposed, live).map((entry) => participationCellKey(entry.userId, entry.dateKey))
+  );
+  return dedupeParticipationEntries(proposed).filter(
+    (entry) => !changed.has(participationCellKey(entry.userId, entry.dateKey))
+  );
+}
+
 /** Docked scores need a second producer. Full marks (including 0/0 days) post immediately. */
 export function participationNeedsApproval(points: number, maxPoints: number) {
   return points < maxPoints;

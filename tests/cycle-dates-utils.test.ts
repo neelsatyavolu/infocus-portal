@@ -21,6 +21,7 @@ import {
   parseDateKey,
   replaceCycle,
   soonestDeadline,
+  stageGapDays,
   stageHint,
   withSavedCycle,
   withServerCycles,
@@ -217,5 +218,32 @@ describe("cycle count", () => {
     expect(parseCycleCount("  ")).toBeNull();
     expect(parseCycleCount("4")).toBe(4);
     expect(parseCycleCount("12")).toBe(8);
+  });
+});
+
+describe("stageGapDays", () => {
+  const cycle: PackageCycle = {
+    cycleNumber: 4,
+    focus: "",
+    pitchingDate: "2027-01-12",
+    proofOfContactDate: "2027-01-14",
+    aRollBRollDate: null,
+    initialCutDate: "2027-02-04",
+    finalCutDate: "2027-02-18"
+  };
+
+  it("counts days from the previous stage in the same cycle", () => {
+    expect(stageGapDays(cycle, 1)).toBe(2);
+    expect(stageGapDays(cycle, 4)).toBe(14);
+  });
+
+  it("has no gap for Pitching or when either date is missing", () => {
+    expect(stageGapDays(cycle, 0)).toBeNull();
+    expect(stageGapDays(cycle, 2)).toBeNull();
+    expect(stageGapDays(cycle, 3)).toBeNull();
+  });
+
+  it("stays whole across a daylight-saving change", () => {
+    expect(stageGapDays({ ...cycle, initialCutDate: "2027-03-08", finalCutDate: "2027-03-18" }, 4)).toBe(10);
   });
 });

@@ -15,6 +15,7 @@ import {
   formatDateShort,
   nextStageKey,
   parseDateKey,
+  stageGapDays,
   type Deadline,
   type OrderedCycle,
   type StageField
@@ -120,11 +121,58 @@ function StageStatus({ cell }: { cell: StageCell }) {
   return <span className="font-mono-broadcast text-xs leading-5 tabular-nums text-muted-foreground">{countdown}</span>;
 }
 
+function daysWords(days: number) {
+  return `${days} day${Math.abs(days) === 1 ? "" : "s"}`;
+}
+
+/**
+ * Above each date in the table: the cycle's timeline. A dot marks the stage (hollow with no
+ * date, dimmed once past) and a line runs on to the next stage's dot, with the days between the
+ * two stages centered over it. The line crosses both cells' padding so a row reads as one track.
+ */
+function StageTrack({ cycle, stageIndex, cell }: { cycle: OrderedCycle["cycle"]; stageIndex: number; cell: StageCell }) {
+  const next = STAGE_FIELDS[stageIndex + 1];
+  const gap = next ? stageGapDays(cycle, stageIndex + 1) : null;
+  return (
+    <div className="relative mb-2 h-6">
+      {next ? <span aria-hidden className="absolute -right-5 bottom-1 left-1 h-px bg-muted-foreground/40" /> : null}
+      <span
+        aria-hidden
+        className={cn(
+          "absolute bottom-0 left-0 size-2.5 rounded-full",
+          !cell.date ? "border border-muted-foreground bg-card" : cell.days !== null && cell.days < 0 ? "bg-muted-foreground" : "bg-foreground"
+        )}
+      />
+      {gap !== null && next ? (
+        <span
+          title={`${daysWords(gap)} from ${STAGE_FIELDS[stageIndex].short} to ${next.short}`}
+          className="absolute -right-5 left-2.5 top-0 truncate text-center font-mono-broadcast text-[11px] leading-4 tabular-nums text-muted-foreground"
+        >
+          <span aria-hidden>{daysWords(gap)}</span>
+          <span className="sr-only">{`${daysWords(gap)} until ${next.label}`}</span>
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+/** Phone cards: days since the previous stage ("11 days after Pitching"). */
+function StageGap({ cycle, stageIndex }: { cycle: OrderedCycle["cycle"]; stageIndex: number }) {
+  const gap = stageGapDays(cycle, stageIndex);
+  const previous = STAGE_FIELDS[stageIndex - 1];
+  if (gap === null || !previous) return null;
+  return (
+    <span className="font-mono-broadcast text-[11px] leading-4 tabular-nums text-muted-foreground">
+      {`${daysWords(gap)} after ${previous.short}`}
+    </span>
+  );
+}
+
 function ScheduleRow({ entry, today, soonest, release }: RowProps) {
   const current = entry.section === "current";
   return (
     <tr className={cn("border-t border-border", current && CURRENT_TINT)}>
-      <th scope="row" className="relative py-3 pl-4 pr-3 text-left align-top font-normal">
+      <th scope="row" className="relative pb-3 pl-4 pr-3 pt-11 text-left align-top font-normal">
         {current ? <CurrentBar /> : null}
         <CycleName
           cycle={entry.cycle}
@@ -132,10 +180,11 @@ function ScheduleRow({ entry, today, soonest, release }: RowProps) {
           tags={<ReleaseWinnersButton cycleNumber={entry.cycle.cycleNumber} release={release} />}
         />
       </th>
-      {STAGE_FIELDS.map((stage) => {
+      {STAGE_FIELDS.map((stage, stageIndex) => {
         const cell = stageCell(entry, stage, today, soonest);
         return (
           <td key={stage.key} className="px-2.5 py-3 align-top">
+            <StageTrack cycle={entry.cycle} stageIndex={stageIndex} cell={cell} />
             <div className="@container">
               <DateValue date={cell.date} today={today} muted={entry.section === "closed"} />
               <span className="mt-1 flex min-h-5 items-center">
@@ -205,7 +254,7 @@ function CycleCard({ entry, today, soonest, release }: RowProps) {
           </StatusTag>
         </div>
         <dl className="mt-3 divide-y divide-border border-t border-border">
-          {STAGE_FIELDS.map((stage) => {
+          {STAGE_FIELDS.map((stage, stageIndex) => {
             const cell = stageCell(entry, stage, today, soonest);
             return (
               <div key={stage.key} className="flex items-start justify-between gap-4 py-2">
@@ -213,6 +262,7 @@ function CycleCard({ entry, today, soonest, release }: RowProps) {
                 <dd className="flex shrink-0 flex-col items-end gap-0.5 text-right">
                   <DateValue date={cell.date} today={today} muted={section === "closed"} />
                   <StageStatus cell={cell} />
+                  <StageGap cycle={cycle} stageIndex={stageIndex} />
                 </dd>
               </div>
             );

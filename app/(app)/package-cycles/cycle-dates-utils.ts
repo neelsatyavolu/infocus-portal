@@ -58,6 +58,19 @@ export function daysFrom(date: Date, today: Date) {
 }
 
 /**
+ * Days from the stage before `stageIndex` to that stage in the same cycle (Pitching has none),
+ * or null when either date is missing.
+ */
+export function stageGapDays(cycle: PackageCycle, stageIndex: number) {
+  const previous = STAGE_FIELDS[stageIndex - 1];
+  const stage = STAGE_FIELDS[stageIndex];
+  if (!previous || !stage) return null;
+  const from = parseDateKey(cycle[previous.key]);
+  const to = parseDateKey(cycle[stage.key]);
+  return from && to ? daysFrom(to, from) : null;
+}
+
+/**
  * "Thu, Oct 16" (non-breaking, so it never splits), plus ", 2027" only when the year isn't
  * this year. The year can wrap to its own line in a narrow column.
  */

@@ -6,6 +6,7 @@ import { EMBEDDED_APP_COOKIE } from "@/src/lib/embedded-app";
 import {
   legacyPortalRedirect,
   mainOriginForHost,
+  applicationsHostPath,
   meetOriginForHost,
   normalizeHost,
   resolveAppSurface,
@@ -90,6 +91,13 @@ function buildSignInUrl(req: NextRequest, surface: AppSurface) {
     const host = req.headers.get("host");
     const signInUrl = new URL("/sign-in", mainOriginForHost(host));
     signInUrl.searchParams.set("returnTo", `${meetOriginForHost(host)}${req.nextUrl.pathname}${req.nextUrl.search}`);
+    return signInUrl;
+  }
+  // Applicant Portal host: same, returning to this exact applications URL.
+  if (surface === "applications") {
+    const host = req.headers.get("host");
+    const signInUrl = new URL("/sign-in", mainOriginForHost(host));
+    signInUrl.searchParams.set("returnTo", `https://${normalizeHost(host)}${req.nextUrl.pathname}${req.nextUrl.search}`);
     return signInUrl;
   }
   const signInUrl = new URL("/sign-in", req.url);
@@ -246,6 +254,18 @@ export default async function middleware(req: NextRequest) {
     const target = meetHostRedirectFromMain(pathname, req.nextUrl.search, meetOriginForHost(host));
     if (target && !embeddedApp) {
       return withSurfaceHeaders(NextResponse.redirect(target, 308), surface, host);
+    }
+  }
+
+  // Applicant Portal host (not in the sidebar): every page needs a session, then maps under /applications.
+  if (surface === "applications") {
+    const target = applicationsHostPath(pathname);
+    if (target) {
+      if (!(await parseAppSessionToken(sessionToken))) {
+        return withSurfaceHeaders(NextResponse.redirect(buildSignInUrl(req, surface)), surface, host);
+      }
+      const response = target === pathname ? NextResponse.next() : NextResponse.rewrite(new URL(`${target}${req.nextUrl.search}`, req.url));
+      return withSurfaceHeaders(response, surface, host);
     }
   }
 

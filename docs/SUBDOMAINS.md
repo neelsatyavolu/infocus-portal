@@ -11,6 +11,7 @@ Same Next.js app, host-based routing in `middleware.ts`. The Portal answers on t
 | `teleprompter.infocusportal.com` | teleprompter | `/teleprompter` |
 | `equipment.infocusportal.com` | equipment | `/equipment` |
 | `meet.infocusportal.com` | meet | `/meetings` (also `/producers` → `/meet/producers`, `/<id>` → `/meet/<id>`) |
+| `applications.infocusportal.com` | applications | `/applications` (every page path maps under `/applications`; sign-in on the main host) |
 | `drive.infocusportal.com` | separate app | InFocus Drive (other repo, Cloudflare Tunnel); canonical is `drive.infocuspaly.com` again (see above), and this name moves browsers there |
 
 Each of those Portal hosts also exists on infocuspaly.com (`meet.infocuspaly.com`, …).

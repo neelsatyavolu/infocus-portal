@@ -41,10 +41,12 @@
     { "pattern": "grades.infocusportal.com/*", "zone_name": "infocusportal.com" },
     { "pattern": "equipment.infocusportal.com/*", "zone_name": "infocusportal.com" },
     { "pattern": "teleprompter.infocusportal.com/*", "zone_name": "infocusportal.com" },
+    { "pattern": "applications.infocusportal.com/*", "zone_name": "infocusportal.com" },
     { "pattern": "infocuspaly.com/*", "zone_name": "infocuspaly.com" },
     { "pattern": "meet.infocuspaly.com/*", "zone_name": "infocuspaly.com" },
     { "pattern": "grades.infocuspaly.com/*", "zone_name": "infocuspaly.com" },
     { "pattern": "equipment.infocuspaly.com/*", "zone_name": "infocuspaly.com" },
-    { "pattern": "teleprompter.infocuspaly.com/*", "zone_name": "infocuspaly.com" }
+    { "pattern": "teleprompter.infocuspaly.com/*", "zone_name": "infocuspaly.com" },
+    { "pattern": "applications.infocuspaly.com/*", "zone_name": "infocuspaly.com" }
   ]
 }

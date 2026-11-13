@@ -10,7 +10,7 @@
  * - <domain> (and www / previews) → main packages app
  */
 
-export type AppSurface = "main" | "grades" | "teleprompter" | "equipment" | "meet";
+export type AppSurface = "main" | "grades" | "teleprompter" | "equipment" | "meet" | "applications";
 
 /** Every domain the Portal answers on. The first is the default canonical one. */
 export const PORTAL_DOMAINS = ["infocusportal.com", "infocuspaly.com"] as const;
@@ -59,6 +59,10 @@ export function resolveAppSurface(hostHeader?: string | null): AppSurface {
 
   if (host.startsWith("meet.")) {
     return "meet";
+  }
+
+  if (host.startsWith("applications.")) {
+    return "applications";
   }
 
   return "main";
@@ -165,7 +169,7 @@ export function toInstalledAppUrl(url: string) {
 }
 
 /** Host prefixes the Portal Worker serves on every Portal domain (wrangler.jsonc routes). */
-const PORTAL_SUBDOMAINS = ["", "www.", "meet.", "grades.", "equipment.", "teleprompter."];
+const PORTAL_SUBDOMAINS = ["", "www.", "meet.", "grades.", "equipment.", "teleprompter.", "applications."];
 
 /**
  * A link to the other Portal domain, moved onto `currentHost`'s domain (same subdomain and page);
@@ -187,4 +191,16 @@ export function linkOnCurrentPortalDomain(href: string, currentHost: string) {
   } catch {
     return null;
   }
+}
+
+/**
+ * The Applicant Portal host (applications.<domain>) serves only /applications pages: `/` and any
+ * other page path map under /applications. Null for API, sign-in and system paths, which pass through.
+ */
+export function applicationsHostPath(pathname: string): string | null {
+  if (/^\/(?:api|_next|sign-in|access-denied|maintenance|\.well-known)(?:\/|$)/.test(pathname)) return null;
+  if (/^\/(?:robots\.txt|sitemap\.xml|favicon\.ico|manifest\.webmanifest)$/.test(pathname)) return null;
+  if (pathname === "/" || pathname === "") return "/applications";
+  if (pathname === "/applications" || pathname.startsWith("/applications/")) return pathname;
+  return `/applications${pathname}`;
 }

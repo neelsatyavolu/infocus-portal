@@ -45,6 +45,7 @@ When answering:
 | iPhone apps (InFocus Portal and the public InFocus app) | `iphone-apps.md` |
 | Messages (group and direct chat) | `messages.md` |
 | Meetings (producer video calls, notes) | `meetings.md` |
+| Leadership applications (applications host) | `applications.md` |
 
 ## Agents must update this
 

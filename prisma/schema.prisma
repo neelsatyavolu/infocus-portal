@@ -167,6 +167,10 @@ model User {
   signature                           UserSignature?                  @relation("UserSignatureOwner")
   thanksgivingScores                  ThanksgivingScore[]
   thanksgivingCatches                 ThanksgivingCatch[]
+  applications                        Application[]                   @relation("ApplicationApplicant")
+  applicationReviewNotes              ApplicationReviewNote[]         @relation("ApplicationReviewNoteAuthor")
+  applicationRankings                 ApplicationRanking[]            @relation("ApplicationRankingReviewer")
+  applicationVotes                    ApplicationVote[]               @relation("ApplicationVoteVoter")
 
   @@index([email])
 }
@@ -2368,4 +2372,140 @@ model ThanksgivingContest {
   settledAt     DateTime  @default(now())
   /// When the winner was announced and the prize granted (src/server/thanksgiving-contest.ts); null until then.
   revealedAt    DateTime?
+}
+
+// ── Applicant Portal (applications.<domain>; docs/superpowers/specs/2026-11-12-applicant-portal-design.md) ──
+
+enum ApplicationRoundStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
+enum ApplicationStatus {
+  DRAFT
+  SUBMITTED
+}
+
+enum ApplicationNoteKind {
+  NOTE
+  INTERVIEW
+}
+
+/// One application window (e.g. "2027–28 Producer Application"). `config` holds the editable template
+/// content (src/lib/applications/config.ts); its answer key and rubric never reach applicants.
+model ApplicationRound {
+  id                  String                 @id @default(cuid())
+  title               String
+  positionLabel       String
+  intro               String                 @default("")
+  status              ApplicationRoundStatus @default(DRAFT)
+  opensAt             DateTime?
+  dueAt               DateTime
+  allowUnsubmit       Boolean                @default(true)
+  /// Decisions show to applicants from this time on; null = not released.
+  releaseAt           DateTime?
+  config              Json
+  roughCutMediaItemId String?
+  roughCutUrl         String?
+  createdById         String?
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  applications        Application[]
+  rankings            ApplicationRanking[]
+  audits              ApplicationAudit[]
+
+  @@map("application_rounds")
+}
+
+/// One applicant's application. Mock applicants (isMock, no user) exist to try the reviewer UI.
+model Application {
+  id              String                  @id @default(cuid())
+  roundId         String
+  userId          String?
+  isMock          Boolean                 @default(false)
+  mockName        String?
+  status          ApplicationStatus       @default(DRAFT)
+  submittedAt     DateTime?
+  version         Int                     @default(0)
+  answers         Json
+  attested        Boolean                 @default(false)
+  extensionUntil  DateTime?
+  extensionNote   String?
+  aiRead          Json?
+  aiReadAt        DateTime?
+  /// The majority decision, frozen when an exec sets the release (votes lock until it's cancelled).
+  decisionKey     String?
+  decisionMessage String?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  round           ApplicationRound        @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  user            User?                   @relation("ApplicationApplicant", fields: [userId], references: [id], onDelete: Cascade)
+  notes           ApplicationReviewNote[]
+  votes           ApplicationVote[]
+
+  @@unique([roundId, userId])
+  @@index([roundId, status])
+  @@map("applications")
+}
+
+model ApplicationReviewNote {
+  id            String              @id @default(cuid())
+  applicationId String
+  authorId      String
+  kind          ApplicationNoteKind @default(NOTE)
+  text          String
+  createdAt     DateTime            @default(now())
+  application   Application         @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  author        User                @relation("ApplicationReviewNoteAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId, createdAt])
+  @@map("application_review_notes")
+}
+
+/// One exec's personal order of a round's applicants, with a reason per applicant.
+model ApplicationRanking {
+  id          String           @id @default(cuid())
+  roundId     String
+  reviewerId  String
+  /// Application ids, best first.
+  order       Json
+  /// { [applicationId]: reason }
+  reasons     Json
+  submittedAt DateTime?
+  updatedAt   DateTime         @updatedAt
+  round       ApplicationRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  reviewer    User             @relation("ApplicationRankingReviewer", fields: [reviewerId], references: [id], onDelete: Cascade)
+
+  @@unique([roundId, reviewerId])
+  @@map("application_rankings")
+}
+
+/// A voter's (EP or super admin) final-decision pick for one applicant.
+model ApplicationVote {
+  id            String      @id @default(cuid())
+  applicationId String
+  voterId       String
+  optionKey     String
+  updatedAt     DateTime    @updatedAt
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  voter         User        @relation("ApplicationVoteVoter", fields: [voterId], references: [id], onDelete: Cascade)
+
+  @@unique([applicationId, voterId])
+  @@map("application_votes")
+}
+
+/// Submits, unsubmits, extensions, releases and settings changes.
+model ApplicationAudit {
+  id            String           @id @default(cuid())
+  roundId       String
+  applicationId String?
+  actorId       String?
+  action        String
+  detail        Json?
+  createdAt     DateTime         @default(now())
+  round         ApplicationRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  @@index([roundId, createdAt])
+  @@map("application_audits")
 }

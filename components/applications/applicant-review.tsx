@@ -12,7 +12,6 @@ import { Field } from "@/components/kit/field";
 import { IconButton } from "@/components/kit/icon-button";
 import { Panel } from "@/components/kit/panel";
 import { StatusTag } from "@/components/kit/status-tag";
-import { PageHeader } from "@/components/page-header";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,23 +38,23 @@ export function ApplicantReview({ detail }: { detail: ApplicationDetail }) {
 
   return (
     <div className="space-y-5">
-      <PageHeader
-        size="compact"
-        eyebrow={application.submittedAt ? `Submitted ${formatPacific(application.submittedAt)} · v${application.version}` : "Not submitted"}
-        status={
-          <>
+      {/* A plain header (not a second hero) so the pane's top edge lines up with the applicant list. */}
+      <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+        <div className="min-w-0 space-y-1">
+          <div className="flex min-h-8 flex-wrap items-center gap-2">
+            <h2 className="text-xl font-semibold leading-tight tracking-[-0.01em]">{application.name}</h2>
             {application.isMock ? <StatusTag tone="review">Mock</StatusTag> : null}
             {application.status === "SUBMITTED" ? <StatusTag tone="success">Submitted</StatusTag> : <StatusTag tone="warning">Draft</StatusTag>}
-          </>
-        }
-        title={application.name}
-        actions={
-          <Link href={`${base}/a/${application.id}/print` as never} className={buttonVariants({ variant: "outline", size: "sm" })}>
-            <Printer aria-hidden />
-            Interview sheet
-          </Link>
-        }
-      />
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {application.submittedAt ? `Submitted ${formatPacific(application.submittedAt)} · version ${application.version}` : "Not submitted yet"}
+          </p>
+        </div>
+        <Link href={`${base}/a/${application.id}/print` as never} className={buttonVariants({ variant: "outline", size: "sm" })}>
+          <Printer aria-hidden />
+          Interview sheet
+        </Link>
+      </header>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_24rem] xl:items-start">
         <div className="space-y-5">
@@ -67,7 +66,7 @@ export function ApplicantReview({ detail }: { detail: ApplicationDetail }) {
           <NotesPanel detail={detail} kind="TRANSCRIPT" title="Interview transcripts" description="Paste the recorded interview's transcript (formal interview, follow-up). Private to reviewers." />
         </div>
 
-        <div className="space-y-5 max-xl:order-first xl:sticky xl:top-[calc(var(--app-header-h,0px)+1rem)] xl:max-h-[calc(100dvh-var(--app-header-h,0px)-2rem)] xl:overflow-y-auto">
+        <div className="space-y-5 xl:sticky xl:top-[calc(var(--app-header-h,0px)+1rem)] xl:max-h-[calc(100dvh-var(--app-header-h,0px)-2rem)] xl:overflow-y-auto">
           <Panel title="Rough cut" description="Click a note's timestamp to check it against the cut." padding="md">
             <RoughCutPlayer roundId={round.id} src={round.roughCutUrl} videoRef={videoRef} className="rounded-md" />
           </Panel>

@@ -13,7 +13,7 @@ export default async function RoundApplicantsPage({ params }: { params: Promise<
   const detail = first ? await loadApplicationDetail(roundId, first.id) : null;
   return (
     <div className="space-y-5">
-      <RoundHeader round={overview.round} tab="applicants" actions={<RoundActions overview={overview} />} />
+      <RoundHeader round={overview.round} tab="applicants" toolbar={<RoundActions overview={overview} />} />
       <ApplicantsWorkspace overview={overview} detail={detail} showDetailOnPhone={false} />
     </div>
   );

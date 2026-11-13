@@ -11,6 +11,7 @@ import { CutStep } from "@/components/applications/cut-step";
 import { DecisionCard } from "@/components/applications/decision-card";
 import { FactsStep } from "@/components/applications/facts-step";
 import { Alert } from "@/components/kit/alert";
+import { Panel } from "@/components/kit/panel";
 import { SaveState, StatusTag, type SaveStateValue } from "@/components/kit/status-tag";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -249,10 +250,7 @@ function EditableApplication({ view }: { view: MyApplicationView }) {
         })}
       </nav>
 
-      <section aria-labelledby="step-title" className="space-y-5 rounded-md border border-border bg-card p-4 md:p-5">
-        <h2 id="step-title" className="text-lg font-semibold">
-          {current.label}
-        </h2>
+      <Panel title={current.label} titleAs="h2">
         {current.key === "facts" ? <FactsStep answers={answers} config={config} applicantName={view.applicantName} onChange={patch} /> : null}
         {current.key === "answers" ? <AnswersStep answers={answers} config={config} onChange={patch} /> : null}
         {current.key === "cut" ? <CutStep roundId={round.id} hasRoughCut={round.hasRoughCut} answers={answers} config={config} onChange={patch} /> : null}
@@ -287,7 +285,7 @@ function EditableApplication({ view }: { view: MyApplicationView }) {
             </div>
           </div>
         ) : null}
-      </section>
+      </Panel>
 
       <div className="flex items-center justify-between gap-2">
         <Button variant="outline" onClick={() => go(step - 1)} disabled={step === 0}>

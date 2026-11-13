@@ -66,7 +66,7 @@ export function CutStep({ roundId, hasRoughCut, answers, config, onChange }: Pro
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start">
-        <div className="space-y-3 lg:sticky lg:top-[calc(3.5rem+1.5rem)]">
+        <div className="space-y-3 lg:sticky lg:top-[calc(var(--app-header-h,0px)+1rem)]">
           {hasRoughCut ? (
             <RoughCutPlayer roundId={roundId} videoRef={videoRef} className="rounded-md" />
           ) : (

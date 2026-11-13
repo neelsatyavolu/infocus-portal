@@ -38,7 +38,7 @@ function Choice({ id, value, options, onChange }: { id: string; value: string; o
 export function FactsStep({ answers, config, applicantName, onChange }: Props) {
   return (
     <div className="space-y-6">
-      <FormSection cols={2}>
+      <FormSection title="About you" cols={2}>
         <Field label="Full name" htmlFor="app-name" hint="From your Portal account.">
           <Input id="app-name" value={applicantName} readOnly disabled />
         </Field>
@@ -67,7 +67,7 @@ export function FactsStep({ answers, config, applicantName, onChange }: Props) {
         <LeadershipRows answers={answers} onChange={onChange} />
       </FormSection>
 
-      <FormSection cols={2}>
+      <FormSection title="Time and commitments" cols={2}>
         <Field label="Weekly hours spent on other commitments (approx.)" htmlFor="app-hours" required>
           <Choice id="app-hours" value={answers.hours} options={config.hoursOptions} onChange={(hours) => onChange({ hours })} />
         </Field>
@@ -86,6 +86,7 @@ export function FactsStep({ answers, config, applicantName, onChange }: Props) {
         </div>
       </FormSection>
 
+      <FormSection title="Next year">
       <Field label="Are you enrolling in InFocus next year?" required hint="Answer Yes only if you know for sure (100%).">
         <SegmentedControl
           ariaLabel="Enrolling in InFocus next year"
@@ -98,6 +99,7 @@ export function FactsStep({ answers, config, applicantName, onChange }: Props) {
           className="w-fit"
         />
       </Field>
+      </FormSection>
     </div>
   );
 }

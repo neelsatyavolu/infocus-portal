@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { Eye } from "lucide-react";
+import { Toolbar } from "@/components/kit/action-bar";
 import { SegmentedControl } from "@/components/kit/segmented-control";
 import { StatusTag } from "@/components/kit/status-tag";
 import { PageHeader } from "@/components/page-header";
@@ -19,11 +20,12 @@ const STATUS: Record<"DRAFT" | "PUBLISHED" | "CLOSED", { label: string; tone: "m
 export function RoundHeader({
   round,
   tab,
-  actions
+  toolbar
 }: {
   round: { id: string; title: string; positionLabel: string; status: "DRAFT" | "PUBLISHED" | "CLOSED"; dueAt: string; releaseAt: string | null };
   tab: RoundTab;
-  actions?: ReactNode;
+  /** Round-level tools on the right of the tab row (h-8). */
+  toolbar?: ReactNode;
 }) {
   const status = STATUS[round.status];
   const base = `/applications/manage/${round.id}`;
@@ -44,24 +46,30 @@ export function RoundHeader({
         title={round.title}
         description={`Due ${formatPacific(round.dueAt)}`}
         actions={
-          <div className="flex flex-wrap items-center gap-2">
-            {actions}
-            {/* Reviewers can open the student form even while the round is a hidden draft. */}
-            <Link href={`/applications/${round.id}` as never} className={buttonVariants({ variant: "outline", size: "sm" })}>
-              <Eye aria-hidden />
-              Preview as student
-            </Link>
-          </div>
+          // Reviewers can open the student form even while the round is a hidden draft.
+          <Link href={`/applications/${round.id}` as never} className={buttonVariants({ variant: "outline" })}>
+            <Eye aria-hidden />
+            Preview as student
+          </Link>
         }
       />
-      <SegmentedControl
-        ariaLabel="Round views"
-        value={tab}
-        options={[
-          { value: "applicants", label: "Applicants", href: base },
-          { value: "desk", label: "Decision desk", href: `${base}/desk` },
-          { value: "settings", label: "Settings", href: `${base}/settings` }
-        ]}
+      <Toolbar
+        aria-label="Round"
+        size="sm"
+        className="justify-between"
+        start={
+          <SegmentedControl
+            ariaLabel="Round views"
+            size="sm"
+            value={tab}
+            options={[
+              { value: "applicants", label: "Applicants", href: base },
+              { value: "desk", label: "Decision desk", href: `${base}/desk` },
+              { value: "settings", label: "Settings", href: `${base}/settings` }
+            ]}
+          />
+        }
+        end={toolbar}
       />
     </div>
   );

@@ -24,21 +24,11 @@ export function ApplicationSummary({ answers, config, onEdit, onSeek, hideNotes 
       <SummarySection title="Quick facts" section="facts" onEdit={onEdit}>
         <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
           <Item label="Grade next year">{answers.grade || empty}</Item>
-          <Item label="Years in InFocus">{answers.years || empty}</Item>
-          <Item label="Role preferences">
-            {answers.rolePrefs.length ? (
-              <ol className="list-decimal pl-5">
-                {answers.rolePrefs.map((role) => (
-                  <li key={role}>{role}</li>
-                ))}
-              </ol>
-            ) : (
-              empty
-            )}
-          </Item>
-          <Item label="Would accept another role">{answers.acceptOther ? (answers.acceptOther === "yes" ? "Yes" : "No") : empty}</Item>
-          <Item label="InFocus roles">{[...answers.pastRoles, answers.pastRolesOther].filter(Boolean).join(", ") || empty}</Item>
-          <Item label="Weekly hours">{answers.hours || empty}</Item>
+          <Item label="Years in InFocus (full)">{answers.years || empty}</Item>
+          <Item label="Current role">{answers.currentRole || empty}</Item>
+          <Item label="Previous roles">{answers.pastRoles.join(", ") || <span className="text-muted-foreground">None</span>}</Item>
+          <Item label="Enrolling next year">{answers.enrollingNextYear ? (answers.enrollingNextYear === "yes" ? "Yes" : "No") : empty}</Item>
+          <Item label="Weekly hours on other commitments">{answers.hours || empty}</Item>
           <Item label="Leadership outside InFocus">
             {answers.leadership.length ? (
               <ul className="space-y-0.5">

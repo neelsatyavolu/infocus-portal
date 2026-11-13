@@ -7,7 +7,7 @@ import { saveRanking } from "@/src/server/applications/review";
 type Context = { params: Promise<{ roundId: string }> };
 
 const schema = z.object({
-  order: z.array(z.string().max(40)).max(500),
+  picks: z.record(z.string().max(40), z.array(z.string().max(40)).max(50)),
   reasons: z.record(z.string().max(40), z.string().max(2000)),
   submit: z.boolean()
 });

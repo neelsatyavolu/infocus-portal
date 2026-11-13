@@ -35,6 +35,8 @@ export const applicationConfigSchema = z.object({
     airReasonMaxWords: z.number().int().min(5).max(200)
   }),
   rubric: z.array(z.object({ key: text(40).min(1), label: text(80).min(1), description: text(300) })).min(1).max(10),
+  /** Decision desk: each exec picks this many applicants per list (one person per list at most). */
+  pickLists: z.array(z.object({ key: text(40).min(1), label: text(80).min(1), count: z.number().int().min(1).max(20) })).min(1).max(4),
   decisions: z
     .array(z.object({ key: text(40).min(1), label: text(80).min(1), message: text(2000), tone: decisionToneSchema }))
     .min(1)
@@ -44,9 +46,10 @@ export const applicationConfigSchema = z.object({
 
 export type ApplicationConfig = z.infer<typeof applicationConfigSchema>;
 export type DecisionOption = ApplicationConfig["decisions"][number];
+export type PickList = ApplicationConfig["pickLists"][number];
 
 export const DEFAULT_APPLICATION_CONFIG: ApplicationConfig = {
-  roles: ["Executive Producer", "Associate Producer", "Show & Technical Director", "Livestream Director", "Digital Director"],
+  roles: ["Reporter", "Associate Producer", "Executive Producer", "Show & Technical Director", "Livestream Director", "Digital Director"],
   skills: [
     "Premiere / editing",
     "Camera",
@@ -61,7 +64,7 @@ export const DEFAULT_APPLICATION_CONFIG: ApplicationConfig = {
   ],
   gradeOptions: ["11", "12"],
   yearsOptions: ["1", "2", "3+"],
-  hoursOptions: ["<2", "2–4", "4–6", "6+"],
+  hoursOptions: ["0–5", "5–10", "10–15", "15–20", "20+"],
   questions: [
     { prompt: "What's one thing InFocus should change next year, and how would you make it happen?", maxWords: 150, softMinWords: 50 },
     {
@@ -98,6 +101,10 @@ export const DEFAULT_APPLICATION_CONFIG: ApplicationConfig = {
     { key: "spotting", label: "Spotting problems", description: "Rough cut: catches the real issues, including the important ones, not just nitpicks" },
     { key: "judgment", label: "Prioritization & judgment", description: "Rough cut: the top-3 summary picks the right fixes; the air decision is sound" },
     { key: "communication", label: "Communication", description: "Rough cut: notes are clear, specific, actionable and respectful to the reporter" }
+  ],
+  pickLists: [
+    { key: "ep", label: "Executive Producer", count: 2 },
+    { key: "ap", label: "Associate Producer", count: 3 }
   ],
   decisions: [
     {

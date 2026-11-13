@@ -164,16 +164,20 @@ const PERSONAS: MockPersona[] = [
   }
 ];
 
+/** The personas' hours, mapped onto the default "weekly hours on other commitments" options. */
+const MOCK_HOURS: Record<string, string> = { "6+": "0–5", "4–6": "5–10", "2–4": "10–15" };
+
 function personaAnswers(persona: MockPersona, roles: string[], skills: string[], categories: string[], airOptions: string[]): ApplicationAnswers {
   return {
     ...EMPTY_ANSWERS,
     grade: persona.grade,
     years: persona.years,
-    rolePrefs: persona.roles.map((index) => roles[index]).filter((role): role is string => Boolean(role)),
-    acceptOther: persona.acceptOther,
-    pastRoles: ["Reporter"],
+    currentRole: (persona.grade === "12" ? roles.find((role) => role === "Associate Producer") : undefined) ?? roles[0] ?? "",
+    pastRoles: persona.years === "1" ? [] : roles.slice(0, 1),
+    leadership: persona.name.startsWith("Abby") ? [{ org: "Varsity swim", role: "Captain", years: "1" }] : [],
     commitments: persona.commitments,
-    hours: persona.hours,
+    hours: MOCK_HOURS[persona.hours] ?? "",
+    enrollingNextYear: persona.draft ? "" : "yes",
     skills: persona.skills.map((index) => skills[index]).filter((skill): skill is string => Boolean(skill)),
     answer1: persona.answer1,
     answer2: persona.answer2,

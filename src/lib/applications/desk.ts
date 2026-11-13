@@ -14,29 +14,50 @@ export function tallyVotes(optionKeys: string[], voterCount: number): VoteTally 
   return { counts, winner, needed, cast: optionKeys.length };
 }
 
-/** Each applicant's rank (1 = best) in every submitted order, and the average. Unranked ids are skipped. */
-export function aggregateRanks(orders: string[][], applicationIds: string[]) {
-  const result = new Map<string, { ranks: number[]; average: number | null }>();
-  for (const id of applicationIds) {
-    const ranks = orders.map((order) => order.indexOf(id)).filter((index) => index >= 0).map((index) => index + 1);
-    const average = ranks.length ? ranks.reduce((sum, rank) => sum + rank, 0) / ranks.length : null;
-    result.set(id, { ranks, average });
+/** One exec's picks: list key → application ids (e.g. { ep: [2 ids], ap: [3 ids] }). */
+export type Picks = Record<string, string[]>;
+
+/**
+ * Saved picks cleaned against the current pool and lists: unknown ids dropped, each person in at
+ * most one list (first list wins), and no list longer than its count.
+ */
+export function normalizePicks(value: unknown, applicationIds: string[], lists: { key: string; count: number }[]): Picks {
+  const known = new Set(applicationIds);
+  const used = new Set<string>();
+  const input = value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+  const result: Picks = {};
+  for (const list of lists) {
+    const ids = Array.isArray(input[list.key]) ? (input[list.key] as unknown[]) : [];
+    result[list.key] = [];
+    for (const id of ids) {
+      if (typeof id !== "string" || !known.has(id) || used.has(id) || result[list.key]!.length >= list.count) continue;
+      used.add(id);
+      result[list.key]!.push(id);
+    }
   }
   return result;
 }
 
-/** A saved order cleaned against the current pool: unknown ids dropped, missing ones appended. */
-export function normalizeOrder(order: unknown, applicationIds: string[]) {
-  const known = new Set(applicationIds);
-  const seen = new Set<string>();
-  const kept: string[] = [];
-  for (const id of Array.isArray(order) ? order : []) {
-    if (typeof id === "string" && known.has(id) && !seen.has(id)) {
-      seen.add(id);
-      kept.push(id);
-    }
+/** Problems that block submitting picks: each list must be full (or take everyone left). */
+export function picksProblems(picks: Picks, lists: { key: string; label: string; count: number }[], poolSize: number) {
+  const problems: string[] = [];
+  let left = poolSize;
+  for (const list of lists) {
+    const needed = Math.min(list.count, Math.max(left, 0));
+    const have = picks[list.key]?.length ?? 0;
+    if (have < needed) problems.push(`Pick ${needed} for ${list.label} (you have ${have}).`);
+    left -= have;
   }
-  return [...kept, ...applicationIds.filter((id) => !seen.has(id))];
+  return problems;
+}
+
+/** How many execs picked each applicant for each list. */
+export function tallyPicks(all: Picks[], applicationIds: string[], keys: string[]) {
+  const result = new Map<string, Record<string, number>>();
+  for (const id of applicationIds) {
+    result.set(id, Object.fromEntries(keys.map((key) => [key, all.filter((picks) => picks[key]?.includes(id)).length])));
+  }
+  return result;
 }
 
 export type AiScores = Record<string, { score: number; reason: string }>;

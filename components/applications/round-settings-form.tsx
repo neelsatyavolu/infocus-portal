@@ -113,11 +113,11 @@ export function RoundSettingsForm({ initial, readOnly }: { initial: RoundSetting
 
       <Panel title="Section 1: Quick facts" description="One option per line.">
         <FormSection cols={2}>
-          <LinesField label="Roles" value={config.roles} onChange={(roles) => setConfig({ roles })} />
+          <LinesField label="InFocus roles (current and previous role options)" value={config.roles} onChange={(roles) => setConfig({ roles })} />
           <LinesField label="Skills" value={config.skills} onChange={(skills) => setConfig({ skills })} />
           <LinesField label="Grade options" value={config.gradeOptions} onChange={(gradeOptions) => setConfig({ gradeOptions })} rows={3} />
           <LinesField label="Years options" value={config.yearsOptions} onChange={(yearsOptions) => setConfig({ yearsOptions })} rows={3} />
-          <LinesField label="Weekly hours options" value={config.hoursOptions} onChange={(hoursOptions) => setConfig({ hoursOptions })} rows={4} />
+          <LinesField label="Weekly hours on other commitments" value={config.hoursOptions} onChange={(hoursOptions) => setConfig({ hoursOptions })} rows={4} />
         </FormSection>
       </Panel>
 
@@ -182,6 +182,30 @@ export function RoundSettingsForm({ initial, readOnly }: { initial: RoundSetting
           <Button type="button" size="sm" variant="outline" disabled={config.rubric.length >= 10} onClick={() => setConfig({ rubric: [...config.rubric, { key: slug(`criterion ${Date.now().toString(36)}`), label: "New criterion", description: "" }] })}>
             <Plus aria-hidden />
             Add criterion
+          </Button>
+        </div>
+      </Panel>
+
+      <Panel title="Decision desk picks" description="Each exec picks this many applicants per list (a person can only be in one list). Others' picks stay hidden until you submit yours.">
+        <div className="space-y-2">
+          {config.pickLists.map((list, index) => (
+            <div key={list.key} className="grid grid-cols-[1fr_6rem_auto] gap-2">
+              <Input aria-label="List" value={list.label} maxLength={80} onChange={(e) => setConfig({ pickLists: config.pickLists.map((l, i) => (i === index ? { ...l, label: e.target.value } : l)) })} />
+              <Input
+                aria-label={`How many for ${list.label}`}
+                type="number"
+                min={1}
+                max={20}
+                value={list.count}
+                onChange={(e) => setConfig({ pickLists: config.pickLists.map((l, i) => (i === index ? { ...l, count: Math.max(1, Number(e.target.value) || 1) } : l)) })}
+                className="font-mono tabular-nums"
+              />
+              <IconButton label={`Remove ${list.label}`} icon={X} variant="ghost" disabled={config.pickLists.length <= 1} onClick={() => setConfig({ pickLists: config.pickLists.filter((_, i) => i !== index) })} />
+            </div>
+          ))}
+          <Button type="button" size="sm" variant="outline" disabled={config.pickLists.length >= 4} onClick={() => setConfig({ pickLists: [...config.pickLists, { key: slug(`list ${Date.now().toString(36)}`), label: "New list", count: 1 }] })}>
+            <Plus aria-hidden />
+            Add list
           </Button>
         </div>
       </Panel>

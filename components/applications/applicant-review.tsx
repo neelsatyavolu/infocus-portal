@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Printer, Sparkles, Trash2 } from "lucide-react";
+import { Printer, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { errorMessage, send } from "@/components/applications/api";
 import { ApplicationSummary } from "@/components/applications/application-summary";
@@ -39,12 +39,9 @@ export function ApplicantReview({ detail }: { detail: ApplicationDetail }) {
 
   return (
     <div className="space-y-5">
-      <Link href={base as never} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="h-4 w-4" aria-hidden />
-        All applicants
-      </Link>
       <PageHeader
-        eyebrow={round.title}
+        size="compact"
+        eyebrow={application.submittedAt ? `Submitted ${formatPacific(application.submittedAt)} · v${application.version}` : "Not submitted"}
         status={
           <>
             {application.isMock ? <StatusTag tone="review">Mock</StatusTag> : null}
@@ -52,25 +49,25 @@ export function ApplicantReview({ detail }: { detail: ApplicationDetail }) {
           </>
         }
         title={application.name}
-        description={application.submittedAt ? `Submitted ${formatPacific(application.submittedAt)} · version ${application.version}` : "Not submitted"}
         actions={
-          <Link href={`${base}/a/${application.id}/print` as never} className={buttonVariants({ variant: "outline" })}>
+          <Link href={`${base}/a/${application.id}/print` as never} className={buttonVariants({ variant: "outline", size: "sm" })}>
             <Printer aria-hidden />
             Interview sheet
           </Link>
         }
       />
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_26rem] lg:items-start">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_24rem] xl:items-start">
         <div className="space-y-5">
           <Panel title="Application">
             <ApplicationSummary answers={application.answers} config={config} onSeek={seek} />
           </Panel>
           <NotesPanel detail={detail} kind="INTERVIEW" title="Interview prep" description="Follow-up questions drawn from the answers. They print on the interview sheet." />
           <NotesPanel detail={detail} kind="NOTE" title="Reviewer notes" description="Private to reviewers. Applicants never see these." />
+          <NotesPanel detail={detail} kind="TRANSCRIPT" title="Interview transcripts" description="Paste the recorded interview's transcript (formal interview, follow-up). Private to reviewers." />
         </div>
 
-        <div className="space-y-5 lg:sticky lg:top-[calc(3.5rem+1.5rem)]">
+        <div className="space-y-5 max-xl:order-first xl:sticky xl:top-[calc(var(--app-header-h,0px)+1rem)] xl:max-h-[calc(100dvh-var(--app-header-h,0px)-2rem)] xl:overflow-y-auto">
           <Panel title="Rough cut" description="Click a note's timestamp to check it against the cut." padding="md">
             <RoughCutPlayer roundId={round.id} src={round.roughCutUrl} videoRef={videoRef} className="rounded-md" />
           </Panel>
@@ -204,7 +201,16 @@ function AiPanel({ detail }: { detail: ApplicationDetail }) {
   );
 }
 
-function NotesPanel({ detail, kind, title, description }: { detail: ApplicationDetail; kind: "NOTE" | "INTERVIEW"; title: string; description: string }) {
+type NoteKind = "NOTE" | "INTERVIEW" | "TRANSCRIPT";
+
+const NOTE_COPY: Record<NoteKind, { label: string; placeholder: string; max: number; rows: number }> = {
+  NOTE: { label: "New note", placeholder: "What stood out?", max: 4000, rows: 2 },
+  INTERVIEW: { label: "New interview question", placeholder: "Ask about…", max: 4000, rows: 2 },
+  TRANSCRIPT: { label: "Paste a transcript", placeholder: "Paste the interview transcript. Start with a line like \"Formal interview, Mar 6\".", max: 100_000, rows: 6 }
+};
+
+function NotesPanel({ detail, kind, title, description }: { detail: ApplicationDetail; kind: NoteKind; title: string; description: string }) {
+  const copy = NOTE_COPY[kind];
   const router = useRouter();
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -241,7 +247,19 @@ function NotesPanel({ detail, kind, title, description }: { detail: ApplicationD
             {notes.map((note) => (
               <li key={note.id} className="flex gap-3 px-3 py-2.5">
                 <div className="min-w-0 flex-1 space-y-0.5">
-                  <p className="whitespace-pre-line break-words text-sm">{note.text}</p>
+                  {kind === "TRANSCRIPT" ? (
+                    <details className="group">
+                      <summary className="cursor-pointer text-sm font-medium marker:text-muted-foreground">
+                        {note.text.split("\n")[0]?.slice(0, 120) || "Transcript"}
+                        <span className="ml-2 font-mono text-[12px] font-normal tabular-nums text-muted-foreground">
+                          {note.text.split(/\s+/).filter(Boolean).length.toLocaleString()} words
+                        </span>
+                      </summary>
+                      <p className="mt-2 max-h-[32rem] overflow-y-auto whitespace-pre-line break-words text-sm leading-relaxed">{note.text}</p>
+                    </details>
+                  ) : (
+                    <p className="whitespace-pre-line break-words text-sm">{note.text}</p>
+                  )}
                   <p className="text-[12px] text-muted-foreground">
                     {note.author} · {formatPacific(note.createdAt)}
                   </p>
@@ -255,11 +273,11 @@ function NotesPanel({ detail, kind, title, description }: { detail: ApplicationD
         ) : null}
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
           <Textarea
-            aria-label={kind === "INTERVIEW" ? "New interview question" : "New note"}
-            rows={2}
+            aria-label={copy.label}
+            rows={copy.rows}
             value={text}
-            maxLength={4000}
-            placeholder={kind === "INTERVIEW" ? "Ask about…" : "What stood out?"}
+            maxLength={copy.max}
+            placeholder={copy.placeholder}
             onChange={(event) => setText(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) void add();

@@ -19,15 +19,14 @@ export const cutNoteSchema = z.object({
 export const answersSchema = z.object({
   grade: str(20),
   years: str(20),
-  /** Roles they'd accept, best first. Roles left out are "not interested". */
-  rolePrefs: z.array(z.string().max(80)).max(12).default([]),
-  acceptOther: z.enum(["", "yes", "no"]).default(""),
+  currentRole: str(80),
   pastRoles: z.array(z.string().max(80)).max(12).default([]),
-  pastRolesOther: str(200),
   leadership: z.array(z.object({ org: str(120), role: str(120), years: str(20) })).max(5).default([]),
   commitments: str(400),
   hours: str(20),
   skills: z.array(z.string().max(80)).max(20).default([]),
+  /** "yes" only if they know for sure they're taking InFocus next year. */
+  enrollingNextYear: z.enum(["", "yes", "no"]).default(""),
   answer1: str(10_000),
   answer2: str(10_000),
   cutNotes: z.array(cutNoteSchema).max(50).default([]),
@@ -60,7 +59,6 @@ export function countWords(value: string) {
 export function cleanAnswers(answers: ApplicationAnswers): ApplicationAnswers {
   return {
     ...answers,
-    pastRolesOther: plainText(answers.pastRolesOther),
     commitments: plainText(answers.commitments),
     leadership: answers.leadership.map((row) => ({ org: plainText(row.org), role: plainText(row.role), years: plainText(row.years) })),
     answer1: plainText(answers.answer1),
@@ -81,17 +79,14 @@ export function validateForSubmit(answers: ApplicationAnswers, config: Applicant
 
   if (!config.gradeOptions.includes(answers.grade)) facts("grade", "Pick your grade next year.");
   if (!config.yearsOptions.includes(answers.years)) facts("years", "Pick how many years you've been in InFocus.");
-  const prefs = answers.rolePrefs.filter((role) => config.roles.includes(role));
-  if (prefs.length === 0) facts("rolePrefs", "Rank at least one role you'd accept.");
-  if (new Set(prefs).size !== prefs.length) facts("rolePrefs", "Each role can only be ranked once.");
-  if (!answers.acceptOther) facts("acceptOther", "Say whether you'd accept a role other than your top choice.");
-  if (answers.pastRoles.length === 0 && !answers.pastRolesOther.trim()) facts("pastRoles", "List your current or past InFocus roles.");
+  if (!config.roles.includes(answers.currentRole)) facts("currentRole", "Pick your current InFocus role.");
   if (answers.leadership.some((row) => !row.org.trim() || !row.role.trim()))
     facts("leadership", "Fill in the organization and role for each leadership row, or remove it.");
   if (!answers.commitments.trim()) facts("commitments", "List your other major commitments (or write \"None\").");
   if (plainText(answers.commitments).length > 200) facts("commitments", "Keep commitments to 200 characters.");
   if (!config.hoursOptions.includes(answers.hours)) facts("hours", "Pick your weekly hours.");
   if (answers.skills.length === 0) facts("skills", "Check at least one skill.");
+  if (!answers.enrollingNextYear) facts("enrollingNextYear", "Say whether you're enrolling in InFocus next year.");
 
   config.questions.forEach((question, index) => {
     const field = index === 0 ? "answer1" : "answer2";

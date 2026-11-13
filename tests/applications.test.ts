@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { cleanAnswers, countWords, EMPTY_ANSWERS, formatTimestamp, parseTimestamp, validateForSubmit, type ApplicationAnswers } from "@/src/lib/applications/answers";
 import { applicantConfig, DEFAULT_APPLICATION_CONFIG, parseApplicationConfig } from "@/src/lib/applications/config";
 import { applicationsHostPath, resolveAppSurface } from "@/src/lib/hosts";
-import { aggregateRanks, normalizeOrder, ordinal, relativeStandings, tallyVotes, windowState } from "@/src/lib/applications/desk";
+import { normalizePicks, ordinal, picksProblems, tallyPicks, relativeStandings, tallyVotes, windowState } from "@/src/lib/applications/desk";
 
 const config = applicantConfig(DEFAULT_APPLICATION_CONFIG);
 const words = (n: number) => Array.from({ length: n }, () => "word").join(" ");
@@ -12,11 +12,11 @@ function complete(): ApplicationAnswers {
     ...EMPTY_ANSWERS,
     grade: "11",
     years: "2",
-    rolePrefs: ["Executive Producer", "Associate Producer"],
-    acceptOther: "yes",
-    pastRoles: ["Associate Producer"],
+    currentRole: "Reporter",
+    pastRoles: ["Reporter"],
+    enrollingNextYear: "yes",
     commitments: "Soccer",
-    hours: "4–6",
+    hours: "5–10",
     skills: ["Camera"],
     answer1: words(100),
     answer2: words(120),
@@ -87,11 +87,14 @@ describe("decision desk", () => {
     expect(tallyVotes(["a", "b"], 3).winner).toBeNull();
   });
 
-  it("averages ranks and normalizes saved orders", () => {
-    const ranks = aggregateRanks([["x", "y", "z"], ["y", "x", "z"]], ["x", "y", "z", "w"]);
-    expect(ranks.get("x")).toEqual({ ranks: [1, 2], average: 1.5 });
-    expect(ranks.get("w")?.average).toBeNull();
-    expect(normalizeOrder(["y", "gone", "y"], ["x", "y"])).toEqual(["y", "x"]);
+  it("keeps picks to the pool, one list per person, within each count", () => {
+    const lists = [{ key: "ep", label: "EP", count: 2 }, { key: "ap", label: "AP", count: 3 }];
+    const ids = ["a", "b", "c", "d", "e", "f"];
+    const picks = normalizePicks({ ep: ["a", "gone", "b", "c"], ap: ["a", "d", "d", "e"] }, ids, lists);
+    expect(picks).toEqual({ ep: ["a", "b"], ap: ["d", "e"] });
+    expect(picksProblems(picks, lists, ids.length)).toEqual(["Pick 3 for AP (you have 2)."]);
+    expect(picksProblems({ ep: ["a"], ap: [] }, lists, 1)).toEqual([]);
+    expect(tallyPicks([picks, { ep: ["a"], ap: ["b"] }], ["a", "b"], ["ep", "ap"]).get("a")).toEqual({ ep: 2, ap: 0 });
   });
 
   it("places AI totals relative to the pool, ties sharing a place", () => {

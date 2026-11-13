@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { errorMessage, send } from "@/components/applications/api";
-import { MyRanking } from "@/components/applications/my-ranking";
+import { MyPicks, shortLabel } from "@/components/applications/my-picks";
 import { Alert } from "@/components/kit/alert";
 import { Panel } from "@/components/kit/panel";
 import { StatusTag } from "@/components/kit/status-tag";
@@ -19,22 +19,23 @@ import type { RoundOverview } from "@/src/server/applications/review";
 /** Ranking, the shared board, majority votes and release, for one round. */
 export function DecisionDesk({ overview }: { overview: RoundOverview }) {
   const submitted = overview.applications.filter((row) => row.status === "SUBMITTED");
-  const { viewer, myRanking } = overview;
+  const { viewer, myPicks } = overview;
 
   return (
     <div className="space-y-5">
       {viewer.canManage ? (
-        <MyRanking
-          key={myRanking?.submittedAt ?? "draft"}
+        <MyPicks
+          key={myPicks?.submittedAt ?? "draft"}
           roundId={overview.round.id}
+          lists={overview.pickLists}
           applicants={submitted.map((row) => ({ id: row.id, name: row.name, isMock: row.isMock, ai: row.ai }))}
-          initialOrder={myRanking?.order ?? submitted.map((row) => row.id)}
-          initialReasons={myRanking?.reasons ?? {}}
-          submittedAt={myRanking?.submittedAt ?? null}
+          initialPicks={myPicks?.picks ?? {}}
+          initialReasons={myPicks?.reasons ?? {}}
+          submittedAt={myPicks?.submittedAt ?? null}
         />
       ) : (
         <Alert tone="info" title="View only">
-          Advisers can see every ranking and vote, but only executive producers and the super admin rank and vote.
+          Advisers can see everyone’s picks and votes, but only executive producers and the super admin pick and vote.
         </Alert>
       )}
       <Board overview={overview} />
@@ -46,11 +47,12 @@ export function DecisionDesk({ overview }: { overview: RoundOverview }) {
 function Board({ overview }: { overview: RoundOverview }) {
   const router = useRouter();
   const [pending, setPending] = useState<string | null>(null);
-  const { decisions, voters, rankers, viewer, seesOthers } = overview;
+  const { decisions, voters, rankers, viewer, seesOthers, pickLists } = overview;
+  const pickScore = (row: (typeof overview.applications)[number]) => pickLists.map((list) => String(99 - (row.picks?.[list.key] ?? 0)).padStart(2, "0")).join("");
   const locked = Boolean(overview.round.releaseAt);
   const rows = overview.applications
     .filter((row) => row.status === "SUBMITTED")
-    .sort((a, b) => (a.averageRank ?? Infinity) - (b.averageRank ?? Infinity) || a.name.localeCompare(b.name));
+    .sort((a, b) => pickScore(a).localeCompare(pickScore(b)) || a.name.localeCompare(b.name));
 
   async function vote(applicationId: string, optionKey: string | null) {
     setPending(applicationId);
@@ -70,8 +72,8 @@ function Board({ overview }: { overview: RoundOverview }) {
       padding="none"
       description={
         seesOthers
-          ? `Every submitted ranking, the average, the AI read (reference only) and the final vote. A decision needs ${Math.floor(Math.max(voters.length, 1) / 2) + 1} of ${voters.length} votes.`
-          : "Submit your ranking to see everyone else's. Votes are open now."
+          ? `Everyone's picks, the AI read (reference only) and the final vote. A decision needs ${Math.floor(Math.max(voters.length, 1) / 2) + 1} of ${voters.length} votes.`
+          : "Submit your picks to see everyone else's. Votes are open now."
       }
       status={locked ? <StatusTag tone="info">Votes locked for release</StatusTag> : null}
     >
@@ -88,7 +90,13 @@ function Board({ overview }: { overview: RoundOverview }) {
                     {row.name}
                   </Link>
                   {row.isMock ? <StatusTag size="sm" tone="review">Mock</StatusTag> : null}
-                  <span className="font-mono text-[13px] tabular-nums">avg {row.averageRank != null ? row.averageRank.toFixed(1) : "–"}</span>
+                  {row.picks
+                    ? pickLists.map((list) => (
+                        <span key={list.key} className="font-mono text-[13px] tabular-nums" title={`Execs who picked ${row.name} for ${list.label}`}>
+                          {shortLabel(list.label)} {row.picks?.[list.key] ?? 0}
+                        </span>
+                      ))
+                    : null}
                   {row.ai ? (
                     <span className="font-mono text-[12px] tabular-nums text-muted-foreground" title="AI read, reference only">
                       AI {ordinal(row.ai.place)} of {row.ai.of}
@@ -99,12 +107,13 @@ function Board({ overview }: { overview: RoundOverview }) {
                 {seesOthers && rankers.length ? (
                   <div className="flex flex-wrap gap-2">
                     {rankers.map((ranker) => {
-                      const place = ranker.order.indexOf(row.id) + 1;
+                      const list = pickLists.find((item) => ranker.picks[item.key]?.includes(row.id));
+                      if (!list) return null;
                       const reason = ranker.reasons[row.id];
                       return (
                         <span key={ranker.reviewerId} className="inline-flex max-w-full items-baseline gap-1.5 rounded border border-border px-2 py-1 text-[12px]" title={reason || undefined}>
                           <span className="text-muted-foreground">{ranker.name.split(" ")[0]}</span>
-                          <span className="font-mono tabular-nums">{place > 0 ? `#${place}` : "–"}</span>
+                          <span className="font-mono tabular-nums">{shortLabel(list.label)}</span>
                           {reason ? <span className="truncate text-muted-foreground">· {reason}</span> : null}
                         </span>
                       );

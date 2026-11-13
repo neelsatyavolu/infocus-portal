@@ -1,7 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import { parseAnswers } from "@/src/lib/applications/answers";
 import { parseApplicationConfig } from "@/src/lib/applications/config";
-import { aggregateRanks, isReleased, normalizeOrder, relativeStandings, tallyVotes, type AiScores } from "@/src/lib/applications/desk";
+import { isReleased, normalizePicks, picksProblems, relativeStandings, tallyPicks, tallyVotes, type AiScores } from "@/src/lib/applications/desk";
 import { prisma } from "@/src/lib/prisma";
 import { listVoters, type ApplicationsViewer } from "@/src/server/applications/access";
 import { audit, getRoundOrThrow, roughCutPlayback, roughCutSourceText } from "@/src/server/applications/rounds";
@@ -39,12 +39,14 @@ export async function getRoundOverview(viewer: ApplicationsViewer, roundId: stri
   const submitted = applications.filter((application) => application.status === "SUBMITTED");
   const submittedIds = submitted.map((application) => application.id);
   const mine = rankings.find((ranking) => ranking.reviewerId === viewer.userId) ?? null;
-  // Others' orders stay hidden until you've submitted yours (the adviser never ranks, so sees them).
+  // Others' picks stay hidden until you've submitted yours (the adviser never picks, so sees them).
   const seesOthers = Boolean(mine?.submittedAt) || !viewer.canManage;
   const submittedRankings = rankings.filter((ranking) => ranking.submittedAt);
-  const ranks = aggregateRanks(
-    submittedRankings.map((ranking) => normalizeOrder(ranking.order, submittedIds)),
-    submittedIds
+  const picksOf = (value: unknown) => normalizePicks(value, submittedIds, config.pickLists);
+  const pickCounts = tallyPicks(
+    submittedRankings.map((ranking) => picksOf(ranking.order)),
+    submittedIds,
+    config.pickLists.map((list) => list.key)
   );
   const reads = submitted.flatMap((application) => {
     const read = parseAiRead(application.aiRead);
@@ -66,11 +68,12 @@ export async function getRoundOverview(viewer: ApplicationsViewer, roundId: stri
     },
     decisions: config.decisions,
     rubric: config.rubric,
+    pickLists: config.pickLists,
     voters,
     viewer: { userId: viewer.userId, canManage: viewer.canManage, isVoter: voterIds.has(viewer.userId) },
-    myRanking: mine
+    myPicks: mine
       ? {
-          order: normalizeOrder(mine.order, submittedIds),
+          picks: picksOf(mine.order),
           reasons: (mine.reasons ?? {}) as Record<string, string>,
           submittedAt: mine.submittedAt?.toISOString() ?? null
         }
@@ -80,7 +83,7 @@ export async function getRoundOverview(viewer: ApplicationsViewer, roundId: stri
       ? submittedRankings.map((ranking) => ({
           reviewerId: ranking.reviewerId,
           name: ranking.reviewer.name?.trim() || ranking.reviewer.email || "Producer",
-          order: normalizeOrder(ranking.order, submittedIds),
+          picks: picksOf(ranking.order),
           reasons: (ranking.reasons ?? {}) as Record<string, string>
         }))
       : [],
@@ -88,7 +91,6 @@ export async function getRoundOverview(viewer: ApplicationsViewer, roundId: stri
       const answers = parseAnswers(application.answers);
       const votes = application.votes.filter((vote) => voterIds.has(vote.voterId));
       const tally = tallyVotes(votes.map((vote) => vote.optionKey), voters.length);
-      const rank = ranks.get(application.id);
       const standing = standings.get(application.id) ?? null;
       return {
         id: application.id,
@@ -98,10 +100,9 @@ export async function getRoundOverview(viewer: ApplicationsViewer, roundId: stri
         submittedAt: application.submittedAt?.toISOString() ?? null,
         updatedAt: application.updatedAt.toISOString(),
         grade: answers.grade,
-        topRole: answers.rolePrefs[0] ?? "",
         notes: application._count.notes,
-        averageRank: seesOthers ? (rank?.average ?? null) : null,
-        rankCount: rank?.ranks.length ?? 0,
+        /** How many execs picked them for each list; null until you've submitted your own picks. */
+        picks: seesOthers ? (pickCounts.get(application.id) ?? null) : null,
         ai: standing ? { place: standing.place, of: standing.of, total: standing.total } : null,
         tally: { counts: tally.counts, winner: tally.winner, needed: tally.needed, cast: tally.cast },
         myVote: application.votes.find((vote) => vote.voterId === viewer.userId)?.optionKey ?? null,
@@ -193,7 +194,7 @@ async function applicationInRound(applicationId: string) {
   return application;
 }
 
-export async function addNote(viewer: ApplicationsViewer, applicationId: string, kind: "NOTE" | "INTERVIEW", text: string) {
+export async function addNote(viewer: ApplicationsViewer, applicationId: string, kind: "NOTE" | "INTERVIEW" | "TRANSCRIPT", text: string) {
   await applicationInRound(applicationId);
   return prisma.applicationReviewNote.create({ data: { applicationId, authorId: viewer.userId, kind, text: text.trim() } });
 }
@@ -208,12 +209,17 @@ export async function deleteNote(viewer: ApplicationsViewer, noteId: string) {
 export async function saveRanking(
   viewer: ApplicationsViewer,
   roundId: string,
-  input: { order: string[]; reasons: Record<string, string>; submit: boolean }
+  input: { picks: Record<string, string[]>; reasons: Record<string, string>; submit: boolean }
 ) {
-  await getRoundOrThrow(roundId);
+  const round = await getRoundOrThrow(roundId);
+  const { pickLists } = parseApplicationConfig(round.config);
   const pool = await prisma.application.findMany({ where: { roundId, status: "SUBMITTED" }, select: { id: true } });
   const ids = pool.map((row) => row.id);
-  const order = normalizeOrder(input.order, ids);
+  const order = normalizePicks(input.picks, ids, pickLists);
+  if (input.submit) {
+    const problems = picksProblems(order, pickLists, ids.length);
+    if (problems.length) throw new Error(problems[0]!);
+  }
   const reasons = Object.fromEntries(Object.entries(input.reasons).filter(([id, reason]) => ids.includes(id) && reason.trim()));
   const existing = await prisma.applicationRanking.findUnique({ where: { roundId_reviewerId: { roundId, reviewerId: viewer.userId } } });
   const submittedAt = input.submit ? (existing?.submittedAt ?? new Date()) : (existing?.submittedAt ?? null);
@@ -321,9 +327,7 @@ export async function exportRoundCsv(viewer: ApplicationsViewer, roundId: string
     "Status",
     "Submitted",
     "Grade",
-    "Top role",
-    "Average rank",
-    "Rankings",
+    ...overview.pickLists.map((list) => `${list.label} picks`),
     ...overview.rubric.map((criterion) => `AI ${criterion.label}`),
     "AI total",
     "AI place",
@@ -339,9 +343,7 @@ export async function exportRoundCsv(viewer: ApplicationsViewer, roundId: string
       application.status,
       application.submittedAt ?? "",
       application.grade,
-      application.topRole,
-      application.averageRank?.toFixed(2) ?? "",
-      application.rankCount,
+      ...overview.pickLists.map((list) => application.picks?.[list.key] ?? ""),
       ...overview.rubric.map((criterion) => read?.scores[criterion.key]?.score ?? ""),
       application.ai?.total ?? "",
       application.ai ? `${application.ai.place} of ${application.ai.of}` : "",

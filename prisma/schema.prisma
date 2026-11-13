@@ -2390,6 +2390,8 @@ enum ApplicationStatus {
 enum ApplicationNoteKind {
   NOTE
   INTERVIEW
+  /// A pasted interview transcript (the interviews are recorded).
+  TRANSCRIPT
 }
 
 /// One application window (e.g. "2027–28 Producer Application"). `config` holds the editable template

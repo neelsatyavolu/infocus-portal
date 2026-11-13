@@ -1,3 +1,4 @@
+import { unstable_rethrow } from "next/navigation";
 import type { StageView } from "@/components/package-stages/types";
 import { requireUserId, syncUserProfile } from "@/src/lib/auth";
 import type { CycleStageSlug } from "@/src/lib/package-cycle-gates";
@@ -32,6 +33,7 @@ export async function loadStagePageView(input: {
     // The JSON the route sends (dates as strings), not RSC-serialized Date objects.
     return JSON.parse(JSON.stringify(view)) as StageView;
   } catch (error) {
+    unstable_rethrow(error); // never swallow Next's dynamic-rendering signals
     if (!(error instanceof Error && QUIET_ERRORS.has(error.message))) {
       console.error("loadStagePageView failed", error);
     }

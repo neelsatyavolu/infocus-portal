@@ -2,6 +2,8 @@ import type { ApplicationRound, Prisma } from "@prisma/client";
 import { z } from "zod";
 import { applicantConfig, applicationConfigSchema, DEFAULT_APPLICATION_CONFIG, parseApplicationConfig } from "@/src/lib/applications/config";
 import { resolvePlaybackUrl } from "@/src/lib/media-playback";
+import { nasDeriveWebPlaybackUrl, nasMintDownloadUrl } from "@/src/lib/nas-storage";
+import { parseDriveSource, storedNasPath, toStoredNasUrl } from "@/src/lib/applications/rough-cut";
 import { prisma } from "@/src/lib/prisma";
 import type { ApplicationsViewer } from "@/src/server/applications/access";
 
@@ -88,17 +90,21 @@ export async function updateRound(viewer: ApplicationsViewer, roundId: string, i
  */
 async function resolveRoughCutSource(source: string): Promise<{ mediaItemId: string | null; url: string | null }> {
   if (!source) return { mediaItemId: null, url: null };
+  const drivePath = parseDriveSource(source);
+  if (drivePath) return { mediaItemId: null, url: toStoredNasUrl(drivePath) };
   const candidates = source.match(/[a-z0-9]{20,32}/gi) ?? [];
   if (candidates.length) {
     const item = await prisma.mediaItem.findFirst({ where: { id: { in: candidates }, deletedAt: null }, select: { id: true } });
     if (item) return { mediaItemId: item.id, url: null };
   }
   if (/^https:\/\/\S+$/i.test(source)) return { mediaItemId: null, url: source };
-  throw new Error("That rough cut isn't a Portal video link or an https video URL.");
+  throw new Error('That rough cut isn\'t a Portal video link, a "drive:Package Storage/…" path or an https video URL.');
 }
 
 /** A playable URL for the round's rough cut, for a signed-in viewer only (callers check access). */
 export async function roughCutPlayback(round: Pick<ApplicationRound, "roughCutMediaItemId" | "roughCutUrl">) {
+  const nasPath = storedNasPath(round.roughCutUrl);
+  if (nasPath) return nasDeriveWebPlaybackUrl(await nasMintDownloadUrl(nasPath, 60 * 60));
   if (round.roughCutUrl) return round.roughCutUrl;
   if (!round.roughCutMediaItemId) return null;
   const item = await prisma.mediaItem.findUnique({
@@ -115,6 +121,8 @@ export async function roughCutPlayback(round: Pick<ApplicationRound, "roughCutMe
 
 /** The settings form's text for the rough-cut field. */
 export function roughCutSourceText(round: Pick<ApplicationRound, "roughCutMediaItemId" | "roughCutUrl">) {
+  const nasPath = storedNasPath(round.roughCutUrl);
+  if (nasPath) return `drive:${nasPath}`;
   return round.roughCutUrl ?? round.roughCutMediaItemId ?? "";
 }
 

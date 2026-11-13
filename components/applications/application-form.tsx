@@ -205,6 +205,12 @@ function EditableApplication({ view }: { view: MyApplicationView }) {
 
   return (
     <div className="space-y-5" onBlur={() => void flush()}>
+      {view.preview ? (
+        <Alert tone="info" title="Student preview">
+          {round.status === "DRAFT" ? "This round is a hidden draft; students can't see it yet. " : ""}
+          This is exactly what students see. Anything you type saves as a test copy tagged Mock, which you can submit to try the reviewer side. Remove mocks deletes it.
+        </Alert>
+      ) : null}
       <Header
         view={view}
         status={

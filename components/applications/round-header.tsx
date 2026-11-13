@@ -1,7 +1,10 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
+import { Eye } from "lucide-react";
 import { SegmentedControl } from "@/components/kit/segmented-control";
 import { StatusTag } from "@/components/kit/status-tag";
 import { PageHeader } from "@/components/page-header";
+import { buttonVariants } from "@/components/ui/button";
 import { formatPacific } from "@/src/lib/applications/format";
 
 export type RoundTab = "applicants" | "desk" | "settings";
@@ -40,7 +43,16 @@ export function RoundHeader({
         }
         title={round.title}
         description={`Due ${formatPacific(round.dueAt)}`}
-        actions={actions}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            {actions}
+            {/* Reviewers can open the student form even while the round is a hidden draft. */}
+            <Link href={`/applications/${round.id}` as never} className={buttonVariants({ variant: "outline", size: "sm" })}>
+              <Eye aria-hidden />
+              Preview as student
+            </Link>
+          </div>
+        }
       />
       <SegmentedControl
         ariaLabel="Round views"

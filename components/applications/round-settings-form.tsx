@@ -142,7 +142,7 @@ export function RoundSettingsForm({ initial, readOnly }: { initial: RoundSetting
 
       <Panel title="Section 3: Rough cut" description="Applicants only ever see the video, instructions and context. The answer key is for reviewers and the AI read.">
         <FormSection cols={2}>
-          <Field label="Rough cut video" htmlFor="cut-source" span={2} hint="Paste the Portal link to the uploaded video (or its id), or an https video URL. Only signed-in people can play it.">
+          <Field label="Rough cut video" htmlFor="cut-source" span={2} hint='Paste the Portal link to an uploaded video (or its id), a Drive path like "drive:Package Storage/…/cut.mp4", or an https video URL. Portal and Drive videos play only for signed-in people.'>
             <Input id="cut-source" value={value.roughCutSource} maxLength={500} onChange={(e) => set({ roughCutSource: e.target.value })} placeholder="https://infocuspaly.com/projects/…" />
           </Field>
           <Field label="Instructions" htmlFor="cut-instructions" span={2}>

@@ -40,6 +40,11 @@ export async function getApplicantHome(viewer: ApplicationsViewer) {
   const byRound = new Map(mine.map((application) => [application.roundId, application]));
   const shown = new Map<string, ApplicationRound>();
   for (const round of rounds) if (visibleToApplicants(round) && round.status === "PUBLISHED") shown.set(round.id, round);
+  // Reviewers also see hidden drafts here, so they can preview the student form before publishing.
+  if (viewer.isReviewer) {
+    const drafts = await prisma.applicationRound.findMany({ where: { status: "DRAFT" }, orderBy: { dueAt: "desc" } });
+    for (const round of drafts) shown.set(round.id, round);
+  }
   for (const application of mine) if (application.round.status !== "DRAFT" || viewer.isReviewer) shown.set(application.roundId, application.round);
 
   return [...shown.values()].map((round) => {

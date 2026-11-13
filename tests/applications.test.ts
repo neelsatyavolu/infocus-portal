@@ -147,3 +147,14 @@ describe("Pacific date inputs", () => {
     expect(toPacificInput("2027-03-01T07:59:00.000Z")).toBe("2027-02-28T23:59");
   });
 });
+
+describe("Drive rough cuts", () => {
+  it("accepts Portal Drive folders only", async () => {
+    const { parseDriveSource, storedNasPath, toStoredNasUrl } = await import("@/src/lib/applications/rough-cut");
+    expect(parseDriveSource("drive:Package Storage/Applicant Portal/cut.mp4")).toBe("Package Storage/Applicant Portal/cut.mp4");
+    expect(parseDriveSource("https://x.test/a.mp4")).toBeNull();
+    expect(() => parseDriveSource("drive:Admin/secret.mp4")).toThrow();
+    expect(() => parseDriveSource("drive:Package Storage/../Admin/a.mp4")).toThrow();
+    expect(storedNasPath(toStoredNasUrl("Package Storage/a.mp4"))).toBe("Package Storage/a.mp4");
+  });
+});

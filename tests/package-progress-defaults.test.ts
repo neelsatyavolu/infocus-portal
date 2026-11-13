@@ -57,6 +57,10 @@ describe("cyclesIfComplete", () => {
     expect(cyclesIfComplete([checkRow(1, 1), checkRow(2, 1, false)])).toEqual([cycle(1), cycle(2)]);
   });
 
+  it("hides a cycle above the count that has no rows (semester 2 dates planned ahead)", () => {
+    expect(cyclesIfComplete([checkRow(1, 1), checkRow(4, 1, false)])).toEqual([cycle(1)]);
+  });
+
   it("is null when a configured cycle is missing or has no rows", () => {
     expect(cyclesIfComplete([checkRow(1, 3), checkRow(2, 3)])).toBeNull();
     expect(cyclesIfComplete([checkRow(1, 2), checkRow(2, 2, false)])).toBeNull();

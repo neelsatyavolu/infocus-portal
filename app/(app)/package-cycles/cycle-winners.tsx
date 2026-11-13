@@ -9,6 +9,7 @@ import { SectionHeader } from "@/components/kit/section";
 import { certificateHref } from "@/components/package-cycle/package-of-cycle-card";
 import { cachedValue, rememberValue } from "@/src/lib/client-cache";
 import type { PackageOfCycleWinner } from "@/src/server/package-of-cycle";
+import { cycleFullLabel } from "./cycle-dates-utils";
 
 export type WinnersResponse = {
   viewerUserId: string;
@@ -117,7 +118,7 @@ export function CycleWinners({ data }: { data: WinnersResponse | null }) {
             <div className="flex items-center justify-between gap-2">
               <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase leading-tight tracking-[0.11em] text-[var(--brand-green)]">
                 <Award aria-hidden className="h-3 w-3 shrink-0" />
-                Cycle {winner.cycleNumber}
+                {cycleFullLabel(winner.cycleNumber)}
               </p>
               {winner.released ? null : (
                 <StatusTag tone="neutral" title="Only executives see this until it's released on the cycle's row">

@@ -5,6 +5,7 @@
  */
 
 import { relativeDaysLabel } from "@/components/kit/tone";
+import { cycleNumberInSemester, cycleSemesterTerm } from "@/src/lib/package-grades";
 
 export type PackageCycle = {
   cycleNumber: number;
@@ -90,10 +91,21 @@ export function cycleMonth(cycle: PackageCycle) {
   return anchor ? anchor.toLocaleDateString("en-US", { month: "long" }) : null;
 }
 
+/** "Cycle 2": numbered within its semester (stored cycle 4 is semester 2's Cycle 1; its S2 tag says so). */
+export function cycleLabel(cycleNumber: number) {
+  return `Cycle ${cycleNumberInSemester(cycleNumber)}`;
+}
+
+/** cycleLabel with the semester where no S2 tag sits beside it: "S2 Cycle 1". */
+export function cycleFullLabel(cycleNumber: number) {
+  return cycleSemesterTerm(cycleNumber) === 2 ? `S2 ${cycleLabel(cycleNumber)}` : cycleLabel(cycleNumber);
+}
+
 /** "Cycle 2 · October", or "Cycle 2" with no anchor date. */
 export function cycleTitle(cycle: PackageCycle) {
   const month = cycleMonth(cycle);
-  return month ? `Cycle ${cycle.cycleNumber} · ${month}` : `Cycle ${cycle.cycleNumber}`;
+  const label = cycleLabel(cycle.cycleNumber);
+  return month ? `${label} · ${month}` : label;
 }
 
 export function pluralCycles(count: number) {

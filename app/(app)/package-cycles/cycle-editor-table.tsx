@@ -8,7 +8,7 @@ import { SaveState } from "@/components/kit/status-tag";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/src/lib/utils";
-import { STAGE_FIELDS, earlierThanStage, stageHint } from "./cycle-dates-utils";
+import { STAGE_FIELDS, cycleFullLabel, earlierThanStage, stageHint } from "./cycle-dates-utils";
 import type { EditorActions, EditorRow } from "./cycle-editor";
 import { CURRENT_TINT, ClosedGroupRow, CurrentBar, CycleName, ScheduleColumns, ScheduleHead } from "./cycle-parts";
 
@@ -25,6 +25,7 @@ const ROW_RULE = "border-t border-border";
 function EditorTableRow({ row, today, onChange, onSave }: { row: EditorRow; today: Date } & EditorActions) {
   const { draft, saved, section, dirty, saving, saveState, error } = row;
   const cycleNumber = draft.cycleNumber;
+  const label = cycleFullLabel(cycleNumber);
   const formId = `cycle-${cycleNumber}-row-form`;
   const current = section === "current";
 
@@ -48,7 +49,7 @@ function EditorTableRow({ row, today, onChange, onSave }: { row: EditorRow; toda
               <Input
                 form={formId}
                 type="date"
-                aria-label={`Cycle ${cycleNumber} ${stage.label}`}
+                aria-label={`${label} ${stage.label}`}
                 aria-describedby={hintId}
                 value={draft[stage.key] ?? ""}
                 onChange={(event) => onChange(cycleNumber, stage.key, event.target.value ? event.target.value : null)}
@@ -72,7 +73,7 @@ function EditorTableRow({ row, today, onChange, onSave }: { row: EditorRow; toda
           <form id={formId} onSubmit={submit}>
             <Button type="submit" size="sm" variant="outline" disabled={!dirty || saving}>
               {saving ? <Spinner /> : <Save aria-hidden />}
-              Save<span className="sr-only"> Cycle {cycleNumber}</span>
+              Save<span className="sr-only"> {label}</span>
             </Button>
           </form>
         </td>
@@ -83,7 +84,7 @@ function EditorTableRow({ row, today, onChange, onSave }: { row: EditorRow; toda
             <div className="relative px-4 pb-3">
               {current ? <CurrentBar /> : null}
               <Alert tone="danger" compact>
-                Couldn&apos;t save Cycle {cycleNumber}. {error}
+                Couldn&apos;t save {label}. {error}
               </Alert>
             </div>
           </td>

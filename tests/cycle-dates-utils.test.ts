@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   STAGE_FIELDS,
   clampCycleCount,
+  cycleFullLabel,
+  cycleLabel,
   cycleMonth,
   cycleTitle,
   dirtyCycleNumbers,
@@ -83,7 +85,15 @@ describe("dates and wording", () => {
     expect(cycleMonth(PLANNED)).toBe("December");
     expect(cycleMonth(cycle(4))).toBeNull();
     expect(cycleTitle(CURRENT)).toBe("Cycle 2 · October");
-    expect(cycleTitle(cycle(4))).toBe("Cycle 4");
+    // Semester 2's cycles are numbered within the semester: stored cycle 4 is its Cycle 1.
+    expect(cycleTitle(cycle(4))).toBe("Cycle 1");
+  });
+
+  it("labels semester 2 cycles within their semester, with S2 where no tag sits beside them", () => {
+    expect(cycleLabel(3)).toBe("Cycle 3");
+    expect(cycleLabel(6)).toBe("Cycle 3");
+    expect(cycleFullLabel(2)).toBe("Cycle 2");
+    expect(cycleFullLabel(5)).toBe("S2 Cycle 2");
   });
 
   it("capitalizes every short stage name the same way", () => {

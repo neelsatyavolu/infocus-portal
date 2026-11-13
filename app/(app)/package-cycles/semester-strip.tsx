@@ -74,7 +74,7 @@ export function SemesterStrip({ savedCount, onSaved }: { savedCount: number; onS
           id="cycles-per-semester-hint"
           className="min-w-0 text-[13px] leading-snug text-muted-foreground @min-[36rem]/strip:order-last"
         >
-          Sets how many cycles show here and in grades. Lowering it hides the extra cycles but keeps their dates.
+          Sets how many cycles the rest of the Portal shows. Semester 2&apos;s dates can be set here before it reaches them; lowering it hides cycles but keeps their dates.
         </p>
         <ActionBar size="touch" className="shrink-0 flex-nowrap @max-[36rem]/strip:w-full">
           <Input

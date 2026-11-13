@@ -13,6 +13,7 @@ import { earlyStageNeedsChanges } from "@/src/lib/package-stage-status";
 import { serializeProofs } from "@/src/lib/package-brainstorm";
 import { previousTeammatesByUserFromGroups } from "@/src/lib/consecutive-groupmates";
 import { normalizeEmail, PLATFORM_SUPER_ADMIN_EMAIL } from "@/src/lib/platform-admin";
+import { cycleSemesterTerm } from "@/src/lib/package-grades";
 import { getCycleNumbers } from "@/src/server/program-settings";
 import { labeledUser, userDisplayName } from "@/src/lib/user-display";
 import { isExcludedFromGrading, loadNonGradableEmails } from "@/src/lib/gradable-roster";
@@ -218,6 +219,14 @@ async function ensureDefaultProgressRows(cycleNumbers: number[], existing: Set<n
   });
 }
 
+/**
+ * Cycles above the count stay listed (the count was lowered), except a semester 2 cycle with no
+ * rows: that is dates planned ahead on Cycle Dates, hidden until the count reaches it.
+ */
+export function isShownCycle(cycleNumber: number, cyclesPerSemester: number, hasRows: boolean) {
+  return cycleNumber <= cyclesPerSemester || hasRows || cycleSemesterTerm(cycleNumber) === 1;
+}
+
 type CycleRow = Awaited<ReturnType<typeof loadCycles>>[number];
 export type CycleCheckRow = CycleRow & { cyclesPerSemester: number | null; hasRows: boolean };
 
@@ -249,7 +258,7 @@ export function cyclesIfComplete(rows: CycleCheckRow[]): CycleRow[] | null {
   for (let cycleNumber = 1; cycleNumber <= perSemester; cycleNumber += 1) {
     if (!seeded.has(cycleNumber)) return null;
   }
-  return rows.map((row) => ({
+  return rows.filter((row) => isShownCycle(row.cycleNumber, perSemester, row.hasRows)).map((row) => ({
     cycleNumber: row.cycleNumber,
     focus: row.focus,
     pitchingDate: row.pitchingDate,
@@ -281,7 +290,9 @@ export const ensurePackageProgressDefaults = cache(async function ensurePackageP
     ensureDefaultCycles(cycleNumbers, existingCycles),
     ensureDefaultProgressRows(cycleNumbers, rowCycleNumbers)
   ]);
-  return cycles;
+  return cycles.filter((cycle) =>
+    isShownCycle(cycle.cycleNumber, cycleNumbers.length, rowCycleNumbers.has(cycle.cycleNumber))
+  );
 });
 
 /** The first cycle whose Final Cut is still open, else the last cycle (cycles sorted ascending). */

@@ -1,7 +1,7 @@
 import type { PlatformRole } from "@prisma/client";
 import { hasPlatformRole } from "@/src/lib/platform-admin";
 import { prisma } from "@/src/lib/prisma";
-import { getCyclesPerSemester, getCycleNumbers } from "@/src/server/program-settings";
+import { cycleDatesNumbers, getCyclesPerSemester, getCycleNumbers } from "@/src/server/program-settings";
 
 export function toDateKey(value: Date | null) {
   if (!value) return null;
@@ -36,23 +36,30 @@ export async function loadPackageCycles(role: PlatformRole | null) {
 
   await ensureDefaultCycles();
 
+  // Semester 2's cycles show here even before the count reaches them; a cycle without a row yet
+  // shows with no dates, and its first save creates the row.
+  const cycleNumbers = cycleDatesNumbers(cyclesPerSemester);
   const cycles = await prisma.packageCycle.findMany({
-    where: { cycleNumber: { lte: cyclesPerSemester } },
+    where: { cycleNumber: { in: cycleNumbers } },
     orderBy: { cycleNumber: "asc" }
   });
+  const byNumber = new Map(cycles.map((cycle) => [cycle.cycleNumber, cycle]));
 
   return {
     canEdit,
     canEditCycleCount,
     cyclesPerSemester,
-    cycles: cycles.map((cycle) => ({
-      cycleNumber: cycle.cycleNumber,
-      focus: cycle.focus,
-      pitchingDate: toDateKey(cycle.pitchingDate),
-      proofOfContactDate: toDateKey(cycle.proofOfContactDate),
-      aRollBRollDate: toDateKey(cycle.aRollBRollDate),
-      initialCutDate: toDateKey(cycle.initialCutDate),
-      finalCutDate: toDateKey(cycle.finalCutDate)
-    }))
+    cycles: cycleNumbers.map((cycleNumber) => {
+      const cycle = byNumber.get(cycleNumber);
+      return {
+        cycleNumber,
+        focus: cycle?.focus ?? "",
+        pitchingDate: toDateKey(cycle?.pitchingDate ?? null),
+        proofOfContactDate: toDateKey(cycle?.proofOfContactDate ?? null),
+        aRollBRollDate: toDateKey(cycle?.aRollBRollDate ?? null),
+        initialCutDate: toDateKey(cycle?.initialCutDate ?? null),
+        finalCutDate: toDateKey(cycle?.finalCutDate ?? null)
+      };
+    })
   };
 }

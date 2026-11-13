@@ -6,6 +6,7 @@ import {
   SECTION_LABEL,
   SECTION_TONE,
   STAGE_FIELDS,
+  cycleLabel,
   cycleMonth,
   type CycleSection,
   type PackageCycle
@@ -52,13 +53,13 @@ export function SemesterTag({ cycleNumber }: { cycleNumber: number }) {
   );
 }
 
-/** Line 1 "Cycle 2 · October", line 2 the section tag, S2 and any `tags` (always two rows). */
+/** Line 1 "Cycle 2 · October" (numbered within its semester), line 2 the section tag, S2 and any `tags` (always two rows). */
 export function CycleName({ cycle, section, tags }: { cycle: PackageCycle; section: CycleSection; tags?: ReactNode }) {
   const month = cycleMonth(cycle);
   return (
     <>
       <span className="flex min-h-5 min-w-0 items-baseline gap-1 whitespace-nowrap">
-        <span className="text-sm font-semibold leading-5 text-foreground">Cycle {cycle.cycleNumber}</span>
+        <span className="text-sm font-semibold leading-5 text-foreground">{cycleLabel(cycle.cycleNumber)}</span>
         {month ? (
           <span title={month} className="min-w-0 truncate text-xs text-muted-foreground">
             · {month}

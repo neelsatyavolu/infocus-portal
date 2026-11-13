@@ -13,7 +13,9 @@ import { relativeDaysLabel } from "@/components/kit/tone";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { cachedValue, rememberValue } from "@/src/lib/client-cache";
+import { SEMESTER_TWO_CYCLE_NUMBERS, cycleSemesterTerm } from "@/src/lib/package-grades";
 import {
+  cycleFullLabel,
   dirtyCycleNumbers,
   editLayoutFrom,
   editRows,
@@ -60,10 +62,18 @@ async function loadCycles() {
   return payload.data;
 }
 
-/** "Cycle 2", "Cycles 1 and 2", "Cycles 1, 2 and 3". */
+/** "Cycle 2", "Cycle 1 and S2 Cycle 1", "Cycle 1, Cycle 2 and Cycle 3". */
 function cycleList(numbers: number[]) {
-  if (numbers.length === 1) return `Cycle ${numbers[0]}`;
-  return `Cycles ${numbers.slice(0, -1).join(", ")} and ${numbers[numbers.length - 1]}`;
+  const labels = numbers.map(cycleFullLabel);
+  if (labels.length === 1) return labels[0];
+  return `${labels.slice(0, -1).join(", ")} and ${labels[labels.length - 1]}`;
+}
+
+/** The last semester 2 cycle; until the count reaches it, semester 2 shows only on this page. */
+const LAST_S2_CYCLE_NUMBER = SEMESTER_TWO_CYCLE_NUMBERS[SEMESTER_TWO_CYCLE_NUMBERS.length - 1];
+
+function inTerm<T>(items: readonly T[], cycleNumberOf: (item: T) => number, term: 1 | 2) {
+  return items.filter((item) => cycleSemesterTerm(cycleNumberOf(item)) === term);
 }
 
 /** The header's one line: the soonest deadline across every open cycle. */
@@ -71,7 +81,7 @@ function summaryLine(cycles: PackageCycle[], today: Date, soonest: Deadline | nu
   if (soonest) {
     return (
       <>
-        Next: Cycle {soonest.cycleNumber} {soonest.stage.short} ·{" "}
+        Next: {cycleFullLabel(soonest.cycleNumber)} {soonest.stage.short} ·{" "}
         <span className="font-mono-broadcast text-[13px] tabular-nums">{formatDateShort(soonest.date, today)}</span> ·{" "}
         <span className="font-mono-broadcast text-[13px] tabular-nums">{relativeDaysLabel(soonest.days)}</span>
       </>
@@ -197,6 +207,28 @@ export default function CycleDatesClient({ initialData }: { initialData: Package
     setEditing(false);
   }
 
+  /** One semester's schedule or editor (rows and order are shared, so cycles keep their sections). */
+  function termBody(current: Schedule, term: 1 | 2) {
+    if (editing && canEdit) {
+      const rows = editRows(editLayout, current.drafts);
+      const byNumber = (cycle: PackageCycle) => cycle.cycleNumber;
+      return (
+        <CycleEditor
+          saved={current.saved}
+          rows={{ open: inTerm(rows.open, byNumber, term), closed: inTerm(rows.closed, byNumber, term) }}
+          sections={sections}
+          today={today}
+          savingCycles={savingCycles}
+          onSavingChange={markSaving}
+          onChange={updateDraft}
+          onSaved={handleCycleSaved}
+        />
+      );
+    }
+    const termOrdered = inTerm(ordered, (entry) => entry.cycle.cycleNumber, term);
+    return <CycleSchedule ordered={termOrdered} today={today} soonest={soonest} release={release} />;
+  }
+
   let body;
   if (!schedule) {
     body = loading ? (
@@ -212,22 +244,10 @@ export default function CycleDatesClient({ initialData }: { initialData: Package
         />
       </div>
     );
-  } else if (editing && canEdit) {
-    body = (
-      <CycleEditor
-        saved={schedule.saved}
-        rows={editRows(editLayout, schedule.drafts)}
-        sections={sections}
-        today={today}
-        savingCycles={savingCycles}
-        onSavingChange={markSaving}
-        onChange={updateDraft}
-        onSaved={handleCycleSaved}
-      />
-    );
   } else {
-    body = <CycleSchedule ordered={ordered} today={today} soonest={soonest} release={release} />;
+    body = termBody(schedule, 1);
   }
+  const semesterTwoHidden = cyclesPerSemester < LAST_S2_CYCLE_NUMBER;
 
   return (
     <div className="route-enter space-y-5">
@@ -297,16 +317,33 @@ export default function CycleDatesClient({ initialData }: { initialData: Package
       <CycleDatesColumns
         strip={stripShown ? <SemesterStrip savedCount={cyclesPerSemester} onSaved={handleCountSaved} /> : null}
         dates={
-          <section aria-labelledby="stage-dates-title" className="space-y-3">
-            <SectionHeader
-              as="h2"
-              id="stage-dates-title"
-              title="Stage dates"
-              // While the semester strip shows the count, the line doesn't repeat it.
-              description={schedule && !stripShown ? `${pluralCycles(cyclesPerSemester)} this semester · ${CLOSE_NOTE}` : CLOSE_NOTE}
-            />
-            {body}
-          </section>
+          <div className="space-y-8">
+            <section aria-labelledby="stage-dates-title" className="space-y-3">
+              <SectionHeader
+                as="h2"
+                id="stage-dates-title"
+                title="Semester 1"
+                // While the semester strip shows the count, the line doesn't repeat it.
+                description={schedule && !stripShown ? `${pluralCycles(cyclesPerSemester)} this semester · ${CLOSE_NOTE}` : CLOSE_NOTE}
+              />
+              {body}
+            </section>
+            {schedule ? (
+              <section aria-labelledby="semester-two-title" className="space-y-3">
+                <SectionHeader
+                  as="h2"
+                  id="semester-two-title"
+                  title="Semester 2"
+                  description={
+                    semesterTwoHidden
+                      ? `Planned ahead. The rest of the Portal shows these cycles once the cycle count is ${LAST_S2_CYCLE_NUMBER}.`
+                      : CLOSE_NOTE
+                  }
+                />
+                {termBody(schedule, 2)}
+              </section>
+            ) : null}
+          </div>
         }
         winners={hasWinners(winners) ? <CycleWinners data={winners} /> : null}
       />

@@ -7,6 +7,17 @@ export function cycleSemesterTerm(cycleNumber: number): 1 | 2 {
   return cycleNumber <= LAST_S1_CYCLE_NUMBER ? 1 : 2;
 }
 
+/**
+ * Semester 2's cycles as stored (4–6). Cycle Dates always lists them so their dates can be
+ * planned early; the rest of the Portal shows them only once cyclesPerSemester reaches them.
+ */
+export const SEMESTER_TWO_CYCLE_NUMBERS = [4, 5, 6] as const;
+
+/** The number a cycle shows within its semester: stored cycle 4 is semester 2's Cycle 1. */
+export function cycleNumberInSemester(cycleNumber: number) {
+  return cycleSemesterTerm(cycleNumber) === 2 ? cycleNumber - LAST_S1_CYCLE_NUMBER : cycleNumber;
+}
+
 export function parseSemesterTerm(label: string): 1 | 2 | null {
   const match = label.match(/\bS([12])\b/i);
   if (!match) return null;

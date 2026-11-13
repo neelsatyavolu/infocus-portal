@@ -8,6 +8,7 @@ import {
   SECTION_LABEL,
   SECTION_TONE,
   STAGE_FIELDS,
+  cycleLabel,
   cycleMonth,
   daysFrom,
   formatDateFull,
@@ -192,7 +193,7 @@ function CycleCard({ entry, today, soonest, release }: RowProps) {
           <div className="min-w-0">
             <div className="flex min-h-6 items-center gap-2">
               <h3 id={titleId} className="text-base font-semibold leading-snug tracking-[-0.01em] text-foreground">
-                Cycle {cycle.cycleNumber}
+                {cycleLabel(cycle.cycleNumber)}
               </h3>
               <SemesterTag cycleNumber={cycle.cycleNumber} />
               <ReleaseWinnersButton cycleNumber={cycle.cycleNumber} release={release} />

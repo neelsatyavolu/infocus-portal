@@ -7,7 +7,7 @@ import { prisma } from "@/src/lib/prisma";
 import {
   MAX_CYCLES_PER_SEMESTER,
   MIN_CYCLES_PER_SEMESTER,
-  assertValidCycleNumber
+  assertCycleDatesNumber
 } from "@/src/server/program-settings";
 import { ensureDefaultCycles, loadPackageCycles, toDateKey } from "@/src/server/package-cycles-data";
 
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
     await ensureDefaultCycles();
 
     const payload = payloadSchema.parse(await request.json());
-    await assertValidCycleNumber(payload.cycleNumber);
+    await assertCycleDatesNumber(payload.cycleNumber);
 
     const updated = await prisma.packageCycle.upsert({
       where: {

@@ -14,6 +14,7 @@ import {
   SECTION_LABEL,
   SECTION_TONE,
   STAGE_FIELDS,
+  cycleFullLabel,
   cycleTitle,
   earlierThanStage,
   errorMessage,
@@ -118,7 +119,7 @@ function CycleEditorCard({ row, today, onChange, onSave }: { row: EditorRow; tod
         })}
         {error ? (
           <Alert tone="danger" compact>
-            Couldn&apos;t save Cycle {draft.cycleNumber}. {error}
+            Couldn&apos;t save {cycleFullLabel(draft.cycleNumber)}. {error}
           </Alert>
         ) : null}
       </div>

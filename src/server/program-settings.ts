@@ -1,6 +1,7 @@
 import { cache } from "react";
 import type { Prisma } from "@prisma/client";
 import { parseProgramConfig, type ProgramConfig } from "@/src/lib/program-config";
+import { SEMESTER_TWO_CYCLE_NUMBERS } from "@/src/lib/package-grades";
 import { prisma } from "@/src/lib/prisma";
 
 export const DEFAULT_CYCLES_PER_SEMESTER = 3;
@@ -56,6 +57,23 @@ export async function setCyclesPerSemester(value: number) {
 export async function getCycleNumbers() {
   const count = await getCyclesPerSemester();
   return Array.from({ length: count }, (_, index) => index + 1);
+}
+
+/**
+ * Cycle Dates' cycles: the configured ones plus semester 2's, even while the count still hides
+ * semester 2 (see SEMESTER_TWO_CYCLE_NUMBERS).
+ */
+export function cycleDatesNumbers(cyclesPerSemester: number) {
+  const configured = Array.from({ length: cyclesPerSemester }, (_, index) => index + 1);
+  return [...new Set([...configured, ...SEMESTER_TWO_CYCLE_NUMBERS])].sort((a, b) => a - b);
+}
+
+/** Cycle Dates can save any of its cycles, including semester 2's before the count reaches them. */
+export async function assertCycleDatesNumber(value: number) {
+  if (!cycleDatesNumbers(await getCyclesPerSemester()).includes(value)) {
+    throw new Error("BAD_REQUEST");
+  }
+  return value;
 }
 
 export async function assertValidCycleNumber(value: number) {

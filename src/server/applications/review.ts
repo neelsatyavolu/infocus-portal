@@ -265,6 +265,15 @@ export async function setRelease(viewer: ApplicationsViewer, roundId: string, re
     return;
   }
   const [applications, voters] = await Promise.all([loadPool(roundId), listVoters()]);
+  // A release freezes decisions and locks the form, so it can't be set while real applicants can
+  // still submit (an open published round, or anyone with a running extension).
+  const now = new Date();
+  if (round.status === "PUBLISHED" && now <= round.dueAt) {
+    throw new Error("Applications are still open. Release after the deadline, or set the round to Closed first.");
+  }
+  if (applications.some((application) => !application.isMock && application.extensionUntil && application.extensionUntil > now)) {
+    throw new Error("Someone still has an extension running. Release after it ends, or remove the extension.");
+  }
   const voterIds = new Set(voters.map((voter) => voter.id));
   const submitted = applications.filter((application) => application.status === "SUBMITTED");
   const winners = submitted.map((application) => ({

@@ -45,7 +45,7 @@ export function ApplicationSummary({ answers, config, onEdit, onSeek, hideNotes 
           </Item>
           <Item label="Other commitments">{answers.commitments || empty}</Item>
           <Item label="Skills" wide>
-            {answers.skills.join(", ") || empty}
+            {[...answers.skills, ...answers.customSkills].join(", ") || empty}
           </Item>
         </dl>
       </SummarySection>

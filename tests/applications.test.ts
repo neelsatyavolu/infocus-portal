@@ -158,3 +158,14 @@ describe("Drive rough cuts", () => {
     expect(storedNasPath(toStoredNasUrl("Package Storage/a.mp4"))).toBe("Package Storage/a.mp4");
   });
 });
+
+describe("custom skills", () => {
+  it("counts toward the skills requirement and is capped at 5 × 50 chars", async () => {
+    const { answersSchema } = await import("@/src/lib/applications/answers");
+    const onlyCustom = { ...complete(), skills: [], customSkills: ["Drone piloting"] };
+    expect(validateForSubmit(onlyCustom, config, true)).toEqual([]);
+    expect(validateForSubmit({ ...onlyCustom, customSkills: [] }, config, true).map((p) => p.field)).toContain("skills");
+    expect(answersSchema.safeParse({ customSkills: ["a", "b", "c", "d", "e", "f"] }).success).toBe(false);
+    expect(answersSchema.safeParse({ customSkills: ["x".repeat(51)] }).success).toBe(false);
+  });
+});

@@ -3,8 +3,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Inbox } from "lucide-react";
 import { CreateRoundButton } from "@/components/applications/create-round-button";
+import { RoundRow } from "@/components/applications/round-row";
 import { EmptyState } from "@/components/kit/empty-state";
-import { Panel } from "@/components/kit/panel";
 import { StatusTag } from "@/components/kit/status-tag";
 import { PageHeader } from "@/components/page-header";
 import { buttonVariants } from "@/components/ui/button";
@@ -43,13 +43,13 @@ export default async function ManageRoundsPage() {
       ) : (
         <div className="space-y-3">
           {rounds.map((round) => (
-            <Panel
+            <RoundRow
               key={round.id}
               eyebrow={round.positionLabel}
               title={round.title}
               status={<StatusTag tone={STATUS[round.status].tone}>{STATUS[round.status].label}</StatusTag>}
-              description={`Due ${formatPacific(round.dueAt)} · ${round.submitted} submitted`}
-              actions={
+              meta={`Due ${formatPacific(round.dueAt)} · ${round.submitted} submitted`}
+              action={
                 <Link href={`/applications/manage/${round.id}` as never} className={buttonVariants({ variant: "outline", size: "sm" })}>
                   Open
                 </Link>

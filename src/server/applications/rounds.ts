@@ -17,7 +17,9 @@ export const roundSettingsSchema = z.object({
   dueAt: z.string().datetime({ offset: true }),
   allowUnsubmit: z.boolean(),
   roughCutSource: z.string().trim().max(500),
-  config: applicationConfigSchema
+  config: applicationConfigSchema,
+  /** The round's updatedAt when the form loaded; a newer save in between makes this one stale. */
+  loadedUpdatedAt: z.string().datetime({ offset: true })
 });
 
 export type RoundSettingsInput = z.infer<typeof roundSettingsSchema>;
@@ -63,7 +65,10 @@ export async function createRound(viewer: ApplicationsViewer, title: string) {
 }
 
 export async function updateRound(viewer: ApplicationsViewer, roundId: string, input: RoundSettingsInput) {
-  await getRoundOrThrow(roundId);
+  const current = await getRoundOrThrow(roundId);
+  if (current.updatedAt.toISOString() !== new Date(input.loadedUpdatedAt).toISOString()) {
+    throw new Error("These settings changed since you opened this page (someone else saved, or another tab). Reload the page, then make your change again.");
+  }
   const rough = await resolveRoughCutSource(input.roughCutSource);
   const round = await prisma.applicationRound.update({
     where: { id: roundId },

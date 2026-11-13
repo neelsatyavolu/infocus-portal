@@ -28,9 +28,12 @@ export default async function RoundSettingsPage({ params }: { params: Promise<{ 
       <RoundHeader round={header} tab="settings" />
       {viewer.canManage ? null : <Alert tone="info" title="View only">Only executive producers and the super admin change round settings.</Alert>}
       <RoundSettingsForm
+        // Remount after each save so the form holds the round's new updatedAt (stale-save check).
+        key={round.updatedAt.toISOString()}
         readOnly={!viewer.canManage}
         initial={{
           ...header,
+          updatedAt: round.updatedAt.toISOString(),
           intro: round.intro,
           opensAt: round.opensAt?.toISOString() ?? null,
           allowUnsubmit: round.allowUnsubmit,

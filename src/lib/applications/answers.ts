@@ -16,6 +16,9 @@ export const cutNoteSchema = z.object({
   text: z.string().max(2000).default("")
 });
 
+export const MAX_CUSTOM_SKILLS = 5;
+export const CUSTOM_SKILL_MAX = 50;
+
 export const answersSchema = z.object({
   grade: str(20),
   years: str(20),
@@ -25,6 +28,8 @@ export const answersSchema = z.object({
   commitments: str(400),
   hours: str(20),
   skills: z.array(z.string().max(80)).max(20).default([]),
+  /** Skills the applicant typed in themselves (up to MAX_CUSTOM_SKILLS, CUSTOM_SKILL_MAX chars each). */
+  customSkills: z.array(z.string().max(CUSTOM_SKILL_MAX)).max(MAX_CUSTOM_SKILLS).default([]),
   /** "yes" only if they know for sure they're taking InFocus next year. */
   enrollingNextYear: z.enum(["", "yes", "no"]).default(""),
   answer1: str(10_000),
@@ -63,6 +68,7 @@ export function cleanAnswers(answers: ApplicationAnswers): ApplicationAnswers {
     leadership: answers.leadership.map((row) => ({ org: plainText(row.org), role: plainText(row.role), years: plainText(row.years) })),
     answer1: plainText(answers.answer1),
     answer2: plainText(answers.answer2),
+    customSkills: answers.customSkills.map((skill) => plainText(skill)).filter(Boolean),
     cutSummary: plainText(answers.cutSummary),
     airReason: plainText(answers.airReason),
     cutNotes: answers.cutNotes.map((note) => ({ ...note, text: plainText(note.text) }))
@@ -85,7 +91,7 @@ export function validateForSubmit(answers: ApplicationAnswers, config: Applicant
   if (!answers.commitments.trim()) facts("commitments", "List your other major commitments (or write \"None\").");
   if (plainText(answers.commitments).length > 200) facts("commitments", "Keep commitments to 200 characters.");
   if (!config.hoursOptions.includes(answers.hours)) facts("hours", "Pick your weekly hours.");
-  if (answers.skills.length === 0) facts("skills", "Check at least one skill.");
+  if (answers.skills.length === 0 && answers.customSkills.length === 0) facts("skills", "Check or add at least one skill.");
   if (!answers.enrollingNextYear) facts("enrollingNextYear", "Say whether you're enrolling in InFocus next year.");
 
   config.questions.forEach((question, index) => {

@@ -19,6 +19,7 @@ import { pacificInputToIso, toPacificInput } from "@/src/lib/applications/format
 
 export type RoundSettingsValue = {
   id: string;
+  updatedAt: string;
   title: string;
   positionLabel: string;
   intro: string;
@@ -59,7 +60,8 @@ export function RoundSettingsForm({ initial, readOnly }: { initial: RoundSetting
         roughCutSource: value.roughCutSource,
         config: value.config,
         opensAt: opensAt ? pacificInputToIso(opensAt) : null,
-        dueAt: pacificInputToIso(dueAt)
+        dueAt: pacificInputToIso(dueAt),
+        loadedUpdatedAt: value.updatedAt
       });
       toast.success("Settings saved.");
       router.refresh();

@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { FileText } from "lucide-react";
 import { DecisionCard } from "@/components/applications/decision-card";
+import { RoundRow } from "@/components/applications/round-row";
 import { EmptyState } from "@/components/kit/empty-state";
-import { Panel } from "@/components/kit/panel";
 import { StatusTag } from "@/components/kit/status-tag";
 import { PageHeader } from "@/components/page-header";
 import { buttonVariants } from "@/components/ui/button";
@@ -45,16 +45,16 @@ export default async function ApplicationsHomePage() {
           {rounds.map((round) => (
             <div key={round.id} className="space-y-3">
               {round.decision ? <DecisionCard title={round.title} decision={round.decision} /> : null}
-              <Panel
+              <RoundRow
                 title={round.title}
                 eyebrow={round.positionLabel}
                 status={<RoundStatus status={round.status} canEdit={round.canEdit} />}
-                description={
+                meta={
                   round.submittedAt
                     ? `Submitted ${formatPacific(round.submittedAt)}`
                     : `Due ${formatPacific(round.dueAt)}`
                 }
-                actions={
+                action={
                   <Link
                     href={`/applications/${round.id}` as never}
                     className={cn(buttonVariants({ variant: round.status === "SUBMITTED" || !round.canEdit ? "outline" : "default", size: "sm" }))}

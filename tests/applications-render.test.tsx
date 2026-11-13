@@ -53,7 +53,7 @@ describe("applications pages render", () => {
     const html = render(
       <RoundSettingsForm
         readOnly={false}
-        initial={{ id: "r1", title: "T", positionLabel: "EP", intro: "", status: "DRAFT", opensAt: null, dueAt: "2027-03-01T07:59:00.000Z", allowUnsubmit: true, roughCutSource: "", config: DEFAULT_APPLICATION_CONFIG }}
+        initial={{ id: "r1", updatedAt: "2026-11-13T00:00:00.000Z", title: "T", positionLabel: "EP", intro: "", status: "DRAFT", opensAt: null, dueAt: "2027-03-01T07:59:00.000Z", allowUnsubmit: true, roughCutSource: "", config: DEFAULT_APPLICATION_CONFIG }}
       />
     );
     expect(html).toContain("Answer key");

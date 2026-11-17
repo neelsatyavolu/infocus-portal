@@ -31,7 +31,7 @@ export function IntroPicker({ settings, devices, busy, onSave }: {
     <div className="space-y-3">
       <p className="text-[13px] text-muted-foreground">
         The intro each look opens with. The show&rsquo;s date picks the look. The choices are the intro files in that look&rsquo;s package on {active?.name ?? "the editing Mac"}.
-        To add a new or revised intro, put it in the look&rsquo;s package zip on Drive. It shows up here after the Mac&rsquo;s daily refresh.
+        To add or change an intro, commit it to that look&rsquo;s 03 Intro &amp; Outro folder in the infocus-graphics repo. It shows up here within about 15 minutes.
       </p>
       <div className="grid gap-3 sm:grid-cols-[8rem_minmax(0,1fr)] sm:items-center">
         {looks.map(({ look, label, files, pick, missing }) => (

@@ -11,7 +11,8 @@ import {
   Loader2,
   MoreHorizontal,
   Trash2,
-  Upload
+  Upload,
+  UserPlus
 } from "lucide-react";
 import { ActionMenu, type MenuEntry } from "@/components/kit/menu";
 import { MediaThumb } from "@/components/kit/media";
@@ -64,6 +65,7 @@ export function QueuePackageRow({
   dragProps,
   onMove,
   onPublish,
+  onCoReporters,
   onRemove
 }: {
   row: QueueRow;
@@ -79,6 +81,8 @@ export function QueuePackageRow({
   onMove?: (row: QueueRow) => void;
   /** Only when YouTube publishing is configured. */
   onPublish?: (row: QueueRow) => void;
+  /** Website co-reporters (infocusnews.tv byline); not on custom packages. */
+  onCoReporters?: (row: QueueRow) => void;
   onRemove?: (rowId: string) => void;
 }) {
   const title = queueRowTitle(row);
@@ -164,6 +168,14 @@ export function QueuePackageRow({
       disabled: busy,
       onSelect: () => onPublish?.(row),
       hidden: !onPublish || noFinalCut || Boolean(row.youtubePublication)
+    },
+    {
+      key: "co-reporters",
+      label: "Website co-reporters…",
+      icon: UserPlus,
+      disabled: busy,
+      onSelect: () => onCoReporters?.(row),
+      hidden: !onCoReporters || Boolean(row.custom)
     },
     {
       key: "download",

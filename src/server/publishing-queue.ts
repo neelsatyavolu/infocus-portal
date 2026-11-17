@@ -53,3 +53,12 @@ export async function setQueuedForAir(rowId: string, queued: boolean, showDate?:
     }
   });
 }
+
+/** Producers' co-reporters for a queued package's infocusnews.tv byline. Returns the saved names. */
+export async function setExtraWriters(rowId: string, names: string[]) {
+  const row = await prisma.packageProgressRow.findUnique({ where: { id: rowId }, select: { queuedForAirAt: true } });
+  if (!row) throw new Error("NOT_FOUND");
+  if (!row.queuedForAirAt) throw new Error("Put this package on the queue first.");
+  const saved = await prisma.packageProgressRow.update({ where: { id: rowId }, data: { extraWriters: names }, select: { extraWriters: true } });
+  return saved.extraWriters;
+}

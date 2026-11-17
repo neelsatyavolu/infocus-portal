@@ -20,6 +20,8 @@ export type QueueRow = {
   /** False while the package holds its show without a final cut. Missing (older replies) means it has one. */
   hasFinalCut?: boolean;
   members: Array<string | null>;
+  /** Co-reporters credited on the infocusnews.tv story only (not roster members). */
+  extraWriters?: string[];
   thumbnailUrl?: string | null;
   youtubePublication?: YoutubePublicationSummary | null;
 };

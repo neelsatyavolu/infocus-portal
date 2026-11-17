@@ -101,9 +101,10 @@ const NAME_WORD = /^\p{Lu}[\p{L}'’.-]*$/u;
 /**
  * The names after "InFocus reporter(s)" in the anchor toss, e.g. "InFocus reporters Abby Lane, Otto Reyes and Sage Ruiz
  * have more." Producers don't always put everyone who worked on a package on its roster, but the toss names them.
+ * Tosses also say just "Reporters ..." and sometimes misspell it "reportes".
  */
 export function tossReporterNames(toss: string) {
-  const after = toss.match(/\bInFocus\s+reporters?\s+(.*)/isu)?.[1];
+  const after = toss.match(/\b(?:InFocus\s+)?report(?:ers?|es)\s+(.*)/isu)?.[1];
   if (!after) return [];
   const names: string[] = [];
   let current: string[] = [];
@@ -126,6 +127,15 @@ export function tossReporterNames(toss: string) {
   }
   finish();
   return names;
+}
+
+export const MAX_EXTRA_WRITERS = 8;
+export const MAX_WRITER_NAME_LENGTH = 80;
+
+/** Co-reporter names a producer typed, split on commas, new lines and "and"/"&", without blanks or repeats. */
+export function parseWriterNames(text: string) {
+  const names = text.split(/,|\n|\s+(?:and|&)\s+/i).map((name) => name.replace(/\s+/g, " ").trim()).filter(Boolean);
+  return names.filter((name, index) => names.findIndex((other) => samePerson(other, name) || other === name) === index);
 }
 
 function decodeEntities(value: string) {

@@ -17,6 +17,7 @@ async function mapQueueRow(row: {
   queuedForAirAt: Date | null;
   queuedForShowDate: string | null;
   finalCutMediaItemId: string | null;
+  extraWriters: string[];
   youtubePublication: { status: string; videoId: string | null; publishedAt: Date | null; lastError: string | null } | null;
   assignedProducer: { name: string | null; nickname?: string | null; email: string | null } | null;
   members: Array<{ user: { name: string | null; nickname?: string | null; email: string | null } }>;
@@ -47,6 +48,7 @@ async function mapQueueRow(row: {
     } : null,
     assignedProducer: row.assignedProducer ? labeledUser(row.assignedProducer) : null,
     members: row.members.map((member) => userDisplayName(member.user) || member.user.email),
+    extraWriters: row.extraWriters,
     thumbnailUrl: version ? await resolveThumbnailUrl(version) : null
   };
 }

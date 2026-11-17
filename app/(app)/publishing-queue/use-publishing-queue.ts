@@ -196,6 +196,28 @@ export function usePublishingQueue(initialData: QueueData | null) {
     }
   }
 
+  /** Saves a package's website co-reporters (typed names); true once saved. */
+  async function setExtraWriters(rowId: string, names: string) {
+    setBusyId(rowId);
+    try {
+      const response = await fetch(`${QUEUE_URL}/${rowId}/writers`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ names })
+      });
+      const payload = await readBody<{ extraWriters?: string[] }>(response);
+      if (!response.ok) throw new Error(payload.error?.message ?? "Could not save the co-reporters.");
+      await reloadQuietly();
+      toast.success(payload.data?.extraWriters?.length ? "Co-reporters saved." : "Co-reporters cleared.");
+      return true;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not save the co-reporters.");
+      return false;
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   /** Hold (with a name) or release a show day; busyId is `show:<date>` meanwhile. */
   async function setShowHold(date: string, label: string | null) {
     setBusyId(`show:${date}`);
@@ -241,6 +263,7 @@ export function usePublishingQueue(initialData: QueueData | null) {
     stopCandidates,
     updateQueue,
     publishNow,
+    setExtraWriters,
     setShowHold,
     afterCustomAdded
   };

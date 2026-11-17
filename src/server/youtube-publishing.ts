@@ -4,6 +4,7 @@ import { prisma } from "@/src/lib/prisma";
 import { finalCutHeadline } from "@/src/lib/package-headline";
 import { resolveOriginalDownloadUrl } from "@/src/lib/media-playback";
 import { isPublicationDue, publicationDateKey } from "@/src/lib/youtube-publication";
+import { samePerson } from "@/src/lib/wordpress-story";
 import { beginYoutubeUpload, checkYoutubeVideo, PublicationError, readUploadProgress, sourceVideoSize,
   uploadYoutubeChunk, verifyYoutubeChannel, youtubeAccessToken, youtubePublishingConfig } from "@/src/server/youtube-client";
 import { advanceWordpressStory, type StoryOutcome } from "@/src/server/wordpress-story";
@@ -165,9 +166,10 @@ async function managerOutbox(publication: ReadyPublication, story?: StoryOutcome
 
 /** One infocusnews.tv attempt; a settled story and the manager outbox are committed together. */
 async function advanceStory(row: PublicationRow, publication: ReadyPublication, now: Date) {
-  const story = await advanceWordpressStory(publication, {
-    topic: row.groupTopic, toss: row.finalCutToss, writers: row.members.flatMap(({ user }) => user.name?.trim() ? [user.name.trim()] : [])
-  }, now);
+  const members = row.members.flatMap(({ user }) => user.name?.trim() ? [user.name.trim()] : []);
+  // Co-reporters producers added in the Publishing Queue, after the roster and without repeating anyone on it.
+  const extra = row.extraWriters.filter((name) => !members.some((member) => samePerson(member, name)));
+  const story = await advanceWordpressStory(publication, { topic: row.groupTopic, toss: row.finalCutToss, writers: [...members, ...extra] }, now);
   if (!story) return;
   await prisma.youtubePublication.update({ where: { id: publication.id }, data: story.status === "POSTED"
     ? { wordpressStatus: "POSTED", wordpressPostId: story.postId, wordpressUrl: story.url, wordpressError: null, emails: await managerOutbox(publication, story) }

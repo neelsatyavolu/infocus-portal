@@ -12,7 +12,7 @@ vi.mock("@/src/server/wordpress-client", async (original) => ({
   scheduleWordpressPost: mocks.schedule, findWordpressPostByVideo: mocks.find,
   listWordpressStaffNames: mocks.staffNames, createWordpressStaffName: mocks.createStaffName
 }));
-import { buildCategoryMessages, findStaffName, parseCategoryReply, tossReporterNames, pickableCategories, storyMeta, storySchedule, youtubeThumbnailUrls } from "@/src/lib/wordpress-story";
+import { buildCategoryMessages, findStaffName, parseCategoryReply, parseWriterNames, tossReporterNames, pickableCategories, storyMeta, storySchedule, youtubeThumbnailUrls } from "@/src/lib/wordpress-story";
 import { youtubeEmbedCode } from "@/src/lib/youtube-publication";
 import { advanceWordpressStory } from "@/src/server/wordpress-story";
 import { wordpressConfig } from "@/src/server/wordpress-client";
@@ -63,6 +63,16 @@ describe("story helpers", () => {
     expect(tossReporterNames("InFocus reporters Abby Lane & Otto Reyes found out more")).toEqual(["Abby Lane", "Otto Reyes"]);
     expect(tossReporterNames("InFocus reporter Abby Lane. Then Otto Reyes spoke.")).toEqual(["Abby Lane"]);
     expect(tossReporterNames("Abby Lane went to find out more.")).toEqual([]);
+  });
+  it("splits typed co-reporter names", () => {
+    expect(parseWriterNames("Abby Lane, Otto  Reyes\nSage Ruiz and Kit Moss & Lee Park")).toEqual(["Abby Lane", "Otto Reyes", "Sage Ruiz", "Kit Moss", "Lee Park"]);
+    expect(parseWriterNames(" , abby lane, Abby Lane,")).toEqual(["abby lane"]);
+    expect(parseWriterNames("")).toEqual([]);
+  });
+  it("reads reporters without the InFocus prefix or with a misspelled reporters", () => {
+    expect(tossReporterNames("A local spot. Reporters Abby Lane, Otto Reyes, and Sage Ruiz went to find out more.")).toEqual(["Abby Lane", "Otto Reyes", "Sage Ruiz"]);
+    expect(tossReporterNames("Skaters are back. InFocus reportes Abby Lane and Otto Reyes went there.")).toEqual(["Abby Lane", "Otto Reyes"]);
+    expect(tossReporterNames("As reported Monday by the city, Abby Lane spoke.")).toEqual([]);
   });
 });
 

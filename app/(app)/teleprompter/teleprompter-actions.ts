@@ -184,7 +184,7 @@ export function createTeleprompterActions(ctx: TeleprompterActionsContext) {
     }
   }
 
-  /** Reformat (AI) or refetch (A2 bulletin) one section; the section opens afterwards. */
+  /** Reformat (AI) or refetch (A2 bulletin, A3 package tosses, A4 thank-you names) one section; the section opens afterwards. */
   async function runSectionJob(section: TeleprompterSection, job: "reformat" | "refetch") {
     if (!activeDoc) {
       return;
@@ -204,7 +204,7 @@ export function createTeleprompterActions(ctx: TeleprompterActionsContext) {
       ctx.setCollapsedSections((current) => ({ ...current, [section.id]: false }));
       progress.finishReformatProgress("section", section.id);
     } catch (error) {
-      const fallback = job === "reformat" ? "Failed to reformat section." : "Failed to refetch announcements.";
+      const fallback = job === "reformat" ? "Failed to reformat section." : "Failed to refetch section.";
       setMessage(error instanceof Error ? error.message : fallback);
       progress.resetReformatProgress();
     } finally {

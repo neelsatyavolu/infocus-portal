@@ -20,6 +20,14 @@ import { ProgressEdge, ReformattingTag } from "./teleprompter-parts";
 const BODY_INSET = "pl-4 pr-4 sm:pl-10";
 /** One measure for reading and editing, so text doesn't rewrap when Edit opens. */
 const TEXT_MEASURE = "max-w-[70ch]";
+
+/** Sections that can be rebuilt from Portal data, and their ⋯ menu label. */
+const REFETCH_LABELS: Record<string, string> = {
+  A2: "Refetch bulletin",
+  A3: "Refetch package tosses",
+  A4: "Refetch thank-you names"
+};
+
 const ROW_ACTION_CLASS = "pointer-coarse:h-10";
 
 /** Script text with [INSERT …] placeholders marked, so what still needs filling stands out. */
@@ -317,10 +325,10 @@ export const SectionBlock = forwardRef<HTMLElement, SectionBlockProps>(function 
                 { key: "reformat", label: "Reformat section", icon: Sparkles, disabled: working, onSelect: onReformat },
                 {
                   key: "refetch",
-                  label: "Refetch bulletin",
+                  label: REFETCH_LABELS[section.label] ?? "",
                   icon: RefreshCw,
                   disabled: working,
-                  hidden: section.label !== "A2",
+                  hidden: !(section.label in REFETCH_LABELS),
                   onSelect: onRefetch
                 },
                 "separator",

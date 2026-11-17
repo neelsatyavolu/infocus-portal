@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { A4_TEMPLATE } from "@/src/lib/teleprompter-template";
 import { THANK_YOU_PLACEHOLDER, fillThankYouNames, reporterFirstName } from "@/src/lib/teleprompter-thank-you";
 
 const A4 = `BULLETIN
@@ -36,5 +37,9 @@ describe("reporterFirstName", () => {
     expect(reporterFirstName({ name: "Abigail Smith", nickname: "Abby" })).toBe("Abby");
     expect(reporterFirstName({ name: "Otto Lee", nickname: null })).toBe("Otto");
     expect(reporterFirstName({ name: null, nickname: "  " })).toBe("");
+  });
+
+  it("refetch fills a fresh A4 template with the reporters queued now", () => {
+    expect(fillThankYouNames(A4_TEMPLATE, ["Sage"])).toBe("BULLETIN\n\nCAM 2\n{COANCHOR}\nThank you Sage!");
   });
 });

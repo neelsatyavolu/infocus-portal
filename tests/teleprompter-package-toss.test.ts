@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PACKAGE_TOSS_PLACEHOLDER, fillPackageTosses } from "@/src/lib/teleprompter-package-toss";
+import { renderA3Content } from "@/src/lib/teleprompter-template";
 
 const A3 = `PACKAGE
 
@@ -40,5 +41,14 @@ describe("fillPackageTosses", () => {
   it("never overwrites a toss a producer already edited", () => {
     const edited = A3.replace(PACKAGE_TOSS_PLACEHOLDER, "Producer's own words.");
     expect(fillPackageTosses(edited, [{ title: "Airport Day", toss: "Student toss." }])).toBe(edited);
+  });
+
+  it("refetch rebuilds from the template, dropping a package no longer queued", () => {
+    const stale = fillPackageTosses(A3, [{ title: "Flea Market", toss: "" }]);
+    expect(stale).toContain("[INSERT PACKAGE TOSS: Flea Market]");
+    expect(renderA3Content()).toBe(A3);
+    const rebuilt = fillPackageTosses(renderA3Content(), [{ title: "Robotics", toss: "New toss." }]);
+    expect(rebuilt).toContain("{COANCHOR}\nNew toss.");
+    expect(rebuilt).not.toContain("Flea Market");
   });
 });

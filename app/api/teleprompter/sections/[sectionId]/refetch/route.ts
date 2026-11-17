@@ -4,7 +4,13 @@ import { prisma } from "@/src/lib/prisma";
 import { TELEPROMPTER_TIME_ZONE, getNextShowDate } from "@/src/lib/teleprompter-template";
 import { loadUpcomingScheduleOverrides } from "@/src/server/show-schedule";
 import { loadA2Bulletin } from "@/src/server/teleprompter-bulletin";
+import { buildPackageSectionContent, buildThankYouSectionContent } from "@/src/server/teleprompter-packages";
 import { requireTeleprompterActor, requireTeleprompterSectionAccess } from "@/src/server/teleprompter-access";
+
+async function loadBulletinContent(showDate: Date) {
+  const bulletin = await loadA2Bulletin(showDate);
+  return bulletin.content ? `BULLETIN\n\n${bulletin.content}` : "BULLETIN";
+}
 
 function mapSection(section: {
   id: string;
@@ -57,8 +63,12 @@ export async function POST(
 
     const showDate =
       section.doc.showDate ?? getNextShowDate(new Date(), TELEPROMPTER_TIME_ZONE, await loadUpcomingScheduleOverrides());
-    const bulletin = await loadA2Bulletin(showDate);
-    const content = bulletin.content ? `BULLETIN\n\n${bulletin.content}` : "BULLETIN";
+    const content =
+      section.label === "A3"
+        ? await buildPackageSectionContent(showDate)
+        : section.label === "A4"
+          ? await buildThankYouSectionContent(showDate)
+          : await loadBulletinContent(showDate);
 
     const updated = await prisma.teleprompterSection.update({
       where: {

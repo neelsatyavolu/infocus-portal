@@ -210,6 +210,25 @@ export function renderA2UnavailableContent() {
   return A2_SLOTS.map((slot) => `${slot.camera}\n${slot.role}`).join("\n\n");
 }
 
+/** The A4 reporter thank-you section before names are filled in. */
+export const A4_TEMPLATE = `BULLETIN
+
+CAM 2
+{COANCHOR}
+[INSERT THANK YOU NAMES]`;
+
+/** The A3 package section, with `packageToss` (or the placeholder) read by the co-anchor. */
+export function renderA3Content(packageToss?: string | null) {
+  return `PACKAGE
+
+CAM 2
+{COANCHOR}
+${packageToss?.trim() || "[INSERT PACKAGE TOSS]"}
+
+{ROLL PACKAGE}
+{HOLD}`;
+}
+
 export function buildDefaultTeleprompterSections(params: {
   showDate: Date;
   a2BulletinContent: string;
@@ -255,23 +274,12 @@ BANTER ABOUT...`
     {
       label: "A3",
       orderIndex: 2,
-      content: `PACKAGE
-
-CAM 2
-{COANCHOR}
-${packageToss}
-
-{ROLL PACKAGE}
-{HOLD}`
+      content: renderA3Content(packageToss)
     },
     {
       label: "A4",
       orderIndex: 3,
-      content: `BULLETIN
-
-CAM 2
-{COANCHOR}
-[INSERT THANK YOU NAMES]`
+      content: A4_TEMPLATE
     },
     {
       label: "A5",

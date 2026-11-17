@@ -27,11 +27,12 @@ export function queuePackageSubtitle(row: {
   cycleNumber: number;
   groupType?: string | null;
   members: Array<string | null>;
+  extraWriters?: string[];
 }) {
   if (row.custom || isCustomQueuePackage(row)) {
     return "Custom";
   }
-  const members = row.members.filter(Boolean).join(", ");
+  const members = [...row.members, ...(row.extraWriters ?? [])].filter(Boolean).join(", ");
   return members ? `Cycle ${row.cycleNumber} · ${members}` : `Cycle ${row.cycleNumber}`;
 }
 

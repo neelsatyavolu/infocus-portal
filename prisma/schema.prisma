@@ -955,6 +955,8 @@ model PackageProgressRow {
   queuedMediaVersionId            String?
   /// Anchor toss the group writes with its Final Cut. Feeds the show teleprompter.
   finalCutToss                    String                    @default("")
+  /// Co-reporters a producer adds in the Publishing Queue: infocusnews.tv bylines only, not roster members.
+  extraWriters                    String[]                  @default([])
   /// Set once every Final Cut grader votes for this package. At most 2 per cycle.
   packageOfCycleAt                DateTime?
   youtubePublication              YoutubePublication?

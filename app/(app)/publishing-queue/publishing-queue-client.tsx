@@ -13,6 +13,7 @@ import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { MAX_PACKAGES_PER_SHOW } from "@/src/lib/publishing-queue";
 import { AddPackageDialog } from "./add-package-dialog";
+import { CoReportersDialog, type CoReportersTarget } from "./co-reporters-dialog";
 import { HoldShowDialog, type HoldTarget } from "./hold-show-dialog";
 import { MoveToShowDialog, type MoveTarget } from "./move-to-show-dialog";
 import { PastShowsDialog, pastRowAnchorId } from "./past-shows-dialog";
@@ -75,6 +76,10 @@ export default function PublishingQueueClient({
   // Targets stay set while their dialog animates closed; `open` is what closes it.
   const [moveDialog, setMoveDialog] = useState<{ open: boolean; target: MoveTarget | null }>({ open: false, target: null });
   const [publishDialog, setPublishDialog] = useState<{ open: boolean; target: PublishTarget | null }>({
+    open: false,
+    target: null
+  });
+  const [coReportersDialog, setCoReportersDialog] = useState<{ open: boolean; target: CoReportersTarget | null }>({
     open: false,
     target: null
   });
@@ -157,6 +162,7 @@ export default function PublishingQueueClient({
           })
         }
         onPublish={canPublish ? (target) => setPublishDialog({ open: true, target: { row: target, returnFocusId: anchorId } }) : undefined}
+        onCoReporters={(target) => setCoReportersDialog({ open: true, target: { row: target, returnFocusId: anchorId } })}
         onRemove={(rowId) => void queue.updateQueue(rowId, false)}
       />
     );
@@ -337,6 +343,12 @@ export default function PublishingQueueClient({
               onClose={() => setHoldDialog((current) => ({ ...current, open: false }))}
             />
           ) : null}
+          <CoReportersDialog
+            open={coReportersDialog.open}
+            target={coReportersDialog.target}
+            onSave={queue.setExtraWriters}
+            onClose={() => setCoReportersDialog((current) => ({ ...current, open: false }))}
+          />
           <PublishConfirmDialog
             open={publishDialog.open}
             target={publishDialog.target}

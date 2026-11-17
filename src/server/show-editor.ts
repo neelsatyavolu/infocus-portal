@@ -68,6 +68,8 @@ export type ShowEditBrief = {
   recomposite: boolean;
   /** The producers' house rules from the Editing tab; null means the editor's built-in default. */
   houseRules: string | null;
+  /** The intro file picked for each look on the Editing tab ({} when none). */
+  intros: Record<string, string>;
   outputNasPath: string;
   posterNasPath: string;
 };
@@ -268,6 +270,7 @@ export type HeartbeatInput = {
   backends?: EditorBackendStatus[];
   credentialAcks?: { id: string; ok: boolean; error?: string }[];
   commandAcks?: { id: string; ok: boolean; output?: string }[];
+  intros?: Record<string, string[]>;
 };
 
 /** Each machine's heartbeat: its own state, cancel requests, sign-ins and commands, and whether it's the active editor. */
@@ -286,6 +289,7 @@ export async function recordHeartbeat(input: HeartbeatInput, now = new Date()): 
       lastSeenAt: now, version: input.version, busy: input.busy, health: input.health,
       ...(input.publicKey ? { publicKey: input.publicKey } : {}),
       ...(input.backends ? { backends: input.backends as unknown as Prisma.InputJsonValue } : {}),
+      ...(input.intros ? { intros: input.intros } : {}),
       // The legacy machine keeps its name, so producers can tell it apart.
       ...(input.machine ? { kind: input.machine.kind, ...(deviceId === LEGACY_EDITOR_DEVICE_ID ? {} : { name: input.machine.name }) } : {})
     }
@@ -448,6 +452,7 @@ async function buildClaim(job: ShowEditJob, paths: { outputNasPath: string; post
     note: job.note,
     recomposite: job.recomposite ?? false,
     houseRules: settings.houseRules,
+    intros: settings.intros,
     ...paths
   };
   const claimed = { id: job.id, showDate: job.showDate, version, attempt: job.attempt, status: "RUNNING" as const };

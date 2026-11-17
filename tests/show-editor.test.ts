@@ -623,6 +623,15 @@ describe("show editor jobs", () => {
     expect(mocks.autoStart).not.toHaveBeenCalled();
   });
 
+  it("heartbeat stores the intros the machine has installed (only when it sends them)", async () => {
+    mocks.job.findMany.mockResolvedValue([]);
+    const intros = { christmas: ["A.mp4", "B.mp4"] };
+    await recordHeartbeat({ deviceId: "dev1", version: "v0.3.1", busy: false, health: healthy, intros }, NOW);
+    expect(mocks.device.update.mock.calls[0][0].data).toMatchObject({ intros });
+    await recordHeartbeat({ deviceId: "dev1", version: "v0.3.1", busy: false, health: healthy }, NOW);
+    expect(mocks.device.update.mock.calls[1][0].data).not.toHaveProperty("intros");
+  });
+
   it("heartbeat records the machine's name and kind (the legacy machine keeps its name)", async () => {
     mocks.job.findMany.mockResolvedValue([]);
     await recordHeartbeat({ deviceId: "dev1", version: "v0.3.1", busy: false, health: healthy, machine: { name: "Abby's laptop", kind: "personal" } }, NOW);
@@ -699,6 +708,14 @@ describe("show editor jobs", () => {
     mocks.settings.findUnique.mockResolvedValue({ autoStart: null, autoPublish: null, targetVersion: null, agentOrder: null, houseRules: "1. Keep it short.", updatedAt: NOW });
     mocks.job.findFirst.mockResolvedValueOnce(job());
     expect((await claimNextShowEdit("dev1", NOW))!.brief.houseRules).toBe("1. Keep it short.");
+  });
+
+  it("the brief carries the intro picked for each look ({} when none)", async () => {
+    mocks.job.findFirst.mockResolvedValueOnce(job());
+    expect((await claimNextShowEdit("dev1", NOW))!.brief.intros).toEqual({});
+    mocks.settings.findUnique.mockResolvedValue({ autoStart: null, autoPublish: null, targetVersion: null, agentOrder: null, houseRules: null, intros: { christmas: "Collage.mp4" }, updatedAt: NOW });
+    mocks.job.findFirst.mockResolvedValueOnce(job());
+    expect((await claimNextShowEdit("dev1", NOW))!.brief.intros).toEqual({ christmas: "Collage.mp4" });
   });
 
   it("completing a remembered fix saves the updated house rules", async () => {

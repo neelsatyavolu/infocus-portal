@@ -1,7 +1,8 @@
 import { z, ZodError } from "zod";
 import { fail } from "@/src/lib/http";
 import {
-  SHOW_EDIT_BACKENDS, SHOW_EDIT_STAGES, SHOW_EDITOR_HOUSE_RULES_MAX, SHOW_EDITOR_MACHINE_KINDS
+  SHOW_EDIT_BACKENDS, SHOW_EDIT_STAGES, SHOW_EDITOR_HOUSE_RULES_MAX, SHOW_EDITOR_INTRO_FILE_PATTERN, SHOW_EDITOR_MACHINE_KINDS,
+  SHOW_EDITOR_THEME_PATTERN
 } from "@/src/lib/show-editor";
 import { ShowEditError } from "@/src/server/show-editor-errors";
 
@@ -16,7 +17,10 @@ export const heartbeatSchema = z.object({
   backends: z.array(z.object({ name: z.enum(SHOW_EDIT_BACKENDS), connected: z.boolean(), detail: z.string().max(200) })).max(SHOW_EDIT_BACKENDS.length).optional(),
   credentialAcks: z.array(z.object({ id: z.string().min(1).max(64), ok: z.boolean(), error: z.string().max(300).optional() })).max(10).optional(),
   // Output over the cap is cut to 4000 characters rather than refused, so a long log never loses the ack.
-  commandAcks: z.array(z.object({ id: z.string().min(1).max(64), ok: z.boolean(), output: z.string().max(100_000).optional() })).max(10).optional()
+  commandAcks: z.array(z.object({ id: z.string().min(1).max(64), ok: z.boolean(), output: z.string().max(100_000).optional() })).max(10).optional(),
+  // The intro files installed for each look, for the intro picker on the Editing tab.
+  intros: z.record(z.string().regex(SHOW_EDITOR_THEME_PATTERN), z.array(z.string().regex(SHOW_EDITOR_INTRO_FILE_PATTERN)).max(50))
+    .refine((looks) => Object.keys(looks).length <= 20, "Too many looks.").optional()
 });
 
 /** POST pair/<code> from the producer's computer: the sealed sign-in (size and base64 are checked in the service). */

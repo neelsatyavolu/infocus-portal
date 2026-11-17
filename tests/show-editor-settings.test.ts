@@ -17,7 +17,7 @@ import { effectiveEditorSettings, loadEditorSettings, saveEditorSettings } from 
 const NOW = new Date("2026-10-20T22:00:00Z");
 
 function row(overrides: Record<string, unknown> = {}) {
-  return { id: "editor", autoStart: null, autoPublish: null, targetVersion: null, agentOrder: null, houseRules: null, updatedById: null, updatedAt: NOW, ...overrides } as never;
+  return { id: "editor", autoStart: null, autoPublish: null, targetVersion: null, agentOrder: null, houseRules: null, intros: null, updatedById: null, updatedAt: NOW, ...overrides } as never;
 }
 
 describe("editor settings", () => {
@@ -31,7 +31,7 @@ describe("editor settings", () => {
     vi.stubEnv("SHOW_EDITOR_AUTO_PUBLISH", "1");
     vi.stubEnv("SHOW_EDITOR_TARGET_VERSION", " v0.2.0 ");
     expect(effectiveEditorSettings(null)).toEqual({
-      autoStart: true, autoPublish: true, targetVersion: "v0.2.0", agentOrder: ["codex", "claude", "grok"], houseRules: null, updatedAt: null
+      autoStart: true, autoPublish: true, targetVersion: "v0.2.0", agentOrder: ["codex", "claude", "grok"], houseRules: null, intros: {}, updatedAt: null
     });
     expect(effectiveEditorSettings(row({ autoStart: false, autoPublish: false, targetVersion: "v0.3.1" }))).toMatchObject({
       autoStart: false, autoPublish: false, targetVersion: "v0.3.1"
@@ -46,6 +46,12 @@ describe("editor settings", () => {
   it("keeps a valid saved agent order and ignores junk", () => {
     expect(effectiveEditorSettings(row({ agentOrder: ["codex", "claude"] })).agentOrder).toEqual(["codex", "claude"]);
     expect(effectiveEditorSettings(row({ agentOrder: ["gemini"] })).agentOrder).toEqual(["codex", "claude", "grok"]);
+  });
+
+  it("keeps only intro picks that are plain video file names", () => {
+    const intros = { christmas: "InFocus Intro Christmas 2026 - Collage (new music).mp4", "": "../x.mp4", halloween: 3, "Bad": "a.mp4" };
+    expect(effectiveEditorSettings(row({ intros })).intros).toEqual({ christmas: "InFocus Intro Christmas 2026 - Collage (new music).mp4" });
+    expect(effectiveEditorSettings(row({ intros: ["a.mp4"] })).intros).toEqual({});
   });
 
   it("saves only the fields given", async () => {

@@ -7,7 +7,8 @@ import { DATE_KEY_PATTERN } from "@/src/lib/show-assignment";
 import { showPublishAt } from "@/src/lib/show-publication";
 import {
   SHOW_EDIT_BACKENDS, SHOW_EDIT_FIX_MAX, SHOW_EDIT_NOTE_MAX, SHOW_EDITOR_COMMANDS,
-  SHOW_EDITOR_HOUSE_RULES_MAX, SHOW_EDITOR_VERSION_PATTERN, SHOW_RECORDINGS_FOLDER
+  SHOW_EDITOR_HOUSE_RULES_MAX, SHOW_EDITOR_INTRO_FILE_PATTERN, SHOW_EDITOR_THEME_PATTERN, SHOW_EDITOR_VERSION_PATTERN,
+  SHOW_RECORDINGS_FOLDER
 } from "@/src/lib/show-editor";
 import {
   MAX_SHOW_EDIT_SOURCES, normalizeSources, SHOW_EDIT_SOURCE_ROLES, sourceSelectionError
@@ -74,7 +75,9 @@ const actionSchema = z.discriminatedUnion("action", [
     targetVersion: z.string().trim().regex(SHOW_EDITOR_VERSION_PATTERN, "Version looks like v1.2.3.").nullable().optional(),
     agentOrder: z.array(z.enum(SHOW_EDIT_BACKENDS)).min(1, "Keep at least one AI account.")
       .refine((order) => new Set(order).size === order.length, "List each AI account once.").optional(),
-    houseRules: z.string().max(SHOW_EDITOR_HOUSE_RULES_MAX).nullable().optional()
+    houseRules: z.string().max(SHOW_EDITOR_HOUSE_RULES_MAX).nullable().optional(),
+    // The whole map: the intro file picked for each look; a look left out uses its usual intro.
+    intros: z.record(z.string().regex(SHOW_EDITOR_THEME_PATTERN), z.string().regex(SHOW_EDITOR_INTRO_FILE_PATTERN, "Pick an intro video.")).optional()
   }),
   z.object({ action: z.literal("command"), deviceId, kind: z.enum(SHOW_EDITOR_COMMANDS) })
 ]);
@@ -153,10 +156,10 @@ export async function POST(request: Request) {
       case "unlink":
         return okNoStore(await unlinkEditorDevice(body.deviceId));
       case "settings": {
-        const { autoStart, autoPublish, targetVersion, agentOrder, houseRules } = body;
+        const { autoStart, autoPublish, targetVersion, agentOrder, houseRules, intros } = body;
         // An emptied rules box means "use the editor's built-in rules".
         const rules = typeof houseRules === "string" && !houseRules.trim() ? null : houseRules;
-        return okNoStore(await saveEditorSettings({ autoStart, autoPublish, targetVersion, agentOrder, houseRules: rules }, userId));
+        return okNoStore(await saveEditorSettings({ autoStart, autoPublish, targetVersion, agentOrder, houseRules: rules, ...(intros ? { intros } : {}) }, userId));
       }
       case "command":
         return okNoStore(await queueEditorCommand({ userId, deviceId: body.deviceId, kind: body.kind }));

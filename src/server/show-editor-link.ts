@@ -3,7 +3,7 @@ import type { Prisma, ShowEditorDevice } from "@prisma/client";
 import { mainAppOrigin } from "@/src/lib/hosts";
 import { prisma } from "@/src/lib/prisma";
 import {
-  editorOnline, formatPairingCode, LINK_POLL_INTERVAL_S, LINK_TTL_MS, normalizePairingCode,
+  editorOnline, formatPairingCode, installedIntrosOf, LINK_POLL_INTERVAL_S, LINK_TTL_MS, normalizePairingCode,
   type EditorBackendStatus, type EditorHealth, type ShowEditorDeviceView
 } from "@/src/lib/show-editor";
 import { hashEditorToken } from "@/src/lib/show-editor-auth";
@@ -146,7 +146,8 @@ export function editorDeviceView(device: ShowEditorDevice, now = new Date()): Sh
     version: device.version,
     busy: device.busy,
     health: healthOf(device.health),
-    backends: Array.isArray(device.backends) ? (device.backends as unknown as EditorBackendStatus[]) : []
+    backends: Array.isArray(device.backends) ? (device.backends as unknown as EditorBackendStatus[]) : [],
+    intros: installedIntrosOf(device.intros)
   };
 }
 

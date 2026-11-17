@@ -76,6 +76,15 @@ describe("show editor service routes", () => {
     expect(mocks.heartbeat).toHaveBeenCalledWith({ version: "0.1.0", busy: true, health: { ok: false, problems: ["The Mac is on battery."] }, deviceId: "legacy" });
   });
 
+  it("heartbeat passes the Mac's installed intros through and refuses odd theme names", async () => {
+    mocks.heartbeat.mockResolvedValue({ cancelJobIds: [] });
+    const intros = { "": ["InFocus Intro 2026.mp4"], christmas: ["A.mp4", "B.mp4"] };
+    expect((await heartbeat(post({ version: "1", busy: false, health: { ok: true, problems: [] }, intros }))).status).toBe(200);
+    expect(mocks.heartbeat).toHaveBeenCalledWith(expect.objectContaining({ intros }));
+    const bad = { "../x": ["A.mp4"] };
+    expect((await heartbeat(post({ version: "1", busy: false, health: { ok: true, problems: [] }, intros: bad }))).status).toBe(400);
+  });
+
   it("heartbeat rejects an oversized body", async () => {
     const problems = Array.from({ length: 21 }, (_, index) => `problem ${index}`);
     expect((await heartbeat(post({ version: "0.1.0", busy: false, health: { ok: false, problems } }))).status).toBe(400);

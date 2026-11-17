@@ -3,13 +3,15 @@ import { showPublishAt } from "@/src/lib/show-publication";
 
 /**
  * Approval at Review: an edit nobody has approved after an hour is escalated to every producer, again every
- * hour (never 2–6 AM Pacific) until someone acts, and at the deadline (7:00 AM Pacific on show day) it is
+ * 2.5 hours (never 2–6 AM Pacific) until someone acts, and at the deadline (7:00 AM Pacific on show day) it is
  * scheduled with Upload show's defaults. What was sent lives in the job's `checks.escalation`, per version,
  * so a new version (after Send back) starts the clock again. Pure; the cron runs it (src/server/show-editor-escalation.ts).
  */
 
 export const REVIEW_DEADLINE_TIME = "07:00";
 export const ESCALATE_AFTER_MS = 60 * 60_000;
+/** Gap between reminders after the first. */
+export const ESCALATE_REPEAT_MS = 150 * 60_000;
 /** No reminders from 2:00 to 6:00 AM Pacific. */
 const QUIET_FROM_HOUR = 2;
 const QUIET_UNTIL_HOUR = 6;
@@ -78,9 +80,11 @@ export function escalationStep(
   if (untilDeadline <= 0) return sent?.autoScheduledAt || sent?.autoScheduleError ? "none" : "auto-schedule";
   const hour = Number(pacificLocalStamp(now).slice(9, 11));
   if (hour >= QUIET_FROM_HOUR && hour < QUIET_UNTIL_HOUR) return "none";
-  // An hour after it reached Review, then an hour after the last reminder.
-  const since = sent?.producersAt ? new Date(sent.producersAt) : job.finishedAt;
-  return now.getTime() - since.getTime() >= ESCALATE_AFTER_MS ? "escalate" : "none";
+  // An hour after it reached Review, then 2.5 hours after the last reminder.
+  const [since, wait] = sent?.producersAt
+    ? [new Date(sent.producersAt), ESCALATE_REPEAT_MS]
+    : [job.finishedAt, ESCALATE_AFTER_MS];
+  return now.getTime() - since.getTime() >= wait ? "escalate" : "none";
 }
 
 /** A publish date and `HH:MM` (Pacific) no sooner than `earliest`, rounded up to the minute. */

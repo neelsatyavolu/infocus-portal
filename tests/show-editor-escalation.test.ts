@@ -49,10 +49,11 @@ describe("escalationStep", () => {
     expect(escalationStep(morning, at("2026-10-23T14:00:00Z"))).toBe("auto-schedule");
   });
 
-  it("already escalated: again an hour later; at the deadline it still auto-schedules, once", () => {
+  it("already escalated: again 2.5 hours later; at the deadline it still auto-schedules, once", () => {
     const escalated = job({ checks: { escalation: { version: 1, producersAt: "2026-10-23T03:01:00Z" } } });
-    expect(escalationStep(escalated, at("2026-10-23T04:00:00Z"))).toBe("none");
-    expect(escalationStep(escalated, at("2026-10-23T04:01:00Z"))).toBe("escalate");
+    expect(escalationStep(escalated, at("2026-10-23T04:01:00Z"))).toBe("none");
+    expect(escalationStep(escalated, at("2026-10-23T05:30:00Z"))).toBe("none");
+    expect(escalationStep(escalated, at("2026-10-23T05:31:00Z"))).toBe("escalate");
     expect(escalationStep(escalated, at("2026-10-23T15:00:00Z"))).toBe("auto-schedule");
     const scheduled = job({ checks: { escalation: { version: 1, autoScheduledAt: "2026-10-23T15:00:00Z" } } });
     expect(escalationStep(scheduled, at("2026-10-23T15:01:00Z"))).toBe("none");

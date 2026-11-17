@@ -198,10 +198,11 @@ export function introLooks(installed: Record<string, string[]>, picks: Record<st
   const looks = [...new Set([...Object.keys(installed), ...Object.keys(picks)])]
     .sort((a, b) => (order.indexOf(a) + 1 || order.length + 1) - (order.indexOf(b) + 1 || order.length + 1) || a.localeCompare(b));
   return looks.map((look) => {
-    const files = installed[look] ?? [];
-    const pick = picks[look] ?? null;
+    // Own properties only: a look such as "constructor" must not read Object.prototype.
+    const files = Object.hasOwn(installed, look) ? installed[look] : [];
+    const pick = Object.hasOwn(picks, look) ? picks[look] : null;
     return {
-      look, label: SHOW_EDITOR_INTRO_LOOKS[look] ?? look.charAt(0).toUpperCase() + look.slice(1),
+      look, label: Object.hasOwn(SHOW_EDITOR_INTRO_LOOKS, look) ? SHOW_EDITOR_INTRO_LOOKS[look] : look.charAt(0).toUpperCase() + look.slice(1),
       files, pick, missing: pick !== null && !files.includes(pick)
     };
   });

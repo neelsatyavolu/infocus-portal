@@ -69,5 +69,8 @@ describe("show editor helpers", () => {
       { look: "spring", label: "Spring", files: ["S.mp4"], pick: null, missing: false }
     ]);
     expect(introLooks({}, {})).toEqual([]);
+    expect(introLooks({ constructor: ["C.mp4"] }, {})).toEqual([
+      { look: "constructor", label: "Constructor", files: ["C.mp4"], pick: null, missing: false }
+    ]);
   });
 });

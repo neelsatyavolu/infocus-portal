@@ -49,7 +49,7 @@ function getServiceAccount(): GoogleServiceAccount | null {
   return { email, privateKey };
 }
 
-export async function fetchCollegeVisits(): Promise<CollegeVisit[]> {
+export async function fetchCollegeVisits(referenceDateKey?: string): Promise<CollegeVisit[]> {
   const account = getServiceAccount();
   if (!account) {
     return [];
@@ -70,7 +70,7 @@ export async function fetchCollegeVisits(): Promise<CollegeVisit[]> {
     titles.map((title) => `'${title.replace(/'/g, "''")}'!A:E`)
   );
 
-  return parseCollegeVisitRows(ranges.flat());
+  return parseCollegeVisitRows(ranges.flat(), referenceDateKey);
 }
 
 export async function loadCollegeVisitBulletinAnnouncement(
@@ -78,7 +78,7 @@ export async function loadCollegeVisitBulletinAnnouncement(
 ): Promise<SubmittedAnnouncement | null> {
   const currentKey = showDateKey(showDate);
   const nextKey = showDateKey(getNextShowDate(showDate, TELEPROMPTER_TIME_ZONE));
-  const visits = visitsInShowWindow(await fetchCollegeVisits(), currentKey, nextKey);
+  const visits = visitsInShowWindow(await fetchCollegeVisits(currentKey), currentKey, nextKey);
   const text = draftCollegeVisitAnnouncement(visits, currentKey);
   if (!text) {
     return null;

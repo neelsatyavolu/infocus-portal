@@ -24,30 +24,67 @@ export function shouldSkipCollegeVisitSheet(title: string) {
   return SKIP_SHEET_TITLES.has(title.trim().toLowerCase());
 }
 
-export function parseCollegeVisitDate(value: string): string | null {
+/**
+ * A date written without a year ("11/18") takes the year that puts it closest to
+ * `referenceDateKey`; without a reference it is unreadable.
+ */
+export function parseCollegeVisitDate(value: string, referenceDateKey?: string): string | null {
   const trimmed = value.trim();
   const iso = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (iso) {
     return trimmed;
   }
 
-  const slash = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
+  const slash = trimmed.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2}|\d{4}))?$/);
   if (!slash) {
     return null;
   }
 
   const month = Number(slash[1]);
   const day = Number(slash[2]);
+  if (!slash[3]) {
+    return referenceDateKey && validMonthDay(month, day) ? nearestYearDateKey(month, day, referenceDateKey) : null;
+  }
+
   let year = Number(slash[3]);
   if (slash[3].length === 2) {
     year += year < 50 ? 2000 : 1900;
   }
 
-  if (month < 1 || month > 12 || day < 1 || day > 31) {
+  if (!validMonthDay(month, day)) {
     return null;
   }
 
+  return toDateKey(year, month, day);
+}
+
+function validMonthDay(month: number, day: number) {
+  return month >= 1 && month <= 12 && day >= 1 && day <= 31;
+}
+
+function toDateKey(year: number, month: number, day: number) {
   return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+const HALF_YEAR_DAYS = 183;
+
+function nearestYearDateKey(month: number, day: number, referenceDateKey: string) {
+  const year = Number(referenceDateKey.slice(0, 4));
+  const candidate = toDateKey(year, month, day);
+  if (candidate < addDaysToDateKey(referenceDateKey, -HALF_YEAR_DAYS)) {
+    return toDateKey(year + 1, month, day);
+  }
+
+  if (candidate > addDaysToDateKey(referenceDateKey, HALF_YEAR_DAYS)) {
+    return toDateKey(year - 1, month, day);
+  }
+
+  return candidate;
+}
+
+export function isVirtualCollegeVisit(location: string) {
+  const normalized = location.trim().toLowerCase();
+  return normalized.includes("virtual") || normalized.includes("zoom") || normalized.includes("online");
 }
 
 export function isOnCampusCollegeVisit(location: string) {
@@ -69,7 +106,7 @@ export function isOnCampusCollegeVisit(location: string) {
   return normalized.includes("paly");
 }
 
-export function parseCollegeVisitRows(rows: unknown[][]): CollegeVisit[] {
+export function parseCollegeVisitRows(rows: unknown[][], referenceDateKey?: string): CollegeVisit[] {
   const visits: CollegeVisit[] = [];
   const seen = new Set<string>();
 
@@ -84,7 +121,7 @@ export function parseCollegeVisitRows(rows: unknown[][]): CollegeVisit[] {
       continue;
     }
 
-    const dateKey = parseCollegeVisitDate(dateValue);
+    const dateKey = parseCollegeVisitDate(dateValue, referenceDateKey);
     if (!dateKey) {
       continue;
     }
@@ -110,7 +147,6 @@ export function parseCollegeVisitRows(rows: unknown[][]): CollegeVisit[] {
 
 export function visitsInShowWindow(visits: CollegeVisit[], showDateKey: string, nextShowDateKey: string) {
   return visits
-    .filter((visit) => isOnCampusCollegeVisit(visit.location))
     .filter((visit) => visit.dateKey >= showDateKey && visit.dateKey < nextShowDateKey)
     .sort((left, right) => {
       if (left.dateKey !== right.dateKey) {
@@ -173,10 +209,52 @@ export function draftCollegeVisitAnnouncement(visits: CollegeVisit[], showDateKe
     return null;
   }
 
-  if (visits.length <= 3) {
-    return `${draftNamedVisits(visits, showDateKey)} ${COLLEGE_VISIT_RSVP_LINE}`.trim();
+  const campus = visits.filter((visit) => isOnCampusCollegeVisit(visit.location));
+  const events = draftOtherEvents(
+    visits.filter((visit) => !isOnCampusCollegeVisit(visit.location)),
+    showDateKey,
+    campus.length > 0
+  );
+  if (campus.length === 0) {
+    return `${events} ${COLLEGE_VISIT_RSVP_LINE}`;
   }
 
+  if (campus.length <= 3) {
+    return [draftNamedVisits(campus, showDateKey), events, COLLEGE_VISIT_RSVP_LINE].filter(Boolean).join(" ");
+  }
+
+  return draftGroupedVisits(campus, showDateKey, events);
+}
+
+const MAX_NAMED_OTHER_EVENTS = 3;
+
+/** Off-campus and virtual events: each one named with its day, time and place, or a count when there are many. */
+function draftOtherEvents(events: CollegeVisit[], showDateKey: string, afterCampusVisits: boolean) {
+  if (events.length === 0) {
+    return "";
+  }
+
+  if (events.length > MAX_NAMED_OTHER_EVENTS) {
+    const also = afterCampusVisits ? "also " : "";
+    return `There are ${also}${events.length} off-campus and virtual college events coming up.`;
+  }
+
+  return events
+    .map((event) => {
+      const when = [dayPhrase(event.dateKey, showDateKey), timePhrase(event.time)].filter(Boolean).join(" ");
+      const place = placeName(event.location);
+      const where = isVirtualCollegeVisit(event.location) ? "online" : place ? `at ${place}` : "";
+      return sentence([`${event.college} is`, when, where].filter(Boolean).join(" "));
+    })
+    .join(" ");
+}
+
+// "Saratoga High School 20300 Herriman Ave ..." reads on air as "Saratoga High School".
+function placeName(location: string) {
+  return location.replace(/\s+\d.*$/, "").replace(/,\s*$/, "").trim();
+}
+
+function draftGroupedVisits(visits: CollegeVisit[], showDateKey: string, events: string) {
   const span = formatVisitSpan(visits, showDateKey);
   const days = [...new Set(visits.map((visit) => visit.dateKey))];
   const groups = days.map((dateKey) => {
@@ -185,7 +263,8 @@ export function draftCollegeVisitAnnouncement(visits: CollegeVisit[], showDateKe
     const names = visits.filter((visit) => visit.dateKey === dateKey).map((visit) => visit.college);
     return `${label}’s visitors are ${joinAnd(names)}.`;
   });
-  return `College visits are happening ${span} in the College and Career Center. ${groups.join(" ")} Check MaiaLearning through ClassLink under Events for visit times and to RSVP.`;
+  const middle = [groups.join(" "), events].filter(Boolean).join(" ");
+  return `College visits are happening ${span} in the College and Career Center. ${middle} Check MaiaLearning through ClassLink under Events for visit times and to RSVP.`;
 }
 
 export function formatSpokenClock(value: string) {

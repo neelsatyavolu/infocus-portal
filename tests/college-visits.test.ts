@@ -64,6 +64,13 @@ describe("college visit sheet parsing", () => {
     expect(parseCollegeVisitDate("Week of Sept 7")).toBeNull();
   });
 
+  it("reads a date with no year as the nearest one to the reference day", () => {
+    expect(parseCollegeVisitDate("11/18", "2026-11-16")).toBe("2026-11-18");
+    expect(parseCollegeVisitDate("1/5", "2026-11-16")).toBe("2027-01-05");
+    expect(parseCollegeVisitDate("12/20", "2027-01-04")).toBe("2026-12-20");
+    expect(parseCollegeVisitDate("11/18")).toBeNull();
+  });
+
   it("keeps Paly campus visits and skips virtual or off-campus rows", () => {
     expect(isOnCampusCollegeVisit("Paly CCC")).toBe(true);
     expect(isOnCampusCollegeVisit("Paly C&CC")).toBe(true);
@@ -174,6 +181,55 @@ describe("college visit bulletin copy", () => {
     expect(formatSpokenClock("9:05 AM")).toBe("9:05 a.m.");
     expect(formatSpokenClock("11:30 am")).toBe("11:30 a.m.");
     expect(formatSpokenClock("2:30 PM")).toBe("2:30 p.m.");
+  });
+});
+
+describe("off-campus and virtual college events", () => {
+  const delawareRows = [
+    ["College", "Rep/Topic", "Paly/Off Campus", "Date", "Time"],
+    ["Week of Nov 16"],
+    [
+      "University of Delaware: Northeast Flagships' Information Panel and Fair",
+      "In Person",
+      "Saratoga High School 20300 Herriman Ave Saratoga, CA 95070 United States",
+      "11/18",
+      "6:00 PM"
+    ],
+    ["Week of Nov 23"],
+    ["Study Down Under: Undergraduate Degrees 101", "Virtual", "Virtual", "11/24/2026", "5:00 PM"]
+  ];
+
+  it("includes an off-campus event in the window with its short place name", () => {
+    const visits = visitsInShowWindow(parseCollegeVisitRows(delawareRows, "2026-11-18"), "2026-11-18", "2026-11-20");
+    expect(draftCollegeVisitAnnouncement(visits, "2026-11-18")).toBe(
+      `University of Delaware: Northeast Flagships' Information Panel and Fair is today at 6:00 p.m. at Saratoga High School. ${COLLEGE_VISIT_RSVP_LINE}`
+    );
+  });
+
+  it("reads a virtual event as online and follows campus visits", () => {
+    const text = draftCollegeVisitAnnouncement(
+      [
+        { college: "Reed College", topic: "Rep visit", location: "Paly CCC", dateKey: "2026-11-23", time: "10:45 AM" },
+        { college: "Study Down Under", topic: "Virtual", location: "Virtual", dateKey: "2026-11-24", time: "5:00 PM" }
+      ],
+      "2026-11-23"
+    );
+    expect(text).toBe(
+      `Reed College will be visiting the College and Career Center today at 10:45 a.m. Study Down Under is tomorrow at 5:00 p.m. online. ${COLLEGE_VISIT_RSVP_LINE}`
+    );
+  });
+
+  it("keeps the grouped campus passage whole when events are added", () => {
+    const events = [
+      { college: "Study Down Under", topic: "Virtual", location: "Virtual Zoom", dateKey: "2026-09-10", time: "5:00 PM" }
+    ];
+    const text = draftCollegeVisitAnnouncement(
+      [...visitsInShowWindow(parseCollegeVisitRows(sheetRows), "2026-09-09", "2026-09-11"), ...events],
+      "2026-09-09"
+    );
+    expect(text).toMatch(/^College visits are happening today and tomorrow in the College and Career Center\./);
+    expect(text).toContain("Study Down Under is tomorrow at 5:00 p.m. online.");
+    expect(text).toMatch(/for visit times and to RSVP\.$/);
   });
 });
 

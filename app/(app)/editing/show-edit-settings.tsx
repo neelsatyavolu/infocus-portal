@@ -15,7 +15,7 @@ import {
 import { DEFAULT_SHOW_EDITOR_HOUSE_RULES } from "@/src/lib/show-editor-house-rules";
 import { LABEL_CLASS } from "./show-edit-parts";
 
-export type SettingsPatch = Partial<Pick<ShowEditorSettingsView, "autoStart" | "autoPublish" | "targetVersion" | "agentOrder" | "houseRules">>;
+export type SettingsPatch = Partial<Pick<ShowEditorSettingsView, "autoStart" | "autoPublish" | "targetVersion" | "agentOrder" | "houseRules" | "intros">>;
 
 function SwitchRow({ id, label, hint, checked, disabled, onChange }: {
   id: string; label: string; hint: string; checked: boolean; disabled: boolean; onChange: (value: boolean) => void;

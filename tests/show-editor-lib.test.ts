@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  autoPublishReady, editorStatus, lastSeenLabel, recordingsFromListing
+  autoPublishReady, editorStatus, introLooks, lastSeenLabel, recordingsFromListing
 } from "@/src/lib/show-editor";
 
 const NOW = new Date("2026-10-20T22:00:00Z");
@@ -58,5 +58,19 @@ describe("show editor helpers", () => {
     expect(autoPublishReady({ needsReview: false, checks: { coversClean: false, loudness: [{ ok: true }] } })).toBe(false);
     expect(autoPublishReady({ needsReview: true, checks: { coversClean: true, loudness: [{ ok: true }] } })).toBe(false);
     expect(autoPublishReady({ needsReview: false, checks: null })).toBe(false);
+  });
+
+  it("lists each look the Mac has intros for, in season order, keeping a pick the Mac no longer has", () => {
+    const installed = { christmas: ["Collage.mp4", "Intro.mp4"], "": ["InFocus Intro 2026.mp4"], spring: ["S.mp4"] };
+    expect(introLooks(installed, { christmas: "Collage.mp4", halloween: "Gone.mp4" })).toEqual([
+      { look: "", label: "Regular", files: ["InFocus Intro 2026.mp4"], pick: null, missing: false },
+      { look: "halloween", label: "Halloween", files: [], pick: "Gone.mp4", missing: true },
+      { look: "christmas", label: "Christmas", files: ["Collage.mp4", "Intro.mp4"], pick: "Collage.mp4", missing: false },
+      { look: "spring", label: "Spring", files: ["S.mp4"], pick: null, missing: false }
+    ]);
+    expect(introLooks({}, {})).toEqual([]);
+    expect(introLooks({ constructor: ["C.mp4"] }, {})).toEqual([
+      { look: "constructor", label: "Constructor", files: ["C.mp4"], pick: null, missing: false }
+    ]);
   });
 });

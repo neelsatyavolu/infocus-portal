@@ -259,7 +259,8 @@ describe("show edits route", () => {
     const bad = [
       { agentOrder: [] }, { agentOrder: ["claude", "claude"] }, { agentOrder: ["gemini"] },
       { targetVersion: "0.3.1" }, { targetVersion: "v0.3" }, { targetVersion: "latest" },
-      { houseRules: "x".repeat(20_001) }, { autoStart: "yes" }
+      { houseRules: "x".repeat(20_001) }, { autoStart: "yes" },
+      { intros: { christmas: "../../x.mp4" } }, { intros: { christmas: "notes.txt" } }, { intros: { "Bad Theme": "a.mp4" } }
     ];
     for (const fields of bad) expect((await POST(post({ action: "settings", ...fields }))).status).toBe(400);
     expect(mocks.settings).not.toHaveBeenCalled();
@@ -267,6 +268,8 @@ describe("show edits route", () => {
     expect(mocks.settings).toHaveBeenLastCalledWith(
       { autoStart: true, autoPublish: null, targetVersion: "v0.3.1", agentOrder: ["codex", "claude"], houseRules: "1. Rule" }, "u1"
     );
+    await POST(post({ action: "settings", intros: { christmas: "InFocus Intro Christmas 2026 - Collage (new music).mp4" } }));
+    expect(mocks.settings).toHaveBeenLastCalledWith({ intros: { christmas: "InFocus Intro Christmas 2026 - Collage (new music).mp4" } }, "u1");
     await POST(post({ action: "settings", targetVersion: null, houseRules: "   " }));
     expect(mocks.settings).toHaveBeenLastCalledWith({ targetVersion: null, houseRules: null }, "u1");
   });

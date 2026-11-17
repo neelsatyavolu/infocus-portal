@@ -158,7 +158,8 @@ describe("editor linking (device code)", () => {
   it("lists linked machines, active first, with their own state", async () => {
     mocks.device.findMany.mockResolvedValue([
       { id: "team-mac", name: "Team MacBook", kind: "dedicated", active: true, linkedAt: NOW, lastSeenAt: new Date(NOW.getTime() - 30_000),
-        version: "v0.3.1", busy: false, health: { ok: true, problems: [] }, backends: [{ name: "claude", connected: true, detail: "" }] },
+        version: "v0.3.1", busy: false, health: { ok: true, problems: [] }, backends: [{ name: "claude", connected: true, detail: "" }],
+        intros: { christmas: ["A.mp4", "B.mp4"], bad: "x" } },
       { id: "laptop", name: "Abby's laptop", kind: "personal", active: false, linkedAt: NOW, lastSeenAt: null,
         version: null, busy: false, health: null, backends: null }
     ]);
@@ -167,6 +168,8 @@ describe("editor linking (device code)", () => {
       ["team-mac", true, true, "dedicated"], ["laptop", false, false, "personal"]
     ]);
     expect(devices[1].backends).toEqual([]);
+    expect(devices[0].intros).toEqual({ christmas: ["A.mp4", "B.mp4"] });
+    expect(devices[1].intros).toEqual({});
     expect(mocks.device.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { revokedAt: null } }));
   });
 });

@@ -1,6 +1,8 @@
 import type { Prisma, ShowEditorSettings } from "@prisma/client";
 import { prisma } from "@/src/lib/prisma";
-import { SHOW_EDIT_BACKENDS, SHOW_EDIT_DEFAULT_AGENT_ORDER, type ShowEditBackend, type ShowEditorSettingsView } from "@/src/lib/show-editor";
+import {
+  introPicksOf, SHOW_EDIT_BACKENDS, SHOW_EDIT_DEFAULT_AGENT_ORDER, type ShowEditBackend, type ShowEditorSettingsView
+} from "@/src/lib/show-editor";
 
 const SETTINGS_ID = "editor";
 
@@ -10,6 +12,7 @@ export type ShowEditorSettingsInput = {
   targetVersion?: string | null;
   agentOrder?: ShowEditBackend[];
   houseRules?: string | null;
+  intros?: Record<string, string>;
 };
 
 function agentOrderOf(value: Prisma.JsonValue | null | undefined): ShowEditBackend[] {
@@ -26,6 +29,7 @@ export function effectiveEditorSettings(row: ShowEditorSettings | null): ShowEdi
     targetVersion: row?.targetVersion ?? (process.env.SHOW_EDITOR_TARGET_VERSION?.trim() || null),
     agentOrder: agentOrderOf(row?.agentOrder),
     houseRules: row?.houseRules ?? null,
+    intros: introPicksOf(row?.intros),
     updatedAt: row?.updatedAt.toISOString() ?? null
   };
 }
@@ -42,6 +46,7 @@ export async function saveEditorSettings(input: ShowEditorSettingsInput, userId:
   if (input.targetVersion !== undefined) data.targetVersion = input.targetVersion;
   if (input.agentOrder !== undefined) data.agentOrder = input.agentOrder;
   if (input.houseRules !== undefined) data.houseRules = input.houseRules;
+  if (input.intros !== undefined) data.intros = input.intros;
   const row = await prisma.showEditorSettings.upsert({
     where: { id: SETTINGS_ID },
     update: data,

@@ -1964,6 +1964,8 @@ model ShowEditorDevice {
   backends   Json?
   /// X25519 public key (base64); AI sign-ins are sealed to it.
   publicKey  String?
+  /// The intro files installed for each look, from the heartbeat: { "" | "<theme>": string[] }.
+  intros     Json?
   revokedAt  DateTime?
 
   @@index([revokedAt])
@@ -1981,6 +1983,8 @@ model ShowEditorSettings {
   agentOrder           Json?
   /// House rules the editor follows instead of asking; null uses the editor's built-in default.
   houseRules           String?
+  /// The intro file picked for each look: { "" | "<theme>": "<file name>" }; a look left out uses its usual intro.
+  intros               Json?
   updatedById          String?
   updatedAt            DateTime  @updatedAt
   /// Auto-start looks at Drive at most every 5 minutes (from any machine's heartbeat).

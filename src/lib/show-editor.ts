@@ -174,6 +174,49 @@ export type ShowEditorCommandView = {
 };
 
 export const SHOW_EDITOR_HOUSE_RULES_MAX = 20_000;
+/** A look's key: "" is the regular look, else a seasonal theme ("christmas"). */
+export const SHOW_EDITOR_THEME_PATTERN = /^[a-z]{0,30}$/;
+/** An intro file name in a look's "03 Intro & Outro" folder: a plain .mp4 or .mov name, no folders. */
+export const SHOW_EDITOR_INTRO_FILE_PATTERN = /^(?!\.)[^/\\]{1,196}\.(mp4|mov)$/i;
+export const SHOW_EDITOR_INTRO_LOOKS: Record<string, string> = { "": "Regular", halloween: "Halloween", thanksgiving: "Thanksgiving", christmas: "Christmas" };
+
+/** The intro picked for each look ({ christmas: "<file>" }), keeping only valid looks and file names. */
+export function introPicksOf(value: unknown): Record<string, string> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(Object.entries(value).filter(([look, file]) =>
+    SHOW_EDITOR_THEME_PATTERN.test(look) && typeof file === "string" && SHOW_EDITOR_INTRO_FILE_PATTERN.test(file)));
+}
+
+export type IntroLook = { look: string; label: string; files: string[]; pick: string | null; missing: boolean };
+
+/**
+ * The looks the intro picker shows: every look the machine has intros for, plus any look with a pick, regular and
+ * seasons first. `missing` is a pick the machine doesn't have (the editor then uses that look's usual intro).
+ */
+export function introLooks(installed: Record<string, string[]>, picks: Record<string, string>): IntroLook[] {
+  const order = Object.keys(SHOW_EDITOR_INTRO_LOOKS);
+  const looks = [...new Set([...Object.keys(installed), ...Object.keys(picks)])]
+    .sort((a, b) => (order.indexOf(a) + 1 || order.length + 1) - (order.indexOf(b) + 1 || order.length + 1) || a.localeCompare(b));
+  return looks.map((look) => {
+    // Own properties only: a look such as "constructor" must not read Object.prototype.
+    const files = Object.hasOwn(installed, look) ? installed[look] : [];
+    const pick = Object.hasOwn(picks, look) ? picks[look] : null;
+    return {
+      look, label: Object.hasOwn(SHOW_EDITOR_INTRO_LOOKS, look) ? SHOW_EDITOR_INTRO_LOOKS[look] : look.charAt(0).toUpperCase() + look.slice(1),
+      files, pick, missing: pick !== null && !files.includes(pick)
+    };
+  });
+}
+
+/** The intro files a machine has for each look ({ christmas: ["<file>", …] }), keeping only valid ones. */
+export function installedIntrosOf(value: unknown): Record<string, string[]> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(Object.entries(value).flatMap(([look, files]) => {
+    if (!SHOW_EDITOR_THEME_PATTERN.test(look) || !Array.isArray(files)) return [];
+    const valid = files.filter((file): file is string => typeof file === "string" && SHOW_EDITOR_INTRO_FILE_PATTERN.test(file));
+    return valid.length > 0 ? [[look, valid]] : [];
+  }));
+}
 export const SHOW_EDITOR_VERSION_PATTERN = /^v\d+\.\d+\.\d+$/;
 export const LINK_TTL_MS = 15 * 60_000;
 export const LINK_POLL_INTERVAL_S = 5;
@@ -186,6 +229,8 @@ export type ShowEditorSettingsView = {
   agentOrder: ShowEditBackend[];
   /** The saved rules, or null while the editor uses its built-in default. */
   houseRules: string | null;
+  /** The intro file picked for each look; a look missing here uses its usual intro. */
+  intros: Record<string, string>;
   updatedAt: string | null;
 };
 
@@ -210,6 +255,8 @@ export type ShowEditorDeviceView = {
   busy: boolean;
   health: EditorHealth | null;
   backends: EditorBackendStatus[];
+  /** The intro files the machine has installed for each look, from its heartbeat. */
+  intros: Record<string, string[]>;
 };
 
 export type ShowEditState = {

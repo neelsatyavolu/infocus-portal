@@ -105,7 +105,7 @@ export default function EditingClient({ initial, howTo }: { initial: LoadedOverv
         />
       );
     }
-    if (view === "settings") return <EditingSettingsView settings={state.settings} busy={edit.busy !== null} send={edit.send} />;
+    if (view === "settings") return <EditingSettingsView settings={state.settings} devices={state.devices} busy={edit.busy !== null} send={edit.send} />;
     if (!showDate) return <EditingViewSkeleton />;
     return (
       <EditingShowView

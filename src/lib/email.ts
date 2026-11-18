@@ -120,8 +120,8 @@ export async function sendPreparedEmail(payload: {
   return result.data;
 }
 
-/** Resend accepts at most 50 addresses in `to` or `bcc` per email. */
-const MAX_RECIPIENTS_PER_EMAIL = 50;
+/** Resend's batch endpoint takes at most 100 emails per request. */
+const MAX_EMAILS_PER_BATCH = 100;
 
 function uniqueRecipients(recipients: string[]) {
   const byKey = new Map<string, string>();
@@ -133,9 +133,10 @@ function uniqueRecipients(recipients: string[]) {
 }
 
 /**
- * Identical content goes out as one email per batch of 50. A single recipient is in `to`;
- * with more, `to` is the sender and the batch is in `bcc`, so no one sees the other addresses.
- * With `idempotencyKey`, Resend drops a repeat of the same batch for 24 hours (key + batch index).
+ * Every recipient gets their own copy addressed only to them, so no one sees the other addresses
+ * and nothing is sent to the sender address (it has no mailbox, so copies to it hard-bounce).
+ * More than one recipient goes through Resend's batch endpoint, 100 emails per request.
+ * With `idempotencyKey`, Resend drops a repeat of the same request for 24 hours (key + batch index).
  */
 async function sendToAll(recipients: string[], subject: string, text: string, html: string, idempotencyKey?: string) {
   const mail = mailClient();
@@ -144,21 +145,27 @@ async function sendToAll(recipients: string[], subject: string, text: string, ht
     return { configured: false as const, sent: 0, failed: 0 };
   }
 
+  if (addresses.length === 1) {
+    const result = await mail.client.emails.send(
+      { from: mail.from, to: addresses, subject, text, html },
+      idempotencyKey ? { idempotencyKey: `${idempotencyKey}/0` } : undefined
+    );
+    if (result.error) {
+      console.error("Resend email failed", result.error.message);
+      return { configured: true as const, sent: 0, failed: 1 };
+    }
+    return { configured: true as const, sent: 1, failed: 0 };
+  }
+
   const batches: string[][] = [];
-  for (let index = 0; index < addresses.length; index += MAX_RECIPIENTS_PER_EMAIL) {
-    batches.push(addresses.slice(index, index + MAX_RECIPIENTS_PER_EMAIL));
+  for (let index = 0; index < addresses.length; index += MAX_EMAILS_PER_BATCH) {
+    batches.push(addresses.slice(index, index + MAX_EMAILS_PER_BATCH));
   }
 
   const results = await Promise.allSettled(
     batches.map(async (batch, index) => {
-      const result = await mail.client.emails.send(
-        {
-          from: mail.from,
-          ...(addresses.length === 1 ? { to: batch } : { to: mail.from, bcc: batch }),
-          subject,
-          text,
-          html
-        },
+      const result = await mail.client.batch.send(
+        batch.map((address) => ({ from: mail.from, to: [address], subject, text, html })),
         idempotencyKey ? { idempotencyKey: `${idempotencyKey}/${index}` } : undefined
       );
       if (result.error) {
@@ -335,11 +342,6 @@ export async function sendMediaProcessedEmail(payload: MediaProcessedEmailPayloa
 }
 
 async function sendMediaProcessedMail(payload: MediaProcessedEmailPayload) {
-  const mail = mailClient();
-  if (!mail || payload.recipients.length === 0) {
-    return { configured: false as const, sent: 0, failed: 0 };
-  }
-
   const folderLabel = payload.folderName?.trim() || "No folder";
   const extraHtml = `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 8px;border-collapse:collapse;">
   <tr><td style="padding:4px 16px 4px 0;color:${EMAIL_BRAND.muted};font-size:11px;font-weight:500;letter-spacing:0.11em;text-transform:uppercase;font-family:${EMAIL_BRAND.font};">Title</td><td style="padding:4px 0;color:${EMAIL_BRAND.paper};font-size:14px;font-family:${EMAIL_BRAND.font};">${escapeHtml(payload.mediaTitle)}</td></tr>
@@ -356,19 +358,12 @@ async function sendMediaProcessedMail(payload: MediaProcessedEmailPayload) {
     preview: `${payload.uploaderName} uploaded ${payload.mediaTitle}`
   });
 
-  try {
-    await mail.client.emails.send({
-      from: mail.from,
-      to: mail.from,
-      bcc: payload.recipients,
-      subject: `New video uploaded: ${payload.mediaTitle} — ${payload.projectName}`,
-      text: branded.text,
-      html: branded.html
-    });
-    return { configured: true as const, sent: payload.recipients.length, failed: 0 };
-  } catch {
-    return { configured: true as const, sent: 0, failed: payload.recipients.length };
-  }
+  return sendToAll(
+    payload.recipients,
+    `New video uploaded: ${payload.mediaTitle} — ${payload.projectName}`,
+    branded.text,
+    branded.html
+  );
 }
 
 export async function sendAccessRequestDecisionEmail(payload: AccessRequestDecisionPayload) {

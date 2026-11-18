@@ -218,6 +218,28 @@ export function usePublishingQueue(initialData: QueueData | null) {
     }
   }
 
+  /** Saves a custom package's toss (blank clears it); true once saved. */
+  async function setToss(rowId: string, toss: string) {
+    setBusyId(rowId);
+    try {
+      const response = await fetch(`${QUEUE_URL}/${rowId}/toss`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ toss })
+      });
+      const payload = await readBody<{ toss?: string }>(response);
+      if (!response.ok) throw new Error(payload.error?.message ?? "Could not save the toss.");
+      await reloadQuietly();
+      toast.success(payload.data?.toss ? "Toss saved." : "Toss cleared.");
+      return true;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not save the toss.");
+      return false;
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   /** Hold (with a name) or release a show day; busyId is `show:<date>` meanwhile. */
   async function setShowHold(date: string, label: string | null) {
     setBusyId(`show:${date}`);
@@ -264,6 +286,7 @@ export function usePublishingQueue(initialData: QueueData | null) {
     updateQueue,
     publishNow,
     setExtraWriters,
+    setToss,
     setShowHold,
     afterCustomAdded
   };

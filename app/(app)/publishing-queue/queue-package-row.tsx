@@ -10,6 +10,7 @@ import {
   GripVertical,
   Loader2,
   MoreHorizontal,
+  ScrollText,
   Trash2,
   Upload,
   UserPlus
@@ -66,6 +67,7 @@ export function QueuePackageRow({
   onMove,
   onPublish,
   onCoReporters,
+  onToss,
   onRemove
 }: {
   row: QueueRow;
@@ -83,6 +85,8 @@ export function QueuePackageRow({
   onPublish?: (row: QueueRow) => void;
   /** Website co-reporters (infocusnews.tv byline); not on custom packages. */
   onCoReporters?: (row: QueueRow) => void;
+  /** Toss editor; custom packages only (others write theirs on the Final Cut tab). */
+  onToss?: (row: QueueRow) => void;
   onRemove?: (rowId: string) => void;
 }) {
   const title = queueRowTitle(row);
@@ -176,6 +180,14 @@ export function QueuePackageRow({
       disabled: busy,
       onSelect: () => onCoReporters?.(row),
       hidden: !onCoReporters || Boolean(row.custom)
+    },
+    {
+      key: "toss",
+      label: row.toss ? "Edit toss…" : "Add toss…",
+      icon: ScrollText,
+      disabled: busy,
+      onSelect: () => onToss?.(row),
+      hidden: !onToss || !row.custom
     },
     {
       key: "download",

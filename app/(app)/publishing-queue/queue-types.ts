@@ -22,6 +22,8 @@ export type QueueRow = {
   members: Array<string | null>;
   /** Co-reporters credited on the infocusnews.tv story only (not roster members). */
   extraWriters?: string[];
+  /** The anchors' toss (teleprompter, YouTube description). Producers edit it here only on custom packages. */
+  toss?: string;
   thumbnailUrl?: string | null;
   youtubePublication?: YoutubePublicationSummary | null;
 };

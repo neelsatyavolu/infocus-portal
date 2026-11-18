@@ -8,10 +8,11 @@ import {
   snapMove,
   snapTargets,
   updateElement,
+  WIDTH_ONLY,
   type CustomElement,
   type SnapTargets
 } from "@/src/lib/story-custom";
-import { Photo } from "../story-templates";
+import { Photo } from "../story-parts";
 import { StoryScaleContext } from "../story-canvas";
 import { CustomElementArt, elementBox } from "./custom-elements";
 import type { CustomLayoutApi } from "./use-custom-layout";
@@ -26,7 +27,6 @@ type Drag = {
 };
 type Guides = { x: number[]; y: number[] };
 const NO_GUIDES: Guides = { x: [], y: [] };
-const RESIZE_WIDTH_ONLY = new Set(["text", "footer", "follow"]);
 
 export const TEXT_INPUT_ID = "custom-text-input";
 
@@ -36,7 +36,7 @@ export const TEXT_INPUT_ID = "custom-text-input";
  * edit it in the panel. Selection outlines and guides are editor chrome and never exported.
  */
 export function CustomCanvas({ api }: { api: CustomLayoutApi }) {
-  const { layout, selected, measured, setMeasured } = api;
+  const { layout, selected, measured, setMeasured, spec } = api;
   const scale = useContext(StoryScaleContext);
   const rootRef = useRef<HTMLDivElement>(null);
   const drag = useRef<Drag | null>(null);
@@ -60,7 +60,7 @@ export function CustomCanvas({ api }: { api: CustomLayoutApi }) {
     event.currentTarget.setPointerCapture(event.pointerId);
     api.select(el.id);
     api.checkpoint();
-    drag.current = { mode, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, origin: el, targets: snapTargets(layout, el.id, measured) };
+    drag.current = { mode, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, origin: el, targets: snapTargets(layout, el.id, measured, spec) };
   }
 
   function move(event: PointerEvent<HTMLElement>) {
@@ -73,9 +73,9 @@ export function CustomCanvas({ api }: { api: CustomLayoutApi }) {
       const moved = { ...origin, x: origin.x + dx, y: origin.y + dy };
       const snapped = event.altKey ? { x: Math.round(moved.x), y: Math.round(moved.y), guides: NO_GUIDES } : snapMove(moved, d.targets);
       setGuides(snapped.guides);
-      api.transient(updateElement(layout, d.origin.id, clampToCanvas({ ...origin, x: snapped.x, y: snapped.y })));
+      api.transient(updateElement(layout, d.origin.id, clampToCanvas({ ...origin, x: snapped.x, y: snapped.y }, spec)));
     } else {
-      const size = resizeElement(d.origin, origin.w + dx, origin.h + dy, event.altKey ? { xs: [], ys: [] } : d.targets);
+      const size = resizeElement(d.origin, origin.w + dx, origin.h + dy, event.altKey ? { xs: [], ys: [] } : d.targets, spec);
       setGuides(size.guides);
       api.transient(updateElement(layout, d.origin.id, { w: size.w, h: size.h }));
     }
@@ -115,9 +115,9 @@ export function CustomCanvas({ api }: { api: CustomLayoutApi }) {
           }}
         >
           <CustomElementArt el={el} />
-          {el.id === selected?.id && el.kind !== "header" ? (
+          {el.id === selected?.id ? (
             <div
-              className={RESIZE_WIDTH_ONLY.has(el.kind) ? "sm-edit-ui sm-resize sm-resize-x" : "sm-edit-ui sm-resize"}
+              className={WIDTH_ONLY.has(el.kind) ? "sm-edit-ui sm-resize sm-resize-x" : "sm-edit-ui sm-resize"}
               role="presentation"
               {...handlers(el, "resize")}
             />

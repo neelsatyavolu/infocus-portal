@@ -1,62 +1,54 @@
-import type { CSSProperties } from "react";
 import { showApDate, type ShowSlide } from "@/src/lib/show-story";
 import { splitPoints } from "@/src/lib/story-maker";
-import { Fit, Footer, Header, PackageArtwork, Photo } from "../story-templates";
+import { Frame, PackageArtwork, Photo, Points } from "../story-parts";
 import type { ShowDraft } from "./use-show-story";
 
 const KICKER = "The Show";
 
-function Points({ items, size }: { items: string[]; size?: number }) {
-  const style = size ? ({ "--pt": `calc(${size}px * var(--k))` } as CSSProperties) : undefined;
-  return (
-    <ul className="sm-points" style={style}>
-      {items.map((item, index) => <li key={index}><span>{item}</span></li>)}
-    </ul>
-  );
-}
-
 function RecapSlide({ draft, meta, hasAnnouncements }: { draft: ShowDraft; meta: string; hasAnnouncements: boolean }) {
   const photo = draft.recapPhoto;
   const rundown = [...(hasAnnouncements ? ["Announcements"] : []), ...draft.packages.map((pkg) => pkg.title.trim()).filter(Boolean)];
-  const box = photo ? { top: 980, height: 560 } : { top: 440, height: 1110 };
   return (
-    <>
-      <Header kicker={KICKER} meta={meta} />
-      {photo ? <Photo photo={photo} box={{ left: 72, top: 400, width: 936, height: 527 }} /> : null}
-      <Fit max={box.height} style={{ ...box, justifyContent: photo ? "flex-start" : "center", gap: "calc(56px * var(--k))" }}>
-        <div className={photo ? "sm-headline sm-pre" : "sm-title sm-pre"}>{draft.headline}</div>
-        {draft.anchors.trim() ? (
+    <Frame kicker={KICKER} top={Boolean(photo)}>
+      {photo ? <><Photo photo={photo} /><div className="sm-gap" /></> : null}
+      <div className={photo ? "sm-h2 sm-pre" : "sm-h1 sm-pre"}>{draft.headline}</div>
+      <div className="sm-gap-s" />
+      <div className="sm-meta">{meta}</div>
+      {draft.anchors.trim() ? (
+        <>
+          <div className="sm-gap-l" />
           <div className="sm-show-group">
             <div className="sm-label">Anchored by</div>
             <div className="sm-anchors">{draft.anchors}</div>
           </div>
-        ) : null}
-        {rundown.length ? (
+        </>
+      ) : null}
+      {rundown.length ? (
+        <>
+          <div className="sm-gap-l" />
           <div className="sm-show-group">
             <div className="sm-label">In this show</div>
-            <Points items={rundown} size={46} />
+            <Points items={rundown} />
           </div>
-        ) : null}
-      </Fit>
-      <Footer />
-    </>
+        </>
+      ) : null}
+    </Frame>
   );
 }
 
 function AnnouncementsSlide({ draft, meta }: { draft: ShowDraft; meta: string }) {
   return (
-    <>
-      <Header kicker="Announcements" meta={meta} />
-      <Fit max={1110} style={{ top: 440, height: 1110, justifyContent: "center", gap: "calc(72px * var(--k))" }}>
-        <div className="sm-title sm-pre">{draft.announcementsTitle}</div>
-        <Points items={splitPoints(draft.points)} />
-      </Fit>
-      <Footer />
-    </>
+    <Frame kicker="Announcements">
+      <div className="sm-h1 sm-pre">{draft.announcementsTitle}</div>
+      <div className="sm-gap-s" />
+      <div className="sm-meta">{meta}</div>
+      <div className="sm-gap-l" />
+      <Points items={splitPoints(draft.points)} />
+    </Frame>
   );
 }
 
-/** The artwork for one Show slide (1080 × 1920, inside StoryCanvas). */
+/** The artwork for one Show slide (inside StoryCanvas, as a post or a story). */
 export function ShowSlideArt({ slide, draft, date, hasAnnouncements }: { slide: ShowSlide; draft: ShowDraft; date: string; hasAnnouncements: boolean }) {
   const meta = showApDate(date);
   if (slide.kind === "recap") return <RecapSlide draft={draft} meta={meta} hasAnnouncements={hasAnnouncements} />;

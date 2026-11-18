@@ -3,7 +3,7 @@
 /* eslint-disable @next/next/no-img-element -- the preview is a server-rendered PNG from our own API. */
 import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
-import { STORY_HEIGHT, STORY_WIDTH, type LivestreamFields } from "@/src/lib/story-maker";
+import { CANVAS, type LivestreamFields, type StoryFormat } from "@/src/lib/story-maker";
 import type { ThumbnailTemplate } from "@/src/lib/live/thumbnail";
 import { Segmented, StoryField } from "./story-fields";
 
@@ -44,14 +44,14 @@ export function LivestreamForm({ fields, onChange }: { fields: LivestreamFields;
         </StoryField>
       </div>
       <p className="text-xs text-muted-foreground">
-        This is the same design as the thumbnail on the livestream dashboard. Put the link sticker in the gap at the bottom.
+        This is the same design as the thumbnail on the livestream dashboard, so it stays dark. On a story, put the link sticker in the gap at the bottom.
       </p>
     </div>
   );
 }
 
 /** Debounced server-rendered preview (the thumbnail API renders the PNG). */
-export function LivestreamPreview({ query }: { query: string }) {
+export function LivestreamPreview({ query, format }: { query: string; format: StoryFormat }) {
   const [shown, setShown] = useState(query);
   const [status, setStatus] = useState<"loading" | "ready" | "failed">("loading");
 
@@ -72,9 +72,9 @@ export function LivestreamPreview({ query }: { query: string }) {
     <div className="relative h-full w-full bg-[#0F110F]">
       <img
         src={src}
-        alt="Livestream story preview"
-        width={STORY_WIDTH}
-        height={STORY_HEIGHT}
+        alt="Livestream preview"
+        width={CANVAS[format].width}
+        height={CANVAS[format].height}
         className="absolute inset-0 h-full w-full"
         onLoad={() => setStatus("ready")}
         onError={() => setStatus("failed")}

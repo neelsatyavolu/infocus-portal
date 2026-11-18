@@ -14,11 +14,11 @@ import { CanvasFields } from "@/components/social-story/canvas-fields";
 import { useShortcutTitles } from "@/components/social-story/custom-shortcuts";
 import { initialState, saveDrafts, templateById, templateDefaults, type EditorState } from "@/components/social-story/editor-drafts";
 import { InspectorCard, InspectorSection, InspectorSkeleton } from "@/components/social-story/inspector-section";
-import { STORY_SIZE_STATUS, stageStatusItems } from "@/components/social-story/stage-status";
+import { sizeStatus, stageStatusItems } from "@/components/social-story/stage-status";
 import { StoryStage, scrollToSection } from "@/components/social-story/story-stage";
 import { TemplateBar, TemplateRail } from "@/components/social-story/template-picker";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { STORY_HEIGHT, STORY_WIDTH, livestreamThumbnailQuery, storyFileName } from "@/src/lib/story-maker";
+import { CANVAS, THEME_BACKGROUND, isStoryFormat, isStoryTheme, livestreamThumbnailQuery, storyFileName, type StoryFormat, type StoryTheme } from "@/src/lib/story-maker";
 import { brandChecks } from "@/src/lib/story-custom";
 import { showSlideFileName } from "@/src/lib/show-story";
 import { cn } from "@/src/lib/utils";
@@ -36,6 +36,8 @@ import { STORY_TEMPLATES, isFieldVisible, type StoryPhoto, type StoryTemplate, t
 
 /** Remembered per browser (kit prefix `infocus:ui:`). */
 const SAFE_ZONES_KEY = "story-maker:safe-zones:v1";
+const FORMAT_KEY = "story-maker:format:v1";
+const THEME_KEY = "story-maker:theme:v1";
 const isBoolean = (value: unknown): value is boolean => typeof value === "boolean";
 
 /**
@@ -82,6 +84,8 @@ function triggerDownload(href: string, fileName: string) {
 export function StoryMaker({ canAppoint }: { canAppoint: boolean }) {
   const [state, setState] = useState<EditorState | null>(null);
   const [showSafeZones, setShowSafeZones] = useRememberedState(SAFE_ZONES_KEY, false, isBoolean);
+  const [format, setFormat] = useRememberedState<StoryFormat>(FORMAT_KEY, "post", isStoryFormat);
+  const [theme, setTheme] = useRememberedState<StoryTheme>(THEME_KEY, "light", isStoryTheme);
   const [overflow, setOverflow] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -89,7 +93,6 @@ export function StoryMaker({ canAppoint }: { canAppoint: boolean }) {
   /** Phone-only bottom padding that keeps the end of the page clear of the fixed action bar. */
   const [barRoom, setBarRoom] = useState(0);
   const storyRef = useRef<HTMLDivElement>(null);
-  const fontCssRef = useRef<string | null>(null);
   const titles = useShortcutTitles();
 
   // Drafts and today's date come from the browser, so load them once hydrated (no hydration mismatch).
@@ -101,13 +104,13 @@ export function StoryMaker({ canAppoint }: { canAppoint: boolean }) {
 
   const template: StoryTemplate = templateById(state?.current ?? STORY_TEMPLATES[0].id);
   const values = state && template.kind === "canvas" ? state.values[template.id] : null;
-  const livestreamQuery = useMemo(() => (state ? livestreamThumbnailQuery(state.livestream) : ""), [state]);
-  const custom = useCustomLayout(template.kind === "custom");
+  const livestreamQuery = useMemo(() => (state ? livestreamThumbnailQuery(state.livestream, format) : ""), [state, format]);
+  const custom = useCustomLayout(template.kind === "custom", format);
   const show = useShowStory(template.kind === "show");
   const showFitKey = useMemo(() => ({ draft: show.draft, slide: show.slideIndex }), [show.draft, show.slideIndex]);
   const brandIssues = useMemo(
-    () => (template.kind === "custom" ? brandChecks(custom.layout, custom.measured) : []),
-    [template.kind, custom.layout, custom.measured]
+    () => (template.kind === "custom" ? brandChecks(custom.layout, custom.measured, CANVAS[format]) : []),
+    [template.kind, custom.layout, custom.measured, format]
   );
   const handleOverflow = useCallback((next: boolean) => setOverflow(next), []);
 
@@ -149,13 +152,14 @@ export function StoryMaker({ canAppoint }: { canAppoint: boolean }) {
 
   async function renderPng(node: HTMLDivElement) {
     const { getFontEmbedCSS, toPng } = await import("html-to-image");
-    fontCssRef.current ??= await getFontEmbedCSS(node);
+    // Worked out per export: the embedded fonts are only those this artwork uses (Lexend, Geist Mono).
+    const fontEmbedCSS = await getFontEmbedCSS(node);
     return toPng(node, {
-      width: STORY_WIDTH,
-      height: STORY_HEIGHT,
+      width: CANVAS[format].width,
+      height: CANVAS[format].height,
       pixelRatio: 1,
-      backgroundColor: "#0F110F",
-      fontEmbedCSS: fontCssRef.current
+      backgroundColor: THEME_BACKGROUND[theme],
+      fontEmbedCSS
     });
   }
 
@@ -167,9 +171,9 @@ export function StoryMaker({ canAppoint }: { canAppoint: boolean }) {
     try {
       const fileName = template.kind === "show" && show.story
         ? showSlideFileName(show.story.date, show.slide, show.slideIndex)
-        : storyFileName(template.id, new Date());
+        : storyFileName(template.id, new Date(), format);
       triggerDownload(await renderPng(node), fileName);
-      toast.success("Story downloaded.");
+      toast.success(`${CANVAS[format].label} downloaded.`);
     } catch (error) {
       console.error("Story export failed", error);
       toast.error("Couldn’t make the PNG. Try again, or use a smaller photo.");
@@ -236,9 +240,10 @@ export function StoryMaker({ canAppoint }: { canAppoint: boolean }) {
         show,
         brandIssueCount: brandIssues.length,
         onBrandIssues: () => scrollToSection(BRAND_CHECK_ID),
-        onSlides: () => scrollToSection(SLIDES_ID)
+        onSlides: () => scrollToSection(SLIDES_ID),
+        format
       })
-    : [STORY_SIZE_STATUS];
+    : [sizeStatus(format)];
   const hint = !state ? null : template.kind === "canvas" ? (
     "Drag a photo onto the preview to add it."
   ) : template.kind === "show" ? (
@@ -330,7 +335,7 @@ export function StoryMaker({ canAppoint }: { canAppoint: boolean }) {
           </>
         }
         title="Instagram Post Maker"
-        description="On-brand Instagram stories, 1080 × 1920 PNG. Photos stay on this device."
+        description="On-brand Instagram posts (1080 × 1350) and stories (1080 × 1920), on white or dark. Photos stay on this device."
         actions={
           canAppoint ? (
             <ManagerRosterButton
@@ -370,6 +375,11 @@ export function StoryMaker({ canAppoint }: { canAppoint: boolean }) {
           actions={actions}
           status={status}
           hint={hint}
+          format={format}
+          theme={theme}
+          onFormatChange={setFormat}
+          onThemeChange={setTheme}
+          formatLocked={busy}
           showSafeZones={showSafeZones}
           onShowSafeZonesChange={setShowSafeZones}
           onBarRoomChange={setBarRoom}
@@ -378,20 +388,20 @@ export function StoryMaker({ canAppoint }: { canAppoint: boolean }) {
           className={cn("md:col-start-1 md:row-span-2 md:row-start-1 md:self-start @min-[74rem]/story:col-start-2", STAGE_STICKY, STICKY_TOP)}
         >
           {template.kind === "livestream" ? (
-            <LivestreamPreview query={livestreamQuery} />
+            <LivestreamPreview query={livestreamQuery} format={format} />
           ) : template.kind === "custom" ? (
-            <StoryCanvas storyRef={storyRef} exporting={exporting} fitKey={custom.layout} onOverflowChange={handleOverflow}>
+            <StoryCanvas storyRef={storyRef} format={format} theme={theme} exporting={exporting} fitKey={custom.layout} onOverflowChange={handleOverflow}>
               <CustomCanvas api={custom} />
             </StoryCanvas>
           ) : template.kind === "show" ? (
             show.draft && show.story ? (
-              <StoryCanvas storyRef={storyRef} exporting={exporting} fitKey={showFitKey} onOverflowChange={handleOverflow}>
+              <StoryCanvas storyRef={storyRef} format={format} theme={theme} exporting={exporting} fitKey={showFitKey} onOverflowChange={handleOverflow}>
                 <ShowSlideArt slide={show.slide} draft={show.draft} date={show.story.date} hasAnnouncements={show.story.announcements.length > 0 || Boolean(show.draft.points.trim())} />
               </StoryCanvas>
             ) : null
           ) : values ? (
-            <StoryCanvas storyRef={storyRef} exporting={exporting} fitKey={values} onOverflowChange={handleOverflow}>
-              {template.render(values)}
+            <StoryCanvas storyRef={storyRef} format={format} theme={theme} exporting={exporting} fitKey={values} onOverflowChange={handleOverflow}>
+              {template.render(values, { format, theme })}
             </StoryCanvas>
           ) : null}
         </StoryStage>
@@ -400,7 +410,7 @@ export function StoryMaker({ canAppoint }: { canAppoint: boolean }) {
           {!state ? (
             <InspectorSkeleton label="Loading your drafts" />
           ) : template.kind === "custom" ? (
-            <CustomPanel api={custom} issues={brandIssues} />
+            <CustomPanel api={custom} issues={brandIssues} theme={theme} />
           ) : template.kind === "show" ? (
             <ShowPanel api={show} locked={busy} />
           ) : template.kind === "livestream" ? (

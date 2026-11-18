@@ -10,7 +10,9 @@ import {
   Check,
   CircleCheck,
   Copy,
+  Hash,
   ImagePlus,
+  Minus,
   PanelTop,
   RectangleHorizontal,
   SendToBack,
@@ -18,7 +20,8 @@ import {
   Square,
   Trash2,
   TriangleAlert,
-  Type
+  Type,
+  WholeWord
 } from "lucide-react";
 import { Disclosure } from "@/components/kit/disclosure";
 import { IconButton } from "@/components/kit/icon-button";
@@ -44,6 +47,7 @@ import {
   type TextColorId,
   type TextStyleId
 } from "@/src/lib/story-custom";
+import type { StoryTheme } from "@/src/lib/story-maker";
 import { cn } from "@/src/lib/utils";
 import { PhotoInput, STORY_LABEL_CLASS, Segmented, StoryField, TOUCH_HEIGHT } from "../story-fields";
 import { TEXT_INPUT_ID } from "./custom-canvas";
@@ -55,27 +59,29 @@ const SELECTED_ID = "story-selected";
 
 const ADD: ReadonlyArray<{ preset: ElementPreset; label: string; icon: ComponentType<{ className?: string }> }> = [
   { preset: "text", label: "Text", icon: Type },
+  { preset: "number", label: "Number", icon: Hash },
   { preset: "photo", label: "Photo", icon: ImagePlus },
-  { preset: "plate", label: "Ink plate", icon: Square },
+  { preset: "plate", label: "Shape", icon: Square },
   { preset: "strip", label: "Green strip", icon: RectangleHorizontal },
+  { preset: "rule", label: "Rule", icon: Minus },
   { preset: "header", label: "Header", icon: PanelTop },
+  { preset: "wordmark", label: "Wordmark", icon: WholeWord },
   { preset: "icon", label: "Icon tile", icon: Square },
   { preset: "footer", label: "Footer", icon: AtSign },
   { preset: "follow", label: "Follow panel", icon: Share2 }
 ];
+const LOGO_PRESETS = new Set<ElementPreset>(["icon", "header", "wordmark"]);
 
 const KIND_LABEL: Record<CustomElement["kind"], string> = {
   text: "Text",
   photo: "Photo",
-  plate: "Plate",
+  plate: "Shape",
   icon: "Icon tile",
+  wordmark: "Wordmark",
   header: "Header",
   footer: "Footer",
   follow: "Follow panel"
 };
-
-const COLOR_LABEL: Record<TextColorId, string> = { white: "Soft White", mist: "Mist", green: "Green" };
-const FILL_LABEL: Record<PlateFillId, string> = { ink: "Ink", "ink-2": "Raised Ink", green: "InFocus Green" };
 /** Every icon button in the Selected block (header and Arrange): 32px from md, 40px on phones. */
 const ICON_ACTION = "max-md:h-10";
 /** Open/closed for the shortcut list at the end of the fields, remembered per browser (kit prefix `infocus:ui:`). */
@@ -120,7 +126,7 @@ function Swatches<T extends string>({ label, value, options, onChange }: {
   );
 }
 
-function TextProperties({ el, set }: { el: Extract<CustomElement, { kind: "text" }>; set: (patch: Partial<CustomElement>, key?: string) => void }) {
+function TextProperties({ el, set, theme }: { el: Extract<CustomElement, { kind: "text" }>; set: (patch: Partial<CustomElement>, key?: string) => void; theme: StoryTheme }) {
   return (
     <>
       <StoryField id={TEXT_INPUT_ID} label="Text">
@@ -150,7 +156,7 @@ function TextProperties({ el, set }: { el: Extract<CustomElement, { kind: "text"
       <Swatches
         label="Color"
         value={el.color}
-        options={(Object.keys(TEXT_COLORS) as TextColorId[]).map((id) => ({ id, hex: TEXT_COLORS[id], name: COLOR_LABEL[id] }))}
+        options={(Object.keys(TEXT_COLORS) as TextColorId[]).map((id) => ({ id, hex: TEXT_COLORS[id][theme], name: TEXT_COLORS[id].label }))}
         onChange={(color) => set({ color })}
       />
       <Segmented
@@ -163,11 +169,11 @@ function TextProperties({ el, set }: { el: Extract<CustomElement, { kind: "text"
   );
 }
 
-function Properties({ api, el }: { api: CustomLayoutApi; el: CustomElement }) {
+function Properties({ api, el, theme }: { api: CustomLayoutApi; el: CustomElement; theme: StoryTheme }) {
   const set = (patch: Partial<CustomElement>, key?: string) => api.update(el.id, patch, key);
   switch (el.kind) {
     case "text":
-      return <TextProperties el={el} set={set} />;
+      return <TextProperties el={el} set={set} theme={theme} />;
     case "photo":
       return (
         <>
@@ -179,7 +185,7 @@ function Properties({ api, el }: { api: CustomLayoutApi; el: CustomElement }) {
             onRemove={() => set({ photo: null })}
           />
           <Button type="button" variant="outline" className={cn(TOUCH_HEIGHT, "w-fit")} onClick={() => api.fillStory(el.id)}>
-            Fill the whole story
+            Fill the whole canvas
           </Button>
         </>
       );
@@ -188,7 +194,7 @@ function Properties({ api, el }: { api: CustomLayoutApi; el: CustomElement }) {
         <Swatches
           label="Fill"
           value={el.fill}
-          options={(Object.keys(PLATE_FILLS) as PlateFillId[]).map((id) => ({ id, hex: PLATE_FILLS[id], name: FILL_LABEL[id] }))}
+          options={(Object.keys(PLATE_FILLS) as PlateFillId[]).map((id) => ({ id, hex: PLATE_FILLS[id][theme], name: PLATE_FILLS[id].label }))}
           onChange={(fill) => set({ fill })}
         />
       );
@@ -198,7 +204,7 @@ function Properties({ api, el }: { api: CustomLayoutApi; el: CustomElement }) {
           <StoryField id="custom-kicker" label="Section label" hint="Caps are automatic." className={PAIRED}>
             <Input id="custom-kicker" className={TOUCH_HEIGHT} value={el.kicker} maxLength={40} onChange={(event) => set({ kicker: event.target.value }, `kicker:${el.id}`)} />
           </StoryField>
-          <StoryField id="custom-meta" label="Green strip" hint="A date or byline. Leave it empty to hide the strip." className={PAIRED}>
+          <StoryField id="custom-meta" label="Line under the rule" hint="A date or byline, in mono. Leave it empty to hide it." className={PAIRED}>
             <Input id="custom-meta" className={TOUCH_HEIGHT} value={el.meta} maxLength={60} onChange={(event) => set({ meta: event.target.value }, `meta:${el.id}`)} />
           </StoryField>
         </div>
@@ -211,8 +217,14 @@ function Properties({ api, el }: { api: CustomLayoutApi; el: CustomElement }) {
       );
     case "icon":
       return <p className="text-xs leading-snug text-muted-foreground">The InFocus icon on an Ink tile. Drag the corner to resize; it stays square.</p>;
+    case "wordmark":
+      return <p className="text-xs leading-snug text-muted-foreground">The InFocus wordmark: the color one on white, the white one on dark. Drag the corner to resize; it keeps its shape.</p>;
     case "footer":
-      return <p className="text-xs leading-snug text-muted-foreground">The site and Instagram handle over a thin rule. Drag the side handle to change its width.</p>;
+      return (
+        <StoryField id="custom-source" label="Source" hint="Bottom left, e.g. “Santa Clara County”. Leave it empty to show infocusnews.tv.">
+          <Input id="custom-source" className={TOUCH_HEIGHT} value={el.source ?? ""} maxLength={80} onChange={(event) => set({ source: event.target.value }, `source:${el.id}`)} />
+        </StoryField>
+      );
   }
 }
 
@@ -249,7 +261,7 @@ function ShortcutsDisclosure({ className }: { className?: string }) {
   );
 }
 
-function SelectedSection({ api }: { api: CustomLayoutApi }) {
+function SelectedSection({ api, theme }: { api: CustomLayoutApi; theme: StoryTheme }) {
   const { selected } = api;
   const titles = useShortcutTitles();
   return (
@@ -268,7 +280,7 @@ function SelectedSection({ api }: { api: CustomLayoutApi }) {
     >
       {selected ? (
         <div key={selected.id} className="grid gap-4">
-          <Properties api={api} el={selected} />
+          <Properties api={api} el={selected} theme={theme} />
           <Arrange api={api} el={selected} />
         </div>
       ) : (
@@ -291,18 +303,18 @@ function SelectedSection({ api }: { api: CustomLayoutApi }) {
  * preview. `issues` is brandChecks(layout, measured), worked out once
  * by the editor (the status line above the preview counts the same list).
  */
-export function CustomPanel({ api, issues }: { api: CustomLayoutApi; issues: readonly BrandIssue[] }) {
+export function CustomPanel({ api, issues, theme }: { api: CustomLayoutApi; issues: readonly BrandIssue[]; theme: StoryTheme }) {
   const { layout } = api;
-  const hasRedDot = layout.elements.some((el) => el.kind === "icon" || el.kind === "header");
+  const hasLogo = layout.elements.some((el) => el.kind === "icon" || el.kind === "header" || el.kind === "wordmark");
 
   return (
     <div className={INSPECTOR_BODY_CLASS}>
-      <SelectedSection api={api} />
+      <SelectedSection api={api} theme={theme} />
 
       <InspectorSection title="Add" count={`${layout.elements.length} / ${MAX_ELEMENTS}`}>
         <div className="grid grid-cols-2 gap-2 @min-[36rem]:grid-cols-4">
           {ADD.map(({ preset, label, icon: Icon }) => {
-            const oneRed = (preset === "icon" || preset === "header") && hasRedDot;
+            const oneRed = LOGO_PRESETS.has(preset) && hasLogo;
             return (
               <Button
                 key={preset}
@@ -310,7 +322,7 @@ export function CustomPanel({ api, issues }: { api: CustomLayoutApi; issues: rea
                 variant="outline"
                 className={cn(TOUCH_HEIGHT, "min-w-0 justify-start px-3")}
                 disabled={oneRed}
-                title={oneRed ? "One red dot per story: remove the other icon or header first" : undefined}
+                title={oneRed ? "Use the logo once: remove the other header, wordmark or icon first" : undefined}
                 onClick={() => api.add(preset)}
               >
                 <Icon className="h-4 w-4" />
@@ -325,7 +337,7 @@ export function CustomPanel({ api, issues }: { api: CustomLayoutApi; issues: rea
         <Segmented
           label="Fill"
           value={layout.background.kind}
-          options={[{ value: "ink", label: "Ink" }, { value: "photo", label: "Photo" }]}
+          options={[{ value: "ink", label: "Plain" }, { value: "photo", label: "Photo" }]}
           onChange={(kind) => api.setBackground(kind === "photo" ? { kind: "photo", photo: layout.background.kind === "photo" ? layout.background.photo : null } : { kind: "ink" })}
         />
         {layout.background.kind === "photo" ? (

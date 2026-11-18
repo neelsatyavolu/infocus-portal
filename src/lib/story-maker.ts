@@ -5,6 +5,38 @@ export const STORY_WIDTH = 1080;
 export const STORY_HEIGHT = 1920;
 /** Instagram's own UI covers the top and bottom 250px of a story (DESIGN.md §12). */
 export const STORY_SAFE_BAND = 250;
+
+/**
+ * What the Post Maker exports. A feed post (4:5) is the default; stories keep Instagram's
+ * covered bands top and bottom. See docs/SOCIAL-MEDIA-DESIGN.md.
+ */
+export const STORY_FORMATS = ["post", "story"] as const;
+export type StoryFormat = (typeof STORY_FORMATS)[number];
+export type CanvasSpec = {
+  width: number;
+  height: number;
+  /** Where the artwork's frame starts and ends (margins, or Instagram's covered bands on stories). */
+  top: number;
+  bottom: number;
+  /** Text must stay out of these bands (0 on posts). */
+  safeBand: number;
+  label: string;
+};
+export const CANVAS: Record<StoryFormat, CanvasSpec> = {
+  post: { width: 1080, height: 1350, top: 80, bottom: 72, safeBand: 0, label: "Post" },
+  story: { width: STORY_WIDTH, height: STORY_HEIGHT, top: STORY_SAFE_BAND, bottom: STORY_SAFE_BAND, safeBand: STORY_SAFE_BAND, label: "Story" }
+};
+/** Side margin of every post and story. */
+export const SIDE_MARGIN = 80;
+
+/** Warm white is the default; dark matches the on-air graphics. */
+export const STORY_THEMES = ["light", "dark"] as const;
+export type StoryTheme = (typeof STORY_THEMES)[number];
+/** The canvas color behind each theme (also the PNG's background). */
+export const THEME_BACKGROUND: Record<StoryTheme, string> = { light: "#FAF7F0", dark: "#0F110F" };
+
+export const isStoryFormat = (value: unknown): value is StoryFormat => STORY_FORMATS.includes(value as StoryFormat);
+export const isStoryTheme = (value: unknown): value is StoryTheme => STORY_THEMES.includes(value as StoryTheme);
 /** Text shrinks to 75% at most; past that we ask for shorter copy. */
 export const MIN_FIT_SCALE = 0.75;
 const FIT_STEP = 0.025;
@@ -48,9 +80,9 @@ export function fitScale(heightAt: (scale: number) => number, maxHeight: number)
   return { scale, overflow: heightAt(scale) > maxHeight + 1 };
 }
 
-export function storyFileName(templateId: string, date: Date): string {
+export function storyFileName(templateId: string, date: Date, format: StoryFormat = "story"): string {
   const ymd = [date.getFullYear(), date.getMonth() + 1, date.getDate()].map((n) => String(n).padStart(2, "0")).join("-");
-  return `infocus-story-${templateId}-${ymd}.png`;
+  return `infocus-${format}-${templateId}-${ymd}.png`;
 }
 
 /** The Livestream template's fields: the livestream thumbnail's query, fixed to the story format. */
@@ -72,9 +104,9 @@ export function defaultLivestreamFields(today: Date): LivestreamFields {
   return { template: "matchup", home: "Paly", away: "Gunn", line: "Varsity Football", title: "Livestream title", location: "Viking Stadium", date, time: "19:00" };
 }
 
-/** Same query the livestream dashboard's thumbnail panel sends to /api/live/thumbnail, as a story. */
-export function livestreamThumbnailQuery(fields: LivestreamFields): string {
-  const search = new URLSearchParams({ template: fields.template, format: "story" });
+/** Same query the livestream dashboard's thumbnail panel sends to /api/live/thumbnail, as a post or story. */
+export function livestreamThumbnailQuery(fields: LivestreamFields, format: StoryFormat = "story"): string {
+  const search = new URLSearchParams({ template: fields.template, format });
   const keys = fields.template === "matchup" ? (["home", "away", "line"] as const) : (["title"] as const);
   for (const key of [...keys, "location", "date", "time"] as const) {
     const value = fields[key].trim();

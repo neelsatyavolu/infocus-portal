@@ -233,7 +233,7 @@ function PackageFields({ api, index }: SlideProps & { index: number }) {
         onChange={(photo) => api.updatePackage(index, { photo })}
         onRemove={() => api.updatePackage(index, { photo: null })}
       />
-      <StoryField id="show-pkg-strip" label="Green strip under each frame" hint="Same strip on every package slide. Leave it empty to hide it.">
+      <StoryField id="show-pkg-strip" label="Label over each package title" hint="Same label on every package slide, e.g. “Now on YouTube”. Leave it empty to hide it.">
         <Input id="show-pkg-strip" className={TOUCH_HEIGHT} value={api.draft.packageStrip} onChange={(event) => api.update({ packageStrip: event.target.value })} />
       </StoryField>
     </>

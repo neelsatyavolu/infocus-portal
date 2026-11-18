@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { CANVAS } from "@/src/lib/story-maker";
 import {
   MIN_TEXT_PX,
   addElement,
@@ -77,9 +78,9 @@ describe("moving and resizing", () => {
   const targets = snapTargets(layoutOf(), null, {});
 
   it("snaps an edge or centre to the nearest guide within the threshold", () => {
-    const snapped = snapMove({ x: 80, y: 500, w: 200, h: 100 }, targets);
-    expect(snapped.x).toBe(72);
-    expect(snapped.guides.x).toEqual([72]);
+    const snapped = snapMove({ x: 88, y: 500, w: 200, h: 100 }, targets);
+    expect(snapped.x).toBe(80);
+    expect(snapped.guides.x).toEqual([80]);
 
     const centred = snapMove({ x: 445, y: 500, w: 200, h: 100 }, targets);
     expect(centred.x).toBe(440);
@@ -110,7 +111,8 @@ describe("moving and resizing", () => {
   it("enforces a minimum size and the canvas edge", () => {
     const plate = { ...createElement("plate", "p"), x: 900, y: 1800 };
     const sized = resizeElement(plate, 5, 5000, snapTargets(layoutOf(), null, {}));
-    expect(sized.w).toBeGreaterThanOrEqual(24);
+    // Rules can be as thin as 3px.
+    expect(sized.w).toBeGreaterThanOrEqual(3);
     expect(plate.y + sized.h).toBeLessThanOrEqual(1920);
   });
 });
@@ -120,17 +122,38 @@ describe("brand checks", () => {
     expect(issueKeys(starterLayout((n) => `el-${n}`, "Sept. 26, 2026"))).toEqual(["empty-photo:el-1"]);
   });
 
-  it("starts with a photo, a credited green strip under it, and the headline below", () => {
-    const starter = starterLayout((n) => `el-${n}`, "Sept. 26, 2026");
-    const [header, photo, strip, credit, headline, footer] = starter.elements;
-    expect(header).toMatchObject({ kind: "header", meta: "Sept. 26, 2026" });
-    expect(strip).toMatchObject({ kind: "plate", fill: "green", y: photo.y + photo.h });
-    expect(credit).toMatchObject({ kind: "text", style: "label", color: "white" });
-    expect(credit.y).toBeGreaterThanOrEqual(strip.y);
-    expect(credit.y + 34).toBeLessThanOrEqual(strip.y + strip.h);
-    expect(headline).toMatchObject({ kind: "text", style: "headline" });
-    expect(headline.y).toBeGreaterThan(strip.y + strip.h);
-    expect(headline.y + headline.h).toBeLessThan(footer.y);
+  it("starts like the Headline template: header, photo, credit, headline, date, footer", () => {
+    for (const spec of [CANVAS.post, CANVAS.story]) {
+      const starter = starterLayout((n) => `el-${n}`, "Sept. 26, 2026", spec);
+      const [header, photo, credit, headline, date, footer] = starter.elements;
+      expect(header).toMatchObject({ kind: "header", w: spec.width - 160 });
+      expect(credit).toMatchObject({ kind: "text", color: "muted" });
+      expect(credit.y).toBeGreaterThan(photo.y + photo.h);
+      expect(headline).toMatchObject({ kind: "text", style: "headline" });
+      expect(date).toMatchObject({ kind: "text", style: "meta", text: "Sept. 26, 2026" });
+      expect(date.y + date.h).toBeLessThan(footer.y);
+      expect(footer.y + footer.h).toBeLessThanOrEqual(spec.height - Math.max(spec.bottom, spec.safeBand));
+      expect(brandChecks(starter, {}, spec).map((issue) => issue.key)).toEqual(["empty-photo:el-1"]);
+    }
+  });
+
+  it("only checks Instagram's covered bands on stories", () => {
+    const layout = layoutOf(text("t", { y: 100 }), createElement("footer", "f"));
+    expect(brandChecks(layout, {}, CANVAS.story).map((i) => i.key)).toContain("safe-zone:t");
+    expect(brandChecks(layout, {}, CANVAS.post).map((i) => i.key)).not.toContain("safe-zone:t");
+  });
+
+  it("asks for a footer and flags words set in the mono style", () => {
+    expect(issueKeys(layoutOf(text("t")))).toContain("no-footer");
+    const mono = text("m", { style: "number", text: "Democrats" } as Partial<CustomElement>);
+    const time = text("n", { style: "meta", text: "As of 7:13 PM PT · Nov. 17" } as Partial<CustomElement>);
+    expect(issueKeys(layoutOf(mono, time, createElement("footer", "f")))).toEqual(["mono-words:m"]);
+  });
+
+  it("keeps the wordmark's shape and counts it as the logo", () => {
+    const sized = resizeElement(createElement("wordmark", "w"), 400, 900, snapTargets(layoutOf(), null, {}));
+    expect(sized.h).toBe(Math.round(sized.w * (321 / 1200)));
+    expect(issueKeys(layoutOf(createElement("wordmark", "w"), createElement("header", "h")))).toContain("one-red");
   });
 
   it("flags text in Instagram's UI zones", () => {

@@ -7,6 +7,8 @@ import { IconButton } from "@/components/kit/icon-button";
 import { StatusTag } from "@/components/kit/status-tag";
 import { Switch } from "@/components/ui/switch";
 import { StoryFrame } from "@/components/story-maker/story-canvas";
+import { Segmented } from "@/components/story-maker/story-fields";
+import type { StoryFormat, StoryTheme } from "@/src/lib/story-maker";
 import { cn } from "@/src/lib/utils";
 import { FIELDS_ID } from "./inspector-section";
 
@@ -231,15 +233,20 @@ function StageActions({
 }
 
 /**
- * The preview column: download actions, the status line, the 9:16 frame (rendered once and
+ * The preview column: download actions, the status line, the 4:5 or 9:16 frame (rendered once and
  * never hidden, because fitting, Custom measuring and the PNG export all need it laid out), the
- * UI-zones switch, and the hint under it. Photos can be dropped anywhere on it (`drop` handlers).
+ * format and background switches, the UI-zones switch (stories only), and the hint under it. Photos can be dropped anywhere on it (`drop` handlers).
  * `onBarRoomChange`: bottom padding (px) the page needs on phones to clear the fixed action bar.
  */
 export function StoryStage({
   actions,
   status,
   hint,
+  format,
+  theme,
+  onFormatChange,
+  onThemeChange,
+  formatLocked,
   showSafeZones,
   onShowSafeZonesChange,
   onBarRoomChange,
@@ -251,6 +258,12 @@ export function StoryStage({
   actions: ReactNode;
   status: StageStatusItem[];
   hint?: ReactNode;
+  format: StoryFormat;
+  theme: StoryTheme;
+  onFormatChange: (next: StoryFormat) => void;
+  onThemeChange: (next: StoryTheme) => void;
+  /** Turns the switches off (while exporting). */
+  formatLocked?: boolean;
   showSafeZones: boolean;
   onShowSafeZonesChange: (next: boolean) => void;
   onBarRoomChange: (px: number) => void;
@@ -268,15 +281,35 @@ export function StoryStage({
       <div className={cn(FRAME_COLUMN, "flex flex-col gap-3")}>
         <StageStatus items={status} />
         <div ref={frameRef} className={cn("rounded-md", dragging && "outline-dashed outline-2 outline-offset-2 outline-[var(--brand-green)]")}>
-          <StoryFrame showSafeZones={showSafeZones}>{children}</StoryFrame>
+          <StoryFrame format={format} theme={theme} showSafeZones={showSafeZones}>{children}</StoryFrame>
         </div>
         <div className="grid gap-1">
-          <div className="flex h-10 min-w-0 items-center gap-2 md:h-8">
-            <Switch id="safe-zones" checked={showSafeZones} onCheckedChange={onShowSafeZonesChange} />
-            <label htmlFor="safe-zones" className="min-w-0 flex-1 cursor-pointer truncate text-sm leading-10 text-[var(--ink-text)] md:leading-8">
-              Show Instagram’s UI zones
-            </label>
-          </div>
+          <fieldset disabled={formatLocked} className="flex min-w-0 flex-wrap items-center gap-2">
+            <Segmented
+              label="Format"
+              hideLabel
+              size="sm"
+              value={format}
+              options={[{ value: "post", label: "Post 4:5" }, { value: "story", label: "Story 9:16" }]}
+              onChange={(next) => onFormatChange(next as StoryFormat)}
+            />
+            <Segmented
+              label="Background"
+              hideLabel
+              size="sm"
+              value={theme}
+              options={[{ value: "light", label: "White" }, { value: "dark", label: "Dark" }]}
+              onChange={(next) => onThemeChange(next as StoryTheme)}
+            />
+          </fieldset>
+          {format === "story" ? (
+            <div className="flex h-10 min-w-0 items-center gap-2 md:h-8">
+              <Switch id="safe-zones" checked={showSafeZones} onCheckedChange={onShowSafeZonesChange} />
+              <label htmlFor="safe-zones" className="min-w-0 flex-1 cursor-pointer truncate text-sm leading-10 text-[var(--ink-text)] md:leading-8">
+                Show Instagram’s UI zones
+              </label>
+            </div>
+          ) : null}
           {hint ? <p className="text-xs leading-4 text-muted-foreground">{hint}</p> : null}
         </div>
       </div>

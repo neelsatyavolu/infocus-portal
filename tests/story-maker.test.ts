@@ -98,3 +98,22 @@ describe("storyFileName", () => {
     expect(storyFileName("cover", new Date(2026, 8, 26, 23, 30))).toBe("infocus-story-cover-2026-09-26.png");
   });
 });
+
+describe("formats", () => {
+  it("names files by format", async () => {
+    const { storyFileName } = await import("@/src/lib/story-maker");
+    expect(storyFileName("race", new Date(2026, 10, 17), "post")).toBe("infocus-post-race-2026-11-17.png");
+    expect(storyFileName("race", new Date(2026, 10, 17))).toBe("infocus-story-race-2026-11-17.png");
+  });
+
+  it("asks the thumbnail API for the chosen format", async () => {
+    const { defaultLivestreamFields, livestreamThumbnailQuery } = await import("@/src/lib/story-maker");
+    expect(new URLSearchParams(livestreamThumbnailQuery(defaultLivestreamFields(new Date(2026, 9, 3)), "post")).get("format")).toBe("post");
+  });
+
+  it("keeps stories' covered bands and gives posts plain margins", async () => {
+    const { CANVAS } = await import("@/src/lib/story-maker");
+    expect(CANVAS.post).toMatchObject({ width: 1080, height: 1350, safeBand: 0 });
+    expect(CANVAS.story).toMatchObject({ width: 1080, height: 1920, safeBand: 250 });
+  });
+});

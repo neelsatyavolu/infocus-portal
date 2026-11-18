@@ -1,6 +1,7 @@
 import { TriangleAlert } from "lucide-react";
 import type { ShowStoryApi } from "@/components/story-maker/show/use-show-story";
 import type { StoryTemplate } from "@/components/story-maker/story-templates";
+import { CANVAS, type StoryFormat } from "@/src/lib/story-maker";
 import type { StageStatusItem } from "./story-stage";
 
 export const OVERFLOW_MESSAGE = "Some text is too long to fit, even after shrinking. Shorten it before you download.";
@@ -8,7 +9,10 @@ export const OVERFLOW_MESSAGE = "Some text is too long to fit, even after shrink
 type ShowState = Pick<ShowStoryApi, "loadError" | "draft" | "story" | "loading" | "generating" | "slideIndex" | "slides">;
 
 /** What the status line shows when nothing else applies, so it is never an empty band. */
-export const STORY_SIZE_STATUS: StageStatusItem = { key: "size", tone: "neutral", label: "1080 × 1920" };
+export function sizeStatus(format: StoryFormat): StageStatusItem {
+  const spec = CANVAS[format];
+  return { key: "size", tone: "neutral", label: `${spec.label} · ${spec.width} × ${spec.height}` };
+}
 
 /**
  * The tags above the preview for the open template (StoryStage sorts them by severity):
@@ -24,7 +28,8 @@ export function stageStatusItems({
   show,
   brandIssueCount,
   onBrandIssues,
-  onSlides
+  onSlides,
+  format = "post"
 }: {
   kind: StoryTemplate["kind"];
   /** A canvas or Show slide is on screen, so `overflow` is current. */
@@ -34,6 +39,7 @@ export function stageStatusItems({
   brandIssueCount: number;
   onBrandIssues: () => void;
   onSlides: () => void;
+  format?: StoryFormat;
 }): StageStatusItem[] {
   const isShow = kind === "show";
   const items: Array<StageStatusItem | false> = [
@@ -67,5 +73,5 @@ export function stageStatusItems({
       }
   ];
   const shown = items.filter((item): item is StageStatusItem => Boolean(item));
-  return shown.length ? shown : [STORY_SIZE_STATUS];
+  return shown.length ? shown : [sizeStatus(format)];
 }

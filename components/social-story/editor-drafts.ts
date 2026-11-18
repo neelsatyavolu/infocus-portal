@@ -57,7 +57,9 @@ export function initialState(): EditorState {
   const saved = readSaved();
   const values = Object.fromEntries(
     canvasTemplates.map((template) => {
-      const savedText = saved.text?.[template.id] ?? {};
+      const stored = saved.text?.[template.id] ?? {};
+      // The Headline template's "strip" (credit on the old green strip) is now "credit".
+      const savedText = template.id === "cover" && stored.strip !== undefined && stored.credit === undefined ? { ...stored, credit: stored.strip } : stored;
       const known = Object.fromEntries(Object.entries(savedText).filter(([key]) => template.fields.some((f) => f.key === key && f.type !== "photo")));
       return [template.id, { ...templateDefaults(template), ...known }];
     })

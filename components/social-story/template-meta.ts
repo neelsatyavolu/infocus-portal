@@ -1,14 +1,20 @@
 import {
+  ChartBar,
+  ChartColumnStacked,
   Clapperboard,
   Hash,
   Images,
   LayoutTemplate,
   Link2,
+  ListOrdered,
   Megaphone,
   Newspaper,
   Quote,
   Radio,
   Shapes,
+  Text,
+  ToggleLeft,
+  Trophy,
   Tv,
   type LucideIcon
 } from "lucide-react";
@@ -17,7 +23,8 @@ import type { StoryTemplate } from "@/components/story-maker/story-templates";
 /** How the template picker groups STORY_TEMPLATES. Ids missing here fall into "Templates". */
 const GROUPS: ReadonlyArray<{ label: string; ids: readonly string[] }> = [
   { label: "From the Portal", ids: ["show", "livestream"] },
-  { label: "Templates", ids: ["cover", "quote", "gallery", "package", "brief", "stat", "link"] },
+  { label: "Templates", ids: ["cover", "quote", "gallery", "package", "brief", "text", "stat", "link"] },
+  { label: "Results and data", ids: ["race", "measure", "seats", "winner", "figures"] },
   { label: "Freeform", ids: ["custom"] }
 ];
 const FALLBACK_GROUP = "Templates";
@@ -32,6 +39,12 @@ const ICONS: Record<string, LucideIcon> = {
   brief: Megaphone,
   stat: Hash,
   link: Link2,
+  text: Text,
+  race: ChartBar,
+  measure: ToggleLeft,
+  seats: ChartColumnStacked,
+  winner: Trophy,
+  figures: ListOrdered,
   custom: Shapes
 };
 

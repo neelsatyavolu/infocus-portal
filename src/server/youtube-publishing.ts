@@ -139,7 +139,7 @@ export async function advanceYoutubePublication(rowId: string, now = new Date())
     const sourceUrl = await resolveOriginalDownloadUrl(version);
     if (!sourceUrl) throw new PublicationError("Final Cut download is unavailable.");
     const size = await sourceVideoSize(sourceUrl);
-    const sessionUrl = await beginYoutubeUpload(token, size, publication.title, publication.showDate);
+    const sessionUrl = await beginYoutubeUpload(token, size, publication.title, publication.showDate, row.finalCutToss);
     // Save the session before sending any bytes. A lost init response cannot create a duplicate completed video.
     await prisma.youtubePublication.update({ where: { id: publication.id }, data: { sourceSize: BigInt(size), uploadSessionUrl: sessionUrl, lastError: null } });
     return { more: true };

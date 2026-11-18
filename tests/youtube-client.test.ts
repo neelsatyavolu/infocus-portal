@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { readUploadProgress, uploadYoutubeChunk, streamYoutubeChunk, checkYoutubeVideo, PublicationError } from "@/src/server/youtube-client";
+import { beginYoutubeUpload, readUploadProgress, uploadYoutubeChunk, streamYoutubeChunk, checkYoutubeVideo, PublicationError } from "@/src/server/youtube-client";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -51,5 +51,14 @@ describe("YouTube resumable transport", () => {
     vi.stubGlobal("fetch", fetchMock);
     await expect(streamYoutubeChunk({ sourceUrl: "https://drive.example/video", sessionUrl: "https://www.googleapis.com/upload/youtube/v3/videos", token: "token", size: 40, offset: 8, chunkBytes: 10, timeoutMs: 1000 })).rejects.toBeInstanceOf(PublicationError);
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses the package's toss as the video description", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 200, headers: { location: "https://www.googleapis.com/upload/youtube/v3/videos?upload_id=x" } }));
+    vi.stubGlobal("fetch", fetchMock);
+    await beginYoutubeUpload("token", 20, "Title", "2026-11-18", "  Reporters Abby and Otto look at <the> market.  ");
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).snippet.description).toBe("Reporters Abby and Otto look at the market.");
+    await beginYoutubeUpload("token", 20, "Title", "2026-11-18", "   ");
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body).snippet.description).toBe("InFocus News • 2026-11-18");
   });
 });

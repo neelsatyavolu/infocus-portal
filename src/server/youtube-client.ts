@@ -153,10 +153,11 @@ async function startResumableUpload(token: string, size: number, query: string, 
   return uploadUrl(location);
 }
 
-export async function beginYoutubeUpload(token: string, size: number, title: string, showDate: string) {
+/** Package upload. The description is the package's toss, or the show date when it has none. */
+export async function beginYoutubeUpload(token: string, size: number, title: string, showDate: string, toss = "") {
+  const description = toss.replace(/[<>]/g, "").trim().slice(0, 5000) || `InFocus News • ${showDate}`;
   return startResumableUpload(token, size, "&notifySubscribers=false", {
-    snippet: { title: title.replace(/[<>]/g, "").slice(0, 100) || "InFocus package",
-      description: `InFocus News • ${showDate}`, categoryId: "25" },
+    snippet: { title: title.replace(/[<>]/g, "").slice(0, 100) || "InFocus package", description, categoryId: "25" },
     status: { privacyStatus: "unlisted", embeddable: true } });
 }
 

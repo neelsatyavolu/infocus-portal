@@ -240,6 +240,28 @@ export function usePublishingQueue(initialData: QueueData | null) {
     }
   }
 
+  /** Renames a custom package; true once saved. */
+  async function setTitle(rowId: string, title: string) {
+    setBusyId(rowId);
+    try {
+      const response = await fetch(`${QUEUE_URL}/${rowId}/title`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title })
+      });
+      const payload = await readBody<{ title?: string }>(response);
+      if (!response.ok) throw new Error(payload.error?.message ?? "Could not rename the package.");
+      await reloadQuietly();
+      toast.success("Package renamed.");
+      return true;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not rename the package.");
+      return false;
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   /** Hold (with a name) or release a show day; busyId is `show:<date>` meanwhile. */
   async function setShowHold(date: string, label: string | null) {
     setBusyId(`show:${date}`);
@@ -287,6 +309,7 @@ export function usePublishingQueue(initialData: QueueData | null) {
     publishNow,
     setExtraWriters,
     setToss,
+    setTitle,
     setShowHold,
     afterCustomAdded
   };

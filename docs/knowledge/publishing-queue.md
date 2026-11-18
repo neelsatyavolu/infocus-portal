@@ -25,6 +25,7 @@ Each package row shows the thumbnail, the topic (producers: it opens the package
 
 - **Move to another show…:** pick a show from the list (the keyboard and phone way to drag). Full shows are greyed out; the current one is marked.
 - **Publish to YouTube** (when YouTube publishing is configured, until the upload starts): after a confirmation, uploads the package now as unlisted instead of waiting for its air date.
+- **Rename…** (custom packages only): change an uploaded video's title (up to 150 characters, no `< >`). It updates the queue and the show, and the YouTube title if renamed before the upload starts. Other packages take their topic from Package Cycle.
 - **Add toss… / Edit toss…** (custom packages only): write the anchors' toss for an uploaded video, which has no Final Cut tab. It fills the show's teleprompter like any package toss and becomes the YouTube description if saved before the upload starts. Up to 500 characters, no `< > [ ] { }`; leave it blank to clear it. Other packages keep their toss on the Final Cut tab.
 - **Download final cut:** downloads the Final Cut file.
 - **Open package page:** opens `/publishing-queue/<package>` with its YouTube status tag and air date and, once published, the video, the date it was published, **Watch on YouTube**, and the embed code with **Copy embed code**. **Back to Publishing Queue** returns to the queue.

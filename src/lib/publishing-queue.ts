@@ -2,6 +2,8 @@
 export const CUSTOM_QUEUE_CYCLE_NUMBER = 0;
 export const CUSTOM_QUEUE_GROUP_TYPE = "CUSTOM_QUEUE";
 export const CUSTOM_QUEUE_PROJECT_NAME = "Publishing Queue";
+/** Same cap as the Add package upload's title. */
+export const CUSTOM_PACKAGE_TITLE_MAX_LENGTH = 150;
 
 /** Manual placement cap. Automatic assignment never stacks — it picks an empty show. */
 export const MAX_PACKAGES_PER_SHOW = 2;

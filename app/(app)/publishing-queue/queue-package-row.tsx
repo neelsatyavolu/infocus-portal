@@ -10,6 +10,7 @@ import {
   GripVertical,
   Loader2,
   MoreHorizontal,
+  Pencil,
   ScrollText,
   Trash2,
   Upload,
@@ -68,6 +69,7 @@ export function QueuePackageRow({
   onPublish,
   onCoReporters,
   onToss,
+  onRename,
   onRemove
 }: {
   row: QueueRow;
@@ -87,6 +89,8 @@ export function QueuePackageRow({
   onCoReporters?: (row: QueueRow) => void;
   /** Toss editor; custom packages only (others write theirs on the Final Cut tab). */
   onToss?: (row: QueueRow) => void;
+  /** Rename; custom packages only (others take their topic from Package Cycle). */
+  onRename?: (row: QueueRow) => void;
   onRemove?: (rowId: string) => void;
 }) {
   const title = queueRowTitle(row);
@@ -180,6 +184,14 @@ export function QueuePackageRow({
       disabled: busy,
       onSelect: () => onCoReporters?.(row),
       hidden: !onCoReporters || Boolean(row.custom)
+    },
+    {
+      key: "rename",
+      label: "Rename…",
+      icon: Pencil,
+      disabled: busy,
+      onSelect: () => onRename?.(row),
+      hidden: !onRename || !row.custom
     },
     {
       key: "toss",

@@ -26,6 +26,7 @@ import type { OccupiedOn, QueueData, QueueRow } from "./queue-types";
 import { buildQueueView, countOnShow } from "./queue-view-model";
 import { RECENT_PUBLICATIONS_ID, RecentPublications } from "./recent-publications";
 import { ShowRundown, showAnchorId } from "./show-rundown";
+import { TitleDialog, type TitleTarget } from "./title-dialog";
 import { TossDialog, type TossTarget } from "./toss-dialog";
 import { usePublishingQueue } from "./use-publishing-queue";
 import { useQueueDrag } from "./use-queue-drag";
@@ -84,6 +85,7 @@ export default function PublishingQueueClient({
     open: false,
     target: null
   });
+  const [titleDialog, setTitleDialog] = useState<{ open: boolean; target: TitleTarget | null }>({ open: false, target: null });
   const [tossDialog, setTossDialog] = useState<{ open: boolean; target: TossTarget | null }>({ open: false, target: null });
   const [holdDialog, setHoldDialog] = useState<{ open: boolean; target: HoldTarget | null }>({ open: false, target: null });
   // A show date or row id, ringed for a moment after a jump from a summary tile.
@@ -165,6 +167,7 @@ export default function PublishingQueueClient({
         }
         onPublish={canPublish ? (target) => setPublishDialog({ open: true, target: { row: target, returnFocusId: anchorId } }) : undefined}
         onCoReporters={(target) => setCoReportersDialog({ open: true, target: { row: target, returnFocusId: anchorId } })}
+        onRename={(target) => setTitleDialog({ open: true, target: { row: target, returnFocusId: anchorId } })}
         onToss={(target) => setTossDialog({ open: true, target: { row: target, returnFocusId: anchorId } })}
         onRemove={(rowId) => void queue.updateQueue(rowId, false)}
       />
@@ -351,6 +354,12 @@ export default function PublishingQueueClient({
             target={coReportersDialog.target}
             onSave={queue.setExtraWriters}
             onClose={() => setCoReportersDialog((current) => ({ ...current, open: false }))}
+          />
+          <TitleDialog
+            open={titleDialog.open}
+            target={titleDialog.target}
+            onSave={queue.setTitle}
+            onClose={() => setTitleDialog((current) => ({ ...current, open: false }))}
           />
           <TossDialog
             open={tossDialog.open}

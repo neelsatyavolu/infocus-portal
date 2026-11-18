@@ -83,3 +83,22 @@ export async function setCustomPackageToss(rowId: string, toss: string) {
   });
   return saved.finalCutToss;
 }
+
+/**
+ * Renames a custom (uploaded) package: its topic and its video's title, which the YouTube
+ * title uses. Roster packages take their topic from Package Cycle.
+ */
+export async function setCustomPackageTitle(rowId: string, title: string) {
+  const row = await prisma.packageProgressRow.findUnique({
+    where: { id: rowId },
+    select: { cycleNumber: true, groupType: true, finalCutMediaItemId: true }
+  });
+  if (!row) throw new Error("NOT_FOUND");
+  if (!isCustomQueuePackage(row)) throw new Error("Rename this package on Package Cycle.");
+  const mediaItemId = row.finalCutMediaItemId;
+  const [saved] = await prisma.$transaction([
+    prisma.packageProgressRow.update({ where: { id: rowId }, data: { groupTopic: title }, select: { groupTopic: true } }),
+    ...(mediaItemId ? [prisma.mediaItem.update({ where: { id: mediaItemId }, data: { title } })] : [])
+  ]);
+  return saved.groupTopic;
+}

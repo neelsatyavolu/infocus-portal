@@ -192,25 +192,25 @@ button.xm-bow:hover svg { transform: scale(1.12); }
   100% { transform: translate(0, calc(100vh + 20px)); }
 }
 
-/* The village: pinned to the bottom of the window behind the content (like the sky), beside the
-   sidebar. The spacer after <main> gives every page room to scroll its last card clear of it. */
+/* The village: a slim strip pinned to the bottom of the window, in front of the content (below
+   the visitors and the floating buttons). The spacer after <main> is the same height, so the end
+   of every page scrolls clear of it. */
 .xm-scene {
+  --xm-strip: 56px;
   position: fixed;
   left: 0;
   right: 0;
   bottom: var(--phone-tabbar-h, 0px);
-  z-index: -1;
-  height: 170px;
+  z-index: 30;
+  height: var(--xm-strip);
   overflow: hidden;
   pointer-events: none;
-  opacity: 0.85;
 }
-.xm-scene-spacer { flex: none; height: 146px; }
+.xm-scene-spacer { flex: none; height: 56px; }
 @media (min-width: 1024px) {
   .xm-scene { left: 240px; }
   .lg\:pl-16 .xm-scene { left: 4rem; }
 }
-.light .xm-scene { opacity: 0.9; }
 .xm-hill-back,
 .xm-hill-front {
   position: absolute;
@@ -218,10 +218,10 @@ button.xm-bow:hover svg { transform: scale(1.12); }
   bottom: 0;
   width: 100%;
 }
-.xm-hill-back { height: 110px; fill: #2A3530; }
-.xm-hill-front { height: 46px; fill: #E9ECEA; }
-.light .xm-hill-back { fill: #E1E9EF; }
-.light .xm-hill-front { fill: #F4F7FA; }
+.xm-hill-back { height: 30px; fill: #26302B; }
+.xm-hill-front { height: 14px; fill: #E9ECEA; }
+.light .xm-hill-back { fill: #DCE5EC; }
+.light .xm-hill-front { fill: #F4F7FA; filter: drop-shadow(0 -1px 2px rgb(15 17 15 / 0.08)); }
 .xm-scene-tree {
   position: absolute;
   aspect-ratio: 80 / 110;
@@ -232,10 +232,10 @@ button.xm-bow:hover svg { transform: scale(1.12); }
   position: absolute;
   left: 50%;
   top: 0;
-  width: 26%;
+  width: 30%;
   aspect-ratio: 1;
-  translate: -50% -45%;
-  filter: drop-shadow(0 0 5px rgb(255 210 90 / 0.7));
+  translate: -50% -40%;
+  filter: drop-shadow(0 0 3px rgb(255 210 90 / 0.7));
 }
 .xm-tree-star svg { display: block; width: 100%; height: 100%; }
 .xm-tree-lights circle { animation: xm-twinkle 4s ease-in-out infinite; }
@@ -243,44 +243,43 @@ button.xm-bow:hover svg { transform: scale(1.12); }
 .xm-scene[data-show="true"] .xm-tree-lights circle { animation: xm-chase 0.5s steps(2, jump-none) infinite; }
 .xm-cabin {
   position: absolute;
-  bottom: 30px;
-  width: 104px;
+  bottom: 8px;
+  width: 54px;
   translate: -50% 0;
 }
 .xm-cabin svg { display: block; width: 100%; height: auto; overflow: visible; }
-.xm-window { filter: drop-shadow(0 0 8px rgb(255 200 97 / 0.8)); }
+.xm-window { filter: drop-shadow(0 0 5px rgb(255 200 97 / 0.8)); }
 .xm-smoke { animation: xm-steam 4s ease-in-out infinite; }
 .xm-snowman {
   position: absolute;
-  bottom: 8px;
-  width: 56px;
+  bottom: 2px;
+  width: 26px;
   translate: -50% 0;
 }
 .xm-snowman svg { display: block; width: 100%; height: auto; overflow: visible; }
 .xm-pile {
   position: absolute;
-  bottom: 8px;
+  bottom: 3px;
   display: flex;
   align-items: flex-end;
 }
 .xm-piled {
-  width: 26px;
-  margin-left: -6px;
+  width: 15px;
+  margin-left: -3px;
   rotate: calc((var(--xm-i) - 3) * 4deg);
   animation: xm-pop-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
-.xm-piled:nth-child(even) { width: 21px; }
+.xm-piled:nth-child(even) { width: 12px; }
 .xm-piled svg { display: block; width: 100%; height: auto; }
 @keyframes xm-pop-in {
   from { transform: scale(0); }
   to   { transform: scale(1); }
 }
-/* Phones: a lower scene with fewer trees. */
+/* Phones: a lower strip with fewer trees; the page already ends with room for the ✱ button. */
 @media (max-width: 640px) {
-  .xm-scene { height: 130px; }
-  .xm-scene-spacer { height: 40px; }
+  .xm-scene { height: 46px; }
+  .xm-scene-spacer { height: 0; }
   .xm-scene-tree:nth-of-type(even), .xm-cabin { display: none; }
-  .xm-snowman { width: 40px; }
 }
 
 /* ---------- Dressing the Portal itself ---------- */

@@ -14,13 +14,13 @@ const MAX_PILED = 7;
 
 /** The village's trees: [left as a share of the width, height in px, on the near hill]. */
 const TREES: readonly (readonly [number, number, boolean])[] = [
-  [0.05, 120, false],
-  [0.13, 86, true],
-  [0.42, 104, false],
-  [0.52, 74, true],
-  [0.8, 132, false],
-  [0.88, 92, true],
-  [0.96, 70, false]
+  [0.05, 44, false],
+  [0.13, 34, true],
+  [0.42, 40, false],
+  [0.52, 30, true],
+  [0.8, 46, false],
+  [0.88, 36, true],
+  [0.96, 28, false]
 ];
 
 function vars(values: Record<string, string>): CSSProperties {
@@ -39,10 +39,10 @@ function Tree({ left, height, bottom }: { left: number; height: number; bottom: 
 }
 
 /**
- * Snowy hills, decorated trees, a snowman, a lit cabin and the presents this browser caught,
- * pinned to the bottom of the window behind the content (always in view, never over a card).
- * components/app-shell.tsx renders it after <main>, with a spacer so the end of every page scrolls
- * clear of it. The tree lights join the garland's light show.
+ * A slim snowy strip (hills, small decorated trees, a snowman, a lit cabin and the presents this
+ * browser caught) pinned to the bottom of the window, in front of the content, so it is always in
+ * view. components/app-shell.tsx renders it after <main>, with a spacer of the same height so the
+ * end of every page scrolls clear of it. The tree lights join the garland's light show.
  */
 export function ChristmasVillage() {
   const { gifts } = useChristmasPrefs();
@@ -57,14 +57,14 @@ export function ChristmasVillage() {
 
   return (
     <>
-      {/* Room at the end of the page, so the last card scrolls clear of the village. */}
+      {/* Room at the end of the page, so the last card scrolls clear of the strip. */}
       <div className="xm-scene-spacer" aria-hidden />
       <div className="xm-scene" data-show={show} aria-hidden>
         <svg className="xm-hill-back" viewBox="0 0 1200 120" preserveAspectRatio="none">
           <path d="M0 70 Q150 20 320 60 T640 50 T960 40 T1200 60 V120 H0 Z" />
         </svg>
         {TREES.filter(([, , front]) => !front).map(([left, height]) => (
-          <Tree key={left} left={left} height={height} bottom={34} />
+          <Tree key={left} left={left} height={height} bottom={12} />
         ))}
         <span className="xm-cabin" style={{ left: "66%" }}>
           <CabinSprite />
@@ -73,7 +73,7 @@ export function ChristmasVillage() {
           <path d="M0 30 Q120 8 260 26 T560 22 T880 28 T1200 18 V60 H0 Z" />
         </svg>
         {TREES.filter(([, , front]) => front).map(([left, height]) => (
-          <Tree key={left} left={left} height={height} bottom={6} />
+          <Tree key={left} left={left} height={height} bottom={2} />
         ))}
         <span className="xm-snowman" style={{ left: "30%" }}>
           <SnowmanSprite />

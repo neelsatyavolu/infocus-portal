@@ -205,6 +205,8 @@ button.xm-bow:hover svg { transform: scale(1.12); }
   height: var(--xm-strip);
   overflow: hidden;
   pointer-events: none;
+  /* Content fades out under the strip instead of showing between the trees. */
+  background: linear-gradient(to top, hsl(var(--background)) 60%, hsl(var(--background) / 0));
 }
 .xm-scene-spacer { flex: none; height: 56px; }
 @media (min-width: 1024px) {
@@ -218,7 +220,7 @@ button.xm-bow:hover svg { transform: scale(1.12); }
   bottom: 0;
   width: 100%;
 }
-.xm-hill-back { height: 30px; fill: #26302B; }
+.xm-hill-back { height: 30px; fill: #1D3527; }
 .xm-hill-front { height: 14px; fill: #E9ECEA; }
 .light .xm-hill-back { fill: #DCE5EC; }
 .light .xm-hill-front { fill: #F4F7FA; filter: drop-shadow(0 -1px 2px rgb(15 17 15 / 0.08)); }

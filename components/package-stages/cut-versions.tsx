@@ -7,6 +7,7 @@ import { useRememberedState } from "@/components/kit/remembered-state";
 import { StatusTag } from "@/components/kit/status-tag";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { CommentCount, StageVideo, stageReviewHref } from "@/components/package-stages/stage-video";
+import { CutDownloadButton } from "@/components/package-stages/cut-download-button";
 import type { StageMediaCard } from "@/components/package-stages/types";
 import { cutTileReviewStatus } from "@/src/lib/group-tile-status";
 import { cn } from "@/src/lib/utils";
@@ -41,10 +42,13 @@ function CutStatus({
  */
 export function CutVersions({
   media,
+  rowId,
   collapsePlayer = false
 }: {
   /** Newest first. */
   media: StageMediaCard[];
+  /** The package row: every stored version gets a Download. */
+  rowId?: string | null;
   /**
    * Producers on Groups open the review from the decision bar, so the newest version is a row
    * like the others ("Current") and its player folds behind Watch here (remembered per browser).
@@ -70,6 +74,7 @@ export function CutVersions({
               <CommentCount count={latest.commentCount} />
             </span>
           </span>
+          {rowId ? <CutDownloadButton rowId={rowId} item={latest} compact /> : null}
           <Button
             type="button"
             variant="ghost"
@@ -85,6 +90,7 @@ export function CutVersions({
         {watchHere ? <StageVideo item={latest} title={latest.title} reviewHref={href} /> : null}
         {earlier.length > 0 ? (
           <EarlierVersions
+            rowId={rowId}
             items={showOlder ? earlier : earlier.slice(0, 1)}
             olderCount={Math.max(0, earlier.length - 1)}
             showOlder={showOlder}
@@ -96,9 +102,10 @@ export function CutVersions({
   }
   return (
     <div className="space-y-5">
-      <StageVideo item={latest} title={latest.title} reviewHref={stageReviewHref(latest, true)} />
+      <StageVideo item={latest} title={latest.title} reviewHref={stageReviewHref(latest, true)} downloadRowId={rowId} />
       {earlier.length > 0 ? (
         <EarlierVersions
+          rowId={rowId}
           items={showOlder ? earlier : earlier.slice(0, 1)}
           olderCount={Math.max(0, earlier.length - 1)}
           showOlder={showOlder}
@@ -111,11 +118,13 @@ export function CutVersions({
 
 /** Earlier versions as compact rows with their own review status, the oldest folded away. */
 function EarlierVersions({
+  rowId,
   items,
   olderCount,
   showOlder,
   onToggleOlder
 }: {
+  rowId?: string | null;
   items: StageMediaCard[];
   olderCount: number;
   showOlder: boolean;
@@ -140,6 +149,7 @@ function EarlierVersions({
                   <CommentCount count={item.commentCount} />
                 </span>
               </span>
+              {rowId ? <CutDownloadButton rowId={rowId} item={item} compact /> : null}
               {href ? (
                 <Link
                   href={href as never}

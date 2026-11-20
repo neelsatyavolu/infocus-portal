@@ -115,7 +115,7 @@ export async function resolveStudentCycleChoice(userId: string, cycles?: CycleLi
   if (active <= 1) return { cycleNumber: active, choices: null };
   const [rows, preferred] = await Promise.all([
     prisma.packageProgressRow.findMany({
-      where: { cycleNumber: { lte: active }, members: { some: { userId } } },
+      where: { cycleNumber: { gte: 1, lte: active }, members: { some: { userId } } },
       select: { cycleNumber: true, finalCutMediaItemId: true, finalCut: true }
     }),
     preferredStudentCycle()
@@ -170,7 +170,7 @@ async function loadStudentStageRow(userId: string, requested?: number | null) {
   }
   const [rows, preferred] = await Promise.all([
     prisma.packageProgressRow.findMany({
-      where: { cycleNumber: { lte: active }, members: { some: { userId } } },
+      where: { cycleNumber: { gte: 1, lte: active }, members: { some: { userId } } },
       include: STAGE_ROW_INCLUDE
     }),
     preferredStudentCycle()

@@ -88,7 +88,7 @@ describe("loadCycleStageView: student rows", () => {
 
     expect(mocks.rowFindMany).toHaveBeenCalledTimes(1);
     expect(mocks.rowFindMany.mock.calls[0][0].where).toEqual({
-      cycleNumber: { lte: 2 },
+      cycleNumber: { gte: 1, lte: 2 },
       members: { some: { userId: "u-abby" } }
     });
     expect(mocks.rowFindFirst).not.toHaveBeenCalled();

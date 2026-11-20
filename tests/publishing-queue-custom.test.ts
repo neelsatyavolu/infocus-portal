@@ -31,6 +31,12 @@ describe("custom publishing-queue packages", () => {
     ).toBe("Cycle 2 · Ada, Neel");
   });
 
+  it("keeps the reporters on a package a semester reset moved to the queue's cycle 0", () => {
+    expect(queuePackageSubtitle({ cycleNumber: 0, members: ["Abby", "Otto"], extraWriters: ["Sage"] })).toBe(
+      "Earlier semester · Abby, Otto, Sage"
+    );
+  });
+
   it("stores custom uploads under Package Storage / Publishing Queue / title", () => {
     expect(
       buildPublishingQueueNasPath({

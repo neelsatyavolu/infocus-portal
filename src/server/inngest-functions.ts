@@ -221,7 +221,9 @@ export const purgeStaleVideoVersions = inngest.createFunction(
         deletedAt: null,
         currentVersionId: { not: null },
         currentVersion: { sourceType: "VIDEO", createdAt: { lte: cutoff } },
-        versions: { some: { sourceType: "VIDEO" } }
+        versions: { some: { sourceType: "VIDEO" } },
+        // A package's Initial Cut keeps every version (members download them later); the semester reset clears it.
+        initialCutForRows: { none: {} }
       },
       select: {
         id: true,

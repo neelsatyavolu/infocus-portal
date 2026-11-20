@@ -6,6 +6,7 @@ import { MessageSquare, Play } from "lucide-react";
 import { MediaBadge, MediaThumb } from "@/components/kit/media";
 import { VideoPlayer } from "@/components/kit/video-player";
 import { buttonVariants } from "@/components/ui/button";
+import { CutDownloadButton } from "@/components/package-stages/cut-download-button";
 import type { StageMediaCard } from "@/components/package-stages/types";
 import { cn } from "@/src/lib/utils";
 
@@ -39,12 +40,15 @@ export function StageVideo({
   item,
   title,
   status,
-  reviewHref
+  reviewHref,
+  downloadRowId
 }: {
   item: StageMediaCard;
   title: string;
   status?: ReactNode;
   reviewHref: string | null;
+  /** The package row, to offer a Download of this version beside Open review. */
+  downloadRowId?: string | null;
 }) {
   return (
     <div className="min-w-0 space-y-3">
@@ -75,11 +79,16 @@ export function StageVideo({
         </h3>
         {status}
         <CommentCount count={item.commentCount} />
-        {reviewHref ? (
-          <Link href={reviewHref as never} className={cn(buttonVariants({ variant: "outline" }), "ml-auto max-sm:h-10")}>
-            <Play aria-hidden />
-            Open review
-          </Link>
+        {reviewHref || downloadRowId ? (
+          <div className="ml-auto flex items-center gap-2">
+            {downloadRowId ? <CutDownloadButton rowId={downloadRowId} item={item} /> : null}
+            {reviewHref ? (
+              <Link href={reviewHref as never} className={cn(buttonVariants({ variant: "outline" }), "max-sm:h-10")}>
+                <Play aria-hidden />
+                Open review
+              </Link>
+            ) : null}
+          </div>
         ) : null}
       </div>
     </div>

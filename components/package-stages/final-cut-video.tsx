@@ -14,9 +14,12 @@ import { cutTileReviewStatus } from "@/src/lib/group-tile-status";
 export function FinalCutVideo({
   media,
   reviewStage,
-  remainingExecutiveSignoffs
+  remainingExecutiveSignoffs,
+  rowId
 }: {
   media: StageMediaCard[];
+  /** The package row, to offer a Download of the Final Cut. */
+  rowId?: string | null;
   reviewStage: 1 | 2 | 3 | null;
   remainingExecutiveSignoffs?: number;
 }) {
@@ -36,6 +39,7 @@ export function FinalCutVideo({
             title={item.title || "Final Cut"}
             status={<StatusTag tone={status.tone}>{status.label}</StatusTag>}
             reviewHref={stageReviewHref(item, false)}
+            downloadRowId={rowId}
           />
         );
       })}

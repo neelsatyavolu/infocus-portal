@@ -31,10 +31,11 @@ export function queuePackageSubtitle(row: {
   members: Array<string | null>;
   extraWriters?: string[];
 }) {
-  if (row.custom || isCustomQueuePackage(row)) {
-    return "Custom";
-  }
   const members = [...row.members, ...(row.extraWriters ?? [])].filter(Boolean).join(", ");
+  if (row.custom || isCustomQueuePackage(row)) {
+    // An uploaded package has no roster; one a semester reset moved here keeps its reporters.
+    return row.members.some(Boolean) ? `Earlier semester · ${members}` : "Custom";
+  }
   return members ? `Cycle ${row.cycleNumber} · ${members}` : `Cycle ${row.cycleNumber}`;
 }
 

@@ -1,5 +1,6 @@
 import type { PackageApprovalStage } from "@prisma/client";
 import { isApprovedForFinalCut, type ApprovalState } from "@/src/lib/package-approval";
+import { cycleSemesterTerm } from "@/src/lib/package-grades";
 
 export const CYCLE_STAGE_SLUGS = ["a-roll", "initial-cut", "final-cut"] as const;
 export type CycleStageSlug = (typeof CYCLE_STAGE_SLUGS)[number];
@@ -74,19 +75,23 @@ type StudentCycleRow = { cycleNumber: number; finalCutMediaItemId: string | null
 /**
  * The cycle a student's tabs show. A student held on the previous cycle (its Final Cut is not in)
  * opens on it by default. They may switch (`choices`) between every earlier cycle whose Final Cut
- * is still missing, the default one, and the active cycle when they are on its roster; `preferred`
- * (the cookie) opens one of those.
+ * is still missing, every cycle of the current semester they were on (finished ones too, so they
+ * can look back and download their cuts), and the default one; `preferred` (the cookie) opens one
+ * of those. Cycle 0 (the publishing queue's bucket) is never a choice.
  */
 export function studentCycleChoice(activeCycleNumber: number, rows: StudentCycleRow[], preferred: number | null) {
   const previousRow = rows.find((row) => row.cycleNumber === activeCycleNumber - 1) ?? null;
   const defaultCycle = studentCycleNumber(activeCycleNumber, previousRow);
   const owed = rows
-    .filter((row) => row.cycleNumber < activeCycleNumber && !row.finalCutMediaItemId && !row.finalCut)
+    .filter((row) => row.cycleNumber >= 1 && row.cycleNumber < activeCycleNumber && !row.finalCutMediaItemId && !row.finalCut)
     .map((row) => row.cycleNumber);
-  const onActiveRoster = rows.some((row) => row.cycleNumber === activeCycleNumber);
-  const options = [...new Set([...owed, defaultCycle, ...(onActiveRoster ? [activeCycleNumber] : [])])].sort(
-    (a, b) => a - b
-  );
+  const term = cycleSemesterTerm(activeCycleNumber);
+  const thisSemester = rows
+    .filter(
+      (row) => row.cycleNumber >= 1 && row.cycleNumber <= activeCycleNumber && cycleSemesterTerm(row.cycleNumber) === term
+    )
+    .map((row) => row.cycleNumber);
+  const options = [...new Set([...owed, ...thisSemester, defaultCycle])].sort((a, b) => a - b);
   const choices = options.length > 1 ? options : null;
   const cycleNumber = choices && preferred !== null && choices.includes(preferred) ? preferred : defaultCycle;
   return { cycleNumber, choices };

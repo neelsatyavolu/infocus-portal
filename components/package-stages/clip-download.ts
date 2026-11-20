@@ -12,7 +12,19 @@ export function clipDownloadHref(rowId: string, ids: string[]) {
  * the file itself, so a multi-GB zip streams straight to disk instead of into page memory.
  */
 export async function downloadClips(rowId: string, ids: string[]) {
-  const href = clipDownloadHref(rowId, ids);
+  return startCheckedDownload(
+    clipDownloadHref(rowId, ids),
+    ids.length === 1 ? "Download started." : "Zip download started. Large footage can take a while."
+  );
+}
+
+/** Download one version of the package's Initial Cut or Final Cut (its original file). */
+export async function downloadCut(rowId: string, versionId: string) {
+  const query = new URLSearchParams({ version: versionId }).toString();
+  return startCheckedDownload(`/api/package-cycle/cuts/${encodeURIComponent(rowId)}/download?${query}`, "Download started.");
+}
+
+async function startCheckedDownload(href: string, successMessage: string) {
   try {
     const check = await fetch(href, { method: "HEAD", cache: "no-store" });
     if (!check.ok) {
@@ -30,6 +42,6 @@ export async function downloadClips(rowId: string, ids: string[]) {
   document.body.appendChild(link);
   link.click();
   link.remove();
-  toast.success(ids.length === 1 ? "Download started." : "Zip download started. Large footage can take a while.");
+  toast.success(successMessage);
   return true;
 }

@@ -36,9 +36,30 @@ describe("studentCycleChoice", () => {
     expect(studentCycleChoice(2, [held], 2)).toEqual({ cycleNumber: 1, choices: null });
   });
 
-  it("offers no switch once the previous Final Cut is in", () => {
+  it("still offers a finished cycle so the student can look back at it", () => {
     const done = { ...held, finalCutMediaItemId: "media-1" };
-    expect(studentCycleChoice(2, [done, next], 1)).toEqual({ cycleNumber: 2, choices: null });
+    expect(studentCycleChoice(2, [done, next], null)).toEqual({ cycleNumber: 2, choices: [1, 2] });
+    expect(studentCycleChoice(2, [done, next], 1)).toEqual({ cycleNumber: 1, choices: [1, 2] });
+  });
+
+  it("lists every cycle of the semester the student was on, and nothing from another semester", () => {
+    const done = (cycleNumber: number) => ({ cycleNumber, finalCutMediaItemId: "media", finalCut: true });
+    expect(studentCycleChoice(3, [done(1), done(2), { ...next, cycleNumber: 3 }], null)).toEqual({
+      cycleNumber: 3,
+      choices: [1, 2, 3]
+    });
+    expect(studentCycleChoice(5, [done(2), done(3), done(4), { ...next, cycleNumber: 5 }], null)).toEqual({
+      cycleNumber: 5,
+      choices: [4, 5]
+    });
+  });
+
+  it("never lists the publishing queue's cycle 0 or a future cycle", () => {
+    const done = (cycleNumber: number) => ({ cycleNumber, finalCutMediaItemId: "media", finalCut: true });
+    expect(studentCycleChoice(2, [done(0), { ...next, cycleNumber: 2 }, done(3)], null)).toEqual({
+      cycleNumber: 2,
+      choices: null
+    });
   });
 
   it("ignores a pick that is not one of the two cycles", () => {
@@ -65,7 +86,7 @@ describe("studentCycleChoice", () => {
     const cycle2 = { ...held, cycleNumber: 2, finalCut: true };
     expect(studentCycleChoice(3, [cycle1, cycle2, { ...next, cycleNumber: 3 }], null)).toEqual({
       cycleNumber: 3,
-      choices: [1, 3]
+      choices: [1, 2, 3]
     });
   });
 });

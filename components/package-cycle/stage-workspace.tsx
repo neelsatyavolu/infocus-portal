@@ -228,11 +228,16 @@ export function StageWorkspace({
     );
   } else if (slug === "initial-cut") {
     mediaBody = (
-      <CutVersions media={media} collapsePlayer={producerChrome} />
+      <CutVersions media={media} rowId={row?.id} collapsePlayer={producerChrome} />
     );
   } else {
     mediaBody = (
-      <FinalCutVideo media={media} reviewStage={effectiveReviewStage} remainingExecutiveSignoffs={remainingExecs} />
+      <FinalCutVideo
+        media={media}
+        rowId={row?.id}
+        reviewStage={effectiveReviewStage}
+        remainingExecutiveSignoffs={remainingExecs}
+      />
     );
   }
 

@@ -1,0 +1,460 @@
+/* Christmas decorations and visitors (components/christmas/christmas-goodies.tsx). Below dialogs (z-50). */
+
+.xm-layer,
+.xm-decor {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.xm-hit {
+  pointer-events: auto;
+  cursor: pointer;
+  background: none;
+  border: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.xm-hit:focus-visible {
+  outline: 2px solid var(--brand-green);
+  outline-offset: 2px;
+}
+
+.xm-plus-one {
+  position: absolute;
+  font: 600 14px/1 var(--font-display);
+  color: var(--brand-red);
+  white-space: nowrap;
+  translate: -50% 0;
+  text-shadow: 0 1px 0 hsl(var(--background));
+  animation: xm-rise 1.2s ease-out both;
+}
+@keyframes xm-rise {
+  from { transform: translateY(0); opacity: 1; }
+  to   { transform: translateY(-40px); opacity: 0; }
+}
+
+/* ---------- The string of lights along the top ---------- */
+
+.xm-lights {
+  position: absolute;
+  top: env(safe-area-inset-top, 0px);
+  left: 0;
+  right: 0;
+  height: 30px;
+  display: flex;
+  z-index: 1;
+}
+.xm-light {
+  position: relative;
+  flex: 1 1 0;
+  height: 12px;
+  border-bottom: 2px solid #2B2F2B;
+  border-radius: 0 0 50% 50% / 0 0 100% 100%;
+}
+.light .xm-light { border-bottom-color: #4A4F4A; }
+.xm-bulb {
+  position: absolute;
+  left: 50%;
+  top: 11px;
+  width: 9px;
+  height: 14px;
+  translate: -50% 0;
+  border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%;
+  background: var(--xm-bulb);
+  box-shadow: 0 0 8px 2px var(--xm-glow), 0 0 18px 4px var(--xm-glow);
+  rotate: -7deg;
+  animation: xm-twinkle 2.4s ease-in-out infinite;
+  animation-delay: calc(var(--xm-i) * -0.37s);
+}
+.xm-light:nth-child(even) .xm-bulb { rotate: 7deg; }
+.xm-bulb::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -4px;
+  width: 6px;
+  height: 5px;
+  translate: -50% 0;
+  border-radius: 1px;
+  background: #3B403B;
+}
+.xm-bulb-red   { --xm-bulb: #FF3B3B; --xm-glow: rgb(255 59 59 / 0.55); }
+.xm-bulb-green { --xm-bulb: #2ED477; --xm-glow: rgb(46 212 119 / 0.5); }
+.xm-bulb-blue  { --xm-bulb: #7CC4FF; --xm-glow: rgb(124 196 255 / 0.5); }
+.xm-bulb-gold  { --xm-bulb: #FFD25A; --xm-glow: rgb(255 210 90 / 0.55); }
+.xm-bulb-white { --xm-bulb: #FFF8E6; --xm-glow: rgb(255 248 230 / 0.5); }
+.light .xm-bulb { box-shadow: 0 0 6px 1px var(--xm-glow); }
+@keyframes xm-twinkle {
+  0%, 100% { opacity: 1; filter: brightness(1.1); }
+  45%      { opacity: 0.55; filter: brightness(0.8); }
+  55%      { opacity: 0.55; filter: brightness(0.8); }
+}
+/* The tree star's light show: every bulb chases fast. */
+.xm-lights[data-show="true"] .xm-bulb {
+  animation: xm-chase 0.5s steps(2, jump-none) infinite;
+  animation-delay: calc(var(--xm-i) * -0.1s);
+}
+@keyframes xm-chase {
+  0%   { opacity: 0.25; }
+  100% { opacity: 1; filter: brightness(1.4); }
+}
+.xm-holly {
+  position: absolute;
+  top: 0;
+  width: 44px;
+}
+.xm-holly svg { display: block; width: 100%; height: auto; }
+.xm-holly-left { left: 2px; }
+.xm-holly-right { right: 2px; transform: scaleX(-1); }
+
+/* Phones: half the bulbs, so they aren't crowded. */
+@media (max-width: 640px) {
+  .xm-light:nth-child(even) { display: none; }
+  .xm-holly { width: 34px; }
+}
+
+/* ---------- Falling snow ---------- */
+
+.xm-snow { position: absolute; inset: 0; }
+.xm-flake {
+  position: absolute;
+  top: -10px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  box-shadow: 0 0 4px rgb(255 255 255 / 0.6);
+  animation: xm-snowfall var(--xm-duration, 14s) linear var(--xm-delay, 0s) infinite;
+}
+.light .xm-flake { background: #B7C8D8; box-shadow: none; }
+@keyframes xm-snowfall {
+  0%   { transform: translate(0, 0); }
+  50%  { transform: translate(var(--xm-drift, 20px), 52vh); }
+  100% { transform: translate(0, calc(100vh + 20px)); }
+}
+
+/* ---------- The snowy hill and trees (bigger screens only) ---------- */
+
+.xm-hill { display: none; }
+@media (min-width: 1024px) {
+  .xm-hill {
+    display: block;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 120px;
+  }
+}
+.xm-drift {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 18px;
+  fill: #F4F1E8;
+  opacity: 0.85;
+  filter: drop-shadow(0 -1px 3px rgb(255 255 255 / 0.25));
+}
+.light .xm-drift { fill: #E6ECF1; opacity: 1; filter: none; }
+.xm-tree {
+  position: absolute;
+  bottom: 4px;
+  width: 64px;
+}
+.xm-tree > svg { display: block; width: 100%; height: auto; }
+.xm-tree-left { left: 10px; }
+.xm-tree-right { right: 10px; width: 54px; }
+.xm-tree-lights circle { animation: xm-twinkle 1.8s ease-in-out infinite; }
+.xm-tree-lights circle:nth-child(odd) { animation-delay: -0.9s; }
+.xm-tree-star {
+  position: absolute;
+  left: 50%;
+  top: -2px;
+  width: 22px;
+  height: 22px;
+  translate: -50% -55%;
+  filter: drop-shadow(0 0 6px rgb(255 210 90 / 0.9));
+  animation: xm-glint 2.6s ease-in-out infinite;
+}
+.xm-tree-star svg { display: block; width: 100%; height: 100%; }
+.xm-tree-right .xm-tree-star { width: 20px; height: 20px; }
+button.xm-tree-star:hover { filter: drop-shadow(0 0 12px rgb(255 230 140 / 1)); }
+@keyframes xm-glint {
+  0%, 100% { transform: scale(1) rotate(0); }
+  50%      { transform: scale(1.12) rotate(8deg); }
+}
+.xm-pile {
+  position: absolute;
+  left: 44px;
+  bottom: 0;
+  display: flex;
+  align-items: flex-end;
+}
+.xm-piled {
+  width: 24px;
+  margin-left: -6px;
+  translate: 0 calc(var(--xm-i) * -1px);
+  rotate: calc((var(--xm-i) - 3) * 4deg);
+  animation: xm-pop-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.xm-piled:nth-child(even) { width: 20px; }
+.xm-piled svg { display: block; width: 100%; height: auto; }
+@keyframes xm-pop-in {
+  from { transform: scale(0); }
+  to   { transform: scale(1); }
+}
+
+/* ---------- Visitors ---------- */
+
+/* Presents float down under a little parachute, swaying. */
+.xm-gift {
+  position: absolute;
+  top: -80px;
+  width: 42px;
+  animation: xm-drift var(--xm-duration, 12s) linear both;
+}
+.xm-gift > button {
+  display: block;
+  width: 100%;
+  animation: xm-sway 3s ease-in-out infinite;
+  transform-origin: 50% 0;
+}
+.xm-gift svg { display: block; width: 100%; height: auto; filter: drop-shadow(0 2px 3px rgb(15 17 15 / 0.35)); }
+.xm-chute {
+  display: block;
+  width: 46px;
+  height: 22px;
+  margin: 0 auto -2px;
+  translate: 0 0;
+  border-radius: 46px 46px 0 0;
+  background: repeating-linear-gradient(90deg, #F4F1E8 0 9px, #D42B2B 9px 18px);
+  -webkit-mask: linear-gradient(#000, #000) top / 100% 70% no-repeat, linear-gradient(90deg, transparent 6px, #000 6px 7px, transparent 7px 39px, #000 39px 40px, transparent 40px) bottom / 100% 30% no-repeat;
+  mask: linear-gradient(#000, #000) top / 100% 70% no-repeat, linear-gradient(90deg, transparent 6px, #000 6px 7px, transparent 7px 39px, #000 39px 40px, transparent 40px) bottom / 100% 30% no-repeat;
+}
+.xm-gift-golden { width: 50px; }
+.xm-gift-golden .xm-chute { background: repeating-linear-gradient(90deg, #FFF4C2 0 9px, #E8B730 9px 18px); }
+.xm-gift-golden svg {
+  filter: drop-shadow(0 0 8px rgb(242 193 78 / 0.9)) drop-shadow(0 2px 3px rgb(15 17 15 / 0.35));
+  animation: xm-shimmer 1.2s ease-in-out infinite;
+}
+@keyframes xm-shimmer {
+  50% { filter: drop-shadow(0 0 16px rgb(255 240 180 / 1)) drop-shadow(0 2px 3px rgb(15 17 15 / 0.35)); }
+}
+@keyframes xm-drift {
+  to { transform: translateY(calc(100vh + 120px)); }
+}
+@keyframes xm-sway {
+  0%, 100% { transform: translateX(calc(var(--xm-sway, 30px) * -1)) rotate(-10deg); }
+  50%      { transform: translateX(var(--xm-sway, 30px)) rotate(10deg); }
+}
+
+/* Present and bell rain (the "gift" and "jingle" secrets). */
+.xm-rain {
+  position: absolute;
+  top: -60px;
+  width: 40px;
+  animation: xm-fall var(--xm-duration, 2.4s) cubic-bezier(0.55, 0, 1, 0.45) both;
+}
+.xm-rain svg { display: block; width: 100%; height: auto; }
+.xm-rain-bell { width: 34px; }
+@keyframes xm-fall {
+  to { transform: translateY(calc(100vh + 80px)) rotate(var(--xm-r, 180deg)); }
+}
+
+/* A gingerbread man runs along the bottom. Caught, he gets a bite taken out and vanishes. */
+.xm-runner {
+  position: absolute;
+  bottom: calc(var(--phone-tabbar-h, 0px) + 6px);
+  width: 46px;
+  height: 58px;
+  animation: xm-run-ltr var(--xm-duration, 8s) linear both;
+}
+.xm-runner[data-direction="rtl"] { animation-name: xm-run-rtl; }
+.xm-runner-body { display: block; width: 100%; height: 100%; }
+.xm-runner svg { display: block; width: 100%; height: 100%; animation: xm-hop 0.32s ease-in-out infinite alternate; transform-origin: 50% 100%; }
+.xm-runner[data-caught="true"] { animation-play-state: paused; }
+.xm-runner[data-caught="true"] svg {
+  animation: xm-bitten 0.7s ease-in both;
+}
+@keyframes xm-run-ltr {
+  from { left: -60px; }
+  to   { left: calc(100vw + 20px); }
+}
+@keyframes xm-run-rtl {
+  from { left: calc(100vw + 20px); }
+  to   { left: -60px; }
+}
+@keyframes xm-hop {
+  from { transform: translateY(0) rotate(-8deg); }
+  to   { transform: translateY(-10px) rotate(8deg); }
+}
+@keyframes xm-bitten {
+  0%   { clip-path: circle(100% at 50% 0); transform: scale(1); opacity: 1; }
+  40%  { clip-path: circle(80% at 50% 100%); transform: scale(1.1); }
+  100% { clip-path: circle(0 at 50% 100%); transform: scale(0.7); opacity: 0; }
+}
+
+/* A mug of cocoa slides in from an edge, steaming. */
+.xm-cocoa {
+  position: absolute;
+  width: 64px;
+  height: 60px;
+  animation: xm-slide 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.xm-cocoa[data-side="left"] { left: 8px; --xm-from: calc(-100% - 8px); }
+.xm-cocoa[data-side="right"] { right: 8px; --xm-from: calc(100% + 8px); }
+.xm-cocoa > svg { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 0 10px rgb(212 43 43 / 0.35)); }
+.xm-cocoa .xm-steam,
+.xm-welcome-art .xm-steam { animation: xm-steam 2.2s ease-in-out infinite; }
+.xm-cocoa[data-gone="true"] { animation: xm-sipped 0.5s ease-in both; }
+@keyframes xm-slide {
+  from { transform: translateX(var(--xm-from)); }
+  to   { transform: translateX(0); }
+}
+@keyframes xm-steam {
+  0%   { transform: translateY(2px); opacity: 0.2; }
+  50%  { opacity: 0.8; }
+  100% { transform: translateY(-6px); opacity: 0; }
+}
+@keyframes xm-sipped {
+  0%   { transform: rotate(0) scale(1); opacity: 1; }
+  50%  { transform: rotate(-35deg) scale(1.05); opacity: 1; }
+  100% { transform: rotate(-35deg) scale(0.8); opacity: 0; }
+}
+
+/* Santa's sleigh flies across the top third with a gentle swoop. */
+.xm-sleigh {
+  position: absolute;
+  width: 240px;
+  animation: xm-fly-ltr var(--xm-duration, 10s) linear both;
+}
+.xm-sleigh[data-direction="rtl"] { animation-name: xm-fly-rtl; }
+.xm-sleigh[data-direction="rtl"] svg { transform: scaleX(-1); }
+.xm-sleigh-body { display: block; width: 100%; animation: xm-swoop 2.4s ease-in-out infinite; }
+.xm-sleigh svg { display: block; width: 100%; height: auto; filter: drop-shadow(0 4px 8px rgb(15 17 15 / 0.35)); }
+.xm-sleigh .xm-leg-a { animation: xm-gallop 0.3s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: 50% 0; }
+.xm-sleigh .xm-leg-b,
+.xm-rudolph .xm-leg-b { animation: xm-gallop 0.3s ease-in-out infinite alternate-reverse; transform-box: fill-box; transform-origin: 50% 0; }
+.xm-rudolph .xm-leg-a { animation: xm-gallop 0.3s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: 50% 0; }
+.xm-nose { filter: drop-shadow(0 0 4px #FF2B2B); }
+@keyframes xm-fly-ltr {
+  from { left: -260px; }
+  to   { left: calc(100vw + 20px); }
+}
+@keyframes xm-fly-rtl {
+  from { left: calc(100vw + 20px); }
+  to   { left: -260px; }
+}
+@keyframes xm-swoop {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50%      { transform: translateY(14px) rotate(2deg); }
+}
+@keyframes xm-gallop {
+  from { transform: rotate(-18deg); }
+  to   { transform: rotate(18deg); }
+}
+
+/* A rare shooting star streaks across, down and to the right. */
+.xm-star {
+  position: absolute;
+  left: -140px;
+  width: 120px;
+  animation: xm-shoot var(--xm-duration, 3s) cubic-bezier(0.3, 0, 0.6, 1) both;
+}
+.xm-star button { display: block; width: 100%; }
+.xm-star svg { display: block; width: 100%; height: auto; filter: drop-shadow(0 0 8px rgb(255 230 140 / 0.9)); }
+@keyframes xm-shoot {
+  from { transform: translate(0, 0) rotate(12deg); opacity: 0; }
+  10%  { opacity: 1; }
+  85%  { opacity: 1; }
+  to   { transform: translate(calc(100vw + 160px), 34vh) rotate(12deg); opacity: 0; }
+}
+
+/* A flurry: big snowflakes blown across the window, spinning. */
+.xm-flurry {
+  position: absolute;
+  left: -40px;
+  color: #FFFFFF;
+  filter: drop-shadow(0 0 3px rgb(255 255 255 / 0.7));
+  animation: xm-blow var(--xm-duration, 3s) cubic-bezier(0.3, 0, 0.7, 1) both;
+}
+.light .xm-flurry { color: #8FA9C0; filter: none; }
+.xm-flurry > svg { width: 100%; height: 100%; }
+@keyframes xm-blow {
+  0%   { transform: translate(0, 0) rotate(0); }
+  50%  { transform: translate(55vw, -30px) rotate(calc(var(--xm-r, 360deg) / 2)); }
+  100% { transform: translate(calc(100vw + 80px), 40px) rotate(var(--xm-r, 360deg)); }
+}
+
+/* Ornaments flying out of a caught present (and the "merry" secret). */
+.xm-burst {
+  position: absolute;
+  width: 20px;
+  animation: xm-burst var(--xm-duration, 1.6s) cubic-bezier(0.2, 0.6, 0.4, 1) both;
+}
+.xm-burst svg { display: block; width: 100%; height: auto; }
+@keyframes xm-burst {
+  0%   { transform: translate(-50%, -50%) rotate(0) scale(0.4); opacity: 1; }
+  45%  { transform: translate(calc(-50% + var(--xm-dx) * 0.6), calc(-50% + var(--xm-dy))) rotate(calc(var(--xm-r) / 2)) scale(1); opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--xm-dx)), calc(-50% + var(--xm-dy) * -1.6)) rotate(var(--xm-r)) scale(0.9); opacity: 0; }
+}
+
+/* The "rudolph" secret: the window fogs over and a glowing red nose guides the sleigh through it. */
+.xm-fog {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 30%, rgb(200 210 220 / 0.25), rgb(30 36 44 / 0.65));
+  backdrop-filter: blur(2px);
+  animation: xm-fog var(--xm-lasts, 7s) ease-in-out both;
+}
+@keyframes xm-fog {
+  0%, 100% { opacity: 0; }
+  12%, 85% { opacity: 1; }
+}
+.xm-rudolph {
+  position: absolute;
+  top: 28vh;
+  width: 300px;
+  animation: xm-fly-ltr var(--xm-duration, 6s) linear both;
+}
+.xm-rudolph svg { display: block; width: 100%; height: auto; animation: xm-swoop 2s ease-in-out infinite; }
+.xm-rudolph .xm-nose { filter: drop-shadow(0 0 6px #FF2B2B) drop-shadow(0 0 18px #FF2B2B) drop-shadow(0 0 40px #FF5A5A); }
+
+/* ---------- Welcome dialog ---------- */
+
+.xm-welcome-art {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 14px;
+}
+.xm-welcome-art > svg { width: 46px; height: 46px; }
+.xm-welcome-art > svg:nth-child(2) {
+  width: 56px;
+  height: 70px;
+  animation: xm-hop 0.5s ease-in-out infinite alternate;
+  transform-origin: 50% 100%;
+}
+.xm-welcome-art > svg:nth-child(3) { width: 56px; height: 52px; overflow: visible; }
+.xm-welcome-secret {
+  border-left: 2px solid var(--brand-red);
+  padding-left: 10px;
+  color: hsl(var(--foreground));
+}
+.xm-welcome-secret kbd {
+  font: 600 12px/1 var(--font-mono-broadcast);
+  padding: 2px 5px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xm-welcome-art *,
+  .xm-welcome-art > svg,
+  .xm-layer *,
+  .xm-decor * {
+    animation: none !important;
+  }
+}

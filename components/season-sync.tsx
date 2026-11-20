@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { applySeasonClasses } from "@/src/lib/thanksgiving";
+import { useChristmasActive } from "@/src/lib/use-christmas";
 import { useHalloweenActive } from "@/src/lib/use-halloween";
 import { useThanksgivingActive } from "@/src/lib/use-thanksgiving";
 
@@ -17,12 +18,13 @@ function msUntilMidnight(now: Date): number {
 /**
  * Keeps the seasonal theme in step in every open tab: switches the season at local midnight and
  * when the tab comes back (a tab left open from October 31 turns to Thanksgiving on its own), and
- * points the tab icons at the season's versions (public/halloween/, public/thanksgiving/).
+ * points the tab icons at the season's versions (public/halloween/, public/thanksgiving/, public/christmas/).
  */
 export function SeasonSync() {
   const halloween = useHalloweenActive();
   const thanksgiving = useThanksgivingActive();
-  const folder = thanksgiving ? "/thanksgiving/" : halloween ? "/halloween/" : null;
+  const christmas = useChristmasActive();
+  const folder = christmas ? "/christmas/" : thanksgiving ? "/thanksgiving/" : halloween ? "/halloween/" : null;
 
   useEffect(() => {
     let timer = 0;

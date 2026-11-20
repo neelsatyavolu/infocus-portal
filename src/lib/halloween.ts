@@ -103,12 +103,15 @@ export function readHalloweenPrefs(): HalloweenPrefs {
 }
 
 /**
- * Sets the <html> class from the saved preferences. Halloween steps aside while Thanksgiving is on
- * (src/lib/thanksgiving.ts, whose class is named here to avoid an import cycle).
+ * Sets the <html> class from the saved preferences. Halloween steps aside while Thanksgiving or
+ * Christmas is on (src/lib/thanksgiving.ts, christmas.ts, whose classes are named here to avoid an import cycle).
  */
 export function applyHalloweenClass(prefs: HalloweenPrefs = readHalloweenPrefs()) {
   const root = document.documentElement;
-  root.classList.toggle(HALLOWEEN_CLASS, !prefs.off && isHalloweenSeason(new Date()) && !root.classList.contains("thanksgiving"));
+  root.classList.toggle(
+    HALLOWEEN_CLASS,
+    !prefs.off && isHalloweenSeason(new Date()) && !root.classList.contains("thanksgiving") && !root.classList.contains("christmas")
+  );
 }
 
 /** Saves the preferences, updates the <html> class and tells every listener in this tab. */

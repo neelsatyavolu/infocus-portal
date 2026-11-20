@@ -1,3 +1,4 @@
+import { applyChristmasClass, CHRISTMAS_CLASS } from "@/src/lib/christmas";
 import { applyHalloweenClass, HALLOWEEN_CLASS } from "@/src/lib/halloween";
 
 /**
@@ -120,11 +121,14 @@ export function readThanksgivingPrefs(): ThanksgivingPrefs {
 }
 
 /**
- * Sets both season classes on <html> for today. Also used at local midnight and when a tab comes
+ * Sets every season class on <html> for today. Also used at local midnight and when a tab comes
  * back, so a tab left open from October 31 changes over on its own (components/season-sync.tsx).
+ * Christmas goes first: while it is on, Thanksgiving and Halloween step aside.
  */
 export function applySeasonClasses(prefs: ThanksgivingPrefs = readThanksgivingPrefs()) {
-  document.documentElement.classList.toggle(THANKSGIVING_CLASS, isThanksgivingOn(prefs, new Date()));
+  applyChristmasClass();
+  const root = document.documentElement;
+  root.classList.toggle(THANKSGIVING_CLASS, isThanksgivingOn(prefs, new Date()) && !root.classList.contains(CHRISTMAS_CLASS));
   applyHalloweenClass();
 }
 

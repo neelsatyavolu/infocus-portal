@@ -1,6 +1,7 @@
 import { Switch } from "@/components/ui/switch";
 import { SettingsCell } from "@/components/settings-layout";
 import { writeSeasonalGoodiesOn } from "@/src/lib/seasonal-goodies";
+import { useChristmasActive } from "@/src/lib/use-christmas";
 import { useHalloweenActive } from "@/src/lib/use-halloween";
 import { useSeasonalGoodiesOn } from "@/src/lib/use-seasonal-goodies";
 import { useThanksgivingActive } from "@/src/lib/use-thanksgiving";
@@ -12,9 +13,10 @@ import { useThanksgivingActive } from "@/src/lib/use-thanksgiving";
 export function SeasonalGoodiesCell({ onSaved }: { onSaved: () => void }) {
   const halloween = useHalloweenActive();
   const thanksgiving = useThanksgivingActive();
+  const christmas = useChristmasActive();
   const on = useSeasonalGoodiesOn();
 
-  if (!halloween && !thanksgiving) return null;
+  if (!halloween && !thanksgiving && !christmas) return null;
 
   return (
     <SettingsCell

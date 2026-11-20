@@ -222,12 +222,48 @@
   --brand-fill-hover: #8A3B14;
 }
 
-/* Logos: the 2026 file carries .halloween-hide and .thanksgiving-hide, its seasonal twins
-   .halloween-show and .thanksgiving-show. */
+/* ============================================================
+   Christmas (December, src/lib/christmas.ts): the InFocus Christmas 2026
+   Package. Holly Green #23A05C on dark, Deep Holly #0A6B3C fills, Scarlet
+   #D42B2B replaces Record Red, and hover/accent surfaces take a red tint.
+   Ink, Soft White and Lexend are unchanged; the Santa-hat logos come from
+   the package (public/christmas/, same canvases as the 2026 files).
+   ============================================================ */
+
+:root.christmas {
+  --primary: 152 83% 23%;
+  --accent: 356 35% 14%;
+  --accent-foreground: 0 85% 85%;
+  --ring: 147 64% 38%;
+  --chart-1: 0 66% 50%;
+
+  --brand-green: #23A05C;
+  --brand-green-deep: #1C8A4E;
+  --brand-fill: #0A6B3C;
+  --brand-fill-hover: #0D7C46;
+  --brand-red: #D42B2B;
+}
+
+/* Light: deep holly text and deep scarlet so they read on white. */
+:root.christmas.light {
+  --accent: 0 70% 95%;
+  --accent-foreground: 356 70% 32%;
+  --ring: 152 83% 23%;
+
+  --brand-green: #0A6B3C;
+  --brand-green-deep: #08552F;
+  --brand-fill-hover: #08552F;
+  --brand-red: #C42020;
+}
+
+/* Logos: the 2026 file carries .halloween-hide, .thanksgiving-hide and .christmas-hide, its
+   seasonal twins .halloween-show, .thanksgiving-show and .christmas-show. */
 :root:not(.halloween) .halloween-show,
 :root.halloween .halloween-hide,
 :root:not(.thanksgiving) .thanksgiving-show,
-:root.thanksgiving .thanksgiving-hide {
+:root.thanksgiving .thanksgiving-hide,
+:root:not(.christmas) .christmas-show,
+:root.christmas .christmas-hide {
   display: none !important;
 }
 
@@ -551,6 +587,12 @@ video {
 .thanksgiving .rem-pill-ok { color: #2BB36E; }
 .thanksgiving.light .status-approved,
 .thanksgiving.light .rem-pill-ok { color: #0B6E3E; }
+
+/* Christmas versions of the same flat greens. */
+.christmas .brand-gradient-3 { background: #08492A; }
+.christmas .brand-gradient-5 { background: #8E1A26; }
+.christmas .av-purple { background: #B01E2E; }
+.christmas .av-blue   { background: #23A05C; }
 
 /* Timecode — Geist Mono is for data only */
 .timecode {

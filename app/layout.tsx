@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { SeasonSync } from "@/components/season-sync";
 import { N3elAnalytics } from "@/components/n3el-analytics";
 import { PortalDomainLinks } from "@/components/portal-domain-links";
+import { CHRISTMAS_INIT_SCRIPT } from "@/src/lib/christmas";
 import { HALLOWEEN_INIT_SCRIPT } from "@/src/lib/halloween";
 import { THANKSGIVING_INIT_SCRIPT } from "@/src/lib/thanksgiving";
 import { THEME_INIT_SCRIPT } from "@/src/lib/theme";
@@ -86,6 +87,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: HALLOWEEN_INIT_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: THANKSGIVING_INIT_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: CHRISTMAS_INIT_SCRIPT }} />
       </head>
       <body className="font-sans bg-background text-foreground antialiased">
         {children}

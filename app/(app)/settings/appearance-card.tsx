@@ -13,6 +13,7 @@ import {
 } from "@/components/settings-layout";
 import { applyThemePreference, type ThemePreference } from "@/src/lib/theme";
 import { useThemePreference } from "@/src/lib/use-theme";
+import { ChristmasCells } from "./christmas-cells";
 import { HalloweenCells } from "./halloween-cells";
 import { SeasonalGoodiesCell } from "./seasonal-goodies-cell";
 import { ThanksgivingCells } from "./thanksgiving-cells";
@@ -85,7 +86,7 @@ function usePreferences() {
 
 /**
  * Settings → Appearance & playback: Theme and Default view, then the two playback switches, as one
- * 2×2 panel with one save status (plus the Halloween or Thanksgiving switches in season). Theme (System, Light or Dark) is a
+ * 2×2 panel with one save status (plus the Halloween, Thanksgiving or Christmas switches in season). Theme (System, Light or Dark) is a
  * cookie shared across the Portal hosts (applyThemePreference); the rest live in this browser's localStorage. `#playback`
  * still lands on the playback cells.
  */
@@ -145,6 +146,7 @@ export function AppearanceSection() {
           </SettingsCell>
           <HalloweenCells onSaved={() => flashSaved("Saved")} />
           <ThanksgivingCells onSaved={() => flashSaved("Saved")} />
+          <ChristmasCells onSaved={() => flashSaved("Saved")} />
           <SeasonalGoodiesCell onSaved={() => flashSaved("Saved")} />
         </SettingsGrid>
       </SettingsPanel>

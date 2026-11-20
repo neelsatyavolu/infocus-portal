@@ -25,6 +25,7 @@ import { useShellLink } from "@/components/shell/use-shell-link";
 import { useShellNav } from "@/components/shell/use-shell-nav";
 import { setClientCacheOwner } from "@/src/lib/client-cache";
 import { isRailRoute, isWideRoute } from "@/src/lib/sidebar-nav";
+import { useChristmasActive } from "@/src/lib/use-christmas";
 import { useHalloweenActive } from "@/src/lib/use-halloween";
 import { useSeasonalGoodiesOn } from "@/src/lib/use-seasonal-goodies";
 import { useThanksgivingActive } from "@/src/lib/use-thanksgiving";
@@ -48,6 +49,10 @@ const ThanksgivingGoodies = dynamic(
   () => import("@/components/thanksgiving/thanksgiving-goodies").then((m) => m.ThanksgivingGoodies),
   { ssr: false }
 );
+// Christmas season (or a super admin's preview) only (src/lib/christmas.ts), the same way.
+const ChristmasGoodies = dynamic(() => import("@/components/christmas/christmas-goodies").then((m) => m.ChristmasGoodies), {
+  ssr: false
+});
 // The contest's harvest-hour and final-hour strip under the top bar, the same way.
 const ContestCountdown = dynamic(
   () => import("@/components/thanksgiving/contest-countdown").then((m) => m.ContestCountdown),
@@ -101,6 +106,7 @@ export function AppShell({
   const onMeetHost = useOnMeetHost();
   const halloween = useHalloweenActive();
   const thanksgiving = useThanksgivingActive();
+  const christmas = useChristmasActive();
   const goodiesOn = useSeasonalGoodiesOn();
   // No seasonal visitors (turkey, leaves, pumpkins) on the PA script page.
   const seasonalDecor = chrome && !onMeetHost && !pathname.startsWith(PA_SCRIPT_PATH);
@@ -311,6 +317,7 @@ export function AppShell({
         ) : null}
         {halloween && seasonalGoodies ? <HalloweenGoodies /> : null}
         {thanksgiving && seasonalGoodies ? <ThanksgivingGoodies /> : null}
+        {christmas && seasonalGoodies ? <ChristmasGoodies /> : null}
         {chrome && !onMeetHost && !sampleOnly ? <PrizeChoiceDialog /> : null}
         {canViewAs && viewAsMounted ? (
           <ViewAsMenu currentUser={currentUser} canViewAs={canViewAs} viewingAs={viewingAs} open={viewAsOpen} onOpenChange={setViewAsOpen} />

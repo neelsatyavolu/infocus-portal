@@ -194,18 +194,6 @@ export function OrnamentSprite({ variant = 0 }: { variant?: number }) {
   );
 }
 
-export function HollySprite() {
-  return (
-    <svg viewBox="0 0 48 32" aria-hidden>
-      <path d="M24 18 C18 8 8 10 2 6 C6 12 2 16 6 20 C10 18 14 24 24 18 Z" fill={HOLLY} />
-      <path d="M24 18 C30 8 40 10 46 6 C42 12 46 16 42 20 C38 18 34 24 24 18 Z" fill={DEEP_HOLLY} />
-      <circle cx="20" cy="20" r="4" fill={SCARLET} />
-      <circle cx="28" cy="20" r="4" fill={SCARLET} />
-      <circle cx="24" cy="25" r="4" fill={CHRISTMAS_RED} />
-    </svg>
-  );
-}
-
 /** A decorated tree; the star on top is its own element (christmas-decor.tsx makes it a button). */
 export function TreeSprite() {
   return (

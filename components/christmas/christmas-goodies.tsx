@@ -26,23 +26,23 @@ type Visitor = "gifts" | "gingerbread" | "cocoa" | "sleigh" | "flurry" | "star";
 
 /** How often each visitor turns up, relative to the others. */
 const VISITOR_WEIGHTS: readonly (readonly [Visitor, number])[] = [
-  ["gifts", 36],
+  ["gifts", 40],
   ["gingerbread", 18],
-  ["cocoa", 18],
-  ["sleigh", 12],
-  ["flurry", 12],
-  ["star", 4]
+  ["cocoa", 20],
+  ["sleigh", 8],
+  ["flurry", 8],
+  ["star", 6]
 ];
 const TOTAL_WEIGHT = VISITOR_WEIGHTS.reduce((sum, [, weight]) => sum + weight, 0);
 
-/** First visitor after this long, then one every 8–16 s while the tab is open. */
-const FIRST_VISIT_MS = 2_500;
-const VISIT_MIN_MS = 8_000;
-const VISIT_SPREAD_MS = 8_000;
+/** First visitor after this long, then one every 20–40 s while the tab is open (calm on purpose). */
+const FIRST_VISIT_MS = 6_000;
+const VISIT_MIN_MS = 20_000;
+const VISIT_SPREAD_MS = 20_000;
 const COCOA_STAYS_MS = 15_000;
 const MAX_COCOA = 2;
 const GOLDEN_GIFT_CHANCE = 1 / 60;
-const AMBIENT_VOLUME = 0.5;
+const AMBIENT_VOLUME = 0.35;
 const GONE_MS = 500;
 const CAUGHT_MS = 700;
 const FOG_MS = 7_000;
@@ -244,7 +244,7 @@ function Christmas() {
     }
     switch (visitor) {
       case "gifts":
-        dropGifts(Math.round(between(2, 4)));
+        dropGifts(Math.round(between(1, 3)));
         return;
       case "gingerbread": {
         const duration = between(7, 10);
@@ -261,7 +261,7 @@ function Christmas() {
         flySleigh();
         return;
       case "flurry":
-        blowFlurry(16);
+        blowFlurry(10);
         return;
       case "star": {
         const duration = between(2.6, 3.4);
@@ -459,9 +459,9 @@ function Christmas() {
         snow={!snowOff && !still}
         gifts={gifts}
         show={lightShow}
-        onStar={(at) => {
+        onLightShow={(at) => {
           startLightShow();
-          burst(at.left + at.width / 2, at.top, 16);
+          burst(at.left + at.width / 2, at.top + at.height, 16);
         }}
       />
       <div className="xm-layer">

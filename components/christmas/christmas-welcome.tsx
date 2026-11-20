@@ -10,9 +10,9 @@ import { CocoaSprite, GiftSprite, GingerbreadSprite } from "./sprites";
 const WELCOMED_KEY = "infocus-christmas-welcome";
 
 const WHAT_HAPPENS = [
-  ["The Portal is decorated.", "Lights along the top, snow falling, and a tree in each corner on bigger screens."],
+  ["The Portal is decorated.", "A garland of lights under the top bar, snow on the cards, and a snowy village behind everything."],
   ["Visitors drop by.", "Presents float down, a gingerbread man runs along the bottom and cocoa turns up at the edges. Catch, chase and sip; the Portal keeps count, and your presents pile up under the tree."],
-  ["Look up.", "Santa's sleigh flies over now and then. Wave at him. Shooting stars are rarer."],
+  ["Look up.", "Santa's sleigh flies over now and then. Wave at him. Shooting stars are rarer, and the middle bow on the garland does something."],
   ["Work still works.", "Everything stays clickable underneath. Sleigh bells start after your first click."]
 ] as const;
 
@@ -33,7 +33,7 @@ function markWelcomed() {
 }
 
 /**
- * The first time a browser opens the Portal each December: what the Christmas theme does, a hint
+ * The first time a browser opens the Portal each Christmas season (from Nov 29): what the Christmas theme does, a hint
  * that there are secrets to find, and where to turn things off (Settings → Appearance).
  */
 export function ChristmasWelcome() {

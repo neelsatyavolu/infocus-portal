@@ -14,18 +14,21 @@ import {
 import { isThanksgivingSeason } from "@/src/lib/thanksgiving";
 
 describe("isChristmasSeason", () => {
-  it("runs from December 1 through December 31", () => {
-    expect(isChristmasSeason(new Date(2026, 10, 30, 23, 59))).toBe(false);
+  it("runs from November 29 through December 31", () => {
+    expect(isChristmasSeason(new Date(2026, 10, 28, 23, 59))).toBe(false);
+    expect(isChristmasSeason(new Date(2026, 10, 29, 0, 0))).toBe(true);
+    expect(isChristmasSeason(new Date(2026, 10, 30, 23, 59))).toBe(true);
     expect(isChristmasSeason(new Date(2026, 11, 1, 0, 0))).toBe(true);
+    expect(isChristmasSeason(new Date(2026, 9, 29))).toBe(false);
     expect(isChristmasSeason(new Date(2026, 11, 31, 23, 59))).toBe(true);
     expect(isChristmasSeason(new Date(2027, 0, 1, 0, 0))).toBe(false);
   });
 
-  it("takes over from Thanksgiving the day after it ends", () => {
-    expect(isThanksgivingSeason(new Date(2026, 10, 30))).toBe(true);
-    expect(isChristmasSeason(new Date(2026, 10, 30))).toBe(false);
-    expect(isThanksgivingSeason(new Date(2026, 11, 1))).toBe(false);
-    expect(isChristmasSeason(new Date(2026, 11, 1))).toBe(true);
+  it("takes over the last two days of Thanksgiving's November", () => {
+    expect(isThanksgivingSeason(new Date(2026, 10, 28))).toBe(true);
+    expect(isChristmasSeason(new Date(2026, 10, 28))).toBe(false);
+    expect(isThanksgivingSeason(new Date(2026, 10, 29))).toBe(true);
+    expect(isChristmasSeason(new Date(2026, 10, 29))).toBe(true);
   });
 });
 
@@ -75,7 +78,7 @@ describe("parseChristmasPrefs and isChristmasOn", () => {
     });
   });
 
-  it("is on in December or while previewing, unless turned off", () => {
+  it("is on in season or while previewing, unless turned off", () => {
     const november = new Date(2026, 10, 20);
     const december = new Date(2026, 11, 10);
     expect(isChristmasOn(DEFAULT_CHRISTMAS_PREFS, december)).toBe(true);
@@ -116,7 +119,10 @@ describe("CHRISTMAS_INIT_SCRIPT", () => {
     return classes;
   }
 
-  it("adds the class in December unless this browser turned it off", () => {
+  it("adds the class from November 29 unless this browser turned it off", () => {
+    expect(run(new Date(2026, 10, 29), null, ["thanksgiving"]).has("christmas")).toBe(true);
+    expect(run(new Date(2026, 10, 29), null, ["thanksgiving"]).has("thanksgiving")).toBe(false);
+    expect(run(new Date(2026, 10, 28), null, ["thanksgiving"]).has("christmas")).toBe(false);
     expect(run(new Date(2026, 11, 5), null).has("christmas")).toBe(true);
     expect(run(new Date(2026, 11, 5), '{"off":true}').has("christmas")).toBe(false);
     expect(run(new Date(2026, 11, 5), "broken").has("christmas")).toBe(true);

@@ -1,7 +1,7 @@
 import { HALLOWEEN_CLASS } from "@/src/lib/halloween";
 
 /**
- * Christmas season: December 1 through December 31 (the viewer's local time) the Portal wears the
+ * Christmas season: November 29 through December 31 (the viewer's local time) the Portal wears the
  * InFocus Christmas 2026 Package (`<html class="christmas">`, globals.css: holly green, scarlet,
  * the Santa-hat logos in public/christmas/) and the signed-in shell is decorated: a string of
  * lights along the top, falling snow, a snowy hill with trees, and visitors (falling presents,
@@ -17,8 +17,10 @@ export const CHRISTMAS_CHANGE_EVENT = "infocus-christmas-change";
 /** Named here (not imported) so thanksgiving.ts can import this file without a cycle. */
 const THANKSGIVING_CLASS_NAME = "thanksgiving";
 
-/** December (0-based month 11), every day of it. */
+/** December (0-based month 11). */
 const SEASON_MONTH = 11;
+/** The season opens on November 29 (0-based month 10), taking over the end of Thanksgiving. */
+const OPENS = { month: 10, day: 29 };
 
 export type ChristmasPrefs = {
   /** The viewer turned the season off in this browser. */
@@ -45,7 +47,7 @@ export const DEFAULT_CHRISTMAS_PREFS: ChristmasPrefs = {
 };
 
 export function isChristmasSeason(now: Date): boolean {
-  return now.getMonth() === SEASON_MONTH;
+  return now.getMonth() === SEASON_MONTH || (now.getMonth() === OPENS.month && now.getDate() >= OPENS.day);
 }
 
 export function isChristmasEve(now: Date): boolean {
@@ -96,11 +98,11 @@ export function parseChristmasPrefs(raw: string | null | undefined): ChristmasPr
 }
 
 /**
- * Runs in <head> before first paint, after the Halloween and Thanksgiving scripts, so December
+ * Runs in <head> before first paint, after the Halloween and Thanksgiving scripts, so Christmas
  * pages never flash another season. Same rule as isChristmasOn; while it is on, the other two
  * seasons step aside.
  */
-export const CHRISTMAS_INIT_SCRIPT = `(function(){try{var p=null;try{p=JSON.parse(localStorage.getItem("${CHRISTMAS_STORAGE_KEY}")||"null")}catch(e){}if(p&&p.off===true)return;if(new Date().getMonth()!==${SEASON_MONTH}&&!(p&&p.preview===true))return;var c=document.documentElement.classList;c.add("${CHRISTMAS_CLASS}");c.remove("${THANKSGIVING_CLASS_NAME}");c.remove("${HALLOWEEN_CLASS}");}catch(e){}})();`;
+export const CHRISTMAS_INIT_SCRIPT = `(function(){try{var p=null;try{p=JSON.parse(localStorage.getItem("${CHRISTMAS_STORAGE_KEY}")||"null")}catch(e){}if(p&&p.off===true)return;var d=new Date(),m=d.getMonth();if(m!==${SEASON_MONTH}&&!(m===${OPENS.month}&&d.getDate()>=${OPENS.day})&&!(p&&p.preview===true))return;var c=document.documentElement.classList;c.add("${CHRISTMAS_CLASS}");c.remove("${THANKSGIVING_CLASS_NAME}");c.remove("${HALLOWEEN_CLASS}");}catch(e){}})();`;
 
 /** Words typed outside a text box that set off a secret. */
 export type ChristmasSecret = "snow" | "santa" | "jingle" | "gift" | "merry" | "rudolph";

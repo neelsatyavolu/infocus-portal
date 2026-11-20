@@ -12,7 +12,7 @@ function subscribeNever() {
 }
 
 /**
- * Settings → Appearance in December (or while a super admin previews it): turn the Christmas look
+ * Settings → Appearance from November 29 (or while a super admin previews it): turn the Christmas look
  * and decorations off in this browser, mute the sleigh bells or stop the snow. Super admins also
  * get a Preview switch all year, which turns it on in their browser only.
  */
@@ -39,7 +39,7 @@ export function ChristmasCells({ onSaved }: { onSaved: () => void }) {
         <SettingsCell
           inline
           title="Preview Christmas"
-          description="Super admins only. Shows the December theme in this browser now; nobody else sees it. Type s-a-n-t-a to call the sleigh."
+          description="Super admins only. Shows the Christmas theme in this browser now; nobody else sees it. Type s-a-n-t-a to call the sleigh."
           htmlFor="pref-christmas-preview"
           className="min-h-16"
         >

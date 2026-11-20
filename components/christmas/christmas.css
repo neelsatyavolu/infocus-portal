@@ -1,7 +1,6 @@
 /* Christmas decorations and visitors (components/christmas/christmas-goodies.tsx). Below dialogs (z-50). */
 
-.xm-layer,
-.xm-decor {
+.xm-layer {
   position: fixed;
   inset: 0;
   z-index: 40;
@@ -36,64 +35,83 @@
   to   { transform: translateY(-40px); opacity: 0; }
 }
 
-/* ---------- The string of lights along the top ---------- */
+/* ---------- The garland along the bottom of the top bar (in front, thin) ---------- */
 
-.xm-lights {
-  position: absolute;
-  top: env(safe-area-inset-top, 0px);
+.xm-garland {
+  position: fixed;
   left: 0;
   right: 0;
-  height: 30px;
+  top: var(--app-header-h, 56px);
+  height: 0;
+  z-index: 45;
+  pointer-events: none;
+}
+.xm-garland-rope {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -5px;
+  height: 10px;
+  background:
+    radial-gradient(circle, #D42B2B 0 1.8px, transparent 2.3px) 3px 3px / 61px 10px,
+    radial-gradient(circle, #1F8048 0 3px, transparent 3.6px) 0 0 / 8px 6px,
+    radial-gradient(circle, #13603A 0 3px, transparent 3.6px) 4px 4px / 8px 6px,
+    linear-gradient(#0E4F2D, #0E4F2D) center / 100% 4px no-repeat;
+  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.35));
+}
+.light .xm-garland-rope { filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.15)); }
+.xm-lights {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 3px;
   display: flex;
-  z-index: 1;
 }
 .xm-light {
   position: relative;
   flex: 1 1 0;
-  height: 12px;
-  border-bottom: 2px solid #2B2F2B;
-  border-radius: 0 0 50% 50% / 0 0 100% 100%;
+  height: 0;
 }
-.light .xm-light { border-bottom-color: #4A4F4A; }
 .xm-bulb {
   position: absolute;
   left: 50%;
-  top: 11px;
-  width: 9px;
-  height: 14px;
+  top: 3px;
+  width: 7px;
+  height: 11px;
   translate: -50% 0;
+  transform-origin: 50% 0;
+  rotate: -8deg;
   border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%;
   background: var(--xm-bulb);
-  box-shadow: 0 0 8px 2px var(--xm-glow), 0 0 18px 4px var(--xm-glow);
-  rotate: -7deg;
-  animation: xm-twinkle 2.4s ease-in-out infinite;
-  animation-delay: calc(var(--xm-i) * -0.37s);
+  box-shadow: 0 0 6px 1px var(--xm-glow);
+  animation: xm-twinkle 6s ease-in-out infinite;
+  animation-delay: calc(var(--xm-i) * -0.83s);
 }
-.xm-light:nth-child(even) .xm-bulb { rotate: 7deg; }
+.xm-light:nth-child(even) .xm-bulb { rotate: 8deg; }
 .xm-bulb::before {
   content: "";
   position: absolute;
   left: 50%;
-  top: -4px;
-  width: 6px;
-  height: 5px;
+  top: -3px;
+  width: 5px;
+  height: 4px;
   translate: -50% 0;
   border-radius: 1px;
-  background: #3B403B;
+  background: #2F342F;
 }
-.xm-bulb-red   { --xm-bulb: #FF3B3B; --xm-glow: rgb(255 59 59 / 0.55); }
-.xm-bulb-green { --xm-bulb: #2ED477; --xm-glow: rgb(46 212 119 / 0.5); }
-.xm-bulb-blue  { --xm-bulb: #7CC4FF; --xm-glow: rgb(124 196 255 / 0.5); }
-.xm-bulb-gold  { --xm-bulb: #FFD25A; --xm-glow: rgb(255 210 90 / 0.55); }
-.xm-bulb-white { --xm-bulb: #FFF8E6; --xm-glow: rgb(255 248 230 / 0.5); }
-.light .xm-bulb { box-shadow: 0 0 6px 1px var(--xm-glow); }
+.xm-bulb-red   { --xm-bulb: #F24A4A; --xm-glow: rgb(242 74 74 / 0.45); }
+.xm-bulb-green { --xm-bulb: #34C77A; --xm-glow: rgb(52 199 122 / 0.4); }
+.xm-bulb-blue  { --xm-bulb: #86C5F7; --xm-glow: rgb(134 197 247 / 0.4); }
+.xm-bulb-gold  { --xm-bulb: #F7CC5C; --xm-glow: rgb(247 204 92 / 0.45); }
+.xm-bulb-white { --xm-bulb: #FBF4E2; --xm-glow: rgb(251 244 226 / 0.4); }
+.light .xm-bulb { box-shadow: 0 0 3px var(--xm-glow); }
+/* A slow, gentle shimmer, not a blink. */
 @keyframes xm-twinkle {
-  0%, 100% { opacity: 1; filter: brightness(1.1); }
-  45%      { opacity: 0.55; filter: brightness(0.8); }
-  55%      { opacity: 0.55; filter: brightness(0.8); }
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.7; }
 }
-/* The tree star's light show: every bulb chases fast. */
-.xm-lights[data-show="true"] .xm-bulb {
+/* The middle bow's light show: every bulb chases for a few seconds. */
+.xm-garland[data-show="true"] .xm-bulb {
   animation: xm-chase 0.5s steps(2, jump-none) infinite;
   animation-delay: calc(var(--xm-i) * -0.1s);
 }
@@ -101,22 +119,57 @@
   0%   { opacity: 0.25; }
   100% { opacity: 1; filter: brightness(1.4); }
 }
-.xm-holly {
+.xm-bow {
   position: absolute;
-  top: 0;
-  width: 44px;
+  top: -9px;
+  width: 26px;
+  height: 20px;
+  translate: -50% 0;
 }
-.xm-holly svg { display: block; width: 100%; height: auto; }
-.xm-holly-left { left: 2px; }
-.xm-holly-right { right: 2px; transform: scaleX(-1); }
+.xm-bow svg { display: block; width: 100%; height: 100%; filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.35)); }
+button.xm-bow:hover svg { transform: scale(1.12); }
 
-/* Phones: half the bulbs, so they aren't crowded. */
 @media (max-width: 640px) {
   .xm-light:nth-child(even) { display: none; }
-  .xm-holly { width: 34px; }
+  .xm-bow { width: 22px; height: 17px; }
 }
 
-/* ---------- Falling snow ---------- */
+/* ---------- Behind the content: sky, snow and the winter scene ---------- */
+
+/* <html> paints the page color; <body> goes clear so the backdrop (z-index -1) shows between cards. */
+:root.christmas body { background-color: transparent; }
+.xm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.xm-sky { position: absolute; inset: 0; }
+.xm-sky-star {
+  position: absolute;
+  border-radius: 50%;
+  background: #FFF6D8;
+  opacity: 0.35;
+  animation: xm-star-twinkle 5s ease-in-out var(--xm-delay, 0s) infinite;
+}
+@keyframes xm-star-twinkle {
+  50% { opacity: 0.12; }
+}
+.xm-moon {
+  position: absolute;
+  top: 12%;
+  right: 7%;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  box-shadow: inset -12px 6px 0 0 #F3E9C6;
+  filter: drop-shadow(0 0 14px rgb(243 233 198 / 0.25));
+  opacity: 0.55;
+  rotate: -20deg;
+}
+.light .xm-sky { display: none; }
 
 .xm-snow { position: absolute; inset: 0; }
 .xm-flake {
@@ -124,86 +177,128 @@
   top: -10px;
   border-radius: 50%;
   background: #FFFFFF;
-  box-shadow: 0 0 4px rgb(255 255 255 / 0.6);
   animation: xm-snowfall var(--xm-duration, 14s) linear var(--xm-delay, 0s) infinite;
 }
-.light .xm-flake { background: #B7C8D8; box-shadow: none; }
+.light .xm-flake { background: #AFC2D4; }
 @keyframes xm-snowfall {
   0%   { transform: translate(0, 0); }
   50%  { transform: translate(var(--xm-drift, 20px), 52vh); }
   100% { transform: translate(0, calc(100vh + 20px)); }
 }
 
-/* ---------- The snowy hill and trees (bigger screens only) ---------- */
-
-.xm-hill { display: none; }
-@media (min-width: 1024px) {
-  .xm-hill {
-    display: block;
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 120px;
-  }
+.xm-scene {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 190px;
+  opacity: 0.8;
 }
-.xm-drift {
+.light .xm-scene { opacity: 0.9; }
+.xm-hill-back,
+.xm-hill-front {
   position: absolute;
   left: 0;
   bottom: 0;
   width: 100%;
-  height: 18px;
-  fill: #F4F1E8;
-  opacity: 0.85;
-  filter: drop-shadow(0 -1px 3px rgb(255 255 255 / 0.25));
 }
-.light .xm-drift { fill: #E6ECF1; opacity: 1; filter: none; }
-.xm-tree {
+.xm-hill-back { height: 110px; fill: #2A3530; }
+.xm-hill-front { height: 46px; fill: #E9ECEA; }
+.light .xm-hill-back { fill: #E1E9EF; }
+.light .xm-hill-front { fill: #F4F7FA; }
+.xm-scene-tree {
   position: absolute;
-  bottom: 4px;
-  width: 64px;
+  aspect-ratio: 80 / 110;
+  translate: -50% 0;
 }
-.xm-tree > svg { display: block; width: 100%; height: auto; }
-.xm-tree-left { left: 10px; }
-.xm-tree-right { right: 10px; width: 54px; }
-.xm-tree-lights circle { animation: xm-twinkle 1.8s ease-in-out infinite; }
-.xm-tree-lights circle:nth-child(odd) { animation-delay: -0.9s; }
-.xm-tree-star {
+.xm-scene-tree > svg { display: block; width: 100%; height: 100%; }
+.xm-scene-tree .xm-tree-star {
   position: absolute;
   left: 50%;
-  top: -2px;
-  width: 22px;
-  height: 22px;
-  translate: -50% -55%;
-  filter: drop-shadow(0 0 6px rgb(255 210 90 / 0.9));
-  animation: xm-glint 2.6s ease-in-out infinite;
+  top: 0;
+  width: 26%;
+  aspect-ratio: 1;
+  translate: -50% -45%;
+  filter: drop-shadow(0 0 5px rgb(255 210 90 / 0.7));
 }
 .xm-tree-star svg { display: block; width: 100%; height: 100%; }
-.xm-tree-right .xm-tree-star { width: 20px; height: 20px; }
-button.xm-tree-star:hover { filter: drop-shadow(0 0 12px rgb(255 230 140 / 1)); }
-@keyframes xm-glint {
-  0%, 100% { transform: scale(1) rotate(0); }
-  50%      { transform: scale(1.12) rotate(8deg); }
+.xm-tree-lights circle { animation: xm-twinkle 4s ease-in-out infinite; }
+.xm-tree-lights circle:nth-child(odd) { animation-delay: -2s; }
+.xm-scene[data-show="true"] .xm-tree-lights circle { animation: xm-chase 0.5s steps(2, jump-none) infinite; }
+.xm-cabin {
+  position: absolute;
+  bottom: 30px;
+  width: 104px;
+  translate: -50% 0;
 }
+.xm-cabin svg { display: block; width: 100%; height: auto; overflow: visible; }
+.xm-window { filter: drop-shadow(0 0 8px rgb(255 200 97 / 0.8)); }
+.xm-smoke { animation: xm-steam 4s ease-in-out infinite; }
+.xm-snowman {
+  position: absolute;
+  bottom: 8px;
+  width: 56px;
+  translate: -50% 0;
+}
+.xm-snowman svg { display: block; width: 100%; height: auto; overflow: visible; }
 .xm-pile {
   position: absolute;
-  left: 44px;
-  bottom: 0;
+  bottom: 8px;
   display: flex;
   align-items: flex-end;
 }
 .xm-piled {
-  width: 24px;
+  width: 26px;
   margin-left: -6px;
-  translate: 0 calc(var(--xm-i) * -1px);
   rotate: calc((var(--xm-i) - 3) * 4deg);
   animation: xm-pop-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
-.xm-piled:nth-child(even) { width: 20px; }
+.xm-piled:nth-child(even) { width: 21px; }
 .xm-piled svg { display: block; width: 100%; height: auto; }
 @keyframes xm-pop-in {
   from { transform: scale(0); }
   to   { transform: scale(1); }
+}
+/* Phones: a lower scene with fewer trees. */
+@media (max-width: 640px) {
+  .xm-scene { height: 130px; bottom: var(--phone-tabbar-h, 0px); }
+  .xm-scene-tree:nth-of-type(even), .xm-cabin { display: none; }
+  .xm-snowman { width: 40px; }
+}
+
+/* ---------- Dressing the Portal itself ---------- */
+
+/* A soft cap of snow along the top edge of each card. */
+:root.christmas main :is(.rounded-md, .rounded-lg).border.bg-card { position: relative; }
+:root.christmas main :is(.rounded-md, .rounded-lg).border.bg-card::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  right: -1px;
+  top: -1px;
+  height: 7px;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: 6px 6px 0 0;
+  background: #EEF1F0;
+  opacity: 0.75;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 90 7' preserveAspectRatio='none'%3E%3Cpath d='M0 0H90V3Q84 7 76 4T60 5Q52 2 44 5T28 4Q20 7 12 4T0 4Z'/%3E%3C/svg%3E") top left / 90px 7px repeat-x;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 90 7' preserveAspectRatio='none'%3E%3Cpath d='M0 0H90V3Q84 7 76 4T60 5Q52 2 44 5T28 4Q20 7 12 4T0 4Z'/%3E%3C/svg%3E") top left / 90px 7px repeat-x;
+}
+:root.christmas.light main :is(.rounded-md, .rounded-lg).border.bg-card::before { background: #D3DEE8; opacity: 1; }
+
+/* A Santa hat on the account button. */
+:root.christmas button[aria-label^="Account:"] { position: relative; }
+:root.christmas button[aria-label^="Account:"]::after {
+  content: "";
+  position: absolute;
+  left: -3px;
+  top: -6px;
+  width: 24px;
+  height: 19px;
+  pointer-events: none;
+  rotate: -22deg;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 32'%3E%3Cpath d='M5 24C7 11 18 3 29 6c5 2 8 8 6 15' fill='%23D42B2B'/%3E%3Ccircle cx='34' cy='23' r='4.5' fill='%23F4F1E8'/%3E%3Crect x='1' y='21' width='30' height='9' rx='4.5' fill='%23F4F1E8'/%3E%3C/svg%3E") center / contain no-repeat;
 }
 
 /* ---------- Visitors ---------- */
@@ -454,7 +549,8 @@ button.xm-tree-star:hover { filter: drop-shadow(0 0 12px rgb(255 230 140 / 1)); 
   .xm-welcome-art *,
   .xm-welcome-art > svg,
   .xm-layer *,
-  .xm-decor * {
+  .xm-garland *,
+  .xm-backdrop * {
     animation: none !important;
   }
 }

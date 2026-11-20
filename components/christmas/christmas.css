@@ -192,14 +192,23 @@ button.xm-bow:hover svg { transform: scale(1.12); }
   100% { transform: translate(0, calc(100vh + 20px)); }
 }
 
-/* The village: the page's footer, after <main> in the normal flow, so cards never cut it off. */
+/* The village: pinned to the bottom of the window behind the content (like the sky), beside the
+   sidebar. The spacer after <main> gives every page room to scroll its last card clear of it. */
 .xm-scene {
-  position: relative;
-  flex: none;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: var(--phone-tabbar-h, 0px);
+  z-index: -1;
   height: 170px;
   overflow: hidden;
   pointer-events: none;
   opacity: 0.85;
+}
+.xm-scene-spacer { flex: none; height: 146px; }
+@media (min-width: 1024px) {
+  .xm-scene { left: 240px; }
+  .lg\:pl-16 .xm-scene { left: 4rem; }
 }
 .light .xm-scene { opacity: 0.9; }
 .xm-hill-back,
@@ -268,7 +277,8 @@ button.xm-bow:hover svg { transform: scale(1.12); }
 }
 /* Phones: a lower scene with fewer trees. */
 @media (max-width: 640px) {
-  .xm-scene { height: 130px; margin-bottom: var(--phone-tabbar-h, 0px); }
+  .xm-scene { height: 130px; }
+  .xm-scene-spacer { height: 40px; }
   .xm-scene-tree:nth-of-type(even), .xm-cabin { display: none; }
   .xm-snowman { width: 40px; }
 }

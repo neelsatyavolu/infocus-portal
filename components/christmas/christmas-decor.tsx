@@ -1,7 +1,6 @@
 import { useState, type CSSProperties, type MouseEvent } from "react";
 import { createPortal } from "react-dom";
-import { BowSprite, CabinSprite, SnowmanSprite } from "./scene-sprites";
-import { GiftSprite, TreeSprite, TreeStarSprite } from "./sprites";
+import { BowSprite } from "./scene-sprites";
 
 /** Bulbs on the garland under the top bar (every other one hides on phones, christmas.css). */
 const BULB_COUNT = 40;
@@ -11,21 +10,6 @@ const BOWS = [0.1, 0.36, 0.64, 0.9] as const;
 const SHOW_BOW = 2;
 const FLAKE_COUNT = 45;
 const STAR_COUNT = 40;
-/** Presents caught before the first one shows up under the tree, and how many more per present. */
-export const GIFT_PILE_AT = 10;
-const GIFTS_PER_PILED = 10;
-const MAX_PILED = 7;
-
-/** The scene's trees: [left as a share of the width, height in px, in front (on the near hill)]. */
-const TREES: readonly (readonly [number, number, boolean])[] = [
-  [0.21, 120, false],
-  [0.27, 86, true],
-  [0.52, 104, false],
-  [0.6, 74, true],
-  [0.83, 132, false],
-  [0.9, 92, true],
-  [0.96, 70, false]
-];
 
 type Flake = { left: number; size: number; duration: number; delay: number; drift: number; opacity: number };
 type Star = { left: number; top: number; size: number; delay: number };
@@ -129,62 +113,17 @@ function Sky() {
   );
 }
 
-/** Snowy hills along the bottom with trees, a snowman, a lit cabin and the caught presents. */
-function Scene({ gifts, show }: { gifts: number; show: boolean }) {
-  const piled = gifts < GIFT_PILE_AT ? 0 : Math.min(MAX_PILED, 1 + Math.floor((gifts - GIFT_PILE_AT) / GIFTS_PER_PILED));
-  return (
-    <div className="xm-scene" data-show={show}>
-      <svg className="xm-hill-back" viewBox="0 0 1200 120" preserveAspectRatio="none">
-        <path d="M0 70 Q150 20 320 60 T640 50 T960 40 T1200 60 V120 H0 Z" />
-      </svg>
-      {TREES.filter(([, , front]) => !front).map(([left, height]) => (
-        <span key={left} className="xm-scene-tree" style={{ left: `${left * 100}%`, height, bottom: 34 }}>
-          <TreeSprite />
-          <span className="xm-tree-star">
-            <TreeStarSprite />
-          </span>
-        </span>
-      ))}
-      <span className="xm-cabin" style={{ left: "68%" }}>
-        <CabinSprite />
-      </span>
-      <svg className="xm-hill-front" viewBox="0 0 1200 60" preserveAspectRatio="none">
-        <path d="M0 30 Q120 8 260 26 T560 22 T880 28 T1200 18 V60 H0 Z" />
-      </svg>
-      {TREES.filter(([, , front]) => front).map(([left, height]) => (
-        <span key={left} className="xm-scene-tree" style={{ left: `${left * 100}%`, height, bottom: 6 }}>
-          <TreeSprite />
-          <span className="xm-tree-star">
-            <TreeStarSprite />
-          </span>
-        </span>
-      ))}
-      <span className="xm-snowman" style={{ left: "42%" }}>
-        <SnowmanSprite />
-      </span>
-      <div className="xm-pile" style={{ left: "31%" }}>
-        {Array.from({ length: piled }, (_, index) => (
-          <span key={index} className="xm-piled" style={vars({ "--xm-i": String(index) })}>
-            <GiftSprite variant={index} />
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 /**
- * Behind the content (portaled to <body>, under every card): the night sky, falling snow and the
- * winter scene. In front, only the garland along the bottom of the top bar.
+ * Behind the content (portaled to <body>, under every card): the night sky and falling snow. In
+ * front, only the garland along the bottom of the top bar. The village is the page's footer
+ * (christmas-village.tsx).
  */
 export function ChristmasDecor({
   snow,
-  gifts,
   show,
   onLightShow
 }: {
   snow: boolean;
-  gifts: number;
   show: boolean;
   onLightShow: (at: DOMRect) => void;
 }) {
@@ -194,7 +133,6 @@ export function ChristmasDecor({
         <div className="xm-backdrop" aria-hidden>
           <Sky />
           {snow ? <Snowfall /> : null}
-          <Scene gifts={gifts} show={show} />
         </div>,
         document.body
       )}

@@ -14,6 +14,8 @@ import { HALLOWEEN_CLASS } from "@/src/lib/halloween";
 export const CHRISTMAS_CLASS = "christmas";
 export const CHRISTMAS_STORAGE_KEY = "infocus-christmas";
 export const CHRISTMAS_CHANGE_EVENT = "infocus-christmas-change";
+/** Fired with `detail: true` when the garland's light show starts and `false` when it ends. */
+export const CHRISTMAS_LIGHT_SHOW_EVENT = "infocus-christmas-light-show";
 /** Named here (not imported) so thanksgiving.ts can import this file without a cycle. */
 const THANKSGIVING_CLASS_NAME = "thanksgiving";
 

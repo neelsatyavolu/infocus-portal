@@ -140,7 +140,7 @@ button.xm-bow:hover svg { transform: scale(1.12); }
   .xm-bow { width: 22px; height: 17px; }
 }
 
-/* ---------- Behind the content: sky, snow and the winter scene ---------- */
+/* ---------- Behind the content: sky and snow; then the village footer ---------- */
 
 /* <html> paints the page color; <body> goes clear so the backdrop (z-index -1) shows between cards. */
 :root.christmas body { background-color: transparent; }
@@ -192,13 +192,14 @@ button.xm-bow:hover svg { transform: scale(1.12); }
   100% { transform: translate(0, calc(100vh + 20px)); }
 }
 
+/* The village: the page's footer, after <main> in the normal flow, so cards never cut it off. */
 .xm-scene {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 190px;
-  opacity: 0.8;
+  position: relative;
+  flex: none;
+  height: 170px;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0.85;
 }
 .light .xm-scene { opacity: 0.9; }
 .xm-hill-back,
@@ -267,7 +268,7 @@ button.xm-bow:hover svg { transform: scale(1.12); }
 }
 /* Phones: a lower scene with fewer trees. */
 @media (max-width: 640px) {
-  .xm-scene { height: 130px; bottom: var(--phone-tabbar-h, 0px); }
+  .xm-scene { height: 130px; margin-bottom: var(--phone-tabbar-h, 0px); }
   .xm-scene-tree:nth-of-type(even), .xm-cabin { display: none; }
   .xm-snowman { width: 40px; }
 }

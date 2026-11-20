@@ -53,6 +53,10 @@ const ThanksgivingGoodies = dynamic(
 const ChristmasGoodies = dynamic(() => import("@/components/christmas/christmas-goodies").then((m) => m.ChristmasGoodies), {
   ssr: false
 });
+// Its snowy village, the footer under every page's content.
+const ChristmasVillage = dynamic(() => import("@/components/christmas/christmas-village").then((m) => m.ChristmasVillage), {
+  ssr: false
+});
 // The contest's harvest-hour and final-hour strip under the top bar, the same way.
 const ContestCountdown = dynamic(
   () => import("@/components/thanksgiving/contest-countdown").then((m) => m.ContestCountdown),
@@ -293,6 +297,7 @@ export function AppShell({
                 </div>
               )}
             </main>
+            {christmas && seasonalGoodies && !route.isClassBoard ? <ChristmasVillage /> : null}
           </div>
         </div>
 

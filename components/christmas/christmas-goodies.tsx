@@ -6,6 +6,7 @@ import { useMediaQuery } from "@/components/kit/remembered-state";
 import { unlockSpookySounds } from "@/components/halloween/spooky-sounds";
 import { isRunModeOpen } from "@/src/lib/run-mode-signal";
 import {
+  CHRISTMAS_LIGHT_SHOW_EVENT,
   CHRISTMAS_SECRET_MEMORY,
   daysUntilChristmas,
   isChristmasDay,
@@ -15,9 +16,10 @@ import {
   writeChristmasPrefs
 } from "@/src/lib/christmas";
 import { useChristmasActive, useChristmasPrefs } from "@/src/lib/use-christmas";
-import { ChristmasDecor, GIFT_PILE_AT } from "./christmas-decor";
+import { ChristmasDecor } from "./christmas-decor";
 import { ChristmasSprite, type Sprite } from "./christmas-sprite";
 import { playChristmasSound, type ChristmasSound } from "./christmas-sounds";
+import { GIFT_PILE_AT } from "./christmas-village";
 import { ChristmasWelcome } from "./christmas-welcome";
 import { GIFT_VARIANT_COUNT, ORNAMENT_VARIANT_COUNT } from "./sprites";
 import "./christmas.css";
@@ -123,7 +125,7 @@ export function ChristmasGoodies() {
 function Christmas() {
   const [sprites, setSprites] = useState<Sprite[]>([]);
   const [lightShow, setLightShow] = useState(false);
-  const { muted, snowOff, gifts } = useChristmasPrefs();
+  const { muted, snowOff } = useChristmasPrefs();
   const still = useMediaQuery("(prefers-reduced-motion: reduce)", false);
   const nextId = useRef(0);
   const timers = useRef(new Set<number>());
@@ -337,7 +339,11 @@ function Christmas() {
   const startLightShow = useCallback(() => {
     sound("twinkle");
     setLightShow(true);
-    later(() => setLightShow(false), LIGHT_SHOW_MS);
+    window.dispatchEvent(new CustomEvent(CHRISTMAS_LIGHT_SHOW_EVENT, { detail: true }));
+    later(() => {
+      setLightShow(false);
+      window.dispatchEvent(new CustomEvent(CHRISTMAS_LIGHT_SHOW_EVENT, { detail: false }));
+    }, LIGHT_SHOW_MS);
   }, [later, sound]);
 
   // Secrets: "snow" a blizzard, "santa" the sleigh, "jingle" the song, "gift" a present rain,
@@ -411,7 +417,7 @@ function Christmas() {
         sound("chime");
         const total = bump("gifts");
         cheer(at, `+1 · ${total} presents`);
-        if (total === GIFT_PILE_AT) toast(`${total} presents caught`, { description: "They're starting to pile up under the tree." });
+        if (total === GIFT_PILE_AT) toast(`${total} presents caught`, { description: "Scroll to the bottom of any page: they're piling up in the village." });
         else if (total % 25 === 0) toast(`${total} presents caught`, { description: "Santa's running out of room in the sleigh." });
         return;
       }
@@ -457,7 +463,6 @@ function Christmas() {
     <>
       <ChristmasDecor
         snow={!snowOff && !still}
-        gifts={gifts}
         show={lightShow}
         onLightShow={(at) => {
           startLightShow();

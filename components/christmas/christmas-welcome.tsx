@@ -10,7 +10,7 @@ import { CocoaSprite, GiftSprite, GingerbreadSprite } from "./sprites";
 const WELCOMED_KEY = "infocus-christmas-welcome";
 
 const WHAT_HAPPENS = [
-  ["The Portal is decorated.", "A garland of lights under the top bar, snow on the cards, and a snowy village behind everything."],
+  ["The Portal is decorated.", "A garland of lights under the top bar, snow on the cards, and a snowy village at the bottom of every page."],
   ["Visitors drop by.", "Presents float down, a gingerbread man runs along the bottom and cocoa turns up at the edges. Catch, chase and sip; the Portal keeps count, and your presents pile up under the tree."],
   ["Look up.", "Santa's sleigh flies over now and then. Wave at him. Shooting stars are rarer, and the middle bow on the garland does something."],
   ["Work still works.", "Everything stays clickable underneath. Sleigh bells start after your first click."]
